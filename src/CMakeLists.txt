@@ -1,6 +1,8 @@
 add_library(libdg SHARED
 	DependenceGraph.cpp
 	DependenceGraph.h
+	DGUtil.cpp
+	DGUtil.h
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")

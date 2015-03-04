@@ -9,16 +9,16 @@
 namespace dg {
 namespace debug {
 
-
 enum dbg_domain {
 	ALL = 1,
+	CONTROL,
+	DEPENDENCE,
 };
 
-enum dgb_domain dbg_enabled;
-
+void init(void);
 void _dbg(enum dbg_domain domain, const char *prefix, const char *fmt, ...);
 
-#define dbg(...) _dbg(ALL, "ALL", __VA_ARGS__)
+#define DBG(domain, ...) dg::debug::_dbg((dg::debug::domain), #domain, __VA_ARGS__)
 
 
 } // namespace debug
