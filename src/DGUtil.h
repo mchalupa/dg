@@ -10,10 +10,10 @@ namespace dg {
 namespace debug {
 
 enum dbg_domain {
-	ALL = 1,
-	CONTROL,
-	DEPENDENCE,
-	NODES,
+    ALL = 1,
+    CONTROL,
+    DEPENDENCE,
+    NODES,
 };
 
 void init(void);

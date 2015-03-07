@@ -27,12 +27,12 @@ public:
     typedef DependenceEdgesType::iterator dependence_iterator;
     typedef DependenceEdgesType::const_iterator const_dependence_iterator;
 
-	DGNode();
+    DGNode();
 
     bool addControlEdge(DGNode *n);
     bool addDependenceEdge(DGNode *n);
-	DependenceGraph *addSubgraph(DependenceGraph *);
-	DependenceGraph *addParameters(DependenceGraph *);
+    DependenceGraph *addSubgraph(DependenceGraph *);
+    DependenceGraph *addParameters(DependenceGraph *);
 
     void dump(void) const;
 
@@ -49,8 +49,8 @@ public:
     DependenceGraph *getSubgraph(void) const { return subgraph; }
     DependenceGraph *getParameters(void) const { return parameters; }
 
-	std::pair<DependenceGraph *,
-			  DependenceGraph *> getSubgraphWithParams(void) const;
+    std::pair<DependenceGraph *,
+              DependenceGraph *> getSubgraphWithParams(void) const;
 
 private:
     ControlEdgesType controlEdges;
@@ -61,9 +61,9 @@ private:
     DependenceEdgesType revDependenceEdges;
     
     DependenceGraph *subgraph;
-	// instead of adding parameter in/out nodes to parent
-	// graph, we create new small graph just with these
-	// nodes and summary edges (as dependence edges)
+    // instead of adding parameter in/out nodes to parent
+    // graph, we create new small graph just with these
+    // nodes and summary edges (as dependence edges)
     DependenceGraph *parameters;
 };
 
@@ -83,7 +83,7 @@ public:
     DGNode *removeNode(DGNode *n);
 
     void dump(void) const;
-	const unsigned int getNodesNum(void) const { return nodes_num; }
+    const unsigned int getNodesNum(void) const { return nodes_num; }
 
     iterator begin(void) { return nodes.begin(); }
     const_iterator begin(void) const { return nodes.begin(); }

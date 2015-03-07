@@ -13,32 +13,32 @@ namespace dg {
 // --------------------------------------------------------
 void DGNode::dump(void) const
 {
-	if (subgraph) {
-		fprintf(stderr, "[%p] CALL to [%p]\n", this, subgraph);
+    if (subgraph) {
+        fprintf(stderr, "[%p] CALL to [%p]\n", this, subgraph);
 
-		if (parameters)
-			parameters->dump();
+        if (parameters)
+            parameters->dump();
 
-	} else
-		fprintf(stderr, "[%p]\n", this);
+    } else
+        fprintf(stderr, "[%p]\n", this);
 
-	for ( DGNode *n : controlEdges )
-		fprintf(stderr, "\tC: [%p]\n", n);
+    for ( DGNode *n : controlEdges )
+        fprintf(stderr, "\tC: [%p]\n", n);
 
-	for ( DGNode *n : revControlEdges )
-		fprintf(stderr, "\trC: [%p]\n", n);
+    for ( DGNode *n : revControlEdges )
+        fprintf(stderr, "\trC: [%p]\n", n);
 
-	for ( DGNode *n : dependenceEdges )
-		fprintf(stderr, "\tD: [%p]\n", n);
+    for ( DGNode *n : dependenceEdges )
+        fprintf(stderr, "\tD: [%p]\n", n);
 
-	for ( DGNode *n : revDependenceEdges )
-		fprintf(stderr, "\trD: [%p]\n", n);
+    for ( DGNode *n : revDependenceEdges )
+        fprintf(stderr, "\trD: [%p]\n", n);
 }
 
 void DependenceGraph::dump(void) const
 {
-	for ( auto n : nodes )
-		n->dump();
+    for ( auto n : nodes )
+        n->dump();
 }
 
 // --------------------------------------------------------
@@ -48,14 +48,14 @@ void DependenceGraph::dump(void) const
 DGNode::DGNode()
 :subgraph(NULL), parameters(NULL)
 {
-	DBG(NODES, "Created node [%p]", this);
+    DBG(NODES, "Created node [%p]", this);
 }
 
 std::pair<DependenceGraph *, DependenceGraph *>
 DGNode::getSubgraphWithParams(void) const
 {
-	return std::pair<DependenceGraph *,
-					 DependenceGraph *>	(subgraph, parameters);
+    return std::pair<DependenceGraph *,
+                     DependenceGraph *>    (subgraph, parameters);
 }
 
 bool DGNode::addControlEdge(DGNode *n)
@@ -99,20 +99,20 @@ n->revDependenceEdges.insert(this);
 
 DependenceGraph *DGNode::addSubgraph(DependenceGraph *sub)
 {
-	DependenceGraph *old = subgraph;
-	subgraph = sub;
+    DependenceGraph *old = subgraph;
+    subgraph = sub;
 
-	return old;
+    return old;
 }
 
 DependenceGraph *DGNode::addParameters(DependenceGraph *params)
 {
-	DependenceGraph *old = parameters;
+    DependenceGraph *old = parameters;
 
-	assert(subgraph && "BUG: setting parameters without subgraph");
+    assert(subgraph && "BUG: setting parameters without subgraph");
 
-	parameters = params;
-	return old;
+    parameters = params;
+    return old;
 }
 
 // --------------------------------------------------------
@@ -129,26 +129,26 @@ DependenceGraph::DependenceGraph()
 
 DGNode *DependenceGraph::setEntry(DGNode *n)
 {
-	DGNode *oldEnt = entryNode;
-	entryNode = n;
+    DGNode *oldEnt = entryNode;
+    entryNode = n;
 
-	return oldEnt;
+    return oldEnt;
 }
 
 bool DependenceGraph::addNode(DGNode *n)
 {
-	bool ret = nodes.insert(n).second;
-	if (ret)
-		++nodes_num;
+    bool ret = nodes.insert(n).second;
+    if (ret)
+        ++nodes_num;
 
-	return ret;
+    return ret;
 }
 
 DGNode *DependenceGraph::removeNode(DGNode *n)
 {
-	// XXX remove the edges
-	--nodes_num;
-	return n;
+    // XXX remove the edges
+    --nodes_num;
+    return n;
 }
 
 
