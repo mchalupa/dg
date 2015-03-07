@@ -135,9 +135,11 @@ DGNode *DependenceGraph::setEntry(DGNode *n)
 	return oldEnt;
 }
 
-DGNode *DependenceGraph::addNode(DGNode *n)
+bool DependenceGraph::addNode(DGNode *n)
 {
-	nodes_num += nodes.insert(n).second;
+	bool ret = nodes.insert(n).second;
+	nodes_num += ret;
+
 	return n;
 }
 
