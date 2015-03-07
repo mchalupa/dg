@@ -79,7 +79,7 @@ public:
 
     DGNode *getEntry(void) const { return entryNode; }
     DGNode *setEntry(DGNode *n);
-    DGNode *addNode(DGNode *n);
+    bool addNode(DGNode *n);
     DGNode *removeNode(DGNode *n);
 
     void dump(void) const;

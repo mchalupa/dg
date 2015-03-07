@@ -138,9 +138,10 @@ DGNode *DependenceGraph::setEntry(DGNode *n)
 bool DependenceGraph::addNode(DGNode *n)
 {
 	bool ret = nodes.insert(n).second;
-	nodes_num += ret;
+	if (ret)
+		++nodes_num;
 
-	return n;
+	return ret;
 }
 
 DGNode *DependenceGraph::removeNode(DGNode *n)
