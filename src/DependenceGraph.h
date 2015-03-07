@@ -27,12 +27,14 @@ public:
     typedef DependenceEdgesType::iterator dependence_iterator;
     typedef DependenceEdgesType::const_iterator const_dependence_iterator;
 
+	DGNode();
+
     bool addControlEdge(DGNode *n);
     bool addDependenceEdge(DGNode *n);
+	DependenceGraph *addSubgraph(DependenceGraph *);
+	DependenceGraph *addParameters(DependenceGraph *);
 
-#ifdef DEBUG
     void dump(void) const;
-#endif
 
     control_iterator control_begin(void) { return controlEdges.begin(); }
     const_control_iterator control_begin(void) const { return controlEdges.begin(); }
@@ -45,6 +47,7 @@ public:
     const_dependence_iterator dependence_end(void) const { return dependenceEdges.end(); }
 
     DependenceGraph *getSubgraph(void) const { return subgraph; }
+    DependenceGraph *getParameters(void) const { return parameters; }
 
 	std::pair<DependenceGraph *,
 			  DependenceGraph *> getSubgraphWithParams(void) const;
@@ -54,8 +57,8 @@ private:
     DependenceEdgesType dependenceEdges;
     
     // Nodes that have control/dep edge to this node
-    ControlEdgesType refControlEdges;
-    DependenceEdgesType refDependenceEdges;
+    ControlEdgesType revControlEdges;
+    DependenceEdgesType revDependenceEdges;
     
     DependenceGraph *subgraph;
 	// instead of adding parameter in/out nodes to parent
@@ -68,23 +71,19 @@ private:
 class DependenceGraph
 {
 public:
-    DependenceGraph()
-    {
-#ifdef DEBUG
-    debug::init();
-#endif
-    }
+    DependenceGraph();
 
     typedef std::set<DGNode *> ContainerType;
     typedef ContainerType::iterator iterator;
     typedef ContainerType::const_iterator const_iterator;
 
     DGNode *getEntry(void) const { return entryNode; }
-    DGNode *addNode(DGNode *n) { nodes.insert(n); return n; }
+    DGNode *setEntry(DGNode *n);
+    DGNode *addNode(DGNode *n);
+    DGNode *removeNode(DGNode *n);
 
-#ifdef DEBUG
     void dump(void) const;
-#endif
+	const unsigned int getNodesNum(void) const { return nodes_num; }
 
     iterator begin(void) { return nodes.begin(); }
     const_iterator begin(void) const { return nodes.begin(); }
@@ -93,6 +92,7 @@ public:
 private:
     DGNode *entryNode;
     ContainerType nodes;
+    unsigned int nodes_num;
 };
 
 } // namespace dg

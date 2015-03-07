@@ -1,34 +1,37 @@
 // XXX license
 
 #include <cassert>
-
-#ifdef DEBUG
 #include <cstdio>
-#endif
 
 #include "DependenceGraph.h"
 #include "DGUtil.h"
 
 namespace dg {
 
-#ifdef DEBUG
+// --------------------------------------------------------
+// --- Dumping/printing graph
+// --------------------------------------------------------
 void DGNode::dump(void) const
 {
-	if (subgraph)
+	if (subgraph) {
 		fprintf(stderr, "[%p] CALL to [%p]\n", this, subgraph);
-	else
+
+		if (parameters)
+			parameters->dump();
+
+	} else
 		fprintf(stderr, "[%p]\n", this);
 
 	for ( DGNode *n : controlEdges )
 		fprintf(stderr, "\tC: [%p]\n", n);
 
-	for ( DGNode *n : refControlEdges )
+	for ( DGNode *n : revControlEdges )
 		fprintf(stderr, "\trC: [%p]\n", n);
 
 	for ( DGNode *n : dependenceEdges )
 		fprintf(stderr, "\tD: [%p]\n", n);
 
-	for ( DGNode *n : refDependenceEdges )
+	for ( DGNode *n : revDependenceEdges )
 		fprintf(stderr, "\trD: [%p]\n", n);
 }
 
@@ -37,7 +40,16 @@ void DependenceGraph::dump(void) const
 	for ( auto n : nodes )
 		n->dump();
 }
-#endif // DEBUG
+
+// --------------------------------------------------------
+// --- DGNode
+// --------------------------------------------------------
+
+DGNode::DGNode()
+:subgraph(NULL), parameters(NULL)
+{
+	DBG(NODES, "Created node [%p]", this);
+}
 
 std::pair<DependenceGraph *, DependenceGraph *>
 DGNode::getSubgraphWithParams(void) const
@@ -48,31 +60,31 @@ DGNode::getSubgraphWithParams(void) const
 
 bool DGNode::addControlEdge(DGNode *n)
 {
-#ifdef DEBUG
+#ifdef DEBUG_ENABLED
     bool ret1, ret2;
 
-    ret1 = n->refControlEdges.insert(this).second;
-    ret2 = n->controlEdges.insert(n).second;
+    ret1 = n->revControlEdges.insert(this).second;
+    ret2 = controlEdges.insert(n).second;
 
-    // make sure we don't have this edge yet
+    // we either have both edges or none
     assert(ret1 == ret2);
 
     DBG(CONTROL, "Added control edge [%p]->[%p]\n", this, n);
 
     return ret2;
 #else
-    n->refControlEdges.insert(this);
-    return n->controlEdges.insert(n).second;
+    n->revControlEdges.insert(this);
+    return controlEdges.insert(n).second;
 #endif
 }
 
 bool DGNode::addDependenceEdge(DGNode *n)
 {
-#ifdef DEBUG
+#ifdef DEBUG_ENABLED
     bool ret1, ret2;
 
-    ret1 = n->refDependenceEdges.insert(this).second;
-    ret2 = n->dependenceEdges.insert(n).second;
+    ret1 = n->revDependenceEdges.insert(this).second;
+    ret2 = dependenceEdges.insert(n).second;
 
     assert(ret1 == ret2);
 
@@ -80,9 +92,61 @@ bool DGNode::addDependenceEdge(DGNode *n)
 
     return ret2;
 #else
-    n->refDependenceEdges.insert(this);
-    return n->dependenceEdges.insert(n).second;
+n->revDependenceEdges.insert(this);
+    return dependenceEdges.insert(n).second;
 #endif
 }
+
+DependenceGraph *DGNode::addSubgraph(DependenceGraph *sub)
+{
+	DependenceGraph *old = subgraph;
+	subgraph = sub;
+
+	return old;
+}
+
+DependenceGraph *DGNode::addParameters(DependenceGraph *params)
+{
+	DependenceGraph *old = parameters;
+
+	assert(subgraph && "BUG: setting parameters without subgraph");
+
+	parameters = params;
+	return old;
+}
+
+// --------------------------------------------------------
+// --- DependenceGraph
+// --------------------------------------------------------
+
+DependenceGraph::DependenceGraph()
+:entryNode(NULL), nodes_num(0)
+{
+#ifdef DEBUG_ENABLED
+    debug::init();
+#endif
+}
+
+DGNode *DependenceGraph::setEntry(DGNode *n)
+{
+	DGNode *oldEnt = entryNode;
+	entryNode = n;
+
+	return oldEnt;
+}
+
+DGNode *DependenceGraph::addNode(DGNode *n)
+{
+	nodes_num += nodes.insert(n).second;
+	return n;
+}
+
+DGNode *DependenceGraph::removeNode(DGNode *n)
+{
+	// XXX remove the edges
+	--nodes_num;
+	return n;
+}
+
 
 } // namespace dg

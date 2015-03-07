@@ -14,7 +14,7 @@ static bool check(int expr, const char *func, const char *fmt, ...)
     if (expr)
         return false;
 
-	fprintf(stderr, "%s -", func);
+	fprintf(stderr, "%s - ", func);
 
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -32,6 +32,24 @@ static bool check(int expr, const char *func, const char *fmt, ...)
     do { if (__chck_ret) (d)->dump(); } while(0)
 #define chck(expr, ...)    \
     do { __chck_ret |= check((expr), __func__, __VA_ARGS__); } while(0)
+
+static bool constructors_test(void)
+{
+    chck_init();
+
+    DependenceGraph d;
+
+	chck(d.getEntry() == NULL, "BUG: garbage in entry");
+	chck(d.getNodesNum() == 0, "BUG: garbage in nodes_num");
+
+    DGNode n;
+
+	chck(n.getSubgraph() == NULL, "BUG: garbage in subgraph");
+	chck(n.getParameters() == NULL, "BUG: garbage in parameters");
+
+    chck_dump(&d);
+    chck_ret();
+}
 
 static bool add_test1(void)
 {
@@ -69,7 +87,7 @@ static bool add_test1(void)
         ++nn;
     }
 
-    chck(nn == 2, "BUG: adding dep edges, has %d instead of 1", nn);
+    chck(nn == 1, "BUG: adding dep edges, has %d instead of 1", nn);
 
     chck_dump(&d);
     chck_ret();
@@ -79,6 +97,7 @@ int main(int argc, char *argv[])
 {
     bool ret = false;
 
+	ret |= constructors_test();
     ret |= add_test1();
 
     return ret;

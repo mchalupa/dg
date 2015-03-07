@@ -3,7 +3,7 @@
 
 #include "DGUtil.h"
 
-#ifdef DEBUG
+#ifdef DEBUG_ENABLED
 
 #include <cstdarg>
 #include <cstdio>
@@ -46,7 +46,7 @@ void _dbg(enum dbg_domain domain, const char *prefix, const char *fmt, ...)
 	va_end(args);
 }
 
-#endif // DEBUG
-
 } // namespace debug
 } // namespace dg
+
+#endif // DEBUG_ENABLED

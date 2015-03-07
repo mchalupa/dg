@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 # define DEBUG by default for now
-add_definitions(-DDEBUG)
+add_definitions(-DDEBUG_ENABLED)
 
 if (LLVM_DG)
 	find_package(LLVM REQUIRED CONFIG)
