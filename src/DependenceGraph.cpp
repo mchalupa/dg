@@ -84,7 +84,7 @@ bool DependenceGraph::dumpToDot(const char *file,
 // --------------------------------------------------------
 
 DGNode::DGNode()
-:subgraph(NULL), parameters(NULL)
+:subgraph(NULL), parameters(NULL), dfs_run(0)
 {
     DBG(NODES, "Created node [%p]", this);
 }
@@ -158,7 +158,7 @@ DependenceGraph *DGNode::addParameters(DependenceGraph *params)
 // --------------------------------------------------------
 
 DependenceGraph::DependenceGraph()
-:entryNode(NULL), nodes_num(0)
+:entryNode(NULL), nodes_num(0), dfs_run(0)
 {
 #ifdef DEBUG_ENABLED
     debug::init();
@@ -188,6 +188,5 @@ DGNode *DependenceGraph::removeNode(DGNode *n)
     --nodes_num;
     return n;
 }
-
 
 } // namespace dg

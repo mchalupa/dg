@@ -133,6 +133,43 @@ static bool add_test1(void)
     chck_ret();
 }
 
+class TestNode : public dg::DGNode
+{
+public:
+    TestNode():visited_num(0) {}
+
+    void inc(void) { ++visited_num; }
+    int visited_num;
+};
+
+static void visit_func(DGNode *n, int d)
+{
+    (void) d;
+    TestNode *t = reinterpret_cast<TestNode *>(n);
+    t->inc();
+}
+
+static bool dfs_test1(void)
+{
+    chck_init();
+
+    DependenceGraph d;
+    DGNode *n1, *n2;
+
+    n1 = new TestNode();
+    n2 = new TestNode();
+    n1->addControlEdge(n2);
+
+    d.addNode(n1);
+    d.addNode(n2);
+
+    //d.DFS(n1, visit_func, NULL);
+
+    delete n1;
+    delete n2;
+}
+
+
 int main(int argc, char *argv[])
 {
     bool ret = false;
