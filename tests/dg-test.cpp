@@ -29,7 +29,9 @@ static bool check(int expr, const char *func, const char *fmt, ...)
 // return false when some check failed
 #define chck_ret() return __chck_ret;
 #define chck_dump(d)\
-    do { if (__chck_ret) (d)->dump(); } while(0)
+    do { if (__chck_ret) \
+        {(d)->dump(); (d)->dumpToDot("last_test.dot"); }\
+    } while(0)
 #define chck(expr, ...)    \
     do { __chck_ret |= check((expr), __func__, __VA_ARGS__); } while(0)
 
