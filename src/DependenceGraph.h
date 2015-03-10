@@ -7,8 +7,8 @@
 #include <utility>
 #include <set>
 #include <queue>
+#include <map>
 #include <cassert>
-#include <cstdio>
 
 #include "DGUtil.h"
 
@@ -137,6 +137,7 @@ public:
     }
 
     Key getKey(void) { return key; }
+    const Key getKey(void) const { return key; }
 
 private:
     // this is specific value that identifies this node
@@ -167,8 +168,13 @@ template <typename Key>
 class DependenceGraph
 {
 public:
+    typedef DGNode<Key>* ValueType;
+    typedef std::map<Key, ValueType> ContainerType;
+    typedef typename ContainerType::iterator iterator;
+    typedef typename ContainerType::const_iterator const_iterator;
+
     DependenceGraph<Key>()
-    :entryNode(NULL), nodes_num(0), dfs_run(0)
+    :entryNode(NULL), dfs_run(0)
     {
 #ifdef DEBUG_ENABLED
         debug::init();
@@ -176,6 +182,17 @@ public:
     }
 
     virtual ~DependenceGraph<Key>() {}
+
+    // iterators
+    iterator begin(void) { return nodes.begin(); }
+    const_iterator begin(void) const { return nodes.begin(); }
+    iterator end(void) { return nodes.end(); }
+    const_iterator end(void) const { return nodes.end(); }
+
+    ValueType operator[](Key k) { return nodes[k]; }
+    const ValueType operator[](Key k) const { return nodes[k]; }
+    // reference getter for fast include-if-null operation
+    ValueType& getRef(Key k) { return nodes[k]; }
 
     DGNode<Key> *setEntry(DGNode<Key> *n)
     {
@@ -190,11 +207,30 @@ public:
     bool addNode(DGNode<Key> *n)
     {
         Key k = n->getKey();
+	nodes.insert(std::make_pair(k, n));
     }
 
-    DGNode<Key> *removeNode(Key k);
+    DGNode<Key> *removeNode(Key k)
+    {
+	auto n = nodes.find(n);
+	if (n == nodes.end())
+		return NULL;
 
-    const unsigned int getNodesNum(void) const { return nodes_num; }
+	nodes.erase(n);
+
+	// remove edges
+	assert(0 && "Remove edges");
+
+	return n;
+    }
+
+    DGNode<Key> *removeNode(DGNode<Key> *n)
+    {
+	return removeNode(n->getKey());
+    }
+
+
+    const unsigned int getSize(void) const { return nodes.size(); }
 
     // make DFS on graph, using control and/or deps edges
     template <typename F, typename D>
@@ -254,6 +290,8 @@ public:
     }
 
 private:
+    ContainerType nodes;
+
     template <typename Q, typename IT>
     void DFSProcessEdges(IT begin, IT end, Q& queue, unsigned int run_id)
     {
@@ -269,7 +307,7 @@ private:
     }
 
     DGNode<Key> *entryNode;
-    unsigned int nodes_num;
+
     // counter for dfs_runs
     unsigned int dfs_run;
 };

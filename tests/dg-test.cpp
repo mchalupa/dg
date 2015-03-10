@@ -3,6 +3,8 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "../src/LLVMDependenceGraph.h"
+
 using namespace dg;
 
 class TestDG : public DependenceGraph<int>
@@ -99,7 +101,7 @@ static bool constructors_test(void)
     TestDG d;
 
 	chck(d.getEntry() == NULL, "BUG: garbage in entry");
-	chck(d.getNodesNum() == 0, "BUG: garbage in nodes_num");
+	chck(d.getSize() == 0, "BUG: garbage in nodes_num");
 
     TestNode n;
 
@@ -149,13 +151,13 @@ static bool add_test1(void)
     }
 
     chck(nn == 1, "BUG: adding dep edges, has %d instead of 1", nn);
-	chck(d.getNodesNum() == 2, "BUG: wrong nodes num");
+	chck(d.getSize() == 2, "BUG: wrong nodes num");
 
 	// adding the same node should not increase number of nodes
     chck(!d.addNode(&n1), "should get false when adding same node");
-	chck(d.getNodesNum() == 2, "BUG: wrong nodes num (2)");
+	chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
     chck(!d.addNode(&n2), "should get false when adding same node (2)");
-	chck(d.getNodesNum() == 2, "BUG: wrong nodes num (2)");
+	chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
 
 	// don't trust just the counter
 	n = 0;
