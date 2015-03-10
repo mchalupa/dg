@@ -9,6 +9,16 @@ class TestDG : public DependenceGraph<int>
 {
 };
 
+static unsigned int id = 0;
+
+class TestNode : public DGNode<int>
+{
+public:
+    TestNode() :DGNode<int>(++id), dfs_visited(0) {};
+
+    unsigned int dfs_visited;
+};
+
 static void dump_to_dot(const DGNode<int> *n, FILE *f)
 {
     for (auto I = n->control_begin(), E = n->control_end();
@@ -86,12 +96,12 @@ static bool constructors_test(void)
 {
     chck_init();
 
-    DependenceGraph<int> d;
+    TestDG d;
 
 	chck(d.getEntry() == NULL, "BUG: garbage in entry");
 	chck(d.getNodesNum() == 0, "BUG: garbage in nodes_num");
 
-    DGNode<int> n(0);
+    TestNode n;
 
 	chck(n.getSubgraph() == NULL, "BUG: garbage in subgraph");
 	chck(n.getParameters() == NULL, "BUG: garbage in parameters");
@@ -104,8 +114,8 @@ static bool add_test1(void)
 {
     chck_init();
 
-    DependenceGraph<int> d;
-    DGNode<int> n1(0), n2(1);
+    TestDG d;
+    TestNode n1, n2;
 
     chck(n1.addControlEdge(&n2), "adding C edge claims it is there");
     chck(n2.addDependenceEdge(&n1), "adding D edge claims it is there");
@@ -183,44 +193,6 @@ static bool add_test1(void)
     chck_dump(&d);
     chck_ret();
 }
-
-/*
-class TestNode : public dg::DGNode
-{
-public:
-    TestNode():visited_num(0) {}
-
-    void inc(void) { ++visited_num; }
-    int visited_num;
-};
-
-static void visit_func(DGNode *n, int d)
-{
-    (void) d;
-    TestNode *t = reinterpret_cast<TestNode *>(n);
-    t->inc();
-}
-
-static bool dfs_test1(void)
-{
-    chck_init();
-
-    DependenceGraph d;
-    DGNode *n1, *n2;
-
-    n1 = new TestNode();
-    n2 = new TestNode();
-    n1->addControlEdge(n2);
-
-    d.addNode(n1);
-    d.addNode(n2);
-
-    //d.DFS(n1, visit_func, NULL);
-
-    delete n1;
-    delete n2;
-}
-*/
 
 int main(int argc, char *argv[])
 {
