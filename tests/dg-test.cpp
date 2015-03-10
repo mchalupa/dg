@@ -52,11 +52,9 @@ void print_to_dot(DependenceGraph<Key> *dg,
     if (dg->getEntry()) {
         dg->DFS(dg->getEntry(), dump_to_dot, out);
     } else {
-        /*
-        for (DGNode *n : nodes) {
-            dump_to_dot(n, out);
+        for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
+            dump_to_dot(I->second, out);
         }
-        */
     }
 
     fprintf(out, "}\n");
@@ -66,14 +64,14 @@ void print_to_dot(DependenceGraph<Key> *dg,
 
 /* return true when expr is violated and false when
  * it is OK */
-static bool check(int expr, const char *func, const char *fmt, ...)
+static bool check(int expr, const char *func, int line, const char *fmt, ...)
 {
     va_list args;
 
     if (expr)
         return false;
 
-	fprintf(stderr, "%s - ", func);
+    fprintf(stderr, "%s:%d - ", func, line);
 
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
@@ -92,7 +90,7 @@ static bool check(int expr, const char *func, const char *fmt, ...)
         {print_to_dot((d)); }\
     } while(0)
 #define chck(expr, ...)    \
-    do { __chck_ret |= check((expr), __func__, __VA_ARGS__); } while(0)
+    do { __chck_ret |= check((expr), __func__, __LINE__, __VA_ARGS__); } while(0)
 
 static bool constructors_test(void)
 {
@@ -100,13 +98,13 @@ static bool constructors_test(void)
 
     TestDG d;
 
-	chck(d.getEntry() == NULL, "BUG: garbage in entry");
-	chck(d.getSize() == 0, "BUG: garbage in nodes_num");
+    chck(d.getEntry() == NULL, "BUG: garbage in entry");
+    chck(d.getSize() == 0, "BUG: garbage in nodes_num");
 
     TestNode n;
 
-	chck(n.getSubgraph() == NULL, "BUG: garbage in subgraph");
-	chck(n.getParameters() == NULL, "BUG: garbage in parameters");
+    chck(n.getSubgraph() == NULL, "BUG: garbage in subgraph");
+    chck(n.getParameters() == NULL, "BUG: garbage in parameters");
 
     chck_dump(&d);
     chck_ret();
@@ -124,6 +122,9 @@ static bool add_test1(void)
 
     d.addNode(&n1);
     d.addNode(&n2);
+
+    d.setEntry(&n1);
+    chck(d.getEntry() == &n1, "BUG: Entry setter");
 
     int n = 0;
     /*
@@ -151,16 +152,16 @@ static bool add_test1(void)
     }
 
     chck(nn == 1, "BUG: adding dep edges, has %d instead of 1", nn);
-	chck(d.getSize() == 2, "BUG: wrong nodes num");
+    chck(d.getSize() == 2, "BUG: wrong nodes num");
 
-	// adding the same node should not increase number of nodes
+    // adding the same node should not increase number of nodes
     chck(!d.addNode(&n1), "should get false when adding same node");
-	chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
+    chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
     chck(!d.addNode(&n2), "should get false when adding same node (2)");
-	chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
+    chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
 
-	// don't trust just the counter
-	n = 0;
+    // don't trust just the counter
+    n = 0;
     /*
     for (auto I = d.begin(), E = d.end(); I != E; ++I)
         ++n;
@@ -168,14 +169,14 @@ static bool add_test1(void)
 
     chck(n == 2, "BUG: wrong number of nodes in graph", n);
 
-	// we're not a multi-graph, each edge is there only once
-	// try add multiple edges
+    // we're not a multi-graph, each edge is there only once
+    // try add multiple edges
     chck(!n1.addControlEdge(&n2),
-		 "adding multiple C edge claims it is not there");
+         "adding multiple C edge claims it is not there");
     chck(!n2.addDependenceEdge(&n1),
-		 "adding multiple D edge claims it is not there");
+         "adding multiple D edge claims it is not there");
 
-	nn = 0;
+    nn = 0;
     for (auto ni = n1.control_begin(), ne = n1.control_end(); ni != ne; ++ni){
         chck(*ni == &n2, "got wrong control edge (2)");
         ++nn;
@@ -200,7 +201,7 @@ int main(int argc, char *argv[])
 {
     bool ret = false;
 
-	ret |= constructors_test();
+    ret |= constructors_test();
     ret |= add_test1();
 
     return ret;

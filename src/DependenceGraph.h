@@ -229,7 +229,6 @@ public:
 	return removeNode(n->getKey());
     }
 
-
     const unsigned int getSize(void) const { return nodes.size(); }
 
     // make DFS on graph, using control and/or deps edges
