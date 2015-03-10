@@ -1,5 +1,4 @@
 add_library(libdg SHARED
-	DependenceGraph.cpp
 	DependenceGraph.h
 	DGUtil.cpp
 	DGUtil.h
