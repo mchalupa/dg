@@ -5,7 +5,7 @@ endif (LLVM_DG)
 include_directories('../src')
 
 add_executable(dg-test dg-test.cpp)
-target_link_libraries(dg-test libdg)
+target_link_libraries(dg-test dg)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 

@@ -5,6 +5,53 @@
 
 using namespace dg;
 
+class TestDG : public DependenceGraph<int>
+{
+};
+
+static void dump_to_dot(const DGNode<int> *n, FILE *f)
+{
+    for (auto I = n->control_begin(), E = n->control_end();
+         I != E; ++I)
+        fprintf(f, "\tNODE%p -> NODE%p;\n", n, *I);
+    for (auto I = n->dependence_begin(), E = n->dependence_end();
+         I != E; ++I)
+        fprintf(f, "\tNODE%p -> NODE%p [color=red];\n", n, *I);
+}
+
+template<typename Key>
+void print_to_dot(DependenceGraph<Key> *dg,
+                  const char *file = "last_test.dot",
+                  const char *description = NULL)
+{
+    // we have stdio included, do not use streams for such
+    // easy task
+    FILE *out = fopen(file, "w");
+    if (!out) {
+        fprintf(stderr, "Failed opening file %s\n", file);
+        return;
+    }
+
+    fprintf(out, "digraph \"%s\" {\n",
+            description ? description : "DependencyGraph");
+
+    // if we have entry node, use it as a root
+    // otherwise just dump the graph somehow
+    if (dg->getEntry()) {
+        dg->DFS(dg->getEntry(), dump_to_dot, out);
+    } else {
+        /*
+        for (DGNode *n : nodes) {
+            dump_to_dot(n, out);
+        }
+        */
+    }
+
+    fprintf(out, "}\n");
+    fclose(out);
+}
+
+
 /* return true when expr is violated and false when
  * it is OK */
 static bool check(int expr, const char *func, const char *fmt, ...)
@@ -30,7 +77,7 @@ static bool check(int expr, const char *func, const char *fmt, ...)
 #define chck_ret() return __chck_ret;
 #define chck_dump(d)\
     do { if (__chck_ret) \
-        {(d)->dump(); (d)->dumpToDot("last_test.dot"); }\
+        {print_to_dot((d)); }\
     } while(0)
 #define chck(expr, ...)    \
     do { __chck_ret |= check((expr), __func__, __VA_ARGS__); } while(0)

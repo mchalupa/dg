@@ -138,32 +138,6 @@ public:
 
     Key getKey(void) { return key; }
 
-
-    void dump(void) const
-    {
-        if (subgraph) {
-            fprintf(stderr, "[%p] CALL to [%p]\n", this, subgraph);
-
-            if (parameters)
-                parameters->dump();
-
-        } else
-            fprintf(stderr, "[%p]\n", this);
-
-        for ( DGNode *n : controlEdges )
-            fprintf(stderr, "\tC: [%p]\n", n);
-
-        for ( DGNode *n : revControlEdges )
-            fprintf(stderr, "\trC: [%p]\n", n);
-
-        for ( DGNode *n : dependenceEdges )
-            fprintf(stderr, "\tD: [%p]\n", n);
-
-        for ( DGNode *n : revDependenceEdges )
-            fprintf(stderr, "\trD: [%p]\n", n);
-    }
-
-
 private:
     // this is specific value that identifies this node
     Key key;
@@ -219,14 +193,6 @@ public:
     }
 
     DGNode<Key> *removeNode(Key k);
-
-    void dump(void) const
-    {
-    }
-
-    bool dumpToDot(const char *file, const char *description = NULL)
-    {
-    }
 
     const unsigned int getNodesNum(void) const { return nodes_num; }
 
