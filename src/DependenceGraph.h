@@ -17,7 +17,10 @@ namespace dg {
 template <typename Key>
 class DependenceGraph;
 
-// one node in DependenceGraph
+/// --------------------------------------------------------
+//  -- DGNode
+//     one node in DependenceGraph
+/// --------------------------------------------------------
 template <typename Key>
 class DGNode
 {
@@ -81,25 +84,25 @@ public:
     unsigned int getDFSrun(void) const { return dfs_run; }
     unsigned int setDFSrun(unsigned int r) { dfs_run = r; }
 
-    /* control dependency edges iterators */
+    // control dependency edges iterators
     control_iterator control_begin(void) { return controlEdges.begin(); }
     const_control_iterator control_begin(void) const { return controlEdges.begin(); }
     control_iterator control_end(void) { return controlEdges.end(); }
     const_control_iterator control_end(void) const { return controlEdges.end(); }
 
-    /* reverse control dependency edges iterators */
+    // reverse control dependency edges iterators
     control_iterator rev_control_begin(void) { return revControlEdges.begin(); }
     const_control_iterator rev_control_begin(void) const { return revControlEdges.begin(); }
     control_iterator rev_control_end(void) { return revControlEdges.end(); }
     const_control_iterator rev_control_end(void) const { return revControlEdges.end(); }
 
-    /* data dependency edges iterators */
+    // data dependency edges iterators
     dependence_iterator dependence_begin(void) { return dependenceEdges.begin(); }
     const_dependence_iterator dependence_begin(void) const { return dependenceEdges.begin(); }
     dependence_iterator dependence_end(void) { return dependenceEdges.end(); }
     const_dependence_iterator dependence_end(void) const { return dependenceEdges.end(); }
 
-    /* reverse data dependency edges iterators */
+    // reverse data dependency edges iterators
     dependence_iterator rev_dependence_begin(void) { return revDependenceEdges.begin(); }
     const_dependence_iterator rev_dependence_begin(void) const { return revDependenceEdges.begin(); }
     dependence_iterator rev_dependence_end(void) { return revDependenceEdges.end(); }
