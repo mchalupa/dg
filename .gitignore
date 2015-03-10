@@ -35,3 +35,9 @@
 # swp files
 *.swp
 *.swo
+
+# vim config files
+*.vimrc
+
+*/tags
+*/cscope.out
