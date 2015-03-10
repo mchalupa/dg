@@ -7,8 +7,8 @@ include_directories('../src')
 add_executable(dg-test dg-test.cpp)
 target_link_libraries(dg-test dg)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
-if (DEBUG)
-	list(APPEND CMAKE_CXX_FLAGS "-g")
-endif (DEBUG)
+if (ENABLE_DEBUG)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0")
+else ()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
+endif ()

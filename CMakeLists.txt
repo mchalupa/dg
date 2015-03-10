@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 
 # define DEBUG by default for now
-add_definitions(-DDEBUG_ENABLED)
+OPTION(ENABLE_DEBUG "Enable debugging" ON)
+OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 
 if (LLVM_DG)
 	find_package(LLVM REQUIRED CONFIG)
@@ -23,17 +24,16 @@ if (LLVM_DG)
 	endif(LLVM_BUILD_PATH)
 
 	llvm_replace_compiler_option(CMAKE_CXX_FLAGS "-frtti" "-fno-rtti")
+
+	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
 
-if (CMAKE_CXX_FLAGS)
-	list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
-else(CMAKE_CXX_FLAGS)
-	set(CMAKE_CXX_FLAGS "-std=c++11")
-endif (CMAKE_CXX_FLAGS)
-
-if (DEBUG)
-	list(APPEND CMAKE_CXX_FLAGS "-g")
-endif (DEBUG)
+if (ENABLE_DEBUG)
+	add_definitions(-DDEBUG_ENABLED)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0")
+else ()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
+endif ()
 
 add_subdirectory(src)
 add_subdirectory(tests)
