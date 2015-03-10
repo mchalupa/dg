@@ -8,37 +8,78 @@
 #include <set>
 #include <queue>
 #include <cassert>
+#include <cstdio>
 
 #include "DGUtil.h"
 
 namespace dg {
 
+template <typename Key>
 class DependenceGraph;
 
 // one node in DependenceGraph
+template <typename Key>
 class DGNode
 {
 public:
     // TODO when LLVM is enabled, use SmallPtrSet
     // else BDD ?
-    typedef std::set<DGNode *> ControlEdgesType;
-    typedef std::set<DGNode *> DependenceEdgesType;
+    typedef std::set<DGNode<Key> *> ControlEdgesType;
+    typedef std::set<DGNode<Key> *> DependenceEdgesType;
 
-    typedef ControlEdgesType::iterator control_iterator;
-    typedef ControlEdgesType::const_iterator const_control_iterator;
-    typedef DependenceEdgesType::iterator dependence_iterator;
-    typedef DependenceEdgesType::const_iterator const_dependence_iterator;
+    typedef typename ControlEdgesType::iterator control_iterator;
+    typedef typename ControlEdgesType::const_iterator const_control_iterator;
+    typedef typename DependenceEdgesType::iterator dependence_iterator;
+    typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
-    DGNode();
+    DGNode<Key>(Key k)
+    :subgraph(NULL), parameters(NULL), dfs_run(0), key(k)
+    {
+        DBG(NODES, "Created node [%p]", this);
+    }
 
-    bool addControlEdge(DGNode *n);
-    bool addDependenceEdge(DGNode *n);
-    DependenceGraph *addSubgraph(DependenceGraph *);
-    DependenceGraph *addParameters(DependenceGraph *);
+    bool addControlEdge(DGNode<Key> *n)
+    {
+#ifdef DEBUG_ENABLED
+        bool ret1, ret2;
+
+        ret1 = n->revControlEdges.insert(this).second;
+        ret2 = controlEdges.insert(n).second;
+
+        // we either have both edges or none
+        assert(ret1 == ret2);
+
+        DBG(CONTROL, "Added control edge [%p]->[%p]\n", this, n);
+
+        return ret2;
+#else
+        n->revControlEdges.insert(this);
+        return controlEdges.insert(n).second;
+#endif
+    }
+
+    bool addDependenceEdge(DGNode<Key> *n)
+    {
+#ifdef DEBUG_ENABLED
+        bool ret1, ret2;
+
+        ret1 = n->revDependenceEdges.insert(this).second;
+        ret2 = dependenceEdges.insert(n).second;
+
+        assert(ret1 == ret2);
+
+        DBG(DEPENDENCE, "Added dependence edge [%p]->[%p]\n", this, n);
+
+        return ret2;
+#else
+        n->revDependenceEdges.insert(this);
+        return dependenceEdges.insert(n).second;
+#endif
+    }
+
+
     unsigned int getDFSrun(void) const { return dfs_run; }
     unsigned int setDFSrun(unsigned int r) { dfs_run = r; }
-
-    void dump(void) const;
 
     /* control dependency edges iterators */
     control_iterator control_begin(void) { return controlEdges.begin(); }
@@ -64,13 +105,66 @@ public:
     dependence_iterator rev_dependence_end(void) { return revDependenceEdges.end(); }
     const_dependence_iterator rev_dependence_end(void) const { return revDependenceEdges.end(); }
 
-    DependenceGraph *getSubgraph(void) const { return subgraph; }
-    DependenceGraph *getParameters(void) const { return parameters; }
+    DependenceGraph<Key> *addSubgraph(DependenceGraph<Key> *sub)
+    {
+        DependenceGraph<Key> *old = subgraph;
+        subgraph = sub;
 
-    std::pair<DependenceGraph *,
-              DependenceGraph *> getSubgraphWithParams(void) const;
+        return old;
+    }
+
+    DependenceGraph<Key> *addParameters(DependenceGraph<Key> *params)
+    {
+        DependenceGraph<Key> *old = parameters;
+
+        assert(subgraph && "BUG: setting parameters without subgraph");
+
+        parameters = params;
+        return old;
+    }
+
+    DependenceGraph<Key> *getSubgraph(void) const { return subgraph; }
+    DependenceGraph<Key> *getParameters(void) const { return parameters; }
+
+    std::pair<DependenceGraph<Key> *,
+              DependenceGraph<Key> *> getSubgraphWithParams(void) const
+    {
+        return std::pair<DependenceGraph<Key> *,
+                         DependenceGraph<Key> *>(subgraph, parameters);
+    }
+
+    Key getKey(void) { return key; }
+
+
+    void dump(void) const
+    {
+        if (subgraph) {
+            fprintf(stderr, "[%p] CALL to [%p]\n", this, subgraph);
+
+            if (parameters)
+                parameters->dump();
+
+        } else
+            fprintf(stderr, "[%p]\n", this);
+
+        for ( DGNode *n : controlEdges )
+            fprintf(stderr, "\tC: [%p]\n", n);
+
+        for ( DGNode *n : revControlEdges )
+            fprintf(stderr, "\trC: [%p]\n", n);
+
+        for ( DGNode *n : dependenceEdges )
+            fprintf(stderr, "\tD: [%p]\n", n);
+
+        for ( DGNode *n : revDependenceEdges )
+            fprintf(stderr, "\trD: [%p]\n", n);
+    }
+
 
 private:
+    // this is specific value that identifies this node
+    Key key;
+
     ControlEdgesType controlEdges;
     DependenceEdgesType dependenceEdges;
 
@@ -78,56 +172,75 @@ private:
     ControlEdgesType revControlEdges;
     DependenceEdgesType revDependenceEdges;
 
-    DependenceGraph *subgraph;
+    DependenceGraph<Key> *subgraph;
     // instead of adding parameter in/out nodes to parent
     // graph, we create new small graph just with these
     // nodes and summary edges (as dependence edges)
-    DependenceGraph *parameters;
+    DependenceGraph<Key> *parameters;
 
     // last id of DFS that ran on this node
     // ~~> marker if it has been processed
     unsigned int dfs_run;
 };
 
-
-// DependenceGraph
+// --------------------------------------------------------
+// --- DependenceGraph
+// --------------------------------------------------------
+template <typename Key>
 class DependenceGraph
 {
 public:
-    DependenceGraph();
+    DependenceGraph<Key>()
+    :entryNode(NULL), nodes_num(0), dfs_run(0)
+    {
+#ifdef DEBUG_ENABLED
+        debug::init();
+#endif
+    }
 
-    typedef std::set<DGNode *> ContainerType;
-    typedef ContainerType::iterator iterator;
-    typedef ContainerType::const_iterator const_iterator;
+    virtual ~DependenceGraph<Key>() {}
 
-    DGNode *getEntry(void) const { return entryNode; }
-    DGNode *setEntry(DGNode *n);
-    bool addNode(DGNode *n);
-    DGNode *removeNode(DGNode *n);
+    DGNode<Key> *setEntry(DGNode<Key> *n)
+    {
+        DGNode<Key> *oldEnt = entryNode;
+        entryNode = n;
 
-    void dump(void) const;
-    bool dumpToDot(const char *file, const char *description = NULL);
+        return oldEnt;
+    }
+
+    DGNode<Key> *getEntry(void) const { return entryNode; }
+
+    bool addNode(DGNode<Key> *n)
+    {
+        Key k = n->getKey();
+    }
+
+    DGNode<Key> *removeNode(Key k);
+
+    void dump(void) const
+    {
+    }
+
+    bool dumpToDot(const char *file, const char *description = NULL)
+    {
+    }
+
     const unsigned int getNodesNum(void) const { return nodes_num; }
-
-    iterator begin(void) { return nodes.begin(); }
-    const_iterator begin(void) const { return nodes.begin(); }
-    iterator end(void) { return nodes.end(); }
-    const_iterator end(void) const { return nodes.end(); }
 
     // make DFS on graph, using control and/or deps edges
     template <typename F, typename D>
-    void DFS(DGNode *entry, F func, D data,
+    void DFS(DGNode<Key> *entry, F func, D data,
              bool control = true, bool deps = true)
     {
         unsigned int run_id = ++dfs_run;
-        std::queue<DGNode *> queue;
+        std::queue<DGNode<Key> *> queue;
 
         assert(entry && "Need entry node for DFS");
 
         queue.push(entry);
 
         while (!queue.empty()) {
-            DGNode *n = queue.front();
+            DGNode<Key> *n = queue.front();
             queue.pop();
 
             func(n, data);
@@ -144,18 +257,18 @@ public:
     }
 
     template <typename F, typename D>
-    void revDFS(DGNode *entry, F func, D data,
+    void revDFS(DGNode<Key> *entry, F func, D data,
                 bool control = true, bool deps = true)
     {
         unsigned int run_id = ++dfs_run;
-        std::queue<DGNode *> queue;
+        std::queue<DGNode<Key> *> queue;
 
         assert(entry && "Need entry node for DFS");
 
         queue.push(entry);
 
         while (!queue.empty()) {
-            DGNode *n = queue.front();
+            DGNode<Key> *n = queue.front();
             queue.pop();
 
             func(n, data);
@@ -172,12 +285,11 @@ public:
     }
 
 private:
-
     template <typename Q, typename IT>
     void DFSProcessEdges(IT begin, IT end, Q& queue, unsigned int run_id)
     {
         for (IT I = begin; I != end; ++I) {
-            DGNode *tmp = *I;
+            DGNode<Key> *tmp = *I;
             if (tmp->getDFSrun() == run_id)
                 continue;
 
@@ -187,8 +299,7 @@ private:
         }
     }
 
-    DGNode *entryNode;
-    ContainerType nodes;
+    DGNode<Key> *entryNode;
     unsigned int nodes_num;
     // counter for dfs_runs
     unsigned int dfs_run;
