@@ -241,6 +241,7 @@ public:
 
         assert(entry && "Need entry node for DFS");
 
+        entry->setDFSrun(run_id);
         queue.push(entry);
 
         while (!queue.empty()) {
@@ -269,6 +270,7 @@ public:
 
         assert(entry && "Need entry node for DFS");
 
+        entry->setDFSrun(run_id);
         queue.push(entry);
 
         while (!queue.empty()) {
