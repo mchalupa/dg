@@ -7,28 +7,26 @@
 
 using namespace dg;
 
-class TestDG : public DependenceGraph<int>
+class TestDG : public DependenceGraph<const char *>
 {
 };
 
-static unsigned int id = 0;
-
-class TestNode : public DGNode<int>
+class TestNode : public DGNode<const char *>
 {
 public:
-    TestNode() :DGNode<int>(++id), dfs_visited(0) {};
-
-    unsigned int dfs_visited;
+    TestNode(const char *name) :DGNode<const char *>(name) {}
 };
 
-static void dump_to_dot(const DGNode<int> *n, FILE *f)
+#define CREATE_NODE(n) TestNode n(#n)
+
+static void dump_to_dot(const DGNode<const char *> *n, FILE *f)
 {
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
-        fprintf(f, "\tNODE%p -> NODE%p;\n", n, *I);
+        fprintf(f, "\t%s -> %s;\n", n->getKey(), (*I)->getKey());
     for (auto I = n->dependence_begin(), E = n->dependence_end();
          I != E; ++I)
-        fprintf(f, "\tNODE%p -> NODE%p [color=red];\n", n, *I);
+        fprintf(f, "\t%s -> %s [color=red];\n", n->getKey(), (*I)->getKey());
 }
 
 template<typename Key>
@@ -46,6 +44,14 @@ void print_to_dot(DependenceGraph<Key> *dg,
 
     fprintf(out, "digraph \"%s\" {\n",
             description ? description : "DependencyGraph");
+
+    for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
+    {
+        auto n = I->second;
+
+        fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
+                n->getKey(), n->getKey(), n->getDFSrun());
+    }
 
     // if we have entry node, use it as a root
     // otherwise just dump the graph somehow
@@ -101,7 +107,8 @@ static bool constructors_test(void)
     chck(d.getEntry() == NULL, "BUG: garbage in entry");
     chck(d.getSize() == 0, "BUG: garbage in nodes_num");
 
-    TestNode n;
+    //TestNode n;
+    CREATE_NODE(n);
 
     chck(n.getSubgraph() == NULL, "BUG: garbage in subgraph");
     chck(n.getParameters() == NULL, "BUG: garbage in parameters");
@@ -115,7 +122,9 @@ static bool add_test1(void)
     chck_init();
 
     TestDG d;
-    TestNode n1, n2;
+    //TestNode n1, n2;
+    CREATE_NODE(n1);
+    CREATE_NODE(n2);
 
     chck(n1.addControlEdge(&n2), "adding C edge claims it is there");
     chck(n2.addDependenceEdge(&n1), "adding D edge claims it is there");
