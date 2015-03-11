@@ -202,12 +202,53 @@ static bool add_test1(void)
     chck_ret();
 }
 
+static void dfs_do_nothing(DGNode<const char *> *n, int)
+{
+}
+
+static bool dfs_test1(void)
+{
+    chck_init();
+
+    TestDG d;
+    //TestNode n1, n2, n3;
+    CREATE_NODE(n1);
+    CREATE_NODE(n2);
+    CREATE_NODE(n3);
+
+    n1.addControlEdge(&n2);
+    n2.addDependenceEdge(&n1);
+    n2.addDependenceEdge(&n3);
+    d.addNode(&n1);
+    d.addNode(&n2);
+    d.addNode(&n3);
+
+    chck(d.getSize() == 3, "BUG: adding nodes");
+
+    unsigned run_id1 = n1.getDFSrun();
+    unsigned run_id2 = n2.getDFSrun();
+    unsigned run_id3 = n3.getDFSrun();
+
+    chck(run_id1 == run_id2, "garbage in run id");
+    chck(run_id2 == run_id3, "garbage in run id");
+
+    // traverse only control edges
+    d.DFS(&n1, dfs_do_nothing, 0, true, false);
+    chck(run_id1 + 1 == n1.getDFSrun(), "did not go through node 1");
+    chck(run_id2 + 1 == n2.getDFSrun(), "did not go through node 2");
+    chck(run_id3  == n3.getDFSrun(), "did go through node 3");
+
+    chck_dump(&d);
+    chck_ret();
+}
+
 int main(int argc, char *argv[])
 {
     bool ret = false;
 
     ret |= constructors_test();
     ret |= add_test1();
+    ret |= dfs_test1();
 
     return ret;
 }
