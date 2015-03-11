@@ -127,12 +127,10 @@ static bool add_test1(void)
     chck(d.getEntry() == &n1, "BUG: Entry setter");
 
     int n = 0;
-    /*
     for (auto I = d.begin(), E = d.end(); I != E; ++I) {
         ++n;
-        chck(*I == &n1 || *I == &n2, "Got some garbage in nodes");
+        chck((*I).second == &n1 || (*I).second == &n2, "Got some garbage in nodes");
     }
-    */
 
     chck(n == 2, "BUG: adding nodes to graph, got %d instead of 2", n);
 
@@ -162,10 +160,8 @@ static bool add_test1(void)
 
     // don't trust just the counter
     n = 0;
-    /*
     for (auto I = d.begin(), E = d.end(); I != E; ++I)
         ++n;
-    */
 
     chck(n == 2, "BUG: wrong number of nodes in graph", n);
 
