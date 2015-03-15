@@ -25,30 +25,64 @@ static void dump_to_dot(const DGNode<const llvm::Value *> *n, std::ostream& out)
     for (auto I = n->dependence_begin(), E = n->dependence_end();
          I != E; ++I)
         out << "\tNODE" << n->getKey() << " -> NODE" <<  (*I)->getKey() << " [color=red]\n";
+#if ENABLE_CFG
+    for (auto I = n->succ_begin(), E = n->succ_end();
+         I != E; ++I)
+        out << "\tNODE" << n->getKey() << " -> NODE" <<  (*I)->getKey() << " [style=dotted]\n";
+#endif /* ENABLE_CFG */
+
+    if (n->getSubgraph()) {
+        out << "\tNODE" << n->getKey() << " -> NODE" <<  n->getSubgraph()->getEntry()->getKey() << " [style=dashed]\n";
+    }
 }
 
 static std::string& getValueName(const llvm::Value *val, std::string &str)
 {
     llvm::raw_string_ostream s(str);
-    s << *val;
+
+    if (llvm::isa<llvm::Function>(val))
+        s << "ENTRY " << val->getName();
+    else
+        s << *val;
 
     return s.str();
 }
 
-void print_to_dot(LLVMDependenceGraph *dg,
+void print_to_dot(DependenceGraph<const llvm::Value *> *dg,
+                  bool issubgraph = false,
                   const char *description = NULL)
 {
+    static unsigned subgraph_no = 0;
     const llvm::Value *val;
     std::string valName;
     std::ostream& out = std::cout;
 
-    out << "digraph \""<< description ? description : "DependencyGraph";
+    if (!dg)
+        return;
+
+    valName.clear();
+
+    if (issubgraph) {
+        out << "subgraph \"cluster_" << subgraph_no++;
+    } else {
+        out << "digraph \""<< description ? description : "DependencyGraph";
+    }
+
     out << "\" {\n";
 
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
     {
         auto n = I->second;
+        if (!n) {
+            if (!llvm::isa<llvm::Function>(val))
+                errs() << "WARNING: Node is NULL for value: " << *I->first << "\n";
+
+            continue;
+        }
+
         val = n->getKey();
+
+        print_to_dot(n->getSubgraph(), true);
 
         valName.clear();
         getValueName(val, valName);
@@ -58,6 +92,14 @@ void print_to_dot(LLVMDependenceGraph *dg,
     }
 
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
+        auto n = I->second;
+        if (!n) {
+            if (!llvm::isa<llvm::Function>(val))
+                errs() << "WARNING: Node is NULL for value: " << *I->first << "\n";
+
+            continue;
+        }
+
         dump_to_dot(I->second, out);
     }
 
@@ -92,7 +134,7 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     d.build(M);
 
-    print_to_dot(&d, "LLVM Dependence Graph");
+    print_to_dot(&d, false, "LLVM Dependence Graph");
 
     delete M;
     return 0;

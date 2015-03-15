@@ -6,6 +6,8 @@
 #ifndef _LLVM_DEPENDENCE_GRAPH_H_
 #define _LLVM_DEPENDENCE_GRAPH_H_
 
+#include <map>
+
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Function.h>
@@ -28,6 +30,10 @@ public:
     virtual ~LLVMDependenceGraph();
     bool build(llvm::Module *m, llvm::Function *entry = NULL);
     bool build(llvm::Function *func);
+
+private:
+    bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
+    std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 };
 
 } // namespace dg
