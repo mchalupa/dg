@@ -66,9 +66,9 @@ void print_to_dot(LLVMDependenceGraph *dg,
 
 int main(int argc, char *argv[])
 {
-	llvm::LLVMContext context;
-	llvm::SMDiagnostic SMD;
-	llvm::Module *M;
+    llvm::LLVMContext context;
+    llvm::SMDiagnostic SMD;
+    llvm::Module *M;
     const char *module, *ofile = NULL;
 
     if (argc == 3) {
@@ -83,11 +83,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-	M = llvm::ParseIRFile(module, SMD, context);
-	if (!M) {
-		SMD.print(argv[0], errs());
-		return 1;
-	}
+    M = llvm::ParseIRFile(module, SMD, context);
+    if (!M) {
+        SMD.print(argv[0], errs());
+        return 1;
+    }
 
     LLVMDependenceGraph d;
     d.build(M);

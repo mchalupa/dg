@@ -19,7 +19,7 @@ class LLVMDGNode : public dg::DGNode<const llvm::Value *>
 {
 public:
     LLVMDGNode(const llvm::Value *val) : DGNode<const llvm::Value *>(val) {};
-	const llvm::Value *getValue(void) const { return getKey(); }
+    const llvm::Value *getValue(void) const { return getKey(); }
 };
 
 class LLVMDependenceGraph : public dg::DependenceGraph<const llvm::Value *>
