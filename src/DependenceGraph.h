@@ -41,13 +41,13 @@ public:
         DBG(NODES, "Created node [%p]", this);
     }
 
-    bool addControlEdge(DGNode<Key> *n)
+    bool addControlDependence(DGNode<Key> *n)
     {
 #ifdef DEBUG_ENABLED
         bool ret1, ret2;
 
-        ret1 = n->revControlEdges.insert(this).second;
-        ret2 = controlEdges.insert(n).second;
+        ret1 = n->revControlDepEdges.insert(this).second;
+        ret2 = controlDepEdges.insert(n).second;
 
         // we either have both edges or none
         assert(ret1 == ret2);
@@ -56,18 +56,18 @@ public:
 
         return ret2;
 #else
-        n->revControlEdges.insert(this);
-        return controlEdges.insert(n).second;
+        n->revControlDepEdges.insert(this);
+        return controlDepEdges.insert(n).second;
 #endif
     }
 
-    bool addDependenceEdge(DGNode<Key> *n)
+    bool addDataDependence(DGNode<Key> *n)
     {
 #ifdef DEBUG_ENABLED
         bool ret1, ret2;
 
-        ret1 = n->revDependenceEdges.insert(this).second;
-        ret2 = dependenceEdges.insert(n).second;
+        ret1 = n->revDataDepEdges.insert(this).second;
+        ret2 = dataDepEdges.insert(n).second;
 
         assert(ret1 == ret2);
 
@@ -75,8 +75,8 @@ public:
 
         return ret2;
 #else
-        n->revDependenceEdges.insert(this);
-        return dependenceEdges.insert(n).second;
+        n->revDataDepEdges.insert(this);
+        return dataDepEdges.insert(n).second;
 #endif
     }
 
@@ -85,28 +85,28 @@ public:
     unsigned int setDFSrun(unsigned int r) { dfs_run = r; }
 
     // control dependency edges iterators
-    control_iterator control_begin(void) { return controlEdges.begin(); }
-    const_control_iterator control_begin(void) const { return controlEdges.begin(); }
-    control_iterator control_end(void) { return controlEdges.end(); }
-    const_control_iterator control_end(void) const { return controlEdges.end(); }
+    control_iterator control_begin(void) { return controlDepEdges.begin(); }
+    const_control_iterator control_begin(void) const { return controlDepEdges.begin(); }
+    control_iterator control_end(void) { return controlDepEdges.end(); }
+    const_control_iterator control_end(void) const { return controlDepEdges.end(); }
 
     // reverse control dependency edges iterators
-    control_iterator rev_control_begin(void) { return revControlEdges.begin(); }
-    const_control_iterator rev_control_begin(void) const { return revControlEdges.begin(); }
-    control_iterator rev_control_end(void) { return revControlEdges.end(); }
-    const_control_iterator rev_control_end(void) const { return revControlEdges.end(); }
+    control_iterator rev_control_begin(void) { return revControlDepEdges.begin(); }
+    const_control_iterator rev_control_begin(void) const { return revControlDepEdges.begin(); }
+    control_iterator rev_control_end(void) { return revControlDepEdges.end(); }
+    const_control_iterator rev_control_end(void) const { return revControlDepEdges.end(); }
 
     // data dependency edges iterators
-    dependence_iterator dependence_begin(void) { return dependenceEdges.begin(); }
-    const_dependence_iterator dependence_begin(void) const { return dependenceEdges.begin(); }
-    dependence_iterator dependence_end(void) { return dependenceEdges.end(); }
-    const_dependence_iterator dependence_end(void) const { return dependenceEdges.end(); }
+    dependence_iterator dependence_begin(void) { return dataDepEdges.begin(); }
+    const_dependence_iterator dependence_begin(void) const { return dataDepEdges.begin(); }
+    dependence_iterator dependence_end(void) { return dataDepEdges.end(); }
+    const_dependence_iterator dependence_end(void) const { return dataDepEdges.end(); }
 
     // reverse data dependency edges iterators
-    dependence_iterator rev_dependence_begin(void) { return revDependenceEdges.begin(); }
-    const_dependence_iterator rev_dependence_begin(void) const { return revDependenceEdges.begin(); }
-    dependence_iterator rev_dependence_end(void) { return revDependenceEdges.end(); }
-    const_dependence_iterator rev_dependence_end(void) const { return revDependenceEdges.end(); }
+    dependence_iterator rev_dependence_begin(void) { return revDataDepEdges.begin(); }
+    const_dependence_iterator rev_dependence_begin(void) const { return revDataDepEdges.begin(); }
+    dependence_iterator rev_dependence_end(void) { return revDataDepEdges.end(); }
+    const_dependence_iterator rev_dependence_end(void) const { return revDataDepEdges.end(); }
 
     DependenceGraph<Key> *addSubgraph(DependenceGraph<Key> *sub)
     {
@@ -143,12 +143,12 @@ private:
     // this is specific value that identifies this node
     Key key;
 
-    ControlEdgesType controlEdges;
-    DependenceEdgesType dependenceEdges;
+    ControlEdgesType controlDepEdges;
+    DependenceEdgesType dataDepEdges;
 
     // Nodes that have control/dep edge to this node
-    ControlEdgesType revControlEdges;
-    DependenceEdgesType revDependenceEdges;
+    ControlEdgesType revControlDepEdges;
+    DependenceEdgesType revDataDepEdges;
 
     DependenceGraph<Key> *subgraph;
     // instead of adding parameter in/out nodes to parent

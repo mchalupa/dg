@@ -126,8 +126,8 @@ static bool add_test1(void)
     CREATE_NODE(n1);
     CREATE_NODE(n2);
 
-    chck(n1.addControlEdge(&n2), "adding C edge claims it is there");
-    chck(n2.addDependenceEdge(&n1), "adding D edge claims it is there");
+    chck(n1.addControlDependence(&n2), "adding C edge claims it is there");
+    chck(n2.addDataDependence(&n1), "adding D edge claims it is there");
 
     d.addNode(&n1);
     d.addNode(&n2);
@@ -176,9 +176,9 @@ static bool add_test1(void)
 
     // we're not a multi-graph, each edge is there only once
     // try add multiple edges
-    chck(!n1.addControlEdge(&n2),
+    chck(!n1.addControlDependence(&n2),
          "adding multiple C edge claims it is not there");
-    chck(!n2.addDependenceEdge(&n1),
+    chck(!n2.addDataDependence(&n1),
          "adding multiple D edge claims it is not there");
 
     nn = 0;
@@ -216,9 +216,9 @@ static bool dfs_test1(void)
     CREATE_NODE(n2);
     CREATE_NODE(n3);
 
-    n1.addControlEdge(&n2);
-    n2.addDependenceEdge(&n1);
-    n2.addDependenceEdge(&n3);
+    n1.addControlDependence(&n2);
+    n2.addDataDependence(&n1);
+    n2.addDataDependence(&n3);
     d.addNode(&n1);
     d.addNode(&n2);
     d.addNode(&n3);
