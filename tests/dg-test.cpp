@@ -3,8 +3,6 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include "../src/LLVMDependenceGraph.h"
-
 using namespace dg;
 
 class TestDG : public DependenceGraph<const char *>
