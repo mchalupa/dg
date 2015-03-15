@@ -3,6 +3,11 @@ cmake_minimum_required(VERSION 2.8)
 # define DEBUG by default for now
 OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
+OPTION(ENABLE_CFG "Add CFG edges to the graph" ON)
+
+if (ENABLE_CFG)
+	add_definitions(-DENABLE_CFG)
+endif()
 
 if (LLVM_DG)
 	find_package(LLVM REQUIRED CONFIG)

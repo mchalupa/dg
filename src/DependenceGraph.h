@@ -35,6 +35,12 @@ public:
     typedef typename DependenceEdgesType::iterator dependence_iterator;
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
+#ifdef ENABLE_CFG
+    typedef std::set<DGNode<Key> *> CFGEdgesType;
+    typedef typename CFGEdgesType::iterator cfg_iterator;
+    typedef typename CFGEdgesType::const_iterator const_cfg_iterator;
+#endif /* ENABLE_CFG */
+
     DGNode<Key>(Key k)
     :subgraph(NULL), parameters(NULL), dfs_run(0), key(k)
     {
@@ -108,6 +114,16 @@ public:
     dependence_iterator rev_dependence_end(void) { return revDataDepEdges.end(); }
     const_dependence_iterator rev_dependence_end(void) const { return revDataDepEdges.end(); }
 
+#ifdef ENABLE_CFG
+    void addSucc(DGNode<Key> *s) { succs.insert(s); }
+
+    cfg_iterator succ_begin(void) { return succs.begin(); }
+    const_cfg_iterator succ_begin(void) const { return succs.begin(); }
+    cfg_iterator succ_end(void) { return succs.end(); }
+    const_cfg_iterator succ_end(void) const { return succs.end(); }
+    unsigned int getSuccNum(void) const { return succs.size(); }
+#endif /* ENABLE_CFG */
+
     DependenceGraph<Key> *addSubgraph(DependenceGraph<Key> *sub)
     {
         DependenceGraph<Key> *old = subgraph;
@@ -142,6 +158,13 @@ public:
 private:
     // this is specific value that identifies this node
     Key key;
+
+#ifdef ENABLE_CFG
+    // some analyses need classical CFG edges
+
+    // successors of this node
+    CFGEdgesType succs;
+#endif /* ENABLE_CFG */
 
     ControlEdgesType controlDepEdges;
     DependenceEdgesType dataDepEdges;
