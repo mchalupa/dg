@@ -15,9 +15,15 @@
 using namespace dg;
 using llvm::errs;
 
-static void dump_to_dot(const LLVMDGNode *n, std::ostream& out)
+static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 {
     const llvm::Value *val;
+
+    /* do not draw multiple edges */
+    if (n->getDFSrun() == 1)
+        return;
+    else
+        n->setDFSrun(1);
 
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
@@ -75,7 +81,7 @@ void print_to_dot(LLVMDependenceGraph *dg,
         auto n = I->second;
         if (!n) {
             if (!llvm::isa<llvm::Function>(val))
-                errs() << "WARNING: Node is NULL for value: " << *I->first << "\n";
+                errs() << "WARN [" << dg << "]: Node is NULL for value: " << *I->first << "\n";
 
             continue;
         }
@@ -87,7 +93,10 @@ void print_to_dot(LLVMDependenceGraph *dg,
         valName.clear();
         getValueName(val, valName);
 
-        out << "\tNODE" << n->getValue() << " [label=\"" << valName << "\"];\n";
+        out << "\tNODE" << n->getValue() << " [label=\"" << valName << "\"";
+        if (n->isLoopHeader())
+            out << "style=\"filled\" fillcolor=\"gray\"";
+        out << "];\n";
             //<<" (runid=" << n->getDFSrun() << ")\"];\n";
     }
 
@@ -95,7 +104,7 @@ void print_to_dot(LLVMDependenceGraph *dg,
         auto n = I->second;
         if (!n) {
             if (!llvm::isa<llvm::Function>(val))
-                errs() << "WARNING: Node is NULL for value: " << *I->first << "\n";
+                errs() << "WARN [" << dg << "]: Node is NULL for value: " << *I->first << "\n";
 
             continue;
         }
