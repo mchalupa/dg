@@ -26,7 +26,12 @@ namespace dg {
 LLVMDependenceGraph::~LLVMDependenceGraph()
 {
     for (auto I = begin(), E = end(); I != E; ++I) {
-        delete I->second;
+        if (I->second) {
+            if (I->second->getSubgraph())
+                delete I->second->getSubgraph();
+
+            delete I->second;
+        }
     }
 }
 
