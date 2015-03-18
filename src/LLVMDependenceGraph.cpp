@@ -5,6 +5,8 @@
 
 #include <utility>
 #include <queue>
+#include <set>
+
 /*
 #include <llvm/Function.h>
 #include <llvm/ADT/SmallPtrSet.h>
@@ -115,10 +117,10 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
     constructedFunctions.insert(make_pair(func, this));
 
+    std::set<llvm::BasicBlock *> processedBB;
     std::queue<struct WE *> WQ;
 
-    BasicBlock *BB = &func->getEntryBlock();
-    WQ.push(new WE(BB, NULL));
+    WQ.push(new WE(&func->getEntryBlock(), NULL));
 
     while (!WQ.empty()) {
         struct WE *item = WQ.front();
@@ -126,8 +128,39 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
         build(item->BB, item->pred);
 
-        for (auto S = succ_begin(BB), SE = succ_end(BB); S != SE; ++S) {
-            WQ.push(new WE(*S, BB));
+        int i = 0;
+        for (auto S = succ_begin(item->BB), SE = succ_end(item->BB);
+             S != SE; ++S) {
+
+            // when program contain loops, it is possible that
+            // we added this block to queue more times.
+            // In this case just create the CFG edge, but do not
+            // process this node any further. It would lead to
+            // infinite loop
+            iterator ni, pi;
+            if (!processedBB.insert(*S).second) {
+#if ENABLE_CFG
+                errs() << *S;
+                ni = find(S->begin());
+                pi = find(item->BB->getTerminator());
+                assert(ni != end());
+                assert(pi != end());
+
+#if DEBUG_ENABLED
+                // set loop Header instruction
+                const Instruction *hinst
+                    = dyn_cast<Instruction>(ni->second->getValue());
+                assert(hinst && "BUG");
+                const Value *header = hinst->getParent()->getTerminator();
+                (*this)[header]->setIsLoopHeader();
+#endif
+
+                pi->second->addSucc(ni->second);
+#endif
+                continue;
+            }
+
+            WQ.push(new WE(*S, item->BB));
         }
 
         delete item;
@@ -136,6 +169,11 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     // add CFG edge from entry point to the first instruction
     entry->addSucc((*this)[(func->getEntryBlock().begin())]);
 
+    addTopLevelDefUse();
+}
+
+void LLVMDependenceGraph::addTopLevelDefUse()
+{
     // add top-level def-use chains
     // iterate over all nodes and for each node add data dependency
     // to its uses in llvm
@@ -148,16 +186,13 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
             if (val == use)
                 continue;
 
-            //errs() << *val << " USE " << *use << "\n";
             LLVMDGNode *nu = operator[](use);
             if (!nu)
                 continue;
-            //assert((nu || isa<Function>(use)) && "Node not constructed for use");
 
             I->second->addDataDependence(nu);
         }
     }
-
 }
 
 } // namespace dg

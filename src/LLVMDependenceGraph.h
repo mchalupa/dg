@@ -23,11 +23,14 @@ class LLVMDGNode;
 class LLVMDGNode : public DGNode<LLVMDependenceGraph, LLVMDGNode *>
 {
     const llvm::Value *value;
+    bool is_loop_header;
 public:
     LLVMDGNode(const llvm::Value *val)
-    : value(val) {};
+    : value(val), is_loop_header(false) {};
 
     const llvm::Value *getValue(void) const { return value; }
+    bool isLoopHeader() const { return is_loop_header; }
+    void setIsLoopHeader() { is_loop_header = true; }
 };
 
 class LLVMDependenceGraph : public DependenceGraph<const llvm::Value *, LLVMDGNode *>
@@ -40,6 +43,7 @@ public:
     { return DependenceGraph<const llvm::Value *, LLVMDGNode *>::addNode(n->getValue(), n); }
 
 private:
+    void addTopLevelDefUse();
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 };

@@ -199,6 +199,8 @@ public:
     // reference getter for fast include-if-null operation
     ValueType& getRef(Key k) { return nodes[k]; }
     bool contains(Key k) const { return nodes.count(k) != 0; }
+    iterator find(Key k) { return nodes.find(k); }
+    const_iterator find(Key k) const { return nodes.find(k); }
 
     ValueType setEntry(ValueType n)
     {
