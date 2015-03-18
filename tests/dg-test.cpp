@@ -5,30 +5,36 @@
 
 using namespace dg;
 
-class TestDG : public DependenceGraph<const char *>
+class TestDG;
+class TestNode;
+
+class TestNode : public DGNode<TestDG, TestNode *>
 {
+    const char *name;
+public:
+    TestNode(const char *name) : name(name) {};
+    const char *getName() const { return name; }
 };
 
-class TestNode : public DGNode<const char *>
+class TestDG : public DependenceGraph<const char *, TestNode *>
 {
 public:
-    TestNode(const char *name) :DGNode<const char *>(name) {}
+    bool addNode(TestNode *n) { return DependenceGraph<const char *, TestNode *>::addNode(n->getName(), n); }
 };
 
 #define CREATE_NODE(n) TestNode n(#n)
 
-static void dump_to_dot(const DGNode<const char *> *n, FILE *f)
+static void dump_to_dot(TestNode *n, FILE *f)
 {
-    for (auto I = n->control_begin(), E = n->control_end();
+    for (TestNode::ControlEdgesType::const_iterator I = n->control_begin(), E = n->control_end();
          I != E; ++I)
-        fprintf(f, "\t%s -> %s;\n", n->getKey(), (*I)->getKey());
+        fprintf(f, "\t%s -> %s;\n", n->getName(), (*I)->getName());
     for (auto I = n->dependence_begin(), E = n->dependence_end();
          I != E; ++I)
-        fprintf(f, "\t%s -> %s [color=red];\n", n->getKey(), (*I)->getKey());
+        fprintf(f, "\t%s -> %s [color=red];\n", n->getName(), (*I)->getName());
 }
 
-template<typename Key>
-void print_to_dot(DependenceGraph<Key> *dg,
+void print_to_dot(TestDG *dg,
                   const char *file = "last_test.dot",
                   const char *description = NULL)
 {
@@ -48,7 +54,7 @@ void print_to_dot(DependenceGraph<Key> *dg,
         auto n = I->second;
 
         fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
-                n->getKey(), n->getKey(), n->getDFSrun());
+                n->getName(), n->getName(), n->getDFSrun());
     }
 
     // if we have entry node, use it as a root
@@ -200,7 +206,7 @@ static bool add_test1(void)
     chck_ret();
 }
 
-static void dfs_do_nothing(DGNode<const char *> *n, int)
+static void dfs_do_nothing(TestNode *n, int)
 {
 }
 
@@ -234,7 +240,7 @@ static bool dfs_test1(void)
     d.DFS(&n1, dfs_do_nothing, 0, true, false);
     chck(run_id1 + 1 == n1.getDFSrun(), "did not go through node 1");
     chck(run_id2 + 1 == n2.getDFSrun(), "did not go through node 2");
-    chck(run_id3  == n3.getDFSrun(), "did go through node 3");
+    chck(run_id3 == n3.getDFSrun(), "did go through node 3");
 
     chck_dump(&d);
     chck_ret();

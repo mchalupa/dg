@@ -6,18 +6,17 @@
 
 using namespace dg;
 
-static void dump_to_dot(const DGNode<const llvm::Value *> *n, FILE *f)
+static void dump_to_dot(const LLVMDGNode *n, FILE *f)
 {
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
-        fprintf(f, "\t%s -> %s;\n", n->getKey(), (*I)->getKey());
+        fprintf(f, "\t%s -> %s;\n", n->getValue(), (*I)->getValue());
     for (auto I = n->dependence_begin(), E = n->dependence_end();
          I != E; ++I)
-        fprintf(f, "\t%s -> %s [color=red];\n", n->getKey(), (*I)->getKey());
+        fprintf(f, "\t%s -> %s [color=red];\n", n->getValue(), (*I)->getValue());
 }
 
-template<typename Key>
-void print_to_dot(DependenceGraph<Key> *dg,
+void print_to_dot(LLVMDependenceGraph *dg,
                   const char *file = "last_test.dot",
                   const char *description = NULL)
 {
@@ -37,7 +36,7 @@ void print_to_dot(DependenceGraph<Key> *dg,
         auto n = I->second;
 
         fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
-                n->getKey(), n->getKey(), n->getDFSrun());
+                n->getValue(), n->getValue(), n->getDFSrun());
     }
 
     // if we have entry node, use it as a root

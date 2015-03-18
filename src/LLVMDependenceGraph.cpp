@@ -50,7 +50,7 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
     using namespace llvm;
 
 #ifdef ENABLE_CFG
-    DGNode<const Value *> *predNode = NULL;
+    LLVMDGNode *predNode = NULL;
     if (pred) {
         predNode = (*this)[pred->getTerminator()];
         assert(predNode && "Predcessor node is not created");
@@ -144,7 +144,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 continue;
 
             //errs() << *val << " USE " << *use << "\n";
-            DGNode<const Value *> *nu = operator[](use);
+            LLVMDGNode *nu = operator[](use);
             if (!nu)
                 continue;
             //assert((nu || isa<Function>(use)) && "Node not constructed for use");

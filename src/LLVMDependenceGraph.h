@@ -17,19 +17,27 @@
 
 namespace dg {
 
-class LLVMDGNode : public dg::DGNode<const llvm::Value *>
+class LLVMDependenceGraph;
+class LLVMDGNode;
+
+class LLVMDGNode : public DGNode<LLVMDependenceGraph, LLVMDGNode *>
 {
+    const llvm::Value *value;
 public:
-    LLVMDGNode(const llvm::Value *val) : DGNode<const llvm::Value *>(val) {};
-    const llvm::Value *getValue(void) const { return getKey(); }
+    LLVMDGNode(const llvm::Value *val)
+    : value(val) {};
+
+    const llvm::Value *getValue(void) const { return value; }
 };
 
-class LLVMDependenceGraph : public dg::DependenceGraph<const llvm::Value *>
+class LLVMDependenceGraph : public DependenceGraph<const llvm::Value *, LLVMDGNode *>
 {
 public:
     virtual ~LLVMDependenceGraph();
     bool build(llvm::Module *m, llvm::Function *entry = NULL);
     bool build(llvm::Function *func);
+    bool addNode(LLVMDGNode *n)
+    { return DependenceGraph<const llvm::Value *, LLVMDGNode *>::addNode(n->getValue(), n); }
 
 private:
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);

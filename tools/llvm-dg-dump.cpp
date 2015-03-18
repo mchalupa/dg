@@ -3,9 +3,9 @@
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/IRReader/IRReader.h>
 
 #include <iostream>
 #include <string>
@@ -15,24 +15,24 @@
 using namespace dg;
 using llvm::errs;
 
-static void dump_to_dot(const DGNode<const llvm::Value *> *n, std::ostream& out)
+static void dump_to_dot(const LLVMDGNode *n, std::ostream& out)
 {
     const llvm::Value *val;
 
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
-        out << "\tNODE" << n->getKey() << " -> NODE" <<  (*I)->getKey() << "\n";
+        out << "\tNODE" << n->getValue() << " -> NODE" <<  (*I)->getValue() << "\n";
     for (auto I = n->dependence_begin(), E = n->dependence_end();
          I != E; ++I)
-        out << "\tNODE" << n->getKey() << " -> NODE" <<  (*I)->getKey() << " [color=red]\n";
+        out << "\tNODE" << n->getValue() << " -> NODE" <<  (*I)->getValue() << " [color=red]\n";
 #if ENABLE_CFG
     for (auto I = n->succ_begin(), E = n->succ_end();
          I != E; ++I)
-        out << "\tNODE" << n->getKey() << " -> NODE" <<  (*I)->getKey() << " [style=dotted]\n";
+        out << "\tNODE" << n->getValue() << " -> NODE" <<  (*I)->getValue() << " [style=dotted]\n";
 #endif /* ENABLE_CFG */
 
     if (n->getSubgraph()) {
-        out << "\tNODE" << n->getKey() << " -> NODE" <<  n->getSubgraph()->getEntry()->getKey() << " [style=dashed]\n";
+        out << "\tNODE" << n->getValue() << " -> NODE" <<  n->getSubgraph()->getEntry()->getValue() << " [style=dashed]\n";
     }
 }
 
@@ -48,7 +48,7 @@ static std::string& getValueName(const llvm::Value *val, std::string &str)
     return s.str();
 }
 
-void print_to_dot(DependenceGraph<const llvm::Value *> *dg,
+void print_to_dot(LLVMDependenceGraph *dg,
                   bool issubgraph = false,
                   const char *description = NULL)
 {
@@ -80,14 +80,14 @@ void print_to_dot(DependenceGraph<const llvm::Value *> *dg,
             continue;
         }
 
-        val = n->getKey();
+        val = n->getValue();
 
         print_to_dot(n->getSubgraph(), true);
 
         valName.clear();
         getValueName(val, valName);
 
-        out << "\tNODE" << n->getKey() << " [label=\"" << valName << "\"];\n";
+        out << "\tNODE" << n->getValue() << " [label=\"" << valName << "\"];\n";
             //<<" (runid=" << n->getDFSrun() << ")\"];\n";
     }
 
@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
 {
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    llvm::Module *M;
+    std::unique_ptr<llvm::Module> M;
     const char *module, *ofile = NULL;
 
     if (argc == 3) {
@@ -125,17 +125,16 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    M = llvm::ParseIRFile(module, SMD, context);
+    M = llvm::parseIRFile(module, SMD, context);
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;
     }
 
     LLVMDependenceGraph d;
-    d.build(M);
+    d.build(&*M);
 
     print_to_dot(&d, false, "LLVM Dependence Graph");
 
-    delete M;
     return 0;
 }
