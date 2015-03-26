@@ -111,10 +111,7 @@ void print_to_dot(LLVMDependenceGraph *dg,
             out << "\\nPTR " << valName;
         }
 
-        out << "\"";
-        if (n->isLoopHeader())
-            out << "style=\"filled\" fillcolor=\"gray\"";
-        out << "];\n";
+        out << "\"];\n";
             //<<" (runid=" << n->getDFSrun() << ")\"];\n";
     }
 
