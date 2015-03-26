@@ -101,11 +101,45 @@ static bool add_test1(void)
     chck_ret();
 }
 
+static bool refcount_test(void)
+{
+    chck_init();
+    LLVMDependenceGraph d;
+    LLVMDependenceGraph s;
+
+    int rc;
+    rc = s.ref();
+    chck(rc == 2, "refcount shold be 2, but is %d", rc);
+    rc = s.unref();
+    chck(rc == 1, "refcount shold be 1, but is %d", rc);
+
+    s.ref();
+    rc = s.ref();
+    chck(rc == 3, "refcount shold be 3, but is %d", rc);
+    s.unref();
+    rc = s.unref();
+    chck(rc == 1, "refcount shold be 1, but is %d", rc);
+
+    // addSubgraph increases refcount
+    LLVMDGNode n1(nullptr), n2(nullptr);
+    n1.addSubgraph(&s);
+    n2.addSubgraph(&s);
+
+    // we do not have a getter for refcounts, so just
+    // inc and dec the counter to get the current value
+    s.ref();
+    rc = s.unref();
+    chck(rc == 3, "refcount shold be 3, but is %d", rc);
+
+    chck_ret();
+}
+
 int main(int argc, char *argv[])
 {
     bool ret = false;
 
     ret |= constructors_test();
+    ret |= refcount_test();
 
     return ret;
 }

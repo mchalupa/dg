@@ -51,11 +51,15 @@ public:
 
     bool build(llvm::Module *m, llvm::Function *entry = NULL);
     bool build(llvm::Function *func);
-    // dependence graph can be share between more callsites that
+
+    // dependence graph can be shared between more callsites that
     // has references to this graph. When destroying graph, we
     // must be sure do delete
     // XXX maybe these should be just friend methods ...
     int ref() { ++refcount; return refcount; }
+    // unref graph and delete if refrences drop to 0
+    // this is meant to be used with heap-allocated graphs
+    // (thus the delete)
     int unref();
 
     bool addNode(LLVMDGNode *n);

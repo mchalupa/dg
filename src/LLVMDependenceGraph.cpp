@@ -65,8 +65,10 @@ int LLVMDependenceGraph::unref()
 {
     --refcount;
 
-    if (refcount == 0)
+    if (refcount == 0) {
         delete this;
+        return 0;
+    }
 
     return refcount;
 }
