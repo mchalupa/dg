@@ -27,24 +27,26 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
-        out << "\tNODE" << n->getValue() << " -> NODE" <<  (*I)->getValue() << "\n";
+        out << "\tNODE" << n << " -> NODE" <<  *I << "\n";
     for (auto I = n->dependence_begin(), E = n->dependence_end();
          I != E; ++I)
-        out << "\tNODE" << n->getValue() << " -> NODE" <<  (*I)->getValue() << " [color=red]\n";
+        out << "\tNODE" << n << " -> NODE" <<  *I << " [color=red]\n";
 #if ENABLE_CFG
     for (auto I = n->succ_begin(), E = n->succ_end();
          I != E; ++I)
-        out << "\tNODE" << n->getValue() << " -> NODE" <<  (*I)->getValue() << " [style=dotted]\n";
+        out << "\tNODE" << n << " -> NODE" <<  *I << " [style=dotted]\n";
 #endif /* ENABLE_CFG */
 
     if (n->getSubgraph()) {
-        out << "\tNODE" << n->getValue() << " -> NODE" <<  n->getSubgraph()->getEntry()->getValue() << " [style=dashed]\n";
+        out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry() << " [style=dashed]\n";
     }
 }
 
 static std::string& getValueName(const llvm::Value *val, std::string &str)
 {
     llvm::raw_string_ostream s(str);
+
+    str.clear();
 
     if (llvm::isa<llvm::Function>(val))
         s << "ENTRY " << val->getName();
@@ -66,8 +68,6 @@ void print_to_dot(LLVMDependenceGraph *dg,
     if (!dg)
         return;
 
-    valName.clear();
-
     if (issubgraph) {
         out << "subgraph \"cluster_" << subgraph_no++;
     } else {
@@ -80,8 +80,10 @@ void print_to_dot(LLVMDependenceGraph *dg,
     {
         auto n = I->second;
         if (!n) {
-            if (!llvm::isa<llvm::Function>(val))
-                errs() << "WARN [" << dg << "]: Node is NULL for value: " << *I->first << "\n";
+            if (!llvm::isa<llvm::Function>(val)) {
+                getValueName(dg->getEntry()->getValue(), valName);
+                errs() << "WARN [" << valName << "]: Node is NULL for value: " << *I->first << "\n";
+            }
 
             continue;
         }
@@ -89,11 +91,21 @@ void print_to_dot(LLVMDependenceGraph *dg,
         val = n->getValue();
 
         print_to_dot(n->getSubgraph(), true);
+        print_to_dot(n->getParameters(), true);
 
-        valName.clear();
         getValueName(val, valName);
 
-        out << "\tNODE" << n->getValue() << " [label=\"" << valName << "\"";
+        out << "\tNODE" << n << " [label=\"" << valName;
+        for (auto d : n->getDefs()) {
+            getValueName(d->getValue(), valName);
+            out << "\\nDEF " << valName;
+        }
+        for (auto d : n->getPtrs()) {
+            getValueName(d->getValue(), valName);
+            out << "\\nPTR " << valName;
+        }
+
+        out << "\"";
         if (n->isLoopHeader())
             out << "style=\"filled\" fillcolor=\"gray\"";
         out << "];\n";
