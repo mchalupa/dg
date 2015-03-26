@@ -119,6 +119,14 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
         if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
             Function *callFunc = CInst->getCalledFunction();
 
+            if (callFunc->size() == 0) {
+#if DEBUG_ENABLED
+                llvm::errs() << "Skipping undefined function '"
+                             << callFunc->getName() << "'\n";
+#endif
+                continue;
+            }
+
             // if we don't have this subgraph constructed, construct it
             // else just add call edge
             LLVMDependenceGraph *&subgraph = constructedFunctions[callFunc];
@@ -126,7 +134,12 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
                 // since we have reference the the pointer in
                 // constructedFunctions, we can assing to it
                 subgraph = new LLVMDependenceGraph();
-                subgraph->build(callFunc);
+                bool ret = subgraph->build(callFunc);
+
+                // at least for now use just assert, if we'll
+                // have a reason to handle such failures at some
+                // point, we can change it
+                assert(ret && "Building subgraph failed");
 
                 // make the new graph a subgraph of current node
                 node->addSubgraph(subgraph);
@@ -152,6 +165,10 @@ struct WE {
 bool LLVMDependenceGraph::build(llvm::Function *func)
 {
     using namespace llvm;
+
+    // do we have anything to process?
+    if (func->size() == 0)
+        return false;
 
 #if DEBUG_ENABLED
     llvm::errs() << "Building graph for '" << func->getName() << "'\n";
@@ -210,6 +227,8 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     addFormalParameters();
     addTopLevelDefUse();
     addIndirectDefUse();
+
+    return true;
 }
 
 void LLVMDependenceGraph::addTopLevelDefUse()
