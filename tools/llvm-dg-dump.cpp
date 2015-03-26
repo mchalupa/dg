@@ -38,7 +38,8 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 #endif /* ENABLE_CFG */
 
     if (n->getSubgraph()) {
-        out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry() << " [style=dashed]\n";
+        out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry()
+            << " [style=dashed label=\"call\"]\n";
     }
 }
 
@@ -80,10 +81,10 @@ void print_to_dot(LLVMDependenceGraph *dg,
     {
         auto n = I->second;
         if (!n) {
-            if (!llvm::isa<llvm::Function>(val)) {
                 getValueName(dg->getEntry()->getValue(), valName);
-                errs() << "WARN [" << valName << "]: Node is NULL for value: " << *I->first << "\n";
-            }
+                errs() << "WARN [" << valName
+                       << "]: Node is NULL for value: "
+                       << *I->first << "\n";
 
             continue;
         }
@@ -96,7 +97,8 @@ void print_to_dot(LLVMDependenceGraph *dg,
             print_to_dot(params, true);
 
             // add control edge from call-site to the parameters subgraph
-            out << "\tNODE" << n << " -> NODE" <<  params->getEntry() << "\n";
+            out << "\tNODE" << n << " -> NODE" <<  params->getEntry()
+                << "[label=\"params\"]\n";
         }
 
         getValueName(val, valName);
@@ -118,8 +120,9 @@ void print_to_dot(LLVMDependenceGraph *dg,
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
         auto n = I->second;
         if (!n) {
-            if (!llvm::isa<llvm::Function>(val))
-                errs() << "WARN [" << dg << "]: Node is NULL for value: " << *I->first << "\n";
+                errs() << "WARN [" << dg
+                       << "]: Node is NULL for value: "
+                       << *I->first << "\n";
 
             continue;
         }
