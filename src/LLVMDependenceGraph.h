@@ -11,7 +11,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Function.h>
-//#include <llvm/ADT/SmallPtrSet.h>
+#include <llvm/ADT/SmallPtrSet.h>
 
 #include "DependenceGraph.h"
 
@@ -24,13 +24,20 @@ class LLVMDGNode : public DGNode<LLVMDependenceGraph, LLVMDGNode *>
 {
     const llvm::Value *value;
     bool is_loop_header;
+    // nodes defined at this node
+    llvm::SmallPtrSet<LLVMDGNode *, 8> def;
+    llvm::SmallPtrSet<LLVMDGNode *, 8> ptrs;
 public:
     LLVMDGNode(const llvm::Value *val)
     : value(val), is_loop_header(false) {};
 
     const llvm::Value *getValue(void) const { return value; }
-    bool isLoopHeader() const { return is_loop_header; }
-    void setIsLoopHeader() { is_loop_header = true; }
+    void addActualParameters();
+
+    bool addDef(LLVMDGNode *d) { return def.insert(d).second; }
+    bool addPtr(LLVMDGNode *p) { return ptrs.insert(p).second; }
+    llvm::SmallPtrSet<LLVMDGNode *, 8>& getDefs() { return def; }
+    llvm::SmallPtrSet<LLVMDGNode *, 8>& getPtrs() { return ptrs; }
 };
 
 class LLVMDependenceGraph : public DependenceGraph<const llvm::Value *, LLVMDGNode *>
@@ -39,11 +46,14 @@ public:
     virtual ~LLVMDependenceGraph();
     bool build(llvm::Module *m, llvm::Function *entry = NULL);
     bool build(llvm::Function *func);
+
     bool addNode(LLVMDGNode *n)
     { return DependenceGraph<const llvm::Value *, LLVMDGNode *>::addNode(n->getValue(), n); }
 
 private:
     void addTopLevelDefUse();
+    void addIndirectDefUse();
+    void addFormalParameters();
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 };

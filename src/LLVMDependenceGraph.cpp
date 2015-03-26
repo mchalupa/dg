@@ -32,6 +32,9 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
             if (I->second->getSubgraph())
                 delete I->second->getSubgraph();
 
+            if (I->second->getParameters())
+                delete I->second->getParameters();
+
             delete I->second;
         }
     }
@@ -89,8 +92,10 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
 
                 // make the new graph a subgraph of current node
                 node->addSubgraph(subgraph);
+                node->addActualParameters();
             } else {
                 node->addSubgraph(constructedFunctions[callFunc]);
+                node->addActualParameters();
             }
         }
     }
@@ -146,15 +151,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 assert(ni != end());
                 assert(pi != end());
 
-#if DEBUG_ENABLED
-                // set loop Header instruction
-                const Instruction *hinst
-                    = dyn_cast<Instruction>(ni->second->getValue());
-                assert(hinst && "BUG");
-                const Value *header = hinst->getParent()->getTerminator();
-                (*this)[header]->setIsLoopHeader();
-#endif
-
                 pi->second->addSucc(ni->second);
 #endif
                 continue;
@@ -169,7 +165,9 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     // add CFG edge from entry point to the first instruction
     entry->addSucc((*this)[(func->getEntryBlock().begin())]);
 
+    addFormalParameters();
     addTopLevelDefUse();
+    addIndirectDefUse();
 }
 
 void LLVMDependenceGraph::addTopLevelDefUse()
@@ -192,6 +190,68 @@ void LLVMDependenceGraph::addTopLevelDefUse()
 
             I->second->addDataDependence(nu);
         }
+    }
+}
+
+void LLVMDependenceGraph::addIndirectDefUse()
+{
+}
+
+void LLVMDGNode::addActualParameters()
+{
+    using namespace llvm;
+
+    const CallInst *CInst = dyn_cast<CallInst>(value);
+    const Function *func = CInst->getCalledFunction();
+
+    // do not add redundant nodes
+    if (func->arg_size() == 0)
+        return;
+
+    LLVMDependenceGraph *params = new LLVMDependenceGraph();
+    LLVMDependenceGraph *old = addParameters(params);
+    assert(old == NULL && "Replaced parameters");
+
+    // create entry node for params
+    LLVMDGNode *en = new LLVMDGNode(value);
+    params->addNode(en);
+    params->setEntry(en);
+
+    for (auto I = func->arg_begin(), E = func->arg_end();
+         I != E; ++I) {
+        const Value *val = (&*I);
+
+        LLVMDGNode *nn = new LLVMDGNode(val);
+        params->addNode(nn);
+
+        // add control edges
+        en->addControlDependence(nn);
+    }
+
+    return;
+}
+
+void LLVMDependenceGraph::addFormalParameters()
+{
+    using namespace llvm;
+
+    LLVMDGNode *entryNode = getEntry();
+    assert(entryNode);
+
+    const Function *func = dyn_cast<Function>(entryNode->getValue());
+    if (func->arg_size() == 0)
+        return;
+
+    for (auto I = func->arg_begin(), E = func->arg_end();
+         I != E; ++I) {
+        const Value *val = (&*I);
+
+        LLVMDGNode *nn = new LLVMDGNode(val);
+        addNode(nn);
+
+        // add control edges
+        bool ret = entryNode->addControlDependence(nn);
+        assert(ret && "Already have formal parameters");
     }
 }
 
