@@ -20,6 +20,9 @@ namespace dg {
 class LLVMDependenceGraph;
 class LLVMDGNode;
 
+/// ------------------------------------------------------------------
+//  -- LLVMDGNode
+/// ------------------------------------------------------------------
 class LLVMDGNode : public DGNode<LLVMDependenceGraph, LLVMDGNode *>
 {
     const llvm::Value *value;
@@ -31,6 +34,11 @@ public:
     LLVMDGNode(const llvm::Value *val): value(val) {};
 
     const llvm::Value *getValue(void) const { return value; }
+
+    // create new subgraph with actual parameters that are given
+    // by call-site and add parameter edges between actual and
+    // formal parameters. The argument is the graph of called function.
+    // Must be called only when node is call-site.
     void addActualParameters(LLVMDependenceGraph *);
 
     bool addDef(LLVMDGNode *d) { return def.insert(d).second; }
@@ -38,35 +46,56 @@ public:
     llvm::SmallPtrSet<LLVMDGNode *, 8>& getDefs() { return def; }
     llvm::SmallPtrSet<LLVMDGNode *, 8>& getPtrs() { return ptrs; }
 
-    // override addSubgraph, we want to count references
+    // override addSubgraph, we need to count references
     LLVMDependenceGraph *addSubgraph(LLVMDependenceGraph *);
 };
 
-class LLVMDependenceGraph : public DependenceGraph<const llvm::Value *, LLVMDGNode *>
+/// ------------------------------------------------------------------
+//  -- LLVMDependenceGraph
+/// ------------------------------------------------------------------
+class LLVMDependenceGraph :
+    public DependenceGraph<const llvm::Value *, LLVMDGNode *>
 {
 public:
     LLVMDependenceGraph() :refcount(1) {}
+
+    // free all allocated memory and unref subgraphs
     virtual ~LLVMDependenceGraph();
 
+    // build a LLVMDependenceGraph from module. This method will
+    // build all subgraphs (called procedures). If entry is NULL,
+    // then this methods looks for function named 'main'.
     bool build(llvm::Module *m, llvm::Function *entry = NULL);
+
+    // build LLVMDependenceGraph for a function. This will automatically
+    // build subgraphs of called functions
     bool build(llvm::Function *func);
 
-    // dependence graph can be shared between more callsites that
+    // dependence graph can be shared between more call-sites that
     // has references to this graph. When destroying graph, we
-    // must be sure do delete
-    // XXX maybe these should be just friend methods ...
+    // must be sure do delete it just once, so count references
     int ref() { ++refcount; return refcount; }
     // unref graph and delete if refrences drop to 0
-    // this is meant to be used with heap-allocated graphs
-    // (thus the delete)
+    // destructor calls this on subgraphs
     int unref();
 
+    // add a node to this graph. The DependenceGraph is something like
+    // namespace for nodes, since every node has unique key and we can
+    // have another node with same key (for the same llvm::Value) in another
+    // graph. So we can have two nodes for the same value but in different
+    // graphs. The edges can be between arbitrary nodes and do not
+    // depend on graphs the nodes are.
     bool addNode(LLVMDGNode *n);
-
 private:
+    // fill in def-use chains that we have from llvm
     void addTopLevelDefUse();
+
     void addIndirectDefUse();
+
+    // add formal parameters of the function to the graph
+    // (graph is a graph of one procedure)
     void addFormalParameters();
+
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 

@@ -7,10 +7,6 @@
 #include <queue>
 #include <set>
 
-/*
-#include <llvm/Function.h>
-#include <llvm/ADT/SmallPtrSet.h>
-*/
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
@@ -248,6 +244,8 @@ void LLVMDGNode::addActualParameters(LLVMDependenceGraph *funcGraph)
     using namespace llvm;
 
     const CallInst *CInst = dyn_cast<CallInst>(value);
+    assert(CInst && "addActualParameters called on non-CallInst");
+
     const Function *func = CInst->getCalledFunction();
 
     // do not add redundant nodes
