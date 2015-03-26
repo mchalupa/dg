@@ -39,5 +39,14 @@
 # vim config files
 *.vimrc
 
+tags
 */tags
 */cscope.out
+
+*.swn
+*.dot
+*.ps
+
+# LLVM files
+*.bc
+*.ll
