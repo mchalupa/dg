@@ -23,13 +23,12 @@ class LLVMDGNode;
 class LLVMDGNode : public DGNode<LLVMDependenceGraph, LLVMDGNode *>
 {
     const llvm::Value *value;
-    bool is_loop_header;
+
     // nodes defined at this node
     llvm::SmallPtrSet<LLVMDGNode *, 8> def;
     llvm::SmallPtrSet<LLVMDGNode *, 8> ptrs;
 public:
-    LLVMDGNode(const llvm::Value *val)
-    : value(val), is_loop_header(false) {};
+    LLVMDGNode(const llvm::Value *val): value(val) {};
 
     const llvm::Value *getValue(void) const { return value; }
     void addActualParameters(LLVMDependenceGraph *);
