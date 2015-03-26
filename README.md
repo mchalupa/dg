@@ -6,3 +6,7 @@ optimizations or program slicing.
 
 ## LLVM DependenceGraph
 Currently we are in process of implementing dependence graph for LLVM
+
+For more information you can write e-mails to:
+<statica@fi.muni.cz>
+<mchqwerty@gmail.com>
