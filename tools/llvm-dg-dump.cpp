@@ -91,7 +91,13 @@ void print_to_dot(LLVMDependenceGraph *dg,
         val = n->getValue();
 
         print_to_dot(n->getSubgraph(), true);
-        print_to_dot(n->getParameters(), true);
+        LLVMDependenceGraph *params = n->getParameters();
+        if (params) {
+            print_to_dot(params, true);
+
+            // add control edge from call-site to the parameters subgraph
+            out << "\tNODE" << n << " -> NODE" <<  params->getEntry() << "\n";
+        }
 
         getValueName(val, valName);
 
