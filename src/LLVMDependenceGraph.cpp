@@ -25,19 +25,56 @@ using std::make_pair;
 
 namespace dg {
 
+/// ------------------------------------------------------------------
+//  -- LLVMDGNode
+/// ------------------------------------------------------------------
+LLVMDependenceGraph *LLVMDGNode::addSubgraph(LLVMDependenceGraph *sub)
+{
+    // increase references
+    sub->ref();
+
+    // call parent's addSubgraph
+    return DGNode<LLVMDependenceGraph, LLVMDGNode *>::addSubgraph(sub);
+}
+
+/// ------------------------------------------------------------------
+//  -- LLVMDependenceGraph
+/// ------------------------------------------------------------------
+
 LLVMDependenceGraph::~LLVMDependenceGraph()
 {
     for (auto I = begin(), E = end(); I != E; ++I) {
         if (I->second) {
-            if (I->second->getSubgraph())
-                delete I->second->getSubgraph();
+            LLVMDependenceGraph *subgraph = I->second->getSubgraph();
+            if (subgraph)
+                // graphs are referenced, once the refcount is 0
+                // the graph will be deleted
+                subgraph->unref();
 
-            if (I->second->getParameters())
-                delete I->second->getParameters();
+            if (I->second->getParameters()) {
+                int rc = I->second->getParameters()->unref();
+                assert(rc == 0 && "parameters had more than one reference");
+            }
 
             delete I->second;
         }
     }
+}
+
+int LLVMDependenceGraph::unref()
+{
+    --refcount;
+
+    if (refcount == 0)
+        delete this;
+
+    return refcount;
+}
+
+inline bool LLVMDependenceGraph::addNode(LLVMDGNode *n)
+{
+    return DependenceGraph<const llvm::Value *, LLVMDGNode *>
+                                        ::addNode(n->getValue(), n);
 }
 
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
@@ -86,16 +123,19 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
 
             // if we don't have this subgraph constructed, construct it
             // else just add call edge
-            if (constructedFunctions.count(callFunc) == 0) {
-                LLVMDependenceGraph *subgraph = new LLVMDependenceGraph();
+            LLVMDependenceGraph *&subgraph = constructedFunctions[callFunc];
+            if (!subgraph) {
+                // since we have reference the the pointer in
+                // constructedFunctions, we can assing to it
+                subgraph = new LLVMDependenceGraph();
                 subgraph->build(callFunc);
 
                 // make the new graph a subgraph of current node
                 node->addSubgraph(subgraph);
-                node->addActualParameters();
+                node->addActualParameters(subgraph);
             } else {
-                node->addSubgraph(constructedFunctions[callFunc]);
-                node->addActualParameters();
+                node->addSubgraph(subgraph);
+                node->addActualParameters(subgraph);
             }
         }
     }
@@ -114,6 +154,10 @@ struct WE {
 bool LLVMDependenceGraph::build(llvm::Function *func)
 {
     using namespace llvm;
+
+#if DEBUG_ENABLED
+    llvm::errs() << "Building graph for '" << func->getName() << "'\n";
+#endif
 
     // create entry node
     LLVMDGNode *entry = new LLVMDGNode(func);
@@ -197,7 +241,7 @@ void LLVMDependenceGraph::addIndirectDefUse()
 {
 }
 
-void LLVMDGNode::addActualParameters()
+void LLVMDGNode::addActualParameters(LLVMDependenceGraph *funcGraph)
 {
     using namespace llvm;
 
@@ -226,6 +270,11 @@ void LLVMDGNode::addActualParameters()
 
         // add control edges
         en->addControlDependence(nn);
+
+        // add parameter edges -- these are just normal dependece edges
+        LLVMDGNode *fp = (*funcGraph)[val];
+        assert(fp && "Do not have formal parametr");
+        nn->addDataDependence(fp);
     }
 
     return;

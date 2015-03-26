@@ -32,23 +32,33 @@ public:
     : value(val), is_loop_header(false) {};
 
     const llvm::Value *getValue(void) const { return value; }
-    void addActualParameters();
+    void addActualParameters(LLVMDependenceGraph *);
 
     bool addDef(LLVMDGNode *d) { return def.insert(d).second; }
     bool addPtr(LLVMDGNode *p) { return ptrs.insert(p).second; }
     llvm::SmallPtrSet<LLVMDGNode *, 8>& getDefs() { return def; }
     llvm::SmallPtrSet<LLVMDGNode *, 8>& getPtrs() { return ptrs; }
+
+    // override addSubgraph, we want to count references
+    LLVMDependenceGraph *addSubgraph(LLVMDependenceGraph *);
 };
 
 class LLVMDependenceGraph : public DependenceGraph<const llvm::Value *, LLVMDGNode *>
 {
 public:
+    LLVMDependenceGraph() :refcount(1) {}
     virtual ~LLVMDependenceGraph();
+
     bool build(llvm::Module *m, llvm::Function *entry = NULL);
     bool build(llvm::Function *func);
+    // dependence graph can be share between more callsites that
+    // has references to this graph. When destroying graph, we
+    // must be sure do delete
+    // XXX maybe these should be just friend methods ...
+    int ref() { ++refcount; return refcount; }
+    int unref();
 
-    bool addNode(LLVMDGNode *n)
-    { return DependenceGraph<const llvm::Value *, LLVMDGNode *>::addNode(n->getValue(), n); }
+    bool addNode(LLVMDGNode *n);
 
 private:
     void addTopLevelDefUse();
@@ -56,6 +66,8 @@ private:
     void addFormalParameters();
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+
+    int refcount;
 };
 
 } // namespace dg
