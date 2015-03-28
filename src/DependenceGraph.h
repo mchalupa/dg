@@ -319,8 +319,12 @@ public:
         }
     }
 
-private:
+protected:
+    // nodes contained in this dg. They are protected, so that
+    // child classes can access them directly
     ContainerType nodes;
+
+private:
 
     template <typename Q, typename IT>
     void DFSProcessEdges(IT begin, IT end, Q& queue, unsigned int run_id)
