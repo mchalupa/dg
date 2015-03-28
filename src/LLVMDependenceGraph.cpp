@@ -151,6 +151,38 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
         }
     }
 
+    // check if this is the exit node of function
+    TerminatorInst *term = BB->getTerminator();
+    if (!term) {
+        errs() << "Basic block is not well formed\n" << *BB << "\n";
+        return false;
+    }
+
+    // create one unified exit node from function and add control dependence
+    // to it from every return instruction. We could use llvm pass that
+    // would do it for us, but then we would lost the advantage of working
+    // on dep. graph that is not for whole llvm
+    const ReturnInst *ret = dyn_cast<ReturnInst>(term);
+    if (ret) {
+        LLVMDGNode *ext = getExit();
+        if (!ext) {
+            // we need new llvm value, so that the nodes won't collide
+            ReturnInst *phonyRet = ReturnInst::Create(ret->getContext(), BB);
+            if (!phonyRet) {
+                errs() << "Failed creating phony return value for exit node\n";
+                return false;
+            }
+
+            phonyRet->setName("exitPhony");
+
+            ext = new LLVMDGNode(phonyRet);
+            addNode(ext);
+            setExit(ext);
+        }
+
+        (*this)[ret]->addControlDependence(ext);
+    }
+
     return true;
 }
 
@@ -165,6 +197,8 @@ struct WE {
 bool LLVMDependenceGraph::build(llvm::Function *func)
 {
     using namespace llvm;
+
+    assert(func && "Passed no func");
 
     // do we have anything to process?
     if (func->size() == 0)
@@ -228,6 +262,10 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     addTopLevelDefUse();
     addIndirectDefUse();
 
+    // check if we have everything
+    assert(getEntry() && "Missing entry node");
+    assert(getExit() && "Missing exit node");
+
     return true;
 }
 
@@ -238,6 +276,8 @@ void LLVMDependenceGraph::addTopLevelDefUse()
     // to its uses in llvm
     for (auto I = begin(), E = end(); I != E; ++I) {
         const llvm::Value *val = I->first;
+
+        assert(val && "key is NULL in dg::nodes");
 
         for (auto U = val->user_begin(), EU = val->user_end(); U != EU; ++U) {
             const llvm::Value *use = *U;
@@ -307,6 +347,8 @@ void LLVMDependenceGraph::addFormalParameters()
     assert(entryNode);
 
     const Function *func = dyn_cast<Function>(entryNode->getValue());
+    assert(func && "entry node value is not a function");
+
     if (func->arg_size() == 0)
         return;
 

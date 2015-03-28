@@ -182,7 +182,7 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<Key, ValueType>()
-    :entryNode(NULL), dfs_run(0)
+    :entryNode(NULL), exitNode(NULL), dfs_run(0)
     {
 #ifdef DEBUG_ENABLED
         debug::init();
@@ -215,7 +215,16 @@ public:
         return oldEnt;
     }
 
+    ValueType setExit(ValueType n)
+    {
+        ValueType oldExt = exitNode;
+        exitNode = n;
+
+        return oldExt;
+    }
+
     ValueType getEntry(void) const { return entryNode; }
+    ValueType getExit(void) const { return exitNode; }
 
     bool addNode(Key k, ValueType n)
     {
@@ -315,6 +324,7 @@ private:
     }
 
     ValueType entryNode;
+    ValueType exitNode;
 
     // counter for dfs_runs
     unsigned int dfs_run;
