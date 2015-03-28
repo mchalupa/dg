@@ -15,6 +15,16 @@
 using namespace dg;
 using llvm::errs;
 
+static struct {
+#if ENABLE_CFG
+    bool printCFG;
+    bool printRevCFG;
+#endif
+
+    bool printControlDep;
+    bool printDataDep;
+} OPTIONS;
+
 static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 {
     const llvm::Value *val;
@@ -25,17 +35,29 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
     else
         n->setDFSrun(1);
 
-    for (auto I = n->control_begin(), E = n->control_end();
-         I != E; ++I)
-        out << "\tNODE" << n << " -> NODE" <<  *I << "\n";
-    for (auto I = n->dependence_begin(), E = n->dependence_end();
-         I != E; ++I)
-        out << "\tNODE" << n << " -> NODE" <<  *I << " [color=red]\n";
+    if (OPTIONS.printControlDep)
+        for (auto I = n->control_begin(), E = n->control_end();
+             I != E; ++I)
+            out << "\tNODE" << n << " -> NODE" <<  *I << "\n";
+
+    if (OPTIONS.printDataDep)
+        for (auto I = n->dependence_begin(), E = n->dependence_end();
+             I != E; ++I)
+            out << "\tNODE" << n << " -> NODE" <<  *I
+                << " [color=red]\n";
+
 #if ENABLE_CFG
-    for (auto I = n->succ_begin(), E = n->succ_end();
-         I != E; ++I)
-        out << "\tNODE" << n << " -> NODE" <<  *I << " [style=dotted]\n";
-#endif /* ENABLE_CFG */
+    if (OPTIONS.printCFG)
+        for (auto I = n->succ_begin(), E = n->succ_end();
+             I != E; ++I)
+            out << "\tNODE" << n << " -> NODE" <<  *I
+                << " [style=dotted]\n";
+    if (OPTIONS.printRevCFG)
+        for (auto I = n->pred_begin(), E = n->pred_end();
+             I != E; ++I)
+            out << "\tNODE" << n << " -> NODE" <<  *I
+                << " [style=dotted color=gray]\n";
+#endif // ENABLE_CFG
 
     if (n->getSubgraph()) {
         out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry()
@@ -138,16 +160,33 @@ int main(int argc, char *argv[])
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     std::unique_ptr<llvm::Module> M;
-    const char *module, *ofile = NULL;
+    const char *module = NULL;
 
-    if (argc == 3) {
-        module = argv[1];
-        ofile = argv[2];
-        errs() << "Not supported yet\n";
-        return 1;
-    } else if (argc == 2) {
-        module = argv[1];
-    } else {
+    // default
+    OPTIONS.printControlDep = true;
+    OPTIONS.printDataDep = true;
+
+    // parse options
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-no-control") == 0) {
+            OPTIONS.printControlDep = false;
+        } else if (strcmp(argv[i], "-no-data") == 0) {
+            OPTIONS.printDataDep = false;
+
+#if ENABLE_CFG
+        } else if (strcmp(argv[i], "-cfg") == 0) {
+            OPTIONS.printCFG = true;
+        } else if (strcmp(argv[i], "-cfgall") == 0) {
+            OPTIONS.printCFG = true;
+            OPTIONS.printRevCFG = true;
+#endif // ENABLE_CFG
+
+        } else {
+            module = argv[i];
+        }
+    }
+
+    if (!module) {
         errs() << "Usage: % IR_module [output_file]\n";
         return 1;
     }
