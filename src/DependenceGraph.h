@@ -108,13 +108,24 @@ public:
     unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
 
 #ifdef ENABLE_CFG
-    void addSucc(NodePtrT s) { succs.insert(s); }
+    void addSucc(NodePtrT s)
+    {
+        succs.insert(s);
+        s->preds.insert(static_cast<NodePtrT>(this));
+    }
 
     cfg_iterator succ_begin(void) { return succs.begin(); }
     const_cfg_iterator succ_begin(void) const { return succs.begin(); }
     cfg_iterator succ_end(void) { return succs.end(); }
     const_cfg_iterator succ_end(void) const { return succs.end(); }
+
+    cfg_iterator pred_begin(void) { return preds.begin(); }
+    const_cfg_iterator pred_begin(void) const { return preds.begin(); }
+    cfg_iterator pred_end(void) { return preds.end(); }
+    const_cfg_iterator pred_end(void) const { return preds.end(); }
+
     unsigned int getSuccNum(void) const { return succs.size(); }
+    unsigned int getPredNum(void) const { return preds.size(); }
 #endif /* ENABLE_CFG */
 
     DG *addSubgraph(DG *sub)
@@ -150,6 +161,8 @@ private:
 
     // successors of this node
     CFGEdgesType succs;
+    // predcessors of this node
+    CFGEdgesType preds;
 #endif /* ENABLE_CFG */
 
     ControlEdgesType controlDepEdges;
