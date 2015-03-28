@@ -102,6 +102,11 @@ public:
     dependence_iterator rev_dependence_end(void) { return revDataDepEdges.end(); }
     const_dependence_iterator rev_dependence_end(void) const { return revDataDepEdges.end(); }
 
+    unsigned int getControlDependenciesNum() const { return controlDepEdges.size(); }
+    unsigned int getRevControlDependenciesNum() const { return revControlDepEdges.size(); }
+    unsigned int getDataDependenciesNum() const { return dataDepEdges.size(); }
+    unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
+
 #ifdef ENABLE_CFG
     void addSucc(NodePtrT s) { succs.insert(s); }
 
