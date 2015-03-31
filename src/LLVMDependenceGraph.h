@@ -28,8 +28,9 @@ class LLVMDGNode : public DGNode<LLVMDependenceGraph, LLVMDGNode *>
     const llvm::Value *value;
 
     // nodes defined at this node
-    llvm::SmallPtrSet<LLVMDGNode *, 8> def;
-    llvm::SmallPtrSet<LLVMDGNode *, 8> ptrs;
+    typedef llvm::SmallPtrSet<LLVMDGNode *, 8> DefsT;
+    DefsT def;
+    DefsT ptrs;
 public:
     LLVMDGNode(const llvm::Value *val): value(val) {};
 
@@ -43,8 +44,8 @@ public:
 
     bool addDef(LLVMDGNode *d) { return def.insert(d).second; }
     bool addPtr(LLVMDGNode *p) { return ptrs.insert(p).second; }
-    llvm::SmallPtrSet<LLVMDGNode *, 8>& getDefs() { return def; }
-    llvm::SmallPtrSet<LLVMDGNode *, 8>& getPtrs() { return ptrs; }
+    DefsT& getDefs() { return def; }
+    DefsT& getPtrs() { return ptrs; }
 
     // override addSubgraph, we need to count references
     LLVMDependenceGraph *addSubgraph(LLVMDependenceGraph *);
