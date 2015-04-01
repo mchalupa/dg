@@ -17,6 +17,65 @@ namespace dg {
 template <typename DG, typename NodePtrT>
 class DGNode;
 
+#ifdef ENABLE_CFG
+
+template <typename NodePtrT>
+class DGBasicBlock
+{
+public:
+    DGBasicBlock<NodePtrT>(NodePtrT first)
+        : firstNode(first), lastNode(NULL)
+    {
+        first->setBasicBlock(this);
+    }
+
+    // TODO use llvm::SmallPtrSet if we have llvm
+    typedef std::set<DGBasicBlock<NodePtrT> *> ContainerT;
+
+    const ContainerT& successors() const { return nextBBs; }
+    const ContainerT& predcessors() const { return prevBBs; }
+
+    typename ContainerT::size_type successorsNum() const
+    {
+        return nextBBs.size();
+    }
+
+    typename ContainerT::size_type predcessorsNum() const
+    {
+        return prevBBs.size();
+    }
+
+    bool addSuccessor(DGBasicBlock<NodePtrT> *b)
+    {
+        return nextBBs.insert(b).second;
+    }
+
+    bool addPredcessor(DGBasicBlock<NodePtrT> *b)
+    {
+        return prevBBs.insert(b).second;
+    }
+
+    NodePtrT getFirstNode() const { return firstNode; }
+    NodePtrT getLastNode() const { return lastNode; }
+    NodePtrT setLastNode(NodePtrT nn)
+    {
+        NodePtrT old = lastNode;
+        lastNode = nn;
+        return old;
+    }
+
+private:
+    ContainerT nextBBs;
+    ContainerT prevBBs;
+
+    // first node in this basic block
+    NodePtrT firstNode;
+    // last node in this basic block
+    NodePtrT lastNode;
+};
+
+#endif // ENABLE_CFG
+
 template <typename Key, typename ValueType>
 class DependenceGraph;
 
@@ -44,7 +103,13 @@ public:
     typedef typename CFGEdgesType::const_iterator const_cfg_iterator;
 #endif /* ENABLE_CFG */
 
-    DGNode<DG, NodePtrT>():subgraph(NULL), parameters(NULL), dfs_run(0) {}
+    DGNode<DG, NodePtrT>()
+        :subgraph(NULL), parameters(NULL), dfs_run(0)
+#if ENABLE_CFG
+         , basicBlock(NULL)
+#endif
+    {
+    }
 
     bool addControlDependence(NodePtrT n)
     {
@@ -108,6 +173,16 @@ public:
     unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
 
 #ifdef ENABLE_CFG
+    DGBasicBlock<NodePtrT> *getBasicBlock() { return basicBlock; }
+    const DGBasicBlock<NodePtrT> *getBasicBlock() const { return basicBlock; }
+
+    DGBasicBlock<NodePtrT> *setBasicBlock(DGBasicBlock<NodePtrT> *nbb)
+    {
+        DGBasicBlock<NodePtrT> *old = basicBlock;
+        basicBlock = nbb;
+        return old;
+    }
+
     void addSucc(NodePtrT s)
     {
         succs.insert(s);
@@ -158,6 +233,8 @@ private:
 
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
+    // and it is better to have even basic blocks
+    DGBasicBlock<NodePtrT> *basicBlock;
 
     // successors of this node
     CFGEdgesType succs;
@@ -196,6 +273,9 @@ public:
 
     DependenceGraph<Key, ValueType>()
     :entryNode(NULL), exitNode(NULL), dfs_run(0)
+#ifdef ENABLE_CFG
+     , entryBB(NULL), exitBB(NULL)
+#endif
     {
 #ifdef DEBUG_ENABLED
         debug::init();
@@ -239,6 +319,29 @@ public:
 
     ValueType getEntry(void) const { return entryNode; }
     ValueType getExit(void) const { return exitNode; }
+
+#ifdef ENABLE_CFG
+    DGBasicBlock<ValueType> *getEntryBB() const { return entryBB; }
+    DGBasicBlock<ValueType> *getExitBB() const { return exitBB; }
+
+    DGBasicBlock<ValueType> *setEntryBB(DGBasicBlock<ValueType> *nbb)
+    {
+        DGBasicBlock<ValueType> *old = entryBB;
+        entryBB = nbb;
+        entryNode = nbb->getFirstNode();
+
+        return old;
+    }
+
+    DGBasicBlock<ValueType> *setExitBB(DGBasicBlock<ValueType> *nbb)
+    {
+        DGBasicBlock<ValueType> *old = exitBB;
+        exitBB = nbb;
+        exitNode = nbb->getFirstNode();
+
+        return old;
+    }
+#endif // ENABLE_CFG
 
     bool addNode(Key k, ValueType n)
     {
@@ -343,6 +446,11 @@ private:
 
     ValueType entryNode;
     ValueType exitNode;
+
+#ifdef ENABLE_CFG
+    DGBasicBlock<ValueType> *entryBB;
+    DGBasicBlock<ValueType> *exitBB;
+#endif // ENABLE_CFG
 
     // counter for dfs_runs
     unsigned int dfs_run;

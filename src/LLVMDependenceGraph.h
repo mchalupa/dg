@@ -18,6 +18,7 @@
 namespace dg {
 
 class LLVMDependenceGraph;
+class LLVMDGBasicBlock;
 class LLVMDGNode;
 
 /// ------------------------------------------------------------------
@@ -58,6 +59,10 @@ class LLVMDependenceGraph :
     public DependenceGraph<const llvm::Value *, LLVMDGNode *>
 {
 public:
+#ifdef ENABLE_CFG
+    typedef DGBasicBlock<LLVMDGNode *> LLVMDGBasicBlock;
+#endif // ENABLE_CFG
+
     LLVMDependenceGraph() :refcount(1) {}
 
     // free all allocated memory and unref subgraphs

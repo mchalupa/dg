@@ -90,28 +90,68 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     build(entry);
 };
 
-bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
+static LLVMDependenceGraph::LLVMDGBasicBlock *
+createBasicBlock(LLVMDGNode *firstNode, LLVMDGNode *predNode)
+{
+    // uhh, it would kill me to write it all the time
+    typedef LLVMDependenceGraph::LLVMDGBasicBlock BasicBlock;
+
+    // XXX we're leaking basic block right now
+    BasicBlock *nodesBB = new BasicBlock(firstNode);
+
+    // if we have predcessor node, we can create edges
+    // if we do not have predcessor node, this is probably
+    // entry node. If it is not, it is a bug, but should be
+    // handled in caller
+    if (predNode) {
+        BasicBlock *predBB = predNode->getBasicBlock();
+        assert(predBB && "No basic block in predcessor node");
+
+        nodesBB->addPredcessor(predBB);
+        predBB->addSuccessor(nodesBB);
+    }
+
+    return nodesBB;
+}
+
+bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
+                                llvm::BasicBlock *pred)
 {
     using namespace llvm;
 
+    LLVMDGNode *node = NULL;
+
 #ifdef ENABLE_CFG
+    LLVMDGBasicBlock *nodesBB = NULL;
     LLVMDGNode *predNode = NULL;
+
     if (pred) {
-        predNode = (*this)[pred->getTerminator()];
+        predNode = getNode(pred->getTerminator());
         assert(predNode && "Predcessor node is not created");
     }
 #endif //ENABLE_CFG
 
-    for (auto Inst = BB->begin(), EInst = BB->end(); Inst != EInst; ++Inst) {
+    for (auto Inst = BB->begin(), EInst = BB->end();
+         Inst != EInst; ++Inst) {
         const llvm::Value *val = &(*Inst);
 
-        LLVMDGNode *node = new LLVMDGNode(val);
+        node = new LLVMDGNode(val);
+        // add new node to this dependence graph
         addNode(node);
 
 #ifdef ENABLE_CFG
+        // if we do not have basic block yet,
+        // this is the first iteration
+        if (!nodesBB)
+            nodesBB = createBasicBlock(node, predNode);
+        else
+            node->setBasicBlock(nodesBB);
+
+        // add successor to predcessor node
         if (predNode)
             predNode->addSucc(node);
 
+        // set new predcessor node
         predNode = node;
 #endif //ENABLE_CFG
 
@@ -129,7 +169,9 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
 
             // if we don't have this subgraph constructed, construct it
             // else just add call edge
-            LLVMDependenceGraph *&subgraph = constructedFunctions[callFunc];
+            LLVMDependenceGraph *&subgraph
+                = constructedFunctions[callFunc];
+
             if (!subgraph) {
                 // since we have reference the the pointer in
                 // constructedFunctions, we can assing to it
@@ -141,15 +183,16 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
                 // point, we can change it
                 assert(ret && "Building subgraph failed");
 
-                // make the new graph a subgraph of current node
-                node->addSubgraph(subgraph);
-                node->addActualParameters(subgraph);
-            } else {
-                node->addSubgraph(subgraph);
-                node->addActualParameters(subgraph);
             }
+
+            // make the subgraph a subgraph of current node
+            node->addSubgraph(subgraph);
+            node->addActualParameters(subgraph);
         }
     }
+
+    // set last node
+    nodesBB->setLastNode(node);
 
     // check if this is the exit node of function
     TerminatorInst *term = BB->getTerminator();
@@ -167,9 +210,11 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
         LLVMDGNode *ext = getExit();
         if (!ext) {
             // we need new llvm value, so that the nodes won't collide
-            ReturnInst *phonyRet = ReturnInst::Create(ret->getContext(), BB);
+            ReturnInst *phonyRet
+                = ReturnInst::Create(ret->getContext(), BB);
             if (!phonyRet) {
-                errs() << "Failed creating phony return value for exit node\n";
+                errs() << "Failed creating phony return value "
+                       << "for exit node\n";
                 return false;
             }
 
@@ -182,6 +227,10 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB, llvm::BasicBlock *pred)
 
         (*this)[ret]->addControlDependence(ext);
     }
+
+    // sanity check
+    assert(nodesBB->getFirstNode() && "No first node in BB");
+    assert(nodesBB->getLastNode() && "No last node in BB");
 
     return true;
 }
@@ -241,10 +290,35 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 errs() << *S;
                 ni = find(S->begin());
                 pi = find(item->BB->getTerminator());
+
+#ifdef DEBUG_ENABLED
+                if(ni == end()) {
+                    errs() << "No node for " << *(S->begin()) << "\n";
+                    abort();
+                }
+
+                if(pi == end()) {
+                    errs() << "No node for "
+                           << *(item->BB->getTerminator()) << "\n";
+                    abort();
+                }
+#else
                 assert(ni != end());
                 assert(pi != end());
+#endif // DEBUG_ENABLED
+
 
                 pi->second->addSucc(ni->second);
+
+                // add basic block edges
+                LLVMDGBasicBlock *BB = pi->second->getBasicBlock();
+                assert(BB && "Do not have BB");
+
+                LLVMDGBasicBlock *succBB = ni->second->getBasicBlock();
+                assert(succBB && "Do not have predcessor BB");
+
+                BB->addSuccessor(succBB);
+                succBB->addPredcessor(BB);
 #endif
                 continue;
             }
