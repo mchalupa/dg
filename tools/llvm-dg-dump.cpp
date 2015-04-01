@@ -19,11 +19,31 @@ static struct {
 #if ENABLE_CFG
     bool printCFG;
     bool printRevCFG;
+    bool printBB;
 #endif
 
     bool printControlDep;
     bool printDataDep;
 } OPTIONS;
+
+static std::string& getValueName(const llvm::Value *val, std::string &str)
+{
+    llvm::raw_string_ostream s(str);
+
+    str.clear();
+
+    if (!val) {
+        s << "[NULL]";
+        return s.str();
+    }
+
+    if (llvm::isa<llvm::Function>(val))
+        s << "ENTRY " << val->getName();
+    else
+        s << *val;
+
+    return s.str();
+}
 
 static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 {
@@ -57,26 +77,45 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
              I != E; ++I)
             out << "\tNODE" << n << " -> NODE" <<  *I
                 << " [style=dotted color=gray]\n";
+    if (OPTIONS.printBB) {
+        auto BB = n->getBasicBlock();
+        // if this is BB header, print the edges
+        if (BB && BB->getFirstNode() == n) {
+            auto fn = BB->getFirstNode();
+            for (auto pred : BB->predcessors()) {
+                auto ln = pred->getLastNode();
+                if (!ln) {
+                    std::string valName;
+                    getValueName(n->getValue(), valName);
+                    errs() << "WARN: No last node for "
+                           << valName << "\n";
+                } else {
+                    out << "\tNODE" << ln << " -> NODE" << fn
+                        << " [style=dotted color=purple]\n";
+                }
+            }
+
+            for (auto pred : BB->successors()) {
+                auto ln = BB->getLastNode();
+                auto fn = pred->getFirstNode();
+                if (!ln) {
+                    std::string valName;
+                    getValueName(n->getValue(), valName);
+                    errs() << "WARN: No last node for "
+                           << valName << "\n";
+                } else {
+                    out << "\tNODE" << ln << " -> NODE" << fn
+                        << " [style=dotted color=red]\n";
+                }
+            }
+        }
+    }
 #endif // ENABLE_CFG
 
     if (n->getSubgraph()) {
         out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry()
             << " [style=dashed label=\"call\"]\n";
     }
-}
-
-static std::string& getValueName(const llvm::Value *val, std::string &str)
-{
-    llvm::raw_string_ostream s(str);
-
-    str.clear();
-
-    if (llvm::isa<llvm::Function>(val))
-        s << "ENTRY " << val->getName();
-    else
-        s << *val;
-
-    return s.str();
 }
 
 void print_to_dot(LLVMDependenceGraph *dg,
@@ -126,6 +165,37 @@ void print_to_dot(LLVMDependenceGraph *dg,
         getValueName(val, valName);
 
         out << "\tNODE" << n << " [label=\"" << valName;
+
+#ifdef ENABLE_CFG
+        if (OPTIONS.printBB) {
+            auto BB = n->getBasicBlock();
+            if (!BB) {
+                errs() << "WARN: No basic block for " << valName << "\n";
+            } else {
+                auto fn = BB->getFirstNode();
+                if (!fn) {
+                    errs() << "CRITICAL: No first value for "
+                           << valName << "\n";
+                } else {
+                auto fval = fn->getValue();
+                    if (!fval) {
+                        errs() << "WARN: No value in first value for "
+                               << valName << "\n";
+                    } else {
+                        getValueName(fval, valName);
+                        out << "\\nBB: " << valName;
+                        if (n == fn)
+                            out << "\\nBB head (preds "
+                                << BB->predcessorsNum() << ")";
+                        if (BB->getLastNode() == n)
+                            out << "\\nBB tail (succs "
+                                << BB->successorsNum() << ")";
+                    }
+                }
+            }
+        }
+#endif  // ENABLE_CFG
+
         for (auto d : n->getDefs()) {
             getValueName(d->getValue(), valName);
             out << "\\nDEF " << valName;
@@ -174,6 +244,8 @@ int main(int argc, char *argv[])
             OPTIONS.printDataDep = false;
 
 #if ENABLE_CFG
+        } else if (strcmp(argv[i], "-bb") == 0) {
+            OPTIONS.printBB = true;
         } else if (strcmp(argv[i], "-cfg") == 0) {
             OPTIONS.printCFG = true;
         } else if (strcmp(argv[i], "-cfgall") == 0) {
