@@ -3,6 +3,14 @@
 
 #ifdef HAVE_LLVM
 
+#ifndef ENABLE_CFG
+ #error "Need CFG enabled for building LLVM Dependence Graph"
+#endif
+
+#ifndef ENABLE_POSTDOM
+ #error "Need post-dom enabled for building LLVM Dependence Graph"
+#endif
+
 #include <utility>
 #include <queue>
 #include <set>
@@ -168,8 +176,6 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
     const llvm::Value *val = &(*IT);
 
     LLVMDGNode *node = NULL;
-
-#ifdef ENABLE_CFG
     LLVMDGNode *predNode = NULL;
     LLVMDGBasicBlock *nodesBB;
     LLVMDGBasicBlock *predBB = NULL;
@@ -195,7 +201,6 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
 
     ++IT; // shift to next instruction, we have the first one handled
     predNode = node;
-#endif // ENABLE_CFG
 
     for (BasicBlock::const_iterator Inst = IT, EInst = BB->end();
          Inst != EInst; ++Inst) {
@@ -204,8 +209,6 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
         node = new LLVMDGNode(val);
         // add new node to this dependence graph
         addNode(node);
-
-#ifdef ENABLE_CFG
         node->setBasicBlock(nodesBB);
 
         // add successor to predcessor node
@@ -214,8 +217,6 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
 
         // set new predcessor node
         predNode = node;
-
-#endif //ENABLE_CFG
 
         // if this is a call site, create new subgraph at this place
         if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
@@ -261,14 +262,12 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
         node->addControlDependence(ext);
     }
 
-#ifdef ENABLE_CFG
     // set last node
     nodesBB->setLastNode(node);
 
     // sanity check if we have the first and the last node set
     assert(nodesBB->getFirstNode() && "No first node in BB");
     assert(nodesBB->getLastNode() && "No last node in BB");
-#endif // ENABLE_CFG
 
     return true;
 }
@@ -324,7 +323,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
             // infinite loop
             iterator ni, pi;
             if (!processedBB.insert(*S).second) {
-#if ENABLE_CFG
                 errs() << *S;
                 ni = find(S->begin());
                 pi = find(item->BB->getTerminator());
@@ -354,7 +352,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 assert(succBB && "Do not have predcessor BB");
 
                 BB->addSuccessor(succBB);
-#endif
                 continue;
             }
 
@@ -364,10 +361,8 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
         delete item;
     }
 
-#if ENABLE_CFG
     // add CFG edge from entry point to the first instruction
     entry->addSuccessor(getNode(func->getEntryBlock().begin()));
-#endif // ENABLE_CFG
 
     addFormalParameters();
     addTopLevelDefUse();
