@@ -19,6 +19,10 @@ public:
 class TestDG : public DependenceGraph<const char *, TestNode *>
 {
 public:
+#ifdef ENABLE_CFG
+    typedef DGBasicBlock<TestNode *> BasicBlock;
+#endif // ENABLE_CFG
+
     bool addNode(TestNode *n) { return DependenceGraph<const char *, TestNode *>::addNode(n->getName(), n); }
 };
 
@@ -246,6 +250,73 @@ static bool dfs_test1(void)
     chck_ret();
 }
 
+static bool cfg_test1(void)
+{
+    chck_init();
+
+#if ENABLE_CFG
+
+    TestDG d;
+    //TestNode n1, n2;
+    CREATE_NODE(n1);
+    CREATE_NODE(n2);
+
+    d.addNode(&n1);
+    d.addNode(&n2);
+
+    chck(!n1.hasSuccessor(), "hasSuccessor returned true on node without successor");
+    chck(!n2.hasSuccessor(), "hasSuccessor returned true on node without successor");
+    chck(!n1.hasPredcessor(), "hasPredcessor returned true on node without successor");
+    chck(!n2.hasPredcessor(), "hasPredcessor returned true on node without successor");
+    chck(n1.getSuccessor() == NULL, "succ initialized with garbage");
+    chck(n2.getSuccessor() == NULL, "succ initialized with garbage");
+    chck(n1.getPredcessor() == NULL, "pred initialized with garbage");
+    chck(n2.getPredcessor() == NULL, "pred initialized with garbage");
+
+    chck(n1.addSuccessor(&n2) == NULL, "adding successor edge claims it is there");
+    chck(n1.hasSuccessor(), "hasSuccessor returned false");
+    chck(!n1.hasPredcessor(), "hasPredcessor returned true");
+    chck(n2.hasPredcessor(), "hasPredcessor returned false");
+    chck(!n2.hasSuccessor(), "hasSuccessor returned false");
+    chck(n1.getSuccessor() == &n2, "get/addSuccessor bug");
+    chck(n2.getPredcessor() == &n1, "get/addPredcessor bug");
+
+    // basic blocks
+    TestDG::BasicBlock BB(&n1);
+    chck(BB.getFirstNode() == &n1, "first node incorrectly set");
+    chck(BB.setLastNode(&n2) == NULL, "garbage in lastNode");
+    chck(BB.getLastNode() == &n2, "bug in setLastNode");
+
+    chck(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
+    chck(BB.predcessorsNum() == 0, "claims: %u", BB.predcessorsNum());
+
+    CREATE_NODE(n3);
+    CREATE_NODE(n4);
+    d.addNode(&n3);
+    d.addNode(&n4);
+
+    TestDG::BasicBlock BB2(&n3), BB3(&n3);
+
+    chck(BB.addSuccessor(&BB2), "the edge is there");
+    chck(!BB.addSuccessor(&BB2), "added even when the edge is there");
+    chck(BB.addSuccessor(&BB3), "the edge is there");
+    chck(BB.successorsNum() == 2, "claims: %u", BB.successorsNum());
+
+    chck(BB2.predcessorsNum() == 1, "claims: %u", BB2.predcessorsNum());
+    chck(BB3.predcessorsNum() == 1, "claims: %u", BB3.predcessorsNum());
+    chck(*(BB2.predcessors().begin()) == &BB, "wrong predcessor set");
+    chck(*(BB3.predcessors().begin()) == &BB, "wrong predcessor set");
+
+    for (auto s : BB.successors())
+        chck(s == &BB2 || s == &BB3, "Wrong succ set");
+
+
+    chck_dump(&d);
+#endif
+
+    chck_ret();
+}
+
 int main(int argc, char *argv[])
 {
     bool ret = false;
@@ -253,6 +324,7 @@ int main(int argc, char *argv[])
     ret |= constructors_test();
     ret |= add_test1();
     ret |= dfs_test1();
+    ret |= cfg_test1();
 
     return ret;
 }
