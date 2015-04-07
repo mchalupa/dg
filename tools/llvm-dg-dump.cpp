@@ -67,17 +67,26 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
                 << " [color=red]\n";
 
 #if ENABLE_CFG
-    if (OPTIONS.printCFG)
-        for (auto I = n->succ_begin(), E = n->succ_end();
-             I != E; ++I)
-            out << "\tNODE" << n << " -> NODE" <<  *I
+    if (OPTIONS.printCFG) {
+        if (n->hasSuccessor()) {
+            LLVMDGNode *succ = n->getSuccessor();
+            if (!succ)
+                errs() << "n hasSuccessor NULL!\n";
+
+            out << "\tNODE" << n << " -> NODE" << succ
                 << " [style=dotted]\n";
-    if (OPTIONS.printRevCFG)
-        for (auto I = n->pred_begin(), E = n->pred_end();
-             I != E; ++I)
-            out << "\tNODE" << n << " -> NODE" <<  *I
+        }
+    }
+
+    if (OPTIONS.printRevCFG) {
+        if (n->hasPredcessor()) {
+            out << "\tNODE" << n << " -> NODE" <<  n->getPredcessor()
                 << " [style=dotted color=gray]\n";
-    if (OPTIONS.printBB) {
+        }
+    }
+
+    // print edges between blocks
+    if (OPTIONS.printCFG) {
         auto BB = n->getBasicBlock();
         // if this is BB header, print the edges
         if (BB && BB->getFirstNode() == n) {
