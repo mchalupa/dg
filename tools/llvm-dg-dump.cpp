@@ -88,37 +88,28 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
     // print edges between blocks
     if (OPTIONS.printCFG) {
         auto BB = n->getBasicBlock();
+        if (BB && BB->getLastNode() == n) {
+            for (auto pred : BB->successors()) {
+                auto fn = pred->getFirstNode();
+                out << "\tNODE" << n << " -> NODE" << fn
+                    << " [style=dotted color=red]\n";
+            }
+        }
+    }
+
+    if (OPTIONS.printRevCFG) {
+        auto BB = n->getBasicBlock();
         // if this is BB header, print the edges
         if (BB && BB->getFirstNode() == n) {
             auto fn = BB->getFirstNode();
             for (auto pred : BB->predcessors()) {
                 auto ln = pred->getLastNode();
-                if (!ln) {
-                    std::string valName;
-                    getValueName(n->getValue(), valName);
-                    errs() << "WARN: No last node for "
-                           << valName << "\n";
-                } else {
-                    out << "\tNODE" << ln << " -> NODE" << fn
-                        << " [style=dotted color=purple]\n";
-                }
-            }
-
-            for (auto pred : BB->successors()) {
-                auto ln = BB->getLastNode();
-                auto fn = pred->getFirstNode();
-                if (!ln) {
-                    std::string valName;
-                    getValueName(n->getValue(), valName);
-                    errs() << "WARN: No last node for "
-                           << valName << "\n";
-                } else {
-                    out << "\tNODE" << ln << " -> NODE" << fn
-                        << " [style=dotted color=red]\n";
-                }
+                out << "\tNODE" << fn << " -> NODE" << ln
+                    << " [style=dotted color=purple]\n";
             }
         }
     }
+
 #endif // ENABLE_CFG
 
     if (n->getSubgraph()) {
