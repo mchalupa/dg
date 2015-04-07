@@ -144,7 +144,8 @@ createBasicBlock(LLVMDGNode *firstNode,
 }
 
 static bool
-is_func_defined(const llvm::CallInst *CInst) {
+is_func_defined(const llvm::CallInst *CInst)
+{
     llvm::Function *callFunc = CInst->getCalledFunction();
 
     if (callFunc->size() == 0) {
