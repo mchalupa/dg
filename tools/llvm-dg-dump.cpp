@@ -115,10 +115,17 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 #ifdef ENABLE_POSTDOM
     if (OPTIONS.printPostDom) {
         auto BB = n->getBasicBlock();
-        if (BB && BB->getIPostDom()) {
-            auto pdBB = BB->getIPostDom();
-            out << "\tNODE" << n << " -> NODE" << pdBB->getLastNode()
-                << " [style=dashed color=purple]\n";
+        if (BB && BB->getLastNode() == n
+            && BB->getIPostDomBy()) {
+            auto pdBB = BB->getIPostDomBy();
+            if (pdBB) {
+                out << "\tNODE" << pdBB->getFirstNode()
+                    << " -> NODE" << n
+                    << " [style=dashed color=purple]\n";
+            } else {
+                errs() << "WARN: No post-dom by for basic block for "
+                       << BB << "\n";
+            }
         }
     }
 #endif // ENABLE_POSTDOM
@@ -177,7 +184,13 @@ void print_to_dot(LLVMDependenceGraph *dg,
 
         getValueName(val, valName);
 
-        out << "\tNODE" << n << " [label=\"" << valName;
+        out << "\tNODE" << n << " [";
+
+        auto BB = n->getBasicBlock();
+        if (BB && n == BB->getFirstNode())
+            out << "style=\"filled\" fillcolor=\"lightgray\"";
+
+        out << " label=\"" << valName;
 
 #ifdef ENABLE_CFG
         if (OPTIONS.printBB) {
