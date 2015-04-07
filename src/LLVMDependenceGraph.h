@@ -103,6 +103,10 @@ private:
     void addFormalParameters();
 
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
+
+    // build subgraph for a call node
+    bool buildSubgraph(LLVMDGNode *node);
+
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 
     int refcount;

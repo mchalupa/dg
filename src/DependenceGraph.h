@@ -47,12 +47,14 @@ public:
 
     bool addSuccessor(DGBasicBlock<NodePtrT> *b)
     {
-        return nextBBs.insert(b).second;
-    }
+        bool ret, ret2;
+        ret = nextBBs.insert(b).second;
+        ret2 = b->prevBBs.insert(this).second;
 
-    bool addPredcessor(DGBasicBlock<NodePtrT> *b)
-    {
-        return prevBBs.insert(b).second;
+        // we either have both edges or none
+        assert(ret == ret2);
+
+        return ret;
     }
 
     NodePtrT getFirstNode() const { return firstNode; }
@@ -97,16 +99,10 @@ public:
     typedef typename DependenceEdgesType::iterator dependence_iterator;
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
-#ifdef ENABLE_CFG
-    typedef std::set<NodePtrT> CFGEdgesType;
-    typedef typename CFGEdgesType::iterator cfg_iterator;
-    typedef typename CFGEdgesType::const_iterator const_cfg_iterator;
-#endif /* ENABLE_CFG */
-
     DGNode<DG, NodePtrT>()
         :subgraph(NULL), parameters(NULL), dfs_run(0)
 #if ENABLE_CFG
-         , basicBlock(NULL)
+         , basicBlock(NULL), nextNode(NULL), prevNode(NULL)
 #endif
     {
     }
@@ -183,24 +179,24 @@ public:
         return old;
     }
 
-    void addSucc(NodePtrT s)
+    NodePtrT addSuccessor(NodePtrT s)
     {
-        succs.insert(s);
-        s->preds.insert(static_cast<NodePtrT>(this));
+        NodePtrT old = nextNode;
+        nextNode = s;
+
+        s->prevNode = static_cast<NodePtrT>(this);
+
+        return old;
     }
 
-    cfg_iterator succ_begin(void) { return succs.begin(); }
-    const_cfg_iterator succ_begin(void) const { return succs.begin(); }
-    cfg_iterator succ_end(void) { return succs.end(); }
-    const_cfg_iterator succ_end(void) const { return succs.end(); }
+    bool hasSuccessor() const { return nextNode != NULL; }
+    bool hasPredcessor() const { return prevNode != NULL; }
 
-    cfg_iterator pred_begin(void) { return preds.begin(); }
-    const_cfg_iterator pred_begin(void) const { return preds.begin(); }
-    cfg_iterator pred_end(void) { return preds.end(); }
-    const_cfg_iterator pred_end(void) const { return preds.end(); }
+    const NodePtrT getSuccessor() const { return nextNode; }
+    const NodePtrT getPredcessor() const { return prevNode; }
+    NodePtrT getSuccessor() { return nextNode; }
+    NodePtrT getPredcessor() { return prevNode; }
 
-    unsigned int getSuccNum(void) const { return succs.size(); }
-    unsigned int getPredNum(void) const { return preds.size(); }
 #endif /* ENABLE_CFG */
 
     DG *addSubgraph(DG *sub)
@@ -237,9 +233,9 @@ private:
     DGBasicBlock<NodePtrT> *basicBlock;
 
     // successors of this node
-    CFGEdgesType succs;
+    NodePtrT nextNode;
     // predcessors of this node
-    CFGEdgesType preds;
+    NodePtrT prevNode;
 #endif /* ENABLE_CFG */
 
     ControlEdgesType controlDepEdges;

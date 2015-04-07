@@ -90,8 +90,42 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     build(entry);
 };
 
+bool
+LLVMDependenceGraph::buildSubgraph(LLVMDGNode *node)
+{
+    using namespace llvm;
+
+    const Value *val = node->getValue();
+    const CallInst *CInst = dyn_cast<CallInst>(val);
+
+    assert(CInst && "buildSubgraph called on non-CallInst");
+
+    Function *callFunc = CInst->getCalledFunction();
+
+    // if we don't have this subgraph constructed, construct it
+    // else just add call edge
+    LLVMDependenceGraph *&subgraph = constructedFunctions[callFunc];
+
+    if (!subgraph) {
+        // since we have reference the the pointer in
+        // constructedFunctions, we can assing to it
+        subgraph = new LLVMDependenceGraph();
+        bool ret = subgraph->build(callFunc);
+
+        // at least for now use just assert, if we'll
+        // have a reason to handle such failures at some
+        // point, we can change it
+        assert(ret && "Building subgraph failed");
+    }
+
+    // make the subgraph a subgraph of current node
+    node->addSubgraph(subgraph);
+    node->addActualParameters(subgraph);
+}
+
 static LLVMDependenceGraph::LLVMDGBasicBlock *
-createBasicBlock(LLVMDGNode *firstNode, LLVMDGNode *predNode)
+createBasicBlock(LLVMDGNode *firstNode,
+                 LLVMDependenceGraph::LLVMDGBasicBlock *predBB)
 {
     // uhh, it would kill me to write it all the time
     typedef LLVMDependenceGraph::LLVMDGBasicBlock BasicBlock;
@@ -99,19 +133,29 @@ createBasicBlock(LLVMDGNode *firstNode, LLVMDGNode *predNode)
     // XXX we're leaking basic block right now
     BasicBlock *nodesBB = new BasicBlock(firstNode);
 
-    // if we have predcessor node, we can create edges
+    // if we have predcessor block, we can create edges
     // if we do not have predcessor node, this is probably
     // entry node. If it is not, it is a bug, but should be
     // handled in caller
-    if (predNode) {
-        BasicBlock *predBB = predNode->getBasicBlock();
-        assert(predBB && "No basic block in predcessor node");
-
-        nodesBB->addPredcessor(predBB);
+    if (predBB)
         predBB->addSuccessor(nodesBB);
-    }
 
     return nodesBB;
+}
+
+static bool
+is_func_defined(const llvm::CallInst *CInst) {
+    llvm::Function *callFunc = CInst->getCalledFunction();
+
+    if (callFunc->size() == 0) {
+#if DEBUG_ENABLED
+        llvm::errs() << "Skipping undefined function '"
+                     << callFunc->getName() << "'\n";
+#endif
+        return false;
+    }
+
+    return true;
 }
 
 bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
@@ -119,80 +163,65 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
 {
     using namespace llvm;
 
+    BasicBlock::const_iterator IT = BB->begin();
+    const llvm::Value *val = &(*IT);
+
     LLVMDGNode *node = NULL;
 
 #ifdef ENABLE_CFG
-    LLVMDGBasicBlock *nodesBB = NULL;
     LLVMDGNode *predNode = NULL;
+    LLVMDGBasicBlock *nodesBB;
+    LLVMDGBasicBlock *predBB = NULL;
 
+    // get a predcessor basic block if it exists
     if (pred) {
-        predNode = getNode(pred->getTerminator());
-        assert(predNode && "Predcessor node is not created");
+        LLVMDGNode *pn = getNode(pred->getTerminator());
+        assert(pn && "Predcessor node is not created");
+
+        predBB = pn->getBasicBlock();
+        assert(predBB && "No basic block in predcessor node");
     }
-#endif //ENABLE_CFG
 
-    for (auto Inst = BB->begin(), EInst = BB->end();
+    node = new LLVMDGNode(val);
+    addNode(node);
+
+    nodesBB = createBasicBlock(node, predBB);
+
+    if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
+        if (is_func_defined(CInst))
+            buildSubgraph(node);
+    }
+
+    ++IT; // shift to next instruction, we have the first one handled
+    predNode = node;
+#endif // ENABLE_CFG
+
+    for (BasicBlock::const_iterator Inst = IT, EInst = BB->end();
          Inst != EInst; ++Inst) {
-        const llvm::Value *val = &(*Inst);
 
+        val = &(*Inst);
         node = new LLVMDGNode(val);
         // add new node to this dependence graph
         addNode(node);
 
 #ifdef ENABLE_CFG
-        // if we do not have basic block yet,
-        // this is the first iteration
-        if (!nodesBB)
-            nodesBB = createBasicBlock(node, predNode);
-        else
-            node->setBasicBlock(nodesBB);
+        node->setBasicBlock(nodesBB);
 
         // add successor to predcessor node
         if (predNode)
-            predNode->addSucc(node);
+            predNode->addSuccessor(node);
 
         // set new predcessor node
         predNode = node;
+
 #endif //ENABLE_CFG
 
         // if this is a call site, create new subgraph at this place
         if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
-            Function *callFunc = CInst->getCalledFunction();
-
-            if (callFunc->size() == 0) {
-#if DEBUG_ENABLED
-                llvm::errs() << "Skipping undefined function '"
-                             << callFunc->getName() << "'\n";
-#endif
-                continue;
-            }
-
-            // if we don't have this subgraph constructed, construct it
-            // else just add call edge
-            LLVMDependenceGraph *&subgraph
-                = constructedFunctions[callFunc];
-
-            if (!subgraph) {
-                // since we have reference the the pointer in
-                // constructedFunctions, we can assing to it
-                subgraph = new LLVMDependenceGraph();
-                bool ret = subgraph->build(callFunc);
-
-                // at least for now use just assert, if we'll
-                // have a reason to handle such failures at some
-                // point, we can change it
-                assert(ret && "Building subgraph failed");
-
-            }
-
-            // make the subgraph a subgraph of current node
-            node->addSubgraph(subgraph);
-            node->addActualParameters(subgraph);
+            if (is_func_defined(CInst))
+                buildSubgraph(node);
         }
     }
-
-    // set last node
-    nodesBB->setLastNode(node);
 
     // check if this is the exit node of function
     TerminatorInst *term = BB->getTerminator();
@@ -218,19 +247,27 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
                 return false;
             }
 
-            phonyRet->setName("exitPhony");
+            phonyRet->setName("EXIT");
 
             ext = new LLVMDGNode(phonyRet);
             addNode(ext);
             setExit(ext);
         }
 
-        (*this)[ret]->addControlDependence(ext);
+        // add control dependence from this (return) node
+        // to EXIT node
+        assert(node && "BUG, no node after we went through basic block");
+        node->addControlDependence(ext);
     }
 
-    // sanity check
+#ifdef ENABLE_CFG
+    // set last node
+    nodesBB->setLastNode(node);
+
+    // sanity check if we have the first and the last node set
     assert(nodesBB->getFirstNode() && "No first node in BB");
     assert(nodesBB->getLastNode() && "No last node in BB");
+#endif // ENABLE_CFG
 
     return true;
 }
@@ -308,8 +345,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 #endif // DEBUG_ENABLED
 
 
-                pi->second->addSucc(ni->second);
-
                 // add basic block edges
                 LLVMDGBasicBlock *BB = pi->second->getBasicBlock();
                 assert(BB && "Do not have BB");
@@ -318,7 +353,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 assert(succBB && "Do not have predcessor BB");
 
                 BB->addSuccessor(succBB);
-                succBB->addPredcessor(BB);
 #endif
                 continue;
             }
@@ -329,8 +363,10 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
         delete item;
     }
 
+#if ENABLE_CFG
     // add CFG edge from entry point to the first instruction
-    entry->addSucc((*this)[(func->getEntryBlock().begin())]);
+    entry->addSuccessor(getNode(func->getEntryBlock().begin()));
+#endif // ENABLE_CFG
 
     addFormalParameters();
     addTopLevelDefUse();
