@@ -25,6 +25,9 @@ class DGBasicBlock
 public:
     DGBasicBlock<NodePtrT>(NodePtrT first)
         : firstNode(first), lastNode(NULL)
+#if defined(ENABLE_POSTDOM)
+          , ipostdom(NULL)
+#endif
     {
         first->setBasicBlock(this);
     }
@@ -66,6 +69,24 @@ public:
         return old;
     }
 
+#if defined(ENABLE_POSTDOM)
+    // get immediate post-dominator
+    DGBasicBlock<NodePtrT> *getIPostDom() const { return ipostdom; }
+    DGBasicBlock<NodePtrT> *getIPostDomBy() const { return ipostdomby; }
+    DGBasicBlock<NodePtrT> *setIPostDom(DGBasicBlock<NodePtrT> pd)
+    {
+        DGBasicBlock<NodePtrT> *old = ipostdom;
+
+        assert(ipostdom && pd->ipostdomby
+               || (!ipostdom && !pd->ipostdomby) && "BUG in post-dom tree");
+
+        ipostdom = pd;
+        pd->postdomby = this;
+
+        return ipostdom;
+    }
+#endif // ENABLE_POSTDOM
+
 private:
     ContainerT nextBBs;
     ContainerT prevBBs;
@@ -74,6 +95,13 @@ private:
     NodePtrT firstNode;
     // last node in this basic block
     NodePtrT lastNode;
+
+#if defined(ENABLE_POSTDOM)
+    // immediate postdominator
+    DGBasicBlock<NodePtrT> *ipostdom;
+    // reverse edge to immediate postdom
+    DGBasicBlock<NodePtrT> *ipostdomby;
+#endif // ENABLE_POSTDOM
 };
 
 #endif // ENABLE_CFG

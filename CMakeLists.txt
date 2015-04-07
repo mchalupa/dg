@@ -4,13 +4,18 @@ project(dg)
 # define DEBUG by default for now
 OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
-OPTION(ENABLE_CFG "Add CFG edges to the graph" ON)
-
-if (ENABLE_CFG)
-	add_definitions(-DENABLE_CFG)
-endif()
+OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
+OPTION(ENABLE_POSTDOM "Add support for post-dominator edges to the graph" ON)
 
 if (LLVM_DG)
+	# for llvm dg we need cfg and postdom edges
+	if (NOT ENABLE_CFG OR NOT ENABLE_POSTDOM)
+		message(STATUS "Enabling CFG and post-dom edges due to llvm dg")
+	endif()
+
+	set(ENABLE_CFG ON)
+	set(ENABLE_POSTDOM ON)
+
 	find_package(LLVM REQUIRED CONFIG)
 
 	message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -38,6 +43,20 @@ if (LLVM_DG)
 
 	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
+
+if (ENABLE_POSTDOM)
+	# need CFG for post-dom
+	if (NOT ENABLE_CFG)
+		message(STATUS "Enabling CFG due to post-dom edges (that are enabled)")
+	endif()
+
+	set(ENABLE_CFG ON)
+	add_definitions(-DENABLE_POSTDOM)
+endif()
+
+if (ENABLE_CFG)
+	add_definitions(-DENABLE_CFG)
+endif()
 
 if (ENABLE_DEBUG)
 	add_definitions(-DDEBUG_ENABLED)

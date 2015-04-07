@@ -20,7 +20,10 @@ static struct {
     bool printCFG;
     bool printRevCFG;
     bool printBB;
-#endif
+#if ENABLE_POSTDOM
+    bool printPostDom;
+#endif // ENABLE_POSTDOM
+#endif // ENABLE_CFG
 
     bool printControlDep;
     bool printDataDep;
@@ -109,6 +112,16 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
             }
         }
     }
+#ifdef ENABLE_POSTDOM
+    if (OPTIONS.printPostDom) {
+        auto BB = n->getBasicBlock();
+        if (BB && BB->getIPostDom()) {
+            auto pdBB = BB->getIPostDom();
+            out << "\tNODE" << n << " -> NODE" << pdBB->getLastNode()
+                << " [style=dashed color=purple]\n";
+        }
+    }
+#endif // ENABLE_POSTDOM
 
 #endif // ENABLE_CFG
 
@@ -251,8 +264,11 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-cfgall") == 0) {
             OPTIONS.printCFG = true;
             OPTIONS.printRevCFG = true;
+#if ENABLE_POSTDOM
+        } else if (strcmp(argv[i], "-pd") == 0) {
+            OPTIONS.printPostDom = true;
+#endif // ENABLE_POSTDOM
 #endif // ENABLE_CFG
-
         } else {
             module = argv[i];
         }
