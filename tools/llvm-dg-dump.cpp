@@ -13,11 +13,15 @@
 
 #include <iostream>
 #include <string>
+#include <queue>
+#include <set>
 
 #include "../src/LLVMDependenceGraph.h"
 
 using namespace dg;
 using llvm::errs;
+
+typedef LLVMDependenceGraph::LLVMDGBasicBlock BasicBlock;
 
 static struct {
     bool printCFG;
@@ -27,6 +31,8 @@ static struct {
     bool printControlDep;
     bool printDataDep;
 } OPTIONS;
+
+std::queue<LLVMDependenceGraph *> toPrint;
 
 static std::string& getValueName(const llvm::Value *val, std::string &str)
 {
@@ -133,44 +139,40 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
     }
 }
 
-void print_to_dot(LLVMDependenceGraph *dg,
-                  bool issubgraph = false,
-                  const char *description = NULL)
+static void print_to_dot(LLVMDependenceGraph *dg,
+                         std::ostream& out = std::cout);
+
+static void printBB(LLVMDependenceGraph *dg,
+                     BasicBlock *BB,
+                     std::ostream& out)
 {
-    static unsigned subgraph_no = 0;
-    const llvm::Value *val;
+    assert(BB);
+
     std::string valName;
-    std::ostream& out = std::cout;
+    LLVMDGNode *n = BB->getFirstNode();
+    const llvm::Value *val;
+    static unsigned int bbid = 0;
 
-    if (!dg)
+    if (!n) {
+        getValueName(dg->getEntry()->getValue(), valName);
+        errs() << "WARN no first value in a block for " << valName << "\n";
         return;
-
-    if (issubgraph) {
-        out << "subgraph \"cluster_" << subgraph_no++;
-    } else {
-        out << "digraph \""<< description ? description : "DependencyGraph";
     }
 
-    out << "\" {\n";
+    out << "subgraph cluster_bb_" << bbid++;
+    out << "{\n";
+    out << "\tstyle=dotted\n";
 
-    for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
-    {
-        auto n = I->second;
-        if (!n) {
-                getValueName(dg->getEntry()->getValue(), valName);
-                errs() << "WARN [" << valName
-                       << "]: Node is NULL for value: "
-                       << *I->first << "\n";
-
-            continue;
-        }
-
+    do {
         val = n->getValue();
 
-        print_to_dot(n->getSubgraph(), true);
+        LLVMDependenceGraph *subgraph = n->getSubgraph();
+        if (subgraph)
+            toPrint.push(subgraph);
+
         LLVMDependenceGraph *params = n->getParameters();
         if (params) {
-            print_to_dot(params, true);
+            toPrint.push(params);
 
             // add control edge from call-site to the parameters subgraph
             out << "\tNODE" << n << " -> NODE" <<  params->getEntry()
@@ -178,39 +180,32 @@ void print_to_dot(LLVMDependenceGraph *dg,
         }
 
         getValueName(val, valName);
-
         out << "\tNODE" << n << " [";
 
-        auto BB = n->getBasicBlock();
-        if (BB && n == BB->getFirstNode())
+        if (n == BB->getFirstNode())
             out << "style=\"filled\" fillcolor=\"lightgray\"";
 
         out << " label=\"" << valName;
 
         if (OPTIONS.printBB) {
-            auto BB = n->getBasicBlock();
-            if (!BB) {
-                errs() << "WARN: No basic block for " << valName << "\n";
+            auto fn = BB->getFirstNode();
+            if (!fn) {
+                errs() << "CRITICAL: No first value for "
+                       << valName << "\n";
             } else {
-                auto fn = BB->getFirstNode();
-                if (!fn) {
-                    errs() << "CRITICAL: No first value for "
+                auto fval = fn->getValue();
+                if (!fval) {
+                    errs() << "WARN: No value in first value for "
                            << valName << "\n";
                 } else {
-                auto fval = fn->getValue();
-                    if (!fval) {
-                        errs() << "WARN: No value in first value for "
-                               << valName << "\n";
-                    } else {
-                        getValueName(fval, valName);
-                        out << "\\nBB: " << valName;
-                        if (n == fn)
-                            out << "\\nBB head (preds "
-                                << BB->predcessorsNum() << ")";
-                        if (BB->getLastNode() == n)
-                            out << "\\nBB tail (succs "
-                                << BB->successorsNum() << ")";
-                    }
+                    getValueName(fval, valName);
+                    out << "\\nBB: " << valName;
+                    if (n == fn)
+                        out << "\\nBB head (preds "
+                            << BB->predcessorsNum() << ")";
+                    if (BB->getLastNode() == n)
+                        out << "\\nBB tail (succs "
+                            << BB->successorsNum() << ")";
                 }
             }
         }
@@ -226,8 +221,53 @@ void print_to_dot(LLVMDependenceGraph *dg,
 
         out << "\"];\n";
             //<<" (runid=" << n->getDFSrun() << ")\"];\n";
+
+        n = n->getSuccessor();
+    } while (n);
+
+    out << "}\n";
+}
+
+static void print_to_dot(LLVMDependenceGraph *dg,
+                         std::ostream& out)
+{
+    static unsigned subgraph_no = 0;
+    const llvm::Value *val;
+    std::string valName;
+
+    if (!dg)
+        return;
+
+    out << "subgraph \"cluster_" << subgraph_no++;
+    out << "\" {\n";
+
+    std::queue<BasicBlock *> queue;
+    auto entryBB = dg->getEntryBB();
+    if (!entryBB) {
+        getValueName(dg->getEntry()->getValue(), valName);
+        errs() << "No entry block in graph for " << valName << "\n";
+        out << "}\n";
+        return;
     }
 
+    unsigned int runid = entryBB->getDFSRun();
+    ++runid;
+
+    queue.push(dg->getEntryBB());
+    while (!queue.empty()) {
+        auto BB = queue.front();
+        queue.pop();
+
+        BB->setDFSRun(runid);
+        printBB(dg, BB, out);
+
+        for (auto S : BB->successors()) {
+            if (S->getDFSRun() != runid)
+                queue.push(S);
+        }
+    }
+
+    // print edges in dg
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
         auto n = I->second;
         if (!n) {
@@ -289,7 +329,24 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     d.build(&*M);
 
-    print_to_dot(&d, false, "LLVM Dependence Graph");
+    std::ostream& out = std::cout;
+    std::set<LLVMDependenceGraph *> printed;
+
+    out << "digraph \"DependencyGraph\" {\n";
+
+    // print main procedure
+    toPrint.push(&d);
+
+    // print subgraphs that should be printed
+    while (!toPrint.empty()) {
+        auto sg = toPrint.front();
+        toPrint.pop();
+
+        if (printed.insert(sg).second)
+            print_to_dot(sg, out);
+    }
+
+    out << "}\n";
 
     return 0;
 }
