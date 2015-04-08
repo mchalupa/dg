@@ -142,20 +142,88 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 static void print_to_dot(LLVMDependenceGraph *dg,
                          std::ostream& out = std::cout);
 
+static void printNode(LLVMDGNode *n,
+                      std::ostream& out = std::cout)
+{
+    std::string valName;
+
+    assert(n);
+
+    BasicBlock *BB = n->getBasicBlock();
+    const llvm::Value *val = n->getValue();
+
+    LLVMDependenceGraph *subgraph = n->getSubgraph();
+    if (subgraph)
+        toPrint.push(subgraph);
+
+    LLVMDependenceGraph *params = n->getParameters();
+    if (params) {
+        print_to_dot(params, out);
+
+        // add control edge from call-site to the parameters subgraph
+        out << "\tNODE" << n << " -> NODE" <<  params->getEntry()
+            << "[label=\"params\"]\n";
+    }
+
+    getValueName(val, valName);
+    out << "\tNODE" << n << " [";
+
+    if (BB && n == BB->getFirstNode())
+        out << "style=\"filled\" fillcolor=\"lightgray\"";
+
+    out << " label=\"" << valName;
+
+    if (OPTIONS.printBB && BB) {
+        auto fn = BB->getFirstNode();
+        if (!fn) {
+            errs() << "CRITICAL: No first value for "
+                   << valName << "\n";
+        } else {
+            auto fval = fn->getValue();
+            if (!fval) {
+                errs() << "WARN: No value in first value for "
+                       << valName << "\n";
+            } else {
+                getValueName(fval, valName);
+                out << "\\nBB: " << valName;
+                if (n == fn)
+                    out << "\\nBB head (preds "
+                        << BB->predcessorsNum() << ")";
+                if (BB->getLastNode() == n)
+                    out << "\\nBB tail (succs "
+                        << BB->successorsNum() << ")";
+            }
+        }
+    }
+
+    for (auto d : n->getDefs()) {
+        getValueName(d->getValue(), valName);
+        out << "\\nDEF " << valName;
+    }
+    for (auto d : n->getPtrs()) {
+        getValueName(d->getValue(), valName);
+        out << "\\nPTR " << valName;
+    }
+
+    out << "\"];\n";
+        //<<" (runid=" << n->getDFSrun() << ")\"];\n";
+}
+
 static void printBB(LLVMDependenceGraph *dg,
                      BasicBlock *BB,
                      std::ostream& out)
 {
     assert(BB);
 
-    std::string valName;
     LLVMDGNode *n = BB->getFirstNode();
-    const llvm::Value *val;
     static unsigned int bbid = 0;
 
     if (!n) {
+        std::string valName;
         getValueName(dg->getEntry()->getValue(), valName);
-        errs() << "WARN no first value in a block for " << valName << "\n";
+
+        errs() << "WARN no first value in a block for "
+               << valName << "\n";
         return;
     }
 
@@ -164,68 +232,19 @@ static void printBB(LLVMDependenceGraph *dg,
     out << "\tstyle=dotted\n";
 
     do {
-        val = n->getValue();
-
-        LLVMDependenceGraph *subgraph = n->getSubgraph();
-        if (subgraph)
-            toPrint.push(subgraph);
-
-        LLVMDependenceGraph *params = n->getParameters();
-        if (params) {
-            toPrint.push(params);
-
-            // add control edge from call-site to the parameters subgraph
-            out << "\tNODE" << n << " -> NODE" <<  params->getEntry()
-                << "[label=\"params\"]\n";
-        }
-
-        getValueName(val, valName);
-        out << "\tNODE" << n << " [";
-
-        if (n == BB->getFirstNode())
-            out << "style=\"filled\" fillcolor=\"lightgray\"";
-
-        out << " label=\"" << valName;
-
-        if (OPTIONS.printBB) {
-            auto fn = BB->getFirstNode();
-            if (!fn) {
-                errs() << "CRITICAL: No first value for "
-                       << valName << "\n";
-            } else {
-                auto fval = fn->getValue();
-                if (!fval) {
-                    errs() << "WARN: No value in first value for "
-                           << valName << "\n";
-                } else {
-                    getValueName(fval, valName);
-                    out << "\\nBB: " << valName;
-                    if (n == fn)
-                        out << "\\nBB head (preds "
-                            << BB->predcessorsNum() << ")";
-                    if (BB->getLastNode() == n)
-                        out << "\\nBB tail (succs "
-                            << BB->successorsNum() << ")";
-                }
-            }
-        }
-
-        for (auto d : n->getDefs()) {
-            getValueName(d->getValue(), valName);
-            out << "\\nDEF " << valName;
-        }
-        for (auto d : n->getPtrs()) {
-            getValueName(d->getValue(), valName);
-            out << "\\nPTR " << valName;
-        }
-
-        out << "\"];\n";
-            //<<" (runid=" << n->getDFSrun() << ")\"];\n";
-
+        printNode(n, out);
         n = n->getSuccessor();
     } while (n);
 
     out << "}\n";
+}
+
+static void printNodesOnly(LLVMDependenceGraph *dg,
+                           std::ostream& out)
+{
+    for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
+        printNode(I->second, out);
+    }
 }
 
 static void print_to_dot(LLVMDependenceGraph *dg,
@@ -246,6 +265,9 @@ static void print_to_dot(LLVMDependenceGraph *dg,
     if (!entryBB) {
         getValueName(dg->getEntry()->getValue(), valName);
         errs() << "No entry block in graph for " << valName << "\n";
+        errs() << "  ^^^ printing only nodes\n";
+
+        printNodesOnly(dg, out);
         out << "}\n";
         return;
     }
