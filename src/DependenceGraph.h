@@ -23,13 +23,15 @@ template <typename NodePtrT>
 class DGBasicBlock
 {
 public:
-    DGBasicBlock<NodePtrT>(NodePtrT first)
-        : firstNode(first), lastNode(NULL)
+    DGBasicBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
+        : firstNode(first), lastNode(last), dfs_run(0)
 #if defined(ENABLE_POSTDOM)
-          , ipostdom(NULL)
+          , ipostdomby(NULL)
 #endif
     {
         first->setBasicBlock(this);
+        if (last)
+            last->setBasicBlock(this);
     }
 
     // TODO use llvm::SmallPtrSet if we have llvm
@@ -71,21 +73,24 @@ public:
 
 #if defined(ENABLE_POSTDOM)
     // get immediate post-dominator
-    DGBasicBlock<NodePtrT> *getIPostDom() const { return ipostdom; }
+    const ContainerT& getIPostDom() const { return ipostdoms; }
     DGBasicBlock<NodePtrT> *getIPostDomBy() const { return ipostdomby; }
-    DGBasicBlock<NodePtrT> *setIPostDom(DGBasicBlock<NodePtrT> pd)
+    // add node that is immediately post-dominated by this node
+    bool addIPostDom(DGBasicBlock<NodePtrT> *pd)
     {
-        DGBasicBlock<NodePtrT> *old = ipostdom;
+        assert(pd->ipostdomby == nullptr
+               && "The node is already post-dominated");
 
-        assert(ipostdom && pd->ipostdomby
-               || (!ipostdom && !pd->ipostdomby) && "BUG in post-dom tree");
-
-        ipostdom = pd;
-        pd->postdomby = this;
-
-        return ipostdom;
+        pd->ipostdomby = static_cast<DGBasicBlock<NodePtrT> *>(this);
+        return ipostdoms.insert(pd).second;
     }
 #endif // ENABLE_POSTDOM
+
+    unsigned int getDFSRun() const { return dfs_run; }
+    void setDFSRun(unsigned int id)
+    {
+        dfs_run = id;
+    }
 
 private:
     ContainerT nextBBs;
@@ -97,11 +102,16 @@ private:
     NodePtrT lastNode;
 
 #if defined(ENABLE_POSTDOM)
-    // immediate postdominator
-    DGBasicBlock<NodePtrT> *ipostdom;
-    // reverse edge to immediate postdom
+    // immediate postdominator. The BB can be immediate
+    // post-dominator of more nodes
+    ContainerT ipostdoms;
+    // reverse edge to immediate postdom. The BB can be
+    // immediately post-dominated only by one BB
     DGBasicBlock<NodePtrT> *ipostdomby;
 #endif // ENABLE_POSTDOM
+
+    // helper variable for running DFS/BFS on the BasicBlocks
+    unsigned int dfs_run;
 };
 
 #endif // ENABLE_CFG
@@ -352,7 +362,6 @@ public:
     {
         DGBasicBlock<ValueType> *old = entryBB;
         entryBB = nbb;
-        entryNode = nbb->getFirstNode();
 
         return old;
     }
@@ -361,7 +370,6 @@ public:
     {
         DGBasicBlock<ValueType> *old = exitBB;
         exitBB = nbb;
-        exitNode = nbb->getFirstNode();
 
         return old;
     }

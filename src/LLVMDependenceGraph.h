@@ -95,8 +95,8 @@ public:
 private:
     // fill in def-use chains that we have from llvm
     void addTopLevelDefUse();
-
     void addIndirectDefUse();
+    void addPostDomTree();
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)

@@ -194,6 +194,10 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
 
     nodesBB = createBasicBlock(node, predBB);
 
+    // if we don't have predcessor, this is the entry BB
+    if (predBB == NULL)
+        setEntryBB(nodesBB);
+
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
         if (is_func_defined(CInst))
             buildSubgraph(node);
@@ -254,12 +258,16 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
             ext = new LLVMDGNode(phonyRet);
             addNode(ext);
             setExit(ext);
+
+            LLVMDGBasicBlock *retBB = new LLVMDGBasicBlock(ext, ext);
+            setExitBB(retBB);
         }
 
         // add control dependence from this (return) node
         // to EXIT node
         assert(node && "BUG, no node after we went through basic block");
         node->addControlDependence(ext);
+        nodesBB->addSuccessor(getExitBB());
     }
 
     // set last node
@@ -343,7 +351,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 assert(pi != end());
 #endif // DEBUG_ENABLED
 
-
                 // add basic block edges
                 LLVMDGBasicBlock *BB = pi->second->getBasicBlock();
                 assert(BB && "Do not have BB");
@@ -365,12 +372,17 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     entry->addSuccessor(getNode(func->getEntryBlock().begin()));
 
     addFormalParameters();
+
+    addPostDomTree();
+
     addTopLevelDefUse();
     addIndirectDefUse();
 
     // check if we have everything
     assert(getEntry() && "Missing entry node");
     assert(getExit() && "Missing exit node");
+    assert(getEntryBB() && "Missing entry BB");
+    assert(getExitBB() && "Missing exit BB");
 
     return true;
 }
@@ -468,6 +480,35 @@ void LLVMDependenceGraph::addFormalParameters()
         // add control edges
         bool ret = entryNode->addControlDependence(nn);
         assert(ret && "Already have formal parameters");
+    }
+}
+
+void LLVMDependenceGraph::addPostDomTree()
+{
+    std::queue<LLVMDGBasicBlock *> queue;
+    unsigned int run_id;
+
+    LLVMDGBasicBlock *exitBB = getExitBB();
+    assert(exitBB && "Tried creating post-dom tree without BBs");
+
+    run_id = exitBB->getDFSRun();
+    exitBB->setDFSRun(++run_id);
+    queue.push(exitBB);
+
+    while (!queue.empty()) {
+        LLVMDGBasicBlock *BB = queue.front();
+        queue.pop();
+        BB->setDFSRun(run_id);
+
+        for (LLVMDGBasicBlock *predBB : BB->predcessors()) {
+            if (predBB->successorsNum() == 1) {
+                // BB immediately post-dominates the predBB
+                BB->addIPostDom(predBB);
+            }
+
+            if (predBB->getDFSRun() != run_id)
+                queue.push(predBB);
+        }
     }
 }
 
