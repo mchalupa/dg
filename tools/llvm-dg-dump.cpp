@@ -1,6 +1,10 @@
 #include <assert.h>
 #include <cstdio>
 
+#ifndef HAVE_LLVM
+#error "This code needs LLVM enabled"
+#endif
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/SourceMgr.h>
@@ -16,15 +20,10 @@ using namespace dg;
 using llvm::errs;
 
 static struct {
-#if ENABLE_CFG
     bool printCFG;
     bool printRevCFG;
     bool printBB;
-#if ENABLE_POSTDOM
     bool printPostDom;
-#endif // ENABLE_POSTDOM
-#endif // ENABLE_CFG
-
     bool printControlDep;
     bool printDataDep;
 } OPTIONS;
@@ -69,7 +68,6 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
             out << "\tNODE" << n << " -> NODE" <<  *I
                 << " [color=red]\n";
 
-#if ENABLE_CFG
     if (OPTIONS.printCFG) {
         if (n->hasSuccessor()) {
             LLVMDGNode *succ = n->getSuccessor();
@@ -112,7 +110,7 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
             }
         }
     }
-#ifdef ENABLE_POSTDOM
+
     if (OPTIONS.printPostDom) {
         auto BB = n->getBasicBlock();
         if (BB && BB->getLastNode() == n
@@ -128,9 +126,6 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
             }
         }
     }
-#endif // ENABLE_POSTDOM
-
-#endif // ENABLE_CFG
 
     if (n->getSubgraph()) {
         out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry()
@@ -192,7 +187,6 @@ void print_to_dot(LLVMDependenceGraph *dg,
 
         out << " label=\"" << valName;
 
-#ifdef ENABLE_CFG
         if (OPTIONS.printBB) {
             auto BB = n->getBasicBlock();
             if (!BB) {
@@ -220,7 +214,6 @@ void print_to_dot(LLVMDependenceGraph *dg,
                 }
             }
         }
-#endif  // ENABLE_CFG
 
         for (auto d : n->getDefs()) {
             getValueName(d->getValue(), valName);
@@ -268,8 +261,6 @@ int main(int argc, char *argv[])
             OPTIONS.printControlDep = false;
         } else if (strcmp(argv[i], "-no-data") == 0) {
             OPTIONS.printDataDep = false;
-
-#if ENABLE_CFG
         } else if (strcmp(argv[i], "-bb") == 0) {
             OPTIONS.printBB = true;
         } else if (strcmp(argv[i], "-cfg") == 0) {
@@ -277,11 +268,8 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-cfgall") == 0) {
             OPTIONS.printCFG = true;
             OPTIONS.printRevCFG = true;
-#if ENABLE_POSTDOM
         } else if (strcmp(argv[i], "-pd") == 0) {
             OPTIONS.printPostDom = true;
-#endif // ENABLE_POSTDOM
-#endif // ENABLE_CFG
         } else {
             module = argv[i];
         }
