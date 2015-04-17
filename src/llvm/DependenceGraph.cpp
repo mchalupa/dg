@@ -40,11 +40,11 @@ DependenceGraph::~DependenceGraph()
         Node *node = I->second;
 
         if (node) {
-            DependenceGraph *subgraph = node->getSubgraph();
-            if (subgraph)
+            for (auto subgraph : node->getSubgraphs()) {
                 // graphs are referenced, once the refcount is 0
                 // the graph will be deleted
                 subgraph->unref();
+            }
 
             DependenceGraph *params = node->getParameters();
             if (params) {

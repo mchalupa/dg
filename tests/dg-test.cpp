@@ -118,7 +118,8 @@ static bool constructors_test(void)
     //TestNode n;
     CREATE_NODE(n);
 
-    chck(n.getSubgraph() == nullptr, "BUG: garbage in subgraph");
+    chck(!n.hasSubgraphs(), "BUG: garbage in subgraph");
+    chck(n.subgraphsNum() == 0, "BUG: garbage in subgraph");
     chck(n.getParameters() == nullptr, "BUG: garbage in parameters");
 
     chck_dump(&d);

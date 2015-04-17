@@ -133,8 +133,8 @@ static void dump_to_dot(Node *n, std::ostream& out)
         }
     }
 
-    if (n->getSubgraph()) {
-        out << "\tNODE" << n << " -> NODE" <<  n->getSubgraph()->getEntry()
+    for (auto sub : n->getSubgraphs()) {
+        out << "\tNODE" << n << " -> NODE" <<  sub->getEntry()
             << " [style=dashed label=\"call\"]\n";
     }
 }
@@ -152,9 +152,8 @@ static void printNode(Node *n,
     BBlock *BB = n->getBasicBlock();
     const llvm::Value *val = n->getValue();
 
-    DependenceGraph *subgraph = n->getSubgraph();
-    if (subgraph)
-        toPrint.push(subgraph);
+    for (auto sub : n->getSubgraphs())
+        toPrint.push(sub);
 
     DependenceGraph *params = n->getParameters();
     if (params) {

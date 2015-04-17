@@ -147,7 +147,7 @@ public:
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
     Node<DG, NodePtrT>()
-        :subgraph(nullptr), parameters(nullptr), dfs_run(0)
+        : parameters(nullptr), dfs_run(0)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr), prevNode(nullptr)
 #endif
@@ -242,34 +242,47 @@ public:
 
 #endif /* ENABLE_CFG */
 
-    DG *addSubgraph(DG *sub)
+    bool addSubgraph(DG *sub)
     {
-        DG *old = subgraph;
-        subgraph = sub;
+        bool ret = subgraphs.insert(sub).second;
 
-        // increase references of this graph
-        // (node now keeps the reference to the graph)
-        sub->ref();
+        if (ret) {
+            // increase references of this graph
+            // if we added it
+            sub->ref();
+        }
 
-        return old;
+        return ret;
     }
 
     DG *addParameters(DG *params)
     {
         DG *old = parameters;
 
-        assert(subgraph && "BUG: setting parameters without subgraph");
+        assert(hasSubgraphs() && "BUG: setting parameters without subgraph");
 
         parameters = params;
         return old;
     }
 
-    DG *getSubgraph(void) const { return subgraph; }
-    DG *getParameters(void) const { return parameters; }
-
-    std::pair<DG *, DG *> getSubgraphWithParams(void) const
+    const std::set<DG *>& getSubgraphs(void) const
     {
-        return std::make_pair(subgraph, parameters);
+        return subgraphs;
+    }
+
+    bool hasSubgraphs() const
+    {
+        return !subgraphs.empty();
+    }
+
+    size_t subgraphsNum() const
+    {
+        return subgraphs.size();
+    }
+
+    DG *getParameters() const
+    {
+        return parameters;
     }
 
 private:
@@ -292,10 +305,13 @@ private:
     ControlEdgesType revControlDepEdges;
     DependenceEdgesType revDataDepEdges;
 
-    DG *subgraph;
+    // a node can have more subgraphs (i. e. function pointers)
+    std::set<DG *> subgraphs;
+
     // instead of adding parameter in/out nodes to parent
     // graph, we create new small graph just with these
     // nodes and summary edges (as dependence edges)
+    // parameters are shared for all subgraphs
     DG *parameters;
 
     // last id of DFS that ran on this node
@@ -376,7 +392,6 @@ public:
     int unref(bool deleteOnZero = true)
     {
         --refcount;
-        assert(refcount >= 0 && "refcount is < 0");
 
         if (deleteOnZero && refcount == 0) {
             delete this;
