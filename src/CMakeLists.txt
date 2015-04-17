@@ -6,8 +6,8 @@ add_library(dg SHARED
 	DependenceGraph.h
 	DGUtil.cpp
 	DGUtil.h
-	LLVMDependenceGraph.h
-	LLVMDependenceGraph.cpp
+	llvm/DependenceGraph.h
+	llvm/DependenceGraph.cpp
 )
 
 target_link_libraries(dg ${llvm_libs})

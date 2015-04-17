@@ -22,7 +22,7 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "LLVMDependenceGraph.h"
+#include "DependenceGraph.h"
 
 using llvm::errs;
 using std::make_pair;
