@@ -81,7 +81,7 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
                 errs() << "n hasSuccessor NULL!\n";
 
             out << "\tNODE" << n << " -> NODE" << succ
-                << " [style=dotted]\n";
+                << " [style=dotted rank=source]\n";
         }
     }
 
@@ -119,13 +119,13 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 
     if (OPTIONS.printPostDom) {
         auto BB = n->getBasicBlock();
-        if (BB && BB->getLastNode() == n
+        if (BB && BB->getFirstNode() == n
             && BB->getIPostDomBy()) {
             auto pdBB = BB->getIPostDomBy();
             if (pdBB) {
-                out << "\tNODE" << pdBB->getFirstNode()
+                out << "\tNODE" << pdBB->getLastNode()
                     << " -> NODE" << n
-                    << " [style=dashed color=purple]\n";
+                    << " [style=dashed color=purple rank=source]\n";
             } else {
                 errs() << "WARN: No post-dom by for basic block for "
                        << BB << "\n";

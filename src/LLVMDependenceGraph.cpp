@@ -503,7 +503,7 @@ void LLVMDependenceGraph::addPostDomTree()
         for (LLVMDGBasicBlock *predBB : BB->predcessors()) {
             if (predBB->successorsNum() == 1) {
                 // BB immediately post-dominates the predBB
-                BB->addIPostDom(predBB);
+                predBB->addIPostDom(BB);
             }
 
             if (predBB->getDFSRun() != run_id)

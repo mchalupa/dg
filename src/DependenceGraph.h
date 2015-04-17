@@ -26,7 +26,7 @@ public:
     DGBasicBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
         : firstNode(first), lastNode(last), dfs_run(0)
 #if defined(ENABLE_POSTDOM)
-          , ipostdomby(NULL)
+          , ipostdom(NULL)
 #endif
     {
         first->setBasicBlock(this);
@@ -73,16 +73,23 @@ public:
 
 #if defined(ENABLE_POSTDOM)
     // get immediate post-dominator
-    const ContainerT& getIPostDom() const { return ipostdoms; }
-    DGBasicBlock<NodePtrT> *getIPostDomBy() const { return ipostdomby; }
+    const ContainerT& getIPostDom() const { return ipostdominates; }
+    DGBasicBlock<NodePtrT> *getIPostDomBy() const { return ipostdom; }
     // add node that is immediately post-dominated by this node
     bool addIPostDom(DGBasicBlock<NodePtrT> *pd)
     {
-        assert(pd->ipostdomby == nullptr
-               && "The node is already post-dominated");
+        assert(pd && "Passed nullptr");
 
-        pd->ipostdomby = static_cast<DGBasicBlock<NodePtrT> *>(this);
-        return ipostdoms.insert(pd).second;
+        if (pd == ipostdom)
+            return false;
+
+        /*
+        assert((pd == nullptr || pd == ipostdom)
+               && "Node already has different post-dominator");
+        */
+
+        ipostdom = pd;
+        return pd->ipostdominates.insert(this).second;
     }
 #endif // ENABLE_POSTDOM
 
@@ -104,10 +111,10 @@ private:
 #if defined(ENABLE_POSTDOM)
     // immediate postdominator. The BB can be immediate
     // post-dominator of more nodes
-    ContainerT ipostdoms;
+    ContainerT ipostdominates;
     // reverse edge to immediate postdom. The BB can be
     // immediately post-dominated only by one BB
-    DGBasicBlock<NodePtrT> *ipostdomby;
+    DGBasicBlock<NodePtrT> *ipostdom;
 #endif // ENABLE_POSTDOM
 
     // helper variable for running DFS/BFS on the BasicBlocks
