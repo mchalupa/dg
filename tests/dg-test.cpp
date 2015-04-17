@@ -20,7 +20,7 @@ class TestDG : public DependenceGraph<const char *, TestNode *>
 {
 public:
 #ifdef ENABLE_CFG
-    typedef DGBasicBlock<TestNode *> BasicBlock;
+    typedef BBlock<TestNode *> BasicBlock;
 #endif // ENABLE_CFG
 
     bool addNode(TestNode *n) { return DependenceGraph<const char *, TestNode *>::addNode(n->getName(), n); }

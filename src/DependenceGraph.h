@@ -18,14 +18,14 @@ class Node;
 #ifdef ENABLE_CFG
 
 /// ------------------------------------------------------------------
-// - DGBasicBlock
+// - BBlock
 //     Basic block structure for dependence graph
 /// ------------------------------------------------------------------
 template <typename NodePtrT>
-class DGBasicBlock
+class BBlock
 {
 public:
-    DGBasicBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
+    BBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
         : firstNode(first), lastNode(last), dfs_run(0)
 #if defined(ENABLE_POSTDOM)
           , ipostdom(nullptr)
@@ -37,7 +37,7 @@ public:
     }
 
     // TODO use llvm::SmallPtrSet if we have llvm
-    typedef std::set<DGBasicBlock<NodePtrT> *> ContainerT;
+    typedef std::set<BBlock<NodePtrT> *> ContainerT;
 
     const ContainerT& successors() const { return nextBBs; }
     const ContainerT& predcessors() const { return prevBBs; }
@@ -52,7 +52,7 @@ public:
         return prevBBs.size();
     }
 
-    bool addSuccessor(DGBasicBlock<NodePtrT> *b)
+    bool addSuccessor(BBlock<NodePtrT> *b)
     {
         bool ret, ret2;
         ret = nextBBs.insert(b).second;
@@ -76,9 +76,9 @@ public:
 #if defined(ENABLE_POSTDOM)
     // get immediate post-dominator
     const ContainerT& getIPostDom() const { return ipostdominates; }
-    DGBasicBlock<NodePtrT> *getIPostDomBy() const { return ipostdom; }
+    BBlock<NodePtrT> *getIPostDomBy() const { return ipostdom; }
     // add node that is immediately post-dominated by this node
-    bool addIPostDom(DGBasicBlock<NodePtrT> *pd)
+    bool addIPostDom(BBlock<NodePtrT> *pd)
     {
         assert(pd && "Passed nullptr");
 
@@ -116,7 +116,7 @@ private:
     ContainerT ipostdominates;
     // reverse edge to immediate postdom. The BB can be
     // immediately post-dominated only by one BB
-    DGBasicBlock<NodePtrT> *ipostdom;
+    BBlock<NodePtrT> *ipostdom;
 #endif // ENABLE_POSTDOM
 
     // helper variable for running DFS/BFS on the BasicBlocks
@@ -212,12 +212,12 @@ public:
     unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
 
 #ifdef ENABLE_CFG
-    DGBasicBlock<NodePtrT> *getBasicBlock() { return basicBlock; }
-    const DGBasicBlock<NodePtrT> *getBasicBlock() const { return basicBlock; }
+    BBlock<NodePtrT> *getBasicBlock() { return basicBlock; }
+    const BBlock<NodePtrT> *getBasicBlock() const { return basicBlock; }
 
-    DGBasicBlock<NodePtrT> *setBasicBlock(DGBasicBlock<NodePtrT> *nbb)
+    BBlock<NodePtrT> *setBasicBlock(BBlock<NodePtrT> *nbb)
     {
-        DGBasicBlock<NodePtrT> *old = basicBlock;
+        BBlock<NodePtrT> *old = basicBlock;
         basicBlock = nbb;
         return old;
     }
@@ -273,7 +273,7 @@ private:
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
-    DGBasicBlock<NodePtrT> *basicBlock;
+    BBlock<NodePtrT> *basicBlock;
 
     // successors of this node
     NodePtrT nextNode;
@@ -357,20 +357,20 @@ public:
     ValueType getExit(void) const { return exitNode; }
 
 #ifdef ENABLE_CFG
-    DGBasicBlock<ValueType> *getEntryBB() const { return entryBB; }
-    DGBasicBlock<ValueType> *getExitBB() const { return exitBB; }
+    BBlock<ValueType> *getEntryBB() const { return entryBB; }
+    BBlock<ValueType> *getExitBB() const { return exitBB; }
 
-    DGBasicBlock<ValueType> *setEntryBB(DGBasicBlock<ValueType> *nbb)
+    BBlock<ValueType> *setEntryBB(BBlock<ValueType> *nbb)
     {
-        DGBasicBlock<ValueType> *old = entryBB;
+        BBlock<ValueType> *old = entryBB;
         entryBB = nbb;
 
         return old;
     }
 
-    DGBasicBlock<ValueType> *setExitBB(DGBasicBlock<ValueType> *nbb)
+    BBlock<ValueType> *setExitBB(BBlock<ValueType> *nbb)
     {
-        DGBasicBlock<ValueType> *old = exitBB;
+        BBlock<ValueType> *old = exitBB;
         exitBB = nbb;
 
         return old;
@@ -482,8 +482,8 @@ private:
     ValueType exitNode;
 
 #ifdef ENABLE_CFG
-    DGBasicBlock<ValueType> *entryBB;
-    DGBasicBlock<ValueType> *exitBB;
+    BBlock<ValueType> *entryBB;
+    BBlock<ValueType> *exitBB;
 #endif // ENABLE_CFG
 
     // counter for dfs_runs

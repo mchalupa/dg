@@ -60,7 +60,7 @@ class DependenceGraph :
 {
 public:
 #ifdef ENABLE_CFG
-    typedef DGBasicBlock<Node *> LLVMDGBasicBlock;
+    typedef dg::BBlock<Node *> BBlock;
 #endif // ENABLE_CFG
 
     DependenceGraph() :refcount(1) {}

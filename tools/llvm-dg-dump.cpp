@@ -21,7 +21,7 @@
 using namespace dg::llvmdg;
 using llvm::errs;
 
-typedef DependenceGraph::LLVMDGBasicBlock BasicBlock;
+typedef DependenceGraph::BBlock BBlock;
 
 static struct {
     bool printCFG;
@@ -149,7 +149,7 @@ static void printNode(Node *n,
 
     assert(n);
 
-    BasicBlock *BB = n->getBasicBlock();
+    BBlock *BB = n->getBasicBlock();
     const llvm::Value *val = n->getValue();
 
     DependenceGraph *subgraph = n->getSubgraph();
@@ -210,7 +210,7 @@ static void printNode(Node *n,
 }
 
 static void printBB(DependenceGraph *dg,
-                     BasicBlock *BB,
+                     BBlock *BB,
                      std::ostream& out)
 {
     assert(BB);
@@ -260,7 +260,7 @@ static void print_to_dot(DependenceGraph *dg,
     out << "subgraph \"cluster_" << subgraph_no++;
     out << "\" {\n";
 
-    std::queue<BasicBlock *> queue;
+    std::queue<BBlock *> queue;
     auto entryBB = dg->getEntryBB();
     if (!entryBB) {
         getValueName(dg->getEntry()->getValue(), valName);

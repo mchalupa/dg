@@ -132,12 +132,12 @@ DependenceGraph::buildSubgraph(Node *node)
     node->addActualParameters(subgraph);
 }
 
-static DependenceGraph::LLVMDGBasicBlock *
+static DependenceGraph::BBlock *
 createBasicBlock(Node *firstNode,
-                 DependenceGraph::LLVMDGBasicBlock *predBB)
+                 DependenceGraph::BBlock *predBB)
 {
     // uhh, it would kill me to write it all the time
-    typedef DependenceGraph::LLVMDGBasicBlock BasicBlock;
+    typedef DependenceGraph::BBlock BasicBlock;
 
     // XXX we're leaking basic block right now
     BasicBlock *nodesBB = new BasicBlock(firstNode);
@@ -178,8 +178,8 @@ bool DependenceGraph::build(llvm::BasicBlock *BB,
 
     Node *node = nullptr;
     Node *predNode = nullptr;
-    LLVMDGBasicBlock *nodesBB;
-    LLVMDGBasicBlock *predBB = nullptr;
+    BBlock *nodesBB;
+    BBlock *predBB = nullptr;
 
     // get a predcessor basic block if it exists
     if (pred) {
@@ -260,7 +260,7 @@ bool DependenceGraph::build(llvm::BasicBlock *BB,
             addNode(ext);
             setExit(ext);
 
-            LLVMDGBasicBlock *retBB = new LLVMDGBasicBlock(ext, ext);
+            BBlock *retBB = new BBlock(ext, ext);
             setExitBB(retBB);
         }
 
@@ -353,10 +353,10 @@ bool DependenceGraph::build(llvm::Function *func)
 #endif // DEBUG_ENABLED
 
                 // add basic block edges
-                LLVMDGBasicBlock *BB = pi->second->getBasicBlock();
+                BBlock *BB = pi->second->getBasicBlock();
                 assert(BB && "Do not have BB");
 
-                LLVMDGBasicBlock *succBB = ni->second->getBasicBlock();
+                BBlock *succBB = ni->second->getBasicBlock();
                 assert(succBB && "Do not have predcessor BB");
 
                 BB->addSuccessor(succBB);
@@ -486,10 +486,10 @@ void DependenceGraph::addFormalParameters()
 
 void DependenceGraph::addPostDomTree()
 {
-    std::queue<LLVMDGBasicBlock *> queue;
+    std::queue<BBlock *> queue;
     unsigned int run_id;
 
-    LLVMDGBasicBlock *exitBB = getExitBB();
+    BBlock *exitBB = getExitBB();
     assert(exitBB && "Tried creating post-dom tree without BBs");
 
     run_id = exitBB->getDFSRun();
@@ -497,11 +497,11 @@ void DependenceGraph::addPostDomTree()
     queue.push(exitBB);
 
     while (!queue.empty()) {
-        LLVMDGBasicBlock *BB = queue.front();
+        BBlock *BB = queue.front();
         queue.pop();
         BB->setDFSRun(run_id);
 
-        for (LLVMDGBasicBlock *predBB : BB->predcessors()) {
+        for (BBlock *predBB : BB->predcessors()) {
             if (predBB->successorsNum() == 1) {
                 // BB immediately post-dominates the predBB
                 predBB->addIPostDom(BB);
