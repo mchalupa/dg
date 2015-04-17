@@ -38,7 +38,7 @@ DependenceGraph *Node::addSubgraph(DependenceGraph *sub)
     // increase references
     sub->ref();
 
-    // call parent's addSubgraph
+    // call parent's addSubgraph, it does what we need
     return dg::Node<DependenceGraph, Node *>::addSubgraph(sub);
 }
 
@@ -49,21 +49,29 @@ DependenceGraph *Node::addSubgraph(DependenceGraph *sub)
 DependenceGraph::~DependenceGraph()
 {
     for (auto I = begin(), E = end(); I != E; ++I) {
-        if (I->second) {
-            DependenceGraph *subgraph = I->second->getSubgraph();
+        Node *node = I->second;
+
+        if (node) {
+            DependenceGraph *subgraph = node->getSubgraph();
             if (subgraph)
                 // graphs are referenced, once the refcount is 0
                 // the graph will be deleted
                 subgraph->unref();
 
-            if (I->second->getParameters()) {
-                int rc = I->second->getParameters()->unref();
+            DependenceGraph *params = node->getParameters();
+            if (params) {
+                int rc = params->unref();
                 assert(rc == 0 && "parameters had more than one reference");
             }
 
-            delete I->second;
+            delete node;
+        } else {
+            errs() << "WARN: Value " << *I->first << "had no node assigned\n";
         }
     }
+
+    // XXX go through basic blocks and free the memory (don't touch nodes,
+    // they are already deleted!
 }
 
 int DependenceGraph::unref()
