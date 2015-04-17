@@ -19,21 +19,21 @@ namespace dg {
 namespace llvmdg {
 
 class DependenceGraph;
-class DGNode;
+class Node;
 
 /// ------------------------------------------------------------------
-//  -- DGNode
+//  -- Node
 /// ------------------------------------------------------------------
-class DGNode : public dg::DGNode<DependenceGraph, DGNode *>
+class Node : public dg::Node<DependenceGraph, Node *>
 {
     const llvm::Value *value;
 
     // nodes defined at this node
-    typedef llvm::SmallPtrSet<DGNode *, 8> DefsT;
+    typedef llvm::SmallPtrSet<Node *, 8> DefsT;
     DefsT def;
     DefsT ptrs;
 public:
-    DGNode(const llvm::Value *val): value(val) {};
+    Node(const llvm::Value *val): value(val) {};
 
     const llvm::Value *getValue(void) const { return value; }
 
@@ -43,8 +43,8 @@ public:
     // Must be called only when node is call-site.
     void addActualParameters(DependenceGraph *);
 
-    bool addDef(DGNode *d) { return def.insert(d).second; }
-    bool addPtr(DGNode *p) { return ptrs.insert(p).second; }
+    bool addDef(Node *d) { return def.insert(d).second; }
+    bool addPtr(Node *p) { return ptrs.insert(p).second; }
     DefsT& getDefs() { return def; }
     DefsT& getPtrs() { return ptrs; }
 
@@ -56,11 +56,11 @@ public:
 //  -- DependenceGraph
 /// ------------------------------------------------------------------
 class DependenceGraph :
-    public dg::DependenceGraph<const llvm::Value *, DGNode *>
+    public dg::DependenceGraph<const llvm::Value *, Node *>
 {
 public:
 #ifdef ENABLE_CFG
-    typedef DGBasicBlock<DGNode *> LLVMDGBasicBlock;
+    typedef DGBasicBlock<Node *> LLVMDGBasicBlock;
 #endif // ENABLE_CFG
 
     DependenceGraph() :refcount(1) {}
@@ -91,7 +91,7 @@ public:
     // graph. So we can have two nodes for the same value but in different
     // graphs. The edges can be between arbitrary nodes and do not
     // depend on graphs the nodes are.
-    bool addNode(DGNode *n);
+    bool addNode(Node *n);
 private:
     // fill in def-use chains that we have from llvm
     void addTopLevelDefUse();
@@ -105,7 +105,7 @@ private:
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = nullptr);
 
     // build subgraph for a call node
-    bool buildSubgraph(DGNode *node);
+    bool buildSubgraph(Node *node);
 
     std::map<const llvm::Value *, DependenceGraph *> constructedFunctions;
 

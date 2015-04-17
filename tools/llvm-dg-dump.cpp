@@ -53,7 +53,7 @@ static std::string& getValueName(const llvm::Value *val, std::string &str)
     return s.str();
 }
 
-static void dump_to_dot(DGNode *n, std::ostream& out)
+static void dump_to_dot(Node *n, std::ostream& out)
 {
     const llvm::Value *val;
 
@@ -76,7 +76,7 @@ static void dump_to_dot(DGNode *n, std::ostream& out)
 
     if (OPTIONS.printCFG) {
         if (n->hasSuccessor()) {
-            DGNode *succ = n->getSuccessor();
+            Node *succ = n->getSuccessor();
             if (!succ)
                 errs() << "n hasSuccessor NULL!\n";
 
@@ -142,7 +142,7 @@ static void dump_to_dot(DGNode *n, std::ostream& out)
 static void print_to_dot(DependenceGraph *dg,
                          std::ostream& out = std::cout);
 
-static void printNode(DGNode *n,
+static void printNode(Node *n,
                       std::ostream& out = std::cout)
 {
     std::string valName;
@@ -215,7 +215,7 @@ static void printBB(DependenceGraph *dg,
 {
     assert(BB);
 
-    DGNode *n = BB->getFirstNode();
+    Node *n = BB->getFirstNode();
     static unsigned int bbid = 0;
 
     if (!n) {

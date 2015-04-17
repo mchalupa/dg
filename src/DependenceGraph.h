@@ -13,7 +13,7 @@
 namespace dg {
 
 template <typename DG, typename NodePtrT>
-class DGNode;
+class Node;
 
 #ifdef ENABLE_CFG
 
@@ -129,11 +129,11 @@ template <typename Key, typename ValueType>
 class DependenceGraph;
 
 /// --------------------------------------------------------
-//  -- DGNode
+//  -- Node
 //     one node in DependenceGraph
 /// --------------------------------------------------------
 template <typename DG, typename NodePtrT>
-class DGNode
+class Node
 {
 public:
     // TODO when LLVM is enabled, use SmallPtrSet
@@ -146,7 +146,7 @@ public:
     typedef typename DependenceEdgesType::iterator dependence_iterator;
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
-    DGNode<DG, NodePtrT>()
+    Node<DG, NodePtrT>()
         :subgraph(nullptr), parameters(nullptr), dfs_run(0)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr), prevNode(nullptr)

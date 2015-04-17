@@ -8,7 +8,7 @@ using namespace dg;
 class TestDG;
 class TestNode;
 
-class TestNode : public DGNode<TestDG, TestNode *>
+class TestNode : public Node<TestDG, TestNode *>
 {
     const char *name;
 public:

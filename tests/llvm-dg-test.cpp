@@ -6,7 +6,7 @@
 
 using namespace dg::llvmdg;
 
-static void dump_to_dot(const DGNode *n, FILE *f)
+static void dump_to_dot(const Node *n, FILE *f)
 {
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
@@ -121,7 +121,7 @@ static bool refcount_test(void)
     chck(rc == 1, "refcount shold be 1, but is %d", rc);
 
     // addSubgraph increases refcount
-    DGNode n1(nullptr), n2(nullptr);
+    Node n1(nullptr), n2(nullptr);
     n1.addSubgraph(&s);
     n2.addSubgraph(&s);
 
