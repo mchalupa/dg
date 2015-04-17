@@ -64,6 +64,54 @@ public:
         return ret;
     }
 
+    void removeSuccessors()
+    {
+        for (auto BB : nextBBs) {
+            BB->prevBBs.erase(this);
+        }
+
+        nextBBs.clear();
+    }
+
+    void removePredcessors()
+    {
+        for (auto BB : prevBBs) {
+            BB->nextBBs.erase(this);
+        }
+
+        prevBBs.clear();
+    }
+
+    // remove predcessor basic block. Return value is
+    // 0 if nothing was removed, 1 if only one edge was removed
+    // (asserted when NDEBUG is defined)
+    // and two if both edges were removed.
+    // (Edges are [this -> p] and [p -> this])
+    size_t removePredcessor(BBlock<NodePtrT> *p)
+    {
+        size_t ret = 0;
+        ret += p->nextBBs.erase(this);
+        ret += prevBBs.erase(p);
+
+        // return value 1 means bug
+        assert(ret != 1 && "Bug in edges between basic blocks");
+
+        return ret;
+    }
+
+    // return value is the same as with removePredcessor
+    size_t removeSuccessor(BBlock<NodePtrT> *p)
+    {
+        size_t ret = 0;
+        ret += p->prevBBs.erase(this);
+        ret += nextBBs.erase(p);
+
+        // return value 1 means bug
+        assert(ret != 1 && "Bug in edges between basic blocks");
+
+        return ret;
+    }
+
     NodePtrT getFirstNode() const { return firstNode; }
     NodePtrT getLastNode() const { return lastNode; }
     NodePtrT setLastNode(NodePtrT nn)

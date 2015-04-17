@@ -311,6 +311,16 @@ static bool cfg_test1(void)
     for (auto s : BB.successors())
         chck(s == &BB2 || s == &BB3, "Wrong succ set");
 
+    BB2.removePredcessors();
+    chck(BB.successorsNum() == 1, "claims: %u", BB.successorsNum());
+    chck(BB2.predcessorsNum() == 0, "has successors after removing");
+
+    BB.removeSuccessors();
+    chck(BB.successorsNum() == 0, "has successors after removing");
+    chck(BB2.predcessorsNum() == 0, "removeSuccessors did not removed BB"
+                                    " from predcessor");
+    chck(BB3.predcessorsNum() == 0, "removeSuccessors did not removed BB"
+                                    " from predcessor");
 
     chck_dump(&d);
 #endif
