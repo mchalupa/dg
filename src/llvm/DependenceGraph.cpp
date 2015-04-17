@@ -176,10 +176,10 @@ bool DependenceGraph::build(llvm::BasicBlock *BB,
     BasicBlock::const_iterator IT = BB->begin();
     const llvm::Value *val = &(*IT);
 
-    DGNode *node = NULL;
-    DGNode *predNode = NULL;
+    DGNode *node = nullptr;
+    DGNode *predNode = nullptr;
     LLVMDGBasicBlock *nodesBB;
-    LLVMDGBasicBlock *predBB = NULL;
+    LLVMDGBasicBlock *predBB = nullptr;
 
     // get a predcessor basic block if it exists
     if (pred) {
@@ -196,7 +196,7 @@ bool DependenceGraph::build(llvm::BasicBlock *BB,
     nodesBB = createBasicBlock(node, predBB);
 
     // if we don't have predcessor, this is the entry BB
-    if (predBB == NULL)
+    if (predBB == nullptr)
         setEntryBB(nodesBB);
 
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
@@ -313,7 +313,7 @@ bool DependenceGraph::build(llvm::Function *func)
     std::set<llvm::BasicBlock *> processedBB;
     std::queue<struct WE *> WQ;
 
-    WQ.push(new WE(&func->getEntryBlock(), NULL));
+    WQ.push(new WE(&func->getEntryBlock(), nullptr));
 
     while (!WQ.empty()) {
         struct WE *item = WQ.front();
@@ -396,7 +396,7 @@ void DependenceGraph::addTopLevelDefUse()
     for (auto I = begin(), E = end(); I != E; ++I) {
         const llvm::Value *val = I->first;
 
-        assert(val && "key is NULL in dg::nodes");
+        assert(val && "key is nullptr in dg::nodes");
 
         for (auto U = val->user_begin(), EU = val->user_end(); U != EU; ++U) {
             const llvm::Value *use = *U;
@@ -432,7 +432,7 @@ void DGNode::addActualParameters(DependenceGraph *funcGraph)
 
     DependenceGraph *params = new DependenceGraph();
     DependenceGraph *old = addParameters(params);
-    assert(old == NULL && "Replaced parameters");
+    assert(old == nullptr && "Replaced parameters");
 
     // create entry node for params
     DGNode *en = new DGNode(value);

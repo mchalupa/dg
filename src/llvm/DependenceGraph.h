@@ -69,9 +69,9 @@ public:
     virtual ~DependenceGraph();
 
     // build a DependenceGraph from module. This method will
-    // build all subgraphs (called procedures). If entry is NULL,
+    // build all subgraphs (called procedures). If entry is nullptr,
     // then this methods looks for function named 'main'.
-    bool build(llvm::Module *m, llvm::Function *entry = NULL);
+    bool build(llvm::Module *m, llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions
@@ -102,7 +102,7 @@ private:
     // (graph is a graph of one procedure)
     void addFormalParameters();
 
-    bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = NULL);
+    bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = nullptr);
 
     // build subgraph for a call node
     bool buildSubgraph(DGNode *node);

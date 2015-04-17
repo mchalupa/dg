@@ -26,13 +26,7 @@ void _dbg(enum dbg_domain domain, const char *prefix, const char *fmt, ...);
 } // namespace dg
 
 #else // DEBUG
-
 #define DBG(domain, ...)
-
 #endif // DEBUG
-
-#ifndef NULL
-#define NULL 0
-#endif
 
 #endif // _DG_OUTPUT_H_

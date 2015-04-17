@@ -18,7 +18,7 @@ static void dump_to_dot(const DGNode *n, FILE *f)
 
 void print_to_dot(DependenceGraph *dg,
                   const char *file = "last_test.dot",
-                  const char *description = NULL)
+                  const char *description = nullptr)
 {
     // we have stdio included, do not use streams for such
     // easy task

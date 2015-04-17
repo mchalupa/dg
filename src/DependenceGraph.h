@@ -19,6 +19,10 @@ class DGNode;
 
 #ifdef ENABLE_CFG
 
+/// ------------------------------------------------------------------
+// - DGBasicBlock
+//     Basic block structure for dependence graph
+/// ------------------------------------------------------------------
 template <typename NodePtrT>
 class DGBasicBlock
 {
@@ -26,7 +30,7 @@ public:
     DGBasicBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
         : firstNode(first), lastNode(last), dfs_run(0)
 #if defined(ENABLE_POSTDOM)
-          , ipostdom(NULL)
+          , ipostdom(nullptr)
 #endif
     {
         first->setBasicBlock(this);
@@ -145,9 +149,9 @@ public:
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
     DGNode<DG, NodePtrT>()
-        :subgraph(NULL), parameters(NULL), dfs_run(0)
+        :subgraph(nullptr), parameters(nullptr), dfs_run(0)
 #if ENABLE_CFG
-         , basicBlock(NULL), nextNode(NULL), prevNode(NULL)
+         , basicBlock(nullptr), nextNode(nullptr), prevNode(nullptr)
 #endif
     {
     }
@@ -234,8 +238,8 @@ public:
         return old;
     }
 
-    bool hasSuccessor() const { return nextNode != NULL; }
-    bool hasPredcessor() const { return prevNode != NULL; }
+    bool hasSuccessor() const { return nextNode != nullptr; }
+    bool hasPredcessor() const { return prevNode != nullptr; }
 
     const NodePtrT getSuccessor() const { return nextNode; }
     const NodePtrT getPredcessor() const { return prevNode; }
@@ -313,9 +317,9 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<Key, ValueType>()
-    :entryNode(NULL), exitNode(NULL), dfs_run(0)
+    :entryNode(nullptr), exitNode(nullptr), dfs_run(0)
 #ifdef ENABLE_CFG
-     , entryBB(NULL), exitBB(NULL)
+     , entryBB(nullptr), exitBB(nullptr)
 #endif
     {
 #ifdef DEBUG_ENABLED
@@ -391,7 +395,7 @@ public:
     {
     auto n = nodes.find(n);
     if (n == nodes.end())
-        return NULL;
+        return nullptr;
 
     nodes.erase(n);
 

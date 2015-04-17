@@ -40,7 +40,7 @@ static void dump_to_dot(TestNode *n, FILE *f)
 
 void print_to_dot(TestDG *dg,
                   const char *file = "last_test.dot",
-                  const char *description = NULL)
+                  const char *description = nullptr)
 {
     // we have stdio included, do not use streams for such
     // easy task
@@ -112,14 +112,14 @@ static bool constructors_test(void)
 
     TestDG d;
 
-    chck(d.getEntry() == NULL, "BUG: garbage in entry");
+    chck(d.getEntry() == nullptr, "BUG: garbage in entry");
     chck(d.getSize() == 0, "BUG: garbage in nodes_num");
 
     //TestNode n;
     CREATE_NODE(n);
 
-    chck(n.getSubgraph() == NULL, "BUG: garbage in subgraph");
-    chck(n.getParameters() == NULL, "BUG: garbage in parameters");
+    chck(n.getSubgraph() == nullptr, "BUG: garbage in subgraph");
+    chck(n.getParameters() == nullptr, "BUG: garbage in parameters");
 
     chck_dump(&d);
     chck_ret();
@@ -268,12 +268,12 @@ static bool cfg_test1(void)
     chck(!n2.hasSuccessor(), "hasSuccessor returned true on node without successor");
     chck(!n1.hasPredcessor(), "hasPredcessor returned true on node without successor");
     chck(!n2.hasPredcessor(), "hasPredcessor returned true on node without successor");
-    chck(n1.getSuccessor() == NULL, "succ initialized with garbage");
-    chck(n2.getSuccessor() == NULL, "succ initialized with garbage");
-    chck(n1.getPredcessor() == NULL, "pred initialized with garbage");
-    chck(n2.getPredcessor() == NULL, "pred initialized with garbage");
+    chck(n1.getSuccessor() == nullptr, "succ initialized with garbage");
+    chck(n2.getSuccessor() == nullptr, "succ initialized with garbage");
+    chck(n1.getPredcessor() == nullptr, "pred initialized with garbage");
+    chck(n2.getPredcessor() == nullptr, "pred initialized with garbage");
 
-    chck(n1.addSuccessor(&n2) == NULL, "adding successor edge claims it is there");
+    chck(n1.addSuccessor(&n2) == nullptr, "adding successor edge claims it is there");
     chck(n1.hasSuccessor(), "hasSuccessor returned false");
     chck(!n1.hasPredcessor(), "hasPredcessor returned true");
     chck(n2.hasPredcessor(), "hasPredcessor returned false");
@@ -284,7 +284,7 @@ static bool cfg_test1(void)
     // basic blocks
     TestDG::BasicBlock BB(&n1);
     chck(BB.getFirstNode() == &n1, "first node incorrectly set");
-    chck(BB.setLastNode(&n2) == NULL, "garbage in lastNode");
+    chck(BB.setLastNode(&n2) == nullptr, "garbage in lastNode");
     chck(BB.getLastNode() == &n2, "bug in setLastNode");
 
     chck(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
