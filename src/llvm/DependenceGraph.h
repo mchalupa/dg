@@ -47,9 +47,6 @@ public:
     bool addPtr(Node *p) { return ptrs.insert(p).second; }
     DefsT& getDefs() { return def; }
     DefsT& getPtrs() { return ptrs; }
-
-    // override addSubgraph, we need to count references
-    DependenceGraph *addSubgraph(DependenceGraph *);
 };
 
 /// ------------------------------------------------------------------
@@ -63,8 +60,6 @@ public:
     typedef dg::BBlock<Node *> BBlock;
 #endif // ENABLE_CFG
 
-    DependenceGraph() :refcount(1) {}
-
     // free all allocated memory and unref subgraphs
     virtual ~DependenceGraph();
 
@@ -76,15 +71,7 @@ public:
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions
     bool build(llvm::Function *func);
-
-    // dependence graph can be shared between more call-sites that
-    // has references to this graph. When destroying graph, we
-    // must be sure do delete it just once, so count references
-    int ref() { ++refcount; return refcount; }
-    // unref graph and delete if refrences drop to 0
-    // destructor calls this on subgraphs
-    int unref();
-
+    //
     // add a node to this graph. The DependenceGraph is something like
     // namespace for nodes, since every node has unique key and we can
     // have another node with same key (for the same llvm::Value) in another
@@ -108,8 +95,6 @@ private:
     bool buildSubgraph(Node *node);
 
     std::map<const llvm::Value *, DependenceGraph *> constructedFunctions;
-
-    int refcount;
 };
 
 } // namespace llvmdg

@@ -31,18 +31,6 @@ namespace dg {
 namespace llvmdg {
 
 /// ------------------------------------------------------------------
-//  -- Node
-/// ------------------------------------------------------------------
-DependenceGraph *Node::addSubgraph(DependenceGraph *sub)
-{
-    // increase references
-    sub->ref();
-
-    // call parent's addSubgraph, it does what we need
-    return dg::Node<DependenceGraph, Node *>::addSubgraph(sub);
-}
-
-/// ------------------------------------------------------------------
 //  -- DependenceGraph
 /// ------------------------------------------------------------------
 
@@ -72,18 +60,6 @@ DependenceGraph::~DependenceGraph()
 
     // XXX go through basic blocks and free the memory (don't touch nodes,
     // they are already deleted!
-}
-
-int DependenceGraph::unref()
-{
-    --refcount;
-
-    if (refcount == 0) {
-        delete this;
-        return 0;
-    }
-
-    return refcount;
 }
 
 inline bool DependenceGraph::addNode(Node *n)

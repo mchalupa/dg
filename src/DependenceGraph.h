@@ -247,6 +247,10 @@ public:
         DG *old = subgraph;
         subgraph = sub;
 
+        // increase references of this graph
+        // (node now keeps the reference to the graph)
+        sub->ref();
+
         return old;
     }
 
@@ -311,7 +315,7 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<Key, ValueType>()
-    :entryNode(nullptr), exitNode(nullptr), dfs_run(0)
+    :entryNode(nullptr), exitNode(nullptr), dfs_run(0), refcount(1)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -355,6 +359,32 @@ public:
 
     ValueType getEntry(void) const { return entryNode; }
     ValueType getExit(void) const { return exitNode; }
+
+    // dependence graph can be shared between more call-sites that
+    // has references to this graph. When destroying graph, we
+    // must be sure do delete it just once, so count references
+    // XXX this is up to user if she uses ref()/unref() methods
+    // or handle these stuff some other way
+    int ref()
+    {
+        ++refcount;
+        return refcount;
+    }
+
+    // unref graph and delete if refrences drop to 0
+    // destructor calls this on subgraphs
+    int unref(bool deleteOnZero = true)
+    {
+        --refcount;
+        assert(refcount >= 0 && "refcount is < 0");
+
+        if (deleteOnZero && refcount == 0) {
+            delete this;
+            return 0;
+        }
+
+        return refcount;
+    }
 
 #ifdef ENABLE_CFG
     BBlock<ValueType> *getEntryBB() const { return entryBB; }
@@ -488,6 +518,9 @@ private:
 
     // counter for dfs_runs
     unsigned int dfs_run;
+
+    // how many nodes keeps pointer to this graph?
+    int refcount;
 };
 
 } // namespace dg
