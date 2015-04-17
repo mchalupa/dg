@@ -4,8 +4,6 @@ endif()
 
 add_library(dg SHARED
 	DependenceGraph.h
-	DGUtil.cpp
-	DGUtil.h
 	llvm/DependenceGraph.h
 	llvm/DependenceGraph.cpp
 )

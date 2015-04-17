@@ -10,8 +10,6 @@
 #include <map>
 #include <cassert>
 
-#include "DGUtil.h"
-
 namespace dg {
 
 template <typename DG, typename NodePtrT>
@@ -166,8 +164,6 @@ public:
         // we either have both edges or none
         assert(ret1 == ret2);
 
-        DBG(CONTROL, "Added control edge [%p]->[%p]\n", this, n);
-
         return ret2;
     }
 
@@ -179,8 +175,6 @@ public:
         ret2 = dataDepEdges.insert(n).second;
 
         assert(ret1 == ret2);
-
-        DBG(DEPENDENCE, "Added dependence edge [%p]->[%p]\n", this, n);
 
         return ret2;
     }
@@ -322,9 +316,6 @@ public:
      , entryBB(nullptr), exitBB(nullptr)
 #endif
     {
-#ifdef DEBUG_ENABLED
-        debug::init();
-#endif
     }
 
     // TODO add copy constructor for cloning graph
