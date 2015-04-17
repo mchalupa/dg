@@ -16,12 +16,12 @@
 #include <queue>
 #include <set>
 
-#include "../src/LLVMDependenceGraph.h"
+#include "../src/llvm/DependenceGraph.h"
 
-using namespace dg;
+using namespace dg::llvmdg;
 using llvm::errs;
 
-typedef LLVMDependenceGraph::LLVMDGBasicBlock BasicBlock;
+typedef DependenceGraph::LLVMDGBasicBlock BasicBlock;
 
 static struct {
     bool printCFG;
@@ -32,7 +32,7 @@ static struct {
     bool printDataDep;
 } OPTIONS;
 
-std::queue<LLVMDependenceGraph *> toPrint;
+std::queue<DependenceGraph *> toPrint;
 
 static std::string& getValueName(const llvm::Value *val, std::string &str)
 {
@@ -53,7 +53,7 @@ static std::string& getValueName(const llvm::Value *val, std::string &str)
     return s.str();
 }
 
-static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
+static void dump_to_dot(DGNode *n, std::ostream& out)
 {
     const llvm::Value *val;
 
@@ -76,7 +76,7 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
 
     if (OPTIONS.printCFG) {
         if (n->hasSuccessor()) {
-            LLVMDGNode *succ = n->getSuccessor();
+            DGNode *succ = n->getSuccessor();
             if (!succ)
                 errs() << "n hasSuccessor NULL!\n";
 
@@ -139,10 +139,10 @@ static void dump_to_dot(LLVMDGNode *n, std::ostream& out)
     }
 }
 
-static void print_to_dot(LLVMDependenceGraph *dg,
+static void print_to_dot(DependenceGraph *dg,
                          std::ostream& out = std::cout);
 
-static void printNode(LLVMDGNode *n,
+static void printNode(DGNode *n,
                       std::ostream& out = std::cout)
 {
     std::string valName;
@@ -152,11 +152,11 @@ static void printNode(LLVMDGNode *n,
     BasicBlock *BB = n->getBasicBlock();
     const llvm::Value *val = n->getValue();
 
-    LLVMDependenceGraph *subgraph = n->getSubgraph();
+    DependenceGraph *subgraph = n->getSubgraph();
     if (subgraph)
         toPrint.push(subgraph);
 
-    LLVMDependenceGraph *params = n->getParameters();
+    DependenceGraph *params = n->getParameters();
     if (params) {
         print_to_dot(params, out);
 
@@ -209,13 +209,13 @@ static void printNode(LLVMDGNode *n,
         //<<" (runid=" << n->getDFSrun() << ")\"];\n";
 }
 
-static void printBB(LLVMDependenceGraph *dg,
+static void printBB(DependenceGraph *dg,
                      BasicBlock *BB,
                      std::ostream& out)
 {
     assert(BB);
 
-    LLVMDGNode *n = BB->getFirstNode();
+    DGNode *n = BB->getFirstNode();
     static unsigned int bbid = 0;
 
     if (!n) {
@@ -239,7 +239,7 @@ static void printBB(LLVMDependenceGraph *dg,
     out << "}\n";
 }
 
-static void printNodesOnly(LLVMDependenceGraph *dg,
+static void printNodesOnly(DependenceGraph *dg,
                            std::ostream& out)
 {
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
@@ -247,7 +247,7 @@ static void printNodesOnly(LLVMDependenceGraph *dg,
     }
 }
 
-static void print_to_dot(LLVMDependenceGraph *dg,
+static void print_to_dot(DependenceGraph *dg,
                          std::ostream& out)
 {
     static unsigned subgraph_no = 0;
@@ -348,11 +348,11 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    LLVMDependenceGraph d;
+    DependenceGraph d;
     d.build(&*M);
 
     std::ostream& out = std::cout;
-    std::set<LLVMDependenceGraph *> printed;
+    std::set<DependenceGraph *> printed;
 
     out << "digraph \"DependencyGraph\" {\n";
 

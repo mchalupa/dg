@@ -28,28 +28,29 @@ using llvm::errs;
 using std::make_pair;
 
 namespace dg {
+namespace llvmdg {
 
 /// ------------------------------------------------------------------
-//  -- LLVMDGNode
+//  -- DGNode
 /// ------------------------------------------------------------------
-LLVMDependenceGraph *LLVMDGNode::addSubgraph(LLVMDependenceGraph *sub)
+DependenceGraph *DGNode::addSubgraph(DependenceGraph *sub)
 {
     // increase references
     sub->ref();
 
     // call parent's addSubgraph
-    return DGNode<LLVMDependenceGraph, LLVMDGNode *>::addSubgraph(sub);
+    return dg::DGNode<DependenceGraph, DGNode *>::addSubgraph(sub);
 }
 
 /// ------------------------------------------------------------------
-//  -- LLVMDependenceGraph
+//  -- DependenceGraph
 /// ------------------------------------------------------------------
 
-LLVMDependenceGraph::~LLVMDependenceGraph()
+DependenceGraph::~DependenceGraph()
 {
     for (auto I = begin(), E = end(); I != E; ++I) {
         if (I->second) {
-            LLVMDependenceGraph *subgraph = I->second->getSubgraph();
+            DependenceGraph *subgraph = I->second->getSubgraph();
             if (subgraph)
                 // graphs are referenced, once the refcount is 0
                 // the graph will be deleted
@@ -65,7 +66,7 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
     }
 }
 
-int LLVMDependenceGraph::unref()
+int DependenceGraph::unref()
 {
     --refcount;
 
@@ -77,13 +78,13 @@ int LLVMDependenceGraph::unref()
     return refcount;
 }
 
-inline bool LLVMDependenceGraph::addNode(LLVMDGNode *n)
+inline bool DependenceGraph::addNode(DGNode *n)
 {
-    return DependenceGraph<const llvm::Value *, LLVMDGNode *>
+    return dg::DependenceGraph<const llvm::Value *, DGNode *>
                                         ::addNode(n->getValue(), n);
 }
 
-bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
+bool DependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
     // get entry function if not given
     if (!entry)
@@ -99,7 +100,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 };
 
 bool
-LLVMDependenceGraph::buildSubgraph(LLVMDGNode *node)
+DependenceGraph::buildSubgraph(DGNode *node)
 {
     using namespace llvm;
 
@@ -112,12 +113,12 @@ LLVMDependenceGraph::buildSubgraph(LLVMDGNode *node)
 
     // if we don't have this subgraph constructed, construct it
     // else just add call edge
-    LLVMDependenceGraph *&subgraph = constructedFunctions[callFunc];
+    DependenceGraph *&subgraph = constructedFunctions[callFunc];
 
     if (!subgraph) {
         // since we have reference the the pointer in
         // constructedFunctions, we can assing to it
-        subgraph = new LLVMDependenceGraph();
+        subgraph = new DependenceGraph();
         bool ret = subgraph->build(callFunc);
 
         // at least for now use just assert, if we'll
@@ -131,12 +132,12 @@ LLVMDependenceGraph::buildSubgraph(LLVMDGNode *node)
     node->addActualParameters(subgraph);
 }
 
-static LLVMDependenceGraph::LLVMDGBasicBlock *
-createBasicBlock(LLVMDGNode *firstNode,
-                 LLVMDependenceGraph::LLVMDGBasicBlock *predBB)
+static DependenceGraph::LLVMDGBasicBlock *
+createBasicBlock(DGNode *firstNode,
+                 DependenceGraph::LLVMDGBasicBlock *predBB)
 {
     // uhh, it would kill me to write it all the time
-    typedef LLVMDependenceGraph::LLVMDGBasicBlock BasicBlock;
+    typedef DependenceGraph::LLVMDGBasicBlock BasicBlock;
 
     // XXX we're leaking basic block right now
     BasicBlock *nodesBB = new BasicBlock(firstNode);
@@ -167,7 +168,7 @@ is_func_defined(const llvm::CallInst *CInst)
     return true;
 }
 
-bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
+bool DependenceGraph::build(llvm::BasicBlock *BB,
                                 llvm::BasicBlock *pred)
 {
     using namespace llvm;
@@ -175,21 +176,21 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
     BasicBlock::const_iterator IT = BB->begin();
     const llvm::Value *val = &(*IT);
 
-    LLVMDGNode *node = NULL;
-    LLVMDGNode *predNode = NULL;
+    DGNode *node = NULL;
+    DGNode *predNode = NULL;
     LLVMDGBasicBlock *nodesBB;
     LLVMDGBasicBlock *predBB = NULL;
 
     // get a predcessor basic block if it exists
     if (pred) {
-        LLVMDGNode *pn = getNode(pred->getTerminator());
+        DGNode *pn = getNode(pred->getTerminator());
         assert(pn && "Predcessor node is not created");
 
         predBB = pn->getBasicBlock();
         assert(predBB && "No basic block in predcessor node");
     }
 
-    node = new LLVMDGNode(val);
+    node = new DGNode(val);
     addNode(node);
 
     nodesBB = createBasicBlock(node, predBB);
@@ -210,7 +211,7 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
          Inst != EInst; ++Inst) {
 
         val = &(*Inst);
-        node = new LLVMDGNode(val);
+        node = new DGNode(val);
         // add new node to this dependence graph
         addNode(node);
         node->setBasicBlock(nodesBB);
@@ -242,7 +243,7 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
     // on dep. graph that is not for whole llvm
     const ReturnInst *ret = dyn_cast<ReturnInst>(term);
     if (ret) {
-        LLVMDGNode *ext = getExit();
+        DGNode *ext = getExit();
         if (!ext) {
             // we need new llvm value, so that the nodes won't collide
             ReturnInst *phonyRet
@@ -255,7 +256,7 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
 
             phonyRet->setName("EXIT");
 
-            ext = new LLVMDGNode(phonyRet);
+            ext = new DGNode(phonyRet);
             addNode(ext);
             setExit(ext);
 
@@ -288,7 +289,7 @@ struct WE {
     llvm::BasicBlock *pred;
 };
 
-bool LLVMDependenceGraph::build(llvm::Function *func)
+bool DependenceGraph::build(llvm::Function *func)
 {
     using namespace llvm;
 
@@ -303,7 +304,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 #endif
 
     // create entry node
-    LLVMDGNode *entry = new LLVMDGNode(func);
+    DGNode *entry = new DGNode(func);
     addNode(entry);
     setEntry(entry);
 
@@ -387,7 +388,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     return true;
 }
 
-void LLVMDependenceGraph::addTopLevelDefUse()
+void DependenceGraph::addTopLevelDefUse()
 {
     // add top-level def-use chains
     // iterate over all nodes and for each node add data dependency
@@ -403,7 +404,7 @@ void LLVMDependenceGraph::addTopLevelDefUse()
             if (val == use)
                 continue;
 
-            LLVMDGNode *nu = operator[](use);
+            DGNode *nu = operator[](use);
             if (!nu)
                 continue;
 
@@ -412,11 +413,11 @@ void LLVMDependenceGraph::addTopLevelDefUse()
     }
 }
 
-void LLVMDependenceGraph::addIndirectDefUse()
+void DependenceGraph::addIndirectDefUse()
 {
 }
 
-void LLVMDGNode::addActualParameters(LLVMDependenceGraph *funcGraph)
+void DGNode::addActualParameters(DependenceGraph *funcGraph)
 {
     using namespace llvm;
 
@@ -429,12 +430,12 @@ void LLVMDGNode::addActualParameters(LLVMDependenceGraph *funcGraph)
     if (func->arg_size() == 0)
         return;
 
-    LLVMDependenceGraph *params = new LLVMDependenceGraph();
-    LLVMDependenceGraph *old = addParameters(params);
+    DependenceGraph *params = new DependenceGraph();
+    DependenceGraph *old = addParameters(params);
     assert(old == NULL && "Replaced parameters");
 
     // create entry node for params
-    LLVMDGNode *en = new LLVMDGNode(value);
+    DGNode *en = new DGNode(value);
     params->addNode(en);
     params->setEntry(en);
 
@@ -442,14 +443,14 @@ void LLVMDGNode::addActualParameters(LLVMDependenceGraph *funcGraph)
          I != E; ++I) {
         const Value *val = (&*I);
 
-        LLVMDGNode *nn = new LLVMDGNode(val);
+        DGNode *nn = new DGNode(val);
         params->addNode(nn);
 
         // add control edges
         en->addControlDependence(nn);
 
         // add parameter edges -- these are just normal dependece edges
-        LLVMDGNode *fp = (*funcGraph)[val];
+        DGNode *fp = (*funcGraph)[val];
         assert(fp && "Do not have formal parametr");
         nn->addDataDependence(fp);
     }
@@ -457,11 +458,11 @@ void LLVMDGNode::addActualParameters(LLVMDependenceGraph *funcGraph)
     return;
 }
 
-void LLVMDependenceGraph::addFormalParameters()
+void DependenceGraph::addFormalParameters()
 {
     using namespace llvm;
 
-    LLVMDGNode *entryNode = getEntry();
+    DGNode *entryNode = getEntry();
     assert(entryNode);
 
     const Function *func = dyn_cast<Function>(entryNode->getValue());
@@ -474,7 +475,7 @@ void LLVMDependenceGraph::addFormalParameters()
          I != E; ++I) {
         const Value *val = (&*I);
 
-        LLVMDGNode *nn = new LLVMDGNode(val);
+        DGNode *nn = new DGNode(val);
         addNode(nn);
 
         // add control edges
@@ -483,7 +484,7 @@ void LLVMDependenceGraph::addFormalParameters()
     }
 }
 
-void LLVMDependenceGraph::addPostDomTree()
+void DependenceGraph::addPostDomTree()
 {
     std::queue<LLVMDGBasicBlock *> queue;
     unsigned int run_id;
@@ -512,6 +513,7 @@ void LLVMDependenceGraph::addPostDomTree()
     }
 }
 
+} // namespace llvmdg
 } // namespace dg
 
 #endif /* HAVE_LLVM */

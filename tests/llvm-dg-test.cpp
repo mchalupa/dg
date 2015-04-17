@@ -2,11 +2,11 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include "../src/LLVMDependenceGraph.h"
+#include "../src/llvm/DependenceGraph.h"
 
-using namespace dg;
+using namespace dg::llvmdg;
 
-static void dump_to_dot(const LLVMDGNode *n, FILE *f)
+static void dump_to_dot(const DGNode *n, FILE *f)
 {
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
@@ -16,7 +16,7 @@ static void dump_to_dot(const LLVMDGNode *n, FILE *f)
         fprintf(f, "\t%s -> %s [color=red];\n", n->getValue(), (*I)->getValue());
 }
 
-void print_to_dot(LLVMDependenceGraph *dg,
+void print_to_dot(DependenceGraph *dg,
                   const char *file = "last_test.dot",
                   const char *description = NULL)
 {
@@ -86,7 +86,7 @@ static bool check(int expr, const char *func, int line, const char *fmt, ...)
 static bool constructors_test(void)
 {
     chck_init();
-    LLVMDependenceGraph d;
+    DependenceGraph d;
 
     chck_dump(&d);
     chck_ret();
@@ -95,7 +95,7 @@ static bool constructors_test(void)
 static bool add_test1(void)
 {
     chck_init();
-    LLVMDependenceGraph d;
+    DependenceGraph d;
 
     chck_dump(&d);
     chck_ret();
@@ -104,8 +104,8 @@ static bool add_test1(void)
 static bool refcount_test(void)
 {
     chck_init();
-    LLVMDependenceGraph d;
-    LLVMDependenceGraph s;
+    DependenceGraph d;
+    DependenceGraph s;
 
     int rc;
     rc = s.ref();
@@ -121,7 +121,7 @@ static bool refcount_test(void)
     chck(rc == 1, "refcount shold be 1, but is %d", rc);
 
     // addSubgraph increases refcount
-    LLVMDGNode n1(nullptr), n2(nullptr);
+    DGNode n1(nullptr), n2(nullptr);
     n1.addSubgraph(&s);
     n2.addSubgraph(&s);
 
