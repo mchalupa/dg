@@ -86,18 +86,12 @@ static bool check(int expr, const char *func, int line, const char *fmt, ...)
 static bool constructors_test(void)
 {
     chck_init();
-    DependenceGraph d;
+    DependenceGraph *d = new DependenceGraph();
+    // we leak it, but if we would call destructor,
+    // it would raise SIGABRT because we do not have
+    // set entry basic block
 
-    chck_dump(&d);
-    chck_ret();
-}
-
-static bool add_test1(void)
-{
-    chck_init();
-    DependenceGraph d;
-
-    chck_dump(&d);
+    chck_dump(d);
     chck_ret();
 }
 
@@ -131,6 +125,14 @@ static bool refcount_test(void)
     rc = s.unref();
     chck(rc == 3, "refcount shold be 3, but is %d", rc);
 
+    // set entry blocks, otherwise the constructor will call assert
+    DependenceGraph::BBlock *entryBB1 = new DependenceGraph::BBlock(&n1);
+    DependenceGraph::BBlock *entryBB2 = new DependenceGraph::BBlock(&n2);
+
+    d.setEntryBB(entryBB1);
+    s.setEntryBB(entryBB2);
+
+    chck_dump(&d);
     chck_ret();
 }
 
