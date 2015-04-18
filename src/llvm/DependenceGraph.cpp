@@ -36,6 +36,28 @@ namespace llvmdg {
 
 DependenceGraph::~DependenceGraph()
 {
+    // delete basic blocks
+    std::queue<BBlock *> queue;
+    BBlock *entryBB = getEntryBB();
+    assert(entryBB && "No entry block in llvm graph");
+
+    queue.push(entryBB);
+
+    while (!queue.empty()) {
+        BBlock *BB = queue.front();
+        queue.pop();
+
+        for (auto S : BB->successors())
+            queue.push(S);
+
+        BB->removePredcessors();
+        BB->removeSuccessors();
+
+        assert(BB->predcessorsNum() == 0 && "Still has references to BB");
+        delete BB;
+    }
+
+    // delete nodes
     for (auto I = begin(), E = end(); I != E; ++I) {
         Node *node = I->second;
 
@@ -57,9 +79,6 @@ DependenceGraph::~DependenceGraph()
             errs() << "WARN: Value " << *I->first << "had no node assigned\n";
         }
     }
-
-    // XXX go through basic blocks and free the memory (don't touch nodes,
-    // they are already deleted!
 }
 
 inline bool DependenceGraph::addNode(Node *n)
