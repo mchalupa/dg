@@ -39,9 +39,10 @@ public:
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
     Node<DG, KeyT, NodePtrT>(const KeyT& k)
-        : key(k), parameters(nullptr), dfs_run(0)
+        : key(k), parameters(nullptr)
 #if ENABLE_CFG
-         , basicBlock(nullptr), nextNode(nullptr), prevNode(nullptr)
+         , basicBlock(nullptr), nextNode(nullptr),
+           prevNode(nullptr)
 #endif
     {
     }
@@ -71,8 +72,21 @@ public:
         return ret2;
     }
 
-    unsigned int getDFSrun(void) const { return dfs_run; }
-    unsigned int setDFSrun(unsigned int r) { dfs_run = r; }
+    unsigned int getDFSRunId(void) const
+    {
+        return Analyses.dfsrunid;
+    }
+
+    // increase and return DFS runid
+    unsigned int incDFSRunId(void) const
+    {
+        return ++Analyses.dfsrunid;
+    }
+
+    void setDFSRunId(unsigned int r)
+    {
+        Analyses.dfsrunid = r;
+    }
 
     // control dependency edges iterators
     control_iterator control_begin(void) { return controlDepEdges.begin(); }
@@ -216,9 +230,16 @@ private:
     // parameters are shared for all subgraphs
     DG *parameters;
 
-    // last id of DFS that ran on this node
-    // ~~> marker if it has been processed
-    unsigned int dfs_run;
+    // auxiliary varibales for different analyses
+    struct _Analysis
+    {
+        _Analysis() : dfsrunid(0) {}
+
+        // last id of DFS that ran on this node
+        // ~~> marker if it has been processed
+        unsigned int dfsrunid;
+    } Analyses;
+
 };
 
 // --------------------------------------------------------
@@ -233,7 +254,8 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<Key, ValueType>()
-    :entryNode(nullptr), exitNode(nullptr), dfs_run(0), refcount(1)
+    :entryNode(nullptr), exitNode(nullptr),
+     dfs_run_counter(0), refcount(1)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -365,12 +387,12 @@ public:
     void DFS(ValueType entry, F func, D data,
              bool control = true, bool deps = true)
     {
-        unsigned int run_id = ++dfs_run;
+        unsigned int run_id = ++dfs_run_counter;
         std::queue<ValueType> queue;
 
         assert(entry && "Need entry node for DFS");
 
-        entry->setDFSrun(run_id);
+        entry->setDFSRunId(run_id);
         queue.push(entry);
 
         while (!queue.empty()) {
@@ -394,7 +416,7 @@ public:
     void revDFS(ValueType entry, F func, D data,
                 bool control = true, bool deps = true)
     {
-        unsigned int run_id = ++dfs_run;
+        unsigned int run_id = ++dfs_run_counter;
         std::queue<ValueType> queue;
 
         assert(entry && "Need entry node for DFS");
@@ -427,15 +449,16 @@ protected:
 private:
 
     template <typename Q, typename IT>
-    void DFSProcessEdges(IT begin, IT end, Q& queue, unsigned int run_id)
+    void DFSProcessEdges(IT begin, IT end, Q& queue,
+                         unsigned int run_id)
     {
         for (IT I = begin; I != end; ++I) {
             ValueType tmp = *I;
-            if (tmp->getDFSrun() == run_id)
+            if (tmp->getDFSRunId() == run_id)
                 continue;
 
             // mark node as visited
-            tmp->setDFSrun(run_id);
+            tmp->setDFSRunId(run_id);
             queue.push(tmp);
         }
     }
@@ -448,8 +471,8 @@ private:
     BBlock<ValueType> *exitBB;
 #endif // ENABLE_CFG
 
-    // counter for dfs_runs
-    unsigned int dfs_run;
+    // global counter for dfs runs
+    unsigned int dfs_run_counter;
 
     // how many nodes keeps pointer to this graph?
     int refcount;

@@ -62,7 +62,7 @@ void print_to_dot(TestDG *dg,
         auto n = I->second;
 
         fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
-                n->getName(), n->getName(), n->getDFSrun());
+                n->getName(), n->getName(), n->getDFSRunId());
     }
 
     // if we have entry node, use it as a root
@@ -238,18 +238,21 @@ static bool dfs_test1(void)
 
     chck(d.getSize() == 3, "BUG: adding nodes");
 
-    unsigned run_id1 = n1.getDFSrun();
-    unsigned run_id2 = n2.getDFSrun();
-    unsigned run_id3 = n3.getDFSrun();
+    unsigned run_id1 = n1.getDFSRunId();
+    unsigned run_id2 = n2.getDFSRunId();
+    unsigned run_id3 = n3.getDFSRunId();
 
     chck(run_id1 == run_id2, "garbage in run id");
     chck(run_id2 == run_id3, "garbage in run id");
 
     // traverse only control edges
     d.DFS(&n1, dfs_do_nothing, 0, true, false);
-    chck(run_id1 + 1 == n1.getDFSrun(), "did not go through node 1");
-    chck(run_id2 + 1 == n2.getDFSrun(), "did not go through node 2");
-    chck(run_id3 == n3.getDFSrun(), "did go through node 3");
+    chck(run_id1 + 1 == n1.getDFSRunId(),
+         "did not go through node 1");
+    chck(run_id2 + 1 == n2.getDFSRunId(),
+         "did not go through node 2");
+    chck(run_id3 == n3.getDFSRunId(),
+         "did go through node 3");
 
     chck_dump(&d);
     chck_ret();

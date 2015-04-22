@@ -489,14 +489,14 @@ void DependenceGraph::addPostDomTree()
     BBlock *exitBB = getExitBB();
     assert(exitBB && "Tried creating post-dom tree without BBs");
 
-    run_id = exitBB->getDFSRun();
-    exitBB->setDFSRun(++run_id);
+    run_id = exitBB->getDFSRunId();
+    exitBB->setDFSRunId(++run_id);
     queue.push(exitBB);
 
     while (!queue.empty()) {
         BBlock *BB = queue.front();
         queue.pop();
-        BB->setDFSRun(run_id);
+        BB->setDFSRunId(run_id);
 
         for (BBlock *predBB : BB->predcessors()) {
             if (predBB->successorsNum() == 1) {
@@ -504,7 +504,7 @@ void DependenceGraph::addPostDomTree()
                 predBB->addIPostDom(BB);
             }
 
-            if (predBB->getDFSRun() != run_id)
+            if (predBB->getDFSRunId() != run_id)
                 queue.push(predBB);
         }
     }

@@ -36,7 +36,7 @@ void print_to_dot(DependenceGraph *dg,
         auto n = I->second;
 
         fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
-                n->getValue(), n->getValue(), n->getDFSrun());
+                n->getValue(), n->getValue(), n->getDFSRunId());
     }
 
     // if we have entry node, use it as a root

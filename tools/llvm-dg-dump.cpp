@@ -58,10 +58,10 @@ static void dump_to_dot(Node *n, std::ostream& out)
     const llvm::Value *val;
 
     /* do not draw multiple edges */
-    if (n->getDFSrun() == 1)
+    if (n->getDFSRunId() != 0)
         return;
     else
-        n->setDFSrun(1);
+        n->setDFSRunId(1);
 
     if (OPTIONS.printControlDep)
         for (auto I = n->control_begin(), E = n->control_end();
