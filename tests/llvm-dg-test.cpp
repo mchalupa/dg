@@ -11,7 +11,7 @@ static void dump_to_dot(const Node *n, FILE *f)
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
         fprintf(f, "\t%s -> %s;\n", n->getValue(), (*I)->getValue());
-    for (auto I = n->dependence_begin(), E = n->dependence_end();
+    for (auto I = n->data_begin(), E = n->data_end();
          I != E; ++I)
         fprintf(f, "\t%s -> %s [color=red];\n", n->getValue(), (*I)->getValue());
 }

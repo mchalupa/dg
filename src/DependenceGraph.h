@@ -33,8 +33,8 @@ public:
 
     typedef typename ControlEdgesT::iterator control_iterator;
     typedef typename ControlEdgesT::const_iterator const_control_iterator;
-    typedef typename DependenceEdgesT::iterator dependence_iterator;
-    typedef typename DependenceEdgesT::const_iterator const_dependence_iterator;
+    typedef typename DependenceEdgesT::iterator data_iterator;
+    typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
     Node<DG, KeyT, NodePtrT>(const KeyT& k)
         : key(k), parameters(nullptr)
@@ -99,16 +99,16 @@ public:
     const_control_iterator rev_control_end(void) const { return revControlDepEdges.end(); }
 
     // data dependency edges iterators
-    dependence_iterator dependence_begin(void) { return dataDepEdges.begin(); }
-    const_dependence_iterator dependence_begin(void) const { return dataDepEdges.begin(); }
-    dependence_iterator dependence_end(void) { return dataDepEdges.end(); }
-    const_dependence_iterator dependence_end(void) const { return dataDepEdges.end(); }
+    data_iterator data_begin(void) { return dataDepEdges.begin(); }
+    const_data_iterator data_begin(void) const { return dataDepEdges.begin(); }
+    data_iterator data_end(void) { return dataDepEdges.end(); }
+    const_data_iterator data_end(void) const { return dataDepEdges.end(); }
 
     // reverse data dependency edges iterators
-    dependence_iterator rev_dependence_begin(void) { return revDataDepEdges.begin(); }
-    const_dependence_iterator rev_dependence_begin(void) const { return revDataDepEdges.begin(); }
-    dependence_iterator rev_dependence_end(void) { return revDataDepEdges.end(); }
-    const_dependence_iterator rev_dependence_end(void) const { return revDataDepEdges.end(); }
+    data_iterator rev_data_begin(void) { return revDataDepEdges.begin(); }
+    const_data_iterator rev_data_begin(void) const { return revDataDepEdges.begin(); }
+    data_iterator rev_data_end(void) { return revDataDepEdges.end(); }
+    const_data_iterator rev_data_end(void) const { return revDataDepEdges.end(); }
 
     unsigned int getControlDependenciesNum() const { return controlDepEdges.size(); }
     unsigned int getRevControlDependenciesNum() const { return revControlDepEdges.size(); }
@@ -405,8 +405,8 @@ public:
                                 n->control_end(), queue, run_id);
 
             if (deps)
-                DFSProcessEdges(n->dependence_begin(),
-                                n->dependence_end(), queue, run_id);
+                DFSProcessEdges(n->data_begin(),
+                                n->data_end(), queue, run_id);
         }
     }
 
@@ -434,8 +434,8 @@ public:
                                 n->rev_control_end(), queue, run_id);
 
             if (deps)
-                DFSProcessEdges(n->rev_dependence_begin(),
-                                n->rev_dependence_end(), queue, run_id);
+                DFSProcessEdges(n->rev_data_begin(),
+                                n->rev_data_end(), queue, run_id);
         }
     }
 

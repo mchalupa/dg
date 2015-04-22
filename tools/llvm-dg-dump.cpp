@@ -69,7 +69,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
             out << "\tNODE" << n << " -> NODE" <<  *I << "\n";
 
     if (OPTIONS.printDataDep)
-        for (auto I = n->dependence_begin(), E = n->dependence_end();
+        for (auto I = n->data_begin(), E = n->data_end();
              I != E; ++I)
             out << "\tNODE" << n << " -> NODE" <<  *I
                 << " [color=red]\n";
