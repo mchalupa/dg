@@ -75,14 +75,7 @@ public:
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions
     bool build(llvm::Function *func);
-    //
-    // add a node to this graph. The DependenceGraph is something like
-    // namespace for nodes, since every node has unique key and we can
-    // have another node with same key (for the same llvm::Value) in another
-    // graph. So we can have two nodes for the same value but in different
-    // graphs. The edges can be between arbitrary nodes and do not
-    // depend on graphs the nodes are.
-    bool addNode(Node *n);
+
 private:
     // fill in def-use chains that we have from llvm
     void addTopLevelDefUse();

@@ -81,12 +81,6 @@ DependenceGraph::~DependenceGraph()
     }
 }
 
-inline bool DependenceGraph::addNode(Node *n)
-{
-    return dg::DependenceGraph<const llvm::Value *, Node *>
-                                        ::addNode(n->getValue(), n);
-}
-
 bool DependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
     // get entry function if not given

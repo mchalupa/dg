@@ -480,9 +480,24 @@ public:
     }
 #endif // ENABLE_CFG
 
-    bool addNode(Key k, ValueType n)
+    // add a node to this graph. The DependenceGraph is something like
+    // namespace for nodes, since every node has unique key and we can
+    // have another node with same key in another
+    // graph. So we can have two nodes for the same value but in different
+    // graphs. The edges can be between arbitrary nodes and do not
+    // depend on graphs the nodes are in.
+    /* virtual */ bool addNode(Key k, ValueType n)
     {
         nodes.insert(std::make_pair(k, n));
+    }
+
+    // make it virtual? We don't need it now, but
+    // in the future it may be handy.
+    /* virtual */ bool addNode(ValueType n)
+    {
+        // ValueType is a class derived from
+        // dg::Node, so it must have getKey() method
+        return addNode(n->getKey(), n);
     }
 
     ValueType removeNode(Key k)
