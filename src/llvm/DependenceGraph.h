@@ -24,18 +24,22 @@ class Node;
 /// ------------------------------------------------------------------
 //  -- Node
 /// ------------------------------------------------------------------
-class Node : public dg::Node<DependenceGraph, Node *>
+class Node : public dg::Node<DependenceGraph,
+                             const llvm::Value *, Node *>
 {
-    const llvm::Value *value;
-
     // nodes defined at this node
     typedef llvm::SmallPtrSet<Node *, 8> DefsT;
     DefsT def;
     DefsT ptrs;
 public:
-    Node(const llvm::Value *val): value(val) {};
+    Node(const llvm::Value *val)
+        :dg::Node<DependenceGraph, const llvm::Value *, Node *>(val)
+    {}
 
-    const llvm::Value *getValue(void) const { return value; }
+    const llvm::Value *getValue() const
+    {
+        return getKey();
+    }
 
     // create new subgraph with actual parameters that are given
     // by call-site and add parameter edges between actual and

@@ -12,7 +12,7 @@
 
 namespace dg {
 
-template <typename DG, typename NodePtrT>
+template <typename DG, typename KeyT, typename NodePtrT>
 class Node;
 
 #ifdef ENABLE_CFG
@@ -180,7 +180,7 @@ class DependenceGraph;
 //  -- Node
 //     one node in DependenceGraph
 /// --------------------------------------------------------
-template <typename DG, typename NodePtrT>
+template <typename DG, typename KeyT, typename NodePtrT>
 class Node
 {
 public:
@@ -194,8 +194,8 @@ public:
     typedef typename DependenceEdgesType::iterator dependence_iterator;
     typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
 
-    Node<DG, NodePtrT>()
-        : parameters(nullptr), dfs_run(0)
+    Node<DG, KeyT, NodePtrT>(const KeyT& k)
+        : key(k), parameters(nullptr), dfs_run(0)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr), prevNode(nullptr)
 #endif
@@ -332,6 +332,16 @@ public:
     {
         return parameters;
     }
+
+    KeyT getKey() const
+    {
+        return key;
+    }
+
+protected:
+
+    // key uniquely identifying this node in a graph
+    KeyT key;
 
 private:
 

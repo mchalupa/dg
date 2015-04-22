@@ -8,12 +8,12 @@ using namespace dg;
 class TestDG;
 class TestNode;
 
-class TestNode : public Node<TestDG, TestNode *>
+class TestNode : public Node<TestDG, const char *, TestNode *>
 {
-    const char *name;
 public:
-    TestNode(const char *name) : name(name) {};
-    const char *getName() const { return name; }
+    TestNode(const char *name)
+        : Node<TestDG, const char *, TestNode *>(name) {}
+    const char *getName() const { return getKey(); }
 };
 
 class TestDG : public DependenceGraph<const char *, TestNode *>
@@ -23,7 +23,11 @@ public:
     typedef BBlock<TestNode *> BasicBlock;
 #endif // ENABLE_CFG
 
-    bool addNode(TestNode *n) { return DependenceGraph<const char *, TestNode *>::addNode(n->getName(), n); }
+    bool addNode(TestNode *n)
+    {
+        return DependenceGraph<const char *, TestNode *>
+                ::addNode(n->getName(), n);
+    }
 };
 
 #define CREATE_NODE(n) TestNode n(#n)

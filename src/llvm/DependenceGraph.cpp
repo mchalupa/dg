@@ -424,7 +424,7 @@ void Node::addActualParameters(DependenceGraph *funcGraph)
 {
     using namespace llvm;
 
-    const CallInst *CInst = dyn_cast<CallInst>(value);
+    const CallInst *CInst = dyn_cast<CallInst>(key);
     assert(CInst && "addActualParameters called on non-CallInst");
 
     const Function *func = CInst->getCalledFunction();
@@ -438,7 +438,7 @@ void Node::addActualParameters(DependenceGraph *funcGraph)
     assert(old == nullptr && "Replaced parameters");
 
     // create entry node for params
-    Node *en = new Node(value);
+    Node *en = new Node(key);
     params->addNode(en);
     params->setEntry(en);
 
