@@ -37,6 +37,16 @@ public:
     {
         return container.insert(n).second;
     }
+
+    size_t erase(NodePtrT n)
+    {
+        return container.erase(n);
+    }
+
+    void clear()
+    {
+        container.clear();
+    }
     
 private:
     ContainerT container;

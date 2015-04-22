@@ -4,11 +4,12 @@
 #ifndef _BBLOCK_H_
 #define _BBLOCK_H_
 
-#include <set>
 #include <cassert>
 
+#include "EdgesContainer.h"
+
 #ifndef ENABLE_CFG
-#error "CFG.h needs be included with ENABLE_CFG"
+#error "BBlock.h needs be included with ENABLE_CFG"
 #endif // ENABLE_CFG
 
 namespace dg {
@@ -32,8 +33,7 @@ public:
             last->setBasicBlock(this);
     }
 
-    // TODO use llvm::SmallPtrSet if we have llvm
-    typedef std::set<BBlock<NodePtrT> *> ContainerT;
+    typedef EdgesContainer<BBlock<NodePtrT> *> ContainerT;
 
     const ContainerT& successors() const { return nextBBs; }
     const ContainerT& predcessors() const { return prevBBs; }
@@ -51,8 +51,8 @@ public:
     bool addSuccessor(BBlock<NodePtrT> *b)
     {
         bool ret, ret2;
-        ret = nextBBs.insert(b).second;
-        ret2 = b->prevBBs.insert(this).second;
+        ret = nextBBs.insert(b);
+        ret2 = b->prevBBs.insert(this);
 
         // we either have both edges or none
         assert(ret == ret2);
@@ -135,7 +135,7 @@ public:
         */
 
         ipostdom = pd;
-        return pd->ipostdominates.insert(this).second;
+        return pd->ipostdominates.insert(this);
     }
 #endif // ENABLE_POSTDOM
 
