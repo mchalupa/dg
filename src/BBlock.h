@@ -22,7 +22,7 @@ class BBlock
 {
 public:
     BBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
-        : firstNode(first), lastNode(last), dfs_run(0)
+        : firstNode(first), lastNode(last)
 #if defined(ENABLE_POSTDOM)
           , ipostdom(nullptr)
 #endif
@@ -170,12 +170,14 @@ private:
 #endif // ENABLE_POSTDOM
 
     // auxiliary varibales for different analyses
-    struct Analyses
+    struct _Analysis
     {
+        _Analysis() : dfsrunid(0) {}
+
         // helper variable for running
         // DFS/BFS on the BasicBlocks
         unsigned int dfsrunid;
-    };
+    } Analyses;
 };
 
 } // namespace dg

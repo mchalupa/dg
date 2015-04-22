@@ -271,7 +271,7 @@ static void print_to_dot(DependenceGraph *dg,
         return;
     }
 
-    unsigned int runid = entryBB->getDFSRun();
+    unsigned int runid = entryBB->getDFSRunId();
     ++runid;
 
     queue.push(dg->getEntryBB());
@@ -279,11 +279,11 @@ static void print_to_dot(DependenceGraph *dg,
         auto BB = queue.front();
         queue.pop();
 
-        BB->setDFSRun(runid);
+        BB->setDFSRunId(runid);
         printBB(dg, BB, out);
 
         for (auto S : BB->successors()) {
-            if (S->getDFSRun() != runid)
+            if (S->getDFSRunId() != runid)
                 queue.push(S);
         }
     }
