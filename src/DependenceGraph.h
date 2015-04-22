@@ -5,12 +5,12 @@
 #define _DEPENDENCE_GRAPH_H_
 
 #include <utility>
-#include <set>
 #include <queue>
 #include <map>
 #include <cassert>
 
 #include "BBlock.h"
+#include "EdgesContainer.h"
 
 namespace dg {
 
@@ -28,15 +28,13 @@ template <typename DG, typename KeyT, typename NodePtrT>
 class Node
 {
 public:
-    // TODO when LLVM is enabled, use SmallPtrSet
-    // else BDD ?
-    typedef std::set<NodePtrT> ControlEdgesType;
-    typedef std::set<NodePtrT> DependenceEdgesType;
+    typedef EdgesContainer<NodePtrT> ControlEdgesT;
+    typedef EdgesContainer<NodePtrT> DependenceEdgesT;
 
-    typedef typename ControlEdgesType::iterator control_iterator;
-    typedef typename ControlEdgesType::const_iterator const_control_iterator;
-    typedef typename DependenceEdgesType::iterator dependence_iterator;
-    typedef typename DependenceEdgesType::const_iterator const_dependence_iterator;
+    typedef typename ControlEdgesT::iterator control_iterator;
+    typedef typename ControlEdgesT::const_iterator const_control_iterator;
+    typedef typename DependenceEdgesT::iterator dependence_iterator;
+    typedef typename DependenceEdgesT::const_iterator const_dependence_iterator;
 
     Node<DG, KeyT, NodePtrT>(const KeyT& k)
         : key(k), parameters(nullptr)
@@ -51,8 +49,8 @@ public:
     {
         bool ret1, ret2;
 
-        ret1 = n->revControlDepEdges.insert(static_cast<NodePtrT>(this)).second;
-        ret2 = controlDepEdges.insert(n).second;
+        ret1 = n->revControlDepEdges.insert(static_cast<NodePtrT>(this));
+        ret2 = controlDepEdges.insert(n);
 
         // we either have both edges or none
         assert(ret1 == ret2);
@@ -64,8 +62,8 @@ public:
     {
         bool ret1, ret2;
 
-        ret1 = n->revDataDepEdges.insert(static_cast<NodePtrT>(this)).second;
-        ret2 = dataDepEdges.insert(n).second;
+        ret1 = n->revDataDepEdges.insert(static_cast<NodePtrT>(this));
+        ret2 = dataDepEdges.insert(n);
 
         assert(ret1 == ret2);
 
@@ -214,12 +212,12 @@ private:
     NodePtrT prevNode;
 #endif /* ENABLE_CFG */
 
-    ControlEdgesType controlDepEdges;
-    DependenceEdgesType dataDepEdges;
+    ControlEdgesT controlDepEdges;
+    DependenceEdgesT dataDepEdges;
 
     // Nodes that have control/dep edge to this node
-    ControlEdgesType revControlDepEdges;
-    DependenceEdgesType revDataDepEdges;
+    ControlEdgesT revControlDepEdges;
+    DependenceEdgesT revDataDepEdges;
 
     // a node can have more subgraphs (i. e. function pointers)
     std::set<DG *> subgraphs;

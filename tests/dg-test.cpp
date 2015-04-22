@@ -34,7 +34,7 @@ public:
 
 static void dump_to_dot(TestNode *n, FILE *f)
 {
-    for (TestNode::ControlEdgesType::const_iterator I = n->control_begin(), E = n->control_end();
+    for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
         fprintf(f, "\t%s -> %s;\n", n->getName(), (*I)->getName());
     for (auto I = n->dependence_begin(), E = n->dependence_end();
