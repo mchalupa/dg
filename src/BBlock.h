@@ -1,8 +1,8 @@
 /// XXX add licence
 //
 
-#ifndef _CFG_H_
-#define _CFG_H_
+#ifndef _BBLOCK_H_
+#define _BBLOCK_H_
 
 #include <set>
 #include <cassert>
@@ -139,10 +139,16 @@ public:
     }
 #endif // ENABLE_POSTDOM
 
-    unsigned int getDFSRun() const { return dfs_run; }
-    void setDFSRun(unsigned int id)
+    // retrieve last DFS run id
+    // XXX make it private and accessed only by friends
+    unsigned int getDFSRunId() const
     {
-        dfs_run = id;
+        return Analyses.dfsrunid;
+    }
+
+    void setDFSRunId(unsigned int id)
+    {
+        Analyses.dfsrunid = id;
     }
 
 private:
@@ -163,10 +169,15 @@ private:
     BBlock<NodePtrT> *ipostdom;
 #endif // ENABLE_POSTDOM
 
-    // helper variable for running DFS/BFS on the BasicBlocks
-    unsigned int dfs_run;
+    // auxiliary varibales for different analyses
+    struct Analyses
+    {
+        // helper variable for running
+        // DFS/BFS on the BasicBlocks
+        unsigned int dfsrunid;
+    };
 };
 
 } // namespace dg
 
-#endif // _CFG_H_
+#endif // _BBLOCK_H_
