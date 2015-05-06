@@ -1,7 +1,7 @@
 if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
-	target_link_libraries(llvm-dg-dump dg)
+	target_link_libraries(llvm-dg-dump llvmdg)
 endif (LLVM_DG)
 
 include_directories('../src')
