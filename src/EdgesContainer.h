@@ -47,7 +47,7 @@ public:
     {
         container.clear();
     }
-    
+
 private:
     ContainerT container;
 };
