@@ -403,12 +403,20 @@ void Node::addActualParameters(DependenceGraph *funcGraph)
     params->addNode(en);
     params->setEntry(en);
 
+    // add basic block for parameters, so that we it consistent
+    // with the reset of PDG
+    DependenceGraph::BBlock *BB = createBasicBlock(en, nullptr);
+    params->setEntryBB(BB);
+    en->setBasicBlock(BB);
+
+    Node *nn;
     for (auto I = func->arg_begin(), E = func->arg_end();
          I != E; ++I) {
         const Value *val = (&*I);
 
-        Node *nn = new Node(val);
+        nn = new Node(val);
         params->addNode(nn);
+        nn->setBasicBlock(BB);
 
         // add control edges
         en->addControlDependence(nn);
@@ -418,6 +426,8 @@ void Node::addActualParameters(DependenceGraph *funcGraph)
         assert(fp && "Do not have formal parametr");
         nn->addDataDependence(fp);
     }
+
+    BB->setLastNode(nn);
 
     return;
 }
