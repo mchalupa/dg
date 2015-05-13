@@ -135,11 +135,6 @@ static void dump_to_dot(Node *n, std::ostream& out)
             }
         }
     }
-
-    for (auto sub : n->getSubgraphs()) {
-        out << "\tNODE" << n << " -> NODE" <<  sub->getEntry()
-            << " [style=dashed label=\"call\"]\n";
-    }
 }
 
 static void print_to_dot(DependenceGraph *dg,
@@ -161,11 +156,7 @@ static void printNode(Node *n,
 
     DependenceGraph *params = n->getParameters();
     if (params) {
-        print_to_dot(params, out);
-
-        // add control edge from call-site to the parameters subgraph
-        out << "\tNODE" << n << " -> NODE" <<  params->getEntry()
-            << "[label=\"params\"]\n";
+        toPrint.push(params);
     }
 
     // do not print node if we'd like to print only bblocks
@@ -269,6 +260,37 @@ static void printNodesOnly(DependenceGraph *dg,
     }
 }
 
+static void dg_print_edges(DependenceGraph *dg,
+                           std::ostream& out)
+{
+    for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
+        auto n = I->second;
+        if (!n) {
+                errs() << "WARN [" << dg
+                       << "]: Node is NULL for value: "
+                       << *I->first << "\n";
+
+            continue;
+        }
+
+        dump_to_dot(I->second, out);
+    }
+
+    // if this is a params dg, print edge from callsite to
+    // this dg
+        // add control edge from call-site to the parameters subgraph
+        //out << "\tNODE" << n << " -> NODE" <<  params->getEntry()
+        //    << "[label=\"params\"]\n";
+        //
+
+    // if this is a function, print edges here from callsites
+   //for (auto sub : n->getSubgraphs()) {
+   //    out << "\tNODE" << n << " -> NODE" <<  sub->getEntry()
+   //        << " [style=dashed label=\"call\"]\n";
+   //}
+
+}
+
 static void print_to_dot(DependenceGraph *dg,
                          std::ostream& out)
 {
@@ -299,6 +321,8 @@ static void print_to_dot(DependenceGraph *dg,
         return;
     }
 
+    printNodesOnly(dg, out);
+
     unsigned int runid = entryBB->getDFSRunId();
     ++runid;
 
@@ -317,18 +341,7 @@ static void print_to_dot(DependenceGraph *dg,
     }
 
     // print edges in dg
-    for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
-        auto n = I->second;
-        if (!n) {
-                errs() << "WARN [" << dg
-                       << "]: Node is NULL for value: "
-                       << *I->first << "\n";
-
-            continue;
-        }
-
-        dump_to_dot(I->second, out);
-    }
+    dg_print_edges(dg, out);
 
     out << "}\n";
 }
