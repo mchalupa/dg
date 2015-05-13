@@ -6,6 +6,7 @@
 
 #include <set>
 #include <cassert>
+#include <algorithm>
 
 namespace dg {
 
@@ -31,7 +32,10 @@ public:
     iterator end() { return container.end(); }
     const_iterator end() const { return container.end(); }
 
-    size_type size() const { return container.size(); }
+    size_type size() const
+    {
+        return container.size();
+    }
 
     bool insert(NodePtrT n)
     {
@@ -46,6 +50,53 @@ public:
     void clear()
     {
         container.clear();
+    }
+
+    bool empty()
+    {
+        return container.empty();
+    }
+
+    void swap(EdgesContainer<NodePtrT, EXPECTED_EDGES_NUM>& oth)
+    {
+        container.swap(oth.container);
+    }
+
+    void intersect(const EdgesContainer<NodePtrT,
+                                        EXPECTED_EDGES_NUM>& oth)
+    {
+        EdgesContainer<NodePtrT, EXPECTED_EDGES_NUM> tmp;
+
+        std::set_intersection(container.begin(), container.end(),
+                              oth.container.begin(),
+                              oth.container.end(),
+                              std::inserter(tmp.container,
+                                            tmp.container.begin()));
+
+        // swap containers
+        container.swap(tmp.container);
+    }
+
+    bool operator==(const EdgesContainer<NodePtrT,
+                                        EXPECTED_EDGES_NUM>& oth) const
+    {
+        if (container.size() != oth.size())
+            return false;
+
+        // the sets are ordered, so this will work
+        iterator snd = oth.container.begin();
+        for (iterator fst = container.begin(), efst = container.end();
+             fst != efst; ++fst, ++snd)
+            if (*fst != *snd)
+                return false;
+
+        return true;
+    }
+
+    bool operator!=(const EdgesContainer<NodePtrT,
+                                        EXPECTED_EDGES_NUM>& oth) const
+    {
+        return !operator==(oth);
     }
 
 private:

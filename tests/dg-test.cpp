@@ -1,7 +1,9 @@
-#include "../src/DependenceGraph.h"
 #include <assert.h>
 #include <cstdarg>
 #include <cstdio>
+
+#include "../src/DependenceGraph.h"
+#include "../src/EdgesContainer.h"
 
 using namespace dg;
 
@@ -332,6 +334,35 @@ static bool cfg_test1(void)
     chck_dump(&d);
 #endif
 
+    chck_ret();
+}
+
+static bool edges_container_test1()
+{
+    chck_init();
+
+#if ENABLE_CFG
+    CREATE_NODE(n1);
+    CREATE_NODE(n2);
+
+    EdgesContainer<TestNode *> IT;
+    EdgesContainer<TestNode *> IT2;
+
+    chck(IT == IT2, "empty containers does not equal");
+    chck(IT.insert(&n1), "returned false with new element");
+    chck(IT.size() == 1, "size() bug");
+    chck(IT2.size() == 0, "size() bug");
+    chck(IT != IT2, "different containers equal");
+    chck(IT2.insert(&n1), "returned false with new element");
+    chck(IT == IT2, "containers with same content does not equal");
+
+    chck(!IT.insert(&n1), "double inserted element");
+    chck(IT.insert(&n2), "unique element wrong retval");
+    chck(IT2.insert(&n2), "unique element wrong retval");
+
+    chck(IT == IT2, "containers with same content does not equal");
+
+#endif
     chck_ret();
 }
 
