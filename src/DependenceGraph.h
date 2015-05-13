@@ -289,6 +289,11 @@ public:
     iterator find(Key k) { return nodes.find(k); }
     const_iterator find(Key k) const { return nodes.find(k); }
 
+    size_t size() const
+    {
+        return nodes.size();
+    }
+
     ValueType setEntry(ValueType n)
     {
         ValueType oldEnt = entryNode;

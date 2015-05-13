@@ -282,10 +282,15 @@ static void print_to_dot(DependenceGraph *dg,
     out << "subgraph \"cluster_" << subgraph_no++;
     out << "\" {\n";
 
+    getValueName(dg->getEntry()->getValue(), valName);
+    out << "label=\"<" << valName << ">";
+    out << "\\n Nodes: " << dg->size() << "\"";
+
+    out << " style=\"solid\"";
+
     std::queue<BBlock *> queue;
     auto entryBB = dg->getEntryBB();
     if (!entryBB) {
-        getValueName(dg->getEntry()->getValue(), valName);
         errs() << "No entry block in graph for " << valName << "\n";
         errs() << "  ^^^ printing only nodes\n";
 
