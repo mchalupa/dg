@@ -371,10 +371,6 @@ bool DependenceGraph::build(llvm::Function *func)
 
     addFormalParameters();
 
-    addPostDomTree();
-
-    addTopLevelDefUse();
-    addIndirectDefUse();
 
     // check if we have everything
     assert(getEntry() && "Missing entry node");
@@ -383,35 +379,6 @@ bool DependenceGraph::build(llvm::Function *func)
     assert(getExitBB() && "Missing exit BB");
 
     return true;
-}
-
-void DependenceGraph::addTopLevelDefUse()
-{
-    // add top-level def-use chains
-    // iterate over all nodes and for each node add data dependency
-    // to its uses in llvm
-    for (auto I = begin(), E = end(); I != E; ++I) {
-        const llvm::Value *val = I->first;
-
-        assert(val && "key is nullptr in dg::nodes");
-
-        for (auto U = val->user_begin(), EU = val->user_end(); U != EU; ++U) {
-            const llvm::Value *use = *U;
-
-            if (val == use)
-                continue;
-
-            Node *nu = operator[](use);
-            if (!nu)
-                continue;
-
-            I->second->addDataDependence(nu);
-        }
-    }
-}
-
-void DependenceGraph::addIndirectDefUse()
-{
 }
 
 void Node::addActualParameters(DependenceGraph *funcGraph)
@@ -478,35 +445,6 @@ void DependenceGraph::addFormalParameters()
         // add control edges
         bool ret = entryNode->addControlDependence(nn);
         assert(ret && "Already have formal parameters");
-    }
-}
-
-void DependenceGraph::addPostDomTree()
-{
-    std::queue<BBlock *> queue;
-    unsigned int run_id;
-
-    BBlock *exitBB = getExitBB();
-    assert(exitBB && "Tried creating post-dom tree without BBs");
-
-    run_id = exitBB->getDFSRunId();
-    exitBB->setDFSRunId(++run_id);
-    queue.push(exitBB);
-
-    while (!queue.empty()) {
-        BBlock *BB = queue.front();
-        queue.pop();
-        BB->setDFSRunId(run_id);
-
-        for (BBlock *predBB : BB->predcessors()) {
-            if (predBB->successorsNum() == 1) {
-                // BB immediately post-dominates the predBB
-                predBB->addIPostDom(BB);
-            }
-
-            if (predBB->getDFSRunId() != run_id)
-                queue.push(predBB);
-        }
     }
 }
 
