@@ -27,6 +27,7 @@ static struct {
     bool printCFG;
     bool printRevCFG;
     bool printBB;
+    bool printBBonly;
     bool printPostDom;
     bool printControlDep;
     bool printDataDep;
@@ -74,7 +75,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
             out << "\tNODE" << n << " -> NODE" <<  *I
                 << " [color=red]\n";
 
-    if (OPTIONS.printCFG) {
+    if (OPTIONS.printCFG && !OPTIONS.printBBonly) {
         if (n->hasSuccessor()) {
             Node *succ = n->getSuccessor();
             if (!succ)
@@ -85,7 +86,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
         }
     }
 
-    if (OPTIONS.printRevCFG) {
+    if (OPTIONS.printRevCFG && !OPTIONS.printBBonly) {
         if (n->hasPredcessor()) {
             out << "\tNODE" << n << " -> NODE" <<  n->getPredcessor()
                 << " [style=dotted color=gray]\n";
@@ -93,7 +94,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
     }
 
     // print edges between blocks
-    if (OPTIONS.printCFG) {
+    if (OPTIONS.printCFG || OPTIONS.printBB) {
         auto BB = n->getBasicBlock();
         if (BB && BB->getLastNode() == n) {
             for (auto pred : BB->successors()) {
@@ -104,7 +105,8 @@ static void dump_to_dot(Node *n, std::ostream& out)
         }
     }
 
-    if (OPTIONS.printRevCFG) {
+    /*
+    if (OPTIONS.printRevCFG || OPTIONS.printBB) {
         auto BB = n->getBasicBlock();
         // if this is BB header, print the edges
         if (BB && BB->getFirstNode() == n) {
@@ -116,6 +118,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
             }
         }
     }
+    */
 
     if (OPTIONS.printPostDom) {
         auto BB = n->getBasicBlock();
@@ -146,11 +149,12 @@ static void printNode(Node *n,
                       std::ostream& out = std::cout)
 {
     std::string valName;
-
-    assert(n);
-
     BBlock *BB = n->getBasicBlock();
     const llvm::Value *val = n->getValue();
+    bool isBBHead = BB && n == BB->getFirstNode();
+    bool isBBTail = BB && n == BB->getLastNode();
+
+    assert(n);
 
     for (auto sub : n->getSubgraphs())
         toPrint.push(sub);
@@ -164,11 +168,16 @@ static void printNode(Node *n,
             << "[label=\"params\"]\n";
     }
 
+    // do not print node if we'd like to print only bblocks
+    if (!(isBBHead || isBBTail) && OPTIONS.printBBonly)
+        return;
+
     getValueName(val, valName);
     out << "\tNODE" << n << " [";
 
-    if (BB && n == BB->getFirstNode())
+    if (isBBHead) {
         out << "style=\"filled\" fillcolor=\"lightgray\"";
+    }
 
     out << " label=\"" << valName;
 
@@ -209,8 +218,8 @@ static void printNode(Node *n,
 }
 
 static void printBB(DependenceGraph *dg,
-                     BBlock *BB,
-                     std::ostream& out)
+                    BBlock *BB,
+                    std::ostream& out)
 {
     assert(BB);
 
@@ -229,6 +238,20 @@ static void printBB(DependenceGraph *dg,
     out << "subgraph cluster_bb_" << bbid++;
     out << "{\n";
     out << "\tstyle=dotted\n";
+    out << "label=\"BBlock " << BB;
+
+    if (BB == dg->getEntryBB())
+        out << " |> ENTRY <|";
+    if (BB == dg->getExitBB())
+        out << " |> EXIT <|";
+
+    if (OPTIONS.printPostDom) {
+        out << "\\n";
+        for (BBlock *b : BB->getPostdominates())
+            out << "\\nPDOM " << b;
+    }
+
+    out << "\"\n";
 
     do {
         printNode(n, out);
@@ -324,6 +347,10 @@ int main(int argc, char *argv[])
             OPTIONS.printDataDep = false;
         } else if (strcmp(argv[i], "-bb") == 0) {
             OPTIONS.printBB = true;
+        } else if (strcmp(argv[i], "-bbonly") == 0) {
+            OPTIONS.printBB = true;
+            OPTIONS.printBBonly = true;
+            OPTIONS.printDataDep = false;
         } else if (strcmp(argv[i], "-cfg") == 0) {
             OPTIONS.printCFG = true;
         } else if (strcmp(argv[i], "-cfgall") == 0) {
@@ -349,6 +376,7 @@ int main(int argc, char *argv[])
 
     DependenceGraph d;
     d.build(&*M);
+    d.computePDTree();
 
     std::ostream& out = std::cout;
     std::set<DependenceGraph *> printed;
