@@ -118,6 +118,7 @@ public:
     }
 
 #if defined(ENABLE_POSTDOM)
+    ContainerT& getPostdominates() { return postdominates; }
     // get immediate post-dominator
     const ContainerT& getIPostDom() const { return ipostdominates; }
     BBlock<NodePtrT> *getIPostDomBy() const { return ipostdom; }
@@ -161,12 +162,17 @@ private:
     NodePtrT lastNode;
 
 #if defined(ENABLE_POSTDOM)
+    // set of blocks that this block post-dominates
+    ContainerT postdominates;
+
     // immediate postdominator. The BB can be immediate
     // post-dominator of more nodes
     ContainerT ipostdominates;
+
     // reverse edge to immediate postdom. The BB can be
     // immediately post-dominated only by one BB
     BBlock<NodePtrT> *ipostdom;
+
 #endif // ENABLE_POSTDOM
 
     // auxiliary varibales for different analyses

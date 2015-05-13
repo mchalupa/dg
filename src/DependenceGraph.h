@@ -11,6 +11,16 @@
 
 #include "BBlock.h"
 #include "EdgesContainer.h"
+#include "PostDominators.h"
+
+#if (DEBUG_ENABLED && !DBG)
+#define DBG(...) do { fprintf(stderr, "DBG: ");\
+                      fprintf(stderr, __VA_ARGS__);\
+                      fprintf(stderr, "\n"); \
+                 } while(0)
+#else
+#define DBG(...)
+#endif // DEBUG_ENABLED
 
 namespace dg {
 
@@ -341,6 +351,14 @@ public:
         exitBB = nbb;
 
         return old;
+    }
+
+    bool computePDTree()
+    {
+        assert(exitBB && "no exitBB when computing PDTree");
+
+        PDTreeBuilder<BBlock<ValueType>> PDTree(exitBB);
+        return PDTree.build();
     }
 #endif // ENABLE_CFG
 
