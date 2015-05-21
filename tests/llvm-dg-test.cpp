@@ -2,11 +2,11 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include "../src/llvm/DependenceGraph.h"
+#include "../src/llvm/LLVMDependenceGraph.h"
 
-using namespace dg::llvmdg;
+using namespace dg;
 
-static void dump_to_dot(const Node *n, FILE *f)
+static void dump_to_dot(const LLVMNode *n, FILE *f)
 {
     for (auto I = n->control_begin(), E = n->control_end();
          I != E; ++I)
@@ -16,7 +16,7 @@ static void dump_to_dot(const Node *n, FILE *f)
         fprintf(f, "\t%s -> %s [color=red];\n", n->getValue(), (*I)->getValue());
 }
 
-void print_to_dot(DependenceGraph *dg,
+void print_to_dot(LLVMDependenceGraph *dg,
                   const char *file = "last_test.dot",
                   const char *description = nullptr)
 {
@@ -86,7 +86,7 @@ static bool check(int expr, const char *func, int line, const char *fmt, ...)
 static bool constructors_test(void)
 {
     chck_init();
-    DependenceGraph *d = new DependenceGraph();
+    LLVMDependenceGraph *d = new LLVMDependenceGraph();
     // we leak it, but if we would call destructor,
     // it would raise SIGABRT because we do not have
     // set entry basic block
@@ -98,8 +98,8 @@ static bool constructors_test(void)
 static bool refcount_test(void)
 {
     chck_init();
-    DependenceGraph d;
-    DependenceGraph s;
+    LLVMDependenceGraph d;
+    LLVMDependenceGraph s;
 
     int rc;
     rc = s.ref();
@@ -115,7 +115,7 @@ static bool refcount_test(void)
     chck(rc == 1, "refcount shold be 1, but is %d", rc);
 
     // addSubgraph increases refcount
-    Node n1(nullptr), n2(nullptr);
+    LLVMNode n1(nullptr), n2(nullptr);
     n1.addSubgraph(&s);
     n2.addSubgraph(&s);
 
@@ -126,8 +126,8 @@ static bool refcount_test(void)
     chck(rc == 3, "refcount shold be 3, but is %d", rc);
 
     // set entry blocks, otherwise the constructor will call assert
-    DependenceGraph::BBlock *entryBB1 = new DependenceGraph::BBlock(&n1);
-    DependenceGraph::BBlock *entryBB2 = new DependenceGraph::BBlock(&n2);
+    LLVMBBlock *entryBB1 = new LLVMBBlock(&n1);
+    LLVMBBlock *entryBB2 = new LLVMBBlock(&n2);
 
     d.setEntryBB(entryBB1);
     s.setEntryBB(entryBB2);

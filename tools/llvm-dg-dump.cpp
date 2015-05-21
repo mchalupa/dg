@@ -16,12 +16,10 @@
 #include <queue>
 #include <set>
 
-#include "../src/llvm/DependenceGraph.h"
+#include "../src/llvm/LLVMDependenceGraph.h"
 
-using namespace dg::llvmdg;
+using namespace dg;
 using llvm::errs;
-
-typedef DependenceGraph::BBlock BBlock;
 
 static struct {
     bool printCFG;
@@ -33,7 +31,7 @@ static struct {
     bool printDataDep;
 } OPTIONS;
 
-std::queue<DependenceGraph *> toPrint;
+std::queue<LLVMDependenceGraph *> toPrint;
 
 static std::string& getValueName(const llvm::Value *val, std::string &str)
 {
@@ -54,7 +52,7 @@ static std::string& getValueName(const llvm::Value *val, std::string &str)
     return s.str();
 }
 
-static void dump_to_dot(Node *n, std::ostream& out)
+static void dump_to_dot(LLVMNode *n, std::ostream& out)
 {
     const llvm::Value *val;
 
@@ -77,7 +75,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
 
     if (OPTIONS.printCFG && !OPTIONS.printBBonly) {
         if (n->hasSuccessor()) {
-            Node *succ = n->getSuccessor();
+            LLVMNode *succ = n->getSuccessor();
             if (!succ)
                 errs() << "n hasSuccessor NULL!\n";
 
@@ -137,14 +135,14 @@ static void dump_to_dot(Node *n, std::ostream& out)
     }
 }
 
-static void print_to_dot(DependenceGraph *dg,
+static void print_to_dot(LLVMDependenceGraph *dg,
                          std::ostream& out = std::cout);
 
-static void printNode(Node *n,
+static void printNode(LLVMNode *n,
                       std::ostream& out = std::cout)
 {
     std::string valName;
-    BBlock *BB = n->getBasicBlock();
+    LLVMBBlock *BB = n->getBasicBlock();
     const llvm::Value *val = n->getValue();
     bool isBBHead = BB && n == BB->getFirstNode();
     bool isBBTail = BB && n == BB->getLastNode();
@@ -154,7 +152,7 @@ static void printNode(Node *n,
     for (auto sub : n->getSubgraphs())
         toPrint.push(sub);
 
-    DependenceGraph *params = n->getParameters();
+    LLVMDependenceGraph *params = n->getParameters();
     if (params) {
         toPrint.push(params);
     }
@@ -195,6 +193,7 @@ static void printNode(Node *n,
         }
     }
 
+    /*
     for (auto d : n->getDefs()) {
         getValueName(d->getValue(), valName);
         out << "\\nDEF " << valName;
@@ -203,18 +202,19 @@ static void printNode(Node *n,
         getValueName(d->getValue(), valName);
         out << "\\nPTR " << valName;
     }
+    */
 
     out << "\"];\n";
         //<<" (runid=" << n->getDFSrun() << ")\"];\n";
 }
 
-static void printBB(DependenceGraph *dg,
-                    BBlock *BB,
+static void printBB(LLVMDependenceGraph *dg,
+                    LLVMBBlock *BB,
                     std::ostream& out)
 {
     assert(BB);
 
-    Node *n = BB->getFirstNode();
+    LLVMNode *n = BB->getFirstNode();
     static unsigned int bbid = 0;
 
     if (!n) {
@@ -229,7 +229,7 @@ static void printBB(DependenceGraph *dg,
     out << "subgraph cluster_bb_" << bbid++;
     out << "{\n";
     out << "\tstyle=dotted\n";
-    out << "label=\"BBlock " << BB;
+    out << "label=\"LLVMBBlock " << BB;
 
     if (BB == dg->getEntryBB())
         out << " |> ENTRY <|";
@@ -238,7 +238,7 @@ static void printBB(DependenceGraph *dg,
 
     if (OPTIONS.printPostDom) {
         out << "\\n";
-        for (BBlock *b : BB->getPostdominates())
+        for (LLVMBBlock *b : BB->getPostdominates())
             out << "\\nPDOM " << b;
     }
 
@@ -252,7 +252,7 @@ static void printBB(DependenceGraph *dg,
     out << "}\n";
 }
 
-static void printNodesOnly(DependenceGraph *dg,
+static void printNodesOnly(LLVMDependenceGraph *dg,
                            std::ostream& out)
 {
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
@@ -260,7 +260,7 @@ static void printNodesOnly(DependenceGraph *dg,
     }
 }
 
-static void dg_print_edges(DependenceGraph *dg,
+static void dg_print_edges(LLVMDependenceGraph *dg,
                            std::ostream& out)
 {
     for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
@@ -291,7 +291,7 @@ static void dg_print_edges(DependenceGraph *dg,
 
 }
 
-static void print_to_dot(DependenceGraph *dg,
+static void print_to_dot(LLVMDependenceGraph *dg,
                          std::ostream& out)
 {
     static unsigned subgraph_no = 0;
@@ -310,7 +310,7 @@ static void print_to_dot(DependenceGraph *dg,
 
     out << " style=\"solid\"";
 
-    std::queue<BBlock *> queue;
+    std::queue<LLVMBBlock *> queue;
     auto entryBB = dg->getEntryBB();
     if (!entryBB) {
         errs() << "No entry block in graph for " << valName << "\n";
@@ -393,12 +393,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    DependenceGraph d;
+    LLVMDependenceGraph d;
     d.build(&*M);
     d.computePDTree();
 
     std::ostream& out = std::cout;
-    std::set<DependenceGraph *> printed;
+    std::set<LLVMDependenceGraph *> printed;
 
     out << "digraph \"DependencyGraph\" {\n";
 
