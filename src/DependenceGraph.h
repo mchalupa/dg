@@ -9,19 +9,11 @@
 #include <map>
 #include <cassert>
 
+#include "Utils.h" // DBG macro
 #include "BBlock.h"
 #include "EdgesContainer.h"
 #include "PostDominators.h"
 #include "Node.h"
-
-#if (DEBUG_ENABLED && !DBG)
-#define DBG(...) do { fprintf(stderr, "DBG: ");\
-                      fprintf(stderr, __VA_ARGS__);\
-                      fprintf(stderr, "\n"); \
-                 } while(0)
-#else
-#define DBG(...)
-#endif // DEBUG_ENABLED
 
 namespace dg {
 

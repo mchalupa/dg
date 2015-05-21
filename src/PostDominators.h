@@ -4,16 +4,8 @@
 
 #include <set>
 
+#include "Utils.h"
 #include "BBlock.h"
-
-#if (DEBUG_ENABLED && !DBG)
-#define DBG(...) do { fprintf(stderr, "DBG: ");\
-                      fprintf(stderr, __VA_ARGS__);\
-                      fprintf(stderr, "\n"); \
-                 } while(0)
-#else
-#define DBG(...)
-#endif // DEBUG_ENABLED
 
 namespace dg {
 
