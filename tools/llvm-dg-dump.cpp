@@ -356,6 +356,7 @@ int main(int argc, char *argv[])
     // default
     OPTIONS.printControlDep = true;
     OPTIONS.printDataDep = true;
+    OPTIONS.printCFG = true;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
