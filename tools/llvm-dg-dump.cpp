@@ -67,7 +67,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
     if (OPTIONS.printControlDep)
         for (auto I = n->control_begin(), E = n->control_end();
              I != E; ++I)
-            out << "\tNODE" << n << " -> NODE" <<  *I << "\n";
+            out << "\tNODE" << n << " -> NODE" <<  *I << "[color=green]\n";
 
     if (OPTIONS.printDataDep)
         for (auto I = n->data_begin(), E = n->data_end();
@@ -100,7 +100,7 @@ static void dump_to_dot(Node *n, std::ostream& out)
             for (auto pred : BB->successors()) {
                 auto fn = pred->getFirstNode();
                 out << "\tNODE" << n << " -> NODE" << fn
-                    << " [style=dotted color=red]\n";
+                    << " [color=black]\n";
             }
         }
     }
