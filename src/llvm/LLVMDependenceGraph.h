@@ -16,24 +16,23 @@
 #include "../DependenceGraph.h"
 
 namespace dg {
-namespace llvmdg {
 
-class DependenceGraph;
-class Node;
+class LLVMDependenceGraph;
+class LLVMNode;
+
+#ifdef ENABLE_CFG
+typedef dg::BBlock<LLVMNode *> LLVMBBlock;
+#endif // ENABLE_CFG
 
 /// ------------------------------------------------------------------
-//  -- Node
+//  -- LLVMNode
 /// ------------------------------------------------------------------
-class Node : public dg::Node<DependenceGraph,
-                             const llvm::Value *, Node *>
+class LLVMNode : public dg::Node<LLVMDependenceGraph,
+                                 const llvm::Value *, LLVMNode *>
 {
-    // nodes defined at this node
-    typedef llvm::SmallPtrSet<Node *, 8> DefsT;
-    DefsT def;
-    DefsT ptrs;
 public:
-    Node(const llvm::Value *val)
-        :dg::Node<DependenceGraph, const llvm::Value *, Node *>(val)
+    LLVMNode(const llvm::Value *val)
+        :dg::Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode *>(val)
     {}
 
     const llvm::Value *getValue() const
@@ -45,27 +44,19 @@ public:
     // by call-site and add parameter edges between actual and
     // formal parameters. The argument is the graph of called function.
     // Must be called only when node is call-site.
-    void addActualParameters(DependenceGraph *);
-
-    bool addDef(Node *d) { return def.insert(d).second; }
-    bool addPtr(Node *p) { return ptrs.insert(p).second; }
-    DefsT& getDefs() { return def; }
-    DefsT& getPtrs() { return ptrs; }
+    // XXX create new class for parameters
+    void addActualParameters(LLVMDependenceGraph *);
 };
 
 /// ------------------------------------------------------------------
-//  -- DependenceGraph
+//  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------
-class DependenceGraph :
-    public dg::DependenceGraph<const llvm::Value *, Node *>
+class LLVMDependenceGraph :
+    public dg::DependenceGraph<const llvm::Value *, LLVMNode *>
 {
 public:
-#ifdef ENABLE_CFG
-    typedef dg::BBlock<Node *> BBlock;
-#endif // ENABLE_CFG
-
     // free all allocated memory and unref subgraphs
-    virtual ~DependenceGraph();
+    virtual ~LLVMDependenceGraph();
 
     // build a DependenceGraph from module. This method will
     // build all subgraphs (called procedures). If entry is nullptr,
@@ -84,12 +75,11 @@ private:
     bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = nullptr);
 
     // build subgraph for a call node
-    bool buildSubgraph(Node *node);
+    bool buildSubgraph(LLVMNode *node);
 
-    std::map<const llvm::Value *, DependenceGraph *> constructedFunctions;
+    std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 };
 
-} // namespace llvmdg
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_
