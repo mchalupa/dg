@@ -2,7 +2,9 @@ if (LLVM_DG)
   set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
 add_library(llvmdg SHARED
+	Utils.h
 	BBlock.h
+	Node.h
 	DependenceGraph.h
 	EdgesContainer.h
 	llvm/DependenceGraph.h
