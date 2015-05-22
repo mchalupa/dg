@@ -17,6 +17,7 @@
 #include <set>
 
 #include "../src/llvm/LLVMDependenceGraph.h"
+#include "../src/analysis/DFS.h"
 
 using namespace dg;
 using llvm::errs;
@@ -201,11 +202,20 @@ static void printNode(LLVMNode *n,
     out << "\"];\n";
 }
 
-static void printBB(LLVMDependenceGraph *dg,
-                    LLVMBBlock *BB,
-                    std::ostream& out)
+struct data
+{
+    data(LLVMDependenceGraph *d, std::ostream& o = std::cout)
+        : dg(d), out(o) {}
+
+    LLVMDependenceGraph *dg;
+    std::ostream& out;
+};
+
+static void printBB(LLVMBBlock *BB, struct data& data)
 {
     assert(BB);
+    LLVMDependenceGraph *dg = data.dg;
+    std::ostream& out = data.out;
 
     LLVMNode *n = BB->getFirstNode();
     static unsigned int bbid = 0;
@@ -303,8 +313,7 @@ static void print_to_dot(LLVMDependenceGraph *dg,
 
     out << " style=\"solid\"";
 
-    std::queue<LLVMBBlock *> queue;
-    auto entryBB = dg->getEntryBB();
+    LLVMBBlock *entryBB = dg->getEntryBB();
     if (!entryBB) {
         errs() << "No entry block in graph for " << valName << "\n";
         errs() << "  ^^^ printing only nodes\n";
@@ -316,22 +325,11 @@ static void print_to_dot(LLVMDependenceGraph *dg,
 
     printNodesOnly(dg, out);
 
-    unsigned int runid = entryBB->getDFSRunId();
-    ++runid;
+    data d(dg);
+    analysis::BBlockDFS<LLVMNode *> dfs;
 
-    queue.push(dg->getEntryBB());
-    while (!queue.empty()) {
-        auto BB = queue.front();
-        queue.pop();
-
-        BB->setDFSRunId(runid);
-        printBB(dg, BB, out);
-
-        for (auto S : BB->successors()) {
-            if (S->getDFSRunId() != runid)
-                queue.push(S);
-        }
-    }
+    // run dfs and print every basic block you find
+    dfs(entryBB, printBB, d);
 
     // print edges in dg
     dg_print_edges(dg, out);
