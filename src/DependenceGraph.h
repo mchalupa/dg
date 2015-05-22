@@ -140,14 +140,14 @@ public:
     // graph. So we can have two nodes for the same value but in different
     // graphs. The edges can be between arbitrary nodes and do not
     // depend on graphs the nodes are in.
-    /* virtual */ bool addNode(Key k, ValueType n)
+    bool addNode(Key k, ValueType n)
     {
-        nodes.insert(std::make_pair(k, n));
+        return nodes.insert(std::make_pair(k, n)).second;
     }
 
     // make it virtual? We don't need it now, but
     // in the future it may be handy.
-    /* virtual */ bool addNode(ValueType n)
+    bool addNode(ValueType n)
     {
         // ValueType is a class derived from
         // dg::Node, so it must have getKey() method
