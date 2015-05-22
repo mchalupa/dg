@@ -67,14 +67,11 @@ private:
 
 
 #ifdef ENABLE_CFG
-
-#include "../BBlock.h"
-
 template <typename NodePtrT, typename QueueT>
 class BBlockWalk : BBlockAnalysis<NodePtrT>
 {
 public:
-    typedef BBlock<NodePtrT> *BBlockPtrT;
+    typedef dg::BBlock<NodePtrT> *BBlockPtrT;
 
     template <typename FuncT, typename DataT>
     void walk(BBlockPtrT entry, FuncT func, DataT data)

@@ -2,6 +2,13 @@
 #define _DG_ANALYSIS_H_
 
 namespace dg {
+
+// forward declaration of BBlock
+#ifdef ENABLE_CFG
+template <typename NodePtrT>
+class BBlock;
+#endif // ENABLE_CFG
+
 namespace analysis {
 
 /// --------------------------------------------------------
@@ -29,9 +36,6 @@ public:
 
 
 #ifdef ENABLE_CFG
-template <typename NodePtrT>
-class BBlock;
-
 /// --------------------------------------------------------
 //  - BBlocks analysis
 /// --------------------------------------------------------
