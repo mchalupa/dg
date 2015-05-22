@@ -3,7 +3,8 @@
 
 #include <vector>
 #include <string>
-#include <iostream>
+#include <cstdio>
+#include <unistd.h>
 
 namespace dg {
 namespace tests {
@@ -12,42 +13,58 @@ class Test
 {
     std::string name;
 
-    bool failed;
+    unsigned int failed;
 
 public:
     Test(const std::string& name)
-        :name(name), failed(false)
+        :name(name), failed(0)
     {}
 
-    virtual bool test() = 0;
+    virtual void test() = 0;
 
     void check(bool cond, const char *fmt = nullptr, ...)
     {
+        va_list vl;
+
         if (!cond) {
-            fail(fmt);
+            va_start(vl, fmt);
+            fail(fmt, vl);
+            va_end(vl);
         }
     }
 
     void fail(const char *fmt, ...)
     {
+        va_list vl;
+
         if (fmt) {
+            va_start(vl, fmt);
+            putc('\t', stderr);
+            vfprintf(stderr, fmt, vl);
+            putchar('\n');
+            va_end(vl);
+
+            fflush(stderr);
         }
 
-        failed = true;
+        ++failed;
     }
 
     // return true if everything is ok
     bool run()
     {
-        bool result;
-        std::cout << "Running: " << name << " -> ";
-        // func returning false means failure
-        result = test();
+        printf("-- Running: %s\n", name.c_str());
+        test();
 
-        return result && !failed;
+        if (failed != 0) {
+            printf("\tTotal %u failures in this test\n", failed);
+        }
+
+        return failed == 0;
     }
 
     bool operator()() { return run(); }
+    const std::string& getName() const { return name; }
 };
 
 class TestRunner
@@ -55,8 +72,14 @@ class TestRunner
     std::vector<Test *> tests;
     unsigned int failed;
 
+    bool istty;
+
 public:
-    TestRunner() : failed(0) {}
+    TestRunner() : failed(0)
+    {
+        istty = isatty(fileno(stdout));
+    }
+
     ~TestRunner()
     {
         for (Test *t : tests)
@@ -64,16 +87,6 @@ public:
     }
 
     void add(Test *t) { tests.push_back(t); }
-    void report(bool succ)
-    {
-        if (succ) {
-            std::cout << "OK" << std::endl;
-        } else {
-            std::cout << "FAILED" << std::endl;
-            ++failed;
-        }
-    }
-
     bool run()
     {
         for (Test *t : tests) {
@@ -81,10 +94,46 @@ public:
             report(result);
         }
 
+        if (failed != 0)
+            printf("\n%u test(s) failed\n", failed);
+        else
+            printf("\nAll test passed! o/\\o\n");
+
+        fflush(stdout);
+
         return failed != 0;
     }
 
     bool operator()() { return run(); }
+private:
+    #define RED     "\033[31m"
+    #define GREEN   "\033[32m"
+    void set_color(const char *color = nullptr)
+    {
+        if (!istty)
+            return;
+
+        if (color)
+            printf("%s", color);
+        else
+            printf("\033[0m");
+    }
+
+    void report(bool succ)
+    {
+        printf("-- ---> ");
+        if (succ) {
+            set_color(GREEN);
+            printf("OK\n");
+        } else {
+            set_color(RED);
+            printf("FAILED\n");
+            ++failed;
+        }
+
+        set_color(); // reset color
+        fflush(stdout);
+    }
 };
 
 } // namespace tests
