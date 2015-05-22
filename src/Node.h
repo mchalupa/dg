@@ -4,6 +4,8 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
+#include "analysis/Analysis.h"
+
 namespace dg {
 
 template <typename Key, typename ValueType>
@@ -57,22 +59,6 @@ public:
         assert(ret1 == ret2);
 
         return ret2;
-    }
-
-    unsigned int getDFSRunId(void) const
-    {
-        return Analyses.dfsrunid;
-    }
-
-    // increase and return DFS runid
-    unsigned int incDFSRunId(void) const
-    {
-        return ++Analyses.dfsrunid;
-    }
-
-    void setDFSRunId(unsigned int r)
-    {
-        Analyses.dfsrunid = r;
     }
 
     // control dependency edges iterators
@@ -225,8 +211,12 @@ private:
         // last id of DFS that ran on this node
         // ~~> marker if it has been processed
         unsigned int dfsrunid;
-    } Analyses;
+    } Analysis;
 
+
+    // Analysis class is a friend, so that it can access
+    // Analyses struct
+    friend class analysis::Analysis<NodePtrT>;
 };
 
 } // namespace dgg

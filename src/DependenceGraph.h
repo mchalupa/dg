@@ -15,6 +15,8 @@
 #include "PostDominators.h"
 #include "Node.h"
 
+#include "analysis/Analysis.h"
+
 namespace dg {
 
 // --------------------------------------------------------
