@@ -203,19 +203,8 @@ private:
     // parameters are shared for all subgraphs
     DG *parameters;
 
-    // auxiliary varibales for different analyses
-    struct _Analysis
-    {
-        _Analysis() : dfsrunid(0) {}
-
-        // last id of DFS that ran on this node
-        // ~~> marker if it has been processed
-        unsigned int dfsrunid;
-    } Analysis;
-
-
-    // Analysis class is a friend, so that it can access
-    // Analyses struct
+    // auxiliary data for different analyses
+    analysis::AnalysesAuxiliaryData analysisAuxData;
     friend class analysis::Analysis<NodePtrT>;
 };
 

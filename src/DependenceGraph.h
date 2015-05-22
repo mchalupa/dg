@@ -171,88 +171,12 @@ public:
     }
 
     const unsigned int getSize(void) const { return nodes.size(); }
-
-    // make DFS on graph, using control and/or deps edges
-    template <typename F, typename D>
-    void DFS(ValueType entry, F func, D data,
-             bool control = true, bool deps = true)
-    {
-        unsigned int run_id = ++dfs_run_counter;
-        std::queue<ValueType> queue;
-
-        assert(entry && "Need entry node for DFS");
-
-        entry->setDFSRunId(run_id);
-        queue.push(entry);
-
-        while (!queue.empty()) {
-            ValueType n = queue.front();
-            queue.pop();
-
-            func(n, data);
-
-            // add unprocessed vertices
-            if (control)
-                DFSProcessEdges(n->control_begin(),
-                                n->control_end(), queue, run_id);
-
-            if (deps)
-                DFSProcessEdges(n->data_begin(),
-                                n->data_end(), queue, run_id);
-        }
-    }
-
-    template <typename F, typename D>
-    void revDFS(ValueType entry, F func, D data,
-                bool control = true, bool deps = true)
-    {
-        unsigned int run_id = ++dfs_run_counter;
-        std::queue<ValueType> queue;
-
-        assert(entry && "Need entry node for DFS");
-
-        entry->setDFSrun(run_id);
-        queue.push(entry);
-
-        while (!queue.empty()) {
-            ValueType n = queue.front();
-            queue.pop();
-
-            func(n, data);
-
-            // add unprocessed vertices
-            if (control)
-                DFSProcessEdges(n->rev_control_begin(),
-                                n->rev_control_end(), queue, run_id);
-
-            if (deps)
-                DFSProcessEdges(n->rev_data_begin(),
-                                n->rev_data_end(), queue, run_id);
-        }
-    }
-
 protected:
     // nodes contained in this dg. They are protected, so that
     // child classes can access them directly
     ContainerType nodes;
 
 private:
-
-    template <typename Q, typename IT>
-    void DFSProcessEdges(IT begin, IT end, Q& queue,
-                         unsigned int run_id)
-    {
-        for (IT I = begin; I != end; ++I) {
-            ValueType tmp = *I;
-            if (tmp->getDFSRunId() == run_id)
-                continue;
-
-            // mark node as visited
-            tmp->setDFSRunId(run_id);
-            queue.push(tmp);
-        }
-    }
-
     ValueType entryNode;
     ValueType exitNode;
 
