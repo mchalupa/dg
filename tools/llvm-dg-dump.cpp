@@ -56,12 +56,6 @@ static void dump_to_dot(LLVMNode *n, std::ostream& out)
 {
     const llvm::Value *val;
 
-    /* do not draw multiple edges */
-    if (n->getDFSRunId() != 0)
-        return;
-    else
-        n->setDFSRunId(1);
-
     if (OPTIONS.printControlDep)
         for (auto I = n->control_begin(), E = n->control_end();
              I != E; ++I)
@@ -205,7 +199,6 @@ static void printNode(LLVMNode *n,
     */
 
     out << "\"];\n";
-        //<<" (runid=" << n->getDFSrun() << ")\"];\n";
 }
 
 static void printBB(LLVMDependenceGraph *dg,

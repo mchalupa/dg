@@ -3,6 +3,7 @@
 #include <cstdio>
 
 #include "../src/llvm/LLVMDependenceGraph.h"
+#include "../src/analysis/DFS.h"
 
 using namespace dg;
 
@@ -35,14 +36,15 @@ void print_to_dot(LLVMDependenceGraph *dg,
     {
         auto n = I->second;
 
-        fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
-                n->getValue(), n->getValue(), n->getDFSRunId());
+        fprintf(out, "\t%s [label=\"%s\"];\n",
+                n->getValue(), n->getValue());
     }
 
     // if we have entry node, use it as a root
     // otherwise just dump the graph somehow
     if (dg->getEntry()) {
-        dg->DFS(dg->getEntry(), dump_to_dot, out);
+        analysis::DFS<LLVMNode *> DFS;
+        DFS.run(dg->getEntry(), dump_to_dot, out);
     } else {
         for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
             dump_to_dot(I->second, out);
