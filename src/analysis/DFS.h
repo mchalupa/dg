@@ -17,6 +17,13 @@ public:
     {
         this->walk(entry, func, data, control, deps);
     }
+
+    template <typename FuncT, typename DataT>
+    void operator()(NodePtrT entry, FuncT func, DataT data,
+                    bool control = true, bool deps = true)
+    {
+        run(entry, func, data, control, deps);
+    }
 };
 
 #ifdef ENABLE_CFG
