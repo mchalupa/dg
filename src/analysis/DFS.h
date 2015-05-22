@@ -19,6 +19,28 @@ public:
     }
 };
 
+#ifdef ENABLE_CFG
+template <typename NodePtrT>
+class BBlockDFS : public BBlockWalk<NodePtrT,
+                                    std::queue<BBlock<NodePtrT> *> >
+{
+public:
+    typedef BBlock<NodePtrT> *BBlockPtrT;
+
+    template <typename FuncT, typename DataT>
+    void run(BBlockPtrT entry, FuncT func, DataT data)
+    {
+        this->walk(entry, func, data);
+    }
+
+    template <typename FuncT, typename DataT>
+    void operator()(BBlockPtrT entry, FuncT func, DataT data)
+    {
+        run(entry, func, data);
+    }
+};
+#endif // ENABLE_CFG
+
 } // namespace analysis
 } // namespace dg
 
