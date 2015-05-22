@@ -2,10 +2,13 @@
 #include <cstdarg>
 #include <cstdio>
 
+#include "test-runner.h"
+
 #include "../src/DependenceGraph.h"
 #include "../src/EdgesContainer.h"
 
-using namespace dg;
+namespace dg {
+namespace tests {
 
 class TestDG;
 class TestNode;
@@ -15,6 +18,7 @@ class TestNode : public Node<TestDG, const char *, TestNode *>
 public:
     TestNode(const char *name)
         : Node<TestDG, const char *, TestNode *>(name) {}
+
     const char *getName() const { return getKey(); }
 };
 
@@ -34,346 +38,242 @@ public:
 
 #define CREATE_NODE(n) TestNode n(#n)
 
-static void dump_to_dot(TestNode *n, FILE *f)
+class TestConstructors : public Test
 {
-    for (auto I = n->control_begin(), E = n->control_end();
-         I != E; ++I)
-        fprintf(f, "\t%s -> %s;\n", n->getName(), (*I)->getName());
-    for (auto I = n->data_begin(), E = n->data_end();
-         I != E; ++I)
-        fprintf(f, "\t%s -> %s [color=red];\n", n->getName(), (*I)->getName());
-}
+    TestConstructors() : Test("constructors test") {}
 
-void print_to_dot(TestDG *dg,
-                  const char *file = "last_test.dot",
-                  const char *description = nullptr)
-{
-    // we have stdio included, do not use streams for such
-    // easy task
-    FILE *out = fopen(file, "w");
-    if (!out) {
-        fprintf(stderr, "Failed opening file %s\n", file);
-        return;
-    }
-
-    fprintf(out, "digraph \"%s\" {\n",
-            description ? description : "DependencyGraph");
-
-    for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
+    void test()
     {
-        auto n = I->second;
+        TestDG d;
 
-        fprintf(out, "\t%s [label=\"%s (runid=%d)\"];\n",
-                n->getName(), n->getName(), n->getDFSRunId());
+        check(d.getEntry() == nullptr, "BUG: garbage in entry");
+        check(d.getSize() == 0, "BUG: garbage in nodes_num");
+
+        //TestNode n;
+        CREATE_NODE(n);
+
+        check(!n.hasSubgraphs(), "BUG: garbage in subgraph");
+        check(n.subgraphsNum() == 0, "BUG: garbage in subgraph");
+        check(n.getParameters() == nullptr, "BUG: garbage in parameters");
     }
+};
 
-    // if we have entry node, use it as a root
-    // otherwise just dump the graph somehow
-    if (dg->getEntry()) {
-        dg->DFS(dg->getEntry(), dump_to_dot, out);
-    } else {
-        for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
-            dump_to_dot(I->second, out);
+class TestAdd : public Test
+{
+public:
+    TestAdd() : Test("edges adding test")
+    {}
+
+    void test()
+    {
+        TestDG d;
+        //TestNode n1, n2;
+        CREATE_NODE(n1);
+        CREATE_NODE(n2);
+
+        check(n1.addControlDependence(&n2), "adding C edge claims it is there");
+        check(n2.addDataDependence(&n1), "adding D edge claims it is there");
+
+        d.addNode(&n1);
+        d.addNode(&n2);
+
+        d.setEntry(&n1);
+        check(d.getEntry() == &n1, "BUG: Entry setter");
+
+        int n = 0;
+        for (auto I = d.begin(), E = d.end(); I != E; ++I) {
+            ++n;
+            check((*I).second == &n1 || (*I).second == &n2,
+                    "Got some garbage in nodes");
         }
+
+        check(n == 2, "BUG: adding nodes to graph, got %d instead of 2", n);
+
+        int nn = 0;
+        for (auto ni = n1.control_begin(), ne = n1.control_end();
+             ni != ne; ++ni){
+            check(*ni == &n2, "got wrong control edge");
+            ++nn;
+        }
+
+        check(nn == 1, "bug: adding control edges, has %d instead of 1", nn);
+
+        nn = 0;
+        for (auto ni = n2.data_begin(), ne = n2.data_end();
+             ni != ne; ++ni) {
+            check(*ni == &n1, "got wrong control edge");
+            ++nn;
+        }
+
+        check(nn == 1, "BUG: adding dep edges, has %d instead of 1", nn);
+        check(d.getSize() == 2, "BUG: wrong nodes num");
+
+        // adding the same node should not increase number of nodes
+        check(!d.addNode(&n1), "should get false when adding same node");
+        check(d.getSize() == 2, "BUG: wrong nodes num (2)");
+        check(!d.addNode(&n2), "should get false when adding same node (2)");
+        check(d.getSize() == 2, "BUG: wrong nodes num (2)");
+
+        // don't trust just the counter
+        n = 0;
+        for (auto I = d.begin(), E = d.end(); I != E; ++I)
+            ++n;
+
+        check(n == 2, "BUG: wrong number of nodes in graph", n);
+
+        // we're not a multi-graph, each edge is there only once
+        // try add multiple edges
+        check(!n1.addControlDependence(&n2),
+             "adding multiple C edge claims it is not there");
+        check(!n2.addDataDependence(&n1),
+             "adding multiple D edge claims it is not there");
+
+        nn = 0;
+        for (auto ni = n1.control_begin(), ne = n1.control_end(); ni != ne; ++ni){
+            check(*ni == &n2, "got wrong control edge (2)");
+            ++nn;
+        }
+
+        check(nn == 1, "bug: adding control edges, has %d instead of 1 (2)", nn);
+
+        nn = 0;
+        for (auto ni = n2.data_begin(), ne = n2.data_end();
+             ni != ne; ++ni) {
+            check(*ni == &n1, "got wrong control edge (2) ");
+            ++nn;
+        }
+
+        check(nn == 1,
+                "bug: adding dependence edges, has %d instead of 1 (2)", nn);
     }
+};
 
-    fprintf(out, "}\n");
-    fclose(out);
-}
-
-
-/* return true when expr is violated and false when
- * it is OK */
-static bool check(int expr, const char *func, int line, const char *fmt, ...)
+class TestContainer : public Test
 {
-    va_list args;
+public:
+    TestContainer() : Test("container test")
+    {}
 
-    if (expr)
-        return false;
+    void test()
+    {
+#if ENABLE_CFG
+        CREATE_NODE(n1);
+        CREATE_NODE(n2);
 
-    fprintf(stderr, "%s:%d - ", func, line);
+        EdgesContainer<TestNode *> IT;
+        EdgesContainer<TestNode *> IT2;
 
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
+        check(IT == IT2, "empty containers does not equal");
+        check(IT.insert(&n1), "returned false with new element");
+        check(IT.size() == 1, "size() bug");
+        check(IT2.size() == 0, "size() bug");
+        check(IT != IT2, "different containers equal");
+        check(IT2.insert(&n1), "returned false with new element");
+        check(IT == IT2, "containers with same content does not equal");
 
-    fputc('\n', stderr);
+        check(!IT.insert(&n1), "double inserted element");
+        check(IT.insert(&n2), "unique element wrong retval");
+        check(IT2.insert(&n2), "unique element wrong retval");
 
-    return true;
-}
-
-#define chck_init() bool __chck_ret = false;
-// return false when some check failed
-#define chck_ret() return __chck_ret;
-#define chck_dump(d)\
-    do { if (__chck_ret) \
-        {print_to_dot((d)); }\
-    } while(0)
-#define chck(expr, ...)    \
-    do { __chck_ret |= check((expr), __func__, __LINE__, __VA_ARGS__); } while(0)
-
-static bool constructors_test(void)
-{
-    chck_init();
-
-    TestDG d;
-
-    chck(d.getEntry() == nullptr, "BUG: garbage in entry");
-    chck(d.getSize() == 0, "BUG: garbage in nodes_num");
-
-    //TestNode n;
-    CREATE_NODE(n);
-
-    chck(!n.hasSubgraphs(), "BUG: garbage in subgraph");
-    chck(n.subgraphsNum() == 0, "BUG: garbage in subgraph");
-    chck(n.getParameters() == nullptr, "BUG: garbage in parameters");
-
-    chck_dump(&d);
-    chck_ret();
-}
-
-static bool add_test1(void)
-{
-    chck_init();
-
-    TestDG d;
-    //TestNode n1, n2;
-    CREATE_NODE(n1);
-    CREATE_NODE(n2);
-
-    chck(n1.addControlDependence(&n2), "adding C edge claims it is there");
-    chck(n2.addDataDependence(&n1), "adding D edge claims it is there");
-
-    d.addNode(&n1);
-    d.addNode(&n2);
-
-    d.setEntry(&n1);
-    chck(d.getEntry() == &n1, "BUG: Entry setter");
-
-    int n = 0;
-    for (auto I = d.begin(), E = d.end(); I != E; ++I) {
-        ++n;
-        chck((*I).second == &n1 || (*I).second == &n2, "Got some garbage in nodes");
+        check(IT == IT2, "containers with same content does not equal");
+#endif
     }
+};
 
-    chck(n == 2, "BUG: adding nodes to graph, got %d instead of 2", n);
 
-    int nn = 0;
-    for (auto ni = n1.control_begin(), ne = n1.control_end(); ni != ne; ++ni){
-        chck(*ni == &n2, "got wrong control edge");
-        ++nn;
-    }
-
-    chck(nn == 1, "bug: adding control edges, has %d instead of 1", nn);
-
-    nn = 0;
-    for (auto ni = n2.data_begin(), ne = n2.data_end();
-         ni != ne; ++ni) {
-        chck(*ni == &n1, "got wrong control edge");
-        ++nn;
-    }
-
-    chck(nn == 1, "BUG: adding dep edges, has %d instead of 1", nn);
-    chck(d.getSize() == 2, "BUG: wrong nodes num");
-
-    // adding the same node should not increase number of nodes
-    chck(!d.addNode(&n1), "should get false when adding same node");
-    chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
-    chck(!d.addNode(&n2), "should get false when adding same node (2)");
-    chck(d.getSize() == 2, "BUG: wrong nodes num (2)");
-
-    // don't trust just the counter
-    n = 0;
-    for (auto I = d.begin(), E = d.end(); I != E; ++I)
-        ++n;
-
-    chck(n == 2, "BUG: wrong number of nodes in graph", n);
-
-    // we're not a multi-graph, each edge is there only once
-    // try add multiple edges
-    chck(!n1.addControlDependence(&n2),
-         "adding multiple C edge claims it is not there");
-    chck(!n2.addDataDependence(&n1),
-         "adding multiple D edge claims it is not there");
-
-    nn = 0;
-    for (auto ni = n1.control_begin(), ne = n1.control_end(); ni != ne; ++ni){
-        chck(*ni == &n2, "got wrong control edge (2)");
-        ++nn;
-    }
-
-    chck(nn == 1, "bug: adding control edges, has %d instead of 1 (2)", nn);
-
-    nn = 0;
-    for (auto ni = n2.data_begin(), ne = n2.data_end();
-         ni != ne; ++ni) {
-        chck(*ni == &n1, "got wrong control edge (2) ");
-        ++nn;
-    }
-
-    chck(nn == 1, "bug: adding dependence edges, has %d instead of 1 (2)", nn);
-
-    chck_dump(&d);
-    chck_ret();
-}
-
-static void dfs_do_nothing(TestNode *n, int)
+class TestCFG : public Test
 {
-}
+public:
+    TestCFG() : Test("CFG edges test")
+    {}
 
-static bool dfs_test1(void)
-{
-    chck_init();
-
-    TestDG d;
-    //TestNode n1, n2, n3;
-    CREATE_NODE(n1);
-    CREATE_NODE(n2);
-    CREATE_NODE(n3);
-
-    n1.addControlDependence(&n2);
-    n2.addDataDependence(&n1);
-    n2.addDataDependence(&n3);
-    d.addNode(&n1);
-    d.addNode(&n2);
-    d.addNode(&n3);
-
-    chck(d.getSize() == 3, "BUG: adding nodes");
-
-    unsigned run_id1 = n1.getDFSRunId();
-    unsigned run_id2 = n2.getDFSRunId();
-    unsigned run_id3 = n3.getDFSRunId();
-
-    chck(run_id1 == run_id2, "garbage in run id");
-    chck(run_id2 == run_id3, "garbage in run id");
-
-    // traverse only control edges
-    d.DFS(&n1, dfs_do_nothing, 0, true, false);
-    chck(run_id1 + 1 == n1.getDFSRunId(),
-         "did not go through node 1");
-    chck(run_id2 + 1 == n2.getDFSRunId(),
-         "did not go through node 2");
-    chck(run_id3 == n3.getDFSRunId(),
-         "did go through node 3");
-
-    chck_dump(&d);
-    chck_ret();
-}
-
-static bool cfg_test1(void)
-{
-    chck_init();
-
+    void test()
+    {
 #if ENABLE_CFG
 
-    TestDG d;
-    //TestNode n1, n2;
-    CREATE_NODE(n1);
-    CREATE_NODE(n2);
+        TestDG d;
+        CREATE_NODE(n1);
+        CREATE_NODE(n2);
 
-    d.addNode(&n1);
-    d.addNode(&n2);
+        d.addNode(&n1);
+        d.addNode(&n2);
 
-    chck(!n1.hasSuccessor(), "hasSuccessor returned true on node without successor");
-    chck(!n2.hasSuccessor(), "hasSuccessor returned true on node without successor");
-    chck(!n1.hasPredcessor(), "hasPredcessor returned true on node without successor");
-    chck(!n2.hasPredcessor(), "hasPredcessor returned true on node without successor");
-    chck(n1.getSuccessor() == nullptr, "succ initialized with garbage");
-    chck(n2.getSuccessor() == nullptr, "succ initialized with garbage");
-    chck(n1.getPredcessor() == nullptr, "pred initialized with garbage");
-    chck(n2.getPredcessor() == nullptr, "pred initialized with garbage");
+        check(!n1.hasSuccessor(),
+                "hasSuccessor returned true on node without successor");
+        check(!n2.hasSuccessor(),
+                "hasSuccessor returned true on node without successor");
+        check(!n1.hasPredcessor(),
+                "hasPredcessor returned true on node without successor");
+        check(!n2.hasPredcessor(),
+                "hasPredcessor returned true on node without successor");
+        check(n1.getSuccessor() == nullptr, "succ initialized with garbage");
+        check(n2.getSuccessor() == nullptr, "succ initialized with garbage");
+        check(n1.getPredcessor() == nullptr, "pred initialized with garbage");
+        check(n2.getPredcessor() == nullptr, "pred initialized with garbage");
 
-    chck(n1.addSuccessor(&n2) == nullptr, "adding successor edge claims it is there");
-    chck(n1.hasSuccessor(), "hasSuccessor returned false");
-    chck(!n1.hasPredcessor(), "hasPredcessor returned true");
-    chck(n2.hasPredcessor(), "hasPredcessor returned false");
-    chck(!n2.hasSuccessor(), "hasSuccessor returned false");
-    chck(n1.getSuccessor() == &n2, "get/addSuccessor bug");
-    chck(n2.getPredcessor() == &n1, "get/addPredcessor bug");
+        check(n1.addSuccessor(&n2) == nullptr,
+                "adding successor edge claims it is there");
+        check(n1.hasSuccessor(), "hasSuccessor returned false");
+        check(!n1.hasPredcessor(), "hasPredcessor returned true");
+        check(n2.hasPredcessor(), "hasPredcessor returned false");
+        check(!n2.hasSuccessor(), "hasSuccessor returned false");
+        check(n1.getSuccessor() == &n2, "get/addSuccessor bug");
+        check(n2.getPredcessor() == &n1, "get/addPredcessor bug");
 
-    // basic blocks
-    TestDG::BasicBlock BB(&n1);
-    chck(BB.getFirstNode() == &n1, "first node incorrectly set");
-    chck(BB.setLastNode(&n2) == nullptr, "garbage in lastNode");
-    chck(BB.getLastNode() == &n2, "bug in setLastNode");
+        // basic blocks
+        TestDG::BasicBlock BB(&n1);
+        check(BB.getFirstNode() == &n1, "first node incorrectly set");
+        check(BB.setLastNode(&n2) == nullptr, "garbage in lastNode");
+        check(BB.getLastNode() == &n2, "bug in setLastNode");
 
-    chck(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
-    chck(BB.predcessorsNum() == 0, "claims: %u", BB.predcessorsNum());
+        check(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
+        check(BB.predcessorsNum() == 0, "claims: %u", BB.predcessorsNum());
 
-    CREATE_NODE(n3);
-    CREATE_NODE(n4);
-    d.addNode(&n3);
-    d.addNode(&n4);
+        CREATE_NODE(n3);
+        CREATE_NODE(n4);
+        d.addNode(&n3);
+        d.addNode(&n4);
 
-    TestDG::BasicBlock BB2(&n3), BB3(&n3);
+        TestDG::BasicBlock BB2(&n3), BB3(&n3);
 
-    chck(BB.addSuccessor(&BB2), "the edge is there");
-    chck(!BB.addSuccessor(&BB2), "added even when the edge is there");
-    chck(BB.addSuccessor(&BB3), "the edge is there");
-    chck(BB.successorsNum() == 2, "claims: %u", BB.successorsNum());
+        check(BB.addSuccessor(&BB2), "the edge is there");
+        check(!BB.addSuccessor(&BB2), "added even when the edge is there");
+        check(BB.addSuccessor(&BB3), "the edge is there");
+        check(BB.successorsNum() == 2, "claims: %u", BB.successorsNum());
 
-    chck(BB2.predcessorsNum() == 1, "claims: %u", BB2.predcessorsNum());
-    chck(BB3.predcessorsNum() == 1, "claims: %u", BB3.predcessorsNum());
-    chck(*(BB2.predcessors().begin()) == &BB, "wrong predcessor set");
-    chck(*(BB3.predcessors().begin()) == &BB, "wrong predcessor set");
+        check(BB2.predcessorsNum() == 1, "claims: %u", BB2.predcessorsNum());
+        check(BB3.predcessorsNum() == 1, "claims: %u", BB3.predcessorsNum());
+        check(*(BB2.predcessors().begin()) == &BB, "wrong predcessor set");
+        check(*(BB3.predcessors().begin()) == &BB, "wrong predcessor set");
 
-    for (auto s : BB.successors())
-        chck(s == &BB2 || s == &BB3, "Wrong succ set");
+        for (auto s : BB.successors())
+            check(s == &BB2 || s == &BB3, "Wrong succ set");
 
-    BB2.removePredcessors();
-    chck(BB.successorsNum() == 1, "claims: %u", BB.successorsNum());
-    chck(BB2.predcessorsNum() == 0, "has successors after removing");
+        BB2.removePredcessors();
+        check(BB.successorsNum() == 1, "claims: %u", BB.successorsNum());
+        check(BB2.predcessorsNum() == 0, "has successors after removing");
 
-    BB.removeSuccessors();
-    chck(BB.successorsNum() == 0, "has successors after removing");
-    chck(BB2.predcessorsNum() == 0, "removeSuccessors did not removed BB"
+        BB.removeSuccessors();
+        check(BB.successorsNum() == 0, "has successors after removing");
+        check(BB2.predcessorsNum() == 0, "removeSuccessors did not removed BB"
+                                        " from predcessor");
+        check(BB3.predcessorsNum() == 0, "removeSuccessors did not removed BB"
                                     " from predcessor");
-    chck(BB3.predcessorsNum() == 0, "removeSuccessors did not removed BB"
-                                    " from predcessor");
+#endif // ENABLE_CFG
+    }
+};
 
-    chck_dump(&d);
-#endif
-
-    chck_ret();
-}
-
-static bool edges_container_test1()
-{
-    chck_init();
-
-#if ENABLE_CFG
-    CREATE_NODE(n1);
-    CREATE_NODE(n2);
-
-    EdgesContainer<TestNode *> IT;
-    EdgesContainer<TestNode *> IT2;
-
-    chck(IT == IT2, "empty containers does not equal");
-    chck(IT.insert(&n1), "returned false with new element");
-    chck(IT.size() == 1, "size() bug");
-    chck(IT2.size() == 0, "size() bug");
-    chck(IT != IT2, "different containers equal");
-    chck(IT2.insert(&n1), "returned false with new element");
-    chck(IT == IT2, "containers with same content does not equal");
-
-    chck(!IT.insert(&n1), "double inserted element");
-    chck(IT.insert(&n2), "unique element wrong retval");
-    chck(IT2.insert(&n2), "unique element wrong retval");
-
-    chck(IT == IT2, "containers with same content does not equal");
-
-#endif
-    chck_ret();
-}
+}; // namespace tests
+}; // namespace dg
 
 int main(int argc, char *argv[])
 {
-    bool ret = false;
+    using namespace dg::tests;
+    TestRunner Runner;
 
-    ret |= constructors_test();
-    ret |= add_test1();
-    ret |= dfs_test1();
-    ret |= cfg_test1();
+    Runner.add(new TestCFG());
+    Runner.add(new TestContainer());
+    Runner.add(new TestAdd());
 
-    return ret;
+    return Runner();
 }
