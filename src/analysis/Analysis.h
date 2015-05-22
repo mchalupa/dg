@@ -4,6 +4,9 @@
 namespace dg {
 namespace analysis {
 
+/// --------------------------------------------------------
+//  - Analyses using nodes
+/// --------------------------------------------------------
 // data for analyses, stored in nodes
 struct AnalysesAuxiliaryData
 {
@@ -23,6 +26,28 @@ public:
         return n->analysisAuxData;
     }
 };
+
+
+#ifdef ENABLE_CFG
+template <typename NodePtrT>
+class BBlock;
+
+/// --------------------------------------------------------
+//  - BBlocks analysis
+/// --------------------------------------------------------
+template <typename NodePtrT>
+class BBlockAnalysis : public Analysis<BBlock<NodePtrT> *>
+{
+public:
+    typedef BBlock<NodePtrT> *BBlockPtrT;
+
+    AnalysesAuxiliaryData& getAnalysisData(BBlockPtrT BB)
+    {
+        return BB->analysisAuxData;
+    }
+};
+
+#endif // ENABLE_CFG
 
 } // namespace analysis
 } // namespace dg

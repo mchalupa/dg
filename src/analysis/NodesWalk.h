@@ -65,6 +65,45 @@ private:
     QueueT queue;
 };
 
+
+#ifdef ENABLE_CFG
+
+#include "../BBlock.h"
+
+template <typename NodePtrT, typename QueueT>
+class BBlockWalk : BBlockAnalysis<NodePtrT>
+{
+public:
+    typedef BBlock<NodePtrT> *BBlockPtrT;
+
+    template <typename FuncT, typename DataT>
+    void walk(BBlockPtrT entry, FuncT func, DataT data)
+    {
+        QueueT queue;
+        queue.push(entry);
+
+        unsigned int runid = ++walk_run_counter;
+
+        while (!queue.empty()) {
+            BBlockPtrT BB = queue.front();
+            queue.pop();
+
+            AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
+            aad.lastwalkid = runid;
+
+            func(BB, data);
+
+            for (BBlockPtrT S : BB->successors()) {
+                AnalysesAuxiliaryData& sad = this->getAnalysisData(S);
+                if (sad.lastwalkid != runid)
+                    queue.push(S);
+            }
+        }
+    }
+};
+
+#endif
+
 } // namespace analysis
 } // namespace dg
 

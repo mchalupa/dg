@@ -7,6 +7,7 @@
 #include <cassert>
 
 #include "EdgesContainer.h"
+#include "analysis/Analysis.h"
 
 #ifndef ENABLE_CFG
 #error "BBlock.h needs be included with ENABLE_CFG"
@@ -140,18 +141,6 @@ public:
     }
 #endif // ENABLE_POSTDOM
 
-    // retrieve last DFS run id
-    // XXX make it private and accessed only by friends
-    unsigned int getDFSRunId() const
-    {
-        return Analyses.dfsrunid;
-    }
-
-    void setDFSRunId(unsigned int id)
-    {
-        Analyses.dfsrunid = id;
-    }
-
 private:
     ContainerT nextBBs;
     ContainerT prevBBs;
@@ -175,15 +164,9 @@ private:
 
 #endif // ENABLE_POSTDOM
 
-    // auxiliary varibales for different analyses
-    struct _Analysis
-    {
-        _Analysis() : dfsrunid(0) {}
-
-        // helper variable for running
-        // DFS/BFS on the BasicBlocks
-        unsigned int dfsrunid;
-    } Analyses;
+    // auxiliary data for different analyses
+    analysis::AnalysesAuxiliaryData analysisAuxData;
+    friend class analysis::BBlockAnalysis<NodePtrT>;
 };
 
 } // namespace dg
