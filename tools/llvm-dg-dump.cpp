@@ -386,7 +386,6 @@ int main(int argc, char *argv[])
 
     LLVMDependenceGraph d;
     d.build(&*M);
-    d.computePDTree();
 
     std::ostream& out = std::cout;
     std::set<LLVMDependenceGraph *> printed;
