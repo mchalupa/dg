@@ -49,7 +49,7 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
         BB->removeSuccessors();
 
         assert(BB->predcessorsNum() == 0 && "Still has references to BB");
-	// XXX
+        // XXX
         //delete BB;
     }
 
@@ -66,8 +66,8 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
             LLVMDGParameters *params = node->getParameters();
             if (params) {
-		// XXX delete nodes
-		delete params;
+                // XXX delete nodes
+                delete params;
             }
 
             delete node;
@@ -244,7 +244,7 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
                 return false;
             }
 
-	    // in newer LLVM we cannot set name to void type
+            // in newer LLVM we cannot set name to void type
             //phonyRet->setName("EXIT");
 
             ext = new LLVMNode(phonyRet);
@@ -394,8 +394,8 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
 
     LLVMNode *in, *out;
     for (const Value *val : CInst->arg_operands()) {
-	in = new LLVMNode(val);
-	out = new LLVMNode(val);
+        in = new LLVMNode(val);
+        out = new LLVMNode(val);
         params->add(val, in, out);
 
         // add control edges from this node to parameters
@@ -432,7 +432,7 @@ void LLVMDependenceGraph::addFormalParameters()
 
         in = new LLVMNode(val);
         out = new LLVMNode(val);
-	params->add(val, in, out);
+        params->add(val, in, out);
 
         // add control edges
         entryNode->addControlDependence(in);
