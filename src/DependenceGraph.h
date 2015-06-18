@@ -31,8 +31,7 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<Key, ValueType>()
-    :entryNode(nullptr), exitNode(nullptr),
-     dfs_run_counter(0), refcount(1)
+    :entryNode(nullptr), exitNode(nullptr), refcount(1)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -127,13 +126,6 @@ public:
         return old;
     }
 
-    bool computePDTree()
-    {
-        assert(exitBB && "no exitBB when computing PDTree");
-
-        PDTreeBuilder<BBlock<ValueType>> PDTree(exitBB);
-        return PDTree.build();
-    }
 #endif // ENABLE_CFG
 
     // add a node to this graph. The DependenceGraph is something like
@@ -184,9 +176,6 @@ private:
     BBlock<ValueType> *entryBB;
     BBlock<ValueType> *exitBB;
 #endif // ENABLE_CFG
-
-    // global counter for dfs runs
-    unsigned int dfs_run_counter;
 
     // how many nodes keeps pointer to this graph?
     int refcount;
