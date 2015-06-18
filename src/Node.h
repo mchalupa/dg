@@ -140,8 +140,6 @@ public:
     {
         DGParameters<KeyT, NodePtrT> *old = parameters;
 
-        assert(hasSubgraphs() && "BUG: setting parameters without subgraph");
-
         parameters = params;
         return old;
     }

@@ -414,24 +414,29 @@ void LLVMDependenceGraph::addFormalParameters()
     using namespace llvm;
 
     LLVMNode *entryNode = getEntry();
-    assert(entryNode);
+    assert(entryNode && "No entry node when adding formal parameters");
 
     const Function *func = dyn_cast<Function>(entryNode->getValue());
     assert(func && "entry node value is not a function");
-
+    //assert(func->arg_size() != 0 && "This function is undefined?");
     if (func->arg_size() == 0)
         return;
 
+    LLVMDGParameters *params = new LLVMDGParameters();
+    entryNode->addParameters(params);
+
+    LLVMNode *in, *out;
     for (auto I = func->arg_begin(), E = func->arg_end();
          I != E; ++I) {
         const Value *val = (&*I);
 
-        LLVMNode *nn = new LLVMNode(val);
-        addNode(nn);
+        in = new LLVMNode(val);
+        out = new LLVMNode(val);
+	params->add(val, in, out);
 
         // add control edges
-        bool ret = entryNode->addControlDependence(nn);
-        assert(ret && "Already have formal parameters");
+        entryNode->addControlDependence(in);
+        entryNode->addControlDependence(out);
     }
 }
 
