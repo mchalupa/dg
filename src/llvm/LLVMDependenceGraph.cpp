@@ -247,7 +247,8 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
                 return false;
             }
 
-            phonyRet->setName("EXIT");
+	    // in newer LLVM we cannot set name to void type
+            //phonyRet->setName("EXIT");
 
             ext = new LLVMNode(phonyRet);
             addNode(ext);
