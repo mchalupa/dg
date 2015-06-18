@@ -12,7 +12,6 @@
 #include "Utils.h" // DBG macro
 #include "BBlock.h"
 #include "EdgesContainer.h"
-#include "PostDominators.h"
 #include "Node.h"
 
 #include "analysis/Analysis.h"
