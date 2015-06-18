@@ -66,7 +66,11 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
             LLVMDGParameters *params = node->getParameters();
             if (params) {
-                // XXX delete nodes
+                for (auto par : *params) {
+                    delete par.second.in;
+                    delete par.second.out;
+                }
+
                 delete params;
             }
 
@@ -123,6 +127,10 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
     // make the subgraph a subgraph of current node
     node->addSubgraph(subgraph);
     node->addActualParameters(subgraph);
+
+    // addSubgraph() increased the refcount to 2, but we don't
+    // want that in this particular case.
+    subgraph->unref();
 }
 
 static LLVMBBlock *
