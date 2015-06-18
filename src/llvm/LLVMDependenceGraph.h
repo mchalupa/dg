@@ -24,6 +24,9 @@ class LLVMNode;
 typedef dg::BBlock<LLVMNode *> LLVMBBlock;
 #endif // ENABLE_CFG
 
+typedef dg::DGParameter<LLVMNode *> LLVMDGParameter;
+typedef dg::DGParameters<const llvm::Value *, LLVMNode *> LLVMDGParameters;
+
 /// ------------------------------------------------------------------
 //  -- LLVMNode
 /// ------------------------------------------------------------------

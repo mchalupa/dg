@@ -4,6 +4,7 @@
 #ifndef _NODE_H_
 #define _NODE_H_
 
+#include "DGParameters.h"
 #include "analysis/Analysis.h"
 
 namespace dg {
@@ -134,9 +135,10 @@ public:
         return ret;
     }
 
-    DG *addParameters(DG *params)
+    DGParameters<KeyT, NodePtrT> *
+    addParameters(DGParameters<KeyT, NodePtrT> *params)
     {
-        DG *old = parameters;
+        DGParameters<KeyT, NodePtrT> *old = parameters;
 
         assert(hasSubgraphs() && "BUG: setting parameters without subgraph");
 
@@ -159,7 +161,7 @@ public:
         return subgraphs.size();
     }
 
-    DG *getParameters() const
+    DGParameters<KeyT, NodePtrT> *getParameters() const
     {
         return parameters;
     }
@@ -197,11 +199,8 @@ private:
     // a node can have more subgraphs (i. e. function pointers)
     std::set<DG *> subgraphs;
 
-    // instead of adding parameter in/out nodes to parent
-    // graph, we create new small graph just with these
-    // nodes and summary edges (as dependence edges)
-    // parameters are shared for all subgraphs
-    DG *parameters;
+    // actual parameters if this is a callsite
+    DGParameters<KeyT, NodePtrT> *parameters;
 
     // auxiliary data for different analyses
     analysis::AnalysesAuxiliaryData analysisAuxData;

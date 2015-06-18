@@ -144,13 +144,19 @@ static void printNode(LLVMNode *n,
 
     assert(n);
 
+    LLVMDGParameters *params = n->getParameters();
+    if (params) {
+        for (auto par : *params) {
+            getValueName(par.second.in->getValue(), valName);
+            out << "\tNODE" << par.second.in
+                << " [label=\"PARAM in " << valName <<"\"]";
+            out << "\tNODE" << par.second.out
+                << " [label=\"PARAM out " << valName <<"\"]";
+        }
+    }
+
     for (auto sub : n->getSubgraphs())
         toPrint.push(sub);
-
-    LLVMDependenceGraph *params = n->getParameters();
-    if (params) {
-        toPrint.push(params);
-    }
 
     // do not print node if we'd like to print only bblocks
     if (!(isBBHead || isBBTail) && OPTIONS.printBBonly)

@@ -7,10 +7,6 @@
  #error "Need CFG enabled for building LLVM Dependence Graph"
 #endif
 
-#ifndef ENABLE_POSTDOM
- #error "Need post-dom enabled for building LLVM Dependence Graph"
-#endif
-
 #include <utility>
 #include <deque>
 #include <set>
@@ -53,7 +49,8 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
         BB->removeSuccessors();
 
         assert(BB->predcessorsNum() == 0 && "Still has references to BB");
-        delete BB;
+	// XXX
+        //delete BB;
     }
 
     // delete nodes
@@ -67,10 +64,10 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
                 subgraph->unref();
             }
 
-            LLVMDependenceGraph *params = node->getParameters();
+            LLVMDGParameters *params = node->getParameters();
             if (params) {
-                int rc = params->unref();
-                assert(rc == 0 && "parameters had more than one reference");
+		// XXX delete nodes
+		delete params;
             }
 
             delete node;
@@ -386,48 +383,30 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
     const CallInst *CInst = dyn_cast<CallInst>(key);
     assert(CInst && "addActualParameters called on non-CallInst");
 
-    const Function *func = CInst->getCalledFunction();
-
     // do not add redundant nodes
+    const Function *func = CInst->getCalledFunction();
     if (func->arg_size() == 0)
         return;
 
-    LLVMDependenceGraph *params = new LLVMDependenceGraph();
-    LLVMDependenceGraph *old = addParameters(params);
+    LLVMDGParameters *params = new LLVMDGParameters();
+    LLVMDGParameters *old = addParameters(params);
     assert(old == nullptr && "Replaced parameters");
 
-    // create entry node for params
-    LLVMNode *en = new LLVMNode(key);
-    params->addNode(en);
-    params->setEntry(en);
+    LLVMNode *in, *out;
+    for (const Value *val : CInst->arg_operands()) {
+	in = new LLVMNode(val);
+	out = new LLVMNode(val);
+        params->add(val, in, out);
 
-    // add basic block for parameters, so that we it consistent
-    // with the reset of PDG
-    LLVMBBlock *BB = createBasicBlock(en, nullptr);
-    params->setEntryBB(BB);
-    en->setBasicBlock(BB);
-
-    LLVMNode *nn;
-    for (auto I = func->arg_begin(), E = func->arg_end();
-         I != E; ++I) {
-        const Value *val = (&*I);
-
-        nn = new LLVMNode(val);
-        params->addNode(nn);
-        nn->setBasicBlock(BB);
-
-        // add control edges
-        en->addControlDependence(nn);
+        // add control edges from this node to parameters
+        addControlDependence(in);
+        addControlDependence(out);
 
         // add parameter edges -- these are just normal dependece edges
-        LLVMNode *fp = (*funcGraph)[val];
-        assert(fp && "Do not have formal parametr");
-        nn->addDataDependence(fp);
+        //LLVMNode *fp = (*funcGraph)[val];
+        //assert(fp && "Do not have formal parametr");
+        //nn->addDataDependence(fp);
     }
-
-    BB->setLastNode(nn);
-
-    return;
 }
 
 void LLVMDependenceGraph::addFormalParameters()
