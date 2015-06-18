@@ -12,7 +12,7 @@
 #endif
 
 #include <utility>
-#include <queue>
+#include <deque>
 #include <set>
 
 #include <llvm/IR/Module.h>
@@ -305,13 +305,14 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     constructedFunctions.insert(make_pair(func, this));
 
     std::set<llvm::BasicBlock *> processedBB;
-    std::queue<struct WE *> WQ;
+    // use deque to so that the walk will be BFS
+    std::deque<struct WE *> WQ;
 
-    WQ.push(new WE(&func->getEntryBlock(), nullptr));
+    WQ.push_front(new WE(&func->getEntryBlock(), nullptr));
 
     while (!WQ.empty()) {
         struct WE *item = WQ.front();
-        WQ.pop();
+        WQ.pop_front();
 
         build(item->BB, item->pred);
 
@@ -357,7 +358,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
                 continue;
             }
 
-            WQ.push(new WE(*S, item->BB));
+            WQ.push_front(new WE(*S, item->BB));
         }
 
         delete item;
