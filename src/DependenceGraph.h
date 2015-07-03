@@ -102,6 +102,7 @@ public:
             return 0;
         }
 
+        assert(refcount >= 0 && "Negative refcount");
         return refcount;
     }
 
