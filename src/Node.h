@@ -62,6 +62,104 @@ public:
         return ret2;
     }
 
+    bool removeDataDependence(NodePtrT n)
+    {
+        bool ret1, ret2;
+
+        ret1 = n->revDataDepEdges.erase(static_cast<NodePtrT>(this));
+        ret2 = dataDepEdges.erase(n);
+
+        // must have both or none
+        assert(ret1 == ret2 && "Dep. edge without rev. or vice versa");
+
+        return ret1;
+    }
+
+    bool removeControlDependence(NodePtrT n)
+    {
+        bool ret1, ret2;
+
+        ret1 = n->revControlDepEdges.erase(static_cast<NodePtrT>(this));
+        ret2 = controlDepEdges.erase(n);
+
+        // must have both or none
+        assert(ret1 == ret2 && "Control edge without rev. or vice versa");
+
+        return ret1;
+    }
+
+    void removeOutcomingDDs()
+    {
+        for (auto dd : dataDepEdges)
+            removeDataDependence(dd);
+    }
+
+    void removeIncomingDDs()
+    {
+        for (auto dd : revDataDepEdges)
+            dd->removeDataDependence(static_cast<NodePtrT>(this));
+    }
+
+    // remove all data dependencies going from/to this node
+    void removeDDs()
+    {
+        removeOutcomingDDs();
+        removeIncomingDDs();
+    }
+
+    // remove all control dependencies going from/to this node
+    void removeOutcomingCDs()
+    {
+        for (auto cd : controlDepEdges)
+            removeControlDependence(cd);
+    }
+
+    void removeIncomingCDs()
+    {
+        for (auto cd : revControlDepEdges)
+            cd->removeControlDependence(static_cast<NodePtrT>(this));
+    }
+
+    void removeCDs()
+    {
+        removeOutcomingCDs();
+        removeIncomingCDs();
+    }
+
+    // remove all edges from/to this node
+    void isolate()
+    {
+        // remove CD and DD from this node
+        removeDDs();
+        removeCDs();
+
+        /// interconnect neighbours in CFG
+#ifdef ENABLE_CFG
+        // if this is head or tail of BB,
+        // we must take it into account
+        if (basicBlock) {
+            if (basicBlock->getFirstNode() == this)
+                basicBlock->setFirstNode(nextNode);
+            if (basicBlock->getLastNode() == this)
+                basicBlock->setLastNode(prevNode);
+
+            // if this was the only node in BB, remove the BB
+            if (basicBlock->getFirstNode() == nullptr) {
+                assert(basicBlock->getLastNode() == nullptr);
+                basicBlock->remove();
+            }
+        }
+
+        // make previous node point to nextNode
+        if (prevNode)
+            prevNode->nextNode = nextNode;
+
+        // make next node point to prevNode
+        if (nextNode)
+            nextNode->prevNode = prevNode;
+#endif
+    }
+
     // control dependency edges iterators
     control_iterator control_begin(void) { return controlDepEdges.begin(); }
     const_control_iterator control_begin(void) const { return controlDepEdges.begin(); }
