@@ -61,6 +61,18 @@ public:
         return ret;
     }
 
+    bool addPredcessor(BBlock<NodePtrT> *b)
+    {
+        bool ret, ret2;
+        ret = prevBBs.insert(b);
+        ret2 = b->nextBBs.insert(this);
+
+        // we either have both edges or none
+        assert(ret == ret2);
+
+        return ret;
+    }
+
     void removeSuccessors()
     {
         for (auto BB : nextBBs) {
@@ -111,10 +123,18 @@ public:
 
     NodePtrT getFirstNode() const { return firstNode; }
     NodePtrT getLastNode() const { return lastNode; }
+
     NodePtrT setLastNode(NodePtrT nn)
     {
         NodePtrT old = lastNode;
         lastNode = nn;
+        return old;
+    }
+
+    NodePtrT setFirstNode(NodePtrT nn)
+    {
+        NodePtrT old = firstNode;
+        firstNode = nn;
         return old;
     }
 
