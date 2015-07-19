@@ -161,16 +161,25 @@ public:
 
     ValueType removeNode(Key k)
     {
-    auto n = nodes.find(n);
-    if (n == nodes.end())
-        return nullptr;
+        iterator it = nodes.find(k);
+        if (it == nodes.end())
+            return nullptr;
 
-    nodes.erase(n);
+        // remove and re-connect edges
+        ValueType n = it->second;
+        n->isolate();
 
-    // remove edges
-    assert(0 && "Remove edges");
+        nodes.erase(it);
 
-    return n;
+        return n;
+    }
+
+    bool deleteNode(Key k)
+    {
+        ValueType n = removeNode(k);
+        delete n;
+
+        return n != nullptr;
     }
 
 protected:

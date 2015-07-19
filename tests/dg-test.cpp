@@ -280,6 +280,7 @@ public:
     {
         nodes_remove_edge_test();
         nodes_isolate_test();
+        nodes_remove_test();
     }
 
 private:
@@ -359,6 +360,40 @@ private:
         check(nodes[NODES_NUM - 1]->hasSuccessor() == false, "isolate should remove successor");
         check(nodes[NODES_NUM - 1]->hasPredcessor() == false, "isolate should remove successor");
         check(nodes[NODES_NUM - 2]->hasSuccessor() == false, "isolate should remove successor");
+    }
+
+    void nodes_remove_test()
+    {
+        TestDG d;
+        TestNode **nodes = create_full_graph(d, NODES_NUM);
+
+        TestNode *n = d.removeNode(5);
+        check(n == nodes[5], "remove node didn't find node, returned %p - '%d'",
+              n, n ? n->getKey() : -1);
+        check(d.removeNode(NODES_NUM + 100) == nullptr, "remove weird unknown node");
+        check(d.removeNode(5) == nullptr, "remove unknown node");
+        check(d.deleteNode(5) == false, "delete unknown node");
+        check(d.deleteNode(0) == true, "delete unknown node");
+
+        check(d.size() == NODES_NUM - 2, "should have %d but have %d size",
+              NODES_NUM - 2, d.size());
+
+        for (int i = 1; i < NODES_NUM; ++i) {
+            if (i != 5) {
+                check(nodes[i]->getDataDependenciesNum() == NODES_NUM - 3,
+                      "node[%d]: should have %u but have %u",
+                      i, NODES_NUM - 3, nodes[i]->getDataDependenciesNum());
+                check(nodes[i]->getControlDependenciesNum() == NODES_NUM - 3,
+                      "node[%d]: should have %u but have %u",
+                      i, NODES_NUM - 3, nodes[i]->getControlDependenciesNum());
+                check(nodes[i]->getRevDataDependenciesNum() == NODES_NUM - 3,
+                      "node[%d]: should have %u but have %u",
+                      i, NODES_NUM - 3, nodes[i]->getRevDataDependenciesNum());
+                check(nodes[i]->getRevControlDependenciesNum() == NODES_NUM - 3,
+                      "node[%d]: should have %u but have %u",
+                      i, NODES_NUM - 3, nodes[i]->getRevControlDependenciesNum());
+            }
+        }
     }
 };
 
