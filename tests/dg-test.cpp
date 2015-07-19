@@ -73,6 +73,14 @@ public:
         d.addNode(&n1);
         d.addNode(&n2);
 
+        check(d.find(100) == d.end(), "found unknown node");
+        check(d.find(1) != d.end(), "didn't find node, find bug");
+        check(d.find(2) != d.end(), "didn't find node, find bug");
+        check(d.find(3) == d.end(), "found unknown node");
+
+        check(d.getNode(3) == nullptr, "getNode bug");
+        check(d.getNode(1) == &n1, "didn't get node that is in graph");
+
         d.setEntry(&n1);
         check(d.getEntry() == &n1, "BUG: Entry setter");
 
@@ -141,6 +149,9 @@ public:
 
         check(nn == 1,
                 "bug: adding dependence edges, has %d instead of 1 (2)", nn);
+
+        TestNode *&rn = d.getRef(3); // getRef creates node if not present
+        check(d.getNode(3) == rn, "get ref did not create node");
     }
 };
 
