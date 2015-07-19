@@ -270,6 +270,98 @@ public:
     }
 };
 
+class TestRemove : public Test
+{
+public:
+    TestRemove() : Test("edges removing test")
+    {}
+
+    void test()
+    {
+        nodes_remove_edge_test();
+        nodes_isolate_test();
+    }
+
+private:
+    TestNode **create_full_graph(TestDG& d, int n)
+    {
+        TestNode **nodes = new TestNode *[n];
+
+        for (int i = 0; i < n; ++i) {
+            nodes[i] = new TestNode(i);
+            d.addNode(nodes[i]);
+        }
+
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if (i == j)
+                    continue;
+
+                nodes[i]->addDataDependence(nodes[j]);
+                nodes[i]->addControlDependence(nodes[j]);
+            }
+        }
+
+        assert(d.size() == n && "Bug in create_full_graph");
+        return nodes;
+    }
+
+    void nodes_remove_edge_test()
+    {
+        TestDG d;
+        TestNode n1(1);
+        TestNode n2(2);
+        d.addNode(&n1);
+        d.addNode(&n2);
+
+        check(n1.removeDataDependence(&n1) == false, "remove non-existing dep");
+        check(n2.removeDataDependence(&n1) == false, "remove non-existing dep");
+
+        n1.addDataDependence(&n2);
+        n2.addControlDependence(&n1);
+        check(n2.removeDataDependence(&n1) == false, "remove non-existing dep");
+        check(n1.removeDataDependence(&n2) == true, "remove existing dep");
+        check(n1.getDataDependenciesNum() == 0, "remove bug");
+        check(n2.getDataDependenciesNum() == 0, "remove bug");
+        check(n2.getControlDependenciesNum() == 1, "add or size method bug");
+        check(n1.getRevControlDependenciesNum() == 1, "add or size method bug");
+        check(n2.getDataDependenciesNum() == 0, "remove bug");
+    }
+
+    #define NODES_NUM 10
+    void nodes_isolate_test()
+    {
+        TestDG d;
+        TestNode **nodes = create_full_graph(d, NODES_NUM);
+
+        // create CFG edges between nodes
+        for (int i = 0; i < NODES_NUM - 1; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+
+        nodes[0]->isolate();
+        check(nodes[0]->getControlDependenciesNum() == 0, "isolate bug");
+        check(nodes[0]->getDataDependenciesNum() == 0, "isolate bug");
+        check(nodes[0]->getRevControlDependenciesNum() == 0, "isolate bug");
+        check(nodes[0]->getRevDataDependenciesNum() == 0, "isolate bug");
+        check(nodes[0]->hasSuccessor() == false, "isolate should remove successor");
+        check(nodes[0]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[1]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[1]->getSuccessor() == nodes[2], "setSuccessor bug");
+
+        nodes[5]->isolate();
+        check(nodes[5]->hasSuccessor() == false, "isolate should remove successor");
+        check(nodes[5]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[4]->getSuccessor() == nodes[6], "isolate should reconnect neighb.");
+        check(nodes[6]->getPredcessor() == nodes[4], "isolate should reconnect neighb.");
+
+        nodes[NODES_NUM - 1]->isolate();
+        check(nodes[NODES_NUM - 1]->hasSuccessor() == false, "isolate should remove successor");
+        check(nodes[NODES_NUM - 1]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[NODES_NUM - 2]->hasSuccessor() == false, "isolate should remove successor");
+    }
+};
+
 }; // namespace tests
 }; // namespace dg
 
@@ -281,6 +373,7 @@ int main(int argc, char *argv[])
     Runner.add(new TestCFG());
     Runner.add(new TestContainer());
     Runner.add(new TestAdd());
+    Runner.add(new TestRemove());
 
     return Runner();
 }
