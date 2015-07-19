@@ -216,7 +216,7 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
 
         // add successor to predcessor node
         if (predNode)
-            predNode->addSuccessor(node);
+            predNode->setSuccessor(node);
 
         // set new predcessor node
         predNode = node;
@@ -370,7 +370,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     }
 
     // add CFG edge from entry point to the first instruction
-    entry->addSuccessor(getNode(func->getEntryBlock().begin()));
+    entry->setSuccessor(getNode(func->getEntryBlock().begin()));
 
     addFormalParameters();
 

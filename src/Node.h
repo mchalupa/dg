@@ -200,7 +200,7 @@ public:
         return old;
     }
 
-    NodePtrT addSuccessor(NodePtrT s)
+    NodePtrT setSuccessor(NodePtrT s)
     {
         NodePtrT old = nextNode;
         nextNode = s;

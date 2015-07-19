@@ -211,7 +211,7 @@ public:
         check(n1.getPredcessor() == nullptr, "pred initialized with garbage");
         check(n2.getPredcessor() == nullptr, "pred initialized with garbage");
 
-        check(n1.addSuccessor(&n2) == nullptr,
+        check(n1.setSuccessor(&n2) == nullptr,
                 "adding successor edge claims it is there");
         check(n1.hasSuccessor(), "hasSuccessor returned false");
         check(!n1.hasPredcessor(), "hasPredcessor returned true");
