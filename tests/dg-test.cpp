@@ -13,16 +13,14 @@ namespace tests {
 class TestDG;
 class TestNode;
 
-class TestNode : public Node<TestDG, const char *, TestNode *>
+class TestNode : public Node<TestDG, int, TestNode *>
 {
 public:
-    TestNode(const char *name)
-        : Node<TestDG, const char *, TestNode *>(name) {}
-
-    const char *getName() const { return getKey(); }
+    TestNode(int k)
+        : Node<TestDG, int, TestNode *>(k) {}
 };
 
-class TestDG : public DependenceGraph<const char *, TestNode *>
+class TestDG : public DependenceGraph<int, TestNode *>
 {
 public:
 #ifdef ENABLE_CFG
@@ -31,12 +29,10 @@ public:
 
     bool addNode(TestNode *n)
     {
-        return DependenceGraph<const char *, TestNode *>
-                ::addNode(n->getName(), n);
+        return DependenceGraph<int, TestNode *>
+                ::addNode(n->getKey(), n);
     }
 };
-
-#define CREATE_NODE(n) TestNode n(#n)
 
 class TestConstructors : public Test
 {
@@ -50,7 +46,7 @@ class TestConstructors : public Test
         check(d.size() == 0, "BUG: garbage in nodes_num");
 
         //TestNode n;
-        CREATE_NODE(n);
+        TestNode n(8);
 
         check(!n.hasSubgraphs(), "BUG: garbage in subgraph");
         check(n.subgraphsNum() == 0, "BUG: garbage in subgraph");
@@ -68,8 +64,8 @@ public:
     {
         TestDG d;
         //TestNode n1, n2;
-        CREATE_NODE(n1);
-        CREATE_NODE(n2);
+        TestNode n1(1);
+        TestNode n2(2);
 
         check(n1.addControlDependence(&n2), "adding C edge claims it is there");
         check(n2.addDataDependence(&n1), "adding D edge claims it is there");
@@ -157,8 +153,8 @@ public:
     void test()
     {
 #if ENABLE_CFG
-        CREATE_NODE(n1);
-        CREATE_NODE(n2);
+        TestNode n1(1);
+        TestNode n2(2);
 
         EdgesContainer<TestNode *> IT;
         EdgesContainer<TestNode *> IT2;
@@ -192,8 +188,8 @@ public:
 #if ENABLE_CFG
 
         TestDG d;
-        CREATE_NODE(n1);
-        CREATE_NODE(n2);
+        TestNode n1(1);
+        TestNode n2(2);
 
         d.addNode(&n1);
         d.addNode(&n2);
@@ -229,8 +225,8 @@ public:
         check(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
         check(BB.predcessorsNum() == 0, "claims: %u", BB.predcessorsNum());
 
-        CREATE_NODE(n3);
-        CREATE_NODE(n4);
+        TestNode n3(3);
+        TestNode n4(4);
         d.addNode(&n3);
         d.addNode(&n4);
 
