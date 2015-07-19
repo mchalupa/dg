@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdio>
 #include <unistd.h>
+#include <stdarg.h>
 
 namespace dg {
 namespace tests {
@@ -14,6 +15,16 @@ class Test
     std::string name;
 
     unsigned int failed;
+
+    void _fail(const char *fmt, va_list vl)
+    {
+        putc('\t', stderr);
+        vfprintf(stderr, fmt, vl);
+        putchar('\n');
+        fflush(stderr);
+
+        ++failed;
+    }
 
 public:
     Test(const std::string& name)
@@ -28,7 +39,7 @@ public:
 
         if (!cond) {
             va_start(vl, fmt);
-            fail(fmt, vl);
+            _fail(fmt, vl);
             va_end(vl);
         }
     }
@@ -39,15 +50,11 @@ public:
 
         if (fmt) {
             va_start(vl, fmt);
-            putc('\t', stderr);
-            vfprintf(stderr, fmt, vl);
-            putchar('\n');
+            _fail(fmt, vl);
             va_end(vl);
 
             fflush(stderr);
         }
-
-        ++failed;
     }
 
     // return true if everything is ok
