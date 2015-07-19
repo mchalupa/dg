@@ -148,6 +148,8 @@ public:
                 assert(basicBlock->getLastNode() == nullptr);
                 basicBlock->remove();
             }
+
+            basicBlock = nullptr;
         }
 
         // make previous node point to nextNode
@@ -157,6 +159,9 @@ public:
         // make next node point to prevNode
         if (nextNode)
             nextNode->prevNode = prevNode;
+
+        // no dangling reference, please
+        prevNode = nextNode = nullptr;
 #endif
     }
 
