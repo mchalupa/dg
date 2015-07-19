@@ -135,6 +135,20 @@ private:
                     out << "\tNODE" << n << " -> NODE" << *II
                         << " [color=\"" << cd_color << "\" style=\"dashed\"]\n";
             }
+
+            if (options & PRINT_CFG) {
+                out << "\t/* Successor */\n";
+                if (n->hasSuccessor()) {
+                    out << "\tNODE" << n << " -> NODE" << n->getSuccessor() 
+                        << " [style=\"dotted\"]\n";
+                }
+
+                out << "\t/* Predcessor */\n";
+                if (n->hasPredcessor()) {
+                    out << "\tNODE" << n << " -> NODE" << n->getPredcessor() 
+                        << " [style=\"dotted\"]\n";
+                }
+            }
         }
 
     }
