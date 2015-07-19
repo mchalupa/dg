@@ -47,7 +47,7 @@ class TestConstructors : public Test
         TestDG d;
 
         check(d.getEntry() == nullptr, "BUG: garbage in entry");
-        check(d.getSize() == 0, "BUG: garbage in nodes_num");
+        check(d.size() == 0, "BUG: garbage in nodes_num");
 
         //TestNode n;
         CREATE_NODE(n);
@@ -106,13 +106,13 @@ public:
         }
 
         check(nn == 1, "BUG: adding dep edges, has %d instead of 1", nn);
-        check(d.getSize() == 2, "BUG: wrong nodes num");
+        check(d.size() == 2, "BUG: wrong nodes num");
 
         // adding the same node should not increase number of nodes
         check(!d.addNode(&n1), "should get false when adding same node");
-        check(d.getSize() == 2, "BUG: wrong nodes num (2)");
+        check(d.size() == 2, "BUG: wrong nodes num (2)");
         check(!d.addNode(&n2), "should get false when adding same node (2)");
-        check(d.getSize() == 2, "BUG: wrong nodes num (2)");
+        check(d.size() == 2, "BUG: wrong nodes num (2)");
 
         // don't trust just the counter
         n = 0;

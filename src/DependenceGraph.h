@@ -162,7 +162,6 @@ public:
     return n;
     }
 
-    const unsigned int getSize(void) const { return nodes.size(); }
 protected:
     // nodes contained in this dg. They are protected, so that
     // child classes can access them directly
