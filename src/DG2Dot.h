@@ -13,10 +13,11 @@ namespace debug {
 enum dg2dot_options {
     PRINT_NONE      = 0, // print no edges
     PRINT_CFG       = 1 << 0,
-    PRINT_DD        = 1 << 1,
-    PRINT_REV_DD    = 1 << 2,
-    PRINT_CD        = 1 << 3,
-    PRINT_REV_CD    = 1 << 4,
+    PRINT_REV_CFG   = 1 << 1,
+    PRINT_DD        = 1 << 2,
+    PRINT_REV_DD    = 1 << 3,
+    PRINT_CD        = 1 << 4,
+    PRINT_REV_CD    = 1 << 5,
     PRINT_ALL       = ~((uint32_t) 0)
 };
 
@@ -132,15 +133,32 @@ private:
     static void dumpBBedges(BBlock<ValueT> *BB, std::pair<std::ofstream&, uint32_t> data)
     {
         std::ofstream& out = data.first;
-        for (auto S : BB->successors()) {
-            ValueT lastNode = BB->getLastNode();
-            ValueT firstNode = S->getFirstNode();
+        uint32_t options = data.second;
 
-            out << "\tNODE" << lastNode << " -> "
-                <<   "NODE" << firstNode
-                << "[penwidth=2"
-                << " ltail=cluster_bb_" << BB
-                << " lhead=cluster_bb_" << S << "]\n";
+        if (options & PRINT_CFG) {
+            for (auto S : BB->successors()) {
+                ValueT lastNode = BB->getLastNode();
+                ValueT firstNode = S->getFirstNode();
+
+                out << "\tNODE" << lastNode << " -> "
+                    <<   "NODE" << firstNode
+                    << "[penwidth=2"
+                    << " ltail=cluster_bb_" << BB
+                    << " lhead=cluster_bb_" << S << "]\n";
+            }
+        }
+
+        if (options & PRINT_REV_CFG) {
+            for (auto S : BB->predcessors()) {
+                ValueT lastNode = S->getLastNode();
+                ValueT firstNode = BB->getFirstNode();
+
+                out << "\tNODE" << firstNode << " -> "
+                    <<   "NODE" << lastNode
+                    << "[penwidth=2 color=gray"
+                    << " ltail=cluster_bb_" << BB
+                    << " lhead=cluster_bb_" << S << "]\n";
+            }
         }
     }
 
@@ -152,10 +170,11 @@ private:
         DFS.run(startBB, dumpBB, std::pair<std::ofstream&, uint32_t>(out, options));
 
         // print CFG edges between BBs
-        out << "\t/* CFG edges */\n";
-        if (options & PRINT_CFG)
+        if (options & (PRINT_CFG | PRINT_REV_CFG)) {
+            out << "\t/* CFG edges */\n";
             DFS.run(startBB, dumpBBedges,
                     std::pair<std::ofstream&, uint32_t>(out, options));
+        }
     }
 
     void dump_nodes()
@@ -217,11 +236,13 @@ private:
                 out << Ind << "NODE" << n << " -> NODE" << n->getSuccessor()
                     << " [style=\"dotted\"]\n";
             }
+        }
 
+        if (options & PRINT_REV_CFG) {
             out << Ind << "/* Predcessor */\n";
             if (n->hasPredcessor()) {
                 out << Ind << "NODE" << n << " -> NODE" << n->getPredcessor()
-                    << " [style=\"dotted\"]\n";
+                    << " [style=\"dotted\" color=gray]\n";
             }
         }
     }
