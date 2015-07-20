@@ -51,7 +51,6 @@ private:
         for (IT I = begin; I != end; ++I) {
             NodePtrT tmp = *I;
             AnalysesAuxiliaryData& aad = this->getAnalysisData(tmp);
-            aad.lastwalkid = run_id;
 
             if (aad.lastwalkid == run_id)
                 continue;
@@ -64,7 +63,6 @@ private:
 
     QueueT queue;
 };
-
 
 #ifdef ENABLE_CFG
 template <typename NodePtrT, typename QueueT>
@@ -79,21 +77,23 @@ public:
         QueueT queue;
         queue.push(entry);
 
+        // set up the value of new walk and set it to entry node
         unsigned int runid = ++walk_run_counter;
+        AnalysesAuxiliaryData& aad = this->getAnalysisData(entry);
+        aad.lastwalkid = runid;
 
         while (!queue.empty()) {
             BBlockPtrT BB = queue.front();
             queue.pop();
 
-            AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
-            aad.lastwalkid = runid;
-
             func(BB, data);
 
             for (BBlockPtrT S : BB->successors()) {
                 AnalysesAuxiliaryData& sad = this->getAnalysisData(S);
-                if (sad.lastwalkid != runid)
+                if (sad.lastwalkid != runid) {
+                    sad.lastwalkid = runid;
                     queue.push(S);
+                }
             }
         }
     }
