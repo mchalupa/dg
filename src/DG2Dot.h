@@ -71,10 +71,13 @@ public:
 
         if (BB)
             dumpBBs(BB);
-        else
-            dump_nodes();
 
-        //dump_edges();
+        // even when we have printed nodes while
+        // going through BBs, print nodes again,
+        // so that we'll see if there are any nodes
+        // that are not in BBs
+        dump_nodes();
+        dump_edges();
 
         end();
 
