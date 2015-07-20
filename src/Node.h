@@ -28,13 +28,39 @@ public:
     typedef typename DependenceEdgesT::iterator data_iterator;
     typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
-    Node<DG, KeyT, NodePtrT>(const KeyT& k)
-        : key(k), parameters(nullptr)
+    Node<DG, KeyT, NodePtrT>(const KeyT& k, DG *dg = nullptr)
+        : key(k), parameters(nullptr), dg(static_cast<void *>(dg))
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr),
            prevNode(nullptr)
 #endif
     {
+        if (dg)
+            dg->addNode(static_cast<NodePtrT>(this));
+    }
+
+    void removeFromDG()
+    {
+        DG *tmp = static_cast<DG *>(dg);
+        tmp->removeNode(key);
+    }
+
+    void remove()
+    {
+        // remove edges
+        isolate();
+
+        // remove the node from dependence graph,
+        // so that we won't have any dangling references
+        removeFromDG();
+    }
+
+    void *setDG(void *dg)
+    {
+        void *old = this->dg;
+        this->dg = dg;
+
+        return old;
     }
 
     bool addControlDependence(NodePtrT n)
@@ -280,6 +306,11 @@ protected:
 private:
 
 #ifdef ENABLE_CFG
+    // each node has reference to the DependenceGraph
+    // it is in. Currently it is of type void *, because
+    // of some casting issues
+    void *dg;
+
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
     BBlock<NodePtrT> *basicBlock;

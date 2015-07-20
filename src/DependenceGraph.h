@@ -147,7 +147,11 @@ public:
     // depend on graphs the nodes are in.
     bool addNode(Key k, ValueType n)
     {
-        return nodes.insert(std::make_pair(k, n)).second;
+        bool ret = nodes.insert(std::make_pair(k, n)).second;
+        if (ret)
+            n->setDG(static_cast<void *>(this));
+
+        return ret;
     }
 
     // make it virtual? We don't need it now, but
