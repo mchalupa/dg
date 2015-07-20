@@ -11,6 +11,7 @@ namespace dg {
 namespace debug {
 
 enum dg2dot_options {
+    PRINT_NONE      = 0, // print no edges
     PRINT_CFG       = 1 << 0,
     PRINT_DD        = 1 << 1,
     PRINT_REV_DD    = 1 << 2,
@@ -132,8 +133,6 @@ private:
     {
         std::ofstream& out = data.first;
         for (auto S : BB->successors()) {
-            // dot cannot draw arrows between clusters,
-            // so draw them between first and last node
             ValueT lastNode = BB->getLastNode();
             ValueT firstNode = S->getFirstNode();
 
@@ -154,7 +153,9 @@ private:
 
         // print CFG edges between BBs
         out << "\t/* CFG edges */\n";
-        DFS.run(startBB, dumpBBedges, std::pair<std::ofstream&, uint32_t>(out, options));
+        if (options & PRINT_CFG)
+            DFS.run(startBB, dumpBBedges,
+                    std::pair<std::ofstream&, uint32_t>(out, options));
     }
 
     void dump_nodes()
