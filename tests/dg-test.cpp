@@ -281,6 +281,7 @@ public:
         nodes_remove_edge_test();
         nodes_isolate_test();
         nodes_remove_test();
+        bb_isolate_test();
     }
 
 private:
@@ -394,6 +395,50 @@ private:
                       i, NODES_NUM - 3, nodes[i]->getRevControlDependenciesNum());
             }
         }
+    }
+
+    void bb_isolate_test()
+    {
+        TestDG d;
+        TestNode **nodes = create_full_graph(d, 15);
+
+        // create first basic block that will contain first 5 nodes
+        for (int i = 0; i < 5; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+
+        TestDG::BasicBlock B1(nodes[0], nodes[5]);
+
+        // another basic block of size 5
+        for (int i = 6; i < 9; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+        TestDG::BasicBlock B2(nodes[6], nodes[9]);
+
+        // BBs of size 1
+        TestDG::BasicBlock B3(nodes[10], nodes[10]);
+        TestDG::BasicBlock B4(nodes[11], nodes[11]);
+
+        for (int i = 12; i < 14; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+
+        // and size 2
+        TestDG::BasicBlock B5(nodes[12], nodes[14]);;
+
+        B1.addSuccessor(&B2);
+        B1.addSuccessor(&B3);
+        B2.addSuccessor(&B3);
+        B2.addSuccessor(&B4);
+        B3.addSuccessor(&B4);
+        B3.addSuccessor(&B5);
+        B5.addPredcessor(&B3);
+        B5.addPredcessor(&B4);
+
+        B5.isolate();
+        check(B5.successorsNum() == 0, "has succs after isolate");
+        check(B5.predcessorsNum() == 0, "has preds after isolate");
+        check(B3.successors().contains(&B5) == false, " dangling reference");
     }
 };
 

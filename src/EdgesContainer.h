@@ -42,6 +42,11 @@ public:
         return container.insert(n).second;
     }
 
+    bool contains(NodePtrT n) const
+    {
+        return container.count(n) != 0;
+    }
+
     size_t erase(NodePtrT n)
     {
         return container.erase(n);

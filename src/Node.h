@@ -63,6 +63,11 @@ public:
         return old;
     }
 
+    DG *getDG() const
+    {
+        return static_cast<DG *>(dg);
+    }
+
     bool addControlDependence(NodePtrT n)
     {
         bool ret1, ret2;

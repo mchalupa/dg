@@ -49,6 +49,25 @@ public:
         return prevBBs.size();
     }
 
+    // remove all edges from/to this BB
+    void isolate()
+    {
+        // remove this BB from sucessors
+        // and put there prev BBs instead
+        for (auto succ : nextBBs) {
+            succ->removePredcessor(this);
+            for (auto pred : prevBBs)
+                succ->addPredcessor(pred);
+        }
+
+        // and the other way
+        for (auto prev : prevBBs) {
+            prev->removeSuccessor(this);
+            for (auto succ : nextBBs)
+                prev->addSuccessor(succ);
+        }
+    }
+
     bool addSuccessor(BBlock<NodePtrT> *b)
     {
         bool ret, ret2;
