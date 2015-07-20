@@ -68,6 +68,37 @@ public:
         }
     }
 
+    void remove(bool with_nodes = true)
+    {
+        // do not leave any dangling reference
+        isolate();
+
+        // if this is entry BB, we must do
+        // something with it - but what? When do we want to
+        // remove entry BB?
+        assert(firstNode->getDG()->getEntryBB() != this
+                && "Removing entry block");
+
+        if (with_nodes) {
+            NodePtrT n = firstNode;
+            NodePtrT tmp;
+            while (n) {
+                tmp = n;
+                n = n->getSuccessor();
+
+                // remove dependency edges, let be CFG edges
+                // as we'll destroy all the nodes
+                tmp->removeCDs();
+                tmp->removeDDs();
+                // remove the node from dg
+                tmp->removeFromDG();
+                delete tmp;
+            }
+        }
+
+        delete this;
+    }
+
     bool addSuccessor(BBlock<NodePtrT> *b)
     {
         bool ret, ret2;
