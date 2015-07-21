@@ -52,20 +52,24 @@ public:
     // remove all edges from/to this BB
     void isolate()
     {
-        // remove this BB from sucessors
-        // and put there prev BBs instead
         for (auto succ : nextBBs) {
-            succ->removePredcessor(this);
-            for (auto pred : prevBBs)
-                succ->addPredcessor(pred);
+            // redirect edges from each predcessor
+            // to each successor
+            for (auto pred : prevBBs) {
+                pred->addSuccessor(succ);
+            }
+
+            // remove edges from this node to the successor,
+            // we have reconnect all the edges for this one
+            removeSuccessor(succ);
         }
 
-        // and the other way
-        for (auto prev : prevBBs) {
-            prev->removeSuccessor(this);
-            for (auto succ : nextBBs)
-                prev->addSuccessor(succ);
-        }
+        // we still have edges to predcessors
+        // XXX is it safe to modify the set
+        // while iterating?
+        for (auto pred : prevBBs)
+            removePredcessor(pred);
+
     }
 
     void remove(bool with_nodes = true)
@@ -85,6 +89,11 @@ public:
             while (n) {
                 tmp = n;
                 n = n->getSuccessor();
+
+                // we must set basic block to nullptr
+                // otherwise the node will try to remove the
+                // basic block again if it is of size 1
+                tmp->setBasicBlock(nullptr);
 
                 // remove dependency edges, let be CFG edges
                 // as we'll destroy all the nodes
