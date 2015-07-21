@@ -282,6 +282,7 @@ public:
         nodes_isolate_test();
         nodes_remove_test();
         bb_isolate_test();
+        bb_remove_test();
     }
 
 private:
@@ -439,6 +440,64 @@ private:
         check(B5.successorsNum() == 0, "has succs after isolate");
         check(B5.predcessorsNum() == 0, "has preds after isolate");
         check(B3.successors().contains(&B5) == false, " dangling reference");
+    }
+
+    void bb_remove_test()
+    {
+        // NOTE: we must allocate BBs on the heap, since
+        // remove method counts with that and frees the memory
+        TestDG d;
+        TestNode **nodes = create_full_graph(d, 15);
+
+        // create first basic block that will contain first 5 nodes
+        for (int i = 0; i < 5; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+
+        TestDG::BasicBlock *B1 = new TestDG::BasicBlock(nodes[0], nodes[5]);
+
+        // another basic block of size 5
+        for (int i = 6; i < 9; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+        TestDG::BasicBlock *B2 = new TestDG::BasicBlock(nodes[6], nodes[9]);
+
+        // BBs of size 1
+        TestDG::BasicBlock *B3 = new TestDG::BasicBlock(nodes[10], nodes[10]);
+        TestDG::BasicBlock *B4 = new TestDG::BasicBlock(nodes[11], nodes[11]);
+
+        for (int i = 12; i < 14; ++i) {
+            nodes[i]->setSuccessor(nodes[i + 1]);
+        }
+
+        // and size 2
+        TestDG::BasicBlock *B5 = new TestDG::BasicBlock(nodes[12], nodes[14]);
+
+        B1->addSuccessor(B2);
+        B1->addSuccessor(B3);
+        B2->addSuccessor(B3);
+        B2->addSuccessor(B4);
+        B3->addSuccessor(B4);
+        B3->addSuccessor(B5);
+        B5->addPredcessor(B3);
+        B5->addPredcessor(B4);
+
+        B5->remove();
+        check(B3->successors().contains(B5) == false, " dangling reference");
+        check(B4->successors().contains(B5) == false, " dangling reference");
+        check(d.size() == 12, "didn't remove the nodes");
+
+        B2->remove();
+        check(B1->successors().contains(B4), "reconnect succ bug");
+        check(B4->predcessors().contains(B1), "reconnect preds bug");
+        check(d.size() == 8, "remove nodes in block bug");
+
+        B3->remove();
+        B4->remove();
+        check(d.size() == 6);
+
+        B1->remove();
+        check(d.size() == 0);
     }
 };
 
