@@ -29,6 +29,10 @@ public:
           , ipostdom(nullptr)
 #endif
     {
+        /// XXX other nodes do not have set basicBlock
+        // shouldn't we keep a list of the nodes the
+        // basic block contains? In that case we would
+        // keep only basic blocks in the dependence graph
         first->setBasicBlock(this);
         if (last)
             last->setBasicBlock(this);
@@ -77,11 +81,7 @@ public:
         // do not leave any dangling reference
         isolate();
 
-        // if this is entry BB, we must do
-        // something with it - but what? When do we want to
-        // remove entry BB?
-        assert(firstNode->getDG()->getEntryBB() != this
-                && "Removing entry block");
+        // XXX what to do when this is entry block?
 
         if (with_nodes) {
             NodePtrT n = firstNode;

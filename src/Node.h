@@ -45,13 +45,19 @@ public:
         tmp->removeNode(key);
     }
 
+    // NODE: does not free memory
     void remove()
     {
-        // remove edges
-        isolate();
+        // XXX is this method useful?
+        // Shouldn't only the DG be able to remove
+        // nodes from it? I suppose yes - but what
+        // if we remove basic block? Then we'd like
+        // to remove the nodes - so we must have some way to do it
 
         // remove the node from dependence graph,
         // so that we won't have any dangling references
+        // This method calls isolate(), so this is all
+        // must do
         removeFromDG();
     }
 
@@ -169,10 +175,19 @@ public:
         // if this is head or tail of BB,
         // we must take it into account
         if (basicBlock) {
-            if (basicBlock->getFirstNode() == this)
+            // if this is the head of block, make
+            // the next node head of the block
+            if (basicBlock->getFirstNode() == this) {
                 basicBlock->setFirstNode(nextNode);
-            if (basicBlock->getLastNode() == this)
+                if (nextNode)
+                    nextNode->setBasicBlock(basicBlock);
+            }
+
+            if (basicBlock->getLastNode() == this) {
                 basicBlock->setLastNode(prevNode);
+                if (prevNode)
+                    prevNode->setBasicBlock(basicBlock);
+            }
 
             // if this was the only node in BB, remove the BB
             if (basicBlock->getFirstNode() == nullptr) {
