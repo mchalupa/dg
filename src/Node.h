@@ -256,6 +256,9 @@ public:
         NodePtrT old = nextNode;
         nextNode = s;
 
+        assert(s != static_cast<NodePtrT>(this)
+                && "creating self-loop");
+
         s->prevNode = static_cast<NodePtrT>(this);
 
         return old;

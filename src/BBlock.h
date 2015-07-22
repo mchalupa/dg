@@ -111,6 +111,11 @@ public:
     bool addSuccessor(BBlock<NodePtrT> *b)
     {
         bool ret, ret2;
+
+        // do not allow self-loops
+        if (b == this)
+            return false;
+
         ret = nextBBs.insert(b);
         ret2 = b->prevBBs.insert(this);
 
@@ -123,6 +128,11 @@ public:
     bool addPredcessor(BBlock<NodePtrT> *b)
     {
         bool ret, ret2;
+
+        // do not allow self-loops
+        if (b == this)
+            return false;
+
         ret = prevBBs.insert(b);
         ret2 = b->nextBBs.insert(this);
 
