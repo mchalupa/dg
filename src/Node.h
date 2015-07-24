@@ -332,13 +332,12 @@ protected:
     KeyT key;
 
 private:
-
-#ifdef ENABLE_CFG
     // each node has reference to the DependenceGraph
     // it is in. Currently it is of type void *, because
     // of some casting issues
     void *dg;
 
+#ifdef ENABLE_CFG
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
     BBlock<NodePtrT> *basicBlock;
