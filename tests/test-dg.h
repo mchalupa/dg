@@ -12,7 +12,10 @@ class TestNode : public Node<TestDG, int, TestNode *>
 {
 public:
     TestNode(int k)
-        : Node<TestDG, int, TestNode *>(k) {}
+        : Node<TestDG, int, TestNode *>(k),
+          counter(0) {}
+
+    int counter;
 };
 
 class TestDG : public DependenceGraph<int, TestNode *>
