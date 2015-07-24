@@ -7,6 +7,7 @@ endif (LLVM_DG)
 include_directories('../src')
 
 add_executable(dg-test dg-test.cpp)
+add_executable(data-flow-test data-flow-test.cpp)
 
 if (ENABLE_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0")
