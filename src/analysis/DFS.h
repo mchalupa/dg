@@ -11,6 +11,8 @@ template <typename NodePtrT>
 class DFS : public NodesWalk<NodePtrT, std::queue<NodePtrT> >
 {
 public:
+    DFS<NodePtrT>() : dfsorder(0) {}
+
     template <typename FuncT, typename DataT>
     void run(NodePtrT entry, FuncT func, DataT data,
              bool control = true, bool deps = true)
@@ -24,6 +26,17 @@ public:
     {
         run(entry, func, data, control, deps);
     }
+
+protected:
+    /* virtual */
+    void prepare(NodePtrT BB)
+    {
+        // set dfs order number
+        AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
+        aad.dfsorder = ++dfsorder;
+    }
+private:
+    unsigned int dfsorder;
 };
 
 #ifdef ENABLE_CFG
@@ -33,6 +46,9 @@ class BBlockDFS : public BBlockWalk<NodePtrT,
 {
 public:
     typedef BBlock<NodePtrT> *BBlockPtrT;
+
+    BBlockDFS<NodePtrT>()
+        : dfsorder(0) {}
 
     template <typename FuncT, typename DataT>
     void run(BBlockPtrT entry, FuncT func, DataT data)
@@ -45,6 +61,16 @@ public:
     {
         run(entry, func, data);
     }
+protected:
+    /* virtual */
+    void prepare(BBlockPtrT BB)
+    {
+        // set dfs order number
+        AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
+        aad.dfsorder = ++dfsorder;
+    }
+private:
+    unsigned int dfsorder;
 };
 #endif // ENABLE_CFG
 

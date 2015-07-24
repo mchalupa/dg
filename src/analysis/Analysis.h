@@ -17,11 +17,15 @@ namespace analysis {
 // data for analyses, stored in nodes
 struct AnalysesAuxiliaryData
 {
-    AnalysesAuxiliaryData() : lastwalkid(0) {}
+    AnalysesAuxiliaryData()
+        : lastwalkid(0), dfsorder(0) {}
 
     // last id of walk (DFS/BFS) that ran on this node
     // ~~> marker if it has been processed
     unsigned int lastwalkid;
+
+    // DFS order number of the node
+    unsigned int dfsorder;
 };
 
 template <typename NodePtrT>

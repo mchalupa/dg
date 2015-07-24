@@ -207,6 +207,11 @@ public:
         return old;
     }
 
+    unsigned int getDFSOrder() const
+    {
+        return analysisAuxData.dfsorder;
+    }
+
 #if defined(ENABLE_POSTDOM)
     ContainerT& getPostdominates() { return postdominates; }
     // get immediate post-dominator

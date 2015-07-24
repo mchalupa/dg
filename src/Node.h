@@ -272,6 +272,11 @@ public:
     NodePtrT getSuccessor() { return nextNode; }
     NodePtrT getPredcessor() { return prevNode; }
 
+    unsigned int getDFSOrder() const
+    {
+        return analysisAuxData.dfsorder;
+    }
+
 #endif /* ENABLE_CFG */
 
     bool addSubgraph(DG *sub)

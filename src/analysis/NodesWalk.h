@@ -30,6 +30,7 @@ public:
             NodePtrT n = queue.front();
             queue.pop();
 
+            prepare(n);
             func(n, data);
 
             // add unprocessed vertices
@@ -41,6 +42,15 @@ public:
                 processEdges(n->data_begin(),
                              n->data_end(), queue, run_id);
         }
+    }
+
+protected:
+    // function that will be called for all the nodes,
+    // but is defined by the analysis framework, not
+    // by the analysis itself. For example it may
+    // assign DFS order numbers
+    virtual void prepare(NodePtrT n)
+    {
     }
 
 private:
@@ -86,6 +96,7 @@ public:
             BBlockPtrT BB = queue.front();
             queue.pop();
 
+            prepare(BB);
             func(BB, data);
 
             for (BBlockPtrT S : BB->successors()) {
@@ -96,6 +107,11 @@ public:
                 }
             }
         }
+    }
+
+protected:
+    virtual void prepare(BBlockPtrT BB)
+    {
     }
 };
 
