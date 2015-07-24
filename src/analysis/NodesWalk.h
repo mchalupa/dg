@@ -9,7 +9,7 @@ namespace analysis {
 static unsigned int walk_run_counter;
 
 template <typename NodePtrT, typename QueueT>
-class NodesWalk : Analysis<NodePtrT>
+class NodesWalk : public Analysis<NodePtrT>
 {
 public:
     template <typename FuncT, typename DataT>
@@ -66,7 +66,7 @@ private:
 
 #ifdef ENABLE_CFG
 template <typename NodePtrT, typename QueueT>
-class BBlockWalk : BBlockAnalysis<NodePtrT>
+class BBlockWalk : public BBlockAnalysis<NodePtrT>
 {
 public:
     typedef dg::BBlock<NodePtrT> *BBlockPtrT;
