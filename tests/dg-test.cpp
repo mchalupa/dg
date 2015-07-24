@@ -4,35 +4,10 @@
 
 #include "test-runner.h"
 
-#include "../src/DependenceGraph.h"
-#include "../src/EdgesContainer.h"
+#include "test-dg.h"
 
 namespace dg {
 namespace tests {
-
-class TestDG;
-class TestNode;
-
-class TestNode : public Node<TestDG, int, TestNode *>
-{
-public:
-    TestNode(int k)
-        : Node<TestDG, int, TestNode *>(k) {}
-};
-
-class TestDG : public DependenceGraph<int, TestNode *>
-{
-public:
-#ifdef ENABLE_CFG
-    typedef BBlock<TestNode *> BasicBlock;
-#endif // ENABLE_CFG
-
-    bool addNode(TestNode *n)
-    {
-        return DependenceGraph<int, TestNode *>
-                ::addNode(n->getKey(), n);
-    }
-};
 
 class TestConstructors : public Test
 {
