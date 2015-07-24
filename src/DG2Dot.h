@@ -118,7 +118,13 @@ private:
         std::ofstream& out = data.first;
         out << "\t/* BasicBlock " << BB << " */\n";
         out << "\tsubgraph cluster_bb_" << BB << " {\n";
-        out << "\t\tlabel=\"Basic Block " << BB << "\"\n";
+        out << "\t\tlabel=\"Basic Block " << BB;
+
+        unsigned int dfsorder = BB->getDFSOrder();
+        if (dfsorder != 0)
+            out << "\\ndfs order: "<< dfsorder;
+
+        out << "\"\n";
 
         ValueT n = BB->getFirstNode();
         while (n) {
@@ -180,9 +186,17 @@ private:
     void dump_nodes()
     {
         out << "\t/* nodes */\n";
-        for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
-            out << "\tNODE" << I->second << " [label=\"" << I->second->getKey()
-                << "\"]\n";
+        for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
+            unsigned int dfsorder = I->second->getDFSOrder();
+
+            out << "\tNODE" << I->second;
+            out << " [label=\"" << I->second->getKey();
+
+            if (dfsorder != 0)
+                out << "\\ndfs order: "<< dfsorder;
+
+            out << "\"]\n";
+        }
     }
 
     void dump_edges()
