@@ -6,8 +6,16 @@ endif (LLVM_DG)
 
 include_directories('../src')
 
+# add check target
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
+
 add_executable(dg-test dg-test.cpp)
+add_test(dg-test dg-test)
+add_dependencies(check dg-test)
+
 add_executable(data-flow-test data-flow-test.cpp)
+add_test(data-flow-test data-flow-test)
+add_dependencies(check data-flow-test)
 
 if (ENABLE_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0")

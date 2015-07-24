@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 project(dg)
 
+include(CTest)
+
 # define DEBUG by default for now
 OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
@@ -66,7 +68,5 @@ else ()
 endif ()
 
 add_subdirectory(src)
-add_subdirectory(tests)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
 add_subdirectory(tools)
-
-enable_testing()
