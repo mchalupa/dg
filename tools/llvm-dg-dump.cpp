@@ -18,7 +18,7 @@
 using namespace dg;
 using llvm::errs;
 
-std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
+static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 {
     llvm::raw_os_ostream ro(os);
 
@@ -34,6 +34,25 @@ std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
         ro << *val;
 
     return os;
+}
+
+static bool checkNode(std::ostream& os, LLVMNode *node)
+{
+    bool err = false;
+    const llvm::Value *val = node->getKey();
+
+    if (!val) {
+        os << "\\nERR: no value in node";
+        return true;
+    }
+
+    if (!node->getBasicBlock()
+        && !llvm::isa<llvm::Function>(val)) {
+        err = true;
+        os << "\\nERR: no BB";
+    }
+
+    return err;
 }
 
 int main(int argc, char *argv[])
@@ -83,6 +102,8 @@ int main(int argc, char *argv[])
     debug::DG2Dot<const llvm::Value *, LLVMNode *> dump(&d, opts);
 
     dump.printKey = printLLVMVal;
+    dump.checkNode = checkNode;
+
     dump.dump("/dev/stdout", d.getEntryBB());
 
     return 0;

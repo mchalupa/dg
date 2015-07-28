@@ -46,7 +46,7 @@ public:
                          uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,
                          const char *file = NULL)
         : options(opts), dg(dg), file(file),
-          printKey(nullptr)
+          printKey(nullptr), checkNode(check_node)
     {
         reopen(file);
     }
@@ -258,8 +258,21 @@ private:
         }
     }
 
+	static bool check_node(std::ostream& os, ValueT node)
+	{
+	    bool err = false;
+
+	    if (!node->getBasicBlock()) {
+	        err = true;
+	        os << "\\nERR: no BB";
+	    }
+
+	    return err;
+	}
+
     void dump_node(ValueT node, int ind = 1, const char *prefix = nullptr)
     {
+        bool err = false;
         unsigned int dfsorder = node->getDFSOrder();
         Indent Ind(ind);
 
@@ -277,7 +290,18 @@ private:
         if (dfsorder != 0)
             out << "\\ndfs order: "<< dfsorder;
 
-        out << "\"]\n";
+        // check if the node is OK, and if not
+        // highlight it
+        err = checkNode(out, node);
+
+        // end of label
+        out << "\"\n";
+
+        if (err) {
+            out << "style=filled fillcolor=red";
+        }
+
+        out << "]\n";
 
         dump_parameters(node, ind);
         if (node->hasSubgraphs() && (options & PRINT_CALL)) {
@@ -382,6 +406,7 @@ public:
     /* functions for adjusting the output. These are public,
      * so that user can set them as he/she wants */
     std::ostream& (*printKey)(std::ostream& os, KeyT key);
+	bool (*checkNode)(std::ostream& os, ValueT node);
 };
 
 } // debug
