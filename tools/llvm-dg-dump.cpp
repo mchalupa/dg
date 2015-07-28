@@ -52,6 +52,32 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
         os << "\\nERR: no BB";
     }
 
+    LLVMNode *s = node->getSuccessor();
+    LLVMNode *p = node->getPredcessor();
+    if (s) {
+        if (s->getPredcessor() != node) {
+            os << "\\nERR: wrong predcessor";
+            err = true;
+        }
+
+        if(s->getBasicBlock() != node->getBasicBlock()) {
+            os << "\\nERR: succ BB mismatch";
+            err = true;
+        }
+    }
+
+    if (p) {
+        if (p->getSuccessor() != node) {
+            os << "\\nERR: wrong successor";
+            err = true;
+        }
+
+        if(p->getBasicBlock() != node->getBasicBlock()) {
+            os << "\\nERR: pred BB mismatch";
+            err = true;
+        }
+    }
+
     return err;
 }
 
