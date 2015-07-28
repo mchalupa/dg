@@ -19,6 +19,7 @@ enum dg2dot_options {
     PRINT_REV_DD    = 1 << 3,
     PRINT_CD        = 1 << 4,
     PRINT_REV_CD    = 1 << 5,
+    PRINT_CALL      = 1 << 6,
     PRINT_ALL       = ~((uint32_t) 0)
 };
 
@@ -279,6 +280,17 @@ private:
         out << "\"]\n";
 
         dump_parameters(node, ind);
+        if (node->hasSubgraphs() && (options & PRINT_CALL)) {
+            // add call-site to callee edges
+            for (auto I = node->getSubgraphs().begin(),
+                      E = node->getSubgraphs().end(); I != E; ++I) {
+                out << Ind
+                    << "NODE" << node
+                    << " -> NODE" << (*I)->getEntry()
+                    << " [label=\"call\""
+                    << "  lhead=cluster_" << *I << "]\n";
+            }
+        }
     }
 
     void dump_nodes()
