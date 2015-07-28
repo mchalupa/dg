@@ -312,7 +312,8 @@ private:
                     << "NODE" << node
                     << " -> NODE" << (*I)->getEntry()
                     << " [label=\"call\""
-                    << "  lhead=cluster_" << *I << "]\n";
+                    << "  lhead=cluster_" << *I
+                    << " penwidth=3 style=dashed]\n";
             }
         }
     }
