@@ -23,7 +23,7 @@ template <typename NodePtrT>
 class BBlock
 {
 public:
-    BBlock<NodePtrT>(NodePtrT first, NodePtrT last = nullptr)
+    BBlock<NodePtrT>(NodePtrT first = nullptr, NodePtrT last = nullptr)
         : firstNode(first), lastNode(last)
 #if defined(ENABLE_POSTDOM)
           , ipostdom(nullptr)
@@ -33,7 +33,8 @@ public:
         // shouldn't we keep a list of the nodes the
         // basic block contains? In that case we would
         // keep only basic blocks in the dependence graph
-        first->setBasicBlock(this);
+        if (first)
+            first->setBasicBlock(this);
         if (last)
             last->setBasicBlock(this);
     }
