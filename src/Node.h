@@ -261,6 +261,11 @@ public:
 
         s->prevNode = static_cast<NodePtrT>(this);
 
+        // set the same basic block for the next node
+        // so that we don't have to do it manually
+        // after setting the successor
+        nextNode->setBasicBlock(basicBlock);
+
         return old;
     }
 
