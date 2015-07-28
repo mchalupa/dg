@@ -11,5 +11,5 @@ elif which evince &>/dev/null; then
 	GUI=evince
 fi
 
-$DIR/llvm-dg-dump $* > ldg-show-output.dot && dot -Tps ldg-show-output.dot > ldg-show-output.ps && $GUI ldg-show-output.ps
+$DIR/llvm-dg-dump $* > ldg-show-output.dot && dot -Tpdf ldg-show-output.dot -o ldg-show-output.pdf && $GUI ldg-show-output.pdf
 rm ldg-show-output*
