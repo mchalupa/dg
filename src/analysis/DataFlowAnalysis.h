@@ -25,15 +25,15 @@ struct DFSOrderLess
     }
 };
 
-template <typename NodePtrT>
-class BBlockDataFlowAnalysis : public Analysis<NodePtrT>
+template <typename NodeT>
+class BBlockDataFlowAnalysis : public Analysis<NodeT>
 {
 public:
-    BBlockDataFlowAnalysis<NodePtrT>(BBlock<NodePtrT> *entryBB)
+    BBlockDataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB)
         :entryBB(entryBB)
     {}
 
-    virtual bool runOnBlock(BBlock<NodePtrT> *BB) = 0;
+    virtual bool runOnBlock(BBlock<NodeT> *BB) = 0;
 
     void run()
     {
@@ -41,7 +41,7 @@ public:
         assert(entryBB && "entry basic block is nullptr");
         BlocksSetT blocks;
 
-        BBlockDFS<NodePtrT> DFS;
+        BBlockDFS<NodeT> DFS;
         DFSDataT data(blocks, changed, this);
 
         // we will get all the nodes using DFS
@@ -63,41 +63,41 @@ public:
 
 private:
     // define set of blocks to be ordered in dfs order
-    typedef std::set<BBlock<NodePtrT> *,
-                     DFSOrderLess<BBlock<NodePtrT> *>> BlocksSetT;
+    typedef std::set<BBlock<NodeT> *,
+                     DFSOrderLess<BBlock<NodeT> *>> BlocksSetT;
     struct DFSDataT
     {
-        DFSDataT(BlocksSetT& b, bool& c, BBlockDataFlowAnalysis<NodePtrT> *r)
+        DFSDataT(BlocksSetT& b, bool& c, BBlockDataFlowAnalysis<NodeT> *r)
             :blocks(b), changed(c), ref(r) {}
 
         BlocksSetT& blocks;
         bool& changed;
-        BBlockDataFlowAnalysis<NodePtrT> *ref;
+        BBlockDataFlowAnalysis<NodeT> *ref;
     };
 
-    static void dfs_proc_bb(BBlock<NodePtrT> *BB,
+    static void dfs_proc_bb(BBlock<NodeT> *BB,
                             DFSDataT& data)
     {
         data.changed |= data.ref->runOnBlock(BB);
         data.blocks.insert(BB);
     }
 
-    BBlock<NodePtrT> *entryBB;
+    BBlock<NodeT> *entryBB;
 };
 
 
-template <typename NodePtrT>
-class DataFlowAnalysis : public BBlockDataFlowAnalysis<NodePtrT>
+template <typename NodeT>
+class DataFlowAnalysis : public BBlockDataFlowAnalysis<NodeT>
 {
 public:
-    DataFlowAnalysis<NodePtrT>(BBlock<NodePtrT> *entryBB)
-        : BBlockDataFlowAnalysis<NodePtrT>(entryBB) {};
+    DataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB)
+        : BBlockDataFlowAnalysis<NodeT>(entryBB) {};
 
     /* virtual */
-    bool runOnBlock(BBlock<NodePtrT> *B)
+    bool runOnBlock(BBlock<NodeT> *B)
     {
         bool changed = false;
-        NodePtrT n = B->getFirstNode();
+        NodeT *n = B->getFirstNode();
 
         while(n) {
             changed |= runOnNode(n);
@@ -107,7 +107,7 @@ public:
         return changed;
     }
 
-    virtual bool runOnNode(NodePtrT n) = 0;
+    virtual bool runOnNode(NodeT *n) = 0;
 
 private:
 };

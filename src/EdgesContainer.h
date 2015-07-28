@@ -17,12 +17,12 @@ namespace dg {
 //   This is basically just a wrapper for real container, so that
 //   we have the container defined on one place for all edges.
 /// ------------------------------------------------------------------
-template <typename NodePtrT, unsigned int EXPECTED_EDGES_NUM = 8>
+template <typename NodeT, unsigned int EXPECTED_EDGES_NUM = 8>
 class EdgesContainer
 {
 public:
     // XXX use llvm ADTs when available, or BDDs?
-    typedef typename std::set<NodePtrT> ContainerT;
+    typedef typename std::set<NodeT *> ContainerT;
     typedef typename ContainerT::iterator iterator;
     typedef typename ContainerT::const_iterator const_iterator;
     typedef typename ContainerT::size_type size_type;
@@ -37,17 +37,17 @@ public:
         return container.size();
     }
 
-    bool insert(NodePtrT n)
+    bool insert(NodeT *n)
     {
         return container.insert(n).second;
     }
 
-    bool contains(NodePtrT n) const
+    bool contains(NodeT *n) const
     {
         return container.count(n) != 0;
     }
 
-    size_t erase(NodePtrT n)
+    size_t erase(NodeT *n)
     {
         return container.erase(n);
     }
@@ -62,15 +62,15 @@ public:
         return container.empty();
     }
 
-    void swap(EdgesContainer<NodePtrT, EXPECTED_EDGES_NUM>& oth)
+    void swap(EdgesContainer<NodeT, EXPECTED_EDGES_NUM>& oth)
     {
         container.swap(oth.container);
     }
 
-    void intersect(const EdgesContainer<NodePtrT,
+    void intersect(const EdgesContainer<NodeT,
                                         EXPECTED_EDGES_NUM>& oth)
     {
-        EdgesContainer<NodePtrT, EXPECTED_EDGES_NUM> tmp;
+        EdgesContainer<NodeT, EXPECTED_EDGES_NUM> tmp;
 
         std::set_intersection(container.begin(), container.end(),
                               oth.container.begin(),
@@ -82,7 +82,7 @@ public:
         container.swap(tmp.container);
     }
 
-    bool operator==(const EdgesContainer<NodePtrT,
+    bool operator==(const EdgesContainer<NodeT,
                                         EXPECTED_EDGES_NUM>& oth) const
     {
         if (container.size() != oth.size())
@@ -98,7 +98,7 @@ public:
         return true;
     }
 
-    bool operator!=(const EdgesContainer<NodePtrT,
+    bool operator!=(const EdgesContainer<NodeT,
                                         EXPECTED_EDGES_NUM>& oth) const
     {
         return !operator==(oth);

@@ -142,8 +142,8 @@ public:
         TestNode n1(1);
         TestNode n2(2);
 
-        EdgesContainer<TestNode *> IT;
-        EdgesContainer<TestNode *> IT2;
+        EdgesContainer<TestNode> IT;
+        EdgesContainer<TestNode> IT2;
 
         check(IT == IT2, "empty containers does not equal");
         check(IT.insert(&n1), "returned false with new element");

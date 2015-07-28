@@ -19,11 +19,11 @@ namespace dg {
 // - BBlock
 //     Basic block structure for dependence graph
 /// ------------------------------------------------------------------
-template <typename NodePtrT>
+template <typename NodeT>
 class BBlock
 {
 public:
-    BBlock<NodePtrT>(NodePtrT first = nullptr, NodePtrT last = nullptr)
+    BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
         : firstNode(first), lastNode(last)
 #if defined(ENABLE_POSTDOM)
           , ipostdom(nullptr)
@@ -39,7 +39,7 @@ public:
             last->setBasicBlock(this);
     }
 
-    typedef EdgesContainer<BBlock<NodePtrT> *> ContainerT;
+    typedef EdgesContainer<BBlock<NodeT>> ContainerT;
 
     const ContainerT& successors() const { return nextBBs; }
     const ContainerT& predcessors() const { return prevBBs; }
@@ -85,8 +85,8 @@ public:
         // XXX what to do when this is entry block?
 
         if (with_nodes) {
-            NodePtrT n = firstNode;
-            NodePtrT tmp;
+            NodeT *n = firstNode;
+            NodeT *tmp;
             while (n) {
                 tmp = n;
                 n = n->getSuccessor();
@@ -109,7 +109,7 @@ public:
         delete this;
     }
 
-    bool addSuccessor(BBlock<NodePtrT> *b)
+    bool addSuccessor(BBlock<NodeT> *b)
     {
         bool ret, ret2;
 
@@ -126,7 +126,7 @@ public:
         return ret;
     }
 
-    bool addPredcessor(BBlock<NodePtrT> *b)
+    bool addPredcessor(BBlock<NodeT> *b)
     {
         bool ret, ret2;
 
@@ -166,7 +166,7 @@ public:
     // (asserted when NDEBUG is defined)
     // and two if both edges were removed.
     // (Edges are [this -> p] and [p -> this])
-    size_t removePredcessor(BBlock<NodePtrT> *p)
+    size_t removePredcessor(BBlock<NodeT> *p)
     {
         size_t ret = 0;
         ret += p->nextBBs.erase(this);
@@ -179,7 +179,7 @@ public:
     }
 
     // return value is the same as with removePredcessor
-    size_t removeSuccessor(BBlock<NodePtrT> *p)
+    size_t removeSuccessor(BBlock<NodeT> *p)
     {
         size_t ret = 0;
         ret += p->prevBBs.erase(this);
@@ -191,19 +191,19 @@ public:
         return ret;
     }
 
-    NodePtrT getFirstNode() const { return firstNode; }
-    NodePtrT getLastNode() const { return lastNode; }
+    NodeT *getFirstNode() const { return firstNode; }
+    NodeT *getLastNode() const { return lastNode; }
 
-    NodePtrT setLastNode(NodePtrT nn)
+    NodeT *setLastNode(NodeT *nn)
     {
-        NodePtrT old = lastNode;
+        NodeT *old = lastNode;
         lastNode = nn;
         return old;
     }
 
-    NodePtrT setFirstNode(NodePtrT nn)
+    NodeT *setFirstNode(NodeT *nn)
     {
-        NodePtrT old = firstNode;
+        NodeT *old = firstNode;
         firstNode = nn;
         return old;
     }
@@ -217,9 +217,9 @@ public:
     ContainerT& getPostdominates() { return postdominates; }
     // get immediate post-dominator
     const ContainerT& getIPostDom() const { return ipostdominates; }
-    BBlock<NodePtrT> *getIPostDomBy() const { return ipostdom; }
+    BBlock<NodeT> *getIPostDomBy() const { return ipostdom; }
     // add node that is immediately post-dominated by this node
-    bool addIPostDom(BBlock<NodePtrT> *pd)
+    bool addIPostDom(BBlock<NodeT> *pd)
     {
         assert(pd && "Passed nullptr");
 
@@ -241,9 +241,9 @@ private:
     ContainerT prevBBs;
 
     // first node in this basic block
-    NodePtrT firstNode;
+    NodeT *firstNode;
     // last node in this basic block
-    NodePtrT lastNode;
+    NodeT *lastNode;
 
 #if defined(ENABLE_POSTDOM)
     // set of blocks that this block post-dominates
@@ -255,13 +255,13 @@ private:
 
     // reverse edge to immediate postdom. The BB can be
     // immediately post-dominated only by one BB
-    BBlock<NodePtrT> *ipostdom;
+    BBlock<NodeT> *ipostdom;
 
 #endif // ENABLE_POSTDOM
 
     // auxiliary data for different analyses
     analysis::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::BBlockAnalysis<NodePtrT>;
+    friend class analysis::BBlockAnalysis<NodeT>;
 };
 
 } // namespace dg

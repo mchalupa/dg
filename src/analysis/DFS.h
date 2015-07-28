@@ -7,21 +7,21 @@
 namespace dg {
 namespace analysis {
 
-template <typename NodePtrT>
-class DFS : public NodesWalk<NodePtrT, std::queue<NodePtrT> >
+template <typename NodeT>
+class DFS : public NodesWalk<NodeT, std::queue<NodeT *> >
 {
 public:
-    DFS<NodePtrT>() : dfsorder(0) {}
+    DFS<NodeT>() : dfsorder(0) {}
 
     template <typename FuncT, typename DataT>
-    void run(NodePtrT entry, FuncT func, DataT data,
+    void run(NodeT *entry, FuncT func, DataT data,
              bool control = true, bool deps = true)
     {
         this->walk(entry, func, data, control, deps);
     }
 
     template <typename FuncT, typename DataT>
-    void operator()(NodePtrT entry, FuncT func, DataT data,
+    void operator()(NodeT *entry, FuncT func, DataT data,
                     bool control = true, bool deps = true)
     {
         run(entry, func, data, control, deps);
@@ -29,7 +29,7 @@ public:
 
 protected:
     /* virtual */
-    void prepare(NodePtrT BB)
+    void prepare(NodeT *BB)
     {
         // set dfs order number
         AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
@@ -40,14 +40,14 @@ private:
 };
 
 #ifdef ENABLE_CFG
-template <typename NodePtrT>
-class BBlockDFS : public BBlockWalk<NodePtrT,
-                                    std::queue<BBlock<NodePtrT> *> >
+template <typename NodeT>
+class BBlockDFS : public BBlockWalk<NodeT,
+                                    std::queue<BBlock<NodeT> *> >
 {
 public:
-    typedef BBlock<NodePtrT> *BBlockPtrT;
+    typedef BBlock<NodeT> *BBlockPtrT;
 
-    BBlockDFS<NodePtrT>()
+    BBlockDFS<NodeT>()
         : dfsorder(0) {}
 
     template <typename FuncT, typename DataT>

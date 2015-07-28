@@ -8,26 +8,26 @@ namespace tests {
 
 class TestDG;
 
-class TestNode : public Node<TestDG, int, TestNode *>
+class TestNode : public Node<TestDG, int, TestNode>
 {
 public:
     TestNode(int k)
-        : Node<TestDG, int, TestNode *>(k),
+        : Node<TestDG, int, TestNode>(k),
           counter(0) {}
 
     int counter;
 };
 
-class TestDG : public DependenceGraph<int, TestNode *>
+class TestDG : public DependenceGraph<int, TestNode>
 {
 public:
 #ifdef ENABLE_CFG
-    typedef BBlock<TestNode *> BasicBlock;
+    typedef BBlock<TestNode> BasicBlock;
 #endif // ENABLE_CFG
 
     bool addNode(TestNode *n)
     {
-        return DependenceGraph<int, TestNode *>
+        return DependenceGraph<int, TestNode>
                 ::addNode(n->getKey(), n);
     }
 };

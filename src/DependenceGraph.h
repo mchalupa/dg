@@ -21,16 +21,16 @@ namespace dg {
 // --------------------------------------------------------
 // --- DependenceGraph
 // --------------------------------------------------------
-template <typename Key, typename ValueType>
+template <typename KeyT, typename NodeT>
 class DependenceGraph
 {
 public:
-    typedef std::map<Key, ValueType> ContainerType;
+    typedef std::map<KeyT, NodeT *> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
 
-    DependenceGraph<Key, ValueType>()
-    :entryNode(nullptr), exitNode(nullptr), refcount(1)
+    DependenceGraph<KeyT, NodeT>()
+        :entryNode(nullptr), exitNode(nullptr), refcount(1)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -39,7 +39,7 @@ public:
 
     // TODO add copy constructor for cloning graph
 
-    virtual ~DependenceGraph<Key, ValueType>() {}
+    virtual ~DependenceGraph<KeyT, NodeT>() {}
 
     // iterators
     iterator begin(void) { return nodes.begin(); }
@@ -47,18 +47,18 @@ public:
     iterator end(void) { return nodes.end(); }
     const_iterator end(void) const { return nodes.end(); }
 
-    ValueType operator[](Key k) { return nodes[k]; }
-    const ValueType operator[](Key k) const { return nodes[k]; }
+    NodeT *operator[](KeyT k) { return nodes[k]; }
+    const NodeT *operator[](KeyT k) const { return nodes[k]; }
     // reference getter for fast include-if-null operation
-    ValueType& getRef(Key k) { return nodes[k]; }
-    bool contains(Key k) const { return nodes.count(k) != 0; }
-    iterator find(Key k) { return nodes.find(k); }
-    const_iterator find(Key k) const { return nodes.find(k); }
+    NodeT *& getRef(KeyT k) { return nodes[k]; }
+    bool contains(KeyT k) const { return nodes.count(k) != 0; }
+    iterator find(KeyT k) { return nodes.find(k); }
+    const_iterator find(KeyT k) const { return nodes.find(k); }
 
     ///
     // Get node from graph for key. Return nullptr if
     // no such node exists
-    ValueType getNode(Key k)
+    NodeT *getNode(KeyT k)
     {
         iterator it = nodes.find(k);
         if (it == nodes.end())
@@ -72,24 +72,24 @@ public:
         return nodes.size();
     }
 
-    ValueType setEntry(ValueType n)
+    NodeT *setEntry(NodeT *n)
     {
-        ValueType oldEnt = entryNode;
+        NodeT *oldEnt = entryNode;
         entryNode = n;
 
         return oldEnt;
     }
 
-    ValueType setExit(ValueType n)
+    NodeT *setExit(NodeT *n)
     {
-        ValueType oldExt = exitNode;
+        NodeT *oldExt = exitNode;
         exitNode = n;
 
         return oldExt;
     }
 
-    ValueType getEntry(void) const { return entryNode; }
-    ValueType getExit(void) const { return exitNode; }
+    NodeT *getEntry(void) const { return entryNode; }
+    NodeT *getExit(void) const { return exitNode; }
 
     // dependence graph can be shared between more call-sites that
     // has references to this graph. When destroying graph, we
@@ -118,20 +118,20 @@ public:
     }
 
 #ifdef ENABLE_CFG
-    BBlock<ValueType> *getEntryBB() const { return entryBB; }
-    BBlock<ValueType> *getExitBB() const { return exitBB; }
+    BBlock<NodeT> *getEntryBB() const { return entryBB; }
+    BBlock<NodeT> *getExitBB() const { return exitBB; }
 
-    BBlock<ValueType> *setEntryBB(BBlock<ValueType> *nbb)
+    BBlock<NodeT> *setEntryBB(BBlock<NodeT> *nbb)
     {
-        BBlock<ValueType> *old = entryBB;
+        BBlock<NodeT> *old = entryBB;
         entryBB = nbb;
 
         return old;
     }
 
-    BBlock<ValueType> *setExitBB(BBlock<ValueType> *nbb)
+    BBlock<NodeT> *setExitBB(BBlock<NodeT> *nbb)
     {
-        BBlock<ValueType> *old = exitBB;
+        BBlock<NodeT> *old = exitBB;
         exitBB = nbb;
 
         return old;
@@ -145,7 +145,7 @@ public:
     // graph. So we can have two nodes for the same value but in different
     // graphs. The edges can be between arbitrary nodes and do not
     // depend on graphs the nodes are in.
-    bool addNode(Key k, ValueType n)
+    bool addNode(KeyT k, NodeT *n)
     {
         bool ret = nodes.insert(std::make_pair(k, n)).second;
         if (ret)
@@ -156,21 +156,21 @@ public:
 
     // make it virtual? We don't need it now, but
     // in the future it may be handy.
-    bool addNode(ValueType n)
+    bool addNode(NodeT *n)
     {
-        // ValueType is a class derived from
+        // NodeT is a class derived from
         // dg::Node, so it must have getKey() method
         return addNode(n->getKey(), n);
     }
 
-    ValueType removeNode(Key k)
+    NodeT *removeNode(KeyT k)
     {
         iterator it = nodes.find(k);
         if (it == nodes.end())
             return nullptr;
 
         // remove and re-connect edges
-        ValueType n = it->second;
+        NodeT *n = it->second;
         n->isolate();
 
         nodes.erase(it);
@@ -178,9 +178,9 @@ public:
         return n;
     }
 
-    bool deleteNode(Key k)
+    bool deleteNode(KeyT k)
     {
-        ValueType n = removeNode(k);
+        NodeT *n = removeNode(k);
         delete n;
 
         return n != nullptr;
@@ -192,12 +192,12 @@ protected:
     ContainerType nodes;
 
 private:
-    ValueType entryNode;
-    ValueType exitNode;
+    NodeT *entryNode;
+    NodeT *exitNode;
 
 #ifdef ENABLE_CFG
-    BBlock<ValueType> *entryBB;
-    BBlock<ValueType> *exitBB;
+    BBlock<NodeT> *entryBB;
+    BBlock<NodeT> *exitBB;
 #endif // ENABLE_CFG
 
     // how many nodes keeps pointer to this graph?

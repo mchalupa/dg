@@ -9,26 +9,26 @@
 
 namespace dg {
 
-template <typename Key, typename ValueType>
+template <typename KeyT, typename NodeT>
 class DependenceGraph;
 
 /// --------------------------------------------------------
 //  -- Node
 //     one node in DependenceGraph
 /// --------------------------------------------------------
-template <typename DG, typename KeyT, typename NodePtrT>
+template <typename DG, typename KeyT, typename NodeT>
 class Node
 {
 public:
-    typedef EdgesContainer<NodePtrT> ControlEdgesT;
-    typedef EdgesContainer<NodePtrT> DependenceEdgesT;
+    typedef EdgesContainer<NodeT> ControlEdgesT;
+    typedef EdgesContainer<NodeT> DependenceEdgesT;
 
     typedef typename ControlEdgesT::iterator control_iterator;
     typedef typename ControlEdgesT::const_iterator const_control_iterator;
     typedef typename DependenceEdgesT::iterator data_iterator;
     typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
-    Node<DG, KeyT, NodePtrT>(const KeyT& k, DG *dg = nullptr)
+    Node<DG, KeyT, NodeT>(const KeyT& k, DG *dg = nullptr)
         : key(k), parameters(nullptr), dg(static_cast<void *>(dg))
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr),
@@ -36,7 +36,7 @@ public:
 #endif
     {
         if (dg)
-            dg->addNode(static_cast<NodePtrT>(this));
+            dg->addNode(static_cast<NodeT *>(this));
     }
 
     void removeFromDG()
@@ -74,11 +74,11 @@ public:
         return static_cast<DG *>(dg);
     }
 
-    bool addControlDependence(NodePtrT n)
+    bool addControlDependence(NodeT * n)
     {
         bool ret1, ret2;
 
-        ret1 = n->revControlDepEdges.insert(static_cast<NodePtrT>(this));
+        ret1 = n->revControlDepEdges.insert(static_cast<NodeT *>(this));
         ret2 = controlDepEdges.insert(n);
 
         // we either have both edges or none
@@ -87,11 +87,11 @@ public:
         return ret2;
     }
 
-    bool addDataDependence(NodePtrT n)
+    bool addDataDependence(NodeT * n)
     {
         bool ret1, ret2;
 
-        ret1 = n->revDataDepEdges.insert(static_cast<NodePtrT>(this));
+        ret1 = n->revDataDepEdges.insert(static_cast<NodeT *>(this));
         ret2 = dataDepEdges.insert(n);
 
         assert(ret1 == ret2);
@@ -99,11 +99,11 @@ public:
         return ret2;
     }
 
-    bool removeDataDependence(NodePtrT n)
+    bool removeDataDependence(NodeT * n)
     {
         bool ret1, ret2;
 
-        ret1 = n->revDataDepEdges.erase(static_cast<NodePtrT>(this));
+        ret1 = n->revDataDepEdges.erase(static_cast<NodeT *>(this));
         ret2 = dataDepEdges.erase(n);
 
         // must have both or none
@@ -112,11 +112,11 @@ public:
         return ret1;
     }
 
-    bool removeControlDependence(NodePtrT n)
+    bool removeControlDependence(NodeT * n)
     {
         bool ret1, ret2;
 
-        ret1 = n->revControlDepEdges.erase(static_cast<NodePtrT>(this));
+        ret1 = n->revControlDepEdges.erase(static_cast<NodeT *>(this));
         ret2 = controlDepEdges.erase(n);
 
         // must have both or none
@@ -134,7 +134,7 @@ public:
     void removeIncomingDDs()
     {
         for (auto dd : revDataDepEdges)
-            dd->removeDataDependence(static_cast<NodePtrT>(this));
+            dd->removeDataDependence(static_cast<NodeT *>(this));
     }
 
     // remove all data dependencies going from/to this node
@@ -154,7 +154,7 @@ public:
     void removeIncomingCDs()
     {
         for (auto cd : revControlDepEdges)
-            cd->removeControlDependence(static_cast<NodePtrT>(this));
+            cd->removeControlDependence(static_cast<NodeT *>(this));
     }
 
     void removeCDs()
@@ -241,25 +241,25 @@ public:
     unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
 
 #ifdef ENABLE_CFG
-    BBlock<NodePtrT> *getBasicBlock() { return basicBlock; }
-    const BBlock<NodePtrT> *getBasicBlock() const { return basicBlock; }
+    BBlock<NodeT> *getBasicBlock() { return basicBlock; }
+    const BBlock<NodeT> *getBasicBlock() const { return basicBlock; }
 
-    BBlock<NodePtrT> *setBasicBlock(BBlock<NodePtrT> *nbb)
+    BBlock<NodeT> *setBasicBlock(BBlock<NodeT> *nbb)
     {
-        BBlock<NodePtrT> *old = basicBlock;
+        BBlock<NodeT> *old = basicBlock;
         basicBlock = nbb;
         return old;
     }
 
-    NodePtrT setSuccessor(NodePtrT s)
+    NodeT * setSuccessor(NodeT * s)
     {
-        NodePtrT old = nextNode;
+        NodeT * old = nextNode;
         nextNode = s;
 
-        assert(s != static_cast<NodePtrT>(this)
+        assert(s != static_cast<NodeT *>(this)
                 && "creating self-loop");
 
-        s->prevNode = static_cast<NodePtrT>(this);
+        s->prevNode = static_cast<NodeT *>(this);
 
         // set the same basic block for the next node
         // so that we don't have to do it manually
@@ -273,10 +273,10 @@ public:
     bool hasSuccessor() const { return nextNode != nullptr; }
     bool hasPredcessor() const { return prevNode != nullptr; }
 
-    const NodePtrT getSuccessor() const { return nextNode; }
-    const NodePtrT getPredcessor() const { return prevNode; }
-    NodePtrT getSuccessor() { return nextNode; }
-    NodePtrT getPredcessor() { return prevNode; }
+    const NodeT * getSuccessor() const { return nextNode; }
+    const NodeT * getPredcessor() const { return prevNode; }
+    NodeT * getSuccessor() { return nextNode; }
+    NodeT * getPredcessor() { return prevNode; }
 
     unsigned int getDFSOrder() const
     {
@@ -298,10 +298,10 @@ public:
         return ret;
     }
 
-    DGParameters<KeyT, NodePtrT> *
-    addParameters(DGParameters<KeyT, NodePtrT> *params)
+    DGParameters<KeyT, NodeT> *
+    addParameters(DGParameters<KeyT, NodeT> *params)
     {
-        DGParameters<KeyT, NodePtrT> *old = parameters;
+        DGParameters<KeyT, NodeT> *old = parameters;
 
         parameters = params;
         return old;
@@ -322,7 +322,7 @@ public:
         return subgraphs.size();
     }
 
-    DGParameters<KeyT, NodePtrT> *getParameters() const
+    DGParameters<KeyT, NodeT> *getParameters() const
     {
         return parameters;
     }
@@ -346,12 +346,12 @@ private:
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
-    BBlock<NodePtrT> *basicBlock;
+    BBlock<NodeT> *basicBlock;
 
     // successors of this node
-    NodePtrT nextNode;
+    NodeT *nextNode;
     // predcessors of this node
-    NodePtrT prevNode;
+    NodeT *prevNode;
 #endif /* ENABLE_CFG */
 
     ControlEdgesT controlDepEdges;
@@ -365,11 +365,11 @@ private:
     std::set<DG *> subgraphs;
 
     // actual parameters if this is a callsite
-    DGParameters<KeyT, NodePtrT> *parameters;
+    DGParameters<KeyT, NodeT> *parameters;
 
     // auxiliary data for different analyses
     analysis::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::Analysis<NodePtrT>;
+    friend class analysis::Analysis<NodeT *>;
 };
 
 } // namespace dgg

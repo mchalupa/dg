@@ -8,12 +8,12 @@ namespace analysis {
 
 static unsigned int walk_run_counter;
 
-template <typename NodePtrT, typename QueueT>
-class NodesWalk : public Analysis<NodePtrT>
+template <typename NodeT, typename QueueT>
+class NodesWalk : public Analysis<NodeT>
 {
 public:
     template <typename FuncT, typename DataT>
-    void walk(NodePtrT entry, FuncT func, DataT data,
+    void walk(NodeT *entry, FuncT func, DataT data,
               bool control = true, bool deps = true)
     {
         unsigned int run_id = ++walk_run_counter;
@@ -27,7 +27,7 @@ public:
         queue.push(entry);
 
         while (!queue.empty()) {
-            NodePtrT n = queue.front();
+            NodeT *n = queue.front();
             queue.pop();
 
             prepare(n);
@@ -49,7 +49,7 @@ protected:
     // but is defined by the analysis framework, not
     // by the analysis itself. For example it may
     // assign DFS order numbers
-    virtual void prepare(NodePtrT n)
+    virtual void prepare(NodeT *n)
     {
     }
 
@@ -59,7 +59,7 @@ private:
                       unsigned int run_id)
     {
         for (IT I = begin; I != end; ++I) {
-            NodePtrT tmp = *I;
+            NodeT *tmp = *I;
             AnalysesAuxiliaryData& aad = this->getAnalysisData(tmp);
 
             if (aad.lastwalkid == run_id)
@@ -75,11 +75,11 @@ private:
 };
 
 #ifdef ENABLE_CFG
-template <typename NodePtrT, typename QueueT>
-class BBlockWalk : public BBlockAnalysis<NodePtrT>
+template <typename NodeT, typename QueueT>
+class BBlockWalk : public BBlockAnalysis<NodeT>
 {
 public:
-    typedef dg::BBlock<NodePtrT> *BBlockPtrT;
+    typedef dg::BBlock<NodeT> *BBlockPtrT;
 
     template <typename FuncT, typename DataT>
     void walk(BBlockPtrT entry, FuncT func, DataT data)

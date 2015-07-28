@@ -5,7 +5,7 @@ namespace dg {
 
 // forward declaration of BBlock
 #ifdef ENABLE_CFG
-template <typename NodePtrT>
+template <typename NodeT>
 class BBlock;
 #endif // ENABLE_CFG
 
@@ -28,11 +28,11 @@ struct AnalysesAuxiliaryData
     unsigned int dfsorder;
 };
 
-template <typename NodePtrT>
+template <typename NodeT>
 class Analysis
 {
 public:
-    AnalysesAuxiliaryData& getAnalysisData(NodePtrT n)
+    AnalysesAuxiliaryData& getAnalysisData(NodeT *n)
     {
         return n->analysisAuxData;
     }
@@ -43,11 +43,11 @@ public:
 /// --------------------------------------------------------
 //  - BBlocks analysis
 /// --------------------------------------------------------
-template <typename NodePtrT>
-class BBlockAnalysis : public Analysis<BBlock<NodePtrT> *>
+template <typename NodeT>
+class BBlockAnalysis : public Analysis<BBlock<NodeT>>
 {
 public:
-    typedef BBlock<NodePtrT> *BBlockPtrT;
+    typedef BBlock<NodeT> *BBlockPtrT;
 
     AnalysesAuxiliaryData& getAnalysisData(BBlockPtrT BB)
     {
