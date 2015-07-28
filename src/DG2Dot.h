@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <set>
 
 #include "DependenceGraph.h"
 #include "analysis/DFS.h"
@@ -81,6 +82,14 @@ public:
         dump_nodes();
         dump_edges();
 
+        // print subgraphs once we printed all the nodes
+        if (!subgraphs.empty())
+            out << "\n\t/* ----------- SUBGRAPHS ---------- */\n\n";
+        for (auto sub : subgraphs) {
+            dump_subgraph(sub);
+        }
+
+
         end();
 
         out.close();
@@ -113,44 +122,58 @@ private:
         out << "}\n";
     }
 
-    static void dumpBB(BBlock<ValueT> *BB, std::pair<std::ofstream&, uint32_t> data)
+    struct DumpBBData {
+        DumpBBData(std::ofstream& o, uint32_t opts, int ind = 1)
+            : out(o), options(opts), indent(ind) {}
+
+        std::ofstream& out;
+        uint32_t options;
+        int indent;
+    };
+
+    static void dumpBB(BBlock<ValueT> *BB, DumpBBData& data)
     {
-        std::ofstream& out = data.first;
-        out << "\t/* BasicBlock " << BB << " */\n";
-        out << "\tsubgraph cluster_bb_" << BB << " {\n";
-        out << "\t\tlabel=\"Basic Block " << BB;
+        std::ofstream& out = data.out;
+        Indent Ind(data.indent);
+
+        out << Ind << "/* BasicBlock " << BB << " */\n";
+        out << Ind << "subgraph cluster_bb_" << BB << " {\n";
+        out << Ind << "\tlabel=\"Basic Block " << BB;
 
         unsigned int dfsorder = BB->getDFSOrder();
         if (dfsorder != 0)
-            out << "\\ndfs order: "<< dfsorder;
+            out << Ind << "\\ndfs order: "<< dfsorder;
 
         out << "\"\n";
 
         ValueT n = BB->getFirstNode();
         while (n) {
             // print nodes in BB, edges will be printed later
-            out << "\t\tNODE" << n << " [label=\"" << n->getKey() << "\"]\n";
+            out << Ind << "\tNODE" << n
+                << " [label=\"" << n->getKey() << "\"]\n";
             n = n->getSuccessor();
         }
 
-        out << "\t} /* cluster_bb_" << BB << " */\n";
+        out << Ind << "} /* cluster_bb_" << BB << " */\n\n";
     }
 
-    static void dumpBBedges(BBlock<ValueT> *BB, std::pair<std::ofstream&, uint32_t> data)
+    static void dumpBBedges(BBlock<ValueT> *BB, DumpBBData& data)
     {
-        std::ofstream& out = data.first;
-        uint32_t options = data.second;
+        std::ofstream& out = data.out;
+        uint32_t options = data.options;
+        Indent Ind(data.indent);
 
         if (options & PRINT_CFG) {
             for (auto S : BB->successors()) {
                 ValueT lastNode = BB->getLastNode();
                 ValueT firstNode = S->getFirstNode();
 
-                out << "\tNODE" << lastNode << " -> "
+                out << Ind
+                    << "NODE" << lastNode << " -> "
                     <<   "NODE" << firstNode
-                    << "[penwidth=2"
-                    << " ltail=cluster_bb_" << BB
-                    << " lhead=cluster_bb_" << S << "]\n";
+                    << " [penwidth=2"
+                    << "  ltail=cluster_bb_" << BB
+                    << "  lhead=cluster_bb_" << S << "]\n";
             }
         }
 
@@ -159,43 +182,77 @@ private:
                 ValueT lastNode = S->getLastNode();
                 ValueT firstNode = BB->getFirstNode();
 
-                out << "\tNODE" << firstNode << " -> "
+                out << Ind
+                    << "NODE" << firstNode << " -> "
                     <<   "NODE" << lastNode
-                    << "[penwidth=2 color=gray"
-                    << " ltail=cluster_bb_" << BB
-                    << " lhead=cluster_bb_" << S << "]\n";
+                    << " [penwidth=2 color=gray"
+                    << "  ltail=cluster_bb_" << BB
+                    << "  lhead=cluster_bb_" << S << "]\n";
             }
         }
     }
 
-    void dumpBBs(BBlock<ValueT> *startBB)
+    void dump_subgraph(DependenceGraph<KeyT, ValueT> *sub)
+    {
+        out << "\t/* subgraph " << sub << " nodes */\n";
+        out << "\tsubgraph cluster_" << sub << " {\n";
+        out << "\t\tlabel=\"Subgraph " << sub
+            << " has " << sub->size() << " nodes\"\n";
+
+        // dump BBs in the subgraph
+        if (sub->getEntryBB())
+            dumpBBs(sub->getEntryBB(), 2);
+
+        // dump all nodes again, if there is any that is
+        // not in any BB
+        for (auto I = sub->begin(), E = sub->end(); I != E; ++I)
+            dump_node(I->second, 2);
+        // dump edges between nodes
+        for (auto I = sub->begin(), E = sub->end(); I != E; ++I)
+            dump_node_edges(I->second, 2);
+
+        out << "\t}\n";
+    }
+
+    void dumpBBs(BBlock<ValueT> *startBB, int ind = 1)
     {
         dg::analysis::BBlockDFS<ValueT> DFS;
 
         // print nodes in BB
-        DFS.run(startBB, dumpBB, std::pair<std::ofstream&, uint32_t>(out, options));
+        DFS.run(startBB, dumpBB, DumpBBData(out, options, ind));
 
         // print CFG edges between BBs
         if (options & (PRINT_CFG | PRINT_REV_CFG)) {
-            out << "\t/* CFG edges */\n";
-            DFS.run(startBB, dumpBBedges,
-                    std::pair<std::ofstream&, uint32_t>(out, options));
+            out << Indent(ind) << "/* CFG edges */\n";
+            DFS.run(startBB, dumpBBedges, DumpBBData(out, options, ind));
         }
+    }
+
+    void dump_node(ValueT node, int ind = 1) {
+        unsigned int dfsorder = node->getDFSOrder();
+        Indent Ind(ind);
+
+        out << Ind
+            << "NODE" << node << " [label=\"" << node->getKey();
+
+        if (dfsorder != 0)
+            out << "\\ndfs order: "<< dfsorder;
+
+        out << "\"]\n";
     }
 
     void dump_nodes()
     {
         out << "\t/* nodes */\n";
         for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
-            unsigned int dfsorder = I->second->getDFSOrder();
+            auto node = I->second;
 
-            out << "\tNODE" << I->second;
-            out << " [label=\"" << I->second->getKey();
+            dump_node(node);
 
-            if (dfsorder != 0)
-                out << "\\ndfs order: "<< dfsorder;
-
-            out << "\"]\n";
+            for (auto I = node->getSubgraphs().begin(),
+                      E = node->getSubgraphs().end(); I != E; ++I) {
+                subgraphs.insert(*I);
+            }
         }
     }
 
@@ -267,6 +324,7 @@ private:
     DependenceGraph<KeyT, ValueT> *dg;
     const char *file;
     std::ofstream out;
+    std::set<DependenceGraph<KeyT, ValueT> *> subgraphs;
 };
 
 } // debug
