@@ -132,7 +132,7 @@ private:
         int indent;
     };
 
-    static void dumpBB(BBlock<ValueT> *BB, DumpBBData& data)
+    static void dumpBB(const BBlock<ValueT> *BB, DumpBBData& data)
     {
         std::ofstream& out = data.out;
         Indent Ind(data.indent);
@@ -193,12 +193,40 @@ private:
         }
     }
 
+    void dump_parameters(ValueT node, int ind)
+    {
+        Indent Ind(ind);
+        DGParameters<KeyT, ValueT> *params = node->getParameters();
+
+        if (params) {
+            DumpBBData data(out, options, ind);
+
+            out << Ind << "/* Input parameters */\n";
+            dumpBB(params->getBBIn(), data);
+            out << Ind << "/* Output parameters */\n";
+            dumpBB(params->getBBOut(), data);
+
+            // dump all the nodes again to get the names
+            for (auto it : *params) {
+                dump_node(it.second.in, ind, "IN ARG");
+                dump_node_edges(it.second.in, ind);
+
+                dump_node(it.second.out, ind, "OUT ARG");
+                dump_node_edges(it.second.out, ind);
+            }
+        }
+    }
+
     void dump_subgraph(DependenceGraph<KeyT, ValueT> *sub)
     {
         out << "\t/* subgraph " << sub << " nodes */\n";
         out << "\tsubgraph cluster_" << sub << " {\n";
         out << "\t\tlabel=\"Subgraph " << sub
             << " has " << sub->size() << " nodes\"\n";
+
+        // dump BBs of the formal parameters
+        ValueT entry = sub->getEntry();
+        dump_parameters(entry, 2);
 
         // dump BBs in the subgraph
         if (sub->getEntryBB())
@@ -229,12 +257,16 @@ private:
         }
     }
 
-    void dump_node(ValueT node, int ind = 1) {
+    void dump_node(ValueT node, int ind = 1, const char *prefix = nullptr)
+    {
         unsigned int dfsorder = node->getDFSOrder();
         Indent Ind(ind);
 
         out << Ind
             << "NODE" << node << " [label=\"";
+
+        if (prefix)
+            out << prefix << " ";
 
         if (printKey)
             printKey(out, node->getKey());
@@ -245,6 +277,8 @@ private:
             out << "\\ndfs order: "<< dfsorder;
 
         out << "\"]\n";
+
+        dump_parameters(node, ind);
     }
 
     void dump_nodes()
