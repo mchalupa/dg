@@ -31,10 +31,6 @@ namespace dg {
 
 LLVMDependenceGraph::~LLVMDependenceGraph()
 {
-    // XXX we're leaking basic blocks
-    LLVMBBlock *entryBB = getEntryBB();
-    assert(entryBB && "No entry block in llvm graph");
-
     // delete nodes
     for (auto I = begin(), E = end(); I != E; ++I) {
         LLVMNode *node = I->second;
@@ -43,7 +39,10 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
             for (auto subgraph : node->getSubgraphs()) {
                 // graphs are referenced, once the refcount is 0
                 // the graph will be deleted
-                subgraph->unref();
+                // Because of recursive calls, graph can be its
+                // own subgraph. In that case we're in the destructor
+                // already, so do not delete it
+                    subgraph->unref(subgraph != this);
             }
 
             LLVMDGParameters *params = node->getParameters();
@@ -108,15 +107,19 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
         // have a reason to handle such failures at some
         // point, we can change it
         assert(ret && "Building subgraph failed");
+
+        // we built the subgraph, so it has refcount = 1,
+        // later in the code we call addSubgraph, which
+        // increases the refcount to 2, but we need this
+        // subgraph to has refcount 1, so unref it
+        subgraph->unref(false /* deleteOnZero */);
     }
 
+
     // make the subgraph a subgraph of current node
+    // addSubgraph will increase refcount of the graph
     node->addSubgraph(subgraph);
     node->addActualParameters(subgraph);
-
-    // addSubgraph() increased the refcount to 2, but we don't
-    // want that in this particular case.
-    subgraph->unref();
 }
 
 static LLVMBBlock *
