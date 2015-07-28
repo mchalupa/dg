@@ -181,6 +181,10 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
     addNode(node);
 
     nodesBB = createBasicBlock(node, predBB);
+    // set the basic block for the first node.
+    // setSuccessor function will set it inductively
+    // for the rest
+    node->setBasicBlock(nodesBB);
 
     // if we don't have predcessor, this is the entry BB
     if (predBB == nullptr)
@@ -201,7 +205,6 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
         node = new LLVMNode(val);
         // add new node to this dependence graph
         addNode(node);
-        node->setBasicBlock(nodesBB);
 
         // add successor to predcessor node
         if (predNode)
@@ -358,17 +361,16 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
         delete item;
     }
 
-    // add CFG edge from entry point to the first instruction
-    entry->setSuccessor(getNode(func->getEntryBlock().begin()));
-
-    addFormalParameters();
-
-
     // check if we have everything
     assert(getEntry() && "Missing entry node");
     assert(getExit() && "Missing exit node");
     assert(getEntryBB() && "Missing entry BB");
     assert(getExitBB() && "Missing exit BB");
+
+    // add CFG edge from entry point to the first instruction
+    entry->addControlDependence(getEntryBB()->getFirstNode());
+
+    addFormalParameters();
 
     return true;
 }

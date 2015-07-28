@@ -264,6 +264,7 @@ public:
         // set the same basic block for the next node
         // so that we don't have to do it manually
         // after setting the successor
+        assert(basicBlock && "No basic block while setting succ");
         nextNode->setBasicBlock(basicBlock);
 
         return old;
