@@ -31,27 +31,9 @@ namespace dg {
 
 LLVMDependenceGraph::~LLVMDependenceGraph()
 {
-    // delete basic blocks
-    std::queue<LLVMBBlock *> queue;
+    // XXX we're leaking basic blocks
     LLVMBBlock *entryBB = getEntryBB();
     assert(entryBB && "No entry block in llvm graph");
-
-    queue.push(entryBB);
-
-    while (!queue.empty()) {
-        LLVMBBlock *BB = queue.front();
-        queue.pop();
-
-        for (auto S : BB->successors())
-            queue.push(S);
-
-        BB->removePredcessors();
-        BB->removeSuccessors();
-
-        assert(BB->predcessorsNum() == 0 && "Still has references to BB");
-        // XXX
-        //delete BB;
-    }
 
     // delete nodes
     for (auto I = begin(), E = end(); I != E; ++I) {
@@ -73,6 +55,10 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
                 delete params;
             }
+
+            if (!node->getBasicBlock()
+                && !llvm::isa<llvm::Function>(*I->first))
+                errs() << "WARN: Value " << *I->first << "had no BB assigned\n";
 
             delete node;
         } else {
