@@ -44,7 +44,8 @@ public:
     DG2Dot<KeyT, ValueT>(DependenceGraph<KeyT, ValueT> *dg,
                          uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,
                          const char *file = NULL)
-        : options(opts), dg(dg), file(file)
+        : options(opts), dg(dg), file(file),
+          printKey(nullptr)
     {
         reopen(file);
     }
@@ -233,7 +234,12 @@ private:
         Indent Ind(ind);
 
         out << Ind
-            << "NODE" << node << " [label=\"" << node->getKey();
+            << "NODE" << node << " [label=\"";
+
+        if (printKey)
+            printKey(out, node->getKey());
+        else
+            out << node->getKey();
 
         if (dfsorder != 0)
             out << "\\ndfs order: "<< dfsorder;
@@ -325,6 +331,11 @@ private:
     const char *file;
     std::ofstream out;
     std::set<DependenceGraph<KeyT, ValueT> *> subgraphs;
+
+public:
+    /* functions for adjusting the output. These are public,
+     * so that user can set them as he/she wants */
+    std::ostream& (*printKey)(std::ostream& os, KeyT key);
 };
 
 } // debug
