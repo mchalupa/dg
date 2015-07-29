@@ -180,7 +180,7 @@ public:
         d.addNode(&n1);
         d.addNode(&n2);
 
-        TestDG::BasicBlock BB(&n1);
+        TestBBlock BB(&n1);
 
         check(!n1.hasSuccessor(),
                 "hasSuccessor returned true on node without successor");
@@ -217,7 +217,7 @@ public:
         d.addNode(&n3);
         d.addNode(&n4);
 
-        TestDG::BasicBlock BB2(&n3), BB3(&n3);
+        TestBBlock BB2(&n3), BB3(&n3);
 
         check(BB.addSuccessor(&BB2), "the edge is there");
         check(!BB.addSuccessor(&BB2), "added even when the edge is there");
@@ -315,7 +315,7 @@ private:
         TestNode **nodes = create_full_graph(d, NODES_NUM);
 
         // create CFG edges between nodes
-        TestDG::BasicBlock B1(nodes[0], nodes[NODES_NUM - 1]);
+        TestBBlock B1(nodes[0], nodes[NODES_NUM - 1]);
         for (int i = 0; i < NODES_NUM - 1; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
@@ -382,24 +382,24 @@ private:
         TestNode **nodes = create_full_graph(d, 15);
 
         // create first basic block that will contain first 5 nodes
-        TestDG::BasicBlock B1(nodes[0], nodes[5]);
+        TestBBlock B1(nodes[0], nodes[5]);
         for (int i = 0; i < 5; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
 
 
         // another basic block of size 5
-        TestDG::BasicBlock B2(nodes[6], nodes[9]);
+        TestBBlock B2(nodes[6], nodes[9]);
         for (int i = 6; i < 9; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
 
         // BBs of size 1
-        TestDG::BasicBlock B3(nodes[10], nodes[10]);
-        TestDG::BasicBlock B4(nodes[11], nodes[11]);
+        TestBBlock B3(nodes[10], nodes[10]);
+        TestBBlock B4(nodes[11], nodes[11]);
 
         // and size 2
-        TestDG::BasicBlock B5(nodes[12], nodes[14]);;
+        TestBBlock B5(nodes[12], nodes[14]);;
         for (int i = 12; i < 14; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
@@ -427,24 +427,24 @@ private:
         TestNode **nodes = create_full_graph(d, 15);
 
         // create first basic block that will contain first 5 nodes
-        TestDG::BasicBlock *B1 = new TestDG::BasicBlock(nodes[0], nodes[5]);
+        TestBBlock *B1 = new TestBBlock(nodes[0], nodes[5]);
         for (int i = 0; i < 5; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
 
 
         // another basic block of size 5
-        TestDG::BasicBlock *B2 = new TestDG::BasicBlock(nodes[6], nodes[9]);
+        TestBBlock *B2 = new TestBBlock(nodes[6], nodes[9]);
         for (int i = 6; i < 9; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
 
         // BBs of size 1
-        TestDG::BasicBlock *B3 = new TestDG::BasicBlock(nodes[10], nodes[10]);
-        TestDG::BasicBlock *B4 = new TestDG::BasicBlock(nodes[11], nodes[11]);
+        TestBBlock *B3 = new TestBBlock(nodes[10], nodes[10]);
+        TestBBlock *B4 = new TestBBlock(nodes[11], nodes[11]);
 
         // and size 2
-        TestDG::BasicBlock *B5 = new TestDG::BasicBlock(nodes[12], nodes[14]);
+        TestBBlock *B5 = new TestBBlock(nodes[12], nodes[14]);
         for (int i = 12; i < 14; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
@@ -483,14 +483,14 @@ private:
         TestDG d;
         TestNode **nodes = create_full_graph(d, 10);
 
-        TestDG::BasicBlock *B1 = new TestDG::BasicBlock(nodes[0], nodes[5]);
+        TestBBlock *B1 = new TestBBlock(nodes[0], nodes[5]);
         // create first basic block that will contain first 5 nodes
         for (int i = 0; i < 5; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }
 
         // create another basic block that will contain rest of nodes
-        TestDG::BasicBlock *B2 = new TestDG::BasicBlock(nodes[6], nodes[9]);
+        TestBBlock *B2 = new TestBBlock(nodes[6], nodes[9]);
         for (int i = 6; i < 9; ++i) {
             nodes[i]->setSuccessor(nodes[i + 1]);
         }

@@ -12,7 +12,7 @@ namespace tests {
 class DataFlowA : public analysis::DataFlowAnalysis<TestNode>
 {
 public:
-    DataFlowA(TestDG::BasicBlock *B,
+    DataFlowA(TestBBlock *B,
               bool (*ron)(TestNode *), uint32_t fl = 0)
         : analysis::DataFlowAnalysis<TestNode>(B, fl),
           run_on_node(ron) {}
@@ -43,7 +43,7 @@ public:
     {
         TestDG *d = new TestDG();
 
-        TestDG::BasicBlock *B;
+        TestBBlock *B;
         TestNode **nodes = new TestNode *[nodes_num];
 
         for (int i = 0; i < nodes_num; ++i) {
@@ -51,13 +51,13 @@ public:
 
             d->addNode(nodes[i]);
 
-            B = new TestDG::BasicBlock(nodes[i], nodes[i]);
+            B = new TestBBlock(nodes[i], nodes[i]);
         }
 
         // connect to circular graph
         for (int i = 0; i < nodes_num; ++i) {
-            TestDG::BasicBlock *B1 = nodes[i]->getBasicBlock();
-            TestDG::BasicBlock *B2 = nodes[(i + 1) % nodes_num]->getBasicBlock();
+            TestBBlock *B1 = nodes[i]->getBasicBlock();
+            TestBBlock *B2 = nodes[(i + 1) % nodes_num]->getBasicBlock();
             B1->addSuccessor(B2);
         }
 
@@ -178,7 +178,7 @@ public:
                           "intrAproc. dataflow went to procedures (%d - %d)",
                           n->getKey(), n->counter);
 
-                    TestDG::BasicBlock *BB = n->getBasicBlock();
+                    TestBBlock *BB = n->getBasicBlock();
                     assert(BB);
 
                     check(BB->getDFSOrder() == 0, "DataFlow went into subgraph blocks");
@@ -218,7 +218,7 @@ public:
                           "intErproc. dataflow did NOT went to procedures (%d - %d)",
                           n->getKey(), n->counter);
 
-                    TestDG::BasicBlock *BB = n->getBasicBlock();
+                    TestBBlock *BB = n->getBasicBlock();
                     assert(BB);
 
                     check(BB->getDFSOrder() != 0,
@@ -264,7 +264,7 @@ public:
                           "intErproc. dataflow did NOT went to procedures (%d - %d)",
                           n->getKey(), n->counter);
 
-                    TestDG::BasicBlock *BB = n->getBasicBlock();
+                    TestBBlock *BB = n->getBasicBlock();
                     assert(BB);
 
                     check(BB->getDFSOrder() != 0,

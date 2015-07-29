@@ -18,12 +18,12 @@ public:
     int counter;
 };
 
+#ifdef ENABLE_CFG
+typedef BBlock<TestNode> TestBBlock;
+#endif // ENABLE_CFG
+
 class TestDG : public DependenceGraph<TestNode>
 {
-public:
-#ifdef ENABLE_CFG
-    typedef BBlock<TestNode> BasicBlock;
-#endif // ENABLE_CFG
 };
 
 
