@@ -74,12 +74,26 @@ private:
     QueueT queue;
 };
 
+enum BBlockWalkFlags {
+    // recurse into procedures
+    BBLOCK_WALK_INTERPROCEDURAL     = 1 << 0,
+    // walk even through params
+    BBLOCK_WALK_PARAMS              = 1 << 1,
+    // need to go through the nodes once
+    // because bblocks does not keep information
+    // about call-sites
+    BBLOCK_NO_CALLSITES             = 1 << 2,
+};
+
 #ifdef ENABLE_CFG
 template <typename NodeT, typename QueueT>
 class BBlockWalk : public BBlockAnalysis<NodeT>
 {
 public:
     typedef dg::BBlock<NodeT> *BBlockPtrT;
+
+    BBlockWalk<NodeT, QueueT>(uint32_t fl = 0)
+        : flags(fl) {}
 
     template <typename FuncT, typename DataT>
     void walk(BBlockPtrT entry, FuncT func, DataT data)
@@ -99,20 +113,87 @@ public:
             prepare(BB);
             func(BB, data);
 
-            for (BBlockPtrT S : BB->successors()) {
-                AnalysesAuxiliaryData& sad = this->getAnalysisData(S);
-                if (sad.lastwalkid != runid) {
-                    sad.lastwalkid = runid;
-                    queue.push(S);
+            // should and can we go into subgraph?
+            if ((flags & BBLOCK_WALK_INTERPROCEDURAL)) {
+                if ((flags & BBLOCK_NO_CALLSITES)
+                    && BB->getCallSitesNum() == 0) {
+                    // get callsites if bblocks does not
+                    // keep them
+                    NodeT *n = BB->getFirstNode();
+                    while (n) {
+                        if (n->hasSubgraphs())
+                                BB->addCallsite(n);
+
+                        n = n->getSuccessor();
+                    }
                 }
+
+                if (BB->getCallSitesNum() != 0)
+                    queueSubgraphsBBs(BB, queue, runid);
             }
+
+            // queue sucessors of this BB
+            for (BBlockPtrT S : BB->successors())
+                queuePush(S, queue, runid);
         }
     }
+
+    uint32_t getFlags() const { return flags; }
 
 protected:
     virtual void prepare(BBlockPtrT BB)
     {
     }
+
+private:
+    void queuePush(BBlockPtrT BB, QueueT& queue, unsigned int runid)
+    {
+        AnalysesAuxiliaryData& sad = this->getAnalysisData(BB);
+        if (sad.lastwalkid != runid) {
+            sad.lastwalkid = runid;
+            queue.push(BB);
+        }
+    }
+
+    void queueSubgraphsBBs(BBlockPtrT BB, QueueT& queue, unsigned int runid)
+    {
+        DGParameters<typename NodeT::KeyType, NodeT> *params;
+
+        // iterate over call-site nodes
+        for (NodeT *cs : BB->getCallSites()) {
+            // go through parameters if desired
+            if ((flags & BBLOCK_WALK_PARAMS)) {
+                params = cs->getParameters();
+                if (params) {
+                    queuePush(params->getBBIn(), queue, runid);
+                    queuePush(params->getBBOut(), queue, runid);
+                }
+            }
+
+            // iterate over subgraphs in call-site node
+            // and put into queue entry blocks
+            for (auto subdg : cs->getSubgraphs()) {
+                // go into formal parameters if wanted
+                if ((flags & BBLOCK_WALK_PARAMS)) {
+                    NodeT *entry = subdg->getEntry();
+                    assert(entry && "No entry node in sub dg");
+
+                    params = entry->getParameters();
+                    if (params) {
+                        queuePush(params->getBBIn(), queue, runid);
+                        queuePush(params->getBBOut(), queue, runid);
+                    }
+                }
+
+                // queue entry BBlock
+                BBlockPtrT entryBB = subdg->getEntryBB();
+                assert(entryBB && "No entry block in sub dg");
+                queuePush(entryBB, queue, runid);
+            }
+        }
+    }
+
+    uint32_t flags;
 };
 
 #endif

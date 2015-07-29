@@ -14,6 +14,11 @@
 namespace dg {
 namespace analysis {
 
+enum DataFlowAnalysisFlags {
+    DATAFLOW_INTERPROCEDURAL    = 1 << 0,
+    DATAFLOW_BB_NO_CALLSITES    = 1 << 1,
+};
+
 // ordering of nodes with respect to DFS order
 // works for both nodes and blocks
 template<typename T>
@@ -29,19 +34,28 @@ template <typename NodeT>
 class BBlockDataFlowAnalysis : public Analysis<NodeT>
 {
 public:
-    BBlockDataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB)
-        :entryBB(entryBB)
-    {}
+    BBlockDataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB, uint32_t fl = 0)
+        :entryBB(entryBB), flags(fl) {}
 
     virtual bool runOnBlock(BBlock<NodeT> *BB) = 0;
 
     void run()
     {
         bool changed = false;
-        assert(entryBB && "entry basic block is nullptr");
+        uint32_t flg = 0;
         BlocksSetT blocks;
 
-        BBlockDFS<NodeT> DFS;
+        assert(entryBB && "entry basic block is nullptr");
+
+        /* translate flags */
+        if (flags & DATAFLOW_INTERPROCEDURAL) {
+            flg |= DFS_INTERPROCEDURAL;
+            flg |= DFS_PARAMS;
+        }
+        if (flags & DATAFLOW_BB_NO_CALLSITES)
+            flg |= DFS_BB_NO_CALLSITES;
+
+        BBlockDFS<NodeT> DFS(flg);
         DFSDataT data(blocks, changed, this);
 
         // we will get all the nodes using DFS
@@ -60,6 +74,8 @@ public:
             }
         }
     }
+
+    uint32_t getFlags() const { return flags; }
 
 private:
     // define set of blocks to be ordered in dfs order
@@ -83,6 +99,7 @@ private:
     }
 
     BBlock<NodeT> *entryBB;
+    uint32_t flags;
 };
 
 
@@ -90,8 +107,8 @@ template <typename NodeT>
 class DataFlowAnalysis : public BBlockDataFlowAnalysis<NodeT>
 {
 public:
-    DataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB)
-        : BBlockDataFlowAnalysis<NodeT>(entryBB) {};
+    DataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB, uint32_t fl = 0)
+        : BBlockDataFlowAnalysis<NodeT>(entryBB, fl) {};
 
     /* virtual */
     bool runOnBlock(BBlock<NodeT> *B)

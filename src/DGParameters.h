@@ -79,6 +79,8 @@ public:
 
     const BBlock<NodeT> *getBBIn() const { return &BBIn; }
     const BBlock<NodeT> *getBBOut() const { return &BBOut; }
+    BBlock<NodeT> *getBBIn() { return &BBIn; }
+    BBlock<NodeT> *getBBOut() { return &BBOut; }
 
 protected:
     ContainerType params;
