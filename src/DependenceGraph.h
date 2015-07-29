@@ -150,7 +150,7 @@ public:
     {
         bool ret = nodes.insert(std::make_pair(k, n)).second;
         if (ret)
-            n->setDG(static_cast<void *>(this));
+            n->setDG(static_cast<typename NodeT::DependenceGraphType *>(this));
 
         return ret;
     }

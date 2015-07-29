@@ -16,23 +16,24 @@ class DependenceGraph;
 //  -- Node
 //     one node in DependenceGraph
 /// --------------------------------------------------------
-template <typename DG, typename KeyT, typename NodeT>
+template <typename DependenceGraphT, typename KeyT, typename NodeT>
 class Node
 {
 public:
     typedef EdgesContainer<NodeT> ControlEdgesT;
     typedef EdgesContainer<NodeT> DependenceEdgesT;
 
-    // to be able to reference the KeyT
+    // to be able to reference the KeyT and DG
     typedef KeyT KeyType;
+    typedef DependenceGraphT DependenceGraphType;
 
     typedef typename ControlEdgesT::iterator control_iterator;
     typedef typename ControlEdgesT::const_iterator const_control_iterator;
     typedef typename DependenceEdgesT::iterator data_iterator;
     typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
-    Node<DG, KeyT, NodeT>(const KeyT& k, DG *dg = nullptr)
-        : key(k), parameters(nullptr), dg(static_cast<void *>(dg))
+    Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k, DependenceGraphT *dg = nullptr)
+        : key(k), parameters(nullptr), dg(dg)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr),
            prevNode(nullptr)
@@ -44,21 +45,20 @@ public:
 
     void removeFromDG()
     {
-        DG *tmp = static_cast<DG *>(dg);
-        tmp->removeNode(key);
+        dg->removeNode(key);
     }
 
-    void *setDG(void *dg)
+    DependenceGraphT *setDG(DependenceGraphT *dg)
     {
-        void *old = this->dg;
+        DependenceGraphT *old = this->dg;
         this->dg = dg;
 
         return old;
     }
 
-    DG *getDG() const
+    DependenceGraphT *getDG() const
     {
-        return static_cast<DG *>(dg);
+        return dg;
     }
 
     bool addControlDependence(NodeT * n)
@@ -280,7 +280,7 @@ public:
 
 #endif /* ENABLE_CFG */
 
-    bool addSubgraph(DG *sub)
+    bool addSubgraph(DependenceGraphT *sub)
     {
         bool ret = subgraphs.insert(sub).second;
 
@@ -302,7 +302,7 @@ public:
         return old;
     }
 
-    const std::set<DG *>& getSubgraphs(void) const
+    const std::set<DependenceGraphT *>& getSubgraphs(void) const
     {
         return subgraphs;
     }
@@ -334,9 +334,7 @@ protected:
 
 private:
     // each node has reference to the DependenceGraph
-    // it is in. Currently it is of type void *, because
-    // of some casting issues
-    void *dg;
+    DependenceGraphT *dg;
 
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
@@ -357,7 +355,7 @@ private:
     DependenceEdgesT revDataDepEdges;
 
     // a node can have more subgraphs (i. e. function pointers)
-    std::set<DG *> subgraphs;
+    std::set<DependenceGraphT *> subgraphs;
 
     // actual parameters if this is a callsite
     DGParameters<KeyT, NodeT> *parameters;
