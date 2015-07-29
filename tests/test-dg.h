@@ -24,12 +24,6 @@ public:
 #ifdef ENABLE_CFG
     typedef BBlock<TestNode> BasicBlock;
 #endif // ENABLE_CFG
-
-    bool addNode(TestNode *n)
-    {
-        return DependenceGraph<TestNode>
-                ::addNode(n->getKey(), n);
-    }
 };
 
 
