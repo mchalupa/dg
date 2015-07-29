@@ -27,8 +27,7 @@ public:
         queue.push(entry);
 
         while (!queue.empty()) {
-            NodeT *n = queue.front();
-            queue.pop();
+            NodeT *n = queue.pop();
 
             prepare(n);
             func(n, data);
@@ -107,8 +106,7 @@ public:
         aad.lastwalkid = runid;
 
         while (!queue.empty()) {
-            BBlockPtrT BB = queue.front();
-            queue.pop();
+            BBlockPtrT BB = queue.pop();
 
             prepare(BB);
             func(BB, data);

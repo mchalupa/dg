@@ -2,13 +2,15 @@
 #define _DG_DFS_H_
 
 #include "NodesWalk.h"
-#include <queue>
+#include "../ADT/Queue.h"
+
+using dg::ADT::QueueLIFO;
 
 namespace dg {
 namespace analysis {
 
 template <typename NodeT>
-class DFS : public NodesWalk<NodeT, std::queue<NodeT *> >
+class DFS : public NodesWalk<NodeT, QueueLIFO<NodeT *>>
 {
 public:
     DFS<NodeT>() : dfsorder(0) {}
@@ -63,13 +65,13 @@ convFlags(uint32_t flags)
 
 template <typename NodeT>
 class BBlockDFS : public BBlockWalk<NodeT,
-                                    std::queue<BBlock<NodeT> *> >
+                                    QueueLIFO<BBlock<NodeT> *> >
 {
 public:
     typedef BBlock<NodeT> *BBlockPtrT;
 
     BBlockDFS<NodeT>(uint32_t fl = 0)
-        : BBlockWalk<NodeT, std::queue<BBlock<NodeT> *>>(convFlags(fl)),
+        : BBlockWalk<NodeT, QueueLIFO<BBlock<NodeT> *>>(convFlags(fl)),
           dfsorder(0), flags(fl) {}
 
     template <typename FuncT, typename DataT>
