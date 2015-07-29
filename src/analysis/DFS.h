@@ -2,7 +2,7 @@
 #define _DG_DFS_H_
 
 #include "NodesWalk.h"
-#include "../ADT/Queue.h"
+#include "ADT/Queue.h"
 
 using dg::ADT::QueueLIFO;
 

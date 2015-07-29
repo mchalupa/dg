@@ -4,9 +4,7 @@
 
 #include "test-runner.h"
 #include "test-dg.h"
-#include "../src/analysis/DataFlowAnalysis.h"
-
-#include "../src/DG2Dot.h"
+#include "analysis/DataFlowAnalysis.h"
 
 namespace dg {
 namespace tests {
@@ -289,9 +287,6 @@ public:
               "processed more blocks than %d - %d", 2*blocks_num, stats3.processedBlocks);
         check(stats3.getIterationsNum() == 2, "did wrong number of iterations: %d",
               stats3.getIterationsNum());
-
-        debug::DG2Dot<int, TestNode> dump(d, debug::PRINT_CFG | debug::PRINT_CALL);
-        dump.dump("test.dot", d->getEntryBB());
 
         #undef NODES_NUM
     }

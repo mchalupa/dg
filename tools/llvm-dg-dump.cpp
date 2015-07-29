@@ -12,8 +12,8 @@
 #include <llvm/IRReader/IRReader.h>
 
 #include <iostream>
-#include "../src/llvm/LLVMDependenceGraph.h"
-#include "../src/DG2Dot.h"
+#include "llvm/LLVMDependenceGraph.h"
+#include "DG2Dot.h"
 
 using namespace dg;
 using llvm::errs;

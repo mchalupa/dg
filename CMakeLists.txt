@@ -3,6 +3,8 @@ project(dg)
 
 include(CTest)
 
+include_directories( ${CMAKE_SOURCE_DIR}/src )
+
 # define DEBUG by default for now
 OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)

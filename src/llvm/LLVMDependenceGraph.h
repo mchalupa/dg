@@ -13,7 +13,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/ADT/SmallPtrSet.h>
 
-#include "../DependenceGraph.h"
+#include "DependenceGraph.h"
 
 namespace dg {
 

@@ -2,8 +2,8 @@
 #include <cstdarg>
 #include <cstdio>
 
-#include "../src/llvm/LLVMDependenceGraph.h"
-#include "../src/analysis/DFS.h"
+#include "llvm/LLVMDependenceGraph.h"
+#include "analysis/DFS.h"
 #include "test-runner.h"
 
 
