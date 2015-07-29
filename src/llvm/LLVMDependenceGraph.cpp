@@ -86,6 +86,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
 {
     using namespace llvm;
 
+    LLVMBBlock *BB;
     const Value *val = node->getValue();
     const CallInst *CInst = dyn_cast<CallInst>(val);
 
@@ -115,6 +116,9 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
         subgraph->unref(false /* deleteOnZero */);
     }
 
+    BB = node->getBasicBlock();
+    assert(BB && "do not have BB; this is a bug, sir");
+    BB->addCallsite(node);
 
     // make the subgraph a subgraph of current node
     // addSubgraph will increase refcount of the graph

@@ -501,7 +501,7 @@ private:
         check(B1->successors().contains(B2), "err");
         check(B1->predcessors().contains(B2), "err (2)");
 
-        nodes[0]->remove();
+        d.removeNode(nodes[0]);
         check(d.size() == 9, "Node::remove() did not remove node");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
         // this should stay
@@ -511,7 +511,7 @@ private:
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
         check(B1->predcessors().contains(B2), "BBlock pred deleted prematuraly");
 
-        nodes[5]->remove();
+        d.removeNode(nodes[5]);
         check(d.size() == 8, "Node::remove() did not remove node");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug");
@@ -520,7 +520,7 @@ private:
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
         check(B1->predcessors().contains(B2), "BBlock pred deleted prematuraly");
 
-        nodes[2]->remove();
+        d.removeNode(nodes[2]);
         check(d.size() == 7, "Node::remove() did not remove node");
         check(nodes[1]->getSuccessor() == nodes[3], "reconnect bug");
         check(nodes[3]->getPredcessor() == nodes[1], "reconnect bug");
@@ -528,21 +528,21 @@ private:
         check(B1->predcessors().contains(B2), "BBlock pred deleted prematuraly");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
 
-        nodes[1]->remove();
+        d.removeNode(nodes[1]);
         check(nodes[3]->getPredcessor() == nullptr, "removing head buggy");
         check(nodes[3]->getSuccessor() == nodes[4], "removing head buggy");
         check(nodes[4]->getSuccessor() == nullptr, "removing head buggy");
         check(B1->getFirstNode() == nodes[3], "Node::remove() reconnect edges bug (3)");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug (4)");
 
-        nodes[3]->remove();
+        d.removeNode(nodes[3]);
         check(nodes[4]->getPredcessor() == nullptr, "remove pre-last node in block bug");
         check(nodes[4]->getSuccessor() == nullptr, "remove pre-last node in block bug (2)");
         check(B1->getFirstNode() == nodes[4], "Node::remove() reconnect edges bug (5)");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug (6)");
 
         // only one node in block left
-        nodes[4]->remove();
+        d.removeNode(nodes[4]);
         check(d.size() == 4, "wrong size");
 
         check(!B2->successors().contains(B1), "BBlock was not removed");

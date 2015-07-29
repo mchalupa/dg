@@ -23,6 +23,9 @@ public:
     typedef EdgesContainer<NodeT> ControlEdgesT;
     typedef EdgesContainer<NodeT> DependenceEdgesT;
 
+    // to be able to reference the KeyT
+    typedef KeyT KeyType;
+
     typedef typename ControlEdgesT::iterator control_iterator;
     typedef typename ControlEdgesT::const_iterator const_control_iterator;
     typedef typename DependenceEdgesT::iterator data_iterator;
@@ -43,22 +46,6 @@ public:
     {
         DG *tmp = static_cast<DG *>(dg);
         tmp->removeNode(key);
-    }
-
-    // NODE: does not free memory
-    void remove()
-    {
-        // XXX is this method useful?
-        // Shouldn't only the DG be able to remove
-        // nodes from it? I suppose yes - but what
-        // if we remove basic block? Then we'd like
-        // to remove the nodes - so we must have some way to do it
-
-        // remove the node from dependence graph,
-        // so that we won't have any dangling references
-        // This method calls isolate(), so this is all
-        // must do
-        removeFromDG();
     }
 
     void *setDG(void *dg)
@@ -196,6 +183,14 @@ public:
             }
 
             basicBlock = nullptr;
+
+            // also, if this is a callSite,
+            // it is no longer part of BBlock,
+            // so we must remove it from callSites
+            if (hasSubgraphs()) {
+                bool ret = basicBlock->removeCallSite(static_cast<NodeT *>(this));
+                assert(ret && "the call site was not in BB's callSites");
+            }
         }
 
         // make previous node point to nextNode

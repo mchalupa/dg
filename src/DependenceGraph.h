@@ -178,6 +178,11 @@ public:
         return n;
     }
 
+    NodeT *removeNode(NodeT *n)
+    {
+        return removeNode(n->getKey());
+    }
+
     bool deleteNode(KeyT k)
     {
         NodeT *n = removeNode(k);

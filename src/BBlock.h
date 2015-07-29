@@ -102,6 +102,7 @@ public:
                 tmp->removeDDs();
                 // remove the node from dg
                 tmp->removeFromDG();
+
                 delete tmp;
             }
         }
@@ -213,6 +214,34 @@ public:
         return analysisAuxData.dfsorder;
     }
 
+    // in order to fasten up interprocedural analyses,
+    // we register all the call sites in the BBlock
+    unsigned int getCallSitesNum() const
+    {
+        return callSites.size();
+    }
+
+    const std::set<NodeT *>& getCallSites()
+    {
+        return callSites;
+    }
+
+    bool addCallsite(NodeT *n)
+    {
+        assert(n->getBasicBlock() == this
+               && "Cannot add callsite from different BB");
+
+        return callSites.insert(n).second;
+    }
+
+    bool removeCallSite(NodeT *n)
+    {
+        assert(n->getBasicBlock() == this
+               && "Removing callsite from different BB");
+
+        return callSites.erase(n) != 0;
+    }
+
 #if defined(ENABLE_POSTDOM)
     ContainerT& getPostdominates() { return postdominates; }
     // get immediate post-dominator
@@ -258,6 +287,9 @@ private:
     BBlock<NodeT> *ipostdom;
 
 #endif // ENABLE_POSTDOM
+
+    // auxiliary data for analyses
+    std::set<NodeT *> callSites;
 
     // auxiliary data for different analyses
     analysis::AnalysesAuxiliaryData analysisAuxData;
