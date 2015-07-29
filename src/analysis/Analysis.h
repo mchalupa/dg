@@ -11,9 +11,6 @@ class BBlock;
 
 namespace analysis {
 
-/// --------------------------------------------------------
-//  - Analyses using nodes
-/// --------------------------------------------------------
 // data for analyses, stored in nodes
 struct AnalysesAuxiliaryData
 {
@@ -28,6 +25,22 @@ struct AnalysesAuxiliaryData
     unsigned int dfsorder;
 };
 
+// gather statistics about a run
+struct AnalysisStatistics
+{
+    AnalysisStatistics()
+        : processedBlocks(0), processedNodes(0) {};
+
+    uint64_t processedBlocks;
+    uint64_t processedNodes;
+
+    uint64_t getProcessedBlocks() const { return processedBlocks; }
+    uint64_t getProcessedNodes() const { return processedNodes; }
+};
+
+/// --------------------------------------------------------
+//  - Analyses using nodes
+/// --------------------------------------------------------
 template <typename NodeT>
 class Analysis
 {
@@ -36,6 +49,14 @@ public:
     {
         return n->analysisAuxData;
     }
+
+    const AnalysisStatistics& getStatistics() const
+    {
+        return statistics;
+    }
+
+protected:
+    AnalysisStatistics statistics;
 };
 
 

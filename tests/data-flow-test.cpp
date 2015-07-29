@@ -121,6 +121,14 @@ public:
             d->getNode(i)->counter = 0;
         }
 
+        const analysis::DataFlowStatistics& stats = dfa.getStatistics();
+        check(stats.getBBlocksNum() == NODES_NUM, "wrong number of blocks: %d",
+              stats.getBBlocksNum());
+        check(stats.processedBlocks == NODES_NUM,
+              "processed more blocks than %d - %d", NODES_NUM, stats.processedBlocks);
+        check(stats.getIterationsNum() == 1, "did wrong number of iterations: %d",
+              stats.getIterationsNum());
+
         DataFlowA dfa2(d->getEntryBB(), one_change);
         dfa2.run();
 
@@ -129,6 +137,15 @@ public:
                   "did not go through the node only one time but %d",
                   d->getNode(i)->counter);
         }
+
+        const analysis::DataFlowStatistics& stats2 = dfa2.getStatistics();
+        check(stats2.getBBlocksNum() == NODES_NUM, "wrong number of blocks: %d",
+              stats2.getBBlocksNum());
+        check(stats2.processedBlocks == 2*NODES_NUM,
+              "processed more blocks than %d - %d", 2*NODES_NUM, stats2.processedBlocks);
+        check(stats2.getIterationsNum() == 2, "did wrong number of iterations: %d",
+              stats2.getIterationsNum());
+
         #undef NODES_NUM
     }
 
@@ -174,6 +191,16 @@ public:
             n->counter = 0;
         }
 
+        // this did not go into the procedures, so we should have only
+        // the parent graph
+        const analysis::DataFlowStatistics& stats = dfa.getStatistics();
+        check(stats.getBBlocksNum() == NODES_NUM, "wrong number of blocks: %d",
+              stats.getBBlocksNum());
+        check(stats.processedBlocks == NODES_NUM,
+              "processed more blocks than %d - %d", NODES_NUM, stats.processedBlocks);
+        check(stats.getIterationsNum() == 1, "did wrong number of iterations: %d",
+              stats.getIterationsNum());
+
         DataFlowA dfa2(d->getEntryBB(), one_change,
                        analysis::DATAFLOW_INTERPROCEDURAL | analysis::DATAFLOW_BB_NO_CALLSITES);
         dfa2.run();
@@ -206,6 +233,17 @@ public:
             // zero out the counter for next dataflow run
             n->counter = 0;
         }
+
+        // we have NODES_NUM nodes and each node has subgraph of the
+        // same size + 2 blocks with parameters + the blocks in parent graph
+        uint64_t blocks_num = (NODES_NUM + 1)*(NODES_NUM + 2);
+        const analysis::DataFlowStatistics& stats2 = dfa2.getStatistics();
+        check(stats2.getBBlocksNum() == blocks_num, "wrong number of blocks: %d",
+              stats2.getBBlocksNum());
+        check(stats2.processedBlocks == 2*blocks_num,
+              "processed more blocks than %d - %d", 2*blocks_num, stats2.processedBlocks);
+        check(stats2.getIterationsNum() == 2, "did wrong number of iterations: %d",
+              stats2.getIterationsNum());
 
         // BBlocks now keep call-sites information, so now
         // this should work too
@@ -241,6 +279,16 @@ public:
             // zero out the counter for next dataflow run
             n->counter = 0;
         }
+
+        // we have NODES_NUM nodes and each node has subgraph of the
+        // same size + 2 blocks with parameters + the blocks in parent graph
+        const analysis::DataFlowStatistics& stats3 = dfa3.getStatistics();
+        check(stats3.getBBlocksNum() == blocks_num, "wrong number of blocks: %d",
+              stats3.getBBlocksNum());
+        check(stats3.processedBlocks == 2*blocks_num,
+              "processed more blocks than %d - %d", 2*blocks_num, stats3.processedBlocks);
+        check(stats3.getIterationsNum() == 2, "did wrong number of iterations: %d",
+              stats3.getIterationsNum());
 
         debug::DG2Dot<int, TestNode> dump(d, debug::PRINT_CFG | debug::PRINT_CALL);
         dump.dump("test.dot", d->getEntryBB());

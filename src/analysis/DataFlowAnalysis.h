@@ -14,6 +14,17 @@
 namespace dg {
 namespace analysis {
 
+struct DataFlowStatistics : public AnalysisStatistics {
+    DataFlowStatistics()
+        : AnalysisStatistics(), bblocksNum(0), iterationsNum(0) {}
+
+    uint64_t bblocksNum;
+    uint64_t iterationsNum;
+
+    uint64_t getBBlocksNum() const { return bblocksNum; }
+    uint64_t getIterationsNum() const { return iterationsNum; }
+};
+
 enum DataFlowAnalysisFlags {
     DATAFLOW_INTERPROCEDURAL    = 1 << 0,
     DATAFLOW_BB_NO_CALLSITES    = 1 << 1,
@@ -61,6 +72,12 @@ public:
         // we will get all the nodes using DFS
         DFS.run(entryBB, dfs_proc_bb, data);
 
+        // update statistics
+        statistics.bblocksNum = blocks.size();
+        statistics.iterationsNum = 1;
+        // first run goes over each BB once
+        statistics.processedBlocks = statistics.bblocksNum;
+
         // Iterate over the nodes in dfs reverse order, it is
         // usually good for reaching fixpoint. Later we can
         // add options what ordering to use.
@@ -71,11 +88,19 @@ public:
             for (auto I = blocks.rbegin(), E = blocks.rend();
                  I != E; ++I) {
                 changed |= runOnBlock(*I);
+                ++statistics.processedBlocks;
             }
+
+            ++statistics.iterationsNum;
         }
     }
 
     uint32_t getFlags() const { return flags; }
+
+    const DataFlowStatistics& getStatistics() const
+    {
+        return statistics;
+    }
 
 private:
     // define set of blocks to be ordered in dfs order
@@ -100,6 +125,7 @@ private:
 
     BBlock<NodeT> *entryBB;
     uint32_t flags;
+    DataFlowStatistics statistics;
 };
 
 

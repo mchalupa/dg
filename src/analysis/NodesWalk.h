@@ -113,6 +113,9 @@ public:
             prepare(BB);
             func(BB, data);
 
+            // update statistics
+            ++this->statistics.processedBlocks;
+
             // should and can we go into subgraph?
             if ((flags & BBLOCK_WALK_INTERPROCEDURAL)) {
                 if ((flags & BBLOCK_NO_CALLSITES)
@@ -139,7 +142,6 @@ public:
     }
 
     uint32_t getFlags() const { return flags; }
-
 protected:
     virtual void prepare(BBlockPtrT BB)
     {
