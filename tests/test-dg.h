@@ -18,7 +18,7 @@ public:
     int counter;
 };
 
-class TestDG : public DependenceGraph<int, TestNode>
+class TestDG : public DependenceGraph<TestNode>
 {
 public:
 #ifdef ENABLE_CFG
@@ -27,7 +27,7 @@ public:
 
     bool addNode(TestNode *n)
     {
-        return DependenceGraph<int, TestNode>
+        return DependenceGraph<TestNode>
                 ::addNode(n->getKey(), n);
     }
 };

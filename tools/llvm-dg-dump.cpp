@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     d.build(&*M);
 
-    debug::DG2Dot<const llvm::Value *, LLVMNode> dump(&d, opts);
+    debug::DG2Dot<LLVMNode> dump(&d, opts);
 
     dump.printKey = printLLVMVal;
     dump.checkNode = checkNode;

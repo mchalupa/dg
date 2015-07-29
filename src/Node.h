@@ -9,7 +9,7 @@
 
 namespace dg {
 
-template <typename KeyT, typename NodeT>
+template <typename NodeT>
 class DependenceGraph;
 
 /// --------------------------------------------------------

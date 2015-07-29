@@ -56,8 +56,7 @@ public:
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------
-class LLVMDependenceGraph :
-    public dg::DependenceGraph<const llvm::Value *, LLVMNode>
+class LLVMDependenceGraph : public dg::DependenceGraph<LLVMNode>
 {
 public:
     // free all allocated memory and unref subgraphs

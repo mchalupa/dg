@@ -21,15 +21,16 @@ namespace dg {
 // --------------------------------------------------------
 // --- DependenceGraph
 // --------------------------------------------------------
-template <typename KeyT, typename NodeT>
+template <typename NodeT>
 class DependenceGraph
 {
 public:
+    typedef typename NodeT::KeyType KeyT;
     typedef std::map<KeyT, NodeT *> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
 
-    DependenceGraph<KeyT, NodeT>()
+    DependenceGraph<NodeT>()
         :entryNode(nullptr), exitNode(nullptr), refcount(1)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
@@ -39,7 +40,7 @@ public:
 
     // TODO add copy constructor for cloning graph
 
-    virtual ~DependenceGraph<KeyT, NodeT>() {}
+    virtual ~DependenceGraph<NodeT>() {}
 
     // iterators
     iterator begin(void) { return nodes.begin(); }

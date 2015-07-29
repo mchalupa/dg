@@ -38,13 +38,15 @@ std::ostream& operator <<(std::ostream& os, const Indent& ind)
     return os;
 }
 
-template <typename KeyT, typename NodeT>
+template <typename NodeT>
 class DG2Dot
 {
 public:
-    DG2Dot<KeyT, NodeT>(DependenceGraph<KeyT, NodeT> *dg,
-                         uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,
-                         const char *file = NULL)
+    typedef typename NodeT::KeyType KeyT;
+
+    DG2Dot<NodeT>(DependenceGraph<NodeT> *dg,
+                  uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,
+                  const char *file = NULL)
         : options(opts), dg(dg), file(file),
           printKey(nullptr), checkNode(check_node)
     {
@@ -218,7 +220,7 @@ private:
         }
     }
 
-    void dump_subgraph(DependenceGraph<KeyT, NodeT> *sub)
+    void dump_subgraph(DependenceGraph<NodeT> *sub)
     {
         out << "\t/* subgraph " << sub << " nodes */\n";
         out << "\tsubgraph cluster_" << sub << " {\n";
@@ -398,10 +400,10 @@ private:
     const char *dd_color = "black";
     const char *cd_color = "blue";
 
-    DependenceGraph<KeyT, NodeT> *dg;
+    DependenceGraph<NodeT> *dg;
     const char *file;
     std::ofstream out;
-    std::set<DependenceGraph<KeyT, NodeT> *> subgraphs;
+    std::set<DependenceGraph<NodeT> *> subgraphs;
 
 public:
     /* functions for adjusting the output. These are public,
