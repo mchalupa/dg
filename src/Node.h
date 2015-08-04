@@ -332,9 +332,10 @@ protected:
     // key uniquely identifying this node in a graph
     KeyT key;
 
-private:
     // each node has reference to the DependenceGraph
     DependenceGraphT *dg;
+
+private:
 
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
