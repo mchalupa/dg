@@ -25,6 +25,54 @@ using std::make_pair;
 
 namespace dg {
 
+LLVMNode **LLVMNode::findOperands()
+{
+    using namespace llvm;
+    const Value *val = getKey();
+
+    if (const AllocaInst *Inst = dyn_cast<AllocaInst>(val)) {
+        operands = new LLVMNode *[1];
+        operands[0] = dg->getNode(val);
+        operands_num = 1;
+    } else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+        operands = new LLVMNode *[2];
+        operands[0] = dg->getNode(Inst->getPointerOperand());
+        operands[1] = dg->getNode(Inst->getValueOperand());
+        operands_num = 2;
+        assert(operands[0] && "StoreInst pointer operand without node");
+        if (!operands[1]) {
+            errs() << "WARN: StoreInst value operand without node: "
+                   << *Inst->getValueOperand() << "\n";
+        }
+    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+        operands = new LLVMNode *[1];
+        operands[0] = dg->getNode(Inst->getPointerOperand());
+        operands_num = 1;
+    } else if (const GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
+        operands = new LLVMNode *[1];
+        operands[0] = dg->getNode(Inst->getPointerOperand());
+        operands_num = 1;
+    } else if (const CallInst *Inst = dyn_cast<CallInst>(val)) {
+        // we store the called function as a first operand
+        // and all the arguments as the other operands
+        operands_num = Inst->getNumArgOperands() + 1;
+        operands = new LLVMNode *[operands_num];
+        operands[0] = dg->getNode(Inst->getCalledValue());
+        for (int i = 0; i < operands_num - 1; ++i)
+            operands[i + 1] = dg->getNode(Inst->getArgOperand(i));
+    } else if (const ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
+        operands = new LLVMNode *[1];
+        operands[0] = dg->getNode(Inst->getReturnValue());
+        operands_num = 1;
+    } else if (const CastInst *Inst = dyn_cast<CastInst>(val)) {
+        operands = new LLVMNode *[1];
+        operands[0] = dg->getNode(Inst->stripPointerCasts());
+        if (!operands[0])
+            errs() << "WARN: CastInst with unstrippable pointer cast" << *Inst << "\n";
+        operands_num = 1;
+    }
+}
+
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------

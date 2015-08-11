@@ -27,8 +27,14 @@ class LLVMNode : public dg::Node<LLVMDependenceGraph,
 {
 public:
     LLVMNode(const llvm::Value *val)
-        :dg::Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>(val)
+        :dg::Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>(val),
+         operands(nullptr), operands_num(0)
     {}
+
+    ~LLVMNode()
+    {
+        delete[] operands;
+    }
 
     const llvm::Value *getValue() const
     {
@@ -41,7 +47,30 @@ public:
     // Must be called only when node is call-site.
     // XXX create new class for parameters
     void addActualParameters(LLVMDependenceGraph *);
+
+    LLVMNode **getOperands()
+    {
+        if (!operands)
+            findOperands();
+
+        return operands;
+    }
+
+    LLVMNode *getOperand(unsigned int idx)
+    {
+        if (!operands)
+            findOperands();
+
+        assert(operands_num > idx && "idx is too high");
+        return operands[idx];
+    }
+
 private:
+    LLVMNode **findOperands();
+    // here we can store operands of instructions so that
+    // finding them will be asymptotically constant
+    LLVMNode **operands;
+    size_t operands_num;
 };
 
 } // namespace dg
