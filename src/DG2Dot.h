@@ -201,27 +201,42 @@ private:
 
     void dump_parameters(NodeT *node, int ind)
     {
-        Indent Ind(ind);
         DGParameters<KeyT, NodeT> *params = node->getParameters();
 
         if (params) {
-            DumpBBData data(out, options, ind);
-
-            out << Ind << "/* Input parameters */\n";
-            dumpBB(params->getBBIn(), data);
-            out << Ind << "/* Output parameters */\n";
-            dumpBB(params->getBBOut(), data);
-
-            // dump all the nodes again to get the names
-            for (auto it : *params) {
-                dump_node(it.second.in, ind, "IN ARG");
-                dump_node_edges(it.second.in, ind);
-
-                dump_node(it.second.out, ind, "OUT ARG");
-                dump_node_edges(it.second.out, ind);
-            }
+            dump_parameters(params, ind);
         }
     }
+
+    void dump_parameters(DependenceGraph<NodeT> *g, int ind)
+    {
+        DGParameters<KeyT, NodeT> *params = g->getParameters();
+
+        if (params) {
+            dump_parameters(params, ind);
+        }
+    }
+
+    void dump_parameters(DGParameters<KeyT, NodeT> *params, int ind)
+    {
+        Indent Ind(ind);
+        DumpBBData data(out, options, ind);
+
+        out << Ind << "/* Input parameters */\n";
+        dumpBB(params->getBBIn(), data);
+        out << Ind << "/* Output parameters */\n";
+        dumpBB(params->getBBOut(), data);
+
+        // dump all the nodes again to get the names
+        for (auto it : *params) {
+            dump_node(it.second.in, ind, "IN ARG");
+            dump_node_edges(it.second.in, ind);
+
+            dump_node(it.second.out, ind, "OUT ARG");
+            dump_node_edges(it.second.out, ind);
+        }
+    }
+
 
     void dump_subgraph(DependenceGraph<NodeT> *sub)
     {
@@ -231,8 +246,7 @@ private:
             << " has " << sub->size() << " nodes\"\n";
 
         // dump BBs of the formal parameters
-        NodeT *entry = sub->getEntry();
-        dump_parameters(entry, 2);
+        dump_parameters(sub, 2);
 
         // dump BBs in the subgraph
         if (sub->getEntryBB())
