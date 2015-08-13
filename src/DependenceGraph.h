@@ -31,7 +31,8 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<NodeT>()
-        :entryNode(nullptr), exitNode(nullptr), refcount(1)
+        : entryNode(nullptr), exitNode(nullptr), refcount(1),
+          formalParameters(nullptr)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -55,6 +56,15 @@ public:
     bool contains(KeyT k) const { return nodes.count(k) != 0; }
     iterator find(KeyT k) { return nodes.find(k); }
     const_iterator find(KeyT k) const { return nodes.find(k); }
+
+    DGParameters<KeyT, NodeT> *getParameters() { return formalParameters;}
+    DGParameters<KeyT, NodeT> *getParameters() const { return formalParameters;}
+    DGParameters<KeyT, NodeT> *setParameters(DGParameters<KeyT, NodeT> *p)
+    {
+        DGParameters<KeyT, NodeT> *old = formalParameters;
+        formalParameters = p;
+        return old;
+    }
 
     ///
     // Get node from graph for key. Return nullptr if
@@ -200,6 +210,8 @@ protected:
 private:
     NodeT *entryNode;
     NodeT *exitNode;
+
+    DGParameters<KeyT, NodeT> *formalParameters;
 
 #ifdef ENABLE_CFG
     BBlock<NodeT> *entryBB;
