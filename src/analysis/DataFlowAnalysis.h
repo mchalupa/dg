@@ -59,10 +59,8 @@ public:
         assert(entryBB && "entry basic block is nullptr");
 
         /* translate flags */
-        if (flags & DATAFLOW_INTERPROCEDURAL) {
+        if (flags & DATAFLOW_INTERPROCEDURAL)
             flg |= DFS_INTERPROCEDURAL;
-            flg |= DFS_PARAMS;
-        }
         if (flags & DATAFLOW_BB_NO_CALLSITES)
             flg |= DFS_BB_NO_CALLSITES;
 
