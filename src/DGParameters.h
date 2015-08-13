@@ -72,6 +72,20 @@ public:
         return true;
     }
 
+    DGParameter<NodeT> *find(Key k)
+    {
+        iterator it = params.find(k);
+        if (it == end())
+            return nullptr;
+
+        return &(it->second);
+    }
+
+    const DGParameter<NodeT> *find(Key k) const
+    {
+        return find(k);
+    }
+
     iterator begin(void) { return params.begin(); }
     const_iterator begin(void) const { return params.begin(); }
     iterator end(void) { return params.end(); }
