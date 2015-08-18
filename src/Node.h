@@ -22,6 +22,9 @@ class Node
 public:
     typedef EdgesContainer<NodeT> ControlEdgesT;
     typedef EdgesContainer<NodeT> DependenceEdgesT;
+#if ENABLE_PSS
+    typedef EdgesContainer<NodeT> PSSEdgesT;
+#endif
 
     // to be able to reference the KeyT and DG
     typedef KeyT KeyType;
@@ -280,6 +283,23 @@ public:
 
 #endif /* ENABLE_CFG */
 
+#if ENABLE_PSS
+    bool addPSSEdge(NodeT *n)
+    {
+        bool ret1, ret2;
+        ret1 = n->pssRevEdges.insert(static_cast<NodeT *>(this));
+        ret2 = pssEdges.insert(n);
+
+        assert(ret1 == ret2 && "Inconsistency in PSS edges");
+        return ret1;
+    }
+
+    bool hasPSSEdges() const { return !pssEdges.empty(); }
+    const PSSEdgesT& getPSSEdges() const { return pssEdges; }
+    const PSSEdgesT& getRevPSSEdges() const { return pssEdges; }
+    //PSSEdgesT& getPSSEdges() { return pssEdges; }
+#endif
+
     bool addSubgraph(DependenceGraphT *sub)
     {
         bool ret = subgraphs.insert(sub).second;
@@ -347,6 +367,13 @@ private:
     // predcessors of this node
     NodeT *prevNode;
 #endif /* ENABLE_CFG */
+#ifdef ENABLE_PSS
+    // pointer-state subgraph
+    // edges connecting nodes that take
+    // action on indirect values
+    PSSEdgesT pssEdges;
+    PSSEdgesT pssRevEdges;
+#endif
 
     ControlEdgesT controlDepEdges;
     DependenceEdgesT dataDepEdges;

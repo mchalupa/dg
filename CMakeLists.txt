@@ -9,16 +9,16 @@ include_directories( ${CMAKE_SOURCE_DIR}/src )
 OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
-OPTION(ENABLE_POSTDOM "Add support for post-dominator edges to the graph" ON)
+OPTION(ENABLE_PSS "Add support for pointer-state subgraph edges to the graph" OFF)
 
 if (LLVM_DG)
 	# for llvm dg we need cfg and postdom edges
-	if (NOT ENABLE_CFG OR NOT ENABLE_POSTDOM)
-		message(STATUS "Enabling CFG and post-dom edges due to llvm dg")
+	if (NOT ENABLE_CFG OR NOT ENABLE_PSS)
+		message(STATUS "Enabling CFG and PSS edges due to llvm dg")
 	endif()
 
 	set(ENABLE_CFG ON)
-	set(ENABLE_POSTDOM ON)
+	set(ENABLE_PSS ON)
 
 	find_package(LLVM REQUIRED CONFIG)
 
@@ -48,14 +48,9 @@ if (LLVM_DG)
 	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
 
-if (ENABLE_POSTDOM)
-	# need CFG for post-dom
-	if (NOT ENABLE_CFG)
-		message(STATUS "Enabling CFG due to post-dom edges (that are enabled)")
-	endif()
-
-	set(ENABLE_CFG ON)
-	add_definitions(-DENABLE_POSTDOM)
+if (ENABLE_PSS)
+	set(ENABLE_PSS ON)
+	add_definitions(-DENABLE_PSS)
 endif()
 
 if (ENABLE_CFG)

@@ -25,8 +25,8 @@ class BBlock
 public:
     BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
         : firstNode(first), lastNode(last)
-#if defined(ENABLE_POSTDOM)
-          , ipostdom(nullptr)
+#ifdef ENABLE_PSS
+          , firstPointer(nullptr)
 #endif
     {
         /// XXX other nodes do not have set basicBlock
@@ -209,6 +209,20 @@ public:
         return old;
     }
 
+#ifdef ENABLE_PSS
+    NodeT *setFirstPointer(NodeT *nn)
+    {
+        NodeT *old = firstPointer;
+        firstPointer = nn;
+        return old;
+    }
+
+    NodeT *getFirstPointer() const
+    {
+        return firstPointer;
+    }
+#endif
+
     unsigned int getDFSOrder() const
     {
         return analysisAuxData.dfsorder;
@@ -242,29 +256,6 @@ public:
         return callSites.erase(n) != 0;
     }
 
-#if defined(ENABLE_POSTDOM)
-    ContainerT& getPostdominates() { return postdominates; }
-    // get immediate post-dominator
-    const ContainerT& getIPostDom() const { return ipostdominates; }
-    BBlock<NodeT> *getIPostDomBy() const { return ipostdom; }
-    // add node that is immediately post-dominated by this node
-    bool addIPostDom(BBlock<NodeT> *pd)
-    {
-        assert(pd && "Passed nullptr");
-
-        if (pd == ipostdom)
-            return false;
-
-        /*
-        assert((pd == nullptr || pd == ipostdom)
-               && "Node already has different post-dominator");
-        */
-
-        ipostdom = pd;
-        return pd->ipostdominates.insert(this);
-    }
-#endif // ENABLE_POSTDOM
-
 private:
     ContainerT nextBBs;
     ContainerT prevBBs;
@@ -274,19 +265,10 @@ private:
     // last node in this basic block
     NodeT *lastNode;
 
-#if defined(ENABLE_POSTDOM)
-    // set of blocks that this block post-dominates
-    ContainerT postdominates;
-
-    // immediate postdominator. The BB can be immediate
-    // post-dominator of more nodes
-    ContainerT ipostdominates;
-
-    // reverse edge to immediate postdom. The BB can be
-    // immediately post-dominated only by one BB
-    BBlock<NodeT> *ipostdom;
-
-#endif // ENABLE_POSTDOM
+#ifdef ENABLE_PSS
+    // first node that somehow takes action on memory
+    NodeT *firstPointer;
+#endif
 
     // auxiliary data for analyses
     std::set<NodeT *> callSites;

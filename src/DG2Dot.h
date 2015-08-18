@@ -20,6 +20,9 @@ enum dg2dot_options {
     PRINT_CD        = 1 << 4,
     PRINT_REV_CD    = 1 << 5,
     PRINT_CALL      = 1 << 6,
+#ifdef ENABLE_PSS
+    PRINT_PSS       = 1 << 7,
+#endif
     PRINT_ALL       = ~((uint32_t) 0)
 };
 
@@ -395,6 +398,15 @@ private:
                     << " [style=\"dotted\" color=gray]\n";
             }
         }
+
+#ifdef ENABLE_PSS
+        if (options & PRINT_PSS) {
+            out << Ind << "/* PSS Edges */\n";
+            for (NodeT *edg : n->getPSSEdges())
+                out << Ind << "NODE" << n << " -> NODE" << edg
+                    << " [style=\"solid\" color=purple penwidth=2]\n";
+        }
+#endif
     }
 
     const char *dd_color = "black";
