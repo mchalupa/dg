@@ -13,6 +13,8 @@
 #include <map>
 #include <set>
 
+#include <llvm/IR/Value.h>
+
 #include "PointsTo.h"
 
 namespace dg {

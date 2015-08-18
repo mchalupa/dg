@@ -2,6 +2,7 @@
 #define _DG_NODES_WALK_H_
 
 #include "Analysis.h"
+#include "DGParameters.h"
 
 namespace dg {
 namespace analysis {
