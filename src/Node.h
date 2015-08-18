@@ -36,7 +36,7 @@ public:
     typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
     Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k, DependenceGraphT *dg = nullptr)
-        : key(k), parameters(nullptr), dg(dg)
+        : key(k), dg(dg), parameters(nullptr)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr),
            prevNode(nullptr)
@@ -356,6 +356,18 @@ protected:
     DependenceGraphT *dg;
 
 private:
+    ControlEdgesT controlDepEdges;
+    DependenceEdgesT dataDepEdges;
+
+    // Nodes that have control/dep edge to this node
+    ControlEdgesT revControlDepEdges;
+    DependenceEdgesT revDataDepEdges;
+
+    // a node can have more subgraphs (i. e. function pointers)
+    std::set<DependenceGraphT *> subgraphs;
+
+    // actual parameters if this is a callsite
+    DGParameters<KeyT, NodeT> *parameters;
 
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
@@ -374,19 +386,6 @@ private:
     PSSEdgesT pssEdges;
     PSSEdgesT pssRevEdges;
 #endif
-
-    ControlEdgesT controlDepEdges;
-    DependenceEdgesT dataDepEdges;
-
-    // Nodes that have control/dep edge to this node
-    ControlEdgesT revControlDepEdges;
-    DependenceEdgesT revDataDepEdges;
-
-    // a node can have more subgraphs (i. e. function pointers)
-    std::set<DependenceGraphT *> subgraphs;
-
-    // actual parameters if this is a callsite
-    DGParameters<KeyT, NodeT> *parameters;
 
     // auxiliary data for different analyses
     analysis::AnalysesAuxiliaryData analysisAuxData;

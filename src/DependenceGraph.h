@@ -31,8 +31,8 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<NodeT>()
-        : entryNode(nullptr), exitNode(nullptr), refcount(1),
-          formalParameters(nullptr)
+        : entryNode(nullptr), exitNode(nullptr), formalParameters(nullptr),
+          refcount(1)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -213,13 +213,13 @@ private:
 
     DGParameters<KeyT, NodeT> *formalParameters;
 
+    // how many nodes keeps pointer to this graph?
+    int refcount;
+
 #ifdef ENABLE_CFG
     BBlock<NodeT> *entryBB;
     BBlock<NodeT> *exitBB;
 #endif // ENABLE_CFG
-
-    // how many nodes keeps pointer to this graph?
-    int refcount;
 };
 
 } // namespace dg
