@@ -75,7 +75,6 @@ static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     const Value *valOp = Inst->getValueOperand();
-    bool isptr;
 
     LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode && "No node for pointer argument");
@@ -152,7 +151,7 @@ static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
     const DataLayout& DL = valueGetModule(node->getKey())->getDataLayout();
     APInt offset(64, 0);
 
-    if (Inst->accumulateConstantOffset(DL, offset))
+    if (Inst->accumulateConstantOffset(DL, offset)) {
         if (offset.isIntN(64)) {
             for (auto ptr : ptrNode->getPointsTo()) {
                     if (ptr.obj->isUnknown())
@@ -163,14 +162,13 @@ static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
                         changed |= node->addPointsTo(ptr.obj, offset.getZExtValue());
                                                      // XXX? accumulate the offset of pointers
             }
-
-            return changed;
         } else
             errs() << "WARN: GEP offset greater that 64-bit\n";
-
-    for (auto ptr : ptrNode->getPointsTo())
-        // UKNOWN_OFFSET + something is still unknown
-        changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+    } else {
+        for (auto ptr : ptrNode->getPointsTo())
+            // UKNOWN_OFFSET + something is still unknown
+            changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+    }
 
     return changed;
 }
@@ -278,6 +276,8 @@ static bool handleReturnInst(const ReturnInst *Inst, LLVMNode *node)
     LLVMNode *val = node->getOperand(0);
     const Value *llvmval;
 
+    (void) Inst;
+
     if (!val)
         return false;
 
@@ -301,7 +301,6 @@ static bool handleReturnInst(const ReturnInst *Inst, LLVMNode *node)
 bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
 {
     bool changed = false;
-    bool _changed = false;
     const Value *val = node->getKey();
 
     if (const AllocaInst *Inst = dyn_cast<AllocaInst>(val)) {
