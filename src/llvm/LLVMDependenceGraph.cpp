@@ -396,7 +396,7 @@ void LLVMDependenceGraph::addFormalParameters()
         return;
 
     LLVMDGParameters *params = new LLVMDGParameters();
-    entryNode->addParameters(params);
+    setParameters(params);
 
     LLVMNode *in, *out;
     for (auto I = func->arg_begin(), E = func->arg_end();
