@@ -233,8 +233,9 @@ public:
         }
 
         // we have NODES_NUM nodes and each node has subgraph of the
-        // same size + 2 blocks with parameters + the blocks in parent graph
-        uint64_t blocks_num = (NODES_NUM + 1)*(NODES_NUM + 2);
+        // same size + the blocks in parent graph
+        // we don't go through the parameters!
+        uint64_t blocks_num = (NODES_NUM + 1) * NODES_NUM;
         const analysis::DataFlowStatistics& stats2 = dfa2.getStatistics();
         check(stats2.getBBlocksNum() == blocks_num, "wrong number of blocks: %d",
               stats2.getBBlocksNum());
@@ -279,7 +280,7 @@ public:
         }
 
         // we have NODES_NUM nodes and each node has subgraph of the
-        // same size + 2 blocks with parameters + the blocks in parent graph
+        // same size + the blocks in parent graph
         const analysis::DataFlowStatistics& stats3 = dfa3.getStatistics();
         check(stats3.getBBlocksNum() == blocks_num, "wrong number of blocks: %d",
               stats3.getBBlocksNum());
