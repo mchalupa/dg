@@ -10,12 +10,14 @@ add_library(llvmdg SHARED
 	llvm/LLVMNode.h
 	llvm/LLVMDependenceGraph.h
 	llvm/LLVMDependenceGraph.cpp
+	llvm/PointsTo.h
+	llvm/PointsTo.cpp
 )
 
 target_link_libraries(llvmdg ${llvm_libs})
 
 if (ENABLE_DEBUG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall -Wextra -O0")
 else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
 endif ()

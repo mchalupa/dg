@@ -7,12 +7,14 @@
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
 
 #include <iostream>
 #include "llvm/LLVMDependenceGraph.h"
+#include "llvm/PointsTo.h"
 #include "DG2Dot.h"
 
 using namespace dg;
@@ -34,6 +36,14 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
         ro << *val;
 
     return os;
+}
+
+static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
+{
+    if (off.offset == UNKNOWN_OFFSET)
+        os << "UNKNOWN";
+    else
+        os << off.offset;
 }
 
 static bool checkNode(std::ostream& os, LLVMNode *node)
@@ -75,6 +85,39 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
         if(p->getBasicBlock() != node->getBasicBlock()) {
             os << "\\nERR: pred BB mismatch";
             err = true;
+        }
+    }
+
+    if (node->hasUnknownValue()) {
+        os << "\\lUNKNOWN VALUE";
+    } else {
+        const analysis::PointsToSetT& ptsto = node->getPointsTo();
+        if (ptsto.empty() && val->getType()->isPointerTy()) {
+            os << "\\lERR: pointer without pointsto set";
+            err = true;
+        }
+
+        for (auto it : ptsto) {
+            os << "\\lPTR: [";
+            if (it.obj->isUnknown())
+                os << "unknown";
+            else
+                printLLVMVal(os, it.obj->node->getKey());
+            os << "] + " << it.offset;
+        }
+
+        analysis::MemoryObj *mo = node->getMemoryObj();
+        if (mo) {
+            for (auto it : mo->pointsTo) {
+                for(auto it2 : it.second) {
+                    os << "\\l--MEMPTR: [" << it.first << "] -> ";
+                    if (it2.obj->isUnknown())
+                        os << "[unknown";
+                    else
+                        printLLVMVal(os, it2.obj->node->getKey());
+                    os << "] + " << it2.offset;
+                }
+            }
         }
     }
 

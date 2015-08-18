@@ -10,6 +10,7 @@
 #include <utility>
 #include <unordered_map>
 #include <set>
+#include <ctime>
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instruction.h>
@@ -19,6 +20,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "LLVMDependenceGraph.h"
+#include "PointsTo.h"
 
 using llvm::errs;
 using std::make_pair;
@@ -40,7 +42,7 @@ LLVMNode **LLVMNode::findOperands()
         operands[1] = dg->getNode(Inst->getValueOperand());
         operands_num = 2;
         assert(operands[0] && "StoreInst pointer operand without node");
-        if (!operands[1]) {
+        if (!operands[1] && !isa<Constant>(Inst->getValueOperand())) {
             errs() << "WARN: StoreInst value operand without node: "
                    << *Inst->getValueOperand() << "\n";
         }
@@ -71,6 +73,8 @@ LLVMNode **LLVMNode::findOperands()
             errs() << "WARN: CastInst with unstrippable pointer cast" << *Inst << "\n";
         operands_num = 1;
     }
+
+    assert(operands && "findOperands not implemented for this instr");
 }
 
 /// ------------------------------------------------------------------
@@ -127,6 +131,24 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 
     // build recursively DG from entry point
     build(entry);
+
+    struct timespec s, e, r;
+    analysis::LLVMPointsToAnalysis PTA(this);
+
+    clock_gettime(CLOCK_MONOTONIC, &s);
+    PTA.run();
+    clock_gettime(CLOCK_MONOTONIC, &e);
+    r.tv_sec = e.tv_sec - s.tv_sec;
+    if (e.tv_nsec > s.tv_nsec)
+        r.tv_nsec = e.tv_nsec - s.tv_nsec;
+    else {
+        --r.tv_sec;
+        r.tv_nsec = 1000000000 - e.tv_nsec;
+    }
+
+    errs() << "INFO: Points-to analysis took "
+           << r.tv_sec << " sec "
+           << r.tv_nsec / 1000000 << "ms\n";
 };
 
 bool
