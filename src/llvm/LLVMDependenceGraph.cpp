@@ -25,9 +25,11 @@
 #include "LLVMNode.h"
 
 #include "PointsTo.h"
+#include "DefUse.h"
 
 using llvm::errs;
 using std::make_pair;
+
 
 namespace dg {
 
@@ -150,6 +152,13 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     PTA.run();
     tm.stop();
     tm.report("INFO: Points-to analysis took");
+
+    analysis::LLVMDefUseAnalysis DUA(this);
+
+    tm.start();
+    DUA.run();
+    tm.stop();
+    tm.report("INFO: Def-Use analysis took");
 
     return true;
 };

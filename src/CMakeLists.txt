@@ -13,6 +13,8 @@ add_library(llvmdg SHARED
 	llvm/LLVMDependenceGraph.cpp
 	llvm/PointsTo.h
 	llvm/PointsTo.cpp
+	llvm/DefUse.h
+	llvm/DefUse.cpp
 )
 
 target_link_libraries(llvmdg ${llvm_libs})

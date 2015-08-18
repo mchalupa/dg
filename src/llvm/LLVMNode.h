@@ -17,6 +17,7 @@
 
 #include "Node.h"
 #include "PointsTo.h"
+#include "DefUse.h"
 
 // forward declaration of llvm types that need not
 // to be complete
@@ -101,6 +102,7 @@ public:
         return old;
     }
 
+
 private:
     LLVMNode **findOperands();
     // here we can store operands of instructions so that
@@ -110,6 +112,7 @@ private:
 
     analysis::MemoryObj *memoryobj;
     analysis::PointsToSetT pointsTo;
+    analysis::DefMap defMap;
 
     bool has_unknown_value;
 

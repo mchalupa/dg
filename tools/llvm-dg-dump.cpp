@@ -17,6 +17,7 @@
 #include <string>
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/PointsTo.h"
+#include "llvm/DefUse.h"
 #include "DG2Dot.h"
 
 using namespace dg;
@@ -135,6 +136,21 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
                     else
                         printLLVMVal(os, it2.obj->node->getKey());
                     os << "] + " << it2.offset;
+                }
+            }
+        }
+
+        analysis::DefMap *df = node->getData<analysis::DefMap>();
+        if (df) {
+            for (auto it : df->getDefs()) {
+                for (auto v : it.second) {
+                    os << "\\l--DEF: [";
+                    if (it.first.obj->isUnknown())
+                        os << "[unknown";
+                    else
+                        printLLVMVal(os, it.first.obj->node->getKey());
+                    os << "] + " << it.first.offset << " @ ";
+                    printLLVMVal(os, v->getKey());
                 }
             }
         }
