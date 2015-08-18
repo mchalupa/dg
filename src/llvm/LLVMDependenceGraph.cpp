@@ -32,7 +32,7 @@ LLVMNode **LLVMNode::findOperands()
     using namespace llvm;
     const Value *val = getKey();
 
-    if (const AllocaInst *Inst = dyn_cast<AllocaInst>(val)) {
+    if (isa<AllocaInst>(val)) {
         operands = new LLVMNode *[1];
         operands[0] = dg->getNode(val);
         operands_num = 1;
@@ -60,7 +60,7 @@ LLVMNode **LLVMNode::findOperands()
         operands_num = Inst->getNumArgOperands() + 1;
         operands = new LLVMNode *[operands_num];
         operands[0] = dg->getNode(Inst->getCalledValue());
-        for (int i = 0; i < operands_num - 1; ++i)
+        for (unsigned i = 0; i < operands_num - 1; ++i)
             operands[i + 1] = dg->getNode(Inst->getArgOperand(i));
     } else if (const ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
         operands = new LLVMNode *[1];
@@ -75,6 +75,8 @@ LLVMNode **LLVMNode::findOperands()
     }
 
     assert(operands && "findOperands not implemented for this instr");
+
+    return operands;
 }
 
 /// ------------------------------------------------------------------
@@ -149,10 +151,11 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     errs() << "INFO: Points-to analysis took "
            << r.tv_sec << " sec "
            << r.tv_nsec / 1000000 << "ms\n";
+
+    return true;
 };
 
-bool
-LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
+bool LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
 {
     using namespace llvm;
 
@@ -194,6 +197,8 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
     // addSubgraph will increase refcount of the graph
     node->addSubgraph(subgraph);
     node->addActualParameters(subgraph);
+
+    return true;
 }
 
 static bool

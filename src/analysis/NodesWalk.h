@@ -51,6 +51,7 @@ protected:
     // assign DFS order numbers
     virtual void prepare(NodeT *n)
     {
+        (void) n;
     }
 
 private:
@@ -144,6 +145,7 @@ public:
 protected:
     virtual void prepare(BBlockPtrT BB)
     {
+        (void) BB;
     }
 
 private:
