@@ -47,7 +47,17 @@ private:
     // (graph is a graph of one procedure)
     void addFormalParameters();
 
-    bool build(llvm::BasicBlock *BB, llvm::BasicBlock *pred = nullptr);
+    // take action specific to given instruction (while building
+    // the graph). This is like if the val is call-site, build
+    // subgraph or if it is a pointer-handling instr. then
+    // add PSS edges etc.
+    void handleInstruction(const llvm::Value *val, LLVMNode *node);
+
+    // convert llvm basic block to our basic block
+    // That includes creating all the nodes and adding them
+    // to this graph and creating the basic block and
+    // setting first and last instructions
+    LLVMBBlock *build(const llvm::BasicBlock& BB);
 
     // build subgraph for a call node
     bool buildSubgraph(LLVMNode *node);

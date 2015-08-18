@@ -104,8 +104,8 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-cfgall") == 0) {
             opts |= PRINT_CFG;
             opts |= PRINT_REV_CFG;
-        } else if (strcmp(argv[i], "-pd") == 0) {
-            errs() << "Not implemented now\n";
+        } else if (strcmp(argv[i], "-pss") == 0) {
+            opts |= PRINT_PSS;
         } else {
             module = argv[i];
         }

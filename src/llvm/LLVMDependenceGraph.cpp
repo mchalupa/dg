@@ -8,7 +8,7 @@
 #endif
 
 #include <utility>
-#include <deque>
+#include <unordered_map>
 #include <set>
 
 #include <llvm/IR/Module.h>
@@ -126,23 +126,6 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
     node->addActualParameters(subgraph);
 }
 
-static LLVMBBlock *
-createBasicBlock(LLVMNode *firstNode,
-                 LLVMBBlock *predBB)
-{
-    // XXX we're leaking basic block right now
-    LLVMBBlock *nodesBB = new LLVMBBlock(firstNode);
-
-    // if we have predcessor block, we can create edges
-    // if we do not have predcessor node, this is probably
-    // entry node. If it is not, it is a bug, but should be
-    // handled in caller
-    if (predBB)
-        predBB->addSuccessor(nodesBB);
-
-    return nodesBB;
-}
-
 static bool
 is_func_defined(const llvm::CallInst *CInst)
 {
@@ -159,50 +142,37 @@ is_func_defined(const llvm::CallInst *CInst)
     return true;
 }
 
-bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
-                                llvm::BasicBlock *pred)
+
+void LLVMDependenceGraph::handleInstruction(const llvm::Value *val, LLVMNode *node)
 {
     using namespace llvm;
-
-    BasicBlock::const_iterator IT = BB->begin();
-    const llvm::Value *val = &(*IT);
-
-    LLVMNode *node = nullptr;
-    LLVMNode *predNode = nullptr;
-    LLVMBBlock *nodesBB;
-    LLVMBBlock *predBB = nullptr;
-
-    // get a predcessor basic block if it exists
-    if (pred) {
-        LLVMNode *pn = getNode(pred->getTerminator());
-        assert(pn && "Predcessor node is not created");
-
-        predBB = pn->getBasicBlock();
-        assert(predBB && "No basic block in predcessor node");
-    }
-
-    node = new LLVMNode(val);
-    addNode(node);
-
-    nodesBB = createBasicBlock(node, predBB);
-    // set the basic block for the first node.
-    // setSuccessor function will set it inductively
-    // for the rest
-    node->setBasicBlock(nodesBB);
-
-    // if we don't have predcessor, this is the entry BB
-    if (predBB == nullptr)
-        setEntryBB(nodesBB);
 
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
         if (is_func_defined(CInst))
             buildSubgraph(node);
     }
+}
+
+LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
+{
+    using namespace llvm;
+
+    BasicBlock::const_iterator IT = llvmBB.begin();
+    const Value *val = &(*IT);
+
+    LLVMNode *predNode = nullptr;
+    LLVMNode *node = new LLVMNode(val);
+    LLVMBBlock *BB = new LLVMBBlock(node);
+
+    addNode(node);
+    handleInstruction(val, node);
 
     ++IT; // shift to next instruction, we have the first one handled
     predNode = node;
 
-    for (BasicBlock::const_iterator Inst = IT, EInst = BB->end();
+    // iterate over the instruction and create node for every single
+    // one of them + add CFG edges
+    for (BasicBlock::const_iterator Inst = IT, EInst = llvmBB.end();
          Inst != EInst; ++Inst) {
 
         val = &(*Inst);
@@ -214,21 +184,18 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
         if (predNode)
             predNode->setSuccessor(node);
 
-        // set new predcessor node
+        // set new predcessor node for next iteration
         predNode = node;
 
-        // if this is a call site, create new subgraph at this place
-        if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
-            if (is_func_defined(CInst))
-                buildSubgraph(node);
-        }
+        // take instruction specific actions
+        handleInstruction(val, node);
     }
 
     // check if this is the exit node of function
-    TerminatorInst *term = BB->getTerminator();
+    const TerminatorInst *term = llvmBB.getTerminator();
     if (!term) {
-        errs() << "Basic block is not well formed\n" << *BB << "\n";
-        return false;
+        errs() << "WARN: Basic block is not well formed\n" << llvmBB << "\n";
+        return BB;
     }
 
     // create one unified exit node from function and add control dependence
@@ -241,15 +208,13 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
         if (!ext) {
             // we need new llvm value, so that the nodes won't collide
             ReturnInst *phonyRet
-                = ReturnInst::Create(ret->getContext(), BB);
+                = ReturnInst::Create(ret->getContext()/*, ret->getReturnValue()*/);
             if (!phonyRet) {
-                errs() << "Failed creating phony return value "
+                errs() << "ERR: Failed creating phony return value "
                        << "for exit node\n";
-                return false;
+                // XXX later we could return somehow more mercifully
+                abort();
             }
-
-            // in newer LLVM we cannot set name to void type
-            //phonyRet->setName("EXIT");
 
             ext = new LLVMNode(phonyRet);
             addNode(ext);
@@ -263,26 +228,18 @@ bool LLVMDependenceGraph::build(llvm::BasicBlock *BB,
         // to EXIT node
         assert(node && "BUG, no node after we went through basic block");
         node->addControlDependence(ext);
-        nodesBB->addSuccessor(getExitBB());
+        BB->addSuccessor(getExitBB());
     }
 
     // set last node
-    nodesBB->setLastNode(node);
+    BB->setLastNode(node);
 
     // sanity check if we have the first and the last node set
-    assert(nodesBB->getFirstNode() && "No first node in BB");
-    assert(nodesBB->getLastNode() && "No last node in BB");
+    assert(BB->getFirstNode() && "No first node in BB");
+    assert(BB->getLastNode() && "No last node in BB");
 
-    return true;
+    return BB;
 }
-
-// workqueue element
-struct WE {
-    WE(llvm::BasicBlock *b, llvm::BasicBlock *p):BB(b), pred(p) {}
-
-    llvm::BasicBlock *BB;
-    llvm::BasicBlock *pred;
-};
 
 bool LLVMDependenceGraph::build(llvm::Function *func)
 {
@@ -304,65 +261,30 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     setEntry(entry);
 
     constructedFunctions.insert(make_pair(func, this));
+    std::unordered_map<llvm::BasicBlock *, LLVMBBlock *> createdBlocks;
+    createdBlocks.reserve(func->size());
 
-    std::set<llvm::BasicBlock *> processedBB;
-    // use deque to so that the walk will be BFS
-    std::deque<struct WE *> WQ;
+    // iterate over basic blocks
+    for (llvm::BasicBlock& llvmBB : *func) {
+        LLVMBBlock *BB = build(llvmBB);
+        createdBlocks[&llvmBB] = BB;
 
-    WQ.push_front(new WE(&func->getEntryBlock(), nullptr));
+        // first basic block is the entry BB
+        if (!getEntryBB())
+            setEntryBB(BB);
+    }
 
-    while (!WQ.empty()) {
-        struct WE *item = WQ.front();
-        WQ.pop_front();
+    // add CFG edges
+    for (auto it : createdBlocks) {
+        BasicBlock *llvmBB = it.first;
+        LLVMBBlock *BB = it.second;
 
-        build(item->BB, item->pred);
+        for (succ_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB); S != SE; ++S) {
+            LLVMBBlock *succ = createdBlocks[*S];
+            assert(succ && "Missing basic block");
 
-        int i = 0;
-        for (auto S = succ_begin(item->BB), SE = succ_end(item->BB);
-             S != SE; ++S) {
-
-            // when program contain loops, it is possible that
-            // we added this block to queue more times.
-            // In this case just create the CFG edge, but do not
-            // process this node any further. It would lead to
-            // infinite loop
-            iterator ni, pi;
-            if (!processedBB.insert(*S).second) {
-                errs() << *S;
-                ni = find(S->begin());
-                pi = find(item->BB->getTerminator());
-
-#ifdef DEBUG_ENABLED
-                if(ni == end()) {
-                    errs() << "No node for " << *(S->begin()) << "\n";
-                    abort();
-                }
-
-                if(pi == end()) {
-                    errs() << "No node for "
-                           << *(item->BB->getTerminator()) << "\n";
-                    abort();
-                }
-#else
-                assert(ni != end());
-                assert(pi != end());
-#endif // DEBUG_ENABLED
-
-                // add basic block edges
-                LLVMBBlock *BB = pi->second->getBasicBlock();
-                assert(BB && "Do not have BB");
-
-                LLVMBBlock *succBB = ni->second->getBasicBlock();
-                assert(succBB && "Do not have predcessor BB");
-
-                BB->addSuccessor(succBB);
-                continue;
-            }
-
-            WQ.push_front(new WE(*S, item->BB));
+            BB->addSuccessor(succ);
         }
-
-        delete item;
     }
 
     // check if we have everything
