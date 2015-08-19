@@ -1,9 +1,11 @@
 /// XXX add licence
 
-#ifdef HAVE_LLVM
-
 #ifndef _LLVM_NODE_H_
 #define _LLVM_NODE_H_
+
+#ifndef HAVE_LLVM
+#error "Need LLVM"
+#endif
 
 #ifndef ENABLE_CFG
 #error "Need CFG enabled"
@@ -13,14 +15,18 @@
 #include <map>
 #include <set>
 
-#include <llvm/IR/Value.h>
-
+#include "Node.h"
 #include "PointsTo.h"
+
+// forward declaration of llvm types that need not
+// to be complete
+namespace llvm {
+    class Value;
+}
 
 namespace dg {
 
 class LLVMDependenceGraph;
-class LLVMNode;
 
 typedef dg::BBlock<LLVMNode> LLVMBBlock;
 typedef dg::DGParameter<LLVMNode> LLVMDGParameter;
@@ -29,8 +35,7 @@ typedef dg::DGParameters<const llvm::Value *, LLVMNode> LLVMDGParameters;
 /// ------------------------------------------------------------------
 //  -- LLVMNode
 /// ------------------------------------------------------------------
-class LLVMNode : public dg::Node<LLVMDependenceGraph,
-                                 const llvm::Value *, LLVMNode>
+class LLVMNode : public Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>
 {
 public:
     LLVMNode(const llvm::Value *val)
@@ -39,16 +44,9 @@ public:
          data(nullptr)
     {}
 
-    ~LLVMNode()
-    {
-        delete memoryobj;
-        delete[] operands;
-    }
+    ~LLVMNode();
 
-    const llvm::Value *getValue() const
-    {
-        return getKey();
-    }
+    const llvm::Value *getValue() const { return getKey(); }
 
     // create new subgraph with actual parameters that are given
     // by call-site and add parameter edges between actual and
@@ -57,41 +55,10 @@ public:
     // XXX create new class for parameters
     void addActualParameters(LLVMDependenceGraph *);
 
-    LLVMNode **getOperands()
-    {
-        if (!operands)
-            findOperands();
-
-        return operands;
-    }
-
-    size_t getOperandsNum()
-    {
-        if (!operands)
-            findOperands();
-
-        return operands_num;
-    }
-
-    LLVMNode *getOperand(unsigned int idx)
-    {
-        if (!operands)
-            findOperands();
-
-        assert(operands_num > idx && "idx is too high");
-        return operands[idx];
-    }
-
-    LLVMNode *setOperand(LLVMNode *op, unsigned int idx)
-    {
-        assert(operands && "Operands has not been found yet");
-        assert(operands_num > idx && "idx is too high");
-
-        LLVMNode *old = operands[idx];
-        operands[idx] = op;
-
-        return old;
-    }
+    LLVMNode **getOperands();
+    size_t getOperandsNum();
+    LLVMNode *getOperand(unsigned int idx);
+    LLVMNode *setOperand(LLVMNode *op, unsigned int idx);
 
     analysis::PointsToSetT& getPointsTo() { return pointsTo; }
     const analysis::PointsToSetT& getPointsTo() const { return pointsTo; }
@@ -153,5 +120,3 @@ private:
 } // namespace dg
 
 #endif // _LLVM_NODE_H_
-
-#endif /* HAVE_LLVM */

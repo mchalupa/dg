@@ -1,10 +1,12 @@
 /// XXX add licence
 //
 
-#ifdef HAVE_LLVM
-
 #ifndef _LLVM_DEPENDENCE_GRAPH_H_
 #define _LLVM_DEPENDENCE_GRAPH_H_
+
+#ifndef HAVE_LLVM
+#error "Need LLVM"
+#endif
 
 #ifndef ENABLE_CFG
 #error "Need CFG enabled"
@@ -12,13 +14,15 @@
 
 #include <map>
 
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Function.h>
-#include <llvm/ADT/SmallPtrSet.h>
+// forward declaration of llvm classes
+namespace llvm {
+    class Module;
+    class Value;
+    class Function;
+} // namespace llvm
 
-#include "DependenceGraph.h"
 #include "LLVMNode.h"
+#include "DependenceGraph.h"
 
 namespace dg {
 
@@ -27,7 +31,7 @@ typedef dg::BBlock<LLVMNode> LLVMBBlock;
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------
-class LLVMDependenceGraph : public dg::DependenceGraph<LLVMNode>
+class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
 public:
     // free all allocated memory and unref subgraphs
@@ -68,5 +72,3 @@ private:
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_
-
-#endif /* HAVE_LLVM */
