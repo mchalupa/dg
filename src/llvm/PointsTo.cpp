@@ -149,25 +149,42 @@ static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
     LLVMNode *ptrNode = node->getOperand(0);
     const DataLayout& DL = valueGetModule(node->getKey())->getDataLayout();
     APInt offset(64, 0);
+    Offset off;
+    uint64_t size;
+    Type *Ty;
 
     if (Inst->accumulateConstantOffset(DL, offset)) {
         if (offset.isIntN(64)) {
             for (auto ptr : ptrNode->getPointsTo()) {
-                    if (ptr.obj->isUnknown())
+                    if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
                         // don't store unknown with different offsets,
-                        // it's useless
                         changed |= node->addPointsTo(ptr.obj);
-                    else
-                        changed |= node->addPointsTo(ptr.obj, offset.getZExtValue());
-                                                     // XXX? accumulate the offset of pointers
+                    else {
+                        off = offset.getZExtValue();
+                        off += ptr.offset;
+                        Ty = ptr.obj->node->getKey()->getType()->getContainedType(0);
+                        size = DL.getTypeAllocSize(Ty);
+                        // ivalid offset might mean we're cycling due to some
+                        // cyclic dependency
+                        if (*off >= size) {
+                            errs() << "INFO: cropping GEP, off > size: "
+                                   << *off << " " << size
+                                   << " Type: " << *Ty << "\n";
+                            changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+                        } else
+                            changed |= node->addPointsTo(ptr.obj, off);
+                    }
             }
+
+            return changed;
         } else
             errs() << "WARN: GEP offset greater that 64-bit\n";
-    } else {
-        for (auto ptr : ptrNode->getPointsTo())
-            // UKNOWN_OFFSET + something is still unknown
-            changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+            // fall-through to UNKNOWN_OFFSET in this case
     }
+
+    for (auto ptr : ptrNode->getPointsTo())
+        // UKNOWN_OFFSET + something is still unknown
+        changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
 
     return changed;
 }
@@ -194,7 +211,9 @@ static bool handleCallInst(const CallInst *Inst, LLVMNode *node)
 
     for (auto sub : node->getSubgraphs()) {
         LLVMDGParameters *formal = sub->getParameters();
-        assert(formal && "No formal params in subgraph");
+        if (!formal) // no arguments
+            continue;
+
         const Function *subfunc = dyn_cast<Function>(sub->getEntry()->getKey());
         assert(subfunc && "Entry is not a llvm::Function");
 
