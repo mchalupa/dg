@@ -140,10 +140,6 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     tm.stop();
     tm.report("INFO: Points-to analysis took");
 
-    errs() << "INFO: Points-to analysis took "
-           << r.tv_sec << " sec "
-           << r.tv_nsec / 1000000 << "ms\n";
-
     return true;
 };
 
