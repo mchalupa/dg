@@ -31,8 +31,8 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DependenceGraph<NodeT>()
-        : entryNode(nullptr), exitNode(nullptr), formalParameters(nullptr),
-          refcount(1)
+        : global_nodes(nullptr), entryNode(nullptr), exitNode(nullptr),
+          formalParameters(nullptr), refcount(1), own_global_nodes(false)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr)
 #endif
@@ -41,7 +41,11 @@ public:
 
     // TODO add copy constructor for cloning graph
 
-    virtual ~DependenceGraph<NodeT>() {}
+    virtual ~DependenceGraph<NodeT>()
+    {
+        if (own_global_nodes)
+            delete global_nodes;
+    }
 
     // iterators
     iterator begin(void) { return nodes.begin(); }
@@ -72,10 +76,15 @@ public:
     NodeT *getNode(KeyT k)
     {
         iterator it = nodes.find(k);
-        if (it == nodes.end())
-            return nullptr;
+        if (it != nodes.end())
+            return it->second;
+        else if (global_nodes) {
+            it = global_nodes->find(k);
+            if (it == global_nodes->end())
+                return it->second;
+        }
 
-        return it->second;
+        return nullptr;
     }
 
     size_t size() const
@@ -149,6 +158,31 @@ public:
     }
 
 #endif // ENABLE_CFG
+    ContainerType *setGlobalNodes(ContainerType *ngn)
+    {
+        ContainerType *old = global_nodes;
+        global_nodes = ngn;
+        return old;
+    }
+
+    // allocate new global nodes
+    ContainerType *createGlobalNodes()
+    {
+        assert(!global_nodes && "Already contain global nodes");
+        global_nodes = new ContainerType();
+
+        return global_nodes;
+    }
+
+    ContainerType *getGlobalNodes()
+    {
+        return global_nodes;
+    }
+
+    const ContainerType *getGlobalNodes() const
+    {
+        return global_nodes;
+    }
 
     // add a node to this graph. The DependenceGraph is something like
     // namespace for nodes, since every node has unique key and we can
@@ -174,24 +208,46 @@ public:
         return addNode(n->getKey(), n);
     }
 
+    bool addGlobalNode(KeyT k, NodeT *n)
+    {
+        if (!global_nodes) {
+            global_nodes = new ContainerType();
+            own_global_nodes = true;
+        }
+
+        bool ret = global_nodes->insert(std::make_pair(k, n)).second;
+        if (ret && own_global_nodes)
+            n->setDG(static_cast<typename NodeT::DependenceGraphType *>(this));
+
+        return ret;
+    }
+
+    bool addGlobalNode(NodeT *n)
+    {
+        return addGlobalNode(n->getKey(), n);
+    }
+
     NodeT *removeNode(KeyT k)
     {
-        iterator it = nodes.find(k);
-        if (it == nodes.end())
-            return nullptr;
-
-        // remove and re-connect edges
-        NodeT *n = it->second;
-        n->isolate();
-
-        nodes.erase(it);
-
-        return n;
+        return _removeNode(k, &nodes);
     }
 
     NodeT *removeNode(NodeT *n)
     {
         return removeNode(n->getKey());
+    }
+
+    NodeT *removeGlobalNode(KeyT k)
+    {
+        if (!global_nodes)
+            return nullptr;
+
+        return _removeNode(k, global_nodes);
+    }
+
+    NodeT *removeGlobalNode(NodeT *n)
+    {
+        return removeGlobalNode(n->getKey());
     }
 
     bool deleteNode(KeyT k)
@@ -202,12 +258,38 @@ public:
         return n != nullptr;
     }
 
+    bool deleteGlobalNode(KeyT k)
+    {
+        NodeT *n = removeGlobalNode(k);
+        delete n;
+
+        return n != nullptr;
+    }
+
 protected:
     // nodes contained in this dg. They are protected, so that
     // child classes can access them directly
     ContainerType nodes;
+    // container that can be shared accross the graphs
+    // (therefore it is a pointer)
+    ContainerType *global_nodes;
 
 private:
+    NodeT *_removeNode(KeyT k, ContainerType *cont)
+    {
+        iterator it = cont->find(k);
+        if (it == cont->end())
+            return nullptr;
+
+        // remove and re-connect edges
+        NodeT *n = it->second;
+        n->isolate();
+
+        cont->erase(it);
+
+        return n;
+    }
+
     NodeT *entryNode;
     NodeT *exitNode;
 
@@ -215,6 +297,7 @@ private:
 
     // how many nodes keeps pointer to this graph?
     int refcount;
+    bool own_global_nodes;
 
 #ifdef ENABLE_CFG
     BBlock<NodeT> *entryBB;
