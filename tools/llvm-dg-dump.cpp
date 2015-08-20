@@ -40,8 +40,8 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 
     // break the string if it is too long
     std::string str = ostr.str();
-    if (str.length() > 80) {
-        str.replace(str.length() / 2, 1, "\\\n   ");
+    if (str.length() > 100) {
+        str.resize(50);
     }
 
     // escape the "
