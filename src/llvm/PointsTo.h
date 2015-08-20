@@ -18,7 +18,7 @@ namespace analysis {
 struct Offset
 {
     Offset(uint64_t o = UNKNOWN_OFFSET) : offset(o) {}
-    Offset& operator+(const Offset& o)
+    Offset& operator+=(const Offset& o)
     {
         if (offset == UNKNOWN_OFFSET)
             return *this;
@@ -31,10 +31,20 @@ struct Offset
         return *this;
     }
 
+    Offset operator+(const Offset& o)
+    {
+        if (offset == UNKNOWN_OFFSET || o.offset == UNKNOWN_OFFSET)
+            return UNKNOWN_OFFSET;
+
+        return Offset(offset + o.offset);
+    }
+
     bool operator<(const Offset& o) const
     {
         return offset < o.offset;
     }
+
+    bool isUnknown() const { return offset == UNKNOWN_OFFSET; }
 
     uint64_t operator*() const { return offset; }
     const uint64_t *operator->() const { return &offset; }
