@@ -13,6 +13,8 @@
 #include <llvm/IRReader/IRReader.h>
 
 #include <iostream>
+#include <sstream>
+#include <string>
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/PointsTo.h"
 #include "DG2Dot.h"
@@ -22,18 +24,35 @@ using llvm::errs;
 
 static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 {
-    llvm::raw_os_ostream ro(os);
-
     if (!val) {
-        ro << "(null)";
+        os << "(null)";
         return os;
     }
 
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
     if (llvm::isa<llvm::Function>(val))
         ro << "ENTRY " << val->getName();
-    else
-        // just dump it there
+    else {
         ro << *val;
+    }
+
+    // break the string if it is too long
+    std::string str = ostr.str();
+    if (str.length() > 80) {
+        str.replace(str.length() / 2, 1, "\\\n   ");
+    }
+
+    // escape the "
+    size_t pos = 0;
+    while ((pos = str.find('"', pos)) != std::string::npos) {
+        str.replace(pos, 1, "\\\"");
+        // we replaced one char with two, so we must shift after the new "
+        pos += 2;
+    }
+
+    os << str;
 
     return os;
 }

@@ -314,7 +314,7 @@ private:
         err = checkNode(out, node);
 
         // end of label
-        out << "\"\n";
+        out << "\"";
 
         if (err) {
             out << "style=filled fillcolor=red";
@@ -350,6 +350,10 @@ private:
                 subgraphs.insert(*I);
             }
         }
+
+        if (dg->ownsGlobalNodes())
+            for (auto I : *dg->getGlobalNodes())
+                dump_node(I.second, 1, "GL");
     }
 
     void dump_edges()

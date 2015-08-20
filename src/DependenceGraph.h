@@ -266,6 +266,7 @@ public:
         return n != nullptr;
     }
 
+    bool ownsGlobalNodes() const { return own_global_nodes; }
 protected:
     // nodes contained in this dg. They are protected, so that
     // child classes can access them directly
