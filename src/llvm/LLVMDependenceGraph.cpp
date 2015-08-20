@@ -198,10 +198,15 @@ is_func_defined(const llvm::CallInst *CInst)
 {
     llvm::Function *callFunc = CInst->getCalledFunction();
 
-    if (callFunc->size() == 0) {
+    if (!callFunc || callFunc->size() == 0) {
 #if DEBUG_ENABLED
-        llvm::errs() << "Skipping undefined function '"
-                     << callFunc->getName() << "'\n";
+        llvm::errs() << "Skipping undefined function '";
+        if (callFunc)
+            llvm::errs() << callFunc->getName();
+        else
+            llvm::errs() << "none (func pointer maybe?)";
+
+        llvm::errs() << "'\n";
 #endif
         return false;
     }
