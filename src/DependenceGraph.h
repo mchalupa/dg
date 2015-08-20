@@ -80,7 +80,7 @@ public:
             return it->second;
         else if (global_nodes) {
             it = global_nodes->find(k);
-            if (it == global_nodes->end())
+            if (it != global_nodes->end())
                 return it->second;
         }
 
