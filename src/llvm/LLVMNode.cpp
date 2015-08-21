@@ -13,6 +13,8 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "LLVMNode.h"
@@ -88,7 +90,11 @@ LLVMNode **LLVMNode::findOperands()
         operands_num = 1;
     }
 
-    assert(operands && "findOperands not implemented for this instr");
+    if (!operands) {
+        errs() << "Unhandled instruction: " << *val
+               << "Type: " << *val->getType() << "\n";
+        abort();
+    }
 
     return operands;
 }

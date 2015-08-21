@@ -118,6 +118,12 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
     }
 }
 
+static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
+{
+    for (const llvm::GlobalVariable& gl : m->globals())
+        dg->addGlobalNode(new LLVMNode(&gl));
+}
+
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
     debug::TimeMeasure tm;
@@ -129,6 +135,11 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
         errs() << "No entry function found/given\n";
         return false;
     }
+
+    module = m;
+
+    // add global nodes. These will be shared across subgraphs
+    addGlobals(m, this);
 
     // build recursively DG from entry point
     build(entry);
@@ -163,6 +174,10 @@ bool LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
         // since we have reference the the pointer in
         // constructedFunctions, we can assing to it
         subgraph = new LLVMDependenceGraph();
+        // set global nodes to this one, so that
+        // we'll share them
+        subgraph->setGlobalNodes(getGlobalNodes());
+        subgraph->module = module;
         bool ret = subgraph->build(callFunc);
 
         // at least for now use just assert, if we'll

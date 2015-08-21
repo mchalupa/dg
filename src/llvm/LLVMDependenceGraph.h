@@ -46,6 +46,8 @@ public:
     // build subgraphs of called functions
     bool build(llvm::Function *func);
 
+    llvm::Module *getModule() const { return module; }
+
 private:
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
@@ -67,6 +69,7 @@ private:
     bool buildSubgraph(LLVMNode *node);
 
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+    llvm::Module *module;
 };
 
 } // namespace dg

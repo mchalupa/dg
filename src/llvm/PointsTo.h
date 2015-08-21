@@ -106,6 +106,8 @@ struct MemoryObj
 
 class LLVMPointsToAnalysis : public DataFlowAnalysis<LLVMNode>
 {
+    LLVMDependenceGraph *_dg;
+    void handleGlobals();
 public:
     LLVMPointsToAnalysis(LLVMDependenceGraph *dg);
 

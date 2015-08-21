@@ -1,6 +1,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/IntrinsicInst.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -13,16 +14,15 @@ namespace dg {
 namespace analysis {
 
 LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
-    : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL)
+    : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
+      _dg(dg)
 {
+    handleGlobals();
 }
 
 static bool handleAllocaInst(const AllocaInst *Inst, LLVMNode *node)
 {
-    // we don't care about non pointers right now
-    if (!Inst->getType()->isPointerTy())
-        return false;
-
+    // every global is a pointer
     MemoryObj *& mo = node->getMemoryObj();
     if (!mo) {
         mo = new MemoryObj(node);
@@ -123,35 +123,17 @@ static bool handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     return changed;
 }
 
-static const Module *
-valueGetModule(const Value *V)
-{
-    static const Module *module;
-
-    // we always work in one module,
-    // so we can store it and reuse it
-    if (module)
-        return module;
-
-    const Instruction *I = dyn_cast<Instruction>(V);
-    assert(I && "works only for Instruction derivatives");
-
-    const Function *M = I->getParent() ? I->getParent()->getParent() : nullptr;
-    assert(M && "No function?");
-
-    module =  M->getParent();
-    return module;
-}
-
-static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
+static bool handleGepInst(const GetElementPtrInst *Inst,
+                          LLVMNode *node, LLVMNode *ptrNode)
 {
     bool changed = false;
-    LLVMNode *ptrNode = node->getOperand(0);
-    const DataLayout& DL = valueGetModule(node->getKey())->getDataLayout();
+    const DataLayout& DL = node->getDG()->getModule()->getDataLayout();
     APInt offset(64, 0);
     Offset off;
     uint64_t size;
     Type *Ty;
+
+    assert(ptrNode && "Do not have GEP ptr node");
 
     if (Inst->accumulateConstantOffset(DL, offset)) {
         if (offset.isIntN(64)) {
@@ -185,6 +167,82 @@ static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
     for (auto ptr : ptrNode->getPointsTo())
         // UKNOWN_OFFSET + something is still unknown
         changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+
+    return changed;
+}
+
+static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
+{
+    LLVMNode *ptrNode = node->getOperand(0);
+    return handleGepInst(Inst, node, ptrNode);
+}
+
+// handle const Gep in global variables
+static bool handleConstGepInst(const GetElementPtrInst *Inst,
+                               LLVMNode *node, LLVMNode *ptrNode)
+{
+    bool changed = false;
+    const DataLayout& DL = node->getDG()->getModule()->getDataLayout();
+    APInt offset(64, 0);
+    Offset off;
+    uint64_t size;
+    Type *Ty;
+
+    assert(ptrNode && "Do not have GEP ptr node");
+
+    MemoryObj *mo = node->getMemoryObj();
+    assert(mo && "Global has no mo");
+
+    if (Inst->accumulateConstantOffset(DL, offset)) {
+        if (offset.isIntN(64)) {
+            for (auto ptr : ptrNode->getPointsTo()) {
+                    if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
+                        // don't store unknown with different offsets,
+                        changed |= mo->addPointsTo(0, Pointer(ptr.obj, UNKNOWN_OFFSET));
+                    else {
+                        off = offset.getZExtValue();
+                        off += ptr.offset;
+                        Ty = ptr.obj->node->getKey()->getType()->getContainedType(0);
+                        size = DL.getTypeAllocSize(Ty);
+                        // ivalid offset might mean we're cycling due to some
+                        // cyclic dependency
+                        if (*off >= size) {
+                            errs() << "INFO: cropping GEP, off > size: "
+                                   << *off << " " << size
+                                   << " Type: " << *Ty << "\n";
+                            changed |= mo->addPointsTo(0, Pointer(ptr.obj, UNKNOWN_OFFSET));
+                        } else
+                            changed |= mo->addPointsTo(0, Pointer(ptr.obj, ptr.offset + off));
+                    }
+            }
+
+            return changed;
+        } else
+            errs() << "WARN: GEP offset greater that 64-bit\n";
+            // fall-through to UNKNOWN_OFFSET in this case
+    }
+
+    for (auto ptr : ptrNode->getPointsTo())
+        // UKNOWN_OFFSET + something is still unknown
+        changed |= mo->addPointsTo(0, Pointer(ptr.obj, UNKNOWN_OFFSET));
+
+    return changed;
+}
+
+
+
+static bool handleConstantExpr(const ConstantExpr *CE, LLVMNode *node)
+{
+    bool changed = false;
+
+    if (CE->getOpcode() == Instruction::GetElementPtr) {
+        const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
+        LLVMNode *ptrNode = node->getDG()->getNode(*CE->op_begin());
+        //changed |= handleGepInst(cast<GetElementPtrInst>(Inst), node, ptrNode);
+        handleConstGepInst(cast<GetElementPtrInst>(Inst), node, ptrNode);
+        delete Inst;
+    } else
+        errs() << "ERR: unhandled ConstantExpr: " << *CE << "\n";
 
     return changed;
 }
@@ -314,6 +372,44 @@ static bool handleReturnInst(const ReturnInst *Inst, LLVMNode *node)
     // graphs
 
     return changed;
+}
+
+static bool handleGlobal(const Value *Inst, LLVMNode *node)
+{
+    // we don't care about non pointers right now
+    if (!Inst->getType()->isPointerTy())
+        return false;
+
+    MemoryObj *& mo = node->getMemoryObj();
+    if (!mo) {
+        mo = new MemoryObj(node);
+        node->addPointsTo(mo);
+        return true;
+    }
+
+    return false;
+}
+
+void LLVMPointsToAnalysis::handleGlobals()
+{
+    // do we have the globals at all?
+    if (!_dg->ownsGlobalNodes())
+        return;
+
+    for (auto it : *_dg->getGlobalNodes())
+        handleGlobal(it.first, it.second);
+
+    bool changed = false;
+    do {
+        for (auto it : *_dg->getGlobalNodes()) {
+            const GlobalVariable *GV = cast<GlobalVariable>(it.first);
+            if (GV->hasInitializer()) {
+                const Constant *C = GV->getInitializer();
+                if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C))
+                    changed |= handleConstantExpr(CE, it.second);
+            }
+        }
+    } while (changed);
 }
 
 bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
