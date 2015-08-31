@@ -66,6 +66,9 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
         os << off.offset;
 }
 
+static bool debug_def = false;
+static bool debug_ptr = false;
+
 static bool checkNode(std::ostream& os, LLVMNode *node)
 {
     bool err = false;
@@ -111,46 +114,50 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
     if (node->hasUnknownValue()) {
         os << "\\lUNKNOWN VALUE";
     } else {
-        const analysis::PointsToSetT& ptsto = node->getPointsTo();
-        if (ptsto.empty() && val->getType()->isPointerTy()) {
-            os << "\\lERR: pointer without pointsto set";
-            err = true;
-        }
+        if (debug_ptr) {
+            const analysis::PointsToSetT& ptsto = node->getPointsTo();
+            if (ptsto.empty() && val->getType()->isPointerTy()) {
+                os << "\\lERR: pointer without pointsto set";
+                err = true;
+            }
 
-        for (auto it : ptsto) {
-            os << "\\lPTR: [";
-            if (it.obj->isUnknown())
-                os << "unknown";
-            else
-                printLLVMVal(os, it.obj->node->getKey());
-            os << "] + " << it.offset;
-        }
+            for (auto it : ptsto) {
+                os << "\\lPTR: [";
+                if (it.obj->isUnknown())
+                    os << "unknown";
+                else
+                    printLLVMVal(os, it.obj->node->getKey());
+                os << "] + " << it.offset;
+            }
 
-        analysis::MemoryObj *mo = node->getMemoryObj();
-        if (mo) {
-            for (auto it : mo->pointsTo) {
-                for(auto it2 : it.second) {
-                    os << "\\l--MEMPTR: [" << it.first << "] -> ";
-                    if (it2.obj->isUnknown())
-                        os << "[unknown";
-                    else
-                        printLLVMVal(os, it2.obj->node->getKey());
-                    os << "] + " << it2.offset;
+            analysis::MemoryObj *mo = node->getMemoryObj();
+            if (mo) {
+                for (auto it : mo->pointsTo) {
+                    for(auto it2 : it.second) {
+                        os << "\\l--MEMPTR: [" << it.first << "] -> ";
+                        if (it2.obj->isUnknown())
+                            os << "[unknown";
+                        else
+                            printLLVMVal(os, it2.obj->node->getKey());
+                        os << "] + " << it2.offset;
+                    }
                 }
             }
         }
 
-        analysis::DefMap *df = node->getData<analysis::DefMap>();
-        if (df) {
-            for (auto it : df->getDefs()) {
-                for (auto v : it.second) {
-                    os << "\\l--DEF: [";
-                    if (it.first.obj->isUnknown())
-                        os << "[unknown";
-                    else
-                        printLLVMVal(os, it.first.obj->node->getKey());
-                    os << "] + " << it.first.offset << " @ ";
-                    printLLVMVal(os, v->getKey());
+        if (debug_def) {
+            analysis::DefMap *df = node->getData<analysis::DefMap>();
+            if (df) {
+                for (auto it : df->getDefs()) {
+                    for (auto v : it.second) {
+                        os << "\\l--DEF: [";
+                        if (it.first.obj->isUnknown())
+                            os << "[unknown";
+                        else
+                            printLLVMVal(os, it.first.obj->node->getKey());
+                        os << "] + " << it.first.offset << " @ ";
+                        printLLVMVal(os, v->getKey());
+                    }
                 }
             }
         }
@@ -184,6 +191,10 @@ int main(int argc, char *argv[])
             opts |= PRINT_REV_CFG;
         } else if (strcmp(argv[i], "-pss") == 0) {
             opts |= PRINT_PSS;
+        } else if (strcmp(argv[i], "-def") == 0) {
+            debug_def = true;
+        } else if (strcmp(argv[i], "-ptr") == 0) {
+            debug_ptr = true;
         } else {
             module = argv[i];
         }
