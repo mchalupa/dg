@@ -9,13 +9,24 @@ namespace analysis {
 
 static unsigned int walk_run_counter;
 
+enum NodesWalkFlags {
+    NODES_WALK_INTERPROCEDURAL  = 1 << 0,
+    NODES_WALK_CFG              = 1 << 1,
+    NODES_WALK_CD               = 1 << 2,
+    NODES_WALK_DD               = 1 << 3,
+    NODES_WALK_REV_CD           = 1 << 4,
+    NODES_WALK_REV_DD           = 1 << 5,
+};
+
 template <typename NodeT, typename QueueT>
 class NodesWalk : public Analysis<NodeT>
 {
 public:
+    NodesWalk<NodeT, QueueT>(uint32_t opts = NODES_WALK_CFG)
+        : options(opts) {}
+
     template <typename FuncT, typename DataT>
-    void walk(NodeT *entry, FuncT func, DataT data,
-              bool control = true, bool deps = true)
+    void walk(NodeT *entry, FuncT func, DataT data)
     {
         unsigned int run_id = ++walk_run_counter;
         QueueT queue;
@@ -34,13 +45,23 @@ public:
             func(n, data);
 
             // add unprocessed vertices
-            if (control)
+            if (options & NODES_WALK_CD)
                 processEdges(n->control_begin(),
                              n->control_end(), queue, run_id);
 
-            if (deps)
+            if (options & NODES_WALK_DD)
                 processEdges(n->data_begin(),
                              n->data_end(), queue, run_id);
+
+            if (options & NODES_WALK_REV_CD)
+                processEdges(n->rev_control_begin(),
+                             n->rev_control_end(), queue, run_id);
+
+            if (options & NODES_WALK_REV_DD)
+                processEdges(n->rev_data_begin(),
+                             n->rev_data_end(), queue, run_id);
+
+            // FIXME add CFG and interprocedural
         }
     }
 
@@ -73,6 +94,7 @@ private:
     }
 
     QueueT queue;
+    uint32_t options;
 };
 
 enum BBlockWalkFlags {

@@ -3,6 +3,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/raw_ostream.h>
 
@@ -255,7 +256,7 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
-        else
+        else if (!isa<ConstantInt>(*I))
             errs() << "WARN: no node for operand in " << *Inst << "\n";
     }
 }

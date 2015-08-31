@@ -293,6 +293,7 @@ private:
     {
         bool err = false;
         unsigned int dfsorder = node->getDFSOrder();
+        uint32_t slice_id = node->getSlice();
         Indent Ind(ind);
 
         out << Ind
@@ -309,6 +310,9 @@ private:
         if (dfsorder != 0)
             out << "\\ndfs order: "<< dfsorder;
 
+        if (slice_id != 0)
+            out << "\\nslice: "<< slice_id;
+
         // check if the node is OK, and if not
         // highlight it
         err = checkNode(out, node);
@@ -318,7 +322,8 @@ private:
 
         if (err) {
             out << "style=filled fillcolor=red";
-        }
+        } else if (slice_id != 0)
+            out << "style=filled fillcolor=gray";
 
         out << "]\n";
 

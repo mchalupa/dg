@@ -250,6 +250,14 @@ public:
         return removeGlobalNode(n->getKey());
     }
 
+    bool deleteNode(NodeT *n)
+    {
+        n = removeNode(n->getKey());
+        delete n;
+
+        return true;
+    }
+
     bool deleteNode(KeyT k)
     {
         NodeT *n = removeNode(k);

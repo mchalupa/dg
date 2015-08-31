@@ -36,7 +36,7 @@ public:
     typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
     Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k, DependenceGraphT *dg = nullptr)
-        : key(k), dg(dg), parameters(nullptr)
+        : key(k), dg(dg), parameters(nullptr), slice_id(0)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr),
            prevNode(nullptr)
@@ -185,8 +185,6 @@ public:
                 basicBlock->remove();
             }
 
-            basicBlock = nullptr;
-
             // also, if this is a callSite,
             // it is no longer part of BBlock,
             // so we must remove it from callSites
@@ -194,6 +192,8 @@ public:
                 bool ret = basicBlock->removeCallSite(static_cast<NodeT *>(this));
                 assert(ret && "the call site was not in BB's callSites");
             }
+
+            basicBlock = nullptr;
         }
 
         // make previous node point to nextNode
@@ -347,6 +347,14 @@ public:
         return key;
     }
 
+    uint32_t getSlice() const { return slice_id; }
+    uint32_t setSlice(uint32_t sid)
+    {
+        uint32_t old = slice_id;
+        slice_id = sid;
+        return old;
+    }
+
 protected:
 
     // key uniquely identifying this node in a graph
@@ -369,6 +377,9 @@ private:
     // actual parameters if this is a callsite
     DGParameters<KeyT, NodeT> *parameters;
 
+    // id of the slice this nodes is in. If it is 0, it is in no slice
+    uint32_t slice_id;
+
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
@@ -389,7 +400,7 @@ private:
 
     // auxiliary data for different analyses
     analysis::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::Analysis<NodeT *>;
+    friend class analysis::Analysis<NodeT>;
 };
 
 } // namespace dgg

@@ -20,6 +20,8 @@
 #include "llvm/DefUse.h"
 #include "DG2Dot.h"
 
+#include "analysis/Slicing.h"
+
 using namespace dg;
 using llvm::errs;
 
@@ -213,6 +215,9 @@ int main(int argc, char *argv[])
 
     LLVMDependenceGraph d;
     d.build(&*M);
+
+    analysis::Slicer<LLVMNode> slicer;
+    slicer.slice(d.getExit());
 
     debug::DG2Dot<LLVMNode> dump(&d, opts);
 
