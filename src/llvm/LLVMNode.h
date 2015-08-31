@@ -66,6 +66,16 @@ public:
     analysis::MemoryObj *&getMemoryObj() { return memoryobj; }
     analysis::MemoryObj *getMemoryObj() const { return memoryobj; }
 
+    bool isPointerTy() const
+    {
+        return getKey()->getType()->isPointerTy();
+    }
+
+    bool isVoidTy() const
+    {
+        return getKey()->getType()->isVoidTy();
+    }
+
     bool addPointsTo(const analysis::Pointer& vr)
     {
         return pointsTo.insert(vr).second;

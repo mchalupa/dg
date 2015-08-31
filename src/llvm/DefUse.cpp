@@ -3,11 +3,14 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "LLVMNode.h"
 #include "LLVMDependenceGraph.h"
 #include "DefUse.h"
+
+#include "analysis/DFS.h"
 
 using namespace llvm;
 
@@ -15,7 +18,8 @@ namespace dg {
 namespace analysis {
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg)
-    : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL)
+    : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
+      dg(dg)
 {
 }
 
@@ -83,6 +87,10 @@ static DefMap *getDefMap(LLVMNode *n)
     return r;
 }
 
+/// --------------------------------------------------
+//   Reaching definitions analysis
+/// --------------------------------------------------
+
 static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node,
                             PointsToSetT *&strong_update)
 {
@@ -117,29 +125,6 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
         changed |= handleStoreInst(Inst, node, strong_update);
     }
 
-    /*
-    if (const AllocaInst *Inst = dyn_cast<AllocaInst>(val)) {
-        changed |= handleAllocaInst(Inst, node);
-    } 
-    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
-        changed |= handleLoadInst(Inst, node);
-    } else if (const GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
-        changed |= handleGepInst(Inst, node);
-    } else if (const CallInst *Inst = dyn_cast<CallInst>(val)) {
-        changed |= handleCallInst(Inst, node);
-    } else if (const ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
-        changed |= handleReturnInst(Inst, node);
-    } else if (const BitCastInst *Inst = dyn_cast<BitCastInst>(val)) {
-        changed |= handleBitCastInst(Inst, node);
-    } else {
-        const Instruction *I = dyn_cast<Instruction>(val);
-        assert(I && "Not an Instruction?");
-
-        if (I->mayReadOrWriteMemory())
-            errs() << "WARN: Unhandled instruction: " << *val << "\n";
-    }
-    */
-
     // update states according to predcessors
     DefMap *df = getDefMap(node);
     LLVMNode *pred = node->getPredcessor();
@@ -158,6 +143,154 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
     }
 
     return changed;
+}
+
+} // namespace analysis
+} // namespace dg
+
+
+/// --------------------------------------------------
+//   Add def-use edges
+/// --------------------------------------------------
+namespace dg {
+namespace analysis {
+
+static void handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+{
+    // we have only top-level dependencies here
+    (void) Inst;
+
+    LLVMNode *valNode = node->getOperand(1);
+    // this node uses what is defined on valNode
+    if (valNode)
+        valNode->addDataDependence(node);
+
+    // and also uses what is defined on ptrNode
+    LLVMNode *ptrNode = node->getOperand(0);
+    ptrNode->addDataDependence(node);
+}
+
+static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
+{
+    // iterate over all memory locations that this
+    // store can define and check where they are defined
+    for (const Pointer& ptr : ptrNode->getPointsTo()) {
+        const ValuesSetT& defs = df->get(ptr);
+        // do we have any reaching definition at all?
+        if (defs.empty()) {
+            const Value *val = ptrNode->getKey();
+            // we do not add def to global variables, so do it here
+            if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(val)) {
+            //    if (GV->hasInitializer())
+            } else if (isa<AllocaInst>(val)) {
+                // we have the edges, this is just to suppress the warning
+            } else
+                errs() << "WARN: no reaching definition for " << *val << "\n";
+
+            continue;
+        }
+
+        // we read ptrNode memory that is defined on these locations
+        for (LLVMNode *n : defs)
+            n->addDataDependence(to);
+    }
+}
+
+static void handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+{
+    LLVMNode *ptrNode = node->getOperand(0);
+    assert(ptrNode && "No pointer operand");
+    // we use the top-level value that is defined
+    // on ptrNode
+    // ptrNode->addDataDependence(node);
+
+    DefMap *df = getDefMap(node);
+    addIndirectDefUse(ptrNode, node, df);
+}
+
+static void handleCallInst(const CallInst *Inst, LLVMNode *node)
+{
+    DefMap *df = getDefMap(node);
+    LLVMNode **operands = node->getOperands();
+    LLVMDGParameters *params = node->getParameters();
+
+    if (!params) // function has no arguments
+        return;
+
+    for (int i = 0, e = node->getOperandsNum(); i < e; ++i) {
+        LLVMNode *op = operands[i];
+        if (!op)
+            continue;
+
+        LLVMDGParameter *p = params->find(op->getKey());
+        if (!p) {
+            errs() << "ERR: no actual parameter for " << *op->getKey() << "\n";
+            continue;
+        }
+
+        if (op->isPointerTy()) {
+            // add data dependencies to in parameters
+            addIndirectDefUse(op, p->in, df);
+
+            // FIXME
+            // look for reaching definitions inside the procedure
+            // because since this is a pointer, we can change things
+        } else
+            op->addDataDependence(p->in);
+    }
+
+    // if the called function returns a value,
+    // make this node data dependent on that
+    if (!node->isVoidTy()) {
+        for (auto sub : node->getSubgraphs())
+            sub->getExit()->addDataDependence(node);
+    }
+}
+
+static void handleInstruction(const Instruction *Inst, LLVMNode *node)
+{
+    LLVMDependenceGraph *dg = node->getDG();
+
+    for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
+        LLVMNode *op = dg->getNode(*I);
+        if (op)
+            op->addDataDependence(node);
+        else
+            errs() << "WARN: no node for operand in " << *Inst << "\n";
+    }
+}
+
+static void handleNode(LLVMNode *node)
+{
+    const Value *val = node->getKey();
+
+    if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+        handleStoreInst(Inst, node);
+    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+        handleLoadInst(Inst, node);
+    } else if (const CallInst *Inst = dyn_cast<CallInst>(val)) {
+        handleCallInst(Inst, node);
+    } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
+        handleInstruction(Inst, node); // handle rest of Insts
+    }
+}
+
+static void handleBlock(LLVMBBlock *BB, void *data)
+{
+    (void) data;
+
+    LLVMNode *n = BB->getFirstNode();
+    while (n) {
+        handleNode(n);
+        n = n->getSuccessor();
+    }
+}
+
+void LLVMDefUseAnalysis::addDefUseEdges()
+{
+    // it doesn't matter how we'll go through the nodes
+    BBlockDFS<LLVMNode> runner(DFS_INTERPROCEDURAL);
+    runner.run(dg->getEntryBB(), handleBlock, nullptr);
 }
 
 } // namespace analysis

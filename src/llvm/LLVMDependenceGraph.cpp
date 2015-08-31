@@ -156,9 +156,14 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     analysis::LLVMDefUseAnalysis DUA(this);
 
     tm.start();
-    DUA.run();
+    DUA.run();  // compute reaching definitions
     tm.stop();
-    tm.report("INFO: Def-Use analysis took");
+    tm.report("INFO: Reaching defs analysis took");
+
+    tm.start();
+    DUA.addDefUseEdges(); // add def-use edges according that
+    tm.stop();
+    tm.report("INFO: Adding Def-Use edges took");
 
     return true;
 };
