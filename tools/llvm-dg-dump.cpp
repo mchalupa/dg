@@ -168,6 +168,8 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
     return err;
 }
 
+static const char *slicing_criterion;
+
 int main(int argc, char *argv[])
 {
     llvm::LLVMContext context;
@@ -197,6 +199,8 @@ int main(int argc, char *argv[])
             debug_def = true;
         } else if (strcmp(argv[i], "-ptr") == 0) {
             debug_ptr = true;
+        } else if (strcmp(argv[i], "-slice") == 0) {
+            slicing_criterion = argv[++i];
         } else {
             module = argv[i];
         }
@@ -216,8 +220,36 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     d.build(&*M);
 
-    analysis::Slicer<LLVMNode> slicer;
-    slicer.slice(d.getExit());
+    if (slicing_criterion) {
+        analysis::Slicer<LLVMNode> slicer;
+        if (strcmp(slicing_criterion, "ret") == 0) {
+            slicer.slice(d.getExit());
+        } else {
+            LLVMNode *start;
+
+            // slicing criterion is the name of function that
+            // we're looking for
+            llvm::Function *func = M->getFunction(slicing_criterion);
+            if (!func) {
+                errs() << "Slicing criterion not found: " << slicing_criterion << "\n";
+                exit(1);
+            }
+
+            uint32_t slid = 0;
+            for (auto I = func->use_begin(), E = func->use_end();
+                 I != E; ++I) {
+                start = d.getNode(*I);
+                if (!start) {
+                    // XXX what if the node is in the subprocedure? F..ck, will
+                    // need to change it...
+                    errs() << "ERR: did not find call-site in graph\n";
+                    continue;
+                }
+
+                slid = slicer.slice(start, slid);
+            }
+        }
+    }
 
     debug::DG2Dot<LLVMNode> dump(&d, opts);
 
