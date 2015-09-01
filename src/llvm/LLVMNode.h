@@ -15,15 +15,12 @@
 #include <map>
 #include <set>
 
+#include <llvm/IR/Value.h>
+#include <llvm/IR/Type.h>
+
 #include "Node.h"
 #include "PointsTo.h"
 #include "DefUse.h"
-
-// forward declaration of llvm types that need not
-// to be complete
-namespace llvm {
-    class Value;
-}
 
 namespace dg {
 
