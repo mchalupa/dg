@@ -56,6 +56,10 @@ public:
         return constructedFunctions;
     }
 
+    // if we want to slice according some call-site(s),
+    // we can gather the relevant call-sites while building
+    // graph and do not need to recursively find in the graph
+    // later
     void gatherCallsites(const char *name)
     {
         gather_callsites = name;
@@ -86,6 +90,8 @@ private:
     // build subgraph for a call node
     bool buildSubgraph(LLVMNode *node);
 
+    // gather call-sites of functions with given name
+    // when building the graph
     std::set<LLVMNode *> gatheredCallsites;
     const char *gather_callsites;
 
