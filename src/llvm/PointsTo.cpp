@@ -20,7 +20,7 @@ LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
     handleGlobals();
 }
 
-static bool handleAllocaInst(const AllocaInst *Inst, LLVMNode *node)
+static bool handleAllocaInst(LLVMNode *node)
 {
     // every global is a pointer
     MemoryObj *& mo = node->getMemoryObj();
@@ -417,8 +417,8 @@ bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
     bool changed = false;
     const Value *val = node->getKey();
 
-    if (const AllocaInst *Inst = dyn_cast<AllocaInst>(val)) {
-        changed |= handleAllocaInst(Inst, node);
+    if (isa<AllocaInst>(val)) {
+        changed |= handleAllocaInst(node);
     } else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         changed |= handleStoreInst(Inst, node);
     } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {

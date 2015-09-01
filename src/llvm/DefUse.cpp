@@ -99,6 +99,8 @@ static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node,
     LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode && "No pointer operand");
 
+    (void) Inst;
+
     // update definitions
     DefMap *df = getDefMap(node);
     PointsToSetT& S = ptrNode->getPointsTo();
@@ -156,10 +158,9 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
 namespace dg {
 namespace analysis {
 
-static void handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+static void handleStoreInst(LLVMNode *node)
 {
     // we have only top-level dependencies here
-    (void) Inst;
 
     LLVMNode *valNode = node->getOperand(1);
     // this node uses what is defined on valNode
@@ -197,7 +198,7 @@ static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
     }
 }
 
-static void handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+static void handleLoadInst(LLVMNode *node)
 {
     LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode && "No pointer operand");
@@ -209,7 +210,7 @@ static void handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     addIndirectDefUse(ptrNode, node, df);
 }
 
-static void handleCallInst(const CallInst *Inst, LLVMNode *node)
+static void handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     LLVMNode **operands = node->getOperands();
@@ -265,12 +266,12 @@ static void handleNode(LLVMNode *node)
 {
     const Value *val = node->getKey();
 
-    if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
-        handleStoreInst(Inst, node);
-    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
-        handleLoadInst(Inst, node);
-    } else if (const CallInst *Inst = dyn_cast<CallInst>(val)) {
-        handleCallInst(Inst, node);
+    if (isa<StoreInst>(val)) {
+        handleStoreInst(node);
+    } else if (isa<LoadInst>(val)) {
+        handleLoadInst(node);
+    } else if (isa<CallInst>(val)) {
+        handleCallInst(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
         handleInstruction(Inst, node); // handle rest of Insts
     }
