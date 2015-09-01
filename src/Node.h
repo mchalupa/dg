@@ -389,6 +389,7 @@ private:
     NodeT *nextNode;
     // predcessors of this node
     NodeT *prevNode;
+
 #endif /* ENABLE_CFG */
 #ifdef ENABLE_PSS
     // pointer-state subgraph

@@ -197,6 +197,20 @@ private:
                     << "  lhead=cluster_bb_" << S << "]\n";
             }
         }
+
+        if (options & PRINT_CD) {
+            for (auto S : BB->controlDependence()) {
+                NodeT *lastNode = BB->getLastNode();
+                NodeT *firstNode = S->getFirstNode();
+
+                out << Ind
+                    << "NODE" << lastNode << " -> "
+                    <<   "NODE" << firstNode
+                    << " [penwidth=2 color=blue"
+                    << "  ltail=cluster_bb_" << BB
+                    << "  lhead=cluster_bb_" << S << "]\n";
+            }
+        }
     }
 
     void dump_parameters(NodeT *node, int ind)

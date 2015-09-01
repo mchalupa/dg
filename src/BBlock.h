@@ -43,6 +43,8 @@ public:
 
     const ContainerT& successors() const { return nextBBs; }
     const ContainerT& predcessors() const { return prevBBs; }
+    const ContainerT& controlDependence() const { return controlDeps; }
+    const ContainerT& RevControlDependence() const { return revControlDeps; }
 
     typename ContainerT::size_type successorsNum() const
     {
@@ -52,6 +54,11 @@ public:
     typename ContainerT::size_type predcessorsNum() const
     {
         return prevBBs.size();
+    }
+
+    bool hasControlDependence() const
+    {
+        return !controlDeps.empty();
     }
 
     // remove all edges from/to this BB
@@ -192,6 +199,23 @@ public:
         return ret;
     }
 
+    bool addControlDependence(BBlock<NodeT> *b)
+    {
+        bool ret, ret2;
+
+        // do not allow self-loops
+        if (b == this)
+            return false;
+
+        ret = controlDeps.insert(b);
+        ret2 = b->revControlDeps.insert(this);
+
+        // we either have both edges or none
+        assert(ret == ret2);
+
+        return ret;
+    }
+
     NodeT *getFirstNode() const { return firstNode; }
     NodeT *getLastNode() const { return lastNode; }
 
@@ -259,6 +283,12 @@ public:
 private:
     ContainerT nextBBs;
     ContainerT prevBBs;
+
+    // when we have basic blocks, we do not need
+    // to keep control dependencies in nodes, because
+    // all nodes in block has the same control dependence
+    ContainerT controlDeps;
+    ContainerT revControlDeps;
 
     // first node in this basic block
     NodeT *firstNode;
