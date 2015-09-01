@@ -45,17 +45,28 @@ public:
             func(n, data);
 
             // add unprocessed vertices
-            if (options & NODES_WALK_CD)
+            if (options & NODES_WALK_CD) {
                 processEdges(n->control_begin(),
                              n->control_end(), queue, run_id);
+#ifdef ENABLE_CFG
+                // we can have control dependencies in BBlocks
+                processBBlockCDs(n, queue, run_id);
+#endif // ENABLE_CFG
+            }
 
             if (options & NODES_WALK_DD)
                 processEdges(n->data_begin(),
                              n->data_end(), queue, run_id);
 
-            if (options & NODES_WALK_REV_CD)
+            if (options & NODES_WALK_REV_CD) {
                 processEdges(n->rev_control_begin(),
                              n->rev_control_end(), queue, run_id);
+
+#ifdef ENABLE_CFG
+                // we can have control dependencies in BBlocks
+                processBBlockRevCDs(n, queue, run_id);
+#endif // ENABLE_CFG
+            }
 
             if (options & NODES_WALK_REV_DD)
                 processEdges(n->rev_data_begin(),
@@ -92,6 +103,33 @@ private:
             queue.push(tmp);
         }
     }
+
+#ifdef ENABLE_CFG
+    // we can have control dependencies in BBlocks
+    void processBBlockRevCDs(NodeT *n, QueueT& queue, unsigned int run_id)
+    {
+        // push terminator nodes of all blocks that are
+        // control dependent
+        BBlock<NodeT> *BB = n->getBasicBlock();
+        if (!BB)
+            return;
+        for (BBlock<NodeT> *CD : BB->RevControlDependence())
+            queue.push(CD->getLastNode());
+    }
+
+    void processBBlockCDs(NodeT *n, QueueT& queue, unsigned int run_id)
+    {
+        // push terminator nodes of all blocks that are
+        // control dependent
+        BBlock<NodeT> *BB = n->getBasicBlock();
+        if (!BB)
+            return;
+
+        for (BBlock<NodeT> *CD : BB->controlDependence())
+            queue.push(CD->getLastNode());
+    }
+
+#endif // ENABLE_CFG
 
     QueueT queue;
     uint32_t options;
