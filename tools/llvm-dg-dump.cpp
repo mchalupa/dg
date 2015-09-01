@@ -169,6 +169,7 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
 }
 
 static const char *slicing_criterion;
+static bool mark_only = false;
 
 int main(int argc, char *argv[])
 {
@@ -201,6 +202,9 @@ int main(int argc, char *argv[])
             debug_ptr = true;
         } else if (strcmp(argv[i], "-slice") == 0) {
             slicing_criterion = argv[++i];
+        } else if (strcmp(argv[i], "-mark") == 0) {
+            mark_only = true;
+            slicing_criterion = argv[++i];
         } else {
             module = argv[i];
         }
@@ -226,7 +230,10 @@ int main(int argc, char *argv[])
     if (slicing_criterion) {
         analysis::Slicer<LLVMNode> slicer;
         if (strcmp(slicing_criterion, "ret") == 0) {
-            slicer.slice(d.getExit());
+            if (mark_only)
+                slicer.mark(d.getExit());
+            else
+                slicer.slice(d.getExit());
         } else {
             auto gc = d.getGatheredCallsites();
             if (gc.empty()) {
@@ -237,7 +244,10 @@ int main(int argc, char *argv[])
 
             uint32_t slid = 0;
             for (LLVMNode *start : gc)
-                slid = slicer.slice(start, slid);
+                if (mark_only)
+                    slid = slicer.mark(start, slid);
+                else
+                    slid = slicer.slice(start, slid);
         }
     }
 
