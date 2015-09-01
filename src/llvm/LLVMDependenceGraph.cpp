@@ -361,6 +361,9 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     std::unordered_map<llvm::BasicBlock *, LLVMBBlock *> createdBlocks;
     createdBlocks.reserve(func->size());
 
+    // add formal parameters to this graph
+    addFormalParameters();
+
     // iterate over basic blocks
     for (llvm::BasicBlock& llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
@@ -392,8 +395,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
     // add CFG edge from entry point to the first instruction
     entry->addControlDependence(getEntryBB()->getFirstNode());
-
-    addFormalParameters();
 
     return true;
 }
