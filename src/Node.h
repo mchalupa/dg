@@ -35,7 +35,8 @@ public:
     typedef typename DependenceEdgesT::iterator data_iterator;
     typedef typename DependenceEdgesT::const_iterator const_data_iterator;
 
-    Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k, DependenceGraphT *dg = nullptr)
+    Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k,
+                                        DependenceGraphT *dg = nullptr)
         : key(k), dg(dg), parameters(nullptr), slice_id(0)
 #if ENABLE_CFG
          , basicBlock(nullptr), nextNode(nullptr),
@@ -180,10 +181,10 @@ public:
             }
 
             // if this was the only node in BB, remove the BB
-            if (basicBlock->getFirstNode() == nullptr) {
-                assert(basicBlock->getLastNode() == nullptr);
-                basicBlock->remove();
-            }
+            //if (basicBlock->getFirstNode() == nullptr) {
+            //    assert(basicBlock->getLastNode() == nullptr);
+            //    basicBlock->remove();
+            //}
 
             // also, if this is a callSite,
             // it is no longer part of BBlock,

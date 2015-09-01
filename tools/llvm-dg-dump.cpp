@@ -218,6 +218,9 @@ int main(int argc, char *argv[])
     }
 
     LLVMDependenceGraph d;
+    if (slicing_criterion)
+        d.gatherCallsites(slicing_criterion);
+
     d.build(&*M);
 
     if (slicing_criterion) {
@@ -225,29 +228,16 @@ int main(int argc, char *argv[])
         if (strcmp(slicing_criterion, "ret") == 0) {
             slicer.slice(d.getExit());
         } else {
-            LLVMNode *start;
-
-            // slicing criterion is the name of function that
-            // we're looking for
-            llvm::Function *func = M->getFunction(slicing_criterion);
-            if (!func) {
-                errs() << "Slicing criterion not found: " << slicing_criterion << "\n";
+            auto gc = d.getGatheredCallsites();
+            if (gc.empty()) {
+                errs() << "ERR: slicing criterion not found: "
+                       << slicing_criterion << "\n";
                 exit(1);
             }
 
             uint32_t slid = 0;
-            for (auto I = func->use_begin(), E = func->use_end();
-                 I != E; ++I) {
-                start = d.getNode(*I);
-                if (!start) {
-                    // XXX what if the node is in the subprocedure? F..ck, will
-                    // need to change it...
-                    errs() << "ERR: did not find call-site in graph\n";
-                    continue;
-                }
-
+            for (LLVMNode *start : gc)
                 slid = slicer.slice(start, slid);
-            }
         }
     }
 

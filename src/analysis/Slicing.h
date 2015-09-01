@@ -55,6 +55,8 @@ public:
         // just remove the rest of nodes
         sl_id = mark(start, sl_id);
         sliceGraph(start->getDG(), sl_id);
+
+        return sl_id;
     }
 };
 

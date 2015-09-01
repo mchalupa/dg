@@ -34,6 +34,8 @@ typedef dg::BBlock<LLVMNode> LLVMBBlock;
 class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
 public:
+    LLVMDependenceGraph() : gather_callsites(nullptr) {}
+
     // free all allocated memory and unref subgraphs
     virtual ~LLVMDependenceGraph();
 
@@ -47,6 +49,22 @@ public:
     bool build(llvm::Function *func);
 
     llvm::Module *getModule() const { return module; }
+
+    const std::map<const llvm::Value *,
+                   LLVMDependenceGraph *> getSubgraphs() const
+    {
+        return constructedFunctions;
+    }
+
+    void gatherCallsites(const char *name)
+    {
+        gather_callsites = name;
+    }
+
+    const std::set<LLVMNode *> getGatheredCallsites() const
+    {
+        return gatheredCallsites;
+    }
 
 private:
     // add formal parameters of the function to the graph
@@ -68,7 +86,13 @@ private:
     // build subgraph for a call node
     bool buildSubgraph(LLVMNode *node);
 
+    std::set<LLVMNode *> gatheredCallsites;
+    const char *gather_callsites;
+
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+    // when we want to slice according to some criterion,
+    // we may gather the call-sites (good points for criterions)
+    // while building the graph
     llvm::Module *module;
 };
 

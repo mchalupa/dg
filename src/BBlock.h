@@ -64,6 +64,11 @@ public:
     // remove all edges from/to this BB
     void isolate()
     {
+        // remove this BB from predcessors
+        for (auto pred : prevBBs) {
+            pred->nextBBs.erase(this);
+        }
+
         for (auto succ : nextBBs) {
             // redirect edges from each predcessor
             // to each successor
@@ -71,17 +76,19 @@ public:
                 pred->addSuccessor(succ);
             }
 
-            // remove edges from this node to the successor,
-            // we have reconnect all the edges for this one
-            removeSuccessor(succ);
+            succ->prevBBs.erase(this);
         }
 
-        // we still have edges to predcessors
-        // XXX is it safe to modify the set
-        // while iterating?
-        for (auto pred : prevBBs)
-            removePredcessor(pred);
+        // we reconnected and deleted edges from other
+        // BBs, but we still have edges from this to other BBs
+        prevBBs.clear();
+        nextBBs.clear();
 
+        // remove reverse edges to this BB
+        for (auto B : controlDeps)
+            B->revControlDeps.erase(this);
+
+        controlDeps.clear();
     }
 
     void remove(bool with_nodes = true)

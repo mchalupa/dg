@@ -240,11 +240,17 @@ is_func_defined(const llvm::CallInst *CInst)
 }
 
 
-void LLVMDependenceGraph::handleInstruction(const llvm::Value *val, LLVMNode *node)
+void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
+                                            LLVMNode *node)
 {
     using namespace llvm;
 
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
+        if (gather_callsites &&
+            strcmp(CInst->getCalledFunction()->getName().data(),
+                   gather_callsites) == 0)
+            gatheredCallsites.insert(node);
+
         if (is_func_defined(CInst))
             buildSubgraph(node);
     }
