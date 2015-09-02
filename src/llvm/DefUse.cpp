@@ -204,7 +204,7 @@ static void handleLoadInst(LLVMNode *node)
     assert(ptrNode && "No pointer operand");
     // we use the top-level value that is defined
     // on ptrNode
-    // ptrNode->addDataDependence(node);
+     ptrNode->addDataDependence(node);
 
     DefMap *df = getDefMap(node);
     addIndirectDefUse(ptrNode, node, df);
