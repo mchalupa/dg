@@ -374,7 +374,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     for (auto it : createdBlocks) {
         BasicBlock *llvmBB = it.first;
         LLVMBBlock *BB = it.second;
-        bool add_cd = llvmBB->getTerminator()->getNumSuccessors() > 1;
 
         for (succ_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
@@ -382,11 +381,6 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
             assert(succ && "Missing basic block");
 
             BB->addSuccessor(succ);
-
-            // if this basic block is terminated with predicate,
-            // then the successors are control dependent on it
-            if (add_cd)
-                BB->addControlDependence(succ);
         }
     }
 
