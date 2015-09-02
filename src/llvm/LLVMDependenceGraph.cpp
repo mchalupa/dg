@@ -30,7 +30,6 @@
 using llvm::errs;
 using std::make_pair;
 
-
 namespace dg {
 
 namespace debug {
@@ -192,6 +191,10 @@ bool LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
         // we'll share them
         subgraph->setGlobalNodes(getGlobalNodes());
         subgraph->module = module;
+        // make subgraphs gather the call-sites too
+        subgraph->gatherCallsites(gather_callsites, gatheredCallsites);
+
+        // make the real work
         bool ret = subgraph->build(callFunc);
 
         // at least for now use just assert, if we'll
@@ -236,10 +239,12 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
     using namespace llvm;
 
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
+        const Function *func = CInst->getCalledFunction();
         if (gather_callsites &&
-            strcmp(CInst->getCalledFunction()->getName().data(),
-                   gather_callsites) == 0)
-            gatheredCallsites.insert(node);
+            strcmp(func->getName().data(),
+                   gather_callsites) == 0) {
+            gatheredCallsites->insert(node);
+        }
 
         if (is_func_defined(CInst))
             buildSubgraph(node);

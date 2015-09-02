@@ -60,14 +60,10 @@ public:
     // we can gather the relevant call-sites while building
     // graph and do not need to recursively find in the graph
     // later
-    void gatherCallsites(const char *name)
+    void gatherCallsites(const char *name, std::set<LLVMNode *> *callSites)
     {
         gather_callsites = name;
-    }
-
-    const std::set<LLVMNode *> getGatheredCallsites() const
-    {
-        return gatheredCallsites;
+        gatheredCallsites = callSites;
     }
 
 private:
@@ -92,7 +88,7 @@ private:
 
     // gather call-sites of functions with given name
     // when building the graph
-    std::set<LLVMNode *> gatheredCallsites;
+    std::set<LLVMNode *> *gatheredCallsites;
     const char *gather_callsites;
 
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;

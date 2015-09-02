@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <cstdio>
 
+#include <set>
+
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
 #endif
@@ -220,9 +222,10 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    std::set<LLVMNode *> gatheredCallsites;
     LLVMDependenceGraph d;
     if (slicing_criterion)
-        d.gatherCallsites(slicing_criterion);
+        d.gatherCallsites(slicing_criterion, &gatheredCallsites);
 
     d.build(&*M);
 
@@ -234,15 +237,14 @@ int main(int argc, char *argv[])
             else
                 slicer.slice(d.getExit());
         } else {
-            auto gc = d.getGatheredCallsites();
-            if (gc.empty()) {
+            if (gatheredCallsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
                        << slicing_criterion << "\n";
                 exit(1);
             }
 
             uint32_t slid = 0;
-            for (LLVMNode *start : gc)
+            for (LLVMNode *start : gatheredCallsites)
                 if (mark_only)
                     slid = slicer.mark(start, slid);
                 else
