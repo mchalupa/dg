@@ -15,12 +15,16 @@ namespace analysis {
 
 LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
     : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
-      _dg(dg)
+      dg(dg)
 {
+    Module *m = dg->getModule();
+    // set data layout
+    DL = m->getDataLayout();
+
     handleGlobals();
 }
 
-static bool handleAllocaInst(LLVMNode *node)
+bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
 {
     // every global is a pointer
     MemoryObj *& mo = node->getMemoryObj();
@@ -70,7 +74,7 @@ static LLVMNode *findStoreInstVal(const llvm::Value *valOp, LLVMNode *node)
     return valNode;
 }
 
-static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     const Value *valOp = Inst->getValueOperand();
@@ -92,7 +96,7 @@ static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     return changed;
 }
 
-static bool handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     LLVMNode *ptrNode = node->getOperand(0);
@@ -123,29 +127,16 @@ static bool handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     return changed;
 }
 
-static const DataLayout *getDataLayout(LLVMNode *node)
-{
-    // data layout will not change, store it for further use
-    static const DataLayout *DL = nullptr;
-
-    if (!DL) {
-        Module *m = node->getDG()->getModule();
-        DL = m->getDataLayout();
-    }
-
-    return DL;
-}
-
-static bool handleGepInst(const GetElementPtrInst *Inst,
-                          LLVMNode *node, LLVMNode *ptrNode)
+bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
+                                         LLVMNode *node)
 {
     bool changed = false;
-    const DataLayout *DL = getDataLayout(node);
     APInt offset(64, 0);
     Offset off;
     uint64_t size;
     Type *Ty;
 
+    LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode && "Do not have GEP ptr node");
 
     if (Inst->accumulateConstantOffset(*DL, offset)) {
@@ -184,18 +175,12 @@ static bool handleGepInst(const GetElementPtrInst *Inst,
     return changed;
 }
 
-static bool handleGepInst(const GetElementPtrInst *Inst, LLVMNode *node)
-{
-    LLVMNode *ptrNode = node->getOperand(0);
-    return handleGepInst(Inst, node, ptrNode);
-}
-
 // handle const Gep in global variables
 static bool handleConstGepInst(const GetElementPtrInst *Inst,
-                               LLVMNode *node, LLVMNode *ptrNode)
+                               LLVMNode *node, LLVMNode *ptrNode,
+                               const DataLayout *DL)
 {
     bool changed = false;
-    const DataLayout *DL = getDataLayout(node);
     APInt offset(64, 0);
     Offset off;
     uint64_t size;
@@ -244,15 +229,14 @@ static bool handleConstGepInst(const GetElementPtrInst *Inst,
 
 
 
-static bool handleConstantExpr(const ConstantExpr *CE, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleConstantExpr(const ConstantExpr *CE, LLVMNode *node)
 {
     bool changed = false;
 
     if (CE->getOpcode() == Instruction::GetElementPtr) {
         const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
         LLVMNode *ptrNode = node->getDG()->getNode(*CE->op_begin());
-        //changed |= handleGepInst(cast<GetElementPtrInst>(Inst), node, ptrNode);
-        handleConstGepInst(cast<GetElementPtrInst>(Inst), node, ptrNode);
+        handleConstGepInst(cast<GetElementPtrInst>(Inst), node, ptrNode, DL);
         delete Inst;
     } else
         errs() << "ERR: unhandled ConstantExpr: " << *CE << "\n";
@@ -260,7 +244,7 @@ static bool handleConstantExpr(const ConstantExpr *CE, LLVMNode *node)
     return changed;
 }
 
-static bool handleCallInst(const CallInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     Type *Ty = Inst->getType();
@@ -337,7 +321,7 @@ static bool handleCallInst(const CallInst *Inst, LLVMNode *node)
 }
 
 
-static bool handleBitCastInst(const BitCastInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     LLVMNode *op = node->getOperand(0);
@@ -359,7 +343,7 @@ static bool handleBitCastInst(const BitCastInst *Inst, LLVMNode *node)
     return changed;
 }
 
-static bool handleReturnInst(const ReturnInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     LLVMNode *val = node->getOperand(0);
@@ -406,15 +390,15 @@ static bool handleGlobal(const Value *Inst, LLVMNode *node)
 void LLVMPointsToAnalysis::handleGlobals()
 {
     // do we have the globals at all?
-    if (!_dg->ownsGlobalNodes())
+    if (!dg->ownsGlobalNodes())
         return;
 
-    for (auto it : *_dg->getGlobalNodes())
+    for (auto it : *dg->getGlobalNodes())
         handleGlobal(it.first, it.second);
 
     bool changed = false;
     do {
-        for (auto it : *_dg->getGlobalNodes()) {
+        for (auto it : *dg->getGlobalNodes()) {
             const GlobalVariable *GV = cast<GlobalVariable>(it.first);
             if (GV->hasInitializer()) {
                 const Constant *C = GV->getInitializer();

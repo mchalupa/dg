@@ -3,6 +3,10 @@
 
 #include "analysis/DataFlowAnalysis.h"
 
+//#include <llvm/IR/Module.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+
 namespace dg {
 
 class LLVMDependenceGraph;
@@ -106,13 +110,24 @@ struct MemoryObj
 
 class LLVMPointsToAnalysis : public DataFlowAnalysis<LLVMNode>
 {
-    LLVMDependenceGraph *_dg;
+    LLVMDependenceGraph *dg;
     void handleGlobals();
+    const llvm::DataLayout *DL;
 public:
-    LLVMPointsToAnalysis(LLVMDependenceGraph *dg);
+    LLVMPointsToAnalysis(LLVMDependenceGraph *);
 
     /* virtual */
     bool runOnNode(LLVMNode *node);
+
+private:
+    bool handleAllocaInst(LLVMNode *);
+    bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
+    bool handleLoadInst(const llvm::LoadInst *, LLVMNode *);
+    bool handleGepInst(const llvm::GetElementPtrInst *, LLVMNode *);
+    bool handleConstantExpr(const llvm::ConstantExpr *, LLVMNode *);
+    bool handleCallInst(const llvm::CallInst *, LLVMNode *);
+    bool handleBitCastInst(const llvm::BitCastInst *, LLVMNode *);
+    bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
 };
 
 } // namespace analysis
