@@ -42,6 +42,9 @@ static bool handleStoreInstPtr(LLVMNode *valNode, LLVMNode *ptrNode)
     bool changed = false;
 
     // iterate over points to locations of pointer node
+    // FIXME what if the memory location is undefined?
+    // in that case it has no points-to set and we're
+    // loosing information
     for (auto ptr : ptrNode->getPointsTo()) {
         // if we're storing a pointer, make obj[offset]
         // points to the same locations as the valNode
@@ -127,43 +130,53 @@ bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     return changed;
 }
 
+static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
+                             uint64_t offset, const DataLayout *DL)
+{
+    bool changed = false;
+    Offset off = offset;
+    uint64_t size;
+    const Value *ptrVal;
+    Type *Ty;
+
+    for (auto ptr : ptrNode->getPointsTo()) {
+        if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
+            // don't store unknown with different offsets,
+            changed |= node->addPointsTo(ptr.obj);
+        else {
+            ptrVal = ptr.obj->node->getKey();
+            Ty = ptrVal->getType()->getContainedType(0);
+
+            off += ptr.offset;
+            size = DL->getTypeAllocSize(Ty);
+
+            // ivalid offset might mean we're cycling due to some
+            // cyclic dependency
+            if (*off >= size) {
+                errs() << "INFO: cropping GEP, off > size: " << *off
+                       << " " << size << " Type: " << *Ty << "\n";
+                changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+            } else
+                changed |= node->addPointsTo(ptr.obj, off);
+        }
+    }
+
+    return changed;
+}
+
 bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
                                          LLVMNode *node)
 {
     bool changed = false;
     APInt offset(64, 0);
-    Offset off;
-    uint64_t size;
-    Type *Ty;
 
     LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode && "Do not have GEP ptr node");
 
     if (Inst->accumulateConstantOffset(*DL, offset)) {
-        if (offset.isIntN(64)) {
-            for (auto ptr : ptrNode->getPointsTo()) {
-                    if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
-                        // don't store unknown with different offsets,
-                        changed |= node->addPointsTo(ptr.obj);
-                    else {
-                        off = offset.getZExtValue();
-                        off += ptr.offset;
-                        Ty = ptr.obj->node->getKey()->getType()->getContainedType(0);
-                        size = DL->getTypeAllocSize(Ty);
-                        // ivalid offset might mean we're cycling due to some
-                        // cyclic dependency
-                        if (*off >= size) {
-                            errs() << "INFO: cropping GEP, off > size: "
-                                   << *off << " " << size
-                                   << " Type: " << *Ty << "\n";
-                            changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
-                        } else
-                            changed |= node->addPointsTo(ptr.obj, off);
-                    }
-            }
-
-            return changed;
-        } else
+        if (offset.isIntN(64))
+            return addPtrWithOffset(ptrNode, node, offset.getZExtValue(), DL);
+        else
             errs() << "WARN: GEP offset greater that 64-bit\n";
             // fall-through to UNKNOWN_OFFSET in this case
     }
