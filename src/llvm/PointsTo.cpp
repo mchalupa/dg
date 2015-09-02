@@ -123,11 +123,24 @@ static bool handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     return changed;
 }
 
+static const DataLayout *getDataLayout(LLVMNode *node)
+{
+    // data layout will not change, store it for further use
+    static const DataLayout *DL = nullptr;
+
+    if (!DL) {
+        Module *m = node->getDG()->getModule();
+        DL = m->getDataLayout();
+    }
+
+    return DL;
+}
+
 static bool handleGepInst(const GetElementPtrInst *Inst,
                           LLVMNode *node, LLVMNode *ptrNode)
 {
     bool changed = false;
-    const DataLayout& DL = node->getDG()->getModule()->getDataLayout();
+    const DataLayout *DL = getDataLayout(node);
     APInt offset(64, 0);
     Offset off;
     uint64_t size;
@@ -135,7 +148,7 @@ static bool handleGepInst(const GetElementPtrInst *Inst,
 
     assert(ptrNode && "Do not have GEP ptr node");
 
-    if (Inst->accumulateConstantOffset(DL, offset)) {
+    if (Inst->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(64)) {
             for (auto ptr : ptrNode->getPointsTo()) {
                     if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
@@ -145,7 +158,7 @@ static bool handleGepInst(const GetElementPtrInst *Inst,
                         off = offset.getZExtValue();
                         off += ptr.offset;
                         Ty = ptr.obj->node->getKey()->getType()->getContainedType(0);
-                        size = DL.getTypeAllocSize(Ty);
+                        size = DL->getTypeAllocSize(Ty);
                         // ivalid offset might mean we're cycling due to some
                         // cyclic dependency
                         if (*off >= size) {
@@ -182,7 +195,7 @@ static bool handleConstGepInst(const GetElementPtrInst *Inst,
                                LLVMNode *node, LLVMNode *ptrNode)
 {
     bool changed = false;
-    const DataLayout& DL = node->getDG()->getModule()->getDataLayout();
+    const DataLayout *DL = getDataLayout(node);
     APInt offset(64, 0);
     Offset off;
     uint64_t size;
@@ -193,7 +206,7 @@ static bool handleConstGepInst(const GetElementPtrInst *Inst,
     MemoryObj *mo = node->getMemoryObj();
     assert(mo && "Global has no mo");
 
-    if (Inst->accumulateConstantOffset(DL, offset)) {
+    if (Inst->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(64)) {
             for (auto ptr : ptrNode->getPointsTo()) {
                     if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
@@ -203,7 +216,7 @@ static bool handleConstGepInst(const GetElementPtrInst *Inst,
                         off = offset.getZExtValue();
                         off += ptr.offset;
                         Ty = ptr.obj->node->getKey()->getType()->getContainedType(0);
-                        size = DL.getTypeAllocSize(Ty);
+                        size = DL->getTypeAllocSize(Ty);
                         // ivalid offset might mean we're cycling due to some
                         // cyclic dependency
                         if (*off >= size) {
