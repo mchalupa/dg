@@ -257,8 +257,9 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
-        else if (!isa<ConstantInt>(*I))
-            errs() << "WARN: no node for operand in " << *Inst << "\n";
+        else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
+            errs() << "WARN: no node for operand " << **I
+                   << "in " << *Inst << "\n";
     }
 }
 
