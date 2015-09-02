@@ -14,12 +14,18 @@ enum DFSFlags {
     DFS_INTERPROCEDURAL     = 1 << 0,
     DFS_PARAMS              = 1 << 1,
     DFS_CFG                 = 1 << 2,
-    DFS_CD                  = 1 << 3,
-    DFS_DD                  = 1 << 4,
-    DFS_REV_CD              = 1 << 5,
-    DFS_REV_DD              = 1 << 6,
+    DFS_REV_CFG             = 1 << 3,
+    DFS_CD                  = 1 << 4,
+    DFS_DD                  = 1 << 5,
+    DFS_REV_CD              = 1 << 6,
+    DFS_REV_DD              = 1 << 7,
+    // go through CFG edges between
+    // basic blocks (enqueue first
+    // nodes of BB successors for _every_ node)
+    DFS_BB_CFG              = 1 << 8,
+    DFS_BB_REV_CFG          = 1 << 9,
 
-    DFS_BB_NO_CALLSITES     = 1 << 7,
+    DFS_BB_NO_CALLSITES     = 1 << 10,
 };
 
 
@@ -32,6 +38,8 @@ uint32_t convertFlags(uint32_t opts)
         ret |= NODES_WALK_INTERPROCEDURAL;
     if (opts & DFS_CFG)
         ret |= NODES_WALK_CFG;
+    if (opts & DFS_REV_CFG)
+        ret |= NODES_WALK_REV_CFG;
     if (opts & DFS_CD)
         ret |= NODES_WALK_CD;
     if (opts & DFS_DD)
@@ -40,6 +48,14 @@ uint32_t convertFlags(uint32_t opts)
         ret |= NODES_WALK_REV_CD;
     if (opts & DFS_REV_DD)
         ret |= NODES_WALK_REV_DD;
+    if (opts & DFS_BB_CFG)
+        ret |= NODES_WALK_BB_CFG;
+    if (opts & DFS_BB_REV_CFG)
+        ret |= NODES_WALK_BB_REV_CFG;
+
+    assert(!(opts & DFS_PARAMS) && "Not implemented yet");
+    assert(!(opts & DFS_INTERPROCEDURAL) && "Not implemented yet");
+    assert(!(opts & DFS_BB_NO_CALLSITES) && "Not implemented yet");
 
     return ret;
 }
