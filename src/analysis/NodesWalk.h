@@ -10,12 +10,23 @@ namespace analysis {
 static unsigned int walk_run_counter;
 
 enum NodesWalkFlags {
+    // do not walk any edges, user will
+    // use enqueue method to decide which nodes
+    // will be processed
+    NODES_WALK_NONE_EDGES       = 0,
     NODES_WALK_INTERPROCEDURAL  = 1 << 0,
     NODES_WALK_CFG              = 1 << 1,
-    NODES_WALK_CD               = 1 << 2,
-    NODES_WALK_DD               = 1 << 3,
-    NODES_WALK_REV_CD           = 1 << 4,
-    NODES_WALK_REV_DD           = 1 << 5,
+    NODES_WALK_REV_CFG          = 1 << 2,
+    NODES_WALK_CD               = 1 << 3,
+    NODES_WALK_DD               = 1 << 4,
+    NODES_WALK_REV_CD           = 1 << 5,
+    NODES_WALK_REV_DD           = 1 << 6,
+    // Add to queue all first nodes of
+    // node's BB successors
+    NODES_WALK_BB_CFG           = 1 << 7,
+    // Add to queue all last nodes of
+    // node's BB predcessors
+    NODES_WALK_BB_REV_CFG       = 1 << 8,
 };
 
 template <typename NodeT, typename QueueT>
@@ -28,15 +39,10 @@ public:
     template <typename FuncT, typename DataT>
     void walk(NodeT *entry, FuncT func, DataT data)
     {
-        unsigned int run_id = ++walk_run_counter;
-        QueueT queue;
+        run_id = ++walk_run_counter;
 
         assert(entry && "Need entry node for traversing nodes");
-
-        AnalysesAuxiliaryData& aad = this->getAnalysisData(entry);
-        aad.lastwalkid = run_id;
-
-        queue.push(entry);
+        enqueue(entry);
 
         while (!queue.empty()) {
             NodeT *n = queue.pop();
@@ -44,36 +50,77 @@ public:
             prepare(n);
             func(n, data);
 
+            // do not try to process edges if we know
+            // we should not
+            if (options == 0)
+                continue;
+
             // add unprocessed vertices
             if (options & NODES_WALK_CD) {
-                processEdges(n->control_begin(),
-                             n->control_end(), queue, run_id);
+                processEdges(n->control_begin(), n->control_end());
 #ifdef ENABLE_CFG
                 // we can have control dependencies in BBlocks
-                processBBlockCDs(n, queue, run_id);
+                processBBlockCDs(n);
 #endif // ENABLE_CFG
             }
 
             if (options & NODES_WALK_DD)
-                processEdges(n->data_begin(),
-                             n->data_end(), queue, run_id);
+                processEdges(n->data_begin(), n->data_end());
 
             if (options & NODES_WALK_REV_CD) {
-                processEdges(n->rev_control_begin(),
-                             n->rev_control_end(), queue, run_id);
+                processEdges(n->rev_control_begin(), n->rev_control_end());
 
 #ifdef ENABLE_CFG
                 // we can have control dependencies in BBlocks
-                processBBlockRevCDs(n, queue, run_id);
+                processBBlockRevCDs(n);
 #endif // ENABLE_CFG
             }
 
             if (options & NODES_WALK_REV_DD)
-                processEdges(n->rev_data_begin(),
-                             n->rev_data_end(), queue, run_id);
+                processEdges(n->rev_data_begin(), n->rev_data_end());
 
-            // FIXME add CFG and interprocedural
+#ifdef ENABLE_CFG
+            if (options & NODES_WALK_BB_CFG)
+                processBBlockCFG(n);
+
+            if (options & NODES_WALK_BB_REV_CFG)
+                processBBlockRevCFG(n);
+
+            if (options & NODES_WALK_CFG) {
+                if (n->hasSuccessor())
+                    enqueue(n->getSuccessor());
+                else
+                    processBBlockCFG(n);
+            }
+
+            if (options & NODES_WALK_REV_CFG) {
+                if (n->hasPredcessor())
+                    enqueue(n->getPredcessor());
+                else
+                    processBBlockRevCFG(n);
+            }
+#endif // ENABLE_CFG
+
+            // FIXME interprocedural
         }
+    }
+
+    // push a node into queue
+    // This method is public so that analysis can
+    // push some extra nodes into queue as they want.
+    // They can also say that they don't want to process
+    // any edges and take care of pushing the right nodes
+    // on their own
+    void enqueue(NodeT *n)
+    {
+            AnalysesAuxiliaryData& aad = this->getAnalysisData(n);
+
+            if (aad.lastwalkid == run_id)
+                return;
+
+            // mark node as visited
+            aad.lastwalkid = run_id;
+            queue.push(n);
     }
 
 protected:
@@ -87,51 +134,62 @@ protected:
     }
 
 private:
-    template <typename IT>
-    void processEdges(IT begin, IT end, QueueT& queue,
-                      unsigned int run_id)
+       template <typename IT>
+    void processEdges(IT begin, IT end)
     {
         for (IT I = begin; I != end; ++I) {
-            NodeT *tmp = *I;
-            AnalysesAuxiliaryData& aad = this->getAnalysisData(tmp);
-
-            if (aad.lastwalkid == run_id)
-                continue;
-
-            // mark node as visited
-            aad.lastwalkid = run_id;
-            queue.push(tmp);
+            enqueue(*I);
         }
     }
 
 #ifdef ENABLE_CFG
     // we can have control dependencies in BBlocks
-    void processBBlockRevCDs(NodeT *n, QueueT& queue, unsigned int run_id)
+    void processBBlockRevCDs(NodeT *n)
     {
         // push terminator nodes of all blocks that are
         // control dependent
         BBlock<NodeT> *BB = n->getBasicBlock();
         if (!BB)
             return;
+
         for (BBlock<NodeT> *CD : BB->RevControlDependence())
-            queue.push(CD->getLastNode());
+            enqueue(CD->getLastNode());
     }
 
-    void processBBlockCDs(NodeT *n, QueueT& queue, unsigned int run_id)
+    void processBBlockCDs(NodeT *n)
     {
-        // push terminator nodes of all blocks that are
-        // control dependent
         BBlock<NodeT> *BB = n->getBasicBlock();
         if (!BB)
             return;
 
         for (BBlock<NodeT> *CD : BB->controlDependence())
-            queue.push(CD->getLastNode());
+            enqueue(CD->getFirstNode());
     }
 
+    void processBBlockCFG(NodeT *n)
+    {
+        BBlock<NodeT> *BB = n->getBasicBlock();
+        if (!BB)
+            return;
+
+        for (BBlock<NodeT> *S : BB->successors())
+            enqueue(S->getFirstNode());
+    }
+
+    void processBBlockRevCFG(NodeT *n)
+    {
+        BBlock<NodeT> *BB = n->getBasicBlock();
+        if (!BB)
+            return;
+
+        for (BBlock<NodeT> *S : BB->predcessors())
+            enqueue(S->getLastNode());
+    }
 #endif // ENABLE_CFG
 
     QueueT queue;
+    // id of particular nodes walk
+    unsigned int run_id;
     uint32_t options;
 };
 
@@ -202,6 +260,7 @@ public:
     }
 
     uint32_t getFlags() const { return flags; }
+
 protected:
     virtual void prepare(BBlockPtrT BB)
     {
