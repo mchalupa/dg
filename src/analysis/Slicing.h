@@ -27,6 +27,9 @@ class Slicer : Analysis<NodeT>
             for (DependenceGraph<NodeT> *sub : n->getSubgraphs())
                 sliceGraph(sub, slice_id);
 
+            // do graph specific logic
+            removeNode(n);
+
             if (n->getSlice() != slice_id)
                 dg->deleteNode(n);
         }
@@ -57,6 +60,11 @@ public:
         sliceGraph(start->getDG(), sl_id);
 
         return sl_id;
+    }
+
+    virtual void removeNode(NodeT *node)
+    {
+        (void) node;
     }
 };
 

@@ -18,9 +18,8 @@
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/PointsTo.h"
 #include "llvm/DefUse.h"
+#include "llvm/Slicer.h"
 #include "DG2Dot.h"
-
-#include "analysis/Slicing.h"
 
 using namespace dg;
 using llvm::errs;
@@ -228,7 +227,7 @@ int main(int argc, char *argv[])
     d.build(&*M);
 
     if (slicing_criterion) {
-        analysis::Slicer<LLVMNode> slicer;
+        LLVMSlicer slicer;
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
                 slicer.mark(d.getExit());
