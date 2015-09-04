@@ -44,8 +44,8 @@ LLVMNode **LLVMNode::findOperands()
         operands[0] = dg->getNode(Inst->getPointerOperand());
         operands[1] = dg->getNode(Inst->getValueOperand());
         operands_num = 2;
-        if (!operands[0]) {
-            errs() << "ERR: GEP pointer operand without node: " << *Inst <<"\n";
+        if (!operands[0] && !isa<ConstantExpr>(Inst->getPointerOperand())) {
+            errs() << "ERR: StoreInst pointer operand without node: " << *Inst <<"\n";
             abort();
         }
         if (!operands[1] && !isa<Constant>(Inst->getValueOperand())) {

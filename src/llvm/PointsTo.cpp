@@ -82,9 +82,19 @@ bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node
 {
     bool changed = false;
     const Value *valOp = Inst->getValueOperand();
+    Pointer constptr;
+
+    if (!valOp->getType()->isPointerTy())
+        return false;
 
     LLVMNode *ptrNode = node->getOperand(0);
-    assert(ptrNode && "No node for pointer argument");
+    if (!ptrNode) {
+        const Value *ptrOp = Inst->getPointerOperand();
+        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(ptrOp)) {
+            constptr = getConstantExprPointer(CE);
+        } else
+            errs() << "ERR: unsupported pointer for " << *Inst << "\n";
+    }
 
     LLVMNode *valNode = findStoreInstVal(valOp, node);
     if (!valNode) {
@@ -92,14 +102,19 @@ bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node
         if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
             const Pointer valptr = getConstantExprPointer(CE);
 
-            for (const Pointer& ptr : ptrNode->getPointsTo()) {
-                changed |= ptr.obj->addPointsTo(ptr.offset, valptr);
-            }
+            if (ptrNode)
+                for (const Pointer& ptr : ptrNode->getPointsTo())
+                    changed |= ptr.obj->addPointsTo(ptr.offset, valptr);
+            else
+                changed |= constptr.obj->addPointsTo(constptr.offset, valptr);
         } else if (!isa<Constant>(valOp))
             errs() << "ERR: unsupported value for " << *Inst << "\n";
     } else {
-        if (valOp->getType()->isPointerTy())
+        if (ptrNode)
             changed |= handleStoreInstPtr(valNode, ptrNode);
+        else
+            for (auto valptr : valNode->getPointsTo())
+                changed |= constptr.obj->addPointsTo(constptr.offset, valptr);
     }
 
     return changed;
