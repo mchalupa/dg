@@ -246,13 +246,28 @@ bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
 
 // @CE is ConstantExpr initializer
 // @node is global's node
-bool LLVMPointsToAnalysis::addGlobalPointsTo(const ConstantExpr *CE, LLVMNode *node)
+bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
+                                             LLVMNode *node,
+                                             uint64_t off)
 {
-    Pointer ptr = getConstantExprPointer(CE);
+    Pointer ptr (nullptr, 0);
     MemoryObj *mo = node->getMemoryObj();
     assert(mo && "Global has no mo");
 
-    return mo->addPointsTo(0, ptr);
+    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
+        ptr = getConstantExprPointer(CE);
+    } else if (isa<ConstantPointerNull>(C)) {
+        // pointer is null already, do nothing
+    } else {
+        // it is a pointer to somewhere (we check that it is a pointer
+        // before calling this method), so just get where
+        LLVMNode *ptrNode = dg->getNode(C);
+        assert(ptrNode && "Do not have node for  pointer initializer of global");
+
+        ptr.obj = ptrNode->getMemoryObj();
+    }
+
+    return mo->addPointsTo(off, ptr);
 }
 
 bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
@@ -411,10 +426,30 @@ void LLVMPointsToAnalysis::handleGlobals()
     // initialize globals
     for (auto it : *dg->getGlobalNodes()) {
         const GlobalVariable *GV = cast<GlobalVariable>(it.first);
-        if (GV->hasInitializer()) {
+        if (GV->hasInitializer() && !GV->isExternallyInitialized()) {
             const Constant *C = GV->getInitializer();
-            if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C))
-                addGlobalPointsTo(CE, it.second);
+            uint64_t off = 0;
+            Type *Ty;
+
+            // we must handle ConstantExpr here, becaues the operand of the
+            // ConstantExpr is the right object that we'd get in addGlobalPointsTo
+            // using getConstantExprPointer(), but the offset would be wrong (always 0)
+            // which can be broken e. g. with this C code:
+            // const char *str = "Im ugly string" + 5;
+            if (isa<ConstantExpr>(C))
+                addGlobalPointsTo(C, it.second, off);
+            else if (C->getType()->isAggregateType()) {
+                for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
+                    const Value *val = *I;
+                    Ty = val->getType();
+
+                    if (Ty->isPointerTy()) {
+                        addGlobalPointsTo(cast<Constant>(val), it.second, off);
+                    }
+
+                    off += DL->getTypeAllocSize(Ty);
+                }
+            }
         }
     }
 }

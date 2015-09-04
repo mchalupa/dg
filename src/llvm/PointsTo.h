@@ -123,7 +123,7 @@ public:
 
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
-    bool addGlobalPointsTo(const llvm::ConstantExpr *, LLVMNode *);
+    bool addGlobalPointsTo(const llvm::Constant *, LLVMNode *, uint64_t);
 
     bool handleAllocaInst(LLVMNode *);
     bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
