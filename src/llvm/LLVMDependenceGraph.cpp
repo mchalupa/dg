@@ -81,7 +81,6 @@ static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
 
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
-    debug::TimeMeasure tm;
     // get entry function if not given
     if (!entry)
         entry = m->getFunction("main");
@@ -98,25 +97,6 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 
     // build recursively DG from entry point
     build(entry);
-
-    analysis::LLVMPointsToAnalysis PTA(this);
-
-    tm.start();
-    PTA.run();
-    tm.stop();
-    tm.report("INFO: Points-to analysis took");
-
-    analysis::LLVMDefUseAnalysis DUA(this);
-
-    tm.start();
-    DUA.run();  // compute reaching definitions
-    tm.stop();
-    tm.report("INFO: Reaching defs analysis took");
-
-    tm.start();
-    DUA.addDefUseEdges(); // add def-use edges according that
-    tm.stop();
-    tm.report("INFO: Adding Def-Use edges took");
 
     return true;
 };

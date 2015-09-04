@@ -22,6 +22,7 @@
 #include "llvm/DefUse.h"
 #include "llvm/Slicer.h"
 #include "DG2Dot.h"
+#include "Utils.h"
 
 using namespace dg;
 using llvm::errs;
@@ -229,12 +230,32 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    debug::TimeMeasure tm;
     std::set<LLVMNode *> gatheredCallsites;
     LLVMDependenceGraph d;
     if (slicing_criterion)
         d.gatherCallsites(slicing_criterion, &gatheredCallsites);
 
     d.build(&*M);
+
+    analysis::LLVMPointsToAnalysis PTA(&d);
+
+    tm.start();
+    PTA.run();
+    tm.stop();
+    tm.report("INFO: Points-to analysis took");
+
+    analysis::LLVMDefUseAnalysis DUA(&d);
+
+    tm.start();
+    DUA.run();  // compute reaching definitions
+    tm.stop();
+    tm.report("INFO: Reaching defs analysis took");
+
+    tm.start();
+    DUA.addDefUseEdges(); // add def-use edges according that
+    tm.stop();
+    tm.report("INFO: Adding Def-Use edges took");
 
     if (slicing_criterion) {
         LLVMSlicer slicer;
