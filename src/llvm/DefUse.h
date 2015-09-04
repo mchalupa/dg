@@ -4,6 +4,10 @@
 #include "analysis/DataFlowAnalysis.h"
 #include "PointsTo.h"
 
+namespace llvm {
+    class DataLayout;
+};
+
 namespace dg {
 
 class LLVMDependenceGraph;
@@ -14,6 +18,7 @@ namespace analysis {
 class LLVMDefUseAnalysis : public DataFlowAnalysis<LLVMNode>
 {
     LLVMDependenceGraph *dg;
+    const llvm::DataLayout *DL;
 public:
     LLVMDefUseAnalysis(LLVMDependenceGraph *dg);
 
