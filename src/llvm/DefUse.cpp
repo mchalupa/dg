@@ -135,7 +135,7 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
     PointsToSetT *strong_update = nullptr;
 
     if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
-        changed |= handleStoreInst(Inst, node, strong_update);
+        changed |= dg::analysis::handleStoreInst(Inst, node, strong_update);
     }
 
     // update states according to predcessors
@@ -167,20 +167,6 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
 /// --------------------------------------------------
 namespace dg {
 namespace analysis {
-
-static void handleStoreInst(LLVMNode *node)
-{
-    // we have only top-level dependencies here
-
-    LLVMNode *valNode = node->getOperand(1);
-    // this node uses what is defined on valNode
-    if (valNode)
-        valNode->addDataDependence(node);
-
-    // and also uses what is defined on ptrNode
-    LLVMNode *ptrNode = node->getOperand(0);
-    ptrNode->addDataDependence(node);
-}
 
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
@@ -216,6 +202,27 @@ static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
     // store can define and check where they are defined
     for (const Pointer& ptr : ptrNode->getPointsTo())
         addIndirectDefUsePtr(ptr, to, df);
+}
+
+void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+{
+    // we have only top-level dependencies here
+
+    LLVMNode *valNode = node->getOperand(1);
+    // this node uses what is defined on valNode
+    if (!valNode) {
+        if (const ConstantExpr *CE
+                = dyn_cast<ConstantExpr>(Inst->getValueOperand())) {
+            const Pointer ptr = getConstantExprPointer(CE);
+            addIndirectDefUsePtr(ptr, node, getDefMap(node));
+        } else
+            errs() << "ERR: unhandled StoreInst value " << *Inst << "\n";
+    } else
+        valNode->addDataDependence(node);
+
+    // and also uses what is defined on ptrNode
+    LLVMNode *ptrNode = node->getOperand(0);
+    ptrNode->addDataDependence(node);
 }
 
 void LLVMDefUseAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
@@ -299,8 +306,8 @@ void LLVMDefUseAnalysis::handleNode(LLVMNode *node)
 {
     const Value *val = node->getKey();
 
-    if (isa<StoreInst>(val)) {
-        handleStoreInst(node);
+    if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+        handleStoreInst(Inst, node);
     } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {

@@ -35,6 +35,7 @@ private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
 
     void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
+    void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
 };
 
 class DefMap
