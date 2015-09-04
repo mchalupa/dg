@@ -59,7 +59,7 @@ struct Offset
 struct MemoryObj;
 struct Pointer
 {
-    Pointer(MemoryObj *m, Offset off = 0) : obj(m), offset(off) {}
+    Pointer(MemoryObj *m = nullptr, Offset off = 0) : obj(m), offset(off) {}
 
     MemoryObj *obj;
     Offset offset;
@@ -68,6 +68,8 @@ struct Pointer
     {
         return obj == oth.obj ? offset < oth.offset : obj < oth.obj;
     }
+
+    bool isNull() const { return obj == nullptr; }
 };
 
 typedef std::set<Pointer> PointsToSetT;
@@ -120,6 +122,8 @@ public:
     bool runOnNode(LLVMNode *node);
 
 private:
+    Pointer getConstantExprPointer(const llvm::ConstantExpr *);
+
     bool handleAllocaInst(LLVMNode *);
     bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
     bool handleLoadInst(const llvm::LoadInst *, LLVMNode *);

@@ -122,11 +122,14 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
             if (ptsto.empty() && val->getType()->isPointerTy()) {
                 os << "\\lERR: pointer without pointsto set";
                 err = true;
-            }
+            } else
+                os << "\\l -- points-to info --";
 
             for (auto it : ptsto) {
-                os << "\\lPTR: [";
-                if (it.obj->isUnknown())
+                os << "\\l[";
+                if (it.isNull())
+                    os << "null";
+                else if (it.obj->isUnknown())
                     os << "unknown";
                 else
                     printLLVMVal(os, it.obj->node->getKey());
@@ -137,8 +140,10 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
             if (mo) {
                 for (auto it : mo->pointsTo) {
                     for(auto it2 : it.second) {
-                        os << "\\l--MEMPTR: [" << it.first << "] -> ";
-                        if (it2.obj->isUnknown())
+                        os << "\\lmem: [" << it.first << "] -> ";
+                        if (it2.isNull())
+                            os << "[null";
+                        else if (it2.obj->isUnknown())
                             os << "[unknown";
                         else
                             printLLVMVal(os, it2.obj->node->getKey());
@@ -151,9 +156,10 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
         if (debug_def) {
             analysis::DefMap *df = node->getData<analysis::DefMap>();
             if (df) {
+                os << "\\l -- reaching defs info --";
                 for (auto it : df->getDefs()) {
                     for (auto v : it.second) {
-                        os << "\\l--DEF: [";
+                        os << "\\l: [";
                         if (it.first.obj->isUnknown())
                             os << "[unknown";
                         else
