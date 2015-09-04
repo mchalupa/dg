@@ -188,8 +188,8 @@ int main(int argc, char *argv[])
             opts &= ~PRINT_CD;
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
-        } else if (strcmp(argv[i], "-cfg") == 0) {
-            opts |= PRINT_CFG;
+        } else if (strcmp(argv[i], "-nocfg") == 0) {
+            opts &= ~PRINT_CFG;
         } else if (strcmp(argv[i], "-call") == 0) {
             opts |= PRINT_CALL;
         } else if (strcmp(argv[i], "-cfgall") == 0) {
