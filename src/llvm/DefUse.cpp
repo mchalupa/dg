@@ -168,6 +168,20 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
 namespace dg {
 namespace analysis {
 
+static void handleStoreInst(LLVMNode *node)
+{
+    // we have only top-level dependencies here
+
+    LLVMNode *valNode = node->getOperand(1);
+    // this node uses what is defined on valNode
+    if (valNode)
+        valNode->addDataDependence(node);
+
+    // and also uses what is defined on ptrNode
+    LLVMNode *ptrNode = node->getOperand(0);
+    ptrNode->addDataDependence(node);
+}
+
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
     ValuesSetT& defs = df->get(ptr);
@@ -275,7 +289,7 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
-        else if (!isa<Constant>(*I) && !isa<BranchInst>(Inst))
+        else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
             errs() << "WARN: no node for operand " << **I
                    << "in " << *Inst << "\n";
     }
@@ -285,7 +299,9 @@ void LLVMDefUseAnalysis::handleNode(LLVMNode *node)
 {
     const Value *val = node->getKey();
 
-    if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+    if (isa<StoreInst>(val)) {
+        handleStoreInst(node);
+    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
