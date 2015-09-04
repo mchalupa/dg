@@ -4,6 +4,9 @@
 #include "analysis/DataFlowAnalysis.h"
 #include "PointsTo.h"
 
+#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
+
 namespace llvm {
     class DataLayout;
     class ConstantExpr;
@@ -27,7 +30,11 @@ public:
     bool runOnNode(LLVMNode *node);
     void addDefUseEdges();
 
+    void handleNode(LLVMNode *);
+private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
+
+    void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
 };
 
 class DefMap

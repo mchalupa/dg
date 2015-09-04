@@ -182,46 +182,55 @@ static void handleStoreInst(LLVMNode *node)
     ptrNode->addDataDependence(node);
 }
 
-static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
+static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
-    // iterate over all memory locations that this
-    // store can define and check where they are defined
-    for (const Pointer& ptr : ptrNode->getPointsTo()) {
-        const ValuesSetT& defs = df->get(ptr);
-        // do we have any reaching definition at all?
-        if (defs.empty()) {
-            const Value *val = ptrNode->getKey();
-            // we do not add def to global variables, so do it here
-            if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(val)) {
-            //    if (GV->hasInitializer())
-            } else if (isa<AllocaInst>(val)) {
-                // we have the edges, this is just to suppress the warning
-            } else
-                errs() << "WARN: no reaching definition for " << *val << "\n";
+    const ValuesSetT& defs = df->get(ptr);
+    // do we have any reaching definition at all?
+    if (defs.empty()) {
+        // FIXME what about global variables?
+        // we do not add def to global variables, so do it here
+        //if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(val)) {
+        //    if (GV->hasInitializer())
 
-            continue;
-        }
-
+        errs() << "WARN: no reaching definition for " << ptr.obj
+               << " + " << *ptr.offset << "\n";
+    } else {
         // we read ptrNode memory that is defined on these locations
         for (LLVMNode *n : defs)
             n->addDataDependence(to);
     }
 }
 
-static void handleLoadInst(LLVMNode *node)
+static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
 {
-    LLVMNode *ptrNode = node->getOperand(0);
-    if (!ptrNode) {
-        errs() << "ERR: No ptrNode: " << *node->getKey() << "\n";
-        return;
-    }
+    // iterate over all memory locations that this
+    // store can define and check where they are defined
+    for (const Pointer& ptr : ptrNode->getPointsTo())
+        addIndirectDefUsePtr(ptr, to, df);
+}
 
-    // we use the top-level value that is defined
-    // on ptrNode
-     ptrNode->addDataDependence(node);
-
+void LLVMDefUseAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+{
     DefMap *df = getDefMap(node);
-    addIndirectDefUse(ptrNode, node, df);
+    LLVMNode *ptrNode = node->getOperand(0);
+
+    // handle ConstantExpr
+    if (!ptrNode) {
+        const Value *valOp = Inst->getPointerOperand();
+        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
+            const Pointer ptr = getConstantExprPointer(CE);
+            return addIndirectDefUsePtr(ptr, node, df);
+        } else {
+            errs() << "ERR: Unhandled LoadInst operand " << *Inst << "\n";
+            abort();
+        }
+    } else {
+        // we use the top-level value that is defined
+        // on ptrNode
+        ptrNode->addDataDependence(node);
+
+        addIndirectDefUse(ptrNode, node, df);
+    }
 }
 
 static void handleCallInst(LLVMNode *node)
@@ -277,14 +286,14 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
     }
 }
 
-static void handleNode(LLVMNode *node)
+void LLVMDefUseAnalysis::handleNode(LLVMNode *node)
 {
     const Value *val = node->getKey();
 
     if (isa<StoreInst>(val)) {
         handleStoreInst(node);
-    } else if (isa<LoadInst>(val)) {
-        handleLoadInst(node);
+    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+        handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
@@ -292,13 +301,11 @@ static void handleNode(LLVMNode *node)
     }
 }
 
-static void handleBlock(LLVMBBlock *BB, void *data)
+void handleBlock(LLVMBBlock *BB, LLVMDefUseAnalysis *analysis)
 {
-    (void) data;
-
     LLVMNode *n = BB->getFirstNode();
     while (n) {
-        handleNode(n);
+        analysis->handleNode(n);
         n = n->getSuccessor();
     }
 }
@@ -307,7 +314,7 @@ void LLVMDefUseAnalysis::addDefUseEdges()
 {
     // it doesn't matter how we'll go through the nodes
     BBlockDFS<LLVMNode> runner(DFS_INTERPROCEDURAL);
-    runner.run(dg->getEntryBB(), handleBlock, nullptr);
+    runner.run(dg->getEntryBB(), handleBlock, this);
 }
 
 } // namespace analysis
