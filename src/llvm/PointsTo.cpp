@@ -7,6 +7,7 @@
 
 #include "LLVMDependenceGraph.h"
 #include "PointsTo.h"
+#include "AnalysisGeneric.h"
 
 using namespace llvm;
 
@@ -99,39 +100,9 @@ bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node
     return changed;
 }
 
-static Pointer getConstantExprPointerFull(const ConstantExpr *CE,
-                                          LLVMDependenceGraph *dg,
-                                          const DataLayout *DL)
-{
-    Pointer pointer;
-    const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
-    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
-        const Value *op = GEP->getPointerOperand();
-        LLVMNode *opNode = dg->getNode(op);
-        assert(opNode && "No node for Constant GEP operand");
-
-        pointer.obj = opNode->getMemoryObj();
-
-        APInt offset(64, 0);
-        if (GEP->accumulateConstantOffset(*DL, offset)) {
-            if (offset.isIntN(64))
-                pointer.offset = offset.getZExtValue();
-            else
-                errs() << "WARN: Offset greater than 64-bit" << *GEP << "\n";
-        }
-        // else offset is set to UNKNOWN (in constructor)
-    } else {
-            errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
-            abort();
-    }
-
-    delete Inst;
-    return pointer;
-}
-
 Pointer LLVMPointsToAnalysis::getConstantExprPointer(const ConstantExpr *CE)
 {
-    return getConstantExprPointerFull(CE, dg, DL);
+    return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
 
 static bool handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)

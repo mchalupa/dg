@@ -11,6 +11,8 @@ add_library(llvmdg SHARED
 	llvm/LLVMNode.cpp
 	llvm/LLVMDependenceGraph.h
 	llvm/LLVMDependenceGraph.cpp
+	llvm/AnalysisGeneric.h
+	llvm/AnalysisGeneric.cpp
 	llvm/PointsTo.h
 	llvm/PointsTo.cpp
 	llvm/DefUse.h
