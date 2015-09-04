@@ -99,35 +99,91 @@ bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+static Pointer getConstantExprPointerFull(const ConstantExpr *CE,
+                                          LLVMDependenceGraph *dg,
+                                          const DataLayout *DL)
+{
+    Pointer pointer;
+    const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
+    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
+        const Value *op = GEP->getPointerOperand();
+        LLVMNode *opNode = dg->getNode(op);
+        assert(opNode && "No node for Constant GEP operand");
+
+        pointer.obj = opNode->getMemoryObj();
+
+        APInt offset(64, 0);
+        if (GEP->accumulateConstantOffset(*DL, offset)) {
+            if (offset.isIntN(64))
+                pointer.offset = offset.getZExtValue();
+            else
+                errs() << "WARN: Offset greater than 64-bit" << *GEP << "\n";
+        }
+        // else offset is set to UNKNOWN (in constructor)
+    } else {
+            errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
+            abort();
+    }
+
+    delete Inst;
+    return pointer;
+}
+
+Pointer LLVMPointsToAnalysis::getConstantExprPointer(const ConstantExpr *CE)
+{
+    return getConstantExprPointerFull(CE, dg, DL);
+}
+
+static bool handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)
 {
     bool changed = false;
-    LLVMNode *ptrNode = node->getOperand(0);
-    assert(ptrNode && "No pointer operand for LoadInst");
 
-    bool isptr = Inst->getType()->isPointerTy();
-    if (!isptr)
-        return false;
+    // load of pointer makes this node point
+    // to the same values as ptrNode
+    if (ptr.isNull() || ptr.obj->isUnknown())
+        changed |= node->addPointsTo(ptr);
+    else {
+        for (auto memptr : ptr.obj->pointsTo[ptr.offset])
+            changed |= node->addPointsTo(memptr);
+
+        if (ptr.obj->pointsTo.count(UNKNOWN_OFFSET) != 0)
+            for (auto memptr : ptr.obj->pointsTo[UNKNOWN_OFFSET])
+                changed |= node->addPointsTo(memptr);
+    }
+
+    return changed;
+}
+
+static bool handleLoadInstPointsTo(LLVMNode *ptrNode, LLVMNode *node)
+{
+    bool changed = false;
 
     // get values that are referenced by pointer and
     // store them as values of this load (or as pointsTo
     // if the load it pointer)
-    for (auto ptr : ptrNode->getPointsTo()) {
-        // load of pointer makes this node point
-        // to the same values as ptrNode
-        if (ptr.obj->isUnknown())
-            changed |= node->addPointsTo(ptr);
-        else {
-            for (auto memptr : ptr.obj->pointsTo[ptr.offset])
-                changed |= node->addPointsTo(memptr);
-
-            if (ptr.obj->pointsTo.count(UNKNOWN_OFFSET) != 0)
-                for (auto memptr : ptr.obj->pointsTo[UNKNOWN_OFFSET])
-                    changed |= node->addPointsTo(memptr);
-        }
-    }
+    for (auto ptr : ptrNode->getPointsTo())
+        changed |= handleLoadInstPtr(ptr, node);
 
     return changed;
+}
+
+bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+{
+    if (!Inst->getType()->isPointerTy())
+        return false;
+
+    LLVMNode *ptrNode = node->getOperand(0);
+    if (!ptrNode) {
+        const Value *valOp = Inst->getPointerOperand();
+        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
+            const Pointer ptr = getConstantExprPointer(CE);
+            return handleLoadInstPtr(ptr, node);
+        } else {
+            errs() << "Unhandled LoadInst operand " << *Inst << "\n";
+            abort();
+        }
+    } else
+        return handleLoadInstPointsTo(ptrNode, node);
 }
 
 static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,

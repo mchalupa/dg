@@ -201,7 +201,11 @@ static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
 static void handleLoadInst(LLVMNode *node)
 {
     LLVMNode *ptrNode = node->getOperand(0);
-    assert(ptrNode && "No pointer operand");
+    if (!ptrNode) {
+        errs() << "ERR: No ptrNode: " << *node->getKey() << "\n";
+        return;
+    }
+
     // we use the top-level value that is defined
     // on ptrNode
      ptrNode->addDataDependence(node);

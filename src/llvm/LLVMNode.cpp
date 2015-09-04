@@ -56,10 +56,8 @@ LLVMNode **LLVMNode::findOperands()
         operands = new LLVMNode *[1];
         const Value *op = Inst->getPointerOperand();
         operands[0] = dg->getNode(op);
-        if (!operands[0]) {
-            errs() << "ERR: LoadInst pointer operand without node: " << *Inst <<"\n";
-            abort();
-        }
+        if (!operands[0] && !isa<ConstantExpr>(Inst->getPointerOperand()))
+            errs() << "WARN: LoadInst pointer operand without node: " << *Inst <<"\n";
 
         operands_num = 1;
     } else if (const GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
