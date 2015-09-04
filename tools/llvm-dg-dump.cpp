@@ -83,7 +83,8 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
     }
 
     if (!node->getBasicBlock()
-        && !llvm::isa<llvm::Function>(val)) {
+        && !llvm::isa<llvm::Function>(val)
+        && !llvm::isa<llvm::GlobalVariable>(val)) {
         err = true;
         os << "\\nERR: no BB";
     }

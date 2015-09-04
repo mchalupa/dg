@@ -123,12 +123,12 @@ public:
 
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
+    bool addGlobalPointsTo(const llvm::ConstantExpr *, LLVMNode *);
 
     bool handleAllocaInst(LLVMNode *);
     bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
     bool handleLoadInst(const llvm::LoadInst *, LLVMNode *);
     bool handleGepInst(const llvm::GetElementPtrInst *, LLVMNode *);
-    bool handleConstantExpr(const llvm::ConstantExpr *, LLVMNode *);
     bool handleCallInst(const llvm::CallInst *, LLVMNode *);
     bool handleBitCastInst(const llvm::BitCastInst *, LLVMNode *);
     bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
