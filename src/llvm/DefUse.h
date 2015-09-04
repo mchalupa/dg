@@ -51,7 +51,7 @@ public:
     bool add(const Pointer& p, LLVMNode *n);
     bool update(const Pointer& p, LLVMNode *n);
 
-    const ValuesSetT& get(const Pointer& ptr) { return defs[ptr]; }
+    ValuesSetT& get(const Pointer& ptr) { return defs[ptr]; }
     const std::map<Pointer, ValuesSetT> getDefs() const { return defs; }
 };
 

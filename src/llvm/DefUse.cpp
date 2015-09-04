@@ -170,21 +170,30 @@ namespace analysis {
 
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
-    const ValuesSetT& defs = df->get(ptr);
+    ValuesSetT& defs = df->get(ptr);
     // do we have any reaching definition at all?
     if (defs.empty()) {
-        // FIXME what about global variables?
-        // we do not add def to global variables, so do it here
-        //if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(val)) {
-        //    if (GV->hasInitializer())
-
-        errs() << "WARN: no reaching definition for " << *ptr.obj->node->getKey()
-               << " + " << *ptr.offset << "\n";
-    } else {
-        // we read ptrNode memory that is defined on these locations
-        for (LLVMNode *n : defs)
-            n->addDataDependence(to);
+        // we do not add initial def to global variables because not all
+        // global variables could be used in the code and we'd redundantly
+        // iterate through the defintions. Do it lazily here.
+        LLVMNode *ptrnode = ptr.obj->node;
+        if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(ptrnode->getKey())) {
+            if (GV->hasInitializer()) {
+                // ok, so the GV was defined in initialization phase,
+                // so the reaching definition for the ptr is there
+                defs.insert(ptrnode);
+            }
+        } else {
+            errs() << "WARN: no reaching definition for " << *ptr.obj->node->getKey()
+                   << " + " << *ptr.offset << "\n";
+            return;
+        }
     }
+
+    // we read ptrNode memory that is defined on these locations
+    assert(!defs.empty());
+    for (LLVMNode *n : defs)
+        n->addDataDependence(to);
 }
 
 static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
@@ -199,13 +208,13 @@ void LLVMDefUseAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     LLVMNode *ptrNode = node->getOperand(0);
+    const Value *valOp = Inst->getPointerOperand();
 
     // handle ConstantExpr
     if (!ptrNode) {
-        const Value *valOp = Inst->getPointerOperand();
         if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
             const Pointer ptr = getConstantExprPointer(CE);
-            return addIndirectDefUsePtr(ptr, node, df);
+            addIndirectDefUsePtr(ptr, node, df);
         } else {
             errs() << "ERR: Unhandled LoadInst operand " << *Inst << "\n";
             abort();
