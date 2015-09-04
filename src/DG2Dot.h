@@ -379,6 +379,10 @@ private:
     {
         for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
             dump_node_edges(I->second);
+
+        if (dg->ownsGlobalNodes())
+            for (auto I : *dg->getGlobalNodes())
+                dump_node_edges(I.second);
     }
 
     void dump_node_edges(NodeT *n, int ind = 1)
