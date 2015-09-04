@@ -108,6 +108,9 @@ public:
 private:
     void reopen(const char *new_file)
     {
+        if (!new_file)
+            new_file = "/dev/stdout";
+
         if (out.is_open())
             out.close();
 
