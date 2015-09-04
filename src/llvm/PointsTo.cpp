@@ -88,14 +88,19 @@ bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node
 
     LLVMNode *valNode = findStoreInstVal(valOp, node);
     if (!valNode) {
-        if (!isa<Constant>(valOp))
-            errs() << "ERR: no value node for " << *Inst << "\n";
+        const Value *valOp = Inst->getValueOperand();
+        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
+            const Pointer valptr = getConstantExprPointer(CE);
 
-        return false;
+            for (const Pointer& ptr : ptrNode->getPointsTo()) {
+                changed |= ptr.obj->addPointsTo(ptr.offset, valptr);
+            }
+        } else if (!isa<Constant>(valOp))
+            errs() << "ERR: unsupported value for " << *Inst << "\n";
+    } else {
+        if (valOp->getType()->isPointerTy())
+            changed |= handleStoreInstPtr(valNode, ptrNode);
     }
-
-    if (valOp->getType()->isPointerTy())
-        changed |= handleStoreInstPtr(valNode, ptrNode);
 
     return changed;
 }
