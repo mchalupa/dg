@@ -6,6 +6,7 @@
 
 namespace llvm {
     class DataLayout;
+    class ConstantExpr;
 };
 
 namespace dg {
@@ -25,6 +26,8 @@ public:
     /* virtual */
     bool runOnNode(LLVMNode *node);
     void addDefUseEdges();
+
+    Pointer getConstantExprPointer(const llvm::ConstantExpr *);
 };
 
 class DefMap

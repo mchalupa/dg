@@ -11,6 +11,7 @@
 #include "LLVMNode.h"
 #include "LLVMDependenceGraph.h"
 #include "DefUse.h"
+#include "AnalysisGeneric.h"
 
 #include "analysis/DFS.h"
 
@@ -26,6 +27,11 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg)
     Module *m = dg->getModule();
     // set data layout
     DL = m->getDataLayout();
+}
+
+Pointer LLVMDefUseAnalysis::getConstantExprPointer(const ConstantExpr *CE)
+{
+    return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
 
 DefMap::DefMap(const DefMap& o)
