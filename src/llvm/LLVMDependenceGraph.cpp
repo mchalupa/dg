@@ -12,7 +12,6 @@
 #include <utility>
 #include <unordered_map>
 #include <set>
-#include <ctime>
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
@@ -21,6 +20,7 @@
 #include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include "Utils.h"
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
 
@@ -31,52 +31,6 @@ using llvm::errs;
 using std::make_pair;
 
 namespace dg {
-
-namespace debug {
-class TimeMeasure
-{
-    struct timespec s, e, r;
-    clockid_t clockid;
-
-public:
-    TimeMeasure(clockid_t clkid = CLOCK_MONOTONIC)
-        : clockid(clkid) {}
-
-    void start() {
-        clock_gettime(clockid, &s);
-    };
-
-    void stop() {
-        clock_gettime(clockid, &e);
-    };
-
-    const struct timespec& duration()
-    {
-        r.tv_sec = e.tv_sec - s.tv_sec;
-        if (e.tv_nsec > s.tv_nsec)
-            r.tv_nsec = e.tv_nsec - s.tv_nsec;
-        else {
-            --r.tv_sec;
-            r.tv_nsec = 1000000000 - e.tv_nsec;
-        }
-
-        return r;
-    }
-
-    void report(const char *prefix = nullptr)
-    {
-        // compute the duration
-        duration();
-
-        if (prefix)
-            errs() << prefix << " ";
-
-        errs() << r.tv_sec << " sec "
-               << r.tv_nsec / 1000000 << "ms\n";
-    }
-};
-} // namespace debug
-
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
