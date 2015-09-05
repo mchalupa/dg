@@ -174,7 +174,10 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
 
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
         const Function *func = CInst->getCalledFunction();
-        if (gather_callsites &&
+        // if func is nullptr, then this is indirect call
+        // via function pointer. We cannot do something with
+        // that here, we don't know the points-to
+        if (func && gather_callsites &&
             strcmp(func->getName().data(),
                    gather_callsites) == 0) {
             gatheredCallsites->insert(node);
