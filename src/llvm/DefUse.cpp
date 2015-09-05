@@ -243,28 +243,19 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     addStoreLoadInstDefUse(node, ptrNode, df);
 }
 
-void LLVMDefUseAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+void LLVMDefUseAnalysis::handleLoadInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     LLVMNode *ptrNode = node->getOperand(0);
-    const Value *valOp = Inst->getPointerOperand();
+    assert(ptrNode && "No ptr node");
 
-    // handle ConstantExpr
-    if (!ptrNode) {
-        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
-            const Pointer ptr = getConstantExprPointer(CE);
-            addIndirectDefUsePtr(ptr, node, df);
-        } else {
-            errs() << "ERR: Unhandled LoadInst operand " << *Inst << "\n";
-            abort();
-        }
-    } else {
-        // we use the top-level value that is defined
-        // on ptrNode
-        ptrNode->addDataDependence(node);
+    // load inst is reading from the memory,
+    // so add indirect def-use edges
+    addIndirectDefUse(ptrNode, node, df);
 
-        addIndirectDefUse(ptrNode, node, df);
-    }
+    // load inst is reading from the memory that is pointed by
+    // the top-level value, so add def-use edge
+    addStoreLoadInstDefUse(node, ptrNode, df);
 }
 
 static void handleCallInst(LLVMNode *node)
@@ -326,8 +317,8 @@ void LLVMDefUseAnalysis::handleNode(LLVMNode *node)
 
     if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         handleStoreInst(Inst, node);
-    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
-        handleLoadInst(Inst, node);
+    } else if (isa<LoadInst>(val)) {
+        handleLoadInst(node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {

@@ -34,7 +34,7 @@ public:
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
 
-    void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
+    void handleLoadInst(LLVMNode *);
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
 };
 
