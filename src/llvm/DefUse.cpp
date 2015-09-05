@@ -102,25 +102,20 @@ static DefMap *getDefMap(LLVMNode *n)
 //   Reaching definitions analysis
 /// --------------------------------------------------
 
-static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node,
-                            PointsToSetT *&strong_update)
+static bool handleStoreInst(LLVMNode *storeNode, DefMap *df, PointsToSetT *&strong_update)
 {
     bool changed = false;
-    LLVMNode *ptrNode = node->getOperand(0);
+    LLVMNode *ptrNode = storeNode->getOperand(0);
     assert(ptrNode && "No pointer operand");
 
-    (void) Inst;
-
     // update definitions
-    DefMap *df = getDefMap(node);
     PointsToSetT& S = ptrNode->getPointsTo();
-
     if (S.size() == 1) {// strong update
-        changed |= df->update(*S.begin(), node);
+        changed |= df->update(*S.begin(), storeNode);
         strong_update = &S;
     } else { // weak update
         for (const Pointer& ptr : ptrNode->getPointsTo())
-            changed |= df->add(ptr, node);
+            changed |= df->add(ptr, storeNode);
     }
 
     return changed;
@@ -129,19 +124,18 @@ static bool handleStoreInst(const StoreInst *Inst, LLVMNode *node,
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
 {
     bool changed = false;
-    const Value *val = node->getKey();
     // pointers that should not be updated
     // because they were updated strongly
     PointsToSetT *strong_update = nullptr;
-
-    if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
-        changed |= dg::analysis::handleStoreInst(Inst, node, strong_update);
-    }
 
     // update states according to predcessors
     DefMap *df = getDefMap(node);
     LLVMNode *pred = node->getPredcessor();
     if (pred) {
+        // if the predcessor is StoreInst, it add and may kill some definitions
+        if (isa<StoreInst>(pred->getKey()))
+            changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
+
         changed |= df->merge(getDefMap(pred), strong_update);
     } else { // BB predcessors
         LLVMBBlock *BB = node->getBasicBlock();
@@ -151,7 +145,10 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
             pred = predBB->getLastNode();
             assert(pred && "BB has no last node");
 
-            df->merge(getDefMap(pred), strong_update);
+            if (isa<StoreInst>(pred->getKey()))
+                changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
+
+            df->merge(getDefMap(pred), nullptr);
         }
     }
 
@@ -208,7 +205,7 @@ static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
 // It is either the operand itself or
 // global value used in ConstantExpr if the
 // operand is ConstantExpr
-static void addStoreInstDefUse(LLVMNode *storeNode, LLVMNode *op, DefMap *df)
+static void addStoreLoadInstDefUse(LLVMNode *storeNode, LLVMNode *op, DefMap *df)
 {
     const Value *val = op->getKey();
     if (isa<ConstantExpr>(val)) {
@@ -230,17 +227,18 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 
     // this node uses what is defined on valNode
     if (valNode) {
-        addStoreInstDefUse(node, valNode, df);
+        addStoreLoadInstDefUse(node, valNode, df);
     } else {
         if (!isa<ConstantInt>(Inst->getValueOperand()))
-            errs() << "ERR def-use: Unhandled value operand for " << *Inst << "\n";
+            errs() << "ERR def-use: Unhandled value operand for "
+                   << *Inst << "\n";
     }
 
     LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode);
 
     // and also uses what is defined on ptrNode
-    addStoreInstDefUse(node, ptrNode, df);
+    addStoreLoadInstDefUse(node, ptrNode, df);
 }
 
 void LLVMDefUseAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
