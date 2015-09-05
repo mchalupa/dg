@@ -61,6 +61,13 @@ LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
         op->addPointsTo(ptr);
     } else if (isa<Argument>(val)) {
         LLVMDGParameters *params = dg->getParameters();
+        if (!params) {
+            // This is probably not an argument from out dg?
+            // Is it possible? Or there's a bug
+            errs() << "No params for dg with argument: " << *val << "\n";
+            abort();
+        }
+
         LLVMDGParameter *p = params->find(val);
 
         // XXX is it always the input param?
