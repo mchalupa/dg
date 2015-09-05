@@ -174,14 +174,16 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
         // global variables could be used in the code and we'd redundantly
         // iterate through the defintions. Do it lazily here.
         LLVMNode *ptrnode = ptr.obj->node;
-        if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(ptrnode->getKey())) {
+        if (const GlobalVariable *GV
+                = dyn_cast<GlobalVariable>(ptrnode->getKey())) {
             if (GV->hasInitializer()) {
                 // ok, so the GV was defined in initialization phase,
                 // so the reaching definition for the ptr is there
                 defs.insert(ptrnode);
             }
         } else {
-            errs() << "WARN: no reaching definition for " << *ptr.obj->node->getKey()
+            errs() << "WARN: no reaching definition for "
+                   << *ptr.obj->node->getKey()
                    << " + " << *ptr.offset << "\n";
             return;
         }
