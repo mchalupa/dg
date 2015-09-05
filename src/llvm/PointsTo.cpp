@@ -38,6 +38,47 @@ bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
     return false;
 }
 
+LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
+                                           const Value *val, unsigned int idx)
+{
+    // ok, before calling this we call llvm::Value::getOperand() to get val
+    // and in node->getOperand() we call it too. It is small overhead, but just
+    // to know where to optimize when going to extrems
+
+    LLVMNode *op = node->getOperand(idx);
+    if (op)
+        return op;
+
+    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
+        op = new LLVMNode(val);
+        // FIXME add these nodes somewhere,
+        // so that we can delete them later
+
+        // set points-to sets
+        Pointer ptr = getConstantExprPointer(CE);
+        //MemoryObj *&mo = op->getMemoryObj();
+        //mo = new MemoryObj(op);
+        op->addPointsTo(ptr);
+    } else if (isa<Argument>(val)) {
+        LLVMDGParameters *params = dg->getParameters();
+        LLVMDGParameter *p = params->find(val);
+
+        // XXX is it always the input param?
+        if (p)
+            op = p->in;
+    } else {
+        errs() << "ERR: Unsupported operand: " << *val << "\n";
+        abort();
+    }
+
+    assert(op && "Did not set op");
+
+    // set new operand
+    node->setOperand(op, idx);
+
+    return op;
+}
+
 static bool handleStoreInstPtr(LLVMNode *valNode, LLVMNode *ptrNode)
 {
     bool changed = false;
@@ -56,68 +97,22 @@ static bool handleStoreInstPtr(LLVMNode *valNode, LLVMNode *ptrNode)
     return changed;
 }
 
-static LLVMNode *findStoreInstVal(const llvm::Value *valOp, LLVMNode *node)
-{
-    LLVMNode *valNode = node->getOperand(1);
-
-    if (!valNode) {
-        if (isa<Argument>(valOp)) {
-            LLVMDependenceGraph *dg = node->getDG();
-            LLVMDGParameters *params = dg->getParameters();
-            LLVMDGParameter *p = params->find(valOp);
-            // we're storing value of parameter somewhere,
-            // so it is input parameter
-            if (p)
-                valNode = p->in;
-        }
-
-        if (valNode)
-            node->setOperand(valNode, 1);
-    }
-
-    return valNode;
-}
-
 bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 {
-    bool changed = false;
-    const Value *valOp = Inst->getValueOperand();
-    Pointer constptr;
+    // get ptrNode before checking if value type is pointer type,
+    // because the pointer operand can be ConstantExpr and in getOperand()
+    // we resolve its points-to set
+    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
 
+    const Value *valOp = Inst->getValueOperand();
     if (!valOp->getType()->isPointerTy())
         return false;
 
-    LLVMNode *ptrNode = node->getOperand(0);
-    if (!ptrNode) {
-        const Value *ptrOp = Inst->getPointerOperand();
-        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(ptrOp)) {
-            constptr = getConstantExprPointer(CE);
-        } else
-            errs() << "ERR: unsupported pointer for " << *Inst << "\n";
-    }
+    LLVMNode *valNode = getOperand(node, valOp, 1);
+    assert(ptrNode && "No ptr node");
+    assert(valNode && "No val node");
 
-    LLVMNode *valNode = findStoreInstVal(valOp, node);
-    if (!valNode) {
-        const Value *valOp = Inst->getValueOperand();
-        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
-            const Pointer valptr = getConstantExprPointer(CE);
-
-            if (ptrNode)
-                for (const Pointer& ptr : ptrNode->getPointsTo())
-                    changed |= ptr.obj->addPointsTo(ptr.offset, valptr);
-            else
-                changed |= constptr.obj->addPointsTo(constptr.offset, valptr);
-        } else if (!isa<Constant>(valOp))
-            errs() << "ERR: unsupported value for " << *Inst << "\n";
-    } else {
-        if (ptrNode)
-            changed |= handleStoreInstPtr(valNode, ptrNode);
-        else
-            for (auto valptr : valNode->getPointsTo())
-                changed |= constptr.obj->addPointsTo(constptr.offset, valptr);
-    }
-
-    return changed;
+    return handleStoreInstPtr(valNode, ptrNode);
 }
 
 Pointer LLVMPointsToAnalysis::getConstantExprPointer(const ConstantExpr *CE)
@@ -163,18 +158,10 @@ bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     if (!Inst->getType()->isPointerTy())
         return false;
 
-    LLVMNode *ptrNode = node->getOperand(0);
-    if (!ptrNode) {
-        const Value *valOp = Inst->getPointerOperand();
-        if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(valOp)) {
-            const Pointer ptr = getConstantExprPointer(CE);
-            return handleLoadInstPtr(ptr, node);
-        } else {
-            errs() << "Unhandled LoadInst operand " << *Inst << "\n";
-            abort();
-        }
-    } else
-        return handleLoadInstPointsTo(ptrNode, node);
+    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
+    assert(ptrNode && "No ptr node");
+
+    return handleLoadInstPointsTo(ptrNode, node);
 }
 
 static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
@@ -341,7 +328,7 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *node)
 {
     bool changed = false;
-    LLVMNode *op = node->getOperand(0);
+    LLVMNode *op = getOperand(node, Inst->stripPointerCasts(), 0);
     if (!op) {
         errs() << "WARN: Cast without operand " << *Inst << "\n";
         return false;
