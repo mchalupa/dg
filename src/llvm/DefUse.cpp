@@ -204,25 +204,43 @@ static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
         addIndirectDefUsePtr(ptr, to, df);
 }
 
+// return Value used on operand LLVMNode
+// It is either the operand itself or
+// global value used in ConstantExpr if the
+// operand is ConstantExpr
+static void addStoreInstDefUse(LLVMNode *storeNode, LLVMNode *op, DefMap *df)
+{
+    const Value *val = op->getKey();
+    if (isa<ConstantExpr>(val)) {
+        // it should be one ptr
+        PointsToSetT& PS = op->getPointsTo();
+        assert(PS.size() == 1);
+
+        const Pointer& ptr = *PS.begin();
+        addIndirectDefUsePtr(ptr, storeNode,  df);
+    } else {
+        op->addDataDependence(storeNode);
+    }
+}
+
 void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 {
-    // we have only top-level dependencies here
-
+    DefMap *df = getDefMap(node);
     LLVMNode *valNode = node->getOperand(1);
+
     // this node uses what is defined on valNode
-    if (!valNode) {
-        if (const ConstantExpr *CE
-                = dyn_cast<ConstantExpr>(Inst->getValueOperand())) {
-            const Pointer ptr = getConstantExprPointer(CE);
-            addIndirectDefUsePtr(ptr, node, getDefMap(node));
-        } else
-            errs() << "ERR: unhandled StoreInst value " << *Inst << "\n";
-    } else
-        valNode->addDataDependence(node);
+    if (valNode) {
+        addStoreInstDefUse(node, valNode, df);
+    } else {
+        if (!isa<ConstantInt>(Inst->getValueOperand()))
+            errs() << "ERR def-use: Unhandled value operand for " << *Inst << "\n";
+    }
+
+    LLVMNode *ptrNode = node->getOperand(0);
+    assert(ptrNode);
 
     // and also uses what is defined on ptrNode
-    LLVMNode *ptrNode = node->getOperand(0);
-    ptrNode->addDataDependence(node);
+    addStoreInstDefUse(node, ptrNode, df);
 }
 
 void LLVMDefUseAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
