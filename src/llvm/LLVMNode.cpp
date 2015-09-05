@@ -26,6 +26,9 @@ namespace dg {
 
 LLVMNode::~LLVMNode()
 {
+    if (owns_key)
+        delete getKey();
+
     delete memoryobj;
     delete[] operands;
 }

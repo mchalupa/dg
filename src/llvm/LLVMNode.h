@@ -36,10 +36,10 @@ typedef dg::DGParameters<const llvm::Value *, LLVMNode> LLVMDGParameters;
 class LLVMNode : public Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>
 {
 public:
-    LLVMNode(const llvm::Value *val)
+    LLVMNode(const llvm::Value *val, bool owns_value = false)
         :dg::Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>(val),
          operands(nullptr), operands_num(0), memoryobj(nullptr), has_unknown_value(false),
-         data(nullptr)
+         owns_key(owns_value), data(nullptr)
     {}
 
     ~LLVMNode();
@@ -122,6 +122,7 @@ private:
     analysis::DefMap defMap;
 
     bool has_unknown_value;
+    bool owns_key;
 
     // user's or analysis's arbitrary data
     void *data;
