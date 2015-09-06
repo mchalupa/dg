@@ -27,11 +27,12 @@ class Slicer : Analysis<NodeT>
             for (DependenceGraph<NodeT> *sub : n->getSubgraphs())
                 sliceGraph(sub, slice_id);
 
-            // do graph specific logic
-            removeNode(n);
+            if (n->getSlice() != slice_id) {
+                // do graph specific logic
+                removeNode(n);
 
-            if (n->getSlice() != slice_id)
                 dg->deleteNode(n);
+            }
         }
 
         // FIXME if graph own global nodes, slice the global nodes
