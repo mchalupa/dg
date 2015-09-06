@@ -102,7 +102,63 @@ static DefMap *getDefMap(LLVMNode *n)
 //   Reaching definitions analysis
 /// --------------------------------------------------
 
-static bool handleStoreInst(LLVMNode *storeNode, DefMap *df, PointsToSetT *&strong_update)
+static bool handleCallInst(LLVMDependenceGraph *graph,
+                           LLVMNode *callNode, DefMap *df)
+{
+    bool changed = false;
+
+    LLVMNode *exitNode = graph->getExit();
+    assert(exitNode && "No exit node in subgraph");
+
+    DefMap *subgraph_df = getDefMap(exitNode);
+
+    // get actual parameters (operands) and for every pointer in there
+    // check if the memory location it points to get defined
+    // in the subprocedure
+    LLVMNode **operands = callNode->getOperands();
+    LLVMDGParameters *params = callNode->getParameters();
+    // we call this func only on non-void functions
+    assert(params && "No actual parameters in call node");
+
+    for (int i = 0, e = callNode->getOperandsNum(); i < e; ++i) {
+        LLVMNode *op = operands[i];
+        if (!op)
+            continue;
+
+        if (!op->isPointerTy())
+            continue;
+
+        for (const Pointer& ptr : op->getPointsTo()) {
+            ValuesSetT& defs = subgraph_df->get(ptr);
+            if (defs.empty())
+                continue;
+
+            // ok, the memory location is defined in the subprocedure,
+            // so add reaching definition to out param of this call node
+            LLVMDGParameter *p = params->find(op->getKey());
+            assert(p && "no actual parameter");
+            changed |= df->add(ptr, p->out);
+        }
+    }
+
+    return changed;
+}
+
+static bool handleCallInst(LLVMNode *callNode, DefMap *df)
+{
+    bool changed = false;
+    // ignore callInst with void prototype
+    if (callNode->getOperandsNum() == 1)
+        return false;
+
+    for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
+        changed |= handleCallInst(subgraph, callNode, df);
+
+    return changed;
+}
+
+static bool handleStoreInst(LLVMNode *storeNode, DefMap *df,
+                            PointsToSetT *&strong_update)
 {
     bool changed = false;
     LLVMNode *ptrNode = storeNode->getOperand(0);
@@ -132,9 +188,13 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
     DefMap *df = getDefMap(node);
     LLVMNode *pred = node->getPredcessor();
     if (pred) {
+        const Value *predVal = pred->getKey();
         // if the predcessor is StoreInst, it add and may kill some definitions
-        if (isa<StoreInst>(pred->getKey()))
+        if (isa<StoreInst>(predVal))
             changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
+        // call inst may add some definitions to (StoreInst in subgraph)
+        else if (isa<CallInst>(predVal))
+            changed |= dg::analysis::handleCallInst(pred, df);
 
         changed |= df->merge(getDefMap(pred), strong_update);
     } else { // BB predcessors
@@ -145,8 +205,12 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
             pred = predBB->getLastNode();
             assert(pred && "BB has no last node");
 
-            if (isa<StoreInst>(pred->getKey()))
+            const Value *predVal = pred->getKey();
+
+            if (isa<StoreInst>(predVal))
                 changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
+            else if (isa<CallInst>(predVal))
+                changed |= dg::analysis::handleCallInst(pred, df);
 
             df->merge(getDefMap(pred), nullptr);
         }
@@ -258,6 +322,51 @@ void LLVMDefUseAnalysis::handleLoadInst(LLVMNode *node)
     addStoreLoadInstDefUse(node, ptrNode, df);
 }
 
+
+static void addOutParamsEdges(LLVMDependenceGraph *graph)
+{
+    LLVMDGParameters *params = graph->getParameters();
+    assert(params && "No formal params in subgraph with actual params");
+
+    LLVMNode *exitNode = graph->getExit();
+    assert(exitNode && "No exit node in subgraph");
+    DefMap *df = getDefMap(exitNode);
+
+    for (auto it : *params) {
+        const Value *val = it.first;
+        if (!val->getType()->isPointerTy())
+            continue;
+
+        LLVMDGParameter& p = it.second;
+
+        // points to set is contained in the input param
+        for (const Pointer& ptr : p.in->getPointsTo()) {
+            ValuesSetT& defs = df->get(ptr);
+            if (defs.empty())
+                continue;
+
+            // ok, the memory location is defined in this subgraph,
+            // so add data dependence edge to the out param
+            for (LLVMNode *def : defs)
+                def->addDataDependence(p.out);
+        }
+    }
+}
+
+static void addOutParamsEdges(LLVMNode *callNode)
+{
+    for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs()) {
+        addOutParamsEdges(subgraph);
+
+        // FIXME we're loosing some accuracy here and
+        // this edges causes that we'll go into subprocedure
+        // even with summary edges
+        if (!callNode->isVoidTy())
+            subgraph->getExit()->addDataDependence(callNode);
+            
+    }
+}
+
 static void handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
@@ -272,6 +381,7 @@ static void handleCallInst(LLVMNode *node)
         if (!op)
             continue;
 
+        // find actual parameter
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
             errs() << "ERR: no actual parameter for " << *op->getKey() << "\n";
@@ -289,12 +399,7 @@ static void handleCallInst(LLVMNode *node)
             op->addDataDependence(p->in);
     }
 
-    // if the called function returns a value,
-    // make this node data dependent on that
-    if (!node->isVoidTy()) {
-        for (auto sub : node->getSubgraphs())
-            sub->getExit()->addDataDependence(node);
-    }
+    addOutParamsEdges(node);
 }
 
 static void handleInstruction(const Instruction *Inst, LLVMNode *node)
