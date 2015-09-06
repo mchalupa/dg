@@ -99,6 +99,24 @@ private:
             sliceCallNode(callNode, subgraph, slice_id);
     }
 
+    static bool shouldSliceInst(const llvm::Value *val)
+    {
+        using namespace llvm;
+        const Instruction *Inst = dyn_cast<Instruction>(val);
+        if (!Inst)
+            return true;
+
+        switch (Inst->getOpcode()) {
+            case Instruction::Ret:
+            case Instruction::Unreachable:
+            case Instruction::Br:
+            case Instruction::Switch:
+                return false;
+            default:
+                return true;
+        }
+    }
+
     void sliceGraph(LLVMDependenceGraph *dg, uint32_t slice_id)
     {
             for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
@@ -114,6 +132,9 @@ private:
 
                 if (llvm::isa<llvm::CallInst>(n->getKey()))
                     sliceCallNode(n, slice_id);
+
+                if (!shouldSliceInst(n->getKey()))
+                    continue;
 
                 if (n->getSlice() != slice_id) {
                     removeNode(n);
