@@ -174,6 +174,16 @@ public:
         return global_nodes;
     }
 
+    ContainerType *getNodes()
+    {
+        return &nodes;
+    }
+
+    const ContainerType *getNodes() const
+    {
+        return &nodes;
+    }
+
     ContainerType *getGlobalNodes()
     {
         return global_nodes;
@@ -237,6 +247,11 @@ public:
         return removeNode(n->getKey());
     }
 
+    NodeT *removeNode(iterator& it)
+    {
+        return _removeNode(it, &nodes);
+    }
+
     NodeT *removeGlobalNode(KeyT k)
     {
         if (!global_nodes)
@@ -250,12 +265,17 @@ public:
         return removeGlobalNode(n->getKey());
     }
 
+    NodeT *removeGlobalNode(iterator& it)
+    {
+        if (!global_nodes)
+            return nullptr;
+
+        return _removeNode(it, global_nodes);
+    }
+
     bool deleteNode(NodeT *n)
     {
-        n = removeNode(n->getKey());
-        delete n;
-
-        return true;
+        return removeNode(n->getKey());
     }
 
     bool deleteNode(KeyT k)
@@ -266,9 +286,30 @@ public:
         return n != nullptr;
     }
 
+    bool deleteNode(iterator& it)
+    {
+        NodeT *n = removeNode(it);
+        delete n;
+
+        return n != nullptr;
+    }
+
     bool deleteGlobalNode(KeyT k)
     {
         NodeT *n = removeGlobalNode(k);
+        delete n;
+
+        return n != nullptr;
+    }
+
+    bool deleteGlobalNode(NodeT *n)
+    {
+        return deleteGlobalNode(n->getKey());
+    }
+
+    bool deleteGlobalNode(iterator& it)
+    {
+        NodeT *n = removeGlobalNode(it);
         delete n;
 
         return n != nullptr;
@@ -284,6 +325,16 @@ protected:
     ContainerType *global_nodes;
 
 private:
+
+    NodeT *_removeNode(iterator& it, ContainerType *cont)
+    {
+        NodeT *n = it->second;
+        n->isolate();
+        cont->erase(it);
+
+        return n;
+    }
+
     NodeT *_removeNode(KeyT k, ContainerType *cont)
     {
         iterator it = cont->find(k);
@@ -291,12 +342,7 @@ private:
             return nullptr;
 
         // remove and re-connect edges
-        NodeT *n = it->second;
-        n->isolate();
-
-        cont->erase(it);
-
-        return n;
+        return _removeNode(it, cont);
     }
 
     NodeT *entryNode;
