@@ -13,9 +13,11 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Bitcode/ReaderWriter.h>
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <string>
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/PointsTo.h"
@@ -259,11 +261,13 @@ int main(int argc, char *argv[])
 
     if (slicing_criterion) {
         LLVMSlicer slicer;
+        tm.start();
+
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
                 slicer.mark(d.getExit());
             else
-                slicer.slice(d.getExit());
+                slicer.slice(&d, d.getExit());
         } else {
             if (gatheredCallsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
@@ -273,10 +277,27 @@ int main(int argc, char *argv[])
 
             uint32_t slid = 0;
             for (LLVMNode *start : gatheredCallsites)
-                if (mark_only)
-                    slid = slicer.mark(start, slid);
-                else
-                    slid = slicer.slice(start, slid);
+                slid = slicer.mark(start, slid);
+
+            if (!mark_only)
+               slicer.slice(&d, nullptr, slid);
+        }
+
+        // there's overhead but nevermind
+        tm.stop();
+        tm.report("INFO: Slicing took");
+
+        if (!mark_only) {
+            std::string fl(module);
+            fl.append(".sliced");
+            std::ofstream ofs(fl);
+            llvm::raw_os_ostream output(ofs);
+
+            auto st = slicer.getStatistics();
+            errs() << "INFO: Sliced away " << st.second
+                   << " from " << st.first << " nodes\n";
+
+            llvm::WriteBitcodeToFile(&*M, output);
         }
     }
 

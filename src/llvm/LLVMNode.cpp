@@ -107,21 +107,20 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
     for (auto A = func->arg_begin(), E = func->arg_end();
          A != E; ++A, ++idx) {
         const Value *opval = CInst->getArgOperand(idx);
-        in = new LLVMNode(opval);
-        out = new LLVMNode(opval);
-        params->add(opval, in, out);
-
-        // add control edges from the call-site node
-        // to the parameters
-        addControlDependence(in);
-        addControlDependence(out);
-
-        // add parameter edges -- these are just normal dependece edges
         LLVMDGParameter *fp = formal->find(&*A);
         if (!fp) {
             errs() << "ERR: no formal param for value: " << *opval << "\n";
             continue;
         }
+
+        in = new LLVMNode(opval);
+        out = new LLVMNode(opval);
+        params->add(opval, in, out, fp);
+
+        // add control edges from the call-site node
+        // to the parameters
+        addControlDependence(in);
+        addControlDependence(out);
 
         // from actual in to formal in
         in->addDataDependence(fp->in);

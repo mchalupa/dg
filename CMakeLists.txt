@@ -43,7 +43,7 @@ if (LLVM_DG)
 
 	add_definitions(${LLVM_DEFINITIONS})
 
-	llvm_map_components_to_libnames(llvm_libs support core irreader)
+	llvm_map_components_to_libnames(llvm_libs support core irreader bitwriter)
 
 	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
