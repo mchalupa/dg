@@ -231,6 +231,12 @@ namespace analysis {
 
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
+    if (ptr.obj == nullptr) {
+        errs() << "ERR: pointer pointing to unknown location, UNSOUND! "
+               << *to->getKey() << "\n";
+        return;
+    }
+
     ValuesSetT& defs = df->get(ptr);
     // do we have any reaching definition at all?
     if (defs.empty()) {
