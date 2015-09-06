@@ -75,6 +75,9 @@ LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
         // XXX is it always the input param?
         if (p)
             op = p->in;
+    } else if (isa<ConstantPointerNull>(val)) {
+        // what to do with nullptr?
+        op = new LLVMNode(val);
     } else {
         errs() << "ERR: Unsupported operand: " << *val << "\n";
         abort();
