@@ -238,13 +238,21 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
         // global variables could be used in the code and we'd redundantly
         // iterate through the defintions. Do it lazily here.
         LLVMNode *ptrnode = ptr.obj->node;
+        const Value *ptrVal = ptrnode->getKey();
         if (const GlobalVariable *GV
-                = dyn_cast<GlobalVariable>(ptrnode->getKey())) {
+                = dyn_cast<GlobalVariable>(ptrVal)) {
             if (GV->hasInitializer()) {
                 // ok, so the GV was defined in initialization phase,
                 // so the reaching definition for the ptr is there
                 defs.insert(ptrnode);
             }
+        } else if (isa<AllocaInst>(ptrVal)) {
+            // AllocaInst without any reaching definition
+            // may mean that the value is undefined. Nevertheless
+            // we use the value that is defined via the AllocaInst,
+            // so add definition on the AllocaInst
+            // This is the same as with global variables
+            defs.insert(ptrnode);
         } else {
             errs() << "WARN: no reaching definition for "
                    << *ptr.obj->node->getKey()
@@ -363,7 +371,6 @@ static void addOutParamsEdges(LLVMNode *callNode)
         // even with summary edges
         if (!callNode->isVoidTy())
             subgraph->getExit()->addDataDependence(callNode);
-            
     }
 }
 
