@@ -181,10 +181,10 @@ public:
             }
 
             // if this was the only node in BB, remove the BB
-            //if (basicBlock->getFirstNode() == nullptr) {
-            //    assert(basicBlock->getLastNode() == nullptr);
-            //    basicBlock->remove();
-            //}
+            if (basicBlock->getFirstNode() == nullptr) {
+                assert(basicBlock->getLastNode() == nullptr);
+                basicBlock->remove();
+            }
 
             // also, if this is a callSite,
             // it is no longer part of BBlock,
