@@ -311,11 +311,15 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     // this node uses what is defined on valNode
     if (valNode) {
         addStoreLoadInstDefUse(node, valNode, df);
-    } else {
-        if (!isa<ConstantInt>(Inst->getValueOperand()))
+    }
+
+#ifdef DEBUG_ENABLED
+    else {
+        if (Inst->getValueOperand()->getType()->isPointerTy())
             errs() << "ERR def-use: Unhandled value operand for "
                    << *Inst << "\n";
     }
+#endif
 
     LLVMNode *ptrNode = node->getOperand(0);
     assert(ptrNode);
@@ -426,9 +430,11 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
+#ifdef DEBUG_ENABLED
         else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
             errs() << "WARN: no node for operand " << **I
                    << "in " << *Inst << "\n";
+#endif
     }
 }
 

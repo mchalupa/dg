@@ -469,11 +469,13 @@ bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
     } else if (const BitCastInst *Inst = dyn_cast<BitCastInst>(val)) {
         changed |= handleBitCastInst(Inst, node);
     } else {
+#ifdef DEBUG_ENABLED
         const Instruction *I = dyn_cast<Instruction>(val);
         assert(I && "Not an Instruction?");
 
         if (I->mayReadOrWriteMemory())
             errs() << "WARN: Unhandled instruction: " << *val << "\n";
+#endif
     }
 
     return changed;
