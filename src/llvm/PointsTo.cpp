@@ -59,6 +59,11 @@ LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
         //MemoryObj *&mo = op->getMemoryObj();
         //mo = new MemoryObj(op);
         op->addPointsTo(ptr);
+    } else if (isa<Function>(val)) {
+        op = new LLVMNode(val);
+        MemoryObj *&mo = op->getMemoryObj();
+        mo = new MemoryObj(op);
+        op->addPointsTo(Pointer(mo));
     } else if (isa<Argument>(val)) {
         // get dg of this graph, because we can be in subprocedure
         LLVMDependenceGraph *thisdg = node->getDG();

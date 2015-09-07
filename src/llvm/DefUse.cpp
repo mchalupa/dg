@@ -237,21 +237,24 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
         return;
     }
 
+    LLVMNode *ptrnode = ptr.obj->node;
+    const Value *ptrVal = ptrnode->getKey();
+    // functions does not have indirect reaching definitions
+    if (isa<Function>(ptrVal))
+        return;
+
     ValuesSetT& defs = df->get(ptr);
     // do we have any reaching definition at all?
     if (defs.empty()) {
         // we do not add initial def to global variables because not all
         // global variables could be used in the code and we'd redundantly
         // iterate through the defintions. Do it lazily here.
-        LLVMNode *ptrnode = ptr.obj->node;
-        const Value *ptrVal = ptrnode->getKey();
-        if (const GlobalVariable *GV
-                = dyn_cast<GlobalVariable>(ptrVal)) {
-            if (GV->hasInitializer()) {
+        if (isa<GlobalVariable>(ptrVal)) {
                 // ok, so the GV was defined in initialization phase,
-                // so the reaching definition for the ptr is there
+                // so the reaching definition for the ptr is there.
+                // If it was not defined, then we still want the edge
+                // from the global node in this case
                 defs.insert(ptrnode);
-            }
         } else if (isa<AllocaInst>(ptrVal)) {
             // AllocaInst without any reaching definition
             // may mean that the value is undefined. Nevertheless

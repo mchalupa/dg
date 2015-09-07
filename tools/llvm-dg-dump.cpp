@@ -39,16 +39,18 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
 
-    if (llvm::isa<llvm::Function>(val))
-        ro << "ENTRY " << val->getName();
-    else {
+    if (llvm::isa<llvm::Function>(val)) {
+        ro << "FUNC " << val->getName().data();
+    } else {
         ro << *val;
     }
+
+    ro.flush();
 
     // break the string if it is too long
     std::string str = ostr.str();
     if (str.length() > 100) {
-        str.resize(50);
+        str.resize(40);
     }
 
     // escape the "
@@ -144,11 +146,11 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
             if (mo) {
                 for (auto it : mo->pointsTo) {
                     for(auto it2 : it.second) {
-                        os << "\\lmem: [" << it.first << "] -> ";
+                        os << "\\lmem: [" << it.first << "] -> [";
                         if (it2.isNull())
-                            os << "[null";
+                            os << "null";
                         else if (it2.obj->isUnknown())
-                            os << "[unknown";
+                            os << "unknown";
                         else
                             printLLVMVal(os, it2.obj->node->getKey());
                         os << "] + " << it2.offset;
