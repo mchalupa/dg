@@ -231,7 +231,7 @@ namespace analysis {
 
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
-    if (ptr.obj == nullptr) {
+    if (ptr.isNull() || ptr.obj->isUnknown()) {
         errs() << "ERR: pointer pointing to unknown location, UNSOUND! "
                << *to->getKey() << "\n";
         return;

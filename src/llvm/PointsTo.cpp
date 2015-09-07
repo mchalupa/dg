@@ -270,9 +270,12 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     bool changed = false;
     Type *Ty = Inst->getType();
     bool isptr;
+    Function *func = Inst->getCalledFunction();
 
-    // function is undefined?
-    if (!node->hasSubgraphs() && Ty->isPointerTy()) {
+    // function is undefined and returns a pointer?
+    // In that case create pointer to unknown location
+    // and set this node to point to unknown location
+    if (!func && !node->hasSubgraphs() && Ty->isPointerTy()) {
         MemoryObj *& mo = node->getMemoryObj();
         if (!mo) {
             mo = new MemoryObj(nullptr);
