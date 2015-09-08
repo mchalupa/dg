@@ -393,10 +393,18 @@ static void handleCallInst(LLVMNode *node)
     LLVMNode **operands = node->getOperands();
     LLVMDGParameters *params = node->getParameters();
 
+    // if we have a node for the called function,
+    // it is call via function pointer, so add the
+    // data dependence edge to corresponding node
+    if (operands[0]) {
+        operands[0]->addDataDependence(node);
+    }
+
     if (!params) // function has no arguments
         return;
 
-    for (int i = 0, e = node->getOperandsNum(); i < e; ++i) {
+    // parameters begin from 1
+    for (int i = 1, e = node->getOperandsNum(); i < e; ++i) {
         LLVMNode *op = operands[i];
         if (!op)
             continue;
