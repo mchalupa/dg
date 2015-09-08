@@ -71,18 +71,26 @@ public:
         return old;
     }
 
-    ///
-    // Get node from graph for key. Return nullptr if
-    // no such node exists
+    // Get node from graph for key.
+    // The function searches in nodes,
+    // global nodes and formal parameters.
+    // Return nullptr if no such node exists
     NodeT *getNode(KeyT k)
     {
         iterator it = nodes.find(k);
         if (it != nodes.end())
             return it->second;
-        else if (global_nodes) {
+
+        if (global_nodes) {
             it = global_nodes->find(k);
             if (it != global_nodes->end())
                 return it->second;
+        }
+
+        if (formalParameters) {
+            DGParameter<NodeT> *p = formalParameters->find(k);
+            if (p)
+                return p->in;
         }
 
         return nullptr;
