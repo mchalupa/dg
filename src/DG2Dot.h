@@ -331,6 +331,8 @@ private:
         else
             out << node->getKey();
 
+        if (node->hasSubgraphs())
+            out << "\\nsubgraphs: " << node->subgraphsNum();
         if (dfsorder != 0)
             out << "\\ndfs order: "<< dfsorder;
 
