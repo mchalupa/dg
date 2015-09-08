@@ -98,16 +98,25 @@ public:
         return statistics;
     }
 
-    void addBB(BBlock<NodeT> *BB)
+    bool addBB(BBlock<NodeT> *BB)
     {
         changed |= runOnBlock(BB);
-        blocks.insert(BB);
+        bool ret = blocks.insert(BB).second;
+        if (ret)
+            ++statistics.bblocksNum;
+
+        changed |= ret;
+        return ret;
     }
 
 private:
     // define set of blocks to be ordered in dfs order
-    typedef std::set<BBlock<NodeT> *,
-                     DFSOrderLess<BBlock<NodeT> *>> BlocksSetT;
+    // FIXME if we use dfs order, then addBB does not work,
+    // because the BB's newly added does have dfsorder unset
+    // and the BlocksSet thinks it already contains it, so
+    // it is not added
+    typedef std::set<BBlock<NodeT> * /*,
+                     DFSOrderLess<BBlock<NodeT> *>*/> BlocksSetT;
     struct DFSDataT
     {
         DFSDataT(BlocksSetT& b, bool& c, BBlockDataFlowAnalysis<NodeT> *r)
