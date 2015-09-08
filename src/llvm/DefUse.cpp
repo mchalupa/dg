@@ -120,7 +120,8 @@ static bool handleCallInst(LLVMDependenceGraph *graph,
     // we call this func only on non-void functions
     assert(params && "No actual parameters in call node");
 
-    for (int i = 0, e = callNode->getOperandsNum(); i < e; ++i) {
+    // operand[0] is the called func
+    for (int i = 1, e = callNode->getOperandsNum(); i < e; ++i) {
         LLVMNode *op = operands[i];
         if (!op)
             continue;
@@ -136,7 +137,12 @@ static bool handleCallInst(LLVMDependenceGraph *graph,
             // ok, the memory location is defined in the subprocedure,
             // so add reaching definition to out param of this call node
             LLVMDGParameter *p = params->find(op->getKey());
-            assert(p && "no actual parameter");
+            if (!p) {
+                errs() << "ERR: no actual param for value: "
+                       << *op->getKey() << "\n";
+                abort();
+            }
+
             changed |= df->add(ptr, p->out);
         }
     }

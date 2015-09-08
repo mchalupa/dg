@@ -337,7 +337,7 @@ bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *sub
 
     // handle values for arguments
     // argument 0 is the called function, so start from 1
-    int i = 1;
+    int i = 0;
     for (auto I = subfunc->arg_begin(), E = subfunc->arg_end();
          I != E; ++I, ++i) {
         if (!I->getType()->isPointerTy())
@@ -350,7 +350,7 @@ bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *sub
             continue;
         }
 
-        LLVMNode *op = getOperand(callNode, Inst->getArgOperand(i), i);
+        LLVMNode *op = getOperand(callNode, Inst->getArgOperand(i), i + 1);
         if (!op) {
             errs() << "ERR: no operand for actual param of formal param: "
                    << *I << " in " << *Inst << "\n";
