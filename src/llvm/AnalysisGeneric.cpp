@@ -13,8 +13,7 @@ using namespace llvm;
 namespace dg {
 namespace analysis {
 
-// make this method of LLVMDependenceGraph
-static LLVMNode *getNode(LLVMDependenceGraph *dg, const llvm::Value *val)
+static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
 {
     LLVMNode *n = dg->getNode(val);
     if (n)
@@ -25,7 +24,8 @@ static LLVMNode *getNode(LLVMDependenceGraph *dg, const llvm::Value *val)
         MemoryObj *&mo = n->getMemoryObj();
         mo = new MemoryObj(n);
         n->addPointsTo(Pointer(mo));
-    }
+    } else
+        errs() << "ERR: unhandled not to create " << *val << "\n";
 
     return n;
 }
@@ -41,20 +41,9 @@ static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst 
     }
 
     const Value *llvmOp = BC->stripPointerCasts();
-    LLVMNode *op = getNode(dg, llvmOp);
+    LLVMNode *op = getOrCreateNode(dg, llvmOp);
     if (!op) {
-        // XXX this is covered by getNode isn't it?
-        if (isa<Function>(llvmOp)) {
-            op = new LLVMNode(llvmOp);
-            MemoryObj *&mo = op->getMemoryObj();
-            mo = new MemoryObj(op);
-
-            pointer.obj = mo;
-            op->addPointsTo(pointer);
-        } else {
-            errs() << "ERR: unsupported BitCast constant operand"
-                   << *BC << "\n";
-        }
+        errs() << "ERR: unsupported BitCast constant operand" << *BC << "\n";
     } else {
         PointsToSetT& ptset = op->getPointsTo();
         if (ptset.size() != 1) {
@@ -110,6 +99,12 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
     return pointer;
 }
 
+/*
+ * we have DependenceGraph::getNode() which retrives existing node.
+ * The operand nodes may not exists, though.
+ * This function gets the existing node, or creates new one and sets
+ * it as an operand.
+ */
 LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
                      unsigned int idx, const llvm::DataLayout *DL)
 {
@@ -125,32 +120,20 @@ LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
     LLVMDependenceGraph *dg = node->getDG();
 
     if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
-        op = new LLVMNode(val);
         // FIXME add these nodes somewhere,
         // so that we can delete them later
+        op = new LLVMNode(val);
 
         // set points-to sets
         Pointer ptr = getConstantExprPointer(CE, dg, DL);
-        //MemoryObj *&mo = op->getMemoryObj();
-        //mo = new MemoryObj(op);
         op->addPointsTo(ptr);
     } else if (isa<Function>(val)) {
         // if the function was created via function pointer during
-        // points-to analysis, it may not be set
-        op = getNode(dg, val);
-    } else if (isa<Argument>(val)) {
-        // get dg of this graph, because we can be in subprocedure
-        LLVMDGParameters *params = dg->getParameters();
-        if (!params) {
-            // This is probably not an argument from out dg?
-            // Is it possible? Or there's a bug
-            errs() << "No params for dg with argument: " << *val << "\n";
-            abort();
-        }
-
-        LLVMDGParameter *p = params->find(val);
-        if (p)
-            op = p->in;
+        // points-to analysis, the operand may not be not be set.
+        // What is worse, the function may not be created either,
+        // so the node just may not exists at all, so we need to
+        // create it
+        op = getOrCreateNode(dg, val);
     } else if (isa<ConstantPointerNull>(val)) {
         // what to do with nullptr?
         op = new LLVMNode(val);
