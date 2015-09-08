@@ -18,6 +18,9 @@ Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
                                LLVMDependenceGraph *dg,
                                const llvm::DataLayout *DL);
 
+LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
+                     unsigned int idx, const llvm::DataLayout *DL);
+
 } // namespace analysis
 } // namespace dg
 

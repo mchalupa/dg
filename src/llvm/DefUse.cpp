@@ -229,6 +229,12 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
 namespace dg {
 namespace analysis {
 
+LLVMNode *LLVMDefUseAnalysis::getOperand(LLVMNode *node,
+                                        const Value *val, unsigned int idx)
+{
+    return dg::analysis::getOperand(node, val, idx, DL);
+}
+
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
     if (ptr.isNull() || ptr.obj->isUnknown()) {

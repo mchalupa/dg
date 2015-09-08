@@ -52,79 +52,10 @@ static bool handleGlobal(const Value *Inst, LLVMNode *node)
     return handleMemAllocation(node);
 }
 
-static LLVMNode *createFunctionPtrNode(const llvm::Value *val)
-{
-    assert(isa<Function>(val));
-
-    // FIXME graph always has a entry node that is exactly
-    // same as this, so it'd be better to use that
-    LLVMNode *n = new LLVMNode(val);
-    MemoryObj *&mo = n->getMemoryObj();
-    mo = new MemoryObj(n);
-    n->addPointsTo(Pointer(mo));
-
-    return n;
-}
-
 LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
                                            const Value *val, unsigned int idx)
 {
-    // ok, before calling this we call llvm::Value::getOperand() to get val
-    // and in node->getOperand() we call it too. It is small overhead, but just
-    // to know where to optimize when going to extrems
-
-    LLVMNode *op = node->getOperand(idx);
-    if (op)
-        return op;
-
-    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
-        op = new LLVMNode(val);
-        // FIXME add these nodes somewhere,
-        // so that we can delete them later
-
-        // set points-to sets
-        Pointer ptr = getConstantExprPointer(CE);
-        //MemoryObj *&mo = op->getMemoryObj();
-        //mo = new MemoryObj(op);
-        op->addPointsTo(ptr);
-    } else if (isa<Function>(val)) {
-        // if the function was created via function pointer during
-        // points-to analysis, it may not be set
-        op = dg->getNode(val);
-        if (!op)
-            // FIXME temporary, if this is operand of store inst,
-            // we do not have the function created yet
-            op = createFunctionPtrNode(val);
-    } else if (isa<Argument>(val)) {
-        // get dg of this graph, because we can be in subprocedure
-        LLVMDependenceGraph *thisdg = node->getDG();
-        LLVMDGParameters *params = thisdg->getParameters();
-        if (!params) {
-            // This is probably not an argument from out dg?
-            // Is it possible? Or there's a bug
-            errs() << "No params for dg with argument: " << *val << "\n";
-            abort();
-        }
-
-        LLVMDGParameter *p = params->find(val);
-
-        // XXX is it always the input param?
-        if (p)
-            op = p->in;
-    } else if (isa<ConstantPointerNull>(val)) {
-        // what to do with nullptr?
-        op = new LLVMNode(val);
-    } else {
-        errs() << "ERR: Unsupported operand: " << *val << "\n";
-        abort();
-    }
-
-    assert(op && "Did not set op");
-
-    // set new operand
-    node->setOperand(op, idx);
-
-    return op;
+    return dg::analysis::getOperand(node, val, idx, DL);
 }
 
 static bool handleStoreInstPtr(LLVMNode *valNode, LLVMNode *ptrNode)

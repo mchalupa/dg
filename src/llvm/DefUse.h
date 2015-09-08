@@ -33,6 +33,7 @@ public:
     void handleNode(LLVMNode *);
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
+    LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val, unsigned int idx);
 
     void handleLoadInst(LLVMNode *);
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);

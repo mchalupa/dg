@@ -20,11 +20,11 @@ static LLVMNode *getNode(LLVMDependenceGraph *dg, const llvm::Value *val)
     if (n)
         return n;
 
-    if (val->getType()->isFunctionTy()) {
+    if (llvm::isa<llvm::Function>(val)) {
         n = new LLVMNode(val);
         MemoryObj *&mo = n->getMemoryObj();
         mo = new MemoryObj(n);
-        mo->addPointsTo(0, Pointer(mo));
+        n->addPointsTo(Pointer(mo));
     }
 
     return n;
@@ -43,6 +43,7 @@ static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst 
     const Value *llvmOp = BC->stripPointerCasts();
     LLVMNode *op = getNode(dg, llvmOp);
     if (!op) {
+        // XXX this is covered by getNode isn't it?
         if (isa<Function>(llvmOp)) {
             op = new LLVMNode(llvmOp);
             MemoryObj *&mo = op->getMemoryObj();
@@ -109,7 +110,62 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
     return pointer;
 }
 
+LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
+                     unsigned int idx, const llvm::DataLayout *DL)
+{
+    // ok, before calling this we call llvm::Value::getOperand() to get val
+    // and in node->getOperand() we call it too. It is small overhead, but just
+    // to know where to optimize when going to extrems
 
+    LLVMNode *op = node->getOperand(idx);
+    if (op)
+        return op;
+
+    using namespace llvm;
+    LLVMDependenceGraph *dg = node->getDG();
+
+    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
+        op = new LLVMNode(val);
+        // FIXME add these nodes somewhere,
+        // so that we can delete them later
+
+        // set points-to sets
+        Pointer ptr = getConstantExprPointer(CE, dg, DL);
+        //MemoryObj *&mo = op->getMemoryObj();
+        //mo = new MemoryObj(op);
+        op->addPointsTo(ptr);
+    } else if (isa<Function>(val)) {
+        // if the function was created via function pointer during
+        // points-to analysis, it may not be set
+        op = getNode(dg, val);
+    } else if (isa<Argument>(val)) {
+        // get dg of this graph, because we can be in subprocedure
+        LLVMDGParameters *params = dg->getParameters();
+        if (!params) {
+            // This is probably not an argument from out dg?
+            // Is it possible? Or there's a bug
+            errs() << "No params for dg with argument: " << *val << "\n";
+            abort();
+        }
+
+        LLVMDGParameter *p = params->find(val);
+        if (p)
+            op = p->in;
+    } else if (isa<ConstantPointerNull>(val)) {
+        // what to do with nullptr?
+        op = new LLVMNode(val);
+    } else {
+        errs() << "ERR: Unsupported operand: " << *val << "\n";
+        abort();
+    }
+
+    assert(op && "Did not set op");
+
+    // set new operand
+    node->setOperand(op, idx);
+
+    return op;
+}
 
 } // namespace analysis
 } // namespace dg
