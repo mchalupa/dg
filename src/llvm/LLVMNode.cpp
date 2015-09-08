@@ -128,20 +128,17 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     const CallInst *CInst = dyn_cast<CallInst>(key);
     assert(CInst && "addActualParameters called on non-CallInst");
 
-    // do not do nothing if we have parameters.
-    // This is probably adding subgraph due to function
-    // pointer in data-flow analysis
-    if (getParameters())
-        return;
+    // if we have parameters, then use them and just
+    // add edges to formal parameters (a call-site can
+    // have more destinations if it is via function pointer)
+    LLVMDGParameters *params = getParameters();
+    if (!params) {
+        params = new LLVMDGParameters();
+        LLVMDGParameters *old = addParameters(params);
+        assert(old == nullptr && "Replaced parameters");
+    }
 
     LLVMDGParameters *formal = funcGraph->getParameters();
-    LLVMDGParameters *params = new LLVMDGParameters();
-    LLVMDGParameters *old = addParameters(params);
-    assert(old == nullptr && "Replaced parameters");
-
-    // we need to add edges from actual parameters to formal parameteres
-    // so if the params exists, just add the edges. If the params
-    // do not exists, create them and then add the edges
 
     LLVMNode *in, *out;
     int idx = 0;
@@ -154,9 +151,15 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
             continue;
         }
 
-        in = new LLVMNode(opval);
-        out = new LLVMNode(opval);
-        params->add(opval, in, out, fp);
+        LLVMDGParameter *ap = params->find(opval);
+        if (!ap) {
+            in = new LLVMNode(opval);
+            out = new LLVMNode(opval);
+            params->add(opval, in, out);
+        } else {
+            in = ap->in;
+            out = ap->out;
+        }
 
         // add control edges from the call-site node
         // to the parameters
