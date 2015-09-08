@@ -29,6 +29,7 @@ public:
     typedef std::map<KeyT, NodeT *> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
+    typedef typename NodeT::DependenceGraphType DependenceGraphT;
 
     DependenceGraph<NodeT>()
         : global_nodes(nullptr), entryNode(nullptr), exitNode(nullptr),
@@ -168,8 +169,9 @@ public:
     // allocate new global nodes
     ContainerType *createGlobalNodes()
     {
-        assert(!global_nodes && "Already contain global nodes");
+        assert(!global_nodes && "Already contains global nodes");
         global_nodes = new ContainerType();
+        own_global_nodes = true;
 
         return global_nodes;
     }
@@ -204,7 +206,7 @@ public:
     {
         bool ret = nodes.insert(std::make_pair(k, n)).second;
         if (ret)
-            n->setDG(static_cast<typename NodeT::DependenceGraphType *>(this));
+            n->setDG(static_cast<DependenceGraphT *>(this));
 
         return ret;
     }
@@ -225,9 +227,18 @@ public:
             own_global_nodes = true;
         }
 
+        DependenceGraphT *owner;
+        if (own_global_nodes)
+            owner = static_cast<DependenceGraphT *>(this);
+        else {
+            // FIXME what if the container is empty?
+            NodeT* tmp = global_nodes->begin()->second;
+            owner = tmp->getDG();
+        }
+
         bool ret = global_nodes->insert(std::make_pair(k, n)).second;
-        if (ret && own_global_nodes)
-            n->setDG(static_cast<typename NodeT::DependenceGraphType *>(this));
+        if (ret)
+            n->setDG(owner);
 
         return ret;
     }
