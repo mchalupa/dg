@@ -183,7 +183,7 @@ bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
     bool changed = false;
     APInt offset(64, 0);
 
-    LLVMNode *ptrNode = node->getOperand(0);
+    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
     assert(ptrNode && "Do not have GEP ptr node");
 
     if (Inst->accumulateConstantOffset(*DL, offset)) {
