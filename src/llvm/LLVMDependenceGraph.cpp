@@ -299,7 +299,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
 
     // create entry node
     LLVMNode *entry = new LLVMNode(func);
-    addNode(entry);
+    addGlobalNode(entry);
     setEntry(entry);
 
     constructedFunctions.insert(make_pair(func, this));

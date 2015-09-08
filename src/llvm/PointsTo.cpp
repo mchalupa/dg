@@ -423,7 +423,11 @@ void LLVMPointsToAnalysis::handleGlobals()
 
     // initialize globals
     for (auto it : *dg->getGlobalNodes()) {
-        const GlobalVariable *GV = cast<GlobalVariable>(it.first);
+        const GlobalVariable *GV = dyn_cast<GlobalVariable>(it.first);
+        // is it global variable or function?
+        if (!GV)
+            continue;
+
         if (GV->hasInitializer() && !GV->isExternallyInitialized()) {
             const Constant *C = GV->getInitializer();
             uint64_t off = 0;
