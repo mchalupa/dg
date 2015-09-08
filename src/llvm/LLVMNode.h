@@ -52,6 +52,7 @@ public:
     // Must be called only when node is call-site.
     // XXX create new class for parameters
     void addActualParameters(LLVMDependenceGraph *);
+    void addActualParameters(LLVMDependenceGraph *, const llvm::Function *);
 
     LLVMNode **getOperands();
     size_t getOperandsNum();
@@ -62,6 +63,8 @@ public:
     const analysis::PointsToSetT& getPointsTo() const { return pointsTo; }
     analysis::MemoryObj *&getMemoryObj() { return memoryobj; }
     analysis::MemoryObj *getMemoryObj() const { return memoryobj; }
+
+    void dump() const;
 
     bool isPointerTy() const
     {

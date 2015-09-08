@@ -56,6 +56,15 @@ public:
         return constructedFunctions;
     }
 
+    LLVMDependenceGraph *getSubgraph(const llvm::Value *val)
+    {
+        auto it = constructedFunctions.find(val);
+        if (it == constructedFunctions.end())
+            return nullptr;
+
+        return it->second;
+    }
+
     // if we want to slice according some call-site(s),
     // we can gather the relevant call-sites while building
     // graph and do not need to recursively find in the graph

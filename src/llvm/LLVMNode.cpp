@@ -33,11 +33,17 @@ LLVMNode::~LLVMNode()
     delete[] operands;
 }
 
+void LLVMNode::dump() const
+{
+    getKey()->dump();
+}
+
 LLVMNode **LLVMNode::findOperands()
 {
     using namespace llvm;
     const Value *val = getKey();
 
+    // we have Function nodes stored in globals
     if (isa<AllocaInst>(val)) {
         operands = new LLVMNode *[1];
         operands[0] = dg->getNode(val);
@@ -94,13 +100,34 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
 
     // do not add redundant nodes
     const Function *func = CInst->getCalledFunction();
-    if (func->arg_size() == 0)
+    if (!func || func->arg_size() == 0)
+        return;
+
+    addActualParameters(funcGraph, func);
+}
+
+void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
+                                   const llvm::Function *func)
+{
+    using namespace llvm;
+
+    const CallInst *CInst = dyn_cast<CallInst>(key);
+    assert(CInst && "addActualParameters called on non-CallInst");
+
+    // do not do nothing if we have parameters.
+    // This is probably adding subgraph due to function
+    // pointer in data-flow analysis
+    if (getParameters())
         return;
 
     LLVMDGParameters *formal = funcGraph->getParameters();
     LLVMDGParameters *params = new LLVMDGParameters();
     LLVMDGParameters *old = addParameters(params);
     assert(old == nullptr && "Replaced parameters");
+
+    // we need to add edges from actual parameters to formal parameteres
+    // so if the params exists, just add the edges. If the params
+    // do not exists, create them and then add the edges
 
     LLVMNode *in, *out;
     int idx = 0;

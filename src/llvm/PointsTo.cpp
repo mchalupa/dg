@@ -25,10 +25,10 @@ LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
     handleGlobals();
 }
 
-bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
+static bool handleMemAllocation(LLVMNode *node)
 {
     // every global is a pointer
-    MemoryObj *& mo = node->getMemoryObj();
+    MemoryObj *&mo = node->getMemoryObj();
     if (!mo) {
         mo = new MemoryObj(node);
         node->addPointsTo(mo);
@@ -36,6 +36,34 @@ bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
     }
 
     return false;
+}
+
+bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
+{
+    return handleMemAllocation(node);
+}
+
+static bool handleGlobal(const Value *Inst, LLVMNode *node)
+{
+    // we don't care about non pointers right now
+    if (!Inst->getType()->isPointerTy())
+        return false;
+
+    return handleMemAllocation(node);
+}
+
+static LLVMNode *createFunctionPtrNode(const llvm::Value *val)
+{
+    assert(isa<Function>(val));
+
+    // FIXME graph always has a entry node that is exactly
+    // same as this, so it'd be better to use that
+    LLVMNode *n = new LLVMNode(val);
+    MemoryObj *&mo = n->getMemoryObj();
+    mo = new MemoryObj(n);
+    n->addPointsTo(Pointer(mo));
+
+    return n;
 }
 
 LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
@@ -60,10 +88,13 @@ LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
         //mo = new MemoryObj(op);
         op->addPointsTo(ptr);
     } else if (isa<Function>(val)) {
-        op = new LLVMNode(val);
-        MemoryObj *&mo = op->getMemoryObj();
-        mo = new MemoryObj(op);
-        op->addPointsTo(Pointer(mo));
+        // if the function was created via function pointer during
+        // points-to analysis, it may not be set
+        op = dg->getNode(val);
+        if (!op)
+            // FIXME temporary, if this is operand of store inst,
+            // we do not have the function created yet
+            op = createFunctionPtrNode(val);
     } else if (isa<Argument>(val)) {
         // get dg of this graph, because we can be in subprocedure
         LLVMDependenceGraph *thisdg = node->getDG();
@@ -265,6 +296,66 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
     return mo->addPointsTo(off, ptr);
 }
 
+static void add_bb(LLVMBBlock *BB, LLVMPointsToAnalysis *PA)
+{
+    PA->addBB(BB);
+}
+
+// add subghraph BBs to data-flow analysis
+// (needed if we create a graph due to the function pointer)
+static void addSubgraphBBs(LLVMPointsToAnalysis *PA,
+                           LLVMDependenceGraph *graph)
+{
+    BBlockDFS<LLVMNode> dfs;
+    dfs.run(graph->getEntryBB(), add_bb, PA);
+}
+
+static bool handleFunctionPtrCall(const Function *func,
+                                  LLVMNode *calledFuncNode,
+                                  LLVMNode *node, LLVMPointsToAnalysis *PA)
+{
+    bool changed = false;
+
+    for (const Pointer& ptr : calledFuncNode->getPointsTo()) {
+        if (ptr.isNull() || ptr.obj->isUnknown()) {
+            errs() << "ERR: CallInst wrong func pointer\n";
+            continue;
+        }
+
+        const Function *func = cast<Function>(ptr.obj->node->getValue());
+        LLVMDependenceGraph *dg = node->getDG();
+        LLVMDependenceGraph *subg = dg->getSubgraph(func);
+        if (!subg) {
+            subg = dg->buildSubgraph(node, func);
+
+            LLVMNode *entry = subg->getEntry();
+            dg->addGlobalNode(entry);
+            handleGlobal(func, entry);
+            changed = true;
+        }
+
+        node->addActualParameters(subg, func);
+        if (node->addSubgraph(subg)) {
+            addSubgraphBBs(PA, subg);
+            changed = true;
+        }
+    }
+
+    return changed;
+}
+
+static bool handleUndefinedReturnsPointer(LLVMNode *node)
+{
+    MemoryObj *& mo = node->getMemoryObj();
+    if (!mo) {
+        mo = new MemoryObj(nullptr);
+        node->addPointsTo(mo);
+        return true;
+    }
+
+    return false;
+}
+
 bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
@@ -275,18 +366,15 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     // function is undefined and returns a pointer?
     // In that case create pointer to unknown location
     // and set this node to point to unknown location
-    if (!func && !node->hasSubgraphs() && Ty->isPointerTy()) {
-        MemoryObj *& mo = node->getMemoryObj();
-        if (!mo) {
-            mo = new MemoryObj(nullptr);
-            node->addPointsTo(mo);
-            return true;
-        }
-
-        return false;
-    }
+    if (!func && !node->hasSubgraphs() && Ty->isPointerTy())
+        return handleUndefinedReturnsPointer(node);
 
     LLVMNode **operands = node->getOperands();
+    LLVMNode *calledFuncNode = operands[0];
+
+    // add subgraphs dynamically according the points-to information
+    if (!func && calledFuncNode)
+        changed |= handleFunctionPtrCall(func, calledFuncNode, node, this);
 
     for (auto sub : node->getSubgraphs()) {
         LLVMDGParameters *formal = sub->getParameters();
@@ -393,23 +481,6 @@ bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *no
     // graphs
 
     return changed;
-}
-
-static bool handleGlobal(const Value *Inst, LLVMNode *node)
-{
-    // we don't care about non pointers right now
-    if (!Inst->getType()->isPointerTy())
-        return false;
-
-    // every global points to some memory
-    MemoryObj *& mo = node->getMemoryObj();
-    if (!mo) {
-        mo = new MemoryObj(node);
-        node->addPointsTo(mo);
-        return true;
-    }
-
-    return false;
 }
 
 void LLVMPointsToAnalysis::handleGlobals()
