@@ -262,14 +262,13 @@ static bool handleFunctionPtrCall(const Function *func,
             LLVMNode *entry = subg->getEntry();
             dg->addGlobalNode(entry);
             handleGlobal(func, entry);
+
+            addSubgraphBBs(PA, subg);
             changed = true;
         }
 
         node->addActualParameters(subg, func);
-        if (node->addSubgraph(subg)) {
-            addSubgraphBBs(PA, subg);
-            changed = true;
-        }
+        changed |= node->addSubgraph(subg);
     }
 
     return changed;
@@ -287,11 +286,65 @@ static bool handleUndefinedReturnsPointer(LLVMNode *node)
     return false;
 }
 
+bool propagatePointersToArguments(LLVMDependenceGraph *subgraph, LLVMNode *callNode)
+{
+    bool changed = false;
+    LLVMDGParameters *formal = subgraph->getParameters();
+    // we check if the function has arguments before going here,
+    // so this would be a bug
+    assert(formal && "no formal arguments");
+
+    const Function *subfunc = dyn_cast<Function>(subgraph->getEntry()->getKey());
+    assert(subfunc && "Entry is not a llvm::Function");
+
+    // handle values for arguments
+    // argument 0 is the called function, so start from 1
+    int i = 1;
+    for (auto I = subfunc->arg_begin(), E = subfunc->arg_end();
+         I != E; ++I, ++i) {
+        if (!I->getType()->isPointerTy())
+            continue;
+
+        LLVMDGParameter *p = formal->find(&*I);
+        if (!p) {
+            errs() << "ERR: no such formal param: " << *I << "\n";
+            continue;
+        }
+
+        LLVMNode *op = callNode->getOperand(i);
+        if (!op) {
+            errs() << "ERR: no operand for actual param of formal param: "
+                   << *I << "\n";
+            continue;
+        }
+
+        for (const Pointer& ptr : op->getPointsTo())
+            changed |= p->in->addPointsTo(ptr);
+    }
+
+    if (!callNode->isPointerTy())
+        return changed;
+
+    // handle return values
+    LLVMNode *retval = subgraph->getExit();
+    // this is artificial return value, the real
+    // are control dependent on it
+    for (auto I = retval->rev_control_begin(), E = retval->rev_control_end();
+         I != E; ++I) {
+        // we should iterate only over return inst
+        assert(isa<ReturnInst>((*I)->getKey()));
+
+        for (auto ptr : (*I)->getPointsTo())
+            changed |= callNode->addPointsTo(ptr);
+    }
+
+    return changed;
+}
+
 bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     Type *Ty = Inst->getType();
-    bool isptr;
     Function *func = Inst->getCalledFunction();
 
     // function is undefined and returns a pointer?
@@ -300,69 +353,23 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     if (!func && !node->hasSubgraphs() && Ty->isPointerTy())
         return handleUndefinedReturnsPointer(node);
 
-    LLVMNode **operands = node->getOperands();
-    LLVMNode *calledFuncNode = operands[0];
-
+    LLVMNode *calledFuncNode = node->getOperand(0);
     // add subgraphs dynamically according the points-to information
     if (!func && calledFuncNode)
         changed |= handleFunctionPtrCall(func, calledFuncNode, node, this);
 
-    for (auto sub : node->getSubgraphs()) {
-        LLVMDGParameters *formal = sub->getParameters();
-        if (!formal) // no arguments
-            continue;
+    // if this function has no arguments, we can bail out here
+    if (Inst->getNumArgOperands() == 0)
+        return changed;
 
-        const Function *subfunc = dyn_cast<Function>(sub->getEntry()->getKey());
-        assert(subfunc && "Entry is not a llvm::Function");
-
-        // handle values for arguments
-        int i = 1;
-        for (auto I = subfunc->arg_begin(), E = subfunc->arg_end();
-             I != E; ++I, ++i) {
-            isptr = I->getType()->isPointerTy();
-            if (!isptr)
-                continue;
-
-            LLVMDGParameter *p = formal->find(&*I);
-            if (!p) {
-                errs() << "ERR: no such formal param: " << *I << "\n";
-                continue;
-            }
-
-            LLVMNode *op = operands[i];
-            if (!op) {
-                errs() << "ERR: no operand for actual param of formal param: "
-                       << *I << "\n";
-                continue;
-            }
-
-            for (const Pointer& ptr : op->getPointsTo())
-                changed |= p->in->addPointsTo(ptr);
-        }
-
-        if (!Ty->isPointerTy())
-            return changed;
-
-        // handle return values
-        LLVMNode *retval = sub->getExit();
-        // this is artificial return value, the real
-        // are control dependent on it
-        for (auto I = retval->rev_control_begin(), E = retval->rev_control_end();
-             I != E; ++I) {
-            // we should iterate only over return inst
-            assert(isa<ReturnInst>((*I)->getKey()));
-
-            for (auto ptr : (*I)->getPointsTo())
-                changed |= node->addPointsTo(ptr);
-        }
-    }
+    for (LLVMDependenceGraph *sub : node->getSubgraphs())
+        changed |= propagatePointersToArguments(sub, node);
 
     // what about llvm intrinsic functions like llvm.memset?
     // we could handle those
 
     return changed;
 }
-
 
 bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *node)
 {
