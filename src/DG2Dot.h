@@ -239,9 +239,6 @@ private:
         Indent Ind(ind);
         DumpBBData data(out, options, ind);
 
-        // FIXME
-        return;
-
         out << Ind << "/* Input parameters */\n";
         dumpBB(params->getBBIn(), data);
         out << Ind << "/* Output parameters */\n";
@@ -251,15 +248,16 @@ private:
         for (auto it : *params) {
             DGParameter<NodeT>& p = it.second;
             if (p.in) {
-                llvm::errs() << "DUMP " << &p << " " << p.in << "\n";
                 dump_node(p.in, ind, "IN ARG");
                 dump_node_edges(p.in, ind);
-            }
+            } else
+                out << "NO IN ARG";
 
             if (p.out) {
                 dump_node(p.out, ind, "OUT ARG");
                 dump_node_edges(p.out, ind);
-            }
+            } else
+                out << "NO OUT ARG";
         }
     }
 
