@@ -274,11 +274,47 @@ static bool handleFunctionPtrCall(const Function *func,
     return changed;
 }
 
-static bool handleUndefinedReturnsPointer(LLVMNode *node)
+static bool isMemAllocationFunc(const Function *func)
 {
+    if (!func || !func->hasName())
+        return false;
+
+    const char *name = func->getName().data();
+    if (strcmp(name, "malloc") == 0 ||
+        strcmp(name, "calloc") == 0)
+        return true;
+
+    // realloc should overtake the memory object from former pointer
+
+    return false;
+}
+
+static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
+{
+    LLVMNode *target = nullptr;
+    // is it call via function pointer, or it is just undefined function?
+    LLVMNode *op = node->getOperand(0);
+    if (op) {
+        // function pointer! check if we can be malloc and similar
+        for (const Pointer& ptr : op->getPointsTo()) {
+            if (ptr.isNull() || ptr.obj->isUnknown()) {
+                errs() << "ERR: wrong pointer " << *Inst << "\n";
+                continue;
+            }
+
+            const Function *func = dyn_cast<Function>(ptr.obj->node->getKey());
+            assert(func && "function pointer contains non-function val");
+            if (isMemAllocationFunc(func)) {
+                target = node;
+                break;
+            }
+        }
+    }
+
+    // ok, undefined function - point to unknown memory
     MemoryObj *& mo = node->getMemoryObj();
     if (!mo) {
-        mo = new MemoryObj(nullptr);
+        mo = new MemoryObj(target);
         node->addPointsTo(mo);
         return true;
     }
@@ -351,7 +387,10 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     // In that case create pointer to unknown location
     // and set this node to point to unknown location
     if (!func && !node->hasSubgraphs() && Ty->isPointerTy())
-        return handleUndefinedReturnsPointer(node);
+        return handleUndefinedReturnsPointer(Inst, node);
+
+    if (isMemAllocationFunc(func))
+        return handleMemAllocation(node);
 
     LLVMNode *calledFuncNode = node->getOperand(0);
     // add subgraphs dynamically according the points-to information
