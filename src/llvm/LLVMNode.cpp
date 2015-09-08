@@ -43,6 +43,10 @@ LLVMNode **LLVMNode::findOperands()
     using namespace llvm;
     const Value *val = getKey();
 
+    // FIXME use op_begin() and op_end() and do it generic
+    // for all the instructions (+ maybe some speacial handling
+    // like CallInst?)
+
     // we have Function nodes stored in globals
     if (isa<AllocaInst>(val)) {
         operands = new LLVMNode *[1];
@@ -52,11 +56,21 @@ LLVMNode **LLVMNode::findOperands()
         operands = new LLVMNode *[2];
         operands[0] = dg->getNode(Inst->getPointerOperand());
         operands[1] = dg->getNode(Inst->getValueOperand());
+#ifdef DEBUG_ENABLED
+        if (!operands[0] && !isa<Constant>(Inst->getPointerOperand()))
+            errs() << "WARN: Didn't found pointer for " << *Inst << "\n";
+        if (!operands[1] && !isa<Constant>(Inst->getValueOperand()))
+            errs() << "WARN: Didn't found value for " << *Inst << "\n";
+#endif
         operands_num = 2;
     } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         operands = new LLVMNode *[1];
         const Value *op = Inst->getPointerOperand();
         operands[0] = dg->getNode(op);
+#ifdef DEBUG_ENABLED
+        if (!operands[0])
+            errs() << "WARN: Didn't found pointer for " << *Inst << "\n";
+#endif
         operands_num = 1;
     } else if (const GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
         operands = new LLVMNode *[1];
