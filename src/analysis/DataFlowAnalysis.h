@@ -46,15 +46,13 @@ class BBlockDataFlowAnalysis : public Analysis<NodeT>
 {
 public:
     BBlockDataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB, uint32_t fl = 0)
-        :entryBB(entryBB), flags(fl) {}
+        :entryBB(entryBB), flags(fl), changed(false) {}
 
     virtual bool runOnBlock(BBlock<NodeT> *BB) = 0;
 
     void run()
     {
-        bool changed = false;
         uint32_t flg = 0;
-        BlocksSetT blocks;
 
         assert(entryBB && "entry basic block is nullptr");
 
@@ -100,6 +98,12 @@ public:
         return statistics;
     }
 
+    void addBB(BBlock<NodeT> *BB)
+    {
+        changed |= runOnBlock(BB);
+        blocks.insert(BB);
+    }
+
 private:
     // define set of blocks to be ordered in dfs order
     typedef std::set<BBlock<NodeT> *,
@@ -122,7 +126,9 @@ private:
     }
 
     BBlock<NodeT> *entryBB;
+    BlocksSetT blocks;
     uint32_t flags;
+    bool changed;
     DataFlowStatistics statistics;
 };
 
