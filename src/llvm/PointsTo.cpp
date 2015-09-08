@@ -323,7 +323,8 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
     return false;
 }
 
-bool propagatePointersToArguments(LLVMDependenceGraph *subgraph, LLVMNode *callNode)
+bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *subgraph,
+                                                        const CallInst *Inst, LLVMNode *callNode)
 {
     bool changed = false;
     LLVMDGParameters *formal = subgraph->getParameters();
@@ -344,14 +345,15 @@ bool propagatePointersToArguments(LLVMDependenceGraph *subgraph, LLVMNode *callN
 
         LLVMDGParameter *p = formal->find(&*I);
         if (!p) {
-            errs() << "ERR: no such formal param: " << *I << "\n";
+            errs() << "ERR: no such formal param: " << *I
+                   << " in " << *Inst << "\n";
             continue;
         }
 
-        LLVMNode *op = callNode->getOperand(i);
+        LLVMNode *op = getOperand(callNode, Inst->getArgOperand(i), i);
         if (!op) {
             errs() << "ERR: no operand for actual param of formal param: "
-                   << *I << "\n";
+                   << *I << " in " << *Inst << "\n";
             continue;
         }
 
@@ -403,7 +405,7 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
         return changed;
 
     for (LLVMDependenceGraph *sub : node->getSubgraphs())
-        changed |= propagatePointersToArguments(sub, node);
+        changed |= propagatePointersToArguments(sub, Inst, node);
 
     // what about llvm intrinsic functions like llvm.memset?
     // we could handle those

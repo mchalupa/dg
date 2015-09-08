@@ -125,6 +125,8 @@ private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
     LLVMNode *getOperand(LLVMNode *, const llvm::Value *, unsigned int);
     bool addGlobalPointsTo(const llvm::Constant *, LLVMNode *, uint64_t);
+    bool propagatePointersToArguments(LLVMDependenceGraph *,
+                                      const llvm::CallInst *, LLVMNode *);
 
     bool handleAllocaInst(LLVMNode *);
     bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);

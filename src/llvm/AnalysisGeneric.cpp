@@ -13,6 +13,16 @@ using namespace llvm;
 namespace dg {
 namespace analysis {
 
+static LLVMNode *createNodeWithMemAlloc(const Value *val)
+{
+    LLVMNode *n = new LLVMNode(val);
+    MemoryObj *&mo = n->getMemoryObj();
+    mo = new MemoryObj(n);
+    n->addPointsTo(Pointer(mo));
+
+    return n;
+}
+
 static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
 {
     LLVMNode *n = dg->getNode(val);
@@ -20,10 +30,7 @@ static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
         return n;
 
     if (llvm::isa<llvm::Function>(val)) {
-        n = new LLVMNode(val);
-        MemoryObj *&mo = n->getMemoryObj();
-        mo = new MemoryObj(n);
-        n->addPointsTo(Pointer(mo));
+        n = createNodeWithMemAlloc(val);
     } else
         errs() << "ERR: unhandled not to create " << *val << "\n";
 
@@ -136,7 +143,7 @@ LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
         op = getOrCreateNode(dg, val);
     } else if (isa<ConstantPointerNull>(val)) {
         // what to do with nullptr?
-        op = new LLVMNode(val);
+        op = createNodeWithMemAlloc(val);
     } else {
         errs() << "ERR: Unsupported operand: " << *val << "\n";
         abort();
