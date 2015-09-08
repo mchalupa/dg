@@ -42,11 +42,11 @@ public:
     // build a DependenceGraph from module. This method will
     // build all subgraphs (called procedures). If entry is nullptr,
     // then this methods looks for function named 'main'.
-    bool build(llvm::Module *m, llvm::Function *entry = nullptr);
+    bool build(llvm::Module *m, const llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions
-    bool build(llvm::Function *func);
+    bool build(const llvm::Function *func);
 
     llvm::Module *getModule() const { return module; }
 
@@ -66,6 +66,10 @@ public:
         gatheredCallsites = callSites;
     }
 
+    // build subgraph for a call node
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, const llvm::Function *);
+
 private:
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
@@ -82,9 +86,6 @@ private:
     // to this graph and creating the basic block and
     // setting first and last instructions
     LLVMBBlock *build(const llvm::BasicBlock& BB);
-
-    // build subgraph for a call node
-    bool buildSubgraph(LLVMNode *node);
 
     // gather call-sites of functions with given name
     // when building the graph

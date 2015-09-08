@@ -79,7 +79,7 @@ static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
         dg->addGlobalNode(new LLVMNode(&gl));
 }
 
-bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
+bool LLVMDependenceGraph::build(llvm::Module *m, const llvm::Function *entry)
 {
     // get entry function if not given
     if (!entry)
@@ -101,17 +101,26 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     return true;
 };
 
-bool LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
+LLVMDependenceGraph *
+LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
+{
+    using namespace llvm;
+
+    const Value *val = node->getValue();
+    const CallInst *CInst = dyn_cast<CallInst>(val);
+    assert(CInst && "buildSubgraph called on non-CallInst");
+    const Function *callFunc = CInst->getCalledFunction();
+
+    return buildSubgraph(node, callFunc);
+}
+
+
+LLVMDependenceGraph *
+LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFunc)
 {
     using namespace llvm;
 
     LLVMBBlock *BB;
-    const Value *val = node->getValue();
-    const CallInst *CInst = dyn_cast<CallInst>(val);
-
-    assert(CInst && "buildSubgraph called on non-CallInst");
-
-    Function *callFunc = CInst->getCalledFunction();
 
     // if we don't have this subgraph constructed, construct it
     // else just add call edge
@@ -147,12 +156,7 @@ bool LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
     assert(BB && "do not have BB; this is a bug, sir");
     BB->addCallsite(node);
 
-    // make the subgraph a subgraph of current node
-    // addSubgraph will increase refcount of the graph
-    node->addSubgraph(subgraph);
-    node->addActualParameters(subgraph);
-
-    return true;
+    return subgraph;
 }
 
 static bool
@@ -183,8 +187,11 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             gatheredCallsites->insert(node);
         }
 
-        if (is_func_defined(CInst))
-            buildSubgraph(node);
+        if (is_func_defined(CInst)) {
+            LLVMDependenceGraph *subg = buildSubgraph(node);
+            node->addSubgraph(subg);
+            node->addActualParameters(subg);
+        }
     }
 }
 
@@ -276,7 +283,7 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     return BB;
 }
 
-bool LLVMDependenceGraph::build(llvm::Function *func)
+bool LLVMDependenceGraph::build(const llvm::Function *func)
 {
     using namespace llvm;
 
@@ -296,14 +303,14 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     setEntry(entry);
 
     constructedFunctions.insert(make_pair(func, this));
-    std::unordered_map<llvm::BasicBlock *, LLVMBBlock *> createdBlocks;
+    std::unordered_map<const llvm::BasicBlock *, LLVMBBlock *> createdBlocks;
     createdBlocks.reserve(func->size());
 
     // add formal parameters to this graph
     addFormalParameters();
 
     // iterate over basic blocks
-    for (llvm::BasicBlock& llvmBB : *func) {
+    for (const llvm::BasicBlock& llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
         createdBlocks[&llvmBB] = BB;
 
@@ -314,10 +321,10 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
     // add CFG edges
     for (auto it : createdBlocks) {
-        BasicBlock *llvmBB = it.first;
+        const BasicBlock *llvmBB = it.first;
         LLVMBBlock *BB = it.second;
 
-        for (succ_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
+        for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
             LLVMBBlock *succ = createdBlocks[*S];
             assert(succ && "Missing basic block");
