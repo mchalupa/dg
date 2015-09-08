@@ -281,7 +281,8 @@ static bool isMemAllocationFunc(const Function *func)
 
     const char *name = func->getName().data();
     if (strcmp(name, "malloc") == 0 ||
-        strcmp(name, "calloc") == 0)
+        strcmp(name, "calloc") == 0 ||
+        strcmp(name, "alloca") == 0)
         return true;
 
     // realloc should overtake the memory object from former pointer
