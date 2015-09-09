@@ -26,42 +26,14 @@
 using namespace dg;
 using llvm::errs;
 
-int main(int argc, char *argv[])
+static bool slice(llvm::Module *M, const char *slicing_criterion)
 {
-    llvm::LLVMContext context;
-    llvm::SMDiagnostic SMD;
-    std::unique_ptr<llvm::Module> M;
-
-    const char *slicing_criterion = NULL;
-    const char *module = NULL;
-
-    // parse options
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-c") == 0
-            || strcmp(argv[i], "-crit") == 0
-            || strcmp(argv[i], "-slice") == 0){
-            slicing_criterion = argv[++i];
-        } else {
-            module = argv[i];
-        }
-    }
-
-    if (!slicing_criterion || !module) {
-        errs() << "Usage: % [-c|-crit|-slice] func_call module\n";
-        return 1;
-    }
-
-    M = llvm::parseIRFile(module, SMD, context);
-    if (!M) {
-        SMD.print(argv[0], errs());
-        return 1;
-    }
-
     debug::TimeMeasure tm;
     LLVMDependenceGraph d;
-
     std::set<LLVMNode *> gatheredCallsites;
+
     d.gatherCallsites(slicing_criterion, &gatheredCallsites);
+
     // build the graph
     d.build(&*M);
 
@@ -70,7 +42,7 @@ int main(int argc, char *argv[])
             gatheredCallsites.insert(d.getExit());
         else {
             errs() << "Did not find slicing criterion: " << slicing_criterion << "\n";
-            return 1;
+            return false;
         }
     }
 
@@ -109,11 +81,66 @@ int main(int argc, char *argv[])
     errs() << "INFO: Sliced away " << st.second
            << " from " << st.first << " nodes\n";
 
-    std::string fl(module);
+    return true;
+}
+
+static bool write_module(llvm::Module *M, const char *module_name)
+{
+    // compose name
+    std::string fl(module_name);
     fl.replace(fl.end() - 3, fl.end(), ".sliced");
+
+    // open stream to write to
     std::ofstream ofs(fl);
     llvm::raw_os_ostream output(ofs);
-    llvm::WriteBitcodeToFile(&*M, output);
+
+    // write the module
+    errs() << "INFO: saving sliced module to: " << fl.c_str() << "\n";
+    llvm::WriteBitcodeToFile(M, output);
+
+    return true;
+}
+
+int main(int argc, char *argv[])
+{
+    llvm::LLVMContext context;
+    llvm::SMDiagnostic SMD;
+    std::unique_ptr<llvm::Module> M;
+
+    const char *slicing_criterion = NULL;
+    const char *module = NULL;
+
+    // parse options
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "-c") == 0
+            || strcmp(argv[i], "-crit") == 0
+            || strcmp(argv[i], "-slice") == 0){
+            slicing_criterion = argv[++i];
+        } else {
+            module = argv[i];
+        }
+    }
+
+    if (!slicing_criterion || !module) {
+        errs() << "Usage: % [-c|-crit|-slice] func_call module\n";
+        return 1;
+    }
+
+    M = llvm::parseIRFile(module, SMD, context);
+    if (!M) {
+        SMD.print(argv[0], errs());
+        return 1;
+    }
+
+    if (!slice(&*M, slicing_criterion)) {
+        errs() << "ERR: Slicing failed\n";
+        return 1;
+    }
+
+    if (!write_module(&*M, module)) {
+        errs() << "Saving sliced module failed\n";
+        return 1;
+    }
 
     return 0;
 }
