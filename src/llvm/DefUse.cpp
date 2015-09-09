@@ -274,6 +274,9 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
             // so add definition on the AllocaInst
             // This is the same as with global variables
             defs.insert(ptrnode);
+        } else if (isa<ConstantPointerNull>(ptrVal)) {
+            // just do nothing, it has no reaching definition
+            return;
         } else {
             errs() << "WARN: no reaching definition for "
                    << *ptr.obj->node->getKey()
@@ -457,11 +460,13 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
+/*
 #ifdef DEBUG_ENABLED
         else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
             errs() << "WARN: no node for operand " << **I
                    << "in " << *Inst << "\n";
 #endif
+*/
     }
 }
 
