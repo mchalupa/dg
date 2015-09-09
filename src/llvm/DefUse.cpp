@@ -282,10 +282,18 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
         }
     }
 
-    // we read ptrNode memory that is defined on these locations
     assert(!defs.empty());
     for (LLVMNode *n : defs)
         n->addDataDependence(to);
+
+    // if we got pointer to our object with UNKNOWN_OFFSET,
+    // it still can be reaching definition, so we must take it into
+    // account
+    ValuesSetT& defsUnknown = df->get(Pointer(ptr.obj, UNKNOWN_OFFSET));
+    if (!defsUnknown.empty()) {
+        for (LLVMNode *n : defsUnknown)
+            n->addDataDependence(to);
+    }
 }
 
 static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
