@@ -82,6 +82,7 @@ private:
         LLVMDGParameters *actualparams = callNode->getParameters();
         LLVMDGParameters *formalparams = graph->getParameters();
 
+        /*
         if (!actualparams) {
             assert(!formalparams && "Have only one of params");
             return; // no params - nothing to do
@@ -89,6 +90,7 @@ private:
 
         assert(formalparams && "Have only one of params");
         assert(formalparams->size() == actualparams->size());
+        */
 
         // FIXME slice arguments away
     }

@@ -68,7 +68,7 @@ LLVMNode **LLVMNode::findOperands()
         const Value *op = Inst->getPointerOperand();
         operands[0] = dg->getNode(op);
 #ifdef DEBUG_ENABLED
-        if (!operands[0])
+        if (!operands[0] && !isa<ConstantExpr>(Inst->getPointerOperand()))
             errs() << "WARN: Didn't found pointer for " << *Inst << "\n";
 #endif
         operands_num = 1;
