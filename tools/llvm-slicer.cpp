@@ -7,6 +7,7 @@
 #error "This code needs LLVM enabled"
 #endif
 
+#include <llvm/IR/Verifier.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
@@ -84,6 +85,13 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     return true;
 }
 
+static bool verify_module(llvm::Module *M)
+{
+    // the verifyModule function returns false if there
+    // are no errors
+    return !llvm::verifyModule(*M, &errs());
+}
+
 static bool write_module(llvm::Module *M, const char *module_name)
 {
     // compose name
@@ -135,6 +143,11 @@ int main(int argc, char *argv[])
     if (!slice(&*M, slicing_criterion)) {
         errs() << "ERR: Slicing failed\n";
         return 1;
+    }
+
+    if (!verify_module(&*M)) {
+        errs() << "ERR: Verifying module failed, the IR is not valid\n";
+        errs() << "INFO: Saving anyway so that you can check it\n";
     }
 
     if (!write_module(&*M, module)) {
