@@ -14,19 +14,13 @@ namespace dg {
 template <typename NodeT>
 struct DGParameter
 {
-    DGParameter<NodeT>(NodeT *v1, NodeT *v2,
-                       DGParameter<NodeT> *p = nullptr)
-        : in(v1), out(v2), peer(p) {}
+    DGParameter<NodeT>(NodeT *v1, NodeT *v2)
+        : in(v1), out(v2) {}
 
     // input value of parameter
     NodeT *in;
     // output value of parameter
     NodeT *out;
-
-    // if this is actual parameter, then here
-    // we can store the formal parameter for easier
-    // look-ups
-    DGParameter<NodeT> *peer;
 
     void removeIn()
     {
@@ -60,6 +54,7 @@ template <typename Key, typename NodeT>
 class DGParameters
 {
 public:
+    typedef std::map<Key, NodeT *> GlobalsContainerT;
     typedef std::map<Key, DGParameter<NodeT>> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
@@ -75,10 +70,9 @@ public:
 
     NodeT& operator[](Key k) { return params[k]; }
 
-    bool add(Key k, NodeT *val_in, NodeT *val_out,
-             DGParameter<NodeT> *p = nullptr)
+    bool add(Key k, NodeT *val_in, NodeT *val_out)
     {
-        auto v = std::make_pair(k, DGParameter<NodeT>(val_in, val_out, p));
+        auto v = std::make_pair(k, DGParameter<NodeT>(val_in, val_out));
 
         if (!params.insert(v).second)
             // we already has param with this key
@@ -108,6 +102,28 @@ public:
 
         return true;
     }
+
+    bool addGlobal(Key k, NodeT *val)
+    {
+        return globals.insert(std::make_pair(k, val)).second;
+    }
+
+    bool addGlobal(NodeT *val)
+    {
+        return addGlobal(val->getKey(), val);
+    }
+
+    NodeT *findGlobal(Key k)
+    {
+        auto it = globals.find(k);
+        if (it == globals.end())
+            return nullptr;
+
+        return it->second;
+    }
+
+    GlobalsContainerT& getGlobals() { return globals; }
+    const GlobalsContainerT& getGlobals() const { return globals; }
 
     void remove(Key k)
     {
@@ -167,6 +183,9 @@ public:
     BBlock<NodeT> *getBBOut() { return BBOut; }
 
 protected:
+    // globals represented as a parameter
+    GlobalsContainerT globals;
+    // usual parameters
     ContainerType params;
     BBlock<NodeT> *BBIn;
     BBlock<NodeT> *BBOut;
