@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <cstdio>
+#include <cstring>
 
 #include <set>
 
@@ -85,6 +86,35 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     return true;
 }
 
+static void remove_unused_from_module(llvm::Module *M)
+{
+    using namespace llvm;
+    llvm::StringRef main("main");
+
+    // when erasing while iterating the slicer crashes
+    // so set the to be erased values into container
+    // and then erase them
+    std::set<Function *> funs;
+    std::set<GlobalVariable *> globals;
+
+    for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+        Function *func = &*I;
+        if (func->hasNUses(0) && !func->getName().equals(main))
+            funs.insert(func);
+    }
+
+    for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
+        GlobalVariable *gv = &*I;
+        if (gv->hasNUses(0))
+            globals.insert(gv);
+    }
+
+    for (Function *f : funs)
+        f->eraseFromParent();
+    for (GlobalVariable *gv : globals)
+        gv->eraseFromParent();
+}
+
 static bool verify_module(llvm::Module *M)
 {
     // the verifyModule function returns false if there
@@ -144,6 +174,8 @@ int main(int argc, char *argv[])
         errs() << "ERR: Slicing failed\n";
         return 1;
     }
+
+    remove_unused_from_module(&*M);
 
     if (!verify_module(&*M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
