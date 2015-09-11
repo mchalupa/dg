@@ -261,6 +261,12 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Adding Def-Use edges took");
 
+    tm.start();
+    // add post-dominator frontiers
+    d.computePostDominators(false, true);
+    tm.stop();
+    tm.report("INFO: computing post-dominator frontiers took");
+
     if (slicing_criterion) {
         LLVMSlicer slicer;
         tm.start();

@@ -213,6 +213,18 @@ private:
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S << "]\n";
             }
+
+            for (BBlock<NodeT> *S : BB->getPostDomFrontiers()) {
+                NodeT *firstNode = BB->getFirstNode();
+                NodeT *lastNode = S->getLastNode();
+
+                out << Ind
+                    << "NODE" << lastNode << " -> "
+                    <<   "NODE" << firstNode
+                    << " [penwidth=3 color=green"
+                    << "  ltail=cluster_bb_" << BB
+                    << "  lhead=cluster_bb_" << S << "]\n";
+            }
         }
     }
 
