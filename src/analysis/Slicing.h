@@ -47,7 +47,7 @@ public:
         if (sl_id == 0)
             sl_id = ++slice_id;
 
-        DFS<NodeT> dfs(DFS_REV_CD | DFS_REV_DD | DFS_BB_REV_CFG);
+        DFS<NodeT> dfs(DFS_REV_CD | DFS_REV_DD | DFS_BB_POSTDOM_FRONTIERS);
         dfs.walk(start, markSlice, sl_id);
 
         return sl_id;

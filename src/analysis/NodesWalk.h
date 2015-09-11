@@ -13,20 +13,22 @@ enum NodesWalkFlags {
     // do not walk any edges, user will
     // use enqueue method to decide which nodes
     // will be processed
-    NODES_WALK_NONE_EDGES       = 0,
-    NODES_WALK_INTERPROCEDURAL  = 1 << 0,
-    NODES_WALK_CFG              = 1 << 1,
-    NODES_WALK_REV_CFG          = 1 << 2,
-    NODES_WALK_CD               = 1 << 3,
-    NODES_WALK_DD               = 1 << 4,
-    NODES_WALK_REV_CD           = 1 << 5,
-    NODES_WALK_REV_DD           = 1 << 6,
+    NODES_WALK_NONE_EDGES               = 0,
+    NODES_WALK_INTERPROCEDURAL          = 1 << 0,
+    NODES_WALK_CFG                      = 1 << 1,
+    NODES_WALK_REV_CFG                  = 1 << 2,
+    NODES_WALK_CD                       = 1 << 3,
+    NODES_WALK_DD                       = 1 << 4,
+    NODES_WALK_REV_CD                   = 1 << 5,
+    NODES_WALK_REV_DD                   = 1 << 6,
     // Add to queue all first nodes of
     // node's BB successors
-    NODES_WALK_BB_CFG           = 1 << 7,
+    NODES_WALK_BB_CFG                   = 1 << 7,
     // Add to queue all last nodes of
     // node's BB predcessors
-    NODES_WALK_BB_REV_CFG       = 1 << 8,
+    NODES_WALK_BB_REV_CFG               = 1 << 8,
+    NODES_WALK_BB_POSTDOM               = 1 << 9,
+    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 10,
 };
 
 template <typename NodeT, typename QueueT>
@@ -100,6 +102,9 @@ public:
                     processBBlockRevCFG(n);
             }
 #endif // ENABLE_CFG
+
+            if (options & NODES_WALK_BB_POSTDOM_FRONTIERS)
+                processBBlockPostDomFrontieres(n);
 
             // FIXME interprocedural
         }
@@ -184,6 +189,17 @@ private:
 
         for (BBlock<NodeT> *S : BB->predcessors())
             enqueue(S->getLastNode());
+    }
+
+    void processBBlockPostDomFrontieres(NodeT *n)
+    {
+        BBlock<NodeT> *BB = n->getBasicBlock();
+        if (!BB)
+            return;
+
+        for (BBlock<NodeT> *S : BB->getPostDomFrontiers())
+            if (S != BB)
+                enqueue(S->getLastNode());
     }
 #endif // ENABLE_CFG
 
