@@ -303,8 +303,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     setEntry(entry);
 
     constructedFunctions.insert(make_pair(func, this));
-    std::unordered_map<const llvm::BasicBlock *, LLVMBBlock *> createdBlocks;
-    createdBlocks.reserve(func->size());
+    constructedBlocks.reserve(func->size());
 
     // add formal parameters to this graph
     addFormalParameters();
@@ -312,7 +311,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     // iterate over basic blocks
     for (const llvm::BasicBlock& llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
-        createdBlocks[&llvmBB] = BB;
+        constructedBlocks[&llvmBB] = BB;
 
         // first basic block is the entry BB
         if (!getEntryBB())
@@ -320,13 +319,13 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     }
 
     // add CFG edges
-    for (auto it : createdBlocks) {
+    for (auto it : constructedBlocks) {
         const BasicBlock *llvmBB = it.first;
         LLVMBBlock *BB = it.second;
 
         for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
-            LLVMBBlock *succ = createdBlocks[*S];
+            LLVMBBlock *succ = constructedBlocks[*S];
             assert(succ && "Missing basic block");
 
             BB->addSuccessor(succ);

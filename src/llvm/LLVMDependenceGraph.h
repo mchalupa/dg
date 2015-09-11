@@ -13,6 +13,7 @@
 #endif
 
 #include <map>
+#include <unordered_map>
 
 // forward declaration of llvm classes
 namespace llvm {
@@ -65,6 +66,13 @@ public:
         return it->second;
     }
 
+
+    std::unordered_map<const llvm::BasicBlock *,
+                       LLVMBBlock *> getConstructedBlocks()
+    {
+        return constructedBlocks;
+    }
+
     // if we want to slice according some call-site(s),
     // we can gather the relevant call-sites while building
     // graph and do not need to recursively find in the graph
@@ -102,6 +110,8 @@ private:
     const char *gather_callsites;
 
     std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+    std::unordered_map<const llvm::BasicBlock *, LLVMBBlock *> constructedBlocks;
+
     // when we want to slice according to some criterion,
     // we may gather the call-sites (good points for criterions)
     // while building the graph
