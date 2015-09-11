@@ -18,7 +18,6 @@ add_library(llvmdg SHARED
 	llvm/DefUse.h
 	llvm/DefUse.cpp
 	llvm/Slicer.h
-	llvm/Slicer.cpp
 )
 
 target_link_libraries(llvmdg ${llvm_libs})
