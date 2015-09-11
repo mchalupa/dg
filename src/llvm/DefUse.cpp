@@ -102,6 +102,127 @@ static DefMap *getDefMap(LLVMNode *n)
 //   Reaching definitions analysis
 /// --------------------------------------------------
 
+// if we define a global variable in the subprocedure,
+// add it as a parameter, so that we'll propagate the
+// definition as a parameter
+static void addGlobalsAsParameters(LLVMDependenceGraph *graph,
+                                   LLVMNode *callNode, DefMap *subgraph_df)
+{
+    // if some global variable is defined in the subprocedure,
+    // we must propagate it to the caller
+    for (auto it : *subgraph_df) {
+        const Pointer& ptr = it.first;
+
+        if (ptr.isNull() || ptr.obj->isUnknown())
+            continue;
+
+        if (isa<GlobalVariable>(ptr.obj->node->getKey())) {
+            // add actual params
+            LLVMDGParameters *params = callNode->getParameters();
+            if (!params) {
+                params = new LLVMDGParameters();
+                callNode->addParameters(params);
+            }
+
+            const Value *val = ptr.obj->node->getKey();
+            if (params->findGlobal(val))
+                continue;
+
+            // FIXME we don't need this one
+            LLVMNode *pact = new LLVMNode(val);
+            params->addGlobal(val, pact);
+            callNode->addControlDependence(pact);
+
+            // add formal parameters
+            params = graph->getParameters();
+            if (!params) {
+                params = new LLVMDGParameters();
+                graph->setParameters(params);
+            }
+
+            LLVMNode *pform = new LLVMNode(val);
+            params->addGlobal(val, pform);
+            LLVMNode *entry = graph->getEntry();
+            entry->addControlDependence(pform);
+
+            // global param is only the output param,
+            // so the arrow goes from formal to actual
+            pform->addDataDependence(pact);
+        }
+    }
+}
+
+static bool handleGlobals(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
+
+    // get actual parameters (operands) and for every pointer in there
+    // check if the memory location it points to gets defined
+    // in the subprocedure
+    LLVMDGParameters *params = callNode->getParameters();
+    // if we have params, process params
+    if (!params)
+        return false;
+
+    for (auto it : params->getGlobals()) {
+        LLVMNode *p = it.second;
+        // the points-to is stored in the real global node
+        LLVMNode *global = callNode->getDG()->getNode(p->getKey());
+        assert(global && "Do not have a global node");
+
+        for (const Pointer& ptr : global->getPointsTo()) {
+            ValuesSetT& defs = subgraph_df->get(ptr);
+            if (defs.empty())
+                continue;
+
+            changed |= df->add(ptr, p);
+        }
+    }
+
+    return changed;
+}
+
+
+
+static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
+
+    // get actual parameters (operands) and for every pointer in there
+    // check if the memory location it points to gets defined
+    // in the subprocedure
+    LLVMDGParameters *params = callNode->getParameters();
+    // if we have params, process params
+    if (!params)
+        return false;
+
+    // operand[0] is the called func
+    for (int i = 1, e = callNode->getOperandsNum(); i < e; ++i) {
+        LLVMNode *op = callNode->getOperand(i);
+        if (!op)
+            continue;
+
+        if (!op->isPointerTy())
+            continue;
+
+        LLVMDGParameter *p = params->find(op->getKey());
+        if (!p) {
+            errs() << "ERR: no actual param for " << *op->getKey() << "\n";
+            continue;
+        }
+
+        for (const Pointer& ptr : op->getPointsTo()) {
+            ValuesSetT& defs = subgraph_df->get(ptr);
+            if (defs.empty())
+                continue;
+
+            changed |= df->add(ptr, p->out);
+        }
+    }
+
+    return changed;
+}
+
 static bool handleCallInst(LLVMDependenceGraph *graph,
                            LLVMNode *callNode, DefMap *df)
 {
@@ -111,41 +232,12 @@ static bool handleCallInst(LLVMDependenceGraph *graph,
     assert(exitNode && "No exit node in subgraph");
 
     DefMap *subgraph_df = getDefMap(exitNode);
-
-    // get actual parameters (operands) and for every pointer in there
-    // check if the memory location it points to get defined
-    // in the subprocedure
-    LLVMNode **operands = callNode->getOperands();
-    LLVMDGParameters *params = callNode->getParameters();
-    // we call this func only on non-void functions
-    assert(params && "No actual parameters in call node");
-
-    // operand[0] is the called func
-    for (int i = 1, e = callNode->getOperandsNum(); i < e; ++i) {
-        LLVMNode *op = operands[i];
-        if (!op)
-            continue;
-
-        if (!op->isPointerTy())
-            continue;
-
-        for (const Pointer& ptr : op->getPointsTo()) {
-            ValuesSetT& defs = subgraph_df->get(ptr);
-            if (defs.empty())
-                continue;
-
-            // ok, the memory location is defined in the subprocedure,
-            // so add reaching definition to out param of this call node
-            LLVMDGParameter *p = params->find(op->getKey());
-            if (!p) {
-                errs() << "ERR: no actual param for value: "
-                       << *op->getKey() << "\n";
-                abort();
-            }
-
-            changed |= df->add(ptr, p->out);
-        }
-    }
+    // first add global as a parameters
+    addGlobalsAsParameters(graph, callNode, subgraph_df);
+    // now handle all parameters
+    // and global variables that are as parameters
+    changed |= handleParams(callNode, df, subgraph_df);
+    changed |= handleGlobals(callNode, df, subgraph_df);
 
     return changed;
 }
@@ -153,9 +245,6 @@ static bool handleCallInst(LLVMDependenceGraph *graph,
 static bool handleCallInst(LLVMNode *callNode, DefMap *df)
 {
     bool changed = false;
-    // ignore callInst with void prototype
-    if (callNode->getOperandsNum() == 1)
-        return false;
 
     for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
         changed |= handleCallInst(subgraph, callNode, df);
@@ -368,32 +457,54 @@ void LLVMDefUseAnalysis::handleLoadInst(LLVMNode *node)
 
 static void addOutParamsEdges(LLVMDependenceGraph *graph)
 {
-    LLVMDGParameters *params = graph->getParameters();
-    assert(params && "No formal params in subgraph with actual params");
-
     LLVMNode *exitNode = graph->getExit();
     assert(exitNode && "No exit node in subgraph");
     DefMap *df = getDefMap(exitNode);
 
-    for (auto it : *params) {
-        const Value *val = it.first;
-        if (!val->getType()->isPointerTy())
-            continue;
-
-        LLVMDGParameter& p = it.second;
-
-        // points to set is contained in the input param
-        for (const Pointer& ptr : p.in->getPointsTo()) {
-            ValuesSetT& defs = df->get(ptr);
-            if (defs.empty())
+    // add edges between formal params and the output params
+    LLVMDGParameters *params = graph->getParameters();
+    if (params) {
+        for (auto it : *params) {
+            const Value *val = it.first;
+            if (!val->getType()->isPointerTy())
                 continue;
 
-            // ok, the memory location is defined in this subgraph,
-            // so add data dependence edge to the out param
-            for (LLVMNode *def : defs)
-                def->addDataDependence(p.out);
+            LLVMDGParameter& p = it.second;
+
+            // points to set is contained in the input param
+            for (const Pointer& ptr : p.in->getPointsTo()) {
+                ValuesSetT& defs = df->get(ptr);
+                if (defs.empty())
+                    continue;
+
+                // ok, the memory location is defined in this subgraph,
+                // so add data dependence edge to the out param
+                for (LLVMNode *def : defs)
+                    def->addDataDependence(p.out);
+            }
+        }
+
+        // add edges between used globals and corresponding global's parameter
+        for (auto it : params->getGlobals()) {
+            LLVMNode *p = it.second;
+
+            // points-to of globals is stored in the global itself
+            LLVMNode *g = graph->getNode(p->getKey());
+            assert(g && "Do not have a global node");
+
+            for (const Pointer& ptr : g->getPointsTo()) {
+                ValuesSetT& defs = df->get(ptr);
+                if (defs.empty())
+                    continue;
+
+                // ok, the memory location is defined in this subgraph,
+                // so add data dependence edge to the global
+                for (LLVMNode *def : defs)
+                    def->addDataDependence(p);
+            }
         }
     }
+
 }
 
 static void addOutParamsEdges(LLVMNode *callNode)
@@ -412,39 +523,36 @@ static void addOutParamsEdges(LLVMNode *callNode)
 static void handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
-    LLVMNode **operands = node->getOperands();
     LLVMDGParameters *params = node->getParameters();
 
     // if we have a node for the called function,
     // it is call via function pointer, so add the
     // data dependence edge to corresponding node
-    if (operands[0]) {
-        operands[0]->addDataDependence(node);
+    if (!isa<Function>(node->getKey())) {
+        LLVMNode *n = node->getOperand(0);
+        if (n)
+            n->addDataDependence(node);
     }
 
     if (!params) // function has no arguments
         return;
 
+    // add def-use edges between parameters and the operands
     // parameters begin from 1
     for (int i = 1, e = node->getOperandsNum(); i < e; ++i) {
-        LLVMNode *op = operands[i];
+        LLVMNode *op = node->getOperand(i);
         if (!op)
             continue;
 
-        // find actual parameter
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
-            errs() << "ERR: no actual parameter for " << *op->getKey() << "\n";
+            errs() << "ERR: no actual param for " << *op->getKey() << "\n";
             continue;
         }
 
         if (op->isPointerTy()) {
             // add data dependencies to in parameters
             addIndirectDefUse(op, p->in, df);
-
-            // FIXME
-            // look for reaching definitions inside the procedure
-            // because since this is a pointer, we can change things
         } else
             op->addDataDependence(p->in);
     }
