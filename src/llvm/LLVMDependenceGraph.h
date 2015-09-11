@@ -87,6 +87,8 @@ public:
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node, const llvm::Function *);
 
+    void computePostDominators(bool addPostDomEdges = true, bool addPostDomFrontiers = false);
+
 private:
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)

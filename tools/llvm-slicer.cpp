@@ -69,6 +69,12 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     tm.stop();
     tm.report("INFO: Adding Def-Use edges took");
 
+    tm.start();
+    // add post-dominator frontiers
+    d.computePostDominators(false, true);
+    tm.stop();
+    tm.report("INFO: computing post-dominator frontiers took");
+
     LLVMSlicer slicer;
     uint32_t slid = 0;
 
