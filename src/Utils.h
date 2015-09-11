@@ -2,18 +2,6 @@
 #define _DG_UTILS_H_
 
 #include <cstdio>
-
-#if (DEBUG_ENABLED)
-#if(!DBG)
-#define DBG(...) do { fprintf(stderr, "DBG: ");\
-                      fprintf(stderr, __VA_ARGS__);\
-                      fprintf(stderr, "\n"); \
-                 } while(0)
-#else
-#define DBG(...)
-#endif // if(!(DBG)
-#endif // DEBUG_ENABLED
-
 #include <ctime>
 
 namespace dg {

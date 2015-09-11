@@ -9,6 +9,8 @@
 #include "PointsTo.h"
 #include "AnalysisGeneric.h"
 
+#include "llvm-debug.h"
+
 using namespace llvm;
 
 namespace dg {
@@ -166,8 +168,8 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
             // ivalid offset might mean we're cycling due to some
             // cyclic dependency
             if (*off >= size) {
-                errs() << "INFO: cropping GEP, off > size: " << *off
-                       << " " << size << "\n     in " << *ptrNode->getKey() << "\n";
+                DBG("INFO: cropping GEP, off > size: " << *off
+                    << " " << size << "\n     in " << *ptrNode->getKey());
                 changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
             } else
                 changed |= node->addPointsTo(ptr.obj, off);
@@ -190,7 +192,7 @@ bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
         if (offset.isIntN(64))
             return addPtrWithOffset(ptrNode, node, offset.getZExtValue(), DL);
         else
-            errs() << "WARN: GEP offset greater that 64-bit\n";
+            DBG("WARN: GEP offset greater that 64-bit");
             // fall-through to UNKNOWN_OFFSET in this case
     }
 
@@ -250,7 +252,7 @@ static bool handleFunctionPtrCall(const Function *func,
 
     for (const Pointer& ptr : calledFuncNode->getPointsTo()) {
         if (ptr.isNull() || ptr.obj->isUnknown()) {
-            errs() << "ERR: CallInst wrong func pointer\n";
+            DBG("ERR: CallInst wrong func pointer\n");
             continue;
         }
 
@@ -300,7 +302,7 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
         // function pointer! check if we can be malloc and similar
         for (const Pointer& ptr : op->getPointsTo()) {
             if (ptr.isNull() || ptr.obj->isUnknown()) {
-                errs() << "ERR: wrong pointer " << *Inst << "\n";
+                DBG("ERR: wrong pointer " << *Inst);
                 continue;
             }
 
@@ -346,15 +348,14 @@ bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *sub
 
         LLVMDGParameter *p = formal->find(&*I);
         if (!p) {
-            errs() << "ERR: no such formal param: " << *I
-                   << " in " << *Inst << "\n";
+            DBG("ERR: no such formal param: " << *I << " in " << *Inst);
             continue;
         }
 
         LLVMNode *op = getOperand(callNode, Inst->getArgOperand(i), i + 1);
         if (!op) {
-            errs() << "ERR: no operand for actual param of formal param: "
-                   << *I << " in " << *Inst << "\n";
+            DBG("ERR: no operand for actual param of formal param: "
+                   << *I << " in " << *Inst);
             continue;
         }
 
@@ -419,7 +420,7 @@ bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *
     bool changed = false;
     LLVMNode *op = getOperand(node, Inst->stripPointerCasts(), 0);
     if (!op) {
-        errs() << "WARN: Cast without operand " << *Inst << "\n";
+        DBG("WARN: Cast without operand " << *Inst);
         return false;
     }
 
@@ -431,7 +432,7 @@ bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *
             changed |= node->addPointsTo(ptr);
         }
     } else
-        errs() << "WARN: Not a loss less cast unhandled" << *Inst << "\n";
+        DBG("WARN: Not a loss less cast unhandled" << *Inst);
 
     return changed;
 }
@@ -533,7 +534,7 @@ bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
         assert(I && "Not an Instruction?");
 
         if (I->mayReadOrWriteMemory())
-            errs() << "WARN: Unhandled instruction: " << *val << "\n";
+            DBG("WARN: Unhandled instruction: " << *val);
 #endif
     }
 

@@ -14,6 +14,7 @@
 #include "AnalysisGeneric.h"
 
 #include "analysis/DFS.h"
+#include "llvm-debug.h"
 
 using namespace llvm;
 
@@ -207,7 +208,7 @@ static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
 
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
-            errs() << "ERR: no actual param for " << *op->getKey() << "\n";
+            DBG("ERR: no actual param for " << *op->getKey());
             continue;
         }
 
@@ -333,8 +334,8 @@ LLVMNode *LLVMDefUseAnalysis::getOperand(LLVMNode *node,
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
     if (ptr.isNull() || ptr.obj->isUnknown()) {
-        errs() << "ERR: pointer pointing to unknown location, UNSOUND! "
-               << *to->getKey() << "\n";
+        DBG("ERR: pointer pointing to unknown location, UNSOUND! "
+               << *to->getKey());
         return;
     }
 
@@ -367,9 +368,8 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
             // just do nothing, it has no reaching definition
             return;
         } else {
-            errs() << "WARN: no reaching definition for "
-                   << *ptr.obj->node->getKey()
-                   << " + " << *ptr.offset << "\n";
+            DBG("WARN: no reaching definition for " << *ptr.obj->node->getKey()
+                << " + " << *ptr.offset);
             return;
         }
     }
@@ -427,8 +427,7 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 #ifdef DEBUG_ENABLED
     else {
         if (!isa<ConstantInt>(Inst->getValueOperand()))
-            errs() << "ERR def-use: Unhandled value operand for "
-                   << *Inst << "\n";
+            DBG("ERR def-use: Unhandled value operand for " << *Inst);
     }
 #endif
 
@@ -546,7 +545,7 @@ static void handleCallInst(LLVMNode *node)
 
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
-            errs() << "ERR: no actual param for " << *op->getKey() << "\n";
+            DBG("ERR: no actual param for " << *op->getKey());
             continue;
         }
 
@@ -568,11 +567,11 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
-/*
+/* this is hit with switch
 #ifdef DEBUG_ENABLED
         else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
-            errs() << "WARN: no node for operand " << **I
-                   << "in " << *Inst << "\n";
+            DBG("WARN: no node for operand " << **I
+                   << "in " << *Inst);
 #endif
 */
     }

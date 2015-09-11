@@ -27,6 +27,8 @@
 #include "PointsTo.h"
 #include "DefUse.h"
 
+#include "llvm-debug.h"
+
 using llvm::errs;
 using std::make_pair;
 
@@ -64,11 +66,11 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
             if (!node->getBasicBlock()
                 && !llvm::isa<llvm::Function>(*I->first))
-                errs() << "WARN: Value " << *I->first << "had no BB assigned\n";
+                DBG("WARN: Value " << *I->first << "had no BB assigned");
 
             delete node;
         } else {
-            errs() << "WARN: Value " << *I->first << "had no node assigned\n";
+            DBG("WARN: Value " << *I->first << "had no node assigned");
         }
     }
 }
@@ -236,7 +238,7 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     // check if this is the exit node of function
     const TerminatorInst *term = llvmBB.getTerminator();
     if (!term) {
-        errs() << "WARN: Basic block is not well formed\n" << llvmBB << "\n";
+        DBG("WARN: Basic block is not well formed\n" << llvmBB);
         return BB;
     }
 
