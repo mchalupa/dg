@@ -293,10 +293,6 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     if (func->size() == 0)
         return false;
 
-#if DEBUG_ENABLED
-    llvm::errs() << "Building graph for '" << func->getName() << "'\n";
-#endif
-
     // create entry node
     LLVMNode *entry = new LLVMNode(func);
     addGlobalNode(entry);

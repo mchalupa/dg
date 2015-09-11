@@ -167,7 +167,7 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
             // cyclic dependency
             if (*off >= size) {
                 errs() << "INFO: cropping GEP, off > size: " << *off
-                       << " " << size << " Type: " << *Ty << "\n";
+                       << " " << size << "\n     in " << *ptrNode->getKey() << "\n";
                 changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
             } else
                 changed |= node->addPointsTo(ptr.obj, off);
