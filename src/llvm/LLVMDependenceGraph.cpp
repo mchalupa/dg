@@ -495,35 +495,36 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomEdges,
 {
     using namespace llvm;
     PostDominatorTree *pdtree = new PostDominatorTree();
-    for (auto it : constructedFunctions) {
-        Value *val = const_cast<Value *>(it.first);
+    for (auto F : constructedFunctions) {
+        Value *val = const_cast<Value *>(F.first);
         Function& f = *cast<Function>(val);
         pdtree->runOnFunction(f);
-    }
 
-    PostDominanceFrontiers pdfrontiers;
-    for (auto it : constructedBlocks) {
-        LLVMBBlock *BB = it.second;
-        BasicBlock *B = const_cast<BasicBlock *>(it.first);
-        DomTreeNode *N = pdtree->getNode(B);
+        auto our_blocks = F.second->getConstructedBlocks();
+        for (auto it : our_blocks) {
+            LLVMBBlock *BB = it.second;
+            BasicBlock *B = const_cast<BasicBlock *>(it.first);
+            DomTreeNode *N = pdtree->getNode(B);
 
-        if (addPostDomEdges) {
-            DomTreeNode *idom = N->getIDom();
-            if (idom) {
-                LLVMBBlock *pb = constructedBlocks[idom->getBlock()];
-                assert(pb && "Do not have constructed BB");
-                BB->setIPostDom(pb);
+            if (addPostDomEdges) {
+                DomTreeNode *idom = N->getIDom();
+                if (idom) {
+                    LLVMBBlock *pb = our_blocks[idom->getBlock()];
+                    assert(pb && "Do not have constructed BB");
+                    BB->setIPostDom(pb);
+                }
             }
-        }
 
-        if (addPostDomFrontiers) {
-            const PostDominanceFrontiers::DomSetType& frontiers
-                = pdfrontiers.calculate(*pdtree->DT, N);
+            if (addPostDomFrontiers) {
+                PostDominanceFrontiers pdfrontiers;
+                const PostDominanceFrontiers::DomSetType& frontiers
+                    = pdfrontiers.calculate(*pdtree->DT, N);
 
-            for (BasicBlock *llvmBB : frontiers) {
-                LLVMBBlock *f = constructedBlocks[llvmBB];
-                assert(f && "Do not have constructed BB");
-                BB->addPostDomFrontier(f);
+                for (BasicBlock *llvmBB : frontiers) {
+                    LLVMBBlock *f = our_blocks[llvmBB];
+                    assert(f && "Do not have constructed BB");
+                    BB->addPostDomFrontier(f);
+                }
             }
         }
     }
