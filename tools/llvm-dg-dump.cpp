@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 
     tm.start();
     // add post-dominator frontiers
-    d.computePostDominators(false, true);
+    d.computePostDominators(true, true);
     tm.stop();
     tm.report("INFO: computing post-dominator frontiers took");
 

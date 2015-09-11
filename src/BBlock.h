@@ -24,7 +24,7 @@ class BBlock
 {
 public:
     BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
-        : firstNode(first), lastNode(last)
+        : ipostdom(nullptr), firstNode(first), lastNode(last)
 #ifdef ENABLE_PSS
           , firstPointer(nullptr)
 #endif
@@ -53,6 +53,16 @@ public:
     {
         return postDomFrontiers.insert(BB);
     }
+
+    BBlock<NodeT> *setIPostDom(BBlock<NodeT> *BB)
+    {
+        BBlock<NodeT> *old = ipostdom;
+        ipostdom = BB;
+        return old;
+    }
+
+    BBlock<NodeT> *getIPostDom() { return ipostdom; }
+    const BBlock<NodeT> *getIPostDom() const { return ipostdom; }
 
     typename ContainerT::size_type successorsNum() const
     {
@@ -307,6 +317,7 @@ private:
 
     // post-dominator frontiers
     ContainerT postDomFrontiers;
+    BBlock<NodeT> *ipostdom;
 
     // first node in this basic block
     NodeT *firstNode;

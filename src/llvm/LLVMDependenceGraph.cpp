@@ -501,28 +501,30 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomEdges,
         pdtree->runOnFunction(f);
     }
 
-    if (addPostDomEdges) {
-        assert(0 && "Not implemented yet");
-    }
-
-    // further is only frontiers computation,
-    // so we can bail out here if we are not supposed to
-    // compute them
-    if (!addPostDomFrontiers)
-        return;
-
     PostDominanceFrontiers pdfrontiers;
     for (auto it : constructedBlocks) {
+        LLVMBBlock *BB = it.second;
         BasicBlock *B = const_cast<BasicBlock *>(it.first);
         DomTreeNode *N = pdtree->getNode(B);
-        const PostDominanceFrontiers::DomSetType& frontiers
-            = pdfrontiers.calculate(*pdtree->DT, N);
 
-        LLVMBBlock *BB = it.second;
-        for (BasicBlock *llvmBB : frontiers) {
-            LLVMBBlock *f = constructedBlocks[llvmBB];
-            assert(f && "Do not have constructed BB");
-            BB->addPostDomFrontier(f);
+        if (addPostDomEdges) {
+            DomTreeNode *idom = N->getIDom();
+            if (idom) {
+                LLVMBBlock *pb = constructedBlocks[idom->getBlock()];
+                assert(pb && "Do not have constructed BB");
+                BB->setIPostDom(pb);
+            }
+        }
+
+        if (addPostDomFrontiers) {
+            const PostDominanceFrontiers::DomSetType& frontiers
+                = pdfrontiers.calculate(*pdtree->DT, N);
+
+            for (BasicBlock *llvmBB : frontiers) {
+                LLVMBBlock *f = constructedBlocks[llvmBB];
+                assert(f && "Do not have constructed BB");
+                BB->addPostDomFrontier(f);
+            }
         }
     }
 

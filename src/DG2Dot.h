@@ -225,6 +225,19 @@ private:
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S << "]\n";
             }
+
+            BBlock<NodeT> *ipd = BB->getIPostDom();
+            if (ipd) {
+                NodeT *firstNode = BB->getFirstNode();
+                NodeT *lastNode = ipd->getLastNode();
+
+                out << Ind
+                    << "NODE" << lastNode << " -> "
+                    <<   "NODE" << firstNode
+                    << " [penwidth=3 color=purple"
+                    << "  ltail=cluster_bb_" << BB
+                    << "  lhead=cluster_bb_" << ipd << "]\n";
+            }
         }
     }
 
