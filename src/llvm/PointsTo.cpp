@@ -229,11 +229,6 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
     return mo->addPointsTo(off, ptr);
 }
 
-static void add_bb(LLVMBBlock *BB, LLVMPointsToAnalysis *PA)
-{
-    PA->addBB(BB);
-}
-
 // add subghraph BBs to data-flow analysis
 // (needed if we create a graph due to the function pointer)
 static void addSubgraphBBs(LLVMPointsToAnalysis *PA,
