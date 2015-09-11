@@ -46,6 +46,14 @@ public:
     const ContainerT& controlDependence() const { return controlDeps; }
     const ContainerT& RevControlDependence() const { return revControlDeps; }
 
+    ContainerT& getPostDomFrontiers() { return postDomFrontiers; }
+    const ContainerT& getPostDomFrontiers() const { return postDomFrontiers; }
+
+    bool addPostDomFrontier(BBlock<NodeT> *BB)
+    {
+        return postDomFrontiers.insert(BB);
+    }
+
     typename ContainerT::size_type successorsNum() const
     {
         return nextBBs.size();
@@ -296,6 +304,9 @@ private:
     // all nodes in block has the same control dependence
     ContainerT controlDeps;
     ContainerT revControlDeps;
+
+    // post-dominator frontiers
+    ContainerT postDomFrontiers;
 
     // first node in this basic block
     NodeT *firstNode;
