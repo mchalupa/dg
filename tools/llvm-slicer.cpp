@@ -8,6 +8,8 @@
 #error "This code needs LLVM enabled"
 #endif
 
+#include "../git-version.h"
+
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -150,7 +152,11 @@ int main(int argc, char *argv[])
 
     // parse options
     for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-c") == 0
+        if (strcmp(argv[i], "-v") == 0
+            || strcmp(argv[i], "-version") == 0) {
+            errs() << GIT_VERSION << "\n";
+            exit(0);
+        } else if (strcmp(argv[i], "-c") == 0
             || strcmp(argv[i], "-crit") == 0
             || strcmp(argv[i], "-slice") == 0){
             slicing_criterion = argv[++i];
