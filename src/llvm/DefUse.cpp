@@ -122,7 +122,7 @@ static void addGlobalsAsParameters(LLVMDependenceGraph *graph,
             LLVMDGParameters *params = callNode->getParameters();
             if (!params) {
                 params = new LLVMDGParameters();
-                callNode->addParameters(params);
+                callNode->setParameters(params);
             }
 
             const Value *val = ptr.obj->node->getKey();

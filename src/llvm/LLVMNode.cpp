@@ -134,7 +134,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     LLVMDGParameters *params = getParameters();
     if (!params) {
         params = new LLVMDGParameters();
-        LLVMDGParameters *old = addParameters(params);
+        LLVMDGParameters *old = setParameters(params);
         assert(old == nullptr && "Replaced parameters");
     }
 

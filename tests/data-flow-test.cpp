@@ -77,7 +77,7 @@ public:
         no = new TestNode(nodes_num + 2);
         params->add(nodes_num + 2, ni, no);
 
-        d->getEntry()->addParameters(params);
+        d->getEntry()->setParameters(params);
 
         return d;
     }

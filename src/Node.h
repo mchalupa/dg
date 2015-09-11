@@ -315,7 +315,7 @@ public:
     }
 
     DGParameters<KeyT, NodeT> *
-    addParameters(DGParameters<KeyT, NodeT> *params)
+    setParameters(DGParameters<KeyT, NodeT> *params)
     {
         DGParameters<KeyT, NodeT> *old = parameters;
 
