@@ -237,8 +237,9 @@ static void add_bb(LLVMBBlock *BB, LLVMPointsToAnalysis *PA)
 static void addSubgraphBBs(LLVMPointsToAnalysis *PA,
                            LLVMDependenceGraph *graph)
 {
-    BBlockDFS<LLVMNode> dfs;
-    dfs.run(graph->getEntryBB(), add_bb, PA);
+    auto blocks = graph->getConstructedBlocks();
+    for (auto it : blocks)
+        PA->addBB(it.second);
 }
 
 static bool handleFunctionPtrCall(const Function *func,
