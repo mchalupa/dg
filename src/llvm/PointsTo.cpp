@@ -239,8 +239,7 @@ static void addSubgraphBBs(LLVMPointsToAnalysis *PA,
         PA->addBB(it.second);
 }
 
-static bool handleFunctionPtrCall(const Function *func,
-                                  LLVMNode *calledFuncNode,
+static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
                                   LLVMNode *node, LLVMPointsToAnalysis *PA)
 {
     bool changed = false;
@@ -395,7 +394,7 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     LLVMNode *calledFuncNode = node->getOperand(0);
     // add subgraphs dynamically according the points-to information
     if (!func && calledFuncNode)
-        changed |= handleFunctionPtrCall(func, calledFuncNode, node, this);
+        changed |= handleFunctionPtrCall(calledFuncNode, node, this);
 
     // if this function has no arguments, we can bail out here
     if (Inst->getNumArgOperands() == 0)
