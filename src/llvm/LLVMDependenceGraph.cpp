@@ -433,7 +433,6 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
     for (auto F : constructedFunctions) {
         // root of post-dominator tree
         LLVMBBlock *root = nullptr;
-        DomTreeNode *rootNode = nullptr;
         Value *val = const_cast<Value *>(F.first);
         Function& f = *cast<Function>(val);
         // compute post-dominator tree for this function
@@ -446,31 +445,26 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
             BasicBlock *B = const_cast<BasicBlock *>(it.first);
             DomTreeNode *N = pdtree->getNode(B);
             DomTreeNode *idom = N->getIDom();
-            BasicBlock *idomBB;
+            BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
 
-            if (idom) {
-                idomBB = idom->getBlock();
-                if (idomBB) {
-                    LLVMBBlock *pb = our_blocks[idomBB];
-                    assert(pb && "Do not have constructed BB");
-                    BB->setIPostDom(pb);
-                } else {
-                    // PostDominatorTree has special root without BB set
-                    // so the immediate post-dominator in this case
-                    // is the root
-                    assert((!root || (rootNode == idom)) && "BUG: we can have only one root");
-                    if (!root) {
-                        rootNode = idom; // just for debugging
-                        root = new LLVMBBlock();
-                        this->setPostDominatorTreeRoot(root);
-
-                        for (DomTreeNode *C : idom->getChildren()) {
-                            LLVMBBlock *pb = our_blocks[C->getBlock()];
-                            assert(pb && "Do not have constructed BB");
-                            pb->setIPostDom(root);
-                        }
-                    }
+            if (idomBB) {
+                LLVMBBlock *pb = our_blocks[idomBB];
+                assert(pb && "Do not have constructed BB");
+                BB->setIPostDom(pb);
+                assert(cast<BasicBlock>(BB->getKey())->getParent()
+                        == cast<BasicBlock>(pb->getKey())->getParent()
+                        && "BBs are from diferent functions");
+            // if we do not have idomBB, then the idomBB is a root BB
+            } else {
+                // PostDominatorTree may has special root without BB set
+                // or it is the node without immediate post-dominator
+                if (!root) {
+                    root = new LLVMBBlock();
+                    root->setKey(nullptr);
+                    F.second->setPostDominatorTreeRoot(root);
                 }
+
+                BB->setIPostDom(root);
             }
         }
 
