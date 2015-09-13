@@ -214,10 +214,12 @@ enum BBlockWalkFlags {
     BBLOCK_WALK_INTERPROCEDURAL     = 1 << 0,
     // walk even through params
     BBLOCK_WALK_PARAMS              = 1 << 1,
+    // walk post-dominator tree edges
+    BBLOCK_WALK_POSTDOM             = 1 << 2,
     // need to go through the nodes once
     // because bblocks does not keep information
     // about call-sites
-    BBLOCK_NO_CALLSITES             = 1 << 2,
+    BBLOCK_NO_CALLSITES             = 1 << 3,
 };
 
 #ifdef ENABLE_CFG
@@ -268,6 +270,11 @@ public:
                 if (BB->getCallSitesNum() != 0)
                     queueSubgraphsBBs(BB, queue, runid);
             }
+
+            // queue post-dominated blocks if we should
+            if (flags & BBLOCK_WALK_POSTDOM)
+                for (BBlockPtrT S : BB->getPostDominators())
+                    queuePush(S, queue, runid);
 
             // queue sucessors of this BB
             for (BBlockPtrT S : BB->successors())
