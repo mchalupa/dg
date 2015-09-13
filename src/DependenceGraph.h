@@ -11,7 +11,7 @@
 
 #include "Utils.h" // DBG macro
 #include "BBlock.h"
-#include "EdgesContainer.h"
+#include "ADT/DGContainer.h"
 #include "Node.h"
 
 #include "analysis/Analysis.h"

@@ -6,7 +6,7 @@ add_library(llvmdg SHARED
 	BBlock.h
 	Node.h
 	DependenceGraph.h
-	EdgesContainer.h
+	ADT/DGContainer.h
 	llvm/LLVMNode.h
 	llvm/LLVMNode.cpp
 	llvm/LLVMDependenceGraph.h

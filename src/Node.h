@@ -5,6 +5,7 @@
 #define _NODE_H_
 
 #include "DGParameters.h"
+#include "ADT/DGContainer.h"
 #include "analysis/Analysis.h"
 
 namespace dg {

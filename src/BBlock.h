@@ -6,7 +6,7 @@
 
 #include <cassert>
 
-#include "EdgesContainer.h"
+#include "ADT/DGContainer.h"
 #include "analysis/Analysis.h"
 
 #ifndef ENABLE_CFG

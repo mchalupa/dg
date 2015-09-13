@@ -1,8 +1,5 @@
-/// XXX add licence
-//
-
-#ifndef _EDGES_CONTAINER_H_
-#define _EDGES_CONTAINER_H_
+#ifndef _DG_CONTAINER_H_
+#define _DG_CONTAINER_H_
 
 #include <set>
 #include <cassert>
@@ -10,15 +7,15 @@
 
 namespace dg {
 
-
 /// ------------------------------------------------------------------
-// - EdgesContainer
+// - DGContainer
 //
 //   This is basically just a wrapper for real container, so that
 //   we have the container defined on one place for all edges.
+//   It may have more implementations depending on available features
 /// ------------------------------------------------------------------
-template <typename NodeT, unsigned int EXPECTED_EDGES_NUM = 8>
-class EdgesContainer
+template <typename NodeT, unsigned int EXPECTED_ELEMENTS_NUM = 8>
+class DGContainer
 {
 public:
     // XXX use llvm ADTs when available, or BDDs?
@@ -62,15 +59,14 @@ public:
         return container.empty();
     }
 
-    void swap(EdgesContainer<NodeT, EXPECTED_EDGES_NUM>& oth)
+    void swap(DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth)
     {
         container.swap(oth.container);
     }
 
-    void intersect(const EdgesContainer<NodeT,
-                                        EXPECTED_EDGES_NUM>& oth)
+    void intersect(const DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth)
     {
-        EdgesContainer<NodeT, EXPECTED_EDGES_NUM> tmp;
+        DGContainer<NodeT, EXPECTED_ELEMENTS_NUM> tmp;
 
         std::set_intersection(container.begin(), container.end(),
                               oth.container.begin(),
@@ -82,8 +78,7 @@ public:
         container.swap(tmp.container);
     }
 
-    bool operator==(const EdgesContainer<NodeT,
-                                        EXPECTED_EDGES_NUM>& oth) const
+    bool operator==(const DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth) const
     {
         if (container.size() != oth.size())
             return false;
@@ -98,8 +93,7 @@ public:
         return true;
     }
 
-    bool operator!=(const EdgesContainer<NodeT,
-                                        EXPECTED_EDGES_NUM>& oth) const
+    bool operator!=(const DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth) const
     {
         return !operator==(oth);
     }
@@ -108,6 +102,16 @@ private:
     ContainerT container;
 };
 
+template <typename NodeT, unsigned int EXPECTED_EDGES_NUM = 4>
+class EdgesContainer : public DGContainer<NodeT, EXPECTED_EDGES_NUM>
+{
+};
+
+template <typename NodeT>
+class NodesContainer : public DGContainer<NodeT, 500>
+{
+};
+
 } // namespace dg
 
-#endif // _BBLOCK_H_
+#endif // _DG_CONTAINER_H_
