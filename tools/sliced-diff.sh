@@ -3,7 +3,7 @@
 M="$1"
 
 llvm-dis "$M" -o __m.ll
-llvm-dis "${M}.sliced" -o __m.sliced.ll
+llvm-dis "${M%%.bc}.sliced" -o __m.sliced.ll
 
 CMD=diff
 if which meld &>/dev/null; then
