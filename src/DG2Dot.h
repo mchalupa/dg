@@ -133,12 +133,14 @@ private:
     }
 
     struct DumpBBData {
-        DumpBBData(std::ofstream& o, uint32_t opts, int ind = 1)
-            : out(o), options(opts), indent(ind) {}
+        DumpBBData(std::ofstream& o, uint32_t opts, int ind = 1,
+                   std::ostream& (*pk)(std::ostream&, KeyT) = nullptr)
+            : out(o), options(opts), indent(ind), printKey(pk) {}
 
         std::ofstream& out;
         uint32_t options;
         int indent;
+        std::ostream& (*printKey)(std::ostream& os, KeyT key);
     };
 
     static void dumpBB(const BBlock<NodeT> *BB, DumpBBData& data)
@@ -146,9 +148,17 @@ private:
         std::ofstream& out = data.out;
         Indent Ind(data.indent);
 
-        out << Ind << "/* BasicBlock " << BB << " */\n";
+        out << Ind << "/* Basic Block ";
+        if (data.printKey)
+            data.printKey(out, BB->getKey());
+        out << " [" << BB << "] */\n";
         out << Ind << "subgraph cluster_bb_" << BB << " {\n";
-        out << Ind << "\tlabel=\"Basic Block " << BB;
+        out << Ind << "\tlabel=\"";
+        if (data.printKey)
+            data.printKey(out, BB->getKey());
+        else
+            out << "BBlock ";
+        out << " [" << BB << "]";
 
         unsigned int dfsorder = BB->getDFSOrder();
         if (dfsorder != 0)
@@ -263,7 +273,7 @@ private:
     void dump_parameters(DGParameters<NodeT> *params, int ind)
     {
         Indent Ind(ind);
-        DumpBBData data(out, options, ind);
+        DumpBBData data(out, options, ind, printKey);
 
         out << Ind << "/* Input parameters */\n";
         dumpBB(params->getBBIn(), data);
@@ -325,12 +335,12 @@ private:
         dg::analysis::BBlockDFS<NodeT> DFS;
 
         // print nodes in BB
-        DFS.run(startBB, dumpBB, DumpBBData(out, options, ind));
+        DFS.run(startBB, dumpBB, DumpBBData(out, options, ind, printKey));
 
         // print CFG edges between BBs
         if (options & (PRINT_CFG | PRINT_REV_CFG)) {
             out << Indent(ind) << "/* CFG edges */\n";
-            DFS.run(startBB, dumpBBedges, DumpBBData(out, options, ind));
+            DFS.run(startBB, dumpBBedges, DumpBBData(out, options, ind, printKey));
         }
     }
 

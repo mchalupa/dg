@@ -435,12 +435,16 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
             BasicBlock *B = const_cast<BasicBlock *>(it.first);
             DomTreeNode *N = pdtree->getNode(B);
             DomTreeNode *idom = N->getIDom();
-            if (idom) {
-                LLVMBBlock *pb = our_blocks[idom->getBlock()];
+            BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
+            // XXX apperently it may happen that idomBB
+            // is nullptr, but is it correct? Isn't it a bug
+            // in PostDominatorTree?
+            if (idomBB) {
+                LLVMBBlock *pb = our_blocks[idomBB];
                 assert(pb && "Do not have constructed BB");
                 BB->setIPostDom(pb);
             } else {
-                assert(!root && "BUG: we can have only one root");
+            //    assert(!root && "BUG: we can have only one root");
                 root = BB;
             }
         }
