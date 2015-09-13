@@ -35,7 +35,7 @@ public:
         : global_nodes(nullptr), entryNode(nullptr), exitNode(nullptr),
           formalParameters(nullptr), refcount(1), own_global_nodes(false)
 #ifdef ENABLE_CFG
-     , entryBB(nullptr), exitBB(nullptr)
+     , entryBB(nullptr), exitBB(nullptr), PDTreeRoot(nullptr)
 #endif
     {
     }
@@ -147,6 +147,13 @@ public:
     }
 
 #ifdef ENABLE_CFG
+    BBlock<NodeT> *getPostDominatorTreeRoot() const { return PDTreeRoot; }
+    void setPostDominatorTreeRoot(BBlock<NodeT> *r)
+    {
+        assert(!PDTreeRoot && "Already has a post-dominator tree root");
+        PDTreeRoot = r;
+    }
+
     BBlock<NodeT> *getEntryBB() const { return entryBB; }
     BBlock<NodeT> *getExitBB() const { return exitBB; }
 
@@ -376,6 +383,7 @@ private:
 #ifdef ENABLE_CFG
     BBlock<NodeT> *entryBB;
     BBlock<NodeT> *exitBB;
+    BBlock<NodeT> *PDTreeRoot;
 #endif // ENABLE_CFG
 };
 

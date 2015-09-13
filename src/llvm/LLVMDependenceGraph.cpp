@@ -451,7 +451,7 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
                 assert(pb && "Do not have constructed BB");
                 BB->setIPostDom(pb);
             } else {
-            //    assert(!root && "BUG: we can have only one root");
+                assert(!root && "BUG: we can have only one root");
                 root = BB;
             }
         }
