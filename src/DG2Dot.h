@@ -215,12 +215,13 @@ private:
             }
 
             for (BBlock<NodeT> *S : BB->getPostDomFrontiers()) {
-                NodeT *firstNode = BB->getFirstNode();
-                NodeT *lastNode = S->getLastNode();
+                NodeT *start = BB->getFirstNode();
+                NodeT *end = S->getLastNode();
 
                 out << Ind
-                    << "NODE" << lastNode << " -> "
-                    <<   "NODE" << firstNode
+                    << "/* post-dominance frontiers */\n"
+                    << "NODE" << start << " -> "
+                    <<   "NODE" << end
                     << " [penwidth=3 color=green"
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S << "]\n";
