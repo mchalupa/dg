@@ -589,6 +589,8 @@ void LLVMDefUseAnalysis::handleNode(LLVMNode *node)
         handleCallInst(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
         handleInstruction(Inst, node); // handle rest of Insts
+    } else {
+        DBG("ERR: Unhandled instruction " << *val);
     }
 }
 
@@ -604,7 +606,7 @@ void handleBlock(LLVMBBlock *BB, LLVMDefUseAnalysis *analysis)
 void LLVMDefUseAnalysis::addDefUseEdges()
 {
     // it doesn't matter how we'll go through the nodes
-    BBlockDFS<LLVMNode> runner(DFS_INTERPROCEDURAL);
+    BBlockDFS<LLVMNode> runner(DFS_INTERPROCEDURAL | DFS_BB_CFG);
     runner.run(dg->getEntryBB(), handleBlock, this);
 }
 
