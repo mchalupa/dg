@@ -209,6 +209,7 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     LLVMNode *predNode = nullptr;
     LLVMNode *node = new LLVMNode(val);
     LLVMBBlock *BB = new LLVMBBlock(node);
+    BB->setKey(&llvmBB);
 
     addNode(node);
     handleInstruction(val, node);
