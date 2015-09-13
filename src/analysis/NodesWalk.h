@@ -29,8 +29,27 @@ enum NodesWalkFlags {
     NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 10,
 };
 
+// this is a base class for nodes walk, it contains
+// counter. If we would add counter (even static) into
+// NodesWalk itself, we'd have counter for every
+// NodeT+QueueT instantiation, which we don't want to,
+// because then BFS and DFS would collide
+template <typename NodeT>
+class NodesWalkBase : public Analysis<NodeT>
+{
+protected:
+    // this counter will increase each time we run
+    // NodesWalk, so it can be used as an indicator
+    // that we queued a node in a particular run or not
+    static unsigned int walk_run_counter;
+};
+
+// counter definition
+template<typename NodeT>
+unsigned int NodesWalkBase<NodeT>::walk_run_counter = 0;
+
 template <typename NodeT, typename QueueT>
-class NodesWalk : public Analysis<NodeT>
+class NodesWalk : public NodesWalkBase<NodeT>
 {
 public:
     NodesWalk<NodeT, QueueT>(uint32_t opts = NODES_WALK_CFG)
@@ -39,7 +58,7 @@ public:
     template <typename FuncT, typename DataT>
     void walk(NodeT *entry, FuncT func, DataT data)
     {
-        run_id = ++walk_run_counter;
+        run_id = ++NodesWalk<NodeT, QueueT>::walk_run_counter;
 
         assert(entry && "Need entry node for traversing nodes");
         enqueue(entry);
@@ -205,15 +224,7 @@ private:
     // id of particular nodes walk
     unsigned int run_id;
     uint32_t options;
-    // this counter will increase each time we run
-    // NodesWalk, so it can be used as an indicator
-    // that we queued a node in a particular run or not
-    static unsigned int walk_run_counter;
 };
-
-// counter definition
-template<typename NodeT, typename QueueT>
-unsigned int NodesWalk<NodeT, QueueT>::walk_run_counter = 0;
 
 enum BBlockWalkFlags {
     // recurse into procedures
@@ -230,9 +241,28 @@ enum BBlockWalkFlags {
     BBLOCK_NO_CALLSITES             = 1 << 4,
 };
 
+// this is a base class for bblock walk, it contains
+// counter. If we would add counter (even static) into
+// NodesWalk itself, we'd have counter for every
+// NodeT+QueueT instantiation, which we don't want to,
+// because then BFS and DFS would collide
+template <typename NodeT>
+class BBlockWalkBase : public BBlockAnalysis<NodeT>
+{
+protected:
+    // this counter will increase each time we run
+    // NodesWalk, so it can be used as an indicator
+    // that we queued a node in a particular run or not
+    static unsigned int walk_run_counter;
+};
+
+// counter definition
+template<typename NodeT>
+unsigned int BBlockWalkBase<NodeT>::walk_run_counter = 0;
+
 #ifdef ENABLE_CFG
 template <typename NodeT, typename QueueT>
-class BBlockWalk : public BBlockAnalysis<NodeT>
+class BBlockWalk : public BBlockWalkBase<NodeT>
 {
 public:
     typedef dg::BBlock<NodeT> *BBlockPtrT;
@@ -247,7 +277,7 @@ public:
         queue.push(entry);
 
         // set up the value of new walk and set it to entry node
-        unsigned int runid = ++walk_run_counter;
+        unsigned int runid = ++BBlockWalk<NodeT, QueueT>::walk_run_counter;
         AnalysesAuxiliaryData& aad = this->getAnalysisData(entry);
         aad.lastwalkid = runid;
 
@@ -348,16 +378,7 @@ private:
     }
 
     uint32_t flags;
-
-    // this counter will increase each time we run
-    // NodesWalk, so it can be used as an indicator
-    // that we queued a node in a particular run or not
-    static unsigned int walk_run_counter;
 };
-
-// counter definition
-template<typename NodeT, typename QueueT>
-unsigned int BBlockWalk<NodeT, QueueT>::walk_run_counter = 0;
 
 #endif
 
