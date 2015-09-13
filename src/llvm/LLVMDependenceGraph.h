@@ -89,6 +89,8 @@ public:
 
     void computePostDominators(bool addPostDomFrontiers = false);
 
+    bool verify() const;
+
 private:
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
@@ -118,6 +120,9 @@ private:
     // we may gather the call-sites (good points for criterions)
     // while building the graph
     llvm::Module *module;
+
+    // verifier needs access to private elements
+    friend class LLVMDGVerifier;
 };
 
 } // namespace dg

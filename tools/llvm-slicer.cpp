@@ -41,6 +41,11 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     // build the graph
     d.build(&*M);
 
+    // verify if the graph is built correctly
+    // FIXME - do it optionally (command line argument)
+    if (!d.verify())
+        errs() << "ERR: verifying failed\n";
+
     if (gatheredCallsites.empty()) {
         if (strcmp(slicing_criterion, "ret") == 0)
             gatheredCallsites.insert(d.getExit());
@@ -56,6 +61,11 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     PTA.run();
     tm.stop();
     tm.report("INFO: Points-to analysis took");
+
+    // we might added some new functions
+    // so verify once again
+    if (!d.verify())
+        errs() << "ERR: verifying failed\n";
 
     analysis::LLVMDefUseAnalysis DUA(&d);
 

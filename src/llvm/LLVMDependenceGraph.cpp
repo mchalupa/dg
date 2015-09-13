@@ -26,6 +26,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "Utils.h"
+#include "LLVMDGVerifier.h"
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
 
@@ -84,6 +85,12 @@ static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
 {
     for (const llvm::GlobalVariable& gl : m->globals())
         dg->addGlobalNode(new LLVMNode(&gl));
+}
+
+bool LLVMDependenceGraph::verify() const
+{
+    LLVMDGVerifier verifier(this);
+    return verifier.verify();
 }
 
 bool LLVMDependenceGraph::build(llvm::Module *m, const llvm::Function *entry)
