@@ -15,7 +15,7 @@ namespace analysis {
 struct AnalysesAuxiliaryData
 {
     AnalysesAuxiliaryData()
-        : lastwalkid(0), dfsorder(0) {}
+        : lastwalkid(0), dfsorder(0), bfsorder(0) {}
 
     // last id of walk (DFS/BFS) that ran on this node
     // ~~> marker if it has been processed
