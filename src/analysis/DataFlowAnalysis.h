@@ -52,7 +52,7 @@ public:
 
     void run()
     {
-        uint32_t flg = 0;
+        uint32_t flg = DFS_BB_CFG;
 
         assert(entryBB && "entry basic block is nullptr");
 
