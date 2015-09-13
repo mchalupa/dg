@@ -23,6 +23,8 @@ struct AnalysesAuxiliaryData
 
     // DFS order number of the node
     unsigned int dfsorder;
+    // BFS order number of the node
+    unsigned int bfsorder;
 };
 
 // gather statistics about a run

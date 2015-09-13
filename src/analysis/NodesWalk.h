@@ -216,10 +216,12 @@ enum BBlockWalkFlags {
     BBLOCK_WALK_PARAMS              = 1 << 1,
     // walk post-dominator tree edges
     BBLOCK_WALK_POSTDOM             = 1 << 2,
+    // walk normal CFG edges
+    BBLOCK_WALK_CFG                 = 1 << 3,
     // need to go through the nodes once
     // because bblocks does not keep information
     // about call-sites
-    BBLOCK_NO_CALLSITES             = 1 << 3,
+    BBLOCK_NO_CALLSITES             = 1 << 4,
 };
 
 #ifdef ENABLE_CFG
@@ -229,7 +231,7 @@ class BBlockWalk : public BBlockAnalysis<NodeT>
 public:
     typedef dg::BBlock<NodeT> *BBlockPtrT;
 
-    BBlockWalk<NodeT, QueueT>(uint32_t fl = 0)
+    BBlockWalk<NodeT, QueueT>(uint32_t fl = BBLOCK_WALK_CFG)
         : flags(fl) {}
 
     template <typename FuncT, typename DataT>
@@ -277,8 +279,9 @@ public:
                     queuePush(S, queue, runid);
 
             // queue sucessors of this BB
-            for (BBlockPtrT S : BB->successors())
-                queuePush(S, queue, runid);
+            if (flags & BBLOCK_WALK_CFG)
+                for (BBlockPtrT S : BB->successors())
+                    queuePush(S, queue, runid);
         }
     }
 

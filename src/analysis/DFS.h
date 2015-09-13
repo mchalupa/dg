@@ -71,7 +71,7 @@ template <typename NodeT>
 class DFS : public NodesWalk<NodeT, QueueLIFO<NodeT *>>
 {
 public:
-    DFS<NodeT>(uint32_t opts = 0)
+    DFS<NodeT>(uint32_t opts)
         : NodesWalk<NodeT, QueueLIFO<NodeT *>>(convertFlags(opts)),
           dfsorder(0), flags(opts) {}
 
@@ -113,6 +113,8 @@ convertBBFlags(uint32_t flags)
         ret |= BBLOCK_WALK_PARAMS;
     if (flags & DFS_BB_NO_CALLSITES)
         ret |= BBLOCK_NO_CALLSITES;
+    if (flags & DFS_BB_CFG)
+        ret |= BBLOCK_WALK_CFG;
 
     return ret;
 }
@@ -124,7 +126,7 @@ class BBlockDFS : public BBlockWalk<NodeT,
 public:
     typedef BBlock<NodeT> *BBlockPtrT;
 
-    BBlockDFS<NodeT>(uint32_t fl = 0)
+    BBlockDFS<NodeT>(uint32_t fl = DFS_BB_CFG)
         : BBlockWalk<NodeT, QueueLIFO<BBlock<NodeT> *>>(convertBBFlags(fl)),
           dfsorder(0), flags(fl) {}
 
