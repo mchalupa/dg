@@ -79,6 +79,9 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
             DBG("WARN: Value " << *I->first << "had no node assigned");
         }
     }
+
+    // delete post-dominator tree root
+    delete getPostDominatorTreeRoot();
 }
 
 static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
@@ -430,6 +433,7 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
     for (auto F : constructedFunctions) {
         // root of post-dominator tree
         LLVMBBlock *root = nullptr;
+        DomTreeNode *rootNode = nullptr;
         Value *val = const_cast<Value *>(F.first);
         Function& f = *cast<Function>(val);
         // compute post-dominator tree for this function
@@ -442,17 +446,31 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
             BasicBlock *B = const_cast<BasicBlock *>(it.first);
             DomTreeNode *N = pdtree->getNode(B);
             DomTreeNode *idom = N->getIDom();
-            BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
-            // XXX apperently it may happen that idomBB
-            // is nullptr, but is it correct? Isn't it a bug
-            // in PostDominatorTree?
-            if (idomBB) {
-                LLVMBBlock *pb = our_blocks[idomBB];
-                assert(pb && "Do not have constructed BB");
-                BB->setIPostDom(pb);
-            } else {
-                assert(!root && "BUG: we can have only one root");
-                root = BB;
+            BasicBlock *idomBB;
+
+            if (idom) {
+                idomBB = idom->getBlock();
+                if (idomBB) {
+                    LLVMBBlock *pb = our_blocks[idomBB];
+                    assert(pb && "Do not have constructed BB");
+                    BB->setIPostDom(pb);
+                } else {
+                    // PostDominatorTree has special root without BB set
+                    // so the immediate post-dominator in this case
+                    // is the root
+                    assert((!root || (rootNode == idom)) && "BUG: we can have only one root");
+                    if (!root) {
+                        rootNode = idom; // just for debugging
+                        root = new LLVMBBlock();
+                        this->setPostDominatorTreeRoot(root);
+
+                        for (DomTreeNode *C : idom->getChildren()) {
+                            LLVMBBlock *pb = our_blocks[C->getBlock()];
+                            assert(pb && "Do not have constructed BB");
+                            pb->setIPostDom(root);
+                        }
+                    }
+                }
             }
         }
 
