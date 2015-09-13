@@ -54,15 +54,17 @@ public:
         return postDomFrontiers.insert(BB);
     }
 
-    BBlock<NodeT> *setIPostDom(BBlock<NodeT> *BB)
+    void setIPostDom(BBlock<NodeT> *BB)
     {
-        BBlock<NodeT> *old = ipostdom;
+        assert(!ipostdom && "Already has the immedate post-dominator");
         ipostdom = BB;
-        return old;
+        BB->postDominators.insert(this);
     }
 
     BBlock<NodeT> *getIPostDom() { return ipostdom; }
     const BBlock<NodeT> *getIPostDom() const { return ipostdom; }
+    ContainerT& getPostDominators() { return postDominators; }
+    const ContainerT& getPostDominators() const { return postDominators; }
 
     typename ContainerT::size_type successorsNum() const
     {
@@ -318,6 +320,9 @@ private:
     // post-dominator frontiers
     ContainerT postDomFrontiers;
     BBlock<NodeT> *ipostdom;
+    // the post-dominator tree edges
+    // (reverse to immediate post-dominator)
+    ContainerT postDominators;
 
     // first node in this basic block
     NodeT *firstNode;
