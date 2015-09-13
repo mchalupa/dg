@@ -25,7 +25,7 @@ class BBlock
 public:
     typedef typename NodeT::KeyType KeyT;
     BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
-        : ipostdom(nullptr), firstNode(first), lastNode(last)
+        : key(KeyT()), ipostdom(nullptr), firstNode(first), lastNode(last)
 #ifdef ENABLE_PSS
           , firstPointer(nullptr)
 #endif
