@@ -23,8 +23,9 @@ template <typename NodeT>
 class BBlock
 {
 public:
+    typedef typename NodeT::KeyType KeyT;
     BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
-        : ipostdom(nullptr), firstNode(first), lastNode(last)
+        : key(nullptr), ipostdom(nullptr), firstNode(first), lastNode(last)
 #ifdef ENABLE_PSS
           , firstPointer(nullptr)
 #endif
@@ -45,6 +46,13 @@ public:
     const ContainerT& predcessors() const { return prevBBs; }
     const ContainerT& controlDependence() const { return controlDeps; }
     const ContainerT& RevControlDependence() const { return revControlDeps; }
+
+    void setKey(const KeyT& k)
+    {
+        key = k;
+    }
+
+    const KeyT& getKey() const { return key; }
 
     ContainerT& getPostDomFrontiers() { return postDomFrontiers; }
     const ContainerT& getPostDomFrontiers() const { return postDomFrontiers; }
@@ -308,6 +316,9 @@ public:
     }
 
 private:
+    // optional key
+    KeyT key;
+
     ContainerT nextBBs;
     ContainerT prevBBs;
 
