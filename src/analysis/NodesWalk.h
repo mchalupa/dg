@@ -7,8 +7,6 @@
 namespace dg {
 namespace analysis {
 
-static unsigned int walk_run_counter;
-
 enum NodesWalkFlags {
     // do not walk any edges, user will
     // use enqueue method to decide which nodes
@@ -207,7 +205,15 @@ private:
     // id of particular nodes walk
     unsigned int run_id;
     uint32_t options;
+    // this counter will increase each time we run
+    // NodesWalk, so it can be used as an indicator
+    // that we queued a node in a particular run or not
+    static unsigned int walk_run_counter;
 };
+
+// counter definition
+template<typename NodeT, typename QueueT>
+unsigned int NodesWalk<NodeT, QueueT>::walk_run_counter = 0;
 
 enum BBlockWalkFlags {
     // recurse into procedures
@@ -342,7 +348,16 @@ private:
     }
 
     uint32_t flags;
+
+    // this counter will increase each time we run
+    // NodesWalk, so it can be used as an indicator
+    // that we queued a node in a particular run or not
+    static unsigned int walk_run_counter;
 };
+
+// counter definition
+template<typename NodeT, typename QueueT>
+unsigned int BBlockWalk<NodeT, QueueT>::walk_run_counter = 0;
 
 #endif
 
