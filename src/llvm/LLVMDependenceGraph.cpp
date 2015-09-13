@@ -12,6 +12,9 @@
 #include <utility>
 #include <unordered_map>
 #include <set>
+#include <vector>
+
+#include "analysis/BFS.h"
 
 #include <llvm/Analysis/PostDominators.h>
 #include <llvm/Analysis/DominanceFrontier.h>
@@ -376,157 +379,75 @@ void LLVMDependenceGraph::addFormalParameters()
     }
 }
 
-} // namespace dg
+static void computePDFrontiers(LLVMBBlock *BB)
+{
+    for (LLVMBBlock *pred : BB->predcessors()) {
+        LLVMBBlock *ipdom = BB->getIPostDom();
+        if (ipdom && ipdom != BB)
+            BB->addPostDomFrontier(pred);
+    }
 
-namespace llvm {
-
-// taken from llvm/Analysis/DominanceFrontiers.h and modified to our needs
-class PostDominanceFrontiers : public DominanceFrontierBase<BasicBlock> {
-private:
-  typedef GraphTraits<BasicBlock *> BlockTraits;
-
-public:
-  typedef DominatorTreeBase<BasicBlock> DomTreeT;
-  typedef DomTreeNodeBase<BasicBlock> DomTreeNodeT;
-  typedef typename DominanceFrontierBase<BasicBlock>::DomSetType DomSetType;
-
-  PostDominanceFrontiers() : DominanceFrontierBase<BasicBlock>(true /* is postdom */) {}
-
-  void analyze(DomTreeT &DT) {
-    this->Roots = DT.getRoots();
-    assert(this->Roots.size() == 1 &&
-           "Only one entry block for forward domfronts!");
-    calculate(DT, DT[this->Roots[0]]);
-  }
-
-  template <class BlockT>
-  class DFCalculateWorkObject {
-  public:
-    typedef DomTreeNodeBase<BlockT> DomTreeNodeT;
-
-    DFCalculateWorkObject(BlockT *B, BlockT *P, const DomTreeNodeT *N,
-                          const DomTreeNodeT *PN)
-        : currentBB(B), parentBB(P), Node(N), parentNode(PN) {}
-    BlockT *currentBB;
-    BlockT *parentBB;
-    const DomTreeNodeT *Node;
-    const DomTreeNodeT *parentNode;
-  };
-
-  // this implementation is taken from DominanceFrontiersImpl.h
-  const DomSetType &calculate(const DomTreeT &DT, const DomTreeNodeT *Node)
-  {
-    BasicBlock *BB = Node->getBlock();
-    DomSetType *Result = nullptr;
-
-    std::vector<DFCalculateWorkObject<BasicBlock>> workList;
-    SmallPtrSet<BasicBlock *, 32> visited;
-
-    workList.push_back(DFCalculateWorkObject<BasicBlock>(BB, nullptr, Node, nullptr));
-    do {
-      DFCalculateWorkObject<BasicBlock> *currentW = &workList.back();
-      assert(currentW && "Missing work object.");
-
-      BasicBlock *currentBB = currentW->currentBB;
-      BasicBlock *parentBB = currentW->parentBB;
-      const DomTreeNodeT *currentNode = currentW->Node;
-      const DomTreeNodeT *parentNode = currentW->parentNode;
-      assert(currentBB && "Invalid work object. Missing current Basic Block");
-      assert(currentNode && "Invalid work object. Missing current Node");
-      DomSetType &S = this->Frontiers[currentBB];
-
-      // Visit each block only once.
-      if (visited.insert(currentBB).second) {
-        // Loop over CFG successors to calculate DFlocal[currentNode]
-        for (auto SI = BlockTraits::child_begin(currentBB),
-                  SE = BlockTraits::child_end(currentBB);
-             SI != SE; ++SI) {
-          // Does Node immediately dominate this successor?
-          if (DT[*SI]->getIDom() != currentNode)
-            S.insert(*SI);
+    for (LLVMBBlock *pdom : BB->getPostDominators()) {
+        for (LLVMBBlock *df : pdom->getPostDomFrontiers()) {
+            LLVMBBlock *ipdom = df->getIPostDom();
+            if (ipdom && ipdom != BB)
+                BB->addPostDomFrontier(df);
         }
-      }
+    }
+}
 
-      // At this point, S is DFlocal.  Now we union in DFup's of our children...
-      // Loop through and visit the nodes that Node immediately dominates (Node's
-      // children in the IDomTree)
-      bool visitChild = false;
-      for (typename DomTreeNodeT::const_iterator NI = currentNode->begin(),
-                                                 NE = currentNode->end();
-           NI != NE; ++NI) {
-        DomTreeNodeT *IDominee = *NI;
-        BasicBlock *childBB = IDominee->getBlock();
-        if (visited.count(childBB) == 0) {
-          workList.push_back(DFCalculateWorkObject<BasicBlock>(
-              childBB, currentBB, IDominee, currentNode));
-          visitChild = true;
-        }
-      }
+static void queuePostDomBBs(LLVMBBlock *BB, std::vector<LLVMBBlock *> *blocks)
+{
+    blocks->push_back(BB);
+}
 
-      // If all children are visited or there is any child then pop this block
-      // from the workList.
-      if (!visitChild) {
-        if (!parentBB) {
-          Result = &S;
-          break;
-        }
+static void computePostDominanceFrontiers(LLVMBBlock *root)
+{
+    std::vector<LLVMBBlock *> blocks;
+    analysis::BBlockBFS<LLVMNode> bfs(analysis::BFS_BB_POSTDOM);
 
-        typename DomSetType::const_iterator CDFI = S.begin(), CDFE = S.end();
-        DomSetType &parentSet = this->Frontiers[parentBB];
-        for (; CDFI != CDFE; ++CDFI) {
-          if (!DT.properlyDominates(parentNode, DT[*CDFI]))
-            parentSet.insert(*CDFI);
-        }
-        workList.pop_back();
-      }
+    // get BBs in the order of post-dom tree edges
+    bfs.run(root, queuePostDomBBs, &blocks);
 
-    } while (!workList.empty());
+    // go bottom-up the post-dom tree and compute post-domninance frontiers
+    for (int i = blocks.size() - 1; i >= 0; --i)
+        computePDFrontiers(blocks[i]);
+}
 
-    return *Result;
-  }
-
-};
-
-} // namespace llvm
-
-namespace dg {
-
-void LLVMDependenceGraph::computePostDominators(bool addPostDomEdges,
-                                                bool addPostDomFrontiers)
+void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 {
     using namespace llvm;
     PostDominatorTree *pdtree = new PostDominatorTree();
+
+    // iterate over all functions
     for (auto F : constructedFunctions) {
+        // root of post-dominator tree
+        LLVMBBlock *root = nullptr;
         Value *val = const_cast<Value *>(F.first);
         Function& f = *cast<Function>(val);
+        // compute post-dominator tree for this function
         pdtree->runOnFunction(f);
 
+        // add immediate post-dominator edges
         auto our_blocks = F.second->getConstructedBlocks();
         for (auto it : our_blocks) {
             LLVMBBlock *BB = it.second;
             BasicBlock *B = const_cast<BasicBlock *>(it.first);
             DomTreeNode *N = pdtree->getNode(B);
-
-            if (addPostDomEdges) {
-                DomTreeNode *idom = N->getIDom();
-                if (idom) {
-                    LLVMBBlock *pb = our_blocks[idom->getBlock()];
-                    assert(pb && "Do not have constructed BB");
-                    BB->setIPostDom(pb);
-                }
+            DomTreeNode *idom = N->getIDom();
+            if (idom) {
+                LLVMBBlock *pb = our_blocks[idom->getBlock()];
+                assert(pb && "Do not have constructed BB");
+                BB->setIPostDom(pb);
+            } else {
+                assert(!root && "BUG: we can have only one root");
+                root = BB;
             }
+        }
 
-            if (addPostDomFrontiers) {
-                PostDominanceFrontiers pdfrontiers;
-                const PostDominanceFrontiers::DomSetType& frontiers
-                    = pdfrontiers.calculate(*pdtree->DT, N);
-
-                for (BasicBlock *llvmBB : frontiers) {
-                    LLVMBBlock *f = our_blocks[llvmBB];
-                    assert(f && "Do not have constructed BB");
-                    BB->addPostDomFrontier(f);
-                }
-            }
+        if (addPostDomFrontiers) {
+            assert(root && "BUG: must have root");
+            computePostDominanceFrontiers(root);
         }
     }
 

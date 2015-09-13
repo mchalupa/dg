@@ -71,7 +71,7 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
 
     tm.start();
     // add post-dominator frontiers
-    d.computePostDominators(false, true);
+    d.computePostDominators(true);
     tm.stop();
     tm.report("INFO: computing post-dominator frontiers took");
 
