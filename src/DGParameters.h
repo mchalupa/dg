@@ -50,27 +50,28 @@ struct DGParameter
 //  Moreover, there are BBlocks for input and output parameters
 //  so that the parameters can be used in BBlock analysis
 // --------------------------------------------------------
-template <typename Key, typename NodeT>
+template <typename NodeT>
 class DGParameters
 {
 public:
-    typedef std::map<Key, NodeT *> GlobalsContainerT;
-    typedef std::map<Key, DGParameter<NodeT>> ContainerType;
+    typedef typename NodeT::KeyType KeyT;
+    typedef std::map<KeyT, NodeT *> GlobalsContainerT;
+    typedef std::map<KeyT, DGParameter<NodeT>> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
 
-    DGParameters<Key, NodeT>()
+    DGParameters<NodeT>()
     : BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>) {}
 
-    ~DGParameters<Key, NodeT>()
+    ~DGParameters<NodeT>()
     {
         delete BBIn;
         delete BBOut;
     }
 
-    NodeT& operator[](Key k) { return params[k]; }
+    NodeT& operator[](KeyT k) { return params[k]; }
 
-    bool add(Key k, NodeT *val_in, NodeT *val_out)
+    bool add(KeyT k, NodeT *val_in, NodeT *val_out)
     {
         auto v = std::make_pair(k, DGParameter<NodeT>(val_in, val_out));
 
@@ -103,17 +104,17 @@ public:
         return true;
     }
 
-    bool addGlobal(Key k, NodeT *val)
+    bool addGlobal(KeyT k, NodeT *val)
     {
         return globals.insert(std::make_pair(k, val)).second;
     }
 
     bool addGlobal(NodeT *val)
     {
-        return addGlobal(val->getKey(), val);
+        return addGlobal(val->getKeyT(), val);
     }
 
-    NodeT *findGlobal(Key k)
+    NodeT *findGlobal(KeyT k)
     {
         auto it = globals.find(k);
         if (it == globals.end())
@@ -125,12 +126,12 @@ public:
     GlobalsContainerT& getGlobals() { return globals; }
     const GlobalsContainerT& getGlobals() const { return globals; }
 
-    void remove(Key k)
+    void remove(KeyT k)
     {
         params.erase(k);
     }
 
-    void removeIn(Key k)
+    void removeIn(KeyT k)
     {
         DGParameter<NodeT> *p = find(k);
         if (!p)
@@ -143,7 +144,7 @@ public:
             params.erase(k);
     }
 
-    void removeOut(Key k)
+    void removeOut(KeyT k)
     {
         DGParameter<NodeT> *p = find(k);
         if (!p)
@@ -156,7 +157,7 @@ public:
             params.erase(k);
     }
 
-    DGParameter<NodeT> *find(Key k)
+    DGParameter<NodeT> *find(KeyT k)
     {
         iterator it = params.find(k);
         if (it == end())
@@ -165,7 +166,7 @@ public:
         return &(it->second);
     }
 
-    const DGParameter<NodeT> *find(Key k) const
+    const DGParameter<NodeT> *find(KeyT k) const
     {
         return find(k);
     }

@@ -67,7 +67,7 @@ public:
         d->setEntry(B->getFirstNode());
 
         // add some parameters
-        DGParameters<int, TestNode> *params = new DGParameters<int, TestNode>();
+        DGParameters<TestNode> *params = new DGParameters<TestNode>();
 
         TestNode *ni = new TestNode(nodes_num + 1);
         TestNode *no = new TestNode(nodes_num + 1);

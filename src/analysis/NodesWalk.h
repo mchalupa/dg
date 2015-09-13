@@ -341,7 +341,7 @@ private:
 
     void queueSubgraphsBBs(BBlockPtrT BB, QueueT& queue, unsigned int runid)
     {
-        DGParameters<typename NodeT::KeyType, NodeT> *params;
+        DGParameters<NodeT> *params;
 
         // iterate over call-site nodes
         for (NodeT *cs : BB->getCallSites()) {

@@ -62,11 +62,11 @@ public:
     iterator find(KeyT k) { return nodes.find(k); }
     const_iterator find(KeyT k) const { return nodes.find(k); }
 
-    DGParameters<KeyT, NodeT> *getParameters() { return formalParameters;}
-    DGParameters<KeyT, NodeT> *getParameters() const { return formalParameters;}
-    DGParameters<KeyT, NodeT> *setParameters(DGParameters<KeyT, NodeT> *p)
+    DGParameters<NodeT> *getParameters() { return formalParameters;}
+    DGParameters<NodeT> *getParameters() const { return formalParameters;}
+    DGParameters<NodeT> *setParameters(DGParameters<NodeT> *p)
     {
-        DGParameters<KeyT, NodeT> *old = formalParameters;
+        DGParameters<NodeT> *old = formalParameters;
         formalParameters = p;
         return old;
     }
@@ -367,7 +367,7 @@ private:
     NodeT *entryNode;
     NodeT *exitNode;
 
-    DGParameters<KeyT, NodeT> *formalParameters;
+    DGParameters<NodeT> *formalParameters;
 
     // how many nodes keeps pointer to this graph?
     int refcount;

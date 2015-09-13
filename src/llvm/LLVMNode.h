@@ -28,7 +28,7 @@ class LLVMDependenceGraph;
 
 typedef dg::BBlock<LLVMNode> LLVMBBlock;
 typedef dg::DGParameter<LLVMNode> LLVMDGParameter;
-typedef dg::DGParameters<const llvm::Value *, LLVMNode> LLVMDGParameters;
+typedef dg::DGParameters<LLVMNode> LLVMDGParameters;
 
 /// ------------------------------------------------------------------
 //  -- LLVMNode

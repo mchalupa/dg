@@ -315,10 +315,10 @@ public:
         return ret;
     }
 
-    DGParameters<KeyT, NodeT> *
-    setParameters(DGParameters<KeyT, NodeT> *params)
+    DGParameters<NodeT> *
+    setParameters(DGParameters<NodeT> *params)
     {
-        DGParameters<KeyT, NodeT> *old = parameters;
+        DGParameters<NodeT> *old = parameters;
 
         parameters = params;
         return old;
@@ -339,7 +339,7 @@ public:
         return subgraphs.size();
     }
 
-    DGParameters<KeyT, NodeT> *getParameters() const
+    DGParameters<NodeT> *getParameters() const
     {
         return parameters;
     }
@@ -377,7 +377,7 @@ private:
     std::set<DependenceGraphT *> subgraphs;
 
     // actual parameters if this is a callsite
-    DGParameters<KeyT, NodeT> *parameters;
+    DGParameters<NodeT> *parameters;
 
     // id of the slice this nodes is in. If it is 0, it is in no slice
     uint32_t slice_id;

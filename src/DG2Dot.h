@@ -244,7 +244,7 @@ private:
 
     void dump_parameters(NodeT *node, int ind)
     {
-        DGParameters<KeyT, NodeT> *params = node->getParameters();
+        DGParameters<NodeT> *params = node->getParameters();
 
         if (params) {
             dump_parameters(params, ind);
@@ -253,14 +253,14 @@ private:
 
     void dump_parameters(DependenceGraph<NodeT> *g, int ind)
     {
-        DGParameters<KeyT, NodeT> *params = g->getParameters();
+        DGParameters<NodeT> *params = g->getParameters();
 
         if (params) {
             dump_parameters(params, ind);
         }
     }
 
-    void dump_parameters(DGParameters<KeyT, NodeT> *params, int ind)
+    void dump_parameters(DGParameters<NodeT> *params, int ind)
     {
         Indent Ind(ind);
         DumpBBData data(out, options, ind);
