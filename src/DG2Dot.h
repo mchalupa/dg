@@ -114,7 +114,7 @@ private:
         if (out.is_open())
             out.close();
 
-        out = std::ofstream(new_file);
+        out.open(new_file);
         file = new_file;
     }
 
