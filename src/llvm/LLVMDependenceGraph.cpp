@@ -444,6 +444,11 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
             LLVMBBlock *BB = it.second;
             BasicBlock *B = const_cast<BasicBlock *>(it.first);
             DomTreeNode *N = pdtree->getNode(B);
+            // sometimes there's not even single node for the post-dominator tree, try:
+            // https://raw.githubusercontent.com/dbeyer/sv-benchmarks/master/c/bitvector/jain_4_true-unreach-call.i
+            if (!N)
+                continue;
+
             DomTreeNode *idom = N->getIDom();
             BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
 
@@ -469,8 +474,9 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         }
 
         if (addPostDomFrontiers) {
-            assert(root && "BUG: must have root");
-            computePostDominanceFrontiers(root);
+            // assert(root && "BUG: must have root");
+            if (root)
+                computePostDominanceFrontiers(root);
         }
     }
 
