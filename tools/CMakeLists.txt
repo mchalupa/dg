@@ -7,6 +7,9 @@ if (LLVM_DG)
 	target_link_libraries(llvm-slicer llvmdg)
 	# FIXME we should link only agains llvm
 	target_link_libraries(llvm-to-source llvmdg)
+
+	install(TARGETS llvm-dg-dump llvm-slicer
+		RUNTIME DESTINATION bin)
 endif (LLVM_DG)
 
 include_directories('../src')

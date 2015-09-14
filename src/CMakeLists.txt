@@ -23,6 +23,8 @@ add_library(llvmdg SHARED
 )
 
 target_link_libraries(llvmdg ${llvm_libs})
+install(TARGETS llvmdg
+	LIBRARY DESTINATION lib)
 
 if (ENABLE_DEBUG)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall -Wextra -O0")
