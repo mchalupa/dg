@@ -569,6 +569,11 @@ bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *no
     return changed;
 }
 
+bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi, LLVMNode *node)
+{
+    assert(0 && "PHI nodes are not supported now, use reg2mem pass");
+}
+
 void LLVMPointsToAnalysis::handleGlobals()
 {
     // do we have the globals at all?
@@ -632,6 +637,8 @@ bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
         changed |= handleReturnInst(Inst, node);
     } else if (const BitCastInst *Inst = dyn_cast<BitCastInst>(val)) {
         changed |= handleBitCastInst(Inst, node);
+    } else if (const PHINode *Inst = dyn_cast<PHINode>(val)) {
+        changed |= handlePHINode(Inst, node);
     } else {
 #ifdef DEBUG_ENABLED
         const Instruction *I = dyn_cast<Instruction>(val);

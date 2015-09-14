@@ -142,6 +142,7 @@ private:
     bool handleCallInst(const llvm::CallInst *, LLVMNode *);
     bool handleBitCastInst(const llvm::BitCastInst *, LLVMNode *);
     bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
+    bool handlePHINode(const llvm::PHINode *, LLVMNode *);
 };
 
 } // namespace analysis
