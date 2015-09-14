@@ -274,6 +274,15 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
         ptr = getConstantExprPointer(CE);
     } else if (isa<ConstantPointerNull>(C)) {
         // pointer is null already, do nothing
+    } else if (isa<Function>(C)) {
+        // if it is a function pointer, we probably haven't built it yet,
+        // so create new node
+        LLVMNode *n = new LLVMNode(C);
+        MemoryObj *&mo = n->getMemoryObj();
+        mo = new MemoryObj(n);
+
+        ptr.obj = mo;
+        n->addPointsTo(ptr);
     } else {
         // it is a pointer to somewhere (we check that it is a pointer
         // before calling this method), so just get where
@@ -586,7 +595,7 @@ void LLVMPointsToAnalysis::handleGlobals()
             // using getConstantExprPointer(), but the offset would be wrong (always 0)
             // which can be broken e. g. with this C code:
             // const char *str = "Im ugly string" + 5;
-            if (isa<ConstantExpr>(C))
+            if (isa<ConstantExpr>(C) || isa<Function>(C))
                 addGlobalPointsTo(C, it.second, off);
             else if (C->getType()->isAggregateType()) {
                 for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
