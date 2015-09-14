@@ -145,6 +145,29 @@ bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
     return handleLoadInstPointsTo(ptrNode, node);
 }
 
+static void removeConcreteOffsets(LLVMNode *node, const Pointer& ptr)
+{
+    PointsToSetT& S = node->getPointsTo();
+    // remove pointers to the same memory but with concrete offset
+    // -> we don't need them, that is all covered in UNKNOWN_OFFSET
+    for (PointsToSetT::iterator I = S.begin(); I != S.end(); ) {
+        if ((I->obj == ptr.obj) && !I->offset.isUnknown()) {
+            PointsToSetT::iterator tmp = I++;
+            S.erase(tmp);
+        } else
+            ++I;
+    }
+}
+
+static bool addPtrWithUnknownOffset(LLVMNode *node, const Pointer& ptr)
+{
+    bool ret = node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+    if (ret)
+        removeConcreteOffsets(node, ptr);
+
+    return ret;
+}
+
 static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
                              uint64_t offset, const DataLayout *DL)
 {
@@ -155,22 +178,46 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
     Type *Ty;
 
     for (auto ptr : ptrNode->getPointsTo()) {
-        if (ptr.obj->isUnknown() || ptr.offset.isUnknown())
-            // don't store unknown with different offsets,
-            changed |= node->addPointsTo(ptr.obj);
-        else {
+        if (ptr.obj->isUnknown() || ptr.offset.isUnknown()) {
+            // don't store unknown with different offsets
+            changed |= addPtrWithUnknownOffset(node, ptr);
+        } else {
             ptrVal = ptr.obj->node->getKey();
             Ty = ptrVal->getType()->getContainedType(0);
-
             off += ptr.offset;
+
+            if (!Ty->isSized()) {
+                // if the type is not size, we cannot compute the
+                // offset correctly
+                changed |= addPtrWithUnknownOffset(node, ptr);
+                continue;
+            }
+
             size = DL->getTypeAllocSize(Ty);
 
-            // ivalid offset might mean we're cycling due to some
-            // cyclic dependency
+            // ivalid offset might mean we're cycling, like:
+            //
+            //  %a = alloca [5 x i32]
+            //  %p = alloca i32 *
+            //  S %a, %p
+            //  %0 = load %p
+            //  %e = getelementptr %0, 1
+            //  S %e, %p
+            //
+            // here %p points to %a + 0 and %e points to %a + 0 + 4
+            // (or other offset, depending on data layout) and
+            // the last store makes %p pointing to %a + 0 and %a + 4.
+            // In the next data-flow round the offset gets increased again by 4,
+            // so we have 0, 4, 8, 12 ... and diverging
+            // We could fix it by not adding the offset, but by storing
+            // the whole offsets sequence from gep, like %p -> %a, 0, 0
+            // This way we wouldn't diverge and we could just compute the
+            // offset after the points-to analysis stops - but, let's
+            // keep it simple now and just crop invalid offsets
             if (*off >= size) {
                 DBG("INFO: cropping GEP, off > size: " << *off
                     << " " << size << "\n     in " << *ptrNode->getKey());
-                changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+                changed |= addPtrWithUnknownOffset(node, ptr);
             } else
                 changed |= node->addPointsTo(ptr.obj, off);
         }
@@ -198,7 +245,7 @@ bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
 
     for (auto ptr : ptrNode->getPointsTo())
         // UKNOWN_OFFSET + something is still unknown
-        changed |= node->addPointsTo(ptr.obj, UNKNOWN_OFFSET);
+        changed |= addPtrWithUnknownOffset(node, ptr);
 
     return changed;
 }
