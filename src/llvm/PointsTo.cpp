@@ -27,12 +27,12 @@ LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
     handleGlobals();
 }
 
-static bool handleMemAllocation(LLVMNode *node)
+static bool handleMemAllocation(LLVMNode *node, size_t size = 0)
 {
     // every global is a pointer
     MemoryObj *&mo = node->getMemoryObj();
     if (!mo) {
-        mo = new MemoryObj(node);
+        mo = new MemoryObj(node, size);
         node->addPointsTo(mo);
         return true;
     }
@@ -168,32 +168,42 @@ static bool addPtrWithUnknownOffset(LLVMNode *node, const Pointer& ptr)
     return ret;
 }
 
+static uint64_t getMemSize(MemoryObj *mo, const DataLayout *DL)
+{
+    if (mo->size != 0)
+        return mo->size;
+
+    const Value *ptrVal = mo->node->getKey();
+    Type *Ty = ptrVal->getType()->getContainedType(0);
+
+    if (!Ty->isSized())
+        return 0;
+
+    return DL->getTypeAllocSize(Ty);
+}
+
 static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
                              uint64_t offset, const DataLayout *DL)
 {
     bool changed = false;
     Offset off = offset;
     uint64_t size;
-    const Value *ptrVal;
-    Type *Ty;
 
     for (auto ptr : ptrNode->getPointsTo()) {
         if (ptr.obj->isUnknown() || ptr.offset.isUnknown()) {
             // don't store unknown with different offsets
             changed |= addPtrWithUnknownOffset(node, ptr);
         } else {
-            ptrVal = ptr.obj->node->getKey();
-            Ty = ptrVal->getType()->getContainedType(0);
-            off += ptr.offset;
-
-            if (!Ty->isSized()) {
+            size = getMemSize(ptr.obj, DL);
+            if (size == 0) {
                 // if the type is not size, we cannot compute the
                 // offset correctly
                 changed |= addPtrWithUnknownOffset(node, ptr);
                 continue;
             }
 
-            size = DL->getTypeAllocSize(Ty);
+            off += ptr.offset;
+
 
             // ivalid offset might mean we're cycling, like:
             //
@@ -318,20 +328,34 @@ static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
     return changed;
 }
 
-static bool isMemAllocationFunc(const Function *func)
+enum MemAllocationFuncs {
+    NONEMEM = 0,
+    MALLOC,
+    CALLOC,
+    ALLOCA,
+};
+
+static int getMemAllocationFunc(const Function *func)
 {
     if (!func || !func->hasName())
-        return false;
+        return NONEMEM;
 
     const char *name = func->getName().data();
-    if (strcmp(name, "malloc") == 0 ||
-        strcmp(name, "calloc") == 0 ||
-        strcmp(name, "alloca") == 0)
-        return true;
+    if (strcmp(name, "malloc") == 0)
+        return MALLOC;
+    else if (strcmp(name, "calloc") == 0)
+        return CALLOC;
+    else if (strcmp(name, "alloca") == 0)
+        return ALLOCA;
 
     // realloc should overtake the memory object from former pointer
 
-    return false;
+    return NONEMEM;
+}
+
+static int isMemAllocationFunc(const Function *func)
+{
+    return getMemAllocationFunc(func) != NONEMEM;
 }
 
 static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
@@ -423,6 +447,36 @@ bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *sub
     return changed;
 }
 
+static bool handleDynamicMemAllocation(const CallInst *Inst, LLVMNode *node, int type)
+{
+    const Value *op;
+    uint64_t size = 0;
+
+    switch (type) {
+        case MALLOC:
+        case ALLOCA:
+            op = Inst->getOperand(0);
+            break;
+        case CALLOC:
+            op = Inst->getOperand(1);
+            break;
+        // FIXME: we could change the size of memory due to realloc call
+        default:
+            errs() << "ERR: unknown mem alloc type " << *node->getKey() << "\n";
+            return false;
+    };
+
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
+        size = C->getLimitedValue();
+        // if the size cannot be expressed as an uint64_t,
+        // just set it to 0 (that means unknown)
+        if (size == ~((uint64_t) 0))
+            size = 0;
+    }
+
+    return handleMemAllocation(node, size);
+}
+
 bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
@@ -435,8 +489,8 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     if (!func && !node->hasSubgraphs() && Ty->isPointerTy())
         return handleUndefinedReturnsPointer(Inst, node);
 
-    if (isMemAllocationFunc(func))
-        return handleMemAllocation(node);
+    if (int type = getMemAllocationFunc(func))
+        return handleDynamicMemAllocation(Inst, node, type);
 
     LLVMNode *calledFuncNode = node->getOperand(0);
     // add subgraphs dynamically according the points-to information

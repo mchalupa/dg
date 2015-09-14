@@ -79,7 +79,7 @@ typedef std::map<Offset, ValuesSetT> ValuesMapT;
 
 struct MemoryObj
 {
-    MemoryObj(LLVMNode *n) : node(n) {}
+    MemoryObj(LLVMNode *n, uint64_t s = 0) : node(n), size(s) {}
     LLVMNode *node;
 
     PointsToMapT pointsTo;
@@ -102,6 +102,13 @@ struct MemoryObj
         node = nullptr;
         return true;
     }
+
+    // if the object is allocated via malloc or
+    // similar, we can not infer the size from type,
+    // because it is recast to (usually) i8*. Store the
+    // size information here, if applicable and available
+    uint64_t size;
+    bool hasSize() const { return size != 0; }
 #if 0
     ValuesMapT values;
     // actually we should take offsets into
