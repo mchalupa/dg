@@ -438,10 +438,10 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     addStoreLoadInstDefUse(node, ptrNode, df);
 }
 
-void LLVMDefUseAnalysis::handleLoadInst(LLVMNode *node)
+void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
-    LLVMNode *ptrNode = node->getOperand(0);
+    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
     assert(ptrNode && "No ptr node");
 
     // load inst is reading from the memory,
@@ -583,8 +583,8 @@ void LLVMDefUseAnalysis::handleNode(LLVMNode *node)
 
     if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         handleStoreInst(Inst, node);
-    } else if (isa<LoadInst>(val)) {
-        handleLoadInst(node);
+    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+        handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
