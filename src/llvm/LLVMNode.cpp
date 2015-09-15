@@ -94,6 +94,12 @@ LLVMNode **LLVMNode::findOperands()
         if (!operands[0])
             errs() << "WARN: CastInst with unstrippable pointer cast" << *Inst << "\n";
         operands_num = 1;
+    } else if (const PHINode *Inst = dyn_cast<PHINode>(val)) {
+        operands_num = Inst->getNumIncomingValues();
+        operands = new LLVMNode *[operands_num];
+        for (unsigned n = 0; n < operands_num; ++n) {
+            operands[n] = dg->getNode(Inst->getIncomingValue(n));
+        }
     }
 
     if (!operands) {

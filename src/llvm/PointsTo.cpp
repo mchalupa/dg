@@ -565,7 +565,23 @@ bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *no
 
 bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi, LLVMNode *node)
 {
-    assert(0 && "PHI nodes are not supported now, use reg2mem pass");
+    if (!node->isPointerTy())
+        return false;
+
+    // since this points-to analysis is flow insensitive,
+    // we just add all the pointers incoming to the points-to set
+    size_t opnum = node->getOperandsNum();
+    bool changed = false;
+
+    for (unsigned i = 0; i < opnum; ++i) {
+        LLVMNode *op = getOperand(node, Phi->getIncomingValue(i), i);
+        assert(op && "Do not have an operand");
+
+        for (const Pointer& p : op->getPointsTo())
+            changed |= node->addPointsTo(p);
+    }
+
+    return changed;
 }
 
 void LLVMPointsToAnalysis::handleGlobals()
