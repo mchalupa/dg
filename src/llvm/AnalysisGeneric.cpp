@@ -1,3 +1,4 @@
+#include <map>
 
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Module.h>
@@ -12,6 +13,11 @@ using namespace llvm;
 
 namespace dg {
 namespace analysis {
+
+// we assume that if the program uses inttoptr, it access this
+// memory only this way - so every access to this memory is done
+// via some inttoptr. Here we store the inttoptr objects
+static std::map<uint64_t, LLVMNode *> intToPtrMap;
 
 // pointer points to unknown memory location
 MemoryObj UnknownMemoryObject(nullptr);
@@ -116,7 +122,7 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
                                LLVMDependenceGraph *dg,
                                const llvm::DataLayout *DL)
 {
-    Pointer pointer(nullptr, UNKNOWN_OFFSET);
+    Pointer pointer;
 
     const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
     if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
@@ -130,6 +136,57 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
 
     delete Inst;
     return pointer;
+}
+
+static LLVMNode *getConstantIntToPtrNode(const ConstantExpr *CE,
+                                         const llvm::DataLayout *DL)
+{
+    using namespace llvm;
+
+    const Value *val = CE->getOperand(0);
+    if (!isa<ConstantInt>(val)) {
+        errs() << "Unhandled constant inttoptr " << *CE << "\n";
+        abort();
+    }
+
+    const ConstantInt *C = cast<ConstantInt>(val);
+    uint64_t value = C->getLimitedValue();
+
+    LLVMNode *&node = intToPtrMap[value];
+    if (!node) {
+        node = new LLVMNode(C);
+        const Value *dest = CE->getOperand(1);
+        Type *Ty = dest->getType()->getContainedType(0);
+        uint64_t size = 0;
+        if (Ty->isSized())
+            size = DL->getTypeAllocSize(Ty);
+
+        MemoryObj *&mo = node->getMemoryObj();
+        mo = new MemoryObj(node, size);
+        node->addPointsTo(mo);
+    }
+
+    return node;
+}
+
+static LLVMNode *getConstantExprNode(const llvm::ConstantExpr *CE,
+                                     LLVMDependenceGraph *dg,
+                                     const llvm::DataLayout *DL)
+{
+    // we have these nodes stored
+    if (isa<IntToPtrInst>(CE))
+        return getConstantIntToPtrNode(CE, DL);
+
+
+    // FIXME add these nodes somewhere,
+    // so that we can delete them later
+    LLVMNode *node = new LLVMNode(CE);
+
+    // set points-to sets
+    Pointer ptr = getConstantExprPointer(CE, dg, DL);
+    node->addPointsTo(ptr);
+
+    return node;
 }
 
 /*
@@ -153,13 +210,7 @@ LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
     LLVMDependenceGraph *dg = node->getDG();
 
     if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
-        // FIXME add these nodes somewhere,
-        // so that we can delete them later
-        op = new LLVMNode(val);
-
-        // set points-to sets
-        Pointer ptr = getConstantExprPointer(CE, dg, DL);
-        op->addPointsTo(ptr);
+        op = getConstantExprNode(CE, dg, DL);
     } else if (isa<Function>(val)) {
         // if the function was created via function pointer during
         // points-to analysis, the operand may not be not be set.
