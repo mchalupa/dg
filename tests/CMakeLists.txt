@@ -49,5 +49,7 @@ if (LLVM_DG)
 	add_test(slicing-unknownptr3 slicing-unknownptr3.sh)
 	add_test(slicing-phi1 slicing-phi1.sh)
 	add_test(slicing-phi2 slicing-phi2.sh)
+	add_test(slicing-global1 slicing-global1.sh)
+	add_test(slicing-global2 slicing-global2.sh)
 
 endif (LLVM_DG)
