@@ -552,8 +552,11 @@ static void handleCallInst(LLVMNode *node)
         if (op->isPointerTy()) {
             // add data dependencies to in parameters
             addIndirectDefUse(op, p->in, df);
-        } else
-            op->addDataDependence(p->in);
+            // fall-through to
+            // add also top-level def-use edge
+        }
+
+        op->addDataDependence(p->in);
     }
 
     addOutParamsEdges(node);
