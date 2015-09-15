@@ -32,4 +32,6 @@ if (LLVM_DG)
 	add_test(llvm-dg-test llvm-dg-test)
 	add_dependencies(check llvm-dg-test)
 
+	add_test(slicing-test1 slicing-test1.sh)
+
 endif (LLVM_DG)
