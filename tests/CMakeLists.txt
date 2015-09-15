@@ -35,5 +35,8 @@ if (LLVM_DG)
 	add_test(slicing-test1 slicing-test1.sh)
 	add_test(slicing-test2 slicing-test2.sh)
 	add_test(slicing-test3 slicing-test3.sh)
+	add_test(slicing-interprocedural1 slicing-interprocedural1.sh)
+	add_test(slicing-interprocedural2 slicing-interprocedural2.sh)
+	add_test(slicing-interprocedural3 slicing-interprocedural3.sh)
 
 endif (LLVM_DG)
