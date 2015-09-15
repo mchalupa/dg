@@ -46,15 +46,6 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     if (!d.verify())
         errs() << "ERR: verifying failed\n";
 
-    if (gatheredCallsites.empty()) {
-        if (strcmp(slicing_criterion, "ret") == 0)
-            gatheredCallsites.insert(d.getExit());
-        else {
-            errs() << "Did not find slicing criterion: " << slicing_criterion << "\n";
-            return false;
-        }
-    }
-
     analysis::LLVMPointsToAnalysis PTA(&d);
 
     tm.start();
@@ -66,6 +57,19 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     // so verify once again
     if (!d.verify())
         errs() << "ERR: verifying failed\n";
+
+    // check for slicing criterion here, because
+    // we might have built new subgraphs that contain
+    // it during points-to analysis
+    if (gatheredCallsites.empty()) {
+        if (strcmp(slicing_criterion, "ret") == 0)
+            gatheredCallsites.insert(d.getExit());
+        else {
+            errs() << "Did not find slicing criterion: "
+                   << slicing_criterion << "\n";
+            return false;
+        }
+    }
 
     analysis::LLVMDefUseAnalysis DUA(&d);
 
