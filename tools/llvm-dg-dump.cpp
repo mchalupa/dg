@@ -89,7 +89,7 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
         return true;
     }
 
-    if (!node->getBasicBlock()
+    if (!node->getBBlock()
         && !llvm::isa<llvm::Function>(val)
         && !llvm::isa<llvm::GlobalVariable>(val)) {
         err = true;
@@ -104,7 +104,7 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
             err = true;
         }
 
-        if(s->getBasicBlock() != node->getBasicBlock()) {
+        if(s->getBBlock() != node->getBBlock()) {
             os << "\\nERR: succ BB mismatch";
             err = true;
         }
@@ -116,7 +116,7 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
             err = true;
         }
 
-        if(p->getBasicBlock() != node->getBasicBlock()) {
+        if(p->getBBlock() != node->getBBlock()) {
             os << "\\nERR: pred BB mismatch";
             err = true;
         }

@@ -241,8 +241,8 @@ public:
     unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
 
 #ifdef ENABLE_CFG
-    BBlock<NodeT> *getBasicBlock() { return basicBlock; }
-    const BBlock<NodeT> *getBasicBlock() const { return basicBlock; }
+    BBlock<NodeT> *getBBlock() { return basicBlock; }
+    const BBlock<NodeT> *getBBlock() const { return basicBlock; }
 
     BBlock<NodeT> *setBasicBlock(BBlock<NodeT> *nbb)
     {

@@ -42,7 +42,7 @@ void LLVMDGVerifier::checkMainProc()
 
 void LLVMDGVerifier::checkNode(const llvm::Value *val, LLVMNode *node)
 {
-    if (!node->getBasicBlock()) {
+    if (!node->getBBlock()) {
         fault("node has no value set");
         llvm::errs() << "  -> " << *val << "\n";
     }

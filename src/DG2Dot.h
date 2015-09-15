@@ -348,7 +348,7 @@ private:
 	{
 	    bool err = false;
 
-	    if (!node->getBasicBlock()) {
+	    if (!node->getBBlock()) {
 	        err = true;
 	        os << "\\nERR: no BB";
 	    }

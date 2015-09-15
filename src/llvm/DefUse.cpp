@@ -292,7 +292,7 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
 
         changed |= df->merge(getDefMap(pred), strong_update);
     } else { // BB predcessors
-        LLVMBBlock *BB = node->getBasicBlock();
+        LLVMBBlock *BB = node->getBBlock();
         assert(BB && "Node has no BB");
 
         for (auto predBB : BB->predcessors()) {

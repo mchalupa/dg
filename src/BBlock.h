@@ -301,7 +301,7 @@ public:
 
     bool addCallsite(NodeT *n)
     {
-        assert(n->getBasicBlock() == this
+        assert(n->getBBlock() == this
                && "Cannot add callsite from different BB");
 
         return callSites.insert(n).second;
@@ -309,7 +309,7 @@ public:
 
     bool removeCallSite(NodeT *n)
     {
-        assert(n->getBasicBlock() == this
+        assert(n->getBBlock() == this
                && "Removing callsite from different BB");
 
         return callSites.erase(n) != 0;

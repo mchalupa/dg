@@ -170,7 +170,7 @@ private:
     {
         // push terminator nodes of all blocks that are
         // control dependent
-        BBlock<NodeT> *BB = n->getBasicBlock();
+        BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 
@@ -180,7 +180,7 @@ private:
 
     void processBBlockCDs(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBasicBlock();
+        BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 
@@ -190,7 +190,7 @@ private:
 
     void processBBlockCFG(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBasicBlock();
+        BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 
@@ -200,7 +200,7 @@ private:
 
     void processBBlockRevCFG(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBasicBlock();
+        BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 
@@ -210,7 +210,7 @@ private:
 
     void processBBlockPostDomFrontieres(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBasicBlock();
+        BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 

@@ -70,7 +70,7 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
                 delete params;
             }
 
-            if (!node->getBasicBlock()
+            if (!node->getBBlock()
                 && !llvm::isa<llvm::Function>(*I->first))
                 DBG("WARN: Value " << *I->first << "had no BB assigned");
 
@@ -142,7 +142,6 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
     // if we don't have this subgraph constructed, construct it
     // else just add call edge
     LLVMDependenceGraph *&subgraph = constructedFunctions[callFunc];
-
     if (!subgraph) {
         // since we have reference the the pointer in
         // constructedFunctions, we can assing to it
@@ -169,7 +168,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
         subgraph->unref(false /* deleteOnZero */);
     }
 
-    BB = node->getBasicBlock();
+    BB = node->getBBlock();
     assert(BB && "do not have BB; this is a bug, sir");
     BB->addCallsite(node);
 

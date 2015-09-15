@@ -56,8 +56,8 @@ public:
 
         // connect to circular graph
         for (int i = 0; i < nodes_num; ++i) {
-            TestBBlock *B1 = nodes[i]->getBasicBlock();
-            TestBBlock *B2 = nodes[(i + 1) % nodes_num]->getBasicBlock();
+            TestBBlock *B1 = nodes[i]->getBBlock();
+            TestBBlock *B2 = nodes[(i + 1) % nodes_num]->getBBlock();
             B1->addSuccessor(B2);
         }
 
@@ -178,7 +178,7 @@ public:
                           "intrAproc. dataflow went to procedures (%d - %d)",
                           n->getKey(), n->counter);
 
-                    TestBBlock *BB = n->getBasicBlock();
+                    TestBBlock *BB = n->getBBlock();
                     assert(BB);
 
                     check(BB->getDFSOrder() == 0, "DataFlow went into subgraph blocks");
@@ -218,7 +218,7 @@ public:
                           "intErproc. dataflow did NOT went to procedures (%d - %d)",
                           n->getKey(), n->counter);
 
-                    TestBBlock *BB = n->getBasicBlock();
+                    TestBBlock *BB = n->getBBlock();
                     assert(BB);
 
                     check(BB->getDFSOrder() != 0,
@@ -265,7 +265,7 @@ public:
                           "intErproc. dataflow did NOT went to procedures (%d - %d)",
                           n->getKey(), n->counter);
 
-                    TestBBlock *BB = n->getBasicBlock();
+                    TestBBlock *BB = n->getBBlock();
                     assert(BB);
 
                     check(BB->getDFSOrder() != 0,
