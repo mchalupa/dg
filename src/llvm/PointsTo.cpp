@@ -492,6 +492,11 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     Type *Ty = Inst->getType();
     Function *func = Inst->getCalledFunction();
 
+    // add subgraphs dynamically according the points-to information
+    LLVMNode *calledFuncNode = node->getOperand(0);
+    if (!func && calledFuncNode)
+        changed |= handleFunctionPtrCall(calledFuncNode, node, this);
+
     // function is undefined and returns a pointer?
     // In that case create pointer to unknown location
     // and set this node to point to unknown location
@@ -500,11 +505,6 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 
     if (int type = getMemAllocationFunc(func))
         return handleDynamicMemAllocation(Inst, node, type);
-
-    LLVMNode *calledFuncNode = node->getOperand(0);
-    // add subgraphs dynamically according the points-to information
-    if (!func && calledFuncNode)
-        changed |= handleFunctionPtrCall(calledFuncNode, node, this);
 
     // if this function has no arguments, we can bail out here
     if (Inst->getNumArgOperands() == 0)
