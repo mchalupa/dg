@@ -122,59 +122,55 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
         }
     }
 
-    if (node->hasUnknownValue()) {
-        os << "\\lUNKNOWN VALUE";
-    } else {
-        if (debug_ptr) {
-            const analysis::PointsToSetT& ptsto = node->getPointsTo();
-            if (ptsto.empty() && val->getType()->isPointerTy()) {
-                os << "\\lERR: pointer without pointsto set";
-                err = true;
-            } else
-                os << "\\l -- points-to info --";
+    if (debug_ptr) {
+        const analysis::PointsToSetT& ptsto = node->getPointsTo();
+        if (ptsto.empty() && val->getType()->isPointerTy()) {
+            os << "\\lERR: pointer without pointsto set";
+            err = true;
+        } else
+            os << "\\l -- points-to info --";
 
-            for (auto it : ptsto) {
-                os << "\\l[";
-                if (it.isNull())
-                    os << "null";
-                else if (it.obj->isUnknown())
-                    os << "unknown";
-                else
-                    printLLVMVal(os, it.obj->node->getKey());
-                os << "] + " << it.offset;
-            }
+        for (auto it : ptsto) {
+            os << "\\l[";
+            if (it.isUnknown())
+                os << "unknown";
+            else if (it.obj->isUnknown())
+                os << "unknown mem";
+            else
+                printLLVMVal(os, it.obj->node->getKey());
+            os << "] + " << it.offset;
+        }
 
-            analysis::MemoryObj *mo = node->getMemoryObj();
-            if (mo) {
-                for (auto it : mo->pointsTo) {
-                    for(auto it2 : it.second) {
-                        os << "\\lmem: [" << it.first << "] -> [";
-                        if (it2.isNull())
-                            os << "null";
-                        else if (it2.obj->isUnknown())
-                            os << "unknown";
-                        else
-                            printLLVMVal(os, it2.obj->node->getKey());
-                        os << "] + " << it2.offset;
-                    }
+        analysis::MemoryObj *mo = node->getMemoryObj();
+        if (mo) {
+            for (auto it : mo->pointsTo) {
+                for(auto it2 : it.second) {
+                    os << "\\lmem: [" << it.first << "] -> [";
+                    if (it2.isUnknown())
+                        os << "unknown";
+                    else if (it2.obj->isUnknown())
+                        os << "unknown mem";
+                    else
+                        printLLVMVal(os, it2.obj->node->getKey());
+                    os << "] + " << it2.offset;
                 }
             }
         }
+    }
 
-        if (debug_def) {
-            analysis::DefMap *df = node->getData<analysis::DefMap>();
-            if (df) {
-                os << "\\l -- reaching defs info --";
-                for (auto it : df->getDefs()) {
-                    for (auto v : it.second) {
-                        os << "\\l: [";
-                        if (it.first.obj->isUnknown())
-                            os << "[unknown";
-                        else
-                            printLLVMVal(os, it.first.obj->node->getKey());
-                        os << "] + " << it.first.offset << " @ ";
-                        printLLVMVal(os, v->getKey());
-                    }
+    if (debug_def) {
+        analysis::DefMap *df = node->getData<analysis::DefMap>();
+        if (df) {
+            os << "\\l -- reaching defs info --";
+            for (auto it : df->getDefs()) {
+                for (auto v : it.second) {
+                    os << "\\l: [";
+                    if (it.first.obj->isUnknown())
+                        os << "[unknown";
+                    else
+                        printLLVMVal(os, it.first.obj->node->getKey());
+                    os << "] + " << it.first.offset << " @ ";
+                    printLLVMVal(os, v->getKey());
                 }
             }
         }

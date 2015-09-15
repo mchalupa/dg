@@ -114,7 +114,7 @@ static void addGlobalsAsParameters(LLVMDependenceGraph *graph,
     for (auto it : *subgraph_df) {
         const Pointer& ptr = it.first;
 
-        if (ptr.isNull() || ptr.obj->isUnknown())
+        if (!ptr.isKnown())
             continue;
 
         if (isa<GlobalVariable>(ptr.obj->node->getKey())) {
@@ -333,7 +333,7 @@ LLVMNode *LLVMDefUseAnalysis::getOperand(LLVMNode *node,
 
 static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
 {
-    if (ptr.isNull() || ptr.obj->isUnknown()) {
+    if (!ptr.isKnown()) {
         DBG("ERR: pointer pointing to unknown location, UNSOUND! "
                << *to->getKey());
         return;

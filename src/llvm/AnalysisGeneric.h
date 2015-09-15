@@ -71,7 +71,9 @@ struct Pointer
         return obj == oth.obj ? offset < oth.offset : obj < oth.obj;
     }
 
-    bool isNull() const { return obj == nullptr; }
+    bool isUnknown() const;
+    bool pointsToUnknown() const;
+    bool isKnown() const;
 };
 
 typedef std::set<Pointer> PointsToSetT;
@@ -94,16 +96,7 @@ struct MemoryObj
         return pointsTo[off].insert(ptr).second;
     }
 
-    bool isUnknown() const { return node == nullptr; }
-    bool setUnknown()
-    {
-        if (isUnknown())
-            return false;
-
-        pointsTo.clear();
-        node = nullptr;
-        return true;
-    }
+    bool isUnknown() const;
 
     // if the object is allocated via malloc or
     // similar, we can not infer the size from type,
@@ -118,6 +111,9 @@ struct MemoryObj
     ValuesSetT memsetTo;
 #endif
 };
+
+extern MemoryObj UnknownMemoryObject;
+extern Pointer UnknownMemoryLocation;
 
 Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
                                LLVMDependenceGraph *dg,

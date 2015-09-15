@@ -13,6 +13,32 @@ using namespace llvm;
 namespace dg {
 namespace analysis {
 
+// pointer points to unknown memory location
+MemoryObj UnknownMemoryObject(nullptr);
+// unknown pointer value
+Pointer UnknownMemoryLocation(&UnknownMemoryObject, 0);
+
+bool Pointer::isUnknown() const
+{
+    return this == &UnknownMemoryLocation;
+}
+
+bool Pointer::pointsToUnknown() const
+{
+    assert(obj && "Pointer has not any memory object set");
+    return obj->isUnknown();
+}
+
+bool Pointer::isKnown() const
+{
+    return !isUnknown() && !pointsToUnknown();
+}
+
+bool MemoryObj::isUnknown() const
+{
+    return this == &UnknownMemoryObject;
+}
+
 static LLVMNode *createNodeWithMemAlloc(const Value *val)
 {
     LLVMNode *n = new LLVMNode(val);

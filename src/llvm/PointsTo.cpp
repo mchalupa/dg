@@ -107,7 +107,7 @@ static bool handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)
 
     // load of pointer makes this node point
     // to the same values as ptrNode
-    if (ptr.isNull() || ptr.obj->isUnknown())
+    if (!ptr.isKnown())
         changed |= node->addPointsTo(ptr);
     else {
         for (auto memptr : ptr.obj->pointsTo[ptr.offset])
@@ -311,7 +311,7 @@ static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
     bool changed = false;
 
     for (const Pointer& ptr : calledFuncNode->getPointsTo()) {
-        if (ptr.isNull() || ptr.obj->isUnknown()) {
+        if (!ptr.isKnown()) {
             DBG("ERR: CallInst wrong func pointer\n");
             continue;
         }
@@ -369,13 +369,12 @@ static int isMemAllocationFunc(const Function *func)
 
 static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
 {
-    LLVMNode *target = nullptr;
     // is it call via function pointer, or it is just undefined function?
     LLVMNode *op = node->getOperand(0);
     if (op) {
         // function pointer! check if we can be malloc and similar
         for (const Pointer& ptr : op->getPointsTo()) {
-            if (ptr.isNull() || ptr.obj->isUnknown()) {
+            if (!ptr.isKnown()) {
                 DBG("ERR: wrong pointer " << *Inst);
                 continue;
             }
@@ -383,21 +382,17 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
             const Function *func = dyn_cast<Function>(ptr.obj->node->getKey());
             assert(func && "function pointer contains non-function val");
             if (isMemAllocationFunc(func)) {
-                target = node;
-                break;
+                MemoryObj *&mo = node->getMemoryObj();
+                if (!mo)
+                    mo = new MemoryObj(node);
+
+                return node->addPointsTo(mo);
             }
         }
     }
 
     // ok, undefined function - point to unknown memory
-    MemoryObj *& mo = node->getMemoryObj();
-    if (!mo) {
-        mo = new MemoryObj(target);
-        node->addPointsTo(mo);
-        return true;
-    }
-
-    return false;
+    return node->addPointsTo(&UnknownMemoryObject);
 }
 
 bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *subgraph,
@@ -557,9 +552,6 @@ bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *no
     llvmval = val->getKey();
     if (!llvmval->getType()->isPointerTy())
         return false;
-
-    if (val->hasUnknownValue())
-        return node->setUnknownValue();
 
     for (auto ptr : val->getPointsTo())
         changed |= node->addPointsTo(ptr);

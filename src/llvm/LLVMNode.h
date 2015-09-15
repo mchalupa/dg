@@ -38,7 +38,7 @@ class LLVMNode : public Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>
 public:
     LLVMNode(const llvm::Value *val, bool owns_value = false)
         :dg::Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>(val),
-         operands(nullptr), operands_num(0), memoryobj(nullptr), has_unknown_value(false),
+         operands(nullptr), operands_num(0), memoryobj(nullptr),
          owns_key(owns_value), data(nullptr)
     {}
 
@@ -86,18 +86,6 @@ public:
         return pointsTo.insert(analysis::Pointer(m, off)).second;
     }
 
-    bool hasUnknownValue() const { return has_unknown_value; }
-    bool setUnknownValue()
-    {
-        if (has_unknown_value)
-            return false;
-
-        has_unknown_value = true;
-        pointsTo.clear();
-
-        return true;
-    }
-
     template <typename T>
     T* getData() { return static_cast<T *>(data); }
 
@@ -124,7 +112,6 @@ private:
     analysis::PointsToSetT pointsTo;
     analysis::DefMap defMap;
 
-    bool has_unknown_value;
     bool owns_key;
 
     // user's or analysis's arbitrary data
