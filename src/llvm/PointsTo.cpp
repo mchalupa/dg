@@ -497,10 +497,12 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     if (!func && calledFuncNode)
         changed |= handleFunctionPtrCall(calledFuncNode, node, this);
 
+
     // function is undefined and returns a pointer?
     // In that case create pointer to unknown location
     // and set this node to point to unknown location
-    if (!func && !node->hasSubgraphs() && Ty->isPointerTy())
+    if ((!func || func->size() == 0)
+         && !node->hasSubgraphs() && Ty->isPointerTy())
         return handleUndefinedReturnsPointer(Inst, node);
 
     if (int type = getMemAllocationFunc(func))
