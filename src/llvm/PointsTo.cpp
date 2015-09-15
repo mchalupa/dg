@@ -393,8 +393,9 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
     return node->addPointsTo(&UnknownMemoryObject);
 }
 
-bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *subgraph,
-                                                        const CallInst *Inst, LLVMNode *callNode)
+bool LLVMPointsToAnalysis::
+propagatePointersToArguments(LLVMDependenceGraph *subgraph,
+                             const CallInst *Inst, LLVMNode *callNode)
 {
     bool changed = false;
     LLVMDGParameters *formal = subgraph->getParameters();
@@ -449,7 +450,8 @@ bool LLVMPointsToAnalysis::propagatePointersToArguments(LLVMDependenceGraph *sub
     return changed;
 }
 
-static bool handleDynamicMemAllocation(const CallInst *Inst, LLVMNode *node, int type)
+static bool handleDynamicMemAllocation(const CallInst *Inst,
+                                       LLVMNode *node, int type)
 {
     const Value *op;
     uint64_t size = 0;
@@ -514,7 +516,8 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst,
+                                             LLVMNode *node)
 {
     bool changed = false;
     LLVMNode *op = getOperand(node, Inst->stripPointerCasts(), 0);
@@ -536,7 +539,8 @@ bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst, LLVMNode *
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst,
+                                            LLVMNode *node)
 {
     bool changed = false;
     LLVMNode *val = node->getOperand(0);
@@ -561,7 +565,8 @@ bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst, LLVMNode *no
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi, LLVMNode *node)
+bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi,
+                                         LLVMNode *node)
 {
     if (!node->isPointerTy())
         return false;
