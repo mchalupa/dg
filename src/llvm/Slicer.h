@@ -59,7 +59,9 @@ public:
             sl_id = mark(start, sl_id);
 
         // take every subgraph and slice it intraprocedurally
-        for (auto it : maindg->getSubgraphs()) {
+        extern std::map<const llvm::Value *,
+                        LLVMDependenceGraph *> constructedFunctions;
+        for (auto it : constructedFunctions) {
             LLVMDependenceGraph *subdg = it.second;
             sliceGraph(subdg, sl_id);
         }

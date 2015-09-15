@@ -50,23 +50,6 @@ public:
     bool build(const llvm::Function *func);
 
     llvm::Module *getModule() const { return module; }
-
-    const std::map<const llvm::Value *,
-                   LLVMDependenceGraph *> getSubgraphs() const
-    {
-        return constructedFunctions;
-    }
-
-    LLVMDependenceGraph *getSubgraph(const llvm::Value *val)
-    {
-        auto it = constructedFunctions.find(val);
-        if (it == constructedFunctions.end())
-            return nullptr;
-
-        return it->second;
-    }
-
-
     std::unordered_map<const llvm::BasicBlock *,
                        LLVMBBlock *> getConstructedBlocks()
     {
@@ -113,7 +96,6 @@ private:
     std::set<LLVMNode *> *gatheredCallsites;
     const char *gather_callsites;
 
-    std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
     std::unordered_map<const llvm::BasicBlock *, LLVMBBlock *> constructedBlocks;
 
     // when we want to slice according to some criterion,

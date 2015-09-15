@@ -27,7 +27,10 @@ void LLVMDGVerifier::fault(const char *fmt, ...)
 bool LLVMDGVerifier::verify()
 {
     checkMainProc();
-    for (auto it : dg->constructedFunctions)
+
+    extern std::map<const llvm::Value *,
+                    LLVMDependenceGraph *> constructedFunctions;
+    for (auto it : constructedFunctions)
         checkGraph(llvm::cast<llvm::Function>(it.first), it.second);
 
     fflush(stderr);

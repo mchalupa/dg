@@ -318,14 +318,12 @@ static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
 
         const Function *func = cast<Function>(ptr.obj->node->getValue());
         LLVMDependenceGraph *dg = node->getDG();
-        LLVMDependenceGraph *subg = dg->getSubgraph(func);
-        if (!subg) {
-            subg = dg->buildSubgraph(node, func);
-
-            LLVMNode *entry = subg->getEntry();
-            dg->addGlobalNode(entry);
+        LLVMDependenceGraph *subg = dg->buildSubgraph(node, func);
+        LLVMNode *entry = subg->getEntry();
+        bool ret = dg->addGlobalNode(entry);
+        // did we added this subgraph for the first time?
+        if (ret) {
             handleGlobal(func, entry);
-
             addSubgraphBBs(PA, subg);
             changed = true;
         }

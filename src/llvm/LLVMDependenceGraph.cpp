@@ -44,6 +44,9 @@ namespace dg {
 //  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------
 
+// map of all constructed functions
+std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+
 LLVMDependenceGraph::~LLVMDependenceGraph()
 {
     // delete nodes
@@ -185,7 +188,6 @@ is_func_defined(const llvm::CallInst *CInst)
 
     return true;
 }
-
 
 void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                                             LLVMNode *node)
