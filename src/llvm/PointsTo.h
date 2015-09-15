@@ -37,6 +37,7 @@ private:
     bool handleLoadInst(const llvm::LoadInst *, LLVMNode *);
     bool handleGepInst(const llvm::GetElementPtrInst *, LLVMNode *);
     bool handleCallInst(const llvm::CallInst *, LLVMNode *);
+    bool handleIntToPtr(const llvm::IntToPtrInst *, LLVMNode *);
     bool handleBitCastInst(const llvm::BitCastInst *, LLVMNode *);
     bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
     bool handlePHINode(const llvm::PHINode *, LLVMNode *);

@@ -516,6 +516,15 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     return changed;
 }
 
+bool LLVMPointsToAnalysis::handleIntToPtr(const IntToPtrInst *Inst,
+                                          LLVMNode *node)
+{
+    (void) Inst;
+
+    // FIXME this is sound, but unprecise - we can do more
+    return node->addPointsTo(UnknownMemoryLocation);
+}
+
 bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst,
                                              LLVMNode *node)
 {
@@ -648,6 +657,8 @@ bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
         changed |= handleCallInst(Inst, node);
     } else if (const ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
         changed |= handleReturnInst(Inst, node);
+    } else if (const IntToPtrInst *Inst = dyn_cast<IntToPtrInst>(val)) {
+        changed |= handleIntToPtr(Inst, node);
     } else if (const BitCastInst *Inst = dyn_cast<BitCastInst>(val)) {
         changed |= handleBitCastInst(Inst, node);
     } else if (const PHINode *Inst = dyn_cast<PHINode>(val)) {
