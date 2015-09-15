@@ -71,12 +71,10 @@ static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
 
 static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst *BC)
 {
-    Pointer pointer(nullptr, UNKNOWN_OFFSET);
-
     if (!BC->isLosslessCast()) {
         errs() << "WARN: Not a loss less cast unhandled ConstExpr"
                << *BC << "\n";
-        return pointer;
+        return UnknownMemoryLocation;
     }
 
     const Value *llvmOp = BC->stripPointerCasts();
@@ -89,24 +87,32 @@ static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst 
             errs() << "ERR: constant BitCast with not only one pointer "
                    << *BC << "\n";
         } else
-            pointer = *ptset.begin();
+            return *ptset.begin();
     }
 
-    return pointer;
+    return UnknownMemoryLocation;
 }
 
 static Pointer handleConstantGep(LLVMDependenceGraph *dg,
                                  const GetElementPtrInst *GEP,
                                  const llvm::DataLayout *DL)
 {
-    Pointer pointer(nullptr, UNKNOWN_OFFSET);
     const Value *op = GEP->getPointerOperand();
     LLVMNode *opNode = dg->getNode(op);
-    assert(opNode && "No node for Constant GEP operand");
 
-    pointer.obj = opNode->getMemoryObj();
+    // FIXME this is sound, but may be unprecise
+    //  - we should use getOperand for getting opNode,
+    //  becaues we can have ConstantExpr inserted in ConstantExpr
+    //  (getelementptr (inttoptr ..) ...), so we can get null here
+    //  as opNode
+    if (!opNode) {
+        errs() << "No node for Constant GEP operand: " << *GEP << "\n";
+        return UnknownMemoryLocation;
+    }
 
+    Pointer pointer(opNode->getMemoryObj(), UNKNOWN_OFFSET);
     APInt offset(64, 0);
+
     if (GEP->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(64))
             pointer.offset = offset.getZExtValue();
@@ -122,7 +128,7 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
                                LLVMDependenceGraph *dg,
                                const llvm::DataLayout *DL)
 {
-    Pointer pointer;
+    Pointer pointer = UnknownMemoryLocation;
 
     const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
     if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
@@ -131,7 +137,7 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
         pointer = handleConstantBitCast(dg, BC);
     } else {
             errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
-            abort();
+            errs() << "      ^^ returning unknown pointer\n";
     }
 
     delete Inst;
