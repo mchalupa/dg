@@ -183,8 +183,6 @@ static bool handleGlobals(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
     return changed;
 }
 
-
-
 static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
 {
     bool changed = false;
@@ -438,6 +436,14 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     addStoreLoadInstDefUse(node, ptrNode, df);
 }
 
+void addDefUseToUnknownLocation(LLVMNode *node, DefMap *df)
+{
+    ValuesSetT& S = df->get(UnknownMemoryLocation);
+
+    for (LLVMNode *n : S)
+        n->addDataDependence(node);
+}
+
 void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
@@ -451,8 +457,12 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
     // load inst is reading from the memory that is pointed by
     // the top-level value, so add def-use edge
     addStoreLoadInstDefUse(node, ptrNode, df);
-}
 
+    // if we have any reaching definition (write to memory)
+    // to unknown location, this may be load from it.
+    // We must add def-use edges, to keep it sound
+    addDefUseToUnknownLocation(node, df);
+}
 
 static void addOutParamsEdges(LLVMDependenceGraph *graph)
 {
