@@ -46,5 +46,6 @@ if (LLVM_DG)
 	add_test(slicing-funcptr6 slicing-funcptr6.sh)
 	add_test(slicing-unknownptr1 slicing-unknownptr1.sh)
 	add_test(slicing-unknownptr2 slicing-unknownptr2.sh)
+	add_test(slicing-unknownptr3 slicing-unknownptr3.sh)
 
 endif (LLVM_DG)
