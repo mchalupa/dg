@@ -233,11 +233,8 @@ int main(int argc, char *argv[])
     }
 
     debug::TimeMeasure tm;
-    std::set<LLVMNode *> gatheredCallsites;
-    LLVMDependenceGraph d;
-    if (slicing_criterion)
-        d.gatherCallsites(slicing_criterion, &gatheredCallsites);
 
+    LLVMDependenceGraph d;
     d.build(&*M);
 
     analysis::LLVMPointsToAnalysis PTA(&d);
@@ -246,6 +243,14 @@ int main(int argc, char *argv[])
     PTA.run();
     tm.stop();
     tm.report("INFO: Points-to analysis took");
+
+    std::set<LLVMNode *> callsites;
+    if (slicing_criterion) {
+        tm.start();
+        d.getCallSites(slicing_criterion, &callsites);
+        tm.stop();
+        tm.report("INFO: Finding slicing criterions took");
+    }
 
     analysis::LLVMDefUseAnalysis DUA(&d);
 
@@ -275,14 +280,14 @@ int main(int argc, char *argv[])
             else
                 slicer.slice(&d, d.getExit());
         } else {
-            if (gatheredCallsites.empty()) {
+            if (callsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
                        << slicing_criterion << "\n";
                 exit(1);
             }
 
             uint32_t slid = 0;
-            for (LLVMNode *start : gatheredCallsites)
+            for (LLVMNode *start : callsites)
                 slid = slicer.mark(start, slid);
 
             if (!mark_only)

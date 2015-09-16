@@ -34,9 +34,7 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
 {
     debug::TimeMeasure tm;
     LLVMDependenceGraph d;
-    std::set<LLVMNode *> gatheredCallsites;
-
-    d.gatherCallsites(slicing_criterion, &gatheredCallsites);
+    std::set<LLVMNode *> callsites;
 
     // build the graph
     d.build(&*M);
@@ -61,15 +59,21 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     // check for slicing criterion here, because
     // we might have built new subgraphs that contain
     // it during points-to analysis
-    if (gatheredCallsites.empty()) {
-        if (strcmp(slicing_criterion, "ret") == 0)
-            gatheredCallsites.insert(d.getExit());
-        else {
+    tm.start();
+    bool ret = d.getCallSites(slicing_criterion, &callsites);
+    tm.stop();
+
+    if (!ret) {
+        if (strcmp(slicing_criterion, "ret") == 0) {
+            callsites.insert(d.getExit());
+            tm.report("INFO: Found slicing criterion in");
+        } else {
             errs() << "Did not find slicing criterion: "
                    << slicing_criterion << "\n";
             return false;
         }
-    }
+    } else
+        tm.report("INFO: Found slicing criterion in");
 
     analysis::LLVMDefUseAnalysis DUA(&d);
 
@@ -87,13 +91,13 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     // add post-dominator frontiers
     d.computePostDominators(true);
     tm.stop();
-    tm.report("INFO: computing post-dominator frontiers took");
+    tm.report("INFO: Computing post-dominator frontiers took");
 
     LLVMSlicer slicer;
     uint32_t slid = 0;
 
     tm.start();
-    for (LLVMNode *start : gatheredCallsites)
+    for (LLVMNode *start : callsites)
         slid = slicer.mark(start, slid);
 
     slicer.slice(&d, nullptr, slid);
