@@ -23,6 +23,7 @@ enum dg2dot_options {
 #ifdef ENABLE_PSS
     PRINT_PSS       = 1 << 7,
 #endif
+    PRINT_POSTDOM   = 1 << 8,
     PRINT_ALL       = ~((uint32_t) 0)
 };
 
@@ -102,21 +103,7 @@ public:
         out.close();
     }
 
-    // what all to print?
-    uint32_t options;
-
-private:
-    void reopen(const char *new_file)
-    {
-        if (!new_file)
-            new_file = "/dev/stdout";
-
-        if (out.is_open())
-            out.close();
-
-        out.open(new_file);
-        file = new_file;
-    }
+    /* if user want's manual printing, he/she can */
 
     void start()
     {
@@ -130,6 +117,71 @@ private:
     void end()
     {
         out << "}\n";
+    }
+
+    void dumpSubgraphStart(DependenceGraph<NodeT> *sub,
+                           const char *name = nullptr)
+    {
+        out << "\t/* subgraph " << sub << " nodes */\n";
+        out << "\tsubgraph cluster_" << sub << " {\n";
+        out << "\t\tstyle=\"filled, rounded\" fillcolor=gray95\n";
+        out << "\t\tlabel=\"Subgraph ";
+        if (name)
+            out << name << " ";
+
+        out << "[" << sub << "]"
+            << "\\nhas " << sub->size() << " nodes\"\n";
+
+        // dump BBs of the formal parameters
+        dump_parameters(sub, 2);
+    }
+
+    void dumpSubgraphEnd(DependenceGraph<NodeT> *sub)
+    {
+        // dump all nodes, to get it without BBlocks
+        // (we may not have BBlocks or we just don't want
+        // to print them
+        for (auto I = sub->begin(), E = sub->end(); I != E; ++I) {
+            dump_node(I->second, 2);
+            dump_node_edges(I->second, 2);
+        }
+
+        out << "\t}\n";
+    }
+
+    void dumpSubgraph(DependenceGraph<NodeT> *sub)
+    {
+        dumpSubgraphStart(sub);
+        dumpSubgraphEnd(sub);
+    }
+
+    void dumpBBlock(BBlock<NodeT> *BB, int ind = 2)
+    {
+        DumpBBData data(out, options, ind, printKey);
+        dumpBB(BB, data);
+    }
+
+    void dumpBBlockEdges(BBlock<NodeT> *BB, int ind = 1)
+    {
+        DumpBBData data(out, options, ind, printKey);
+        dumpBBedges(BB, data);
+    }
+
+private:
+
+    // what all to print?
+    uint32_t options;
+
+    void reopen(const char *new_file)
+    {
+        if (!new_file)
+            new_file = "/dev/stdout";
+
+        if (out.is_open())
+            out.close();
+
+        out.open(new_file);
+        file = new_file;
     }
 
     struct DumpBBData {
@@ -153,6 +205,7 @@ private:
             data.printKey(out, BB->getKey());
         out << " [" << BB << "] */\n";
         out << Ind << "subgraph cluster_bb_" << BB << " {\n";
+        out << Ind << "\tstyle=filled fillcolor=white\n";
         out << Ind << "\tlabel=\"";
         if (data.printKey)
             data.printKey(out, BB->getKey());
@@ -236,7 +289,9 @@ private:
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S << "]\n";
             }
+        }
 
+        if (options & PRINT_POSTDOM) {
             BBlock<NodeT> *ipd = BB->getIPostDom();
             if (ipd) {
                 NodeT *firstNode = BB->getFirstNode();
@@ -304,16 +359,9 @@ private:
         }
     }
 
-
     void dump_subgraph(DependenceGraph<NodeT> *sub)
     {
-        out << "\t/* subgraph " << sub << " nodes */\n";
-        out << "\tsubgraph cluster_" << sub << " {\n";
-        out << "\t\tlabel=\"Subgraph " << sub
-            << " has " << sub->size() << " nodes\"\n";
-
-        // dump BBs of the formal parameters
-        dump_parameters(sub, 2);
+        dumpSubgraphStart(sub);
 
         // dump BBs in the subgraph
         if (sub->getEntryBB())
@@ -327,7 +375,7 @@ private:
         for (auto I = sub->begin(), E = sub->end(); I != E; ++I)
             dump_node_edges(I->second, 2);
 
-        out << "\t}\n";
+        dumpSubgraphEnd(sub);
     }
 
     void dumpBBs(BBlock<NodeT> *startBB, int ind = 1)
@@ -395,7 +443,9 @@ private:
         if (err) {
             out << "style=filled fillcolor=red";
         } else if (slice_id != 0)
-            out << "style=filled fillcolor=gray";
+            out << "style=filled fillcolor=greenyellow";
+        else
+            out << "style=filled fillcolor=white";
 
         out << "]\n";
 

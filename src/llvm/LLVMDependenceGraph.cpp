@@ -46,6 +46,11 @@ namespace dg {
 // map of all constructed functions
 std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 
+const std::map<const llvm::Value *, LLVMDependenceGraph *>& getConstructedFunctions()
+{
+    return constructedFunctions;
+}
+
 LLVMDependenceGraph::~LLVMDependenceGraph()
 {
     // delete nodes

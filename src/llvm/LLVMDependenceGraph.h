@@ -113,6 +113,8 @@ private:
     friend class LLVMDGVerifier;
 };
 
+const std::map<const llvm::Value *, LLVMDependenceGraph *>& getConstructedFunctions();
+
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_

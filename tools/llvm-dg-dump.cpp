@@ -316,8 +316,26 @@ int main(int argc, char *argv[])
 
     dump.printKey = printLLVMVal;
     dump.checkNode = checkNode;
+    const std::map<const llvm::Value *,
+                   LLVMDependenceGraph *>& CF = getConstructedFunctions();
 
-    dump.dump("/dev/stdout", d.getEntryBB());
+    dump.start();
+
+    for (auto F : CF) {
+        dump.dumpSubgraphStart(F.second, F.first->getName().data());
+
+        for (auto B : F.second->getConstructedBlocks()) {
+            dump.dumpBBlock(B.second);
+        }
+
+        for (auto B : F.second->getConstructedBlocks()) {
+            dump.dumpBBlockEdges(B.second);
+        }
+
+        dump.dumpSubgraphEnd(F.second);
+    }
+
+    dump.end();
 
     return 0;
 }
