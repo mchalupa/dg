@@ -25,9 +25,16 @@ if (LLVM_DG)
 	message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 	message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
+	include(LLVMConfig)
+
+	message(STATUS "LLVM include dir: ${LLVM_INCLUDE_DIRS}")
+	message(STATUS "LLVM libraries dir: ${LLVM_LIBRARY_DIRS}")
+	message(STATUS "LLVM definitions: ${LLVM_DEFINITIONS}")
+
 	if (LLVM_SRC_PATH)
 	  include_directories(${LLVM_SRC_PATH}/include)
-	  message(STATUS "Looking for headers in: ${LLVM_SRC_PATH}/include")
+	  message(STATUS "Looking for headers in given: ${LLVM_SRC_PATH}/include")
 	else()
 	  include_directories(${LLVM_INCLUDE_DIRS})
 	  message(STATUS "Looking for headers in: ${LLVM_INCLUDE_DIRS}")
@@ -35,15 +42,14 @@ if (LLVM_DG)
 
 	if (LLVM_BUILD_PATH)
 	  link_directories(${LLVM_BUILD_PATH}/lib)
-	  message(STATUS "Looking for libraries in: ${LLVM_BUILD_PATH}/lib")
+	  message(STATUS "Looking for libraries in given: ${LLVM_BUILD_PATH}/lib")
 	else()
 	  link_directories(${LLVM_LIBRARY_DIRS})
 	  message(STATUS "Looking for libraries in: ${LLVM_LIBRARY_DIRS}")
 	endif(LLVM_BUILD_PATH)
 
 	add_definitions(${LLVM_DEFINITIONS})
-
-	llvm_map_components_to_libnames(llvm_libs support core irreader bitwriter analysis)
+	llvm_map_components_to_libraries(llvm_libs support core irreader bitwriter analysis)
 
 	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
