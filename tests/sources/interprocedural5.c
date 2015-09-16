@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 
 void error(void)
 {
@@ -9,7 +10,7 @@ void set(int *a)
 {
 	// make error kill the program
 	// this way we'll know the abort wasn't sliced away
-	if (*a != 8)
+	if (*a == 8)
 		error();
 }
 
