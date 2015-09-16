@@ -484,4 +484,56 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
     delete pdtree;
 }
 
+static bool match_callsite_name(LLVMNode *callNode, const char *name)
+{
+    using namespace llvm;
+
+    // if the function is undefined, it has no subgraphs,
+    // but is not called via function pointer
+    if (!callNode->hasSubgraphs()) {
+        const CallInst *callInst = cast<CallInst>(callNode->getValue());
+        const Value *calledValue = callInst->getCalledValue();
+        const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
+        // in the case we haven't run points-to analysis
+        if (!func)
+            return false;
+
+        return strcmp(name, func->getName().data()) == 0;
+    } else {
+        // simply iterate over the subgraphs, get the entry node
+        // and check it
+        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
+            LLVMNode *entry = dg->getEntry();
+            assert(entry && "No entry node in graph");
+
+            const Function *func = cast<Function>(entry->getValue()->stripPointerCasts());
+            if (strcmp(name, func->getName().data()) == 0)
+                return true;
+        }
+    }
+
+    return false;
+}
+
+bool LLVMDependenceGraph::getCallSites(const char *name,
+                                       std::set<LLVMNode *> *callsites)
+{
+    for (auto F : constructedFunctions) {
+        for (auto I : F.second->constructedBlocks) {
+            LLVMBBlock *BB = I.second;
+            LLVMNode *n = BB->getFirstNode();
+            while (n) {
+                if (llvm::isa<llvm::CallInst>(n->getValue())) {
+                    if (match_callsite_name(n, name))
+                        callsites->insert(n);
+                }
+
+                n = n->getSuccessor();
+            }
+        }
+    }
+
+    return callsites->size() != 0;
+}
+
 } // namespace dg
