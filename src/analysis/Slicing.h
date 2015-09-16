@@ -4,6 +4,10 @@
 #include "DFS.h"
 #include "DependenceGraph.h"
 
+#ifdef ENABLE_CFG
+#include "BBlock.h"
+#endif
+
 namespace dg {
 namespace analysis {
 
@@ -16,6 +20,20 @@ class Slicer : Analysis<NodeT>
     static void markSlice(NodeT *n, uint32_t slice_id)
     {
         n->setSlice(slice_id);
+
+#ifdef ENABLE_CFG
+        // when we marked a node, we need to mark even
+        // the basic block - if there are basic blocks
+        BBlock<NodeT> *B = n->getBBlock();
+        if (B)
+            B->setSlice(slice_id);
+#endif
+
+        // the same with dependence graph, if we keep a node from
+        // a dependence graph, we need to keep the dependence graph
+        DependenceGraph<NodeT> *dg = n->getDG();
+        if (dg)
+            dg->setSlice(slice_id);
     }
 
     void sliceGraph(DependenceGraph<NodeT> *dg, uint32_t slice_id)

@@ -80,6 +80,18 @@ public:
 
     bool verify() const;
 
+    /* virtual */
+    void setSlice(uint64_t sid)
+    {
+        DependenceGraph<LLVMNode>::setSlice(sid);
+        LLVMNode *entry = getEntry();
+        assert(entry);
+
+        // mark even entry node, call-sites are
+        // control dependent on it
+        entry->setSlice(sid);
+    }
+
 private:
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)

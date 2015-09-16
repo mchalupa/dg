@@ -179,6 +179,10 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
     assert(BB && "do not have BB; this is a bug, sir");
     BB->addCallsite(node);
 
+    // add control dependence from call node
+    // to entry node
+    node->addControlDependence(subgraph->getEntry());
+
     return subgraph;
 }
 
