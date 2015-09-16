@@ -219,6 +219,31 @@ void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
     entry->addControlDependence(fpout);
 }
 
+// FIXME don't duplicate the code
+void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
+{
+    // add the same formal parameters
+    LLVMDGParameters *params = getParameters();
+    if (!params) {
+        params = new LLVMDGParameters();
+        setParameters(params);
+    }
+
+    // if we have this value, just return
+    if (params->find(val))
+        return;
+
+    LLVMNode *fpin = new LLVMNode(val);
+    LLVMNode *fpout = new LLVMNode(val);
+    params->addGlobal(val, fpin, fpout);
+
+    LLVMNode *entry = getEntry();
+    entry->addControlDependence(fpin);
+    entry->addControlDependence(fpout);
+}
+
+
+
 void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                                             LLVMNode *node)
 {
@@ -231,8 +256,7 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         // via function pointer. We cannot do something with
         // that here, we don't know the points-to
         if (func && gather_callsites &&
-            strcmp(func->getName().data(),
-                   gather_callsites) == 0) {
+            strcmp(func->getName().data(), gather_callsites) == 0) {
             gatheredCallsites->insert(node);
         }
 
@@ -245,16 +269,15 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
             const Value *op = Inst->getOperand(0)->stripPointerCasts();
              if (isa<GlobalVariable>(op))
-                 addFormalParameter(op);
+                 addFormalGlobal(op);
         } else if (isa<StoreInst>(val)) {
             const Value *op = Inst->getOperand(0)->stripPointerCasts();
             if (isa<GlobalVariable>(op))
-                addFormalParameter(op);
+                addFormalGlobal(op);
 
             op = Inst->getOperand(1)->stripPointerCasts();
             if (isa<GlobalVariable>(op))
-                addFormalParameter(op);
-
+                addFormalGlobal(op);
         }
     }
 }
@@ -418,8 +441,11 @@ void LLVMDependenceGraph::addFormalParameters()
     if (func->arg_size() == 0)
         return;
 
-    LLVMDGParameters *params = new LLVMDGParameters();
-    setParameters(params);
+    LLVMDGParameters *params = getParameters();
+    if (!params) {
+        params = new LLVMDGParameters();
+        setParameters(params);
+    }
 
     LLVMNode *in, *out;
     for (auto I = func->arg_begin(), E = func->arg_end();

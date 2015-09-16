@@ -369,6 +369,22 @@ private:
             } else
                 out << "NO OUT ARG";
         }
+
+        for (auto I = params->global_begin(), E = params->global_end();
+             I != E; ++I) {
+            DGParameter<NodeT>& p = I->second;
+            if (p.in) {
+                dump_node(p.in, ind, "GLOB IN");
+                dump_node_edges(p.in, ind);
+            } else
+                out << "NO GLOB IN ARG";
+
+            if (p.out) {
+                dump_node(p.out, ind, "GLOB OUT");
+                dump_node_edges(p.out, ind);
+            } else
+                out << "NO GLOB OUT ARG";
+        }
     }
 
     void dump_subgraph(DependenceGraph<NodeT> *sub)

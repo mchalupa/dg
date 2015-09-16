@@ -111,46 +111,52 @@ LLVMNode **LLVMNode::findOperands()
     return operands;
 }
 
-void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
+static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMDependenceGraph *funcGraph)
 {
-    using namespace llvm;
-
-    const CallInst *CInst = dyn_cast<CallInst>(key);
-    assert(CInst && "addActualParameters called on non-CallInst");
-
-    // do not add redundant nodes
-    const Function *func = CInst->getCalledFunction();
-    if (!func || func->arg_size() == 0)
+    LLVMDGParameters *formal = funcGraph->getParameters();
+    if (!formal)
         return;
 
-    addActualParameters(funcGraph, func);
+    LLVMNode *pin, *pout;
+    for (auto I = formal->global_begin(), E = formal->global_end(); I != E; ++I) {
+        LLVMDGParameter& p = I->second;
+        const llvm::Value *val = I->first;
+        LLVMDGParameter *act = params->findGlobal(val);
+        // reuse or create the parameter
+        if (!act) {
+            pin = new LLVMNode(val);
+            pout = new LLVMNode(val);
+            params->addGlobal(val, pin, pout);
+        } else {
+            pin = act->in;
+            pout = act->out;
+        }
+
+        // connect the globals with edges
+        pin->addDataDependence(p.in);
+        p.out->addDataDependence(pout);
+
+        // add control dependence from call node
+        callNode->addControlDependence(pin);
+        callNode->addControlDependence(pout);
+    }
 }
 
-void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
-                                   const llvm::Function *func)
+static void addOperandsParams(LLVMDGParameters *params,
+                              LLVMDGParameters *formal,
+                              LLVMNode *callNode,
+                              const llvm::Function *func)
 {
-    using namespace llvm;
 
-    const CallInst *CInst = dyn_cast<CallInst>(key);
+    const llvm::CallInst *CInst
+        = llvm::dyn_cast<llvm::CallInst>(callNode->getValue());
     assert(CInst && "addActualParameters called on non-CallInst");
-
-    // if we have parameters, then use them and just
-    // add edges to formal parameters (a call-site can
-    // have more destinations if it is via function pointer)
-    LLVMDGParameters *params = getParameters();
-    if (!params) {
-        params = new LLVMDGParameters();
-        LLVMDGParameters *old = setParameters(params);
-        assert(old == nullptr && "Replaced parameters");
-    }
-
-    LLVMDGParameters *formal = funcGraph->getParameters();
 
     LLVMNode *in, *out;
     int idx = 0;
     for (auto A = func->arg_begin(), E = func->arg_end();
          A != E; ++A, ++idx) {
-        const Value *opval = CInst->getArgOperand(idx);
+        const llvm::Value *opval = CInst->getArgOperand(idx);
         LLVMDGParameter *fp = formal->find(&*A);
         if (!fp) {
             errs() << "ERR: no formal param for value: " << *opval << "\n";
@@ -169,14 +175,56 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
 
         // add control edges from the call-site node
         // to the parameters
-        addControlDependence(in);
-        addControlDependence(out);
+        callNode->addControlDependence(in);
+        callNode->addControlDependence(out);
 
         // from actual in to formal in
         in->addDataDependence(fp->in);
         // from formal out to actual out
         fp->out->addDataDependence(out);
     }
+}
+
+void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
+{
+    using namespace llvm;
+
+    const CallInst *CInst = dyn_cast<CallInst>(key);
+    assert(CInst && "addActualParameters called on non-CallInst");
+
+    // do not add redundant nodes
+    const Function *func = CInst->getCalledFunction();
+    if (!func || func->size() == 0)
+        return;
+
+    addActualParameters(funcGraph, func);
+}
+
+void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
+                                   const llvm::Function *func)
+{
+    using namespace llvm;
+
+    LLVMDGParameters *formal = funcGraph->getParameters();
+    if (!formal)
+        return;
+
+    // if we have parameters, then use them and just
+    // add edges to formal parameters (a call-site can
+    // have more destinations if it is via function pointer)
+    LLVMDGParameters *params = getParameters();
+    if (!params) {
+        params = new LLVMDGParameters();
+        LLVMDGParameters *old = setParameters(params);
+        assert(old == nullptr && "Replaced parameters");
+    }
+
+    if (func->arg_size() != 0)
+        addOperandsParams(params, formal, this, func);
+
+    // hopefully we matched all the operands, so let's
+    // add the global variables the function uses
+    addGlobalsParams(params, this, funcGraph);
 }
 
 LLVMNode **LLVMNode::getOperands()
