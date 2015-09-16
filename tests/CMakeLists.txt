@@ -53,6 +53,7 @@ if (LLVM_DG)
 	add_test(slicing-phi2 slicing-phi2.sh)
 	add_test(slicing-global1 slicing-global1.sh)
 	add_test(slicing-global2 slicing-global2.sh)
+	add_test(slicing-global3 slicing-global3.sh)
 	add_test(slicing-ptrtoint1 slicing-ptrtoint1.sh)
 
 endif (LLVM_DG)
