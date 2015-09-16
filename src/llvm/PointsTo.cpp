@@ -317,6 +317,10 @@ static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
         }
 
         const Function *func = cast<Function>(ptr.obj->node->getValue());
+        // skip undefined functions
+        if (func->size() == 0)
+            continue;
+
         LLVMDependenceGraph *dg = node->getDG();
         LLVMDependenceGraph *subg = dg->buildSubgraph(node, func);
         LLVMNode *entry = subg->getEntry();
@@ -488,10 +492,9 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     Function *func = Inst->getCalledFunction();
 
     // add subgraphs dynamically according the points-to information
-    LLVMNode *calledFuncNode = node->getOperand(0);
+    LLVMNode *calledFuncNode = getOperand(node, Inst->getCalledValue(), 0);
     if (!func && calledFuncNode)
         changed |= handleFunctionPtrCall(calledFuncNode, node, this);
-
 
     // function is undefined and returns a pointer?
     // In that case create pointer to unknown location
