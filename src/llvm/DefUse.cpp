@@ -380,6 +380,21 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
     addDefUseToUnknownLocation(node, df);
 }
 
+static void addOutParamsEdges(LLVMDGParameter& p, DefMap *df)
+{
+    // points to set is contained in the input param
+    for (const Pointer& ptr : p.in->getPointsTo()) {
+        ValuesSetT& defs = df->get(ptr);
+        if (defs.empty())
+            continue;
+
+        // ok, the memory location is defined in this subgraph,
+        // so add data dependence edge to the out param
+        for (LLVMNode *def : defs)
+            def->addDataDependence(p.out);
+    }
+}
+
 static void addOutParamsEdges(LLVMDependenceGraph *graph)
 {
     LLVMNode *exitNode = graph->getExit();
@@ -389,24 +404,19 @@ static void addOutParamsEdges(LLVMDependenceGraph *graph)
     // add edges between formal params and the output params
     LLVMDGParameters *params = graph->getParameters();
     if (params) {
+        // add edges to parameters
         for (auto it : *params) {
             const Value *val = it.first;
             if (!val->getType()->isPointerTy())
                 continue;
 
-            LLVMDGParameter& p = it.second;
+            addOutParamsEdges(it.second, df);
+        }
 
-            // points to set is contained in the input param
-            for (const Pointer& ptr : p.in->getPointsTo()) {
-                ValuesSetT& defs = df->get(ptr);
-                if (defs.empty())
-                    continue;
-
-                // ok, the memory location is defined in this subgraph,
-                // so add data dependence edge to the out param
-                for (LLVMNode *def : defs)
-                    def->addDataDependence(p.out);
-            }
+        // add edges to parameter globals
+        for (auto I = params->global_begin(), E = params->global_end();
+             I != E; ++I) {
+            addOutParamsEdges(I->second, df);
         }
     }
 }
@@ -497,6 +507,8 @@ static void handleCallInst(LLVMNode *node)
     // add def-use edges to parameter globals
     addDefUseToParameterGlobals(node, params, df);
 
+    // add edges from last definition in the subgraph to
+    // output parameters
     addOutParamsEdges(node);
 }
 
