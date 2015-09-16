@@ -463,16 +463,20 @@ static void addOutParamsEdges(LLVMDependenceGraph *graph)
     }
 }
 
+static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
+{
+    // FIXME we're loosing some accuracy here and
+    // this edges causes that we'll go into subprocedure
+    // even with summary edges
+    if (!callNode->isVoidTy())
+        subgraph->getExit()->addDataDependence(callNode);
+}
+
 static void addOutParamsEdges(LLVMNode *callNode)
 {
     for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs()) {
         addOutParamsEdges(subgraph);
-
-        // FIXME we're loosing some accuracy here and
-        // this edges causes that we'll go into subprocedure
-        // even with summary edges
-        if (!callNode->isVoidTy())
-            subgraph->getExit()->addDataDependence(callNode);
+        addReturnEdge(callNode, subgraph);
     }
 }
 
@@ -550,6 +554,11 @@ static void handleCallInst(LLVMNode *node)
         return;
     }
 
+    // add edges from last definition in the subgraph to
+    // output parameters. Must be here, because here
+    // we add even return edge (does not depend on params)
+    addOutParamsEdges(node);
+
     // have we something to do further?
     LLVMDGParameters *params = node->getParameters();
     if (!params)
@@ -561,10 +570,6 @@ static void handleCallInst(LLVMNode *node)
 
     // add def-use edges to parameter globals
     addDefUseToParameterGlobals(node, params, df);
-
-    // add edges from last definition in the subgraph to
-    // output parameters
-    addOutParamsEdges(node);
 }
 
 static void handleInstruction(const Instruction *Inst, LLVMNode *node)
