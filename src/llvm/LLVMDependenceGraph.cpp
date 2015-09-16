@@ -194,7 +194,8 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
     using namespace llvm;
 
     if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
-        const Function *func = CInst->getCalledFunction();
+        const Value *strippedValue = CInst->getCalledValue()->stripPointerCasts();
+        const Function *func = dyn_cast<Function>(strippedValue);
         // if func is nullptr, then this is indirect call
         // via function pointer. We cannot do something with
         // that here, we don't know the points-to

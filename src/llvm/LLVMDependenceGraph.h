@@ -59,7 +59,9 @@ public:
     // if we want to slice according some call-site(s),
     // we can gather the relevant call-sites while building
     // graph and do not need to recursively find in the graph
-    // later
+    // later. This can handle only direct-calls though. If the
+    // function is called via pointer, it won't be covered by this
+    // function
     void gatherCallsites(const char *name, std::set<LLVMNode *> *callSites)
     {
         gather_callsites = name;
