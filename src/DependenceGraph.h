@@ -82,16 +82,16 @@ public:
         if (it != nodes.end())
             return it->second;
 
-        if (global_nodes) {
-            it = global_nodes->find(k);
-            if (it != global_nodes->end())
-                return it->second;
-        }
-
         if (formalParameters) {
             DGParameter<NodeT> *p = formalParameters->find(k);
             if (p)
                 return p->in;
+        }
+
+        if (global_nodes) {
+            it = global_nodes->find(k);
+            if (it != global_nodes->end())
+                return it->second;
         }
 
         return nullptr;
