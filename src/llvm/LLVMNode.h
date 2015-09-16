@@ -86,6 +86,15 @@ public:
         return pointsTo.insert(analysis::Pointer(m, off)).second;
     }
 
+    bool addPointsTo(const analysis::PointsToSetT& S)
+    {
+        bool changed = false;
+        for (const analysis::Pointer& p : S)
+            changed |= addPointsTo(p);
+
+        return changed;
+    }
+
     template <typename T>
     T* getData() { return static_cast<T *>(data); }
 

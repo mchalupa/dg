@@ -88,8 +88,13 @@ public:
                 return p->in;
         }
 
+        return getGlobalNode(k);
+    }
+
+    NodeT *getGlobalNode(KeyT k)
+    {
         if (global_nodes) {
-            it = global_nodes->find(k);
+            iterator it = global_nodes->find(k);
             if (it != global_nodes->end())
                 return it->second;
         }

@@ -397,15 +397,44 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
     return node->addPointsTo(&UnknownMemoryObject);
 }
 
+static void propagateGlobalParametersPointsTo(LLVMDGParameters *params, LLVMDependenceGraph *dg)
+{
+    for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
+        // points-to set is in the real global
+        LLVMNode *glob = dg->getGlobalNode(I->first);
+        if (!glob) {
+            errs() << "ERR: No global for parameter\n";
+            continue;
+        }
+
+        PointsToSetT& S = glob->getPointsTo();
+
+        // the only data-dependencies the params global has are those
+        // to formal parameters, so use it
+        LLVMNode *p = I->second.in;
+        for (auto it = p->data_begin(), et = p->data_end(); it != et; ++it) {
+            (*it)->addPointsTo(S);
+        }
+    }
+}
+
+static void propagateGlobalParametersPointsTo(LLVMNode *callNode)
+{
+    LLVMDependenceGraph *dg = callNode->getDG();
+    LLVMDGParameters *actual = callNode->getParameters();
+    assert(actual && "no actual parameters");
+
+    propagateGlobalParametersPointsTo(actual, dg);
+}
+
 bool LLVMPointsToAnalysis::
 propagatePointersToArguments(LLVMDependenceGraph *subgraph,
                              const CallInst *Inst, LLVMNode *callNode)
 {
     bool changed = false;
     LLVMDGParameters *formal = subgraph->getParameters();
-    // we check if the function has arguments before going here,
-    // so this would be a bug
-    assert(formal && "no formal arguments");
+    if (!formal)
+        return false;
 
     const Function *subfunc = dyn_cast<Function>(subgraph->getEntry()->getKey());
     assert(subfunc && "Entry is not a llvm::Function");
@@ -434,6 +463,8 @@ propagatePointersToArguments(LLVMDependenceGraph *subgraph,
         for (const Pointer& ptr : op->getPointsTo())
             changed |= p->in->addPointsTo(ptr);
     }
+
+    propagateGlobalParametersPointsTo(callNode);
 
     if (!callNode->isPointerTy())
         return changed;
@@ -505,10 +536,6 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 
     if (int type = getMemAllocationFunc(func))
         return handleDynamicMemAllocation(Inst, node, type);
-
-    // if this function has no arguments, we can bail out here
-    if (Inst->getNumArgOperands() == 0)
-        return changed;
 
     for (LLVMDependenceGraph *sub : node->getSubgraphs())
         changed |= propagatePointersToArguments(sub, Inst, node);
@@ -599,6 +626,26 @@ bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi,
     return changed;
 }
 
+static void propagateGlobalPointsToMain(LLVMDGParameters *params, LLVMDependenceGraph *dg)
+{
+    for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
+        // points-to set is in the real global
+        LLVMNode *glob = dg->getGlobalNode(I->first);
+        if (!glob) {
+            errs() << "ERR: No global for parameter\n";
+            continue;
+        }
+
+        PointsToSetT& S = glob->getPointsTo();
+        LLVMNode *p = I->second.in;
+        p->addPointsTo(S);
+
+        // and also add a data dependence edge, so that we
+        // have a connection between the real global and the parameter
+        glob->addDataDependence(p);
+    }
+}
+
 void LLVMPointsToAnalysis::handleGlobals()
 {
     // do we have the globals at all?
@@ -641,6 +688,12 @@ void LLVMPointsToAnalysis::handleGlobals()
             }
         }
     }
+
+    // some globals are copied to the parameters,
+    // for the main procedure we must propagate it here
+    LLVMDGParameters *p = dg->getParameters();
+    if (p)
+        propagateGlobalPointsToMain(p, dg);
 }
 
 bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
