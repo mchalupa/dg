@@ -424,25 +424,9 @@ static void addOutParamsEdges(LLVMNode *callNode)
     }
 }
 
-static void handleCallInst(LLVMNode *node)
+static void addDefUseToOperands(LLVMNode *node,
+                                LLVMDGParameters *params, DefMap *df)
 {
-    DefMap *df = getDefMap(node);
-    LLVMDGParameters *params = node->getParameters();
-
-    // if we have a node for the called function,
-    // it is call via function pointer, so add the
-    // data dependence edge to corresponding node
-    if (!isa<Function>(node->getKey())) {
-        LLVMNode *n = node->getOperand(0);
-        if (n)
-            n->addDataDependence(node);
-    }
-
-    if (!params) // function has no arguments
-        return;
-
-    // add def-use edges between parameters and the operands
-    // parameters begin from 1
     for (int i = 1, e = node->getOperandsNum(); i < e; ++i) {
         LLVMNode *op = node->getOperand(i);
         if (!op)
@@ -463,6 +447,55 @@ static void handleCallInst(LLVMNode *node)
 
         op->addDataDependence(p->in);
     }
+}
+
+static void addDefUseToParameterGlobals(LLVMNode *node,
+                                        LLVMDGParameters *params, DefMap *df)
+{
+    LLVMDependenceGraph *dg = node->getDG();
+    for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
+        LLVMDGParameter& p = I->second;
+        // we add the def-use edges to input parameters
+        LLVMNode *g = dg->getNode(I->first);
+        if (!g) {
+            errs() << "ERR: no global param: " << *I->first << "\n";
+            continue;
+        }
+
+        if (g->isPointerTy()) {
+            // add data dependencies to in parameters
+            addIndirectDefUse(g, p.in, df);
+            // fall-through to
+            // add also top-level def-use edge
+        }
+
+        g->addDataDependence(p.in);
+    }
+}
+
+static void handleCallInst(LLVMNode *node)
+{
+    DefMap *df = getDefMap(node);
+    LLVMDGParameters *params = node->getParameters();
+
+    // if we have a node for the called function,
+    // it is call via function pointer, so add the
+    // data dependence edge to corresponding node
+    if (!isa<Function>(node->getKey())) {
+        LLVMNode *n = node->getOperand(0);
+        if (n)
+            n->addDataDependence(node);
+    }
+
+    if (!params) // function has no arguments
+        return;
+
+    // add def-use edges between parameters and the operands
+    // parameters begin from 1
+    addDefUseToOperands(node, params, df);
+
+    // add def-use edges to parameter globals
+    addDefUseToParameterGlobals(node, params, df);
 
     addOutParamsEdges(node);
 }
