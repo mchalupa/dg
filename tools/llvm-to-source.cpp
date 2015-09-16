@@ -8,7 +8,7 @@
 #error "This code needs LLVM enabled"
 #endif
 
-#include <llvm/IR/DebugInfo.h>
+#include <llvm/DebugInfo.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/SourceMgr.h>
