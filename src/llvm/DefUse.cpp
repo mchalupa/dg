@@ -102,17 +102,47 @@ static DefMap *getDefMap(LLVMNode *n)
 /// --------------------------------------------------
 //   Reaching definitions analysis
 /// --------------------------------------------------
-static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
+
+static bool handleParam(LLVMNode *node, LLVMNode *to,
+                        DefMap *df, DefMap *subgraph_df)
 {
     bool changed = false;
+    for (const Pointer& ptr : node->getPointsTo()) {
+        ValuesSetT& defs = subgraph_df->get(ptr);
+        if (defs.empty())
+            continue;
 
-    // get actual parameters (operands) and for every pointer in there
-    // check if the memory location it points to gets defined
-    // in the subprocedure
-    LLVMDGParameters *params = callNode->getParameters();
-    // if we have params, process params
-    if (!params)
-        return false;
+        changed |= df->add(ptr, to);
+    }
+
+    return changed;
+}
+
+static bool handleParamsGlobals(LLVMDependenceGraph *dg,
+                                LLVMDGParameters *params,
+                                DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
+    for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
+        LLVMDGParameter& p = I->second;
+
+        // get the global node, it contains the points-to set
+        LLVMNode *glob = dg->getNode(I->first);
+        if (!glob) {
+            errs() << "ERR: no global node for param\n";
+            continue;
+        }
+
+        changed |= handleParam(glob, p.out, df, subgraph_df);
+    }
+
+    return changed;
+}
+
+static bool handleParams(LLVMNode *callNode, LLVMDGParameters *params,
+                         DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
 
     // operand[0] is the called func
     for (int i = 1, e = callNode->getOperandsNum(); i < e; ++i) {
@@ -129,14 +159,26 @@ static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
             continue;
         }
 
-        for (const Pointer& ptr : op->getPointsTo()) {
-            ValuesSetT& defs = subgraph_df->get(ptr);
-            if (defs.empty())
-                continue;
-
-            changed |= df->add(ptr, p->out);
-        }
+        changed |= handleParam(op, p->out, df, subgraph_df);
     }
+
+    return changed;
+}
+
+static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
+
+    // get actual parameters (operands) and for every pointer in there
+    // check if the memory location it points to gets defined
+    // in the subprocedure
+    LLVMDGParameters *params = callNode->getParameters();
+    // if we have params, process params
+    if (!params)
+        return false;
+
+    changed |= handleParams(callNode, params, df, subgraph_df);
+    changed |= handleParamsGlobals(callNode->getDG(), params, df, subgraph_df);
 
     return changed;
 }
