@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
 {
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    std::unique_ptr<llvm::Module> M;
+    llvm::Module *M;
     const char *module = NULL;
 
     using namespace debug;
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    M = llvm::parseIRFile(module, SMD, context);
+    M = llvm::ParseIRFile(module, SMD, context);
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;
@@ -239,7 +239,7 @@ int main(int argc, char *argv[])
     debug::TimeMeasure tm;
 
     LLVMDependenceGraph d;
-    d.build(&*M);
+    d.build(M);
 
     analysis::LLVMPointsToAnalysis PTA(&d);
 
@@ -319,7 +319,7 @@ int main(int argc, char *argv[])
             errs() << "INFO: Sliced away " << st.second
                    << " from " << st.first << " nodes\n";
 
-            llvm::WriteBitcodeToFile(&*M, output);
+            llvm::WriteBitcodeToFile(M, output);
         }
     }
 

@@ -3,6 +3,7 @@
 
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/DataLayout.h>
 
 #include "analysis/DataFlowAnalysis.h"
 #include "AnalysisGeneric.h"
@@ -21,6 +22,10 @@ class LLVMPointsToAnalysis : public DataFlowAnalysis<LLVMNode>
     const llvm::DataLayout *DL;
 public:
     LLVMPointsToAnalysis(LLVMDependenceGraph *);
+    ~LLVMPointsToAnalysis()
+    {
+        delete DL;
+    }
 
     /* virtual */
     bool runOnNode(LLVMNode *node);

@@ -21,7 +21,6 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "Utils.h"
@@ -93,8 +92,8 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
 static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
 {
-    for (const llvm::GlobalVariable& gl : m->globals())
-        dg->addGlobalNode(new LLVMNode(&gl));
+    for (auto I = m->global_begin(), E = m->global_end(); I != E; ++I)
+        dg->addGlobalNode(new LLVMNode(&*I));
 }
 
 bool LLVMDependenceGraph::verify() const

@@ -5,6 +5,7 @@
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/DataLayout.h>
 
 namespace llvm {
     class DataLayout;
@@ -24,6 +25,10 @@ class LLVMReachingDefsAnalysis : public DataFlowAnalysis<LLVMNode>
     const llvm::DataLayout *DL;
 public:
     LLVMReachingDefsAnalysis(LLVMDependenceGraph *dg);
+    ~LLVMReachingDefsAnalysis()
+    {
+        delete DL;
+    }
 
     /* virtual */
     bool runOnNode(LLVMNode *node);

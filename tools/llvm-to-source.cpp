@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
 {
     LLVMContext context;
     SMDiagnostic SMD;
-    std::unique_ptr<Module> M;
+    Module *M;
 
     const char *source = NULL;
     const char *module = NULL;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     if (argc == 3)
         source = argv[2];
 
-    M = parseIRFile(module, SMD, context);
+    M = ParseIRFile(module, SMD, context);
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;
@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     // no difficult machineris - just find out
     // which lines are in our module and print them
     std::set<unsigned> lines;
-    get_lines_from_module(&*M, lines);
+    get_lines_from_module(M, lines);
 
     if (!source)
         print_lines_numbers(lines);
