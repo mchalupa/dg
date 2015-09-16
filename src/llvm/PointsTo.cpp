@@ -3,6 +3,7 @@
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "LLVMDependenceGraph.h"
@@ -22,7 +23,7 @@ LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
 {
     Module *m = dg->getModule();
     // set data layout
-    DL = m->getDataLayout();
+    DL = new DataLayout(m->getDataLayout());
 
     handleGlobals();
 }

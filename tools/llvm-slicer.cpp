@@ -10,7 +10,7 @@
 
 #include "../git-version.h"
 
-#include <llvm/IR/Verifier.h>
+#include <llvm/Analysis/Verifier.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
@@ -174,7 +174,7 @@ static bool verify_module(llvm::Module *M)
 {
     // the verifyModule function returns false if there
     // are no errors
-    return !llvm::verifyModule(*M, &errs());
+    return !llvm::verifyModule(*M, llvm::PrintMessageAction);
 }
 
 static bool write_module(llvm::Module *M, const char *module_name)
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
 {
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    std::unique_ptr<llvm::Module> M;
+    llvm::Module *M;
 
     const char *slicing_criterion = NULL;
     const char *module = NULL;
@@ -223,25 +223,25 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    M = llvm::parseIRFile(module, SMD, context);
+    M = llvm::ParseIRFile(module, SMD, context);
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;
     }
 
-    if (!slice(&*M, slicing_criterion)) {
+    if (!slice(M, slicing_criterion)) {
         errs() << "ERR: Slicing failed\n";
         return 1;
     }
 
-    remove_unused_from_module(&*M);
+    remove_unused_from_module(M);
 
-    if (!verify_module(&*M)) {
+    if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
         errs() << "INFO: Saving anyway so that you can check it\n";
     }
 
-    if (!write_module(&*M, module)) {
+    if (!write_module(M, module)) {
         errs() << "Saving sliced module failed\n";
         return 1;
     }
