@@ -25,7 +25,8 @@ class BBlock
 public:
     typedef typename NodeT::KeyType KeyT;
     BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
-        : key(KeyT()), ipostdom(nullptr), firstNode(first), lastNode(last)
+        : key(KeyT()), ipostdom(nullptr), firstNode(first), lastNode(last),
+          slice_id(0)
 #ifdef ENABLE_PSS
           , firstPointer(nullptr)
 #endif
@@ -315,6 +316,13 @@ public:
         return callSites.erase(n) != 0;
     }
 
+    void setSlice(uint64_t sid)
+    {
+        slice_id = sid;
+    }
+
+    uint64_t getSlice() const { return slice_id; }
+
 private:
     // optional key
     KeyT key;
@@ -339,6 +347,9 @@ private:
     NodeT *firstNode;
     // last node in this basic block
     NodeT *lastNode;
+
+    // is this block in some slice?
+    uint64_t slice_id;
 
 #ifdef ENABLE_PSS
     // first node that somehow takes action on memory

@@ -33,7 +33,8 @@ public:
 
     DependenceGraph<NodeT>()
         : global_nodes(nullptr), entryNode(nullptr), exitNode(nullptr),
-          formalParameters(nullptr), refcount(1), own_global_nodes(false)
+          formalParameters(nullptr), refcount(1), own_global_nodes(false),
+          slice_id(0)
 #ifdef ENABLE_CFG
      , entryBB(nullptr), exitBB(nullptr), PDTreeRoot(nullptr)
 #endif
@@ -342,6 +343,18 @@ public:
     }
 
     bool ownsGlobalNodes() const { return own_global_nodes; }
+
+    // set that this graph (if it is subgraph)
+    // will be left in a slice. It is virtual, because the graph
+    // may want to override the function and take some action,
+    // if it is in a graph
+    virtual void setSlice(uint64_t sid)
+    {
+        slice_id = sid;
+    }
+
+    uint64_t getSlice() const { return slice_id; }
+
 protected:
     // nodes contained in this dg. They are protected, so that
     // child classes can access them directly
@@ -379,6 +392,7 @@ private:
     // how many nodes keeps pointer to this graph?
     int refcount;
     bool own_global_nodes;
+    uint64_t slice_id;
 
 #ifdef ENABLE_CFG
     BBlock<NodeT> *entryBB;

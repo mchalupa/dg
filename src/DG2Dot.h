@@ -130,7 +130,14 @@ public:
             out << name << " ";
 
         out << "[" << sub << "]"
-            << "\\nhas " << sub->size() << " nodes\"\n";
+            << "\\nhas " << sub->size() << " nodes\n";
+
+        uint64_t slice_id = sub->getSlice();
+        if (slice_id != 0)
+            out << "\\nslice: "<< slice_id;
+
+        out << "\"\n";
+
 
         // dump BBs of the formal parameters
         dump_parameters(sub, 2);
@@ -216,6 +223,10 @@ private:
         unsigned int dfsorder = BB->getDFSOrder();
         if (dfsorder != 0)
             out << Ind << "\\ndfs order: "<< dfsorder;
+
+        uint64_t slice_id = BB->getSlice();
+        if (slice_id != 0)
+            out << "\\nslice: "<< slice_id;
 
         out << "\"\n";
 
