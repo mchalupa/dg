@@ -110,7 +110,17 @@ static Pointer handleConstantGep(LLVMDependenceGraph *dg,
         return UnknownMemoryLocation;
     }
 
-    Pointer pointer(opNode->getMemoryObj(), UNKNOWN_OFFSET);
+    PointsToSetT& S = opNode->getPointsTo();
+    // since this is constant expr, there's no way how we could
+    // get extra points-to binding in runtime
+    assert(S.size() == 1);
+    MemoryObj *mo = (*S.begin()).obj;
+    if (!mo) {
+        errs() << "ERR: no memory object in " << *opNode->getKey() << "\n";
+        return UnknownMemoryLocation;
+    }
+
+    Pointer pointer(mo, UNKNOWN_OFFSET);
     APInt offset(64, 0);
 
     if (GEP->accumulateConstantOffset(*DL, offset)) {
