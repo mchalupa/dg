@@ -17,7 +17,6 @@
 #include "analysis/BFS.h"
 
 #include <llvm/Analysis/PostDominators.h>
-#include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
