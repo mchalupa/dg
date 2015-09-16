@@ -197,6 +197,28 @@ is_func_defined(const llvm::CallInst *CInst)
     return true;
 }
 
+void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
+{
+    // add the same formal parameters
+    LLVMDGParameters *params = getParameters();
+    if (!params) {
+        params = new LLVMDGParameters();
+        setParameters(params);
+    }
+
+    // if we have this value, just return
+    if (params->find(val))
+        return;
+
+    LLVMNode *fpin = new LLVMNode(val);
+    LLVMNode *fpout = new LLVMNode(val);
+    params->add(val, fpin, fpout);
+
+    LLVMNode *entry = getEntry();
+    entry->addControlDependence(fpin);
+    entry->addControlDependence(fpout);
+}
+
 void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                                             LLVMNode *node)
 {
@@ -218,6 +240,21 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             LLVMDependenceGraph *subg = buildSubgraph(node);
             node->addSubgraph(subg);
             node->addActualParameters(subg);
+        }
+    } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
+        if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
+            const Value *op = Inst->getOperand(0)->stripPointerCasts();
+             if (isa<GlobalVariable>(op))
+                 addFormalParameter(op);
+        } else if (isa<StoreInst>(val)) {
+            const Value *op = Inst->getOperand(0)->stripPointerCasts();
+            if (isa<GlobalVariable>(op))
+                addFormalParameter(op);
+
+            op = Inst->getOperand(1)->stripPointerCasts();
+            if (isa<GlobalVariable>(op))
+                addFormalParameter(op);
+
         }
     }
 }

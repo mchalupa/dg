@@ -49,6 +49,8 @@ public:
     // build subgraphs of called functions
     bool build(const llvm::Function *func);
 
+    void addFormalParameter(const llvm::Value *val);
+
     llvm::Module *getModule() const { return module; }
     std::unordered_map<const llvm::BasicBlock *,
                        LLVMBBlock *> getConstructedBlocks()
