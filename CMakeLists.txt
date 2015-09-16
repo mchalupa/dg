@@ -42,6 +42,9 @@ if (LLVM_DG)
 
 	if (LLVM_BUILD_PATH)
 	  link_directories(${LLVM_BUILD_PATH}/lib)
+
+	  # llvm-config.h
+	  include_directories("${LLVM_BUILD_PATH}/include")
 	  message(STATUS "Looking for libraries in given: ${LLVM_BUILD_PATH}/lib")
 	else()
 	  link_directories(${LLVM_LIBRARY_DIRS})
