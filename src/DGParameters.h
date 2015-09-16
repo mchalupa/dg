@@ -55,7 +55,6 @@ class DGParameters
 {
 public:
     typedef typename NodeT::KeyType KeyT;
-    typedef std::map<KeyT, NodeT *> GlobalsContainerT;
     typedef std::map<KeyT, DGParameter<NodeT>> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
@@ -69,62 +68,41 @@ public:
         delete BBOut;
     }
 
-    NodeT& operator[](KeyT k) { return params[k]; }
+    DGParameter<NodeT> *operator[](KeyT k) { return find(k); }
+    const DGParameter<NodeT> *operator[](KeyT k) const { return find(k); }
 
     bool add(KeyT k, NodeT *val_in, NodeT *val_out)
     {
-        auto v = std::make_pair(k, DGParameter<NodeT>(val_in, val_out));
-
-        if (!params.insert(v).second)
-            // we already has param with this key
-            return false;
-
-        // add in parameter into BBIn
-        NodeT *last = BBIn->getLastNode();
-        if (last) {
-            last->setSuccessor(val_in);
-            BBIn->setLastNode(val_in);
-        } else { // BBIn is empty
-            BBIn->setFirstNode(val_in);
-            BBIn->setLastNode(val_in);
-            val_in->setBasicBlock(BBIn);
-        }
-
-        // add in parameter into BBOut
-        last = BBOut->getLastNode();
-        if (last) {
-            last->setSuccessor(val_out);
-            BBOut->setLastNode(val_out);
-        } else { // BBIn is empty
-            BBOut->setFirstNode(val_out);
-            BBOut->setLastNode(val_out);
-            val_out->setBasicBlock(BBOut);
-        }
-
-        return true;
+        return add(k, val_in, val_out, &params);
     }
 
-    bool addGlobal(KeyT k, NodeT *val)
+    bool addGlobal(KeyT k, NodeT *val_in, NodeT *val_out)
     {
-        return globals.insert(std::make_pair(k, val)).second;
+        return add(k, val_in, val_out, &globals);
     }
 
-    bool addGlobal(NodeT *val)
+    DGParameter<NodeT> *findGlobal(KeyT k)
     {
-        return addGlobal(val->getKeyT(), val);
+        return find(k, &globals);
     }
 
-    NodeT *findGlobal(KeyT k)
+    DGParameter<NodeT> *findParameter(KeyT k)
     {
-        auto it = globals.find(k);
-        if (it == globals.end())
-            return nullptr;
-
-        return it->second;
+        return find(k, &params);
     }
 
-    GlobalsContainerT& getGlobals() { return globals; }
-    const GlobalsContainerT& getGlobals() const { return globals; }
+    DGParameter<NodeT> *find(KeyT k)
+    {
+        DGParameter<NodeT> *ret = findParameter(k);
+        if (!ret)
+            return findGlobal(k);
+
+        return ret;
+    }
+
+    const DGParameter<NodeT> *findParameter(KeyT k) const { return findParameter(k); }
+    const DGParameter<NodeT> *findGlobal(KeyT k) const { return findGlobal(k); }
+    const DGParameter<NodeT> *find(KeyT k) const { return find(k); }
 
     void remove(KeyT k)
     {
@@ -157,39 +135,74 @@ public:
             params.erase(k);
     }
 
-    DGParameter<NodeT> *find(KeyT k)
-    {
-        iterator it = params.find(k);
-        if (it == end())
-            return nullptr;
-
-        return &(it->second);
-    }
-
-    const DGParameter<NodeT> *find(KeyT k) const
-    {
-        return find(k);
-    }
-
-    size_t size() const { return params.size(); }
+    size_t paramsNum() const { return params.size(); }
+    size_t globalsNum() const { return globals.size(); }
+    size_t size() const { return params.size() + globals.size(); }
 
     iterator begin(void) { return params.begin(); }
     const_iterator begin(void) const { return params.begin(); }
     iterator end(void) { return params.end(); }
     const_iterator end(void) const { return params.end(); }
 
+    iterator global_begin() { return globals.begin(); }
+    const_iterator global_begin() const { return globals.begin(); }
+    iterator global_end() { return globals.end(); }
+    const_iterator global_end() const { return globals.end(); }
+
     const BBlock<NodeT> *getBBIn() const { return BBIn; }
     const BBlock<NodeT> *getBBOut() const { return BBOut; }
     BBlock<NodeT> *getBBIn() { return BBIn; }
     BBlock<NodeT> *getBBOut() { return BBOut; }
 
-protected:
+private:
     // globals represented as a parameter
-    GlobalsContainerT globals;
+    ContainerType globals;
     // usual parameters
     ContainerType params;
+
     BBlock<NodeT> *BBIn;
     BBlock<NodeT> *BBOut;
+
+    DGParameter<NodeT> *find(KeyT k, ContainerType *C)
+    {
+        iterator it = C->find(k);
+        if (it == C->end())
+            return nullptr;
+
+        return &(it->second);
+    }
+
+    bool add(KeyT k, NodeT *val_in, NodeT *val_out, ContainerType *C)
+    {
+        auto v = std::make_pair(k, DGParameter<NodeT>(val_in, val_out));
+        if (!C->insert(v).second)
+            // we already has param with this key
+            return false;
+
+        // add in parameter into BBIn
+        NodeT *last = BBIn->getLastNode();
+        if (last) {
+            last->setSuccessor(val_in);
+            BBIn->setLastNode(val_in);
+        } else { // BBIn is empty
+            BBIn->setFirstNode(val_in);
+            BBIn->setLastNode(val_in);
+            val_in->setBasicBlock(BBIn);
+        }
+
+        // add in parameter into BBOut
+        last = BBOut->getLastNode();
+        if (last) {
+            last->setSuccessor(val_out);
+            BBOut->setLastNode(val_out);
+        } else { // BBIn is empty
+            BBOut->setFirstNode(val_out);
+            BBOut->setLastNode(val_out);
+            val_out->setBasicBlock(BBOut);
+        }
+
+        return true;
+    }
 };
 
 } // namespace dg

@@ -369,13 +369,6 @@ private:
             } else
                 out << "NO OUT ARG";
         }
-
-        // dump the global nodes
-        for (auto it : params->getGlobals()) {
-            NodeT* p = it.second;
-            dump_node(p, ind, "GLOB ARG");
-            dump_node_edges(p, ind);
-        }
     }
 
     void dump_subgraph(DependenceGraph<NodeT> *sub)

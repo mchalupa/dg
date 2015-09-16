@@ -102,87 +102,6 @@ static DefMap *getDefMap(LLVMNode *n)
 /// --------------------------------------------------
 //   Reaching definitions analysis
 /// --------------------------------------------------
-
-// if we define a global variable in the subprocedure,
-// add it as a parameter, so that we'll propagate the
-// definition as a parameter
-static void addGlobalsAsParameters(LLVMDependenceGraph *graph,
-                                   LLVMNode *callNode, DefMap *subgraph_df)
-{
-    // if some global variable is defined in the subprocedure,
-    // we must propagate it to the caller
-    for (auto it : *subgraph_df) {
-        const Pointer& ptr = it.first;
-
-        if (!ptr.isKnown())
-            continue;
-
-        if (isa<GlobalVariable>(ptr.obj->node->getKey())) {
-            // add actual params
-            LLVMDGParameters *params = callNode->getParameters();
-            if (!params) {
-                params = new LLVMDGParameters();
-                callNode->setParameters(params);
-            }
-
-            const Value *val = ptr.obj->node->getKey();
-            if (params->findGlobal(val))
-                continue;
-
-            // FIXME we don't need this one
-            LLVMNode *pact = new LLVMNode(val);
-            params->addGlobal(val, pact);
-            callNode->addControlDependence(pact);
-
-            // add formal parameters
-            params = graph->getParameters();
-            if (!params) {
-                params = new LLVMDGParameters();
-                graph->setParameters(params);
-            }
-
-            LLVMNode *pform = new LLVMNode(val);
-            params->addGlobal(val, pform);
-            LLVMNode *entry = graph->getEntry();
-            entry->addControlDependence(pform);
-
-            // global param is only the output param,
-            // so the arrow goes from formal to actual
-            pform->addDataDependence(pact);
-        }
-    }
-}
-
-static bool handleGlobals(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
-{
-    bool changed = false;
-
-    // get actual parameters (operands) and for every pointer in there
-    // check if the memory location it points to gets defined
-    // in the subprocedure
-    LLVMDGParameters *params = callNode->getParameters();
-    // if we have params, process params
-    if (!params)
-        return false;
-
-    for (auto it : params->getGlobals()) {
-        LLVMNode *p = it.second;
-        // the points-to is stored in the real global node
-        LLVMNode *global = callNode->getDG()->getNode(p->getKey());
-        assert(global && "Do not have a global node");
-
-        for (const Pointer& ptr : global->getPointsTo()) {
-            ValuesSetT& defs = subgraph_df->get(ptr);
-            if (defs.empty())
-                continue;
-
-            changed |= df->add(ptr, p);
-        }
-    }
-
-    return changed;
-}
-
 static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
 {
     bool changed = false;
@@ -231,12 +150,9 @@ static bool handleCallInst(LLVMDependenceGraph *graph,
     assert(exitNode && "No exit node in subgraph");
 
     DefMap *subgraph_df = getDefMap(exitNode);
-    // first add global as a parameters
-    addGlobalsAsParameters(graph, callNode, subgraph_df);
     // now handle all parameters
     // and global variables that are as parameters
     changed |= handleParams(callNode, df, subgraph_df);
-    changed |= handleGlobals(callNode, df, subgraph_df);
 
     return changed;
 }
@@ -492,28 +408,7 @@ static void addOutParamsEdges(LLVMDependenceGraph *graph)
                     def->addDataDependence(p.out);
             }
         }
-
-        // add edges between used globals and corresponding global's parameter
-        for (auto it : params->getGlobals()) {
-            LLVMNode *p = it.second;
-
-            // points-to of globals is stored in the global itself
-            LLVMNode *g = graph->getNode(p->getKey());
-            assert(g && "Do not have a global node");
-
-            for (const Pointer& ptr : g->getPointsTo()) {
-                ValuesSetT& defs = df->get(ptr);
-                if (defs.empty())
-                    continue;
-
-                // ok, the memory location is defined in this subgraph,
-                // so add data dependence edge to the global
-                for (LLVMNode *def : defs)
-                    def->addDataDependence(p);
-            }
-        }
     }
-
 }
 
 static void addOutParamsEdges(LLVMNode *callNode)
