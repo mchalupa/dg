@@ -528,18 +528,31 @@ static void addDefUseToParameterGlobals(LLVMNode *node,
 static void handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
-    LLVMDGParameters *params = node->getParameters();
+    const CallInst *CI = cast<CallInst>(node->getKey());
+    const Function *func = CI->getCalledFunction();
 
-    // if we have a node for the called function,
-    // it is call via function pointer, so add the
+    // if this is call via function pointer, add the
     // data dependence edge to corresponding node
-    if (!isa<Function>(node->getKey())) {
+    if (!func) {
         LLVMNode *n = node->getOperand(0);
         if (n)
             n->addDataDependence(node);
+    } else if (func->size() == 0) {
+        // the function is undefined - add the top-level deps
+        LLVMDependenceGraph *dg = node->getDG();
+        for (auto I = CI->op_begin(), E = CI->op_end(); I != E; ++I) {
+            const Value *op = (*I)->stripPointerCasts();
+            LLVMNode *from = dg->getNode(op);
+            if (from)
+                from->addDataDependence(node);
+        }
+
+        return;
     }
 
-    if (!params) // function has no arguments
+    // have we something to do further?
+    LLVMDGParameters *params = node->getParameters();
+    if (!params)
         return;
 
     // add def-use edges between parameters and the operands
