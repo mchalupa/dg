@@ -153,6 +153,14 @@ public:
             dump_node_edges(I->second, 2);
         }
 
+        if (sub->ownsGlobalNodes()) {
+            auto globals = sub->getGlobalNodes();
+            for (auto I = globals->begin(), E = globals->end(); I != E; ++I) {
+                dump_node(I->second, 2, "GLOB");
+                dump_node_edges(I->second, 2);
+            }
+        }
+
         out << "\t}\n";
     }
 
