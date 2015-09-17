@@ -93,6 +93,12 @@ static void print_lines(std::ifstream& ifs, std::set<unsigned>& lines)
     }
 }
 
+static void print_lines_numbers(std::set<unsigned>& lines)
+{
+    for (unsigned ln : lines)
+        std::cout << ln << "\n";
+}
+
 int main(int argc, char *argv[])
 {
     LLVMContext context;
@@ -102,13 +108,14 @@ int main(int argc, char *argv[])
     const char *source = NULL;
     const char *module = NULL;
 
-    if (argc != 3) {
-        errs() << "Usage: source_code module\n";
+    if (argc < 2 || argc > 3 ) {
+        errs() << "Usage: module [source_code]\n";
         return 1;
     }
 
-    source = argv[1];
-    module = argv[2];
+    module = argv[1];
+    if (argc == 3)
+        source = argv[2];
 
     M = parseIRFile(module, SMD, context);
     if (!M) {
@@ -117,20 +124,23 @@ int main(int argc, char *argv[])
     }
 
     // FIXME find out if we have debugging info at all
-
-    std::ifstream ifs(source);
-    if (!ifs.is_open() || ifs.bad()) {
-        errs() << "Failed opening given source file: " << source << "\n";
-        return 1;
-    }
-
     // no difficult machineris - just find out
     // which lines are in our module and print them
     std::set<unsigned> lines;
     get_lines_from_module(&*M, lines);
 
-    print_lines(ifs, lines);
-    ifs.close();
+    if (!source)
+        print_lines_numbers(lines);
+    else {
+        std::ifstream ifs(source);
+        if (!ifs.is_open() || ifs.bad()) {
+            errs() << "Failed opening given source file: " << source << "\n";
+            return 1;
+        }
+
+        print_lines(ifs, lines);
+        ifs.close();
+    }
 
     return 0;
 }
