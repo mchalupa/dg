@@ -93,6 +93,12 @@ static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst 
     return UnknownMemoryLocation;
 }
 
+static inline unsigned getPointerBitwidth(const DataLayout *DL, const Value *ptr)
+{
+    const Type *Ty = ptr->getType();
+    return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
+}
+
 static Pointer handleConstantGep(LLVMDependenceGraph *dg,
                                  const GetElementPtrInst *GEP,
                                  const llvm::DataLayout *DL)
@@ -121,13 +127,15 @@ static Pointer handleConstantGep(LLVMDependenceGraph *dg,
     }
 
     Pointer pointer(mo, UNKNOWN_OFFSET);
-    APInt offset(64, 0);
+    unsigned bitwidth = getPointerBitwidth(DL, op);
+    APInt offset(bitwidth, 0);
 
     if (GEP->accumulateConstantOffset(*DL, offset)) {
-        if (offset.isIntN(64))
+        if (offset.isIntN(bitwidth))
             pointer.offset = offset.getZExtValue();
         else
-            errs() << "WARN: Offset greater than 64-bit" << *GEP << "\n";
+            errs() << "WARN: Offset greater than "
+                   << bitwidth << "-bit" << *GEP << "\n";
     }
     // else offset is set to UNKNOWN (in constructor)
 

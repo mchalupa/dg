@@ -236,20 +236,28 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
     return changed;
 }
 
+static inline unsigned getPointerBitwidth(const DataLayout *DL, const Value *ptr)
+{
+    const Type *Ty = ptr->getType();
+    return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
+}
+
 bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
                                          LLVMNode *node)
 {
     bool changed = false;
-    APInt offset(64, 0);
+    const Value *ptrOp = Inst->getPointerOperand();
+    unsigned bitwidth = getPointerBitwidth(DL, ptrOp);
+    APInt offset(bitwidth, 0);
 
-    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
+    LLVMNode *ptrNode = getOperand(node, ptrOp, 0);
     assert(ptrNode && "Do not have GEP ptr node");
 
     if (Inst->accumulateConstantOffset(*DL, offset)) {
-        if (offset.isIntN(64))
+        if (offset.isIntN(bitwidth))
             return addPtrWithOffset(ptrNode, node, offset.getZExtValue(), DL);
         else
-            DBG("WARN: GEP offset greater that 64-bit");
+            DBG("WARN: GEP offset greater than " << bitwidth << "-bit");
             // fall-through to UNKNOWN_OFFSET in this case
     }
 
