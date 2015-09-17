@@ -19,6 +19,10 @@ add_library(llvmdg SHARED
 	llvm/PointsTo.cpp
 	llvm/DefUse.h
 	llvm/DefUse.cpp
+	llvm/DefMap.h
+	llvm/DefMap.cpp
+	llvm/ReachingDefs.h
+	llvm/ReachingDefs.cpp
 	llvm/Slicer.h
 )
 

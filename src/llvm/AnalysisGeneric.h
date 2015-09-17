@@ -5,6 +5,7 @@
 #include <set>
 
 namespace llvm {
+    class Value;
     class ConstantExpr;
     class DataLayout;
 };

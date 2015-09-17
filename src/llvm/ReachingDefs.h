@@ -1,5 +1,5 @@
-#ifndef _LLVM_DEF_USE_ANALYSIS_H_
-#define _LLVM_DEF_USE_ANALYSIS_H_
+#ifndef _LLVM_REACHING_DEFS_ANALYSIS_H_
+#define _LLVM_REACHING_DEFS_ANALYSIS_H_
 
 #include "analysis/DataFlowAnalysis.h"
 
@@ -18,24 +18,22 @@ class LLVMNode;
 
 namespace analysis {
 
-class LLVMDefUseAnalysis : public DataFlowAnalysis<LLVMNode>
+class LLVMReachingDefsAnalysis : public DataFlowAnalysis<LLVMNode>
 {
     LLVMDependenceGraph *dg;
     const llvm::DataLayout *DL;
 public:
-    LLVMDefUseAnalysis(LLVMDependenceGraph *dg);
+    LLVMReachingDefsAnalysis(LLVMDependenceGraph *dg);
 
     /* virtual */
     bool runOnNode(LLVMNode *node);
+    void handleNode(LLVMNode *);
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
     LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val, unsigned int idx);
-
-    void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
-    void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
 };
 
 } // namespace analysis
 } // namespace dg
 
-#endif //  _LLVM_DEF_USE_ANALYSIS_H_
+#endif

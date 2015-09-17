@@ -19,8 +19,8 @@
 #include <llvm/IR/Type.h>
 
 #include "Node.h"
-#include "PointsTo.h"
-#include "DefUse.h"
+#include "AnalysisGeneric.h"
+#include "DefMap.h"
 
 namespace dg {
 

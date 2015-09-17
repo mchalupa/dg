@@ -21,6 +21,7 @@
 #include <string>
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/PointsTo.h"
+#include "llvm/ReachingDefs.h"
 #include "llvm/DefUse.h"
 #include "llvm/Slicer.h"
 #include "DG2Dot.h"
@@ -252,15 +253,16 @@ int main(int argc, char *argv[])
         tm.report("INFO: Finding slicing criterions took");
     }
 
-    analysis::LLVMDefUseAnalysis DUA(&d);
 
+    analysis::LLVMReachingDefsAnalysis RDA(&d);
     tm.start();
-    DUA.run();  // compute reaching definitions
+    RDA.run();  // compute reaching definitions
     tm.stop();
     tm.report("INFO: Reaching defs analysis took");
 
+    analysis::LLVMDefUseAnalysis DUA(&d);
     tm.start();
-    DUA.addDefUseEdges(); // add def-use edges according that
+    DUA.run(); // add def-use edges according that
     tm.stop();
     tm.report("INFO: Adding Def-Use edges took");
 
