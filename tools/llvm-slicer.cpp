@@ -57,11 +57,19 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     if (!d.verify())
         errs() << "ERR: verifying failed\n";
 
+    // FIXME add command line switch -svcomp and
+    // do this only with -svcomp switch
+    const char *sc[] = {
+        slicing_criterion,
+        "__VERIFIER_assume",
+        NULL
+    };
+
     // check for slicing criterion here, because
     // we might have built new subgraphs that contain
     // it during points-to analysis
     tm.start();
-    bool ret = d.getCallSites(slicing_criterion, &callsites);
+    bool ret = d.getCallSites(sc, &callsites);
     tm.stop();
 
     if (!ret) {
