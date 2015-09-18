@@ -22,6 +22,9 @@ public:
     bool add(const Pointer& p, LLVMNode *n);
     bool update(const Pointer& p, LLVMNode *n);
 
+    bool defines(const Pointer& p) { return defs.count(p) != 0; }
+    bool definesWithAnyOffset(const Pointer& p);
+
     iterator begin() { return defs.begin(); }
     iterator end() { return defs.end(); }
     const_iterator begin() const { return defs.begin(); }

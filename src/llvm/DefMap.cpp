@@ -57,5 +57,14 @@ bool DefMap::update(const Pointer& p, LLVMNode *n)
     return ret;
 }
 
+bool DefMap::definesWithAnyOffset(const Pointer& p)
+{
+    for (auto it : defs)
+        if (it.first.obj == p.obj)
+            return true;
+
+    return false;
+}
+
 } // analysis
 } // dg

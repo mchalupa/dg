@@ -67,11 +67,13 @@ static bool handleParam(LLVMNode *node, LLVMNode *to,
 {
     bool changed = false;
     for (const Pointer& ptr : node->getPointsTo()) {
-        ValuesSetT& defs = subgraph_df->get(ptr);
-        if (defs.empty())
-            continue;
-
-        changed |= df->add(ptr, to);
+        // check if memory that is pointed by ptr
+        // with _arbitrary_ offset is defined in the
+        // subprocedure
+        for (auto it : *subgraph_df) {
+            if (it.first.obj == ptr.obj)
+                changed |= df->add(it.first, to);
+        }
     }
 
     return changed;
