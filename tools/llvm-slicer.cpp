@@ -122,10 +122,25 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     return true;
 }
 
+static bool array_match(llvm::StringRef name, const char *names[])
+{
+    unsigned idx = 0;
+    while(names[idx]) {
+        if (name.equals(names[idx]))
+            return true;
+        ++idx;
+    }
+
+    return false;
+}
+
 static void remove_unused_from_module(llvm::Module *M)
 {
     using namespace llvm;
-    llvm::StringRef main("main");
+    // do not slice away these functions no matter what
+    // FIXME do it a vector and fill it dynamically according
+    // to what is the setup (like for sv-comp or general..)
+    const char *keep[] = {"main", "__VERIFIER_assume", NULL};
 
     // when erasing while iterating the slicer crashes
     // so set the to be erased values into container
@@ -135,7 +150,7 @@ static void remove_unused_from_module(llvm::Module *M)
 
     for (auto I = M->begin(), E = M->end(); I != E; ++I) {
         Function *func = &*I;
-        if (func->hasNUses(0) && !func->getName().equals(main))
+        if (func->hasNUses(0) && !array_match(func->getName(), keep))
             funs.insert(func);
     }
 
