@@ -326,7 +326,7 @@ static void handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     const CallInst *CI = cast<CallInst>(node->getKey());
-    const Function *func = CI->getCalledFunction();
+    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
 
     // if this is call via function pointer, add the
     // data dependence edge to corresponding node
