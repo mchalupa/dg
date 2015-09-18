@@ -20,6 +20,11 @@ class LLVMSlicer : public analysis::Slicer<LLVMNode>
 public:
     LLVMSlicer() :nodesTotal(0), nodesRemoved(0) {}
 
+    void keepFunctionUntouched(const char *n)
+    {
+        dont_touch.insert(n);
+    }
+
     /* virtual */
     void removeNode(LLVMNode *node)
     {
@@ -62,6 +67,9 @@ public:
         extern std::map<const llvm::Value *,
                         LLVMDependenceGraph *> constructedFunctions;
         for (auto it : constructedFunctions) {
+            if (dontTouch(it.first->getName()))
+                continue;
+
             LLVMDependenceGraph *subdg = it.second;
             sliceGraph(subdg, sl_id);
         }
@@ -153,6 +161,13 @@ private:
                     LLVMNode *n = I->second;
                     ++nodesTotal;
 
+                    // do not slice away entry nodes of
+                    // 'untouchable' functions
+                    const llvm::Function *func
+                        = llvm::dyn_cast<llvm::Function>(n->getKey());
+                    if (func && dontTouch(func->getName()))
+                        continue;
+
                     if (n->getSlice() != slice_id) {
                         removeNode(n);
                         dg->deleteGlobalNode(I);
@@ -162,10 +177,21 @@ private:
             }
     }
 
+    bool dontTouch(const llvm::StringRef& r)
+    {
+        for (const char *n : dont_touch)
+            if (r.equals(n))
+                return true;
+
+        return false;
+    }
+
     uint64_t nodesTotal;
     uint64_t nodesRemoved;
-};
 
+    // do not slice these functions at all
+    std::set<const char *> dont_touch;
+};
 } // namespace dg
 
 #endif  // _LLVM_DG_SLICER_H_

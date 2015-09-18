@@ -106,6 +106,10 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     LLVMSlicer slicer;
     uint32_t slid = 0;
 
+    // do not slice __VERIFIER_assume at all
+    // FIXME: do this optional
+    slicer.keepFunctionUntouched("__VERIFIER_assume");
+
     tm.start();
     for (LLVMNode *start : callsites)
         slid = slicer.mark(start, slid);
