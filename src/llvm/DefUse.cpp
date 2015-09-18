@@ -301,6 +301,25 @@ static void addDefUseToParameterGlobals(LLVMNode *node,
     }
 }
 
+static void handleUndefinedCall(LLVMNode *node)
+{
+    const CallInst *CI = cast<CallInst>(node->getKey());
+    // the function is undefined - add the top-level deps
+    LLVMDependenceGraph *dg = node->getDG();
+    for (auto I = CI->op_begin(), E = CI->op_end(); I != E; ++I) {
+        const Value *op = *I;
+        LLVMNode *from;
+
+        if (isa<ConstantExpr>(op))
+            from = dg->getNode(op->stripPointerCasts());
+        else
+            from = dg->getNode(op);
+
+        if (from)
+            from->addDataDependence(node);
+    }
+}
+
 static void handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
@@ -313,16 +332,10 @@ static void handleCallInst(LLVMNode *node)
         LLVMNode *n = node->getOperand(0);
         if (n)
             n->addDataDependence(node);
-    } else if (func->size() == 0) {
-        // the function is undefined - add the top-level deps
-        LLVMDependenceGraph *dg = node->getDG();
-        for (auto I = CI->op_begin(), E = CI->op_end(); I != E; ++I) {
-            const Value *op = (*I)->stripPointerCasts();
-            LLVMNode *from = dg->getNode(op);
-            if (from)
-                from->addDataDependence(node);
-        }
+    }
 
+    if (func && func->size() == 0) {
+        handleUndefinedCall(node);
         return;
     }
 
