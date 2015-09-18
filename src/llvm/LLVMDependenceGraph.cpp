@@ -556,7 +556,19 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
     delete pdtree;
 }
 
-static bool match_callsite_name(LLVMNode *callNode, const char *name)
+static bool array_match(llvm::StringRef name, const char *names[])
+{
+    unsigned idx = 0;
+    while(names[idx]) {
+        if (name.equals(names[idx]))
+            return true;
+        ++idx;
+    }
+
+    return false;
+}
+
+static bool match_callsite_name(LLVMNode *callNode, const char *names[])
 {
     using namespace llvm;
 
@@ -570,7 +582,7 @@ static bool match_callsite_name(LLVMNode *callNode, const char *name)
         if (!func)
             return false;
 
-        return strcmp(name, func->getName().data()) == 0;
+        return array_match(func->getName(), names);
     } else {
         // simply iterate over the subgraphs, get the entry node
         // and check it
@@ -579,15 +591,20 @@ static bool match_callsite_name(LLVMNode *callNode, const char *name)
             assert(entry && "No entry node in graph");
 
             const Function *func = cast<Function>(entry->getValue()->stripPointerCasts());
-            if (strcmp(name, func->getName().data()) == 0)
-                return true;
+            return array_match(func->getName(), names);
         }
     }
 
     return false;
 }
 
-bool LLVMDependenceGraph::getCallSites(const char *name,
+bool LLVMDependenceGraph::getCallSites(const char *name, std::set<LLVMNode *> *callsites)
+{
+    const char *names[] = {name, NULL};
+    return getCallSites(names, callsites);
+}
+
+bool LLVMDependenceGraph::getCallSites(const char *names[],
                                        std::set<LLVMNode *> *callsites)
 {
     for (auto F : constructedFunctions) {
@@ -596,7 +613,7 @@ bool LLVMDependenceGraph::getCallSites(const char *name,
             LLVMNode *n = BB->getFirstNode();
             while (n) {
                 if (llvm::isa<llvm::CallInst>(n->getValue())) {
-                    if (match_callsite_name(n, name))
+                    if (match_callsite_name(n, names))
                         callsites->insert(n);
                 }
 

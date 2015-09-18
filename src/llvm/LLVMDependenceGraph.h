@@ -74,6 +74,8 @@ public:
     // go through the graph and find all (possible) call-sites
     // for a function
     bool getCallSites(const char *name, std::set<LLVMNode *> *callsites);
+    // this method takes NULL-terminated array of names
+    bool getCallSites(const char *names[], std::set<LLVMNode *> *callsites);
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
