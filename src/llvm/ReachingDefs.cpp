@@ -36,6 +36,13 @@ Pointer LLVMReachingDefsAnalysis::getConstantExprPointer(const ConstantExpr *CE)
     return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
 
+LLVMNode *LLVMReachingDefsAnalysis::getOperand(LLVMNode *node,
+                                               const Value *val,
+                                               unsigned int idx)
+{
+    return dg::analysis::getOperand(node, val, idx, DL);
+}
+
 // FIXME don't duplicate the code from DefUse.cpp
 static DefMap *getDefMap(LLVMNode *n)
 {
@@ -135,8 +142,32 @@ static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
     return changed;
 }
 
-static bool handleCallInst(LLVMDependenceGraph *graph,
-                           LLVMNode *callNode, DefMap *df)
+bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
+                                                   DefMap *df)
+{
+    bool changed = false;
+    const CallInst *CI = cast<CallInst>(callNode->getKey());
+    for (unsigned n = 1, e = callNode->getOperandsNum(); n < e; ++n) {
+        const Value *llvmOp = CI->getOperand(n - 1);
+        if (!llvmOp->getType()->isPointerTy())
+            continue;
+
+        LLVMNode *op = getOperand(callNode, llvmOp, n);
+        assert(op && "unhandled pointer operand in undef call");
+
+        // with undefined call we must assume that any
+        // memory that was passed via pointer was modified
+        // XXX we should handle external globals too
+        for (const Pointer& ptr : op->getPointsTo())
+            changed |= df->add(ptr, callNode);
+    }
+
+    return changed;
+}
+
+//static bool handleIntrinsicCall
+bool LLVMReachingDefsAnalysis::handleCallInst(LLVMDependenceGraph *graph,
+                                              LLVMNode *callNode, DefMap *df)
 {
     bool changed = false;
 
@@ -151,9 +182,12 @@ static bool handleCallInst(LLVMDependenceGraph *graph,
     return changed;
 }
 
-static bool handleCallInst(LLVMNode *callNode, DefMap *df)
+bool LLVMReachingDefsAnalysis::handleCallInst(LLVMNode *callNode, DefMap *df)
 {
     bool changed = false;
+
+    if (!callNode->hasSubgraphs())
+        return handleUndefinedCall(callNode, df);
 
     for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
         changed |= handleCallInst(subgraph, callNode, df);
@@ -198,7 +232,7 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
             changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
         // call inst may add some definitions to (StoreInst in subgraph)
         else if (isa<CallInst>(predVal))
-            changed |= dg::analysis::handleCallInst(pred, df);
+            changed |= handleCallInst(pred, df);
 
         changed |= df->merge(getDefMap(pred), strong_update);
     } else { // BB predcessors
@@ -214,7 +248,7 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
             if (isa<StoreInst>(predVal))
                 changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
             else if (isa<CallInst>(predVal))
-                changed |= dg::analysis::handleCallInst(pred, df);
+                changed |= handleCallInst(pred, df);
 
             df->merge(getDefMap(pred), nullptr);
         }

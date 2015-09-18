@@ -30,7 +30,12 @@ public:
     void handleNode(LLVMNode *);
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);
-    LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val, unsigned int idx);
+    LLVMNode *getOperand(LLVMNode *node,
+                         const llvm::Value *val, unsigned int idx);
+
+    bool handleCallInst(LLVMDependenceGraph *, LLVMNode *, DefMap *);
+    bool handleUndefinedCall(LLVMNode *, DefMap *);
+    bool handleCallInst(LLVMNode *, DefMap *);
 };
 
 } // namespace analysis
