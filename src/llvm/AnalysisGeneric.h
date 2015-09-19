@@ -51,6 +51,11 @@ struct Offset
         return offset < o.offset;
     }
 
+    bool inRange(uint64_t from, uint64_t to) const
+    {
+        return (offset >= from && offset <= to);
+    }
+
     bool isUnknown() const { return offset == UNKNOWN_OFFSET; }
 
     uint64_t operator*() const { return offset; }
@@ -95,6 +100,18 @@ struct MemoryObj
             return false;
 
         return pointsTo[off].insert(ptr).second;
+    }
+
+    bool addPointsTo(const Offset& off, const std::set<Pointer>& pointers)
+    {
+        if (isUnknown())
+            return false;
+
+        bool changed = false;
+        for (const Pointer& ptr : pointers)
+            changed |= pointsTo[off].insert(ptr).second;
+
+        return changed;
     }
 
     bool isUnknown() const;

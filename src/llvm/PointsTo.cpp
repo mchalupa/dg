@@ -524,11 +524,83 @@ static bool handleDynamicMemAllocation(const CallInst *Inst,
     return handleMemAllocation(node, size);
 }
 
+bool LLVMPointsToAnalysis::handleMemTransfer(const CallInst *Inst, LLVMNode *node)
+{
+    bool changed = false;
+    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
+    const Value *dest, *src, *len;
+
+    switch (I->getIntrinsicID())
+    {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+            dest = I->getOperand(0);
+            src = I->getOperand(1);
+            len = I->getOperand(2);
+            break;
+        case Intrinsic::memset:
+            errs() << "WARN: memset unhandled " << *Inst << "\n";
+            return false;
+        default:
+            errs() << "ERR: unhandled mem transfer intrinsic" << *Inst << "\n";
+            return false;
+    }
+
+    LLVMNode *destNode = getOperand(node, dest, 1);
+    LLVMNode *srcNode = getOperand(node, src, 2);
+    uint64_t lenval = ~((uint64_t) 0);
+
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(len))
+        lenval = C->getLimitedValue();
+
+    for (const Pointer& srcptr : srcNode->getPointsTo()) {
+        // set bounds from and to copy the pointers
+        uint64_t from;
+        uint64_t to;
+        if (srcptr.offset.isUnknown()) {
+            // if the offset is UNKNOWN, make the memory be copied
+            // entirely
+            from = 0;
+        } else {
+            from = *srcptr.offset;
+        }
+
+        // FIXME: couldn't this introduce looping?
+        // Just like with offsets in gep?
+        if (lenval != ~((uint64_t) 0))
+            // do not allow overflow
+            to = from + lenval;
+        else
+            to = lenval;
+
+        for (auto it : srcptr.obj->pointsTo) {
+            const Offset& off = it.first;
+            if (off.inRange(from, to)) {
+                for (const Pointer& destptr: destNode->getPointsTo())
+                    changed |= destptr.obj->addPointsTo(it.first, it.second);
+            }
+        }
+    }
+
+    return changed;
+}
+
+bool LLVMPointsToAnalysis::handleIntrinsicFunction(const CallInst *Inst, LLVMNode *node)
+{
+    if (isa<MemTransferInst>(Inst))
+        return handleMemTransfer(Inst, node);
+
+    return false;
+}
+
 bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     Type *Ty = Inst->getType();
-    Function *func = Inst->getCalledFunction();
+    const Function *func = dyn_cast<Function>(Inst->getCalledValue()->stripPointerCasts());
+
+    if (func && func->isIntrinsic())
+        return handleIntrinsicFunction(Inst, node);
 
     // add subgraphs dynamically according the points-to information
     LLVMNode *calledFuncNode = getOperand(node, Inst->getCalledValue(), 0);
