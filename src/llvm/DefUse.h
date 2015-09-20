@@ -33,6 +33,10 @@ private:
 
     void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
+    void handleIntrinsicCall(LLVMNode *, const llvm::CallInst *);
+    void handleUndefinedCall(LLVMNode *);
+    void handleCallInst(LLVMNode *);
+    void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
 };
 
 } // namespace analysis

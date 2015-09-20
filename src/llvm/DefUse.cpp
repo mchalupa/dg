@@ -3,6 +3,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/Module.h>
@@ -303,9 +304,8 @@ static void addDefUseToParameterGlobals(LLVMNode *node,
     }
 }
 
-static void handleUndefinedCall(LLVMNode *node)
+void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node, const CallInst *CI)
 {
-    const CallInst *CI = cast<CallInst>(node->getKey());
     // the function is undefined - add the top-level deps
     LLVMDependenceGraph *dg = node->getDG();
     for (auto I = CI->op_begin(), E = CI->op_end(); I != E; ++I) {
@@ -322,7 +322,51 @@ static void handleUndefinedCall(LLVMNode *node)
     }
 }
 
-static void handleCallInst(LLVMNode *node)
+void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst *CI)
+{
+    const IntrinsicInst *I = cast<IntrinsicInst>(CI);
+    const Value *dest, *src;
+    DefMap *df = getDefMap(callNode);
+
+    switch (I->getIntrinsicID())
+    {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+        case Intrinsic::memset:
+            dest = I->getOperand(0);
+            src = I->getOperand(1);
+            break;
+        default:
+            handleUndefinedCall(callNode, CI);
+            return;
+    }
+
+    LLVMNode *destNode = getOperand(callNode, dest, 1);
+    assert(destNode && "No dest operand for intrinsic call");
+
+    LLVMNode *srcNode = getOperand(callNode, src, 2);
+    assert(srcNode && "No src operand for intrinsic call");
+
+    // these functions touch the memory of the pointers
+    addIndirectDefUse(destNode, callNode, df);
+    addIndirectDefUse(srcNode, callNode, df);
+
+    // and we also need the top-level edges. These will be added by
+    // handle undefined call
+    handleUndefinedCall(callNode, CI);
+}
+
+void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node)
+{
+    const CallInst *CI = cast<CallInst>(node->getKey());
+    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    if (func && func->isIntrinsic())
+        handleIntrinsicCall(node, CI);
+    else
+        handleUndefinedCall(node, CI);
+}
+
+void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     const CallInst *CI = cast<CallInst>(node->getKey());
