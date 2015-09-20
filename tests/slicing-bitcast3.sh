@@ -13,7 +13,7 @@ NAME=${CODE%.*}
 BCFILE="$NAME.bc"
 SLICEDFILE="$NAME.sliced"
 
-clang -emit-llvm -c "$CODE" -o "$BCFILE"
+clang -emit-llvm -c "$CODE" -std=gnu11 -o "$BCFILE"
 llvm-slicer -c __assert_fail "$BCFILE"
 
 # run the sliced code and check if it
