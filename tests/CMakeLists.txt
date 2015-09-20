@@ -59,5 +59,8 @@ if (LLVM_DG)
 	add_test(slicing-ptrtoint1 slicing-ptrtoint1.sh)
 	add_test(slicing-llvmmemcpy slicing-llvmmemcpy.sh)
 	add_test(slicing-llvmmemcpy2 slicing-llvmmemcpy2.sh)
+	add_test(slicing-bitcast1 slicing-bitcast1.sh)
+	add_test(slicing-bitcast2 slicing-bitcast2.sh)
+	add_test(slicing-bitcast3 slicing-bitcast3.sh)
 
 endif (LLVM_DG)
