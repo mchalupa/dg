@@ -34,6 +34,9 @@ private:
                          const llvm::Value *val, unsigned int idx);
 
     bool handleCallInst(LLVMDependenceGraph *, LLVMNode *, DefMap *);
+
+    bool handleUndefinedCall(LLVMNode *, const llvm::CallInst *, DefMap *);
+    bool handleIntrinsicCall(LLVMNode *, const llvm::CallInst *, DefMap *);
     bool handleUndefinedCall(LLVMNode *, DefMap *);
     bool handleCallInst(LLVMNode *, DefMap *);
 };

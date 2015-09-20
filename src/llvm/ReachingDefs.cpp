@@ -3,6 +3,7 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/Module.h>
@@ -144,11 +145,12 @@ static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
     return changed;
 }
 
+
 bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
+                                                   const CallInst *CI,
                                                    DefMap *df)
 {
     bool changed = false;
-    const CallInst *CI = cast<CallInst>(callNode->getKey());
     for (unsigned n = 1, e = callNode->getOperandsNum(); n < e; ++n) {
         const Value *llvmOp = CI->getOperand(n - 1);
         if (!llvmOp->getType()->isPointerTy())
@@ -159,15 +161,58 @@ bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
 
         // with undefined call we must assume that any
         // memory that was passed via pointer was modified
+        // and on unknown offset
         // XXX we should handle external globals too
         for (const Pointer& ptr : op->getPointsTo())
-            changed |= df->add(ptr, callNode);
+            changed |= df->add(Pointer(ptr.obj, UNKNOWN_OFFSET), callNode);
     }
 
     return changed;
 }
 
-//static bool handleIntrinsicCall
+bool LLVMReachingDefsAnalysis::handleIntrinsicCall(LLVMNode *callNode,
+                                                   const CallInst *CI,
+                                                   DefMap *df)
+{
+    bool changed = false;
+    const IntrinsicInst *I = cast<IntrinsicInst>(CI);
+    const Value *dest;
+
+    switch (I->getIntrinsicID())
+    {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+        case Intrinsic::memset:
+            dest = I->getOperand(0);
+            break;
+        default:
+            return handleUndefinedCall(callNode, CI, df);
+    }
+
+    LLVMNode *destNode = getOperand(callNode, dest, 1);
+    assert(destNode && "No operand for intrinsic call");
+
+    for (const Pointer& ptr : destNode->getPointsTo()) {
+        // we could compute all the concrete offsets, but
+        // these functions usually set the whole memory,
+        // so if we use UNKNOWN_OFFSET, the effect is the same
+        changed |= df->add(Pointer(ptr.obj, UNKNOWN_OFFSET), callNode);
+    }
+
+    return changed;
+}
+
+bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
+                                                   DefMap *df)
+{
+    const CallInst *CI = cast<CallInst>(callNode->getKey());
+    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    if (func && func->isIntrinsic())
+        return handleIntrinsicCall(callNode, CI, df);
+
+    return handleUndefinedCall(callNode, CI, df);
+}
+
 bool LLVMReachingDefsAnalysis::handleCallInst(LLVMDependenceGraph *graph,
                                               LLVMNode *callNode, DefMap *df)
 {
