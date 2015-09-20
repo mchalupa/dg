@@ -37,6 +37,10 @@ private:
     void handleUndefinedCall(LLVMNode *);
     void handleCallInst(LLVMNode *);
     void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
+
+    void addIndirectDefUse(LLVMNode *, LLVMNode *, DefMap *);
+    void addDefUseToOperands(LLVMNode *, LLVMDGParameters *, DefMap *);
+    void addDefUseToParameterGlobals(LLVMNode *, LLVMDGParameters *, DefMap *);
 };
 
 } // namespace analysis

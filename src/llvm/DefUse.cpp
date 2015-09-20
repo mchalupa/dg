@@ -96,33 +96,46 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
         } else if (isa<ConstantPointerNull>(ptrVal)) {
             // just do nothing, it has no reaching definition
             return;
-        } else {
-            DBG("WARN: no reaching definition for " << *ptr.obj->node->getKey()
-                << " + " << *ptr.offset);
-            return;
         }
     }
 
-    assert(!defs.empty());
     for (LLVMNode *n : defs)
         n->addDataDependence(to);
-
-    // if we got pointer to our object with UNKNOWN_OFFSET,
-    // it still can be reaching definition, so we must take it into
-    // account
-    ValuesSetT& defsUnknown = df->get(Pointer(ptr.obj, UNKNOWN_OFFSET));
-    if (!defsUnknown.empty()) {
-        for (LLVMNode *n : defsUnknown)
-            n->addDataDependence(to);
-    }
 }
 
-static void addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
+void LLVMDefUseAnalysis::addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
 {
     // iterate over all memory locations that this
-    // store can define and check where they are defined
-    for (const Pointer& ptr : ptrNode->getPointsTo())
-        addIndirectDefUsePtr(ptr, to, df);
+    // store can define and check where they are defined.
+    // If this is a load or similar, we read from memory
+    // some number of bytes (e. g. 4 bytes for load i32 *).
+    // We must therefore check if ptr.offset + 0,1,2,3 have
+    // reaching definitions, because these are also modification
+    // of the memory of interest
+    for (const Pointer& ptr : ptrNode->getPointsTo()) {
+        Type *elemTy = ptrNode->getValue()->getType()->getContainedType(0);
+        size_t size = 1;
+        if (elemTy->isSized())
+            size = DL->getTypeAllocSize(elemTy);
+        else
+            errs() << "ERR: type pointed is not sized " << *elemTy << "\n";
+
+        // check if we have reaching definition for this pointer
+        // FIXME: do it more efficiently, get the iterator instead of
+        // pointer and then just iterate until the object is same, because
+        // the map is sorted
+        for (size_t i = 0; i < size; ++i)
+            addIndirectDefUsePtr(Pointer(ptr.obj, *ptr.offset + i), to, df);
+
+        // if we got pointer to our object with UNKNOWN_OFFSET,
+        // it still can be reaching definition, so we must take it into
+        // account
+        ValuesSetT& defsUnknown = df->get(Pointer(ptr.obj, UNKNOWN_OFFSET));
+        if (!defsUnknown.empty()) {
+            for (LLVMNode *n : defsUnknown)
+                n->addDataDependence(to);
+        }
+    }
 }
 
 // return Value used on operand LLVMNode
@@ -255,8 +268,9 @@ static void addOutParamsEdges(LLVMNode *callNode)
     }
 }
 
-static void addDefUseToOperands(LLVMNode *node,
-                                LLVMDGParameters *params, DefMap *df)
+void LLVMDefUseAnalysis::addDefUseToOperands(LLVMNode *node,
+                                             LLVMDGParameters *params,
+                                             DefMap *df)
 {
     for (int i = 1, e = node->getOperandsNum(); i < e; ++i) {
         LLVMNode *op = node->getOperand(i);
@@ -280,8 +294,9 @@ static void addDefUseToOperands(LLVMNode *node,
     }
 }
 
-static void addDefUseToParameterGlobals(LLVMNode *node,
-                                        LLVMDGParameters *params, DefMap *df)
+void LLVMDefUseAnalysis::addDefUseToParameterGlobals(LLVMNode *node,
+                                                     LLVMDGParameters *params,
+                                                     DefMap *df)
 {
     LLVMDependenceGraph *dg = node->getDG();
     for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
