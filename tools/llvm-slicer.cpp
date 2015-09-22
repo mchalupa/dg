@@ -61,7 +61,7 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     // do this only with -svcomp switch
     const char *sc[] = {
         slicing_criterion,
-        "__VERIFIER_assume",
+        "klee_assume",
         NULL
     };
 
@@ -106,9 +106,9 @@ static bool slice(llvm::Module *M, const char *slicing_criterion)
     LLVMSlicer slicer;
     uint32_t slid = 0;
 
-    // do not slice __VERIFIER_assume at all
+    // do not slice klee_assume at all
     // FIXME: do this optional
-    slicer.keepFunctionUntouched("__VERIFIER_assume");
+    slicer.keepFunctionUntouched("klee_assume");
 
     tm.start();
     for (LLVMNode *start : callsites)
@@ -144,7 +144,7 @@ static void remove_unused_from_module(llvm::Module *M)
     // do not slice away these functions no matter what
     // FIXME do it a vector and fill it dynamically according
     // to what is the setup (like for sv-comp or general..)
-    const char *keep[] = {"main", "__VERIFIER_assume", NULL};
+    const char *keep[] = {"main", "klee_assume", NULL};
 
     // when erasing while iterating the slicer crashes
     // so set the to be erased values into container
@@ -234,7 +234,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    remove_unused_from_module(M);
+    //remove_unused_from_module(M);
 
     if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";

@@ -247,8 +247,14 @@ int main(int argc, char *argv[])
 
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
+        const char *sc[] = {
+            slicing_criterion,
+            "klee_assume",
+            NULL
+        };
+
         tm.start();
-        d.getCallSites(slicing_criterion, &callsites);
+        d.getCallSites(sc, &callsites);
         tm.stop();
         tm.report("INFO: Finding slicing criterions took");
     }
