@@ -469,7 +469,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    remove_unused_from_module(M);
+    //remove_unused_from_module(M);
 
     if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
