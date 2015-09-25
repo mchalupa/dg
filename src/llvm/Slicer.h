@@ -31,12 +31,12 @@ public:
         using namespace llvm;
 
         Value *val = const_cast<Value *>(node->getKey());
+        // if there are any other uses of this value,
+        // just replace them with undef
         val->replaceAllUsesWith(UndefValue::get(val->getType()));
 
         Instruction *Inst = dyn_cast<Instruction>(val);
         if (Inst) {
-            // if there are any other uses of this value,
-            // just replace them with undef
             Inst->eraseFromParent();
         } else {
             GlobalVariable *GV = dyn_cast<GlobalVariable>(val);
@@ -64,6 +64,7 @@ public:
             sl_id = mark(start, sl_id);
 
         // take every subgraph and slice it intraprocedurally
+        // this includes the main graph
         extern std::map<const llvm::Value *,
                         LLVMDependenceGraph *> constructedFunctions;
         for (auto it : constructedFunctions) {
@@ -73,9 +74,6 @@ public:
             LLVMDependenceGraph *subdg = it.second;
             sliceGraph(subdg, sl_id);
         }
-
-        // slice main dg
-        sliceGraph(maindg, sl_id);
 
         return sl_id;
     }
@@ -129,37 +127,42 @@ private:
         }
     }
 
-    void sliceGraph(LLVMDependenceGraph *dg, uint32_t slice_id)
+    void sliceGraph(LLVMDependenceGraph *graph, uint32_t slice_id)
     {
-            for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
+            for (auto I = graph->begin(), E = graph->end(); I != E;) {
                 LLVMNode *n = I->second;
+                // shift here, so that we won't corrupt the iterator
+                // by deleteing the node
+                ++I;
 
                 // we added this node artificially and
                 // we don't want to slice it away or
                 // take any other action on it
-                if (n == dg->getExit())
+                if (n == graph->getExit())
                     continue;
 
                 ++nodesTotal;
 
-                if (llvm::isa<llvm::CallInst>(n->getKey()))
-                    sliceCallNode(n, slice_id);
-
                 if (!shouldSliceInst(n->getKey()))
                     continue;
 
+                if (llvm::isa<llvm::CallInst>(n->getKey()))
+                    sliceCallNode(n, slice_id);
+
                 if (n->getSlice() != slice_id) {
                     removeNode(n);
-                    dg->deleteNode(n);
+                    graph->deleteNode(n);
                     ++nodesRemoved;
                 }
             }
 
-            if (dg->ownsGlobalNodes()) {
-                auto nodes = dg->getGlobalNodes();
-                for (auto I = nodes->begin(), E = nodes->end(); I != E; ++I) {
+            #if 0
+            if (graph->ownsGlobalNodes()) {
+                auto nodes = graph->getGlobalNodes();
+                for (auto I = nodes->begin(), E = nodes->end(); I != E;) {
                     LLVMNode *n = I->second;
                     ++nodesTotal;
+                    ++I;
 
                     // do not slice away entry nodes of
                     // 'untouchable' functions
@@ -170,11 +173,12 @@ private:
 
                     if (n->getSlice() != slice_id) {
                         removeNode(n);
-                        dg->deleteGlobalNode(I);
+                        graph->deleteGlobalNode(I);
                         ++nodesRemoved;
                     }
                 }
             }
+            #endif
     }
 
     bool dontTouch(const llvm::StringRef& r)
