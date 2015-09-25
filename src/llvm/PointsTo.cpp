@@ -435,11 +435,35 @@ static void propagateGlobalParametersPointsTo(LLVMNode *callNode)
     propagateGlobalParametersPointsTo(actual, dg);
 }
 
+static bool handleReturnedPointer(LLVMDependenceGraph *subgraph,
+                                  LLVMNode *callNode)
+{
+    bool changed = false;
+    LLVMNode *retval = subgraph->getExit();
+    // this is artificial return value, the real
+    // are control dependent on it
+    for (auto I = retval->rev_control_begin(), E = retval->rev_control_end();
+         I != E; ++I) {
+        // we should iterate only over return inst
+        assert(isa<ReturnInst>((*I)->getKey()));
+
+        for (auto ptr : (*I)->getPointsTo())
+            changed |= callNode->addPointsTo(ptr);
+    }
+
+    return changed;
+}
+
 bool LLVMPointsToAnalysis::
 propagatePointersToArguments(LLVMDependenceGraph *subgraph,
                              const CallInst *Inst, LLVMNode *callNode)
 {
     bool changed = false;
+    // handle return value here, so that we can bail out
+    // if we have no parameters
+    if (callNode->isPointerTy())
+        changed |= handleReturnedPointer(subgraph, callNode);
+
     LLVMDGParameters *formal = subgraph->getParameters();
     if (!formal)
         return false;
@@ -473,22 +497,6 @@ propagatePointersToArguments(LLVMDependenceGraph *subgraph,
     }
 
     propagateGlobalParametersPointsTo(callNode);
-
-    if (!callNode->isPointerTy())
-        return changed;
-
-    // handle return values
-    LLVMNode *retval = subgraph->getExit();
-    // this is artificial return value, the real
-    // are control dependent on it
-    for (auto I = retval->rev_control_begin(), E = retval->rev_control_end();
-         I != E; ++I) {
-        // we should iterate only over return inst
-        assert(isa<ReturnInst>((*I)->getKey()));
-
-        for (auto ptr : (*I)->getPointsTo())
-            changed |= callNode->addPointsTo(ptr);
-    }
 
     return changed;
 }
