@@ -513,6 +513,7 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 
         // add immediate post-dominator edges
         auto our_blocks = F.second->getConstructedBlocks();
+        bool built = false;
         for (auto it : our_blocks) {
             LLVMBBlock *BB = it.second;
             BasicBlock *B = const_cast<BasicBlock *>(it.first);
@@ -524,6 +525,7 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 
             DomTreeNode *idom = N->getIDom();
             BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
+            built = true;
 
             if (idomBB) {
                 LLVMBBlock *pb = our_blocks[idomBB];
@@ -543,6 +545,17 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
                 }
 
                 BB->setIPostDom(root);
+            }
+        }
+
+        // well, if we haven't built the pdtree, this is probably infinite loop
+        // that has no pdtree. Until we have anything better, just add sound
+        // edges that are not so precise - to predecessors.
+        if (!built) {
+            for (auto it : our_blocks) {
+                LLVMBBlock *BB = it.second;
+                for (LLVMBBlock *succBB : BB->successors())
+                    succBB->addPostDomFrontier(BB);
             }
         }
 
