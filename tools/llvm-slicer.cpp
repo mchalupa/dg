@@ -9,9 +9,16 @@
 #endif
 
 #include "../git-version.h"
+#include <llvm/Config/llvm-config.h>
 
-#include <llvm/IR/AssemblyAnnotationWriter.h>
-#include <llvm/IR/Verifier.h>
+#if (LLVM_VERSION_MINOR < 5)
+ #include <llvm/Assembly/AssemblyAnnotationWriter.h>
+ #include <llvm/Analysis/Verifier.h>
+#else // LLVM >= 3.5
+ #include <llvm/IR/AssemblyAnnotationWriter.h>
+ #include <llvm/IR/Verifier.h>
+#endif
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
@@ -460,11 +467,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-<<<<<<< b649756d25049ed1113d1679bbbfd468f928fca2
-    if (!slice(&*M, module, slicing_criterion, opts)) {
-=======
-    if (!slice(M, slicing_criterion)) {
->>>>>>> llvm: backport sources to llvm-3.4
+    //if (!slice(&*M, module, slicing_criterion, opts)) {
+    if (!slice(M, module, slicing_criterion, opts)) {
         errs() << "ERR: Slicing failed\n";
         return 1;
     }
