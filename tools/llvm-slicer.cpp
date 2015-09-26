@@ -11,10 +11,15 @@
 #include "../git-version.h"
 #include <llvm/Config/llvm-config.h>
 
-#if (LLVM_VERSION_MINOR < 5)
+
+#if (LLVM_VERSION_MAJOR != 3)
+#error "Unsupported version of LLVM
+#endif
+
+#if LLVM_VERSION_MINOR < 5
  #include <llvm/Assembly/AssemblyAnnotationWriter.h>
  #include <llvm/Analysis/Verifier.h>
-#else // LLVM >= 3.5
+#else // >= 3.5
  #include <llvm/IR/AssemblyAnnotationWriter.h>
  #include <llvm/IR/Verifier.h>
 #endif
