@@ -281,12 +281,16 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
         else if (isa<CallInst>(predVal))
             changed |= handleCallInst(pred, df);
 
-        changed |= df->merge(getDefMap(pred), strong_update);
+        DefMap *pred_df = getDefMap(pred);
+        changed |= df->merge(pred_df, strong_update);
+        // either we have nothing to merge or we merged something
+        // if predecessor has something
+        assert(pred_df->empty() || !df->empty());
     } else { // BB predcessors
         LLVMBBlock *BB = node->getBBlock();
         assert(BB && "Node has no BB");
 
-        for (auto predBB : BB->predcessors()) {
+        for (LLVMBBlock *predBB : BB->predcessors()) {
             pred = predBB->getLastNode();
             assert(pred && "BB has no last node");
 
@@ -297,7 +301,9 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
             else if (isa<CallInst>(predVal))
                 changed |= handleCallInst(pred, df);
 
-            df->merge(getDefMap(pred), nullptr);
+            DefMap *pred_df = getDefMap(pred);
+            changed |= df->merge(pred_df, nullptr);
+            assert(pred_df->empty() || !df->empty());
         }
     }
 

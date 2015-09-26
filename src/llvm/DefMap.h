@@ -21,6 +21,7 @@ public:
     bool merge(const DefMap *o, PointsToSetT *without = nullptr);
     bool add(const Pointer& p, LLVMNode *n);
     bool update(const Pointer& p, LLVMNode *n);
+    bool empty() const { return defs.empty(); }
 
     bool defines(const Pointer& p) { return defs.count(p) != 0; }
     bool definesWithAnyOffset(const Pointer& p);
