@@ -1,24 +1,49 @@
 #ifndef _DG_SLICING_H_
 #define _DG_SLICING_H_
 
-#include "DFS.h"
+#include "NodesWalk.h"
+#include "ADT/Queue.h"
 #include "DependenceGraph.h"
 
 #ifdef ENABLE_CFG
 #include "BBlock.h"
 #endif
 
+using dg::ADT::QueueFIFO;
+
 namespace dg {
 namespace analysis {
 
+// this class will go through the nodes
+// and will mark the ones that should be in the slice
 template <typename NodeT>
-class Slicer : Analysis<NodeT>
+class WalkAndMark : public NodesWalk<NodeT, QueueFIFO<NodeT *>>
 {
-    uint32_t options;
-    uint32_t slice_id;
+public:
+    WalkAndMark()
+        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(NODES_WALK_REV_CD |
+                                               NODES_WALK_REV_DD |
+                                               NODES_WALK_BB_POSTDOM_FRONTIERS) {}
 
-    static void markSlice(NodeT *n, uint32_t slice_id)
+    void mark(NodeT *start, uint32_t slice_id)
     {
+        WalkData data(slice_id, this);
+        this->walk(start, markSlice, &data);
+    }
+
+private:
+    struct WalkData
+    {
+        WalkData(uint32_t si, WalkAndMark *wm)
+            : slice_id(si), analysis(wm) {}
+
+        uint32_t slice_id;
+        WalkAndMark *analysis;
+    };
+
+    static void markSlice(NodeT *n, WalkData *data)
+    {
+        uint32_t slice_id = data->slice_id;
         n->setSlice(slice_id);
 
 #ifdef ENABLE_CFG
@@ -32,9 +57,24 @@ class Slicer : Analysis<NodeT>
         // the same with dependence graph, if we keep a node from
         // a dependence graph, we need to keep the dependence graph
         DependenceGraph<NodeT> *dg = n->getDG();
-        if (dg)
+        if (dg) {
             dg->setSlice(slice_id);
+            // and keep also all call-sites of this func (they are
+            // control dependent on the entry node)
+            // This is correct but not so precise - fix it later.
+            // Now I need the correctness...
+            NodeT *entry = dg->getEntry();
+            assert(entry && "No entry node in dg");
+            data->analysis->enqueue(entry);
+        }
     }
+};
+
+template <typename NodeT>
+class Slicer : Analysis<NodeT>
+{
+    uint32_t options;
+    uint32_t slice_id;
 
     void sliceGraph(DependenceGraph<NodeT> *dg, uint32_t slice_id)
     {
@@ -65,8 +105,8 @@ public:
         if (sl_id == 0)
             sl_id = ++slice_id;
 
-        DFS<NodeT> dfs(DFS_REV_CD | DFS_REV_DD | DFS_BB_POSTDOM_FRONTIERS);
-        dfs.walk(start, markSlice, sl_id);
+        WalkAndMark<NodeT> wm;
+        wm.mark(start, sl_id);
 
         return sl_id;
     }
