@@ -71,5 +71,7 @@ if (LLVM_DG)
 	add_test(slicing-list2 slicing-list2.sh)
 	add_test(slicing-list3 slicing-list3.sh)
 	add_test(slicing-list4 slicing-list4.sh)
+	add_test(slicing-list5 slicing-list5.sh)
+	add_test(slicing-list6 slicing-list6.sh)
 
 endif (LLVM_DG)
