@@ -363,7 +363,25 @@ void LLVMDefUseAnalysis::addDefUseToOperands(LLVMNode *node,
 
         if (op->isPointerTy()) {
             // add data dependencies to in parameters
+            // this adds def-use edges between definition
+            // of the pointer and the parameter
             addIndirectDefUse(op, p->in, df);
+
+            // and check if the memory the pointer points to has some reaching
+            // definition
+            for (const Pointer& ptr : op->getPointsTo()) {
+                if (!ptr.isKnown()) {
+                    errs() << "ERR: unknown pointer, may be unsound\n";
+                    continue;
+                }
+
+                for (auto it : ptr.obj->pointsTo) {
+                    for (const Pointer& memptr : it.second) {
+                        // XXX is it 0 always?
+                        addIndirectDefUsePtr(memptr, p->in, df, 0);
+                    }
+                }
+            }
             // fall-through to
             // add also top-level def-use edge
         }
