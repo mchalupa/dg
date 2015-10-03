@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "DefMap.h"
 
 namespace dg {
@@ -59,11 +60,24 @@ bool DefMap::update(const Pointer& p, LLVMNode *n)
 
 bool DefMap::definesWithAnyOffset(const Pointer& p)
 {
+    // FIXME do it via binary search
     for (auto it : defs)
         if (it.first.obj == p.obj)
             return true;
 
     return false;
+}
+
+static bool comp(const std::pair<const Pointer, ValuesSetT>& a,
+                 const std::pair<const Pointer, ValuesSetT>& b)
+{
+    return a.first.obj < b.first.obj;
+}
+
+std::pair<DefMap::iterator, DefMap::iterator> DefMap::getObjectRange(const Pointer& ptr)
+{
+    std::pair<const Pointer, ValuesSetT> what(ptr, ValuesSetT());
+    return std::equal_range(defs.begin(), defs.end(), what, comp);
 }
 
 } // analysis

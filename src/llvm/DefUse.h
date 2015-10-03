@@ -38,9 +38,11 @@ private:
     void handleCallInst(LLVMNode *);
     void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
 
+    void addStoreLoadInstDefUse(LLVMNode *, LLVMNode *, DefMap *);
     void addIndirectDefUse(LLVMNode *, LLVMNode *, DefMap *);
     void addDefUseToOperands(LLVMNode *, LLVMDGParameters *, DefMap *);
     void addDefUseToParameterGlobals(LLVMNode *, LLVMDGParameters *, DefMap *);
+    void addIndirectDefUsePtr(const Pointer&, LLVMNode *, DefMap *, uint64_t);
 };
 
 } // namespace analysis

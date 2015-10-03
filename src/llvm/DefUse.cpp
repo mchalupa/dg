@@ -60,7 +60,97 @@ LLVMNode *LLVMDefUseAnalysis::getOperand(LLVMNode *node,
     return dg::analysis::getOperand(node, val, idx, DL);
 }
 
-static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
+static void addInitialDefuse(ValuesSetT& defs, LLVMNode *ptrnode)
+{
+    const Value *ptrVal = ptrnode->getKey();
+    // functions does not have indirect reaching definitions
+    if (isa<Function>(ptrVal))
+        return;
+
+    assert(defs.empty() && "Adding initial def-use to something defined");
+
+    // we do not add initial def to global variables because not all
+    // global variables could be used in the code and we'd redundantly
+    // iterate through the defintions. Do it lazily here.
+    if (isa<GlobalVariable>(ptrVal)) {
+            // ok, so the GV was defined in initialization phase,
+            // so the reaching definition for the ptr is there.
+            // If it was not defined, then we still want the edge
+            // from the global node in this case
+            defs.insert(ptrnode);
+    } else if (isa<AllocaInst>(ptrVal)) {
+        // AllocaInst without any reaching definition
+        // may mean that the value is undefined. Nevertheless
+        // we use the value that is defined via the AllocaInst,
+        // so add definition on the AllocaInst
+        // This is the same as with global variables
+        defs.insert(ptrnode);
+    } else if (isa<ConstantPointerNull>(ptrVal)) {
+        // just do nothing, it has no reaching definition
+        return;
+    }
+}
+
+static uint64_t getAffectedMemoryLength(const Value *val, const DataLayout *DL)
+{
+    uint64_t size = 0;
+    Type *Ty = val->getType();
+    assert(Ty->isPointerTy() && "need pointer type");
+
+    Type *elemTy = Ty->getContainedType(0);
+    if (elemTy->isSized())
+        size = DL->getTypeAllocSize(elemTy);
+    else
+        errs() << "ERR: type pointed is not sized " << *elemTy << "\n";
+
+    return size;
+}
+
+static uint64_t getAffectedMemoryLength(LLVMNode *node, const DataLayout *DL)
+{
+    return getAffectedMemoryLength(node->getValue(), DL);
+}
+
+static bool isDefinitionInRange(uint64_t off, uint64_t len,
+                                const Pointer& dptr, ValuesSetT& defs,
+                                const DataLayout *DL)
+{
+    uint64_t doff = *dptr.offset;
+    if (doff == off)
+        return true;
+
+    if (doff < off) {
+        // check if definition, that has lesser offset than the
+        // offset in our pointer can write to our memory
+        for (LLVMNode *n : defs) {
+            const Value *v = n->getValue();
+            if (!isa<StoreInst>(v)) {
+#ifdef DEBUG_ENABLED
+                if (!isa<AllocaInst>(v)
+                    && !isa<GlobalVariable>(v) && !isa<IntrinsicInst>(v))
+                    errs() << "ERR: unknown instruction for definition "
+                           << *n->getValue() << "\n";
+#endif
+                continue;
+            }
+
+            uint64_t len = getAffectedMemoryLength(n->getOperand(0), DL);
+            if (doff + len >= off)
+                return true;
+        }
+    } else {
+        // else check the offset of definition pointer
+        // is inside the range [off, off + len]
+        // (len is the number of bytes we're reading from memory)
+        return dptr.offset.inRange(off, off + len);
+    }
+
+    return false;
+}
+
+// @param len - how many bytes from offset in pointer are we reading (using)
+void LLVMDefUseAnalysis::addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to,
+                                              DefMap *df, uint64_t len)
 {
     if (!ptr.isKnown()) {
         DBG("ERR: pointer pointing to unknown location, UNSOUND! "
@@ -68,64 +158,50 @@ static void addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to, DefMap *df)
         return;
     }
 
-    LLVMNode *ptrnode = ptr.obj->node;
-    const Value *ptrVal = ptrnode->getKey();
-    // functions does not have indirect reaching definitions
-    if (isa<Function>(ptrVal))
-        return;
+    // get all pointers with the very same object as ptr
+    std::pair<DefMap::iterator,
+              DefMap::iterator> objects = df->getObjectRange(ptr);
 
-    ValuesSetT& defs = df->get(ptr);
-    // do we have any reaching definition at all?
-    if (defs.empty()) {
-        // we do not add initial def to global variables because not all
-        // global variables could be used in the code and we'd redundantly
-        // iterate through the defintions. Do it lazily here.
-        if (isa<GlobalVariable>(ptrVal)) {
-                // ok, so the GV was defined in initialization phase,
-                // so the reaching definition for the ptr is there.
-                // If it was not defined, then we still want the edge
-                // from the global node in this case
-                defs.insert(ptrnode);
-        } else if (isa<AllocaInst>(ptrVal)) {
-            // AllocaInst without any reaching definition
-            // may mean that the value is undefined. Nevertheless
-            // we use the value that is defined via the AllocaInst,
-            // so add definition on the AllocaInst
-            // This is the same as with global variables
-            defs.insert(ptrnode);
-        } else if (isa<ConstantPointerNull>(ptrVal)) {
-            // just do nothing, it has no reaching definition
-            return;
+    // iterate over the pointers and check if we have reaching
+    // definitions for the offsets that are in the center of
+    // interest - that is for offsets that could affect this
+    // particular use of pointer
+    bool found = false;
+    for (auto it = objects.first; it != objects.second; ++it) {
+        const Pointer& dptr = it->first;
+        ValuesSetT& defs = it->second;
+
+        // if the offset of the pointer is unknown,
+        // then any definition is relevant for us
+        if (ptr.offset.isUnknown()) {
+            for (LLVMNode *n : defs)
+                n->addDataDependence(to);
+
+            continue;
+        }
+
+        if (isDefinitionInRange(*ptr.offset, len, dptr, defs, DL)) {
+            found = true;
+            for (LLVMNode *n : defs)
+                n->addDataDependence(to);
         }
     }
 
-    for (LLVMNode *n : defs)
-        n->addDataDependence(to);
+    // if we have no definition for our pointer,
+    // try to add initial def-use edges
+    ValuesSetT& defs = df->get(ptr);
+    if (!found && defs.empty()) {
+        LLVMNode *ptrnode = ptr.obj->node;
+        addInitialDefuse(defs, ptrnode);
+    }
 }
 
-void LLVMDefUseAnalysis::addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefMap *df)
+void LLVMDefUseAnalysis::addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to,
+                                           DefMap *df)
 {
-    // iterate over all memory locations that this
-    // store can define and check where they are defined.
-    // If this is a load or similar, we read from memory
-    // some number of bytes (e. g. 4 bytes for load i32 *).
-    // We must therefore check if ptr.offset + 0,1,2,3 have
-    // reaching definitions, because these are also modification
-    // of the memory of interest
+    uint64_t len = getAffectedMemoryLength(ptrNode, DL);
     for (const Pointer& ptr : ptrNode->getPointsTo()) {
-        Type *elemTy = ptrNode->getValue()->getType()->getContainedType(0);
-        size_t size = 1;
-        if (elemTy->isSized())
-            size = DL->getTypeAllocSize(elemTy);
-        else
-            errs() << "ERR: type pointed is not sized " << *elemTy << "\n";
-
-        // check if we have reaching definition for this pointer
-        // FIXME: do it more efficiently, get the iterator instead of
-        // pointer and then just iterate until the object is same, because
-        // the map is sorted
-        for (size_t i = 0; i < size; ++i)
-            addIndirectDefUsePtr(Pointer(ptr.obj, *ptr.offset + i), to, df);
+        addIndirectDefUsePtr(ptr, to, df, len);
 
         // if we got pointer to our object with UNKNOWN_OFFSET,
         // it still can be reaching definition, so we must take it into
@@ -142,19 +218,20 @@ void LLVMDefUseAnalysis::addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to, DefM
 // It is either the operand itself or
 // global value used in ConstantExpr if the
 // operand is ConstantExpr
-static void addStoreLoadInstDefUse(LLVMNode *storeNode, LLVMNode *op, DefMap *df)
+void LLVMDefUseAnalysis::addStoreLoadInstDefUse(LLVMNode *storeNode,
+                                                LLVMNode *op, DefMap *df)
 {
     const Value *val = op->getKey();
     if (isa<ConstantExpr>(val)) {
         // it should be one ptr
         PointsToSetT& PS = op->getPointsTo();
-        assert(PS.size() == 1);
+        assert(PS.size() == 1 && "ConstantExpr with more pointers");
 
         const Pointer& ptr = *PS.begin();
-        addIndirectDefUsePtr(ptr, storeNode,  df);
-    } else {
+        uint64_t len = getAffectedMemoryLength(storeNode, DL);
+        addIndirectDefUsePtr(ptr, storeNode, df, len);
+    } else
         op->addDataDependence(storeNode);
-    }
 }
 
 void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)

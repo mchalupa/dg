@@ -2,19 +2,19 @@
 #define _LLVM_DG_DEF_MAP_H_
 
 #include "AnalysisGeneric.h"
+#include <utility>
 
 namespace dg {
 namespace analysis {
 
 class DefMap
 {
-    // last definition of memory location
-    // pointed to by the Pointer
-    typedef std::map<Pointer, ValuesSetT>::iterator iterator;
-    typedef std::map<Pointer, ValuesSetT>::const_iterator const_iterator;
     std::map<Pointer, ValuesSetT> defs;
 
 public:
+    typedef std::map<Pointer, ValuesSetT>::iterator iterator;
+    typedef std::map<Pointer, ValuesSetT>::const_iterator const_iterator;
+
     DefMap() {}
     DefMap(const DefMap& o);
 
@@ -22,6 +22,10 @@ public:
     bool add(const Pointer& p, LLVMNode *n);
     bool update(const Pointer& p, LLVMNode *n);
     bool empty() const { return defs.empty(); }
+
+    // @return iterators for the range of pointers that has the same object
+    // as the given pointer
+    std::pair<DefMap::iterator, DefMap::iterator> getObjectRange(const Pointer& ptr);
 
     bool defines(const Pointer& p) { return defs.count(p) != 0; }
     bool definesWithAnyOffset(const Pointer& p);
