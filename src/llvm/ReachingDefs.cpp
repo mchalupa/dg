@@ -252,13 +252,22 @@ static bool handleStoreInst(LLVMNode *storeNode, DefMap *df,
 
     // update definitions
     PointsToSetT& S = ptrNode->getPointsTo();
-    if (S.size() == 1) {// strong update
-        changed |= df->update(*S.begin(), storeNode);
-        strong_update = &S;
-    } else { // weak update
-        for (const Pointer& ptr : ptrNode->getPointsTo())
-            changed |= df->add(ptr, storeNode);
+    // if we have only one concrete pointer (known pointer
+    // with known offset), it is safe to do strong update
+    if (S.size() == 1) {
+        const Pointer& ptr = *S.begin();
+        if (ptr.isKnown() && !ptr.offset.isUnknown()) {
+            changed |= df->update(ptr, storeNode);
+            strong_update = &S;
+            return changed;
+        }
+
+        // else fall-through to weak update
     }
+
+    // weak update
+    for (const Pointer& ptr : ptrNode->getPointsTo())
+        changed |= df->add(ptr, storeNode);
 
     return changed;
 }
