@@ -66,7 +66,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
         if (ptr.isKnown()) {
             os << *ptr.obj->node->getKey() << " + ";
             if (ptr.offset.isUnknown())
-                os << "UNKNOWN\n";
+                os << "UNKNOWN";
             else
                 os << *ptr.offset;
         } else
