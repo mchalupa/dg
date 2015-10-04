@@ -8,7 +8,7 @@ source "$TESTS_DIR/test-runner.sh"
 
 set_environment
 
-CODE="$TESTS_DIR/sources/list10.c"
+CODE="$TESTS_DIR/sources/list8.c"
 NAME=${CODE%.*}
 BCFILE="$NAME.bc"
 SLICEDFILE="$NAME.sliced"
@@ -19,3 +19,4 @@ llvm-slicer -c __assert_fail "$BCFILE"
 # run the sliced code and check if it
 # has everything to pass the assert in it
 lli "$SLICEDFILE"
+exit 0
