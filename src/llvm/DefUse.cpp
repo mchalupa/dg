@@ -96,9 +96,13 @@ static uint64_t getAffectedMemoryLength(const Value *val, const DataLayout *DL)
 {
     uint64_t size = 0;
     Type *Ty = val->getType();
-    assert(Ty->isPointerTy() && "need pointer type");
+    Type *elemTy;
 
-    Type *elemTy = Ty->getContainedType(0);
+    if (Ty->isPointerTy())
+        elemTy = Ty->getContainedType(0);
+    else
+        elemTy = Ty;
+
     if (elemTy->isSized())
         size = DL->getTypeAllocSize(elemTy);
     else
