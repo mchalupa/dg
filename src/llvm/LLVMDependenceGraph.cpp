@@ -281,15 +281,15 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         addCallNode(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
-            const Value *op = Inst->getOperand(0)->stripPointerCasts();
+            const Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
              if (isa<GlobalVariable>(op))
                  addFormalGlobal(op);
         } else if (isa<StoreInst>(val)) {
-            const Value *op = Inst->getOperand(0)->stripPointerCasts();
+            const Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
             if (isa<GlobalVariable>(op))
                 addFormalGlobal(op);
 
-            op = Inst->getOperand(1)->stripPointerCasts();
+            op = Inst->getOperand(1)->stripInBoundsOffsets();
             if (isa<GlobalVariable>(op))
                 addFormalGlobal(op);
         }
