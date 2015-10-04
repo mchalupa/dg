@@ -255,6 +255,20 @@ void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
     entry->addControlDependence(fpout);
 }
 
+// FIXME copied from PointsTo.cpp, don't duplicate,
+// add it to analysis generic
+static bool isMemAllocationFunc(const llvm::Function *func)
+{
+    if (!func || !func->hasName())
+        return false;
+
+    const llvm::StringRef& name = func->getName();
+    if (name.equals("malloc") || name.equals("calloc") || name.equals("realloc"))
+        return true;
+
+    return false;
+}
+
 void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                                             LLVMNode *node)
 {
@@ -276,6 +290,14 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             node->addSubgraph(subg);
             node->addActualParameters(subg);
         }
+
+        // if we allocate a memory in a function, we can pass
+        // it to other functions, so it is like global.
+        // We need it as parameter, so that if we define it,
+        // we can add def-use edges from parent, through the parameter
+        // to the definition
+        if (isMemAllocationFunc(CInst->getCalledFunction()))
+                addFormalParameter(val);
 
         // no matter what is the function, this is a CallInst, so create call-graph
         addCallNode(node);
