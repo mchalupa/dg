@@ -142,6 +142,44 @@ static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMD
     }
 }
 
+static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMDependenceGraph *funcGraph)
+{
+    LLVMDGParameters *formal = funcGraph->getParameters();
+    if (!formal)
+        return;
+
+    LLVMNode *pin, *pout;
+    for (auto it : *formal) {
+        // dyn. memory params are only callinsts
+        if (!llvm::isa<llvm::CallInst>(it.first))
+            continue;
+
+        LLVMDGParameter& p = it.second;
+        const llvm::Value *val = it.first;
+        LLVMDGParameter *act = params->find(val);
+
+        // reuse or create the parameter
+        if (!act) {
+            pin = new LLVMNode(val);
+            pout = new LLVMNode(val);
+            params->add(val, pin, pout);
+        } else {
+            pin = act->in;
+            pout = act->out;
+        }
+
+        // connect the params with edges
+        pin->addDataDependence(p.in);
+        p.out->addDataDependence(pout);
+
+        // add control dependence from call node
+        callNode->addControlDependence(pin);
+        callNode->addControlDependence(pout);
+    }
+}
+
+
+
 static void addOperandsParams(LLVMDGParameters *params,
                               LLVMDGParameters *formal,
                               LLVMNode *callNode,
@@ -225,6 +263,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     // hopefully we matched all the operands, so let's
     // add the global variables the function uses
     addGlobalsParams(params, this, funcGraph);
+    addDynMemoryParams(params, this, funcGraph);
 }
 
 LLVMNode **LLVMNode::getOperands()

@@ -120,6 +120,31 @@ static bool handleParamsGlobals(LLVMDependenceGraph *dg,
     return changed;
 }
 
+static bool handleDynMemoryParams(LLVMDependenceGraph *subgraph, LLVMDGParameters *params,
+                                  DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
+
+    LLVMDGParameters *formal = subgraph->getParameters();
+    if (!formal)
+        return false;
+
+    // operand[0] is the called func
+    for (auto it : *formal) {
+        // FIXME Probably will be best add to DGParameters another
+        // container for mem. allocation params, to keep it
+        // separate so that we don't need to do this
+        if (isa<CallInst>(it.first)) {
+            // the formal in param contains the points-to set
+            LLVMDGParameter *actprm = params->find(it.first);
+            assert(actprm && "No actual param for dyn. mem.");
+            changed |= handleParam(it.second.in, actprm->out, df, subgraph_df);
+        }
+    }
+
+    return changed;
+}
+
 static bool handleParams(LLVMNode *callNode, LLVMDGParameters *params,
                          DefMap *df, DefMap *subgraph_df)
 {
@@ -146,7 +171,8 @@ static bool handleParams(LLVMNode *callNode, LLVMDGParameters *params,
     return changed;
 }
 
-static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
+static bool handleParams(LLVMNode *callNode, LLVMDependenceGraph *subgraph,
+                         DefMap *df, DefMap *subgraph_df)
 {
     bool changed = false;
 
@@ -160,6 +186,7 @@ static bool handleParams(LLVMNode *callNode, DefMap *df, DefMap *subgraph_df)
 
     changed |= handleParams(callNode, params, df, subgraph_df);
     changed |= handleParamsGlobals(callNode->getDG(), params, df, subgraph_df);
+    changed |= handleDynMemoryParams(subgraph, params, df, subgraph_df);
 
     return changed;
 }
@@ -243,7 +270,7 @@ bool LLVMReachingDefsAnalysis::handleCallInst(LLVMDependenceGraph *graph,
     DefMap *subgraph_df = getDefMap(exitNode);
     // now handle all parameters
     // and global variables that are as parameters
-    changed |= handleParams(callNode, df, subgraph_df);
+    changed |= handleParams(callNode, graph, df, subgraph_df);
 
     return changed;
 }
