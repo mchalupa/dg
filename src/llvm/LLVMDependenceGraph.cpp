@@ -137,6 +137,40 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
     return buildSubgraph(node, callFunc);
 }
 
+// FIXME don't duplicate the code
+void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
+{
+    // add the same formal parameters
+    LLVMDGParameters *params = getParameters();
+    if (!params) {
+        params = new LLVMDGParameters();
+        setParameters(params);
+    }
+
+    // if we have this value, just return
+    if (params->find(val))
+        return;
+
+    LLVMNode *fpin = new LLVMNode(val);
+    LLVMNode *fpout = new LLVMNode(val);
+    params->addGlobal(val, fpin, fpout);
+
+    LLVMNode *entry = getEntry();
+    entry->addControlDependence(fpin);
+    entry->addControlDependence(fpout);
+}
+
+static void addSubgraphGlobalParameters(LLVMDependenceGraph *parentdg,
+                                        LLVMDependenceGraph *subgraph)
+{
+    LLVMDGParameters *params = subgraph->getParameters();
+    if (!params)
+        return;
+
+    for (auto it = params->global_begin(), et = params->global_end();
+         it != et; ++it)
+        parentdg->addFormalGlobal(it->first);
+}
 
 LLVMDependenceGraph *
 LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFunc)
@@ -182,6 +216,9 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
     // to entry node
     node->addControlDependence(subgraph->getEntry());
 
+    // add globals that are used in subgraphs
+    addSubgraphGlobalParameters(this, subgraph);
+
     return subgraph;
 }
 
@@ -217,31 +254,6 @@ void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
     entry->addControlDependence(fpin);
     entry->addControlDependence(fpout);
 }
-
-// FIXME don't duplicate the code
-void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
-{
-    // add the same formal parameters
-    LLVMDGParameters *params = getParameters();
-    if (!params) {
-        params = new LLVMDGParameters();
-        setParameters(params);
-    }
-
-    // if we have this value, just return
-    if (params->find(val))
-        return;
-
-    LLVMNode *fpin = new LLVMNode(val);
-    LLVMNode *fpout = new LLVMNode(val);
-    params->addGlobal(val, fpin, fpout);
-
-    LLVMNode *entry = getEntry();
-    entry->addControlDependence(fpin);
-    entry->addControlDependence(fpout);
-}
-
-
 
 void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                                             LLVMNode *node)
