@@ -104,8 +104,22 @@ public:
                 for (auto it : *df) {
                     for (LLVMNode *d : it.second) {
                         printPointer(it.first, os, "RD: ", false);
-                        os << " @ " << *d->getKey() << "\n";
+                        os << " @ " << *d->getKey() << "(" << d << ")\n";
                     }
+                }
+            }
+
+            LLVMDGParameters *params = node->getParameters();
+            if (params) {
+                for (auto it : *params) {
+                    os << "  ; PARAMS: in " << it.second.in
+                       << ", out " << it.second.out << "\n";
+                }
+
+                for (auto it = params->global_begin(), et = params->global_end();
+                     it != et; ++it) {
+                    os << "  ; PARAM GL: in " << it->second.in
+                       << ", out " << it->second.out << "\n";
                 }
             }
         }
