@@ -291,19 +291,30 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst,
     addDefUseToUnknownLocation(node, df);
 }
 
+static void addOutParamsEdges(const Pointer& ptr, LLVMNode *to, DefMap *df)
+{
+    auto bounds = df->getObjectRange(ptr);
+    for (auto it = bounds.first; it != bounds.second; ++it) {
+        // ok, the memory location is defined in this subgraph,
+        // so add data dependence edge to the out param
+        for (LLVMNode *def : it->second)
+            def->addDataDependence(to);
+    }
+}
+
 static void addOutParamsEdges(LLVMDGParameter& p, DefMap *df)
 {
     // points to set is contained in the input param
     for (const Pointer& ptr : p.in->getPointsTo()) {
-        for (auto it : *df) {
-            // get all the pointers that have the same object
-            if (it.first.obj == ptr.obj) {
-                // ok, the memory location is defined in this subgraph,
-                // so add data dependence edge to the out param
-                for (LLVMNode *def : it.second)
-                    def->addDataDependence(p.out);
-            }
-        }
+        addOutParamsEdges(ptr, p.out, df);
+
+        // check if a memory location of the pointer is defined
+        if (!ptr.isKnown())
+            continue;
+
+        for (auto memit : ptr.obj->pointsTo)
+            for (const Pointer& memptr : memit.second)
+                addOutParamsEdges(memptr, p.out, df);
     }
 }
 

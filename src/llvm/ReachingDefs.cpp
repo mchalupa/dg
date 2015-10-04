@@ -64,18 +64,36 @@ static DefMap *getDefMap(LLVMNode *n)
 //   Reaching definitions analysis
 /// --------------------------------------------------
 
+static bool handleParam(const Pointer& ptr, LLVMNode *to,
+                        DefMap *df, DefMap *subgraph_df)
+{
+    bool changed = false;
+    // check if memory that is pointed by ptr
+    // with _arbitrary_ offset is defined in the
+    // subprocedure
+    auto bounds = subgraph_df->getObjectRange(ptr);
+    for (auto it = bounds.first; it != bounds.second; ++it) {
+        changed |= df->add(it->first, to);
+    }
+
+    return changed;
+}
+
 static bool handleParam(LLVMNode *node, LLVMNode *to,
                         DefMap *df, DefMap *subgraph_df)
 {
     bool changed = false;
     for (const Pointer& ptr : node->getPointsTo()) {
-        // check if memory that is pointed by ptr
-        // with _arbitrary_ offset is defined in the
-        // subprocedure
-        for (auto it : *subgraph_df) {
-            if (it.first.obj == ptr.obj)
-                changed |= df->add(it.first, to);
-        }
+        changed |= handleParam(ptr, to, df, subgraph_df);
+
+        // handle also the memory pointers, if we define some memory
+        // in subprocedure, we'd like to propagate it to the callee
+        if (!ptr.isKnown())
+            continue;
+
+        for (auto memit : ptr.obj->pointsTo)
+            for (const Pointer& memptr : memit.second)
+                changed |= handleParam(memptr, to, df, subgraph_df);
     }
 
     return changed;
