@@ -73,9 +73,16 @@ public:
 
     // go through the graph and find all (possible) call-sites
     // for a function
+    // FIXME: can implement via getCallNodes
     bool getCallSites(const char *name, std::set<LLVMNode *> *callsites);
     // this method takes NULL-terminated array of names
     bool getCallSites(const char *names[], std::set<LLVMNode *> *callsites);
+
+    // FIXME we need remove the callsite from here if we slice away
+    // the callsite
+    const std::set<LLVMNode *>& getCallNodes() const { return callNodes; }
+    std::set<LLVMNode *>& getCallNodes() { return callNodes; }
+    bool addCallNode(LLVMNode *c) { return callNodes.insert(c).second; }
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
@@ -120,6 +127,9 @@ private:
     const char *gather_callsites;
 
     std::unordered_map<const llvm::BasicBlock *, LLVMBBlock *> constructedBlocks;
+
+    // all callnodes in this graph - forming call graph
+    std::set<LLVMNode *> callNodes;
 
     // when we want to slice according to some criterion,
     // we may gather the call-sites (good points for criterions)

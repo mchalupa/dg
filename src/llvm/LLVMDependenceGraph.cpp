@@ -265,6 +265,9 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             node->addSubgraph(subg);
             node->addActualParameters(subg);
         }
+
+        // no matter what is the function, this is a CallInst, so create call-graph
+        addCallNode(node);
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
             const Value *op = Inst->getOperand(0)->stripPointerCasts();
