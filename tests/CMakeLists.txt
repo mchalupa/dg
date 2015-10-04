@@ -88,5 +88,6 @@ if (LLVM_DG)
 	add_test(slicing-list7 slicing-list7.sh)
 	add_test(slicing-list8 slicing-list8.sh)
 	add_test(slicing-dynalloc1 slicing-dynalloc1.sh)
+	add_test(slicing-dynalloc2 slicing-dynalloc2.sh)
 
 endif (LLVM_DG)
