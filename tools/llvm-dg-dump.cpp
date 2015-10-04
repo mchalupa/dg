@@ -182,6 +182,7 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
 
 static const char *slicing_criterion;
 static bool mark_only = false;
+static const char *dump_func_only = nullptr;
 
 int main(int argc, char *argv[])
 {
@@ -208,6 +209,8 @@ int main(int argc, char *argv[])
             opts |= PRINT_REV_CFG;
         } else if (strcmp(argv[i], "-pss") == 0) {
             opts |= PRINT_PSS;
+        } else if (strcmp(argv[i], "-func") == 0) {
+            dump_func_only = argv[++i];
         } else if (strcmp(argv[i], "-def") == 0) {
             debug_def = true;
         } else if (strcmp(argv[i], "-ptr") == 0) {
@@ -328,8 +331,10 @@ int main(int argc, char *argv[])
                    LLVMDependenceGraph *>& CF = getConstructedFunctions();
 
     dump.start();
-
     for (auto F : CF) {
+        if (dump_func_only && !F.first->getName().equals(dump_func_only))
+            continue;
+
         dump.dumpSubgraphStart(F.second, F.first->getName().data());
 
         for (auto B : F.second->getConstructedBlocks()) {
