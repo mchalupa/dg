@@ -39,16 +39,18 @@ enum {
     ANNOTATE                    = 1,
     // data dependencies
     ANNOTATE_DD                 = 1 << 1,
+    // forward data dependencies
+    ANNOTATE_FORWARD_DD         = 1 << 2,
     // control dependencies
-    ANNOTATE_CD                 = 1 << 2,
+    ANNOTATE_CD                 = 1 << 3,
     // points-to information
-    ANNOTATE_PTR                = 1 << 3,
+    ANNOTATE_PTR                = 1 << 4,
     // reaching definitions
-    ANNOTATE_RD                 = 1 << 4,
+    ANNOTATE_RD                 = 1 << 5,
     // post-dominators
-    ANNOTATE_POSTDOM            = 1 << 5,
+    ANNOTATE_POSTDOM            = 1 << 6,
     // comment out nodes that will be sliced
-    ANNOTATE_SLICE              = 1 << 6,
+    ANNOTATE_SLICE              = 1 << 7,
 };
 
 class CommentDBG : public llvm::AssemblyAnnotationWriter
@@ -77,27 +79,8 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             os << "\n";
     }
 
-public:
-    CommentDBG(LLVMDependenceGraph *dg, uint32_t o = ANNOTATE_DD)
-        :dg(dg), opts(o) {}
-
-    virtual void emitInstructionAnnot(const llvm::Instruction *I,
-                                      llvm::formatted_raw_ostream& os)
+    void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
     {
-        if (opts == 0)
-            return;
-
-        LLVMNode *node = nullptr;
-        for (auto it : getConstructedFunctions()) {
-            LLVMDependenceGraph *sub = it.second;
-            node = sub->getNode(I);
-            if (node)
-                break;
-        }
-
-        if (!node)
-            return;
-
         if (opts & ANNOTATE_RD) {
             analysis::DefMap *df = node->getData<analysis::DefMap>();
             if (df) {
@@ -114,12 +97,26 @@ public:
                 for (auto it : *params) {
                     os << "  ; PARAMS: in " << it.second.in
                        << ", out " << it.second.out << "\n";
+
+                    // dump edges for parameters
+                    os <<"  ; in edges\n";
+                    emitNodeAnnotations(it.second.in, os);
+                    os << "  ; out edges\n";
+                    emitNodeAnnotations(it.second.out, os);
+                    os << "\n";
                 }
 
                 for (auto it = params->global_begin(), et = params->global_end();
                      it != et; ++it) {
                     os << "  ; PARAM GL: in " << it->second.in
                        << ", out " << it->second.out << "\n";
+
+                    // dump edges for parameters
+                    os << "  ; in edges\n";
+                    emitNodeAnnotations(it->second.in, os);
+                    os << "  ; out edges\n";
+                    emitNodeAnnotations(it->second.out, os);
+                    os << "\n";
                 }
             }
         }
@@ -128,7 +125,15 @@ public:
             for (auto I = node->rev_data_begin(), E = node->rev_data_end();
                  I != E; ++I) {
                 const llvm::Value *d = (*I)->getKey();
-                os << "  ; DD: " << *d << "\n";
+                os << "  ; DD: " << *d << "(" << d << ")\n";
+            }
+        }
+
+        if (opts & ANNOTATE_FORWARD_DD) {
+            for (auto I = node->data_begin(), E = node->data_end();
+                 I != E; ++I) {
+                const llvm::Value *d = (*I)->getKey();
+                os << "  ; fDD: " << *d << "(" << d << ")\n";
             }
         }
 
@@ -158,6 +163,30 @@ public:
         if (opts & ANNOTATE_SLICE)
             if (node->getSlice() == 0)
                 os << "  ; x ";
+    }
+
+public:
+    CommentDBG(LLVMDependenceGraph *dg, uint32_t o = ANNOTATE_DD)
+        :dg(dg), opts(o) {}
+
+    virtual void emitInstructionAnnot(const llvm::Instruction *I,
+                                      llvm::formatted_raw_ostream& os)
+    {
+        if (opts == 0)
+            return;
+
+        LLVMNode *node = nullptr;
+        for (auto it : getConstructedFunctions()) {
+            LLVMDependenceGraph *sub = it.second;
+            node = sub->getNode(I);
+            if (node)
+                break;
+        }
+
+        if (!node)
+            return;
+
+        emitNodeAnnotations(node, os);
     }
 
     virtual void emitBasicBlockStartAnnot(const llvm::BasicBlock *B,
@@ -403,6 +432,8 @@ int main(int argc, char *argv[])
             const char *arg = argv[++i];
             if (strcmp(arg, "dd") == 0)
                 opts |= (ANNOTATE | ANNOTATE_DD);
+            else if (strcmp(arg, "forward-dd") == 0)
+                opts |= (ANNOTATE | ANNOTATE_FORWARD_DD);
             else if (strcmp(arg, "cd") == 0)
                 opts |= (ANNOTATE | ANNOTATE_CD);
             else if (strcmp(arg, "ptr") == 0)
@@ -419,7 +450,7 @@ int main(int argc, char *argv[])
     }
 
     if (!slicing_criterion || !module) {
-        errs() << "Usage: llvm-slicer [-debug dd|cd|rd|slice|ptr|postdom]"
+        errs() << "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]"
                                     " [-c|-crit|-slice] func_call module\n";
         return 1;
     }
