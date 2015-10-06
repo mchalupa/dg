@@ -341,7 +341,6 @@ static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
             changed = true;
         }
 
-        node->addActualParameters(subg, func);
         changed |= node->addSubgraph(subg);
     }
 

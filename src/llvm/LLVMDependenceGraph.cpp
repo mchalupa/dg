@@ -217,7 +217,10 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
     node->addControlDependence(subgraph->getEntry());
 
     // add globals that are used in subgraphs
-    addSubgraphGlobalParameters(this, subgraph);
+    // it is necessary if this subgraph was creating due to function
+    // pointer call
+    addSubgraphGlobalParameters(subgraph);
+    node->addActualParameters(subgraph, callFunc);
 
     return subgraph;
 }
@@ -288,7 +291,6 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         if (is_func_defined(CInst)) {
             LLVMDependenceGraph *subg = buildSubgraph(node);
             node->addSubgraph(subg);
-            node->addActualParameters(subg);
         }
 
         // if we allocate a memory in a function, we can pass
