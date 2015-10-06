@@ -310,6 +310,7 @@ public:
             // increase references of this graph
             // if we added it
             sub->ref();
+            sub->addCaller(static_cast<NodeT *>(this));
         }
 
         return ret;

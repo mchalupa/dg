@@ -349,6 +349,10 @@ public:
 
     bool ownsGlobalNodes() const { return own_global_nodes; }
 
+    DGContainer<NodeT> getCallers() { return callers; }
+    const DGContainer<NodeT> getCallers() const { return callers; }
+    bool addCaller(NodeT *sg) { return callers.insert(sg); }
+
     // set that this graph (if it is subgraph)
     // will be left in a slice. It is virtual, because the graph
     // may want to override the function and take some action,
@@ -393,6 +397,9 @@ private:
     NodeT *exitNode;
 
     DGParameters<NodeT> *formalParameters;
+
+    // call-sites that are calling this graph
+    DGContainer<NodeT> callers;
 
     // how many nodes keeps pointer to this graph?
     int refcount;
