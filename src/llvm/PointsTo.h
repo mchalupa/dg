@@ -37,6 +37,9 @@ private:
     bool propagatePointersToArguments(LLVMDependenceGraph *,
                                       const llvm::CallInst *, LLVMNode *);
 
+    bool handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node);
+    void addDynamicCallersParamsPointsTo(LLVMNode *, LLVMDependenceGraph *);
+
     bool handleAllocaInst(LLVMNode *);
     bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
     bool handleLoadInst(const llvm::LoadInst *, LLVMNode *);
