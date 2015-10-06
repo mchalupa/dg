@@ -160,8 +160,7 @@ void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
     entry->addControlDependence(fpout);
 }
 
-static void addSubgraphGlobalParameters(LLVMDependenceGraph *parentdg,
-                                        LLVMDependenceGraph *subgraph)
+void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph)
 {
     LLVMDGParameters *params = subgraph->getParameters();
     if (!params)
@@ -169,7 +168,7 @@ static void addSubgraphGlobalParameters(LLVMDependenceGraph *parentdg,
 
     for (auto it = params->global_begin(), et = params->global_end();
          it != et; ++it)
-        parentdg->addFormalGlobal(it->first);
+        addFormalGlobal(it->first);
 }
 
 LLVMDependenceGraph *
