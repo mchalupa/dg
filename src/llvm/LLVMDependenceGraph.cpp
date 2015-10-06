@@ -138,7 +138,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
 }
 
 // FIXME don't duplicate the code
-void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
+bool LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
 {
     // add the same formal parameters
     LLVMDGParameters *params = getParameters();
@@ -149,7 +149,7 @@ void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
 
     // if we have this value, just return
     if (params->find(val))
-        return;
+        return false;
 
     LLVMNode *fpin = new LLVMNode(val);
     LLVMNode *fpout = new LLVMNode(val);
@@ -158,20 +158,25 @@ void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
     LLVMNode *entry = getEntry();
     entry->addControlDependence(fpin);
     entry->addControlDependence(fpout);
+
+    return true;
 }
 
-static void addSubgraphGlobParams(LLVMDependenceGraph *parentdg,
+static bool addSubgraphGlobParams(LLVMDependenceGraph *parentdg,
                                   LLVMDGParameters *params)
 {
+    bool changed = false;
     for (auto it = params->global_begin(), et = params->global_end();
          it != et; ++it)
-        parentdg->addFormalGlobal(it->first);
+        changed |= parentdg->addFormalGlobal(it->first);
 
     // and add heap-allocated variables
     for (auto it : *params) {
         if (llvm::isa<llvm::CallInst>(it.first))
-            parentdg->addFormalParameter(it.first);
+            changed |= parentdg->addFormalParameter(it.first);
     }
+
+    return changed;
 }
 
 void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph)
@@ -180,7 +185,10 @@ void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgr
     if (!params)
         return;
 
-    addSubgraphGlobParams(this, params);
+    // if we do not change anything, it means that the graph
+    // has these params already, and so must the callers of the graph
+    if (!addSubgraphGlobParams(this, params))
+        return;
 
     // recursively add the formal parameters to all callers
     for (LLVMNode *callsite : this->getCallers()) {
@@ -256,7 +264,7 @@ is_func_defined(const llvm::CallInst *CInst)
     return true;
 }
 
-void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
+bool LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
 {
     // add the same formal parameters
     LLVMDGParameters *params = getParameters();
@@ -267,7 +275,7 @@ void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
 
     // if we have this value, just return
     if (params->find(val))
-        return;
+        return false;
 
     LLVMNode *fpin = new LLVMNode(val);
     LLVMNode *fpout = new LLVMNode(val);
@@ -276,6 +284,8 @@ void LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
     LLVMNode *entry = getEntry();
     entry->addControlDependence(fpin);
     entry->addControlDependence(fpout);
+
+    return true;
 }
 
 // FIXME copied from PointsTo.cpp, don't duplicate,
