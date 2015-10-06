@@ -87,6 +87,7 @@ public:
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node, const llvm::Function *);
+    void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void computePostDominators(bool addPostDomFrontiers = false);
 
