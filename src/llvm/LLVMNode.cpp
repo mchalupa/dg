@@ -231,7 +231,8 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
     assert(CInst && "addActualParameters called on non-CallInst");
 
     // do not add redundant nodes
-    const Function *func = CInst->getCalledFunction();
+    const Function *func
+        = dyn_cast<Function>(CInst->getCalledValue()->stripPointerCasts());
     if (!func || func->size() == 0)
         return;
 

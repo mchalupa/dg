@@ -160,15 +160,36 @@ void LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
     entry->addControlDependence(fpout);
 }
 
+static void addSubgraphGlobParams(LLVMDependenceGraph *parentdg,
+                                  LLVMDGParameters *params)
+{
+    for (auto it = params->global_begin(), et = params->global_end();
+         it != et; ++it)
+        parentdg->addFormalGlobal(it->first);
+
+    // and add heap-allocated variables
+    for (auto it : *params) {
+        if (llvm::isa<llvm::CallInst>(it.first))
+            parentdg->addFormalParameter(it.first);
+    }
+}
+
 void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph)
 {
     LLVMDGParameters *params = subgraph->getParameters();
     if (!params)
         return;
 
-    for (auto it = params->global_begin(), et = params->global_end();
-         it != et; ++it)
-        addFormalGlobal(it->first);
+    addSubgraphGlobParams(this, params);
+
+    // recursively add the formal parameters to all callers
+    for (LLVMNode *callsite : this->getCallers()) {
+        LLVMDependenceGraph *graph = callsite->getDG();
+        graph->addSubgraphGlobalParameters(this);
+
+        // update the actual parameters of the call-site
+        callsite->addActualParameters(this);
+    }
 }
 
 LLVMDependenceGraph *
