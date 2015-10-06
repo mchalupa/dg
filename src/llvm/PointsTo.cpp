@@ -314,8 +314,94 @@ static void addSubgraphBBs(LLVMPointsToAnalysis *PA,
         PA->addBB(it.second);
 }
 
-static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
-                                  LLVMNode *node, LLVMPointsToAnalysis *PA)
+static bool propagateGlobalParametersPointsTo(LLVMDGParameters *params, LLVMDependenceGraph *dg)
+{
+    bool changed = false;
+    for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
+        // points-to set is in the real global
+        LLVMNode *glob = dg->getGlobalNode(I->first);
+        if (!glob) {
+            errs() << "ERR: No global for parameter\n";
+            continue;
+        }
+
+        PointsToSetT& S = glob->getPointsTo();
+
+        // the only data-dependencies the params global has are those
+        // to formal parameters, so use it
+        LLVMNode *p = I->second.in;
+        for (auto it = p->data_begin(), et = p->data_end(); it != et; ++it) {
+            changed |= (*it)->addPointsTo(S);
+        }
+    }
+
+    return changed;
+}
+
+static bool propagateGlobalParametersPointsTo(LLVMNode *callNode)
+{
+    LLVMDependenceGraph *dg = callNode->getDG();
+    LLVMDGParameters *actual = callNode->getParameters();
+    assert(actual && "no actual parameters");
+
+    return propagateGlobalParametersPointsTo(actual, dg);
+}
+
+static bool propagateNewDynMemoryParamsPointsTo(LLVMDGParameters *formal,
+                                                LLVMDependenceGraph *subgraph)
+{
+    LLVMDGParameters *subparams = subgraph->getParameters();
+    if (!subparams)
+        return false;
+
+    assert(formal);
+
+    bool changed = false;
+    for (auto it : *subparams) {
+        if (!llvm::isa<llvm::CallInst>(it.first))
+            continue;
+
+        // subgraph is the newly created graph, so it keeps the
+        // pointer with points-to
+        LLVMNode *ptrNode = subgraph->getNode(it.first);
+        assert(ptrNode && "No node for in param");
+
+        LLVMDGParameter *ap = formal->find(it.first);
+        assert(ap);
+        changed |= ap->in->addPointsTo(ptrNode->getPointsTo());
+    }
+
+    return changed;
+}
+
+// go recursivaly to callers and add params points-to from the subgraph
+// It is needed when we add a formal parameter (in addSubgraphGlobalParameters)
+// dynamically in points-to analysis
+void LLVMPointsToAnalysis::addDynamicCallersParamsPointsTo(LLVMNode *callNode,
+                                                           LLVMDependenceGraph *subgraph)
+{
+    LLVMDependenceGraph *dg = callNode->getDG();
+    LLVMDGParameters *formal = dg->getParameters();
+    if (!formal)
+        return;
+
+    bool changed;
+    changed = propagateNewDynMemoryParamsPointsTo(formal, subgraph);
+
+    for (LLVMNode *callsite : dg->getCallers())
+        changed |= propagateGlobalParametersPointsTo(callsite);
+
+    // if nothing changed, that this graph must have the points-to info
+    // and so must the callers of them
+    if (!changed)
+        return;
+
+    // recursively add points-to in callers
+    for (LLVMNode *callsite : dg->getCallers())
+        addDynamicCallersParamsPointsTo(callsite, dg);
+}
+
+bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node)
 {
     bool changed = false;
 
@@ -330,14 +416,28 @@ static bool handleFunctionPtrCall(LLVMNode *calledFuncNode,
         if (func->size() == 0)
             continue;
 
+        // HACK: this is a small hack. We cannot rely on
+        // return value of addGlobalNode, because if this
+        // function was assigned to some pointer, the global
+        // node already exists and addGlobalNode will return false
+        // we need to find out if we have built this function somehow
+        // differently
+        // NOTE: must call it before buildSubgraph, because buildSubgraph
+        // will add it to constructedFunctions
+        auto cf = getConstructedFunctions();
+        bool isnew = cf.count(func) == 0;
+
         LLVMDependenceGraph *dg = node->getDG();
         LLVMDependenceGraph *subg = dg->buildSubgraph(node, func);
         LLVMNode *entry = subg->getEntry();
-        bool ret = dg->addGlobalNode(entry);
+        dg->addGlobalNode(entry);
+
         // did we added this subgraph for the first time?
-        if (ret) {
+        if (isnew) {
             handleGlobal(func, entry);
-            addSubgraphBBs(PA, subg);
+            addSubgraphBBs(this, subg);
+            addDynamicCallersParamsPointsTo(node, subg);
+
             changed = true;
         }
 
@@ -403,36 +503,6 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
 
     // ok, undefined function - point to unknown memory
     return node->addPointsTo(&UnknownMemoryObject);
-}
-
-static void propagateGlobalParametersPointsTo(LLVMDGParameters *params, LLVMDependenceGraph *dg)
-{
-    for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
-        // points-to set is in the real global
-        LLVMNode *glob = dg->getGlobalNode(I->first);
-        if (!glob) {
-            errs() << "ERR: No global for parameter\n";
-            continue;
-        }
-
-        PointsToSetT& S = glob->getPointsTo();
-
-        // the only data-dependencies the params global has are those
-        // to formal parameters, so use it
-        LLVMNode *p = I->second.in;
-        for (auto it = p->data_begin(), et = p->data_end(); it != et; ++it) {
-            (*it)->addPointsTo(S);
-        }
-    }
-}
-
-static void propagateGlobalParametersPointsTo(LLVMNode *callNode)
-{
-    LLVMDependenceGraph *dg = callNode->getDG();
-    LLVMDGParameters *actual = callNode->getParameters();
-    assert(actual && "no actual parameters");
-
-    propagateGlobalParametersPointsTo(actual, dg);
 }
 
 static bool handleReturnedPointer(LLVMDependenceGraph *subgraph,
@@ -629,7 +699,7 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     // add subgraphs dynamically according the points-to information
     LLVMNode *calledFuncNode = getOperand(node, Inst->getCalledValue(), 0);
     if (!func && calledFuncNode)
-        changed |= handleFunctionPtrCall(calledFuncNode, node, this);
+        changed |= handleFunctionPtrCall(calledFuncNode, node);
 
     // function is undefined and returns a pointer?
     // In that case create pointer to unknown location
