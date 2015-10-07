@@ -331,7 +331,7 @@ private:
         DGParameters<NodeT> *params = node->getParameters();
 
         if (params) {
-            dump_parameters(params, ind);
+            dump_parameters(params, ind, false);
         }
     }
 
@@ -340,11 +340,11 @@ private:
         DGParameters<NodeT> *params = g->getParameters();
 
         if (params) {
-            dump_parameters(params, ind);
+            dump_parameters(params, ind, true);
         }
     }
 
-    void dump_parameters(DGParameters<NodeT> *params, int ind)
+    void dump_parameters(DGParameters<NodeT> *params, int ind, bool formal)
     {
         Indent Ind(ind);
         DumpBBData data(out, options, ind, printKey);
@@ -358,13 +358,13 @@ private:
         for (auto it : *params) {
             DGParameter<NodeT>& p = it.second;
             if (p.in) {
-                dump_node(p.in, ind, "IN ARG");
+                dump_node(p.in, ind, formal ? "[f] IN ARG" : "IN ARG");
                 dump_node_edges(p.in, ind);
             } else
                 out << "NO IN ARG";
 
             if (p.out) {
-                dump_node(p.out, ind, "OUT ARG");
+                dump_node(p.out, ind, formal ? "[f] OUT ARG" : "OUT ARG");
                 dump_node_edges(p.out, ind);
             } else
                 out << "NO OUT ARG";
@@ -374,13 +374,13 @@ private:
              I != E; ++I) {
             DGParameter<NodeT>& p = I->second;
             if (p.in) {
-                dump_node(p.in, ind, "GLOB IN");
+                dump_node(p.in, ind, formal ? "[f] GLOB IN" : "GLOB IN");
                 dump_node_edges(p.in, ind);
             } else
                 out << "NO GLOB IN ARG";
 
             if (p.out) {
-                dump_node(p.out, ind, "GLOB OUT");
+                dump_node(p.out, ind, formal ? "[f] GLOB OUT" : "GLOB OUT");
                 dump_node_edges(p.out, ind);
             } else
                 out << "NO GLOB OUT ARG";
