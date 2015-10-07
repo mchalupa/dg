@@ -492,10 +492,32 @@ void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node)
         handleUndefinedCall(node, CI);
 }
 
+void handleInlineAsm(LLVMNode *callNode)
+{
+    const CallInst *CI = cast<CallInst>(callNode->getValue());
+    LLVMDependenceGraph *dg = callNode->getDG();
+
+    // the last operand is the asm itself, so iterate only to e - 1
+    for (unsigned i = 0, e = CI->getNumOperands(); i < e - 1; ++i) {
+        const Value *opVal = CI->getOperand(i);
+        LLVMNode *opNode = dg->getNode(opVal);
+        assert(opNode && "Do not have an operand for inline asm");
+
+        // if nothing else, this call at least uses the operands
+        opNode->addDataDependence(callNode);
+    }
+}
+
 void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     const CallInst *CI = cast<CallInst>(node->getKey());
+
+    if (CI->isInlineAsm()) {
+        handleInlineAsm(node);
+        return;
+    }
+
     const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
 
     // if this is call via function pointer, add the

@@ -691,6 +691,12 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     Type *Ty = Inst->getType();
+
+    // TODO: we can match the patterns and at least
+    // get some points-to information from inline asm.
+    if (Inst->isInlineAsm())
+        return false;
+
     const Function *func = dyn_cast<Function>(Inst->getCalledValue()->stripPointerCasts());
 
     if (func && func->isIntrinsic())
