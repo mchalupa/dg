@@ -250,7 +250,8 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     }
 #ifdef DEBUG_ENABLED
     else {
-        if (!isa<ConstantInt>(Inst->getValueOperand()))
+        const Value *valOp = Inst->getValueOperand();
+        if (!isa<ConstantInt>(valOp) && !isa<ConstantPointerNull>(valOp))
             DBG("ERR def-use: Unhandled value operand for " << *Inst);
     }
 #endif
