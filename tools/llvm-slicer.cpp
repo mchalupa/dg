@@ -232,6 +232,29 @@ static void annotate(llvm::Module *M, const char *module_name,
     delete annot;
 }
 
+static void computeGraphEdges(LLVMDependenceGraph *d)
+{
+    debug::TimeMeasure tm;
+
+    analysis::LLVMReachingDefsAnalysis RDA(d);
+    tm.start();
+    RDA.run();  // compute reaching definitions
+    tm.stop();
+    tm.report("INFO: Reaching defs analysis took");
+
+    analysis::LLVMDefUseAnalysis DUA(d);
+    tm.start();
+    DUA.run(); // add def-use edges according that
+    tm.stop();
+    tm.report("INFO: Adding Def-Use edges took");
+
+    tm.start();
+    // add post-dominator frontiers
+    d->computePostDominators(true);
+    tm.stop();
+    tm.report("INFO: Computing post-dominator frontiers took");
+}
+
 static bool slice(llvm::Module *M, const char *module_name,
                   const char *slicing_criterion, uint32_t opts = 0)
 {
@@ -274,6 +297,7 @@ static bool slice(llvm::Module *M, const char *module_name,
     bool ret = d.getCallSites(sc, &callsites);
     tm.stop();
 
+    bool got_slicing_criterion = true;
     if (!ret) {
         if (strcmp(slicing_criterion, "ret") == 0) {
             callsites.insert(d.getExit());
@@ -281,31 +305,20 @@ static bool slice(llvm::Module *M, const char *module_name,
         } else {
             errs() << "Did not find slicing criterion: "
                    << slicing_criterion << "\n";
-            return false;
+            got_slicing_criterion = false;
         }
     } else
         tm.report("INFO: Found slicing criterion in");
 
+    // if we found slicing criterion, compute the rest
+    // of the graph. Otherwise just slice away the whole graph
+    // Also count the edges when user wants to annotate
+    // the file - due to debugging
+    if (got_slicing_criterion || (opts & ANNOTATE))
+        computeGraphEdges(&d);
 
-    analysis::LLVMReachingDefsAnalysis RDA(&d);
-    tm.start();
-    RDA.run();  // compute reaching definitions
-    tm.stop();
-    tm.report("INFO: Reaching defs analysis took");
-
-    analysis::LLVMDefUseAnalysis DUA(&d);
-    tm.start();
-    DUA.run(); // add def-use edges according that
-    tm.stop();
-    tm.report("INFO: Adding Def-Use edges took");
-
-    tm.start();
-    // add post-dominator frontiers
-    d.computePostDominators(true);
-    tm.stop();
-    tm.report("INFO: Computing post-dominator frontiers took");
     LLVMSlicer slicer;
-    uint32_t slid = 0;
+    uint32_t slid = 0xdead;
 
     // do not slice klee_assume at all
     // FIXME: do this optional
