@@ -44,7 +44,7 @@ public:
     typedef EdgesContainer<BBlock<NodeT>> ContainerT;
 
     const ContainerT& successors() const { return nextBBs; }
-    const ContainerT& predcessors() const { return prevBBs; }
+    const ContainerT& predecessors() const { return prevBBs; }
     const ContainerT& controlDependence() const { return controlDeps; }
     const ContainerT& RevControlDependence() const { return revControlDeps; }
 
@@ -80,7 +80,7 @@ public:
         return nextBBs.size();
     }
 
-    typename ContainerT::size_type predcessorsNum() const
+    typename ContainerT::size_type predecessorsNum() const
     {
         return prevBBs.size();
     }
@@ -93,13 +93,13 @@ public:
     // remove all edges from/to this BB
     void isolate()
     {
-        // remove this BB from predcessors
+        // remove this BB from predecessors
         for (auto pred : prevBBs) {
             pred->nextBBs.erase(this);
         }
 
         for (auto succ : nextBBs) {
-            // redirect edges from each predcessor
+            // redirect edges from each predecessor
             // to each successor
             for (auto pred : prevBBs) {
                 pred->addSuccessor(succ);
@@ -170,7 +170,7 @@ public:
         return ret;
     }
 
-    bool addPredcessor(BBlock<NodeT> *b)
+    bool addPredecessor(BBlock<NodeT> *b)
     {
         bool ret, ret2;
 
@@ -196,7 +196,7 @@ public:
         nextBBs.clear();
     }
 
-    void removePredcessors()
+    void removePredecessors()
     {
         for (auto BB : prevBBs) {
             BB->nextBBs.erase(this);
@@ -205,12 +205,12 @@ public:
         prevBBs.clear();
     }
 
-    // remove predcessor basic block. Return value is
+    // remove predecessor basic block. Return value is
     // 0 if nothing was removed, 1 if only one edge was removed
     // (asserted when NDEBUG is defined)
     // and two if both edges were removed.
     // (Edges are [this -> p] and [p -> this])
-    size_t removePredcessor(BBlock<NodeT> *p)
+    size_t removePredecessor(BBlock<NodeT> *p)
     {
         size_t ret = 0;
         ret += p->nextBBs.erase(this);
@@ -222,7 +222,7 @@ public:
         return ret;
     }
 
-    // return value is the same as with removePredcessor
+    // return value is the same as with removePredecessor
     size_t removeSuccessor(BBlock<NodeT> *p)
     {
         size_t ret = 0;

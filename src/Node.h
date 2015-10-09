@@ -271,12 +271,12 @@ public:
     }
 
     bool hasSuccessor() const { return nextNode != nullptr; }
-    bool hasPredcessor() const { return prevNode != nullptr; }
+    bool hasPredecessor() const { return prevNode != nullptr; }
 
     const NodeT * getSuccessor() const { return nextNode; }
-    const NodeT * getPredcessor() const { return prevNode; }
+    const NodeT * getPredecessor() const { return prevNode; }
     NodeT * getSuccessor() { return nextNode; }
-    NodeT * getPredcessor() { return prevNode; }
+    NodeT * getPredecessor() { return prevNode; }
 
     unsigned int getDFSOrder() const
     {
@@ -390,7 +390,7 @@ private:
 
     // successors of this node
     NodeT *nextNode;
-    // predcessors of this node
+    // predecessors of this node
     NodeT *prevNode;
 
 #endif /* ENABLE_CFG */

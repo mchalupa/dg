@@ -98,10 +98,10 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
     }
 
     LLVMNode *s = node->getSuccessor();
-    LLVMNode *p = node->getPredcessor();
+    LLVMNode *p = node->getPredecessor();
     if (s) {
-        if (s->getPredcessor() != node) {
-            os << "\\nERR: wrong predcessor";
+        if (s->getPredecessor() != node) {
+            os << "\\nERR: wrong predecessor";
             err = true;
         }
 

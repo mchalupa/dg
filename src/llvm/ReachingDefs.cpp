@@ -324,12 +324,12 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
     // because they were updated strongly
     PointsToSetT *strong_update = nullptr;
 
-    // update states according to predcessors
+    // update states according to predecessors
     DefMap *df = getDefMap(node);
-    LLVMNode *pred = node->getPredcessor();
+    LLVMNode *pred = node->getPredecessor();
     if (pred) {
         const Value *predVal = pred->getKey();
-        // if the predcessor is StoreInst, it add and may kill some definitions
+        // if the predecessor is StoreInst, it add and may kill some definitions
         if (isa<StoreInst>(predVal))
             changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
         // call inst may add some definitions to (StoreInst in subgraph)
@@ -341,11 +341,11 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
         // either we have nothing to merge or we merged something
         // if predecessor has something
         assert(pred_df->empty() || !df->empty());
-    } else { // BB predcessors
+    } else { // BB predecessors
         LLVMBBlock *BB = node->getBBlock();
         assert(BB && "Node has no BB");
 
-        for (LLVMBBlock *predBB : BB->predcessors()) {
+        for (LLVMBBlock *predBB : BB->predecessors()) {
             pred = predBB->getLastNode();
             assert(pred && "BB has no last node");
 
