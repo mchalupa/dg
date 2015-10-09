@@ -186,23 +186,23 @@ public:
                 "hasSuccessor returned true on node without successor");
         check(!n2.hasSuccessor(),
                 "hasSuccessor returned true on node without successor");
-        check(!n1.hasPredcessor(),
-                "hasPredcessor returned true on node without successor");
-        check(!n2.hasPredcessor(),
-                "hasPredcessor returned true on node without successor");
+        check(!n1.hasPredecessor(),
+                "hasPredecessor returned true on node without successor");
+        check(!n2.hasPredecessor(),
+                "hasPredecessor returned true on node without successor");
         check(n1.getSuccessor() == nullptr, "succ initialized with garbage");
         check(n2.getSuccessor() == nullptr, "succ initialized with garbage");
-        check(n1.getPredcessor() == nullptr, "pred initialized with garbage");
-        check(n2.getPredcessor() == nullptr, "pred initialized with garbage");
+        check(n1.getPredecessor() == nullptr, "pred initialized with garbage");
+        check(n2.getPredecessor() == nullptr, "pred initialized with garbage");
 
         check(n1.setSuccessor(&n2) == nullptr,
                 "adding successor edge claims it is there");
         check(n1.hasSuccessor(), "hasSuccessor returned false");
-        check(!n1.hasPredcessor(), "hasPredcessor returned true");
-        check(n2.hasPredcessor(), "hasPredcessor returned false");
+        check(!n1.hasPredecessor(), "hasPredcessor returned true");
+        check(n2.hasPredecessor(), "hasPredcessor returned false");
         check(!n2.hasSuccessor(), "hasSuccessor returned false");
         check(n1.getSuccessor() == &n2, "get/addSuccessor bug");
-        check(n2.getPredcessor() == &n1, "get/addPredcessor bug");
+        check(n2.getPredecessor() == &n1, "get/addPredcessor bug");
 
         // basic blocks
         check(BB.getFirstNode() == &n1, "first node incorrectly set");
@@ -210,7 +210,7 @@ public:
         check(BB.getLastNode() == &n2, "bug in setLastNode");
 
         check(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
-        check(BB.predcessorsNum() == 0, "claims: %u", BB.predcessorsNum());
+        check(BB.predecessorsNum() == 0, "claims: %u", BB.predecessorsNum());
 
         TestNode n3(3);
         TestNode n4(4);
@@ -224,24 +224,24 @@ public:
         check(BB.addSuccessor(&BB3), "the edge is there");
         check(BB.successorsNum() == 2, "claims: %u", BB.successorsNum());
 
-        check(BB2.predcessorsNum() == 1, "claims: %u", BB2.predcessorsNum());
-        check(BB3.predcessorsNum() == 1, "claims: %u", BB3.predcessorsNum());
-        check(*(BB2.predcessors().begin()) == &BB, "wrong predcessor set");
-        check(*(BB3.predcessors().begin()) == &BB, "wrong predcessor set");
+        check(BB2.predecessorsNum() == 1, "claims: %u", BB2.predecessorsNum());
+        check(BB3.predecessorsNum() == 1, "claims: %u", BB3.predecessorsNum());
+        check(*(BB2.predecessors().begin()) == &BB, "wrong predecessor set");
+        check(*(BB3.predecessors().begin()) == &BB, "wrong predecessor set");
 
         for (auto s : BB.successors())
             check(s == &BB2 || s == &BB3, "Wrong succ set");
 
-        BB2.removePredcessors();
+        BB2.removePredecessors();
         check(BB.successorsNum() == 1, "claims: %u", BB.successorsNum());
-        check(BB2.predcessorsNum() == 0, "has successors after removing");
+        check(BB2.predecessorsNum() == 0, "has successors after removing");
 
         BB.removeSuccessors();
         check(BB.successorsNum() == 0, "has successors after removing");
-        check(BB2.predcessorsNum() == 0, "removeSuccessors did not removed BB"
-                                        " from predcessor");
-        check(BB3.predcessorsNum() == 0, "removeSuccessors did not removed BB"
-                                    " from predcessor");
+        check(BB2.predecessorsNum() == 0, "removeSuccessors did not removed BB"
+                                        " from predecessor");
+        check(BB3.predecessorsNum() == 0, "removeSuccessors did not removed BB"
+                                    " from predecessor");
 #endif // ENABLE_CFG
     }
 };
@@ -326,19 +326,19 @@ private:
         check(nodes[0]->getRevControlDependenciesNum() == 0, "isolate bug");
         check(nodes[0]->getRevDataDependenciesNum() == 0, "isolate bug");
         check(nodes[0]->hasSuccessor() == false, "isolate should remove successor");
-        check(nodes[0]->hasPredcessor() == false, "isolate should remove successor");
-        check(nodes[1]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[0]->hasPredecessor() == false, "isolate should remove successor");
+        check(nodes[1]->hasPredecessor() == false, "isolate should remove successor");
         check(nodes[1]->getSuccessor() == nodes[2], "setSuccessor bug");
 
         nodes[5]->isolate();
         check(nodes[5]->hasSuccessor() == false, "isolate should remove successor");
-        check(nodes[5]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[5]->hasPredecessor() == false, "isolate should remove successor");
         check(nodes[4]->getSuccessor() == nodes[6], "isolate should reconnect neighb.");
-        check(nodes[6]->getPredcessor() == nodes[4], "isolate should reconnect neighb.");
+        check(nodes[6]->getPredecessor() == nodes[4], "isolate should reconnect neighb.");
 
         nodes[NODES_NUM - 1]->isolate();
         check(nodes[NODES_NUM - 1]->hasSuccessor() == false, "isolate should remove successor");
-        check(nodes[NODES_NUM - 1]->hasPredcessor() == false, "isolate should remove successor");
+        check(nodes[NODES_NUM - 1]->hasPredecessor() == false, "isolate should remove successor");
         check(nodes[NODES_NUM - 2]->hasSuccessor() == false, "isolate should remove successor");
     }
 
@@ -410,12 +410,12 @@ private:
         B2.addSuccessor(&B4);
         B3.addSuccessor(&B4);
         B3.addSuccessor(&B5);
-        B5.addPredcessor(&B3);
-        B5.addPredcessor(&B4);
+        B5.addPredecessor(&B3);
+        B5.addPredecessor(&B4);
 
         B5.isolate();
         check(B5.successorsNum() == 0, "has succs after isolate");
-        check(B5.predcessorsNum() == 0, "has preds after isolate");
+        check(B5.predecessorsNum() == 0, "has preds after isolate");
         check(B3.successors().contains(&B5) == false, " dangling reference");
     }
 
@@ -455,8 +455,8 @@ private:
         B2->addSuccessor(B4);
         B3->addSuccessor(B4);
         B3->addSuccessor(B5);
-        B5->addPredcessor(B3);
-        B5->addPredcessor(B4);
+        B5->addPredecessor(B3);
+        B5->addPredecessor(B4);
 
         B5->remove();
         check(B3->successors().contains(B5) == false, " dangling reference");
@@ -465,7 +465,7 @@ private:
 
         B2->remove();
         check(B1->successors().contains(B4), "reconnect succ bug");
-        check(B4->predcessors().contains(B1), "reconnect preds bug");
+        check(B4->predecessors().contains(B1), "reconnect preds bug");
         check(d.size() == 8, "remove nodes in block bug");
 
         B3->remove();
@@ -498,44 +498,44 @@ private:
         B1->addSuccessor(B2);
         B2->addSuccessor(B1);
         check(B1->successors().contains(B2), "err");
-        check(B1->predcessors().contains(B2), "err (2)");
+        check(B1->predecessors().contains(B2), "err (2)");
 
         d.removeNode(nodes[0]);
         check(d.size() == 9, "Node::remove() did not remove node");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
         // this should stay
         check(B1->getLastNode() == nodes[5], "Node::remove() reconnect edges bug");
-        check(nodes[1]->getPredcessor() == nullptr, "reconnect bug");
+        check(nodes[1]->getPredecessor() == nullptr, "reconnect bug");
         check(nodes[1]->getSuccessor() == nodes[2], "reconnect bug");
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
-        check(B1->predcessors().contains(B2), "BBlock pred deleted prematuraly");
+        check(B1->predecessors().contains(B2), "BBlock pred deleted prematuraly");
 
         d.removeNode(nodes[5]);
         check(d.size() == 8, "Node::remove() did not remove node");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug");
-        check(nodes[4]->getPredcessor() == nodes[3], "reconnect bug");
+        check(nodes[4]->getPredecessor() == nodes[3], "reconnect bug");
         check(nodes[4]->getSuccessor() == nullptr, "reconnect bug");
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
-        check(B1->predcessors().contains(B2), "BBlock pred deleted prematuraly");
+        check(B1->predecessors().contains(B2), "BBlock pred deleted prematuraly");
 
         d.removeNode(nodes[2]);
         check(d.size() == 7, "Node::remove() did not remove node");
         check(nodes[1]->getSuccessor() == nodes[3], "reconnect bug");
-        check(nodes[3]->getPredcessor() == nodes[1], "reconnect bug");
+        check(nodes[3]->getPredecessor() == nodes[1], "reconnect bug");
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
-        check(B1->predcessors().contains(B2), "BBlock pred deleted prematuraly");
+        check(B1->predecessors().contains(B2), "BBlock pred deleted prematuraly");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
 
         d.removeNode(nodes[1]);
-        check(nodes[3]->getPredcessor() == nullptr, "removing head buggy");
+        check(nodes[3]->getPredecessor() == nullptr, "removing head buggy");
         check(nodes[3]->getSuccessor() == nodes[4], "removing head buggy");
         check(nodes[4]->getSuccessor() == nullptr, "removing head buggy");
         check(B1->getFirstNode() == nodes[3], "Node::remove() reconnect edges bug (3)");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug (4)");
 
         d.removeNode(nodes[3]);
-        check(nodes[4]->getPredcessor() == nullptr, "remove pre-last node in block bug");
+        check(nodes[4]->getPredecessor() == nullptr, "remove pre-last node in block bug");
         check(nodes[4]->getSuccessor() == nullptr, "remove pre-last node in block bug (2)");
         check(B1->getFirstNode() == nodes[4], "Node::remove() reconnect edges bug (5)");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug (6)");
@@ -545,7 +545,7 @@ private:
         check(d.size() == 4, "wrong size");
 
         check(!B2->successors().contains(B1), "BBlock was not removed");
-        check(!B2->predcessors().contains(B1), "BBlock was not removed");
+        check(!B2->predecessors().contains(B1), "BBlock was not removed");
     }
 };
 

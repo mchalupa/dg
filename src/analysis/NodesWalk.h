@@ -23,7 +23,7 @@ enum NodesWalkFlags {
     // node's BB successors
     NODES_WALK_BB_CFG                   = 1 << 7,
     // Add to queue all last nodes of
-    // node's BB predcessors
+    // node's BB predecessors
     NODES_WALK_BB_REV_CFG               = 1 << 8,
     NODES_WALK_BB_POSTDOM               = 1 << 9,
     NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 10,
@@ -113,8 +113,8 @@ public:
             }
 
             if (options & NODES_WALK_REV_CFG) {
-                if (n->hasPredcessor())
-                    enqueue(n->getPredcessor());
+                if (n->hasPredecessor())
+                    enqueue(n->getPredecessor());
                 else
                     processBBlockRevCFG(n);
             }
@@ -204,7 +204,7 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->predcessors())
+        for (BBlock<NodeT> *S : BB->predecessors())
             enqueue(S->getLastNode());
     }
 

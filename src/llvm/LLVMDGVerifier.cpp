@@ -72,8 +72,8 @@ void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB, LLVMBBlock *BB)
             fault("wrong node in BB");
 
         if (llvmPrev) {
-            if (llvmPrev != node->getPredcessor()->getKey())
-                fault("predcessor edges is wrong");
+            if (llvmPrev != node->getPredecessor()->getKey())
+                fault("predecessor edges is wrong");
         }
 
         checkNode(&I, node);

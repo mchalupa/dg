@@ -270,7 +270,7 @@ private:
         }
 
         if (options & PRINT_REV_CFG) {
-            for (auto S : BB->predcessors()) {
+            for (auto S : BB->predecessors()) {
                 NodeT *lastNode = S->getLastNode();
                 NodeT *firstNode = BB->getFirstNode();
 
@@ -569,9 +569,9 @@ private:
         }
 
         if (options & PRINT_REV_CFG) {
-            out << Ind << "/* Predcessor */\n";
-            if (n->hasPredcessor()) {
-                out << Ind << "NODE" << n << " -> NODE" << n->getPredcessor()
+            out << Ind << "/* Predecessor */\n";
+            if (n->hasPredecessor()) {
+                out << Ind << "NODE" << n << " -> NODE" << n->getPredecessor()
                     << " [style=\"dotted\" color=gray]\n";
             }
         }

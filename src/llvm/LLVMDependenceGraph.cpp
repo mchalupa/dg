@@ -378,11 +378,11 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
         // add new node to this dependence graph
         addNode(node);
 
-        // add successor to predcessor node
+        // add successor to predecessor node
         if (predNode)
             predNode->setSuccessor(node);
 
-        // set new predcessor node for next iteration
+        // set new predecessor node for next iteration
         predNode = node;
 
         // take instruction specific actions
@@ -532,7 +532,7 @@ void LLVMDependenceGraph::addFormalParameters()
 
 static void computePDFrontiers(LLVMBBlock *BB)
 {
-    for (LLVMBBlock *pred : BB->predcessors()) {
+    for (LLVMBBlock *pred : BB->predecessors()) {
         LLVMBBlock *ipdom = BB->getIPostDom();
         if (ipdom && ipdom != BB)
             BB->addPostDomFrontier(pred);
