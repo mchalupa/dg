@@ -95,9 +95,16 @@ static void addInitialDefuse(ValuesSetT& defs, LLVMNode *ptrnode)
 static uint64_t getAffectedMemoryLength(const Value *val, const DataLayout *DL)
 {
     uint64_t size = 0;
-    Type *Ty = val->getType();
     Type *elemTy;
 
+    // if the value passed is store inst, then use
+    // the value operand
+    if (const Instruction *I = dyn_cast<Instruction>(val)) {
+        if (isa<StoreInst>(val))
+            val = I->getOperand(0);
+    }
+
+    Type *Ty = val->getType();
     if (Ty->isPointerTy())
         elemTy = Ty->getContainedType(0);
     else
