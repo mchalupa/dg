@@ -214,6 +214,33 @@ static LLVMNode *getConstantExprNode(const llvm::ConstantExpr *CE,
     return node;
 }
 
+static LLVMNode *getUnknownNode(LLVMDependenceGraph *dg, const llvm::Value *val,
+                                const llvm::DataLayout *DL)
+{
+    LLVMNode *node = nullptr;
+
+    using namespace llvm;
+    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
+        node = getConstantExprNode(CE, dg, DL);
+    } else if (isa<Function>(val)) {
+        // if the function was created via function pointer during
+        // points-to analysis, the operand may not be not be set.
+        // What is worse, the function may not be created either,
+        // so the node just may not exists at all, so we need to
+        // create it
+        node = getOrCreateNode(dg, val);
+    } else if (isa<ConstantPointerNull>(val)) {
+        // what to do with nullptr?
+        node = createNodeWithMemAlloc(val);
+    } else {
+        errs() << "ERR: Unsupported operand: " << *val << "\n";
+        abort();
+    }
+
+    assert(node && "Did not get a node");
+    return node;
+}
+
 /*
  * we have DependenceGraph::getNode() which retrives existing node.
  * The operand nodes may not exists, though.
@@ -231,31 +258,13 @@ LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
     if (op)
         return op;
 
-    using namespace llvm;
     LLVMDependenceGraph *dg = node->getDG();
 
-    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
-        op = getConstantExprNode(CE, dg, DL);
-    } else if (isa<Function>(val)) {
-        // if the function was created via function pointer during
-        // points-to analysis, the operand may not be not be set.
-        // What is worse, the function may not be created either,
-        // so the node just may not exists at all, so we need to
-        // create it
-        op = getOrCreateNode(dg, val);
-    } else if (isa<ConstantPointerNull>(val)) {
-        // what to do with nullptr?
-        op = createNodeWithMemAlloc(val);
-    } else {
-        errs() << "ERR: Unsupported operand: " << *val << "\n";
-        abort();
-    }
-
-    assert(op && "Did not set op");
-
     // set new operand
-    node->setOperand(op, idx);
+    op = getUnknownNode(dg, val, DL);
+    assert(op && "Did not get op");
 
+    node->setOperand(op, idx);
     return op;
 }
 
