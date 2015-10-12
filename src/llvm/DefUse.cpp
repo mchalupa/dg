@@ -349,6 +349,10 @@ static void addOutParamsEdges(LLVMDependenceGraph *graph)
              I != E; ++I) {
             addOutParamsEdges(I->second, df);
         }
+
+        LLVMDGParameter *vaparam = params->getVarArg();
+        if (vaparam)
+            addOutParamsEdges(*vaparam, df);
     }
 }
 
@@ -369,7 +373,44 @@ static void addOutParamsEdges(LLVMNode *callNode)
     }
 }
 
+void LLVMDefUseAnalysis::addDefUseToParamNode(LLVMNode *op, DefMap *df, LLVMNode *to)
+{
+    if (op->isPointerTy()) {
+        // add data dependencies to in parameters
+        // this adds def-use edges between definition
+        // of the pointer and the parameter
+        addIndirectDefUse(op, to, df);
+
+        // and check if the memory the pointer points to has some reaching
+        // definition
+        for (const Pointer& ptr : op->getPointsTo()) {
+            if (!ptr.isKnown()) {
+                errs() << "ERR: unknown pointer, may be unsound\n";
+                continue;
+            }
+
+            for (auto it : ptr.obj->pointsTo) {
+                for (const Pointer& memptr : it.second) {
+                    // XXX is it 0 always?
+                    addIndirectDefUsePtr(memptr, to, df, 0);
+                }
+            }
+        }
+        // fall-through to
+        // add also top-level def-use edge
+    }
+
+    op->addDataDependence(to);
+}
+
+void LLVMDefUseAnalysis::addDefUseToParam(LLVMNode *op, DefMap *df,
+                                          LLVMDGParameter *p)
+{
+    addDefUseToParamNode(op, df, p->in);
+}
+
 void LLVMDefUseAnalysis::addDefUseToOperands(LLVMNode *node,
+                                             bool isvararg,
                                              LLVMDGParameters *params,
                                              DefMap *df)
 {
@@ -380,36 +421,16 @@ void LLVMDefUseAnalysis::addDefUseToOperands(LLVMNode *node,
 
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
+            if (isvararg) {
+                // we don't have actual vararg, but it doesn matter since
+                // we'd added all to one arg. Just add the def-use to call-site
+                addDefUseToParamNode(op, df, node);
+            }
             DBG("ERR: no actual param for " << *op->getKey());
             continue;
         }
 
-        if (op->isPointerTy()) {
-            // add data dependencies to in parameters
-            // this adds def-use edges between definition
-            // of the pointer and the parameter
-            addIndirectDefUse(op, p->in, df);
-
-            // and check if the memory the pointer points to has some reaching
-            // definition
-            for (const Pointer& ptr : op->getPointsTo()) {
-                if (!ptr.isKnown()) {
-                    errs() << "ERR: unknown pointer, may be unsound\n";
-                    continue;
-                }
-
-                for (auto it : ptr.obj->pointsTo) {
-                    for (const Pointer& memptr : it.second) {
-                        // XXX is it 0 always?
-                        addIndirectDefUsePtr(memptr, p->in, df, 0);
-                    }
-                }
-            }
-            // fall-through to
-            // add also top-level def-use edge
-        }
-
-        op->addDataDependence(p->in);
+        addDefUseToParam(op, df, p);
     }
 }
 
@@ -553,7 +574,8 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 
     // add def-use edges between parameters and the operands
     // parameters begin from 1
-    addDefUseToOperands(node, params, df);
+    bool va = func ? func->isVarArg() : false;
+    addDefUseToOperands(node, va, params, df);
 
     // add def-use edges to parameter globals
     addDefUseToParameterGlobals(node, params, df);

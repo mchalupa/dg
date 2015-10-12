@@ -45,9 +45,11 @@ private:
 
     void addStoreLoadInstDefUse(LLVMNode *, LLVMNode *, DefMap *);
     void addIndirectDefUse(LLVMNode *, LLVMNode *, DefMap *);
-    void addDefUseToOperands(LLVMNode *, LLVMDGParameters *, DefMap *);
+    void addDefUseToOperands(LLVMNode *, bool, LLVMDGParameters *, DefMap *);
     void addDefUseToParameterGlobals(LLVMNode *, LLVMDGParameters *, DefMap *);
     void addIndirectDefUsePtr(const Pointer&, LLVMNode *, DefMap *, uint64_t);
+    void addDefUseToParam(LLVMNode *, DefMap *, LLVMDGParameter *);
+    void addDefUseToParamNode(LLVMNode *op, DefMap *df, LLVMNode *to);
 };
 
 } // namespace analysis

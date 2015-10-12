@@ -538,6 +538,7 @@ void LLVMDependenceGraph::addFormalParameters()
         params->setVarArg(in, out);
         entryNode->addControlDependence(in);
         entryNode->addControlDependence(out);
+        in->addDataDependence(out);
     }
 }
 
