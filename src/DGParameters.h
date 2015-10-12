@@ -60,12 +60,13 @@ public:
     typedef typename ContainerType::const_iterator const_iterator;
 
     DGParameters<NodeT>()
-    : BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>) {}
+    : vararg(nullptr), BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>){}
 
     ~DGParameters<NodeT>()
     {
         delete BBIn;
         delete BBOut;
+        delete vararg;
     }
 
     DGParameter<NodeT> *operator[](KeyT k) { return find(k); }
@@ -154,11 +155,27 @@ public:
     BBlock<NodeT> *getBBIn() { return BBIn; }
     BBlock<NodeT> *getBBOut() { return BBOut; }
 
+    DGParameter<NodeT>* getVarArg() { return vararg; }
+    const DGParameter<NodeT>* getVarArg() const { return vararg; }
+    bool setVarArg(NodeT *in, NodeT *out)
+    {
+        if (vararg)
+            return false;
+
+        vararg = new DGParameter<NodeT>(in, out);
+        return true;
+    }
+
 private:
     // globals represented as a parameter
     ContainerType globals;
     // usual parameters
     ContainerType params;
+
+    // this is parameter that represents
+    // formal vararg parameters. It is only one, because without
+    // any further analysis, we cannot tell apart the formal varargs
+    DGParameter<NodeT> *vararg;
 
     BBlock<NodeT> *BBIn;
     BBlock<NodeT> *BBOut;
