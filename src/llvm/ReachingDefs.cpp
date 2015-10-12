@@ -145,7 +145,22 @@ static bool handleDynMemoryParams(LLVMDependenceGraph *subgraph, LLVMDGParameter
     return changed;
 }
 
-static bool handleParams(LLVMNode *callNode, LLVMDGParameters *params,
+static bool handleVarArgParams(LLVMDependenceGraph *subgraph,
+                               DefMap *df, DefMap *subgraph_df)
+{
+
+    LLVMDGParameters *formal = subgraph->getParameters();
+    if (!formal)
+        return false;
+
+    LLVMDGParameter *vaparam = formal->getVarArg();
+    assert(vaparam && "No va param in vararg function");
+
+    return handleParam(vaparam->in, vaparam->out, df, subgraph_df);
+}
+
+static bool handleParams(LLVMNode *callNode, unsigned vararg,
+                         LLVMDGParameters *params,
                          DefMap *df, DefMap *subgraph_df)
 {
     bool changed = false;
@@ -161,7 +176,10 @@ static bool handleParams(LLVMNode *callNode, LLVMDGParameters *params,
 
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
-            DBG("ERR: no actual param for " << *op->getKey());
+#ifdef DEBUG_ENABLED
+            if (i - 1 > (int) vararg)
+                DBG("ERR: no actual param for " << *op->getKey());
+#endif
             continue;
         }
 
@@ -184,9 +202,17 @@ static bool handleParams(LLVMNode *callNode, LLVMDependenceGraph *subgraph,
     if (!params)
         return false;
 
-    changed |= handleParams(callNode, params, df, subgraph_df);
+    const Function *func = cast<Function>(subgraph->getEntry()->getKey());
+    unsigned vararg = 0;
+    // set this only with vararg functions, for revealing the bugs
+    if (func->isVarArg())
+        vararg = func->arg_size();
+
+    changed |= handleParams(callNode, vararg, params, df, subgraph_df);
     changed |= handleParamsGlobals(callNode->getDG(), params, df, subgraph_df);
     changed |= handleDynMemoryParams(subgraph, params, df, subgraph_df);
+    if (vararg != 0)
+        changed |= handleVarArgParams(subgraph, df, subgraph_df);
 
     return changed;
 }
