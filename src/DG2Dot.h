@@ -385,6 +385,21 @@ private:
             } else
                 out << "NO GLOB OUT ARG";
         }
+
+        DGParameter<NodeT> *p = params->getVarArg();
+        if (p) {
+            if (p->in) {
+                dump_node(p->in, ind, "[va] IN ARG");
+                dump_node_edges(p->in, ind);
+            } else
+                out << "NO IN va ARG";
+
+            if (p->out) {
+                dump_node(p->out, ind, "[va] OUT ARG");
+                dump_node_edges(p->out, ind);
+            } else
+                out << "NO OUT ARG";
+        }
     }
 
     void dump_subgraph(DependenceGraph<NodeT> *sub)
