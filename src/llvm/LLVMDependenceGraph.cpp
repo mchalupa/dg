@@ -528,6 +528,17 @@ void LLVMDependenceGraph::addFormalParameters()
         entryNode->addControlDependence(in);
         entryNode->addControlDependence(out);
     }
+
+    if (func->isVarArg()) {
+        Value *val = ConstantPointerNull::get(func->getType());
+        val->setName("vararg");
+        in = new LLVMNode(val, true);
+        out = new LLVMNode(val, true);
+
+        params->setVarArg(in, out);
+        entryNode->addControlDependence(in);
+        entryNode->addControlDependence(out);
+    }
 }
 
 static void computePDFrontiers(LLVMBBlock *BB)
