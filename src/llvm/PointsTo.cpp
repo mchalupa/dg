@@ -539,6 +539,28 @@ static void propagateDynAllocationPointsTo(LLVMDependenceGraph *subgraph,
     }
 }
 
+static void propagateVarArgPointsTo(LLVMDGParameters *formal,
+                                    size_t argnum, LLVMNode *callNode)
+{
+    LLVMDGParameter *vaparam = formal->getVarArg();
+    assert(vaparam && "No vaarg param in vaarg function");
+
+    size_t opnum = callNode->getOperandsNum();
+    // we need to increate the argnum, because our operands
+    // cache has as operand 0 the call inst
+    for (; argnum < opnum - 1; ++argnum) {
+        LLVMNode *op = callNode->getOperand(argnum + 1);
+        if (!op) {
+            // FIXME constant exprs has pointers too
+            // make this method of the analysis and use getOperand
+            errs() << "ERR: unhandled vararg operand\n";
+            continue;
+        }
+
+        vaparam->in->addPointsTo(op->getPointsTo());
+    }
+}
+
 bool LLVMPointsToAnalysis::
 propagatePointersToArguments(LLVMDependenceGraph *subgraph,
                              const CallInst *Inst, LLVMNode *callNode)
@@ -583,6 +605,8 @@ propagatePointersToArguments(LLVMDependenceGraph *subgraph,
 
     propagateDynAllocationPointsTo(subgraph, formal);
     propagateGlobalParametersPointsTo(callNode);
+    if (subfunc->isVarArg())
+        propagateVarArgPointsTo(formal, subfunc->arg_size(), callNode);
 
     return changed;
 }
@@ -618,10 +642,9 @@ static bool handleDynamicMemAllocation(const CallInst *Inst,
     return handleMemAllocation(node, size);
 }
 
-bool LLVMPointsToAnalysis::handleMemTransfer(const CallInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleMemTransfer(const IntrinsicInst *I, LLVMNode *node)
 {
     bool changed = false;
-    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
     const Value *dest, *src, *len;
 
     switch (I->getIntrinsicID())
@@ -633,10 +656,10 @@ bool LLVMPointsToAnalysis::handleMemTransfer(const CallInst *Inst, LLVMNode *nod
             len = I->getOperand(2);
             break;
         case Intrinsic::memset:
-            errs() << "WARN: memset unhandled " << *Inst << "\n";
+            errs() << "WARN: memset unhandled " << *I << "\n";
             return false;
         default:
-            errs() << "ERR: unhandled mem transfer intrinsic" << *Inst << "\n";
+            errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
             return false;
     }
 
@@ -679,10 +702,53 @@ bool LLVMPointsToAnalysis::handleMemTransfer(const CallInst *Inst, LLVMNode *nod
     return changed;
 }
 
+static bool handleVaStart(const IntrinsicInst *I, LLVMNode *node)
+{
+    // vastart has only one operand which is the struct
+    // it uses for storing the va arguments
+    const Value *vl = I->getOperand(0);
+    LLVMDependenceGraph *dg = node->getDG();
+    LLVMNode *valist = dg->getNode(vl);
+    // this is allocainst in this function, we must have it!
+    assert(valist && "Has no value for valist");
+
+    LLVMDGParameters *params = dg->getParameters();
+    // this graph must have formal parameters since
+    // it is vararg (is has at least the vararg param)
+    assert(params && "No formal parameters");
+    LLVMDGParameter* vaparam = params->getVarArg();
+    assert(vaparam && "No vararg param in vararg function");
+
+    // the va list contains some structures that has pointers to
+    // the memory, so we must create new memory object
+    MemoryObj *& mo = node->getMemoryObj();
+    if (!mo) {
+        mo = new MemoryObj(node);
+        // we don't know the structure of the memory,
+        // so use the unknown offset
+        for (const Pointer& ptr : valist->getPointsTo()) {
+            // actually, it should be only one pointer
+            // so the for loop is over-kill
+            assert(ptr.isKnown());
+            // the offset should be 0 (this is pointer of alloca)
+            assert(*ptr.offset == 0);
+            // but we again use the UNKNOWN_OFFSET
+            ptr.obj->addPointsTo(UNKNOWN_OFFSET, Pointer(mo, UNKNOWN_OFFSET));
+        }
+    }
+
+    // copy points-to from the argument to the valist
+    return mo->addPointsTo(UNKNOWN_OFFSET, vaparam->in->getPointsTo());
+}
+
 bool LLVMPointsToAnalysis::handleIntrinsicFunction(const CallInst *Inst, LLVMNode *node)
 {
-    if (isa<MemTransferInst>(Inst))
-        return handleMemTransfer(Inst, node);
+    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
+    if (isa<MemTransferInst>(I))
+        return handleMemTransfer(I, node);
+    else if (I->getIntrinsicID() == Intrinsic::vastart) {
+        return handleVaStart(I, node);
+    }
 
     return false;
 }
