@@ -8,6 +8,10 @@
 #include "analysis/DataFlowAnalysis.h"
 #include "AnalysisGeneric.h"
 
+namespace llvm {
+    class IntrinsicInst;
+}
+
 namespace dg {
 
 class LLVMDependenceGraph;
@@ -50,7 +54,7 @@ private:
     bool handleBitCastInst(const llvm::BitCastInst *, LLVMNode *);
     bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
     bool handlePHINode(const llvm::PHINode *, LLVMNode *);
-    bool handleMemTransfer(const llvm::CallInst *, LLVMNode *);
+    bool handleMemTransfer(const llvm::IntrinsicInst *, LLVMNode *);
 };
 
 } // namespace analysis
