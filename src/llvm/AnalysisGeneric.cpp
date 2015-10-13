@@ -100,11 +100,16 @@ static inline unsigned getPointerBitwidth(const DataLayout *DL, const Value *ptr
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
 
+static LLVMNode *getConstantExprNode(const llvm::ConstantExpr *CE,
+                                     LLVMDependenceGraph *dg,
+                                     const llvm::DataLayout *DL);
+
 static Pointer handleConstantGep(LLVMDependenceGraph *dg,
                                  const GetElementPtrInst *GEP,
                                  const llvm::DataLayout *DL)
 {
     const Value *op = GEP->getPointerOperand();
+
     LLVMNode *opNode = dg->getNode(op);
 
     // FIXME this is sound, but may be unprecise
@@ -113,8 +118,15 @@ static Pointer handleConstantGep(LLVMDependenceGraph *dg,
     //  (getelementptr (inttoptr ..) ...), so we can get null here
     //  as opNode
     if (!opNode) {
-        errs() << "No node for Constant GEP operand: " << *GEP << "\n";
-        return UnknownMemoryLocation;
+        // is this recursively created expression?
+        if (isa<ConstantExpr>(op)) {
+            opNode = getConstantExprNode(cast<ConstantExpr>(op), dg, DL);
+        }
+
+        if (!opNode) {
+            errs() << "No node for Constant GEP operand: " << *GEP << "\n";
+            return UnknownMemoryLocation;
+        }
     }
 
     PointsToSetT& S = opNode->getPointsTo();
