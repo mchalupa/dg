@@ -177,7 +177,7 @@ static bool handleParams(LLVMNode *callNode, unsigned vararg,
         LLVMDGParameter *p = params->find(op->getKey());
         if (!p) {
 #ifdef DEBUG_ENABLED
-            if (i - 1 > (int) vararg)
+            if (i - 1 < (int) vararg)
                 DBG("ERR: no actual param for " << *op->getKey());
 #endif
             continue;
