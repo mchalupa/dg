@@ -411,7 +411,17 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
             continue;
         }
 
-        const Function *func = cast<Function>(ptr.obj->node->getValue());
+        const Function *func = dyn_cast<Function>(ptr.obj->node->getValue());
+        // since we have vararg node, it is possible that the calledFuncNode will point
+        // to different types, like function, alloca and whatever
+        // (for exapmle the code: callva(1, func, a, "str") - this will
+        // merge few different types of pointers into one node.
+        // XXX maybe we could filter it in loadinst - like to consider only the variables
+        // with the right type (llvmp is typed, so we know that the different types
+        // are the analysis result, not wrong code)
+        if (!func)
+            continue;
+
         // skip undefined functions
         if (func->size() == 0)
             continue;
