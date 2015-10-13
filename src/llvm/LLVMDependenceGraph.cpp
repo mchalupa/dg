@@ -254,11 +254,9 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
 }
 
 static bool
-is_func_defined(const llvm::CallInst *CInst)
+is_func_defined(const llvm::Function *func)
 {
-    llvm::Function *callFunc = CInst->getCalledFunction();
-
-    if (!callFunc || callFunc->size() == 0)
+    if (!func || func->size() == 0)
         return false;
 
     return true;
@@ -318,8 +316,8 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             gatheredCallsites->insert(node);
         }
 
-        if (is_func_defined(CInst)) {
-            LLVMDependenceGraph *subg = buildSubgraph(node);
+        if (is_func_defined(func)) {
+            LLVMDependenceGraph *subg = buildSubgraph(node, func);
             node->addSubgraph(subg);
         }
 
