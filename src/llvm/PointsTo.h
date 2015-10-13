@@ -55,6 +55,7 @@ private:
     bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
     bool handlePHINode(const llvm::PHINode *, LLVMNode *);
     bool handleMemTransfer(const llvm::IntrinsicInst *, LLVMNode *);
+    void propagateVarArgPointsTo(LLVMDGParameters *, size_t, LLVMNode *);
 };
 
 } // namespace analysis

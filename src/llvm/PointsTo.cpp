@@ -539,21 +539,23 @@ static void propagateDynAllocationPointsTo(LLVMDependenceGraph *subgraph,
     }
 }
 
-static void propagateVarArgPointsTo(LLVMDGParameters *formal,
-                                    size_t argnum, LLVMNode *callNode)
+void LLVMPointsToAnalysis::propagateVarArgPointsTo(LLVMDGParameters *formal,
+                                                   size_t argnum,
+                                                   LLVMNode *callNode)
 {
     LLVMDGParameter *vaparam = formal->getVarArg();
     assert(vaparam && "No vaarg param in vaarg function");
 
     size_t opnum = callNode->getOperandsNum();
+    const CallInst *CI = cast<CallInst>(callNode->getValue());
+
     // we need to increate the argnum, because our operands
     // cache has as operand 0 the call inst
     for (; argnum < opnum - 1; ++argnum) {
-        LLVMNode *op = callNode->getOperand(argnum + 1);
+        const Value *opval = CI->getOperand(argnum);
+        LLVMNode *op = getOperand(callNode, opval, argnum + 1);
         if (!op) {
-            // FIXME constant exprs has pointers too
-            // make this method of the analysis and use getOperand
-            errs() << "ERR: unhandled vararg operand\n";
+            errs() << "ERR: unhandled vararg operand " << *opval << "\n";
             continue;
         }
 
