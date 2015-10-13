@@ -529,7 +529,10 @@ void handleInlineAsm(LLVMNode *callNode)
 
     // the last operand is the asm itself, so iterate only to e - 1
     for (unsigned i = 0, e = CI->getNumOperands(); i < e - 1; ++i) {
-        const Value *opVal = CI->getOperand(i);
+        const Value *opVal = CI->getOperand(i)->stripInBoundsOffsets();
+        if (!opVal->getType()->isPointerTy())
+            continue;
+
         LLVMNode *opNode = dg->getNode(opVal);
         assert(opNode && "Do not have an operand for inline asm");
 
