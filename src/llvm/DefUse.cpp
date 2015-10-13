@@ -425,8 +425,9 @@ void LLVMDefUseAnalysis::addDefUseToOperands(LLVMNode *node,
                 // we don't have actual vararg, but it doesn matter since
                 // we'd added all to one arg. Just add the def-use to call-site
                 addDefUseToParamNode(op, df, node);
-            }
-            DBG("ERR: no actual param for " << *op->getKey());
+            } else
+                DBG("ERR: no actual param for " << *op->getKey());
+
             continue;
         }
 
