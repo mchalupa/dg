@@ -3,6 +3,7 @@
 
 #include <map>
 #include <set>
+#include <assert.h>
 
 namespace llvm {
     class Value;
@@ -67,7 +68,10 @@ struct Offset
 struct MemoryObj;
 struct Pointer
 {
-    Pointer(MemoryObj *m = nullptr, Offset off = 0) : obj(m), offset(off) {}
+    Pointer(MemoryObj *m, Offset off = 0) : obj(m), offset(off)
+    {
+        assert(m && "Cannot have a pointer with nullptr as memory object");
+    }
 
     MemoryObj *obj;
     Offset offset;
@@ -99,6 +103,7 @@ struct MemoryObj
         if (isUnknown())
             return false;
 
+        assert(ptr.obj != nullptr && "Cannot have NULL object, use unknown instead");
         return pointsTo[off].insert(ptr).second;
     }
 

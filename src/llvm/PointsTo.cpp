@@ -280,7 +280,7 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
                                              LLVMNode *node,
                                              uint64_t off)
 {
-    Pointer ptr (nullptr, 0);
+    Pointer ptr(&UnknownMemoryObject, 0);
     MemoryObj *mo = node->getMemoryObj();
     assert(mo && "Global has no mo");
 
