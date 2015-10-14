@@ -528,8 +528,8 @@ static bool handleReturnedPointer(LLVMDependenceGraph *subgraph,
     // are control dependent on it
     for (auto I = retval->rev_control_begin(), E = retval->rev_control_end();
          I != E; ++I) {
-        // we should iterate only over return inst
-        assert(isa<ReturnInst>((*I)->getKey()));
+        // these can be ReturnInst or unreachable or other terminator inst
+        assert(isa<TerminatorInst>((*I)->getKey()));
 
         for (auto ptr : (*I)->getPointsTo())
             changed |= callNode->addPointsTo(ptr);
