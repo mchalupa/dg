@@ -46,7 +46,7 @@ bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
     return handleMemAllocation(node);
 }
 
-static bool handleGlobal(const Value *Inst, LLVMNode *node)
+static bool handleGlobal(LLVMNode *node)
 {
     // DON'T - every global is a pointer, even when the type
     // it has is a non-pointer
@@ -446,7 +446,7 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
 
         // did we added this subgraph for the first time?
         if (isnew) {
-            handleGlobal(func, entry);
+            handleGlobal(entry);
             addSubgraphBBs(this, subg);
             addDynamicCallersParamsPointsTo(node, subg);
 
@@ -928,7 +928,7 @@ void LLVMPointsToAnalysis::handleGlobals()
         return;
 
     for (auto it : *dg->getGlobalNodes())
-        handleGlobal(it.first, it.second);
+        handleGlobal(it.second);
 
     // some globals are copied to the parameters,
     // for the main procedure we must propagate it here
