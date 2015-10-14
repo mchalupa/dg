@@ -303,7 +303,10 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
         LLVMNode *ptrNode = dg->getNode(C);
         assert(ptrNode && "Do not have node for  pointer initializer of global");
 
-        ptr.obj = ptrNode->getMemoryObj();
+        PointsToSetT& S = ptrNode->getPointsTo();
+        // it should have only "alloc" pointer
+        assert(S.size() == 1 && "Global variable has more than one pointer");
+        ptr = *S.begin();
     }
 
     return mo->addPointsTo(off, ptr);
