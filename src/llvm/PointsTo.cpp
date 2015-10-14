@@ -324,10 +324,7 @@ static bool propagateGlobalParametersPointsTo(LLVMDGParameters *params, LLVMDepe
     for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
         // points-to set is in the real global
         LLVMNode *glob = dg->getGlobalNode(I->first);
-        if (!glob) {
-            errs() << "ERR: No global for parameter\n";
-            continue;
-        }
+        assert(glob && "ERR: No global for parameter");
 
         PointsToSetT& S = glob->getPointsTo();
 
@@ -910,10 +907,7 @@ static void propagateGlobalPointsToMain(LLVMDGParameters *params, LLVMDependence
     for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
         // points-to set is in the real global
         LLVMNode *glob = dg->getGlobalNode(I->first);
-        if (!glob) {
-            errs() << "ERR: No global for parameter\n";
-            continue;
-        }
+        assert(glob && "ERR: No global for parameter");
 
         PointsToSetT& S = glob->getPointsTo();
         LLVMNode *p = I->second.in;
