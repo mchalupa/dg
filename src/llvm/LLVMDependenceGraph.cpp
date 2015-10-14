@@ -398,34 +398,31 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     // to it from every return instruction. We could use llvm pass that
     // would do it for us, but then we would lost the advantage of working
     // on dep. graph that is not for whole llvm
-    const ReturnInst *ret = dyn_cast<ReturnInst>(term);
-    if (ret) {
-        LLVMNode *ext = getExit();
-        if (!ext) {
-            // we need new llvm value, so that the nodes won't collide
-            ReturnInst *phonyRet
-                = ReturnInst::Create(ret->getContext()/*, ret->getReturnValue()*/);
-            if (!phonyRet) {
-                errs() << "ERR: Failed creating phony return value "
-                       << "for exit node\n";
-                // XXX later we could return somehow more mercifully
-                abort();
-            }
-
-            ext = new LLVMNode(phonyRet);
-            addNode(ext);
-            setExit(ext);
-
-            LLVMBBlock *retBB = new LLVMBBlock(ext, ext);
-            setExitBB(retBB);
+    LLVMNode *ext = getExit();
+    if (!ext) {
+        // we need new llvm value, so that the nodes won't collide
+        ReturnInst *phonyRet
+            = ReturnInst::Create(term->getContext());
+        if (!phonyRet) {
+            errs() << "ERR: Failed creating phony return value "
+                   << "for exit node\n";
+            // XXX later we could return somehow more mercifully
+            abort();
         }
 
-        // add control dependence from this (return) node
-        // to EXIT node
-        assert(node && "BUG, no node after we went through basic block");
-        node->addControlDependence(ext);
-        BB->addSuccessor(getExitBB());
+        ext = new LLVMNode(phonyRet);
+        addNode(ext);
+        setExit(ext);
+
+        LLVMBBlock *retBB = new LLVMBBlock(ext, ext);
+        setExitBB(retBB);
     }
+
+    // add control dependence from this (return) node
+    // to EXIT node
+    assert(node && "BUG, no node after we went through basic block");
+    node->addControlDependence(ext);
+    BB->addSuccessor(getExitBB());
 
     // set last node
     BB->setLastNode(node);
