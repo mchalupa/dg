@@ -48,9 +48,10 @@ bool LLVMPointsToAnalysis::handleAllocaInst(LLVMNode *node)
 
 static bool handleGlobal(const Value *Inst, LLVMNode *node)
 {
-    // we don't care about non pointers right now
-    if (!Inst->getType()->isPointerTy())
-        return false;
+    // DON'T - every global is a pointer, even when the type
+    // it has is a non-pointer
+    //if (!Inst->getType()->isPointerTy())
+    //    return false;
 
     return handleMemAllocation(node);
 }
@@ -560,10 +561,11 @@ void LLVMPointsToAnalysis::propagateVarArgPointsTo(LLVMDGParameters *formal,
     size_t opnum = callNode->getOperandsNum();
     const CallInst *CI = cast<CallInst>(callNode->getValue());
 
-    // we need to increate the argnum, because our operands
-    // cache has as operand 0 the call inst
     for (; argnum < opnum - 1; ++argnum) {
         const Value *opval = CI->getOperand(argnum);
+        if (!opval->getType()->isPointerTy())
+            continue;
+
         LLVMNode *op = getOperand(callNode, opval, argnum + 1);
         if (!op) {
             errs() << "ERR: unhandled vararg operand " << *opval << "\n";
