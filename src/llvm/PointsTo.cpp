@@ -627,7 +627,7 @@ static bool handleDynamicMemAllocation(const CallInst *Inst,
                                        LLVMNode *node, int type)
 {
     const Value *op;
-    uint64_t size = 0;
+    uint64_t size = 0, size2 = 0;
 
     switch (type) {
         case MALLOC:
@@ -649,6 +649,22 @@ static bool handleDynamicMemAllocation(const CallInst *Inst,
         // just set it to 0 (that means unknown)
         if (size == ~((uint64_t) 0))
             size = 0;
+
+        // if this is call to calloc, the size is given with
+        // the first argument too
+        if (type == CALLOC) {
+            C = dyn_cast<ConstantInt>(Inst->getOperand(0));
+            if (C) {
+                size2 = C->getLimitedValue();
+                if (size2 == ~((uint64_t) 0))
+                    size2 = 0;
+                else
+                    // OK, if getting the size fails, we end up with
+                    // just 1 * size - still better than 0 and UNKNOWN
+                    // (it may be cropped later anyway)
+                    size *= size2;
+            }
+        }
     }
 
     return handleMemAllocation(node, size);
@@ -768,6 +784,7 @@ bool LLVMPointsToAnalysis::handleIntrinsicFunction(const CallInst *Inst, LLVMNod
 bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
+    int type;
     Type *Ty = Inst->getType();
 
     // TODO: we can match the patterns and at least
@@ -785,15 +802,15 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     if (!func && calledFuncNode)
         changed |= handleFunctionPtrCall(calledFuncNode, node);
 
+    if (func && (type = getMemAllocationFunc(func)))
+        return handleDynamicMemAllocation(Inst, node, type);
+
     // function is undefined and returns a pointer?
     // In that case create pointer to unknown location
     // and set this node to point to unknown location
     if ((!func || func->size() == 0)
          && !node->hasSubgraphs() && Ty->isPointerTy())
         return handleUndefinedReturnsPointer(Inst, node);
-
-    if (int type = getMemAllocationFunc(func))
-        return handleDynamicMemAllocation(Inst, node, type);
 
     for (LLVMDependenceGraph *sub : node->getSubgraphs())
         changed |= propagatePointersToArguments(sub, Inst, node);
