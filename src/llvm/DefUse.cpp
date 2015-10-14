@@ -112,8 +112,10 @@ static uint64_t getAffectedMemoryLength(const Value *val, const DataLayout *DL)
 
     if (elemTy->isSized())
         size = DL->getTypeAllocSize(elemTy);
-    else
-        errs() << "ERR: type pointed is not sized " << *elemTy << "\n";
+#ifdef DEBUG_ENABLED
+    else if (!elemTy->isFunctionTy())
+        errs() << "ERR def-use: type pointed is not sized " << *elemTy << "\n";
+#endif
 
     return size;
 }
