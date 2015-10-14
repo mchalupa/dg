@@ -169,7 +169,7 @@ static bool addPtrWithUnknownOffset(LLVMNode *node, const Pointer& ptr)
     return ret;
 }
 
-static uint64_t getMemSize(MemoryObj *mo, const DataLayout *DL)
+static uint64_t getMemSize(MemoryObj *mo, const Type *ptrTy, const DataLayout *DL)
 {
     if (mo->size != 0)
         return mo->size;
@@ -177,8 +177,12 @@ static uint64_t getMemSize(MemoryObj *mo, const DataLayout *DL)
     const Value *ptrVal = mo->node->getKey();
     Type *Ty = ptrVal->getType()->getContainedType(0);
 
-    if (!Ty->isSized())
-        return 0;
+    // Type can be i8 *null or similar
+    if (!Ty->isSized() || isa<ConstantPointerNull>(ptrVal)) {
+        Ty = ptrTy->getContainedType(0);
+        if (!Ty->isSized())
+            return 0;
+    }
 
     return DL->getTypeAllocSize(Ty);
 }
@@ -195,7 +199,7 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
             // don't store unknown with different offsets
             changed |= addPtrWithUnknownOffset(node, ptr);
         } else {
-            size = getMemSize(ptr.obj, DL);
+            size = getMemSize(ptr.obj, ptrNode->getValue()->getType(), DL);
             if (size == 0) {
                 // if the type is not size, we cannot compute the
                 // offset correctly
