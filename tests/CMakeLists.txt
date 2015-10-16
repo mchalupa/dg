@@ -105,5 +105,6 @@ if (LLVM_DG)
 	add_test(slicing-vararg2 slicing-vararg2.sh)
 	add_test(slicing-vararg3 slicing-vararg3.sh)
 	add_test(slicing-vararg4 slicing-vararg4.sh)
+	add_test(slicing-negoffset1 slicing-negoffset1.sh)
 
 endif (LLVM_DG)
