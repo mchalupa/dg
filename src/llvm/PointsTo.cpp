@@ -942,16 +942,10 @@ void LLVMPointsToAnalysis::handleGlobals()
     if (!dg->ownsGlobalNodes())
         return;
 
-    for (auto it : *dg->getGlobalNodes())
-        handleGlobal(it.second);
-
-    // some globals are copied to the parameters,
-    // for the main procedure we must propagate it here
-    // (so that subsequent points-to can use it)
-    propagateGlobalPointsToMain(dg);
-
     // initialize globals
     for (auto it : *dg->getGlobalNodes()) {
+        handleGlobal(it.second);
+
         const GlobalVariable *GV = dyn_cast<GlobalVariable>(it.first);
         // is it global variable or function?
         if (!GV)
@@ -983,6 +977,8 @@ void LLVMPointsToAnalysis::handleGlobals()
             }
         }
     }
+
+    propagateGlobalPointsToMain(dg);
 }
 
 bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
