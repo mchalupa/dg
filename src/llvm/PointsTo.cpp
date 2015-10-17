@@ -451,13 +451,11 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
 
         // did we added this subgraph for the first time?
         if (isnew) {
-            handleGlobal(entry);
+            // handle new globals - there's at least on, the new entry node
+            handleGlobals();
             addSubgraphBBs(this, subg);
             addDynamicCallersParamsPointsTo(node, subg);
-            // if the graph added some points-to info
-            // to param globals, it may have been propagated to the
-            // main procedure, so update it
-            propagateGlobalPointsToMain(dg);
+
             changed = true;
         }
 
