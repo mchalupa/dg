@@ -109,7 +109,6 @@ static Pointer handleConstantGep(LLVMDependenceGraph *dg,
                                  const llvm::DataLayout *DL)
 {
     const Value *op = GEP->getPointerOperand();
-
     LLVMNode *opNode = dg->getNode(op);
 
     // FIXME this is sound, but may be unprecise
