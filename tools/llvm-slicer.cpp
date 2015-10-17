@@ -403,6 +403,51 @@ static void remove_unused_from_module(llvm::Module *M)
         gv->eraseFromParent();
 }
 
+static void remove_undef_branches(llvm::Module *M)
+{
+    using namespace llvm;
+
+    for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+        Function *func = &*I;
+        std::set<BasicBlock *> blocks;
+
+        for (BasicBlock& BB : *func) {
+            // if the condition depends on undef, we can
+            // remove it along with it's childs. We don't need
+            // to care about child's childs, because these
+            // will become dead code (if not used from somewhere
+            // else) and thus unreachable
+            TerminatorInst *TI = BB.getTerminator();
+            BranchInst *BI = dyn_cast<BranchInst>(TI);
+            if (BI && BI->isConditional()) {
+                if (isa<UndefValue>(BI->getCondition())) {
+                    if(BB.size() == 1) {
+                        errs() << "ERROR: BasicBlock with undef BranchInst is not empty";
+                        continue;
+                    }
+
+                    blocks.insert(&BB);
+                    for (unsigned n = 0, e = BI->getNumSuccessors(); n < e; ++n) {
+                        BasicBlock *B = BI->getSuccessor(n);
+                        if(B->size() == 1) {
+                            errs() << "ERROR: undef BranchInst child is not empty";
+                            continue;
+                        }
+
+                        blocks.insert(B);
+                    }
+                }
+            }
+        }
+
+        for (BasicBlock *BB : blocks) {
+            errs() << "Erasing block due to undef condition: "
+                   << BB->getName().data() << "\n";
+            BB->eraseFromParent();
+        }
+    }
+}
+
 static bool verify_module(llvm::Module *M)
 {
     // the verifyModule function returns false if there
@@ -487,6 +532,7 @@ int main(int argc, char *argv[])
     }
 
     remove_unused_from_module(M);
+    remove_undef_branches(M);
 
     if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
