@@ -406,6 +406,8 @@ void LLVMPointsToAnalysis::addDynamicCallersParamsPointsTo(LLVMNode *callNode,
         addDynamicCallersParamsPointsTo(callsite, dg);
 }
 
+static void propagateGlobalPointsToMain(LLVMDependenceGraph *dg);
+
 bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node)
 {
     bool changed = false;
@@ -452,7 +454,10 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
             handleGlobal(entry);
             addSubgraphBBs(this, subg);
             addDynamicCallersParamsPointsTo(node, subg);
-
+            // if the graph added some points-to info
+            // to param globals, it may have been propagated to the
+            // main procedure, so update it
+            propagateGlobalPointsToMain(dg);
             changed = true;
         }
 
@@ -924,6 +929,13 @@ static void propagateGlobalPointsToMain(LLVMDGParameters *params, LLVMDependence
     }
 }
 
+static void propagateGlobalPointsToMain(LLVMDependenceGraph *dg)
+{
+    LLVMDGParameters *p = dg->getParameters();
+    if (p)
+        propagateGlobalPointsToMain(p, dg);
+}
+
 void LLVMPointsToAnalysis::handleGlobals()
 {
     // do we have the globals at all?
@@ -936,9 +948,7 @@ void LLVMPointsToAnalysis::handleGlobals()
     // some globals are copied to the parameters,
     // for the main procedure we must propagate it here
     // (so that subsequent points-to can use it)
-    LLVMDGParameters *p = dg->getParameters();
-    if (p)
-        propagateGlobalPointsToMain(p, dg);
+    propagateGlobalPointsToMain(dg);
 
     // initialize globals
     for (auto it : *dg->getGlobalNodes()) {
