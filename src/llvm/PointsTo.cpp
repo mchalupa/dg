@@ -111,10 +111,20 @@ static bool handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)
     // to the same values as ptrNode
     if (!ptr.isKnown())
         changed |= node->addPointsTo(ptr);
-    else {
+    else if (ptr.offset.isUnknown()) {
+        // if we don't know where into the object
+        // the pointer points to, we must add everything
+        for (auto it : ptr.obj->pointsTo) {
+            for (const Pointer& p : it.second)
+                changed |= node->addPointsTo(p);
+        }
+    } else {
         for (auto memptr : ptr.obj->pointsTo[ptr.offset])
             changed |= node->addPointsTo(memptr);
 
+        // if the memory contains a pointer on unknown offset,
+        // it may be relevant for us, because it can be on the ptr.offset,
+        // so we need to add it too
         if (ptr.obj->pointsTo.count(UNKNOWN_OFFSET) != 0)
             for (auto memptr : ptr.obj->pointsTo[UNKNOWN_OFFSET])
                 changed |= node->addPointsTo(memptr);
