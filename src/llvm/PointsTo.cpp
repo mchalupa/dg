@@ -297,7 +297,7 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
     if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
         ptr = getConstantExprPointer(CE);
     } else if (isa<ConstantPointerNull>(C)) {
-        // pointer is null already, do nothing
+        ptr.obj = &NullMemoryObject;
     } else if (isa<Function>(C)) {
         // if it is a function pointer, we probably haven't built it yet,
         // so create new node
@@ -424,7 +424,8 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
 
     for (const Pointer& ptr : calledFuncNode->getPointsTo()) {
         if (!ptr.isKnown()) {
-            DBG("ERR: CallInst wrong func pointer\n");
+            if (!ptr.isNull())
+                DBG("ERR: CallInst wrong func pointer\n");
             continue;
         }
 

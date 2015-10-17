@@ -84,6 +84,7 @@ struct Pointer
     bool isUnknown() const;
     bool pointsToUnknown() const;
     bool isKnown() const;
+    bool isNull() const;
 };
 
 typedef std::set<Pointer> PointsToSetT;
@@ -120,6 +121,7 @@ struct MemoryObj
     }
 
     bool isUnknown() const;
+    bool isNull() const;
 
     // if the object is allocated via malloc or
     // similar, we can not infer the size from type,
@@ -136,6 +138,7 @@ struct MemoryObj
 };
 
 extern MemoryObj UnknownMemoryObject;
+extern MemoryObj NullMemoryObject;
 extern Pointer UnknownMemoryLocation;
 
 Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,

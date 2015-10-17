@@ -137,6 +137,8 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
                 os << "unknown";
             else if (it.obj->isUnknown())
                 os << "unknown mem";
+            else if (it.obj->isNull())
+                os << "nullptr";
             else
                 printLLVMVal(os, it.obj->node->getKey());
             os << "] + " << it.offset;
@@ -151,6 +153,8 @@ static bool checkNode(std::ostream& os, LLVMNode *node)
                         os << "unknown";
                     else if (it2.obj->isUnknown())
                         os << "unknown mem";
+                    else if (it2.obj->isNull())
+                        os << "nullptr";
                     else
                         printLLVMVal(os, it2.obj->node->getKey());
                     os << "] + " << it2.offset;
