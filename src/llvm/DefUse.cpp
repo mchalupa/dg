@@ -167,8 +167,9 @@ void LLVMDefUseAnalysis::addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to,
                                               DefMap *df, uint64_t len)
 {
     if (!ptr.isKnown()) {
-        DBG("ERR: pointer pointing to unknown location, UNSOUND! "
-               << *to->getKey());
+        if (!ptr.isNull())
+            DBG("ERR: pointer pointing to unknown location, UNSOUND! "
+                << *to->getKey());
         return;
     }
 

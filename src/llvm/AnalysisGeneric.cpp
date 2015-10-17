@@ -21,13 +21,24 @@ namespace analysis {
 static std::map<uint64_t, LLVMNode *> intToPtrMap;
 
 // pointer points to unknown memory location
-MemoryObj UnknownMemoryObject(nullptr);
+// we don't know the size of unknown memory location
+MemoryObj UnknownMemoryObject(nullptr, ~((uint64_t) 0));
+// dereferencing null pointer is undefined behaviour,
+// so it's nice to keep track of that - again we can
+// write to null with any offset
+MemoryObj NullMemoryObject(nullptr,  ~((uint64_t) 0));
 // unknown pointer value
 Pointer UnknownMemoryLocation(&UnknownMemoryObject, 0);
+Pointer NullPointer(&NullMemoryObject, 0);
 
 bool Pointer::isUnknown() const
 {
     return this == &UnknownMemoryLocation;
+}
+
+bool Pointer::isNull() const
+{
+    return obj->isNull();
 }
 
 bool Pointer::pointsToUnknown() const
@@ -38,7 +49,12 @@ bool Pointer::pointsToUnknown() const
 
 bool Pointer::isKnown() const
 {
-    return !isUnknown() && !pointsToUnknown();
+    return !isUnknown() && !pointsToUnknown() &&!isNull();
+}
+
+bool MemoryObj::isNull() const
+{
+    return this == &NullMemoryObject;
 }
 
 bool MemoryObj::isUnknown() const
@@ -64,6 +80,9 @@ static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
 
     if (llvm::isa<llvm::Function>(val)) {
         n = createNodeWithMemAlloc(val);
+    } else if (llvm::isa<llvm::ConstantPointerNull>(val)) {
+        n = new LLVMNode(val);
+        n->addPointsTo(NullPointer);
     } else
         errs() << "ERR: unhandled not to create " << *val << "\n";
 
@@ -233,16 +252,13 @@ static LLVMNode *getUnknownNode(LLVMDependenceGraph *dg, const llvm::Value *val,
     using namespace llvm;
     if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
         node = getConstantExprNode(CE, dg, DL);
-    } else if (isa<Function>(val)) {
+    } else if (isa<Function>(val) || isa<ConstantPointerNull>(val)) {
         // if the function was created via function pointer during
         // points-to analysis, the operand may not be not be set.
         // What is worse, the function may not be created either,
         // so the node just may not exists at all, so we need to
         // create it
         node = getOrCreateNode(dg, val);
-    } else if (isa<ConstantPointerNull>(val)) {
-        // what to do with nullptr?
-        node = createNodeWithMemAlloc(val);
     } else {
         errs() << "ERR: Unsupported operand: " << *val << "\n";
         abort();
