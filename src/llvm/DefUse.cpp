@@ -388,7 +388,8 @@ void LLVMDefUseAnalysis::addDefUseToParamNode(LLVMNode *op, DefMap *df, LLVMNode
         // definition
         for (const Pointer& ptr : op->getPointsTo()) {
             if (!ptr.isKnown()) {
-                errs() << "ERR: unknown pointer, may be unsound\n";
+                if (!ptr.isNull())
+                    errs() << "ERR: unknown pointer, may be unsound\n";
                 continue;
             }
 

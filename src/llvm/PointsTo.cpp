@@ -109,9 +109,15 @@ static bool handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)
 
     // load of pointer makes this node point
     // to the same values as ptrNode
-    if (!ptr.isKnown())
-        changed |= node->addPointsTo(ptr);
-    else if (ptr.offset.isUnknown()) {
+    if (!ptr.isKnown()) {
+        // load from (possible) nullptr does not change anything for us
+        // XXX actually, it is undefined behaviour, so shouldn't we
+        // set it to unknown memory location? - no, because we don't know
+        // if it really points to null, it is just a possibility
+        if (!ptr.isNull())
+            // if the pointer is unknown, just make it pointing to unknown
+            changed |= node->addPointsTo(UnknownMemoryLocation);
+    } else if (ptr.offset.isUnknown()) {
         // if we don't know where into the object
         // the pointer points to, we must add everything
         for (auto it : ptr.obj->pointsTo) {
