@@ -140,6 +140,7 @@ struct MemoryObj
 extern MemoryObj UnknownMemoryObject;
 extern MemoryObj NullMemoryObject;
 extern Pointer UnknownMemoryLocation;
+extern Pointer NullPointer;
 
 Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
                                LLVMDependenceGraph *dg,
