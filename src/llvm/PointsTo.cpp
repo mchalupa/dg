@@ -472,12 +472,14 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
             handleGlobals();
             propagatePointersToArguments(subg,
                                          cast<CallInst>(node->getValue()), node);
-            addDynamicCallersParamsPointsTo(node, subg);
 
             // add subgraph BBs now, after we propagated all
             // pointers that may be needed for it (addBB runs
             // the handlers on the BB)
             addSubgraphBBs(this, subg);
+            // and this must be called now, so that the BBs are already
+            // added - uff, that's crazy, we need to refactor this
+            addDynamicCallersParamsPointsTo(node, subg);
             changed = true;
         }
 
