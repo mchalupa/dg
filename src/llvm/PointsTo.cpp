@@ -315,8 +315,11 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
         n->addPointsTo(ptr);
     } else {
         // it is a pointer to somewhere (we check that it is a pointer
-        // before calling this method), so just get where
-        LLVMNode *ptrNode = dg->getNode(C);
+        // before calling this method), so just get where - also it must be
+        // a global node, since it is constant expr.
+        // NOTE: Do not use just getNode(), because it would return the
+        // parameter global and it has not the points-to set yet
+        LLVMNode *ptrNode = dg->getGlobalNode(C);
         assert(ptrNode && "Do not have node for  pointer initializer of global");
 
         PointsToSetT& S = ptrNode->getPointsTo();
@@ -996,6 +999,10 @@ void LLVMPointsToAnalysis::handleGlobals()
 
                     off += DL->getTypeAllocSize(Ty);
                 }
+            } else {
+#ifdef DEBUG_ENABLED
+                errs() << "ERR points-to: unhandled global initializer: " << *C << "\n";
+#endif
             }
         }
     }
