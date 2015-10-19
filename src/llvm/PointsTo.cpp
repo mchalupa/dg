@@ -967,10 +967,15 @@ void LLVMPointsToAnalysis::handleGlobals()
     if (!dg->ownsGlobalNodes())
         return;
 
-    // initialize globals
-    for (auto it : *dg->getGlobalNodes()) {
+    // add memory object to every global
+    // do it in separate loop, because we need to
+    // have these memory objects in place before we
+    // set the points-to sets due to initialization (in next loop)
+    for (auto it : *dg->getGlobalNodes())
         handleGlobal(it.second);
 
+    // initialize globals
+    for (auto it : *dg->getGlobalNodes()) {
         const GlobalVariable *GV = dyn_cast<GlobalVariable>(it.first);
         // is it global variable or function?
         if (!GV)
