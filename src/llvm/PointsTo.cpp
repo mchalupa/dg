@@ -470,9 +470,14 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
         if (isnew) {
             // handle new globals - there's at least on, the new entry node
             handleGlobals();
-            addSubgraphBBs(this, subg);
+            propagatePointersToArguments(subg,
+                                         cast<CallInst>(node->getValue()), node);
             addDynamicCallersParamsPointsTo(node, subg);
 
+            // add subgraph BBs now, after we propagated all
+            // pointers that may be needed for it (addBB runs
+            // the handlers on the BB)
+            addSubgraphBBs(this, subg);
             changed = true;
         }
 
