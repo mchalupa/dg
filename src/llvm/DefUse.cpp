@@ -138,15 +138,10 @@ static bool isDefinitionInRange(uint64_t off, uint64_t len,
         // offset in our pointer can write to our memory
         for (LLVMNode *n : defs) {
             const Value *v = n->getValue();
-            if (!isa<StoreInst>(v)) {
-#ifdef DEBUG_ENABLED
-                if (!isa<AllocaInst>(v)
-                    && !isa<GlobalVariable>(v) && !isa<IntrinsicInst>(v))
-                    errs() << "ERR: unknown instruction for definition "
-                           << *n->getValue() << "\n";
-#endif
+            // the only instruction that can write into memory is store inst
+            // (and actually some intrinsic insts, but we don't care about those here)
+            if (!isa<StoreInst>(v))
                 continue;
-            }
 
             uint64_t len = getAffectedMemoryLength(n->getOperand(0), DL);
             if (doff + len >= off)
