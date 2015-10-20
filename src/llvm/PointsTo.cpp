@@ -517,10 +517,8 @@ static int getMemAllocationFunc(const Function *func)
     return NONEMEM;
 }
 
-static int isMemAllocationFunc(const Function *func)
-{
-    return getMemAllocationFunc(func) != NONEMEM;
-}
+static bool handleDynamicMemAllocation(const CallInst *Inst,
+                                       LLVMNode *node, int type);
 
 static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
 {
@@ -535,14 +533,14 @@ static bool handleUndefinedReturnsPointer(const CallInst *Inst, LLVMNode *node)
             }
 
             const Function *func = dyn_cast<Function>(ptr.obj->node->getKey());
-            assert(func && "function pointer contains non-function val");
-            if (isMemAllocationFunc(func)) {
-                MemoryObj *&mo = node->getMemoryObj();
-                if (!mo)
-                    mo = new MemoryObj(node);
+            // the pointer must not point to function, even when it is known,
+            // because we have aggregate nodes for var arg and if this
+            // pointer loads from such node, the type can be any pointer type
+            if (!func)
+                continue;
 
-                return node->addPointsTo(mo);
-            }
+            if (int type = getMemAllocationFunc(func))
+                return handleDynamicMemAllocation(Inst, node, type);
         }
     }
 
