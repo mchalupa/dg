@@ -1008,7 +1008,7 @@ void LLVMPointsToAnalysis::handleGlobals()
                 MemoryObj *mo = it.second->getMemoryObj();
                 assert(mo && "global has no memory object");
                 mo->addPointsTo(Offset(0), NullPointer);
-            } else {
+            } else if (!isa<ConstantInt>(C)) {
 #ifdef DEBUG_ENABLED
                 errs() << "ERR points-to: unhandled global initializer: " << *C << "\n";
 #endif
