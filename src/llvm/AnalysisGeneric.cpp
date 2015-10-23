@@ -128,7 +128,14 @@ static Pointer handleConstantGep(LLVMDependenceGraph *dg,
                                  const llvm::DataLayout *DL)
 {
     const Value *op = GEP->getPointerOperand();
-    LLVMNode *opNode = dg->getNode(op);
+    LLVMNode *opNode;
+    if (isa<GlobalVariable>(op))
+        // while initializing globals, we may not have the points-to propagated,
+        // so we need to use the original global instead of parameter global
+        // FIXME: this is hack, get rid of me
+        opNode = dg->getGlobalNode(op);
+    else
+        opNode = dg->getNode(op);
 
     // FIXME this is sound, but may be unprecise
     //  - we should use getOperand for getting opNode,
