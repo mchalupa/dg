@@ -43,6 +43,8 @@ private:
 
     bool handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node);
     void addDynamicCallersParamsPointsTo(LLVMNode *, LLVMDependenceGraph *);
+    bool handleLoadInstPtr(const Pointer&, LLVMNode *);
+    bool handleLoadInstPointsTo(LLVMNode *, LLVMNode *);
 
     bool handleAllocaInst(LLVMNode *);
     bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
