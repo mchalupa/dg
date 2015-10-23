@@ -103,66 +103,6 @@ Pointer LLVMPointsToAnalysis::getConstantExprPointer(const ConstantExpr *CE)
     return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
 
-static bool handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)
-{
-    bool changed = false;
-
-    // load of pointer makes this node point
-    // to the same values as ptrNode
-    if (!ptr.isKnown()) {
-        // load from (possible) nullptr does not change anything for us
-        // XXX actually, it is undefined behaviour, so shouldn't we
-        // set it to unknown memory location? - no, because we don't know
-        // if it really points to null, it is just a possibility
-        if (!ptr.isNull())
-            // if the pointer is unknown, just make it pointing to unknown
-            changed |= node->addPointsTo(UnknownMemoryLocation);
-    } else if (ptr.offset.isUnknown()) {
-        // if we don't know where into the object
-        // the pointer points to, we must add everything
-        for (auto it : ptr.obj->pointsTo) {
-            for (const Pointer& p : it.second)
-                changed |= node->addPointsTo(p);
-        }
-    } else {
-        for (auto memptr : ptr.obj->pointsTo[ptr.offset])
-            changed |= node->addPointsTo(memptr);
-
-        // if the memory contains a pointer on unknown offset,
-        // it may be relevant for us, because it can be on the ptr.offset,
-        // so we need to add it too
-        if (ptr.obj->pointsTo.count(UNKNOWN_OFFSET) != 0)
-            for (auto memptr : ptr.obj->pointsTo[UNKNOWN_OFFSET])
-                changed |= node->addPointsTo(memptr);
-    }
-
-    return changed;
-}
-
-static bool handleLoadInstPointsTo(LLVMNode *ptrNode, LLVMNode *node)
-{
-    bool changed = false;
-
-    // get values that are referenced by pointer and
-    // store them as values of this load (or as pointsTo
-    // if the load it pointer)
-    for (auto ptr : ptrNode->getPointsTo())
-        changed |= handleLoadInstPtr(ptr, node);
-
-    return changed;
-}
-
-bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
-{
-    if (!Inst->getType()->isPointerTy())
-        return false;
-
-    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
-    assert(ptrNode && "No ptr node");
-
-    return handleLoadInstPointsTo(ptrNode, node);
-}
-
 static void removeConcreteOffsets(LLVMNode *node, const Pointer& ptr)
 {
     PointsToSetT& S = node->getPointsTo();
@@ -202,6 +142,96 @@ static uint64_t getMemSize(MemoryObj *mo, const Type *ptrTy, const DataLayout *D
     }
 
     return DL->getTypeAllocSize(Ty);
+}
+
+bool LLVMPointsToAnalysis::handleLoadInstPtr(const Pointer& ptr, LLVMNode *node)
+{
+    bool changed = false;
+
+    // load of pointer makes this node point
+    // to the same values as ptrNode
+    if (!ptr.isKnown()) {
+        // load from (possible) nullptr does not change anything for us
+        // XXX actually, it is undefined behaviour, so shouldn't we
+        // set it to unknown memory location? - no, because we don't know
+        // if it really points to null, it is just a possibility
+        if (!ptr.isNull())
+            // if the pointer is unknown, just make it pointing to unknown
+            changed |= node->addPointsTo(UnknownMemoryLocation);
+    } else if (ptr.offset.isUnknown()) {
+        // if we don't know where into the object
+        // the pointer points to, we must add everything
+        for (auto it : ptr.obj->pointsTo) {
+            for (const Pointer& p : it.second)
+                changed |= node->addPointsTo(p);
+        }
+    } else {
+        uint64_t size;
+        for (auto memptr : ptr.obj->pointsTo[ptr.offset]) {
+            if (!memptr.isKnown()) {
+              // use offset 0, so that we won't have unknown pointers with
+              // all different offsets
+              changed |= node->addPointsTo(Pointer(memptr.obj, 0));
+              continue;
+            }
+
+            // check the size here, we can be in loop due to GEP's
+            // it has no sense to add pointers with offsets greater
+            // that the object we points-to
+            Type *mo_ty = memptr.obj->node->getValue()->getType();
+            if (mo_ty->isPointerTy()) {
+                size = getMemSize(memptr.obj, mo_ty, DL);
+                if (size == 0) {
+                    changed |= addPtrWithUnknownOffset(node, memptr);
+                    continue;
+                }
+
+                if (*memptr.offset >= size) {
+                    if (!memptr.offset.isUnknown())
+                    DBG("INFO: cropping LoadInst, off > size: " << *memptr.offset
+                        << " " << size << "\n     in " << *node->getKey());
+                    changed |= addPtrWithUnknownOffset(node, memptr);
+                    continue;
+                }
+            }
+
+            changed |= node->addPointsTo(memptr);
+        }
+
+        // if the memory contains a pointer on unknown offset,
+        // it may be relevant for us, because it can be on the ptr.offset,
+        // so we need to add it too
+        if (ptr.obj->pointsTo.count(UNKNOWN_OFFSET) != 0)
+            for (auto memptr : ptr.obj->pointsTo[UNKNOWN_OFFSET])
+                changed |= node->addPointsTo(memptr);
+    }
+
+    return changed;
+}
+
+bool LLVMPointsToAnalysis::handleLoadInstPointsTo(LLVMNode *ptrNode,
+                                                  LLVMNode *node)
+{
+    bool changed = false;
+
+    // get values that are referenced by pointer and
+    // store them as values of this load (or as pointsTo
+    // if the load it pointer)
+    for (auto ptr : ptrNode->getPointsTo())
+        changed |= handleLoadInstPtr(ptr, node);
+
+    return changed;
+}
+
+bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+{
+    if (!Inst->getType()->isPointerTy())
+        return false;
+
+    LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
+    assert(ptrNode && "No ptr node");
+
+    return handleLoadInstPointsTo(ptrNode, node);
 }
 
 static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
@@ -247,8 +277,9 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
             // offset after the points-to analysis stops - but, let's
             // keep it simple now and just crop invalid offsets
             if (*off >= size) {
-                DBG("INFO: cropping GEP, off > size: " << *off
-                    << " " << size << "\n     in " << *ptrNode->getKey());
+                if (!off.isUnknown())
+                    errs() << "INFO points-to: cropping GEP, off > size: " << *off
+                           << " " << size << " in " << *ptrNode->getKey() << "\n";
                 changed |= addPtrWithUnknownOffset(node, ptr);
             } else
                 changed |= node->addPointsTo(ptr.obj, off);
