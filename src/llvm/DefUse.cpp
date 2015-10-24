@@ -480,31 +480,40 @@ void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node, const CallInst *CI)
 void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst *CI)
 {
     const IntrinsicInst *I = cast<IntrinsicInst>(CI);
-    const Value *dest, *src;
+    const Value *dest, *src = nullptr;
     DefMap *df = getDefMap(callNode);
 
     switch (I->getIntrinsicID())
     {
         case Intrinsic::memmove:
         case Intrinsic::memcpy:
-        case Intrinsic::memset:
             dest = I->getOperand(0);
             src = I->getOperand(1);
+            break;
+        case Intrinsic::memset:
+            dest = I->getOperand(0);
             break;
         default:
             handleUndefinedCall(callNode, CI);
             return;
     }
 
+    // we must have dest set
+    assert(dest);
+
     LLVMNode *destNode = getOperand(callNode, dest, 1);
     assert(destNode && "No dest operand for intrinsic call");
 
-    LLVMNode *srcNode = getOperand(callNode, src, 2);
-    assert(srcNode && "No src operand for intrinsic call");
+    LLVMNode *srcNode = nullptr;
+    if (src) {
+        srcNode = getOperand(callNode, src, 2);
+        assert(srcNode && "No src operand for intrinsic call");
+    }
 
     // these functions touch the memory of the pointers
     addIndirectDefUse(destNode, callNode, df);
-    addIndirectDefUse(srcNode, callNode, df);
+    if (srcNode)
+        addIndirectDefUse(srcNode, callNode, df);
 
     // and we also need the top-level edges. These will be added by
     // handle undefined call
