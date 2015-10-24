@@ -18,9 +18,11 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "LLVMNode.h"
+#include "AnalysisGeneric.h"
 #include "LLVMDependenceGraph.h"
 
 using llvm::errs;
+using dg::analysis::Pointer;
 
 namespace dg {
 
@@ -36,6 +38,45 @@ LLVMNode::~LLVMNode()
 void LLVMNode::dump() const
 {
     getKey()->dump();
+}
+
+static void dumpPointer(const Pointer& ptr)
+{
+    if (ptr.isNull())
+        errs() << "null + ";
+    else if (ptr.isUnknown() || ptr.pointsToUnknown())
+        errs() << "unknown + ";
+    else {
+        LLVMNode *n = ptr.obj->node;
+        const llvm::Value *v = n->getValue();
+        if (llvm::isa<llvm::Function>(v))
+            errs() << "FUNC " << v->getName().data();
+        else
+            errs() << *v;
+
+        errs() << " + ";
+    }
+
+    if (ptr.offset.isUnknown())
+        errs() << "UNKNOWN";
+    else
+        errs() << *ptr.offset;
+}
+
+void LLVMNode::dumpPointsTo() const
+{
+    for (const Pointer& ptr : pointsTo) {
+        errs() << "  -> ";
+        dumpPointer(ptr);
+        errs() << "\n";
+    }
+}
+
+void LLVMNode::dumpAll() const
+{
+    dump();
+    errs() << "--- Points-to ---\n";
+    dumpPointsTo();
 }
 
 LLVMNode **LLVMNode::findOperands()

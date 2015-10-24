@@ -277,9 +277,11 @@ static bool addPtrWithOffset(LLVMNode *ptrNode, LLVMNode *node,
             // offset after the points-to analysis stops - but, let's
             // keep it simple now and just crop invalid offsets
             if (*off >= size) {
+#ifdef DEBUG_ENABLED
                 if (!off.isUnknown())
-                    errs() << "INFO points-to: cropping GEP, off > size: " << *off
-                           << " " << size << " in " << *ptrNode->getKey() << "\n";
+                    //errs() << "INFO points-to: cropping GEP, off > size: " << *off
+                    //       << " " << size << " in " << *ptrNode->getKey() << "\n";
+#endif
                 changed |= addPtrWithUnknownOffset(node, ptr);
             } else
                 changed |= node->addPointsTo(ptr.obj, off);
