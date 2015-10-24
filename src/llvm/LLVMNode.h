@@ -65,6 +65,8 @@ public:
     analysis::MemoryObj *getMemoryObj() const { return memoryobj; }
 
     void dump() const;
+    void dumpPointsTo() const;
+    void dumpAll() const;
 
     bool isPointerTy() const
     {
