@@ -116,5 +116,8 @@ if (LLVM_DG)
 	add_test(slicing-negoffset1 slicing-negoffset1.sh)
 	add_test(slicing-negoffset2 slicing-negoffset2.sh)
 	add_test(slicing-negoffset3 slicing-negoffset3.sh)
+	add_test(slicing-sum1 slicing-sum1.sh)
+	add_test(slicing-sum2 slicing-sum2.sh)
+	add_test(slicing-sum3 slicing-sum3.sh)
 
 endif (LLVM_DG)
