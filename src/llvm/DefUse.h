@@ -50,6 +50,7 @@ private:
     void addIndirectDefUsePtr(const Pointer&, LLVMNode *, DefMap *, uint64_t);
     void addDefUseToParam(LLVMNode *, DefMap *, LLVMDGParameter *);
     void addDefUseToParamNode(LLVMNode *op, DefMap *df, LLVMNode *to);
+    void addInitialDefuse(LLVMDependenceGraph *, ValuesSetT&, const Pointer&, uint64_t);
 };
 
 } // namespace analysis

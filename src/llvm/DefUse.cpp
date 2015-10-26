@@ -61,24 +61,66 @@ LLVMNode *LLVMDefUseAnalysis::getOperand(LLVMNode *node,
     return dg::analysis::getOperand(node, val, idx, DL);
 }
 
-static void addInitialDefuse(ValuesSetT& defs, LLVMNode *ptrnode)
+static bool getParamsForPointer(LLVMDGParameters *params,
+                                const Pointer& ptr, std::set<LLVMNode *>& nodes)
 {
+    const Pointer ptrUnkn(ptr.obj, UNKNOWN_OFFSET);
+    for (auto it : *params) {
+        LLVMDGParameter& p = it.second;
+
+        // the points-to set is in the input param
+        PointsToSetT& S = p.in->getPointsTo();
+
+        // we could get this pointer via any param that
+        // points somewhere to that object
+        for (const Pointer& sp : S)
+            if (sp.obj == ptr.obj)
+                nodes.insert(p.in);
+    }
+
+    return !nodes.empty();
+}
+
+void LLVMDefUseAnalysis::addInitialDefuse(LLVMDependenceGraph *dg,
+                                          ValuesSetT& defs, const Pointer& ptr,
+                                          uint64_t len)
+{
+    LLVMNode *ptrnode = ptr.obj->node;
     const Value *ptrVal = ptrnode->getKey();
+
+    assert(defs.empty() && "Adding initial def-use to something defined");
+
     // functions does not have indirect reaching definitions
     if (isa<Function>(ptrVal))
         return;
 
-    assert(defs.empty() && "Adding initial def-use to something defined");
+    std::set<LLVMNode *> nodes;
+    LLVMDGParameters *params = dg->getParameters();
 
-    // we do not add initial def to global variables because not all
-    // global variables could be used in the code and we'd redundantly
-    // iterate through the defintions. Do it lazily here.
-    if (isa<GlobalVariable>(ptrVal)) {
-            // ok, so the GV was defined in initialization phase,
-            // so the reaching definition for the ptr is there.
-            // If it was not defined, then we still want the edge
-            // from the global node in this case
-            defs.insert(ptrnode);
+    if (params && getParamsForPointer(params, ptr, nodes)) {
+        // we found a parameter that uses this pointer? Then the initial
+        // edge should go there and we need to add the def-use edge
+        // from def to this parameter in caller, since this is use of the value
+        // that is defined in the caller
+        for (LLVMNode *callsite : dg->getCallers()) {
+            DefMap *csdf = getDefMap(callsite);
+            for (LLVMNode *n : nodes) {
+                addIndirectDefUsePtr(ptr, *n->rev_data_begin(), csdf, len);
+            }
+        }
+
+        for (LLVMNode *n : nodes)
+            defs.insert(n);
+    } else if (isa<GlobalVariable>(ptrVal)) {
+        // we do not add initial def to global variables because not all
+        // global variables could be used in the code and we'd redundantly
+        // iterate through the defintions. Do it lazily here.
+
+        // ok, so the GV was defined in initialization phase,
+        // so the reaching definition for the ptr is there.
+        // If it was not defined, then we still want the edge
+        // from the global node in this case
+        defs.insert(ptrnode);
     } else if (isa<AllocaInst>(ptrVal)) {
         // AllocaInst without any reaching definition
         // may mean that the value is undefined. Nevertheless
@@ -201,8 +243,10 @@ void LLVMDefUseAnalysis::addIndirectDefUsePtr(const Pointer& ptr, LLVMNode *to,
     // try to add initial def-use edges
     ValuesSetT& defs = df->get(ptr);
     if (!found && defs.empty()) {
-        LLVMNode *ptrnode = ptr.obj->node;
-        addInitialDefuse(defs, ptrnode);
+        addInitialDefuse(to->getDG(), defs, ptr, len);
+        for (LLVMNode *n : defs) {
+            n->addDataDependence(to);
+        }
     }
 }
 
