@@ -153,6 +153,8 @@ bool LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
 
     LLVMNode *fpin = new LLVMNode(val);
     LLVMNode *fpout = new LLVMNode(val);
+    fpin->setDG(this);
+    fpout->setDG(this);
     params->addGlobal(val, fpin, fpout);
 
     LLVMNode *entry = getEntry();
@@ -277,6 +279,8 @@ bool LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
 
     LLVMNode *fpin = new LLVMNode(val);
     LLVMNode *fpout = new LLVMNode(val);
+    fpin->setDG(this);
+    fpout->setDG(this);
     params->add(val, fpin, fpout);
 
     LLVMNode *entry = getEntry();
@@ -517,6 +521,8 @@ void LLVMDependenceGraph::addFormalParameters()
 
         in = new LLVMNode(val);
         out = new LLVMNode(val);
+        in->setDG(this);
+        out->setDG(this);
         params->add(val, in, out);
 
         // add control edges
@@ -529,6 +535,8 @@ void LLVMDependenceGraph::addFormalParameters()
         val->setName("vararg");
         in = new LLVMNode(val, true);
         out = new LLVMNode(val, true);
+        in->setDG(this);
+        out->setDG(this);
 
         params->setVarArg(in, out);
         entryNode->addControlDependence(in);

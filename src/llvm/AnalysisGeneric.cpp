@@ -86,6 +86,7 @@ static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
     } else
         errs() << "ERR: unhandled not to create " << *val << "\n";
 
+    n->setDG(dg);
     return n;
 }
 
@@ -235,19 +236,21 @@ static LLVMNode *getConstantExprNode(const llvm::ConstantExpr *CE,
                                      LLVMDependenceGraph *dg,
                                      const llvm::DataLayout *DL)
 {
+    LLVMNode *node;
     // we have these nodes stored
-    if (isa<IntToPtrInst>(CE))
-        return getConstantIntToPtrNode(CE, DL);
+    if (isa<IntToPtrInst>(CE)) {
+        node = getConstantIntToPtrNode(CE, DL);
+    } else {
+        // FIXME add these nodes somewhere,
+        // so that we can delete them later
+        node = new LLVMNode(CE);
 
+        // set points-to sets
+        Pointer ptr = getConstantExprPointer(CE, dg, DL);
+        node->addPointsTo(ptr);
+    }
 
-    // FIXME add these nodes somewhere,
-    // so that we can delete them later
-    LLVMNode *node = new LLVMNode(CE);
-
-    // set points-to sets
-    Pointer ptr = getConstantExprPointer(CE, dg, DL);
-    node->addPointsTo(ptr);
-
+    node->setDG(dg);
     return node;
 }
 
