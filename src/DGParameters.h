@@ -59,8 +59,8 @@ public:
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
 
-    DGParameters<NodeT>()
-    : vararg(nullptr), BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>){}
+    DGParameters<NodeT>(NodeT *cs = nullptr)
+    : vararg(nullptr), BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs){}
 
     ~DGParameters<NodeT>()
     {
@@ -166,6 +166,10 @@ public:
         return true;
     }
 
+    const NodeT *getCallSite() const { return callSite; }
+    NodeT *getCallSite() { return callSite; }
+    void setCallSite(NodeT *n) { return callSite = n; }
+
 private:
     // globals represented as a parameter
     ContainerType globals;
@@ -179,6 +183,7 @@ private:
 
     BBlock<NodeT> *BBIn;
     BBlock<NodeT> *BBOut;
+    NodeT *callSite;
 
     DGParameter<NodeT> *find(KeyT k, ContainerType *C)
     {
