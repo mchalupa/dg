@@ -167,6 +167,8 @@ static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMD
         if (!act) {
             pin = new LLVMNode(val);
             pout = new LLVMNode(val);
+            pin->setDG(callNode->getDG());
+            pout->setDG(callNode->getDG());
             params->addGlobal(val, pin, pout);
         } else {
             pin = act->in;
@@ -203,6 +205,8 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
         if (!act) {
             pin = new LLVMNode(val);
             pout = new LLVMNode(val);
+            pin->setDG(callNode->getDG());
+            pout->setDG(callNode->getDG());
             params->add(val, pin, pout);
         } else {
             pin = act->in;
@@ -246,6 +250,8 @@ static void addOperandsParams(LLVMDGParameters *params,
         if (!ap) {
             in = new LLVMNode(opval);
             out = new LLVMNode(opval);
+            in->setDG(callNode->getDG());
+            out->setDG(callNode->getDG());
             params->add(opval, in, out);
         } else {
             in = ap->in;
