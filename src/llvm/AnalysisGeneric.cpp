@@ -72,7 +72,13 @@ static LLVMNode *createNodeWithMemAlloc(const Value *val)
     return n;
 }
 
-static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
+
+static LLVMNode *getConstantExprNode(const llvm::ConstantExpr *CE,
+                                     LLVMDependenceGraph *dg,
+                                     const llvm::DataLayout *DL);
+
+static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val,
+                                 const llvm::DataLayout *DL)
 {
     LLVMNode *n = dg->getNode(val);
     if (n)
@@ -83,14 +89,20 @@ static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val)
     } else if (llvm::isa<llvm::ConstantPointerNull>(val)) {
         n = new LLVMNode(val);
         n->addPointsTo(NullPointer);
-    } else
-        errs() << "ERR: unhandled not to create " << *val << "\n";
+    } else if (const llvm::ConstantExpr *CE
+                = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
+        return getConstantExprNode(CE, dg, DL);
+    } else {
+        errs() << "ERR get-or-create-node: unhandled value " << *val << "\n";
+        return nullptr;
+    }
 
     n->setDG(dg);
     return n;
 }
 
-static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst *BC)
+static Pointer handleConstantBitCast(LLVMDependenceGraph *dg,
+                                     const BitCastInst *BC, const llvm::DataLayout *DL)
 {
     if (!BC->isLosslessCast()) {
         errs() << "WARN: Not a loss less cast unhandled ConstExpr"
@@ -99,7 +111,7 @@ static Pointer handleConstantBitCast(LLVMDependenceGraph *dg, const BitCastInst 
     }
 
     const Value *llvmOp = BC->stripPointerCasts();
-    LLVMNode *op = getOrCreateNode(dg, llvmOp);
+    LLVMNode *op = getOrCreateNode(dg, llvmOp, DL);
     if (!op) {
         errs() << "ERR: unsupported BitCast constant operand" << *BC << "\n";
     } else {
@@ -119,10 +131,6 @@ static inline unsigned getPointerBitwidth(const DataLayout *DL, const Value *ptr
     const Type *Ty = ptr->getType();
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
-
-static LLVMNode *getConstantExprNode(const llvm::ConstantExpr *CE,
-                                     LLVMDependenceGraph *dg,
-                                     const llvm::DataLayout *DL);
 
 static Pointer handleConstantGep(LLVMDependenceGraph *dg,
                                  const GetElementPtrInst *GEP,
@@ -191,7 +199,7 @@ Pointer getConstantExprPointer(const ConstantExpr *CE,
     if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
         pointer = handleConstantGep(dg, GEP, DL);
     } else if (const BitCastInst *BC = dyn_cast<BitCastInst>(Inst)) {
-        pointer = handleConstantBitCast(dg, BC);
+        pointer = handleConstantBitCast(dg, BC, DL);
     } else {
             errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
             errs() << "      ^^ returning unknown pointer\n";
@@ -268,7 +276,7 @@ static LLVMNode *getUnknownNode(LLVMDependenceGraph *dg, const llvm::Value *val,
         // What is worse, the function may not be created either,
         // so the node just may not exists at all, so we need to
         // create it
-        node = getOrCreateNode(dg, val);
+        node = getOrCreateNode(dg, val, DL);
     } else {
         errs() << "ERR: Unsupported operand: " << *val << "\n";
         abort();
