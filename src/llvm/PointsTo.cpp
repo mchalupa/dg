@@ -600,9 +600,10 @@ static bool handleReturnedPointer(LLVMDependenceGraph *subgraph,
     return changed;
 }
 
-static void propagateDynAllocationPointsTo(LLVMDependenceGraph *subgraph,
+static bool propagateDynAllocationPointsTo(LLVMDependenceGraph *subgraph,
                                            LLVMDGParameters *formal)
 {
+    bool changed = false;
     for (auto it : *formal) {
         // only dyn. allocation parameter node can be callint,
         // becaues we have formal parameters
@@ -610,9 +611,11 @@ static void propagateDynAllocationPointsTo(LLVMDependenceGraph *subgraph,
             LLVMNode *alloc_node = subgraph->getNode(it.first);
             assert(alloc_node && "No node for dyn. mem. allocation parameter");
 
-            it.second.in->addPointsTo(alloc_node->getPointsTo());
+            changed |= it.second.in->addPointsTo(alloc_node->getPointsTo());
         }
     }
+
+    return changed;
 }
 
 void LLVMPointsToAnalysis::propagateVarArgPointsTo(LLVMDGParameters *formal,
@@ -682,8 +685,8 @@ propagatePointersToArguments(LLVMDependenceGraph *subgraph,
             changed |= p->in->addPointsTo(ptr);
     }
 
-    propagateDynAllocationPointsTo(subgraph, formal);
-    propagateGlobalParametersPointsTo(callNode);
+    changed |= propagateDynAllocationPointsTo(subgraph, formal);
+    changed |= propagateGlobalParametersPointsTo(callNode);
     if (subfunc->isVarArg())
         propagateVarArgPointsTo(formal, subfunc->arg_size(), callNode);
 
