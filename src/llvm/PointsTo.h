@@ -40,6 +40,7 @@ private:
     bool addGlobalPointsTo(const llvm::Constant *, LLVMNode *, uint64_t);
     bool propagatePointersToArguments(LLVMDependenceGraph *,
                                       const llvm::CallInst *, LLVMNode *);
+    bool propagatePointersFromArguments(LLVMDependenceGraph *, LLVMNode *);
 
     bool handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node);
     void addDynamicCallersParamsPointsTo(LLVMNode *, LLVMDependenceGraph *);
