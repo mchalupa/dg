@@ -693,6 +693,18 @@ propagatePointersToArguments(LLVMDependenceGraph *subgraph,
     return changed;
 }
 
+bool LLVMPointsToAnalysis::
+propagatePointersFromArguments(LLVMDependenceGraph *subgraph, LLVMNode *callNode)
+{
+    LLVMDependenceGraph *calldg = callNode->getDG();
+    LLVMDGParameters *formal = calldg->getParameters();
+    if (!formal)
+        return false;
+
+    // FIXME the name is horrible
+    return propagateNewDynMemoryParamsPointsTo(formal, subgraph);
+}
+
 static bool handleDynamicMemAllocation(const CallInst *Inst,
                                        LLVMNode *node, int type)
 {
@@ -882,8 +894,10 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
          && !node->hasSubgraphs() && Ty->isPointerTy())
         return handleUndefinedReturnsPointer(Inst, node);
 
-    for (LLVMDependenceGraph *sub : node->getSubgraphs())
+    for (LLVMDependenceGraph *sub : node->getSubgraphs()) {
         changed |= propagatePointersToArguments(sub, Inst, node);
+        changed |= propagatePointersFromArguments(sub, node);
+    }
 
     // what about llvm intrinsic functions like llvm.memset?
     // we could handle those
