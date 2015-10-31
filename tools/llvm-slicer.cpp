@@ -255,6 +255,31 @@ static void computeGraphEdges(LLVMDependenceGraph *d)
     tm.report("INFO: Computing post-dominator frontiers took");
 }
 
+static bool createEmptyMain(llvm::Module *M)
+{
+    llvm::Function *main_func = M->getFunction("main");
+    if (!main_func) {
+        errs() << "No main function found in module. This seems like bug since\n"
+                  "here we should have the graph build from main\n";
+        return false;
+    }
+
+    // delete old function body
+    main_func->deleteBody();
+
+    // create new function body that just returns
+    llvm::LLVMContext& ctx = M->getContext();
+    llvm::BasicBlock* blk = llvm::BasicBlock::Create(ctx, "entry", main_func);
+    llvm::Type *Ty = main_func->getReturnType();
+    llvm::Value *retval = nullptr;
+    if (Ty->isIntegerTy())
+        retval = llvm::ConstantInt::get(Ty, 0);
+    llvm::ReturnInst *RI
+        = llvm::ReturnInst::Create(ctx, retval, blk);
+
+    return true;
+}
+
 static bool slice(llvm::Module *M, const char *module_name,
                   const char *slicing_criterion, uint32_t opts = 0)
 {
@@ -316,6 +341,12 @@ static bool slice(llvm::Module *M, const char *module_name,
     // the file - due to debugging
     if (got_slicing_criterion || (opts & ANNOTATE))
         computeGraphEdges(&d);
+
+    // don't go through the graph when we know the result:
+    // only empty main will stay there. Just delete the body
+    // of main and keep the return value
+    if (!got_slicing_criterion)
+        return createEmptyMain(M);
 
     LLVMSlicer slicer;
     uint32_t slid = 0xdead;
