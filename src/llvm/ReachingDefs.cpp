@@ -330,7 +330,10 @@ static bool handleStoreInst(LLVMNode *storeNode, DefMap *df,
     // with known offset), it is safe to do strong update
     if (S.size() == 1) {
         const Pointer& ptr = *S.begin();
-        if (ptr.isKnown() && !ptr.offset.isUnknown()) {
+        // NOTE: we don't have good mechanism to diferentiate
+        // heap-allocated objects yet, so if the pointer points to heap,
+        // we must do weak update
+        if (ptr.isKnown() && !ptr.offset.isUnknown() && !ptr.pointsToHeap()) {
             changed |= df->update(ptr, storeNode);
             strong_update = &S;
             return changed;

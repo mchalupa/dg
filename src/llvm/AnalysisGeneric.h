@@ -85,6 +85,7 @@ struct Pointer
     bool pointsToUnknown() const;
     bool isKnown() const;
     bool isNull() const;
+    bool pointsToHeap() const;
 };
 
 typedef std::set<Pointer> PointsToSetT;
