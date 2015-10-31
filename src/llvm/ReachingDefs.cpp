@@ -228,6 +228,9 @@ bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
         if (!llvmOp->getType()->isPointerTy())
             continue;
 
+        if (isa<Constant>(llvmOp->stripInBoundsOffsets()))
+            continue;
+
         LLVMNode *op = getOperand(callNode, llvmOp, n);
         assert(op && "unhandled pointer operand in undef call");
 
