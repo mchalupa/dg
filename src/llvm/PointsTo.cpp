@@ -28,12 +28,12 @@ LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
     handleGlobals();
 }
 
-static bool handleMemAllocation(LLVMNode *node, size_t size = 0)
+static bool handleMemAllocation(LLVMNode *node, size_t size = 0, bool isheap = false)
 {
     // every global is a pointer
     MemoryObj *&mo = node->getMemoryObj();
     if (!mo) {
-        mo = new MemoryObj(node, size);
+        mo = new MemoryObj(node, size, isheap);
         node->addPointsTo(mo);
         return true;
     }
@@ -749,7 +749,7 @@ static bool handleDynamicMemAllocation(const CallInst *Inst,
         }
     }
 
-    return handleMemAllocation(node, size);
+    return handleMemAllocation(node, size, true);
 }
 
 bool LLVMPointsToAnalysis::handleMemTransfer(const IntrinsicInst *I, LLVMNode *node)
