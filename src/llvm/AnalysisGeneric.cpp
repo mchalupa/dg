@@ -52,6 +52,13 @@ bool Pointer::isKnown() const
     return !isUnknown() && !pointsToUnknown() &&!isNull();
 }
 
+bool Pointer::pointsToHeap() const
+{
+    assert(obj && "Pointer has not any memory object set");
+    // XXX what about unknown pointers?
+    return obj->isHeapAllocated();
+}
+
 bool MemoryObj::isNull() const
 {
     return this == &NullMemoryObject;
