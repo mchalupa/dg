@@ -94,10 +94,14 @@ typedef std::map<Offset, ValuesSetT> ValuesMapT;
 
 struct MemoryObj
 {
-    MemoryObj(LLVMNode *n, uint64_t s = 0) : node(n), size(s) {}
-    LLVMNode *node;
+    MemoryObj(LLVMNode *n, uint64_t s = 0, bool isheap = false)
+        : node(n), is_heap(isheap), size(s) {}
 
+    LLVMNode *node;
     PointsToMapT pointsTo;
+    // some analyses need to know if this is heap or stack
+    // allocated object
+    bool is_heap;
 
     bool addPointsTo(const Offset& off, const Pointer& ptr)
     {
@@ -122,12 +126,14 @@ struct MemoryObj
 
     bool isUnknown() const;
     bool isNull() const;
+    bool isHeapAllocated() const { return is_heap; }
 
     // if the object is allocated via malloc or
     // similar, we can not infer the size from type,
     // because it is recast to (usually) i8*. Store the
     // size information here, if applicable and available
     uint64_t size;
+
     bool hasSize() const { return size != 0; }
 #if 0
     ValuesMapT values;
