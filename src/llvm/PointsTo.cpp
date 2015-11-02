@@ -463,6 +463,7 @@ static void propagateGlobalPointsToMain(LLVMDependenceGraph *dg);
 bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node)
 {
     bool changed = false;
+    const CallInst *CI = cast<CallInst>(node->getValue());
 
     for (const Pointer& ptr : calledFuncNode->getPointsTo()) {
         if (!ptr.isKnown()) {
@@ -486,6 +487,13 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
         if (func->size() == 0)
             continue;
 
+        // the points-to is overapproximation, so we can have pointers that
+        // actually cannot be bound to the memory location at runtime.
+        // If the function arg numbuer does not match call inst nuber,
+        // this is the case
+        if (!func->isVarArg() && func->arg_size() != CI->getNumArgOperands())
+            continue;
+
         // HACK: this is a small hack. We cannot rely on
         // return value of addGlobalNode, because if this
         // function was assigned to some pointer, the global
@@ -506,8 +514,7 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
         if (isnew) {
             // handle new globals - there's at least on, the new entry node
             handleGlobals();
-            propagatePointersToArguments(subg,
-                                         cast<CallInst>(node->getValue()), node);
+            propagatePointersToArguments(subg, CI, node);
 
             // add subgraph BBs now, after we propagated all
             // pointers that may be needed for it (addBB runs
