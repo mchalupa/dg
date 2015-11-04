@@ -102,15 +102,15 @@ void LLVMDefUseAnalysis::addInitialDefuse(LLVMDependenceGraph *dg,
         // edge should go there and we need to add the def-use edge
         // from def to this parameter in caller, since this is use of the value
         // that is defined in the caller
+        for (LLVMNode *n : nodes)
+            defs.insert(n);
+
         for (LLVMNode *callsite : dg->getCallers()) {
             DefMap *csdf = getDefMap(callsite);
             for (LLVMNode *n : nodes) {
                 addIndirectDefUsePtr(ptr, *n->rev_data_begin(), csdf, len);
             }
         }
-
-        for (LLVMNode *n : nodes)
-            defs.insert(n);
     } else if (isa<GlobalVariable>(ptrVal)) {
         // we do not add initial def to global variables because not all
         // global variables could be used in the code and we'd redundantly
