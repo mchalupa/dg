@@ -460,6 +460,24 @@ void LLVMPointsToAnalysis::addDynamicCallersParamsPointsTo(LLVMNode *callNode,
 
 static void propagateGlobalPointsToMain(LLVMDependenceGraph *dg);
 
+static bool isCallInstCompatible(const Function *func, const CallInst *CI)
+{
+    int i = 0;
+    if (func->getReturnType() != CI->getType())
+        return false;
+
+    for (auto I = func->arg_begin(), E = func->arg_end(); I != E; ++I, ++i) {
+        if (!I->getType()->isPointerTy())
+            continue;
+        Type *CT = CI->getOperand(i)->getType();
+        Type *FT = I->getType();
+        if (CT != FT)
+            return false;
+    }
+
+    return true;
+}
+
 bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node)
 {
     bool changed = false;
@@ -492,6 +510,9 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
         // If the function arg numbuer does not match call inst nuber,
         // this is the case
         if (!func->isVarArg() && func->arg_size() != CI->getNumArgOperands())
+            continue;
+
+        if (!isCallInstCompatible(func, CI))
             continue;
 
         // HACK: this is a small hack. We cannot rely on
