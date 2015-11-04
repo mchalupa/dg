@@ -42,6 +42,7 @@ private:
     void handleUndefinedCall(LLVMNode *);
     void handleCallInst(LLVMNode *);
     void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
+    void handleInlineAsm(LLVMNode *callNode);
 
     void addStoreLoadInstDefUse(LLVMNode *, LLVMNode *, DefMap *);
     void addIndirectDefUse(LLVMNode *, LLVMNode *, DefMap *);
