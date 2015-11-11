@@ -317,11 +317,12 @@ bool LLVMReachingDefsAnalysis::handleCallInst(LLVMNode *callNode, DefMap *df)
     return changed;
 }
 
-static bool handleStoreInst(LLVMNode *storeNode, DefMap *df,
-                            PointsToSetT *&strong_update)
+bool LLVMReachingDefsAnalysis::handleStoreInst(LLVMNode *storeNode, DefMap *df,
+                                               PointsToSetT *&strong_update)
 {
     bool changed = false;
-    LLVMNode *ptrNode = storeNode->getOperand(0);
+    const llvm::StoreInst *SI = cast<StoreInst>(storeNode->getValue());
+    LLVMNode *ptrNode = getOperand(storeNode, SI->getPointerOperand(), 0);
     assert(ptrNode && "No pointer operand");
 
     // update definitions
@@ -363,7 +364,7 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
         const Value *predVal = pred->getKey();
         // if the predecessor is StoreInst, it add and may kill some definitions
         if (isa<StoreInst>(predVal))
-            changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
+            changed |= handleStoreInst(pred, df, strong_update);
         // call inst may add some definitions to (StoreInst in subgraph)
         else if (isa<CallInst>(predVal))
             changed |= handleCallInst(pred, df);
@@ -384,7 +385,7 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
             const Value *predVal = pred->getKey();
 
             if (isa<StoreInst>(predVal))
-                changed |= dg::analysis::handleStoreInst(pred, df, strong_update);
+                changed |= handleStoreInst(pred, df, strong_update);
             else if (isa<CallInst>(predVal))
                 changed |= handleCallInst(pred, df);
 
