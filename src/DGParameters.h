@@ -201,27 +201,8 @@ private:
             // we already has param with this key
             return false;
 
-        // add in parameter into BBIn
-        NodeT *last = BBIn->getLastNode();
-        if (last) {
-            last->setSuccessor(val_in);
-            BBIn->setLastNode(val_in);
-        } else { // BBIn is empty
-            BBIn->setFirstNode(val_in);
-            BBIn->setLastNode(val_in);
-            val_in->setBasicBlock(BBIn);
-        }
-
-        // add in parameter into BBOut
-        last = BBOut->getLastNode();
-        if (last) {
-            last->setSuccessor(val_out);
-            BBOut->setLastNode(val_out);
-        } else { // BBIn is empty
-            BBOut->setFirstNode(val_out);
-            BBOut->setLastNode(val_out);
-            val_out->setBasicBlock(BBOut);
-        }
+        BBIn->append(val_in);
+        BBOut->append(val_out);
 
         return true;
     }

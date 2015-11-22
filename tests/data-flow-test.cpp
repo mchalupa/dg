@@ -52,7 +52,7 @@ public:
 
             d->addNode(nodes[i]);
 
-            B = new TestBBlock(nodes[i], nodes[i]);
+            B = new TestBBlock(nodes[i]);
         }
 
         // connect to circular graph
@@ -196,7 +196,7 @@ public:
         check(stats.getBBlocksNum() == NODES_NUM, "wrong number of blocks: %d",
               stats.getBBlocksNum());
         check(stats.processedBlocks == NODES_NUM,
-              "processed more blocks than %d - %d", NODES_NUM, stats.processedBlocks);
+              "processed different num of blocks than %d:  %d", NODES_NUM, stats.processedBlocks);
         check(stats.getIterationsNum() == 1, "did wrong number of iterations: %d",
               stats.getIterationsNum());
 

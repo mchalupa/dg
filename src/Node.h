@@ -40,8 +40,7 @@ public:
                                         DependenceGraphT *dg = nullptr)
         : key(k), dg(dg), parameters(nullptr), slice_id(0)
 #if ENABLE_CFG
-         , basicBlock(nullptr), nextNode(nullptr),
-           prevNode(nullptr)
+         , basicBlock(nullptr)
 #endif
     {
         if (dg)
@@ -162,33 +161,19 @@ public:
         removeDDs();
         removeCDs();
 
-        /// interconnect neighbours in CFG
 #ifdef ENABLE_CFG
         // if this is head or tail of BB,
         // we must take it into account
         if (basicBlock) {
-            // if this is the head of block, make
-            // the next node head of the block
-            if (basicBlock->getFirstNode() == this) {
-                basicBlock->setFirstNode(nextNode);
-                if (nextNode)
-                    nextNode->setBasicBlock(basicBlock);
-            }
-
-            if (basicBlock->getLastNode() == this) {
-                basicBlock->setLastNode(prevNode);
-                if (prevNode)
-                    prevNode->setBasicBlock(basicBlock);
-            }
+            // XXX removing the node from BB is in linear time,
+            // could we do it better?
+            basicBlock->removeNode(static_cast<NodeT *>(this));
 
             // if this was the only node in BB, remove the BB
-            if (basicBlock->getFirstNode() == nullptr) {
-                assert(basicBlock->getLastNode() == nullptr);
+            if (basicBlock->empty())
                 basicBlock->remove();
-            }
 
-            // also, if this is a callSite,
-            // it is no longer part of BBlock,
+            // if this is a callSite it is no longer part of BBlock,
             // so we must remove it from callSites
             if (hasSubgraphs()) {
                 bool ret = basicBlock->removeCallSite(static_cast<NodeT *>(this));
@@ -197,17 +182,6 @@ public:
 
             basicBlock = nullptr;
         }
-
-        // make previous node point to nextNode
-        if (prevNode)
-            prevNode->nextNode = nextNode;
-
-        // make next node point to prevNode
-        if (nextNode)
-            nextNode->prevNode = prevNode;
-
-        // no dangling reference, please
-        prevNode = nextNode = nullptr;
 #endif
     }
 
@@ -250,33 +224,6 @@ public:
         basicBlock = nbb;
         return old;
     }
-
-    NodeT * setSuccessor(NodeT * s)
-    {
-        NodeT * old = nextNode;
-        nextNode = s;
-
-        assert(s != static_cast<NodeT *>(this)
-                && "creating self-loop");
-
-        s->prevNode = static_cast<NodeT *>(this);
-
-        // set the same basic block for the next node
-        // so that we don't have to do it manually
-        // after setting the successor
-        assert(basicBlock && "No basic block while setting succ");
-        nextNode->setBasicBlock(basicBlock);
-
-        return old;
-    }
-
-    bool hasSuccessor() const { return nextNode != nullptr; }
-    bool hasPredecessor() const { return prevNode != nullptr; }
-
-    const NodeT * getSuccessor() const { return nextNode; }
-    const NodeT * getPredecessor() const { return prevNode; }
-    NodeT * getSuccessor() { return nextNode; }
-    NodeT * getPredecessor() { return prevNode; }
 
     unsigned int getDFSOrder() const
     {
@@ -387,13 +334,8 @@ private:
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
     BBlock<NodeT> *basicBlock;
-
-    // successors of this node
-    NodeT *nextNode;
-    // predecessors of this node
-    NodeT *prevNode;
-
 #endif /* ENABLE_CFG */
+
 #ifdef ENABLE_PSS
     // pointer-state subgraph
     // edges connecting nodes that take

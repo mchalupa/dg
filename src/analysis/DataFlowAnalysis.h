@@ -153,14 +153,11 @@ public:
     bool runOnBlock(BBlock<NodeT> *B)
     {
         bool changed = false;
-        NodeT *n = B->getFirstNode();
         NodeT *prev = nullptr;
 
-        while(n) {
+        for (NodeT *n : B->getNodes()) {
             changed |= runOnNode(n, prev);
-
             prev = n;
-            n = n->getSuccessor();
         }
 
         return changed;
