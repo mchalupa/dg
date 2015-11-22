@@ -13,20 +13,18 @@ enum NodesWalkFlags {
     // will be processed
     NODES_WALK_NONE_EDGES               = 0,
     NODES_WALK_INTERPROCEDURAL          = 1 << 0,
-    NODES_WALK_CFG                      = 1 << 1,
-    NODES_WALK_REV_CFG                  = 1 << 2,
-    NODES_WALK_CD                       = 1 << 3,
-    NODES_WALK_DD                       = 1 << 4,
-    NODES_WALK_REV_CD                   = 1 << 5,
-    NODES_WALK_REV_DD                   = 1 << 6,
+    NODES_WALK_CD                       = 1 << 1,
+    NODES_WALK_DD                       = 1 << 2,
+    NODES_WALK_REV_CD                   = 1 << 3,
+    NODES_WALK_REV_DD                   = 1 << 4,
     // Add to queue all first nodes of
     // node's BB successors
-    NODES_WALK_BB_CFG                   = 1 << 7,
+    NODES_WALK_BB_CFG                   = 1 << 5,
     // Add to queue all last nodes of
     // node's BB predecessors
-    NODES_WALK_BB_REV_CFG               = 1 << 8,
-    NODES_WALK_BB_POSTDOM               = 1 << 9,
-    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 10,
+    NODES_WALK_BB_REV_CFG               = 1 << 6,
+    NODES_WALK_BB_POSTDOM               = 1 << 7,
+    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 8,
 };
 
 // this is a base class for nodes walk, it contains
@@ -52,7 +50,7 @@ template <typename NodeT, typename QueueT>
 class NodesWalk : public NodesWalkBase<NodeT>
 {
 public:
-    NodesWalk<NodeT, QueueT>(uint32_t opts = NODES_WALK_CFG)
+    NodesWalk<NodeT, QueueT>(uint32_t opts = 0)
         : options(opts) {}
 
     template <typename FuncT, typename DataT>
@@ -104,20 +102,6 @@ public:
 
             if (options & NODES_WALK_BB_REV_CFG)
                 processBBlockRevCFG(n);
-
-            if (options & NODES_WALK_CFG) {
-                if (n->hasSuccessor())
-                    enqueue(n->getSuccessor());
-                else
-                    processBBlockCFG(n);
-            }
-
-            if (options & NODES_WALK_REV_CFG) {
-                if (n->hasPredecessor())
-                    enqueue(n->getPredecessor());
-                else
-                    processBBlockRevCFG(n);
-            }
 #endif // ENABLE_CFG
 
             if (options & NODES_WALK_BB_POSTDOM_FRONTIERS)
@@ -187,6 +171,7 @@ private:
         for (BBlock<NodeT> *CD : BB->controlDependence())
             enqueue(CD->getFirstNode());
     }
+
 
     void processBBlockCFG(NodeT *n)
     {
@@ -294,14 +279,10 @@ public:
             if ((flags & BBLOCK_WALK_INTERPROCEDURAL)) {
                 if ((flags & BBLOCK_NO_CALLSITES)
                     && BB->getCallSitesNum() == 0) {
-                    // get callsites if bblocks does not
-                    // keep them
-                    NodeT *n = BB->getFirstNode();
-                    while (n) {
+                    // get callsites if bblocks does not keep them
+                    for (NodeT *n : BB->getNodes()) {
                         if (n->hasSubgraphs())
                                 BB->addCallsite(n);
-
-                        n = n->getSuccessor();
                     }
                 }
 

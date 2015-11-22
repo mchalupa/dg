@@ -5,6 +5,7 @@
 #define _BBLOCK_H_
 
 #include <cassert>
+#include <list>
 
 #include "ADT/DGContainer.h"
 #include "analysis/Analysis.h"
@@ -24,21 +25,14 @@ class BBlock
 {
 public:
     typedef typename NodeT::KeyType KeyT;
-    BBlock<NodeT>(NodeT *first = nullptr, NodeT *last = nullptr)
-        : key(KeyT()), ipostdom(nullptr), firstNode(first), lastNode(last),
-          slice_id(0)
+    BBlock<NodeT>(NodeT *head = nullptr)
+        : key(KeyT()), ipostdom(nullptr), slice_id(0)
 #ifdef ENABLE_PSS
           , firstPointer(nullptr)
 #endif
     {
-        /// XXX other nodes do not have set basicBlock
-        // shouldn't we keep a list of the nodes the
-        // basic block contains? In that case we would
-        // keep only basic blocks in the dependence graph
-        if (first)
-            first->setBasicBlock(this);
-        if (last)
-            last->setBasicBlock(this);
+        if (head)
+            append(head);
     }
 
     typedef EdgesContainer<BBlock<NodeT>> ContainerT;
@@ -48,11 +42,9 @@ public:
     const ContainerT& controlDependence() const { return controlDeps; }
     const ContainerT& RevControlDependence() const { return revControlDeps; }
 
-    void setKey(const KeyT& k)
-    {
-        key = k;
-    }
-
+    // similary to nodes, basic blocks can have keys
+    // they are not stored anywhere, it is more due to debugging
+    void setKey(const KeyT& k) { key = k; }
     const KeyT& getKey() const { return key; }
 
     ContainerT& getPostDomFrontiers() { return postDomFrontiers; }
@@ -83,6 +75,27 @@ public:
     typename ContainerT::size_type predecessorsNum() const
     {
         return prevBBs.size();
+    }
+
+    const std::list<NodeT *>& getNodes() const { return nodes; }
+    std::list<NodeT *>& getNodes() { return nodes; }
+    bool empty() const { return nodes.empty(); }
+    size_t size() const { return nodes.size(); }
+
+    void append(NodeT *n)
+    {
+        assert(n && "Cannot add null node to BBlock");
+
+        n->setBasicBlock(this);
+        nodes.push_back(n);
+    }
+
+    void prepend(NodeT *n)
+    {
+        assert(n && "Cannot add null node to BBlock");
+
+        n->setBasicBlock(this);
+        nodes.push_front(n);
     }
 
     bool hasControlDependence() const
@@ -128,30 +141,27 @@ public:
         // XXX what to do when this is entry block?
 
         if (with_nodes) {
-            NodeT *n = firstNode;
-            NodeT *tmp;
-            while (n) {
-                tmp = n;
-                n = n->getSuccessor();
-
+            for (NodeT *n : nodes) {
                 // we must set basic block to nullptr
                 // otherwise the node will try to remove the
                 // basic block again if it is of size 1
-                tmp->setBasicBlock(nullptr);
+                n->setBasicBlock(nullptr);
 
                 // remove dependency edges, let be CFG edges
                 // as we'll destroy all the nodes
-                tmp->removeCDs();
-                tmp->removeDDs();
+                n->removeCDs();
+                n->removeDDs();
                 // remove the node from dg
-                tmp->removeFromDG();
+                n->removeFromDG();
 
-                delete tmp;
+                delete n;
             }
         }
 
         delete this;
     }
+
+    void removeNode(NodeT *n) { nodes.remove(n); }
 
     bool addSuccessor(BBlock<NodeT> *b)
     {
@@ -252,21 +262,24 @@ public:
         return ret;
     }
 
-    NodeT *getFirstNode() const { return firstNode; }
-    NodeT *getLastNode() const { return lastNode; }
-
-    NodeT *setLastNode(NodeT *nn)
+    // get first node from bblock
+    // or nullptr if the block is empty
+    NodeT *getFirstNode() const
     {
-        NodeT *old = lastNode;
-        lastNode = nn;
-        return old;
+        if (nodes.empty())
+            return nullptr;
+
+        return nodes.front();
     }
 
-    NodeT *setFirstNode(NodeT *nn)
+    // get last node from block
+    // or nullptr if the block is empty
+    NodeT *getLastNode() const
     {
-        NodeT *old = firstNode;
-        firstNode = nn;
-        return old;
+        if (nodes.empty())
+            return nullptr;
+
+        return nodes.back();
     }
 
 #ifdef ENABLE_PSS
@@ -327,6 +340,9 @@ private:
     // optional key
     KeyT key;
 
+    // nodes contained in this bblock
+    std::list<NodeT *> nodes;
+
     ContainerT nextBBs;
     ContainerT prevBBs;
 
@@ -342,11 +358,6 @@ private:
     // the post-dominator tree edges
     // (reverse to immediate post-dominator)
     ContainerT postDominators;
-
-    // first node in this basic block
-    NodeT *firstNode;
-    // last node in this basic block
-    NodeT *lastNode;
 
     // is this block in some slice?
     uint64_t slice_id;

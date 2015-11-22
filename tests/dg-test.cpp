@@ -180,35 +180,27 @@ public:
         d.addNode(&n1);
         d.addNode(&n2);
 
+        TestBBlock tmp;
+        check(tmp.getFirstNode() == nullptr, "first node corrupted");
+        check(tmp.getLastNode() == nullptr, "last node corrupted");
+        check(tmp.size() == 0, "size should be zero, but is %d", tmp.size());
+
         TestBBlock BB(&n1);
+        check(BB.getFirstNode() == &n1, "first node incorrectly set in constructor");
+        check(BB.getLastNode() == &n1, "BB with one element corrupted");
+        check(BB.size() == 1, "size should be zero, but is %d", tmp.size());
 
-        check(!n1.hasSuccessor(),
-                "hasSuccessor returned true on node without successor");
-        check(!n2.hasSuccessor(),
-                "hasSuccessor returned true on node without successor");
-        check(!n1.hasPredecessor(),
-                "hasPredecessor returned true on node without successor");
-        check(!n2.hasPredecessor(),
-                "hasPredecessor returned true on node without successor");
-        check(n1.getSuccessor() == nullptr, "succ initialized with garbage");
-        check(n2.getSuccessor() == nullptr, "succ initialized with garbage");
-        check(n1.getPredecessor() == nullptr, "pred initialized with garbage");
-        check(n2.getPredecessor() == nullptr, "pred initialized with garbage");
+        BB.append(&n2);
+        check(BB.getFirstNode() == &n1, "first node corrupted");
+        check(BB.getLastNode() == &n2, "appending node bug");
+        check(BB.size() == 2, "size should be zero, but is %d", tmp.size());
 
-        check(n1.setSuccessor(&n2) == nullptr,
-                "adding successor edge claims it is there");
-        check(n1.hasSuccessor(), "hasSuccessor returned false");
-        check(!n1.hasPredecessor(), "hasPredcessor returned true");
-        check(n2.hasPredecessor(), "hasPredcessor returned false");
-        check(!n2.hasSuccessor(), "hasSuccessor returned false");
-        check(n1.getSuccessor() == &n2, "get/addSuccessor bug");
-        check(n2.getPredecessor() == &n1, "get/addPredcessor bug");
+        TestNode nn(5);
+        BB.prepend(&nn);
+        check(BB.getFirstNode() == &nn, "first node corrupted");
+        check(BB.getLastNode() == &n2, "appending node bug");
 
         // basic blocks
-        check(BB.getFirstNode() == &n1, "first node incorrectly set");
-        check(BB.setLastNode(&n2) == nullptr, "garbage in lastNode");
-        check(BB.getLastNode() == &n2, "bug in setLastNode");
-
         check(BB.successorsNum() == 0, "claims: %u", BB.successorsNum());
         check(BB.predecessorsNum() == 0, "claims: %u", BB.predecessorsNum());
 
@@ -255,7 +247,7 @@ public:
     void test()
     {
         nodes_remove_edge_test();
-        nodes_isolate_test();
+        //nodes_isolate_test();
         nodes_remove_test();
         bb_isolate_test();
         bb_remove_test();
@@ -309,39 +301,6 @@ private:
     }
 
     #define NODES_NUM 10
-    void nodes_isolate_test()
-    {
-        TestDG d;
-        TestNode **nodes = create_full_graph(d, NODES_NUM);
-
-        // create CFG edges between nodes
-        TestBBlock B1(nodes[0], nodes[NODES_NUM - 1]);
-        for (int i = 0; i < NODES_NUM - 1; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
-
-        nodes[0]->isolate();
-        check(nodes[0]->getControlDependenciesNum() == 0, "isolate bug");
-        check(nodes[0]->getDataDependenciesNum() == 0, "isolate bug");
-        check(nodes[0]->getRevControlDependenciesNum() == 0, "isolate bug");
-        check(nodes[0]->getRevDataDependenciesNum() == 0, "isolate bug");
-        check(nodes[0]->hasSuccessor() == false, "isolate should remove successor");
-        check(nodes[0]->hasPredecessor() == false, "isolate should remove successor");
-        check(nodes[1]->hasPredecessor() == false, "isolate should remove successor");
-        check(nodes[1]->getSuccessor() == nodes[2], "setSuccessor bug");
-
-        nodes[5]->isolate();
-        check(nodes[5]->hasSuccessor() == false, "isolate should remove successor");
-        check(nodes[5]->hasPredecessor() == false, "isolate should remove successor");
-        check(nodes[4]->getSuccessor() == nodes[6], "isolate should reconnect neighb.");
-        check(nodes[6]->getPredecessor() == nodes[4], "isolate should reconnect neighb.");
-
-        nodes[NODES_NUM - 1]->isolate();
-        check(nodes[NODES_NUM - 1]->hasSuccessor() == false, "isolate should remove successor");
-        check(nodes[NODES_NUM - 1]->hasPredecessor() == false, "isolate should remove successor");
-        check(nodes[NODES_NUM - 2]->hasSuccessor() == false, "isolate should remove successor");
-    }
-
     void nodes_remove_test()
     {
         TestDG d;
@@ -382,27 +341,23 @@ private:
         TestNode **nodes = create_full_graph(d, 15);
 
         // create first basic block that will contain first 5 nodes
-        TestBBlock B1(nodes[0], nodes[5]);
-        for (int i = 0; i < 5; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
-
+        TestBBlock B1;
+        for (int i = 0; i < 5; ++i)
+            B1.append(nodes[i]);
 
         // another basic block of size 5
-        TestBBlock B2(nodes[6], nodes[9]);
-        for (int i = 6; i < 9; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
+        TestBBlock B2;
+        for (int i = 6; i < 9; ++i)
+            B2.append(nodes[i]);
 
         // BBs of size 1
-        TestBBlock B3(nodes[10], nodes[10]);
-        TestBBlock B4(nodes[11], nodes[11]);
+        TestBBlock B3(nodes[10]);
+        TestBBlock B4(nodes[11]);
 
         // and size 2
-        TestBBlock B5(nodes[12], nodes[14]);;
-        for (int i = 12; i < 14; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
+        TestBBlock B5;
+        for (int i = 12; i < 14; ++i)
+            B5.append(nodes[i]);
 
         B1.addSuccessor(&B2);
         B1.addSuccessor(&B3);
@@ -427,27 +382,26 @@ private:
         TestNode **nodes = create_full_graph(d, 15);
 
         // create first basic block that will contain first 5 nodes
-        TestBBlock *B1 = new TestBBlock(nodes[0], nodes[5]);
-        for (int i = 0; i < 5; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
-
+        TestBBlock *B1 = new TestBBlock();
+        for (int i = 0; i < 6; ++i)
+            B1->append(nodes[i]);
+        check(B1->size() == 6);
 
         // another basic block of size 5
-        TestBBlock *B2 = new TestBBlock(nodes[6], nodes[9]);
-        for (int i = 6; i < 9; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
+        TestBBlock *B2 = new TestBBlock();
+        for (int i = 6; i < 9; ++i)
+            B2->append(nodes[i]);
+        check(B2->size() == 3);
 
         // BBs of size 1
-        TestBBlock *B3 = new TestBBlock(nodes[10], nodes[10]);
-        TestBBlock *B4 = new TestBBlock(nodes[11], nodes[11]);
+        TestBBlock *B3 = new TestBBlock(nodes[9]);
+        TestBBlock *B4 = new TestBBlock(nodes[10]);
 
         // and size 2
-        TestBBlock *B5 = new TestBBlock(nodes[12], nodes[14]);
-        for (int i = 12; i < 14; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
+        TestBBlock *B5 = new TestBBlock();
+        for (int i = 11; i < 15; ++i)
+            B5->append(nodes[i]);
+        check(B5->size() == 4);
 
         B1->addSuccessor(B2);
         B1->addSuccessor(B3);
@@ -458,22 +412,30 @@ private:
         B5->addPredecessor(B3);
         B5->addPredecessor(B4);
 
+        // bug in test
+        if (d.size() != 15)
+            abort();
+
+        // bug in test
+        if ((B1->size() + B2->size() + B3->size() + B4->size() + B5->size()) != d.size())
+            abort();
+
         B5->remove();
         check(B3->successors().contains(B5) == false, " dangling reference");
         check(B4->successors().contains(B5) == false, " dangling reference");
-        check(d.size() == 12, "didn't remove the nodes");
+        check(d.size() == 11, "size should be 11 but is %d", d.size());
 
         B2->remove();
         check(B1->successors().contains(B4), "reconnect succ bug");
         check(B4->predecessors().contains(B1), "reconnect preds bug");
-        check(d.size() == 8, "remove nodes in block bug");
+        check(d.size() == 8, "size should be 8 but is %d", d.size());
 
         B3->remove();
         B4->remove();
-        check(d.size() == 6);
+        check(d.size() == 6, "size should be 6 but is %d", d.size());
 
         B1->remove();
-        check(d.size() == 0);
+        check(d.size() == 0, "size should be 0 but is %d", d.size());
     }
 
     void nodes_in_bb_remove_test()
@@ -483,17 +445,17 @@ private:
         TestDG d;
         TestNode **nodes = create_full_graph(d, 10);
 
-        TestBBlock *B1 = new TestBBlock(nodes[0], nodes[5]);
+        TestBBlock *B1 = new TestBBlock();
         // create first basic block that will contain first 5 nodes
-        for (int i = 0; i < 5; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
+        for (int i = 0; i < 6; ++i)
+            B1->append(nodes[i]);
+        check(B1->size() == 6, "size should be 6 but is %d", B1->size());
 
         // create another basic block that will contain rest of nodes
-        TestBBlock *B2 = new TestBBlock(nodes[6], nodes[9]);
-        for (int i = 6; i < 9; ++i) {
-            nodes[i]->setSuccessor(nodes[i + 1]);
-        }
+        TestBBlock *B2 = new TestBBlock();
+        for (int i = 6; i < 10; ++i)
+            B2->append(nodes[i]);
+        check(B2->size() == 4, "size should be 4 but is %d", B2->size());
 
         B1->addSuccessor(B2);
         B2->addSuccessor(B1);
@@ -503,10 +465,9 @@ private:
         d.removeNode(nodes[0]);
         check(d.size() == 9, "Node::remove() did not remove node");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
+
         // this should stay
         check(B1->getLastNode() == nodes[5], "Node::remove() reconnect edges bug");
-        check(nodes[1]->getPredecessor() == nullptr, "reconnect bug");
-        check(nodes[1]->getSuccessor() == nodes[2], "reconnect bug");
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
         check(B1->predecessors().contains(B2), "BBlock pred deleted prematuraly");
 
@@ -514,29 +475,20 @@ private:
         check(d.size() == 8, "Node::remove() did not remove node");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug");
-        check(nodes[4]->getPredecessor() == nodes[3], "reconnect bug");
-        check(nodes[4]->getSuccessor() == nullptr, "reconnect bug");
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
         check(B1->predecessors().contains(B2), "BBlock pred deleted prematuraly");
 
         d.removeNode(nodes[2]);
         check(d.size() == 7, "Node::remove() did not remove node");
-        check(nodes[1]->getSuccessor() == nodes[3], "reconnect bug");
-        check(nodes[3]->getPredecessor() == nodes[1], "reconnect bug");
         check(B1->successors().contains(B2), "BBlock succ deleted prematuraly");
         check(B1->predecessors().contains(B2), "BBlock pred deleted prematuraly");
         check(B1->getFirstNode() == nodes[1], "Node::remove() reconnect edges bug");
 
         d.removeNode(nodes[1]);
-        check(nodes[3]->getPredecessor() == nullptr, "removing head buggy");
-        check(nodes[3]->getSuccessor() == nodes[4], "removing head buggy");
-        check(nodes[4]->getSuccessor() == nullptr, "removing head buggy");
         check(B1->getFirstNode() == nodes[3], "Node::remove() reconnect edges bug (3)");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug (4)");
 
         d.removeNode(nodes[3]);
-        check(nodes[4]->getPredecessor() == nullptr, "remove pre-last node in block bug");
-        check(nodes[4]->getSuccessor() == nullptr, "remove pre-last node in block bug (2)");
         check(B1->getFirstNode() == nodes[4], "Node::remove() reconnect edges bug (5)");
         check(B1->getLastNode() == nodes[4], "Node::remove() reconnect edges bug (6)");
 

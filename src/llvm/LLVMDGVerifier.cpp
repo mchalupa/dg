@@ -64,21 +64,17 @@ void LLVMDGVerifier::checkNode(const llvm::Value *val, LLVMNode *node)
 void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB, LLVMBBlock *BB)
 {
     using namespace llvm;
-    LLVMNode *node = BB->getFirstNode();
-    const llvm::Value *llvmPrev = nullptr;
+    auto BBIT = BB->getNodes().begin();
+
     for (const Instruction& I : *llvmBB) {
+        LLVMNode *node = *BBIT;
+
         // check if we have the CFG edges set
         if (node->getKey() != &I)
             fault("wrong node in BB");
 
-        if (llvmPrev) {
-            if (llvmPrev != node->getPredecessor()->getKey())
-                fault("predecessor edges is wrong");
-        }
-
         checkNode(&I, node);
-        llvmPrev = &I;
-        node = node->getSuccessor();
+        ++BBIT;
     }
 }
 

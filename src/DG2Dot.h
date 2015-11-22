@@ -238,12 +238,10 @@ private:
 
         out << "\"\n";
 
-        NodeT *n = BB->getFirstNode();
-        while (n) {
+        for (NodeT *n : BB->getNodes()) {
             // print nodes in BB, edges will be printed later
             out << Ind << "\tNODE" << n
                 << " [label=\"" << n->getKey() << "\"]\n";
-            n = n->getSuccessor();
         }
 
         out << Ind << "} /* cluster_bb_" << BB << " */\n\n";
@@ -574,23 +572,6 @@ private:
                 out << Ind << "NODE" << n << " -> NODE" << *II
                     << " [color=\"" << cd_color << "\" style=\"dashed\"]\n";
         }
-
-        if (options & PRINT_CFG) {
-            out << Ind << "/* Successor */\n";
-            if (n->hasSuccessor()) {
-                out << Ind << "NODE" << n << " -> NODE" << n->getSuccessor()
-                    << " [style=\"dotted\"]\n";
-            }
-        }
-
-        if (options & PRINT_REV_CFG) {
-            out << Ind << "/* Predecessor */\n";
-            if (n->hasPredecessor()) {
-                out << Ind << "NODE" << n << " -> NODE" << n->getPredecessor()
-                    << " [style=\"dotted\" color=gray]\n";
-            }
-        }
-
 #ifdef ENABLE_PSS
         if (options & PRINT_PSS) {
             out << Ind << "/* PSS Edges */\n";

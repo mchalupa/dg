@@ -356,36 +356,21 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
 {
     using namespace llvm;
 
-    BasicBlock::const_iterator IT = llvmBB.begin();
-    const Value *val = &(*IT);
+    LLVMBBlock *BB = new LLVMBBlock();
+    LLVMNode *node = nullptr;
 
-    LLVMNode *predNode = nullptr;
-    LLVMNode *node = new LLVMNode(val);
-    LLVMBBlock *BB = new LLVMBBlock(node);
     BB->setKey(&llvmBB);
 
-    addNode(node);
-    handleInstruction(val, node);
-
-    ++IT; // shift to next instruction, we have the first one handled
-    predNode = node;
-
-    // iterate over the instruction and create node for every single
-    // one of them + add CFG edges
-    for (BasicBlock::const_iterator Inst = IT, EInst = llvmBB.end();
-         Inst != EInst; ++Inst) {
-
-        val = &(*Inst);
+    // iterate over the instruction and create node for every single one of them
+    for (const Instruction& Inst : llvmBB) {
+        const Value *val = &Inst;
         node = new LLVMNode(val);
+
         // add new node to this dependence graph
         addNode(node);
 
-        // add successor to predecessor node
-        if (predNode)
-            predNode->setSuccessor(node);
-
-        // set new predecessor node for next iteration
-        predNode = node;
+        // add the node to our basic block
+        BB->append(node);
 
         // take instruction specific actions
         handleInstruction(val, node);
@@ -418,18 +403,14 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
         addNode(ext);
         setExit(ext);
 
-        LLVMBBlock *retBB = new LLVMBBlock(ext, ext);
+        LLVMBBlock *retBB = new LLVMBBlock(ext);
         setExitBB(retBB);
     }
 
-    // add control dependence from this (return) node
-    // to EXIT node
+    // add control dependence from this (return) node to EXIT node
     assert(node && "BUG, no node after we went through basic block");
     node->addControlDependence(ext);
     BB->addSuccessor(getExitBB());
-
-    // set last node
-    BB->setLastNode(node);
 
     // sanity check if we have the first and the last node set
     assert(BB->getFirstNode() && "No first node in BB");
@@ -706,14 +687,11 @@ bool LLVMDependenceGraph::getCallSites(const char *names[],
     for (auto F : constructedFunctions) {
         for (auto I : F.second->constructedBlocks) {
             LLVMBBlock *BB = I.second;
-            LLVMNode *n = BB->getFirstNode();
-            while (n) {
+            for (LLVMNode *n : BB->getNodes()) {
                 if (llvm::isa<llvm::CallInst>(n->getValue())) {
                     if (match_callsite_name(n, names))
                         callsites->insert(n);
                 }
-
-                n = n->getSuccessor();
             }
         }
     }
