@@ -1095,10 +1095,11 @@ void LLVMPointsToAnalysis::handleGlobals()
     propagateGlobalPointsToMain(dg);
 }
 
-bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node)
+bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
 {
     bool changed = false;
     const Value *val = node->getKey();
+    (void) prev;
 
     if (isa<AllocaInst>(val)) {
         changed |= handleAllocaInst(node);

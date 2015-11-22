@@ -18,8 +18,9 @@ public:
           run_on_node(ron) {}
 
     /* virtual */
-    bool runOnNode(TestNode *n)
+    bool runOnNode(TestNode *n, TestNode *prev)
     {
+        (void) prev;
         return run_on_node(n);
     }
 private:
