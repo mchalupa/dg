@@ -158,7 +158,7 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *CD : BB->RevControlDependence())
+        for (BBlock<NodeT> *CD : BB->revControlDependence())
             enqueue(CD->getLastNode());
     }
 
