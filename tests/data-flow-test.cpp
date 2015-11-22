@@ -153,7 +153,6 @@ public:
         #define NODES_NUM 5
         TestDG *d = create_circular_graph(NODES_NUM);
 
-        TestNode *last;
         for (auto It : *d) {
             TestDG *sub = create_circular_graph(NODES_NUM);
             It.second->addSubgraph(sub);

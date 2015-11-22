@@ -274,8 +274,7 @@ static bool createEmptyMain(llvm::Module *M)
     llvm::Value *retval = nullptr;
     if (Ty->isIntegerTy())
         retval = llvm::ConstantInt::get(Ty, 0);
-    llvm::ReturnInst *RI
-        = llvm::ReturnInst::Create(ctx, retval, blk);
+    llvm::ReturnInst::Create(ctx, retval, blk);
 
     return true;
 }
