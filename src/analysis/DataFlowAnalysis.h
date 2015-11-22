@@ -154,16 +154,19 @@ public:
     {
         bool changed = false;
         NodeT *n = B->getFirstNode();
+        NodeT *prev = nullptr;
 
         while(n) {
-            changed |= runOnNode(n);
+            changed |= runOnNode(n, prev);
+
+            prev = n;
             n = n->getSuccessor();
         }
 
         return changed;
     }
 
-    virtual bool runOnNode(NodeT *n) = 0;
+    virtual bool runOnNode(NodeT *n, NodeT *prev) = 0;
 
 private:
 };

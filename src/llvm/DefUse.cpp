@@ -661,9 +661,10 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
     }
 }
 
-bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node)
+bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
 {
     const Value *val = node->getKey();
+    (void) prev;
 
     if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         handleStoreInst(Inst, node);

@@ -31,7 +31,7 @@ public:
     }
 
     /* virtual */
-    bool runOnNode(LLVMNode *node);
+    bool runOnNode(LLVMNode *node, LLVMNode *pred);
     void handleNode(LLVMNode *);
 private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *);

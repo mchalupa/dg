@@ -350,7 +350,7 @@ bool LLVMReachingDefsAnalysis::handleStoreInst(LLVMNode *storeNode, DefMap *df,
     return changed;
 }
 
-bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
+bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node, LLVMNode *pred)
 {
     bool changed = false;
     // pointers that should not be updated
@@ -359,7 +359,6 @@ bool LLVMReachingDefsAnalysis::runOnNode(LLVMNode *node)
 
     // update states according to predecessors
     DefMap *df = getDefMap(node);
-    LLVMNode *pred = node->getPredecessor();
     if (pred) {
         const Value *predVal = pred->getKey();
         // if the predecessor is StoreInst, it add and may kill some definitions
