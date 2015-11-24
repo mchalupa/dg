@@ -386,7 +386,7 @@ static bool array_match(llvm::StringRef name, const char *names[])
     return false;
 }
 
-static void remove_unused_from_module(llvm::Module *M)
+static bool remove_unused_from_module(llvm::Module *M)
 {
     using namespace llvm;
     // do not slice away these functions no matter what
@@ -424,6 +424,17 @@ static void remove_unused_from_module(llvm::Module *M)
         f->eraseFromParent();
     for (GlobalVariable *gv : globals)
         gv->eraseFromParent();
+
+    return (!funs.empty() || !globals.empty());
+}
+
+static void remove_unused_from_module_rec(llvm::Module *M)
+{
+    bool fixpoint;
+
+    do {
+        fixpoint = remove_unused_from_module(M);
+    } while (fixpoint);
 }
 
 static bool verify_module(llvm::Module *M)
@@ -456,6 +467,7 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     llvm::Module *M;
 
+    bool remove_unused_only = false;
     const char *slicing_criterion = NULL;
     const char *module = NULL;
     uint32_t opts = 0;
@@ -486,14 +498,16 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_RD);
             else if (strcmp(arg, "postdom") == 0)
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
+        } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
+            remove_unused_only = true;
         } else {
             module = argv[i];
         }
     }
 
-    if (!slicing_criterion || !module) {
+    if (!(slicing_criterion || remove_unused_only) || !module) {
         errs() << "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]"
-                                    " [-c|-crit|-slice] func_call module\n";
+                                    " [-remove-unused-only] [-c|-crit|-slice] func_call module\n";
         return 1;
     }
 
@@ -503,12 +517,20 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // remove unused from module before slicing - it should
+    // have no effect
+    remove_unused_from_module_rec(M);
+    if (remove_unused_only) {
+        errs() << "INFO: remove unused parts of module, exiting...\n";
+        return 0;
+    }
+
     if (!slice(M, module, slicing_criterion, opts)) {
         errs() << "ERR: Slicing failed\n";
         return 1;
     }
 
-    remove_unused_from_module(M);
+    remove_unused_from_module_rec(M);
 
     if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
