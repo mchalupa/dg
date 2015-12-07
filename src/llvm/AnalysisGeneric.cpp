@@ -99,6 +99,9 @@ static LLVMNode *getOrCreateNode(LLVMDependenceGraph *dg, const Value *val,
     } else if (const llvm::ConstantExpr *CE
                 = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
         return getConstantExprNode(CE, dg, DL);
+    } else if (llvm::isa<llvm::UndefValue>(val)) {
+        n = new LLVMNode(val);
+        n->addPointsTo(UnknownMemoryLocation);
     } else {
         errs() << "ERR get-or-create-node: unhandled value " << *val << "\n";
         return nullptr;
@@ -277,7 +280,8 @@ static LLVMNode *getUnknownNode(LLVMDependenceGraph *dg, const llvm::Value *val,
     using namespace llvm;
     if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
         node = getConstantExprNode(CE, dg, DL);
-    } else if (isa<Function>(val) || isa<ConstantPointerNull>(val)) {
+    } else if (isa<Function>(val) || isa<ConstantPointerNull>(val)
+                || isa<UndefValue>(val)) {
         // if the function was created via function pointer during
         // points-to analysis, the operand may not be not be set.
         // What is worse, the function may not be created either,
