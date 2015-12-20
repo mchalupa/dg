@@ -18,53 +18,122 @@
 
 namespace dg {
 
-// --------------------------------------------------------
-// --- DependenceGraph
-// --------------------------------------------------------
+// -------------------------------------------------------------------
+//  -- DependenceGraph
+//
+//  This is a base template for a dependence graphs. Every concrete
+//  dependence graph will inherit from instance of this template.
+//  Dependece graph has a map of nodes that it contains (each node
+//  is required to have a unique key). Actually, there are two maps.
+//  One for nodes that are local to the graph and one for nodes that
+//  are global and can be shared between graphs.
+//  Concrete dependence graph may not use all attributes of this class
+//  and it is free to use them as it needs (e.g. it may use only
+//  global nodes and thus share them between all graphs)
+// -------------------------------------------------------------------
 template <typename NodeT>
 class DependenceGraph
 {
 public:
+    // type of key that is used in nodes
     typedef typename NodeT::KeyType KeyT;
+    // type of this dependence graph - so that we can refer to it in the code
+    typedef typename NodeT::DependenceGraphType DependenceGraphT;
+
     typedef std::map<KeyT, NodeT *> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
-    typedef typename NodeT::DependenceGraphType DependenceGraphT;
 
-    DependenceGraph<NodeT>()
-        : global_nodes(nullptr), entryNode(nullptr), exitNode(nullptr),
-          formalParameters(nullptr), refcount(1), own_global_nodes(false),
-          slice_id(0)
+private:
+    // entry and exit nodes of the graph
+    NodeT *entryNode;
+    NodeT *exitNode;
+
+    // Formal parameters of the graph. Every graph is a graph of some function
+    // and formal parameters are parameters from its prototype, i. e. for
+    // foo(int a, int b) we have formal parameters 'a' and 'b'. Actual parameters
+    // are the values that are passed to function call, so for foo(3, x) the actual
+    // parameters are '3' and 'x'. Actual parameters are stored in the call node.
+    // Graph can have none or one formal parameters.
+    DGParameters<NodeT> *formalParameters;
+
+    // call-sites (nodes) that are calling this graph
+    DGContainer<NodeT> callers;
+
+    // how many nodes keeps pointer to this graph?
+    int refcount;
+    // global nodes are a pointer to dynamically allocated container.
+    // Graph that allocated this container has this variable set to true,
+    // so that it knows that it is also responsible for deleting the container.
+    // It is usually the graph for entry function
+    bool own_global_nodes;
+
+    // is the graph in some slice?
+    uint64_t slice_id;
+
 #ifdef ENABLE_CFG
-     , entryBB(nullptr), exitBB(nullptr), PDTreeRoot(nullptr)
+    // if we want to keep CFG information in the dependence graph,
+    // these are entry and exit basic blocks
+    BBlock<NodeT> *entryBB;
+    BBlock<NodeT> *exitBB;
+
+    // root of post-dominator tree
+    BBlock<NodeT> *PDTreeRoot;
+#endif // ENABLE_CFG
+
+protected:
+    // nodes contained in this dg. They are protected, so that
+    // child classes can access them directly
+    ContainerType nodes;
+    // container that can be shared accross the graphs
+    // (therefore it is a pointer)
+    ContainerType *global_nodes;
+
+public:
+    DependenceGraph<NodeT>()
+        : entryNode(nullptr), exitNode(nullptr), formalParameters(nullptr),
+          refcount(1), own_global_nodes(false), slice_id(0)
+#ifdef ENABLE_CFG
+        , entryBB(nullptr), exitBB(nullptr), PDTreeRoot(nullptr)
 #endif
+        , global_nodes(nullptr)
     {
     }
 
     // TODO add copy constructor for cloning graph
-
     virtual ~DependenceGraph<NodeT>()
     {
         if (own_global_nodes)
             delete global_nodes;
     }
 
-    // iterators
+    // iterators for local nodes
     iterator begin(void) { return nodes.begin(); }
     const_iterator begin(void) const { return nodes.begin(); }
     iterator end(void) { return nodes.end(); }
     const_iterator end(void) const { return nodes.end(); }
 
+    // operator [] for local nodes
     NodeT *operator[](KeyT k) { return nodes[k]; }
     const NodeT *operator[](KeyT k) const { return nodes[k]; }
+
     // reference getter for fast include-if-null operation
     NodeT *& getRef(KeyT k) { return nodes[k]; }
+
+    // do we have a local node with this key?
     bool contains(KeyT k) const { return nodes.count(k) != 0; }
+
+    // get iterator to a local node with key 'k'. If there is no
+    // such a node, return end()
     iterator find(KeyT k) { return nodes.find(k); }
     const_iterator find(KeyT k) const { return nodes.find(k); }
 
+    // get formal parameters of this graph
     DGParameters<NodeT> *getParameters() { return formalParameters;}
     DGParameters<NodeT> *getParameters() const { return formalParameters;}
+
+    // set new parameters of this graph.
+    // \return old parameters of the graph
     DGParameters<NodeT> *setParameters(DGParameters<NodeT> *p)
     {
         DGParameters<NodeT> *old = formalParameters;
@@ -72,9 +141,8 @@ public:
         return old;
     }
 
-    // Get node from graph for key.
-    // The function searches in nodes,
-    // global nodes and formal parameters.
+    // Get node from graph for key. The function searches in nodes,
+    // formal parameters and global nodes (in this order)
     // Return nullptr if no such node exists
     NodeT *getNode(KeyT k)
     {
@@ -91,6 +159,8 @@ public:
         return getGlobalNode(k);
     }
 
+    // get global node with given key or null if there's
+    // not such node
     NodeT *getGlobalNode(KeyT k)
     {
         if (global_nodes) {
@@ -102,6 +172,7 @@ public:
         return nullptr;
     }
 
+    // number of local nodes
     size_t size() const
     {
         return nodes.size();
@@ -129,8 +200,8 @@ public:
     // dependence graph can be shared between more call-sites that
     // has references to this graph. When destroying graph, we
     // must be sure do delete it just once, so count references
-    // XXX this is up to user if she uses ref()/unref() methods
-    // or handle these stuff some other way
+    // This is up to concrete DG implementation if it uses
+    // ref()/unref() methods or handle these stuff some other way
     int ref()
     {
         ++refcount;
@@ -152,34 +223,6 @@ public:
         return refcount;
     }
 
-#ifdef ENABLE_CFG
-    BBlock<NodeT> *getPostDominatorTreeRoot() const { return PDTreeRoot; }
-    void setPostDominatorTreeRoot(BBlock<NodeT> *r)
-    {
-        assert(!PDTreeRoot && "Already has a post-dominator tree root");
-        PDTreeRoot = r;
-    }
-
-    BBlock<NodeT> *getEntryBB() const { return entryBB; }
-    BBlock<NodeT> *getExitBB() const { return exitBB; }
-
-    BBlock<NodeT> *setEntryBB(BBlock<NodeT> *nbb)
-    {
-        BBlock<NodeT> *old = entryBB;
-        entryBB = nbb;
-
-        return old;
-    }
-
-    BBlock<NodeT> *setExitBB(BBlock<NodeT> *nbb)
-    {
-        BBlock<NodeT> *old = exitBB;
-        exitBB = nbb;
-
-        return old;
-    }
-
-#endif // ENABLE_CFG
     ContainerType *setGlobalNodes(ContainerType *ngn)
     {
         ContainerType *old = global_nodes;
@@ -253,6 +296,10 @@ public:
             owner = static_cast<DependenceGraphT *>(this);
         else {
             // FIXME what if the container is empty?
+            // make own_global_nodes variable a pointer to
+            // the owner of the nodes so that instead of
+            // (own_global_nodes == true) we'll have (this == global_nodes_owner)
+            // and we will have the owner directly
             NodeT* tmp = global_nodes->begin()->second;
             owner = tmp->getDG();
         }
@@ -364,13 +411,34 @@ public:
 
     uint64_t getSlice() const { return slice_id; }
 
-protected:
-    // nodes contained in this dg. They are protected, so that
-    // child classes can access them directly
-    ContainerType nodes;
-    // container that can be shared accross the graphs
-    // (therefore it is a pointer)
-    ContainerType *global_nodes;
+#ifdef ENABLE_CFG
+    BBlock<NodeT> *getPostDominatorTreeRoot() const { return PDTreeRoot; }
+    void setPostDominatorTreeRoot(BBlock<NodeT> *r)
+    {
+        assert(!PDTreeRoot && "Already has a post-dominator tree root");
+        PDTreeRoot = r;
+    }
+
+    BBlock<NodeT> *getEntryBB() const { return entryBB; }
+    BBlock<NodeT> *getExitBB() const { return exitBB; }
+
+    BBlock<NodeT> *setEntryBB(BBlock<NodeT> *nbb)
+    {
+        BBlock<NodeT> *old = entryBB;
+        entryBB = nbb;
+
+        return old;
+    }
+
+    BBlock<NodeT> *setExitBB(BBlock<NodeT> *nbb)
+    {
+        BBlock<NodeT> *old = exitBB;
+        exitBB = nbb;
+
+        return old;
+    }
+
+#endif // ENABLE_CFG
 
 private:
 
@@ -392,25 +460,6 @@ private:
         // remove and re-connect edges
         return _removeNode(it, cont);
     }
-
-    NodeT *entryNode;
-    NodeT *exitNode;
-
-    DGParameters<NodeT> *formalParameters;
-
-    // call-sites that are calling this graph
-    DGContainer<NodeT> callers;
-
-    // how many nodes keeps pointer to this graph?
-    int refcount;
-    bool own_global_nodes;
-    uint64_t slice_id;
-
-#ifdef ENABLE_CFG
-    BBlock<NodeT> *entryBB;
-    BBlock<NodeT> *exitBB;
-    BBlock<NodeT> *PDTreeRoot;
-#endif // ENABLE_CFG
 };
 
 } // namespace dg
