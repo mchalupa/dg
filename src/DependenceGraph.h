@@ -396,8 +396,8 @@ public:
 
     bool ownsGlobalNodes() const { return own_global_nodes; }
 
-    DGContainer<NodeT> getCallers() { return callers; }
-    const DGContainer<NodeT> getCallers() const { return callers; }
+    DGContainer<NodeT>& getCallers() { return callers; }
+    const DGContainer<NodeT>& getCallers() const { return callers; }
     bool addCaller(NodeT *sg) { return callers.insert(sg); }
 
     // set that this graph (if it is subgraph)
