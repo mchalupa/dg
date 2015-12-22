@@ -27,9 +27,6 @@ public:
     typedef typename NodeT::KeyType KeyT;
     BBlock<NodeT>(NodeT *head = nullptr)
         : key(KeyT()), ipostdom(nullptr), slice_id(0)
-#ifdef ENABLE_PSS
-          , firstPointer(nullptr)
-#endif
     {
         if (head)
             append(head);
@@ -282,20 +279,6 @@ public:
         return nodes.back();
     }
 
-#ifdef ENABLE_PSS
-    NodeT *setFirstPointer(NodeT *nn)
-    {
-        NodeT *old = firstPointer;
-        firstPointer = nn;
-        return old;
-    }
-
-    NodeT *getFirstPointer() const
-    {
-        return firstPointer;
-    }
-#endif
-
     unsigned int getDFSOrder() const
     {
         return analysisAuxData.dfsorder;
@@ -361,11 +344,6 @@ private:
 
     // is this block in some slice?
     uint64_t slice_id;
-
-#ifdef ENABLE_PSS
-    // first node that somehow takes action on memory
-    NodeT *firstPointer;
-#endif
 
     // auxiliary data for analyses
     std::set<NodeT *> callSites;
