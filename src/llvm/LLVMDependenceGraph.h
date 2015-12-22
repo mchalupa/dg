@@ -111,9 +111,8 @@ private:
     void addFormalParameters();
 
     // take action specific to given instruction (while building
-    // the graph). This is like if the val is call-site, build
-    // subgraph or if it is a pointer-handling instr. then
-    // add PSS edges etc.
+    // the graph). This is like if the value is a call-site,
+    // then build subgraph or similar
     void handleInstruction(const llvm::Value *val, LLVMNode *node);
 
     // convert llvm basic block to our basic block

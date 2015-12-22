@@ -185,8 +185,6 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-cfgall") == 0) {
             opts |= PRINT_CFG;
             opts |= PRINT_REV_CFG;
-        } else if (strcmp(argv[i], "-pss") == 0) {
-            opts |= PRINT_PSS;
         } else if (strcmp(argv[i], "-func") == 0) {
             dump_func_only = argv[++i];
         } else if (strcmp(argv[i], "-def") == 0) {
