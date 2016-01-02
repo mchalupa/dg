@@ -6,6 +6,9 @@
 
 #include "test-dg.h"
 
+#include "analysis/Slicing.h"
+#include "DG2Dot.h"
+
 namespace dg {
 namespace tests {
 
@@ -501,6 +504,136 @@ private:
     }
 };
 
+class TestSlicingCFG : public Test
+{
+public:
+    TestSlicingCFG() : Test("Slicing BBlocks test")
+    {}
+
+#if ENABLE_CFG
+    void test1()
+    {
+
+        TestNode *n1 = new TestNode(1);
+        TestNode *n2 = new TestNode(2);
+        TestNode *n3 = new TestNode(3);
+        TestNode *n4 = new TestNode(4);
+        TestNode *n5 = new TestNode(5);
+        TestNode *n6 = new TestNode(6);
+
+        TestDG d;
+        d.addNode(n1);
+        d.addNode(n2);
+        d.addNode(n3);
+        d.addNode(n4);
+        d.addNode(n5);
+        d.addNode(n6);
+
+        TestBBlock *BB1 = new TestBBlock(n1);
+        TestBBlock *BB2 = new TestBBlock(n2);
+        TestBBlock *BB3 = new TestBBlock(n3);
+        TestBBlock *BB4 = new TestBBlock(n4);
+        TestBBlock *BB5 = new TestBBlock(n5);
+        TestBBlock *BB6 = new TestBBlock(n6);
+
+        BB1->addSuccessor(BB2);
+
+        BB2->addSuccessor(BB3);
+        BB2->addSuccessor(BB4);
+
+        BB3->addSuccessor(BB5);
+        BB4->addSuccessor(BB5);
+
+        BB5->addSuccessor(BB6);
+
+        BB1->setSlice(1);
+        BB5->setSlice(1);
+        BB6->setSlice(1);
+
+        debug::DG2Dot<TestNode> dump(&d, debug::PRINT_CFG);
+        dump.dump("test1-pre.dot", BB1);
+
+        analysis::Slicer<TestNode> slicer;
+        slicer.sliceBBlocks(BB1, 1);
+
+        dump.dump("test1.dot", BB1);
+
+        check(BB1->successorsNum() == 1, "BB1 should have one successor "
+                                         "but has %u", BB1->successorsNum());
+        //check (*(BB1->successors.begin()) == BB5, "Succ of BB1 should be BB5");
+        check(BB5->successorsNum() == 1, "BB5 should have one successor "
+                                         "but has %u", BB5->successorsNum());
+        //check (*(BB5->successors.begin()) == BB6, "Succ of BB5 should be BB6");
+        check(BB6->successorsNum() == 0, "BB6 should no successor");
+
+        check(d.size() == 3, "Not sliced correctly, should have 3 nodes "
+                             "in a graph, but have %u", d.size());
+    }
+
+    void test2()
+    {
+
+        TestNode *n1 = new TestNode(1);
+        TestNode *n2 = new TestNode(2);
+        TestNode *n3 = new TestNode(3);
+        TestNode *n4 = new TestNode(4);
+        TestNode *n5 = new TestNode(5);
+        TestNode *n6 = new TestNode(6);
+
+        TestDG d;
+        d.addNode(n1);
+        d.addNode(n2);
+        d.addNode(n3);
+        d.addNode(n4);
+        d.addNode(n5);
+        d.addNode(n6);
+
+        TestBBlock *BB1 = new TestBBlock(n1);
+        TestBBlock *BB2 = new TestBBlock(n2);
+        TestBBlock *BB3 = new TestBBlock(n3);
+        TestBBlock *BB4 = new TestBBlock(n4);
+        TestBBlock *BB5 = new TestBBlock(n5);
+        TestBBlock *BB6 = new TestBBlock(n6);
+
+        BB1->addSuccessor(BB2);
+
+        BB2->addSuccessor(BB3);
+        BB2->addSuccessor(BB4);
+
+        BB3->addSuccessor(BB5);
+        BB4->addSuccessor(BB5);
+
+        BB5->addSuccessor(BB6);
+
+        BB2->setSlice(1);
+        BB3->setSlice(1);
+
+        analysis::Slicer<TestNode> slicer;
+        slicer.sliceBBlocks(BB1, 1);
+
+        debug::DG2Dot<TestNode> dump(&d, debug::PRINT_CFG);
+        dump.dump("test2.dot", BB2);
+
+        check(BB2->successorsNum() == 1, "BB2 should have one successor "
+                                         "but has %u", BB1->successorsNum());
+        //check (*(BB1->successors.begin()) == BB5, "Succ of BB1 should be BB5");
+        //check (*(BB5->successors.begin()) == BB6, "Succ of BB5 should be BB6");
+        check(BB3->successorsNum() == 0, "BB6 should no successor");
+
+        check(d.size() == 2, "Not sliced correctly, should have 2 nodes "
+                             "in a graph, but have %u", d.size());
+    }
+#endif // ENABLE_CFG
+
+    void test()
+    {
+        test1();
+        test2();
+    }
+};
+
+
+
 }; // namespace tests
 }; // namespace dg
 
@@ -513,6 +646,7 @@ int main(int argc, char *argv[])
     Runner.add(new TestContainer());
     Runner.add(new TestAdd());
     Runner.add(new TestRemove());
+    Runner.add(new TestSlicingCFG());
 
     return Runner();
 }

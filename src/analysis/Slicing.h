@@ -2,6 +2,7 @@
 #define _DG_SLICING_H_
 
 #include "NodesWalk.h"
+#include "BFS.h"
 #include "ADT/Queue.h"
 #include "DependenceGraph.h"
 
@@ -121,10 +122,54 @@ public:
         return sl_id;
     }
 
+    // This method is called on nodes that are being
+    // removed. Slicer implementation can override this
+    // and use it as an event that particular node is
+    // being removed and take action it needs
     virtual void removeNode(NodeT *node)
     {
         (void) node;
     }
+
+#ifdef ENABLE_CFG
+
+    struct RemoveBlockData {
+        uint32_t sl_id;
+        std::set<BBlock<NodeT> *>& blocks;
+    };
+
+    static void getBlocksToRemove(BBlock<NodeT> *BB, RemoveBlockData& data)
+    {
+        if (BB->getSlice() == data.sl_id)
+            return;
+
+        data.blocks.insert(BB);
+    }
+
+    // remove BBlocks that contain no node that should be in
+    // sliced graph
+    uint32_t sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
+    {
+        // we must queue the blocks ourselves before we potentially remove them
+        BBlockBFS<NodeT> bfs(BFS_BB_CFG);
+        std::set<BBlock<NodeT> *> blocks;
+
+        RemoveBlockData data = { sl_id, blocks };
+        bfs.run(start, getBlocksToRemove, data);
+
+        for (BBlock<NodeT> *blk : blocks) {
+            blk->remove();
+        }
+    }
+
+    virtual void removeBBlocks(std::set<BBlock<NodeT> *>& blocks,
+                               BBlock<NodeT> *startBB, BBlock<NodeT> *endBB)
+    {
+        (void) blocks;
+        (void) startBB;
+        (void) endBB;
+    }
+#endif
 };
 
 } // namespace analysis
