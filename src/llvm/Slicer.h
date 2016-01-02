@@ -119,8 +119,10 @@ private:
         switch (Inst->getOpcode()) {
             case Instruction::Ret:
             case Instruction::Unreachable:
+            /*
             case Instruction::Br:
             case Instruction::Switch:
+            */
                 return false;
             default:
                 return true;
@@ -129,6 +131,10 @@ private:
 
     void sliceGraph(LLVMDependenceGraph *graph, uint32_t slice_id)
     {
+            // first slice away bblocks that should go away
+            sliceBBlocks(graph->getEntryBB(), slice_id);
+
+            // now slice away instructions from BBlocks that left
             for (auto I = graph->begin(), E = graph->end(); I != E;) {
                 LLVMNode *n = I->second;
                 // shift here, so that we won't corrupt the iterator
@@ -143,11 +149,17 @@ private:
 
                 ++nodesTotal;
 
+                // keep instructions like ret or unreachable
+                // FIXME: if this is ret of some value, then
+                // the value is undef now, so we should
+                // replace it by void ref
                 if (!shouldSliceInst(n->getKey()))
                     continue;
 
+                /*
                 if (llvm::isa<llvm::CallInst>(n->getKey()))
                     sliceCallNode(n, slice_id);
+                    */
 
                 if (n->getSlice() != slice_id) {
                     removeNode(n);
