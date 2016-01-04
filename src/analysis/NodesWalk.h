@@ -258,11 +258,10 @@ public:
     template <typename FuncT, typename DataT>
     void walk(BBlockPtrT entry, FuncT func, DataT data)
     {
-        QueueT queue;
         queue.push(entry);
 
         // set up the value of new walk and set it to entry node
-        unsigned int runid = ++BBlockWalk<NodeT, QueueT>::walk_run_counter;
+        runid = ++BBlockWalk<NodeT, QueueT>::walk_run_counter;
         AnalysesAuxiliaryData& aad = this->getAnalysisData(entry);
         aad.lastwalkid = runid;
 
@@ -287,31 +286,24 @@ public:
                 }
 
                 if (BB->getCallSitesNum() != 0)
-                    queueSubgraphsBBs(BB, queue, runid);
+                    queueSubgraphsBBs(BB);
             }
 
             // queue post-dominated blocks if we should
             if (flags & BBLOCK_WALK_POSTDOM)
                 for (BBlockPtrT S : BB->getPostDominators())
-                    queuePush(S, queue, runid);
+                    enqueue(S);
 
             // queue sucessors of this BB
             if (flags & BBLOCK_WALK_CFG)
                 for (BBlockPtrT S : BB->successors())
-                    queuePush(S, queue, runid);
+                    enqueue(S);
         }
     }
 
     uint32_t getFlags() const { return flags; }
 
-protected:
-    virtual void prepare(BBlockPtrT BB)
-    {
-        (void) BB;
-    }
-
-private:
-    void queuePush(BBlockPtrT BB, QueueT& queue, unsigned int runid)
+    void enqueue(BBlockPtrT BB)
     {
         AnalysesAuxiliaryData& sad = this->getAnalysisData(BB);
         if (sad.lastwalkid != runid) {
@@ -320,7 +312,14 @@ private:
         }
     }
 
-    void queueSubgraphsBBs(BBlockPtrT BB, QueueT& queue, unsigned int runid)
+protected:
+    virtual void prepare(BBlockPtrT BB)
+    {
+        (void) BB;
+    }
+
+private:
+    void queueSubgraphsBBs(BBlockPtrT BB)
     {
         DGParameters<NodeT> *params;
 
@@ -330,8 +329,8 @@ private:
             if ((flags & BBLOCK_WALK_PARAMS)) {
                 params = cs->getParameters();
                 if (params) {
-                    queuePush(params->getBBIn(), queue, runid);
-                    queuePush(params->getBBOut(), queue, runid);
+                    enqueue(params->getBBIn());
+                    enqueue(params->getBBOut());
                 }
             }
 
@@ -345,20 +344,22 @@ private:
 
                     params = entry->getParameters();
                     if (params) {
-                        queuePush(params->getBBIn(), queue, runid);
-                        queuePush(params->getBBOut(), queue, runid);
+                        enqueue(params->getBBIn());
+                        enqueue(params->getBBOut());
                     }
                 }
 
                 // queue entry BBlock
                 BBlockPtrT entryBB = subdg->getEntryBB();
                 assert(entryBB && "No entry block in sub dg");
-                queuePush(entryBB, queue, runid);
+                enqueue(entryBB);
             }
         }
     }
 
+    QueueT queue;
     uint32_t flags;
+    unsigned int runid;
 };
 
 #endif
