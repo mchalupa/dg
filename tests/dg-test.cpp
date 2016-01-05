@@ -365,8 +365,8 @@ private:
         B2.addSuccessor(&B4);
         B3.addSuccessor(&B4);
         B3.addSuccessor(&B5);
-        B5.addPredecessor(&B3);
-        B5.addPredecessor(&B4);
+        B3.addSuccessor(&B5);
+        B4.addSuccessor(&B5);
 
         B5.isolate();
         check(B5.successorsNum() == 0, "has succs after isolate");
@@ -409,8 +409,8 @@ private:
         B2->addSuccessor(B4);
         B3->addSuccessor(B4);
         B3->addSuccessor(B5);
-        B5->addPredecessor(B3);
-        B5->addPredecessor(B4);
+        B3->addSuccessor(B5);
+        B4->addSuccessor(B5);
 
         // bug in test
         if (d.size() != 15)

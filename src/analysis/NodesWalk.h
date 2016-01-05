@@ -179,8 +179,8 @@ private:
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->successors())
-            enqueue(S->getFirstNode());
+        for (auto E : BB->successors())
+            enqueue(E.target->getFirstNode());
     }
 
     void processBBlockRevCFG(NodeT *n)
@@ -296,8 +296,8 @@ public:
 
             // queue sucessors of this BB
             if (flags & BBLOCK_WALK_CFG)
-                for (BBlockPtrT S : BB->successors())
-                    enqueue(S);
+                for (auto E : BB->successors())
+                    enqueue(E.target);
         }
     }
 
