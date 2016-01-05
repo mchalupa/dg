@@ -134,6 +134,9 @@ private:
             // first slice away bblocks that should go away
             sliceBBlocks(graph->getEntryBB(), slice_id);
 
+            // create new CFG edges between blocks after slicing
+            reconnectLLLVMBasicBlocks(graph);
+
             // now slice away instructions from BBlocks that left
             for (auto I = graph->begin(), E = graph->end(); I != E;) {
                 LLVMNode *n = I->second;
@@ -200,6 +203,28 @@ private:
                 return true;
 
         return false;
+    }
+
+    void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph)
+    {
+        for (auto it : graph->getConstructedBlocks()) {
+            llvm::BasicBlock *llvmBB = const_cast<llvm::BasicBlock *>(it.first);
+            LLVMBBlock *BB = it.second;
+
+            llvm::TerminatorInst *tinst = llvmBB->getTerminator();
+            assert((BB->successorsNum() <= 2 || llvm::isa<llvm::SwitchInst>(tinst))
+                    && "BB has more than two successors (and it's not a switch)");
+
+            for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
+                // skip artificial return basic block
+                if (succ.label == 255)
+                    continue;
+
+                llvm::Value *val = const_cast<llvm::Value *>(succ.target->getKey());
+                llvm::BasicBlock *llvmSucc = llvm::cast<llvm::BasicBlock>(val);
+                tinst->setSuccessor(succ.label, llvmSucc);
+            }
+        }
     }
 
     uint64_t nodesTotal;
