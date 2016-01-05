@@ -618,8 +618,8 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         if (!built) {
             for (auto it : our_blocks) {
                 LLVMBBlock *BB = it.second;
-                for (LLVMBBlock *succBB : BB->successors())
-                    succBB->addPostDomFrontier(BB);
+                for (const LLVMBBlock::BBlockEdge& succ : BB->successors())
+                    succ.target->addPostDomFrontier(BB);
             }
         }
 

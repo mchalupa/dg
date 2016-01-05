@@ -253,14 +253,14 @@ private:
         if (options & PRINT_CFG) {
             for (auto S : BB->successors()) {
                 NodeT *lastNode = BB->getLastNode();
-                NodeT *firstNode = S->getFirstNode();
+                NodeT *firstNode = S.target->getFirstNode();
 
                 out << Ind
                     << "NODE" << lastNode << " -> "
                     <<   "NODE" << firstNode
                     << " [penwidth=2"
                     << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S << "]\n";
+                    << "  lhead=cluster_bb_" << S.target << "]\n";
             }
         }
 

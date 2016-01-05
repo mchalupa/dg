@@ -25,6 +25,33 @@ class BBlock
 {
 public:
     typedef typename NodeT::KeyType KeyT;
+
+    struct BBlockEdge {
+        BBlockEdge(BBlock<NodeT>* t, uint8_t label = 0)
+            : target(t), label(label) {}
+
+        BBlock<NodeT> *target;
+        // we'll have just numbers as labels now.
+        // We can change it if there's a need
+        uint8_t label;
+
+        bool operator==(const BBlockEdge& oth) const
+        {
+            return target == oth.target && label == oth.label;
+        }
+
+        bool operator!=(const BBlockEdge& oth) const
+        {
+            return operator==(oth);
+        }
+
+        bool operator<(const BBlockEdge& oth) const
+        {
+            return target == oth.target ?
+                        label < oth.label : target < oth.target;
+        }
+    };
+
     BBlock<NodeT>(NodeT *head = nullptr)
         : key(KeyT()), ipostdom(nullptr), slice_id(0)
     {
@@ -32,47 +59,22 @@ public:
             append(head);
     }
 
-    typedef EdgesContainer<BBlock<NodeT>> ContainerT;
+    typedef EdgesContainer<BBlock<NodeT>> BBlockContainerT;
+    // we don't need labels with predecessors
+    typedef EdgesContainer<BBlock<NodeT>> PredContainerT;
+    typedef DGContainer<BBlockEdge> SuccContainerT;
 
-    const ContainerT& successors() const { return nextBBs; }
-    const ContainerT& predecessors() const { return prevBBs; }
-    const ContainerT& controlDependence() const { return controlDeps; }
-    const ContainerT& RevControlDependence() const { return revControlDeps; }
+    const SuccContainerT& successors() const { return nextBBs; }
+    //SuccContainerT& successors() { return nextBBs; }
+    const PredContainerT& predecessors() const { return prevBBs; }
+
+    const BBlockContainerT& controlDependence() const { return controlDeps; }
+    const BBlockContainerT& RevControlDependence() const { return revControlDeps; }
 
     // similary to nodes, basic blocks can have keys
     // they are not stored anywhere, it is more due to debugging
     void setKey(const KeyT& k) { key = k; }
     const KeyT& getKey() const { return key; }
-
-    ContainerT& getPostDomFrontiers() { return postDomFrontiers; }
-    const ContainerT& getPostDomFrontiers() const { return postDomFrontiers; }
-
-    bool addPostDomFrontier(BBlock<NodeT> *BB)
-    {
-        return postDomFrontiers.insert(BB);
-    }
-
-    void setIPostDom(BBlock<NodeT> *BB)
-    {
-        assert(!ipostdom && "Already has the immedate post-dominator");
-        ipostdom = BB;
-        BB->postDominators.insert(this);
-    }
-
-    BBlock<NodeT> *getIPostDom() { return ipostdom; }
-    const BBlock<NodeT> *getIPostDom() const { return ipostdom; }
-    ContainerT& getPostDominators() { return postDominators; }
-    const ContainerT& getPostDominators() const { return postDominators; }
-
-    typename ContainerT::size_type successorsNum() const
-    {
-        return nextBBs.size();
-    }
-
-    typename ContainerT::size_type predecessorsNum() const
-    {
-        return prevBBs.size();
-    }
 
     const std::list<NodeT *>& getNodes() const { return nodes; }
     std::list<NodeT *>& getNodes() { return nodes; }
@@ -115,7 +117,7 @@ public:
                 pred->addSuccessor(succ);
             }
 
-            succ->prevBBs.erase(this);
+            succ.target->prevBBs.erase(this);
         }
 
         // we reconnected and deleted edges from other
@@ -160,16 +162,19 @@ public:
 
     void removeNode(NodeT *n) { nodes.remove(n); }
 
-    bool addSuccessor(BBlock<NodeT> *b)
+    size_t successorsNum() const { return nextBBs.size(); }
+    size_t predecessorsNum() const { return prevBBs.size(); }
+
+    bool addSuccessor(const BBlockEdge& edge)
     {
         bool ret, ret2;
 
         // do not allow self-loops
-        if (b == this)
+        if (edge.target == this)
             return false;
 
-        ret = nextBBs.insert(b);
-        ret2 = b->prevBBs.insert(this);
+        ret = nextBBs.insert(edge);
+        ret2 = edge.target->prevBBs.insert(this);
 
         // we either have both edges or none
         assert(ret == ret2);
@@ -177,27 +182,15 @@ public:
         return ret;
     }
 
-    bool addPredecessor(BBlock<NodeT> *b)
+    bool addSuccessor(BBlock<NodeT> *b, uint8_t label = 0)
     {
-        bool ret, ret2;
-
-        // do not allow self-loops
-        if (b == this)
-            return false;
-
-        ret = prevBBs.insert(b);
-        ret2 = b->nextBBs.insert(this);
-
-        // we either have both edges or none
-        assert(ret == ret2);
-
-        return ret;
+        return addSuccessor(BBlockEdge(b, label));
     }
 
     void removeSuccessors()
     {
         for (auto BB : nextBBs) {
-            BB->prevBBs.erase(this);
+            BB.target->prevBBs.erase(this);
         }
 
         nextBBs.clear();
@@ -217,30 +210,27 @@ public:
     // (asserted when NDEBUG is defined)
     // and two if both edges were removed.
     // (Edges are [this -> p] and [p -> this])
-    size_t removePredecessor(BBlock<NodeT> *p)
-    {
-        size_t ret = 0;
-        ret += p->nextBBs.erase(this);
-        ret += prevBBs.erase(p);
-
-        // return value 1 means bug
-        assert(ret != 1 && "Bug in edges between basic blocks");
-
-        return ret;
-    }
+    //size_t removePredecessor(BBlock<NodeT> *p)
+    //{
+    //}
 
     // return value is the same as with removePredecessor
-    size_t removeSuccessor(BBlock<NodeT> *p)
-    {
-        size_t ret = 0;
-        ret += p->prevBBs.erase(this);
-        ret += nextBBs.erase(p);
+    //size_t removeSuccessor(BBlock<NodeT> *p, uint8_t label = 0)
+    //{
+    //    return removeSuccessor(BBlockEdge(p, label));
+    //}
 
-        // return value 1 means bug
-        assert(ret != 1 && "Bug in edges between basic blocks");
+    //size_t removeSuccessor(BBlockEdge& edge)
+    //{
+    //    size_t ret = 0;
+    //    ret += p->prevBBs.erase(this);
+    //    ret += nextBBs.erase(edge);
 
-        return ret;
-    }
+    //    // return value 1 means bug
+    //    assert(ret != 1 && "Bug in edges between basic blocks");
+
+    //    return ret;
+    //}
 
     bool addControlDependence(BBlock<NodeT> *b)
     {
@@ -278,6 +268,27 @@ public:
 
         return nodes.back();
     }
+
+    // XXX: do this optional?
+    BBlockContainerT& getPostDomFrontiers() { return postDomFrontiers; }
+    const BBlockContainerT& getPostDomFrontiers() const { return postDomFrontiers; }
+
+    bool addPostDomFrontier(BBlock<NodeT> *BB)
+    {
+        return postDomFrontiers.insert(BB);
+    }
+
+    void setIPostDom(BBlock<NodeT> *BB)
+    {
+        assert(!ipostdom && "Already has the immedate post-dominator");
+        ipostdom = BB;
+        BB->postDominators.insert(this);
+    }
+
+    BBlock<NodeT> *getIPostDom() { return ipostdom; }
+    const BBlock<NodeT> *getIPostDom() const { return ipostdom; }
+    BBlockContainerT& getPostDominators() { return postDominators; }
+    const BBlockContainerT& getPostDominators() const { return postDominators; }
 
     unsigned int getDFSOrder() const
     {
@@ -326,21 +337,21 @@ private:
     // nodes contained in this bblock
     std::list<NodeT *> nodes;
 
-    ContainerT nextBBs;
-    ContainerT prevBBs;
+    SuccContainerT nextBBs;
+    PredContainerT prevBBs;
 
     // when we have basic blocks, we do not need
     // to keep control dependencies in nodes, because
     // all nodes in block has the same control dependence
-    ContainerT controlDeps;
-    ContainerT revControlDeps;
+    BBlockContainerT controlDeps;
+    BBlockContainerT revControlDeps;
 
     // post-dominator frontiers
-    ContainerT postDomFrontiers;
+    BBlockContainerT postDomFrontiers;
     BBlock<NodeT> *ipostdom;
     // the post-dominator tree edges
     // (reverse to immediate post-dominator)
-    ContainerT postDominators;
+    BBlockContainerT postDominators;
 
     // is this block in some slice?
     uint64_t slice_id;
