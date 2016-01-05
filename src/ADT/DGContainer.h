@@ -14,12 +14,12 @@ namespace dg {
 //   we have the container defined on one place for all edges.
 //   It may have more implementations depending on available features
 /// ------------------------------------------------------------------
-template <typename NodeT, unsigned int EXPECTED_ELEMENTS_NUM = 8>
+template <typename ValueT, unsigned int EXPECTED_ELEMENTS_NUM = 8>
 class DGContainer
 {
 public:
     // XXX use llvm ADTs when available, or BDDs?
-    typedef typename std::set<NodeT *> ContainerT;
+    typedef typename std::set<ValueT> ContainerT;
     typedef typename ContainerT::iterator iterator;
     typedef typename ContainerT::const_iterator const_iterator;
     typedef typename ContainerT::size_type size_type;
@@ -34,17 +34,17 @@ public:
         return container.size();
     }
 
-    bool insert(NodeT *n)
+    bool insert(ValueT n)
     {
         return container.insert(n).second;
     }
 
-    bool contains(NodeT *n) const
+    bool contains(ValueT n) const
     {
         return container.count(n) != 0;
     }
 
-    size_t erase(NodeT *n)
+    size_t erase(ValueT n)
     {
         return container.erase(n);
     }
@@ -59,14 +59,14 @@ public:
         return container.empty();
     }
 
-    void swap(DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth)
+    void swap(DGContainer<ValueT, EXPECTED_ELEMENTS_NUM>& oth)
     {
         container.swap(oth.container);
     }
 
-    void intersect(const DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth)
+    void intersect(const DGContainer<ValueT, EXPECTED_ELEMENTS_NUM>& oth)
     {
-        DGContainer<NodeT, EXPECTED_ELEMENTS_NUM> tmp;
+        DGContainer<ValueT, EXPECTED_ELEMENTS_NUM> tmp;
 
         std::set_intersection(container.begin(), container.end(),
                               oth.container.begin(),
@@ -78,7 +78,7 @@ public:
         container.swap(tmp.container);
     }
 
-    bool operator==(const DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth) const
+    bool operator==(const DGContainer<ValueT, EXPECTED_ELEMENTS_NUM>& oth) const
     {
         if (container.size() != oth.size())
             return false;
@@ -93,7 +93,7 @@ public:
         return true;
     }
 
-    bool operator!=(const DGContainer<NodeT, EXPECTED_ELEMENTS_NUM>& oth) const
+    bool operator!=(const DGContainer<ValueT, EXPECTED_ELEMENTS_NUM>& oth) const
     {
         return !operator==(oth);
     }
@@ -102,13 +102,9 @@ private:
     ContainerT container;
 };
 
+// Edges are pointers to other nodes
 template <typename NodeT, unsigned int EXPECTED_EDGES_NUM = 4>
-class EdgesContainer : public DGContainer<NodeT, EXPECTED_EDGES_NUM>
-{
-};
-
-template <typename NodeT>
-class NodesContainer : public DGContainer<NodeT, 500>
+class EdgesContainer : public DGContainer<NodeT *, EXPECTED_EDGES_NUM>
 {
 };
 
