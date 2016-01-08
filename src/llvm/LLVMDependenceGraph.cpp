@@ -408,7 +408,9 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
         // add control dependence from this (return) node to EXIT node
         assert(node && "BUG, no node after we went through basic block");
         node->addControlDependence(ext);
-        BB->addSuccessor(getExitBB());
+        // 255 is maximum value of uint8_t which is the type of the label
+        // of the edge
+        BB->addSuccessor(getExitBB(), 255);
     }
 
     // sanity check if we have the first and the last node set
@@ -459,6 +461,15 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
              S != SE; ++S) {
             LLVMBBlock *succ = constructedBlocks[*S];
             assert(succ && "Missing basic block");
+
+            // don't let overflow the labels silently
+            // if this ever happens, we need to change bit-size
+            // of the label (255 is reserved for edge to
+            // artificial single return value)
+            if (idx >= 255) {
+                errs() << "Too much of successors";
+                abort();
+            }
 
             BB->addSuccessor(succ, idx++);
         }
