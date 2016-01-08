@@ -467,6 +467,7 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     llvm::Module *M;
 
+    bool should_verify_module = true;
     bool remove_unused_only = false;
     const char *slicing_criterion = NULL;
     const char *module = NULL;
@@ -500,6 +501,9 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
         } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
             remove_unused_only = true;
+        } else if (strcmp(argv[i], "-dont-verify") == 0) {
+            // for debugging
+            should_verify_module = false;
         } else {
             module = argv[i];
         }
@@ -507,7 +511,7 @@ int main(int argc, char *argv[])
 
     if (!(slicing_criterion || remove_unused_only) || !module) {
         errs() << "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]"
-                                    " [-remove-unused-only] [-c|-crit|-slice] func_call module\n";
+                                    " [-remove-unused-only] [-dont-verify] [-c|-crit|-slice] func_call module\n";
         return 1;
     }
 
@@ -532,9 +536,11 @@ int main(int argc, char *argv[])
 
     remove_unused_from_module_rec(M);
 
-    if (!verify_module(M)) {
-        errs() << "ERR: Verifying module failed, the IR is not valid\n";
-        errs() << "INFO: Saving anyway so that you can check it\n";
+    if (should_verify_module) {
+        if (!verify_module(M)) {
+            errs() << "ERR: Verifying module failed, the IR is not valid\n";
+            errs() << "INFO: Saving anyway so that you can check it\n";
+        }
     }
 
     if (!write_module(M, module)) {
