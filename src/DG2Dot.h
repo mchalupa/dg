@@ -476,7 +476,7 @@ private:
         err = checkNode(out, node);
 
         // end of label
-        out << "\"";
+        out << "\" ";
 
         if (err) {
             out << "style=filled fillcolor=red";
