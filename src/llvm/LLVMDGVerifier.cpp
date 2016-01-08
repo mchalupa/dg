@@ -76,6 +76,8 @@ void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB, LLVMBBlock *BB)
         checkNode(&I, node);
         ++BBIT;
     }
+
+    // FIXME: check successors and predecessors
 }
 
 void LLVMDGVerifier::checkGraph(const llvm::Function *F, LLVMDependenceGraph *g)
