@@ -67,8 +67,10 @@ public:
     typedef EdgesContainer<BBlock<NodeT>> PredContainerT;
     typedef DGContainer<BBlockEdge> SuccContainerT;
 
+    SuccContainerT& successors() { return nextBBs; }
     const SuccContainerT& successors() const { return nextBBs; }
-    //SuccContainerT& successors() { return nextBBs; }
+
+    PredContainerT& predecessors() { return prevBBs; }
     const PredContainerT& predecessors() const { return prevBBs; }
 
     const BBlockContainerT& controlDependence() const { return controlDeps; }

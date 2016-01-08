@@ -132,6 +132,10 @@ public:
     }
 
 #ifdef ENABLE_CFG
+    virtual void removeBlock(BBlock<NodeT> *block)
+    {
+        (void) block;
+    }
 
     struct RemoveBlockData {
         uint32_t sl_id;
@@ -148,7 +152,7 @@ public:
 
     // remove BBlocks that contain no node that should be in
     // sliced graph
-    uint32_t sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
+    void sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
     {
         // we must queue the blocks ourselves before we potentially remove them
         BBlockBFS<NodeT> bfs(BFS_BB_CFG);
@@ -158,16 +162,10 @@ public:
         bfs.run(start, getBlocksToRemove, data);
 
         for (BBlock<NodeT> *blk : blocks) {
+            // call specific handlers
+            removeBlock(blk);
             blk->remove();
         }
-    }
-
-    virtual void removeBBlocks(std::set<BBlock<NodeT> *>& blocks,
-                               BBlock<NodeT> *startBB, BBlock<NodeT> *endBB)
-    {
-        (void) blocks;
-        (void) startBB;
-        (void) endBB;
     }
 #endif
 };
