@@ -274,7 +274,7 @@ private:
                     <<   "NODE" << lastNode
                     << " [penwidth=2 color=gray"
                     << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S << "]\n";
+                    << "  lhead=cluster_bb_" << S << " constraint=false]\n";
             }
         }
 
@@ -301,7 +301,7 @@ private:
                     <<   "NODE" << end
                     << " [penwidth=3 color=green"
                     << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S << "]\n";
+                    << "  lhead=cluster_bb_" << S << " constraint=false]\n";
             }
         }
 
@@ -316,7 +316,7 @@ private:
                     <<   "NODE" << firstNode
                     << " [penwidth=3 color=purple"
                     << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << ipd << "]\n";
+                    << "  lhead=cluster_bb_" << ipd << " constraint=false]\n";
             }
         }
     }
@@ -543,7 +543,7 @@ private:
             for (auto II = n->data_begin(), EE = n->data_end();
                  II != EE; ++II)
                 out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << dd_color << "\"]\n";
+                    << " [color=\"" << dd_color << "\" rank=max]\n";
         }
 
         if (options & PRINT_REV_DD) {
@@ -551,7 +551,7 @@ private:
             for (auto II = n->rev_data_begin(), EE = n->rev_data_end();
                  II != EE; ++II)
                 out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << dd_color << "\" style=\"dashed\"]\n";
+                    << " [color=\"" << dd_color << "\" style=\"dashed\"  constraint=false]\n";
         }
 
         if (options & PRINT_CD) {
@@ -567,7 +567,7 @@ private:
             for (auto II = n->rev_control_begin(), EE = n->rev_control_end();
                  II != EE; ++II)
                 out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << cd_color << "\" style=\"dashed\"]\n";
+                    << " [color=\"" << cd_color << "\" style=\"dashed\" constraint=false]\n";
         }
     }
 
