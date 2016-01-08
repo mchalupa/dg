@@ -116,7 +116,16 @@ public:
     {
         // remove this BB from predecessors
         for (auto pred : prevBBs) {
-            pred->nextBBs.erase(this);
+            bool found = false;
+            for (auto I = pred->nextBBs.begin(),E = pred->nextBBs.end(); I != E;) {
+                auto cur = I++;
+                if (cur->target == this) {
+                    pred->nextBBs.erase(*cur);
+                    found = true;
+                }
+            }
+
+            assert(found && "Did not have this BB as succesor of predecessor");
         }
 
         for (auto succ : nextBBs) {
@@ -126,7 +135,8 @@ public:
                 pred->addSuccessor(succ);
             }
 
-            succ.target->prevBBs.erase(this);
+            bool ret = succ.target->prevBBs.erase(this);
+            assert(ret && "Did not have this BB in successor's pred");
         }
 
         // we reconnected and deleted edges from other
