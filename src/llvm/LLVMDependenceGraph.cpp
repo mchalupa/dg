@@ -377,40 +377,39 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     }
 
     // check if this is the exit node of function
-    const TerminatorInst *term = llvmBB.getTerminator();
-    if (!term) {
-        DBG("WARN: Basic block is not well formed\n" << llvmBB);
-        return BB;
-    }
+    // (node is now the last instruction in this BB)
+    // if it is, connect it to one artificial return node
+    const Value *termval = node->getValue();
+    if (isa<ReturnInst>(termval)) {
+        // create one unified exit node from function and add control dependence
+        // to it from every return instruction. We could use llvm pass that
+        // would do it for us, but then we would lost the advantage of working
+        // on dep. graph that is not for whole llvm
+        LLVMNode *ext = getExit();
+        if (!ext) {
+            // we need new llvm value, so that the nodes won't collide
+            ReturnInst *phonyRet
+                = ReturnInst::Create(termval->getContext());
+            if (!phonyRet) {
+                errs() << "ERR: Failed creating phony return value "
+                       << "for exit node\n";
+                // XXX later we could return somehow more mercifully
+                abort();
+            }
 
-    // create one unified exit node from function and add control dependence
-    // to it from every return instruction. We could use llvm pass that
-    // would do it for us, but then we would lost the advantage of working
-    // on dep. graph that is not for whole llvm
-    LLVMNode *ext = getExit();
-    if (!ext) {
-        // we need new llvm value, so that the nodes won't collide
-        ReturnInst *phonyRet
-            = ReturnInst::Create(term->getContext());
-        if (!phonyRet) {
-            errs() << "ERR: Failed creating phony return value "
-                   << "for exit node\n";
-            // XXX later we could return somehow more mercifully
-            abort();
+            ext = new LLVMNode(phonyRet);
+            addNode(ext);
+            setExit(ext);
+
+            LLVMBBlock *retBB = new LLVMBBlock(ext);
+            setExitBB(retBB);
         }
 
-        ext = new LLVMNode(phonyRet);
-        addNode(ext);
-        setExit(ext);
-
-        LLVMBBlock *retBB = new LLVMBBlock(ext);
-        setExitBB(retBB);
+        // add control dependence from this (return) node to EXIT node
+        assert(node && "BUG, no node after we went through basic block");
+        node->addControlDependence(ext);
+        BB->addSuccessor(getExitBB());
     }
-
-    // add control dependence from this (return) node to EXIT node
-    assert(node && "BUG, no node after we went through basic block");
-    node->addControlDependence(ext);
-    BB->addSuccessor(getExitBB());
 
     // sanity check if we have the first and the last node set
     assert(BB->getFirstNode() && "No first node in BB");
