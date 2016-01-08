@@ -455,12 +455,13 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
         const BasicBlock *llvmBB = it.first;
         LLVMBBlock *BB = it.second;
 
+        int idx = 0;
         for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
             LLVMBBlock *succ = constructedBlocks[*S];
             assert(succ && "Missing basic block");
 
-            BB->addSuccessor(succ);
+            BB->addSuccessor(succ, idx++);
         }
     }
 
