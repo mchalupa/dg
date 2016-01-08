@@ -258,7 +258,7 @@ private:
                 out << Ind
                     << "NODE" << lastNode << " -> "
                     <<   "NODE" << firstNode
-                    << " [penwidth=2"
+                    << " [penwidth=2 label=\"" << (int) S.label << "\""
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S.target << "]\n";
             }
