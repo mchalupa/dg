@@ -25,6 +25,7 @@ class BBlock
 {
 public:
     typedef typename NodeT::KeyType KeyT;
+    typedef typename NodeT::DependenceGraphType DependenceGraphT;
 
     struct BBlockEdge {
         BBlockEdge(BBlock<NodeT>* t, uint8_t label = 0)
@@ -52,11 +53,13 @@ public:
         }
     };
 
-    BBlock<NodeT>(NodeT *head = nullptr)
-        : key(KeyT()), ipostdom(nullptr), slice_id(0)
+    BBlock<NodeT>(NodeT *head = nullptr, DependenceGraphT *dg = nullptr)
+        : key(KeyT()), dg(dg), ipostdom(nullptr), slice_id(0)
     {
-        if (head)
+        if (head) {
             append(head);
+            assert(!dg || head->getDG() == nullptr || dg == head->getDG());
+        }
     }
 
     typedef EdgesContainer<BBlock<NodeT>> BBlockContainerT;
@@ -75,6 +78,12 @@ public:
     // they are not stored anywhere, it is more due to debugging
     void setKey(const KeyT& k) { key = k; }
     const KeyT& getKey() const { return key; }
+
+    // XXX we should do it a common base with node
+    // to not duplicate this - something like
+    // GraphElement that would contain these attributes
+    void setDG(DependenceGraphT *d) { dg = d; }
+    DependenceGraphT *getDG() const { return dg; }
 
     const std::list<NodeT *>& getNodes() const { return nodes; }
     std::list<NodeT *>& getNodes() { return nodes; }
@@ -330,6 +339,9 @@ public:
 private:
     // optional key
     KeyT key;
+
+    // reference to dg if needed
+    DependenceGraphT *dg;
 
     // nodes contained in this bblock
     std::list<NodeT *> nodes;
