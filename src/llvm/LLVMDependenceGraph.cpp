@@ -477,7 +477,9 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
 
     // check if we have everything
     assert(getEntry() && "Missing entry node");
-    assert(getExit() && "Missing exit node");
+    // This assertion must not hold, there may be function
+    // that just calls assert, so the exit node is 'unreachable'
+    //assert(getExit() && "Missing exit node");
     assert(getEntryBB() && "Missing entry BB");
     assert(getExitBB() && "Missing exit BB");
 
