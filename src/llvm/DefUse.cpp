@@ -371,7 +371,13 @@ static void addOutParamsEdges(LLVMDGParameter& p, DefMap *df)
 static void addOutParamsEdges(LLVMDependenceGraph *graph)
 {
     LLVMNode *exitNode = graph->getExit();
-    assert(exitNode && "No exit node in subgraph");
+    // this function has no exit node - that means
+    // that it ends with unreachable (or invoke, which is
+    // not handled yet), so there's nothing we can do here.
+    // Nothing will get out of this function
+    if (!exitNode)
+        return;
+
     DefMap *df = getDefMap(exitNode);
 
     // add edges between formal params and the output params
