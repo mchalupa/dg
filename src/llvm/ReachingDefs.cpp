@@ -294,7 +294,9 @@ bool LLVMReachingDefsAnalysis::handleCallInst(LLVMDependenceGraph *graph,
     bool changed = false;
 
     LLVMNode *exitNode = graph->getExit();
-    assert(exitNode && "No exit node in subgraph");
+    // the function doesn't return?
+    if (!exitNode)
+        return false;
 
     DefMap *subgraph_df = getDefMap(exitNode);
     // now handle all parameters
