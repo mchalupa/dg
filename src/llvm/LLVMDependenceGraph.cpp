@@ -420,6 +420,20 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     return BB;
 }
 
+static void createSingleExitBB(LLVMDependenceGraph *graph)
+{
+    llvm::UnreachableInst *ui
+        = new llvm::UnreachableInst(graph->getModule()->getContext());
+    LLVMNode *exit = new LLVMNode(ui, true);
+    graph->addNode(exit);
+    graph->setExit(exit);
+    LLVMBBlock *exitBB = new LLVMBBlock(exit);
+    graph->setExitBB(exitBB);
+
+    // XXX should we add predecessors? If the function does not
+    // return anything, we don't need propagate anything outside...
+}
+
 bool LLVMDependenceGraph::build(const llvm::Function *func)
 {
     using namespace llvm;
@@ -475,11 +489,14 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
         }
     }
 
+    // if graph has no return inst, just create artificial exit node
+    // and point there
+    if (!getExit())
+        createSingleExitBB(this);
+
     // check if we have everything
     assert(getEntry() && "Missing entry node");
-    // This assertion must not hold, there may be function
-    // that just calls assert, so the exit node is 'unreachable'
-    //assert(getExit() && "Missing exit node");
+    assert(getExit() && "Missing exit node");
     assert(getEntryBB() && "Missing entry BB");
     assert(getExitBB() && "Missing exit BB");
 
