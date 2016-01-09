@@ -54,7 +54,7 @@ public:
 
     llvm::Module *getModule() const { return module; }
     std::unordered_map<const llvm::BasicBlock *,
-                       LLVMBBlock *> getConstructedBlocks()
+                       LLVMBBlock *>& getConstructedBlocks()
     {
         return constructedBlocks;
     }
