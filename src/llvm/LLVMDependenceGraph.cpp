@@ -428,6 +428,7 @@ static void createSingleExitBB(LLVMDependenceGraph *graph)
     graph->addNode(exit);
     graph->setExit(exit);
     LLVMBBlock *exitBB = new LLVMBBlock(exit);
+    exitBB->setDG(graph);
     graph->setExitBB(exitBB);
 
     // XXX should we add predecessors? If the function does not
@@ -469,6 +470,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     for (auto it : constructedBlocks) {
         const BasicBlock *llvmBB = it.first;
         LLVMBBlock *BB = it.second;
+        BB->setDG(this);
 
         int idx = 0;
         for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
