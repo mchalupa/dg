@@ -26,7 +26,7 @@ public:
     }
 
     /* virtual */
-    void removeNode(LLVMNode *node)
+    bool removeNode(LLVMNode *node)
     {
         using namespace llvm;
 
@@ -43,6 +43,8 @@ public:
             if (GV)
                 GV->eraseFromParent();
         }
+
+        return true;
     }
 
     // override slice method

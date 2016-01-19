@@ -88,9 +88,8 @@ class Slicer : Analysis<NodeT>
 
             if (n->getSlice() != slice_id) {
                 // do graph specific logic
-                removeNode(n);
-
-                dg->deleteNode(n);
+                if (removeNode(n))
+                    dg->deleteNode(n);
             }
         }
 
@@ -122,13 +121,14 @@ public:
         return sl_id;
     }
 
-    // This method is called on nodes that are being
-    // removed. Slicer implementation can override this
-    // and use it as an event that particular node is
-    // being removed and take action it needs
-    virtual void removeNode(NodeT *node)
+    // remove node from the graph
+    // This virtual method allows to taky an action
+    // when node is being removed from the graph. It can also
+    // disallow removing this node by returning false
+    virtual bool removeNode(NodeT *node)
     {
         (void) node;
+        return true;
     }
 
 #ifdef ENABLE_CFG
