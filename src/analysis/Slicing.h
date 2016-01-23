@@ -2,6 +2,7 @@
 #define _DG_SLICING_H_
 
 #include "NodesWalk.h"
+#include "BFS.h"
 #include "ADT/Queue.h"
 #include "DependenceGraph.h"
 
@@ -121,7 +122,7 @@ public:
     }
 
     // remove node from the graph
-    // This virtual method allows to taky an action
+    // This virtual method allows to take an action
     // when node is being removed from the graph. It can also
     // disallow removing this node by returning false
     virtual bool removeNode(NodeT *node)
@@ -129,6 +130,44 @@ public:
         (void) node;
         return true;
     }
+
+#ifdef ENABLE_CFG
+    virtual void removeBlock(BBlock<NodeT> *block)
+    {
+        (void) block;
+    }
+
+    struct RemoveBlockData {
+        uint32_t sl_id;
+        std::set<BBlock<NodeT> *>& blocks;
+    };
+
+    static void getBlocksToRemove(BBlock<NodeT> *BB, RemoveBlockData& data)
+    {
+        if (BB->getSlice() == data.sl_id)
+            return;
+
+        data.blocks.insert(BB);
+    }
+
+    // remove BBlocks that contain no node that should be in
+    // sliced graph
+    void sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
+    {
+        // we must queue the blocks ourselves before we potentially remove them
+        BBlockBFS<NodeT> bfs(BFS_BB_CFG);
+        std::set<BBlock<NodeT> *> blocks;
+
+        RemoveBlockData data = { sl_id, blocks };
+        bfs.run(start, getBlocksToRemove, data);
+
+        for (BBlock<NodeT> *blk : blocks) {
+            // call specific handlers
+            removeBlock(blk);
+            blk->remove();
+        }
+    }
+#endif
 };
 
 } // namespace analysis

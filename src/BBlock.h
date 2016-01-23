@@ -67,8 +67,10 @@ public:
     typedef EdgesContainer<BBlock<NodeT>> PredContainerT;
     typedef DGContainer<BBlockEdge> SuccContainerT;
 
+    SuccContainerT& successors() { return nextBBs; }
     const SuccContainerT& successors() const { return nextBBs; }
-    //SuccContainerT& successors() { return nextBBs; }
+
+    PredContainerT& predecessors() { return prevBBs; }
     const PredContainerT& predecessors() const { return prevBBs; }
 
     const BBlockContainerT& controlDependence() const { return controlDeps; }
@@ -115,11 +117,17 @@ public:
     void isolate()
     {
         // remove this BB from predecessors
+        DGContainer<uint8_t> pred_labels;
+
         for (auto pred : prevBBs) {
             bool found = false;
             for (auto I = pred->nextBBs.begin(),E = pred->nextBBs.end(); I != E;) {
                 auto cur = I++;
                 if (cur->target == this) {
+                    // store labels that are going to this block,
+                    // new edges will have these
+                    pred_labels.insert(cur->label);
+                    // remove this edge
                     pred->nextBBs.erase(*cur);
                     found = true;
                 }
@@ -132,7 +140,9 @@ public:
             // redirect edges from each predecessor
             // to each successor
             for (auto pred : prevBBs) {
-                pred->addSuccessor(succ);
+                for (uint8_t label : pred_labels) {
+                    pred->addSuccessor(succ.target, label);
+                }
             }
 
             bool ret = succ.target->prevBBs.erase(this);
