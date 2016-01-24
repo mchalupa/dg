@@ -151,6 +151,7 @@ private:
         }
     }
 
+/*
     static LLVMBBlock *
     createNewExitBB(LLVMDependenceGraph *graph)
     {
@@ -183,6 +184,36 @@ private:
 
         exitBB->append(new LLVMNode(CI));
         exitBB->append(new LLVMNode(UI));
+        exitBB->setKey(block);
+        exitBB->setDG(graph);
+
+        return exitBB;
+    }
+*/
+
+    static LLVMBBlock *
+    createNewExitBB(LLVMDependenceGraph *graph)
+    {
+        using namespace llvm;
+
+        LLVMBBlock *exitBB = new LLVMBBlock();
+
+        Module *M = graph->getModule();
+        LLVMContext& Ctx = M->getContext();
+        BasicBlock *block = BasicBlock::Create(Ctx, "safe_return");
+
+        Value *fval = const_cast<Value *>(graph->getEntry()->getKey());
+        Function *F = cast<Function>(fval);
+        F->getBasicBlockList().push_back(block);
+
+        // fill in basic block just with return value
+        ReturnInst *RI;
+        if (F->getReturnType()->isVoidTy())
+            RI = ReturnInst::Create(Ctx, block);
+        else
+            RI = ReturnInst::Create(Ctx, UndefValue::get(F->getReturnType()), block);
+
+        exitBB->append(new LLVMNode(RI));
         exitBB->setKey(block);
         exitBB->setDG(graph);
 
