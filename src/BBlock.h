@@ -145,8 +145,14 @@ public:
                 }
             }
 
-            bool ret = succ.target->prevBBs.erase(this);
-            assert(ret && "Did not have this BB in successor's pred");
+            // This assertion does not hold anymore, since if we have
+            // two edges with different labels to the same successor,
+            // and we remove the successor, then we remove 'this'
+            // from prevBBs twice. If we'll add labels even to predecessors,
+            // this assertion must hold again
+            // bool ret = succ.target->prevBBs.erase(this);
+            // assert(ret && "Did not have this BB in successor's pred");
+            succ.target->prevBBs.erase(this);
         }
 
         // we reconnected and deleted edges from other
