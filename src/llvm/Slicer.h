@@ -139,12 +139,12 @@ private:
             return true;
 
         switch (Inst->getOpcode()) {
+            case Instruction::Unreachable:
 #if 0
             case Instruction::Br:
             case Instruction::Switch:
-#endif
             case Instruction::Ret:
-            case Instruction::Unreachable:
+#endif
                 return false;
             default:
                 return true;
@@ -378,10 +378,13 @@ private:
 
     void reconnectBBlock(LLVMBBlock *BB, llvm::BasicBlock *llvmBB)
     {
-        llvm::TerminatorInst *tinst = llvmBB->getTerminator();
+        using namespace llvm;
+
+        TerminatorInst *tinst = llvmBB->getTerminator();
         if (!tinst) {
-            // block has no terminator - that is unreachable. It may occur for example
-            // if we have:
+            // block has no terminator - that is unreachable.
+            // It may occur for example if we have:
+            //
             //   call error()
             //   br %exit
             //
@@ -389,7 +392,23 @@ private:
             //  but if error is not marked as noreturn, then the br
             //  will be there and will get sliced, making the block
             //  unterminated
-            new llvm::UnreachableInst(llvmBB->getContext(), llvmBB);
+
+            LLVMContext& Ctx = llvmBB->getContext();
+            Function *F = cast<Function>(llvmBB->getParent());
+
+            if (F->getReturnType()->isVoidTy())
+                ReturnInst::Create(Ctx, llvmBB);
+            else if (F->getName().equals("main"))
+                // if this is main, than the safe exit equals to returning 0
+                // (it is just for convenience, we wouldn't need to do this)
+                ReturnInst::Create(Ctx,
+                                   ConstantInt::get(Type::getInt32Ty(Ctx), 0),
+                                   llvmBB);
+            else
+                ReturnInst::Create(Ctx,
+                                   UndefValue::get(F->getReturnType()), llvmBB);
+
+
             // and that is all we can do here
             return;
         }
