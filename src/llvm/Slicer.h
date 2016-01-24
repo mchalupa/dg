@@ -210,6 +210,12 @@ private:
         ReturnInst *RI;
         if (F->getReturnType()->isVoidTy())
             RI = ReturnInst::Create(Ctx, block);
+        else if (F->getName().equals("main"))
+            // if this is main, than the safe exit equals to returning 0
+            // (it is just for convenience, we wouldn't need to do this)
+            RI = ReturnInst::Create(Ctx,
+                                    ConstantInt::get(Type::getInt32Ty(Ctx), 0),
+                                    block);
         else
             RI = ReturnInst::Create(Ctx, UndefValue::get(F->getReturnType()), block);
 
