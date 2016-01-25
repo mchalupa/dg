@@ -307,12 +307,16 @@ private:
         }
 
         for (LLVMBBlock *blk : blocks) {
-            // call specific handlers
-            removeBlock(blk);
-            blk->remove();
+            // update statistics
             nodesRemoved += blk->size();
             nodesTotal += blk->size();
             ++blocksRemoved;
+
+            // call specific handlers
+            removeBlock(blk);
+
+            // remove block from the graph
+            blk->remove();
         }
 
 #ifdef DEBUG_ENABLED
