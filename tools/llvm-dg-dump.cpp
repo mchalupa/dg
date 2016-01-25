@@ -182,6 +182,8 @@ int main(int argc, char *argv[])
             opts &= ~PRINT_CFG;
         } else if (strcmp(argv[i], "-call") == 0) {
             opts |= PRINT_CALL;
+        } else if (strcmp(argv[i], "-postdom") == 0) {
+            opts |= PRINT_POSTDOM;
         } else if (strcmp(argv[i], "-cfgall") == 0) {
             opts |= PRINT_CFG;
             opts |= PRINT_REV_CFG;
