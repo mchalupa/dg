@@ -1,15 +1,11 @@
-
-#include <stdlib.h>
-
 void error(void)
 {
-	abort();
+	/* OK, reached */
+	test_assert(1);
 }
 
 void set(int *a)
 {
-	// make error kill the program
-	// this way we'll know the abort wasn't sliced away
 	if (*a == 8)
 		error();
 }
@@ -23,6 +19,8 @@ int main(void)
 	c = 3;
 	b = 3;
 	c = 5;
+
 	set(&a);
+
 	return 0;
 }
