@@ -1,5 +1,3 @@
-#include <assert.h>
-
 int a;
 
 void foo()
@@ -12,5 +10,6 @@ int main(void)
 	a = 1;
 	foo();
 
+	test_assert(a == 0);
 	return a;
 }

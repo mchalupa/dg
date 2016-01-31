@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int glob;
 int *setglob(void)
@@ -14,6 +14,6 @@ int *foo(int *(f)(void))
 int main(void)
 {
 	int *p = foo(setglob);
-	assert(glob == 23);
+	test_assert(glob == 23);
 	return 0;
 }

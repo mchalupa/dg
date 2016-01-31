@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int glob = 1;
 int num;
@@ -7,7 +7,7 @@ volatile void check(int c)
 	++num;
 
 	if (num == 5)
-		assert(c == 4);
+		test_assert(c == 4);
 }
 
 int main(void)
@@ -20,6 +20,6 @@ int main(void)
 	}
 
 
-	assert(num == 5);
+	test_assert(num == 5);
 	return 0;
 }

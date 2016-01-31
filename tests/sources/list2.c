@@ -1,4 +1,4 @@
-#include <assert.h>
+
 #include <stdlib.h>
 
 struct wl_list;
@@ -28,6 +28,6 @@ int main(void)
 	wl_list_insert(&list, &i1->link);
 	i1->number = 8;
 
-	assert(list.next == &i1->link);
+	test_assert(list.next == &i1->link);
 	return 0;
 }

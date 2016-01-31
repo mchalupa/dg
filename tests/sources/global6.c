@@ -1,6 +1,4 @@
-#include <assert.h>
-
-int a, b, c = 1;
+static int a, b, c = 1;
 
 void setB(void)
 {
@@ -15,9 +13,7 @@ void setA(void)
 
 int check(void)
 {
-	// let assert kill the program
-	// if everything is allright
-	assert(a == 0);
+	test_assert(a == 1);
 	return a == 1;
 }
 

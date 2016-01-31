@@ -1,5 +1,4 @@
-#include <assert.h>
-
+#include <stdlib.h>
 
 int *array;
 void set(int a)
@@ -12,6 +11,6 @@ int main(void)
 {
 	array = calloc(5, sizeof(int));
 	set(4);
-	assert(array[3] == 4);
+	test_assert(array[3] == 4);
 	return 0;
 }

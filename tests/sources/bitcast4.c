@@ -1,6 +1,4 @@
-#include <assert.h>
-
-static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4");
+/* static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4"); */
 
 int main(void)
 {
@@ -8,6 +6,6 @@ int main(void)
 	int *p = (int *) a;
 	*p = 0;
 
-	assert(a[3] == 0);
+	test_assert(a[3] == 0);
 	return 0;
 }

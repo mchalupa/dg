@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 void foo(int *a)
 {
@@ -9,6 +9,6 @@ int main(void)
 {
 	int a[2] = {0,1};
 	foo(a);
-	assert(a[1] == 8);
+	test_assert(a[1] == 8);
 	return 0;
 }

@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 void set(int *a)
 {
@@ -20,6 +20,6 @@ int main(void)
 	c = 5;
 	foo(set, &a);
 
-	assert(a == 8);
+	test_assert(a == 8);
 	return 0;
 }

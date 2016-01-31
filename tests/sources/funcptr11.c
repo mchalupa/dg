@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int *foo(int *a, int *b)
 {
@@ -16,6 +16,6 @@ int main(void)
 	p = f(&a, &b);
 	*p = 7;
 
-	assert(a == 7);
+	test_assert(a == 7);
 	return 0;
 }

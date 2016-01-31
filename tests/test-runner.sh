@@ -35,3 +35,66 @@ set_environment()
 		errmsg "Failed setting environment (tools)"
 	fi
 }
+
+compile()
+{
+	CODE="$1"
+	BCFILE="$2"
+
+	clang -emit-llvm -c -include "$TESTS_DIR/test_assert.h"\
+		$TESTS_CFLAGS -Wall -Wextra "$CODE" -o "$BCFILE" \
+		|| errmsg "Compilation failed"
+}
+
+link_with_assert()
+{
+	FILE="$1"
+	OUT="$2"
+	TEST_ASSERT="$TESTS_DIR/test_assert.bc"
+
+	clang -emit-llvm -c "$TESTS_DIR/test_assert.c" -o "$TEST_ASSERT" \
+		|| errmsg "Compilation of test_assert.c failed"
+	llvm-link "$FILE" "$TEST_ASSERT" -o "$LINKEDFILE" \
+		|| errmsg "Linking with test_assert failed"
+}
+
+get_result()
+{
+	FILE="$1"
+	OUTPUT="`lli "$FILE" 2>&1`"
+
+	echo "$OUTPUT" | grep -q 'Assertion' || { echo "$OUTPUT"; errmsg "Assertion not called"; }
+	# check explicitelly even for Assertion FAILED, because there can be more
+	# asserts in the file and only some of them can fail
+	echo "$OUTPUT" | grep -q 'Assertion FAILED' && { echo "$OUTPUT"; errmsg "Assertion failed"; }
+	echo "$OUTPUT" | grep -q 'Assertion PASSED' || { echo "$OUTPUT"; errmsg "Assertion did not pass"; }
+
+	echo "$OUTPUT"
+	exit 0
+}
+
+run_test()
+{
+	TESTS_DIR=`dirname $0`
+
+	set_environment
+
+	CODE="$TESTS_DIR/$1"
+	NAME=${CODE%.*}
+	BCFILE="$NAME.bc"
+	SLICEDFILE="$NAME.sliced"
+	LINKEDFILE="$NAME.sliced.linked"
+
+	# compile in.c out.bc
+	compile "$CODE" "$BCFILE"
+
+	# slice the code
+	llvm-slicer -c test_assert "$BCFILE"
+
+	# link assert to the code
+	link_with_assert "$SLICEDFILE" "$LINKEDFILE"
+
+	# run the code and check result
+	get_result "$LINKEDFILE"
+}
+

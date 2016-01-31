@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 /* check if returning pointer
  * from function works properly */
@@ -18,6 +18,6 @@ int main(void)
 	int *p = pick(&a, &b);
 	*p = 13;
 
-	assert(b == 13);
+	test_assert(b == 13);
 	return 0;
 }

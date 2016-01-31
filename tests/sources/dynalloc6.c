@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct node {
     int val;
@@ -28,7 +28,7 @@ int main()
 {
     const struct node *p1;
     create_sll(&p1);
-    assert(p1->val == 13);
+    test_assert(p1->val == 13);
 
     return 0;
 }

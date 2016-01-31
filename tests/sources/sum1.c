@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 #define N 4
 int sum(int x[N])
@@ -31,6 +31,6 @@ int main(void)
   ret2 = sum(x);
 
   /* check that the sums equal*/
-  assert(ret == ret2);
+  test_assert(ret == ret2);
   return 0;
 }

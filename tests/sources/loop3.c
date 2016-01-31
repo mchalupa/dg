@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int glob = 1;
 int main(void)
@@ -7,7 +7,7 @@ int main(void)
 	while (a < 10) {
 		a += b;
 		b += 1;
-		assert(glob >= 1);
+		test_assert(glob >= 1);
 		glob++;
 	}
 

@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 /* test phi nodes handling */
 int main(void)
@@ -13,6 +13,6 @@ int main(void)
 
 	*p = 4;
 
-	assert(b == 4);
+	test_assert(b == 4);
 	return 0;
 }

@@ -1,4 +1,4 @@
-#include <assert.h>
+
 #include <stdarg.h>
 
 void setv(int num, ...)
@@ -25,6 +25,6 @@ int main(void)
 {
 	int a = 0;
 	setv(1, foo, &a);
-	assert(a == 17);
+	test_assert(a == 17);
 	return 0;
 }

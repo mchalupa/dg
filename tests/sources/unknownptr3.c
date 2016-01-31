@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 volatile int getidx(void)
 {
@@ -17,6 +17,6 @@ int main(void)
 
 	*p = 7;
 
-	assert(array[3] == 7);
+	test_assert(array[3] == 7);
 	return 0;
 }

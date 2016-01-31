@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 /* basic test with pointers */
 int main(void)
@@ -17,6 +17,6 @@ int main(void)
 	p = &a;
 	*p = 9;
 
-	assert(a == 9);
+	test_assert(a == 9);
 	return 0;
 }

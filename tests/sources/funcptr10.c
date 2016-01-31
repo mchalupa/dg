@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct item {
 	int a;
@@ -33,6 +33,6 @@ int main(void)
 	else
 		i = foo(alloc);
 
-	assert(i->a == 9);
+	test_assert(i->a == 9);
 	return 0;
 }

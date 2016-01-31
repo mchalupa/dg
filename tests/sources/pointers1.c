@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct item {
 	int a;
@@ -16,6 +16,6 @@ int main(void)
 	I.p.a = 4;
 	I.i.ptr = &I.p.a;
 
-	assert(*I.i.ptr == 4);
+	test_assert(*I.i.ptr == 4);
 	return 0;
 }

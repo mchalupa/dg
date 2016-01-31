@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct item {
 	int a;
@@ -14,6 +14,6 @@ int main(void)
 {
 	struct item *i;
 	alloc(&i);
-	assert(i->a == 13);
+	test_assert(i->a == 13);
 	return 0;
 }

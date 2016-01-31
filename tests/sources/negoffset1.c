@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int main(void)
 {
@@ -6,6 +6,6 @@ int main(void)
 	int *a = array + 1;
 	int *p = a - 1;
 	*p = 0;
-	assert(array[0] == 0);
+	test_assert(array[0] == 0);
 	return 0;
 }

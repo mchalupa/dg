@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct item {
 	int a;
@@ -22,6 +22,6 @@ int main(void)
 	for (n = 0; n < 4; ++n)
 		++ptr;
 
-	assert(ptr->i.a == 8);
+	test_assert(ptr->i.a == 8);
 	return 0;
 }
