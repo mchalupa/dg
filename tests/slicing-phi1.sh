@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# make bash exit on any failure
-set -e
-
 TESTS_DIR=`dirname $0`
 source "$TESTS_DIR/test-runner.sh"
 
@@ -15,15 +12,15 @@ set_environment
 CODE="$TESTS_DIR/sources/phi1.c"
 NAME=${CODE%.*}
 BCFILE="$NAME.bc"
-SLICEDFILE="$NAME.sliced"
 
 # now run the test with pure SSA form where
 # are phi nodes
 PHIBC="$NAME-phi.bc"
 opt -mem2reg "$BCFILE" -o "$PHIBC"
 
-SLICEDFILE="$NAME-phi.sliced"
+SLICEDFILE2="$NAME-phi.sliced"
 llvm-slicer -c test_assert "$PHIBC"
-link_with_assert "$PHIBC" "$PHIBC.linked"
 
-get_result "$PHIBC.linked"
+link_with_assert "$SLICEDFILE2" "$SLICEDFILE2.linked"
+
+get_result "$SLICEDFILE2.linked"
