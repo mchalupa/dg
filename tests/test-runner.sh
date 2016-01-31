@@ -70,7 +70,6 @@ get_result()
 	echo "$OUTPUT" | grep -q 'Assertion PASSED' || { echo "$OUTPUT"; errmsg "Assertion did not pass"; }
 
 	echo "$OUTPUT"
-	exit 0
 }
 
 run_test()

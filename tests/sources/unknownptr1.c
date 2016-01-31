@@ -1,5 +1,3 @@
-
-
 int *foo(int *a);
 
 int main(void)
