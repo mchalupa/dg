@@ -1,2 +1,3 @@
 sources/*.bc
 sources/*.sliced
+sources/*.linked
