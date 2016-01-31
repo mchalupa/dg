@@ -335,34 +335,6 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
 
         // no matter what is the function, this is a CallInst, so create call-graph
         addCallNode(node);
-    } else if (const PHINode *phi = dyn_cast<PHINode>(val)) {
-        // some phi nodes just work like this
-        //
-        //  ; <label>:0
-        //  %1 = load i32, i32* %a, align 4
-        //  %2 = load i32, i32* %b, align 4
-        //  %3 = icmp sgt i32 %1, %2
-        //  br i1 %3, label %4, label %5
-        //
-        //  ; <label>:4                                       ; preds = %0
-        //  br label %6
-        //
-        //  ; <label>:5                                       ; preds = %0
-        //  br label %6
-        //
-        //  ; <label>:6                                       ; preds = %5, %4
-        //  %p.0 = phi i32* [ %a, %4 ], [ %b, %5 ]
-        //
-        //  so we need to keep the blocks %5 and %6 even though it is empty
-
-        // add control dependence to each block going to this phi
-        // XXX: it is over-approximation, but we don't have nothing better now
-        for (auto I = phi->block_begin(), E = phi->block_end(); I != E; ++I) {
-            BasicBlock *B = *I;
-            LLVMBBlock *our = constructedBlocks[B];
-            assert(our && "Don't have block constructed for PHI node");
-            our->getLastNode()->addControlDependence(node);
-        }
     } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
             const Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
@@ -463,6 +435,59 @@ static void createSingleExitBB(LLVMDependenceGraph *graph)
     // return anything, we don't need propagate anything outside...
 }
 
+static void
+addControlDepsToPHI(LLVMDependenceGraph *graph,
+                    LLVMNode *node, const llvm::PHINode *phi)
+{
+    using namespace llvm;
+
+    const BasicBlock *this_block = phi->getParent();
+    auto CB = graph->getConstructedBlocks();
+
+    for (auto I = phi->block_begin(), E = phi->block_end(); I != E; ++I) {
+        BasicBlock *B = *I;
+
+        if (B == this_block)
+            continue;
+
+        LLVMBBlock *our = CB[B];
+        assert(our && "Don't have block constructed for PHI node");
+        our->getLastNode()->addControlDependence(node);
+    }
+}
+
+static void
+addControlDepsToPHIs(LLVMDependenceGraph *graph)
+{
+    // some phi nodes just work like this
+    //
+    //  ; <label>:0
+    //  %1 = load i32, i32* %a, align 4
+    //  %2 = load i32, i32* %b, align 4
+    //  %3 = icmp sgt i32 %1, %2
+    //  br i1 %3, label %4, label %5
+    //
+    //  ; <label>:4                                       ; preds = %0
+    //  br label %6
+    //
+    //  ; <label>:5                                       ; preds = %0
+    //  br label %6
+    //
+    //  ; <label>:6                                       ; preds = %5, %4
+    //  %p.0 = phi i32* [ %a, %4 ], [ %b, %5 ]
+    //
+    //  so we need to keep the blocks %5 and %6 even though it is empty
+
+    // add control dependence to each block going to this phi
+    // XXX: it is over-approximation, but we don't have nothing better now
+    for (auto I = graph->begin(), E = graph->end(); I != E; ++I) {
+        const llvm::Value *val = I->first;
+        if (const llvm::PHINode *phi = llvm::dyn_cast<llvm::PHINode>(val)) {
+            addControlDepsToPHI(graph, I->second, phi);
+        }
+    }
+}
+
 bool LLVMDependenceGraph::build(const llvm::Function *func)
 {
     using namespace llvm;
@@ -529,6 +554,8 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     assert(getExit() && "Missing exit node");
     assert(getEntryBB() && "Missing entry BB");
     assert(getExitBB() && "Missing exit BB");
+
+    addControlDepsToPHIs(this);
 
     // add CFG edge from entry point to the first instruction
     entry->addControlDependence(getEntryBB()->getFirstNode());
