@@ -561,7 +561,7 @@ void LLVMDependenceGraph::addFormalParameters()
 static void computePDFrontiers(LLVMBBlock *BB)
 {
     for (LLVMBBlock *pred : BB->predecessors()) {
-        LLVMBBlock *ipdom = BB->getIPostDom();
+        LLVMBBlock *ipdom = pred->getIPostDom();
         if (ipdom && ipdom != BB)
             BB->addPostDomFrontier(pred);
     }
