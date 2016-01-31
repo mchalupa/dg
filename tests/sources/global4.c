@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int a, b, c;
 
@@ -24,6 +24,6 @@ int main(void)
 	if (a == 0)
 		setA();
 
-	assert(a == 1);
+	test_assert(a == 1);
 	return 0;
 }

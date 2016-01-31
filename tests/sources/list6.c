@@ -1,4 +1,4 @@
-#include <assert.h>
+
 #include <stdlib.h>
 
 struct wl_list {
@@ -20,6 +20,6 @@ int main(void)
 	i1->link.next->prev->next = &list;
 	i1->link.next->prev->next->prev = NULL;
 
-	assert(list.prev == NULL);
+	test_assert(list.prev == NULL);
 	return 0;
 }

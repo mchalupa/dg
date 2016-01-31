@@ -1,4 +1,4 @@
-#include <assert.h>
+
 #include <stdarg.h>
 
 void setv(int num, ...)
@@ -19,6 +19,6 @@ int main(void)
 {
 	int a;
 	setv(1, &a);
-	assert(a == 13);
+	test_assert(a == 13);
 	return 0;
 }

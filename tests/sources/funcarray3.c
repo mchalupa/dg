@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int glob;
 void setglob(void)
@@ -21,6 +21,6 @@ void call(void (**funcarray)(void), int idx)
 int main(void)
 {
 	call(funcarray, 1);
-	assert(glob == 13);
+	test_assert(glob == 13);
 	return 0;
 }

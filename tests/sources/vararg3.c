@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdarg.h>
 
 void setv(int num, ...)
@@ -17,7 +16,8 @@ void setv(int num, ...)
 
 void foo(void)
 {
-	assert(0 && "OK, reached assert");
+	/* OK, assert reached */
+	test_assert(1);
 }
 
 int main(void)

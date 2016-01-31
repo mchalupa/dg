@@ -1,4 +1,4 @@
-#include <assert.h>
+
 #include <stdlib.h>
 
 struct wl_list;
@@ -34,6 +34,6 @@ int main(void)
 
 	wl_list_remove(&i1->link);
 
-	assert(wl_list_empty(&list));
+	test_assert(wl_list_empty(&list));
 	return 0;
 }

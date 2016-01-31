@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdlib.h>
 
 struct wl_list;
@@ -27,6 +26,6 @@ int main(void)
 	struct item *i1 = malloc(sizeof *i1);
 	wl_list_insert(&list, &i1->link);
 
-	assert(wl_list_length(&list) == 1);
+	test_assert(wl_list_length(&list) == 1);
 	return 0;
 }

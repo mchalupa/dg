@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <stdlib.h>
 
 typedef struct list {
  int key;
@@ -18,5 +18,5 @@ int main(void){
   mlist *temp;
 
   insert_list(2);
-  assert(head->key == 2);
+  test_assert(head->key == 2);
 }

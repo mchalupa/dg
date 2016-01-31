@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 void *shift(int *mem)
 {
@@ -11,6 +11,6 @@ int main(void)
 	int *a = shift(array);
 	int *p = a - 16;
 	*p = 3;
-	assert(array[4] == 3);
+	test_assert(array[4] == 3);
 	return 0;
 }

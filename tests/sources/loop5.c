@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int glob = 1;
 int num;
@@ -13,7 +13,7 @@ int main(void)
 	while (a < 10) {
 		if (a++ > 0)
 			// check that we haven't deleted b++ later
-			assert(b > 0);
+			test_assert(b > 0);
 		b++;
 	}
 

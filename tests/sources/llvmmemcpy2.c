@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 typedef struct Stuff {
  void (*f1)(int *);
@@ -22,6 +22,6 @@ int main()
  Stuff bad;
  bad = good;
  bad.f2(&a);
- assert(a == 2);
+ test_assert(a == 2);
  return 0;
 }

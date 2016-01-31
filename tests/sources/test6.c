@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int array[5];
 void set(int a)
@@ -9,6 +9,6 @@ void set(int a)
 int main(void)
 {
 	set(4);
-	assert(array[3] == 4);
+	test_assert(array[3] == 4);
 	return 0;
 }

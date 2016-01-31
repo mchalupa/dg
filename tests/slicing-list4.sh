@@ -1,31 +1,33 @@
 #!/bin/bash
 
-# make bash exit on any failure
-set -e
-
 TESTS_DIR=`dirname $0`
 source "$TESTS_DIR/test-runner.sh"
 
 set_environment
 
-CODE="$TESTS_DIR/sources/list4.c"
-NAME=${CODE%.*}
-
-BCFILE="$NAME.bc"
-SLICEDFILE="$NAME.sliced"
-CODEBCFILE="$NAME-nolib.bc"
-
 LIB="$TESTS_DIR/sources/wl_list.c"
 NAME=${LIB%.*}
 LIBBCFILE="$NAME.bc"
 
+CODE="$TESTS_DIR/sources/list4.c"
+NAME=${CODE%.*}
+BCFILE="$NAME.bc"
+SLICEDFILE="$NAME-withdefs.sliced"
+LINKEDFILE="$SLICEDFILE.linked"
 
-clang -emit-llvm -c "$CODE" -o "$CODEBCFILE"
-clang -emit-llvm -c "$LIB" -o "$LIBBCFILE"
-llvm-link -o "$BCFILE" "$LIBBCFILE" "$CODEBCFILE"
+# compile in.c out.bc
+compile "$CODE" "$BCFILE"
 
-llvm-slicer -c __assert_fail "$BCFILE"
+# compile additional definitions
+clang -emit-llvm -c -Wall -Wextra "$LIB" -o "$LIBBCFILE"
 
-# run the sliced code and check if it
-# has everything to pass the assert in it
-lli "$SLICEDFILE"
+llvm-link "$BCFILE" "$LIBBCFILE" -o "$NAME-withdefs.bc"
+
+# slice the code
+llvm-slicer -c test_assert "$NAME-withdefs.bc"
+
+# link assert to the code
+link_with_assert "$SLICEDFILE" "$LINKEDFILE"
+
+# run the code and check result
+get_result "$LINKEDFILE"

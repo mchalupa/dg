@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int sum(int x[3])
 {
@@ -12,7 +12,7 @@ int sum(int x[3])
 int main(void)
 {
   int x[3] = {1, 2, 3};
-  int temp, i, ret, ret2;
+  int temp, ret, ret2;
 
   /* sum elements in array */
   ret = sum(x);
@@ -27,6 +27,6 @@ int main(void)
   ret2 = sum(x);
 
   /* check that the sums equal*/
-  assert(ret == ret2);
+  test_assert(ret == ret2);
   return 0;
 }

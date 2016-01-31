@@ -1,5 +1,3 @@
-#include <assert.h>
-
 /* test accessing bytes in int */
 int main(void)
 {
@@ -12,6 +10,6 @@ int main(void)
 		byte++;
 	}
 
-	assert(a == ~((int) 0));
+	test_assert(a == ~((int) 0));
 	return 0;
 }

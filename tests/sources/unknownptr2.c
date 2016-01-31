@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 volatile int getidx(void)
 {
@@ -14,6 +14,6 @@ int main(void)
 	// pointer with unknown offset to array
 	array[idx] = 7;
 
-	assert(array[2] == 7);
+	test_assert(array[2] == 7);
 	return 0;
 }

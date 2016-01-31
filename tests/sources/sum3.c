@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 #define N 4
 
@@ -27,6 +27,6 @@ int main(void)
   }
 
   /* check that the sums equal*/
-  assert(ret == ret2);
+  test_assert(ret == ret2);
   return 0;
 }

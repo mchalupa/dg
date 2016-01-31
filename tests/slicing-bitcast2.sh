@@ -1,21 +1,7 @@
 #!/bin/bash
 
-# make bash exit on any failure
-set -e
-
 TESTS_DIR=`dirname $0`
 source "$TESTS_DIR/test-runner.sh"
 
-set_environment
-
-CODE="$TESTS_DIR/sources/bitcast2.c"
-NAME=${CODE%.*}
-BCFILE="$NAME.bc"
-SLICEDFILE="$NAME.sliced"
-
-clang -emit-llvm -c "$CODE" -std=gnu11 -o "$BCFILE"
-llvm-slicer -c __assert_fail "$BCFILE"
-
-# run the sliced code and check if it
-# has everything to pass the assert in it
-lli "$SLICEDFILE"
+TESTS_CFLAGS="-std=gnu11"
+run_test "sources/bitcast2.c"

@@ -1,6 +1,4 @@
-#include <assert.h>
-
-static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4");
+/* static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4"); */
 
 union BYTE {
 	int i;
@@ -16,7 +14,7 @@ int main(void)
 	B.b[1] = 0xab;
 	B.b[2] = 0xab;
 	B.b[3] = 0xab;
-	assert(B.i == 0xabababab);
+	test_assert(B.i == 0xabababab);
 
 	return 0;
 }

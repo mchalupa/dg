@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct callbacks {
 	void (*f1)(int *);
@@ -26,6 +26,6 @@ int main(void)
 	cb.f1(&a);
 	cb.f2(&b);
 
-	assert(a == 1 && b == 2);
+	test_assert(a == 1 && b == 2);
 	return 0;
 }

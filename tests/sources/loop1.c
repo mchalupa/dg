@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int main(void)
 {
@@ -8,6 +8,6 @@ int main(void)
 		b += 1;
 	}
 
-	assert(a == 10);
+	test_assert(a == 10);
 	return 0;
 }

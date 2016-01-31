@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 int *foo(int *a);
 
@@ -12,6 +12,6 @@ int main(void)
 	// since it may point to a
 	*p = 8;
 
-	assert(a == 8);
+	test_assert(a == 8);
 	return 0;
 }

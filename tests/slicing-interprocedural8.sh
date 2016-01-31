@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# make bash exit on any failure
-set -e
-
 TESTS_DIR=`dirname $0`
 source "$TESTS_DIR/test-runner.sh"
 
@@ -12,11 +9,23 @@ CODE="$TESTS_DIR/sources/interprocedural8.c"
 NAME=${CODE%.*}
 BCFILE="$NAME.bc"
 SLICEDFILE="$NAME.sliced"
+LINKEDFILE="$NAME.sliced.linked"
 
-clang -emit-llvm -c "$CODE" -o "$BCFILE"
-llvm-slicer -c __assert_fail "$BCFILE"
+# compile in.c out.bc
+compile "$CODE" "$BCFILE"
 
-# run the sliced code and check if it
-# has everything to pass the assert in it
-lli "$SLICEDFILE" &>/dev/null && errmsg "test failed, abort not reached"
+# slice the code
+llvm-slicer -c test_assert "$BCFILE"
+
+# link assert to the code
+link_with_assert "$SLICEDFILE" "$LINKEDFILE"
+
+OUTPUT="`lli "$LINKEDFILE" 2>&1`"
+
+#in this test we must have both - PASSED and FAILED
+echo "$OUTPUT" | grep -q 'Assertion PASSED' || { echo "$OUTPUT"; errmsg "Assertion 1 missing"; }
+echo "$OUTPUT" | grep -q 'Assertion FAILED' || { echo "$OUTPUT"; errmsg "Assertion 2 missing"; }
+
+echo "$OUTPUT"
+echo "(First should PASS, the other should FAIL)"
 exit 0

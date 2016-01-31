@@ -1,4 +1,4 @@
-#include <assert.h>
+
 #include <stdlib.h>
 
 struct wl_list;
@@ -32,7 +32,7 @@ int main(void)
 	i1->number = 8;
 
 	struct item *i = wl_container_of(list.next, i, link);
-	assert(i->number == 8);
+	test_assert(i->number == 8);
 
 	return 0;
 }

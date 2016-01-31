@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 void set2(int *b)
 {
@@ -21,6 +21,6 @@ int main(void)
 	c = 5;
 	s(&a);
 
-	assert(a == 13);
+	test_assert(a == 13);
 	return 0;
 }

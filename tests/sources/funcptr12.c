@@ -1,4 +1,4 @@
-#include <assert.h>
+
 
 struct callbacks {
 	int *(*reta)(int *, int *);
@@ -30,6 +30,6 @@ int main(void)
 	p = f(&a, &b);
 	*p = 7;
 
-	assert(b == 7);
+	test_assert(b == 7);
 	return 0;
 }
