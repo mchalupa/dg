@@ -54,7 +54,7 @@ link_with_assert()
 
 	clang -emit-llvm -c "$TESTS_DIR/test_assert.c" -o "$TEST_ASSERT" \
 		|| errmsg "Compilation of test_assert.c failed"
-	llvm-link "$FILE" "$TEST_ASSERT" -o "$LINKEDFILE" \
+	llvm-link "$FILE" "$TEST_ASSERT" -o "$OUT" \
 		|| errmsg "Linking with test_assert failed"
 }
 
