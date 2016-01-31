@@ -64,6 +64,16 @@ public:
         LLVMDependenceGraph *dg = block->getDG();
         dg->getConstructedBlocks().erase(blk);
 
+        for (auto succ : block->successors()) {
+            if (succ.label == 255)
+                continue;
+
+            llvm::Value *sval = const_cast<llvm::Value *>(succ.target->getKey());
+            if (sval) {
+                llvm::cast<llvm::BasicBlock>(sval)->removePredecessor(blk);
+            }
+        }
+
         blk->eraseFromParent();
     }
 
