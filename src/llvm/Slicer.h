@@ -385,8 +385,11 @@ private:
         using namespace llvm;
 
         TerminatorInst *tinst = llvmBB->getTerminator();
+        assert((!tinst || BB->successorsNum() <= 2 || llvm::isa<llvm::SwitchInst>(tinst))
+                && "BB has more than two successors (and it's not a switch)");
+
         if (!tinst) {
-            // block has no terminator - that is unreachable.
+            // block has no terminator
             // It may occur for example if we have:
             //
             //   call error()
@@ -395,30 +398,43 @@ private:
             //  The br instruction has no meaning when error() abort,
             //  but if error is not marked as noreturn, then the br
             //  will be there and will get sliced, making the block
-            //  unterminated
+            //  unterminated. The same may happen if we remove unconditional
+            //  branch inst
 
             LLVMContext& Ctx = llvmBB->getContext();
             Function *F = cast<Function>(llvmBB->getParent());
+            bool create_return = true;
 
-            if (F->getReturnType()->isVoidTy())
-                ReturnInst::Create(Ctx, llvmBB);
-            else if (F->getName().equals("main"))
-                // if this is main, than the safe exit equals to returning 0
-                // (it is just for convenience, we wouldn't need to do this)
-                ReturnInst::Create(Ctx,
-                                   ConstantInt::get(Type::getInt32Ty(Ctx), 0),
-                                   llvmBB);
-            else
-                ReturnInst::Create(Ctx,
-                                   UndefValue::get(F->getReturnType()), llvmBB);
+            if (BB->successorsNum() == 1) {
+                const LLVMBBlock::BBlockEdge& edge = *(BB->successors().begin());
+                if (edge.label != 255) {
+                    // don't create return, we created branchinst
+                    create_return = false;
 
+                    const BasicBlock *csucc = cast<BasicBlock>(edge.target->getKey());
+                    BasicBlock *succ = const_cast<BasicBlock *>(csucc);
+                    BranchInst::Create(succ, llvmBB);
+                }
+            }
+
+            if (create_return) {
+                if (F->getReturnType()->isVoidTy())
+                    ReturnInst::Create(Ctx, llvmBB);
+                else if (F->getName().equals("main"))
+                    // if this is main, than the safe exit equals to returning 0
+                    // (it is just for convenience, we wouldn't need to do this)
+                    ReturnInst::Create(Ctx,
+                                       ConstantInt::get(Type::getInt32Ty(Ctx), 0),
+                                       llvmBB);
+                else
+                    ReturnInst::Create(Ctx,
+                                       UndefValue::get(F->getReturnType()), llvmBB);
+
+            }
 
             // and that is all we can do here
             return;
         }
-
-        assert((BB->successorsNum() <= 2 || llvm::isa<llvm::SwitchInst>(tinst))
-                && "BB has more than two successors (and it's not a switch)");
 
         for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
             // skip artificial return basic block
