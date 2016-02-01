@@ -122,5 +122,6 @@ if (LLVM_DG)
 	add_test(slicing-sum1 slicing-sum1.sh)
 	add_test(slicing-sum2 slicing-sum2.sh)
 	add_test(slicing-sum3 slicing-sum3.sh)
+	add_test(control-regression1 slicing-control-regression1.sh)
 
 endif (LLVM_DG)
