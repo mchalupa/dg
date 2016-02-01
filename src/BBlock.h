@@ -116,35 +116,33 @@ public:
     // remove all edges from/to this BB
     void isolate()
     {
-        // remove this BB from predecessors
-        DGContainer<uint8_t> pred_labels;
-
+        // take every predecessor and reconnect edges from it
+        // to successors
         for (auto pred : prevBBs) {
-            bool found = false;
+            // find the edge that is going to this node
+            // and create new edges to all successors. The new edges
+            // will have the same label as the found one
+            DGContainer<BBlockEdge> new_edges;
             for (auto I = pred->nextBBs.begin(),E = pred->nextBBs.end(); I != E;) {
                 auto cur = I++;
                 if (cur->target == this) {
-                    // store labels that are going to this block,
-                    // new edges will have these
-                    pred_labels.insert(cur->label);
-                    // remove this edge
+                    // create edges that will go from the predecessor
+                    // to every successor of this node
+                    for (const BBlockEdge& succ : nextBBs)
+                        new_edges.insert(BBlockEdge(succ.target, cur->label));
+
+                    // remove the edge from predecessor
                     pred->nextBBs.erase(*cur);
-                    found = true;
                 }
             }
 
-            assert(found && "Did not have this BB as succesor of predecessor");
+            // add newly created edges to predecessor
+            for (const BBlockEdge& edge : new_edges)
+                pred->addSuccessor(edge);
         }
 
-        for (auto succ : nextBBs) {
-            // redirect edges from each predecessor
-            // to each successor
-            for (auto pred : prevBBs) {
-                for (uint8_t label : pred_labels) {
-                    pred->addSuccessor(succ.target, label);
-                }
-            }
-
+        // remove references to this node from successors
+        for (const BBlockEdge& succ : nextBBs) {
             // This assertion does not hold anymore, since if we have
             // two edges with different labels to the same successor,
             // and we remove the successor, then we remove 'this'
