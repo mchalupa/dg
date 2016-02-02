@@ -13,6 +13,7 @@ add_library(llvmdg SHARED
 	llvm/LLVMDependenceGraph.cpp
 	llvm/LLVMDGVerifier.h
 	llvm/LLVMDGVerifier.cpp
+	llvm/PostDominators.cpp
 	llvm/AnalysisGeneric.h
 	llvm/AnalysisGeneric.cpp
 	llvm/PointsTo.h
