@@ -12,16 +12,14 @@
 #include <utility>
 #include <unordered_map>
 #include <set>
-#include <vector>
 
-#include "analysis/BFS.h"
-
-#include <llvm/Analysis/PostDominators.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Support/CFG.h>
+
 
 #include "Utils.h"
 #include "LLVMDGVerifier.h"
@@ -611,113 +609,6 @@ void LLVMDependenceGraph::addFormalParameters()
         entryNode->addControlDependence(out);
         in->addDataDependence(out);
     }
-}
-
-static void computePDFrontiers(LLVMBBlock *BB)
-{
-    for (LLVMBBlock *pred : BB->predecessors()) {
-        LLVMBBlock *ipdom = pred->getIPostDom();
-        if (ipdom && ipdom != BB)
-            BB->addPostDomFrontier(pred);
-    }
-
-    for (LLVMBBlock *pdom : BB->getPostDominators()) {
-        for (LLVMBBlock *df : pdom->getPostDomFrontiers()) {
-            LLVMBBlock *ipdom = df->getIPostDom();
-            if (ipdom && ipdom != BB)
-                BB->addPostDomFrontier(df);
-        }
-    }
-}
-
-static void queuePostDomBBs(LLVMBBlock *BB, std::vector<LLVMBBlock *> *blocks)
-{
-    blocks->push_back(BB);
-}
-
-static void computePostDominanceFrontiers(LLVMBBlock *root)
-{
-    std::vector<LLVMBBlock *> blocks;
-    analysis::BBlockBFS<LLVMNode> bfs(analysis::BFS_BB_POSTDOM);
-
-    // get BBs in the order of post-dom tree edges
-    bfs.run(root, queuePostDomBBs, &blocks);
-
-    // go bottom-up the post-dom tree and compute post-domninance frontiers
-    for (int i = blocks.size() - 1; i >= 0; --i)
-        computePDFrontiers(blocks[i]);
-}
-
-void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
-{
-    using namespace llvm;
-    PostDominatorTree *pdtree = new PostDominatorTree();
-
-    // iterate over all functions
-    for (auto F : constructedFunctions) {
-        // root of post-dominator tree
-        LLVMBBlock *root = nullptr;
-        Value *val = const_cast<Value *>(F.first);
-        Function& f = *cast<Function>(val);
-        // compute post-dominator tree for this function
-        pdtree->runOnFunction(f);
-
-        // add immediate post-dominator edges
-        auto our_blocks = F.second->getConstructedBlocks();
-        bool built = false;
-        for (auto it : our_blocks) {
-            LLVMBBlock *BB = it.second;
-            BasicBlock *B = const_cast<BasicBlock *>(it.first);
-            DomTreeNode *N = pdtree->getNode(B);
-            // sometimes there's not even single node for the post-dominator tree, try:
-            // https://raw.githubusercontent.com/dbeyer/sv-benchmarks/master/c/bitvector/jain_4_true-unreach-call.i
-            if (!N)
-                continue;
-
-            DomTreeNode *idom = N->getIDom();
-            BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
-            built = true;
-
-            if (idomBB) {
-                LLVMBBlock *pb = our_blocks[idomBB];
-                assert(pb && "Do not have constructed BB");
-                BB->setIPostDom(pb);
-                assert(cast<BasicBlock>(BB->getKey())->getParent()
-                        == cast<BasicBlock>(pb->getKey())->getParent()
-                        && "BBs are from diferent functions");
-            // if we do not have idomBB, then the idomBB is a root BB
-            } else {
-                // PostDominatorTree may has special root without BB set
-                // or it is the node without immediate post-dominator
-                if (!root) {
-                    root = new LLVMBBlock();
-                    root->setKey(nullptr);
-                    F.second->setPostDominatorTreeRoot(root);
-                }
-
-                BB->setIPostDom(root);
-            }
-        }
-
-        // well, if we haven't built the pdtree, this is probably infinite loop
-        // that has no pdtree. Until we have anything better, just add sound
-        // edges that are not so precise - to predecessors.
-        if (!built) {
-            for (auto it : our_blocks) {
-                LLVMBBlock *BB = it.second;
-                for (const LLVMBBlock::BBlockEdge& succ : BB->successors())
-                    succ.target->addPostDomFrontier(BB);
-            }
-        }
-
-        if (addPostDomFrontiers) {
-            // assert(root && "BUG: must have root");
-            if (root)
-                computePostDominanceFrontiers(root);
-        }
-    }
-
-    delete pdtree;
 }
 
 static bool array_match(llvm::StringRef name, const char *names[])
