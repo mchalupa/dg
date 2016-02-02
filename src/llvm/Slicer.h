@@ -5,6 +5,7 @@
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/Support/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "analysis/Slicing.h"
@@ -379,6 +380,11 @@ private:
 
         // create new CFG edges between blocks after slicing
         reconnectLLLVMBasicBlocks(graph);
+
+        // if we sliced away entry block, our new entry block
+        // may have predecessors, which is not allowed in the
+        // LLVM
+        ensureEntryBlock(graph);
     }
 
     bool dontTouch(const llvm::StringRef& r)
@@ -468,6 +474,34 @@ private:
 
             reconnectBBlock(BB, llvmBB);
         }
+    }
+
+    void ensureEntryBlock(LLVMDependenceGraph *graph)
+    {
+        using namespace llvm;
+
+        Value *val = const_cast<Value *>(graph->getEntry()->getKey());
+        Function *F = cast<Function>(val);
+        BasicBlock *entryBlock = &F->getEntryBlock();
+
+        if (pred_begin(entryBlock) == pred_end(entryBlock)) {
+            // entry block has no predecessor, we're ok
+            return;
+        }
+
+        // it has some predecessor, create new one, that will just
+        // jump on it
+        LLVMContext& Ctx = graph->getModule()->getContext();
+        BasicBlock *block = BasicBlock::Create(Ctx, "single_entry");
+
+        // jump to the old entry block
+        BranchInst::Create(entryBlock, block);
+
+        // set it as a new entry by pusing the block to the front
+        // of the list
+        F->getBasicBlockList().push_front(block);
+
+        // FIXME: propagate this change to dependence graph
     }
 
     uint64_t nodesTotal;
