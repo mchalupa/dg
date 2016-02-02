@@ -43,6 +43,9 @@ public:
     typedef std::map<KeyT, NodeT *> ContainerType;
     typedef typename ContainerType::iterator iterator;
     typedef typename ContainerType::const_iterator const_iterator;
+#ifdef ENABLE_CFG
+    typedef std::map<KeyT, BBlock<NodeT> *> BBlocksMapT;
+#endif
 
 private:
     // entry and exit nodes of the graph
@@ -72,6 +75,9 @@ private:
     uint64_t slice_id;
 
 #ifdef ENABLE_CFG
+    // blocks contained in this graph
+    BBlocksMapT blocks;
+
     // if we want to keep CFG information in the dependence graph,
     // these are entry and exit basic blocks
     BBlock<NodeT> *entryBB;
@@ -412,6 +418,12 @@ public:
     uint64_t getSlice() const { return slice_id; }
 
 #ifdef ENABLE_CFG
+    // get blocks contained in this graph
+    BBlocksMapT& getBlocks() { return blocks; }
+    const BBlocksMapT& getBlocks() const { return blocks; }
+    // add block to this graph
+    bool addBlock(KeyT *key, BBlock<NodeT> *B) { return blocks.insert(B).second; }
+
     BBlock<NodeT> *getPostDominatorTreeRoot() const { return PDTreeRoot; }
     void setPostDominatorTreeRoot(BBlock<NodeT> *r)
     {

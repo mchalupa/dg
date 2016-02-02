@@ -27,11 +27,11 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         pdtree->runOnFunction(f);
 
         // add immediate post-dominator edges
-        auto our_blocks = F.second->getConstructedBlocks();
+        auto our_blocks = F.second->getBlocks();
         bool built = false;
         for (auto it : our_blocks) {
             LLVMBBlock *BB = it.second;
-            BasicBlock *B = const_cast<BasicBlock *>(it.first);
+            BasicBlock *B = cast<BasicBlock>(const_cast<Value *>(it.first));
             DomTreeNode *N = pdtree->getNode(B);
             // when function contains infinite loop, we're screwed
             // and we don't have anything

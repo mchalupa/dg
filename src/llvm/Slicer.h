@@ -63,7 +63,7 @@ public:
         //llvm::errs() << "Deleting: " << *blk << "\n===\n";
 
         LLVMDependenceGraph *dg = block->getDG();
-        dg->getConstructedBlocks().erase(blk);
+        dg->getBlocks().erase(blk);
 
         for (auto succ : block->successors()) {
             if (succ.label == 255)
@@ -247,8 +247,8 @@ private:
 
         LLVMBBlock *newExitBB = nullptr;
 
-        for (auto it : graph->getConstructedBlocks()) {
-            const llvm::BasicBlock *llvmBB = it.first;
+        for (auto it : graph->getBlocks()) {
+            const llvm::BasicBlock *llvmBB = llvm::cast<llvm::BasicBlock>(it.first);
             const llvm::TerminatorInst *tinst = llvmBB->getTerminator();
             LLVMBBlock *BB = it.second;
 
@@ -304,7 +304,7 @@ private:
     // sliced graph. Overrides parents method
     void sliceBBlocks(LLVMDependenceGraph *graph, uint32_t sl_id)
     {
-        auto& CB = graph->getConstructedBlocks();
+        LLVMDependenceGraph::BBlocksMapT& CB = graph->getBlocks();
 #ifdef DEBUG_ENABLED
         uint32_t blocksNum = CB.size();
 #endif
@@ -468,8 +468,9 @@ private:
 
     void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph)
     {
-        for (auto it : graph->getConstructedBlocks()) {
-            llvm::BasicBlock *llvmBB = const_cast<llvm::BasicBlock *>(it.first);
+        for (auto it : graph->getBlocks()) {
+            llvm::BasicBlock *llvmBB
+                = llvm::cast<llvm::BasicBlock>(const_cast<llvm::Value *>(it.first));
             LLVMBBlock *BB = it.second;
 
             reconnectBBlock(BB, llvmBB);
