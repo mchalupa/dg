@@ -440,7 +440,7 @@ addControlDepsToPHI(LLVMDependenceGraph *graph,
     using namespace llvm;
 
     const BasicBlock *this_block = phi->getParent();
-    auto CB = graph->getConstructedBlocks();
+    auto CB = graph->getBlocks();
 
     for (auto I = phi->block_begin(), E = phi->block_end(); I != E; ++I) {
         BasicBlock *B = *I;
@@ -500,9 +500,9 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     LLVMNode *entry = new LLVMNode(func);
     addGlobalNode(entry);
     setEntry(entry);
+    BBlocksMapT& blocks = getBlocks();
 
     constructedFunctions.insert(make_pair(func, this));
-    constructedBlocks.reserve(func->size());
 
     // add formal parameters to this graph
     addFormalParameters();
@@ -510,7 +510,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     // iterate over basic blocks
     for (const llvm::BasicBlock& llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
-        constructedBlocks[&llvmBB] = BB;
+        blocks[&llvmBB] = BB;
 
         // first basic block is the entry BB
         if (!getEntryBB())
@@ -518,15 +518,15 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     }
 
     // add CFG edges
-    for (auto it : constructedBlocks) {
-        const BasicBlock *llvmBB = it.first;
+    for (auto it : blocks) {
+        const BasicBlock *llvmBB = cast<BasicBlock>(it.first);
         LLVMBBlock *BB = it.second;
         BB->setDG(this);
 
         int idx = 0;
         for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
-            LLVMBBlock *succ = constructedBlocks[*S];
+            LLVMBBlock *succ = blocks[*S];
             assert(succ && "Missing basic block");
 
             // don't let overflow the labels silently
@@ -663,7 +663,7 @@ bool LLVMDependenceGraph::getCallSites(const char *names[],
                                        std::set<LLVMNode *> *callsites)
 {
     for (auto F : constructedFunctions) {
-        for (auto I : F.second->constructedBlocks) {
+        for (auto I : F.second->getBlocks()) {
             LLVMBBlock *BB = I.second;
             for (LLVMNode *n : BB->getNodes()) {
                 if (llvm::isa<llvm::CallInst>(n->getValue())) {

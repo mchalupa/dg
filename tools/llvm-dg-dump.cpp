@@ -315,11 +315,11 @@ int main(int argc, char *argv[])
 
         dump.dumpSubgraphStart(F.second, F.first->getName().data());
 
-        for (auto B : F.second->getConstructedBlocks()) {
+        for (auto B : F.second->getBlocks()) {
             dump.dumpBBlock(B.second);
         }
 
-        for (auto B : F.second->getConstructedBlocks()) {
+        for (auto B : F.second->getBlocks()) {
             dump.dumpBBlockEdges(B.second);
         }
 

@@ -369,7 +369,7 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
 static void addSubgraphBBs(LLVMPointsToAnalysis *PA,
                            LLVMDependenceGraph *graph)
 {
-    auto blocks = graph->getConstructedBlocks();
+    auto blocks = graph->getBlocks();
     for (auto it : blocks)
         PA->addBB(it.second);
 }

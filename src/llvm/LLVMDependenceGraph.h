@@ -53,11 +53,6 @@ public:
     bool addFormalGlobal(const llvm::Value *val);
 
     llvm::Module *getModule() const { return module; }
-    std::unordered_map<const llvm::BasicBlock *,
-                       LLVMBBlock *>& getConstructedBlocks()
-    {
-        return constructedBlocks;
-    }
 
     // if we want to slice according some call-site(s),
     // we can gather the relevant call-sites while building
@@ -125,8 +120,6 @@ private:
     // when building the graph
     std::set<LLVMNode *> *gatheredCallsites;
     const char *gather_callsites;
-
-    std::unordered_map<const llvm::BasicBlock *, LLVMBBlock *> constructedBlocks;
 
     // all callnodes in this graph - forming call graph
     std::set<LLVMNode *> callNodes;

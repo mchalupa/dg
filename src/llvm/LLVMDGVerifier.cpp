@@ -93,13 +93,13 @@ void LLVMDGVerifier::checkGraph(const llvm::Function *F, LLVMDependenceGraph *g)
         fault("key in entry node is not a llvm::Function");
 
     size_t a, b;
-    a = g->constructedBlocks.size();
+    a = g->getBlocks().size();
     b = func->size();
     if (a != b)
         fault("have constructed %lu BBlocks but function has %lu basic blocks", a, b);
 
     for (const BasicBlock& llvmBB : *F) {
-        LLVMBBlock *BB = g->constructedBlocks[&llvmBB];
+        LLVMBBlock *BB = g->getBlocks()[&llvmBB];
         if (!BB) {
             fault("missing BasicBlock");
             errs() << llvmBB << "\n";

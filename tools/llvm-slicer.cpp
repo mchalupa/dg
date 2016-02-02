@@ -196,7 +196,7 @@ public:
 
         for (auto it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
-            auto cb = sub->getConstructedBlocks();
+            auto cb = sub->getBlocks();
             LLVMBBlock *BB = cb[B];
             if (BB) {
                 if (opts & ANNOTATE_POSTDOM) {
