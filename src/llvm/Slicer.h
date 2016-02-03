@@ -482,6 +482,10 @@ private:
 
         Value *val = const_cast<Value *>(graph->getEntry()->getKey());
         Function *F = cast<Function>(val);
+
+	// Function is empty, just bail out
+	if(F->begin() == F->end()) return;
+
         BasicBlock *entryBlock = &F->getEntryBlock();
 
         if (pred_begin(entryBlock) == pred_end(entryBlock)) {
