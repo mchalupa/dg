@@ -12,7 +12,15 @@ We have implemented dependence graph for LLVM and a static slicer for LLVM.
 
 ### Requirements & Compilation
 
-LLVM DependenceGraph needs LLVM 3.4.
+LLVM DependenceGraph needs LLVM 3.4. Actually developed branch is backport-llvm-3.4,
+so checkout the project like this:
+
+```
+git clone https://github.com/mchalupa/dg -b backport-llvm-3.4
+cd dg
+```
+
+One you have the project cloned, you need to configure it.
 Fully manual configuration would look like this:
 
 ```
@@ -71,7 +79,7 @@ Now you're ready to slice the program:
 ./llvm-slicer -c slicing_criterion bytecode.bc
 ```
 
-The slicing_criterion is a call-site of some function or 'ret' when slicing
+The slicing\_criterion is a call-site of some function or 'ret' when slicing
 with respect to return value of the main function.
 
 To export dependence graph to .dot file, use:
@@ -86,8 +94,8 @@ You can highligh nodes from dependence graph that will be in the slice using -ma
 ./llvm-dg-dump -mark slicing_criterion bytecode.bc > file.dot
 ```
 
-In the tools/ directory there are few scripts for convenient manipulation
-of sliced code. First is sliced-diff.sh. This script takes file and shows
+In the tools/ directory, there are few scripts for convenient manipulation
+with the sliced bytecode. First is sliced-diff.sh. This script takes file and shows
 differences after slicing. It uses meld or kompare or just diff program
 to display the results (the first that is available on the system, in this order)
 
@@ -105,7 +113,7 @@ It takes exactly the same arguments as llvm-dg-dump:
 
 ### Example
 
-We can try slice for example this program (with respect to assertion):
+We can try slice for example this program (with respect to the assertion):
 
 ```
 #include <assert.h>
@@ -169,11 +177,13 @@ safe_return:                                      ; preds = %1
 
 ```
 
-To get this output conveniently you can use:
+To get this output conveniently, you can use:
 
 ```
 ./sliced-diff.sh fact.bc
 ```
+
+------------------------------------------------
 
 For more information you can write e-mails to:
 <statica@fi.muni.cz>
