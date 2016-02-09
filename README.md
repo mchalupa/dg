@@ -12,7 +12,7 @@ We have implemented dependence graph for LLVM and a static slicer for LLVM.
 
 ### Requirements & Compilation
 
-LLVM DependenceGraph needs LLVM 3.4. Actually developed branch is backport-llvm-3.4,
+LLVM DependenceGraph needs LLVM 3.4. Currently, the branch being developed is backport-llvm-3.4,
 so checkout the project like this:
 
 ```
