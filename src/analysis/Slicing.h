@@ -71,6 +71,20 @@ private:
     }
 };
 
+struct SlicerStatistics
+{
+    SlicerStatistics()
+        : nodesTotal(0), nodesRemoved(0), blocksRemoved(0) {}
+
+    // total number of nodes that were checked for removing
+    uint64_t nodesTotal;
+    // total number of nodes actually removed (including the
+    // ones removed in blocks)
+    uint64_t nodesRemoved;
+    // number of whole blocks removed
+    uint32_t blocksRemoved;
+};
+
 template <typename NodeT>
 class Slicer : Analysis<NodeT>
 {
@@ -96,9 +110,17 @@ class Slicer : Analysis<NodeT>
         // FIXME if graph own global nodes, slice the global nodes
     }
 
+protected:
+
+    // how many nodes and blocks were removed or kept
+    SlicerStatistics statistics;
+
 public:
     Slicer<NodeT>(uint32_t opt = 0)
         :options(opt), slice_id(0) {}
+
+    SlicerStatistics& getStatistics() { return statistics; }
+    const SlicerStatistics& getStatistics() const { return statistics; }
 
     uint32_t mark(NodeT *start, uint32_t sl_id = 0)
     {
