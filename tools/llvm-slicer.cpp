@@ -332,14 +332,12 @@ static bool slice(llvm::Module *M, const char *module_name,
     if (!ret) {
         if (strcmp(slicing_criterion, "ret") == 0) {
             callsites.insert(d.getExit());
-            tm.report("INFO: Found slicing criterion in");
         } else {
             errs() << "Did not find slicing criterion: "
                    << slicing_criterion << "\n";
             got_slicing_criterion = false;
         }
-    } else
-        tm.report("INFO: Found slicing criterion in");
+    }
 
     // if we found slicing criterion, compute the rest
     // of the graph. Otherwise just slice away the whole graph
@@ -372,7 +370,7 @@ static bool slice(llvm::Module *M, const char *module_name,
     slicer.slice(&d, nullptr, slid);
 
     tm.stop();
-    tm.report("INFO: Slicing took");
+    tm.report("INFO: Slicing dependence graph took");
 
     analysis::SlicerStatistics& st = slicer.getStatistics();
     errs() << "INFO: Sliced away " << st.nodesRemoved
