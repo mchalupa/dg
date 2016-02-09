@@ -19,7 +19,7 @@ class LLVMNode;
 class LLVMSlicer : public analysis::Slicer<LLVMNode>
 {
 public:
-    LLVMSlicer() :nodesTotal(0), nodesRemoved(0), blocksRemoved(0) {}
+    LLVMSlicer(){}
 
     void keepFunctionUntouched(const char *n)
     {
@@ -109,11 +109,6 @@ public:
         }
 
         return sl_id;
-    }
-
-    std::pair<uint64_t, uint64_t> getStatistics() const
-    {
-        return std::pair<uint64_t, uint64_t>(nodesTotal, nodesRemoved);
     }
 
 private:
@@ -319,9 +314,9 @@ private:
 
         for (LLVMBBlock *blk : blocks) {
             // update statistics
-            nodesRemoved += blk->size();
-            nodesTotal += blk->size();
-            ++blocksRemoved;
+            statistics.nodesRemoved += blk->size();
+            statistics.nodesTotal += blk->size();
+            ++statistics.blocksRemoved;
 
             // call specific handlers
             removeBlock(blk);
@@ -357,7 +352,7 @@ private:
             if (n == graph->getExit())
                 continue;
 
-            ++nodesTotal;
+            ++statistics.nodesTotal;
 
             // keep instructions like ret or unreachable
             // FIXME: if this is ret of some value, then
@@ -374,7 +369,7 @@ private:
             if (n->getSlice() != slice_id) {
                 removeNode(n);
                 graph->deleteNode(n);
-                ++nodesRemoved;
+                ++statistics.nodesRemoved;
             }
         }
 
@@ -509,10 +504,6 @@ private:
 
         // FIXME: propagate this change to dependence graph
     }
-
-    uint64_t nodesTotal;
-    uint64_t nodesRemoved;
-    uint32_t blocksRemoved;
 
     // do not slice these functions at all
     std::set<const char *> dont_touch;

@@ -293,9 +293,9 @@ int main(int argc, char *argv[])
             std::ofstream ofs(fl);
             llvm::raw_os_ostream output(ofs);
 
-            auto st = slicer.getStatistics();
-            errs() << "INFO: Sliced away " << st.second
-                   << " from " << st.first << " nodes\n";
+            analysis::SlicerStatistics& st = slicer.getStatistics();
+            errs() << "INFO: Sliced away " << st.nodesRemoved
+                   << " from " << st.nodesTotal << " nodes\n";
 
             llvm::WriteBitcodeToFile(M, output);
         }

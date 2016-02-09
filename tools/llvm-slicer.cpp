@@ -374,9 +374,9 @@ static bool slice(llvm::Module *M, const char *module_name,
     tm.stop();
     tm.report("INFO: Slicing took");
 
-    auto st = slicer.getStatistics();
-    errs() << "INFO: Sliced away " << st.second
-           << " from " << st.first << " nodes\n";
+    analysis::SlicerStatistics& st = slicer.getStatistics();
+    errs() << "INFO: Sliced away " << st.nodesRemoved
+           << " from " << st.nodesTotal << " nodes\n";
 
     return true;
 }
