@@ -1,6 +1,8 @@
 #ifndef _DG_SLICING_H_
 #define _DG_SLICING_H_
 
+#include <set>
+
 #include "NodesWalk.h"
 #include "BFS.h"
 #include "ADT/Queue.h"
@@ -189,6 +191,43 @@ public:
             blk->remove();
         }
     }
+
+    // remove BBlocks that contain no node that should be in
+    // sliced graph
+    void sliceBBlocks(DependenceGraph<NodeT> *graph, uint32_t sl_id)
+    {
+        typename DependenceGraph<NodeT>::BBlocksMapT& CB = graph->getBlocks();
+#ifdef DEBUG_ENABLED
+        uint32_t blocksNum = CB.size();
+#endif
+        // gather the blocks
+        // FIXME: we don't need two loops, just go carefully
+        // through the constructed blocks (keep temporary always-valid iterator)
+        std::set<BBlock<NodeT> *> blocks;
+        for (auto it : CB) {
+            if (it.second->getSlice() != sl_id)
+                blocks.insert(it.second);
+        }
+
+        for (BBlock<NodeT> *blk : blocks) {
+            // update statistics
+            statistics.nodesRemoved += blk->size();
+            statistics.nodesTotal += blk->size();
+            ++statistics.blocksRemoved;
+
+            // call specific handlers (overriden by child class)
+            removeBlock(blk);
+
+            // remove block from the graph
+            blk->remove();
+        }
+
+#ifdef DEBUG_ENABLED
+        assert(CB.size() + blocks.size() == blocksNum &&
+                "Inconsistency in sliced blocks");
+#endif
+    }
+
 #endif
 };
 
