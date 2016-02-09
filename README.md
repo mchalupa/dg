@@ -51,7 +51,21 @@ make -j4
 
 ### Using the slicer
 
-Compiled slicer can be found in the tools subdirectory. Basic usage is as follows:
+Compiled slicer can be found in the tools subdirectory. First, you need to compile your
+program into LLVM (make sure you are using the LLVM 3.4 version binaries!):
+
+```
+clang -c -emit-llvm source.c -o bytecode.bc
+```
+
+If the program is split into more programs (exactly one of them must contain main),
+you must compile all of them separately (as above) and then link the bytecodes using llvm-link:
+
+```
+llvm-link bytecode1.bc bytecode2.bc ... -o bytecode.bc
+```
+
+Now you're ready to slice the program:
 
 ```
 ./llvm-slicer -c slicing_criterion bytecode.bc
@@ -70,6 +84,95 @@ You can highligh nodes from dependence graph that will be in the slice using -ma
 
 ```
 ./llvm-dg-dump -mark slicing_criterion bytecode.bc > file.dot
+```
+
+In the tools/ directory there are few scripts for convenient manipulation
+of sliced code. First is sliced-diff.sh. This script takes file and shows
+differences after slicing. It uses meld or kompare or just diff program
+to display the results (the first that is available on the system, in this order)
+
+```
+./llvm-slicer -c crit code.bc
+./slicer-diff.sh code.bc
+```
+
+The other is wrapper around llvm-dg-dump. It uses evince or okular (or xdg-open).
+It takes exactly the same arguments as llvm-dg-dump:
+
+```
+./ldg-show.sh -mark crit code.bc
+```
+
+### Example
+
+We can try slice for example this program (with respect to assertion):
+
+```
+#include <assert.h>
+#include <stdio.h>
+
+long int fact(int x)
+{
+	long int r = x;
+	while (--x >=2)
+		r *= x;
+
+	return r;
+}
+
+int main(void)
+{
+	int a, b, c = 7;
+
+	while (scanf("%d", &a) > 0) {
+		assert(a > 0);
+		printf("fact: %lu\n", fact(a));
+	}
+
+	return 0;
+}
+```
+
+Let's say the program is stored in file fact.c. So we translate it into LLVM and then slice:
+
+```
+$ cd tools
+$ clang -c -emit-llvm fact.c -o fact.bc
+$ ./llvm-slicer -c __assert_fail fact.bc
+```
+
+The output is in fact.sliced, we can look at the result using llvm-dis or using sliced-diff.sh script:
+
+```
+; Function Attrs: nounwind uwtable
+define i32 @main() #0 {
+  %a = alloca i32, align 4
+  br label %1
+
+; <label>:1                                       ; preds = %4, %0
+  %2 = call i32 (i8*, ...) @__isoc99_scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i32 0, i32 0), i32* %a)
+  %3 = icmp sgt i32 %2, 0
+  br i1 %3, label %4, label %safe_return
+
+; <label>:4                                       ; preds = %1
+  %5 = load i32, i32* %a, align 4
+  %6 = icmp sgt i32 %5, 0
+  br i1 %6, label %1, label %7
+
+; <label>:7                                       ; preds = %4
+  call void @__assert_fail(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str1, i32 0, i32 0), ... [truncated])
+  unreachable
+
+safe_return:                                      ; preds = %1
+  ret i32 0
+}
+
+```
+
+To get this output conveniently you can use:
+
+```
+./sliced-diff.sh fact.bc
 ```
 
 For more information you can write e-mails to:
