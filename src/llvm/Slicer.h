@@ -295,42 +295,6 @@ private:
         }
     }
 
-    // remove BBlocks that contain no node that should be in
-    // sliced graph. Overrides parents method
-    void sliceBBlocks(LLVMDependenceGraph *graph, uint32_t sl_id)
-    {
-        LLVMDependenceGraph::BBlocksMapT& CB = graph->getBlocks();
-#ifdef DEBUG_ENABLED
-        uint32_t blocksNum = CB.size();
-#endif
-        // gather the blocks
-        // FIXME: we don't need two loops, just go carefully
-        // through the constructed blocks (keep temporary always-valid iterator)
-        std::set<LLVMBBlock *> blocks;
-        for (auto it : CB) {
-            if (it.second->getSlice() != sl_id)
-                blocks.insert(it.second);
-        }
-
-        for (LLVMBBlock *blk : blocks) {
-            // update statistics
-            statistics.nodesRemoved += blk->size();
-            statistics.nodesTotal += blk->size();
-            ++statistics.blocksRemoved;
-
-            // call specific handlers
-            removeBlock(blk);
-
-            // remove block from the graph
-            blk->remove();
-        }
-
-#ifdef DEBUG_ENABLED
-        assert(CB.size() + blocks.size() == blocksNum &&
-                "Inconsistency in sliced blocks");
-#endif
-    }
-
     void sliceGraph(LLVMDependenceGraph *graph, uint32_t slice_id)
     {
         // first slice away bblocks that should go away
