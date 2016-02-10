@@ -292,6 +292,20 @@ private:
                     assert(ret);
                 }
             }
+
+            // if we have all successor edges pointing to the same
+            // block, replace them with one successor (thus making
+            // unconditional jump)
+            if (BB->successorsNum() > 1 && BB->successorsAreSame()) {
+                LLVMBBlock *succ = BB->successors().begin()->target;
+
+                BB->removeSuccessors();
+                BB->addSuccessor(succ, 0);
+#ifdef ENABLE_DEBUG
+                assert(BB->successorsNum() == 1
+                       && "BUG: in removeSuccessors() or addSuccessor()");
+#endif
+            }
         }
     }
 
