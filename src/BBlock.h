@@ -255,33 +255,6 @@ public:
         prevBBs.clear();
     }
 
-    // remove predecessor basic block. Return value is
-    // 0 if nothing was removed, 1 if only one edge was removed
-    // (asserted when NDEBUG is defined)
-    // and two if both edges were removed.
-    // (Edges are [this -> p] and [p -> this])
-    //size_t removePredecessor(BBlock<NodeT> *p)
-    //{
-    //}
-
-    // return value is the same as with removePredecessor
-    //size_t removeSuccessor(BBlock<NodeT> *p, uint8_t label = 0)
-    //{
-    //    return removeSuccessor(BBlockEdge(p, label));
-    //}
-
-    //size_t removeSuccessor(BBlockEdge& edge)
-    //{
-    //    size_t ret = 0;
-    //    ret += p->prevBBs.erase(this);
-    //    ret += nextBBs.erase(edge);
-
-    //    // return value 1 means bug
-    //    assert(ret != 1 && "Bug in edges between basic blocks");
-
-    //    return ret;
-    //}
-
     bool addControlDependence(BBlock<NodeT> *b)
     {
         bool ret, ret2;
