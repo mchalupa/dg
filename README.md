@@ -110,6 +110,38 @@ It takes exactly the same arguments as llvm-dg-dump:
 ```
 ./ldg-show.sh -mark crit code.bc
 ```
+If the dependence graph is too big to be displayed using .dot files, you can debug the slice right from
+the LLVM. Just pass -debug option to llvm-slicer and it will store readable annotated LLVM in file-debug.ll
+(where file.bc is the name of file being sliced). There are more options (llvm-slicer -help for all of them),
+but the most interesting is probably -debug slicer:
+
+```
+./llvm-slicer -c crit -debug slicer code.bc
+```
+
+The content of code-debug.ll will look like this:
+```LLVM
+; <label>:25                                      ; preds = %20
+  ; x   call void @llvm.dbg.value(metadata !{i32* %i}, i64 0, metadata !151), !dbg !164
+  %26 = load i32* %i, align 4, !dbg !164
+  %27 = add nsw i32 %26, 1, !dbg !164
+  ; x   call void @llvm.dbg.value(metadata !{i32 %27}, i64 0, metadata !151), !dbg !164
+  store i32 %27, i32* %i, align 4, !dbg !164
+  ; x   call void @llvm.dbg.value(metadata !{i32* %j}, i64 0, metadata !153), !dbg !161
+  ; x   %28 = load i32* %j, align 4, !dbg !161
+  ; x   %29 = add nsw i32 %28, 1, !dbg !161
+  ; x   call void @llvm.dbg.value(metadata !{i32 %29}, i64 0, metadata !153), !dbg !161
+  ; x   br label %20, !dbg !165
+
+.critedge:                                        ; preds = %20
+  ; x   call void @llvm.dbg.value(metadata !{i32* %j}, i64 0, metadata !153), !dbg !166
+  ; x   %30 = load i32* %j, align 4, !dbg !166
+  ; x   %31 = icmp sgt i32 %30, 99, !dbg !166
+  ; x   br i1 %31, label %19, label %32, !dbg !166
+```
+
+Other interesting debugging options are ptr, dd, cd, postdom to annotate points-to information,
+data dependences, control dependences or post-dominator information. You can chain few -debug options (-debug cd -debug slice)
 
 ### Example
 
