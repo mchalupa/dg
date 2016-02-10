@@ -115,7 +115,7 @@ It takes exactly the same arguments as llvm-dg-dump:
 
 We can try slice for example this program (with respect to the assertion):
 
-```
+```C
 #include <assert.h>
 #include <stdio.h>
 
@@ -151,7 +151,7 @@ $ ./llvm-slicer -c __assert_fail fact.bc
 
 The output is in fact.sliced, we can look at the result using llvm-dis or using sliced-diff.sh script:
 
-```
+```LLVM
 ; Function Attrs: nounwind uwtable
 define i32 @main() #0 {
   %a = alloca i32, align 4
