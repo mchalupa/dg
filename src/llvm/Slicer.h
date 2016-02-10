@@ -48,6 +48,28 @@ public:
         return true;
     }
 
+    static void
+    adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk)
+    {
+        using namespace llvm;
+
+        for(Instruction& I : *pred) {
+            PHINode *phi = dyn_cast<PHINode>(&I);
+            if (phi) {
+                // the second argument is DeletePHIIFEmpty.
+                // We don't want that, since that would make
+                // dependence graph inconsistent. We'll
+                // slice it away later, if it's empty
+                phi->removeIncomingValue(blk, false);
+            } else {
+                // phi nodes are always at the beginning of the block
+                // so if this is the first value that is not PHI,
+                // there won't be any other and we can bail out
+                break;
+            }
+        }
+    }
+
     /* virtual */
     void removeBlock(LLVMBBlock *block)
     {
@@ -70,9 +92,8 @@ public:
                 continue;
 
             llvm::Value *sval = const_cast<llvm::Value *>(succ.target->getKey());
-            if (sval) {
-                llvm::cast<llvm::BasicBlock>(sval)->removePredecessor(blk);
-            }
+            if (sval)
+                adjustPhiNodes(llvm::cast<llvm::BasicBlock>(sval), blk);
         }
 
         blk->eraseFromParent();
