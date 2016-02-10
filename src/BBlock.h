@@ -113,6 +113,28 @@ public:
         return !controlDeps.empty();
     }
 
+    // return true if all successors point
+    // to the same basic block (not considering labels,
+    // just the targets)
+    bool successorsAreSame() const
+    {
+        if (nextBBs.size() < 2)
+            return true;
+
+        typename SuccContainerT::const_iter start, iter, end;
+        iter = nextBBs.begin();
+        end = nextBBs.end();
+
+        BBlock<NodeT> *block = iter->target;
+        // iterate over all successor and
+        // check if they are all the same
+        for (++iter; iter != end; ++iter)
+            if (iter->target != block)
+                return false;
+
+        return true;
+    }
+
     // remove all edges from/to this BB
     void isolate()
     {
@@ -141,22 +163,12 @@ public:
                 pred->addSuccessor(edge);
         }
 
-        // remove references to this node from successors
-        for (const BBlockEdge& succ : nextBBs) {
-            // This assertion does not hold anymore, since if we have
-            // two edges with different labels to the same successor,
-            // and we remove the successor, then we remove 'this'
-            // from prevBBs twice. If we'll add labels even to predecessors,
-            // this assertion must hold again
-            // bool ret = succ.target->prevBBs.erase(this);
-            // assert(ret && "Did not have this BB in successor's pred");
-            succ.target->prevBBs.erase(this);
-        }
+        removeSuccessors();
 
         // we reconnected and deleted edges from other
         // BBs, but we still have edges from this to other BBs
+        // NOTE: nextBBs were cleared in removeSuccessors()
         prevBBs.clear();
-        nextBBs.clear();
 
         // remove reverse edges to this BB
         for (auto B : controlDeps)
@@ -219,8 +231,16 @@ public:
 
     void removeSuccessors()
     {
-        for (auto BB : nextBBs) {
-            BB.target->prevBBs.erase(this);
+        // remove references to this node from successors
+        for (const BBlockEdge& succ : nextBBs) {
+            // This assertion does not hold anymore, since if we have
+            // two edges with different labels to the same successor,
+            // and we remove the successor, then we remove 'this'
+            // from prevBBs twice. If we'll add labels even to predecessors,
+            // this assertion must hold again
+            // bool ret = succ.target->prevBBs.erase(this);
+            // assert(ret && "Did not have this BB in successor's pred");
+            succ.target->prevBBs.erase(this);
         }
 
         nextBBs.clear();
