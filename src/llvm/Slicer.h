@@ -56,11 +56,16 @@ public:
         for(Instruction& I : *pred) {
             PHINode *phi = dyn_cast<PHINode>(&I);
             if (phi) {
+                // don't try remove block that we already removed
+                int idx = phi->getBasicBlockIndex(blk);
+                if (idx < 0)
+                    continue;
+
                 // the second argument is DeletePHIIFEmpty.
                 // We don't want that, since that would make
                 // dependence graph inconsistent. We'll
                 // slice it away later, if it's empty
-                phi->removeIncomingValue(blk, false);
+                phi->removeIncomingValue(idx, false);
             } else {
                 // phi nodes are always at the beginning of the block
                 // so if this is the first value that is not PHI,
