@@ -30,6 +30,17 @@
 using namespace dg;
 using llvm::errs;
 
+static bool debug_def = false;
+static bool debug_ptr = false;
+
+static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
+{
+    if (off.offset == UNKNOWN_OFFSET)
+        os << "UNKNOWN";
+    else
+        os << off.offset;
+}
+
 static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 {
     if (!val) {
@@ -69,94 +80,142 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
     return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
+class LLVMDG2Dot : public debug::DG2Dot<LLVMNode>
 {
-    if (off.offset == UNKNOWN_OFFSET)
-        os << "UNKNOWN";
-    else
-        os << off.offset;
-}
+public:
 
-static bool debug_def = false;
-static bool debug_ptr = false;
+    LLVMDG2Dot(LLVMDependenceGraph *dg,
+                  uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD,
+                  const char *file = NULL)
+        : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
-static bool checkNode(std::ostream& os, LLVMNode *node)
-{
-    bool err = false;
-    const llvm::Value *val = node->getKey();
+    /* virtual */
+    std::ostream& printKey(std::ostream& os, const llvm::Value *val)
+    {
+        return printLLVMVal(os, val);
+    }
 
-    if (!val) {
-        os << "\\nERR: no value in node";
+    /* virtual */
+    bool checkNode(std::ostream& os, LLVMNode *node)
+    {
+        bool err = false;
+        const llvm::Value *val = node->getKey();
+
+        if (!val) {
+            os << "\\nERR: no value in node";
+            return true;
+        }
+
+        if (!node->getBBlock()
+            && !llvm::isa<llvm::Function>(val)
+            && !llvm::isa<llvm::GlobalVariable>(val)) {
+            err = true;
+            os << "\\nERR: no BB";
+        }
+
+        if (debug_ptr) {
+            const analysis::PointsToSetT& ptsto = node->getPointsTo();
+            if (ptsto.empty() && val->getType()->isPointerTy()) {
+                os << "\\lERR: pointer without pointsto set";
+                err = true;
+            } else
+                os << "\\l -- points-to info --";
+
+            for (auto it : ptsto) {
+                os << "\\l[";
+                if (it.isUnknown())
+                    os << "unknown";
+                else if (it.obj->isUnknown())
+                    os << "unknown mem";
+                else if (it.obj->isNull())
+                    os << "nullptr";
+                else
+                    printLLVMVal(os, it.obj->node->getKey());
+                os << "] + " << it.offset;
+            }
+
+            analysis::MemoryObj *mo = node->getMemoryObj();
+            if (mo) {
+                for (auto it : mo->pointsTo) {
+                    for(auto it2 : it.second) {
+                        os << "\\lmem: [" << it.first << "] -> [";
+                        if (it2.isUnknown())
+                            os << "unknown";
+                        else if (it2.obj->isUnknown())
+                            os << "unknown mem";
+                        else if (it2.obj->isNull())
+                            os << "nullptr";
+                        else
+                            printLLVMVal(os, it2.obj->node->getKey());
+                        os << "] + " << it2.offset;
+                    }
+                }
+            }
+        }
+
+        if (debug_def) {
+            analysis::DefMap *df = node->getData<analysis::DefMap>();
+            if (df) {
+                os << "\\l -- reaching defs info --";
+                for (auto it : df->getDefs()) {
+                    for (auto v : it.second) {
+                        os << "\\l: [";
+                        if (it.first.obj->isUnknown())
+                            os << "[unknown";
+                        else
+                            printLLVMVal(os, it.first.obj->node->getKey());
+                        os << "] + " << it.first.offset << " @ ";
+                        printLLVMVal(os, v->getKey());
+                    }
+                }
+            }
+        }
+
+        return err;
+    }
+
+    bool dump(const char *new_file = NULL /*, const char *dump_func_only = NULL*/)
+    {
+        const char *dump_func_only = nullptr;
+
+        // make sure we have the file opened
+        if (!ensureFile(new_file))
+            return false;
+
+        const std::map<const llvm::Value *,
+                       LLVMDependenceGraph *>& CF = getConstructedFunctions();
+
+        start();
+
+        for (auto F : CF) {
+            if (dump_func_only && !F.first->getName().equals(dump_func_only))
+                continue;
+
+            dumpSubgraph(F.second, F.first->getName().data());
+        }
+
+        end();
+
         return true;
     }
 
-    if (!node->getBBlock()
-        && !llvm::isa<llvm::Function>(val)
-        && !llvm::isa<llvm::GlobalVariable>(val)) {
-        err = true;
-        os << "\\nERR: no BB";
-    }
+private:
 
-    if (debug_ptr) {
-        const analysis::PointsToSetT& ptsto = node->getPointsTo();
-        if (ptsto.empty() && val->getType()->isPointerTy()) {
-            os << "\\lERR: pointer without pointsto set";
-            err = true;
-        } else
-            os << "\\l -- points-to info --";
+    void dumpSubgraph(LLVMDependenceGraph *graph, const char *name)
+    {
+        dumpSubgraphStart(graph, name);
 
-        for (auto it : ptsto) {
-            os << "\\l[";
-            if (it.isUnknown())
-                os << "unknown";
-            else if (it.obj->isUnknown())
-                os << "unknown mem";
-            else if (it.obj->isNull())
-                os << "nullptr";
-            else
-                printLLVMVal(os, it.obj->node->getKey());
-            os << "] + " << it.offset;
+        for (auto B : graph->getBlocks()) {
+            dumpBBlock(B.second);
         }
 
-        analysis::MemoryObj *mo = node->getMemoryObj();
-        if (mo) {
-            for (auto it : mo->pointsTo) {
-                for(auto it2 : it.second) {
-                    os << "\\lmem: [" << it.first << "] -> [";
-                    if (it2.isUnknown())
-                        os << "unknown";
-                    else if (it2.obj->isUnknown())
-                        os << "unknown mem";
-                    else if (it2.obj->isNull())
-                        os << "nullptr";
-                    else
-                        printLLVMVal(os, it2.obj->node->getKey());
-                    os << "] + " << it2.offset;
-                }
-            }
+        for (auto B : graph->getBlocks()) {
+            dumpBBlockEdges(B.second);
         }
-    }
 
-    if (debug_def) {
-        analysis::DefMap *df = node->getData<analysis::DefMap>();
-        if (df) {
-            os << "\\l -- reaching defs info --";
-            for (auto it : df->getDefs()) {
-                for (auto v : it.second) {
-                    os << "\\l: [";
-                    if (it.first.obj->isUnknown())
-                        os << "[unknown";
-                    else
-                        printLLVMVal(os, it.first.obj->node->getKey());
-                    os << "] + " << it.first.offset << " @ ";
-                    printLLVMVal(os, v->getKey());
-                }
-            }
-        }
+        dumpSubgraphEnd(graph);
     }
-
-    return err;
-}
+};
 
 static const char *slicing_criterion;
 static bool mark_only = false;
@@ -301,32 +360,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    debug::DG2Dot<LLVMNode> dump(&d, opts);
-
-    dump.printKey = printLLVMVal;
-    dump.checkNode = checkNode;
-    const std::map<const llvm::Value *,
-                   LLVMDependenceGraph *>& CF = getConstructedFunctions();
-
-    dump.start();
-    for (auto F : CF) {
-        if (dump_func_only && !F.first->getName().equals(dump_func_only))
-            continue;
-
-        dump.dumpSubgraphStart(F.second, F.first->getName().data());
-
-        for (auto B : F.second->getBlocks()) {
-            dump.dumpBBlock(B.second);
-        }
-
-        for (auto B : F.second->getBlocks()) {
-            dump.dumpBBlockEdges(B.second);
-        }
-
-        dump.dumpSubgraphEnd(F.second);
-    }
-
-    dump.end();
+    LLVMDG2Dot dumper(&d, opts);
+    dumper.dump();
 
     return 0;
 }
