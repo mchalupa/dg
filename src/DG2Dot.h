@@ -166,21 +166,23 @@ public:
         dump_parameters(sub, 2);
     }
 
-    void dumpSubgraphEnd(DependenceGraph<NodeT> *sub)
+    void dumpSubgraphEnd(DependenceGraph<NodeT> *sub, bool with_nodes = true)
     {
-        // dump all nodes, to get it without BBlocks
-        // (we may not have BBlocks or we just don't want
-        // to print them
-        for (auto I = sub->begin(), E = sub->end(); I != E; ++I) {
-            dump_node(I->second, 2);
-            dump_node_edges(I->second, 2);
-        }
-
-        if (sub->ownsGlobalNodes()) {
-            auto globals = sub->getGlobalNodes();
-            for (auto I = globals->begin(), E = globals->end(); I != E; ++I) {
-                dump_node(I->second, 2, "GLOB");
+        if (with_nodes) {
+            // dump all nodes, to get it without BBlocks
+            // (we may not have BBlocks or we just don't want
+            // to print them
+            for (auto I = sub->begin(), E = sub->end(); I != E; ++I) {
+                dump_node(I->second, 2);
                 dump_node_edges(I->second, 2);
+            }
+
+            if (sub->ownsGlobalNodes()) {
+                auto globals = sub->getGlobalNodes();
+                for (auto I = globals->begin(), E = globals->end(); I != E; ++I) {
+                    dump_node(I->second, 2, "GLOB");
+                    dump_node_edges(I->second, 2);
+                }
             }
         }
 
@@ -567,8 +569,10 @@ private:
 
     DependenceGraph<NodeT> *dg;
     const char *file;
-    std::ofstream out;
     std::set<DependenceGraph<NodeT> *> subgraphs;
+
+protected:
+    std::ofstream out;
 };
 
 } // debug

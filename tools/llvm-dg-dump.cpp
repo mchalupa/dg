@@ -174,10 +174,8 @@ public:
         return err;
     }
 
-    bool dump(const char *new_file = NULL /*, const char *dump_func_only = NULL*/)
+    bool dump(const char *new_file = nullptr, const char *dump_func_only = nullptr)
     {
-        const char *dump_func_only = nullptr;
-
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;
@@ -217,16 +215,128 @@ private:
     }
 };
 
-static const char *slicing_criterion;
-static bool mark_only = false;
-static const char *dump_func_only = nullptr;
+class LLVMDGDumpBlocks : public debug::DG2Dot<LLVMNode>
+{
+public:
+
+    LLVMDGDumpBlocks(LLVMDependenceGraph *dg,
+                  uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD,
+                  const char *file = NULL)
+        : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
+
+    /* virtual
+    std::ostream& printKey(std::ostream& os, const llvm::Value *val)
+    {
+        return printLLVMVal(os, val);
+    }
+    */
+
+    /* virtual */
+    bool checkNode(std::ostream& os, LLVMNode *node)
+    {
+        return false; // no error
+    }
+
+    bool dump(const char *new_file = nullptr , const char *dump_func_only = nullptr)
+    {
+        // make sure we have the file opened
+        if (!ensureFile(new_file))
+            return false;
+
+        const std::map<const llvm::Value *,
+                       LLVMDependenceGraph *>& CF = getConstructedFunctions();
+
+        start();
+
+        for (auto F : CF) {
+            if (dump_func_only && !F.first->getName().equals(dump_func_only))
+                continue;
+
+            dumpSubgraph(F.second, F.first->getName().data());
+        }
+
+        end();
+
+        return true;
+    }
+
+private:
+
+    void dumpSubgraph(LLVMDependenceGraph *graph, const char *name)
+    {
+        dumpSubgraphStart(graph, name);
+
+        for (auto B : graph->getBlocks()) {
+            dumpBlock(B.second);
+        }
+
+        for (auto B : graph->getBlocks()) {
+            dumpBlockEdges(B.second);
+        }
+
+        dumpSubgraphEnd(graph, false);
+    }
+
+    void dumpBlock(LLVMBBlock *blk)
+    {
+        out << "NODE" << blk << " [label=\"";
+
+        std::ostringstream ostr;
+        llvm::raw_os_ostream ro(ostr);
+
+        ro << *blk->getKey();
+        ro.flush();
+        std::string str = ostr.str();
+
+        unsigned int i = 0;
+        unsigned int len = 0;
+        while (str[i] != 0) {
+            if (len >= 40) {
+                str[i] = '\n';
+                len = 0;
+            } else
+                ++len;
+
+            if (str[i] == '\n')
+                len = 0;
+
+            ++i;
+        }
+
+        unsigned int slice_id = blk->getSlice();
+        if (slice_id != 0)
+            out << "\\nslice: "<< slice_id << "\\n";
+        out << str << "\"";
+
+        if (slice_id != 0)
+            out << "style=filled fillcolor=greenyellow";
+
+        out << "]\n";
+    }
+
+    void dumpBlockEdges(LLVMBBlock *blk)
+    {
+        for (const LLVMBBlock::BBlockEdge& edge : blk->successors()) {
+            out << "NODE" << blk << " -> NODE" << edge.target << " [penwidth=2] \n";
+        }
+
+        for (const LLVMBBlock *pdf : blk->getPostDomFrontiers()) {
+            out << "NODE" << blk << " -> NODE" << pdf
+                << "[color=purple constraint=false]\n";
+        }
+    }
+};
 
 int main(int argc, char *argv[])
 {
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     llvm::Module *M;
-    const char *module = NULL;
+    bool mark_only = false;
+    bool bb_only = false;
+    const char *module = nullptr;
+    const char *slicing_criterion = nullptr;
+    const char *dump_func_only = nullptr;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
@@ -243,6 +353,8 @@ int main(int argc, char *argv[])
             opts |= PRINT_CALL;
         } else if (strcmp(argv[i], "-postdom") == 0) {
             opts |= PRINT_POSTDOM;
+        } else if (strcmp(argv[i], "-bb-only") == 0) {
+            bb_only = true;
         } else if (strcmp(argv[i], "-cfgall") == 0) {
             opts |= PRINT_CFG;
             opts |= PRINT_REV_CFG;
@@ -360,8 +472,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    LLVMDG2Dot dumper(&d, opts);
-    dumper.dump();
+    if (bb_only) {
+        LLVMDGDumpBlocks dumper(&d, opts);
+        dumper.dump(nullptr, dump_func_only);
+    } else {
+        LLVMDG2Dot dumper(&d, opts);
+        dumper.dump(nullptr, dump_func_only);
+    }
 
     return 0;
 }
