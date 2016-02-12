@@ -48,8 +48,7 @@ public:
     DG2Dot<NodeT>(DependenceGraph<NodeT> *dg,
                   uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,
                   const char *file = NULL)
-        : options(opts), dg(dg), file(file),
-          printKey(nullptr), checkNode(check_node)
+        : options(opts), dg(dg), file(file)
     {
         reopen(file);
     }
@@ -64,10 +63,28 @@ public:
             reopen(new_file);
     }
 
-    bool dump(const char *new_file = NULL, BBlock<NodeT> *BB = nullptr)
+    virtual std::ostream& printKey(std::ostream& os, KeyT key)
     {
-        if (new_file)
-            reopen(new_file);
+        os << key;
+    }
+
+    // \return - error state: true if there's an error, false otherwise
+    virtual bool checkNode(std::ostream& os, NodeT *node)
+    {
+	    bool err = false;
+
+	    if (!node->getBBlock()) {
+	        err = true;
+	        os << "\\nERR: no BB";
+	    }
+
+	    return err;
+    }
+
+    bool ensureFile(const char *fl)
+    {
+        if (fl)
+            reopen(fl);
 
         if (!out.is_open()) {
             std::cerr << "File '" << file << "' not opened"
@@ -75,10 +92,19 @@ public:
             return false;
         }
 
+        return true;
+    }
+
+    virtual bool dump(const char *new_file = nullptr)
+    {
+        if (!ensureFile(new_file))
+            return false;
+
         start();
 
-        if (BB)
-            dumpBBs(BB);
+#ifdef ENABLE_CFG
+        dumpBBs(dg);
+#endif
 
         // even when we have printed nodes while
         // going through BBs, print nodes again,
@@ -169,18 +195,15 @@ public:
 
     void dumpBBlock(BBlock<NodeT> *BB, int ind = 2)
     {
-        DumpBBData data(out, options, ind, printKey);
-        dumpBB(BB, data);
+        dumpBB(BB, ind);
     }
 
     void dumpBBlockEdges(BBlock<NodeT> *BB, int ind = 1)
     {
-        DumpBBData data(out, options, ind, printKey);
-        dumpBBedges(BB, data);
+        dumpBBedges(BB, ind);
     }
 
 private:
-
     // what all to print?
     uint32_t options;
 
@@ -196,33 +219,18 @@ private:
         file = new_file;
     }
 
-    struct DumpBBData {
-        DumpBBData(std::ofstream& o, uint32_t opts, int ind = 1,
-                   std::ostream& (*pk)(std::ostream&, KeyT) = nullptr)
-            : out(o), options(opts), indent(ind), printKey(pk) {}
-
-        std::ofstream& out;
-        uint32_t options;
-        int indent;
-        std::ostream& (*printKey)(std::ostream& os, KeyT key);
-    };
-
-    static void dumpBB(const BBlock<NodeT> *BB, DumpBBData& data)
+    void dumpBB(const BBlock<NodeT> *BB, int indent)
     {
-        std::ofstream& out = data.out;
-        Indent Ind(data.indent);
+        Indent Ind(indent);
 
         out << Ind << "/* Basic Block ";
-        if (data.printKey)
-            data.printKey(out, BB->getKey());
+        printKey(out, BB->getKey());
         out << " [" << BB << "] */\n";
         out << Ind << "subgraph cluster_bb_" << BB << " {\n";
         out << Ind << "\tstyle=filled fillcolor=white\n";
         out << Ind << "\tlabel=\"";
-        if (data.printKey)
-            data.printKey(out, BB->getKey());
-        else
-            out << "BBlock ";
+
+        printKey(out, BB->getKey());
         out << " [" << BB << "]";
 
         unsigned int dfsorder = BB->getDFSOrder();
@@ -244,11 +252,9 @@ private:
         out << Ind << "} /* cluster_bb_" << BB << " */\n\n";
     }
 
-    static void dumpBBedges(BBlock<NodeT> *BB, DumpBBData& data)
+    void dumpBBedges(BBlock<NodeT> *BB, int indent)
     {
-        std::ofstream& out = data.out;
-        uint32_t options = data.options;
-        Indent Ind(data.indent);
+        Indent Ind(indent);
 
         if (options & PRINT_CFG) {
             for (auto S : BB->successors()) {
@@ -342,12 +348,12 @@ private:
     void dump_parameters(DGParameters<NodeT> *params, int ind, bool formal)
     {
         Indent Ind(ind);
-        DumpBBData data(out, options, ind, printKey);
 
-        out << Ind << "/* Input parameters */\n";
-        dumpBB(params->getBBIn(), data);
-        out << Ind << "/* Output parameters */\n";
-        dumpBB(params->getBBOut(), data);
+        // FIXME
+        // out << Ind << "/* Input parameters */\n";
+        // dumpBB(params->getBBIn(), data);
+        // out << Ind << "/* Output parameters */\n";
+        // dumpBB(params->getBBOut(), data);
 
         // dump all the nodes again to get the names
         for (auto it : *params) {
@@ -401,9 +407,10 @@ private:
     {
         dumpSubgraphStart(sub);
 
+#ifdef ENABLE_CFG
         // dump BBs in the subgraph
-        if (sub->getEntryBB())
-            dumpBBs(sub->getEntryBB(), 2);
+        dumpBBs(sub, 2);
+#endif
 
         // dump all nodes again, if there is any that is
         // not in any BB
@@ -416,31 +423,18 @@ private:
         dumpSubgraphEnd(sub);
     }
 
-    void dumpBBs(BBlock<NodeT> *startBB, int ind = 1)
+    void dumpBBs(DependenceGraph<NodeT> *graph, int ind = 1)
     {
-        dg::analysis::BBlockDFS<NodeT> DFS;
-
-        // print nodes in BB
-        DFS.run(startBB, dumpBB, DumpBBData(out, options, ind, printKey));
+        for (auto it : graph->getBlocks())
+            dumpBB(it.second, ind);
 
         // print CFG edges between BBs
         if (options & (PRINT_CFG | PRINT_REV_CFG)) {
             out << Indent(ind) << "/* CFG edges */\n";
-            DFS.run(startBB, dumpBBedges, DumpBBData(out, options, ind, printKey));
+            for (auto it : graph->getBlocks())
+                dumpBBedges(it.second, ind);
         }
     }
-
-	static bool check_node(std::ostream& os, NodeT *node)
-	{
-	    bool err = false;
-
-	    if (!node->getBBlock()) {
-	        err = true;
-	        os << "\\nERR: no BB";
-	    }
-
-	    return err;
-	}
 
     void dump_node(NodeT *node, int ind = 1, const char *prefix = nullptr)
     {
@@ -456,10 +450,7 @@ private:
         if (prefix)
             out << prefix << " ";
 
-        if (printKey)
-            printKey(out, node->getKey());
-        else
-            out << node->getKey();
+        printKey(out, node->getKey());
 
         if (node->hasSubgraphs())
             out << "\\nsubgraphs: " << node->subgraphsNum();
@@ -578,12 +569,6 @@ private:
     const char *file;
     std::ofstream out;
     std::set<DependenceGraph<NodeT> *> subgraphs;
-
-public:
-    /* functions for adjusting the output. These are public,
-     * so that user can set them as he/she wants */
-    std::ostream& (*printKey)(std::ostream& os, KeyT key);
-	bool (*checkNode)(std::ostream& os, NodeT *node);
 };
 
 } // debug
