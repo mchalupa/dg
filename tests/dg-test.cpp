@@ -607,13 +607,64 @@ public:
         slicer.sliceBBlocks(BB1, 1);
 
         check(BB2->successorsNum() == 1, "BB2 should have one successor "
-                                         "but has %u", BB1->successorsNum());
-        //check (*(BB1->successors.begin()) == BB5, "Succ of BB1 should be BB5");
-        //check (*(BB5->successors.begin()) == BB6, "Succ of BB5 should be BB6");
+                                         "but has %u", BB2->successorsNum());
+        check (*(BB2->successors().begin()) == BB3, "Succ of BB1 should be BB5");
         check(BB3->successorsNum() == 0, "BB6 should no successor");
 
         check(d.size() == 2, "Not sliced correctly, should have 2 nodes "
                              "in a graph, but have %u", d.size());
+    }
+
+    void test3()
+    {
+
+        TestDG d;
+
+        TestNode *n1 = new TestNode(1);
+        TestNode *n2 = new TestNode(2);
+        TestNode *n3 = new TestNode(3);
+        TestNode *n4 = new TestNode(4);
+        d.addNode(n1);
+        d.addNode(n2);
+        d.addNode(n3);
+        d.addNode(n4);
+
+        TestBBlock *B1 = new TestBBlock(n1, &d);
+        TestBBlock *B2 = new TestBBlock(n2, &d);
+        TestBBlock *B3 = new TestBBlock(n3, &d);
+        TestBBlock *B4 = new TestBBlock(n4, &d);
+        B1->setKey(1);
+        B2->setKey(2);
+        B3->setKey(3);
+        B4->setKey(4);
+        d.addBlock(1, B1);
+        d.addBlock(2, B2);
+        d.addBlock(3, B3);
+        d.addBlock(4, B4);
+
+        B1->addSuccessor(B2, 1);
+
+        B2->addSuccessor(B3, 0);
+        B2->addSuccessor(B4, 1);
+
+        B3->addSuccessor(B4, 0);
+        B4->addSuccessor(B1, 0);
+
+        B1->setSlice(1);
+
+        debug::DG2Dot<TestNode> dump(&d);
+        dump.dump("test-pre.dot");
+
+        analysis::Slicer<TestNode> slicer;
+        slicer.sliceBBlocks(&d, 1);
+
+        dump.dump("test.dot");
+
+        check(d.getBlocks().size() == 1, "Did not removed blocks correctly");
+        check(B1->successorsNum() == 0, "B1 should have one successor "
+                                         "but has %u", B1->successorsNum());
+        check(B1->predecessorsNum() == 0, "B1 should have no predecessor "
+                                         "but has %u", B1->predecessorsNum());
     }
 #endif // ENABLE_CFG
 
@@ -621,10 +672,9 @@ public:
     {
         test1();
         test2();
+        test3();
     }
 };
-
-
 
 }; // namespace tests
 }; // namespace dg
