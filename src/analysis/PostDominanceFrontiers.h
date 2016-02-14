@@ -47,7 +47,7 @@ class PostDominanceFrontiers
         for (BBlock<NodeT> *pdom : BB->getPostDominators()) {
             for (BBlock<NodeT> *df : pdom->getPostDomFrontiers()) {
                 BBlock<NodeT> *ipdom = df->getIPostDom();
-                if (ipdom && ipdom != BB)
+                if (ipdom && ipdom != BB && df != BB)
                     BB->addPostDomFrontier(df);
             }
         }
