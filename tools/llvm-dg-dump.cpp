@@ -317,7 +317,8 @@ private:
     void dumpBlockEdges(LLVMBBlock *blk)
     {
         for (const LLVMBBlock::BBlockEdge& edge : blk->successors()) {
-            out << "NODE" << blk << " -> NODE" << edge.target << " [penwidth=2] \n";
+            out << "NODE" << blk << " -> NODE" << edge.target
+                << " [penwidth=2 label=\""<< (int) edge.label << "\"] \n";
         }
 
         for (const LLVMBBlock *pdf : blk->getPostDomFrontiers()) {
