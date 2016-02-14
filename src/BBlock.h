@@ -182,6 +182,9 @@ public:
         // do not leave any dangling reference
         isolate();
 
+        if (dg)
+            dg->removeBlock(key);
+
         // XXX what to do when this is entry block?
 
         if (with_nodes) {
