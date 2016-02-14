@@ -285,6 +285,7 @@ private:
                         oldExitBB->remove();
                         graph->setExitBB(newExitBB);
                         graph->setExit(newExitBB->getLastNode());
+                        graph->addBlock(newExitBB->getKey(), newExitBB);
                     }
 
                     succ.target = newExitBB;
