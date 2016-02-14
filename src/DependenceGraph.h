@@ -422,7 +422,15 @@ public:
     BBlocksMapT& getBlocks() { return blocks; }
     const BBlocksMapT& getBlocks() const { return blocks; }
     // add block to this graph
-    bool addBlock(KeyT *key, BBlock<NodeT> *B) { return blocks.insert(B).second; }
+    bool addBlock(KeyT key, BBlock<NodeT> *B)
+    {
+        return blocks.insert(std::make_pair(key, B)).second;
+    }
+
+    bool removeBlock(KeyT key)
+    {
+        return blocks.erase(key) == 1;
+    }
 
     BBlock<NodeT> *getPostDominatorTreeRoot() const { return PDTreeRoot; }
     void setPostDominatorTreeRoot(BBlock<NodeT> *r)
