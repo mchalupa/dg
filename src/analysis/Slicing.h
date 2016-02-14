@@ -174,8 +174,6 @@ public:
         data.blocks.insert(BB);
     }
 
-    // remove BBlocks that contain no node that should be in
-    // sliced graph
     void sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
     {
         // we must queue the blocks ourselves before we potentially remove them
@@ -186,8 +184,15 @@ public:
         bfs.run(start, getBlocksToRemove, data);
 
         for (BBlock<NodeT> *blk : blocks) {
-            // call specific handlers
+            // update statistics
+            statistics.nodesRemoved += blk->size();
+            statistics.nodesTotal += blk->size();
+            ++statistics.blocksRemoved;
+
+            // call specific handlers (overriden by child class)
             removeBlock(blk);
+
+            // remove block from the graph
             blk->remove();
         }
     }
