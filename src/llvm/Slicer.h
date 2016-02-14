@@ -256,7 +256,7 @@ private:
     // when we sliced away a branch of CFG, we need to reconnect it
     // to exit block, since on this path we would silently terminate
     // (this path won't have any effect on the property anymore)
-    void makeGraphComplete(LLVMDependenceGraph *graph)
+    void makeGraphComplete(LLVMDependenceGraph *graph, uint32_t slice_id)
     {
         LLVMBBlock *oldExitBB = graph->getExitBB();
         assert(oldExitBB && "Don't have exit BB");
@@ -264,11 +264,36 @@ private:
         LLVMBBlock *newExitBB = nullptr;
 
         for (auto it : graph->getBlocks()) {
-            const llvm::BasicBlock *llvmBB = llvm::cast<llvm::BasicBlock>(it.first);
+            const llvm::BasicBlock *llvmBB
+                = llvm::cast<llvm::BasicBlock>(it.first);
             const llvm::TerminatorInst *tinst = llvmBB->getTerminator();
             LLVMBBlock *BB = it.second;
 
+            // nothing to do
+            if (BB->successorsNum() == 0)
+                continue;
+
+            // if the BB has only one successor and the terminator
+            // instruction is going to be sliced away, it means that
+            // this is going to be an unconditional jump,
+            // so just make the label 0
+            if (BB->successorsNum() == 1
+                && BB->getLastNode()->getSlice() != slice_id) {
+                auto edge = *(BB->successors().begin());
+                edge.label = 0;
+                continue;
+            }
+
+            // when we have more successors, we need to fill in
+            // jumps under labels that we sliced away
+
             DGContainer<uint8_t> labels;
+            // go through BBs successors and gather all labels
+            // from edges that go from this BB. Also if there's
+            // a jump to return block, replace it with new
+            // return block
+            // FIXME: don't create new one, create it
+            // when creating graph and just use that
             for (auto succ : BB->successors()) {
                 // skip artificial return basic block
                 if (succ.label == 255)
@@ -293,7 +318,8 @@ private:
                     labels.insert(succ.label);
             }
 
-            // replace missing labels
+            // replace missing labels. Label should be from 0 to some max,
+            // no gaps, so jump to safe exit under missing labels
             for (uint8_t i = 0; i < tinst->getNumSuccessors(); ++i) {
                 if (labels.contains(i))
                     continue;
@@ -337,7 +363,7 @@ private:
         sliceBBlocks(graph, slice_id);
 
         // make graph complete
-        makeGraphComplete(graph);
+        makeGraphComplete(graph, slice_id);
 
         // now slice away instructions from BBlocks that left
         for (auto I = graph->begin(), E = graph->end(); I != E;) {
