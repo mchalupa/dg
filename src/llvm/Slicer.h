@@ -253,6 +253,19 @@ private:
         return exitBB;
     }
 
+    static LLVMBBlock* addNewExitBB(LLVMDependenceGraph *graph)
+    {
+
+        // FIXME: don't create new one, create it
+        // when creating graph and just use that one
+        LLVMBBlock *newExitBB = createNewExitBB(graph);
+        graph->setExitBB(newExitBB);
+        graph->setExit(newExitBB->getLastNode());
+        graph->addBlock(newExitBB->getKey(), newExitBB);
+
+        return newExitBB;
+    }
+
     // when we sliced away a branch of CFG, we need to reconnect it
     // to exit block, since on this path we would silently terminate
     // (this path won't have any effect on the property anymore)
@@ -280,7 +293,18 @@ private:
             if (BB->successorsNum() == 1
                 && BB->getLastNode()->getSlice() != slice_id) {
                 auto edge = *(BB->successors().begin());
+
                 edge.label = 0;
+
+                if (edge.target == oldExitBB) {
+                     if (!newExitBB) {
+                        newExitBB = addNewExitBB(graph);
+                        oldExitBB->remove();
+                    }
+
+                    edge.target = newExitBB;
+                }
+
                 continue;
             }
 
@@ -292,8 +316,6 @@ private:
             // from edges that go from this BB. Also if there's
             // a jump to return block, replace it with new
             // return block
-            // FIXME: don't create new one, create it
-            // when creating graph and just use that
             for (auto succ : BB->successors()) {
                 // skip artificial return basic block
                 if (succ.label == 255)
@@ -306,11 +328,8 @@ private:
                 // behaviour of slice - we can exit
                 if (succ.target == oldExitBB) {
                     if (!newExitBB) {
-                        newExitBB = createNewExitBB(graph);
+                        newExitBB = addNewExitBB(graph);
                         oldExitBB->remove();
-                        graph->setExitBB(newExitBB);
-                        graph->setExit(newExitBB->getLastNode());
-                        graph->addBlock(newExitBB->getKey(), newExitBB);
                     }
 
                     succ.target = newExitBB;
@@ -324,20 +343,13 @@ private:
                 if (labels.contains(i))
                     continue;
                 else {
-                    /*
-                    llvm::errs() << "adding new succ "
-                                 << *newExitBB->getKey() << "\n"
-                                 << (int) i << " to " << *llvmBB << "\n";
-                                 */
                      if (!newExitBB) {
-                        newExitBB = createNewExitBB(graph);
+                        newExitBB = addNewExitBB(graph);
                         oldExitBB->remove();
-                        graph->setExitBB(newExitBB);
-                        graph->setExit(newExitBB->getLastNode());
                     }
 
                     bool ret = BB->addSuccessor(newExitBB, i);
-                    assert(ret);
+                    assert(ret && "Already had this CFG edge, that is wrong");
                 }
             }
 
