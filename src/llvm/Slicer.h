@@ -87,11 +87,6 @@ public:
         llvm::Value *llvmval = const_cast<llvm::Value *>(val);
         llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(llvmval);
 
-        //llvm::errs() << "Deleting: " << *blk << "\n===\n";
-
-        LLVMDependenceGraph *dg = block->getDG();
-        dg->getBlocks().erase(blk);
-
         for (auto succ : block->successors()) {
             if (succ.label == 255)
                 continue;
