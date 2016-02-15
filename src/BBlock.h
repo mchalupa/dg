@@ -215,13 +215,7 @@ public:
 
     bool addSuccessor(const BBlockEdge& edge)
     {
-        bool ret;
-
-        // do not allow self-loops
-        if (edge.target == this)
-            return false;
-
-        ret = nextBBs.insert(edge);
+        bool ret = nextBBs.insert(edge);
         edge.target->prevBBs.insert(this);
 
         return ret;
