@@ -526,6 +526,14 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
         int idx = 0;
         for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
+
+            // self loops are not supported now
+            if (*S == llvmBB) {
+                errs() << "Found BasicBlock that contains self-loop.\n"
+                       << "This is not supported now, sorry :(\n";
+                abort();
+            }
+
             LLVMBBlock *succ = blocks[*S];
             assert(succ && "Missing basic block");
 
