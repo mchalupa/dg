@@ -608,8 +608,8 @@ public:
 
         check(BB2->successorsNum() == 1, "BB2 should have one successor "
                                          "but has %u", BB2->successorsNum());
-        check (*(BB2->successors().begin()) == BB3, "Succ of BB1 should be BB5");
-        check(BB3->successorsNum() == 0, "BB6 should no successor");
+        check ((BB2->successors().begin())->target == BB3, "Succ of BB1 should be BB3");
+        check(BB3->successorsNum() == 0, "BB3 should have no successor");
 
         check(d.size() == 2, "Not sliced correctly, should have 2 nodes "
                              "in a graph, but have %u", d.size());
@@ -661,10 +661,11 @@ public:
         dump.dump("test.dot");
 
         check(d.getBlocks().size() == 1, "Did not removed blocks correctly");
-        check(B1->successorsNum() == 0, "B1 should have one successor "
+        check(B1->successorsNum() == 1, "B1 should have one successor "
                                          "but has %u", B1->successorsNum());
-        check(B1->predecessorsNum() == 0, "B1 should have no predecessor "
+        check(B1->predecessorsNum() == 1, "B1 should have one predecessor "
                                          "but has %u", B1->predecessorsNum());
+        check (B1->successors().begin()->target == B1, "Succ of BB1 should be itself");
     }
 #endif // ENABLE_CFG
 
