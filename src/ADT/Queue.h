@@ -29,6 +29,11 @@ public:
         return Container.empty();
     }
 
+    size_t size() const
+    {
+        return Container.size();
+    }
+
 private:
     std::stack<ValueT> Container;
 };
@@ -53,6 +58,11 @@ public:
     bool empty() const
     {
         return Container.empty();
+    }
+
+    size_t size() const
+    {
+        return Container.size();
     }
 
 private:
