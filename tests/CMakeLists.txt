@@ -27,7 +27,7 @@ add_dependencies(check data-flow-test)
 add_executable(points-to-test points-to-test.cpp)
 add_test(points-to-test points-to-test)
 add_dependencies(check points-to-test)
-target_link_libraries(points-to-test pss)
+target_link_libraries(points-to-test PSS)
 
 # --------------------------------------------------
 # llvm-dg-test
@@ -35,7 +35,7 @@ target_link_libraries(points-to-test pss)
 if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader)
 	add_executable(llvm-dg-test llvm-dg-test.cpp)
-	target_link_libraries(llvm-dg-test llvmdg)
+	target_link_libraries(llvm-dg-test LLVMdg)
 
 	add_test(llvm-dg-test llvm-dg-test)
 	add_dependencies(check llvm-dg-test)
