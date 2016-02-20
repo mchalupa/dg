@@ -1,6 +1,15 @@
 if (LLVM_DG)
   set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
+add_library(pss SHARED
+	analysis/Pointer.h
+	analysis/Pointer.cpp
+	analysis/PSS.h
+	analysis/PSS.cpp
+	analysis/PointsToFlowInsensitive.h
+	analysis/PointsToFlowSensitive.h
+)
+
 add_library(llvmdg SHARED
 	Utils.h
 	BBlock.h
@@ -25,9 +34,13 @@ add_library(llvmdg SHARED
 	llvm/ReachingDefs.h
 	llvm/ReachingDefs.cpp
 	llvm/Slicer.h
+	llvm/PSS.h
+	llvm/PSS.cpp
+	llvm/LLVMPointsToAnalysis.h
+	llvm/LLVMPointsToAnalysis.cpp
 )
 
-target_link_libraries(llvmdg ${llvm_libs})
+target_link_libraries(llvmdg pss ${llvm_libs})
 install(TARGETS llvmdg
 	LIBRARY DESTINATION lib)
 
