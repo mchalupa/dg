@@ -1,6 +1,7 @@
 #ifndef _LLVM_DG_SLICER_H_
 #define _LLVM_DG_SLICER_H_
 
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/GlobalVariable.h>
