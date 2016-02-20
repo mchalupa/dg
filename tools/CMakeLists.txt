@@ -1,12 +1,17 @@
 if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
+
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
-	add_executable(llvm-slicer llvm-slicer.cpp)
-	add_executable(llvm-to-source llvm-to-source.cpp)
 	target_link_libraries(llvm-dg-dump llvmdg)
+
+	add_executable(llvm-slicer llvm-slicer.cpp)
 	target_link_libraries(llvm-slicer llvmdg)
-	# FIXME we should link only agains llvm
-	target_link_libraries(llvm-to-source llvmdg)
+
+	add_executable(llvm-pss-dump llvm-pss-dump.cpp)
+	target_link_libraries(llvm-pss-dump llvmdg)
+
+	add_executable(llvm-to-source llvm-to-source.cpp)
+	target_link_libraries(llvm-to-source ${llvm_libs})
 
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)

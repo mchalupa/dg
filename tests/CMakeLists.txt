@@ -22,6 +22,14 @@ add_test(data-flow-test data-flow-test)
 add_dependencies(check data-flow-test)
 
 # --------------------------------------------------
+# points-to-test
+# --------------------------------------------------
+add_executable(points-to-test points-to-test.cpp)
+add_test(points-to-test points-to-test)
+add_dependencies(check points-to-test)
+target_link_libraries(points-to-test pss)
+
+# --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 if (LLVM_DG)
