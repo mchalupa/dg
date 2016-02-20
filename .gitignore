@@ -51,6 +51,9 @@ tags
 # LLVM files
 *.bc
 *.ll
+*.sliced
+
+*.i
 
 tests/*-test
 
