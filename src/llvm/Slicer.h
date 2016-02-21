@@ -92,6 +92,11 @@ public:
             if (succ.label == 255)
                 continue;
 
+            // don't adjust phi nodes in this block if this is a self-loop,
+            // we're gonna remove the block anyway
+            if (succ.target == block)
+                continue;
+
             llvm::Value *sval = const_cast<llvm::Value *>(succ.target->getKey());
             if (sval)
                 adjustPhiNodes(llvm::cast<llvm::BasicBlock>(sval), blk);
