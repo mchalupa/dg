@@ -200,8 +200,7 @@ private:
             return;
 
         for (BBlock<NodeT> *S : BB->getPostDomFrontiers())
-            if (S != BB)
-                enqueue(S->getLastNode());
+            enqueue(S->getLastNode());
     }
 #endif // ENABLE_CFG
 
