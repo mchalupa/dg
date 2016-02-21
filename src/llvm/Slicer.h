@@ -292,6 +292,29 @@ private:
             if (BB->successorsNum() == 0)
                 continue;
 
+            // if the BB has two successors and one is self-loop and
+            // the branch inst is going to be removed, then the brach
+            // that created the self-loop has no meaning to the sliced
+            // program and this is going to be an unconditional jump
+            // to the other branch
+            // NOTE: do this before the next action,
+            // to rename the label if needed
+            if (BB->successorsNum() == 2
+                && BB->getLastNode()->getSlice() != slice_id) {
+                bool found = false;
+                for (auto I = BB->successors().begin(), E = BB->successors().end(); I != E;) {
+                    auto cur = I++;
+                    if (cur->target == BB) {
+                        found = true;
+                        BB->removeSuccessor(*cur);
+                        break;
+                    }
+                }
+
+                assert(found && "This should not happen...");
+                assert(BB->successorsNum() == 1 && "Should have only one successor");
+            }
+
             // if the BB has only one successor and the terminator
             // instruction is going to be sliced away, it means that
             // this is going to be an unconditional jump,
@@ -473,6 +496,9 @@ private:
             }
 
             if (create_return) {
+                assert(BB->successorsNum() == 0
+                        && "Creating return to BBlock that has successors");
+
                 if (F->getReturnType()->isVoidTy())
                     ReturnInst::Create(Ctx, llvmBB);
                 else if (F->getName().equals("main"))
