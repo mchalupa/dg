@@ -60,6 +60,11 @@ bool PSS::processNode(PSSNode *node)
                                              *ptr.offset + *node->offset);
             }
             break;
+        case CAST:
+            // cast only copies the pointers
+            for (const Pointer& ptr : node->getOperand(0)->pointsTo)
+                changed |= node->addPointsTo(ptr);
+            break;
         case CONSTANT:
             // maybe warn? It has no sense to insert the constants into the graph.
             // On the other hand it is harmless. We can at least check if it is

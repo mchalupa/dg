@@ -288,6 +288,34 @@ static PSSNode *createGEP(const llvm::Instruction *Inst,
     return node;
 }
 
+static PSSNode *createCast(const llvm::Instruction *Inst,
+                           const llvm::DataLayout *DL)
+{
+    const llvm::Value *op = Inst->getOperand(0);
+    PSSNode *op1 = nodes_map[op];
+
+    if (!op1) {
+        if (const llvm::ConstantExpr *CE
+                = llvm::dyn_cast<llvm::ConstantExpr>(op)) {
+            op1 = createConstantExpr(CE, DL);
+        } else {
+            llvm::errs() << *op << "\n";
+            llvm::errs() << *Inst << "\n";
+            assert(0 && "Instruction unspported");
+        }
+    }
+
+    PSSNode *node = new PSSNode(pss::CAST, op1);
+    nodes_map[Inst] = node;
+
+#ifdef DEBUG_ENABLED
+    node->setName(getInstName(Inst).c_str());
+#endif
+
+    assert(node);
+    return node;
+}
+
 // return first and last nodes of the block
 std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
                                               const llvm::DataLayout *DL)
@@ -316,6 +344,9 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
                 break;
             case Instruction::GetElementPtr:
                 node = createGEP(&Inst, DL);
+                break;
+            case Instruction::BitCast:
+                node = createCast(&Inst, DL);
                 break;
         }
 

@@ -22,6 +22,7 @@ enum PSSNodeType {
         STORE,
         GEP,
         PHI,
+        CAST,
         // support for interprocedural analysis
         CALL,
         // node that has only one points-to relation
@@ -44,6 +45,7 @@ using pss::PHI;
 using pss::CALL;
 using pss::RETURN;
 using pss::CONSTANT;
+using pss::CAST;
 
 class PSSNode
 {
@@ -97,6 +99,9 @@ public:
             case GEP:
                 operands.push_back(va_arg(args, PSSNode *));
                 offset = va_arg(args, Offset);
+                break;
+            case CAST:
+                operands.push_back(va_arg(args, PSSNode *));
                 break;
             case CONSTANT:
                 pointsTo.insert(va_arg(args, Pointer));
