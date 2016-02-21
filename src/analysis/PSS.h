@@ -56,6 +56,14 @@ class PSSNode
     PSSNodeType type;
     Offset offset; // for the case this node is GEP
 
+    /// some additional information
+    // was memory zeroed at initialization or right after allocating?
+    bool zeroInitialized;
+    // is memory allocated on heap?
+    bool is_heap;
+    // size of the memory
+    size_t size;
+
     // for debugging
     const char *name;
 
@@ -66,7 +74,8 @@ class PSSNode
 
 public:
     PSSNode(PSSNodeType t, ...)
-    : type(t), offset(0), name(nullptr), dfsid(0), data(nullptr)
+    : type(t), offset(0), zeroInitialized(false), is_heap(false),
+      size(0), name(nullptr), dfsid(0), data(nullptr)
     {
         // assing operands
         va_list args;
@@ -134,6 +143,16 @@ public:
 
         return operands[idx];
     }
+
+
+    void setZeroInitialized() { zeroInitialized = true; }
+    bool isZeroInitialized() const { return zeroInitialized; }
+
+    void setIsHeap() { is_heap = true; }
+    bool isHeap() const { return is_heap; }
+
+    void setSize(size_t s) { size = s; }
+    size_t getSize() const { return size; }
 
     void addSuccessor(PSSNode *succ)
     {
