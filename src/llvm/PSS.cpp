@@ -8,6 +8,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include "analysis/PSS.h"
@@ -64,7 +65,10 @@ static PSSNode *createStore(const llvm::Instruction *Inst)
     assert(Inst->getOperand(0)->getType()->isPointerTy());
 
     // FIXME
-    assert(op1 && "ConstantExpr not supported yet");
+    if (!op1) {
+        llvm::errs() << *Inst << "\n";
+        assert(0 && "ConstantExpr not supported yet");
+    }
 
     assert(op2 && "Store does not have pointer operand");
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
@@ -84,7 +88,10 @@ static PSSNode *createLoad(const llvm::Instruction *Inst)
 
     PSSNode *op1 = nodes_map[op];
     // FIXME
-    assert(op1 && "ConstantExpr not supported yet");
+    if (!op1) {
+        llvm::errs() << *Inst << "\n";
+        assert(0 && "ConstantExpr not supported yet");
+    }
 
     PSSNode *node = new PSSNode(pss::LOAD, op1);
     nodes_map[Inst] = node;
@@ -117,7 +124,10 @@ static PSSNode *createGEP(const llvm::Instruction *Inst,
 
     PSSNode *op = nodes_map[ptrOp];
     // FIXME
-    assert(op && "ConstantExpr not supported yet");
+    if (!op) {
+        llvm::errs() << *Inst << "\n";
+        assert(0 && "ConstantExpr not supported yet");
+    }
 
     if (GEP->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(bitwidth))
@@ -138,6 +148,44 @@ static PSSNode *createGEP(const llvm::Instruction *Inst,
 
     assert(node);
     return node;
+}
+
+static void handleGlobalVariableInitializer(const llvm::GlobalVariable *GV,
+                                            PSSNode *node)
+{
+    llvm::errs() << *GV << "\n";
+    llvm::errs() << "ERROR: ^^^ global variable initializers not implemented\n";
+}
+
+std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
+                                             const llvm::DataLayout *DL)
+{
+    PSSNode *cur = nullptr, *prev, *first = nullptr;
+    for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
+        prev = cur;
+        llvm::errs() << *I <<"\n";
+        // every global node is like memory allocation
+        cur = new PSSNode(pss::ALLOC);
+        nodes_map[&*I] = cur;
+
+#ifdef DEBUG_ENABLED
+        cur->setName(getInstName(&*I).c_str());
+#endif
+
+        // handle globals initialization
+        const llvm::GlobalVariable *GV
+                            = llvm::dyn_cast<llvm::GlobalVariable>(&*I);
+        if (GV && GV->hasInitializer() && !GV->isExternallyInitialized())
+            handleGlobalVariableInitializer(GV, cur);
+
+        if (prev)
+            prev->addSuccessor(cur);
+        else
+            first = cur;
+    }
+
+    assert((!first && !cur) || (first && cur));
+    return std::pair<PSSNode *, PSSNode *>(first, cur);
 }
 
 // return first and last nodes of the block
