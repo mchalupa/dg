@@ -64,6 +64,13 @@ struct Offset
 };
 
 struct MemoryObject;
+struct Pointer;
+
+extern const Pointer PointerUnknown;
+extern const Pointer PointerNull;
+extern PSSNode *NULLPTR;
+extern PSSNode *UNKNOWN_MEMORY;
+
 struct Pointer
 {
     Pointer(PSSNode *n, Offset off = 0) : target(n), offset(off)
@@ -86,12 +93,13 @@ struct Pointer
         return target == oth.target && offset == oth.offset;
     }
 
+    bool isNull() const { return target == NULLPTR; }
+    bool pointsToUnknownMemory() const { return target == UNKNOWN_MEMORY; }
+
 #if 0
     bool isUnknown() const;
     bool pointsToUnknown() const;
     bool isKnown() const;
-    bool isNull() const;
-    bool pointsToHeap() const;
 #endif
 };
 

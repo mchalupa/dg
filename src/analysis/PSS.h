@@ -28,8 +28,9 @@ enum PSSNodeType {
         // that never changes
         CONSTANT,
         RETURN,
-        // special node
+        // special nodes
         NULLPTR,
+        UNKNOWN_MEMLOC
 };
 }
 
@@ -104,6 +105,10 @@ public:
                 // NULLPTR just points to itself
                 pointsTo.insert(Pointer(this, 0));
                 break;
+            case pss::UNKNOWN_MEMLOC:
+                // UNKNOWN_MEMLOC points to itself
+                pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
+                break;
             case PHI:
             case CALL:
             case RETURN:
@@ -144,7 +149,6 @@ public:
         return operands[idx];
     }
 
-
     void setZeroInitialized() { zeroInitialized = true; }
     bool isZeroInitialized() const { return zeroInitialized; }
 
@@ -153,6 +157,9 @@ public:
 
     void setSize(size_t s) { size = s; }
     size_t getSize() const { return size; }
+
+    bool isNull() const { return type == pss::NULLPTR; }
+    bool isUnknownMemory() const { return type == pss::UNKNOWN_MEMLOC; }
 
     void addSuccessor(PSSNode *succ)
     {
@@ -316,6 +323,7 @@ public:
 };
 
 extern PSSNode *NULLPTR;
+extern PSSNode *UNKNOWN_MEMORY;
 
 } // namespace analysis
 } // namespace dg

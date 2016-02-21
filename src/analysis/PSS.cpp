@@ -1,10 +1,18 @@
+#include "Pointer.h"
 #include "PSS.h"
 
 namespace dg {
 namespace analysis {
 
+// nodes representing NULL and unknown memory
 PSSNode NULLPTR_LOC(pss::NULLPTR);
 PSSNode *NULLPTR = &NULLPTR_LOC;
+PSSNode UNKNOWN_MEMLOC(pss::UNKNOWN_MEMLOC);
+PSSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+
+// pointers to those memory
+const Pointer PointerUnknown(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+const Pointer PointerNull(NULLPTR, 0);
 
 using namespace pss;
 
