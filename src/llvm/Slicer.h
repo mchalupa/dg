@@ -297,10 +297,10 @@ private:
             // that created the self-loop has no meaning to the sliced
             // program and this is going to be an unconditional jump
             // to the other branch
-            // NOTE: do this before the next action,
-            // to rename the label if needed
+            // NOTE: do this before the next action, to rename the label if needed
             if (BB->successorsNum() == 2
-                && BB->getLastNode()->getSlice() != slice_id) {
+                && BB->getLastNode()->getSlice() != slice_id
+                && !BB->successorsAreSame()) {
                 bool found = false;
                 for (auto I = BB->successors().begin(), E = BB->successors().end(); I != E;) {
                     auto cur = I++;
@@ -311,8 +311,13 @@ private:
                     }
                 }
 
+                // we have two different successors, none of them
+                // is self-loop and we're slicing away the brach inst?
+                // This should not happen...
                 assert(found && "This should not happen...");
                 assert(BB->successorsNum() == 1 && "Should have only one successor");
+
+                // continue here to rename the only label if needed
             }
 
             // if the BB has only one successor and the terminator
