@@ -135,7 +135,8 @@ public:
         return true;
     }
 
-    // remove all edges from/to this BB
+    // remove all edges from/to this BB and reconnect them to
+    // other nodes
     void isolate()
     {
         // take every predecessor and reconnect edges from it
@@ -150,8 +151,13 @@ public:
                 if (cur->target == this) {
                     // create edges that will go from the predecessor
                     // to every successor of this node
-                    for (const BBlockEdge& succ : nextBBs)
-                        new_edges.insert(BBlockEdge(succ.target, cur->label));
+                    for (const BBlockEdge& succ : nextBBs) {
+                        // we cannot create an edge to this bblock (we're isolating _this_ bblock),
+                        // that would be incorrect. It can occur when we're isolatin a bblock
+                        // with self-loop
+                        if (succ.target != this)
+                            new_edges.insert(BBlockEdge(succ.target, cur->label));
+                    }
 
                     // remove the edge from predecessor
                     pred->nextBBs.erase(*cur);
