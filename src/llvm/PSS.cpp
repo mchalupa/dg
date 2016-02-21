@@ -45,9 +45,31 @@ getInstName(const llvm::Value *val)
 // map of all nodes we created - use to look up operands
 std::unordered_map<const llvm::Value *, PSSNode *> nodes_map;
 
+enum MemAllocationFuncs {
+    NONEMEM = 0,
+    MALLOC,
+    CALLOC,
+    ALLOCA,
+};
 
-Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
-                               const llvm::DataLayout *DL);
+static int getMemAllocationFunc(const llvm::Function *func)
+{
+    if (!func || !func->hasName())
+        return NONEMEM;
+
+    const char *name = func->getName().data();
+    if (strcmp(name, "malloc") == 0)
+        return MALLOC;
+    else if (strcmp(name, "calloc") == 0)
+        return CALLOC;
+    else if (strcmp(name, "alloca") == 0)
+        return ALLOCA;
+    else if (strcmp(name, "realloc") == 0)
+        // FIXME
+        assert(0 && "realloc not implemented yet");
+
+    return NONEMEM;
+}
 
 static inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
                                           const llvm::Value *ptr)
@@ -56,6 +78,9 @@ static inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
     const llvm::Type *Ty = ptr->getType();
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
+
+Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
+                               const llvm::DataLayout *DL);
 
 static Pointer handleConstantBitCast(const llvm::BitCastInst *BC,
                                      const llvm::DataLayout *DL)
@@ -165,6 +190,107 @@ static PSSNode *createConstantExpr(const llvm::ConstantExpr *CE,
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(CE).c_str());
+#endif
+
+    assert(node);
+    return node;
+}
+
+static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
+{
+    using namespace llvm;
+
+    const Value *op;
+    uint64_t size = 0, size2 = 0;
+    PSSNode *node = new PSSNode(pss::DYN_ALLOC);
+
+    switch (type) {
+        case MALLOC:
+            node->setIsHeap();
+        case ALLOCA:
+            op = CInst->getOperand(0);
+            break;
+        case CALLOC:
+            node->setIsHeap();
+            node->setZeroInitialized();
+            op = CInst->getOperand(1);
+            break;
+        default:
+            errs() << *CInst << "\n";
+            assert(0 && "unknown memory allocation type");
+    };
+
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
+        size = C->getLimitedValue();
+        // if the size cannot be expressed as an uint64_t,
+        // just set it to 0 (that means unknown)
+        if (size == ~((uint64_t) 0))
+            size = 0;
+
+        // if this is call to calloc, the size is given
+        // in the first argument too
+        if (type == CALLOC) {
+            C = dyn_cast<ConstantInt>(CInst->getOperand(0));
+            if (C) {
+                size2 = C->getLimitedValue();
+                if (size2 == ~((uint64_t) 0))
+                    size2 = 0;
+                else
+                    // OK, if getting the size fails, we end up with
+                    // just 1 * size - still better than 0 and UNKNOWN
+                    // (it may be cropped later anyway)
+                    size *= size2;
+            }
+        }
+    }
+
+    node->setSize(size);
+    return node;
+}
+
+static PSSNode *createCall(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+    const CallInst *CInst = cast<CallInst>(Inst);
+    PSSNode *node = nullptr;
+
+    // TODO: we can match the patterns and at least
+    // get some points-to information from inline asm.
+    if (CInst->isInlineAsm())
+        assert(0 && "Inline asm unsupported");
+
+    const Function *func
+        = dyn_cast<Function>(CInst->getCalledValue()->stripPointerCasts());
+
+    int type;
+    if (func && (type = getMemAllocationFunc(func)))
+        node = createDynamicAlloc(CInst, type);
+
+    if (func && func->isIntrinsic())
+        assert(0 && "Intrinsic function not implemented yet");
+
+    /*
+    // add subgraphs dynamically according the points-to information
+    LLVMNode *calledFuncNode = getOperand(node, Inst->getCalledValue(), 0);
+    if (!func && calledFuncNode)
+        changed |= handleFunctionPtrCall(calledFuncNode, node);
+
+    // function is undefined and returns a pointer?
+    // In that case create pointer to unknown location
+    // and set this node to point to unknown location
+    if ((!func || func->size() == 0) && Ty->isPointerTy())
+        return handleUndefinedReturnsPointer(Inst, node);
+        */
+
+    if (!node) {
+        errs() << *CInst << "\n";
+        assert(0 && "Interprocedural analysis not implemented yet");
+    }
+
+    nodes_map[CInst] = node;
+
+#ifdef DEBUG_ENABLED
+    node->setName(getInstName(CInst).c_str());
 #endif
 
     assert(node);
@@ -347,6 +473,9 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
                 break;
             case Instruction::BitCast:
                 node = createCast(&Inst, DL);
+                break;
+            case Instruction::Call:
+                node = createCall(&Inst);
                 break;
         }
 
