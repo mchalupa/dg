@@ -39,9 +39,15 @@ dumpPSSNode(PSSNode *n)
     const char *name = n->getName();
 
     if (name)
-        puts(name);
+        printf("%s", name);
     else
-        printf("<%p>\n", n);
+        printf("<%p>", n);
+
+    if (n->getSize() || n->isHeap() || n->isZeroInitialized())
+        printf(" [size: %lu, heap: %u, zeroed: %u]\n",
+               n->getSize(), n->isHeap(), n->isZeroInitialized());
+    else
+        putchar('\n');
 
     for (const analysis::Pointer& ptr : n->pointsTo) {
         printf("    -> %s + ", ptr.target->getName());
@@ -68,6 +74,10 @@ dumpPSSdot(analysis::PSS *pss)
             printf("%s\\n", name);
         else
             printf("%p\\n", node);
+
+        if (node->getSize() || node->isHeap() || node->isZeroInitialized())
+            printf("size: %lu, heap: %u, zeroed: %u\\n",
+               node->getSize(), node->isHeap(), node->isZeroInitialized());
 
         for (const analysis::Pointer& ptr : node->pointsTo) {
             printf("    -> %s + ", ptr.target->getName());
