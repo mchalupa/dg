@@ -249,6 +249,12 @@ public:
         nextBBs.clear();
     }
 
+    void removeSuccessor(const BBlockEdge& succ)
+    {
+        succ.target->prevBBs.erase(this);
+        nextBBs.erase(succ);
+    }
+
     void removePredecessors()
     {
         for (auto BB : prevBBs) {
