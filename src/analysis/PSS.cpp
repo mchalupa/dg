@@ -16,6 +16,24 @@ const Pointer PointerNull(NULLPTR, 0);
 
 using namespace pss;
 
+// replace all pointers to given target with one
+// to that target, but UNKNOWN_OFFSET
+bool PSSNode::addPointsToUnknownOffset(PSSNode *target)
+{
+    bool changed = false;
+    // FIXME: use equal range, it is much faster
+    for (auto I = pointsTo.begin(), E = pointsTo.end(); I != E;) {
+        auto cur = I++;
+        if (cur->target == target && !cur->offset.isUnknown()) {
+            pointsTo.erase(cur);
+            changed = true;
+        }
+    }
+
+    changed |= addPointsTo(target, UNKNOWN_OFFSET);
+    return changed;
+}
+
 bool PSS::processNode(PSSNode *node)
 {
     bool changed = false;
@@ -56,8 +74,13 @@ bool PSS::processNode(PSSNode *node)
             break;
         case GEP:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
-                changed |= node->addPointsTo(ptr.target,
-                                             *ptr.offset + *node->offset);
+                uint64_t new_offset = *ptr.offset + *node->offset;
+                // in the case the memory has size 0, then every pointer
+                // will have unknown offset
+                if (new_offset < ptr.target->getSize())
+                    changed |= node->addPointsTo(ptr.target, new_offset);
+                else
+                    changed |= node->addPointsToUnknownOffset(ptr.target);
             }
             break;
         case CAST:

@@ -205,6 +205,8 @@ public:
         return doesPointsTo(Pointer(n, o));
     }
 
+    bool addPointsToUnknownOffset(PSSNode *target);
+
     friend class PSS;
 };
 
