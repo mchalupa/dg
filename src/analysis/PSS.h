@@ -187,12 +187,17 @@ public:
     // convenient helper
     bool addPointsTo(PSSNode *n, Offset o)
     {
+        // do not add concrete offsets when we have the UNKNOWN_OFFSET
+        // - unknown offset stands for any offset
+        if (pointsTo.count(Pointer(n, UNKNOWN_OFFSET)))
+            return false;
+
         return pointsTo.insert(Pointer(n, o)).second;
     }
 
     bool addPointsTo(const Pointer& ptr)
     {
-        return pointsTo.insert(ptr).second;
+        return addPointsTo(ptr.target, ptr.offset);
     }
 
     bool doesPointsTo(const Pointer& p)
