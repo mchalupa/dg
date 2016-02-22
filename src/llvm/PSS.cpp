@@ -79,6 +79,15 @@ static inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
 
+static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
+{
+    // Type can be i8 *null or similar
+    if (!Ty->isSized())
+            return 0;
+
+    return DL->getTypeAllocSize(Ty);
+}
+
 Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
                                const llvm::DataLayout *DL);
 
@@ -297,7 +306,8 @@ static PSSNode *createCall(const llvm::Instruction *Inst)
     return node;
 }
 
-static PSSNode *createAlloc(const llvm::Instruction *Inst)
+static PSSNode *createAlloc(const llvm::Instruction *Inst,
+                            const llvm::DataLayout *DL)
 {
     PSSNode *node = new PSSNode(pss::ALLOC);
     nodes_map[Inst] = node;
@@ -305,6 +315,12 @@ static PSSNode *createAlloc(const llvm::Instruction *Inst)
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
 #endif
+
+    const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
+    if (AI) {
+        uint64_t size = getAllocatedSize(AI->getAllocatedType(), DL);
+        node->setSize(size);
+    }
 
     assert(node);
     return node;
@@ -456,7 +472,7 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
 
         switch(Inst.getOpcode()) {
             case Instruction::Alloca:
-                node = createAlloc(&Inst);
+                node = createAlloc(&Inst, DL);
                 break;
             case Instruction::Store:
                 // create only nodes that store pointer to another
