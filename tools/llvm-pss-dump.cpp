@@ -52,7 +52,7 @@ dumpPSSNode(PSSNode *n)
     for (const analysis::Pointer& ptr : n->pointsTo) {
         printf("    -> %s + ", ptr.target->getName());
         if (ptr.offset.isUnknown())
-            puts("UNKNWON_OFFSET");
+            puts("UNKNOWN_OFFSET");
         else
             printf("%lu\n", *ptr.offset);
     }
@@ -82,7 +82,7 @@ dumpPSSdot(analysis::PSS *pss)
         for (const analysis::Pointer& ptr : node->pointsTo) {
             printf("    -> %s + ", ptr.target->getName());
             if (ptr.offset.isUnknown())
-                printf("UNKNWON_OFFSET\\n");
+                printf("UNKNOWN_OFFSET\\n");
             else
                 printf("%lu\\n", *ptr.offset);
         }
