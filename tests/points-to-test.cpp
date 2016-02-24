@@ -126,6 +126,7 @@ public:
         using namespace analysis;
 
         PSSNode A(pss::ALLOC);
+        A.setSize(8);
         PSSNode B(pss::ALLOC);
         PSSNode C(pss::ALLOC);
         PSSNode GEP(pss::GEP, &A, 4);
@@ -168,7 +169,9 @@ public:
         using namespace analysis;
 
         PSSNode A(pss::ALLOC);
+        A.setSize(8);
         PSSNode B(pss::ALLOC);
+        B.setSize(16);
         PSSNode C(pss::ALLOC);
         PSSNode GEP1(pss::GEP, &A, 4);
         PSSNode GEP2(pss::GEP, &B, 8);
@@ -211,6 +214,9 @@ public:
         using namespace analysis;
 
         PSSNode A(pss::ALLOC);
+        // we must set size, so that GEP won't
+        // make the offset UNKNOWN
+        A.setSize(8);
         PSSNode B(pss::ALLOC);
         PSSNode GEP1(pss::GEP, &A, 4);
         PSSNode S(pss::STORE, &B, &GEP1);
@@ -249,6 +255,7 @@ public:
         using namespace analysis;
 
         PSSNode A(pss::ALLOC);
+        A.setSize(16);
         PSSNode B(pss::ALLOC);
         PSSNode GEP1(pss::GEP, &A, 4);
         PSSNode GEP2(pss::GEP, &GEP1, 4);
@@ -293,6 +300,7 @@ public:
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
         PSSNode ARRAY(pss::ALLOC);
+        ARRAY.setSize(40);
         PSSNode GEP1(pss::GEP, &ARRAY, 0);
         PSSNode GEP2(pss::GEP, &ARRAY, 4);
         PSSNode S1(pss::STORE, &A, &GEP1);
@@ -327,6 +335,7 @@ public:
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
         PSSNode ARRAY(pss::ALLOC);
+        ARRAY.setSize(40);
         PSSNode GEP1(pss::GEP, &ARRAY, 0);
         PSSNode GEP2(pss::GEP, &ARRAY, 4);
         PSSNode S1(pss::STORE, &A, &GEP1);
@@ -365,6 +374,7 @@ public:
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
         PSSNode ARRAY(pss::ALLOC);
+        ARRAY.setSize(20);
         PSSNode GEP1(pss::GEP, &ARRAY, 0);
         PSSNode GEP2(pss::GEP, &ARRAY, 4);
         PSSNode S1(pss::STORE, &A, &GEP1);
@@ -433,6 +443,7 @@ public:
 
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
+        B.setSize(16);
         PSSNode C(pss::CONSTANT, analysis::Pointer(&B, 4));
         PSSNode S(pss::STORE, &A, &C);
         PSSNode GEP(pss::GEP, &B, 4);
