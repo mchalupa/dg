@@ -91,7 +91,7 @@ dumpPSSdot(analysis::PSS *pss)
         if (node->getType() != analysis::pss::STORE) {
             printf(" shape=box");
             if (node->pointsTo.size() == 0)
-                printf("fillcolor=red");
+                printf(" fillcolor=red");
         } else {
             printf(" shape=cds");
         }
