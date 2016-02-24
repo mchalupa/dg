@@ -95,10 +95,12 @@ bool PSS::processNode(PSSNode *node)
             assert(node->pointsTo.size() == 1
                    && "Constant should have exactly one pointer");
             break;
-        case PHI:
         case CALL:
         case RETURN:
-            assert(0 && "Not implemented yet");
+            break;
+        case PHI:
+            for (PSSNode *op : node->operands)
+                changed |= node->addPointsTo(op->pointsTo);
             break;
         default:
             assert(0 && "Unknown type");

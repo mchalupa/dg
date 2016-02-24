@@ -81,6 +81,7 @@ public:
       size(0), name(nullptr), dfsid(0), data(nullptr)
     {
         // assing operands
+        PSSNode *op;
         va_list args;
         va_start(args, t);
 
@@ -115,6 +116,13 @@ public:
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
             case PHI:
+                op = va_arg(args, PSSNode *);
+                // the operands are null terminated
+                while (op) {
+                    operands.push_back(op);
+                    op = va_arg(args, PSSNode *);
+                }
+                break;
             case CALL:
             case RETURN:
                 assert(0 && "Not implemented yet");
@@ -152,6 +160,12 @@ public:
                && "Operand index out of range");
 
         return operands[idx];
+    }
+
+    size_t addOperand(PSSNode *n)
+    {
+        operands.push_back(n);
+        return operands.size();
     }
 
     void setZeroInitialized() { zeroInitialized = true; }
@@ -199,6 +213,17 @@ public:
     {
         return addPointsTo(ptr.target, ptr.offset);
     }
+
+    bool addPointsTo(const std::set<Pointer>& ptrs)
+    {
+        bool changed = false;
+        for (const Pointer& ptr: ptrs)
+            changed |= addPointsTo(ptr);
+
+        return changed;
+    }
+
+
 
     bool doesPointsTo(const Pointer& p)
     {
