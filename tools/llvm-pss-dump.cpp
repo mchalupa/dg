@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     debug::TimeMeasure tm;
 
     if (type == FLOW_INSENSITIVE) {
-        LLVMPointsToAnalysis<PointsToFlowInsensitive> PTA(M->getFunction("main"));
+        LLVMPointsToAnalysis<PointsToFlowInsensitive> PTA(M);
 
         tm.start();
         PTA.run();
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
 
         dumpPSS(PTA.getPSS(), todot);
     } else {
-        LLVMPointsToAnalysis<PointsToFlowSensitive> PTA(M->getFunction("main"));
+        LLVMPointsToAnalysis<PointsToFlowSensitive> PTA(M);
 
         tm.start();
         PTA.run();

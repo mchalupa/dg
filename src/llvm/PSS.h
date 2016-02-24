@@ -2,6 +2,7 @@
 #define _LLVM_DG_PSS_H_
 
 #include <map>
+#include <llvm/Support/raw_ostream.h>
 #include <llvm/Support/CFG.h>
 
 namespace dg {
@@ -39,13 +40,9 @@ static void blockAddSuccessors(std::map<const llvm::BasicBlock *,
 }
 
 // build pointer state subgraph for given graph
-template <typename PTType>
-PSS *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
+// \return   root node of the graph
+PSSNode *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
 {
-
-    // first we must build globals, because nodes can use them as operands
-    std::pair<PSSNode *, PSSNode *> glob = buildGlobals(F.getParent(), DL);
-
     // Now we can build the nodes.
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
@@ -74,6 +71,25 @@ PSS *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
         blockAddSuccessors(build_blocks, pssn, block);
     }
 
+    return root;
+}
+
+template <typename PTType>
+PSS *buildLLVMPSS(const llvm::Module *M, const llvm::DataLayout *DL)
+{
+    // get entry function
+    llvm::Function *F = M->getFunction("main");
+    if (!F) {
+        llvm::errs() << "Need main function in module\n";
+        abort();
+    }
+
+    // first we must build globals, because nodes can use them as operands
+    std::pair<PSSNode *, PSSNode *> glob = buildGlobals(M, DL);
+
+    // now we can build rest of the graph
+    PSSNode *root = buildLLVMPSS(*F, DL);
+
     // do we have any globals at all? If so, insert them at the begining of the graph
     // FIXME: we do not need to process them later, should we do it somehow differently?
     // something like 'static nodes' in PSS...
@@ -87,6 +103,7 @@ PSS *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
 
     return new PTType(root);
 }
+
 
 } // namespace dg
 } // namespace analysis

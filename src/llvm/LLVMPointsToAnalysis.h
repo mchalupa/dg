@@ -21,13 +21,6 @@ class LLVMPointsToAnalysis {
     const llvm::Module *module;
 
 public:
-    LLVMPointsToAnalysis(const llvm::Function* F)
-    : func(F)
-    {
-        module = F->getParent();
-        DL = new llvm::DataLayout(module->getDataLayout());
-    }
-
     LLVMPointsToAnalysis(const llvm::Module* M)
     : module(M)
     {
@@ -39,7 +32,7 @@ public:
 
     void run()
     {
-        pss = analysis::buildLLVMPSS<PTType>(*func, DL);
+        pss = analysis::buildLLVMPSS<PTType>(module, DL);
         pss->run();
     }
 
