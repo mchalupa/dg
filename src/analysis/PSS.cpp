@@ -34,6 +34,60 @@ bool PSSNode::addPointsToUnknownOffset(PSSNode *target)
     return changed;
 }
 
+bool PSS::processLoad(PSSNode *node)
+{
+    bool changed = false;
+    PSSNode *operand = node->getOperand(0);
+
+    if (operand->pointsTo.empty())
+        return errorEmptyPointsTo(node, operand);
+
+    for (const Pointer& ptr : operand->pointsTo) {
+        PSSNode *target = ptr.target;
+        assert(target && "Got nullptr as target");
+
+        // find memory objects holding relevant points-to
+        // information
+        std::vector<MemoryObject *> objects;
+        getMemoryObjects(node, target, objects);
+
+        // no objects found for this target? That is
+        // load from unknown memory
+        if (objects.empty()) {
+            if (target->isZeroInitialized())
+                // if the memory is zero initialized, then everything
+                // is fine, we add nullptr
+                changed |= node->addPointsTo(dg::analysis::NULLPTR);
+            else
+                errorEmptyPointsTo(node, target);
+
+            continue;
+        }
+
+        for (MemoryObject *o : objects) {
+            // load from empty points-to set
+            // - that is load from unknown memory
+            if (!o->pointsTo.count(ptr.offset)) {
+                // if the memory is zero initialized, then everything
+                // is fine, we add nullptr
+                if (target->isZeroInitialized())
+                    changed |= node->addPointsTo(dg::analysis::NULLPTR);
+                else
+                    errorEmptyPointsTo(node, target);
+
+                // we've done everything we could
+                continue;
+            }
+
+            for (const Pointer& memptr : o->pointsTo[ptr.offset]) {
+                changed |= node->addPointsTo(memptr);
+            }
+        }
+    }
+
+    return changed;
+}
+
 bool PSS::processNode(PSSNode *node)
 {
     bool changed = false;
@@ -45,19 +99,7 @@ bool PSS::processNode(PSSNode *node)
             changed |= node->addPointsTo(node, 0);
             break;
         case LOAD:
-            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
-                PSSNode *target = ptr.target;
-                assert(target && "Got nullptr as target");
-
-                objects.clear();
-                getMemoryObjects(node, target, objects);
-
-                for (MemoryObject *o : objects) {
-                    for (const Pointer& memptr : o->pointsTo[ptr.offset]) {
-                        changed |= node->addPointsTo(memptr);
-                    }
-                }
-            }
+            changed |= processLoad(node);
             break;
         case STORE:
             for (const Pointer& ptr : node->getOperand(1)->pointsTo) {

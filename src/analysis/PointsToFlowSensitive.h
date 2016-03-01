@@ -57,8 +57,8 @@ public:
 
         // every store is strong update
         if (n->getType() == pss::STORE)
-            strong_update = &n->getOperand(1)->pointsTo;    
-        
+            strong_update = &n->getOperand(1)->pointsTo;
+
         // merge information from predecessors
         for (PSSNode *p : n->getPredecessors()) {
             MemoryMapT *pm = p->getData<MemoryMapT>();

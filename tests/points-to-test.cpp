@@ -428,18 +428,12 @@ public:
         PTStoT PA(&B);
         PA.run();
 
-        B.setName(strdup("B"));
-        L.setName(strdup("L"));
-
-        dumpPSSNode(&L);
-
         check(L.doesPointsTo(NULLPTR), "L do not points to NULL");
     }
 
     void constant_store()
     {
         using namespace analysis;
-
 
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
@@ -457,18 +451,29 @@ public:
         PTStoT PA(&A);
         PA.run();
 
-        A.setName(strdup("A"));
-        B.setName(strdup("B"));
-        L.setName(strdup("L"));
-        C.setName(strdup("C (const)"));
-
-        dumpPSSNode(&L);
-        dumpPSSNode(&C);
-
         check(L.doesPointsTo(&A), "L do not points to A");
     }
 
+    void load_from_zeroed()
+    {
+        using namespace analysis;
 
+        PSSNode B(pss::ALLOC);
+        B.setZeroInitialized();
+        PSSNode L(pss::LOAD, &B);
+
+        B.addSuccessor(&L);
+
+        B.setName(strdup("B"));
+        L.setName(strdup("L"));
+
+        PTStoT PA(&B);
+        PA.run();
+
+        dumpPSSNode(&L);
+
+        check(L.doesPointsTo(NULLPTR), "L do not points to nullptr");
+    }
 
     void test()
     {
@@ -484,6 +489,7 @@ public:
         gep5();
         nulltest();
         constant_store();
+        load_from_zeroed();
     }
 };
 

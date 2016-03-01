@@ -453,6 +453,21 @@ public:
             afterProcessed(cur);
         }
     }
+
+    // handle error in the analysis
+    // @return whether the function changed the some points-to set
+    //  (e. g. added pointer to unknown memory)
+    virtual bool errorEmptyPointsTo(PSSNode *from, PSSNode *to)
+    {
+        // let this on the user - in flow-insensitive analysis this is
+        // no error, but in flow sensitive it is ...
+        (void) from;
+        (void) to;
+        return false;
+    }
+
+private:
+    bool processLoad(PSSNode *node);
 };
 
 } // namespace analysis
