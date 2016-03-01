@@ -102,6 +102,9 @@ bool PSS::processNode(PSSNode *node)
             for (PSSNode *op : node->operands)
                 changed |= node->addPointsTo(op->pointsTo);
             break;
+        case NOOP:
+            // just no op
+            break;
         default:
             assert(0 && "Unknown type");
     }

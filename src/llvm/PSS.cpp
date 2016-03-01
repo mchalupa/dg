@@ -1,6 +1,3 @@
-#ifndef _LLVM_DG_PSS_H_
-#define _LLVM_DG_PSS_H_
-
 #include <unordered_map>
 #include <cassert>
 
@@ -11,10 +8,11 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Constant.h>
+#include <llvm/Support/CFG.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include "analysis/PSS.h"
-#include "llvm/PSS.h"
+#include "PSS.h"
 
 #ifdef DEBUG_ENABLED
 #include <iostream>
@@ -42,8 +40,20 @@ getInstName(const llvm::Value *val)
 }
 #endif
 
+struct Subgraph {
+    Subgraph(PSSNode *r1, PSSNode *r2, std::pair<PSSNode *, PSSNode *>& a)
+        : root(r1), ret(r2), args(a) {}
+    Subgraph() {memset(this, 0, sizeof *this);}
+
+    PSSNode *root;
+    PSSNode *ret;
+    std::pair<PSSNode *, PSSNode *> args;
+};
+
 // map of all nodes we created - use to look up operands
 std::unordered_map<const llvm::Value *, PSSNode *> nodes_map;
+// map of all built subgraphs - the value type is a pair (root, return)
+std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
 enum MemAllocationFuncs {
     NONEMEM = 0,
@@ -257,53 +267,113 @@ static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
     return node;
 }
 
-static PSSNode *createCall(const llvm::Instruction *Inst)
+static std::pair<PSSNode *, PSSNode *>
+createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
-    using namespace llvm;
-    const CallInst *CInst = cast<CallInst>(Inst);
-    PSSNode *node = nullptr;
-
-    // TODO: we can match the patterns and at least
-    // get some points-to information from inline asm.
-    if (CInst->isInlineAsm())
-        assert(0 && "Inline asm unsupported");
-
-    const Function *func
-        = dyn_cast<Function>(CInst->getCalledValue()->stripPointerCasts());
-
-    int type;
-    if (func && (type = getMemAllocationFunc(func)))
-        node = createDynamicAlloc(CInst, type);
-
-    if (func && func->isIntrinsic())
-        assert(0 && "Intrinsic function not implemented yet");
-
-    /*
-    // add subgraphs dynamically according the points-to information
-    LLVMNode *calledFuncNode = getOperand(node, Inst->getCalledValue(), 0);
-    if (!func && calledFuncNode)
-        changed |= handleFunctionPtrCall(calledFuncNode, node);
-
-    // function is undefined and returns a pointer?
-    // In that case create pointer to unknown location
-    // and set this node to point to unknown location
-    if ((!func || func->size() == 0) && Ty->isPointerTy())
-        return handleUndefinedReturnsPointer(Inst, node);
-        */
-
-    if (!node) {
-        errs() << *CInst << "\n";
-        assert(0 && "Interprocedural analysis not implemented yet");
-    }
-
+    PSSNode *node = createDynamicAlloc(CInst, type);
     nodes_map[CInst] = node;
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(CInst).c_str());
 #endif
 
-    assert(node);
-    return node;
+    // we return (node, node), so that the parent function
+    // will seamlessly connect this node into the graph
+    return std::make_pair(node, node);
+}
+
+static std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *CInst,
+                                                           const llvm::Function *F,
+                                                           const llvm::DataLayout *DL)
+{
+    PSSNode *callNode, *returnNode;
+
+    callNode = new PSSNode(pss::CALL);
+    returnNode = new PSSNode(pss::RETURN, callNode);
+
+    nodes_map[CInst] = callNode;
+    // NOTE: we do not add return node into nodes_map, since this
+    // is artificial node and does not correspond to any real node
+
+#ifdef DEBUG_ENABLED
+    callNode->setName(getInstName(CInst).c_str());
+    returnNode->setName(("RET" + getInstName(CInst)).c_str());
+#endif
+
+    // reuse built subgraphs if available
+    Subgraph subg = subgraphs_map[F];
+    if (!subg.root) {
+        // create new subgraph
+        buildLLVMPSS(*F, DL);
+        // FIXME: don't find it again, return it from buildLLVMPSS
+        // this is redundant
+        subg = subgraphs_map[F];
+    }
+
+    assert(subg.root && subg.ret);
+
+    // add an edge from last argument to root of the subgraph
+    // and from the subprocedure return node (which is one - unified
+    // for all return nodes) to return from the call
+    callNode->addSuccessor(subg.root);
+    subg.ret->addSuccessor(returnNode);
+
+    // add pointers to the arguments PHI nodes
+    int idx = 0;
+    PSSNode *arg = subg.args.first;
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+        if (A->getType()->isPointerTy()) {
+            assert(arg && "BUG: do not have argument");
+
+            PSSNode *op = nodes_map[CInst->getArgOperand(idx)];
+            assert(op && "Do not have node for CallInst operand");
+
+            arg->addOperand(op);
+
+            // shift in arguments
+            arg = arg->getSingleSuccessor();
+        }
+    }
+
+    return std::make_pair(callNode, returnNode);
+}
+
+// create subgraph or add edges to already existing subgraph,
+// return the CALL node (the first) and the RETURN node (the second),
+// so that we can connect them into the PSS
+static std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst,
+                                                  const llvm::DataLayout *DL)
+{
+    using namespace llvm;
+    const CallInst *CInst = cast<CallInst>(Inst);
+
+    const Function *func
+        = dyn_cast<Function>(CInst->getCalledValue()->stripPointerCasts());
+
+    if (func) {
+        /// memory allocation (malloc, calloc, etc.)
+        int type;
+        if ((type = getMemAllocationFunc(func))) {
+            // NOTE: must be before func->size() == 0 condition,
+            // since malloc and similar are undefined too
+            return createDynamicMemAlloc(CInst, type);
+        } else if (func->size() == 0) {
+            // the function is not declared, just put there
+            // the call node
+            PSSNode *node = new PSSNode(pss::CALL);
+#ifdef DEBUG_ENABLED
+            node->setName(getInstName(CInst).c_str());
+#endif
+            return std::make_pair(node, node);
+        } else if (func->isIntrinsic()) {
+            assert(0 && "Intrinsic function not implemented yet");
+        } else {
+            return createOrGetSubgraph(CInst, func, DL);
+        }
+    } else {
+        // function pointer call
+        assert(0 && "Function pointers not supported yet");
+    }
 }
 
 static PSSNode *createAlloc(const llvm::Instruction *Inst,
@@ -496,7 +566,16 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
                 node = createCast(&Inst, DL);
                 break;
             case Instruction::Call:
-                node = createCall(&Inst);
+                std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst, DL);
+                if (prev_node)
+                    prev_node->addSuccessor(subg.first);
+                else
+                    // graphs starts with function call?
+                    ret.first = subg.first;
+
+                // new nodes will connect to the return node
+                node = prev_node = subg.second;
+
                 break;
         }
 
@@ -512,6 +591,162 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
     ret.second = node;
 
     return ret;
+}
+
+static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
+                                          std::pair<PSSNode *, PSSNode *>>& built_blocks,
+                                 std::pair<PSSNode *, PSSNode *>& pssn,
+                                 const llvm::BasicBlock& block)
+{
+    size_t num = 0;
+
+    for (llvm::succ_const_iterator
+         S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
+        std::pair<PSSNode *, PSSNode *>& succ = built_blocks[*S];
+        assert((succ.first && succ.second) || (!succ.first && !succ.second));
+        if (!succ.first) {
+            // if we don't have this block built (there was no points-to
+            // relevant instruction), we must pretend to be there for
+            // control flow information. Thus instead of adding it as
+            // successor, add its successors as successors
+            num += blockAddSuccessors(built_blocks, pssn, *(*S));
+        } else {
+            // add successor to the last nodes
+            pssn.second->addSuccessor(succ.first);
+            ++num;
+        }
+    }
+
+    return num;
+}
+
+static std::pair<PSSNode *, PSSNode *> buildArguments(const llvm::Function& F)
+{
+    // create PHI nodes for arguments of the function. These will be
+    // successors of call-node
+    std::pair<PSSNode *, PSSNode *> ret;
+    int idx = 0;
+    PSSNode *prev, *arg = nullptr;
+
+    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A, ++idx) {
+        if (A->getType()->isPointerTy()) {
+            prev = arg;
+
+            arg = new PSSNode(pss::PHI, nullptr);
+            nodes_map[&*A] = arg;
+
+            if (prev)
+                prev->addSuccessor(arg);
+            else
+                ret.first = arg;
+
+#ifdef DEBUG_ENABLED
+            arg->setName(("ARG phi " + getInstName(&*A)).c_str());
+#endif
+        }
+    }
+
+    ret.second = arg;
+    assert((ret.first && ret.second) || (!ret.first && !ret.second));
+
+    return ret;
+}
+
+
+// build pointer state subgraph for given graph
+// \return   root node of the graph
+PSSNode *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
+{
+    // here we'll keep first and last nodes of every built block and
+    // connected together according to successors
+    std::map<const llvm::BasicBlock *, std::pair<PSSNode *, PSSNode *>> built_blocks;
+    PSSNode *lastNode = nullptr;
+
+    // create root and (unified) return nodes of this subgraph. These are
+    // just for our convenience when building the graph, they can be
+    // optimized away later since they are noops
+    PSSNode *root = new PSSNode(pss::NOOP);
+    PSSNode *ret = new PSSNode(pss::NOOP);
+
+#ifdef DEBUG_ENABLED
+    root->setName((std::string("entry ") + F.getName().data()).c_str());
+    ret->setName((std::string("ret ") + F.getName().data()).c_str());
+#endif
+
+    // now build the arguments of the function - if it has any
+    std::pair<PSSNode *, PSSNode *> args = buildArguments(F);
+
+    // add record to built graphs here, so that subsequent call of this function
+    // from buildPSSBlock won't get stuck in infinite recursive call when
+    // this function is recursive
+    subgraphs_map[&F] = Subgraph(root, ret, args);
+
+    // make arguments the entry block of the subgraphs (if there
+    // are any arguments)
+    if (args.first) {
+        root->addSuccessor(args.first);
+        lastNode = args.second;
+    } else
+        lastNode = root;
+
+    assert(lastNode);
+
+    PSSNode *first = nullptr;
+    for (const llvm::BasicBlock& block : F) {
+        std::pair<PSSNode *, PSSNode *> nds = buildPSSBlock(block, DL);
+
+        if (!first) {
+            // first block was not created at all? (it has not
+            // pointer relevant instructions) - in that case
+            // fake that the first block is the root itself
+            if (!nds.first) {
+                // if the function has arguments, then it has
+                // single entry block where it copies the values
+                // of arguments to local variables - thus this
+                // assertions must hold
+                assert(!args.first);
+                assert(lastNode == root);
+
+                nds.first = nds.second = root;
+                first = root;
+            } else {
+                first = nds.first;
+
+                // add correct successors. If we have arguments,
+                // then connect the first block after arguments.
+                // Otherwise connect them after the root node
+                lastNode->addSuccessor(first);
+            }
+        }
+
+        built_blocks[&block] = nds;
+    }
+
+    std::vector<PSSNode *> rets;
+    for (const llvm::BasicBlock& block : F) {
+        std::pair<PSSNode *, PSSNode *>& pssn = built_blocks[&block];
+        // if the block do not contain any points-to relevant instruction,
+        // we returned (nullptr, nullptr)
+        // FIXME: do not store such blocks at all
+        assert((pssn.first && pssn.second) || (!pssn.first && !pssn.second));
+        if (!pssn.first)
+            continue;
+
+        // add successors to this block (skipping the empty blocks)
+        size_t succ_num = blockAddSuccessors(built_blocks, pssn, block);
+
+        // if we have not added any successor, then the last node
+        // of this block is a return node
+        if (succ_num == 0)
+            rets.push_back(pssn.second);
+    }
+
+    // add successors edges from every real return to our artificial ret node
+    assert(!rets.empty() && "BUG: Did not find any return node in function");
+    for (PSSNode *r : rets)
+        r->addSuccessor(ret);
+
+    return root;
 }
 
 static void handleGlobalVariableInitializer(const llvm::GlobalVariable *GV,
@@ -554,5 +789,3 @@ std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
 
 } // namespace analysis
 } // namespace dg
-
-#endif

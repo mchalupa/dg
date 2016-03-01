@@ -23,12 +23,19 @@ enum PSSNodeType {
         GEP,
         PHI,
         CAST,
-        // support for interprocedural analysis
+        // support for interprocedural analysis,
+        // operands are null terminated
         CALL,
         // node that has only one points-to relation
         // that never changes
         CONSTANT,
         RETURN,
+        // no operation node - this nodes can be used as a branch or join
+        // node for convenient PSS generation. For example as an
+        // unified entry to the function or unified return from the function.
+        // These nodes can be optimized away later. No points-to computation
+        // is performed on them
+        NOOP,
         // special nodes
         NULLPTR,
         UNKNOWN_MEMLOC
@@ -46,6 +53,7 @@ using pss::CALL;
 using pss::RETURN;
 using pss::CONSTANT;
 using pss::CAST;
+using pss::NOOP;
 
 class PSSNode
 {
@@ -71,14 +79,49 @@ class PSSNode
     const char *name;
 
     unsigned int dfsid;
+    unsigned int dfsid2;
     // data that can an analysis store in node
     // for its own usage
     void *data;
 
 public:
+    ///
+    // Construct a PSSNode
+    // \param t     type of the node
+    // Different types take different arguments:
+    //
+    // ALLOC:     no argument
+    // DYN_ALLOC: no argument
+    // NOOP:      no argument
+    // LOAD:      one argument representing pointer to location from where
+    //            we're loading the value (another pointer in this case)
+    // STORE:     first argument is the value (the pointer to be stored)
+    //            in memory pointed by the second argument
+    // GEP:       get pointer to memory on given offset (get element pointer)
+    //            first argument is pointer to the memory, second is the offset
+    //            (as Offset class instance, unknown offset is represented by
+    //            UNKNOWN_OFFSET constant)
+    // CAST:      cast pointer from one type to other type (like void * to int *)
+    //            the argument is just the pointer (we don't care about types
+    //            atm.)
+    // CONSTANT:  node that keeps constant points-to information
+    //            the argument is the pointer it points to
+    // PHI:       phi node that gathers pointers from different paths in CFG
+    //            arguments are null-terminated list of the relevant nodes
+    //            from predecessors
+    // CALL:      represents call of subprocedure,
+    //            arguments are null-terminated list of the pointers (nodes)
+    //            passed to subprocedure. These are not used by the analysis,
+    //            but can be used e. g. when mapping call arguments back to
+    //            original CFG - therefore the CALL node is not needed in most
+    //            cases (just 'inline' the subprocedure into the PSS when building it)
+    //            The call node is needed when the function is called
+    //            via function pointer though.
+    // RETURN:    represents return from the subprocedure, the only argument is the
+    //            call node (from which call we're returning)
     PSSNode(PSSNodeType t, ...)
     : type(t), offset(0), zeroInitialized(false), is_heap(false),
-      size(0), name(nullptr), dfsid(0), data(nullptr)
+      size(0), name(nullptr), dfsid(0), dfsid2(0), data(nullptr)
     {
         // assing operands
         PSSNode *op;
@@ -88,6 +131,7 @@ public:
         switch(type) {
             case ALLOC:
             case DYN_ALLOC:
+            case NOOP:
                 // no operands
                 break;
             case LOAD:
@@ -124,8 +168,15 @@ public:
                 }
                 break;
             case CALL:
+                op = va_arg(args, PSSNode *);
+                // the operands are null terminated
+                while (op) {
+                    operands.push_back(op);
+                    op = va_arg(args, PSSNode *);
+                }
+                break;
             case RETURN:
-                assert(0 && "Not implemented yet");
+                operands.push_back(va_arg(args, PSSNode *));
                 break;
             default:
                 assert(0 && "Unknown type");
@@ -191,6 +242,13 @@ public:
     const std::vector<PSSNode *>& getSuccessors() const { return successors; }
     const std::vector<PSSNode *>& getPredecessors() const { return predecessors; }
 
+    // get successor when we know there's only one of them
+    PSSNode *getSingleSuccessor() const
+    {
+        assert(successors.size() == 1);
+        return successors.front();
+    }
+
     size_t predecessorsNum() const { return predecessors.size(); }
     size_t successorsNum() const { return successors.size(); }
 
@@ -236,6 +294,32 @@ public:
     }
 
     bool addPointsToUnknownOffset(PSSNode *target);
+
+    // get all nodes that has no successor (starting search from this node)
+    void getLeafs(std::vector<PSSNode *>& leafs)
+    {
+        static unsigned dfsnum;
+        ++dfsnum;
+
+        ADT::QueueLIFO<PSSNode *> lifo;
+        lifo.push(this);
+        dfsid2 = dfsnum;
+
+        while (!lifo.empty()) {
+            PSSNode *cur = lifo.pop();
+
+            if (cur->successorsNum() == 0) {
+                leafs.push_back(cur);
+            } else {
+                for (PSSNode *succ : cur->successors) {
+                    if (succ->dfsid2 != dfsnum) {
+                        succ->dfsid2 = dfsnum;
+                        lifo.push(succ);
+                    }
+                }
+            }
+        }
+    }
 
     friend class PSS;
 };
