@@ -215,6 +215,20 @@ static PSSNode *createConstantExpr(const llvm::ConstantExpr *CE,
     return node;
 }
 
+static PSSNode *getConstant(const llvm::Value *val,
+                            const llvm::DataLayout *DL)
+{
+    if (llvm::isa<llvm::ConstantPointerNull>(val)) {
+        return NULLPTR;
+    } else if (const llvm::ConstantExpr *CE
+                    = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
+        return createConstantExpr(CE, DL);
+    } else {
+        llvm::errs() << "Unspported constant: " << *val << "\n";
+        abort();
+    }
+}
+
 static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
 {
     using namespace llvm;
@@ -409,18 +423,8 @@ static PSSNode *createStore(const llvm::Instruction *Inst,
     assert(valOp->getType()->isPointerTy() && "BUG: Store value is not a pointer");
     assert(op2 && "BUG: Store does not have the pointer operand");
 
-    if (!op1) {
-        if (const llvm::ConstantExpr *CE
-                = llvm::dyn_cast<llvm::ConstantExpr>(Inst->getOperand(0))) {
-            op1 = createConstantExpr(CE, DL);
-        } else if (llvm::isa<llvm::ConstantPointerNull>(valOp)) {
-            op1 = NULLPTR;
-        } else {
-            llvm::errs() << *Inst->getOperand(0) << "\n";
-            llvm::errs() << *Inst << "\n";
-            assert(0 && "Instruction unspported");
-        }
-    }
+    if (!op1)
+        op1 = getConstant(valOp, DL);
 
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
     nodes_map[Inst] = node;
@@ -439,16 +443,8 @@ static PSSNode *createLoad(const llvm::Instruction *Inst,
     const llvm::Value *op = Inst->getOperand(0);
     PSSNode *op1 = nodes_map[op];
 
-    if (!op1) {
-        if (const llvm::ConstantExpr *CE
-                = llvm::dyn_cast<llvm::ConstantExpr>(op)) {
-            op1 = createConstantExpr(CE, DL);
-        } else {
-            llvm::errs() << *op << "\n";
-            llvm::errs() << *Inst << "\n";
-            assert(0 && "Instruction unspported");
-        }
-    }
+    if (!op1)
+        op1 = getConstant(op, DL);
 
     PSSNode *node = new PSSNode(pss::LOAD, op1);
     nodes_map[Inst] = node;
