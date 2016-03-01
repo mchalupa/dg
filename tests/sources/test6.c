@@ -1,6 +1,5 @@
-
-
 int array[5];
+
 void set(int a)
 {
 	array[3] = a;

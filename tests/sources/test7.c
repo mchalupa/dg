@@ -1,5 +1,3 @@
-#include <assert.h>
-
 void set(int **y, int *x)
 {
 	*y = x;

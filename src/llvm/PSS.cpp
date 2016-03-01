@@ -374,6 +374,8 @@ static std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst,
         } else if (func->size() == 0) {
             // the function is not declared, just put there
             // the call node
+            // XXX: don't do that when the function does not return
+            // the pointer, it has no meaning
             PSSNode *node = new PSSNode(pss::CALL);
 #ifdef DEBUG_ENABLED
             node->setName(getInstName(CInst).c_str());
