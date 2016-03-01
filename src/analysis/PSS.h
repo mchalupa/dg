@@ -240,6 +240,10 @@ public:
     friend class PSS;
 };
 
+// special PSS nodes
+extern PSSNode *NULLPTR;
+extern PSSNode *UNKNOWN_MEMORY;
+
 class PSS
 {
     PSSNode *root;
@@ -253,6 +257,14 @@ public:
     PSS(PSSNode *root) : root(root), dfsnum(0)
     {
         assert(root && "Cannot create PSS with null root");
+
+        // XXX: couldn't we do it somehow better?
+        #ifdef DEBUG_ENABLED
+        if (!NULLPTR->getName()) {
+            NULLPTR->setName("nullptr");
+            UNKNOWN_MEMORY->setName("unknown memloc");
+        }
+        #endif
     }
 
     // takes a PSSNode 'where' and 'what' and reference to vector and fill into the vector
@@ -358,9 +370,6 @@ public:
         }
     }
 };
-
-extern PSSNode *NULLPTR;
-extern PSSNode *UNKNOWN_MEMORY;
 
 } // namespace analysis
 } // namespace dg

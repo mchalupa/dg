@@ -329,16 +329,22 @@ static PSSNode *createAlloc(const llvm::Instruction *Inst,
 static PSSNode *createStore(const llvm::Instruction *Inst,
                             const llvm::DataLayout *DL)
 {
-    PSSNode *op1 = nodes_map[Inst->getOperand(0)];
+    const llvm::Value *valOp = Inst->getOperand(0);
+
+    PSSNode *op1 = nodes_map[valOp];
     PSSNode *op2 = nodes_map[Inst->getOperand(1)];
 
-    // the value needs to be a pointer
-    assert(Inst->getOperand(0)->getType()->isPointerTy());
+    // the value needs to be a pointer - we call this function only under
+    // this condition
+    assert(valOp->getType()->isPointerTy() && "BUG: Store value is not a pointer");
+    assert(op2 && "BUG: Store does not have the pointer operand");
 
     if (!op1) {
         if (const llvm::ConstantExpr *CE
                 = llvm::dyn_cast<llvm::ConstantExpr>(Inst->getOperand(0))) {
             op1 = createConstantExpr(CE, DL);
+        } else if (llvm::isa<llvm::ConstantPointerNull>(valOp)) {
+            op1 = NULLPTR;
         } else {
             llvm::errs() << *Inst->getOperand(0) << "\n";
             llvm::errs() << *Inst << "\n";
@@ -346,7 +352,6 @@ static PSSNode *createStore(const llvm::Instruction *Inst,
         }
     }
 
-    assert(op2 && "Store does not have pointer operand");
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
     nodes_map[Inst] = node;
 
