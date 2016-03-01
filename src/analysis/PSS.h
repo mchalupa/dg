@@ -249,6 +249,13 @@ public:
         return successors.front();
     }
 
+    // get predecessor when we know there's only one of them
+    PSSNode *getSinglePredecessor() const
+    {
+        assert(predecessors.size() == 1);
+        return predecessors.front();
+    }
+
     size_t predecessorsNum() const { return predecessors.size(); }
     size_t successorsNum() const { return successors.size(); }
 

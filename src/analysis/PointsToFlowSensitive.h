@@ -34,17 +34,41 @@ public:
     virtual void beforeProcessed(PSSNode *n)
     {
         MemoryMapT *mm = n->getData<MemoryMapT>();
-        // FIXME: we don't need to have memory map on every
-        // node, just in the root, STORE nodes and join nodes
         if (!mm) {
-            mm = new MemoryMapT();
-            n->setData<MemoryMapT>(mm);
+            // on these nodes the memory map can change
+            if (n->predecessorsNum() == 0) { // root node
+                // FIXME: we're leaking the memory maps
+                mm = new MemoryMapT();
+            } else if (n->getType() == pss::STORE) {
+                mm = new MemoryMapT();
 
-            if (n->getType() == pss::STORE) {
-                for (const Pointer& ptr : n->getOperand(1)->pointsTo)
-                    // FIXME: we're leaking it, use autoptr?
+                // create empty memory object so that STORE can
+                // store the pointers into it
+                for (const Pointer& ptr : n->getOperand(1)->pointsTo) {
+                    // FIXME: we're leaking the mem. objects, use autoptr?
                     (*mm)[ptr].insert(new MemoryObject(ptr.target));
+                }
+            } else if (n->predecessorsNum() > 1) {
+                // this is a join node, create new map and
+                // merge the predecessors to it
+                mm = new MemoryMapT();
+
+                // merge information from predecessors into new map
+                for (PSSNode *p : n->getPredecessors()) {
+                    MemoryMapT *pm = p->getData<MemoryMapT>();
+                    // merge pm to mm (if pm was already created)
+                    if (pm)
+                        mergeMaps(mm, pm, nullptr);
+                }
+            } else {
+                PSSNode *pred = n->getSinglePredecessor();
+                mm = pred->getData<MemoryMapT>();
+                assert(mm && "No memory map in the predecessor");
             }
+
+            // memory map initialized, set it as data,
+            // so that we won't initialize it again
+            n->setData<MemoryMapT>(mm);
         }
     }
 
@@ -53,18 +77,25 @@ public:
         PointsToSetT *strong_update = nullptr;
 
         MemoryMapT *mm = n->getData<MemoryMapT>();
+        // we must have the memory map, we created it
+        // in the beforeProcessed method
         assert(mm && "Do not have memory map");
 
         // every store is strong update
         if (n->getType() == pss::STORE)
             strong_update = &n->getOperand(1)->pointsTo;
 
-        // merge information from predecessors
-        for (PSSNode *p : n->getPredecessors()) {
-            MemoryMapT *pm = p->getData<MemoryMapT>();
-            // merge pm to mm (if pm was already created)
-            if (pm)
-                mergeMaps(mm, pm, strong_update);
+        // merge information from predecessors if there's
+        // more of them (if there's just one predecessor
+        // and this is not a store, the memory map couldn't
+        // change, so we don't have to do that)
+        if (n->predecessorsNum() > 1 || strong_update) {
+            for (PSSNode *p : n->getPredecessors()) {
+                MemoryMapT *pm = p->getData<MemoryMapT>();
+                // merge pm to mm (if pm was already created)
+                if (pm)
+                    mergeMaps(mm, pm, strong_update);
+            }
         }
     }
 
