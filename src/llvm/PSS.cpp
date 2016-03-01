@@ -745,11 +745,17 @@ PSSNode *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
     return root;
 }
 
-static void handleGlobalVariableInitializer(const llvm::GlobalVariable *GV,
+static void handleGlobalVariableInitializer(const llvm::Constant *C,
                                             PSSNode *node)
 {
-    llvm::errs() << *GV << "\n";
-    llvm::errs() << "ERROR: ^^^ global variable initializers not implemented\n";
+    using namespace llvm;
+
+    if (isa<ConstantPointerNull>(C)) {
+        node->setZeroInitialized();
+    } else if (!isa<ConstantInt>(C)) {
+        llvm::errs() << *C << "\n";
+        llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
+    }
 }
 
 std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
@@ -758,7 +764,7 @@ std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
     PSSNode *cur = nullptr, *prev, *first = nullptr;
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         prev = cur;
-        llvm::errs() << *I <<"\n";
+
         // every global node is like memory allocation
         cur = new PSSNode(pss::ALLOC);
         nodes_map[&*I] = cur;
@@ -770,8 +776,10 @@ std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
         // handle globals initialization
         const llvm::GlobalVariable *GV
                             = llvm::dyn_cast<llvm::GlobalVariable>(&*I);
-        if (GV && GV->hasInitializer() && !GV->isExternallyInitialized())
-            handleGlobalVariableInitializer(GV, cur);
+        if (GV && GV->hasInitializer() && !GV->isExternallyInitialized()) {
+            const llvm::Constant *C = GV->getInitializer();
+            handleGlobalVariableInitializer(C, cur);
+        }
 
         if (prev)
             prev->addSuccessor(cur);
