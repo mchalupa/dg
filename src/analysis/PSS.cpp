@@ -118,8 +118,9 @@ bool PSS::processNode(PSSNode *node)
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
                 uint64_t new_offset = *ptr.offset + *node->offset;
                 // in the case the memory has size 0, then every pointer
-                // will have unknown offset
-                if (new_offset < ptr.target->getSize())
+                // will have unknown offset with the exception that it points
+                // to the begining of the memory - then we can use the 0
+                if (new_offset == 0 || new_offset < ptr.target->getSize())
                     changed |= node->addPointsTo(ptr.target, new_offset);
                 else
                     changed |= node->addPointsToUnknownOffset(ptr.target);
