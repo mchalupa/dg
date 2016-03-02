@@ -7,6 +7,7 @@
 
 namespace dg {
 namespace analysis {
+namespace pss {
 
 // declare PSSNode
 class PSSNode;
@@ -173,6 +174,7 @@ extern Pointer UnknownMemoryLocation;
 extern Pointer NullPointer;
 #endif
 
+} // namespace pss
 } // namespace analysis
 } // namespace dg
 

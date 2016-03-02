@@ -12,10 +12,11 @@
 namespace dg {
 namespace tests {
 
-using analysis::Pointer;
+using analysis::pss::Pointer;
+using analysis::pss::PSSNode;
 
 static void
-dumpPSSNode(analysis::PSSNode *n)
+dumpPSSNode(PSSNode *n)
 {
     const char *name = n->getName();
 
@@ -419,7 +420,7 @@ public:
         using namespace analysis;
 
         PSSNode B(pss::ALLOC);
-        PSSNode S(pss::STORE, NULLPTR, &B);
+        PSSNode S(pss::STORE, pss::NULLPTR, &B);
         PSSNode L(pss::LOAD, &B);
 
         B.addSuccessor(&S);
@@ -428,7 +429,7 @@ public:
         PTStoT PA(&B);
         PA.run();
 
-        check(L.doesPointsTo(NULLPTR), "L do not points to NULL");
+        check(L.doesPointsTo(pss::NULLPTR), "L do not points to NULL");
     }
 
     void constant_store()
@@ -438,7 +439,7 @@ public:
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
         B.setSize(16);
-        PSSNode C(pss::CONSTANT, analysis::Pointer(&B, 4));
+        PSSNode C(pss::CONSTANT, Pointer(&B, 4));
         PSSNode S(pss::STORE, &A, &C);
         PSSNode GEP(pss::GEP, &B, 4);
         PSSNode L(pss::LOAD, &GEP);
@@ -472,7 +473,7 @@ public:
 
         dumpPSSNode(&L);
 
-        check(L.doesPointsTo(NULLPTR), "L do not points to nullptr");
+        check(L.doesPointsTo(pss::NULLPTR), "L do not points to nullptr");
     }
 
     void test()
@@ -494,20 +495,20 @@ public:
 };
 
 class FlowInsensitivePointsToTest
-    : public PointsToTest<analysis::PointsToFlowInsensitive>
+    : public PointsToTest<analysis::pss::PointsToFlowInsensitive>
 {
 public:
     FlowInsensitivePointsToTest()
-        : PointsToTest<analysis::PointsToFlowInsensitive>
+        : PointsToTest<analysis::pss::PointsToFlowInsensitive>
           ("flow-insensitive points-to test") {}
 };
 
 class FlowSensitivePointsToTest
-    : public PointsToTest<analysis::PointsToFlowSensitive>
+    : public PointsToTest<analysis::pss::PointsToFlowSensitive>
 {
 public:
     FlowSensitivePointsToTest()
-        : PointsToTest<analysis::PointsToFlowSensitive>
+        : PointsToTest<analysis::pss::PointsToFlowSensitive>
           ("flow-sensitive points-to test") {}
 };
 

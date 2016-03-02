@@ -3,18 +3,17 @@
 
 namespace dg {
 namespace analysis {
+namespace pss {
 
 // nodes representing NULL and unknown memory
-PSSNode NULLPTR_LOC(pss::NULLPTR);
+PSSNode NULLPTR_LOC(NULL_ADDR);
 PSSNode *NULLPTR = &NULLPTR_LOC;
-PSSNode UNKNOWN_MEMLOC(pss::UNKNOWN_MEMLOC);
+PSSNode UNKNOWN_MEMLOC(UNKNOWN_MEM);
 PSSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 // pointers to those memory
 const Pointer PointerUnknown(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
 const Pointer PointerNull(NULLPTR, 0);
-
-using namespace pss;
 
 // replace all pointers to given target with one
 // to that target, but UNKNOWN_OFFSET
@@ -57,7 +56,7 @@ bool PSS::processLoad(PSSNode *node)
             if (target->isZeroInitialized())
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
-                changed |= node->addPointsTo(dg::analysis::NULLPTR);
+                changed |= node->addPointsTo(NULLPTR);
             else
                 errorEmptyPointsTo(node, target);
 
@@ -71,7 +70,7 @@ bool PSS::processLoad(PSSNode *node)
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
                 if (target->isZeroInitialized())
-                    changed |= node->addPointsTo(dg::analysis::NULLPTR);
+                    changed |= node->addPointsTo(NULLPTR);
                 else
                     errorEmptyPointsTo(node, target);
 
@@ -158,5 +157,6 @@ bool PSS::processNode(PSSNode *node)
     return changed;
 }
 
+} // namespace pss
 } // namespace analysis
 } // namespace dg

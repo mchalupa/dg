@@ -28,10 +28,8 @@
 #include "Utils.h"
 
 using namespace dg;
+using namespace dg::analysis::pss;
 using llvm::errs;
-using analysis::PointsToFlowInsensitive;
-using analysis::PointsToFlowSensitive;
-using analysis::PSSNode;
 
 static void
 dumpPSSNode(PSSNode *n)
@@ -49,7 +47,7 @@ dumpPSSNode(PSSNode *n)
     else
         putchar('\n');
 
-    for (const analysis::Pointer& ptr : n->pointsTo) {
+    for (const Pointer& ptr : n->pointsTo) {
         printf("    -> %s + ", ptr.target->getName());
         if (ptr.offset.isUnknown())
             puts("UNKNOWN_OFFSET");
@@ -59,7 +57,7 @@ dumpPSSNode(PSSNode *n)
 }
 
 static void
-dumpPSSdot(analysis::PSS *pss)
+dumpPSSdot(PSS *pss)
 {
     std::set<PSSNode *> nodes;
     pss->getNodes(nodes);
@@ -79,7 +77,7 @@ dumpPSSdot(analysis::PSS *pss)
             printf("size: %lu, heap: %u, zeroed: %u\\n",
                node->getSize(), node->isHeap(), node->isZeroInitialized());
 
-        for (const analysis::Pointer& ptr : node->pointsTo) {
+        for (const Pointer& ptr : node->pointsTo) {
             printf("    -> %s + ", ptr.target->getName());
             if (ptr.offset.isUnknown())
                 printf("UNKNOWN_OFFSET\\n");
@@ -88,7 +86,7 @@ dumpPSSdot(analysis::PSS *pss)
         }
 
         printf("\"");
-        if (node->getType() != analysis::pss::STORE) {
+        if (node->getType() != STORE) {
             printf(" shape=box");
             if (node->pointsTo.size() == 0)
                 printf(" fillcolor=red");
@@ -109,7 +107,7 @@ dumpPSSdot(analysis::PSS *pss)
 }
 
 static void
-dumpPSS(analysis::PSS *pss, bool todot)
+dumpPSS(PSS *pss, bool todot)
 {
     assert(pss);
 

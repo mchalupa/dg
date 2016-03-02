@@ -12,8 +12,8 @@
 
 namespace dg {
 namespace analysis {
-
 namespace pss {
+
 enum PSSNodeType {
         // these are nodes that just represent memory allocation sites
         ALLOC = 1,
@@ -44,26 +44,9 @@ enum PSSNodeType {
         // is performed on them
         NOOP,
         // special nodes
-        NULLPTR,
-        UNKNOWN_MEMLOC
+        NULL_ADDR,
+        UNKNOWN_MEM,
 };
-}
-
-using pss::PSSNodeType;
-using pss::ALLOC;
-using pss::DYN_ALLOC;
-using pss::LOAD;
-using pss::STORE;
-using pss::GEP;
-using pss::PHI;
-using pss::CALL;
-using pss::CALL_RETURN;
-using pss::RETURN;
-using pss::ENTRY;
-using pss::RETURN;
-using pss::CONSTANT;
-using pss::CAST;
-using pss::NOOP;
 
 class PSSNode
 {
@@ -165,11 +148,10 @@ public:
             case CONSTANT:
                 pointsTo.insert(va_arg(args, Pointer));
                 break;
-            case pss::NULLPTR:
-                // NULLPTR just points to itself
+            case NULL_ADDR:
                 pointsTo.insert(Pointer(this, 0));
                 break;
-            case pss::UNKNOWN_MEMLOC:
+            case pss::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
@@ -234,8 +216,8 @@ public:
     void setSize(size_t s) { size = s; }
     size_t getSize() const { return size; }
 
-    bool isNull() const { return type == pss::NULLPTR; }
-    bool isUnknownMemory() const { return type == pss::UNKNOWN_MEMLOC; }
+    bool isNull() const { return type == NULL_ADDR; }
+    bool isUnknownMemory() const { return type == UNKNOWN_MEM; }
 
     void addSuccessor(PSSNode *succ)
     {
@@ -483,6 +465,7 @@ private:
     bool processLoad(PSSNode *node);
 };
 
+} // namespace pss
 } // namespace analysis
 } // namespace dg
 

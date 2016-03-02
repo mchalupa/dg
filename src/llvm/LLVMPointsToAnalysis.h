@@ -9,12 +9,14 @@
 
 namespace dg {
 namespace analysis {
+namespace pss {
     class PSS;
+}
 }
 
 template <typename PTType>
 class LLVMPointsToAnalysis {
-    analysis::PSS *pss;
+    analysis::pss::PSS *pss;
     // starting function
     const llvm::Function *func;
     const llvm::DataLayout *DL;
@@ -32,11 +34,11 @@ public:
 
     void run()
     {
-        pss = analysis::buildLLVMPSS<PTType>(module, DL);
+        pss = analysis::pss::buildLLVMPSS<PTType>(module, DL);
         pss->run();
     }
 
-    analysis::PSS *getPSS() const { return pss; }
+    analysis::pss::PSS *getPSS() const { return pss; }
 };
 
 }

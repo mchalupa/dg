@@ -23,6 +23,7 @@
 
 namespace dg {
 namespace analysis {
+namespace pss {
 
 #ifdef DEBUG_ENABLED
 static std::string
@@ -822,5 +823,6 @@ std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
     return std::pair<PSSNode *, PSSNode *>(first, cur);
 }
 
+} // namespace pss
 } // namespace analysis
 } // namespace dg

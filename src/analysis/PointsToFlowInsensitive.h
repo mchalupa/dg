@@ -7,6 +7,7 @@
 
 namespace dg {
 namespace analysis {
+namespace pss {
 
 class PointsToFlowInsensitive : public PSS
 {
@@ -31,6 +32,7 @@ public:
     }
 };
 
+} // namespace pss
 } // namespace analysis
 } // namespace dg
 

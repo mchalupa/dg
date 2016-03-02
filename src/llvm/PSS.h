@@ -6,10 +6,10 @@
 
 namespace dg {
 namespace analysis {
+namespace pss {
 
 class PSS;
 class PSSNode;
-
 
 // build pointer state subgraph for given graph
 // \return   root node of the graph
@@ -52,6 +52,7 @@ PSS *buildLLVMPSS(const llvm::Module *M, const llvm::DataLayout *DL)
 }
 
 
+} // namespace pss
 } // namespace dg
 } // namespace analysis
 
