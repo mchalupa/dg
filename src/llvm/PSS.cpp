@@ -229,6 +229,23 @@ static PSSNode *getConstant(const llvm::Value *val,
     }
 }
 
+static PSSNode *getOperand(const llvm::Value *val,
+                           const llvm::DataLayout *DL)
+{
+
+    PSSNode *op = nodes_map[val];
+    if (!op)
+        op = getConstant(val, DL);
+
+    // if the operand is a call, use the return node of the call instead
+    // - this is the one that contains returned pointers
+    if (op->getType() == pss::CALL)
+        op = op->getOperand(0);
+
+    assert(op && "Did not find an operand");
+    return op;
+}
+
 static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
 {
     using namespace llvm;
@@ -302,8 +319,14 @@ static std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst 
 {
     PSSNode *callNode, *returnNode;
 
-    callNode = new PSSNode(pss::CALL);
-    returnNode = new PSSNode(pss::RETURN, callNode);
+    returnNode = new PSSNode(pss::CALL_RETURN, nullptr);
+    // we can use the arguments of the call as we want - store
+    // there the return node (that is the one that will contain
+    // returned pointers) so that we can use it whenever we need
+    callNode = new PSSNode(pss::CALL, returnNode, nullptr);
+    // the same with return node - we would like to know
+    // to which call the reutrn belongs
+    returnNode->addOperand(callNode);
 
     nodes_map[CInst] = callNode;
     // NOTE: we do not add return node into nodes_map, since this
@@ -349,6 +372,16 @@ static std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst 
         }
     }
 
+    // handle value returned from the function if it is a pointer
+    if (CInst->getType()->isPointerTy()) {
+        // return node is like a PHI node
+        for (PSSNode *r : subg.ret->getPredecessors())
+            // we're interested only in the nodes that return some value
+            // from subprocedure, not for all nodes that have no successor
+            if (r->getType() == pss::RETURN)
+                returnNode->addOperand(r);
+    }
+
     return std::make_pair(callNode, returnNode);
 }
 
@@ -376,7 +409,7 @@ static std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst,
             // the call node
             // XXX: don't do that when the function does not return
             // the pointer, it has no meaning
-            PSSNode *node = new PSSNode(pss::CALL);
+            PSSNode *node = new PSSNode(pss::CALL, nullptr);
 #ifdef DEBUG_ENABLED
             node->setName(getInstName(CInst).c_str());
 #endif
@@ -417,16 +450,12 @@ static PSSNode *createStore(const llvm::Instruction *Inst,
 {
     const llvm::Value *valOp = Inst->getOperand(0);
 
-    PSSNode *op1 = nodes_map[valOp];
-    PSSNode *op2 = nodes_map[Inst->getOperand(1)];
-
     // the value needs to be a pointer - we call this function only under
     // this condition
     assert(valOp->getType()->isPointerTy() && "BUG: Store value is not a pointer");
-    assert(op2 && "BUG: Store does not have the pointer operand");
 
-    if (!op1)
-        op1 = getConstant(valOp, DL);
+    PSSNode *op1 = getOperand(valOp, DL);
+    PSSNode *op2 = getOperand(Inst->getOperand(1), DL);
 
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
     nodes_map[Inst] = node;
@@ -443,12 +472,9 @@ static PSSNode *createLoad(const llvm::Instruction *Inst,
                            const llvm::DataLayout *DL)
 {
     const llvm::Value *op = Inst->getOperand(0);
-    PSSNode *op1 = nodes_map[op];
-
-    if (!op1)
-        op1 = getConstant(op, DL);
-
+    PSSNode *op1 = getOperand(op, DL);
     PSSNode *node = new PSSNode(pss::LOAD, op1);
+
     nodes_map[Inst] = node;
 
 #ifdef DEBUG_ENABLED
@@ -468,19 +494,9 @@ static PSSNode *createGEP(const llvm::Instruction *Inst,
     const Value *ptrOp = GEP->getPointerOperand();
     unsigned bitwidth = getPointerBitwidth(DL, ptrOp);
     APInt offset(bitwidth, 0);
-    PSSNode *node = nullptr;
 
-    PSSNode *op = nodes_map[ptrOp];
-    if (!op) {
-        if (const llvm::ConstantExpr *CE
-                = llvm::dyn_cast<llvm::ConstantExpr>(ptrOp)) {
-            op = createConstantExpr(CE, DL);
-        } else {
-            llvm::errs() << *ptrOp << "\n";
-            llvm::errs() << *Inst << "\n";
-            assert(0 && "Instruction unspported");
-        }
-    }
+    PSSNode *node = nullptr;
+    PSSNode *op = getOperand(ptrOp, DL);
 
     if (GEP->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(bitwidth))
@@ -507,20 +523,9 @@ static PSSNode *createCast(const llvm::Instruction *Inst,
                            const llvm::DataLayout *DL)
 {
     const llvm::Value *op = Inst->getOperand(0);
-    PSSNode *op1 = nodes_map[op];
-
-    if (!op1) {
-        if (const llvm::ConstantExpr *CE
-                = llvm::dyn_cast<llvm::ConstantExpr>(op)) {
-            op1 = createConstantExpr(CE, DL);
-        } else {
-            llvm::errs() << *op << "\n";
-            llvm::errs() << *Inst << "\n";
-            assert(0 && "Instruction unspported");
-        }
-    }
-
+    PSSNode *op1 = getOperand(op, DL);
     PSSNode *node = new PSSNode(pss::CAST, op1);
+
     nodes_map[Inst] = node;
 
 #ifdef DEBUG_ENABLED
@@ -528,6 +533,25 @@ static PSSNode *createCast(const llvm::Instruction *Inst,
 #endif
 
     assert(node);
+    return node;
+}
+
+static PSSNode *createReturn(const llvm::Instruction *Inst,
+                             const llvm::DataLayout *DL)
+{
+    const llvm::Value *op = Inst->getOperand(0);
+    assert(op->getType()->isPointerTy());
+
+    PSSNode *op1 = getOperand(op, DL);
+
+    PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
+    nodes_map[Inst] = node;
+
+#ifdef DEBUG_ENABLED
+    node->setName(getInstName(Inst).c_str());
+    node->setName((std::string("RETURN ") + getInstName(Inst)).c_str());
+#endif
+
     return node;
 }
 
@@ -562,6 +586,10 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
                 break;
             case Instruction::BitCast:
                 node = createCast(&Inst, DL);
+                break;
+            case Instruction::Ret:
+                if (Inst.getOperand(0)->getType()->isPointerTy())
+                    node = createReturn(&Inst, DL);
                 break;
             case Instruction::Call:
                 std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst, DL);
@@ -663,12 +691,13 @@ PSSNode *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
-    PSSNode *root = new PSSNode(pss::NOOP);
+    // XXX: do we need entry type?
+    PSSNode *root = new PSSNode(pss::ENTRY);
     PSSNode *ret = new PSSNode(pss::NOOP);
 
 #ifdef DEBUG_ENABLED
-    root->setName((std::string("entry ") + F.getName().data()).c_str());
-    ret->setName((std::string("ret ") + F.getName().data()).c_str());
+    root->setName((std::string("ENTRY ") + F.getName().data()).c_str());
+    ret->setName((std::string("RET (unified) ") + F.getName().data()).c_str());
 #endif
 
     // now build the arguments of the function - if it has any

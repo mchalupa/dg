@@ -138,13 +138,16 @@ bool PSS::processNode(PSSNode *node)
             assert(node->pointsTo.size() == 1
                    && "Constant should have exactly one pointer");
             break;
-        case CALL:
+        case CALL_RETURN:
         case RETURN:
-            break;
+            // gather pointers returned from subprocedure - the same way
+            // as PHI works
         case PHI:
             for (PSSNode *op : node->operands)
                 changed |= node->addPointsTo(op->pointsTo);
             break;
+        case CALL:
+        case ENTRY:
         case NOOP:
             // just no op
             break;

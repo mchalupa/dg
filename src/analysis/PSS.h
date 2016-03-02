@@ -26,10 +26,17 @@ enum PSSNodeType {
         // support for interprocedural analysis,
         // operands are null terminated
         CALL,
+        CALL_RETURN,
+        // this is the entry node of a subprocedure
+        // and serves just as no op for our convenience,
+        // can be optimized away later
+        ENTRY,
+        // this is the exit node of a subprocedure
+        // that returns a value - works as phi node
+        RETURN,
         // node that has only one points-to relation
         // that never changes
         CONSTANT,
-        RETURN,
         // no operation node - this nodes can be used as a branch or join
         // node for convenient PSS generation. For example as an
         // unified entry to the function or unified return from the function.
@@ -50,6 +57,9 @@ using pss::STORE;
 using pss::GEP;
 using pss::PHI;
 using pss::CALL;
+using pss::CALL_RETURN;
+using pss::RETURN;
+using pss::ENTRY;
 using pss::RETURN;
 using pss::CONSTANT;
 using pss::CAST;
@@ -90,35 +100,38 @@ public:
     // \param t     type of the node
     // Different types take different arguments:
     //
-    // ALLOC:     no argument
-    // DYN_ALLOC: no argument
-    // NOOP:      no argument
-    // LOAD:      one argument representing pointer to location from where
-    //            we're loading the value (another pointer in this case)
-    // STORE:     first argument is the value (the pointer to be stored)
-    //            in memory pointed by the second argument
-    // GEP:       get pointer to memory on given offset (get element pointer)
-    //            first argument is pointer to the memory, second is the offset
-    //            (as Offset class instance, unknown offset is represented by
-    //            UNKNOWN_OFFSET constant)
-    // CAST:      cast pointer from one type to other type (like void * to int *)
-    //            the argument is just the pointer (we don't care about types
-    //            atm.)
-    // CONSTANT:  node that keeps constant points-to information
-    //            the argument is the pointer it points to
-    // PHI:       phi node that gathers pointers from different paths in CFG
-    //            arguments are null-terminated list of the relevant nodes
-    //            from predecessors
-    // CALL:      represents call of subprocedure,
-    //            arguments are null-terminated list of the pointers (nodes)
-    //            passed to subprocedure. These are not used by the analysis,
-    //            but can be used e. g. when mapping call arguments back to
-    //            original CFG - therefore the CALL node is not needed in most
-    //            cases (just 'inline' the subprocedure into the PSS when building it)
-    //            The call node is needed when the function is called
-    //            via function pointer though.
-    // RETURN:    represents return from the subprocedure, the only argument is the
-    //            call node (from which call we're returning)
+    // ALLOC:       no argument
+    // DYN_ALLOC:   no argument
+    // NOOP:        no argument
+    // ENTRY:       no argument
+    // LOAD:        one argument representing pointer to location from where
+    //              we're loading the value (another pointer in this case)
+    // STORE:       first argument is the value (the pointer to be stored)
+    //              in memory pointed by the second argument
+    // GEP:         get pointer to memory on given offset (get element pointer)
+    //              first argument is pointer to the memory, second is the offset
+    //              (as Offset class instance, unknown offset is represented by
+    //              UNKNOWN_OFFSET constant)
+    // CAST:        cast pointer from one type to other type (like void * to int *)
+    //              the argument is just the pointer (we don't care about types
+    //              atm.)
+    // CONSTANT:    node that keeps constant points-to information
+    //              the argument is the pointer it points to
+    // PHI:         phi node that gathers pointers from different paths in CFG
+    //              arguments are null-terminated list of the relevant nodes
+    //              from predecessors
+    // CALL:        represents call of subprocedure,
+    //              arguments are null-terminated list of nodes that can user
+    //              use arbitrarily - they are not used by the analysis itself.
+    //              The arguments can be used e. g. when mapping call arguments back to
+    //              original CFG. Actually, the CALL node is not needed in most
+    //              cases (just 'inline' the subprocedure into the PSS when building it)
+    //              The call node is needed when the function is called
+    //              via function pointer though.
+    // CALL_RETURN: site where given call returns. Bears the pointers returned from
+    //              the subprocedure
+    // RETURN:      represents returning value from a subprocedure,
+    //              works as a PHI node - it gathers pointers returned from the subprocedure
     PSSNode(PSSNodeType t, ...)
     : type(t), offset(0), zeroInitialized(false), is_heap(false),
       size(0), name(nullptr), dfsid(0), dfsid2(0), data(nullptr)
@@ -132,6 +145,7 @@ public:
             case ALLOC:
             case DYN_ALLOC:
             case NOOP:
+            case ENTRY:
                 // no operands
                 break;
             case LOAD:
@@ -159,14 +173,9 @@ public:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
+            case CALL_RETURN:
             case PHI:
-                op = va_arg(args, PSSNode *);
-                // the operands are null terminated
-                while (op) {
-                    operands.push_back(op);
-                    op = va_arg(args, PSSNode *);
-                }
-                break;
+            case RETURN:
             case CALL:
                 op = va_arg(args, PSSNode *);
                 // the operands are null terminated
@@ -174,9 +183,6 @@ public:
                     operands.push_back(op);
                     op = va_arg(args, PSSNode *);
                 }
-                break;
-            case RETURN:
-                operands.push_back(va_arg(args, PSSNode *));
                 break;
             default:
                 assert(0 && "Unknown type");
