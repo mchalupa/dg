@@ -509,10 +509,18 @@ PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
 
 PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
 {
-    const llvm::Value *op = Inst->getOperand(0);
-    assert(op->getType()->isPointerTy());
+    PSSNode *op1 = nullptr;
 
-    PSSNode *op1 = getOperand(op);
+    // we create even void and non-pointer return nodes,
+    // since these modify CFG (they won't bear any
+    // points-to information though)
+    // XXX is that needed?
+    if (!Inst->getType()->isVoidTy()) {
+        const llvm::Value *op = Inst->getOperand(0);
+
+        if (op->getType()->isPointerTy())
+            op1 = getOperand(op);
+    }
 
     PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
     nodes_map[Inst] = node;
@@ -558,7 +566,6 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                 node = createCast(&Inst);
                 break;
             case Instruction::Ret:
-                if (Inst.getOperand(0)->getType()->isPointerTy())
                     node = createReturn(&Inst);
                 break;
             case Instruction::Call:
