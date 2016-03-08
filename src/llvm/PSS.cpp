@@ -196,6 +196,14 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
     } else if (const llvm::ConstantExpr *CE
                     = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
         return createConstantExpr(CE);
+    } else if (const llvm::Function *F
+                    = llvm::dyn_cast<llvm::Function>(val)) {
+        PSSNode *ret = new PSSNode(FUNCTION);
+        nodes_map[val] = ret;
+#ifdef DEBUG_ENABLED
+        ret->setName(F->getName().data());
+#endif
+        return ret;
     } else {
         llvm::errs() << "Unspported constant: " << *val << "\n";
         abort();
@@ -365,10 +373,9 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
 {
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
+    const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
 
-    const Function *func
-        = dyn_cast<Function>(CInst->getCalledValue()->stripPointerCasts());
-
+    const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
         /// memory allocation (malloc, calloc, etc.)
         int type;
@@ -393,7 +400,12 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
         }
     } else {
         // function pointer call
-        assert(0 && "Function pointers not supported yet");
+        PSSNode *op = getOperand(calledVal);
+        PSSNode *node = new PSSNode(pss::CALL_FUNCPTR, op);
+#ifdef DEBUG_ENABLED
+            node->setName(("funcptr" + getInstName(CInst)).c_str());
+#endif
+        return std::make_pair(node, node);
     }
 }
 

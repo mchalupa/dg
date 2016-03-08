@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <cstdarg>
-#include <cstring>
+#include <cstring> // for strdup
 
 #include "Pointer.h"
 #include "ADT/Queue.h"
@@ -23,9 +23,17 @@ enum PSSNodeType {
         GEP,
         PHI,
         CAST,
+        // support for calls via function pointers.
+        // The FUNCTION node is the same as ALLOC
+        // but having it as separate type has the nice
+        // advantage of type checking
+        FUNCTION,
         // support for interprocedural analysis,
-        // operands are null terminated
+        // operands are null terminated. It is a noop,
+        // just for the user's convenience
         CALL,
+        // call via function pointer
+        CALL_FUNCPTR,
         CALL_RETURN,
         // this is the entry node of a subprocedure
         // and serves just as no op for our convenience,
@@ -85,6 +93,7 @@ public:
     //
     // ALLOC:       no argument
     // DYN_ALLOC:   no argument
+    // FUNCTION:    no argument
     // NOOP:        no argument
     // ENTRY:       no argument
     // LOAD:        one argument representing pointer to location from where
@@ -98,6 +107,8 @@ public:
     // CAST:        cast pointer from one type to other type (like void * to int *)
     //              the argument is just the pointer (we don't care about types
     //              atm.)
+    // FUNCTION:    Object representing the function in memory - so that it
+    //              can be pointed to and used as an argument to the Pointer
     // CONSTANT:    node that keeps constant points-to information
     //              the argument is the pointer it points to
     // PHI:         phi node that gathers pointers from different paths in CFG
@@ -111,8 +122,10 @@ public:
     //              cases (just 'inline' the subprocedure into the PSS when building it)
     //              The call node is needed when the function is called
     //              via function pointer though.
+    // CALL_FUNCPTR: call via function pointer. Takes one argument - pointer that
+    //              is used to the call
     // CALL_RETURN: site where given call returns. Bears the pointers returned from
-    //              the subprocedure
+    //              the subprocedure. Works like PHI
     // RETURN:      represents returning value from a subprocedure,
     //              works as a PHI node - it gathers pointers returned from the subprocedure
     PSSNode(PSSNodeType t, ...)
@@ -127,6 +140,7 @@ public:
         switch(type) {
             case ALLOC:
             case DYN_ALLOC:
+            case FUNCTION:
                 // these always points-to itself
                 // (they points to the node where the memory was allocated)
                 addPointsTo(this, 0);
@@ -135,7 +149,9 @@ public:
             case ENTRY:
                 // no operands
                 break;
+            case CAST:
             case LOAD:
+            case CALL_FUNCPTR:
                 operands.push_back(va_arg(args, PSSNode *));
                 break;
             case STORE:
@@ -145,9 +161,6 @@ public:
             case GEP:
                 operands.push_back(va_arg(args, PSSNode *));
                 offset = va_arg(args, Offset);
-                break;
-            case CAST:
-                operands.push_back(va_arg(args, PSSNode *));
                 break;
             case CONSTANT:
                 pointsTo.insert(va_arg(args, Pointer));
@@ -484,6 +497,16 @@ public:
         // no error, but in flow sensitive it is ...
         (void) from;
         (void) to;
+        return false;
+    }
+
+    // adjust the PSS on function pointer call
+    // @ where is the callsite
+    // @ what is the function that is being called
+    virtual bool functionPointerCall(PSSNode *where, PSSNode *what)
+    {
+        (void) where;
+        (void) what;
         return false;
     }
 

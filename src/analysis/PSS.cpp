@@ -141,8 +141,21 @@ bool PSS::processNode(PSSNode *node)
             for (PSSNode *op : node->operands)
                 changed |= node->addPointsTo(op->pointsTo);
             break;
+        case CALL_FUNCPTR:
+            // call via function pointer:
+            // first gather the pointers that can be used to the
+            // call and if something changes, let backend take some action
+            // (for example build relevant subgraph)
+            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
+                if (node->addPointsTo(ptr)) {
+                    functionPointerCall(node, ptr.target);
+                    changed = true;
+                }
+            }
+            break;
         case ALLOC:
         case DYN_ALLOC:
+        case FUNCTION:
             // these two always points to itself
             assert(node->doesPointsTo(node, 0));
             assert(node->pointsTo.size() == 1);
