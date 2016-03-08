@@ -82,8 +82,17 @@ class PSSNode
     unsigned int dfsid;
     unsigned int dfsid2;
     // data that can an analysis store in node
-    // for its own usage
+    // for its own needs
     void *data;
+
+    // data that can user store in the node
+    // NOTE: I considered if this way is better than
+    // creating subclass of PSSNode and have whatever we
+    // need in the subclass. Since AFAIK we need just this one pointer
+    // at this moment, I decided to do it this way since it
+    // is more simple than dynamic_cast... Once we need more
+    // than one pointer, we can change this design.
+    void *user_data;
 
 public:
     ///
@@ -130,7 +139,7 @@ public:
     //              works as a PHI node - it gathers pointers returned from the subprocedure
     PSSNode(PSSNodeType t, ...)
     : type(t), offset(0), zeroInitialized(false), is_heap(false),
-      size(0), name(nullptr), dfsid(0), dfsid2(0), data(nullptr)
+      size(0), name(nullptr), dfsid(0), dfsid2(0), data(nullptr), user_data(nullptr)
     {
         // assing operands
         PSSNode *op;
@@ -192,9 +201,9 @@ public:
 
     virtual ~PSSNode() { delete name; }
 
+    // getters & setters for analysis's data in the node
     template <typename T>
     T* getData() { return static_cast<T *>(data); }
-
     template <typename T>
     const T* getData() const { return static_cast<T *>(data); }
 
@@ -203,6 +212,20 @@ public:
     {
         void *old = data;
         data = static_cast<void *>(newdata);
+        return old;
+    }
+
+    // getters & setters for user's data in the node
+    template <typename T>
+    T* getUserData() { return static_cast<T *>(user_data); }
+    template <typename T>
+    const T* getUserData() const { return static_cast<T *>(user_data); }
+
+    template <typename T>
+    void *setUserData(T *newdata)
+    {
+        void *old = user_data;
+        user_data = static_cast<void *>(newdata);
         return old;
     }
 
