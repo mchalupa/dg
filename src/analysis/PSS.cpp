@@ -93,10 +93,6 @@ bool PSS::processNode(PSSNode *node)
     std::vector<MemoryObject *> objects;
 
     switch(node->type) {
-        case ALLOC:
-        case DYN_ALLOC:
-            changed |= node->addPointsTo(node, 0);
-            break;
         case LOAD:
             changed |= processLoad(node);
             break;
@@ -145,6 +141,11 @@ bool PSS::processNode(PSSNode *node)
             for (PSSNode *op : node->operands)
                 changed |= node->addPointsTo(op->pointsTo);
             break;
+        case ALLOC:
+        case DYN_ALLOC:
+            // these two always points to itself
+            assert(node->doesPointsTo(node, 0));
+            assert(node->pointsTo.size() == 1);
         case CALL:
         case ENTRY:
         case NOOP:

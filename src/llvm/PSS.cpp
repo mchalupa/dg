@@ -106,9 +106,6 @@ Pointer LLVMPSSBuilder::handleConstantBitCast(const llvm::BitCastInst *BC)
             assert(0 && "Unsupported bitcast");
         }
     } else {
-        assert(op->getType() == pss::CONSTANT
-               && "Constant Bitcast on non-constant");
-
         assert(op->pointsTo.size() == 1
                && "Constant BitCast with not only one pointer");
 
@@ -137,11 +134,9 @@ Pointer LLVMPSSBuilder::handleConstantGep(const llvm::GetElementPtrInst *GEP)
             assert(0 && "Unsupported constant GEP");
         }
     } else {
-        assert(opNode->getType() == pss::CONSTANT
-                && "ConstantExpr GEP on non-constant");
-        assert(opNode->pointsTo.size() == 1
-                && "Constant node has more that 1 pointer");
-        pointer = *(opNode->pointsTo.begin());
+            assert(opNode->pointsTo.size() == 1
+                   && "Constant node has more that 1 pointer");
+            pointer = *(opNode->pointsTo.begin());
     }
 
     unsigned bitwidth = getPointerBitwidth(DL, op);
@@ -753,13 +748,32 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 }
 
 static void handleGlobalVariableInitializer(const llvm::Constant *C,
+                                            const llvm::DataLayout *DL,
                                             PSSNode *node)
 {
     using namespace llvm;
 
-    if (isa<ConstantPointerNull>(C)) {
+    // if the global is zero initialized, just set the zeroInitialized flag
+    if (isa<ConstantPointerNull>(C)
+        || isa<ConstantAggregateZero>(C)) {
         node->setZeroInitialized();
-    } else if (!isa<ConstantInt>(C)) {
+    } /*else if (C->getType()->isAggregateType()) {
+        uint64_t off = 0;
+        llvm::errs() << *C << "\n";
+        llvm::errs() << "  ^^^ X global aggregate initializer [" << off << "]not handled\n";
+
+        for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
+            const Value *val = *I;
+            Type *Ty = val->getType();
+
+            llvm::errs() << *val << "\n";
+            llvm::errs() << "  ^^^ global aggregate initializer [" << off << "]not handled\n";
+            //if (Ty->isPointerTy()) {
+            //}
+
+            off += DL->getTypeAllocSize(Ty);
+        }
+    } */else if (!isa<ConstantInt>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
     }
@@ -768,6 +782,7 @@ static void handleGlobalVariableInitializer(const llvm::Constant *C,
 std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
 {
     PSSNode *cur = nullptr, *prev, *first = nullptr;
+    // create PSS nodes
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         prev = cur;
 
@@ -778,19 +793,24 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
 #ifdef DEBUG_ENABLED
         cur->setName(getInstName(&*I).c_str());
 #endif
+        if (prev)
+            prev->addSuccessor(cur);
+        else
+            first = cur;
+    }
 
+    // only now handle the initializers - we need to have then
+    // built, because they can point to each other
+    for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         // handle globals initialization
         const llvm::GlobalVariable *GV
                             = llvm::dyn_cast<llvm::GlobalVariable>(&*I);
         if (GV && GV->hasInitializer() && !GV->isExternallyInitialized()) {
             const llvm::Constant *C = GV->getInitializer();
-            handleGlobalVariableInitializer(C, cur);
+            PSSNode *node = nodes_map[&*I];
+            assert(node && "BUG: Do not have global variable");
+            handleGlobalVariableInitializer(C, DL, node);
         }
-
-        if (prev)
-            prev->addSuccessor(cur);
-        else
-            first = cur;
     }
 
     assert((!first && !cur) || (first && cur));

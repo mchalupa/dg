@@ -127,6 +127,10 @@ public:
         switch(type) {
             case ALLOC:
             case DYN_ALLOC:
+                // these always points-to itself
+                // (they points to the node where the memory was allocated)
+                addPointsTo(this, 0);
+                break;
             case NOOP:
             case ENTRY:
                 // no operands
