@@ -2,6 +2,7 @@
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
@@ -564,6 +565,9 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                     node = createReturn(&Inst);
                 break;
             case Instruction::Call:
+                if (isa<DbgValueInst>(&Inst))
+                    break;
+
                 std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst);
                 if (prev_node)
                     prev_node->addSuccessor(subg.first);
