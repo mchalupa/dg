@@ -1,4 +1,3 @@
-#include <unordered_map>
 #include <cassert>
 
 #include <llvm/IR/Instruction.h>
@@ -40,21 +39,6 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 #endif
-
-struct Subgraph {
-    Subgraph(PSSNode *r1, PSSNode *r2, std::pair<PSSNode *, PSSNode *>& a)
-        : root(r1), ret(r2), args(a) {}
-    Subgraph() {memset(this, 0, sizeof *this);}
-
-    PSSNode *root;
-    PSSNode *ret;
-    std::pair<PSSNode *, PSSNode *> args;
-};
-
-// map of all nodes we created - use to look up operands
-std::unordered_map<const llvm::Value *, PSSNode *> nodes_map;
-// map of all built subgraphs - the value type is a pair (root, return)
-std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
 enum MemAllocationFuncs {
     NONEMEM = 0,
@@ -99,11 +83,7 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
     return DL->getTypeAllocSize(Ty);
 }
 
-Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
-                               const llvm::DataLayout *DL);
-
-static Pointer handleConstantBitCast(const llvm::BitCastInst *BC,
-                                     const llvm::DataLayout *DL)
+Pointer LLVMPSSBuilder::handleConstantBitCast(const llvm::BitCastInst *BC)
 {
     using namespace llvm;
 
@@ -119,7 +99,7 @@ static Pointer handleConstantBitCast(const llvm::BitCastInst *BC,
     if (!op) {
         // is this recursively created expression? If so, get the pointer for it
         if (isa<ConstantExpr>(llvmOp)) {
-            return getConstantExprPointer(cast<ConstantExpr>(llvmOp), DL);
+            return getConstantExprPointer(cast<ConstantExpr>(llvmOp));
         } else {
             errs() << *llvmOp << "\n";
             errs() << *BC << "\n";
@@ -136,8 +116,7 @@ static Pointer handleConstantBitCast(const llvm::BitCastInst *BC,
     }
 }
 
-static Pointer handleConstantGep(const llvm::GetElementPtrInst *GEP,
-                                 const llvm::DataLayout *DL)
+Pointer LLVMPSSBuilder::handleConstantGep(const llvm::GetElementPtrInst *GEP)
 {
     using namespace llvm;
 
@@ -151,7 +130,7 @@ static Pointer handleConstantGep(const llvm::GetElementPtrInst *GEP,
     if (!opNode) {
         // is this recursively created expression? If so, get the pointer for it
         if (isa<ConstantExpr>(op)) {
-            pointer = getConstantExprPointer(cast<ConstantExpr>(op), DL);
+            pointer = getConstantExprPointer(cast<ConstantExpr>(op));
         } else {
             errs() << *op << "\n";
             errs() << *GEP << "\n";
@@ -180,8 +159,7 @@ static Pointer handleConstantGep(const llvm::GetElementPtrInst *GEP,
     return pointer;
 }
 
-Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
-                               const llvm::DataLayout *DL)
+Pointer LLVMPSSBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE)
 {
     using namespace llvm;
 
@@ -189,9 +167,9 @@ Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
     const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
 
     if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
-        pointer = handleConstantGep(GEP, DL);
+        pointer = handleConstantGep(GEP);
     } else if (const BitCastInst *BC = dyn_cast<BitCastInst>(Inst)) {
-        pointer = handleConstantBitCast(BC, DL);
+        pointer = handleConstantBitCast(BC);
     } else {
             errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
             abort();
@@ -201,10 +179,9 @@ Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
     return pointer;
 }
 
-static PSSNode *createConstantExpr(const llvm::ConstantExpr *CE,
-                                   const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
 {
-    Pointer ptr = getConstantExprPointer(CE, DL);
+    Pointer ptr = getConstantExprPointer(CE);
     PSSNode *node = new PSSNode(pss::CONSTANT, ptr);
     nodes_map[CE] = node;
 
@@ -216,27 +193,25 @@ static PSSNode *createConstantExpr(const llvm::ConstantExpr *CE,
     return node;
 }
 
-static PSSNode *getConstant(const llvm::Value *val,
-                            const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
 {
     if (llvm::isa<llvm::ConstantPointerNull>(val)) {
         return NULLPTR;
     } else if (const llvm::ConstantExpr *CE
                     = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
-        return createConstantExpr(CE, DL);
+        return createConstantExpr(CE);
     } else {
         llvm::errs() << "Unspported constant: " << *val << "\n";
         abort();
     }
 }
 
-static PSSNode *getOperand(const llvm::Value *val,
-                           const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
 {
 
     PSSNode *op = nodes_map[val];
     if (!op)
-        op = getConstant(val, DL);
+        op = getConstant(val);
 
     // if the operand is a call, use the return node of the call instead
     // - this is the one that contains returned pointers
@@ -299,8 +274,8 @@ static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
     return node;
 }
 
-static std::pair<PSSNode *, PSSNode *>
-createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
     PSSNode *node = createDynamicAlloc(CInst, type);
     nodes_map[CInst] = node;
@@ -314,9 +289,9 @@ createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
     return std::make_pair(node, node);
 }
 
-static std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *CInst,
-                                                           const llvm::Function *F,
-                                                           const llvm::DataLayout *DL)
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
+                                    const llvm::Function *F)
 {
     PSSNode *callNode, *returnNode;
 
@@ -342,7 +317,7 @@ static std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst 
     Subgraph subg = subgraphs_map[F];
     if (!subg.root) {
         // create new subgraph
-        buildLLVMPSS(*F, DL);
+        buildLLVMPSS(*F);
         // FIXME: don't find it again, return it from buildLLVMPSS
         // this is redundant
         subg = subgraphs_map[F];
@@ -389,8 +364,8 @@ static std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst 
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PSS
-static std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst,
-                                                  const llvm::DataLayout *DL)
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
 {
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
@@ -418,7 +393,7 @@ static std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst,
         } else if (func->isIntrinsic()) {
             assert(0 && "Intrinsic function not implemented yet");
         } else {
-            return createOrGetSubgraph(CInst, func, DL);
+            return createOrGetSubgraph(CInst, func);
         }
     } else {
         // function pointer call
@@ -426,8 +401,7 @@ static std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst,
     }
 }
 
-static PSSNode *createAlloc(const llvm::Instruction *Inst,
-                            const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     PSSNode *node = new PSSNode(pss::ALLOC);
     nodes_map[Inst] = node;
@@ -446,8 +420,7 @@ static PSSNode *createAlloc(const llvm::Instruction *Inst,
     return node;
 }
 
-static PSSNode *createStore(const llvm::Instruction *Inst,
-                            const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createStore(const llvm::Instruction *Inst)
 {
     const llvm::Value *valOp = Inst->getOperand(0);
 
@@ -455,8 +428,8 @@ static PSSNode *createStore(const llvm::Instruction *Inst,
     // this condition
     assert(valOp->getType()->isPointerTy() && "BUG: Store value is not a pointer");
 
-    PSSNode *op1 = getOperand(valOp, DL);
-    PSSNode *op2 = getOperand(Inst->getOperand(1), DL);
+    PSSNode *op1 = getOperand(valOp);
+    PSSNode *op2 = getOperand(Inst->getOperand(1));
 
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
     nodes_map[Inst] = node;
@@ -469,11 +442,10 @@ static PSSNode *createStore(const llvm::Instruction *Inst,
     return node;
 }
 
-static PSSNode *createLoad(const llvm::Instruction *Inst,
-                           const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createLoad(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
-    PSSNode *op1 = getOperand(op, DL);
+    PSSNode *op1 = getOperand(op);
     PSSNode *node = new PSSNode(pss::LOAD, op1);
 
     nodes_map[Inst] = node;
@@ -486,8 +458,7 @@ static PSSNode *createLoad(const llvm::Instruction *Inst,
     return node;
 }
 
-static PSSNode *createGEP(const llvm::Instruction *Inst,
-                          const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createGEP(const llvm::Instruction *Inst)
 {
     using namespace llvm;
 
@@ -497,7 +468,7 @@ static PSSNode *createGEP(const llvm::Instruction *Inst,
     APInt offset(bitwidth, 0);
 
     PSSNode *node = nullptr;
-    PSSNode *op = getOperand(ptrOp, DL);
+    PSSNode *op = getOperand(ptrOp);
 
     if (GEP->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(bitwidth))
@@ -520,11 +491,10 @@ static PSSNode *createGEP(const llvm::Instruction *Inst,
     return node;
 }
 
-static PSSNode *createCast(const llvm::Instruction *Inst,
-                           const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
-    PSSNode *op1 = getOperand(op, DL);
+    PSSNode *op1 = getOperand(op);
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
     nodes_map[Inst] = node;
@@ -537,13 +507,12 @@ static PSSNode *createCast(const llvm::Instruction *Inst,
     return node;
 }
 
-static PSSNode *createReturn(const llvm::Instruction *Inst,
-                             const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
     assert(op->getType()->isPointerTy());
 
-    PSSNode *op1 = getOperand(op, DL);
+    PSSNode *op1 = getOperand(op);
 
     PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
     nodes_map[Inst] = node;
@@ -557,8 +526,8 @@ static PSSNode *createReturn(const llvm::Instruction *Inst,
 }
 
 // return first and last nodes of the block
-std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
-                                              const llvm::DataLayout *DL)
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
 {
     using namespace llvm;
 
@@ -570,30 +539,30 @@ std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block,
 
         switch(Inst.getOpcode()) {
             case Instruction::Alloca:
-                node = createAlloc(&Inst, DL);
+                node = createAlloc(&Inst);
                 break;
             case Instruction::Store:
                 // create only nodes that store pointer to another
                 // pointer. We don't care about stores of non-pointers
                 if (Inst.getOperand(0)->getType()->isPointerTy())
-                    node = createStore(&Inst, DL);
+                    node = createStore(&Inst);
                 break;
             case Instruction::Load:
                 if (Inst.getType()->isPointerTy())
-                    node = createLoad(&Inst, DL);
+                    node = createLoad(&Inst);
                 break;
             case Instruction::GetElementPtr:
-                node = createGEP(&Inst, DL);
+                node = createGEP(&Inst);
                 break;
             case Instruction::BitCast:
-                node = createCast(&Inst, DL);
+                node = createCast(&Inst);
                 break;
             case Instruction::Ret:
                 if (Inst.getOperand(0)->getType()->isPointerTy())
-                    node = createReturn(&Inst, DL);
+                    node = createReturn(&Inst);
                 break;
             case Instruction::Call:
-                std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst, DL);
+                std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst);
                 if (prev_node)
                     prev_node->addSuccessor(subg.first);
                 else
@@ -647,7 +616,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
     return num;
 }
 
-static std::pair<PSSNode *, PSSNode *> buildArguments(const llvm::Function& F)
+std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildArguments(const llvm::Function& F)
 {
     // create PHI nodes for arguments of the function. These will be
     // successors of call-node
@@ -679,10 +648,9 @@ static std::pair<PSSNode *, PSSNode *> buildArguments(const llvm::Function& F)
     return ret;
 }
 
-
 // build pointer state subgraph for given graph
 // \return   root node of the graph
-PSSNode *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
+PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 {
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
@@ -721,7 +689,7 @@ PSSNode *buildLLVMPSS(const llvm::Function& F, const llvm::DataLayout *DL)
 
     PSSNode *first = nullptr;
     for (const llvm::BasicBlock& block : F) {
-        std::pair<PSSNode *, PSSNode *> nds = buildPSSBlock(block, DL);
+        std::pair<PSSNode *, PSSNode *> nds = buildPSSBlock(block);
 
         if (!first) {
             // first block was not created at all? (it has not
@@ -790,8 +758,7 @@ static void handleGlobalVariableInitializer(const llvm::Constant *C,
     }
 }
 
-std::pair<PSSNode *, PSSNode *> buildGlobals(const llvm::Module *M,
-                                             const llvm::DataLayout *DL)
+std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
 {
     PSSNode *cur = nullptr, *prev, *first = nullptr;
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {

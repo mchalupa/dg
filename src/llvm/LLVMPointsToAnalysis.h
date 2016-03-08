@@ -14,31 +14,25 @@ namespace pss {
 }
 }
 
+using analysis::pss::PSS;
+using analysis::pss::LLVMPSSBuilder;
+
 template <typename PTType>
 class LLVMPointsToAnalysis {
-    analysis::pss::PSS *pss;
-    // starting function
-    const llvm::Function *func;
-    const llvm::DataLayout *DL;
-    const llvm::Module *module;
+    PSS *pss;
+    LLVMPSSBuilder *builder;
 
 public:
     LLVMPointsToAnalysis(const llvm::Module* M)
-    : module(M)
-    {
-        func = M->getFunction("main");
-        assert(func && "Need main function");
-
-        DL = new llvm::DataLayout(module->getDataLayout());
-    }
+        :builder(new LLVMPSSBuilder(M)) {}
 
     void run()
     {
-        pss = analysis::pss::buildLLVMPSS<PTType>(module, DL);
+        pss = builder->buildLLVMPSS<PTType>();
         pss->run();
     }
 
-    analysis::pss::PSS *getPSS() const { return pss; }
+    PSS *getPSS() const { return pss; }
 };
 
 }
