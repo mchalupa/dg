@@ -747,36 +747,51 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     return root;
 }
 
-static void handleGlobalVariableInitializer(const llvm::Constant *C,
-                                            const llvm::DataLayout *DL,
-                                            PSSNode *node)
+PSSNode *
+LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
+                                                PSSNode *node)
 {
     using namespace llvm;
+    PSSNode *last = node;
 
     // if the global is zero initialized, just set the zeroInitialized flag
     if (isa<ConstantPointerNull>(C)
         || isa<ConstantAggregateZero>(C)) {
         node->setZeroInitialized();
-    } /*else if (C->getType()->isAggregateType()) {
+    } else if (C->getType()->isAggregateType()) {
         uint64_t off = 0;
-        llvm::errs() << *C << "\n";
-        llvm::errs() << "  ^^^ X global aggregate initializer [" << off << "]not handled\n";
-
         for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
             const Value *val = *I;
             Type *Ty = val->getType();
 
-            llvm::errs() << *val << "\n";
-            llvm::errs() << "  ^^^ global aggregate initializer [" << off << "]not handled\n";
-            //if (Ty->isPointerTy()) {
-            //}
+            if (Ty->isPointerTy()) {
+                PSSNode *op = getOperand(val);
+                PSSNode *target = new PSSNode(CONSTANT, Pointer(node, off));
+                // FIXME: we're leaking the target
+                // NOTE: mabe we could do something like
+                // CONSTANT_STORE that would take Pointer instead of node??
+                // PSSNode(CONSTANT_STORE, op, Pointer(node, off)) or
+                // PSSNode(COPY, op, Pointer(node, off))??
+                PSSNode *store = new PSSNode(STORE, op, target);
+                store->insertAfter(last);
+                last = store;
+
+#ifdef DEBUG_ENABLED
+                // FIXME: uauauagghh that's ugly!
+                store->setName((std::string("STORE (init) ") + node->getName()
+                                + "[" + std::to_string(off) + "] -> "
+                                + getInstName(val)).c_str());
+#endif
+            }
 
             off += DL->getTypeAllocSize(Ty);
         }
-    } */else if (!isa<ConstantInt>(C)) {
+    } else if (!isa<ConstantInt>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
     }
+
+    return last;
 }
 
 std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
@@ -809,7 +824,7 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
             const llvm::Constant *C = GV->getInitializer();
             PSSNode *node = nodes_map[&*I];
             assert(node && "BUG: Do not have global variable");
-            handleGlobalVariableInitializer(C, DL, node);
+            cur = handleGlobalVariableInitializer(C, node);
         }
     }
 

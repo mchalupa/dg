@@ -248,6 +248,28 @@ public:
         return predecessors.front();
     }
 
+    // insert this node in PSS after n
+    // this node must not be in any PSS
+    void insertAfter(PSSNode *n)
+    {
+        assert(predecessorsNum() == 0);
+        assert(successorsNum() == 0);
+
+        // take over successors
+        successors.swap(n->successors);
+
+        // make this node the successor of n
+        n->addSuccessor(this);
+
+        // replace the reference to n in successors
+        for (PSSNode *succ : successors) {
+            for (unsigned i = 0; i < succ->predecessorsNum(); ++i) {
+                if (succ->predecessors[i] == n)
+                    succ->predecessors[i] = this;
+            }
+        }
+    }
+
     size_t predecessorsNum() const { return predecessors.size(); }
     size_t successorsNum() const { return successors.size(); }
 

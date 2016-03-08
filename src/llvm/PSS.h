@@ -52,6 +52,11 @@ public:
         delete DL;
     }
 
+    // let the user get the nodes map, so that we can
+    // map the points-to informatio back to LLVM nodes
+    const std::unordered_map<const llvm::Value *, PSSNode *>&
+                                getNodesMap() const { return nodes_map; }
+
     template <typename PTType>
     PSS *buildLLVMPSS()
     {
@@ -101,6 +106,9 @@ private:
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *CInst,
                                                         const llvm::Function *F);
 
+
+    PSSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
+                                             PSSNode *node);
     std::pair<PSSNode *, PSSNode *>
     createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
 };
