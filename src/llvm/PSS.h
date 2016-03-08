@@ -52,41 +52,25 @@ public:
         delete DL;
     }
 
+    PSSNode *buildLLVMPSS();
+
+    // create subgraph of function @F and call+return nodes
+    // to/from it
+    std::pair<PSSNode *, PSSNode *>
+    createCallToFunction(const llvm::CallInst *CInst,
+                         const llvm::Function *F);
+
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
     const std::unordered_map<const llvm::Value *, PSSNode *>&
                                 getNodesMap() const { return nodes_map; }
-
-    PSSNode *buildLLVMPSS()
+private:
+    void addNode(const llvm::Value *val, PSSNode *node)
     {
-        // get entry function
-        llvm::Function *F = M->getFunction("main");
-        if (!F) {
-            llvm::errs() << "Need main function in module\n";
-            abort();
-        }
-
-        // first we must build globals, because nodes can use them as operands
-        std::pair<PSSNode *, PSSNode *> glob = buildGlobals();
-
-        // now we can build rest of the graph
-        PSSNode *root = buildLLVMPSS(*F);
-
-        // do we have any globals at all? If so, insert them at the begining of the graph
-        // FIXME: we do not need to process them later, should we do it somehow differently?
-        // something like 'static nodes' in PSS...
-        if (glob.first) {
-            assert(glob.second && "Have the start but not the end");
-
-            // this is a sequence of global nodes, make it the root of the graph
-            glob.second->addSuccessor(root);
-            root = glob.first;
-        }
-
-        return root;
+        nodes_map[val] = node;
+        node->setUserData(const_cast<llvm::Value *>(val));
     }
 
-private:
     PSSNode *createAlloc(const llvm::Instruction *Inst);
     PSSNode *createStore(const llvm::Instruction *Inst);
     PSSNode *createLoad(const llvm::Instruction *Inst);

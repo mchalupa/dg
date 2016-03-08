@@ -179,7 +179,7 @@ PSSNode *LLVMPSSBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
 {
     Pointer ptr = getConstantExprPointer(CE);
     PSSNode *node = new PSSNode(pss::CONSTANT, ptr);
-    nodes_map[CE] = node;
+    addNode(CE, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(CE).c_str());
@@ -199,7 +199,7 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
     } else if (const llvm::Function *F
                     = llvm::dyn_cast<llvm::Function>(val)) {
         PSSNode *ret = new PSSNode(FUNCTION);
-        nodes_map[val] = ret;
+        addNode(val, ret);
 #ifdef DEBUG_ENABLED
         ret->setName(F->getName().data());
 #endif
@@ -282,7 +282,7 @@ std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
     PSSNode *node = createDynamicAlloc(CInst, type);
-    nodes_map[CInst] = node;
+    addNode(CInst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(CInst).c_str());
@@ -294,8 +294,8 @@ LLVMPSSBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 }
 
 std::pair<PSSNode *, PSSNode *>
-LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
-                                    const llvm::Function *F)
+LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
+                                     const llvm::Function *F)
 {
     PSSNode *callNode, *returnNode;
 
@@ -307,10 +307,6 @@ LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
     // the same with return node - we would like to know
     // to which call the reutrn belongs
     returnNode->addOperand(callNode);
-
-    nodes_map[CInst] = callNode;
-    // NOTE: we do not add return node into nodes_map, since this
-    // is artificial node and does not correspond to any real node
 
 #ifdef DEBUG_ENABLED
     callNode->setName(getInstName(CInst).c_str());
@@ -365,6 +361,19 @@ LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
     return std::make_pair(callNode, returnNode);
 }
 
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
+                                    const llvm::Function *F)
+{
+    std::pair<PSSNode *, PSSNode *> cf = createCallToFunction(CInst, F);
+    addNode(CInst, cf.first);
+
+    // NOTE: we do not add return node into nodes_map, since this
+    // is artificial node and does not correspond to any real node
+
+    return cf;
+}
+
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PSS
@@ -401,18 +410,22 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
     } else {
         // function pointer call
         PSSNode *op = getOperand(calledVal);
-        PSSNode *node = new PSSNode(pss::CALL_FUNCPTR, op);
+        PSSNode *call_funcptr = new PSSNode(pss::CALL_FUNCPTR, op);
+        PSSNode *ret_call = new PSSNode(RETURN, call_funcptr, nullptr);
+        call_funcptr->addSuccessor(ret_call);
+        addNode(CInst, call_funcptr);
 #ifdef DEBUG_ENABLED
-            node->setName(("funcptr" + getInstName(CInst)).c_str());
+            call_funcptr->setName(("funcptr" + getInstName(CInst)).c_str());
+            ret_call->setName(("RETURN" + getInstName(CInst)).c_str());
 #endif
-        return std::make_pair(node, node);
+        return std::make_pair(call_funcptr, ret_call);
     }
 }
 
 PSSNode *LLVMPSSBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     PSSNode *node = new PSSNode(pss::ALLOC);
-    nodes_map[Inst] = node;
+    addNode(Inst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
@@ -440,7 +453,7 @@ PSSNode *LLVMPSSBuilder::createStore(const llvm::Instruction *Inst)
     PSSNode *op2 = getOperand(Inst->getOperand(1));
 
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
-    nodes_map[Inst] = node;
+    addNode(Inst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
@@ -456,7 +469,7 @@ PSSNode *LLVMPSSBuilder::createLoad(const llvm::Instruction *Inst)
     PSSNode *op1 = getOperand(op);
     PSSNode *node = new PSSNode(pss::LOAD, op1);
 
-    nodes_map[Inst] = node;
+    addNode(Inst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
@@ -489,7 +502,7 @@ PSSNode *LLVMPSSBuilder::createGEP(const llvm::Instruction *Inst)
     if (!node)
         node = new PSSNode(pss::GEP, op, UNKNOWN_OFFSET);
 
-    nodes_map[Inst] = node;
+    addNode(Inst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
@@ -505,7 +518,7 @@ PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
     PSSNode *op1 = getOperand(op);
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
-    nodes_map[Inst] = node;
+    addNode(Inst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
@@ -531,7 +544,7 @@ PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
     }
 
     PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
-    nodes_map[Inst] = node;
+    addNode(Inst, node);
 
 #ifdef DEBUG_ENABLED
     node->setName(getInstName(Inst).c_str());
@@ -647,7 +660,7 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildArguments(const llvm::Funct
             prev = arg;
 
             arg = new PSSNode(pss::PHI, nullptr);
-            nodes_map[&*A] = arg;
+            addNode(&*A, arg);
 
             if (prev)
                 prev->addSuccessor(arg);
@@ -763,6 +776,36 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     return root;
 }
 
+PSSNode *LLVMPSSBuilder::buildLLVMPSS()
+{
+    // get entry function
+    llvm::Function *F = M->getFunction("main");
+    if (!F) {
+        llvm::errs() << "Need main function in module\n";
+        abort();
+    }
+
+    // first we must build globals, because nodes can use them as operands
+    std::pair<PSSNode *, PSSNode *> glob = buildGlobals();
+
+    // now we can build rest of the graph
+    PSSNode *root = buildLLVMPSS(*F);
+
+    // do we have any globals at all? If so, insert them at the begining of the graph
+    // FIXME: we do not need to process them later, should we do it somehow differently?
+    // something like 'static nodes' in PSS...
+    if (glob.first) {
+        assert(glob.second && "Have the start but not the end");
+
+        // this is a sequence of global nodes, make it the root of the graph
+        glob.second->addSuccessor(root);
+        root = glob.first;
+    }
+
+    return root;
+}
+
+
 PSSNode *
 LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
                                                 PSSNode *node)
@@ -819,7 +862,7 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
 
         // every global node is like memory allocation
         cur = new PSSNode(pss::ALLOC);
-        nodes_map[&*I] = cur;
+        addNode(&*I, cur);
 
 #ifdef DEBUG_ENABLED
         cur->setName(getInstName(&*I).c_str());

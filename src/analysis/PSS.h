@@ -131,8 +131,9 @@ public:
     //              cases (just 'inline' the subprocedure into the PSS when building it)
     //              The call node is needed when the function is called
     //              via function pointer though.
-    // CALL_FUNCPTR: call via function pointer. Takes one argument - pointer that
-    //              is used to the call
+    // CALL_FUNCPTR: FIXME: call via function pointer. Takes arbitrary number of arguments,
+    //              but at least one - pointer that is used to the call. The rest of
+    //              arguments are for user's needs
     // CALL_RETURN: site where given call returns. Bears the pointers returned from
     //              the subprocedure. Works like PHI
     // RETURN:      represents returning value from a subprocedure,
