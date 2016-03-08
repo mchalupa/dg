@@ -8,31 +8,29 @@
 #include "llvm/PSS.h"
 
 namespace dg {
-namespace analysis {
-namespace pss {
-    class PSS;
-}
-}
 
 using analysis::pss::PSS;
+using analysis::pss::PSSNode;
 using analysis::pss::LLVMPSSBuilder;
 
 template <typename PTType>
-class LLVMPointsToAnalysis {
-    PSS *pss;
+class LLVMPointsToAnalysis : public PTType
+{
     LLVMPSSBuilder *builder;
 
 public:
     LLVMPointsToAnalysis(const llvm::Module* M)
         :builder(new LLVMPSSBuilder(M)) {}
 
-    void run()
+    // build new subgraphs on calls via pointer
+    virtual bool functionPointerCall(PSSNode *where, PSSNode *what)
     {
-        pss = builder->buildLLVMPSS<PTType>();
-        pss->run();
     }
 
-    PSS *getPSS() const { return pss; }
+    void build()
+    {
+        this->setRoot(builder->buildLLVMPSS());
+    }
 };
 
 }

@@ -27,6 +27,9 @@ class PointsToFlowSensitive : public PSS
         }
     }
 
+protected:
+    PointsToFlowSensitive() {}
+
 public:
     // this is an easy but not very efficient implementation,
     // works for testing

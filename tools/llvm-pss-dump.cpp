@@ -165,20 +165,22 @@ int main(int argc, char *argv[])
         LLVMPointsToAnalysis<PointsToFlowInsensitive> PTA(M);
 
         tm.start();
+        PTA.build();
         PTA.run();
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 
-        dumpPSS(PTA.getPSS(), todot);
+        dumpPSS(&PTA, todot);
     } else {
         LLVMPointsToAnalysis<PointsToFlowSensitive> PTA(M);
 
         tm.start();
+        PTA.build();
         PTA.run();
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 
-        dumpPSS(PTA.getPSS(), todot);
+        dumpPSS(&PTA, todot);
     }
 
     return 0;

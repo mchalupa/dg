@@ -57,8 +57,7 @@ public:
     const std::unordered_map<const llvm::Value *, PSSNode *>&
                                 getNodesMap() const { return nodes_map; }
 
-    template <typename PTType>
-    PSS *buildLLVMPSS()
+    PSSNode *buildLLVMPSS()
     {
         // get entry function
         llvm::Function *F = M->getFunction("main");
@@ -84,7 +83,7 @@ public:
             root = glob.first;
         }
 
-        return new PTType(root);
+        return root;
     }
 
 private:
@@ -105,7 +104,6 @@ private:
     std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *CInst,
                                                         const llvm::Function *F);
-
 
     PSSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
                                              PSSNode *node);

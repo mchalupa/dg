@@ -364,15 +364,21 @@ extern PSSNode *UNKNOWN_MEMORY;
 
 class PSS
 {
-    PSSNode *root;
     unsigned int dfsnum;
 
-protected:
+    // queue used to reach the fixpoint
     ADT::QueueFIFO<PSSNode *> queue;
+
+    // root of the pointer state subgraph
+    PSSNode *root;
+
+protected:
+    // protected constructor for child classes
+    PSS() : dfsnum(0), root(nullptr) {}
 
 public:
     bool processNode(PSSNode *);
-    PSS(PSSNode *root) : root(root), dfsnum(0)
+    PSS(PSSNode *root) : dfsnum(0), root(nullptr)
     {
         assert(root && "Cannot create PSS with null root");
 
@@ -467,6 +473,8 @@ public:
     }
 
     PSSNode *getRoot() const { return root; }
+    void setRoot(PSSNode *r) { root = r; }
+
     size_t pendingInQueue() const { return queue.size(); }
 
     void run()

@@ -11,6 +11,9 @@ namespace pss {
 
 class PointsToFlowInsensitive : public PSS
 {
+protected:
+    PointsToFlowInsensitive() {}
+
 public:
     PointsToFlowInsensitive(PSSNode *r) : PSS(r) {}
 
