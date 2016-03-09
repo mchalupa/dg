@@ -23,6 +23,8 @@ public:
     LLVMPointsToAnalysis(const llvm::Module* M)
         :builder(new LLVMPSSBuilder(M)) {}
 
+    ~LLVMPointsToAnalysis() { delete builder; }
+
     // build new subgraphs on calls via pointer
     virtual bool functionPointerCall(PSSNode *where, PSSNode *what)
     {
@@ -49,6 +51,9 @@ public:
     {
         this->setRoot(builder->buildLLVMPSS());
     }
+
+    LLVMPSSBuilder *getBuilder() { return builder; }
+    const LLVMPSSBuilder *getBuilder() const { return builder; }
 };
 
 }

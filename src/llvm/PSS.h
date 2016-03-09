@@ -1,18 +1,18 @@
 #ifndef _LLVM_DG_PSS_H_
 #define _LLVM_DG_PSS_H_
 
-#include "analysis/Pointer.h"
 #include <unordered_map>
+
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
 
+#include "analysis/PSS.h"
+#include "analysis/Pointer.h"
+
 namespace dg {
 namespace analysis {
 namespace pss {
-
-class PSS;
-class PSSNode;
 
 class LLVMPSSBuilder
 {
@@ -64,6 +64,15 @@ public:
     // map the points-to informatio back to LLVM nodes
     const std::unordered_map<const llvm::Value *, PSSNode *>&
                                 getNodesMap() const { return nodes_map; }
+    PSSNode *getNode(const llvm::Value *val)
+    {
+        auto it = nodes_map.find(val);
+        if (it == nodes_map.end())
+            return nullptr;
+
+        return it->second;
+    }
+
 private:
     void addNode(const llvm::Value *val, PSSNode *node)
     {

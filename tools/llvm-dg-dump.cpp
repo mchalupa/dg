@@ -27,6 +27,10 @@
 #include "DG2Dot.h"
 #include "Utils.h"
 
+#include "analysis/PointsToFlowSensitive.h"
+#include "analysis/PointsToFlowInsensitive.h"
+#include "llvm/LLVMPointsToAnalysis.h"
+
 using namespace dg;
 using llvm::errs;
 
@@ -338,6 +342,7 @@ int main(int argc, char *argv[])
     const char *module = nullptr;
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
+    const char *pts = nullptr;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
@@ -346,6 +351,8 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-no-control") == 0) {
             opts &= ~PRINT_CD;
+        } else if (strcmp(argv[i], "-pts") == 0) {
+            pts = argv[++i];
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
         } else if (strcmp(argv[i], "-nocfg") == 0) {
@@ -389,14 +396,39 @@ int main(int argc, char *argv[])
     debug::TimeMeasure tm;
 
     LLVMDependenceGraph d;
-    d.build(M);
+    // TODO refactor the code...
+    if (pts) {
+        if (strcmp(pts, "fs") == 0) {
+            LLVMPointsToAnalysis<analysis::pss::PointsToFlowSensitive> PTA(M);
+            tm.start();
+            PTA.build();
+            PTA.run();
+            tm.stop();
+            tm.report("INFO: Points-to analysis [flow-sensitive] took");
 
-    analysis::LLVMPointsToAnalysis PTA(&d);
+            d.build(M, PTA.getBuilder());
+        } else if (strcmp(pts, "fi") == 0) {
+            LLVMPointsToAnalysis<analysis::pss::PointsToFlowInsensitive> PTA(M);
+            tm.start();
+            PTA.build();
+            PTA.run();
+            tm.stop();
+            tm.report("INFO: Points-to analysis [flow-insensitive] took");
 
-    tm.start();
-    PTA.run();
-    tm.stop();
-    tm.report("INFO: Points-to analysis took");
+            d.build(M, PTA.getBuilder());
+        } else {
+            llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
+            abort();
+        }
+    } else {
+        d.build(M);
+        analysis::LLVMPointsToAnalysis PTA(&d);
+
+        tm.start();
+        PTA.run();
+        tm.stop();
+        tm.report("INFO: Points-to analysis [old] took");
+    }
 
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
@@ -411,7 +443,6 @@ int main(int argc, char *argv[])
         tm.stop();
         tm.report("INFO: Finding slicing criterions took");
     }
-
 
     analysis::LLVMReachingDefsAnalysis RDA(&d);
     tm.start();

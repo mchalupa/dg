@@ -27,6 +27,15 @@ namespace llvm {
 
 namespace dg {
 
+// forward declaration
+namespace analysis {
+namespace pss {
+    class LLVMPSSBuilder;
+}
+}
+
+using analysis::pss::LLVMPSSBuilder;
+
 typedef dg::BBlock<LLVMNode> LLVMBBlock;
 
 /// ------------------------------------------------------------------
@@ -35,7 +44,7 @@ typedef dg::BBlock<LLVMNode> LLVMBBlock;
 class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
 public:
-    LLVMDependenceGraph() : gather_callsites(nullptr) {}
+    LLVMDependenceGraph() : gather_callsites(nullptr), module(nullptr), pts(nullptr) {}
 
     // free all allocated memory and unref subgraphs
     virtual ~LLVMDependenceGraph();
@@ -44,6 +53,7 @@ public:
     // build all subgraphs (called procedures). If entry is nullptr,
     // then this methods looks for function named 'main'.
     bool build(llvm::Module *m, const llvm::Function *entry = nullptr);
+    bool build(llvm::Module *m, LLVMPSSBuilder *pts, const llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions
@@ -101,6 +111,10 @@ public:
     }
 
 private:
+    // copy points-to information from pointer state subgraph
+    // to nodes in DG
+    void copyPSS();
+
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
     void addFormalParameters();
@@ -128,6 +142,9 @@ private:
     // we may gather the call-sites (good points for criterions)
     // while building the graph
     llvm::Module *module;
+
+    // points-to information (if available)
+    LLVMPSSBuilder *pts;
 
     // verifier needs access to private elements
     friend class LLVMDGVerifier;

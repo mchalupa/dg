@@ -200,7 +200,7 @@ public:
         va_end(args);
     }
 
-    virtual ~PSSNode() { delete name; }
+    ~PSSNode() { delete name; }
 
     // getters & setters for analysis's data in the node
     template <typename T>
@@ -414,6 +414,8 @@ public:
         }
         #endif
     }
+
+    virtual ~PSS() {}
 
     // takes a PSSNode 'where' and 'what' and reference to vector and fill into the vector
     // the objects that are relevant for the PSSNode 'what' (valid memory states

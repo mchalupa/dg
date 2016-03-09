@@ -37,6 +37,10 @@
 #include "llvm/Slicer.h"
 #include "Utils.h"
 
+#include "llvm/LLVMPointsToAnalysis.h"
+#include "analysis/PointsToFlowInsensitive.h"
+#include "analysis/PointsToFlowSensitive.h"
+
 using namespace dg;
 using llvm::errs;
 
@@ -287,31 +291,61 @@ static bool createEmptyMain(llvm::Module *M)
 }
 
 static bool slice(llvm::Module *M, const char *module_name,
-                  const char *slicing_criterion, uint32_t opts = 0)
+                  const char *slicing_criterion, const char *pts,
+                  uint32_t opts = 0)
 {
     debug::TimeMeasure tm;
     LLVMDependenceGraph d;
     std::set<LLVMNode *> callsites;
 
-    // build the graph
-    d.build(&*M);
+    if (pts) {
+        if (strcmp(pts, "fs") == 0) {
+            LLVMPointsToAnalysis<analysis::pss::PointsToFlowSensitive> PTA(M);
+            tm.start();
+            PTA.build();
+            PTA.run();
+            tm.stop();
+            tm.report("INFO: Points-to analysis [flow-sensitive] took");
+
+            d.build(M, PTA.getBuilder());
+        } else if (strcmp(pts, "fi") == 0) {
+            LLVMPointsToAnalysis<analysis::pss::PointsToFlowInsensitive> PTA(M);
+            tm.start();
+            PTA.build();
+            PTA.run();
+            tm.stop();
+            tm.report("INFO: Points-to analysis [flow-insensitive] took");
+
+            d.build(M, PTA.getBuilder());
+        } else {
+            llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
+            abort();
+        }
+    } else {
+        // build the graph
+        d.build(&*M);
+    }
 
     // verify if the graph is built correctly
     // FIXME - do it optionally (command line argument)
     if (!d.verify())
         errs() << "ERR: verifying failed\n";
 
-    analysis::LLVMPointsToAnalysis PTA(&d);
+    // run the old points-to analysis on the graph
+    // if we should not use some other analysis
+    if (!pts) {
+        analysis::LLVMPointsToAnalysis PTA(&d);
 
-    tm.start();
-    PTA.run();
-    tm.stop();
-    tm.report("INFO: Points-to analysis took");
+        tm.start();
+        PTA.run();
+        tm.stop();
+        tm.report("INFO: Points-to analysis took");
 
-    // we might added some new functions
-    // so verify once again
-    if (!d.verify())
-        errs() << "ERR: verifying failed\n";
+        // we might added some new functions
+        // so verify once again
+        if (!d.verify())
+            errs() << "ERR: verifying failed\n";
+    }
 
     // FIXME add command line switch -svcomp and
     // do this only with -svcomp switch
@@ -323,7 +357,7 @@ static bool slice(llvm::Module *M, const char *module_name,
 
     // check for slicing criterion here, because
     // we might have built new subgraphs that contain
-    // it during points-to analysis
+    // it during (old) points-to analysis
     tm.start();
     bool ret = d.getCallSites(sc, &callsites);
     tm.stop();
@@ -474,8 +508,9 @@ int main(int argc, char *argv[])
 
     bool should_verify_module = true;
     bool remove_unused_only = false;
-    const char *slicing_criterion = NULL;
-    const char *module = NULL;
+    const char *slicing_criterion = nullptr;
+    const char *module = nullptr;
+    const char *pts = nullptr;
     uint32_t opts = 0;
 
     // parse options
@@ -506,6 +541,8 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
         } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
             remove_unused_only = true;
+        } else if (strcmp(argv[i], "-pts") == 0) {
+            pts = argv[++i];
         } else if (strcmp(argv[i], "-dont-verify") == 0) {
             // for debugging
             should_verify_module = false;
@@ -515,8 +552,9 @@ int main(int argc, char *argv[])
     }
 
     if (!(slicing_criterion || remove_unused_only) || !module) {
-        errs() << "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]"
-                                    " [-remove-unused-only] [-dont-verify] [-c|-crit|-slice] func_call module\n";
+        errs() << "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
+                  "                   [-remove-unused-only] [-dont-verify] [-pts fs|fi]\n"
+                  "                   [-c|-crit|-slice] func_call module\n";
         return 1;
     }
 
@@ -534,7 +572,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    if (!slice(M, module, slicing_criterion, opts)) {
+    if (!slice(M, module, slicing_criterion, pts, opts)) {
         errs() << "ERR: Slicing failed\n";
         return 1;
     }

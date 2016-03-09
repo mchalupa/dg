@@ -28,6 +28,8 @@
 
 #include "PointsTo.h"
 #include "DefUse.h"
+#include "analysis/PSS.h"
+#include "PSS.h"
 
 #include "llvm-debug.h"
 
@@ -35,6 +37,8 @@ using llvm::errs;
 using std::make_pair;
 
 namespace dg {
+
+using analysis::pss::LLVMPSSBuilder;
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
@@ -311,8 +315,19 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         const Value *strippedValue = CInst->getCalledValue()->stripPointerCasts();
         const Function *func = dyn_cast<Function>(strippedValue);
         // if func is nullptr, then this is indirect call
-        // via function pointer. We cannot do something with
-        // that here, we don't know the points-to
+        // via function pointer. If we have the points-to information,
+        // create the subgraph
+        if (!func && pts) {
+            using namespace analysis::pss;
+            PSSNode *op = pts->getNode(val);
+            for (const Pointer& ptr : op->pointsTo) {
+                const llvm::Function *F = ptr.target->getUserData<llvm::Function>();
+
+                LLVMDependenceGraph *subg = buildSubgraph(node, F);
+                node->addSubgraph(subg);
+            }
+        }
+
         if (func && gather_callsites &&
             strcmp(func->getName().data(), gather_callsites) == 0) {
             gatheredCallsites->insert(node);
@@ -559,6 +574,49 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     entry->addControlDependence(getEntryBB()->getFirstNode());
 
     return true;
+}
+
+bool LLVMDependenceGraph::build(llvm::Module *m, LLVMPSSBuilder *pts, const llvm::Function *entry)
+{
+    this->pts = pts;
+    bool ret = build(m, entry);
+
+    if (ret)
+        copyPSS();
+
+    return ret;
+}
+
+void LLVMDependenceGraph::copyPSS()
+{
+    using namespace analysis::pss;
+
+    assert(pts && "No PSS in DG");
+
+    /*
+    for (auto I = begin(), E = end(); I != E; ++I) {
+        const llvm::Value *val = I->first;
+        LLVMNode *node = I->second;
+
+        PSSNode *pn = pts->getNode(val);
+        if (!pn) {
+            llvm::errs() << "WARN: don't have points-to info for " << *val <<"\n";
+            continue;
+        }
+
+        // copy pointers from PSSNode to LLVMNode
+        for (const analysis::pss::Pointer& ptr : pn->pointsTo) {
+            const llvm::Value *tval = ptr.target->getUserData<llvm::Value>();
+            LLVMNode *target = getNode(tval);
+            if (!target) {
+                llvm::errs() << "WARN: don't have LLVM node for " << *tval <<"\n";
+                continue;
+            }
+
+            // XXX copy the pointers
+        }
+    }
+    */
 }
 
 void LLVMDependenceGraph::addFormalParameters()
