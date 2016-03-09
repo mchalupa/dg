@@ -39,6 +39,47 @@ getInstName(const llvm::Value *val)
     // break the string if it is too long
     return ostr.str();
 }
+
+const char *__get_name(const llvm::Value *val, const char *prefix)
+{
+    static std::string buf;
+    buf.reserve(255);
+    buf.clear();
+
+    std::string nm = getInstName(val);
+    if (prefix)
+        buf.append(prefix);
+
+    buf.append(nm);
+
+    return buf.c_str();
+}
+
+void setName(const llvm::Value *val, PSSNode *node, const char *prefix = nullptr)
+{
+    const char *name = __get_name(val, prefix);
+    node->setName(name);
+}
+
+void setName(const char *name, PSSNode *node, const char *prefix = nullptr)
+{
+    if (prefix) {
+        std::string nm;
+        nm.append(prefix);
+        nm.append(name);
+        node->setName(nm.c_str());
+    } else
+        node->setName(name);
+}
+
+#else
+void setName(const llvm::Value *val, PSSNode *node, const char *prefix = nullptr)
+{
+}
+
+void setName(const char *name, PSSNode *node, const char *prefix = nullptr)
+{
+}
 #endif
 
 enum MemAllocationFuncs {
@@ -179,11 +220,9 @@ PSSNode *LLVMPSSBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
 {
     Pointer ptr = getConstantExprPointer(CE);
     PSSNode *node = new PSSNode(pss::CONSTANT, ptr);
-    addNode(CE, node);
 
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(CE).c_str());
-#endif
+    addNode(CE, node);
+    setName(CE, node);
 
     assert(node);
     return node;
@@ -200,9 +239,8 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
                     = llvm::dyn_cast<llvm::Function>(val)) {
         PSSNode *ret = new PSSNode(FUNCTION);
         addNode(val, ret);
-#ifdef DEBUG_ENABLED
-        ret->setName(F->getName().data());
-#endif
+        setName(F->getName().data(), ret);
+
         return ret;
     } else {
         llvm::errs() << "Unspported constant: " << *val << "\n";
@@ -283,10 +321,7 @@ LLVMPSSBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
     PSSNode *node = createDynamicAlloc(CInst, type);
     addNode(CInst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(CInst).c_str());
-#endif
+    setName(CInst, node);
 
     // we return (node, node), so that the parent function
     // will seamlessly connect this node into the graph
@@ -308,10 +343,8 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
     // to which call the reutrn belongs
     returnNode->addOperand(callNode);
 
-#ifdef DEBUG_ENABLED
-    callNode->setName(getInstName(CInst).c_str());
-    returnNode->setName(("RET" + getInstName(CInst)).c_str());
-#endif
+    setName(CInst, callNode);
+    setName(CInst, returnNode, "RET");
 
     // reuse built subgraphs if available
     Subgraph subg = subgraphs_map[F];
@@ -398,9 +431,7 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
             // XXX: don't do that when the function does not return
             // the pointer, it has no meaning
             PSSNode *node = new PSSNode(pss::CALL, nullptr);
-#ifdef DEBUG_ENABLED
-            node->setName(getInstName(CInst).c_str());
-#endif
+            setName(CInst, node);
             return std::make_pair(node, node);
         } else if (func->isIntrinsic()) {
             assert(0 && "Intrinsic function not implemented yet");
@@ -412,16 +443,16 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
         PSSNode *op = getOperand(calledVal);
         PSSNode *call_funcptr = new PSSNode(pss::CALL_FUNCPTR, op);
         PSSNode *ret_call = new PSSNode(RETURN, call_funcptr, nullptr);
+
         // the first operand is the pointer node, but the rest of the operands
         // are free for us to use, store there the return node from the call
         // - as we do in the normal call node
         call_funcptr->addOperand(ret_call);
         call_funcptr->addSuccessor(ret_call);
         addNode(CInst, call_funcptr);
-#ifdef DEBUG_ENABLED
-            call_funcptr->setName(("funcptr" + getInstName(CInst)).c_str());
-            ret_call->setName(("RETURN" + getInstName(CInst)).c_str());
-#endif
+        setName(CInst, call_funcptr, "funcptr");
+        setName(CInst, ret_call, "RETURN");
+
         return std::make_pair(call_funcptr, ret_call);
     }
 }
@@ -430,10 +461,7 @@ PSSNode *LLVMPSSBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     PSSNode *node = new PSSNode(pss::ALLOC);
     addNode(Inst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(Inst).c_str());
-#endif
+    setName(Inst, node);
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
     if (AI) {
@@ -458,10 +486,7 @@ PSSNode *LLVMPSSBuilder::createStore(const llvm::Instruction *Inst)
 
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
     addNode(Inst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(Inst).c_str());
-#endif
+    setName(Inst, node);
 
     assert(node);
     return node;
@@ -474,10 +499,7 @@ PSSNode *LLVMPSSBuilder::createLoad(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::LOAD, op1);
 
     addNode(Inst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(Inst).c_str());
-#endif
+    setName(Inst, node);
 
     assert(node);
     return node;
@@ -507,10 +529,7 @@ PSSNode *LLVMPSSBuilder::createGEP(const llvm::Instruction *Inst)
         node = new PSSNode(pss::GEP, op, UNKNOWN_OFFSET);
 
     addNode(Inst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(Inst).c_str());
-#endif
+    setName(Inst, node);
 
     assert(node);
     return node;
@@ -523,10 +542,7 @@ PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
     addNode(Inst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(Inst).c_str());
-#endif
+    setName(Inst, node);
 
     assert(node);
     return node;
@@ -549,11 +565,7 @@ PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
 
     PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
     addNode(Inst, node);
-
-#ifdef DEBUG_ENABLED
-    node->setName(getInstName(Inst).c_str());
-    node->setName((std::string("RETURN ") + getInstName(Inst)).c_str());
-#endif
+    setName(Inst, node, "RETURN ");
 
     return node;
 }
@@ -671,9 +683,7 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildArguments(const llvm::Funct
             else
                 ret.first = arg;
 
-#ifdef DEBUG_ENABLED
-            arg->setName(("ARG phi " + getInstName(&*A)).c_str());
-#endif
+            setName(&*A, arg, "ARG phi ");
         }
     }
 
@@ -699,10 +709,8 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     PSSNode *root = new PSSNode(pss::ENTRY);
     PSSNode *ret = new PSSNode(pss::NOOP);
 
-#ifdef DEBUG_ENABLED
-    root->setName((std::string("ENTRY ") + F.getName().data()).c_str());
-    ret->setName((std::string("RET (unified) ") + F.getName().data()).c_str());
-#endif
+    setName(F.getName().data(), root, "ENTRY ");
+    setName(F.getName().data(), ret, "RET (unified) ");
 
     // now build the arguments of the function - if it has any
     std::pair<PSSNode *, PSSNode *> args = buildArguments(F);
@@ -839,12 +847,10 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
                 store->insertAfter(last);
                 last = store;
 
-#ifdef DEBUG_ENABLED
                 // FIXME: uauauagghh that's ugly!
-                store->setName((std::string("STORE (init) ") + node->getName()
+                setName(C, store, ((std::string("INIT ") + node->getName()
                                 + "[" + std::to_string(off) + "] -> "
-                                + getInstName(val)).c_str());
-#endif
+                                + getInstName(val)).c_str()));
             }
 
             off += DL->getTypeAllocSize(Ty);
@@ -867,10 +873,8 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
         // every global node is like memory allocation
         cur = new PSSNode(pss::ALLOC);
         addNode(&*I, cur);
+        setName(&*I, cur);
 
-#ifdef DEBUG_ENABLED
-        cur->setName(getInstName(&*I).c_str());
-#endif
         if (prev)
             prev->addSuccessor(cur);
         else
