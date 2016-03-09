@@ -402,7 +402,7 @@ protected:
 
 public:
     bool processNode(PSSNode *);
-    PSS(PSSNode *root) : dfsnum(0), root(nullptr)
+    PSS(PSSNode *r) : dfsnum(0), root(r)
     {
         assert(root && "Cannot create PSS with null root");
 
