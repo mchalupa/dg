@@ -29,12 +29,17 @@ public:
         const llvm::Function *F = what->getUserData<llvm::Function>();
         const llvm::CallInst *CI = where->getUserData<llvm::CallInst>();
 
-        // FIXME: don't do weak update
         std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
-        for (PSSNode *s : where->getSuccessors())
-            if (s->getType() == analysis::pss::RETURN)
-                cf.second->addSuccessor(s);
 
+        // we got the return site for the call stored as the other operand
+        // of the call node
+        PSSNode *ret = where->getOperand(1);
+
+        // connect the new subgraph to the graph
+        // FIXME: don't do weak update, do strong update (remove the original edge
+        // from call the node to return node. (There's problem with
+        // inconsistent memory maps in that now)
+        cf.second->addSuccessor(ret);
         where->addSuccessor(cf.first);
 
         return true;

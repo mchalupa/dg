@@ -412,6 +412,10 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
         PSSNode *op = getOperand(calledVal);
         PSSNode *call_funcptr = new PSSNode(pss::CALL_FUNCPTR, op);
         PSSNode *ret_call = new PSSNode(RETURN, call_funcptr, nullptr);
+        // the first operand is the pointer node, but the rest of the operands
+        // are free for us to use, store there the return node from the call
+        // - as we do in the normal call node
+        call_funcptr->addOperand(ret_call);
         call_funcptr->addSuccessor(ret_call);
         addNode(CInst, call_funcptr);
 #ifdef DEBUG_ENABLED
