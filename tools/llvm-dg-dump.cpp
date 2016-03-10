@@ -398,28 +398,20 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     // TODO refactor the code...
     if (pts) {
+        LLVMPointsToAnalysis *PTA;
         if (strcmp(pts, "fs") == 0) {
-            LLVMPointsToAnalysis<analysis::pss::PointsToFlowSensitive> PTA(M);
-            tm.start();
-            PTA.build();
-            PTA.run();
-            tm.stop();
-            tm.report("INFO: Points-to analysis [flow-sensitive] took");
-
-            d.build(M, PTA.getBuilder());
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
         } else if (strcmp(pts, "fi") == 0) {
-            LLVMPointsToAnalysis<analysis::pss::PointsToFlowInsensitive> PTA(M);
-            tm.start();
-            PTA.build();
-            PTA.run();
-            tm.stop();
-            tm.report("INFO: Points-to analysis [flow-insensitive] took");
-
-            d.build(M, PTA.getBuilder());
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
         } else {
             llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
             abort();
         }
+
+        tm.start();
+        PTA->run();
+        tm.stop();
+        tm.report("INFO: Points-to analysis [new] took");
     } else {
         d.build(M);
         analysis::LLVMPointsToAnalysis PTA(&d);

@@ -57,7 +57,7 @@ dumpPSSNode(PSSNode *n)
 }
 
 static void
-dumpPSSdot(PSS *pss)
+dumpPSSdot(LLVMPointsToAnalysis *pss)
 {
     std::set<PSSNode *> nodes;
     pss->getNodes(nodes);
@@ -107,7 +107,7 @@ dumpPSSdot(PSS *pss)
 }
 
 static void
-dumpPSS(PSS *pss, bool todot)
+dumpPSS(LLVMPointsToAnalysis *pss, bool todot)
 {
     assert(pss);
 
@@ -161,27 +161,17 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    if (type == FLOW_INSENSITIVE) {
-        LLVMPointsToAnalysis<PointsToFlowInsensitive> PTA(M);
+    LLVMPointsToAnalysis *PTA;
+    if (type == FLOW_INSENSITIVE)
+        PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
+    else
+        PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
 
-        tm.start();
-        PTA.build();
-        PTA.run();
-        tm.stop();
-        tm.report("INFO: Points-to analysis took");
-
-        dumpPSS(&PTA, todot);
-    } else {
-        LLVMPointsToAnalysis<PointsToFlowSensitive> PTA(M);
-
-        tm.start();
-        PTA.build();
-        PTA.run();
-        tm.stop();
-        tm.report("INFO: Points-to analysis took");
-
-        dumpPSS(&PTA, todot);
-    }
+    tm.start();
+    PTA->run();
+    tm.stop();
+    tm.report("INFO: Points-to analysis [new] took");
+    dumpPSS(PTA, todot);
 
     return 0;
 }

@@ -14,16 +14,53 @@ using analysis::pss::PSS;
 using analysis::pss::PSSNode;
 using analysis::pss::LLVMPSSBuilder;
 
-template <typename PTType>
-class LLVMPointsToAnalysis : public PTType
+class LLVMPointsToAnalysis
 {
+protected:
+    PSS *impl;
     LLVMPSSBuilder *builder;
-
-public:
-    LLVMPointsToAnalysis(const llvm::Module* M)
+    LLVMPointsToAnalysis(const llvm::Module *M)
         :builder(new LLVMPSSBuilder(M)) {}
 
+    // the real analysis that will run
+    void setImpl(PSS *im) { impl = im; }
+
+public:
+    LLVMPointsToAnalysis(PSS *p) : impl(p) {};
     ~LLVMPointsToAnalysis() { delete builder; }
+
+    PSSNode *getNode(const llvm::Value *val)
+    {
+        return builder->getNode(val);
+    }
+
+    const std::unordered_map<const llvm::Value *, PSSNode *>&
+    getNodesMap() const
+    {
+        return builder->getNodesMap();
+    }
+
+    void getNodes(std::set<PSSNode *>& cont)
+    {
+        impl->getNodes(cont);
+    }
+
+    void run()
+    {
+        impl->setRoot(builder->buildLLVMPSS());
+        impl->run();
+    }
+};
+
+template <typename PTType>
+class LLVMPointsToAnalysisImpl : public PTType, public LLVMPointsToAnalysis
+{
+public:
+    LLVMPointsToAnalysisImpl(const llvm::Module* M)
+        : LLVMPointsToAnalysis(M)
+    {
+        setImpl(this);
+    };
 
     // build new subgraphs on calls via pointer
     virtual bool functionPointerCall(PSSNode *where, PSSNode *what)
@@ -46,14 +83,6 @@ public:
 
         return true;
     }
-
-    void build()
-    {
-        this->setRoot(builder->buildLLVMPSS());
-    }
-
-    LLVMPSSBuilder *getBuilder() { return builder; }
-    const LLVMPSSBuilder *getBuilder() const { return builder; }
 };
 
 }
