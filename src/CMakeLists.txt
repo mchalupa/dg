@@ -2,6 +2,7 @@ if (LLVM_DG)
   set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
 add_library(PSS SHARED
+	analysis/Offset.h
 	analysis/Pointer.h
 	analysis/Pointer.cpp
 	analysis/PSS.h
