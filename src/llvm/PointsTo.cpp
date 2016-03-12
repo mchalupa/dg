@@ -1013,6 +1013,26 @@ bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi,
     return changed;
 }
 
+bool LLVMPointsToAnalysis::handleSelectNode(const llvm::SelectInst *Sel,
+                                            LLVMNode *node)
+{
+    if (!node->isPointerTy())
+        return false;
+
+    bool changed = false;
+
+    for (unsigned i = 0; i < 2; ++i) {
+        LLVMNode *op = getOperand(node, Sel->getOperand(i + 1), i);
+        assert(op && "Do not have an operand");
+
+        for (const Pointer& p : op->getPointsTo())
+            changed |= node->addPointsTo(p);
+    }
+
+    return changed;
+}
+
+
 static void propagateGlobalPointsToMain(LLVMDGParameters *params, LLVMDependenceGraph *dg)
 {
     for (auto I = params->global_begin(), E = params->global_end(); I != E; ++I) {
@@ -1119,6 +1139,8 @@ bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
         changed |= handleBitCastInst(Inst, node);
     } else if (const PHINode *Inst = dyn_cast<PHINode>(val)) {
         changed |= handlePHINode(Inst, node);
+    } else if (const SelectInst *Inst = dyn_cast<SelectInst>(val)) {
+        changed |= handleSelectNode(Inst, node);
     } else {
 #ifdef DEBUG_ENABLED
         const Instruction *I = dyn_cast<Instruction>(val);
