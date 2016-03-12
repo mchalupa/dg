@@ -177,10 +177,16 @@ public:
                 break;
             case NULL_ADDR:
                 pointsTo.insert(Pointer(this, 0));
+#ifdef DEBUG_ENABLED
+                setName("null");
+#endif
                 break;
             case pss::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
+#ifdef DEBUG_ENABLED
+                setName("unknown");
+#endif
                 break;
             case CALL_RETURN:
             case PHI:
@@ -405,14 +411,6 @@ public:
     PSS(PSSNode *r) : dfsnum(0), root(r)
     {
         assert(root && "Cannot create PSS with null root");
-
-        // XXX: couldn't we do it somehow better?
-        #ifdef DEBUG_ENABLED
-        if (!NULLPTR->getName()) {
-            NULLPTR->setName("nullptr");
-            UNKNOWN_MEMORY->setName("unknown memloc");
-        }
-        #endif
     }
 
     virtual ~PSS() {}

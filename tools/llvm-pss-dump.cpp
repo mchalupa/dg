@@ -57,6 +57,30 @@ dumpPSSNode(PSSNode *n)
 }
 
 static void
+printName(PSSNode *node)
+{
+    const char *name = node->getName();
+    if (!name) {
+        printf("%p\\n", node);
+        return;
+    }
+
+    // escape the " character
+    for (int i = 0; name[i] != '\0'; ++i) {
+        // crop long names
+        if (i >= 70) {
+            printf(" ...");
+            break;
+        }
+
+        if (name[i] == '"')
+            putchar('\\');
+
+        putchar(name[i]);
+    }
+}
+
+static void
 dumpPSSdot(LLVMPointsToAnalysis *pss)
 {
     std::set<PSSNode *> nodes;
@@ -67,22 +91,20 @@ dumpPSSdot(LLVMPointsToAnalysis *pss)
     /* dump nodes */
     for (PSSNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
-        const char *name = node->getName();
-        if (name)
-            printf("%s\\n", name);
-        else
-            printf("%p\\n", node);
+        printName(node);
 
         if (node->getSize() || node->isHeap() || node->isZeroInitialized())
-            printf("size: %lu, heap: %u, zeroed: %u\\n",
+            printf("\\n[size: %lu, heap: %u, zeroed: %u]",
                node->getSize(), node->isHeap(), node->isZeroInitialized());
 
         for (const Pointer& ptr : node->pointsTo) {
-            printf("    -> %s + ", ptr.target->getName());
+            printf("\\n    -> ");
+            printName(ptr.target);
+            printf(" + ");
             if (ptr.offset.isUnknown())
-                printf("UNKNOWN_OFFSET\\n");
+                printf("UNKNOWN_OFFSET");
             else
-                printf("%lu\\n", *ptr.offset);
+                printf("%lu", *ptr.offset);
         }
 
         printf("\"");
