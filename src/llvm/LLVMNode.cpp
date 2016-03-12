@@ -141,7 +141,14 @@ LLVMNode **LLVMNode::findOperands()
         for (unsigned n = 0; n < operands_num; ++n) {
             operands[n] = dg->getNode(Inst->getIncomingValue(n));
         }
+    } else if (const SelectInst *Inst = dyn_cast<SelectInst>(val)) {
+        operands_num = 2;
+        operands = new LLVMNode *[operands_num];
+        for (unsigned n = 0; n < operands_num; ++n) {
+            operands[n] = dg->getNode(Inst->getOperand(n + 1));
+        }
     }
+
 
     if (!operands) {
         errs() << "Unhandled instruction: " << *val
