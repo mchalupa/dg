@@ -11,6 +11,14 @@ add_library(PSS SHARED
 	analysis/PointsToFlowSensitive.h
 )
 
+add_library(RD SHARED
+	analysis/Offset.h
+	analysis/ReachingDefinitions.h
+	analysis/ReachingDefinitions.cpp
+	analysis/RDMap.h
+	analysis/RDMap.cpp
+)
+
 add_library(LLVMdg SHARED
 	Utils.h
 	BBlock.h

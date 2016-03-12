@@ -30,6 +30,14 @@ add_dependencies(check points-to-test)
 target_link_libraries(points-to-test PSS)
 
 # --------------------------------------------------
+# reaching-definitions-test
+# --------------------------------------------------
+add_executable(reaching-definitions-test reaching-definitions-test.cpp)
+add_test(reaching-definitions-test reaching-definitions-test)
+add_dependencies(check reaching-definitions-test)
+target_link_libraries(reaching-definitions-test RD)
+
+# --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 if (LLVM_DG)

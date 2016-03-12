@@ -1,0 +1,234 @@
+#include <assert.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+
+#include "test-runner.h"
+#include "test-dg.h"
+
+#include "analysis/ReachingDefinitions.h"
+#include "analysis/RDMap.h"
+
+namespace dg {
+namespace tests {
+
+using namespace analysis::rd;
+
+static void
+dumpMap(RDNode *node)
+{
+    RDMap& map = node->getReachingDefinitions();
+    for (auto it : map) {
+        const char *tname = it.first.target->getName();
+        printf("%s %lu - %lu @ ",
+               tname ? tname : "<noname>",
+               *it.first.offset, *it.first.offset + *it.first.len);
+        for (RDNode *site : it.second) {
+            const char *sname = site->getName();
+            printf("%s\n", sname ? sname : "<noname>");
+        }
+    }
+    printf("---\n");
+}
+
+class ReachingDefinitionsTest : public Test
+{
+public:
+    ReachingDefinitionsTest()
+        : Test("Reaching definitions test") {}
+
+    void basic1()
+    {
+        RDNode AL1(true);
+        RDNode AL2(true);
+        RDNode S1;
+        RDNode S2;
+
+        S1.addDef(&AL1, 0, 2);
+        S2.addDef(&AL1, 0, 4);
+
+        AL1.addSuccessor(&AL2);
+        AL2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+
+        ReachingDefinitionsAnalysis RD(&AL1);
+        RD.run();
+
+        RDMap& S = S2.getReachingDefinitions();
+        std::set<RDNode *> rd;
+        S2.getReachingDefinitions(&AL1, 0, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 1, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 2, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 3, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        // offset 4 should not be defined, since we had
+        // defined 0 - 3 offsets (we're starting from 0)
+        S2.getReachingDefinitions(&AL1, 4, rd);
+        check(rd.size() == 0, "Should have had no r.d.");
+    }
+
+    void basic2()
+    {
+        RDNode AL1(true);
+        RDNode AL2(true);
+        RDNode S1;
+        RDNode S2;
+
+        S1.addDef(&AL1, 0, 4);
+        S2.addDef(&AL1, 0, 4);
+
+        AL1.addSuccessor(&AL2);
+        AL2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+
+        ReachingDefinitionsAnalysis RD(&AL1);
+        RD.run();
+
+        RDMap& S = S2.getReachingDefinitions();
+        std::set<RDNode *> rd;
+        S2.getReachingDefinitions(&AL1, 0, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 1, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 2, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 3, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        // offset 4 should not be defined, since we had
+        // defined 0 - 3 offsets (we're starting from 0)
+        S2.getReachingDefinitions(&AL1, 4, rd);
+        check(rd.size() == 0, "Should have had no r.d.");
+    }
+
+    void basic3()
+    {
+        RDNode AL1(true);
+        RDNode AL2(true);
+        RDNode S1;
+        RDNode S2;
+
+        S1.addDef(&AL1, 0, 4);
+        S2.addDef(&AL1, 4, 4);
+
+        AL1.addSuccessor(&AL2);
+        AL2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+
+        ReachingDefinitionsAnalysis RD(&AL1);
+        RD.run();
+
+        RDMap& S = S2.getReachingDefinitions();
+        std::set<RDNode *> rd;
+        S2.getReachingDefinitions(&AL1, 0, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S1, "Should be S1");
+        S2.getReachingDefinitions(&AL1, 1, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S1, "Should be S1");
+        S2.getReachingDefinitions(&AL1, 2, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S1, "Should be S1");
+        S2.getReachingDefinitions(&AL1, 3, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S1, "Should be S1");
+
+        S2.getReachingDefinitions(&AL1, 4, rd);
+        check(rd.size() == 1, "Should have had no r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 5, rd);
+        check(rd.size() == 1, "Should have had no r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 6, rd);
+        check(rd.size() == 1, "Should have had no r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 7, rd);
+        check(rd.size() == 1, "Should have had no r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+
+        S2.getReachingDefinitions(&AL1, 8, rd);
+        check(rd.size() == 0, "Should not have r.d.");
+    }
+
+    void basic4()
+    {
+        RDNode AL1(true);
+        RDNode AL2(true);
+        RDNode S1;
+        RDNode S2;
+        AL1.setName("AL1");
+        AL2.setName("AL2");
+        S1.setName("S1: AL1 0+4");
+        S2.setName("S2: AL1 2+4");
+
+        S1.addDef(&AL1, 0, 4);
+        S2.addDef(&AL1, 2, 4);
+
+        AL1.addSuccessor(&AL2);
+        AL2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+
+        ReachingDefinitionsAnalysis RD(&AL1);
+        RD.run();
+
+        RDMap& S = S2.getReachingDefinitions();
+        std::set<RDNode *> rd;
+        // bytes 0 and 1 should be defined on S1
+        S2.getReachingDefinitions(&AL1, 0, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S1, "Should be S1");
+        S2.getReachingDefinitions(&AL1, 1, rd);
+        check(rd.size() == 1, "Should have had one r.d.");
+        check(*(rd.begin()) == &S1, "Should be S1");
+
+        // bytes 2 and 3 should be defined on both S1 and S2
+        S2.getReachingDefinitions(&AL1, 2, rd);
+        check(rd.size() == 2, "Should have two r.d.");
+        S2.getReachingDefinitions(&AL1, 3, rd);
+        check(rd.size() == 2, "Should have two r.d.");
+
+        S2.getReachingDefinitions(&AL1, 4, rd);
+        check(rd.size() == 1, "Should have had no r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+        S2.getReachingDefinitions(&AL1, 5, rd);
+        check(rd.size() == 1, "Should have had no r.d.");
+        check(*(rd.begin()) == &S2, "Should be S2");
+
+        S2.getReachingDefinitions(&AL1, 6, rd);
+        check(rd.size() == 0, "Should not have r.d.");
+
+        dumpMap(&S1);
+        dumpMap(&S2);
+    }
+
+    void test()
+    {
+        basic1();
+        basic2();
+        basic3();
+        basic4();
+    }
+};
+
+}; // namespace tests
+}; // namespace dg
+
+int main(int argc, char *argv[])
+{
+    using namespace dg::tests;
+    TestRunner Runner;
+
+    Runner.add(new ReachingDefinitionsTest());
+
+    return Runner();
+}
