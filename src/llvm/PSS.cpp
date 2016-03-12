@@ -535,6 +535,25 @@ PSSNode *LLVMPSSBuilder::createGEP(const llvm::Instruction *Inst)
     return node;
 }
 
+PSSNode *LLVMPSSBuilder::createSelect(const llvm::Instruction *Inst)
+{
+    // the value needs to be a pointer - we call this function only under
+    // this condition
+    assert(Inst->getType()->isPointerTy() && "BUG: This select is not a pointer");
+
+    // select <cond> <op1> <op2>
+    PSSNode *op1 = getOperand(Inst->getOperand(1));
+    PSSNode *op2 = getOperand(Inst->getOperand(2));
+
+    // select works as a PHI in points-to analysis
+    PSSNode *node = new PSSNode(pss::PHI, op1, op2, nullptr);
+    addNode(Inst, node);
+    setName(Inst, node);
+
+    assert(node);
+    return node;
+}
+
 PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
@@ -598,6 +617,10 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                 break;
             case Instruction::GetElementPtr:
                 node = createGEP(&Inst);
+                break;
+            case Instruction::Select:
+                if (Inst.getType()->isPointerTy())
+                    node = createSelect(&Inst);
                 break;
             case Instruction::BitCast:
                 node = createCast(&Inst);

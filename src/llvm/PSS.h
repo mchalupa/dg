@@ -84,6 +84,7 @@ private:
     PSSNode *createStore(const llvm::Instruction *Inst);
     PSSNode *createLoad(const llvm::Instruction *Inst);
     PSSNode *createGEP(const llvm::Instruction *Inst);
+    PSSNode *createSelect(const llvm::Instruction *Inst);
     PSSNode *createCast(const llvm::Instruction *Inst);
     PSSNode *createReturn(const llvm::Instruction *Inst);
 
