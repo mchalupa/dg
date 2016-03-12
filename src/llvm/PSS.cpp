@@ -878,6 +878,20 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
 
             off += DL->getTypeAllocSize(Ty);
         }
+    } else if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
+       if (C->getType()->isPointerTy()) {
+           Pointer ptr = getConstantExprPointer(CE);
+           PSSNode *value = new PSSNode(CONSTANT, ptr);
+           // FIXME: we're leaking the target
+           PSSNode *store = new PSSNode(STORE, value, node);
+           store->insertAfter(last);
+           last = store;
+
+           // FIXME: uauauagghh that's ugly!
+           setName(C, store, ((std::string("INIT ") + node->getName()
+                           + " -> " + ptr.target->getName() + " + "
+                           + std::to_string(*ptr.offset)).c_str()));
+       }
     } else if (!isa<ConstantInt>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
