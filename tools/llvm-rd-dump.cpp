@@ -1,0 +1,186 @@
+#include <assert.h>
+#include <cstdio>
+
+#include <set>
+
+#ifndef HAVE_LLVM
+#error "This code needs LLVM enabled"
+#endif
+
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_os_ostream.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Bitcode/ReaderWriter.h>
+
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+
+#include "llvm/LLVMPointsToAnalysis.h"
+#include "analysis/PointsToFlowInsensitive.h"
+#include "analysis/PointsToFlowSensitive.h"
+#include "analysis/Pointer.h"
+
+#include "llvm/LLVMReachingDefinitions.h"
+
+#include "Utils.h"
+
+using namespace dg;
+using namespace dg::analysis;
+using namespace dg::analysis::rd;
+using llvm::errs;
+
+static void
+printName(RDNode *node)
+{
+    const char *name = node->getName();
+    if (!name) {
+        printf("%p\\n", node);
+        return;
+    }
+
+    // escape the " character
+    for (int i = 0; name[i] != '\0'; ++i) {
+        // crop long names
+        if (i >= 70) {
+            printf(" ...");
+            break;
+        }
+
+        if (name[i] == '"')
+            putchar('\\');
+
+        putchar(name[i]);
+    }
+}
+
+static void
+dumpMap(RDNode *node)
+{
+    RDMap& map = node->getReachingDefinitions();
+    for (auto it : map) {
+        printName(it.first.target);
+        printf(" %lu - %lu @ ", *it.first.offset,
+               *it.first.offset + *it.first.len);
+        for (RDNode *site : it.second) {
+            printName(site);
+            putchar('\n');
+        }
+    }
+}
+
+static void
+dumpRDNode(RDNode *n)
+{
+    printName(n);
+    dumpMap(n);
+    printf("---\n");
+}
+
+static void
+dumpRDdot(LLVMReachingDefinitions *RD)
+{
+    std::set<RDNode *> nodes;
+    RD->getNodes(nodes);
+
+    printf("digraph \"Pointer State Subgraph\" {\n");
+
+    /* dump nodes */
+    for(RDNode *node : nodes) {
+        printf("\tNODE%p [label=\"", node);
+        printName(node);
+        printf("\\n");
+        dumpMap(node);
+
+        printf("\" shape=box]\n");
+    }
+
+    /* dump edges */
+    for (RDNode *node : nodes) {
+        for (RDNode *succ : node->getSuccessors())
+            printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
+    }
+
+    printf("}\n");
+}
+
+static void
+dumpPSS(LLVMReachingDefinitions *RD, bool todot)
+{
+    assert(RD);
+
+    if (todot)
+        dumpRDdot(RD);
+    else {
+        std::set<RDNode *> nodes;
+        RD->getNodes(nodes);
+
+        for (RDNode *node : nodes)
+            dumpRDNode(node);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    llvm::LLVMContext context;
+    llvm::SMDiagnostic SMD;
+    llvm::Module *M;
+    bool todot = false;
+    const char *module = nullptr;
+    enum {
+        FLOW_SENSITIVE = 1,
+        FLOW_INSENSITIVE,
+    } type = FLOW_INSENSITIVE;
+
+    // parse options
+    for (int i = 1; i < argc; ++i) {
+        // run given points-to analysis
+        if (strcmp(argv[i], "-pts") == 0) {
+            if (strcmp(argv[i+1], "fs") == 0)
+                type = FLOW_SENSITIVE;
+        } else if (strcmp(argv[i], "-dot") == 0) {
+            todot = true;
+        } else {
+            module = argv[i];
+        }
+    }
+
+    if (!module) {
+        errs() << "Usage: % IR_module [output_file]\n";
+        return 1;
+    }
+
+    M = llvm::ParseIRFile(module, SMD, context);
+    if (!M) {
+        SMD.print(argv[0], errs());
+        return 1;
+    }
+
+    debug::TimeMeasure tm;
+
+    LLVMPointsToAnalysis *PTA;
+    if (type == FLOW_INSENSITIVE) {
+        PTA = new LLVMPointsToAnalysisImpl<pss::PointsToFlowInsensitive>(M);
+    } else {
+        PTA = new LLVMPointsToAnalysisImpl<pss::PointsToFlowSensitive>(M);
+    }
+
+    tm.start();
+    PTA->run();
+    tm.stop();
+    tm.report("INFO: Points-to analysis took");
+
+    LLVMReachingDefinitions RD(M, PTA);
+    tm.start();
+    RD.run();
+    tm.stop();
+    tm.report("INFO: Reaching definitions analysis took");
+
+    dumpPSS(&RD, todot);
+
+    return 0;
+}

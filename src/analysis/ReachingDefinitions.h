@@ -113,6 +113,35 @@ public:
         return def_map.get(n, off, ret);
     }
 
+    // getters & setters for analysis's data in the node
+    template <typename T>
+    T* getData() { return static_cast<T *>(data); }
+    template <typename T>
+    const T* getData() const { return static_cast<T *>(data); }
+
+    template <typename T>
+    void *setData(T *newdata)
+    {
+        void *old = data;
+        data = static_cast<void *>(newdata);
+        return old;
+    }
+
+    // getters & setters for user's data in the node
+    template <typename T>
+    T* getUserData() { return static_cast<T *>(user_data); }
+    template <typename T>
+    const T* getUserData() const { return static_cast<T *>(user_data); }
+
+    template <typename T>
+    void *setUserData(T *newdata)
+    {
+        void *old = user_data;
+        user_data = static_cast<void *>(newdata);
+        return old;
+    }
+
+
     friend class ReachingDefinitionsAnalysis;
 };
 

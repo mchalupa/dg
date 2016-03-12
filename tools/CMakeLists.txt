@@ -10,6 +10,9 @@ if (LLVM_DG)
 	add_executable(llvm-pss-dump llvm-pss-dump.cpp)
 	target_link_libraries(llvm-pss-dump LLVMdg)
 
+	add_executable(llvm-rd-dump llvm-rd-dump.cpp)
+	target_link_libraries(llvm-rd-dump LLVMdg)
+
 	add_executable(llvm-to-source llvm-to-source.cpp)
 	target_link_libraries(llvm-to-source ${llvm_libs})
 

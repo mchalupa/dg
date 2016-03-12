@@ -47,9 +47,11 @@ add_library(LLVMdg SHARED
 	llvm/PSS.cpp
 	llvm/LLVMPointsToAnalysis.h
 	llvm/LLVMPointsToAnalysis.cpp
+	llvm/LLVMReachingDefinitions.h
+	llvm/LLVMReachingDefinitions.cpp
 )
 
-target_link_libraries(LLVMdg PSS ${llvm_libs})
+target_link_libraries(LLVMdg PSS RD ${llvm_libs})
 install(TARGETS LLVMdg PSS
 	LIBRARY DESTINATION lib)
 
