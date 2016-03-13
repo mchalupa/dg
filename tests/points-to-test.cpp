@@ -512,6 +512,34 @@ public:
           ("flow-sensitive points-to test") {}
 };
 
+class PSSNodeTest : public Test
+{
+
+public:
+    PSSNodeTest()
+          : Test("flow-sensitive points-to test") {}
+
+    void unknown_offset1()
+    {
+        using namespace dg::analysis::pss;
+        PSSNode N1(ALLOC);
+        PSSNode N2(LOAD, &N1);
+
+        N2.addPointsTo(&N1, 1);
+        N2.addPointsTo(&N1, 2);
+        N2.addPointsTo(&N1, 3);
+        check(N2.pointsTo.size() == 3);
+        N2.addPointsTo(&N1, UNKNOWN_OFFSET);
+        check(N2.pointsTo.size() == 1);
+        check(N2.addPointsTo(&N1, 3) == false);
+    }
+
+    void test()
+    {
+        unknown_offset1();
+    }
+};
+
 }; // namespace tests
 }; // namespace dg
 
@@ -522,6 +550,7 @@ int main(int argc, char *argv[])
 
     Runner.add(new FlowInsensitivePointsToTest());
     Runner.add(new FlowSensitivePointsToTest());
+    Runner.add(new PSSNodeTest());
 
     return Runner();
 }

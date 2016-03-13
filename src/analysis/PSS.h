@@ -347,7 +347,10 @@ public:
         if (pointsTo.count(Pointer(n, UNKNOWN_OFFSET)))
             return false;
 
-        return pointsTo.insert(Pointer(n, o)).second;
+        if (o.isUnknown())
+            return addPointsToUnknownOffset(n);
+        else
+            return pointsTo.insert(Pointer(n, o)).second;
     }
 
     bool addPointsTo(const Pointer& ptr)
@@ -363,8 +366,6 @@ public:
 
         return changed;
     }
-
-
 
     bool doesPointsTo(const Pointer& p)
     {

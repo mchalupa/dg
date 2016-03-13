@@ -23,13 +23,18 @@ bool PSSNode::addPointsToUnknownOffset(PSSNode *target)
     // FIXME: use equal range, it is much faster
     for (auto I = pointsTo.begin(), E = pointsTo.end(); I != E;) {
         auto cur = I++;
+
+        // erase pointers to the same memory but with concrete offset
         if (cur->target == target && !cur->offset.isUnknown()) {
             pointsTo.erase(cur);
             changed = true;
         }
     }
 
-    changed |= addPointsTo(target, UNKNOWN_OFFSET);
+    // DONT use addPointsTo() method, it would recursively call
+    // this method again, until stack overflow
+    changed |= pointsTo.insert(Pointer(target, UNKNOWN_OFFSET)).second;
+
     return changed;
 }
 
