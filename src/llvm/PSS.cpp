@@ -371,9 +371,7 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
         if (A->getType()->isPointerTy()) {
             assert(arg && "BUG: do not have argument");
 
-            PSSNode *op = nodes_map[CInst->getArgOperand(idx)];
-            assert(op && "Do not have node for CallInst operand");
-
+            PSSNode *op = getOperand(CInst->getArgOperand(idx));
             arg->addOperand(op);
 
             // shift in arguments
