@@ -272,6 +272,25 @@ public:
         succ->predecessors.push_back(this);
     }
 
+    void replaceSingleSuccessor(PSSNode *succ)
+    {
+        assert(successors.size() == 1);
+        PSSNode *old = successors[0];
+
+        // replace the successor
+        successors.clear();
+        addSuccessor(succ);
+
+        // we need to remove this node from
+        // successor's predecessors
+        std::vector<PSSNode *> tmp;
+        tmp.reserve(old->predecessorsNum() - 1);
+        for (PSSNode *p : old->predecessors)
+            tmp.push_back(p);
+
+        old->predecessors.swap(tmp);
+    }
+
     // return const only, so that we cannot change them
     // other way then addSuccessor()
     const std::vector<PSSNode *>& getSuccessors() const { return successors; }

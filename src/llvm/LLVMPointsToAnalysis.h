@@ -63,23 +63,27 @@ public:
     };
 
     // build new subgraphs on calls via pointer
-    virtual bool functionPointerCall(PSSNode *where, PSSNode *what)
+    virtual bool functionPointerCall(PSSNode *callsite, PSSNode *called)
     {
-        const llvm::Function *F = what->getUserData<llvm::Function>();
-        const llvm::CallInst *CI = where->getUserData<llvm::CallInst>();
+        const llvm::Function *F = called->getUserData<llvm::Function>();
+        const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
 
         std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
 
         // we got the return site for the call stored as the other operand
         // of the call node
-        PSSNode *ret = where->getOperand(1);
+        PSSNode *ret = callsite->getOperand(1);
 
-        // connect the new subgraph to the graph
-        // FIXME: don't do weak update, do strong update (remove the original edge
-        // from call the node to return node. (There's problem with
-        // inconsistent memory maps in that now)
+        // replace the edge from call->ret that we
+        // have due to connectivity of the graph until we
+        // insert the subgraph
+        if (callsite->successorsNum() == 1 &&
+            callsite->getSingleSuccessor() == ret) {
+            callsite->replaceSingleSuccessor(cf.first);
+        } else
+            callsite->addSuccessor(cf.first);
+
         cf.second->addSuccessor(ret);
-        where->addSuccessor(cf.first);
 
         return true;
     }
