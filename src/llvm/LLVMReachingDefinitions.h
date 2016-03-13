@@ -25,8 +25,12 @@ class LLVMRDBuilder
 
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, RDNode *> nodes_map;
-    // map of all built subgraphs - the value type is a pair (root, return)
-    //std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
+
+    // mapping of llvm nodes to relevant reaching definitions nodes
+    // (this is a super-set of nodes_map)
+    // we could keep just one map of these two and don't duplicate
+    // the information, but this way it is more bug-proof
+    std::unordered_map<const llvm::Value *, RDNode *> mapping;
 
 public:
     LLVMRDBuilder(const llvm::Module *m, LLVMPointsToAnalysis *p)
@@ -43,11 +47,13 @@ public:
     // map the points-to informatio back to LLVM nodes
     const std::unordered_map<const llvm::Value *, RDNode *>&
                                 getNodesMap() const { return nodes_map; }
+    const std::unordered_map<const llvm::Value *, RDNode *>&
+                                getMapping() const { return mapping; }
 
-    RDNode *getNode(const llvm::Value *val)
+    RDNode *getMapping(const llvm::Value *val)
     {
-        auto it = nodes_map.find(val);
-        if (it == nodes_map.end())
+        auto it = mapping.find(val);
+        if (it == mapping.end())
             return nullptr;
 
         return it->second;
@@ -90,7 +96,15 @@ public:
                                 getNodesMap() const
     { return builder->getNodesMap(); }
 
-    RDNode *getNode(const llvm::Value *val) { return builder->getNode(val); }
+    const std::unordered_map<const llvm::Value *, RDNode *>&
+                                getMapping() const
+    { return builder->getMapping(); }
+
+    RDNode *getMapping(const llvm::Value *val)
+    {
+        return builder->getMapping(val);
+    }
+
     void getNodes(std::set<RDNode *>& cont)
     {
         assert(RDA);

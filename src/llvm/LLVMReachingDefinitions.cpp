@@ -149,6 +149,12 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                 break;
         }
 
+        // the closest node always keep the
+        // relevant RD information even for the nodes
+        // that are not in the subgraph
+        if (node)
+            mapping[&Inst] = node;
+
         // first instruction
         if (node && !prev_node)
             ret.first = node;
