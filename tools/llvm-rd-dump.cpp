@@ -59,16 +59,20 @@ printName(RDNode *node)
 }
 
 static void
-dumpMap(RDNode *node)
+dumpMap(RDNode *node, bool dot = false)
 {
     RDMap& map = node->getReachingDefinitions();
     for (auto it : map) {
-        printName(it.first.target);
-        printf(" %lu - %lu @ ", *it.first.offset,
-               *it.first.offset + *it.first.len);
         for (RDNode *site : it.second) {
+            printName(it.first.target);
+            printf(" | %lu - %lu | => ", *it.first.offset,
+                   *it.first.offset + *it.first.len - 1);
+
             printName(site);
-            putchar('\n');
+            if (dot)
+                printf("\\n");
+            else
+                putchar('\n');
         }
     }
 }
@@ -94,7 +98,7 @@ dumpRDdot(LLVMReachingDefinitions *RD)
         printf("\tNODE%p [label=\"", node);
         printName(node);
         printf("\\n");
-        dumpMap(node);
+        dumpMap(node, true /* dot */);
 
         printf("\" shape=box]\n");
     }
