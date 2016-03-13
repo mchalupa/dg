@@ -20,6 +20,15 @@ class LLVMRDBuilder
     const llvm::Module *M;
     const llvm::DataLayout *DL;
 
+    struct Subgraph {
+        Subgraph(RDNode *r1, RDNode *r2)
+            : root(r1), ret(r2) {}
+        Subgraph() {memset(this, 0, sizeof *this);}
+
+        RDNode *root;
+        RDNode *ret;
+    };
+
     // points-to information
     LLVMPointsToAnalysis *PTA;
 
@@ -32,6 +41,8 @@ class LLVMRDBuilder
     // the information, but this way it is more bug-proof
     std::unordered_map<const llvm::Value *, RDNode *> mapping;
 
+    // map of all built subgraphs - the value type is a pair (root, return)
+    std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 public:
     LLVMRDBuilder(const llvm::Module *m, LLVMPointsToAnalysis *p)
         : M(m), DL(new llvm::DataLayout(M->getDataLayout())), PTA(p) {}
@@ -67,10 +78,18 @@ private:
     }
 
     RDNode *createStore(const llvm::Instruction *Inst);
+    RDNode *createAlloc(const llvm::Instruction *Inst);
 
     std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);
     RDNode *buildFunction(const llvm::Function& F);
+
     std::pair<RDNode *, RDNode *> buildGlobals();
+
+    std::pair<RDNode *, RDNode *>
+    createCallToFunction(const llvm::CallInst *CInst, const llvm::Function *F);
+
+    std::pair<RDNode *, RDNode *>
+    createCall(const llvm::Instruction *Inst);
 };
 
 class LLVMReachingDefinitions
