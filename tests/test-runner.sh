@@ -84,6 +84,9 @@ run_test()
 	SLICEDFILE="$NAME.sliced"
 	LINKEDFILE="$NAME.sliced.linked"
 
+	# clean old files before running the test
+	rm -f $BCFILE $SLICEDFILE $LINKEDFILE
+
 	# compile in.c out.bc
 	compile "$CODE" "$BCFILE"
 
