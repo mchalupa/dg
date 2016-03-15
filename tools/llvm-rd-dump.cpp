@@ -65,8 +65,11 @@ dumpMap(RDNode *node, bool dot = false)
     for (auto it : map) {
         for (RDNode *site : it.second) {
             printName(it.first.target);
-            printf(" | %lu - %lu | => ", *it.first.offset,
-                   *it.first.offset + *it.first.len - 1);
+            if (it.first.offset.isUnknown())
+                printf(" | UNKNOWN | => ");
+            else
+                printf(" | %lu - %lu | => ", *it.first.offset,
+                       *it.first.offset + *it.first.len - 1);
 
             printName(site);
             if (dot)
@@ -80,7 +83,9 @@ dumpMap(RDNode *node, bool dot = false)
 static void
 dumpRDNode(RDNode *n)
 {
+    printf("NODE: ");
     printName(n);
+    putchar('\n');
     dumpMap(n);
     printf("---\n");
 }
