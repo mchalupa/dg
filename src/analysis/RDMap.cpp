@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <cassert>
+
 #include "RDMap.h"
 
 namespace dg {
@@ -12,7 +14,43 @@ RDMap::RDMap(const RDMap& o)
     merge(&o);
 }
 
-bool RDMap::merge(const RDMap *oth, DefSiteSetT *without)
+///
+// merge @oth map to this map. If given @no_update set,
+// take those definitions as 'overwrites'. That is -
+// if some definition in @no_update set overwrites definition
+// in @oth set, don't merge it to our map. The exception are
+// definitions with UNKNOWN_OFFSET, since we don't know what
+// places can these overwrite, these are always added (weak update).
+// If @merge_unknown flag is set to true, all definitions
+// with concrete offset are merge to the definition with UNKNOWN offset
+// once this definition is found (this is because to a def-use
+// relation the concrete OFFSET and UNKNOWN offset act the same, that is:
+//
+//   def(A, 0, 4) at NODE1
+//   def(A, UNKNOWN) at NODE2
+//   use(A, 2)
+//
+// The use has reaching definitions NODE1 and NODE2, thus we can
+// just have that merged to UNKNOWN, since UNKNOWN may be 0-4:
+//
+//   def(A, UNKNOWN) at NODE1, NODE2
+//   use(A, 2)
+//
+// That may introduce some unprecision, though:
+//
+//   def(A, 0, 4) at NODE1
+//   def(A, 4, 8) at NODE3
+//   def(A, UNKNOWN) at NODE2
+//   use(A, 2) -- reaching is just NODE1 and NODE2
+//   ---
+//   def(A, UNKNOWN) at NODE1, NODE2, NODE2
+//                      -- reaching are all thre
+//
+// This is useful when we have a lot of concrete and unknown definitions
+// in the map
+bool RDMap::merge(const RDMap *oth,
+                  DefSiteSetT *no_update,
+                  bool merge_unknown)
 {
     if (this == oth)
         return false;
@@ -20,18 +58,32 @@ bool RDMap::merge(const RDMap *oth, DefSiteSetT *without)
     bool changed = false;
     for (auto it : oth->defs) {
         const DefSite& ds = it.first;
-
-        // FIXME: unknown offsets
+        bool is_unknown = ds.offset.isUnknown();
 
         // should we update this def-site (strong update)?
-        if (without) {
+        // but only if the offset is concrete, because if
+        // it is not concrete, we want to do weak update
+        if (!is_unknown && no_update) {
             bool skip = false;
+
             // FIXME: use getObjectRange
-            for (const DefSite& ds2 : *without) {
+            for (const DefSite& ds2 : *no_update) {
                 if (ds.target != ds2.target)
                     continue;
 
-                // targets are the same
+                // if the 'no_update' set contains target with unknown
+                // pointer, we should always keep that value
+                // and the value being merged (just all possible definitions)
+                if (ds2.offset.isUnknown()) {
+                    // break no_update skip = true, thus adding
+                    // the values for UNKOWN to our map
+                    is_unknown = true;
+                    break;
+                }
+
+                // targets are the same, check if the what we have
+                // in 'no_update' set overwrites the values that are in
+                // the other map
                 if ((*ds.offset >= *ds2.offset)
                     && (*ds.offset + *ds.len <= *ds2.offset + *ds2.len)) {
                     skip = true;
@@ -39,19 +91,47 @@ bool RDMap::merge(const RDMap *oth, DefSiteSetT *without)
                 }
             }
 
+            // if values in 'no_update' map overwrite the coresponding values
+            // in the other map, don't update our map
             if (skip)
                 continue;
         }
 
-        // our values that we have for
-        // this pointer
-        RDNodesSetT& our_vals = defs[ds];
+        RDNodesSetT *our_vals = nullptr;
+        if (merge_unknown && is_unknown) {
+            // merge all concrete offset to UNKOWN
+            our_vals = &defs[DefSite(ds.target, UNKNOWN_OFFSET, UNKNOWN_OFFSET)];
 
-        // copy values that have map oth for the
-        // pointer to our values
-        for (RDNode *defnode : it.second) {
-            changed |= our_vals.insert(defnode).second;
+            for (auto I = defs.begin(), E = defs.end(); I != E;) {
+                auto cur = I++;
+                // look only for our target
+                if (cur->first.target != ds.target)
+                    continue;
+
+                // don't remove the one with UNKNOWN_OFFSET
+                if (&cur->second == our_vals)
+                    continue;
+
+                // merge values with concrete offset to
+                // this unknown offset
+                for (RDNode *defnode : cur->second)
+                    changed |= our_vals->insert(defnode).second;
+
+                // erase the def-site with concrete offset
+                defs.erase(cur);
+            }
+
+            // fall-through to add the new definitions from the other map
+        } else {
+            // our values that we have for this definition-site
+            our_vals = &defs[ds];
         }
+
+        assert(our_vals && "BUG");
+
+        // copy values that have the map 'oth' for the defsite 'ds' to our map
+        for (RDNode *defnode : it.second)
+            changed |= our_vals->insert(defnode).second;
     }
 
     return changed;

@@ -49,7 +49,9 @@ public:
     RDMap() {}
     RDMap(const RDMap& o);
 
-    bool merge(const RDMap *o, DefSiteSetT *without = nullptr);
+    bool merge(const RDMap *o,
+               DefSiteSetT *without = nullptr,
+               bool merge_unknown = false);
     bool add(const DefSite&, RDNode *n);
     bool update(const DefSite&, RDNode *n);
     bool empty() const { return defs.empty(); }
