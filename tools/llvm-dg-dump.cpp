@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Reaching defs analysis took");
 
-    analysis::LLVMDefUseAnalysis DUA(&d);
+    analysis::old::LLVMDefUseAnalysis DUA(&d);
     tm.start();
     DUA.run(); // add def-use edges according that
     tm.stop();

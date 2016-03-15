@@ -26,6 +26,7 @@ using namespace llvm;
 namespace dg {
 namespace analysis {
 
+namespace old {
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg)
     : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
       dg(dg)
@@ -688,5 +689,6 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
     return false;
 }
 
+} // namespace old
 } // namespace analysis
 } // namespace dg

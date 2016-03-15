@@ -18,6 +18,7 @@ class LLVMDependenceGraph;
 class LLVMNode;
 
 namespace analysis {
+namespace old {
 
 class LLVMDefUseAnalysis : public DataFlowAnalysis<LLVMNode>
 {
@@ -54,6 +55,7 @@ private:
     void addInitialDefuse(LLVMDependenceGraph *, ValuesSetT&, const Pointer&, uint64_t);
 };
 
+} // namespace old
 } // namespace analysis
 } // namespace dg
 
