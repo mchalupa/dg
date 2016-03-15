@@ -91,7 +91,11 @@ run_test()
 	compile "$CODE" "$BCFILE"
 
 	# slice the code
-	llvm-slicer -c test_assert "$BCFILE"
+	if [ ! -z "$DG_TESTS_PTA" ]; then
+		DG_TESTS_PTA="-pts $DG_TESTS_PTA"
+	fi
+
+	llvm-slicer $DG_TESTS_PTA -c test_assert "$BCFILE"
 
 	# link assert to the code
 	link_with_assert "$SLICEDFILE" "$LINKEDFILE"
