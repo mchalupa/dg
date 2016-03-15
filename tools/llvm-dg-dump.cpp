@@ -398,6 +398,7 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     // TODO refactor the code...
     if (pts) {
+        // use new analyses
         LLVMPointsToAnalysis *PTA;
         if (strcmp(pts, "fs") == 0) {
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
@@ -412,6 +413,8 @@ int main(int argc, char *argv[])
         PTA->run();
         tm.stop();
         tm.report("INFO: Points-to analysis [new] took");
+
+        d.build(M, PTA);
     } else {
         d.build(M);
         analysis::LLVMPointsToAnalysis PTA(&d);

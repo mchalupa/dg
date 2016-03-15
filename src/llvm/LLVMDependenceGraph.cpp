@@ -29,7 +29,7 @@
 #include "PointsTo.h"
 #include "DefUse.h"
 #include "analysis/PSS.h"
-#include "PSS.h"
+#include "LLVMPointsToAnalysis.h"
 
 #include "llvm-debug.h"
 
@@ -37,8 +37,6 @@ using llvm::errs;
 using std::make_pair;
 
 namespace dg {
-
-using analysis::pss::LLVMPSSBuilder;
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
@@ -317,9 +315,9 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         // if func is nullptr, then this is indirect call
         // via function pointer. If we have the points-to information,
         // create the subgraph
-        if (!func && pts) {
+        if (!func && PTA) {
             using namespace analysis::pss;
-            PSSNode *op = pts->getNode(val);
+            PSSNode *op = PTA->getNode(val);
             for (const Pointer& ptr : op->pointsTo) {
                 const llvm::Function *F = ptr.target->getUserData<llvm::Function>();
 
@@ -576,9 +574,11 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     return true;
 }
 
-bool LLVMDependenceGraph::build(llvm::Module *m, LLVMPSSBuilder *pts, const llvm::Function *entry)
+bool LLVMDependenceGraph::build(llvm::Module *m,
+                                LLVMPointsToAnalysis *pts,
+                                const llvm::Function *entry)
 {
-    this->pts = pts;
+    this->PTA = pts;
     bool ret = build(m, entry);
 
     if (ret)
@@ -589,11 +589,9 @@ bool LLVMDependenceGraph::build(llvm::Module *m, LLVMPSSBuilder *pts, const llvm
 
 void LLVMDependenceGraph::copyPSS()
 {
-    using namespace analysis::pss;
-
-    assert(pts && "No PSS in DG");
-
+    assert(PTA && "No PSS in DG");
     /*
+    using namespace analysis::pss;
     for (auto I = begin(), E = end(); I != E; ++I) {
         const llvm::Value *val = I->first;
         LLVMNode *node = I->second;
