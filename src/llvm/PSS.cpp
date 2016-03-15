@@ -587,6 +587,50 @@ PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
     return node;
 }
 
+static bool isRelevantCall(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    // we don't care about debugging stuff
+    if (isa<DbgValueInst>(Inst))
+        return false;
+
+    const CallInst *CInst = cast<CallInst>(Inst);
+    const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+    const Function *func = dyn_cast<Function>(calledVal);
+
+    if (!func)
+        // function pointer call - we need that in PSS
+        return true;
+
+    if (func->size() == 0) {
+        if (getMemAllocationFunc(func))
+            // we need memory allocations
+            return true;
+
+        // returns pointer? We want that too - this is gonna be
+        // an unknown pointer
+        if (Inst->getType()->isPointerTy())
+            return true;
+
+        // XXX: what if undefined function takes as argument pointer
+        // to memory with pointers? In that case to be really sound
+        // we should make those pointers unknown. Another case is
+        // what if the function returns a structure (is it possible in LLVM?)
+        // It can return a structure containing a pointer - thus we should
+        // make this pointer unknown
+
+        // here we have: undefined function not returning a pointer
+        // and not memory allocation: we don't need that
+        return false;
+    } else
+        // we want defined function, since those can contain
+        // pointer's manipulation and modify CFG
+        return true;
+
+    assert(0 && "We should not reach this");
+}
+
 // return first and last nodes of the block
 std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
@@ -627,7 +671,7 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                     node = createReturn(&Inst);
                 break;
             case Instruction::Call:
-                if (isa<DbgValueInst>(&Inst))
+                if (!isRelevantCall(&Inst))
                     break;
 
                 std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst);
