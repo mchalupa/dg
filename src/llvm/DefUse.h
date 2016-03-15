@@ -7,6 +7,10 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/DataLayout.h>
 
+#include "LLVMReachingDefinitions.h"
+
+using dg::analysis::rd::LLVMReachingDefinitions;
+
 namespace llvm {
     class DataLayout;
     class ConstantExpr;
@@ -16,6 +20,39 @@ namespace dg {
 
 class LLVMDependenceGraph;
 class LLVMNode;
+
+class LLVMDefUseAnalysis : public analysis::DataFlowAnalysis<LLVMNode>
+{
+    LLVMDependenceGraph *dg;
+    LLVMReachingDefinitions *RD;
+    LLVMPointsToAnalysis *PTA;
+    const llvm::DataLayout *DL;
+public:
+    LLVMDefUseAnalysis(LLVMDependenceGraph *dg, LLVMReachingDefinitions *rd, LLVMPointsToAnalysis *pta);
+    ~LLVMDefUseAnalysis() { delete DL; }
+
+    /* virtual */
+    bool runOnNode(LLVMNode *node, LLVMNode *prev);
+private:
+    void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
+    /*
+    void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
+    void handleCallInst(LLVMNode *);
+    void handleIntrinsicCall(LLVMNode *, const llvm::CallInst *);
+    void handleUndefinedCall(LLVMNode *);
+    void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
+    void handleInlineAsm(LLVMNode *callNode);
+
+    void addStoreLoadInstDefUse(LLVMNode *, LLVMNode *, DefMap *);
+    void addIndirectDefUse(LLVMNode *, LLVMNode *, DefMap *);
+    void addDefUseToOperands(LLVMNode *, bool, LLVMDGParameters *, DefMap *);
+    void addDefUseToParameterGlobals(LLVMNode *, LLVMDGParameters *, DefMap *);
+    void addIndirectDefUsePtr(const Pointer&, LLVMNode *, DefMap *, uint64_t);
+    void addDefUseToParam(LLVMNode *, DefMap *, LLVMDGParameter *);
+    void addDefUseToParamNode(LLVMNode *op, DefMap *df, LLVMNode *to);
+    void addInitialDefuse(LLVMDependenceGraph *, ValuesSetT&, const Pointer&, uint64_t);
+    */
+};
 
 namespace analysis {
 namespace old {

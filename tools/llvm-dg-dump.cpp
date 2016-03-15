@@ -30,6 +30,7 @@
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/PointsToFlowInsensitive.h"
 #include "llvm/LLVMPointsToAnalysis.h"
+#include "llvm/LLVMReachingDefinitions.h"
 
 using namespace dg;
 using llvm::errs;
@@ -397,9 +398,10 @@ int main(int argc, char *argv[])
 
     LLVMDependenceGraph d;
     // TODO refactor the code...
+
+    LLVMPointsToAnalysis *PTA = nullptr;
     if (pts) {
         // use new analyses
-        LLVMPointsToAnalysis *PTA;
         if (strcmp(pts, "fs") == 0) {
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
         } else if (strcmp(pts, "fi") == 0) {
@@ -412,7 +414,7 @@ int main(int argc, char *argv[])
         tm.start();
         PTA->run();
         tm.stop();
-        tm.report("INFO: Points-to analysis [new] took");
+        tm.report("INFO: Points-to analysis took");
 
         d.build(M, PTA);
     } else {
@@ -439,17 +441,33 @@ int main(int argc, char *argv[])
         tm.report("INFO: Finding slicing criterions took");
     }
 
-    analysis::LLVMReachingDefsAnalysis RDA(&d);
-    tm.start();
-    RDA.run();  // compute reaching definitions
-    tm.stop();
-    tm.report("INFO: Reaching defs analysis took");
+    if (pts) {
+        assert(PTA && "BUG: Need points-to analysis");
+        //use new analyses
+        analysis::rd::LLVMReachingDefinitions RDA(M, PTA);
+        tm.start();
+        RDA.run();  // compute reaching definitions
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis took");
 
-    analysis::old::LLVMDefUseAnalysis DUA(&d);
-    tm.start();
-    DUA.run(); // add def-use edges according that
-    tm.stop();
-    tm.report("INFO: Adding Def-Use edges took");
+        LLVMDefUseAnalysis DUA(&d, &RDA, PTA);
+        tm.start();
+        DUA.run(); // add def-use edges according that
+        tm.stop();
+        tm.report("INFO: Adding Def-Use edges took");
+    } else {
+        analysis::LLVMReachingDefsAnalysis RDA(&d);
+        tm.start();
+        RDA.run();  // compute reaching definitions
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis [old] took");
+
+        analysis::old::LLVMDefUseAnalysis DUA(&d);
+        tm.start();
+        DUA.run(); // add def-use edges according that
+        tm.stop();
+        tm.report("INFO: Adding Def-Use edges [old] took");
+    }
 
     tm.start();
     // add post-dominator frontiers

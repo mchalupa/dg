@@ -243,21 +243,36 @@ static void annotate(llvm::Module *M, const char *module_name,
     delete annot;
 }
 
-static void computeGraphEdges(LLVMDependenceGraph *d)
+static void computeGraphEdges(LLVMDependenceGraph *d, LLVMPointsToAnalysis *PTA)
 {
     debug::TimeMeasure tm;
 
-    analysis::LLVMReachingDefsAnalysis RDA(d);
-    tm.start();
-    RDA.run();  // compute reaching definitions
-    tm.stop();
-    tm.report("INFO: Reaching defs analysis took");
+    if (PTA) {
+        //use new analyses
+        analysis::rd::LLVMReachingDefinitions RDA(d->getModule(), PTA);
+        tm.start();
+        RDA.run();  // compute reaching definitions
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis took");
 
-    analysis::old::LLVMDefUseAnalysis DUA(d);
-    tm.start();
-    DUA.run(); // add def-use edges according that
-    tm.stop();
-    tm.report("INFO: Adding Def-Use edges took");
+        LLVMDefUseAnalysis DUA(d, &RDA, PTA);
+        tm.start();
+        DUA.run(); // add def-use edges according that
+        tm.stop();
+        tm.report("INFO: Adding Def-Use edges took");
+    } else {
+        analysis::LLVMReachingDefsAnalysis RDA(d);
+        tm.start();
+        RDA.run();  // compute reaching definitions
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis [old] took");
+
+        analysis::old::LLVMDefUseAnalysis DUA(d);
+        tm.start();
+        DUA.run(); // add def-use edges according that
+        tm.stop();
+        tm.report("INFO: Adding Def-Use edges [old] took");
+    }
 
     tm.start();
     // add post-dominator frontiers
@@ -298,8 +313,8 @@ static bool slice(llvm::Module *M, const char *module_name,
     LLVMDependenceGraph d;
     std::set<LLVMNode *> callsites;
 
+    LLVMPointsToAnalysis *PTA = nullptr;
     if (pts) {
-        LLVMPointsToAnalysis *PTA;
         if (strcmp(pts, "fs") == 0) {
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
         } else if (strcmp(pts, "fi") == 0) {
@@ -312,10 +327,13 @@ static bool slice(llvm::Module *M, const char *module_name,
         tm.start();
         PTA->run();
         tm.stop();
-        tm.report("INFO: Points-to analysis [new] took");
+        tm.report("INFO: Points-to analysis took");
+
+        d.build(&*M, PTA);
     } else {
         // build the graph
         d.build(&*M);
+        assert(PTA == nullptr);
     }
 
     // verify if the graph is built correctly
@@ -331,7 +349,7 @@ static bool slice(llvm::Module *M, const char *module_name,
         tm.start();
         PTA.run();
         tm.stop();
-        tm.report("INFO: Points-to analysis took");
+        tm.report("INFO: Points-to analysis [old] took");
 
         // we might added some new functions
         // so verify once again
@@ -370,7 +388,7 @@ static bool slice(llvm::Module *M, const char *module_name,
     // Also count the edges when user wants to annotate
     // the file - due to debugging
     if (got_slicing_criterion || (opts & ANNOTATE))
-        computeGraphEdges(&d);
+        computeGraphEdges(&d, PTA);
 
     // don't go through the graph when we know the result:
     // only empty main will stay there. Just delete the body

@@ -104,6 +104,7 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode();
+    addNode(Inst, node);
     setName(Inst, node);
 
     pss::PSSNode *pts = PTA->getNode(Inst->getOperand(1));
@@ -178,15 +179,18 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                 break;
         }
 
-        // the closest node always keep the
-        // relevant RD information even for the nodes
-        // that are not in the subgraph
-        if (node)
-            mapping[&Inst] = node;
+        if (prev_node) {
+            // the closest node always keep the
+            // relevant RD information even for the nodes
+            // that are not in the subgraph
+            mapping[&Inst] = prev_node;
+        }
 
         // first instruction
-        if (node && !prev_node)
+        if (node && !prev_node) {
             ret.first = node;
+            mapping[&Inst] = node;
+        }
 
         if (prev_node && prev_node != node)
             prev_node->addSuccessor(node);

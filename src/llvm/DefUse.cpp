@@ -15,8 +15,15 @@
 #include "DefUse.h"
 #include "AnalysisGeneric.h"
 
+#include "LLVMPointsToAnalysis.h"
+#include "LLVMReachingDefinitions.h"
+
+#include "analysis/PSS.h"
 #include "analysis/DFS.h"
 #include "llvm-debug.h"
+
+using dg::analysis::rd::LLVMReachingDefinitions;
+using dg::analysis::rd::RDNode;
 
 using namespace llvm;
 
@@ -24,9 +31,122 @@ using namespace llvm;
 //   Add def-use edges
 /// --------------------------------------------------
 namespace dg {
-namespace analysis {
 
+static void handleInstruction(const Instruction *Inst, LLVMNode *node)
+{
+    LLVMDependenceGraph *dg = node->getDG();
+
+    for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
+        LLVMNode *op = dg->getNode(*I);
+        if (op)
+            op->addDataDependence(node);
+/* this is hit with switch
+#ifdef DEBUG_ENABLED
+        else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
+            DBG("WARN: no node for operand " << **I
+                   << "in " << *Inst);
+#endif
+*/
+    }
+}
+
+LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
+                                       LLVMReachingDefinitions *rd,
+                                       LLVMPointsToAnalysis *pta)
+    : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), analysis::DATAFLOW_INTERPROCEDURAL),
+      dg(dg), RD(rd), PTA(pta)
+{
+    assert(PTA && "Need points-to information");
+    assert(RD && "Need reaching definitions");
+
+    Module *m = dg->getModule();
+    // set data layout
+    DL = new DataLayout(m->getDataLayout());
+}
+
+/*
+void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+{
+}
+*/
+
+void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
+{
+    using namespace dg::analysis;
+
+    // get points-to information for the operand
+    pss::PSSNode *pts = PTA->getNode(Inst->getPointerOperand());
+    //assert(pts && "Don't have points-to information for LoadInst");
+    if (!pts) {
+        llvm::errs() << "No points-to: " << *Inst << "\n";
+        return;
+    }
+
+    // get the node from reaching definition where we have
+    // all the reaching definitions
+    RDNode *mem = RD->getMapping(Inst);
+    if(!mem) {
+        llvm::errs() << "Don't have mapping: " << *Inst<< "\n";
+        return;
+    }
+
+    // take every memory the load inst can use and get the
+    // reaching definition
+    for (const pss::Pointer& ptr : pts->pointsTo) {
+        llvm::Value *llvmVal = ptr.target->getUserData<llvm::Value>();
+        assert(llvmVal);
+
+        RDNode *val = RD->getNode(llvmVal);
+        if(!val) {
+            llvm::errs() << "Don't have mapping: " << *llvmVal << "\n";
+            continue;
+        }
+
+        std::set<RDNode *> defs;
+        mem->getReachingDefinitions(val, ptr.offset, defs);
+        if (defs.empty()) {
+            llvm::errs() << "No reaching definition for: " << *llvmVal
+                         << " off: " << *ptr.offset << "\n";
+            continue;
+        }
+
+        // add data dependence
+        for (RDNode *rd : defs) {
+            llvm::Value *rdval = rd->getUserData<llvm::Value>();
+            assert(rdval);
+
+            LLVMNode *rdnode = dg->getNode(rdval);
+            assert(rdnode);
+
+            rdnode->addDataDependence(node);
+        }
+    }
+}
+
+bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
+{
+    const Value *val = node->getKey();
+    (void) prev;
+
+    if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+        handleLoadInst(Inst, node);
+    /*} else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+        handleStoreInst(Inst, node);
+    } else if (isa<CallInst>(val)) {
+        handleCallInst(node); */
+    }
+
+    /* just add direct def-use edges to every instruction */
+    if (const Instruction *Inst = dyn_cast<Instruction>(val))
+        handleInstruction(Inst, node);
+
+    // we will run only once
+    return false;
+}
+
+namespace analysis {
 namespace old {
+
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg)
     : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
       dg(dg)
@@ -648,24 +768,6 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 
     // add def-use edges to parameter globals
     addDefUseToParameterGlobals(node, params, df);
-}
-
-static void handleInstruction(const Instruction *Inst, LLVMNode *node)
-{
-    LLVMDependenceGraph *dg = node->getDG();
-
-    for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
-        LLVMNode *op = dg->getNode(*I);
-        if (op)
-            op->addDataDependence(node);
-/* this is hit with switch
-#ifdef DEBUG_ENABLED
-        else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
-            DBG("WARN: no node for operand " << **I
-                   << "in " << *Inst);
-#endif
-*/
-    }
 }
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)

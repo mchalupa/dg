@@ -30,7 +30,7 @@ class LLVMRDBuilder
     };
 
     // points-to information
-    LLVMPointsToAnalysis *PTA;
+    dg::LLVMPointsToAnalysis *PTA;
 
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, RDNode *> nodes_map;
@@ -44,7 +44,7 @@ class LLVMRDBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 public:
-    LLVMRDBuilder(const llvm::Module *m, LLVMPointsToAnalysis *p)
+    LLVMRDBuilder(const llvm::Module *m, dg::LLVMPointsToAnalysis *p)
         : M(m), DL(new llvm::DataLayout(M->getDataLayout())), PTA(p) {}
 
     ~LLVMRDBuilder() { delete DL; }
@@ -65,6 +65,16 @@ public:
     {
         auto it = mapping.find(val);
         if (it == mapping.end())
+            return nullptr;
+
+        return it->second;
+    }
+
+    RDNode *getNode(const llvm::Value *val)
+    {
+      
+        auto it = nodes_map.find(val);
+        if (it == nodes_map.end())
             return nullptr;
 
         return it->second;
@@ -99,7 +109,7 @@ class LLVMReachingDefinitions
     RDNode *root;
 
 public:
-    LLVMReachingDefinitions(const llvm::Module *m, LLVMPointsToAnalysis *pta)
+    LLVMReachingDefinitions(const llvm::Module *m, dg::LLVMPointsToAnalysis *pta)
         : builder(new LLVMRDBuilder(m, pta)) {}
 
     void run()
@@ -107,6 +117,11 @@ public:
         root = builder->build();
         RDA = new ReachingDefinitionsAnalysis(root);
         RDA->run();
+    }
+
+    RDNode *getNode(const llvm::Value *val)
+    {
+        return builder->getNode(val);
     }
 
     // let the user get the nodes map, so that we can
@@ -132,6 +147,13 @@ public:
         RDA->getNodes(cont);
     }
 
+    const RDMap& getReachingDefinitions(RDNode *n) const { return n->getReachingDefinitions(); }
+    RDMap& getReachingDefinitions(RDNode *n) { return n->getReachingDefinitions(); }
+    size_t getReachingDefinitions(RDNode *n, const Offset& off,
+                                  std::set<RDNode *>& ret)
+    {
+        return n->getReachingDefinitions(n, off, ret);
+    }
 };
 
 
