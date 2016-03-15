@@ -154,6 +154,13 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
             case Instruction::Store:
                 node = createStore(&Inst);
                 break;
+            case Instruction::Ret:
+                // we need create returns, since
+                // these modify CFG and thus data-flow
+                // FIXME: add new type of node NOOP,
+                // and optimize it away later
+                node = createAlloc(&Inst);
+                break;
             case Instruction::Call:
                 if (isa<DbgValueInst>(&Inst))
                     break;
