@@ -43,6 +43,10 @@ public:
 
     // this is the gro of this node, so make it public
     DefSiteSetT defs;
+    // this is a subset of defs that are strong update
+    // on this node
+    DefSiteSetT overwrites;
+
     RDMap def_map;
 
     const char *getName() const { return name; }
@@ -92,17 +96,24 @@ public:
         return false;
     }
 
-    void addDef(const DefSite& ds)
+    void addDef(const DefSite& ds, bool strong_update = false)
     {
         defs.insert(ds);
         def_map.update(ds, this);
+
+        // XXX maybe we could do it by some flag in DefSite?
+        // instead of strong new copy... but it should not
+        // be big overhead this way... we'll see in the future
+        if (strong_update)
+            overwrites.insert(ds);
     }
 
     void addDef(RDNode *target,
                 const Offset& off = UNKNOWN_OFFSET,
-                const Offset& len = UNKNOWN_OFFSET)
+                const Offset& len = UNKNOWN_OFFSET,
+                bool strong_update = false)
     {
-        addDef(DefSite(target, off, len));
+        addDef(DefSite(target, off, len), strong_update);
     }
 
     const RDMap& getReachingDefinitions() const { return def_map; }

@@ -14,7 +14,7 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
     // merge maps from predecessors
     for (RDNode *n : node->predecessors)
         changed |= node->def_map.merge(&n->def_map,
-                                       &node->defs /* strong update */);
+                                       &node->overwrites /* strong update */);
 
     return changed;
 }

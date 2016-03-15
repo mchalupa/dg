@@ -128,7 +128,8 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         if (size == 0)
             size = UNKNOWN_OFFSET;
 
-        node->addDef(ptrNode, ptr.offset, size);
+        node->addDef(ptrNode, ptr.offset, size,
+                     pts->pointsTo.size() == 1 /* strong update */);
     }
 
     assert(node);
