@@ -72,7 +72,6 @@ public:
 
     RDNode *getNode(const llvm::Value *val)
     {
-      
         auto it = nodes_map.find(val);
         if (it == nodes_map.end())
             return nullptr;

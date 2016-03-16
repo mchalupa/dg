@@ -113,11 +113,30 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
         // add data dependence
         for (RDNode *rd : defs) {
             llvm::Value *rdval = rd->getUserData<llvm::Value>();
-            assert(rdval);
+            assert(rdval && "RDNode has not set the coresponding value");
+            assert(llvm::isa<llvm::StoreInst>(rdval)
+                    && "Reaching definition is not a StoreInst");
 
             LLVMNode *rdnode = dg->getNode(rdval);
-            assert(rdnode);
+            if (!rdnode) {
+                // that means that the value is not from this graph.
+                // We need to add interprocedural edge
+                llvm::Function *F
+                    = llvm::cast<llvm::Instruction>(rdval)->getParent()->getParent();
+                LLVMNode *entryNode = dg->getNode(F);
+                assert(entryNode && "Don't have built function");
 
+                // get the graph where the node lives
+                LLVMDependenceGraph *graph = entryNode->getDG();
+                assert(graph != dg && "Cannot find a node");
+                rdnode = graph->getNode(rdval);
+                if (!rdnode) {
+                    llvm::errs() << "DG has not val: " << *rdval << "\n";
+                    continue;
+                }
+            }
+
+            assert(rdnode);
             rdnode->addDataDependence(node);
         }
     }

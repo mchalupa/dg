@@ -512,6 +512,8 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     // create entry node
     LLVMNode *entry = new LLVMNode(func);
     addGlobalNode(entry);
+    // we want the entry node to have this DG set
+    entry->setDG(this);
     setEntry(entry);
     BBlocksMapT& blocks = getBlocks();
 
