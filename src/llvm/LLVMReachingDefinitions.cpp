@@ -107,7 +107,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     addNode(Inst, node);
     setName(Inst, node);
 
-    pss::PSSNode *pts = PTA->getNode(Inst->getOperand(1));
+    pss::PSSNode *pts = PTA->getNode(Inst->getOperand(1)->stripInBoundsOffsets());
     assert(pts && "Don't have the points-to information for store");
 
     for (const pss::Pointer& ptr: pts->pointsTo) {
