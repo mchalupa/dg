@@ -70,28 +70,10 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 }
 */
 
-void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
+void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts, RDNode *mem)
 {
     using namespace dg::analysis;
 
-    // get points-to information for the operand
-    pss::PSSNode *pts = PTA->getNode(Inst->getPointerOperand()->stripInBoundsOffsets());
-    //assert(pts && "Don't have points-to information for LoadInst");
-    if (!pts) {
-        llvm::errs() << "No points-to: " << *Inst << "\n";
-        return;
-    }
-
-    // get the node from reaching definition where we have
-    // all the reaching definitions
-    RDNode *mem = RD->getMapping(Inst);
-    if(!mem) {
-        llvm::errs() << "Don't have mapping: " << *Inst<< "\n";
-        return;
-    }
-
-    // take every memory the load inst can use and get the
-    // reaching definition
     for (const pss::Pointer& ptr : pts->pointsTo) {
         llvm::Value *llvmVal = ptr.target->getUserData<llvm::Value>();
         assert(llvmVal);
@@ -140,6 +122,31 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
             rdnode->addDataDependence(node);
         }
     }
+}
+
+void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
+{
+    using namespace dg::analysis;
+
+    // get points-to information for the operand
+    pss::PSSNode *pts = PTA->getNode(Inst->getPointerOperand()->stripInBoundsOffsets());
+    //assert(pts && "Don't have points-to information for LoadInst");
+    if (!pts) {
+        llvm::errs() << "No points-to: " << *Inst << "\n";
+        return;
+    }
+
+    // get the node from reaching definition where we have
+    // all the reaching definitions
+    RDNode *mem = RD->getMapping(Inst);
+    if(!mem) {
+        llvm::errs() << "Don't have mapping: " << *Inst<< "\n";
+        return;
+    }
+
+    // take every memory the load inst can use and get the
+    // reaching definition
+    addDataDependence(node, pts, mem);
 }
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)

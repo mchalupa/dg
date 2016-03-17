@@ -34,6 +34,8 @@ public:
     /* virtual */
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 private:
+    void addDataDependence(LLVMNode *node,
+                           analysis::pss::PSSNode *pts, analysis::rd::RDNode *mem);
     void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
     /*
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);

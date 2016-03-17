@@ -144,8 +144,17 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 
     std::pair<RDNode *, RDNode *> ret(nullptr, nullptr);
     RDNode *prev_node;
-    RDNode *node = nullptr;
+    // the first node is dummy and serves as a phi from previous
+    // blocks so that we can have proper mapping
+    RDNode *node = new RDNode();
+    setName("PHI start block", node);
+    ret.first = node;
+
     for (const Instruction& Inst : block) {
+        // some nodes may have nullptr as mapping,
+        // that means that there are no reaching definitions
+        // (well, no nodes to be precise) to map that on
+        mapping[&Inst] = node;
         prev_node = node;
 
         switch(Inst.getOpcode()) {
@@ -168,29 +177,12 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                     break;
 
                 std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
-                if (prev_node)
-                    prev_node->addSuccessor(subg.first);
-                else
-                    // graphs starts with function call?
-                    ret.first = subg.first;
+                prev_node->addSuccessor(subg.first);
 
                 // new nodes will connect to the return node
                 node = prev_node = subg.second;
 
                 break;
-        }
-
-        if (prev_node) {
-            // the closest node always keep the
-            // relevant RD information even for the nodes
-            // that are not in the subgraph
-            mapping[&Inst] = prev_node;
-        }
-
-        // first instruction
-        if (node && !prev_node) {
-            ret.first = node;
-            mapping[&Inst] = node;
         }
 
         if (prev_node && prev_node != node)
