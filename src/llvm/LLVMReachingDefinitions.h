@@ -149,9 +149,9 @@ public:
     const RDMap& getReachingDefinitions(RDNode *n) const { return n->getReachingDefinitions(); }
     RDMap& getReachingDefinitions(RDNode *n) { return n->getReachingDefinitions(); }
     size_t getReachingDefinitions(RDNode *n, const Offset& off,
-                                  std::set<RDNode *>& ret)
+                                  const Offset& len, std::set<RDNode *>& ret)
     {
-        return n->getReachingDefinitions(n, off, ret);
+        return n->getReachingDefinitions(n, off, len, ret);
     }
 };
 

@@ -119,9 +119,9 @@ public:
     const RDMap& getReachingDefinitions() const { return def_map; }
     RDMap& getReachingDefinitions() { return def_map; }
     size_t getReachingDefinitions(RDNode *n, const Offset& off,
-                                  std::set<RDNode *>& ret)
+                                  const Offset& len, std::set<RDNode *>& ret)
     {
-        return def_map.get(n, off, ret);
+        return def_map.get(n, off, len, ret);
     }
 
     // getters & setters for analysis's data in the node

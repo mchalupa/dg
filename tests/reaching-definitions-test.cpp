@@ -56,21 +56,23 @@ public:
 
         RDMap& S = S2.getReachingDefinitions();
         std::set<RDNode *> rd;
-        S2.getReachingDefinitions(&AL1, 0, rd);
+        // get reaching definitions of 0-th byte
+        // (mem, off, len)
+        S2.getReachingDefinitions(&AL1, 0, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 1, rd);
+        S2.getReachingDefinitions(&AL1, 1, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 2, rd);
+        S2.getReachingDefinitions(&AL1, 2, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 3, rd);
+        S2.getReachingDefinitions(&AL1, 3, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
         // offset 4 should not be defined, since we had
         // defined 0 - 3 offsets (we're starting from 0)
-        S2.getReachingDefinitions(&AL1, 4, rd);
+        S2.getReachingDefinitions(&AL1, 4, 1, rd);
         check(rd.size() == 0, "Should have had no r.d.");
     }
 
@@ -93,21 +95,21 @@ public:
 
         RDMap& S = S2.getReachingDefinitions();
         std::set<RDNode *> rd;
-        S2.getReachingDefinitions(&AL1, 0, rd);
+        S2.getReachingDefinitions(&AL1, 0, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 1, rd);
+        S2.getReachingDefinitions(&AL1, 1, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 2, rd);
+        S2.getReachingDefinitions(&AL1, 2, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 3, rd);
+        S2.getReachingDefinitions(&AL1, 3, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
         // offset 4 should not be defined, since we had
         // defined 0 - 3 offsets (we're starting from 0)
-        S2.getReachingDefinitions(&AL1, 4, rd);
+        S2.getReachingDefinitions(&AL1, 4, 1, rd);
         check(rd.size() == 0, "Should have had no r.d.");
     }
 
@@ -130,33 +132,33 @@ public:
 
         RDMap& S = S2.getReachingDefinitions();
         std::set<RDNode *> rd;
-        S2.getReachingDefinitions(&AL1, 0, rd);
+        S2.getReachingDefinitions(&AL1, 0, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S1, "Should be S1");
-        S2.getReachingDefinitions(&AL1, 1, rd);
+        S2.getReachingDefinitions(&AL1, 1, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S1, "Should be S1");
-        S2.getReachingDefinitions(&AL1, 2, rd);
+        S2.getReachingDefinitions(&AL1, 2, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S1, "Should be S1");
-        S2.getReachingDefinitions(&AL1, 3, rd);
+        S2.getReachingDefinitions(&AL1, 3, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S1, "Should be S1");
 
-        S2.getReachingDefinitions(&AL1, 4, rd);
+        S2.getReachingDefinitions(&AL1, 4, 1, rd);
         check(rd.size() == 1, "Should have had no r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 5, rd);
+        S2.getReachingDefinitions(&AL1, 5, 1, rd);
         check(rd.size() == 1, "Should have had no r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 6, rd);
+        S2.getReachingDefinitions(&AL1, 6, 1, rd);
         check(rd.size() == 1, "Should have had no r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 7, rd);
+        S2.getReachingDefinitions(&AL1, 7, 1, rd);
         check(rd.size() == 1, "Should have had no r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
 
-        S2.getReachingDefinitions(&AL1, 8, rd);
+        S2.getReachingDefinitions(&AL1, 8, 1, rd);
         check(rd.size() == 0, "Should not have r.d.");
     }
 
@@ -184,27 +186,27 @@ public:
         RDMap& S = S2.getReachingDefinitions();
         std::set<RDNode *> rd;
         // bytes 0 and 1 should be defined on S1
-        S2.getReachingDefinitions(&AL1, 0, rd);
+        S2.getReachingDefinitions(&AL1, 0, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S1, "Should be S1");
-        S2.getReachingDefinitions(&AL1, 1, rd);
+        S2.getReachingDefinitions(&AL1, 1, 1, rd);
         check(rd.size() == 1, "Should have had one r.d.");
         check(*(rd.begin()) == &S1, "Should be S1");
 
         // bytes 2 and 3 should be defined on both S1 and S2
-        S2.getReachingDefinitions(&AL1, 2, rd);
+        S2.getReachingDefinitions(&AL1, 2, 1, rd);
         check(rd.size() == 2, "Should have two r.d.");
-        S2.getReachingDefinitions(&AL1, 3, rd);
+        S2.getReachingDefinitions(&AL1, 3, 1, rd);
         check(rd.size() == 2, "Should have two r.d.");
 
-        S2.getReachingDefinitions(&AL1, 4, rd);
+        S2.getReachingDefinitions(&AL1, 4, 1, rd);
         check(rd.size() == 1, "Should have had no r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
-        S2.getReachingDefinitions(&AL1, 5, rd);
+        S2.getReachingDefinitions(&AL1, 5, 1, rd);
         check(rd.size() == 1, "Should have had no r.d.");
         check(*(rd.begin()) == &S2, "Should be S2");
 
-        S2.getReachingDefinitions(&AL1, 6, rd);
+        S2.getReachingDefinitions(&AL1, 6, 1, rd);
         check(rd.size() == 0, "Should not have r.d.");
 
         dumpMap(&S1);

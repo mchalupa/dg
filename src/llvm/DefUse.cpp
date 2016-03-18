@@ -122,7 +122,8 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         addReturnEdge(node, subgraph);
 }
 
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts, RDNode *mem)
+void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
+                                           RDNode *mem, uint64_t size)
 {
     using namespace dg::analysis;
 
@@ -137,7 +138,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts, RDNode 
         }
 
         std::set<RDNode *> defs;
-        mem->getReachingDefinitions(val, ptr.offset, defs);
+        mem->getReachingDefinitions(val, ptr.offset, size, defs);
         if (defs.empty()) {
             llvm::errs() << "No reaching definition for: " << *llvmVal
                          << " off: " << *ptr.offset << "\n";
@@ -176,6 +177,15 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts, RDNode 
     }
 }
 
+static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
+{
+    // Type can be i8 *null or similar
+    if (!Ty->isSized())
+            return UNKNOWN_OFFSET;
+
+    return DL->getTypeAllocSize(Ty);
+}
+
 void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
 {
     using namespace dg::analysis;
@@ -198,7 +208,8 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
 
     // take every memory the load inst can use and get the
     // reaching definition
-    addDataDependence(node, pts, mem);
+    uint64_t size = getAllocatedSize(Inst->getType(), DL);
+    addDataDependence(node, pts, mem, size);
 }
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)

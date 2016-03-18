@@ -28,14 +28,18 @@ class LLVMDefUseAnalysis : public analysis::DataFlowAnalysis<LLVMNode>
     LLVMPointsToAnalysis *PTA;
     const llvm::DataLayout *DL;
 public:
-    LLVMDefUseAnalysis(LLVMDependenceGraph *dg, LLVMReachingDefinitions *rd, LLVMPointsToAnalysis *pta);
+    LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
+                       LLVMReachingDefinitions *rd,
+                       LLVMPointsToAnalysis *pta);
     ~LLVMDefUseAnalysis() { delete DL; }
 
     /* virtual */
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 private:
     void addDataDependence(LLVMNode *node,
-                           analysis::pss::PSSNode *pts, analysis::rd::RDNode *mem);
+                           analysis::pss::PSSNode *pts,
+                           analysis::rd::RDNode *mem,
+                           uint64_t size);
     void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
     void handleCallInst(LLVMNode *);
     void handleInlineAsm(LLVMNode *callNode);

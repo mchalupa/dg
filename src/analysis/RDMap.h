@@ -13,6 +13,22 @@ namespace rd {
 class RDNode;
 class ReachingDefinitionsAnalysis;
 
+static bool
+intervalsDisjunctive(uint64_t a1, uint64_t a2,
+                     uint64_t b1, uint64_t b2)
+{
+    // XXX: does this work if a2 or b2 is UNKNOWN_OFFSET??
+    // think it through
+    return ((a1 <= b1) ? (a2 < b1) : (b2 < a1));
+}
+
+static bool
+intervalsOverlap(uint64_t a1, uint64_t a2,
+                 uint64_t b1, uint64_t b2)
+{
+    return !intervalsDisjunctive(a1, a2, b1, b2);
+}
+
 struct DefSite
 {
     DefSite(RDNode *t,
@@ -76,7 +92,10 @@ public:
     //const RDNodesSetT& get(const DefSite& ds) const { return defs[ds]; }
     RDNodesSetT& operator[](const DefSite& ds) { return defs[ds]; }
     //RDNodesSetT& get(RDNode *, const Offset&);
-    size_t get(RDNode *n, const Offset& off, std::set<RDNode *>& ret)
+    // gather reaching definitions of memory [n + off, n + off + len]
+    // and store them to the @ret
+    size_t get(RDNode *n, const Offset& off,
+               const Offset& len, std::set<RDNode *>& ret)
     {
         ret.clear();
 
@@ -89,10 +108,20 @@ public:
             // FIXME: use getObjectRange()
             for (auto it : defs)
                 if (it.first.target == n
-                    && off.inRange(*it.first.offset,
-                                   *it.first.offset + *it.first.len - 1))
-                                   /* -1 because we're starting from 0 */
+                       /* if we found a definition with UNKNOWN_OFFSET,
+                        * it is possibly a definition that we need */
+                    && (it.first.offset.isUnknown() ||
+                        /* if the length is unknown, then just check
+                         * if the starts can overlap */
+                        (len.isUnknown() && *off <= *it.first.offset) ||
+                        /* just check if the offsets + length have
+                         * some overlap */
+                        intervalsOverlap(*it.first.offset,
+                                        /* -1 because we're starting from 0 */
+                                        *it.first.offset + *it.first.len - 1,
+                                        *off, *off + *len - 1))){
                     ret.insert(it.second.begin(), it.second.end());
+                }
         }
 
         return ret.size();
