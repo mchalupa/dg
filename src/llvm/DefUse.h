@@ -37,13 +37,13 @@ private:
     void addDataDependence(LLVMNode *node,
                            analysis::pss::PSSNode *pts, analysis::rd::RDNode *mem);
     void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
+    void handleCallInst(LLVMNode *);
+    void handleInlineAsm(LLVMNode *callNode);
     /*
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
-    void handleCallInst(LLVMNode *);
     void handleIntrinsicCall(LLVMNode *, const llvm::CallInst *);
     void handleUndefinedCall(LLVMNode *);
     void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
-    void handleInlineAsm(LLVMNode *callNode);
 
     void addStoreLoadInstDefUse(LLVMNode *, LLVMNode *, DefMap *);
     void addIndirectDefUse(LLVMNode *, LLVMNode *, DefMap *);

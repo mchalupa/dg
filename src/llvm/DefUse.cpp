@@ -40,15 +40,19 @@ static void handleInstruction(const Instruction *Inst, LLVMNode *node)
         LLVMNode *op = dg->getNode(*I);
         if (op)
             op->addDataDependence(node);
-/* this is hit with switch
-#ifdef DEBUG_ENABLED
-        else if (!isa<ConstantInt>(*I) && !isa<BranchInst>(Inst))
-            DBG("WARN: no node for operand " << **I
-                   << "in " << *Inst);
-#endif
-*/
     }
 }
+
+static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
+{
+    // FIXME we may loose some accuracy here and
+    // this edges causes that we'll go into subprocedure
+    // even with summary edges
+    if (!callNode->isVoidTy())
+        subgraph->getExit()->addDataDependence(callNode);
+}
+
+
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
@@ -69,6 +73,54 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 {
 }
 */
+
+void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
+{
+    const CallInst *CI = cast<CallInst>(callNode->getValue());
+    LLVMDependenceGraph *dg = callNode->getDG();
+
+    // the last operand is the asm itself, so iterate only to e - 1
+    for (unsigned i = 0, e = CI->getNumOperands(); i < e - 1; ++i) {
+        const Value *opVal = CI->getOperand(i);
+        if (!opVal->getType()->isPointerTy())
+            continue;
+
+        LLVMNode *opNode = dg->getNode(opVal->stripInBoundsOffsets());
+        if (!opNode) {
+            // FIXME: ConstantExpr
+            errs() << "WARN: unhandled inline asm operand: " << *opVal << "\n";
+            continue;
+        }
+
+        assert(opNode && "Do not have an operand for inline asm");
+
+        // if nothing else, this call at least uses the operands
+        opNode->addDataDependence(callNode);
+    }
+}
+
+void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
+{
+    const CallInst *CI = cast<CallInst>(node->getKey());
+
+    if (CI->isInlineAsm()) {
+        handleInlineAsm(node);
+        return;
+    }
+
+    /*
+    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    if (func && func->size() == 0) {
+        handleUndefinedCall(node);
+        return;
+    }
+    */
+
+    // add edges from the return nodes of subprocedure
+    // to the call (if the call returns something)
+    for (LLVMDependenceGraph *subgraph : node->getSubgraphs())
+        addReturnEdge(node, subgraph);
+}
 
 void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts, RDNode *mem)
 {
@@ -156,10 +208,10 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
 
     if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         handleLoadInst(Inst, node);
-    /*} else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
-        handleStoreInst(Inst, node);
     } else if (isa<CallInst>(val)) {
-        handleCallInst(node); */
+        handleCallInst(node);
+    /*} else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+        handleStoreInst(Inst, node);*/
     }
 
     /* just add direct def-use edges to every instruction */
@@ -549,15 +601,6 @@ static void addOutParamsEdges(LLVMDependenceGraph *graph)
         if (vaparam)
             addOutParamsEdges(*vaparam, df);
     }
-}
-
-static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
-{
-    // FIXME we're loosing some accuracy here and
-    // this edges causes that we'll go into subprocedure
-    // even with summary edges
-    if (!callNode->isVoidTy())
-        subgraph->getExit()->addDataDependence(callNode);
 }
 
 static void addOutParamsEdges(LLVMNode *callNode)
