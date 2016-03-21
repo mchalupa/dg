@@ -23,8 +23,12 @@ clang -emit-llvm -c -Wall -Wextra "$LIB" -o "$LIBBCFILE"
 
 llvm-link "$BCFILE" "$LIBBCFILE" -o "$NAME-withdefs.bc"
 
+if [ ! -z "$DG_TESTS_PTA" ]; then
+	export DG_TESTS_PTA="-pts $DG_TESTS_PTA"
+fi
+
 # slice the code
-llvm-slicer -c test_assert "$NAME-withdefs.bc"
+llvm-slicer $DG_TESTS_PTA -c test_assert "$NAME-withdefs.bc" || exit 1
 
 # link assert to the code
 link_with_assert "$SLICEDFILE" "$LINKEDFILE"

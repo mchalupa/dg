@@ -18,7 +18,11 @@ compile "$CODE" "$BCFILE"
 clang -emit-llvm -c "$LIBCODE" -o "$LIBBCFILE"
 clang -emit-llvm -c "$TESTS_DIR/test_assert.c" -o "$TESTS_DIR/test_assert.bc"
 
-llvm-slicer -c test_assert "$BCFILE"
+if [ ! -z "$DG_TESTS_PTA" ]; then
+		export DG_TESTS_PTA="-pts $DG_TESTS_PTA"
+fi
+
+llvm-slicer $DG_TESTS_PTA -c test_assert "$BCFILE" || exit 1
 
 # link sliced code with foo definition,
 # so that we can run the code

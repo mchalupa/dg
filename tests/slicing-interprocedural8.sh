@@ -15,7 +15,7 @@ LINKEDFILE="$NAME.sliced.linked"
 compile "$CODE" "$BCFILE"
 
 # slice the code
-llvm-slicer -c test_assert "$BCFILE"
+llvm-slicer $DG_TESTS_PTA -c test_assert "$BCFILE"
 
 # link assert to the code
 link_with_assert "$SLICEDFILE" "$LINKEDFILE"
