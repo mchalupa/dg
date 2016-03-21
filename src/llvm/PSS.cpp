@@ -250,7 +250,6 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
 
 PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
 {
-
     PSSNode *op = nodes_map[val];
     if (!op)
         op = getConstant(val);
@@ -920,16 +919,17 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
 
             off += DL->getTypeAllocSize(Ty);
         }
-    } else if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
+    } else if (isa<ConstantExpr>(C) || isa<Function>(C)) {
        if (C->getType()->isPointerTy()) {
-           Pointer ptr = getConstantExprPointer(CE);
-           PSSNode *value = new PSSNode(CONSTANT, ptr);
+           PSSNode *value = getOperand(C);
+           assert(value->pointsTo.size() == 1 && "BUG: We should have constant");
            // FIXME: we're leaking the target
            PSSNode *store = new PSSNode(STORE, value, node);
            store->insertAfter(last);
            last = store;
 
            // FIXME: uauauagghh that's ugly!
+           const Pointer& ptr = *(value->pointsTo.begin());
            setName(C, store, ((std::string("INIT ") + node->getName()
                            + " -> " + ptr.target->getName() + " + "
                            + std::to_string(*ptr.offset)).c_str()));
