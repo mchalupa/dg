@@ -76,6 +76,17 @@ public:
         return it->second;
     }
 
+    // this is the same as the getNode, but it
+    // creates ConstantExpr
+    PSSNode *getPointsTo(const llvm::Value *val)
+    {
+        PSSNode *n = getNode(val);
+        if (!n)
+            n = getConstant(val);
+
+        return n;
+    }
+
 private:
     void addNode(const llvm::Value *val, PSSNode *node)
     {

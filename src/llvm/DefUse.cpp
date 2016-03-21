@@ -191,7 +191,7 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
     using namespace dg::analysis;
 
     // get points-to information for the operand
-    pss::PSSNode *pts = PTA->getNode(Inst->getPointerOperand()->stripInBoundsOffsets());
+    pss::PSSNode *pts = PTA->getPointsTo(Inst->getPointerOperand());
     //assert(pts && "Don't have points-to information for LoadInst");
     if (!pts) {
         llvm::errs() << "No points-to: " << *Inst << "\n";

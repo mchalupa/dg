@@ -34,6 +34,11 @@ public:
         return builder->getNode(val);
     }
 
+    PSSNode *getPointsTo(const llvm::Value *val)
+    {
+        return builder->getPointsTo(val);
+    }
+
     const std::unordered_map<const llvm::Value *, PSSNode *>&
     getNodesMap() const
     {

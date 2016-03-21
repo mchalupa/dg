@@ -107,7 +107,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     addNode(Inst, node);
     setName(Inst, node);
 
-    pss::PSSNode *pts = PTA->getNode(Inst->getOperand(1)->stripInBoundsOffsets());
+    pss::PSSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
     assert(pts && "Don't have the points-to information for store");
 
     for (const pss::Pointer& ptr: pts->pointsTo) {
@@ -128,6 +128,8 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         if (size == 0)
             size = UNKNOWN_OFFSET;
 
+        //llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
+        //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
         node->addDef(ptrNode, ptr.offset, size,
                      pts->pointsTo.size() == 1 /* strong update */);
     }
@@ -374,7 +376,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         }
     } else {
         // function pointer call
-        pss::PSSNode *op = PTA->getNode(calledVal);
+        pss::PSSNode *op = PTA->getPointsTo(calledVal);
         assert(op && "Don't have points-to information");
         assert(!op->pointsTo.empty() && "Don't have pointer to the func");
 
