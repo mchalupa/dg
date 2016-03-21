@@ -158,7 +158,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
                 // We need to add interprocedural edge
                 llvm::Function *F
                     = llvm::cast<llvm::Instruction>(rdval)->getParent()->getParent();
-                LLVMNode *entryNode = dg->getNode(F);
+                LLVMNode *entryNode = dg->getGlobalNode(F);
                 assert(entryNode && "Don't have built function");
 
                 // get the graph where the node lives

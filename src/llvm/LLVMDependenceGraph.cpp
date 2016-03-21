@@ -220,6 +220,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFun
         // we'll share them
         subgraph->setGlobalNodes(getGlobalNodes());
         subgraph->module = module;
+        subgraph->PTA = PTA;
         // make subgraphs gather the call-sites too
         subgraph->gatherCallsites(gather_callsites, gatheredCallsites);
 
