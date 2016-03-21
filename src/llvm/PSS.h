@@ -122,6 +122,9 @@ private:
                                              PSSNode *node);
     std::pair<PSSNode *, PSSNode *>
     createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
+
+    std::pair<PSSNode *, PSSNode *>
+    createUnknownCall(const llvm::CallInst *CInst);
 };
 
 

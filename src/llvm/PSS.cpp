@@ -386,6 +386,23 @@ LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
     return cf;
 }
 
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createUnknownCall(const llvm::CallInst *CInst)
+{
+    assert(CInst->getType()->isPointerTy());
+    PSSNode *call = new PSSNode(pss::CALL, nullptr);
+
+    call->setPairedNode(call);
+
+    // the only thing that the node will point at
+    call->addPointsTo(PointerUnknown);
+
+    addNode(CInst, call);
+    setName(CInst, call, "CALL [undef]");
+
+    return std::make_pair(call, call);
+}
+
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PSS
@@ -404,16 +421,10 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
             // NOTE: must be before func->size() == 0 condition,
             // since malloc and similar are undefined too
             return createDynamicMemAlloc(CInst, type);
-        } else if (func->size() == 0) {
-            // the function is not declared, just put there
-            // the call node
-            // XXX: don't do that when the function does not return
-            // the pointer, it has no meaning
-            PSSNode *node = new PSSNode(pss::CALL, nullptr);
-            setName(CInst, node);
-            return std::make_pair(node, node);
         } else if (func->isIntrinsic()) {
             assert(0 && "Intrinsic function not implemented yet");
+        } else if (func->size() == 0) {
+             return createUnknownCall(CInst);
         } else {
             return createOrGetSubgraph(CInst, func);
         }
