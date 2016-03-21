@@ -102,6 +102,8 @@ private:
     PSSNode *createPHI(const llvm::Instruction *Inst);
     PSSNode *createCast(const llvm::Instruction *Inst);
     PSSNode *createReturn(const llvm::Instruction *Inst);
+    PSSNode *createPtrToInt(const llvm::Instruction *Inst);
+    PSSNode *createIntToPtr(const llvm::Instruction *Inst);
 
     PSSNode *getOperand(const llvm::Value *val);
     PSSNode *getConstant(const llvm::Value *val);

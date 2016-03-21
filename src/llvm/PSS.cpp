@@ -452,10 +452,6 @@ PSSNode *LLVMPSSBuilder::createStore(const llvm::Instruction *Inst)
 {
     const llvm::Value *valOp = Inst->getOperand(0);
 
-    // the value needs to be a pointer - we call this function only under
-    // this condition
-    assert(valOp->getType()->isPointerTy() && "BUG: Store value is not a pointer");
-
     PSSNode *op1 = getOperand(valOp);
     PSSNode *op2 = getOperand(Inst->getOperand(1));
 
@@ -470,6 +466,7 @@ PSSNode *LLVMPSSBuilder::createStore(const llvm::Instruction *Inst)
 PSSNode *LLVMPSSBuilder::createLoad(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
+
     PSSNode *op1 = getOperand(op);
     PSSNode *node = new PSSNode(pss::LOAD, op1);
 
@@ -570,11 +567,44 @@ void LLVMPSSBuilder::addPHIOperands(const llvm::Function &F)
     }
 }
 
-
 PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
     PSSNode *op1 = getOperand(op);
+    PSSNode *node = new PSSNode(pss::CAST, op1);
+
+    addNode(Inst, node);
+    setName(Inst, node);
+
+    assert(node);
+    return node;
+}
+
+// ptrToInt work just as a bitcast
+PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
+{
+    const llvm::Value *op = Inst->getOperand(0);
+
+    PSSNode *op1 = getOperand(op);
+    PSSNode *node = new PSSNode(pss::CAST, op1);
+
+    addNode(Inst, node);
+    setName(Inst, node);
+
+    assert(node);
+    return node;
+}
+
+PSSNode *LLVMPSSBuilder::createIntToPtr(const llvm::Instruction *Inst)
+{
+    const llvm::Value *op = Inst->getOperand(0);
+    PSSNode *op1 = nullptr;
+
+    if (llvm::isa<llvm::Constant>(op))
+        llvm::errs() << "PTA warning: IntToPtr with constant: " << *Inst << "\n";
+    else
+        op1 = getOperand(op);
+
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
     addNode(Inst, node);
@@ -671,12 +701,17 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                 break;
             case Instruction::Store:
                 // create only nodes that store pointer to another
-                // pointer. We don't care about stores of non-pointers
-                if (Inst.getOperand(0)->getType()->isPointerTy())
+                // pointer. We don't care about stores of non-pointers.
+                // The only exception are inttoptr nodes. We can recognize
+                // them so that these are created in nodes_map[].
+                // They are not of pointer types but getNode() returns them
+                if (Inst.getOperand(0)->getType()->isPointerTy()
+                    || getNode(Inst.getOperand(0)))
                     node = createStore(&Inst);
                 break;
             case Instruction::Load:
-                if (Inst.getType()->isPointerTy())
+                if (Inst.getType()->isPointerTy()
+                    || getNode(Inst.getOperand(0)))
                     node = createLoad(&Inst);
                 break;
             case Instruction::GetElementPtr:
@@ -692,6 +727,12 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                 break;
             case Instruction::BitCast:
                 node = createCast(&Inst);
+                break;
+            case Instruction::PtrToInt:
+                node = createPtrToInt(&Inst);
+                break;
+            case Instruction::IntToPtr:
+                node = createIntToPtr(&Inst);
                 break;
             case Instruction::Ret:
                     node = createReturn(&Inst);
