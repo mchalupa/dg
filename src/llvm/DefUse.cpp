@@ -99,6 +99,37 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
     }
 }
 
+void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst *CI)
+{
+    const IntrinsicInst *I = cast<IntrinsicInst>(CI);
+    const Value *dest, *src = nullptr;
+
+    switch (I->getIntrinsicID())
+    {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+            dest = I->getOperand(0);
+            src = I->getOperand(1);
+            break;
+        case Intrinsic::memset:
+            dest = I->getOperand(0);
+            break;
+        default:
+            assert(0 && "DEF-USE: Unhandled intrinsic call");
+            //handleUndefinedCall(callNode, CI);
+            return;
+    }
+
+    // we must have dest set
+    assert(dest);
+
+    // these functions touch the memory of the pointers
+    addDataDependence(callNode, CI, dest, UNKNOWN_OFFSET /* FIXME */);
+
+    if (src)
+        addDataDependence(callNode, CI, src, UNKNOWN_OFFSET /* FIXME */);
+}
+
 void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 {
     const CallInst *CI = cast<CallInst>(node->getKey());
@@ -108,8 +139,11 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         return;
     }
 
-    /*
     const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    if (func && func->isIntrinsic())
+        handleIntrinsicCall(node, CI);
+
+    /*
     if (func && func->size() == 0) {
         handleUndefinedCall(node);
         return;
@@ -178,6 +212,34 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
     }
 }
 
+void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
+                                           const llvm::Value *where, /* in CFG */
+                                           const llvm::Value *ptrOp,
+                                           uint64_t size)
+{
+    using namespace dg::analysis;
+
+    // get points-to information for the operand
+    pss::PSSNode *pts = PTA->getPointsTo(ptrOp);
+    //assert(pts && "Don't have points-to information for LoadInst");
+    if (!pts) {
+        llvm::errs() << "No points-to: " << *ptrOp << "\n";
+        return;
+    }
+
+    // get the node from reaching definition where we have
+    // all the reaching definitions
+    RDNode *mem = RD->getMapping(where);
+    if(!mem) {
+        llvm::errs() << "Don't have mapping: " << *where<< "\n";
+        return;
+    }
+
+    // take every memory the load inst can use and get the
+    // reaching definition
+    addDataDependence(node, pts, mem, size);
+}
+
 static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
 {
     // Type can be i8 *null or similar
@@ -191,26 +253,8 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
 {
     using namespace dg::analysis;
 
-    // get points-to information for the operand
-    pss::PSSNode *pts = PTA->getPointsTo(Inst->getPointerOperand());
-    //assert(pts && "Don't have points-to information for LoadInst");
-    if (!pts) {
-        llvm::errs() << "No points-to: " << *Inst << "\n";
-        return;
-    }
-
-    // get the node from reaching definition where we have
-    // all the reaching definitions
-    RDNode *mem = RD->getMapping(Inst);
-    if(!mem) {
-        llvm::errs() << "Don't have mapping: " << *Inst<< "\n";
-        return;
-    }
-
-    // take every memory the load inst can use and get the
-    // reaching definition
     uint64_t size = getAllocatedSize(Inst->getType(), DL);
-    addDataDependence(node, pts, mem, size);
+    addDataDependence(node, Inst, Inst->getPointerOperand(), size);
 }
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)

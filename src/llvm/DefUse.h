@@ -40,9 +40,16 @@ private:
                            analysis::pss::PSSNode *pts,
                            analysis::rd::RDNode *mem,
                            uint64_t size);
+
+    void addDataDependence(LLVMNode *node,
+                           const llvm::Value *where, /* in CFG */
+                           const llvm::Value *ptrOp,
+                           uint64_t size);
+
     void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
     void handleCallInst(LLVMNode *);
     void handleInlineAsm(LLVMNode *callNode);
+    void handleIntrinsicCall(LLVMNode *callNode, const llvm::CallInst *CI);
     /*
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
     void handleIntrinsicCall(LLVMNode *, const llvm::CallInst *);
