@@ -138,6 +138,9 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
         }
 
         std::set<RDNode *> defs;
+        // get even reaching definitions for UNKNOWN_MEMORY
+        // since those can be ours definitions
+        mem->getReachingDefinitions(rd::UNKNOWN_MEMORY, UNKNOWN_OFFSET, UNKNOWN_OFFSET, defs);
         mem->getReachingDefinitions(val, ptr.offset, size, defs);
         if (defs.empty()) {
             llvm::errs() << "No reaching definition for: " << *llvmVal

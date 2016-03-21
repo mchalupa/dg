@@ -39,6 +39,11 @@ static bool verbose = false;
 static void
 printName(RDNode *node)
 {
+    if (node == rd::UNKNOWN_MEMORY) {
+        printf("UNKNOWN MEMORY");
+        return;
+    }
+
     const char *name = node->getName();
     if (!name) {
         printf("%p\\n", node);
@@ -67,11 +72,16 @@ dumpMap(RDNode *node, bool dot = false)
     for (auto it : map) {
         for (RDNode *site : it.second) {
             printName(it.first.target);
-            if (it.first.offset.isUnknown())
-                printf(" | UNKNOWN | => ");
-            else
-                printf(" | %lu - %lu | => ", *it.first.offset,
-                       *it.first.offset + *it.first.len - 1);
+            // don't print offsets with unknown memory
+            if (it.first.target == rd::UNKNOWN_MEMORY) {
+                printf(" => ");
+            } else {
+                if (it.first.offset.isUnknown())
+                    printf(" | UNKNOWN | => ");
+                else
+                    printf(" | %lu - %lu | => ", *it.first.offset,
+                           *it.first.offset + *it.first.len - 1);
+            }
 
             printName(site);
             if (dot)

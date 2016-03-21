@@ -45,13 +45,8 @@ struct Pointer
     }
 
     bool isNull() const { return target == NULLPTR; }
-    bool pointsToUnknownMemory() const { return target == UNKNOWN_MEMORY; }
-
-#if 0
-    bool isUnknown() const;
-    bool pointsToUnknown() const;
-    bool isKnown() const;
-#endif
+    bool isUnknown() const { return target == UNKNOWN_MEMORY; };
+    bool isValid() const { return !isNull() && !isUnknown(); }
 };
 
 typedef std::set<Pointer> PointsToSetT;

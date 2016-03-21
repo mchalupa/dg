@@ -115,6 +115,11 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         if (ptr.isNull())
             continue;
 
+        if (ptr.isUnknown()) {
+            node->addDef(UNKNOWN_MEMORY);
+            continue;
+        }
+
         const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
         RDNode *ptrNode = nodes_map[ptrVal];
         //assert(ptrNode && "Don't have created node for pointer's target");

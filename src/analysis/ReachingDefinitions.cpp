@@ -7,6 +7,9 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
+RDNode UNKNOWN_MEMLOC;
+RDNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+
 bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
 {
     bool changed = false;

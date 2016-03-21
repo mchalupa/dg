@@ -18,6 +18,8 @@ namespace rd {
 class RDNode;
 class ReachingDefinitionsAnalysis;
 
+extern RDNode *UNKNOWN_MEMORY;
+
 class RDNode {
     std::vector<RDNode *> successors;
     std::vector<RDNode *> predecessors;

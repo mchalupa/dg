@@ -97,8 +97,6 @@ public:
     size_t get(RDNode *n, const Offset& off,
                const Offset& len, std::set<RDNode *>& ret)
     {
-        ret.clear();
-
         if (off.isUnknown()) {
             // FIXME: use getObjectRange()
             for (auto it : defs)
