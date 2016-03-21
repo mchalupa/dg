@@ -320,6 +320,11 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             using namespace analysis::pss;
             PSSNode *op = PTA->getNode(val);
             for (const Pointer& ptr : op->pointsTo) {
+                if (ptr.isNull()) {
+                    llvm::errs() << "Possible call of nullptr: " << *CInst << "\n";
+                    continue;
+                } // XXX: unknown pointers
+
                 const llvm::Function *F = ptr.target->getUserData<llvm::Function>();
 
                 LLVMDependenceGraph *subg = buildSubgraph(node, F);

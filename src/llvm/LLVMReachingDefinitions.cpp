@@ -389,6 +389,10 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             setName(CInst, ret_call, "RETURN");
 
             for (const pss::Pointer& ptr : op->pointsTo) {
+                // XXX: + unknown pointers
+                if (ptr.isNull())
+                    continue;
+
                 const llvm::Function *F
                     = ptr.target->getUserData<llvm::Function>();
                 std::pair<RDNode *, RDNode *> cf
