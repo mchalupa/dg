@@ -349,6 +349,67 @@ static int getMemAllocationFunc(const llvm::Function *func)
     return NONEMEM;
 }
 
+RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
+{
+    using namespace llvm;
+
+    const IntrinsicInst *I = cast<IntrinsicInst>(CInst);
+    const Value *dest;
+    const Value *lenVal;
+
+    switch (I->getIntrinsicID())
+    {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+        case Intrinsic::memset:
+            // memcpy/set <dest>, <src/val>, <len>
+            dest = I->getOperand(0);
+            lenVal = I->getOperand(2);
+            break;
+        default:
+            assert(0 && "Unhandled intrinsic instruction");
+            // return handleUndefinedCall(...);
+    }
+
+    pss::PSSNode *pts = PTA->getPointsTo(dest);
+    assert(pts && "No points-to information");
+
+    RDNode *ret = new RDNode();
+    addNode(CInst, ret);
+    setName(CInst, ret);
+
+    uint64_t len;
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
+        len = C->getLimitedValue();
+
+    for (const pss::Pointer& ptr : pts->pointsTo) {
+        uint64_t from;
+        uint64_t to;
+        if (ptr.offset.isUnknown()) {
+            // if the offset is UNKNOWN, use whole memory
+            from = UNKNOWN_OFFSET;
+            len = UNKNOWN_OFFSET;
+        } else {
+            from = *ptr.offset;
+        }
+
+        if (len != ~((uint64_t) 0))
+            // do not allow overflow
+            to = from + len;
+        else
+            to = UNKNOWN_OFFSET;
+
+        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+        RDNode *target = nodes_map[ptrVal];
+        assert(target && "Don't have pointer target for intrinsic call");
+
+        // add the definition
+        ret->addDef(target, from, to, true /* strong update */);
+    }
+
+    return ret;
+}
+
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 {
@@ -360,14 +421,15 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
     if (func) {
         /// memory allocation (malloc, calloc, etc.)
         int type;
-        if ((type = getMemAllocationFunc(func))
+        if (func->isIntrinsic()) {
+            RDNode *n = createIntrinsicCall(CInst);
+            return std::make_pair(n, n);
+        } else if ((type = getMemAllocationFunc(func))
             || func->size() == 0) {
             // NOTE: func->size() == 0 holds even for malloc,
             // do we need the first part of the condition?
             RDNode *n = createAlloc(CInst);
             return std::make_pair(n, n);
-        }  else if (func->isIntrinsic()) {
-            assert(0 && "Intrinsic function not implemented yet");
         } else {
             std::pair<RDNode *, RDNode *> cf
                 = createCallToFunction(CInst, func);

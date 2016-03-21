@@ -149,8 +149,6 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
         for (RDNode *rd : defs) {
             llvm::Value *rdval = rd->getUserData<llvm::Value>();
             assert(rdval && "RDNode has not set the coresponding value");
-            assert(llvm::isa<llvm::StoreInst>(rdval)
-                    && "Reaching definition is not a StoreInst");
 
             LLVMNode *rdnode = dg->getNode(rdval);
             if (!rdnode) {

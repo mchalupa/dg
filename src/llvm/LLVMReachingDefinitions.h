@@ -99,6 +99,8 @@ private:
 
     std::pair<RDNode *, RDNode *>
     createCall(const llvm::Instruction *Inst);
+
+    RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
 };
 
 class LLVMReachingDefinitions
