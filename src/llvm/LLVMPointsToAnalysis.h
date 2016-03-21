@@ -70,9 +70,11 @@ public:
 
         std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
 
-        // we got the return site for the call stored as the other operand
-        // of the call node
-        PSSNode *ret = callsite->getOperand(1);
+        // we got the return site for the call stored as the paired node
+        PSSNode *ret = callsite->getPairedNode();
+        // ret is a PHI node, so pass the values returned from the
+        // procedure call
+        ret->addOperand(cf.second);
 
         // replace the edge from call->ret that we
         // have due to connectivity of the graph until we

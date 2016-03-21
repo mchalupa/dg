@@ -256,8 +256,10 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
 
     // if the operand is a call, use the return node of the call instead
     // - this is the one that contains returned pointers
-    if (op->getType() == pss::CALL)
-        op = op->getOperand(0);
+    if (op->getType() == pss::CALL
+        || op->getType() == pss::CALL_FUNCPTR) {
+        op = op->getPairedNode();
+    }
 
     assert(op && "Did not find an operand");
     return op;
@@ -333,14 +335,13 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
 {
     PSSNode *callNode, *returnNode;
 
+    // the operands to the return node (which works as a phi node)
+    // are going to be added when the subgraph is built
     returnNode = new PSSNode(pss::CALL_RETURN, nullptr);
-    // we can use the arguments of the call as we want - store
-    // there the return node (that is the one that will contain
-    // returned pointers) so that we can use it whenever we need
-    callNode = new PSSNode(pss::CALL, returnNode, nullptr);
-    // the same with return node - we would like to know
-    // to which call the reutrn belongs
-    returnNode->addOperand(callNode);
+    callNode = new PSSNode(pss::CALL, nullptr);
+
+    returnNode->setPairedNode(callNode);
+    callNode->setPairedNode(returnNode);
 
     setName(CInst, callNode);
     setName(CInst, returnNode, "RET");
@@ -439,16 +440,15 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
         // function pointer call
         PSSNode *op = getOperand(calledVal);
         PSSNode *call_funcptr = new PSSNode(pss::CALL_FUNCPTR, op);
-        PSSNode *ret_call = new PSSNode(RETURN, call_funcptr, nullptr);
+        PSSNode *ret_call = new PSSNode(RETURN, nullptr);
 
-        // the first operand is the pointer node, but the rest of the operands
-        // are free for us to use, store there the return node from the call
-        // - as we do in the normal call node
-        call_funcptr->addOperand(ret_call);
+        ret_call->setPairedNode(call_funcptr);
+        call_funcptr->setPairedNode(ret_call);
+
         call_funcptr->addSuccessor(ret_call);
         addNode(CInst, call_funcptr);
-        setName(CInst, call_funcptr, "funcptr");
-        setName(CInst, ret_call, "RETURN");
+        setName(CInst, call_funcptr, "PTR CALL");
+        setName(CInst, ret_call, "RETURN <ptrcall>");
 
         return std::make_pair(call_funcptr, ret_call);
     }

@@ -67,6 +67,13 @@ class PSSNode
 
     PSSNodeType type;
     Offset offset; // for the case this node is GEP
+    // in some cases some nodes are kind of paired - like formal and actual
+    // parameters or call and return node. Here the analasis can store
+    // such a node - if it needs for generating the PSS - it is not used anyhow by the
+    // base analysis
+    // XXX: maybe we cold store this somewhere in a map instead of in every
+    // node (if the map is sparse, it would be much more memory efficient)
+    PSSNode *pairedNode;
 
     /// some additional information
     // was memory zeroed at initialization or right after allocating?
@@ -100,46 +107,43 @@ public:
     // \param t     type of the node
     // Different types take different arguments:
     //
-    // ALLOC:       no argument
-    // DYN_ALLOC:   no argument
-    // FUNCTION:    no argument
-    // NOOP:        no argument
-    // ENTRY:       no argument
-    // LOAD:        one argument representing pointer to location from where
-    //              we're loading the value (another pointer in this case)
-    // STORE:       first argument is the value (the pointer to be stored)
-    //              in memory pointed by the second argument
-    // GEP:         get pointer to memory on given offset (get element pointer)
-    //              first argument is pointer to the memory, second is the offset
-    //              (as Offset class instance, unknown offset is represented by
-    //              UNKNOWN_OFFSET constant)
-    // CAST:        cast pointer from one type to other type (like void * to int *)
-    //              the argument is just the pointer (we don't care about types
-    //              atm.)
-    // FUNCTION:    Object representing the function in memory - so that it
-    //              can be pointed to and used as an argument to the Pointer
-    // CONSTANT:    node that keeps constant points-to information
-    //              the argument is the pointer it points to
-    // PHI:         phi node that gathers pointers from different paths in CFG
-    //              arguments are null-terminated list of the relevant nodes
-    //              from predecessors
-    // CALL:        represents call of subprocedure,
-    //              arguments are null-terminated list of nodes that can user
-    //              use arbitrarily - they are not used by the analysis itself.
-    //              The arguments can be used e. g. when mapping call arguments back to
-    //              original CFG. Actually, the CALL node is not needed in most
-    //              cases (just 'inline' the subprocedure into the PSS when building it)
-    //              The call node is needed when the function is called
-    //              via function pointer though.
-    // CALL_FUNCPTR: FIXME: call via function pointer. Takes arbitrary number of arguments,
-    //              but at least one - pointer that is used to the call. The rest of
-    //              arguments are for user's needs
-    // CALL_RETURN: site where given call returns. Bears the pointers returned from
-    //              the subprocedure. Works like PHI
-    // RETURN:      represents returning value from a subprocedure,
-    //              works as a PHI node - it gathers pointers returned from the subprocedure
+    // ALLOC:        no argument
+    // DYN_ALLOC:    no argument
+    // FUNCTION:     no argument
+    // NOOP:         no argument
+    // ENTRY:        no argument
+    // LOAD:         one argument representing pointer to location from where
+    //               we're loading the value (another pointer in this case)
+    // STORE:        first argument is the value (the pointer to be stored)
+    //               in memory pointed by the second argument
+    // GEP:          get pointer to memory on given offset (get element pointer)
+    //               first argument is pointer to the memory, second is the offset
+    //               (as Offset class instance, unknown offset is represented by
+    //               UNKNOWN_OFFSET constant)
+    // CAST:         cast pointer from one type to other type (like void * to int *)
+    //               the argument is just the pointer (we don't care about types
+    //               atm.)
+    // FUNCTION:     Object representing the function in memory - so that it
+    //               can be pointed to and used as an argument to the Pointer
+    // CONSTANT:     node that keeps constant points-to information
+    //               the argument is the pointer it points to
+    // PHI:          phi node that gathers pointers from different paths in CFG
+    //               arguments are null-terminated list of the relevant nodes
+    //               from predecessors
+    // CALL:         represents call of subprocedure,
+    //               arguments are null-terminated list of nodes that can user
+    //               use arbitrarily - they are not used by the analysis itself.
+    //               The arguments can be used e. g. when mapping call arguments back to
+    //               original CFG. Actually, the CALL node is not needed in most
+    //               cases (just 'inline' the subprocedure into the PSS when building it)
+    // CALL_FUNCPTR: call via function pointer. The argument is the node that bears the pointers
+    //               FIXME: we can use more nodes (null-terminated list of pointer nodes)
+    // CALL_RETURN:  site where given call returns. Bears the pointers returned from
+    //               the subprocedure. Works like PHI
+    // RETURN:       represents returning value from a subprocedure,
+    //               works as a PHI node - it gathers pointers returned from the subprocedure
     PSSNode(PSSNodeType t, ...)
-    : type(t), offset(0), zeroInitialized(false), is_heap(false),
+    : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false), is_heap(false),
       size(0), name(nullptr), dfsid(0), dfsid2(0), data(nullptr), user_data(nullptr)
     {
         // assing operands
@@ -239,6 +243,9 @@ public:
     PSSNodeType getType() const { return type; }
     const char *getName() const { return name; }
     void setName(const char *n) { delete name; name = strdup(n); }
+
+    PSSNode *getPairedNode() const { return pairedNode; }
+    void setPairedNode(PSSNode *n) { pairedNode = n; }
 
     PSSNode *getOperand(int idx) const
     {
