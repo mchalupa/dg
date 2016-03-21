@@ -185,6 +185,9 @@ Pointer LLVMPSSBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE)
         pointer = handleConstantGep(GEP);
     } else if (const BitCastInst *BC = dyn_cast<BitCastInst>(Inst)) {
         pointer = handleConstantBitCast(BC);
+    } else if (isa<IntToPtrInst>(Inst)) {
+        // FIXME: we can do more!
+        pointer = PointerUnknown;
     } else {
             errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
             abort();
