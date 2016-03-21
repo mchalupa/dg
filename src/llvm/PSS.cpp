@@ -137,22 +137,12 @@ Pointer LLVMPSSBuilder::handleConstantBitCast(const llvm::BitCastInst *BC)
     }
 
     const Value *llvmOp = BC->stripPointerCasts();
-    PSSNode *op = nodes_map[llvmOp];
-    if (!op) {
-        // is this recursively created expression? If so, get the pointer for it
-        if (isa<ConstantExpr>(llvmOp)) {
-            return getConstantExprPointer(cast<ConstantExpr>(llvmOp));
-        } else {
-            errs() << *llvmOp << "\n";
-            errs() << *BC << "\n";
-            assert(0 && "Unsupported bitcast");
-        }
-    } else {
-        assert(op->pointsTo.size() == 1
-               && "Constant BitCast with not only one pointer");
+    // (possibly recursively) get the operand of this bit-cast
+    PSSNode *op = getOperand(llvmOp);
+    assert(op->pointsTo.size() == 1
+           && "Constant BitCast with not only one pointer");
 
-        return *op->pointsTo.begin();
-    }
+    return *op->pointsTo.begin();
 }
 
 Pointer LLVMPSSBuilder::handleConstantGep(const llvm::GetElementPtrInst *GEP)
@@ -162,24 +152,12 @@ Pointer LLVMPSSBuilder::handleConstantGep(const llvm::GetElementPtrInst *GEP)
     const Value *op = GEP->getPointerOperand();
     Pointer pointer(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
 
-    // get operand PSSNode - if it exists
-    PSSNode *opNode = nodes_map[op];
-
-    // we dont have the operand node... is it constant or constant expr?
-    if (!opNode) {
-        // is this recursively created expression? If so, get the pointer for it
-        if (isa<ConstantExpr>(op)) {
-            pointer = getConstantExprPointer(cast<ConstantExpr>(op));
-        } else {
-            errs() << *op << "\n";
-            errs() << *GEP << "\n";
-            assert(0 && "Unsupported constant GEP");
-        }
-    } else {
-            assert(opNode->pointsTo.size() == 1
-                   && "Constant node has more that 1 pointer");
-            pointer = *(opNode->pointsTo.begin());
-    }
+    // get operand PSSNode (this may result in recursive call,
+    // if this gep is recursively defined)
+    PSSNode *opNode = getOperand(op);
+    assert(opNode->pointsTo.size() == 1
+           && "Constant node has more that 1 pointer");
+    pointer = *(opNode->pointsTo.begin());
 
     unsigned bitwidth = getPointerBitwidth(DL, op);
     APInt offset(bitwidth, 0);
