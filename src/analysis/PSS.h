@@ -547,7 +547,19 @@ public:
         }
     }
 
-    // handle error in the analysis
+    // generic error
+    // @msg - message for the user
+    // FIXME: maybe create some enum that will represent the error
+    virtual bool error(PSSNode *at, const char *msg)
+    {
+        // let this on the user - in flow-insensitive analysis this is
+        // no error, but in flow sensitive it is ...
+        (void) at;
+        (void) msg;
+        return false;
+    }
+
+    // handle specific situation (error) in the analysis
     // @return whether the function changed the some points-to set
     //  (e. g. added pointer to unknown memory)
     virtual bool errorEmptyPointsTo(PSSNode *from, PSSNode *to)

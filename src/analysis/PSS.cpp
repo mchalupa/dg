@@ -69,6 +69,31 @@ bool PSS::processLoad(PSSNode *node)
         }
 
         for (MemoryObject *o : objects) {
+            // is the offset to the memory unknown?
+            // In that case everything can be referenced,
+            // so we need to copy the whole points-to
+            if (ptr.offset.isUnknown()) {
+                // we should load from memory that has
+                // no pointers in it - it may be an error
+                if (o->pointsTo.empty()) {
+                    if (target->isZeroInitialized())
+                        changed |= node->addPointsTo(NULLPTR);
+                    else
+                        errorEmptyPointsTo(node, target);
+                }
+
+                // we have some pointers - copy them all,
+                // since the offset is unknown
+                for (auto it : o->pointsTo) {
+                    for (const Pointer &p : it.second) {
+                        changed |= node->addPointsTo(p);
+                    }
+                }
+
+                // this is all that we can do here...
+                continue;
+            }
+
             // load from empty points-to set
             // - that is load from unknown memory
             if (!o->pointsTo.count(ptr.offset)) {
@@ -153,8 +178,14 @@ bool PSS::processNode(PSSNode *node)
             // (for example build relevant subgraph)
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
                 if (node->addPointsTo(ptr)) {
-                    functionPointerCall(node, ptr.target);
                     changed = true;
+
+                    if (!ptr.isNull()) {
+                        functionPointerCall(node, ptr.target);
+                    } else {
+                        error(node, "Calling nullptr as a function!");
+                        continue;
+                    }
                 }
             }
             break;

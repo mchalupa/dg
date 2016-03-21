@@ -89,6 +89,15 @@ public:
 
         return true;
     }
+
+    virtual bool error(PSSNode *at, const char *msg)
+    {
+        llvm::Value *val = at->getUserData<llvm::Value>();
+        assert(val);
+
+        llvm::errs() << "PTA - error @ " << *val << " : " << msg << "\n";
+        return false;
+    }
 };
 
 }
