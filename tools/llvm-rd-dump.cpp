@@ -34,6 +34,8 @@ using namespace dg::analysis;
 using namespace dg::analysis::rd;
 using llvm::errs;
 
+static bool verbose = false;
+
 static void
 printName(RDNode *node)
 {
@@ -81,6 +83,25 @@ dumpMap(RDNode *node, bool dot = false)
 }
 
 static void
+dumpDefines(RDNode *node, bool dot = false)
+{
+    for (const DefSite& def : node->getDefines()) {
+        printf("DEF: ");
+        printName(def.target);
+            if (def.offset.isUnknown())
+                printf(" [ UNKNOWN ]");
+            else
+                printf(" [ %lu - %lu ]", *def.offset,
+                       *def.offset + *def.len - 1);
+
+            if (dot)
+                printf("\\n");
+            else
+                putchar('\n');
+    }
+}
+
+static void
 dumpRDNode(RDNode *n)
 {
     printf("NODE: ");
@@ -102,8 +123,12 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     for(RDNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
         printName(node);
-        printf("\\n");
-        dumpMap(node, true /* dot */);
+        printf("\\n-------------\\n");
+        if (verbose) {
+            dumpDefines(node, true);
+            printf("-------------\\n");
+        }
+            dumpMap(node, true /* dot */);
 
         printf("\" shape=box]\n");
     }
@@ -153,13 +178,15 @@ int main(int argc, char *argv[])
                 type = FLOW_SENSITIVE;
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
+        } else if (strcmp(argv[i], "-v") == 0) {
+            verbose = true;
         } else {
             module = argv[i];
         }
     }
 
     if (!module) {
-        errs() << "Usage: % IR_module [output_file]\n";
+        errs() << "Usage: % IR_module [-pts fs|fi] [-dot] [-v] [output_file]\n";
         return 1;
     }
 

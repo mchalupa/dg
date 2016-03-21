@@ -57,6 +57,9 @@ public:
     size_t predecessorsNum() const { return predecessors.size(); }
     size_t successorsNum() const { return successors.size(); }
 
+    DefSiteSetT& getDefines() { return defs; }
+    const DefSiteSetT& getDefines() const { return defs; }
+
     void addSuccessor(RDNode *succ)
     {
         successors.push_back(succ);
