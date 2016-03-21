@@ -529,6 +529,48 @@ PSSNode *LLVMPSSBuilder::createSelect(const llvm::Instruction *Inst)
     return node;
 }
 
+PSSNode *LLVMPSSBuilder::createPHI(const llvm::Instruction *Inst)
+{
+    // we need a pointer
+    assert(Inst->getType()->isPointerTy() && "BUG: This PHI is not a pointer");
+
+    PSSNode *node = new PSSNode(pss::PHI, nullptr);
+    addNode(Inst, node);
+    setName(Inst, node);
+
+    // NOTE: we didn't add operands to PHI node here, but after building
+    // the whole function, because some blocks may not have been built
+    // when we were creating the phi node
+
+    assert(node);
+    return node;
+}
+
+void LLVMPSSBuilder::addPHIOperands(PSSNode *node, const llvm::PHINode *PHI)
+{
+    assert(PHI->getType()->isPointerTy() && "BUG: This PHI is not a pointer");
+
+    for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
+        PSSNode *op = getOperand(PHI->getIncomingValue(i));
+        node->addOperand(op);
+    }
+}
+
+void LLVMPSSBuilder::addPHIOperands(const llvm::Function &F)
+{
+    for (const llvm::BasicBlock& B : F) {
+        for (const llvm::Instruction& I : B) {
+            if (!I.getType()->isPointerTy())
+                continue;
+
+            const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I);
+            if (PHI)
+                addPHIOperands(getNode(PHI), PHI);
+        }
+    }
+}
+
+
 PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
@@ -643,6 +685,10 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
                 if (Inst.getType()->isPointerTy())
                     node = createSelect(&Inst);
                 break;
+            case Instruction::PHI:
+                if (Inst.getType()->isPointerTy())
+                    node = createPHI(&Inst);
+                break;
             case Instruction::BitCast:
                 node = createCast(&Inst);
                 break;
@@ -741,9 +787,6 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildArguments(const llvm::Funct
 // \return   root node of the graph
 PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 {
-    // here we'll keep first and last nodes of every built block and
-    // connected together according to successors
-    std::map<const llvm::BasicBlock *, std::pair<PSSNode *, PSSNode *>> built_blocks;
     PSSNode *lastNode = nullptr;
 
     // create root and (unified) return nodes of this subgraph. These are
@@ -828,6 +871,11 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     assert(!rets.empty() && "BUG: Did not find any return node in function");
     for (PSSNode *r : rets)
         r->addSuccessor(ret);
+
+    // add arguments to PHI nodes. We need to do that after the graph is
+    // entirely built, because during building the arguments may not
+    // be built yet
+    addPHIOperands(F);
 
     return root;
 }

@@ -42,6 +42,9 @@ class LLVMPSSBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
+    // here we'll keep first and last nodes of every built block and
+    // connected together according to successors
+    std::map<const llvm::BasicBlock *, std::pair<PSSNode *, PSSNode *>> built_blocks;
 public:
     LLVMPSSBuilder(const llvm::Module *m)
         : M(m), DL(new llvm::DataLayout(M->getDataLayout()))
@@ -85,6 +88,7 @@ private:
     PSSNode *createLoad(const llvm::Instruction *Inst);
     PSSNode *createGEP(const llvm::Instruction *Inst);
     PSSNode *createSelect(const llvm::Instruction *Inst);
+    PSSNode *createPHI(const llvm::Instruction *Inst);
     PSSNode *createCast(const llvm::Instruction *Inst);
     PSSNode *createReturn(const llvm::Instruction *Inst);
 
@@ -95,6 +99,8 @@ private:
     Pointer handleConstantBitCast(const llvm::BitCastInst *BC);
     Pointer getConstantExprPointer(const llvm::ConstantExpr *CE);
 
+    void addPHIOperands(PSSNode *node, const llvm::PHINode *PHI);
+    void addPHIOperands(const llvm::Function& F);
     std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *CInst,
                                                         const llvm::Function *F);

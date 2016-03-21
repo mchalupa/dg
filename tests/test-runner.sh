@@ -92,7 +92,7 @@ run_test()
 
 	# slice the code
 	if [ ! -z "$DG_TESTS_PTA" ]; then
-		DG_TESTS_PTA="-pts $DG_TESTS_PTA"
+		export DG_TESTS_PTA="-pts $DG_TESTS_PTA"
 	fi
 
 	llvm-slicer $DG_TESTS_PTA -c test_assert "$BCFILE"

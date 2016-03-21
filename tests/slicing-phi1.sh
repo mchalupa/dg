@@ -19,7 +19,7 @@ PHIBC="$NAME-phi.bc"
 opt -mem2reg "$BCFILE" -o "$PHIBC"
 
 SLICEDFILE2="$NAME-phi.sliced"
-llvm-slicer -c test_assert "$PHIBC"
+llvm-slicer $DG_TESTS_PTA -c test_assert "$PHIBC"
 
 link_with_assert "$SLICEDFILE2" "$SLICEDFILE2.linked"
 
