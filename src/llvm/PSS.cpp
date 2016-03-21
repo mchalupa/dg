@@ -661,6 +661,7 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
     std::pair<PSSNode *, PSSNode *> ret(nullptr, nullptr);
     PSSNode *prev_node;
     PSSNode *node = nullptr;
+
     for (const Instruction& Inst : block) {
         prev_node = node;
 
@@ -728,6 +729,7 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
 
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
                                           std::pair<PSSNode *, PSSNode *>>& built_blocks,
+                                 std::set<const llvm::BasicBlock *>& found_blocks,
                                  std::pair<PSSNode *, PSSNode *>& pssn,
                                  const llvm::BasicBlock& block)
 {
@@ -735,6 +737,11 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
 
     for (llvm::succ_const_iterator
          S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
+
+         // we already processed this block? Then don't try to add the edges again
+         if (!found_blocks.insert(*S).second)
+            continue;
+
         std::pair<PSSNode *, PSSNode *>& succ = built_blocks[*S];
         assert((succ.first && succ.second) || (!succ.first && !succ.second));
         if (!succ.first) {
@@ -742,7 +749,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             // relevant instruction), we must pretend to be there for
             // control flow information. Thus instead of adding it as
             // successor, add its successors as successors
-            num += blockAddSuccessors(built_blocks, pssn, *(*S));
+            num += blockAddSuccessors(built_blocks, found_blocks, pssn, *(*S));
         } else {
             // add successor to the last nodes
             pssn.second->addSuccessor(succ.first);
@@ -858,8 +865,13 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
         if (!pssn.first)
             continue;
 
-        // add successors to this block (skipping the empty blocks)
-        size_t succ_num = blockAddSuccessors(built_blocks, pssn, block);
+        // add successors to this block (skipping the empty blocks).
+        // To avoid infinite loops we use found_blocks container that will
+        // server as a mark in BFS/DFS - the program should not contain
+        // so many blocks that this could have some big overhead. If proven
+        // otherwise later, we'll change this.
+        std::set<const llvm::BasicBlock *> found_blocks;
+        size_t succ_num = blockAddSuccessors(built_blocks, found_blocks, pssn, block);
 
         // if we have not added any successor, then the last node
         // of this block is a return node
