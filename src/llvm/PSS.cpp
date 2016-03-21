@@ -567,17 +567,19 @@ PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
 PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
 {
     PSSNode *op1 = nullptr;
+    // is nullptr if this is 'ret void'
+    llvm::Value *retVal = llvm::cast<llvm::ReturnInst>(Inst)->getReturnValue();
 
     // we create even void and non-pointer return nodes,
     // since these modify CFG (they won't bear any
     // points-to information though)
     // XXX is that needed?
-    if (!Inst->getType()->isVoidTy()) {
-        const llvm::Value *op = Inst->getOperand(0);
 
-        if (op->getType()->isPointerTy())
-            op1 = getOperand(op);
-    }
+    if (retVal && retVal->getType()->isPointerTy())
+        op1 = getOperand(retVal);
+
+    assert((op1 || !retVal || !retVal->getType()->isPointerTy())
+           && "Don't have operand for ReturnInst with pointer");
 
     PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
     addNode(Inst, node);
