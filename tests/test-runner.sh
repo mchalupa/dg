@@ -15,7 +15,8 @@ get_llvm_builddir()
 	LLVMDIR=`grep LLVM_DIR $TESTS_DIR/../CMakeCache.txt`
 
 	# parse the LLVM_DIR:PATH=path_to_llvm_cmake_files
-	echo $LLVMDIR | sed 's@.*PATH=\(.*\)/share/llvm/cmake@\1@'
+	# or LLVM_DIR:UNINITIALIZED=path_to_llvm_cmake_files
+	echo $LLVMDIR | sed 's@.*=\(.*\)/share/llvm/cmake@\1@'
 }
 
 set_environment()
