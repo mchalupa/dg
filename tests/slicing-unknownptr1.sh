@@ -19,7 +19,7 @@ clang -emit-llvm -c "$LIBCODE" -o "$LIBBCFILE"
 clang -emit-llvm -c "$TESTS_DIR/test_assert.c" -o "$TESTS_DIR/test_assert.bc"
 
 if [ ! -z "$DG_TESTS_PTA" ]; then
-		export DG_TESTS_PTA="-pts $DG_TESTS_PTA"
+		export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
 fi
 
 llvm-slicer $DG_TESTS_PTA -c test_assert "$BCFILE" || exit 1

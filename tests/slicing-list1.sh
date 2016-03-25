@@ -24,7 +24,7 @@ clang -emit-llvm -c -Wall -Wextra "$LIB" -o "$LIBBCFILE"
 llvm-link "$BCFILE" "$LIBBCFILE" -o "$NAME-withdefs.bc"
 
 if [ ! -z "$DG_TESTS_PTA" ]; then
-	export DG_TESTS_PTA="-pts $DG_TESTS_PTA"
+	export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
 fi
 
 # slice the code

@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
     // parse options
     for (int i = 1; i < argc; ++i) {
         // run given points-to analysis
-        if (strcmp(argv[i], "-pts") == 0) {
+        if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
         } else if (strcmp(argv[i], "-dot") == 0) {

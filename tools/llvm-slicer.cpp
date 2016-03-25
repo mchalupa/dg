@@ -551,7 +551,7 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
         } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
             remove_unused_only = true;
-        } else if (strcmp(argv[i], "-pts") == 0) {
+        } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
         } else if (strcmp(argv[i], "-dont-verify") == 0) {
             // for debugging

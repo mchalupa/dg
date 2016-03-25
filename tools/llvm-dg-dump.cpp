@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-no-control") == 0) {
             opts &= ~PRINT_CD;
-        } else if (strcmp(argv[i], "-pts") == 0) {
+        } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
