@@ -39,8 +39,8 @@ public:
 
     void basic1()
     {
-        RDNode AL1(true);
-        RDNode AL2(true);
+        RDNode AL1;
+        RDNode AL2;
         RDNode S1;
         RDNode S2;
 
@@ -81,8 +81,8 @@ public:
 
     void basic2()
     {
-        RDNode AL1(true);
-        RDNode AL2(true);
+        RDNode AL1;
+        RDNode AL2;
         RDNode S1;
         RDNode S2;
 
@@ -121,8 +121,8 @@ public:
 
     void basic3()
     {
-        RDNode AL1(true);
-        RDNode AL2(true);
+        RDNode AL1;
+        RDNode AL2;
         RDNode S1;
         RDNode S2;
 
@@ -177,8 +177,8 @@ public:
 
     void basic4()
     {
-        RDNode AL1(true);
-        RDNode AL2(true);
+        RDNode AL1;
+        RDNode AL2;
         RDNode S1;
         RDNode S2;
         AL1.setName("AL1");
@@ -227,8 +227,8 @@ public:
         S2.getReachingDefinitions(&AL1, 6, 1, rd);
         check(rd.size() == 0, "Should not have r.d.");
 
-        dumpMap(&S1);
-        dumpMap(&S2);
+        //dumpMap(&S1);
+        //dumpMap(&S2);
     }
 
     void test()

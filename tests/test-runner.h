@@ -31,6 +31,8 @@ public:
         :name(name), failed(0)
     {}
 
+    virtual ~Test() {}
+
     virtual void test() = 0;
 
     void check(bool cond, const char *fmt = nullptr, ...)

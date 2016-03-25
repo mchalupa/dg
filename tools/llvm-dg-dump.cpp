@@ -44,6 +44,8 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
         os << "UNKNOWN";
     else
         os << off.offset;
+
+    return os;
 }
 
 static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)

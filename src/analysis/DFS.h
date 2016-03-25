@@ -29,7 +29,7 @@ enum DFSFlags {
 };
 
 
-static
+static inline
 uint32_t convertFlags(uint32_t opts)
 {
     uint32_t ret = 0;
@@ -96,7 +96,7 @@ private:
 
 #ifdef ENABLE_CFG
 
-static uint32_t
+static uint32_t inline
 convertBBFlags(uint32_t flags)
 {
     uint32_t ret = 0; // for BBs we always have CFG

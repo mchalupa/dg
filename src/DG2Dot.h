@@ -66,6 +66,7 @@ public:
     virtual std::ostream& printKey(std::ostream& os, KeyT key)
     {
         os << key;
+        return os;
     }
 
     // \return - error state: true if there's an error, false otherwise
@@ -124,6 +125,7 @@ public:
         end();
 
         out.close();
+        return true;
     }
 
     /* if user want's manual printing, he/she can */

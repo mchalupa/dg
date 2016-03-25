@@ -24,24 +24,16 @@ class RDNode {
     std::vector<RDNode *> successors;
     std::vector<RDNode *> predecessors;
 
-    // flag that says that this node does no define anything,
-    // it is just dummy node (it can be used for simpler
-    // graph generation) or it is a node that represents some
-    // memory allocation (thus can be used as an argument in DefSite)
-    bool is_noop;
-
     // marks for DFS/BFS
     unsigned int dfsid;
-    unsigned int dfsid2;
 
     // same data as in PSSNode
     const char *name;
     void *data;
     void *user_data;
 public:
-    RDNode(bool no = false)
-        : is_noop(no), dfsid(0), dfsid2(0),
-          name(nullptr), data(nullptr), user_data(nullptr) {}
+    RDNode()
+        : dfsid(0), name(nullptr), data(nullptr), user_data(nullptr) {}
 
     // this is the gro of this node, so make it public
     DefSiteSetT defs;
