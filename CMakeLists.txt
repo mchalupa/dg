@@ -10,6 +10,8 @@ OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
 
+message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
+
 if (LLVM_DG)
 	# for llvm dg we need cfg and postdom edges
 	if (NOT ENABLE_CFG)
