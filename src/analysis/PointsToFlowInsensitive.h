@@ -20,7 +20,7 @@ public:
     virtual void getMemoryObjects(PSSNode *where, PSSNode *n,
                                   std::vector<MemoryObject *>& objects)
     {
-        assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
+        //assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
 
         // irrelevant in flow-insensitive
         (void) where;

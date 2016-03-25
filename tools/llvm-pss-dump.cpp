@@ -31,30 +31,12 @@ using namespace dg;
 using namespace dg::analysis::pss;
 using llvm::errs;
 
-static void
-dumpPSSNode(PSSNode *n)
-{
-    const char *name = n->getName();
+static bool verbose;
 
-    if (name)
-        printf("%s", name);
-    else
-        printf("<%p>", n);
-
-    if (n->getSize() || n->isHeap() || n->isZeroInitialized())
-        printf(" [size: %lu, heap: %u, zeroed: %u]\n",
-               n->getSize(), n->isHeap(), n->isZeroInitialized());
-    else
-        putchar('\n');
-
-    for (const Pointer& ptr : n->pointsTo) {
-        printf("    -> %s + ", ptr.target->getName());
-        if (ptr.offset.isUnknown())
-            puts("UNKNOWN_OFFSET");
-        else
-            printf("%lu\n", *ptr.offset);
-    }
-}
+enum PTType {
+    FLOW_SENSITIVE = 1,
+    FLOW_INSENSITIVE,
+};
 
 static void
 printName(PSSNode *node)
@@ -81,7 +63,117 @@ printName(PSSNode *node)
 }
 
 static void
-dumpPSSdot(LLVMPointsToAnalysis *pss)
+dumpMemoryObject(MemoryObject *mo, int ind)
+{
+    for (auto it : mo->pointsTo) {
+        for (const Pointer& ptr : it.second) {
+            printf("%*s", ind, "");
+            if (it.first.isUnknown())
+                printf("[UNKNOWN] -> ");
+            else
+                printf("[%lu] -> ", *it.first);
+
+            printName(ptr.target);
+
+            if (ptr.offset.isUnknown())
+                puts(" + UNKNOWN");
+            else
+                printf(" + %lu\n", *ptr.offset);
+        }
+    }
+}
+
+static void
+dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind)
+{
+    for (auto it : *mm) {
+        // print the key
+        const Pointer& key = it.first;
+        printf("%*s", ind, "");
+
+        putchar('[');
+        printName(key.target);
+
+        if (key.offset.isUnknown())
+            puts(" + UNKNOWN]:");
+        else
+            printf(" + %lu]:\n", *key.offset);
+
+        for (MemoryObject *mo : it.second)
+            dumpMemoryObject(mo, ind + 4);
+    }
+}
+
+static void
+dumpPSSData(PSSNode *n, PTType type, bool dot = false)
+{
+    if (type == FLOW_INSENSITIVE) {
+        MemoryObject *mo = n->getData<MemoryObject>();
+        if (!mo)
+            return;
+
+        if (dot)
+            printf("\\n    Memory: ---\\n");
+        else
+            printf("    Memory: ---\n");
+
+        dumpMemoryObject(mo, 6);
+
+        if (!dot)
+            printf("    -----------\n");
+    } else {
+        PointsToFlowSensitive::MemoryMapT *mm
+            = n->getData<PointsToFlowSensitive::MemoryMapT>();
+        if (!mm)
+            return;
+
+        if (dot)
+            printf("\\n    Memory map: ---\\n");
+        else
+            printf("    Memory map: ---\n");
+
+        dumpMemoryMap(mm, 6);
+
+        if (!dot)
+            printf("    ----------------\n");
+    }
+}
+
+static void
+dumpPSSNode(PSSNode *n, PTType type)
+{
+    const char *name = n->getName();
+
+    printf("NODE: ");
+    if (name)
+        printf("%s", name);
+    else
+        printf("<%p>", n);
+
+    if (n->getSize() || n->isHeap() || n->isZeroInitialized())
+        printf(" [size: %lu, heap: %u, zeroed: %u]",
+               n->getSize(), n->isHeap(), n->isZeroInitialized());
+
+    if (n->pointsTo.empty()) {
+        puts(" -- no points-to");
+        return;
+    } else
+        putchar('\n');
+
+    for (const Pointer& ptr : n->pointsTo) {
+        printf("    -> %s + ", ptr.target->getName());
+        if (ptr.offset.isUnknown())
+            puts("UNKNOWN_OFFSET");
+        else
+            printf("%lu\n", *ptr.offset);
+    }
+    if (verbose) {
+        dumpPSSData(n, type);
+    }
+}
+
+static void
+dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
 {
     std::set<PSSNode *> nodes;
     pss->getNodes(nodes);
@@ -107,6 +199,9 @@ dumpPSSdot(LLVMPointsToAnalysis *pss)
                 printf("%lu", *ptr.offset);
         }
 
+        if (verbose)
+            dumpPSSData(node, type, true /* dot */);
+
         printf("\"");
         if (node->getType() != STORE) {
             printf(" shape=box");
@@ -129,18 +224,18 @@ dumpPSSdot(LLVMPointsToAnalysis *pss)
 }
 
 static void
-dumpPSS(LLVMPointsToAnalysis *pss, bool todot)
+dumpPSS(LLVMPointsToAnalysis *pss, PTType type, bool todot)
 {
     assert(pss);
 
     if (todot)
-        dumpPSSdot(pss);
+        dumpPSSdot(pss, type);
     else {
         std::set<PSSNode *> nodes;
         pss->getNodes(nodes);
 
         for (PSSNode *node : nodes) {
-            dumpPSSNode(node);
+            dumpPSSNode(node, type);
         }
     }
 }
@@ -152,10 +247,7 @@ int main(int argc, char *argv[])
     llvm::Module *M;
     bool todot = false;
     const char *module = nullptr;
-    enum {
-        FLOW_SENSITIVE = 1,
-        FLOW_INSENSITIVE,
-    } type = FLOW_INSENSITIVE;
+    PTType type = FLOW_INSENSITIVE;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -165,6 +257,8 @@ int main(int argc, char *argv[])
                 type = FLOW_SENSITIVE;
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
+        } else if (strcmp(argv[i], "-v") == 0) {
+            verbose = true;
         } else {
             module = argv[i];
         }
@@ -193,7 +287,7 @@ int main(int argc, char *argv[])
     PTA->run();
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
-    dumpPSS(PTA, todot);
+    dumpPSS(PTA, type, todot);
 
     return 0;
 }

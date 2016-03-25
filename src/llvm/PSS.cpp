@@ -29,11 +29,17 @@ namespace pss {
 static std::string
 getInstName(const llvm::Value *val)
 {
+    using namespace llvm;
+
     std::ostringstream ostr;
-    llvm::raw_os_ostream ro(ostr);
+    raw_os_ostream ro(ostr);
 
     assert(val);
-    ro << *val;
+    if (const Function *F = dyn_cast<Function>(val))
+        ro << F->getName().data();
+    else
+        ro << *val;
+
     ro.flush();
 
     // break the string if it is too long
@@ -402,7 +408,6 @@ LLVMPSSBuilder::createUnknownCall(const llvm::CallInst *CInst)
 
     return std::make_pair(call, call);
 }
-
 
 PSSNode *LLVMPSSBuilder::createMemTransfer(const llvm::Instruction *Inst)
 {

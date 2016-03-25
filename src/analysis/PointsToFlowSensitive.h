@@ -12,25 +12,10 @@ namespace pss {
 
 class PointsToFlowSensitive : public PSS
 {
+public:
     typedef std::set<MemoryObject *> MemoryObjectsSetT;
     typedef std::map<const Pointer, MemoryObjectsSetT> MemoryMapT;
 
-    void mergeMaps(MemoryMapT *mm, MemoryMapT *pm, PointsToSetT *strong_update)
-    {
-        for (auto it : *pm) {
-            const Pointer& ptr = it.first;
-            if (strong_update && strong_update->count(ptr))
-                continue;
-
-            MemoryObjectsSetT& S = (*mm)[ptr];
-            S.insert(it.second.begin(), it.second.end());
-        }
-    }
-
-protected:
-    PointsToFlowSensitive() {}
-
-public:
     // this is an easy but not very efficient implementation,
     // works for testing
     PointsToFlowSensitive(PSSNode *r) : PSS(r) {}
@@ -117,7 +102,7 @@ public:
     virtual void getMemoryObjects(PSSNode *where, PSSNode *n,
                                   std::vector<MemoryObject *>& objects)
     {
-        assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
+        //assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
 
         MemoryMapT *mm= where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
@@ -130,6 +115,22 @@ public:
                         objects.push_back(o);
                 }
             }
+        }
+    }
+
+protected:
+    PointsToFlowSensitive() {}
+
+private:
+    void mergeMaps(MemoryMapT *mm, MemoryMapT *pm, PointsToSetT *strong_update)
+    {
+        for (auto it : *pm) {
+            const Pointer& ptr = it.first;
+            if (strong_update && strong_update->count(ptr))
+                continue;
+
+            MemoryObjectsSetT& S = (*mm)[ptr];
+            S.insert(it.second.begin(), it.second.end());
         }
     }
 };
