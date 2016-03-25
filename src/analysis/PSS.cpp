@@ -221,6 +221,9 @@ bool PSS::processNode(PSSNode *node)
                 PSSNode *target = ptr.target;
                 assert(target && "Got nullptr as target");
 
+                if (ptr.isNull())
+                    continue;
+
                 objects.clear();
                 getMemoryObjects(node, target, objects);
                 for (MemoryObject *o : objects) {
