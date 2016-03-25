@@ -20,10 +20,18 @@ public:
     virtual void getMemoryObjects(PSSNode *where, PSSNode *n,
                                   std::vector<MemoryObject *>& objects)
     {
-        //assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
-
         // irrelevant in flow-insensitive
         (void) where;
+
+        // we want to have memory in allocation sites
+        if (n->getType() == pss::CAST || n->getType() == pss::GEP)
+            n = n->getOperand(0);
+        else if (n->getType() == pss::CONSTANT) {
+            assert(n->pointsTo.size() == 1);
+            n = (n->pointsTo.begin())->target;
+        }
+
+        assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
 
         MemoryObject *mo = n->getData<MemoryObject>();
         if (!mo) {

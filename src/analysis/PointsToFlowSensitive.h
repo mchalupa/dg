@@ -102,10 +102,13 @@ public:
     virtual void getMemoryObjects(PSSNode *where, PSSNode *n,
                                   std::vector<MemoryObject *>& objects)
     {
-        //assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
-
         MemoryMapT *mm= where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
+
+        if (n->pointsTo.empty()) {
+            error(where, "getMemoryObjects on node with no points-to");
+            return;
+        }
 
         // FIXME very unefficient: we could use the ordering on map
         for (auto it : *mm) {
