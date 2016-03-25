@@ -103,13 +103,19 @@ bool PSS::processLoad(PSSNode *node)
                     changed |= node->addPointsTo(NULLPTR);
                 else
                     errorEmptyPointsTo(node, target);
-
-                // we've done everything we could
-                continue;
+            } else {
+                // we have pointers on that memory, so we can
+                // do the work
+                for (const Pointer& memptr : o->pointsTo[ptr.offset])
+                    changed |= node->addPointsTo(memptr);
             }
 
-            for (const Pointer& memptr : o->pointsTo[ptr.offset]) {
-                changed |= node->addPointsTo(memptr);
+            // plus always add the pointers at unknown offset,
+            // since these can be what we need too
+            if (o->pointsTo.count(UNKNOWN_OFFSET)) {
+                for (const Pointer& memptr : o->pointsTo[UNKNOWN_OFFSET]) {
+                    changed |= node->addPointsTo(memptr);
+                }
             }
         }
     }

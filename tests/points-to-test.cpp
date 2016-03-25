@@ -478,6 +478,82 @@ public:
         check(L.doesPointsTo(pss::NULLPTR), "L do not points to nullptr");
     }
 
+    void load_from_unknown_offset()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        PSSNode B(pss::ALLOC);
+        B.setSize(20);
+        PSSNode GEP(pss::GEP, &B, UNKNOWN_OFFSET);
+        PSSNode S(pss::STORE, &A, &GEP);
+        PSSNode GEP2(pss::GEP, &B, 4);
+        PSSNode L(pss::LOAD, &GEP2); // load from B + 4
+
+        A.addSuccessor(&B);
+        B.addSuccessor(&GEP);
+        GEP.addSuccessor(&S);
+        S.addSuccessor(&GEP2);
+        GEP2.addSuccessor(&L);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        // B points to A + 0 at unknown offset,
+        // so load from B + 4 should be A + 0
+        check(L.doesPointsTo(&A), "L do not points to A");
+    }
+
+    void load_from_unknown_offset2()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        PSSNode B(pss::ALLOC);
+        B.setSize(20);
+        PSSNode GEP(pss::GEP, &B, 4);
+        PSSNode S(pss::STORE, &A, &GEP);
+        PSSNode GEP2(pss::GEP, &B, UNKNOWN_OFFSET);
+        PSSNode L(pss::LOAD, &GEP2); // load from B + UNKNOWN_OFFSET
+
+        A.addSuccessor(&B);
+        B.addSuccessor(&GEP);
+        GEP.addSuccessor(&S);
+        S.addSuccessor(&GEP2);
+        GEP2.addSuccessor(&L);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        // B points to A + 0 at offset 4,
+        // so load from B + UNKNOWN should be A + 0
+        check(L.doesPointsTo(&A), "L do not points to A");
+    }
+
+    void load_from_unknown_offset3()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        PSSNode B(pss::ALLOC);
+        B.setSize(20);
+        PSSNode GEP(pss::GEP, &B, UNKNOWN_OFFSET);
+        PSSNode S(pss::STORE, &A, &GEP);
+        PSSNode GEP2(pss::GEP, &B, UNKNOWN_OFFSET);
+        PSSNode L(pss::LOAD, &GEP2);
+
+        A.addSuccessor(&B);
+        B.addSuccessor(&GEP);
+        GEP.addSuccessor(&S);
+        S.addSuccessor(&GEP2);
+        GEP2.addSuccessor(&L);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        check(L.doesPointsTo(&A), "L do not points to A");
+    }
+
     void memcpy_test()
     {
         using namespace analysis;
@@ -706,6 +782,9 @@ public:
         nulltest();
         constant_store();
         load_from_zeroed();
+        load_from_unknown_offset();
+        load_from_unknown_offset2();
+        load_from_unknown_offset3();
         memcpy_test();
         memcpy_test2();
         memcpy_test3();
