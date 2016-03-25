@@ -234,10 +234,16 @@ bool PSS::processNode(PSSNode *node)
             break;
         case GEP:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
-                uint64_t new_offset = *ptr.offset + *node->offset;
+                uint64_t new_offset;
+                if (ptr.offset.isUnknown() || node->offset.isUnknown())
+                    // set it like this to avoid overflow when adding
+                    new_offset = UNKNOWN_OFFSET;
+                else
+                    new_offset = *ptr.offset + *node->offset;
+
                 // in the case the memory has size 0, then every pointer
                 // will have unknown offset with the exception that it points
-                // to the begining of the memory - then we can use the 0
+                // to the begining of the memory - therefore make 0 exception
                 if (new_offset == 0 || new_offset < ptr.target->getSize())
                     changed |= node->addPointsTo(ptr.target, new_offset);
                 else
