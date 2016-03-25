@@ -439,7 +439,7 @@ public:
         PSSNode A(pss::ALLOC);
         PSSNode B(pss::ALLOC);
         B.setSize(16);
-        PSSNode C(pss::CONSTANT, Pointer(&B, 4));
+        PSSNode C(pss::CONSTANT, &B, 4);
         PSSNode S(pss::STORE, &A, &C);
         PSSNode GEP(pss::GEP, &B, 4);
         PSSNode L(pss::LOAD, &GEP);

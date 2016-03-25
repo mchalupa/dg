@@ -58,19 +58,18 @@ enum PSSNodeType {
 
 class PSSNode
 {
-    // operands cache
-    // FIXME: maybe we could use SmallPtrVector
-    // or something like that
+    // FIXME: maybe we could use SmallPtrVector or something like that
     std::vector<PSSNode *> operands;
     std::vector<PSSNode *> successors;
     std::vector<PSSNode *> predecessors;
 
     PSSNodeType type;
     Offset offset; // for the case this node is GEP
+
     // in some cases some nodes are kind of paired - like formal and actual
     // parameters or call and return node. Here the analasis can store
-    // such a node - if it needs for generating the PSS - it is not used anyhow by the
-    // base analysis
+    // such a node - if it needs for generating the PSS
+    // - it is not used anyhow by the base analysis itself
     // XXX: maybe we cold store this somewhere in a map instead of in every
     // node (if the map is sparse, it would be much more memory efficient)
     PSSNode *pairedNode;
@@ -120,9 +119,10 @@ public:
     //               first argument is pointer to the memory, second is the offset
     //               (as Offset class instance, unknown offset is represented by
     //               UNKNOWN_OFFSET constant)
-    // CAST:         cast pointer from one type to other type (like void * to int *)
-    //               the argument is just the pointer (we don't care about types
-    //               atm.)
+    // CAST:         cast pointer from one type to other type (like void * to
+    //               int *). The pointers are just copied, so we can optimize
+    //               away this node later. The argument is just the pointer
+    //               (we don't care about types atm.)
     // FUNCTION:     Object representing the function in memory - so that it
     //               can be pointed to and used as an argument to the Pointer
     // CONSTANT:     node that keeps constant points-to information
@@ -133,18 +133,21 @@ public:
     // CALL:         represents call of subprocedure,
     //               arguments are null-terminated list of nodes that can user
     //               use arbitrarily - they are not used by the analysis itself.
-    //               The arguments can be used e. g. when mapping call arguments back to
-    //               original CFG. Actually, the CALL node is not needed in most
-    //               cases (just 'inline' the subprocedure into the PSS when building it)
-    // CALL_FUNCPTR: call via function pointer. The argument is the node that bears the pointers
-    //               FIXME: we can use more nodes (null-terminated list of pointer nodes)
-    // CALL_RETURN:  site where given call returns. Bears the pointers returned from
-    //               the subprocedure. Works like PHI
+    //               The arguments can be used e. g. when mapping call arguments
+    //               back to original CFG. Actually, the CALL node is not needed
+    //               in most cases (just 'inline' the subprocedure into the PSS
+    //               when building it)
+    // CALL_FUNCPTR: call via function pointer. The argument is the node that
+    //               bears the pointers.
+    //               FIXME: use more nodes (null-terminated list of pointer nodes)
+    // CALL_RETURN:  site where given call returns. Bears the pointers
+    //               returned from the subprocedure. Works like PHI
     // RETURN:       represents returning value from a subprocedure,
     //               works as a PHI node - it gathers pointers returned from the subprocedure
     PSSNode(PSSNodeType t, ...)
-    : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false), is_heap(false),
-      size(0), name(nullptr), dfsid(0), dfsid2(0), data(nullptr), user_data(nullptr)
+    : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false),
+      is_heap(false), size(0), name(nullptr), dfsid(0), dfsid2(0),
+      data(nullptr), user_data(nullptr)
     {
         // assing operands
         PSSNode *op;
@@ -174,10 +177,12 @@ public:
                 break;
             case GEP:
                 operands.push_back(va_arg(args, PSSNode *));
-                offset = va_arg(args, Offset);
+                offset = va_arg(args, uint64_t);
                 break;
             case CONSTANT:
-                pointsTo.insert(va_arg(args, Pointer));
+                op = va_arg(args, PSSNode *);
+                offset = va_arg(args, uint64_t);
+                pointsTo.insert(Pointer(op, offset));
                 break;
             case NULL_ADDR:
                 pointsTo.insert(Pointer(this, 0));

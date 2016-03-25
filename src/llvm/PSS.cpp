@@ -200,7 +200,7 @@ Pointer LLVMPSSBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE)
 PSSNode *LLVMPSSBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
 {
     Pointer ptr = getConstantExprPointer(CE);
-    PSSNode *node = new PSSNode(pss::CONSTANT, ptr);
+    PSSNode *node = new PSSNode(pss::CONSTANT, ptr.target, ptr.offset);
 
     addNode(CE, node);
     setName(CE, node);
@@ -996,7 +996,7 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
 
             if (Ty->isPointerTy()) {
                 PSSNode *op = getOperand(val);
-                PSSNode *target = new PSSNode(CONSTANT, Pointer(node, off));
+                PSSNode *target = new PSSNode(CONSTANT, node, off);
                 // FIXME: we're leaking the target
                 // NOTE: mabe we could do something like
                 // CONSTANT_STORE that would take Pointer instead of node??
