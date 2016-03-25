@@ -52,7 +52,7 @@ add_library(LLVMdg SHARED
 )
 
 target_link_libraries(LLVMdg PSS RD ${llvm_libs})
-install(TARGETS LLVMdg PSS
+install(TARGETS LLVMdg PSS RD
 	LIBRARY DESTINATION lib)
 
 if (ENABLE_DEBUG)
