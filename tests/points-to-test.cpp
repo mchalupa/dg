@@ -19,11 +19,18 @@ static void
 dumpPSSNode(PSSNode *n)
 {
     const char *name = n->getName();
+    const char *name2;
 
     for (const Pointer& ptr : n->pointsTo) {
-        printf("%s -> %s + %lu\n",
-                name ? name : "unnamed",
-                ptr.target->getName(), *ptr.offset);
+        printf("%s -> ", name ? name : "unnamed");
+
+        name2 = ptr.target->getName();
+        printf("%s", name2 ? name2 : "unnamed");
+
+        if (ptr.offset.isUnknown())
+            puts(" + UNKNOWN");
+        else
+            printf(" + %lu\n", *ptr.offset);
     }
 }
 
@@ -465,15 +472,223 @@ public:
 
         B.addSuccessor(&L);
 
-        B.setName(strdup("B"));
-        L.setName(strdup("L"));
-
         PTStoT PA(&B);
         PA.run();
 
-        dumpPSSNode(&L);
-
         check(L.doesPointsTo(pss::NULLPTR), "L do not points to nullptr");
+    }
+
+    void memcpy_test()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        A.setSize(20);
+        PSSNode SRC(pss::ALLOC);
+        SRC.setSize(16);
+        PSSNode DEST(pss::ALLOC);
+        DEST.setSize(16);
+
+        /* initialize SRC, so that
+         * it will point to A + 3 and A + 12
+         * at offsets 4 and 8 */
+        PSSNode GEP1(pss::GEP, &A, 3);
+        PSSNode GEP2(pss::GEP, &A, 12);
+        PSSNode G1(pss::GEP, &SRC, 4);
+        PSSNode G2(pss::GEP, &SRC, 8);
+        PSSNode S1(pss::STORE, &GEP1, &G1);
+        PSSNode S2(pss::STORE, &GEP2, &G2);
+
+        /* copy the memory,
+         * after this node dest should point to
+         * A + 3 and A + 12 at offsets 4 and 8 */
+        PSSNode CPY(pss::MEMCPY, &SRC, &DEST,
+                    0 /* from 0 */, UNKNOWN_OFFSET /* len = all */);
+
+        /* load from the dest memory */
+        PSSNode G3(pss::GEP, &DEST, 4);
+        PSSNode G4(pss::GEP, &DEST, 8);
+        PSSNode L1(pss::LOAD, &G3);
+        PSSNode L2(pss::LOAD, &G4);
+
+        A.addSuccessor(&SRC);
+        SRC.addSuccessor(&DEST);
+        DEST.addSuccessor(&GEP1);
+        GEP1.addSuccessor(&GEP2);
+        GEP2.addSuccessor(&G1);
+        G1.addSuccessor(&G2);
+        G2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+        S2.addSuccessor(&CPY);
+        CPY.addSuccessor(&G3);
+        G3.addSuccessor(&G4);
+        G4.addSuccessor(&L1);
+        L1.addSuccessor(&L2);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        check(L1.doesPointsTo(&A, 3), "L do not points to A + 3");
+        check(L2.doesPointsTo(&A, 12), "L do not points to A + 12");
+    }
+
+    void memcpy_test2()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        A.setSize(20);
+        PSSNode SRC(pss::ALLOC);
+        SRC.setSize(16);
+        PSSNode DEST(pss::ALLOC);
+        DEST.setSize(16);
+
+        /* initialize SRC, so that
+         * it will point to A + 3 and A + 12
+         * at offsets 4 and 8 */
+        PSSNode GEP1(pss::GEP, &A, 3);
+        PSSNode GEP2(pss::GEP, &A, 12);
+        PSSNode G1(pss::GEP, &SRC, 4);
+        PSSNode G2(pss::GEP, &SRC, 8);
+        PSSNode S1(pss::STORE, &GEP1, &G1);
+        PSSNode S2(pss::STORE, &GEP2, &G2);
+
+        /* copy first 8 bytes from the memory,
+         * after this node dest should point to
+         * A + 3 at offset 4 (8 is 9th byte,
+         * so it should not be included) */
+        PSSNode CPY(pss::MEMCPY, &SRC, &DEST,
+                    0 /* from 0 */, 8 /* len*/);
+
+        /* load from the dest memory */
+        PSSNode G3(pss::GEP, &DEST, 4);
+        PSSNode G4(pss::GEP, &DEST, 8);
+        PSSNode L1(pss::LOAD, &G3);
+        PSSNode L2(pss::LOAD, &G4);
+
+        A.addSuccessor(&SRC);
+        SRC.addSuccessor(&DEST);
+        DEST.addSuccessor(&GEP1);
+        GEP1.addSuccessor(&GEP2);
+        GEP2.addSuccessor(&G1);
+        G1.addSuccessor(&G2);
+        G2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+        S2.addSuccessor(&CPY);
+        CPY.addSuccessor(&G3);
+        G3.addSuccessor(&G4);
+        G4.addSuccessor(&L1);
+        L1.addSuccessor(&L2);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        check(L1.doesPointsTo(&A, 3), "L1 do not points to A + 3");
+        check(L2.pointsTo.empty(), "L2 is not empty");
+    }
+
+    void memcpy_test3()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        A.setSize(20);
+        PSSNode SRC(pss::ALLOC);
+        SRC.setSize(16);
+        PSSNode DEST(pss::ALLOC);
+        DEST.setSize(16);
+
+        /* initialize SRC, so that
+         * it will point to A + 3 and A + 12
+         * at offsets 4 and 8 */
+        PSSNode GEP1(pss::GEP, &A, 3);
+        PSSNode GEP2(pss::GEP, &A, 12);
+        PSSNode G1(pss::GEP, &SRC, 4);
+        PSSNode G2(pss::GEP, &SRC, 8);
+        PSSNode S1(pss::STORE, &GEP1, &G1);
+        PSSNode S2(pss::STORE, &GEP2, &G2);
+
+        /* copy memory from 8 bytes and further
+         * after this node dest should point to
+         * A + 12 at offset 8 */
+        PSSNode CPY(pss::MEMCPY, &SRC, &DEST,
+                    8 /* from */, UNKNOWN_OFFSET /* len*/);
+
+        /* load from the dest memory */
+        PSSNode G3(pss::GEP, &DEST, 4);
+        PSSNode G4(pss::GEP, &DEST, 8);
+        PSSNode L1(pss::LOAD, &G3);
+        PSSNode L2(pss::LOAD, &G4);
+
+        A.addSuccessor(&SRC);
+        SRC.addSuccessor(&DEST);
+        DEST.addSuccessor(&GEP1);
+        GEP1.addSuccessor(&GEP2);
+        GEP2.addSuccessor(&G1);
+        G1.addSuccessor(&G2);
+        G2.addSuccessor(&S1);
+        S1.addSuccessor(&S2);
+        S2.addSuccessor(&CPY);
+        CPY.addSuccessor(&G3);
+        G3.addSuccessor(&G4);
+        G4.addSuccessor(&L1);
+        L1.addSuccessor(&L2);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        check(L2.doesPointsTo(&A, 12), "L2 do not points to A + 12");
+        check(L1.pointsTo.empty(), "L1 is not empty");
+    }
+
+    void memcpy_test4()
+    {
+        using namespace analysis;
+
+        PSSNode A(pss::ALLOC);
+        A.setSize(20);
+        PSSNode SRC(pss::ALLOC);
+        SRC.setSize(16);
+        SRC.setZeroInitialized();
+
+        PSSNode DEST(pss::ALLOC);
+        DEST.setSize(16);
+
+        /* initialize SRC, so that
+         * it will point to A + 3
+         * offsets 4 */
+        PSSNode GEP1(pss::GEP, &A, 3);
+        PSSNode G1(pss::GEP, &SRC, 4);
+        PSSNode S1(pss::STORE, &GEP1, &G1);
+
+        /* copy memory from 8 bytes and further
+         * after this node dest should point to
+         * A + 12 at offset 8 */
+        PSSNode CPY(pss::MEMCPY, &SRC, &DEST,
+                    8 /* from */, UNKNOWN_OFFSET /* len*/);
+
+        /* load from the dest memory */
+        PSSNode G3(pss::GEP, &SRC, 8);
+        PSSNode G4(pss::GEP, &DEST, 8);
+        PSSNode L1(pss::LOAD, &G3);
+        PSSNode L2(pss::LOAD, &G4);
+
+        A.addSuccessor(&SRC);
+        SRC.addSuccessor(&DEST);
+        DEST.addSuccessor(&GEP1);
+        GEP1.addSuccessor(&G1);
+        G1.addSuccessor(&S1);
+        S1.addSuccessor(&CPY);
+        CPY.addSuccessor(&G3);
+        G3.addSuccessor(&G4);
+        G4.addSuccessor(&L1);
+        L1.addSuccessor(&L2);
+
+        PTStoT PA(&A);
+        PA.run();
+
+        check(L1.doesPointsTo(pss::NULLPTR), "L1 does not point to NULL");
+        check(L2.doesPointsTo(pss::NULLPTR), "L2 does not point to NULL");
     }
 
     void test()
@@ -491,6 +706,10 @@ public:
         nulltest();
         constant_store();
         load_from_zeroed();
+        memcpy_test();
+        memcpy_test2();
+        memcpy_test3();
+        memcpy_test4();
     }
 };
 
@@ -517,7 +736,7 @@ class PSSNodeTest : public Test
 
 public:
     PSSNodeTest()
-          : Test("flow-sensitive points-to test") {}
+          : Test("PSSNode test") {}
 
     void unknown_offset1()
     {

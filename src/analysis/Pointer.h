@@ -79,7 +79,7 @@ struct MemoryObject
         return pointsTo[off].insert(ptr).second;
     }
 
-    bool addPointsTo(const Offset& off, const std::set<Pointer>& pointers)
+    bool addPointsTo(const Offset& off, const PointsToSetT& pointers)
     {
         /*
         if (isUnknown())

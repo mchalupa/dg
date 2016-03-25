@@ -52,6 +52,15 @@ public:
                     // FIXME: we're leaking the mem. objects, use autoptr?
                     (*mm)[ptr].insert(new MemoryObject(ptr.target));
                 }
+            }  else if (n->getType() == pss::MEMCPY) {
+                mm = new MemoryMapT();
+
+                // create empty memory object so that MEMCPY can
+                // store the pointers into it
+                for (const Pointer& ptr : n->getOperand(1)->pointsTo) {
+                    // FIXME: we're leaking the mem. objects, use autoptr?
+                    (*mm)[ptr].insert(new MemoryObject(ptr.target));
+                }
             } else if (n->predecessorsNum() > 1) {
                 // this is a join node, create new map and
                 // merge the predecessors to it
@@ -86,6 +95,7 @@ public:
         assert(mm && "Do not have memory map");
 
         // every store is strong update
+        // FIXME: memcpy can be strong update too
         if (n->getType() == pss::STORE)
             strong_update = &n->getOperand(1)->pointsTo;
 
@@ -93,7 +103,8 @@ public:
         // more of them (if there's just one predecessor
         // and this is not a store, the memory map couldn't
         // change, so we don't have to do that)
-        if (n->predecessorsNum() > 1 || strong_update) {
+        if (n->predecessorsNum() > 1 || strong_update
+            || n->getType() == pss::MEMCPY) {
             for (PSSNode *p : n->getPredecessors()) {
                 MemoryMapT *pm = p->getData<MemoryMapT>();
                 // merge pm to mm (if pm was already created)

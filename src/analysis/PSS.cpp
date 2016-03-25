@@ -117,6 +117,90 @@ bool PSS::processLoad(PSSNode *node)
     return changed;
 }
 
+bool PSS::processMemcpy(PSSNode *node)
+{
+    bool changed = false;
+
+    // what to copy
+    std::vector<MemoryObject *> srcObjects;
+    // where to copy
+    std::vector<MemoryObject *> destObjects;
+    PSSNode *srcNode = node->getOperand(0);
+    PSSNode *destNode = node->getOperand(1);
+
+    getMemoryObjects(node, srcNode, srcObjects);
+    getMemoryObjects(node, destNode, destObjects);
+
+    /* if one is zero initialized and we copy it whole,
+     * set the other zero initialized too */
+    if ((!destNode->isZeroInitialized() && srcNode->isZeroInitialized())
+        && ((*node->offset == 0 && node->len.isUnknown())
+            || node->offset.isUnknown())) {
+        destNode->setZeroInitialized();
+        changed = true;
+    }
+
+    if (srcObjects.empty()){
+        if (srcNode->isZeroInitialized()) {
+            // if the memory is zero initialized,
+            // then everything is fine, we add nullptr
+            changed |= node->addPointsTo(NULLPTR);
+        } else {
+            errorEmptyPointsTo(node, srcNode);
+        }
+
+        return changed;
+    }
+
+    for (MemoryObject *o : destObjects) {
+        // copy every pointer from srcObjects that is in
+        // the range to these objects
+        for (MemoryObject *so : srcObjects) {
+            for (auto src : so->pointsTo) {
+                // src.first is offset, src.second is a PointToSet
+
+                // we need to copy ptrs at UNKNOWN_OFFSET always
+                if (src.first.isUnknown() || node->offset.isUnknown()) {
+                    changed |= o->addPointsTo(src.first, src.second);
+                    continue;
+                }
+
+                if (node->len.isUnknown()) {
+                    if (*src.first < *node->offset)
+                        continue;
+                } else {
+                    if (!src.first.inRange(*node->offset,
+                                           *node->offset + *node->len - 1))
+                    continue;
+                }
+
+                changed |= o->addPointsTo(src.first, src.second);
+            }
+        }
+
+        // we need to take care of the case when src is zero initialized,
+        // but points-to somewhere, imagine this:
+        //
+        // struct s { ptr1, ptr2, ptr3 };
+        // struct s1 = {0}; /* s1 is zero initialized */
+        // struct s1.ptr1 = &a;
+        // struct s2;
+        // memcpy(s1, s2, 0, 16); /* copy first two pointers */
+        //
+        // in this case s2 will point to 'a' at offset 0, but won't
+        // point to null at offset 8, but it should... fix it by adding
+        // nullptr at UNKNOWN_OFFSET (we may loose precision, but we'll
+        // be sound)
+        if (srcNode->isZeroInitialized()
+            && !((*node->offset == 0 && node->len.isUnknown())
+                 || node->offset.isUnknown()))
+            // src is zeroed and we don't copy whole memory?
+            changed |= o->addPointsTo(UNKNOWN_OFFSET, NULLPTR);
+    }
+
+    return changed;
+}
+
 bool PSS::processNode(PSSNode *node)
 {
     bool changed = false;
@@ -188,6 +272,9 @@ bool PSS::processNode(PSSNode *node)
                     }
                 }
             }
+            break;
+        case MEMCPY:
+            changed |= processMemcpy(node);
             break;
         case ALLOC:
         case DYN_ALLOC:

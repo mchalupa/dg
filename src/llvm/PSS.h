@@ -125,8 +125,9 @@ private:
 
     std::pair<PSSNode *, PSSNode *>
     createUnknownCall(const llvm::CallInst *CInst);
-};
 
+    PSSNode *createMemTransfer(const llvm::Instruction *Inst);
+};
 
 } // namespace pss
 } // namespace dg

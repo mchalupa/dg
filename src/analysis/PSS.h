@@ -51,6 +51,8 @@ enum PSSNodeType {
         // These nodes can be optimized away later. No points-to computation
         // is performed on them
         NOOP,
+        // copy whole block of memory
+        MEMCPY,
         // special nodes
         NULL_ADDR,
         UNKNOWN_MEM,
@@ -64,7 +66,8 @@ class PSSNode
     std::vector<PSSNode *> predecessors;
 
     PSSNodeType type;
-    Offset offset; // for the case this node is GEP
+    Offset offset; // for the case this node is GEP or MEMCPY
+    Offset len; // for the case this node is MEMCPY
 
     // in some cases some nodes are kind of paired - like formal and actual
     // parameters or call and return node. Here the analasis can store
@@ -123,6 +126,7 @@ public:
     //               int *). The pointers are just copied, so we can optimize
     //               away this node later. The argument is just the pointer
     //               (we don't care about types atm.)
+    // MEMCPY:       Copy whole block of memory. <from> <to> <offset> <len>
     // FUNCTION:     Object representing the function in memory - so that it
     //               can be pointed to and used as an argument to the Pointer
     // CONSTANT:     node that keeps constant points-to information
@@ -143,7 +147,8 @@ public:
     // CALL_RETURN:  site where given call returns. Bears the pointers
     //               returned from the subprocedure. Works like PHI
     // RETURN:       represents returning value from a subprocedure,
-    //               works as a PHI node - it gathers pointers returned from the subprocedure
+    //               works as a PHI node - it gathers pointers returned from
+    //               the subprocedure
     PSSNode(PSSNodeType t, ...)
     : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false),
       is_heap(false), size(0), name(nullptr), dfsid(0), dfsid2(0),
@@ -174,6 +179,12 @@ public:
             case STORE:
                 operands.push_back(va_arg(args, PSSNode *));
                 operands.push_back(va_arg(args, PSSNode *));
+                break;
+            case MEMCPY:
+                operands.push_back(va_arg(args, PSSNode *));
+                operands.push_back(va_arg(args, PSSNode *));
+                offset = va_arg(args, uint64_t);
+                len = va_arg(args, uint64_t);
                 break;
             case GEP:
                 operands.push_back(va_arg(args, PSSNode *));
@@ -588,6 +599,7 @@ public:
 
 private:
     bool processLoad(PSSNode *node);
+    bool processMemcpy(PSSNode *node);
 };
 
 } // namespace pss

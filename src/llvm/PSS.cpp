@@ -403,6 +403,36 @@ LLVMPSSBuilder::createUnknownCall(const llvm::CallInst *CInst)
     return std::make_pair(call, call);
 }
 
+
+PSSNode *LLVMPSSBuilder::createMemTransfer(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+    const Value *dest, *src, *lenVal;
+    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
+
+    switch (I->getIntrinsicID()) {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+            dest = I->getOperand(0);
+            src = I->getOperand(1);
+            lenVal = I->getOperand(2);
+            break;
+        default:
+            errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
+            abort();
+    }
+
+    PSSNode *destNode = getOperand(dest);
+    PSSNode *srcNode = getOperand(src);
+    /* FIXME: compute correct value instead of UNKNOWN_OFFSET */
+    PSSNode *node = new PSSNode(MEMCPY, srcNode, destNode,
+                                UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+
+    addNode(Inst, node);
+    setName(Inst, node);
+    return node;
+}
+
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PSS
@@ -422,7 +452,8 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
             // since malloc and similar are undefined too
             return createDynamicMemAlloc(CInst, type);
         } else if (func->isIntrinsic()) {
-            assert(0 && "Intrinsic function not implemented yet");
+            PSSNode *n = createMemTransfer(Inst);
+            return std::make_pair(n, n);
         } else if (func->size() == 0) {
              return createUnknownCall(CInst);
         } else {
@@ -672,6 +703,17 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
         if (getMemAllocationFunc(func))
             // we need memory allocations
             return true;
+
+        if (func->isIntrinsic()) {
+            switch (func->getIntrinsicID()) {
+                case Intrinsic::memmove:
+                case Intrinsic::memcpy:
+                case Intrinsic::memset:
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
         // returns pointer? We want that too - this is gonna be
         // an unknown pointer
