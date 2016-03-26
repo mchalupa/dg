@@ -44,7 +44,7 @@ bool PSS::processLoad(PSSNode *node)
     PSSNode *operand = node->getOperand(0);
 
     if (operand->pointsTo.empty())
-        return errorEmptyPointsTo(node, operand);
+        return error(operand, "Load's operand has no points-to set");
 
     for (const Pointer& ptr : operand->pointsTo) {
         if (ptr.isNull())
@@ -81,7 +81,7 @@ bool PSS::processLoad(PSSNode *node)
                 if (o->pointsTo.empty()) {
                     if (target->isZeroInitialized())
                         changed |= node->addPointsTo(NULLPTR);
-                    else
+                    else if (objects.size() == 1)
                         errorEmptyPointsTo(node, target);
                 }
 
@@ -104,7 +104,9 @@ bool PSS::processLoad(PSSNode *node)
                 // is fine, we add nullptr
                 if (target->isZeroInitialized())
                     changed |= node->addPointsTo(NULLPTR);
-                else
+                // if we don't have a definition even with unknown offset
+                // it is an error
+                else if (!o->pointsTo.count(UNKNOWN_OFFSET))
                     errorEmptyPointsTo(node, target);
             } else {
                 // we have pointers on that memory, so we can
