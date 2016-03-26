@@ -362,7 +362,9 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
             arg->addOperand(op);
 
             // shift in arguments
-            arg = arg->getSingleSuccessor();
+            assert(arg->successorsNum() <= 1);
+            if (arg->successorsNum() == 1)
+                arg = arg->getSingleSuccessor();
         }
     }
 
@@ -935,13 +937,6 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
             // pointer relevant instructions) - in that case
             // fake that the first block is the root itself
             if (!nds.first) {
-                // if the function has arguments, then it has
-                // single entry block where it copies the values
-                // of arguments to local variables - thus this
-                // assertions must hold
-                assert(!args.first);
-                assert(lastNode == root);
-
                 nds.first = nds.second = root;
                 first = root;
             } else {
