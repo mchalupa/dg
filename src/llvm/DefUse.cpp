@@ -99,7 +99,8 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
     }
 }
 
-void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst *CI)
+void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
+                                             const CallInst *CI)
 {
     const IntrinsicInst *I = cast<IntrinsicInst>(CI);
     const Value *dest, *src = nullptr;
@@ -117,11 +118,8 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst 
         case Intrinsic::vastart:
             dest = I->getOperand(0);
             break;
-        case Intrinsic::vaend:
-            // nothing to do here
-            return;
         default:
-            assert(0 && "DEF-USE: Unhandled intrinsic call");
+            //assert(0 && "DEF-USE: Unhandled intrinsic call");
             //handleUndefinedCall(callNode, CI);
             return;
     }
@@ -145,8 +143,9 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         return;
     }
 
-    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
-    if (func && func->isIntrinsic())
+    const Function *func
+        = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    if (func && func->isIntrinsic() && !isa<DbgValueInst>(CI))
         handleIntrinsicCall(node, CI);
 
     /*
