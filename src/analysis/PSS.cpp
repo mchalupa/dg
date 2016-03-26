@@ -47,6 +47,9 @@ bool PSS::processLoad(PSSNode *node)
         return errorEmptyPointsTo(node, operand);
 
     for (const Pointer& ptr : operand->pointsTo) {
+        if (ptr.isNull())
+            continue;
+
         PSSNode *target = ptr.target;
         assert(target && "Got nullptr as target");
 
