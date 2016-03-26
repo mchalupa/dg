@@ -26,7 +26,7 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-#ifdef DEBUG_ENABLED
+#if 0
 static std::string
 getInstName(const llvm::Value *val)
 {
@@ -56,30 +56,16 @@ const char *__get_name(const llvm::Value *val, const char *prefix)
     return buf.c_str();
 }
 
-void setName(const llvm::Value *val, RDNode *node, const char *prefix = nullptr)
 {
     const char *name = __get_name(val, prefix);
-    node->setName(name);
 }
 
-void setName(const char *name, RDNode *node, const char *prefix = nullptr)
 {
     if (prefix) {
         std::string nm;
         nm.append(prefix);
         nm.append(name);
-        node->setName(nm.c_str());
     } else
-        node->setName(name);
-}
-
-#else
-void setName(const llvm::Value *val, RDNode *node, const char *prefix = nullptr)
-{
-}
-
-void setName(const char *name, RDNode *node, const char *prefix = nullptr)
-{
 }
 #endif
 
@@ -122,7 +108,6 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode();
     addNode(Inst, node);
-    setName(Inst, node);
 
     return node;
 }
@@ -131,7 +116,6 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode();
     addNode(Inst, node);
-    setName(Inst, node);
 
     pss::PSSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
     assert(pts && "Don't have the points-to information for store");
@@ -223,7 +207,6 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
     RDNode *node = new RDNode();
-    setName("PHI start block", node);
     ret.first = node;
 
     for (const Instruction& Inst : block) {
@@ -308,8 +291,6 @@ LLVMRDBuilder::createCallToFunction(const llvm::CallInst *CInst,
     returnNode = new RDNode();
     callNode = new RDNode();
 
-    setName(CInst, callNode);
-    setName(CInst, returnNode, "RET");
 
     // reuse built subgraphs if available
     Subgraph subg = subgraphs_map[F];
@@ -344,8 +325,6 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
     RDNode *root = new RDNode();
     RDNode *ret = new RDNode();
 
-    setName(F.getName().data(), root, "ENTRY ");
-    setName(F.getName().data(), ret, "RET (unified) ");
 
     // add record to built graphs here, so that subsequent call of this function
     // from buildPSSBlock won't get stuck in infinite recursive call when
@@ -403,7 +382,6 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
 
     RDNode *node = new RDNode();
     addNode(CInst, node);
-    setName(CInst, node);
 
     // every pointer we pass into the undefined call may be defined
     // in the function
@@ -441,7 +419,6 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
 
     RDNode *ret = new RDNode();
     addNode(CInst, ret);
-    setName(CInst, ret);
 
     switch (I->getIntrinsicID())
     {
@@ -538,8 +515,6 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             ret_call = new RDNode();
 
             addNode(CInst, call_funcptr);
-            setName(CInst, call_funcptr, "funcptr");
-            setName(CInst, ret_call, "RETURN");
 
             for (const pss::Pointer& ptr : op->pointsTo) {
                 // XXX: + unknown pointers
@@ -614,7 +589,6 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
         // every global node is like memory allocation
         cur = new RDNode();
         addNode(&*I, cur);
-        setName(&*I, cur);
 
         if (prev)
             prev->addSuccessor(cur);

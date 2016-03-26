@@ -38,13 +38,37 @@ enum PTType {
     FLOW_INSENSITIVE,
 };
 
+static std::string
+getInstName(const llvm::Value *val)
+{
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
+    assert(val);
+    ro << *val;
+    ro.flush();
+
+    // break the string if it is too long
+    return ostr.str();
+}
+
 static void
-printName(PSSNode *node)
+printName(PSSNode *node, bool dot)
 {
     const char *name = node->getName();
+    std::string nm;
     if (!name) {
-        printf("%p\\n", node);
-        return;
+        if (!node->getUserData<llvm::Value>()) {
+            if (dot)
+                printf("%p\\n", node);
+            else
+                printf("%p\n", node);
+
+            return;
+        }
+
+        nm = getInstName(node->getUserData<llvm::Value>());
+        name = nm.c_str();
     }
 
     // escape the " character
@@ -63,7 +87,7 @@ printName(PSSNode *node)
 }
 
 static void
-dumpMemoryObject(MemoryObject *mo, int ind)
+dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 {
     for (auto it : mo->pointsTo) {
         for (const Pointer& ptr : it.second) {
@@ -73,7 +97,7 @@ dumpMemoryObject(MemoryObject *mo, int ind)
             else
                 printf("[%lu] -> ", *it.first);
 
-            printName(ptr.target);
+            printName(ptr.target, dot);
 
             if (ptr.offset.isUnknown())
                 puts(" + UNKNOWN");
@@ -84,7 +108,7 @@ dumpMemoryObject(MemoryObject *mo, int ind)
 }
 
 static void
-dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind)
+dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
 {
     for (auto it : *mm) {
         // print the key
@@ -92,7 +116,7 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind)
         printf("%*s", ind, "");
 
         putchar('[');
-        printName(key.target);
+        printName(key.target, dot);
 
         if (key.offset.isUnknown())
             puts(" + UNKNOWN]:");
@@ -100,7 +124,7 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind)
             printf(" + %lu]:\n", *key.offset);
 
         for (MemoryObject *mo : it.second)
-            dumpMemoryObject(mo, ind + 4);
+            dumpMemoryObject(mo, ind + 4, dot);
     }
 }
 
@@ -117,7 +141,7 @@ dumpPSSData(PSSNode *n, PTType type, bool dot = false)
         else
             printf("    Memory: ---\n");
 
-        dumpMemoryObject(mo, 6);
+        dumpMemoryObject(mo, 6, dot);
 
         if (!dot)
             printf("    -----------\n");
@@ -132,7 +156,7 @@ dumpPSSData(PSSNode *n, PTType type, bool dot = false)
         else
             printf("    Memory map: ---\n");
 
-        dumpMemoryMap(mm, 6);
+        dumpMemoryMap(mm, 6, dot);
 
         if (!dot)
             printf("    ----------------\n");
@@ -145,10 +169,7 @@ dumpPSSNode(PSSNode *n, PTType type)
     const char *name = n->getName();
 
     printf("NODE: ");
-    if (name)
-        printf("%s", name);
-    else
-        printf("<%p>", n);
+    printName(n, false);
 
     if (n->getSize() || n->isHeap() || n->isZeroInitialized())
         printf(" [size: %lu, heap: %u, zeroed: %u]",
@@ -161,11 +182,12 @@ dumpPSSNode(PSSNode *n, PTType type)
         putchar('\n');
 
     for (const Pointer& ptr : n->pointsTo) {
-        printf("    -> %s + ", ptr.target->getName());
+        printf("    -> ");
+        printName(ptr.target, false);
         if (ptr.offset.isUnknown())
-            puts("UNKNOWN_OFFSET");
+            puts(" + UNKNOWN_OFFSET");
         else
-            printf("%lu\n", *ptr.offset);
+            printf(" + %lu\n", *ptr.offset);
     }
     if (verbose) {
         dumpPSSData(n, type);
@@ -183,7 +205,7 @@ dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
     /* dump nodes */
     for (PSSNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
-        printName(node);
+        printName(node, true);
 
         if (node->getSize() || node->isHeap() || node->isZeroInitialized())
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
@@ -191,7 +213,7 @@ dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
 
         for (const Pointer& ptr : node->pointsTo) {
             printf("\\n    -> ");
-            printName(ptr.target);
+            printName(ptr.target, true);
             printf(" + ");
             if (ptr.offset.isUnknown())
                 printf("UNKNOWN_OFFSET");

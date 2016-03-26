@@ -25,7 +25,8 @@ namespace dg {
 namespace analysis {
 namespace pss {
 
-#ifdef DEBUG_ENABLED
+/* keep it for debugging */
+#if 0
 static std::string
 getInstName(const llvm::Value *val)
 {
@@ -61,30 +62,16 @@ const char *__get_name(const llvm::Value *val, const char *prefix)
     return buf.c_str();
 }
 
-void setName(const llvm::Value *val, PSSNode *node, const char *prefix = nullptr)
 {
     const char *name = __get_name(val, prefix);
-    node->setName(name);
 }
 
-void setName(const char *name, PSSNode *node, const char *prefix = nullptr)
 {
     if (prefix) {
         std::string nm;
         nm.append(prefix);
         nm.append(name);
-        node->setName(nm.c_str());
     } else
-        node->setName(name);
-}
-
-#else
-void setName(const llvm::Value *val, PSSNode *node, const char *prefix = nullptr)
-{
-}
-
-void setName(const char *name, PSSNode *node, const char *prefix = nullptr)
-{
 }
 #endif
 
@@ -209,7 +196,6 @@ PSSNode *LLVMPSSBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
     PSSNode *node = new PSSNode(pss::CONSTANT, ptr.target, ptr.offset);
 
     addNode(CE, node);
-    setName(CE, node);
 
     assert(node);
     return node;
@@ -222,11 +208,9 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
     } else if (const llvm::ConstantExpr *CE
                     = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
         return createConstantExpr(CE);
-    } else if (const llvm::Function *F
-                    = llvm::dyn_cast<llvm::Function>(val)) {
+    } else if (llvm::isa<llvm::Function>(val)) {
         PSSNode *ret = new PSSNode(FUNCTION);
         addNode(val, ret);
-        setName(F->getName().data(), ret);
 
         return ret;
     } else {
@@ -309,7 +293,6 @@ LLVMPSSBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
     PSSNode *node = createDynamicAlloc(CInst, type);
     addNode(CInst, node);
-    setName(CInst, node);
 
     // we return (node, node), so that the parent function
     // will seamlessly connect this node into the graph
@@ -330,8 +313,6 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
 
-    setName(CInst, callNode);
-    setName(CInst, returnNode, "RET");
 
     // reuse built subgraphs if available
     Subgraph subg = subgraphs_map[F];
@@ -422,7 +403,6 @@ LLVMPSSBuilder::createUnknownCall(const llvm::CallInst *CInst)
     call->addPointsTo(PointerUnknown);
 
     addNode(CInst, call);
-    setName(CInst, call, "CALL [undef]");
 
     return std::make_pair(call, call);
 }
@@ -451,7 +431,6 @@ PSSNode *LLVMPSSBuilder::createMemTransfer(const llvm::IntrinsicInst *I)
                                 UNKNOWN_OFFSET, UNKNOWN_OFFSET);
 
     addNode(I, node);
-    setName(I, node);
     return node;
 }
 
@@ -490,9 +469,6 @@ LLVMPSSBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     PSSNode *S2 = new PSSNode(pss::STORE, arg, vastart);
 
     addNode(Inst, vastart);
-    setName(Inst, vastart, "vararg MEM ");
-    setName(Inst, S1, "vararg STORE 1 ");
-    setName(Inst, S2, "vararg STORE 2 ");
 
     vastart->addSuccessor(S1);
     S1->addSuccessor(S2);
@@ -551,8 +527,6 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
 
         call_funcptr->addSuccessor(ret_call);
         addNode(CInst, call_funcptr);
-        setName(CInst, call_funcptr, "PTR CALL");
-        setName(CInst, ret_call, "RETURN <ptrcall>");
 
         return std::make_pair(call_funcptr, ret_call);
     }
@@ -562,7 +536,6 @@ PSSNode *LLVMPSSBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     PSSNode *node = new PSSNode(pss::ALLOC);
     addNode(Inst, node);
-    setName(Inst, node);
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
     if (AI) {
@@ -583,7 +556,6 @@ PSSNode *LLVMPSSBuilder::createStore(const llvm::Instruction *Inst)
 
     PSSNode *node = new PSSNode(pss::STORE, op1, op2);
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -597,7 +569,6 @@ PSSNode *LLVMPSSBuilder::createLoad(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::LOAD, op1);
 
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -627,7 +598,6 @@ PSSNode *LLVMPSSBuilder::createGEP(const llvm::Instruction *Inst)
         node = new PSSNode(pss::GEP, op, UNKNOWN_OFFSET);
 
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -646,7 +616,6 @@ PSSNode *LLVMPSSBuilder::createSelect(const llvm::Instruction *Inst)
     // select works as a PHI in points-to analysis
     PSSNode *node = new PSSNode(pss::PHI, op1, op2, nullptr);
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -659,7 +628,6 @@ PSSNode *LLVMPSSBuilder::createPHI(const llvm::Instruction *Inst)
 
     PSSNode *node = new PSSNode(pss::PHI, nullptr);
     addNode(Inst, node);
-    setName(Inst, node);
 
     // NOTE: we didn't add operands to PHI node here, but after building
     // the whole function, because some blocks may not have been built
@@ -700,7 +668,6 @@ PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -715,7 +682,6 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -734,7 +700,6 @@ PSSNode *LLVMPSSBuilder::createIntToPtr(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
     addNode(Inst, node);
-    setName(Inst, node);
 
     assert(node);
     return node;
@@ -759,7 +724,6 @@ PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
 
     PSSNode *node = new PSSNode(pss::RETURN, op1, nullptr);
     addNode(Inst, node);
-    setName(Inst, node, "RETURN ");
 
     return node;
 }
@@ -960,7 +924,6 @@ LLVMPSSBuilder::buildArguments(const llvm::Function& F)
             else
                 ret.first = arg;
 
-            setName(&*A, arg, "ARG phi ");
         }
     }
 
@@ -968,7 +931,6 @@ LLVMPSSBuilder::buildArguments(const llvm::Function& F)
     // then create the node for it and make it the last node
     if (F.isVarArg()) {
         ret.second = new PSSNode(pss::PHI, nullptr);
-        setName("variadic", ret.second, "ARG ...");
         if (arg)
             arg->addSuccessor(ret.second);
         else
@@ -996,8 +958,6 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     PSSNode *root = new PSSNode(pss::ENTRY);
     PSSNode *ret = new PSSNode(pss::NOOP);
 
-    setName(F.getName().data(), root, "ENTRY ");
-    setName(F.getName().data(), ret, "RET (unified) ");
 
     // now build the arguments of the function - if it has any
     std::pair<PSSNode *, PSSNode *> args = buildArguments(F);
@@ -1136,11 +1096,6 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
                 PSSNode *store = new PSSNode(STORE, op, target);
                 store->insertAfter(last);
                 last = store;
-
-                // FIXME: uauauagghh that's ugly!
-                setName(C, store, ((std::string("INIT ") + node->getName()
-                                + "[" + std::to_string(off) + "] -> "
-                                + getInstName(val)).c_str()));
             }
 
             off += DL->getTypeAllocSize(Ty);
@@ -1153,12 +1108,6 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
            PSSNode *store = new PSSNode(STORE, value, node);
            store->insertAfter(last);
            last = store;
-
-           // FIXME: uauauagghh that's ugly!
-           const Pointer& ptr = *(value->pointsTo.begin());
-           setName(C, store, ((std::string("INIT ") + node->getName()
-                           + " -> " + ptr.target->getName() + " + "
-                           + std::to_string(*ptr.offset)).c_str()));
        }
     } else if (!isa<ConstantInt>(C)) {
         llvm::errs() << *C << "\n";
@@ -1178,7 +1127,6 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
         // every global node is like memory allocation
         cur = new PSSNode(pss::ALLOC);
         addNode(&*I, cur);
-        setName(&*I, cur);
 
         if (prev)
             prev->addSuccessor(cur);

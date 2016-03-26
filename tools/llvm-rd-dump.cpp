@@ -36,8 +36,22 @@ using llvm::errs;
 
 static bool verbose = false;
 
+static std::string
+getInstName(const llvm::Value *val)
+{
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
+    assert(val);
+    ro << *val;
+    ro.flush();
+
+    // break the string if it is too long
+    return ostr.str();
+}
+
 static void
-printName(RDNode *node)
+printName(RDNode *node, bool dot)
 {
     if (node == rd::UNKNOWN_MEMORY) {
         printf("UNKNOWN MEMORY");
@@ -45,10 +59,22 @@ printName(RDNode *node)
     }
 
     const char *name = node->getName();
+    std::string nm;
     if (!name) {
-        printf("%p\\n", node);
-        return;
+        if (!node->getUserData<llvm::Value>()) {
+            if (dot)
+                printf("%p\\n", node);
+            else
+                printf("%p\n", node);
+
+            return;
+        }
+
+        nm = getInstName(node->getUserData<llvm::Value>());
+        name = nm.c_str();
     }
+
+
 
     // escape the " character
     for (int i = 0; name[i] != '\0'; ++i) {
@@ -71,19 +97,21 @@ dumpMap(RDNode *node, bool dot = false)
     RDMap& map = node->getReachingDefinitions();
     for (auto it : map) {
         for (RDNode *site : it.second) {
-            printName(it.first.target);
+            printName(it.first.target, dot);
             // don't print offsets with unknown memory
             if (it.first.target == rd::UNKNOWN_MEMORY) {
                 printf(" => ");
             } else {
                 if (it.first.offset.isUnknown())
                     printf(" | UNKNOWN | => ");
+                else if (it.first.len.isUnknown())
+                    printf(" | %lu - UNKNOWN | => ", *it.first.offset);
                 else
                     printf(" | %lu - %lu | => ", *it.first.offset,
                            *it.first.offset + *it.first.len - 1);
             }
 
-            printName(site);
+            printName(site, dot);
             if (dot)
                 printf("\\n");
             else
@@ -97,7 +125,7 @@ dumpDefines(RDNode *node, bool dot = false)
 {
     for (const DefSite& def : node->getDefines()) {
         printf("DEF: ");
-        printName(def.target);
+        printName(def.target, dot);
             if (def.offset.isUnknown())
                 printf(" [ UNKNOWN ]");
             else
@@ -115,7 +143,7 @@ static void
 dumpRDNode(RDNode *n)
 {
     printf("NODE: ");
-    printName(n);
+    printName(n, false);
     putchar('\n');
     dumpMap(n);
     printf("---\n");
@@ -132,7 +160,7 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     /* dump nodes */
     for(RDNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
-        printName(node);
+        printName(node, true);
         printf("\\n-------------\\n");
         if (verbose) {
             dumpDefines(node, true);
