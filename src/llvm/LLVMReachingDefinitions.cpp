@@ -397,6 +397,40 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
 }
 
+RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
+{
+    using namespace llvm;
+
+    RDNode *node = new RDNode();
+    addNode(CInst, node);
+    setName(CInst, node);
+
+    // every pointer we pass into the undefined call may be defined
+    // in the function
+    for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i)
+    {
+        const Value *llvmOp = CInst->getArgOperand(i);
+        if (!llvmOp->getType()->isPointerTy())
+            continue;
+
+        pss::PSSNode *pts = PTA->getPointsTo(llvmOp);
+        assert(pts && "No points-to information");
+        for (const pss::Pointer& ptr : pts->pointsTo) {
+            if (ptr.isNull())
+                continue;
+
+            const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+            RDNode *target = nodes_map[ptrVal];
+            assert(target && "Don't have pointer target for call argument");
+
+            // this call may define this memory
+            node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+        }
+    }
+
+    return node;
+}
+
 RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
@@ -425,8 +459,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             ret->addDef(ret, 0, UNKNOWN_OFFSET);
             return ret;
         default:
-            assert(0 && "Unhandled intrinsic instruction");
-            // return handleUndefinedCall(...);
+            return createUndefinedCall(CInst);
     }
 
     pss::PSSNode *pts = PTA->getPointsTo(dest);
@@ -478,11 +511,13 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         if (func->isIntrinsic()) {
             RDNode *n = createIntrinsicCall(CInst);
             return std::make_pair(n, n);
-        } else if ((type = getMemAllocationFunc(func))
-            || func->size() == 0) {
+        } else if ((type = getMemAllocationFunc(func))) {
             // NOTE: func->size() == 0 holds even for malloc,
             // do we need the first part of the condition?
             RDNode *n = createAlloc(CInst);
+            return std::make_pair(n, n);
+        } else if (func->size() == 0) {
+            RDNode *n = createUndefinedCall(CInst);
             return std::make_pair(n, n);
         } else {
             std::pair<RDNode *, RDNode *> cf

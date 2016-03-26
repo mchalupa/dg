@@ -101,6 +101,7 @@ private:
     createCall(const llvm::Instruction *Inst);
 
     RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
+    RDNode *createUndefinedCall(const llvm::CallInst *CInst);
 };
 
 class LLVMReachingDefinitions
