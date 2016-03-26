@@ -167,6 +167,9 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
     using namespace dg::analysis;
 
     for (const pss::Pointer& ptr : pts->pointsTo) {
+        if (ptr.isNull())
+            continue;
+
         llvm::Value *llvmVal = ptr.target->getUserData<llvm::Value>();
         assert(llvmVal);
 
