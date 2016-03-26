@@ -70,6 +70,11 @@ public:
     // build new subgraphs on calls via pointer
     virtual bool functionPointerCall(PSSNode *callsite, PSSNode *called)
     {
+        // with vararg it may happen that we get pointer that
+        // is not to function, so just bail out here in that case
+        if (!llvm::isa<llvm::Function>(called->getUserData<llvm::Value>()))
+            return false;
+
         const llvm::Function *F = called->getUserData<llvm::Function>();
         const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
 

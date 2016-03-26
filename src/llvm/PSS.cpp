@@ -368,6 +368,22 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
         }
     }
 
+    // is the function variadic? arg now contains the last argument node,
+    // which is the variadic one and idx should be index of the first
+    // value passed as variadic. So go through the rest of callinst
+    // arguments and if some of them is pointer, add it as an operand
+    // to the phi node
+    if (F->isVarArg()) {
+        assert(arg);
+        for (unsigned int i = idx; i < CInst->getNumArgOperands(); ++i) {
+            const llvm::Value *llvmOp = CInst->getArgOperand(i);
+            if (llvmOp->getType()->isPointerTy()) {
+                PSSNode *op = getOperand(llvmOp);
+                arg->addOperand(op);
+            }
+        }
+    }
+
     // handle value returned from the function if it is a pointer
     if (CInst->getType()->isPointerTy()) {
         // return node is like a PHI node
@@ -411,11 +427,10 @@ LLVMPSSBuilder::createUnknownCall(const llvm::CallInst *CInst)
     return std::make_pair(call, call);
 }
 
-PSSNode *LLVMPSSBuilder::createMemTransfer(const llvm::Instruction *Inst)
+PSSNode *LLVMPSSBuilder::createMemTransfer(const llvm::IntrinsicInst *I)
 {
     using namespace llvm;
     const Value *dest, *src, *lenVal;
-    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
 
     switch (I->getIntrinsicID()) {
         case Intrinsic::memmove:
@@ -435,9 +450,69 @@ PSSNode *LLVMPSSBuilder::createMemTransfer(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(MEMCPY, srcNode, destNode,
                                 UNKNOWN_OFFSET, UNKNOWN_OFFSET);
 
-    addNode(Inst, node);
-    setName(Inst, node);
+    addNode(I, node);
+    setName(I, node);
     return node;
+}
+
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
+{
+    // just store all the pointers from vararg argument
+    // to the memory given in vastart() on UNKNOWN_OFFSET.
+    // It is the easiest thing we can do without any further
+    // analysis
+
+    // first we need to get the vararg argument phi
+    const llvm::Function *F = Inst->getParent()->getParent();
+    Subgraph& subg = subgraphs_map[F];
+    PSSNode *arg = subg.args.second;
+    assert(F->isVarArg() && "vastart in non-variadic function");
+    assert(arg && "Don't have variadic argument in variadic function");
+
+    // vastart will be node that will keep the memory
+    // with pointers, its argument is the alloca, that
+    // alloca will keep pointer to vastart
+    PSSNode *vastart = new PSSNode(pss::ALLOC);
+
+    // vastart has only one operand which is the struct
+    // it uses for storing the va arguments. Strip it so that we'll
+    // get the underlying alloca inst
+    PSSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
+    assert(op->getType() == pss::ALLOC
+           && "Argument of vastart is not an alloca");
+    // get node with the same pointer, but with UNKNOWN_OFFSET
+    // FIXME: we're leaking it
+    // make the memory in alloca point to our memory in vastart
+    PSSNode *ptr = new PSSNode(pss::CONSTANT, op, UNKNOWN_OFFSET);
+    PSSNode *S1 = new PSSNode(pss::STORE, vastart, ptr);
+    // and also make vastart point to the vararg args
+    PSSNode *S2 = new PSSNode(pss::STORE, arg, vastart);
+
+    addNode(Inst, vastart);
+    setName(Inst, vastart, "vararg MEM ");
+    setName(Inst, S1, "vararg STORE 1 ");
+    setName(Inst, S2, "vararg STORE 2 ");
+
+    vastart->addSuccessor(S1);
+    S1->addSuccessor(S2);
+
+    return std::make_pair(vastart, S2);
+}
+
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createIntrinsic(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
+    if (isa<MemTransferInst>(I)) {
+        PSSNode *n = createMemTransfer(I);
+        return std::make_pair(n, n);
+    } else if (I->getIntrinsicID() == Intrinsic::vastart) {
+        return createVarArg(I);
+    } else
+        assert(0 && "Unhandled intrinsic");
 }
 
 // create subgraph or add edges to already existing subgraph,
@@ -459,8 +534,7 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
             // since malloc and similar are undefined too
             return createDynamicMemAlloc(CInst, type);
         } else if (func->isIntrinsic()) {
-            PSSNode *n = createMemTransfer(Inst);
-            return std::make_pair(n, n);
+            return createIntrinsic(Inst);
         } else if (func->size() == 0) {
              return createUnknownCall(CInst);
         } else {
@@ -716,6 +790,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
                 case Intrinsic::memmove:
                 case Intrinsic::memcpy:
                 case Intrinsic::memset:
+                case Intrinsic::vastart:
                     return true;
                 default:
                     return false;
@@ -864,7 +939,8 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
     return num;
 }
 
-std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildArguments(const llvm::Function& F)
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::buildArguments(const llvm::Function& F)
 {
     // create PHI nodes for arguments of the function. These will be
     // successors of call-node
@@ -888,7 +964,20 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildArguments(const llvm::Funct
         }
     }
 
-    ret.second = arg;
+    // if the function has variable arguments,
+    // then create the node for it and make it the last node
+    if (F.isVarArg()) {
+        ret.second = new PSSNode(pss::PHI, nullptr);
+        setName("variadic", ret.second, "ARG ...");
+        if (arg)
+            arg->addSuccessor(ret.second);
+        else
+            // we don't have any other argument than '...',
+            // so this is first and last arg
+            ret.first = ret.second;
+    } else
+        ret.second = arg;
+
     assert((ret.first && ret.second) || (!ret.first && !ret.second));
 
     return ret;

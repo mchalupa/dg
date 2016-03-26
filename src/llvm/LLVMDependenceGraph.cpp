@@ -325,8 +325,12 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                     continue;
                 } // XXX: unknown pointers
 
-                const llvm::Function *F = ptr.target->getUserData<llvm::Function>();
+                // vararg may introduce imprecision here, so we
+                // must check that it is really pointer to a function
+                if (!isa<Function>(ptr.target->getUserData<Value>()))
+                    continue;
 
+                const Function *F = ptr.target->getUserData<Function>();
                 LLVMDependenceGraph *subg = buildSubgraph(node, F);
                 node->addSubgraph(subg);
             }

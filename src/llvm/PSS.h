@@ -5,6 +5,7 @@
 
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 
 #include "analysis/PSS.h"
@@ -32,8 +33,10 @@ class LLVMPSSBuilder
             : root(r1), ret(r2), args(a) {}
         Subgraph() {memset(this, 0, sizeof *this);}
         
+        // first and last nodes of the subgraph
         PSSNode *root;
         PSSNode *ret;
+
         std::pair<PSSNode *, PSSNode *> args;
     };
 
@@ -126,7 +129,13 @@ private:
     std::pair<PSSNode *, PSSNode *>
     createUnknownCall(const llvm::CallInst *CInst);
 
-    PSSNode *createMemTransfer(const llvm::Instruction *Inst);
+    std::pair<PSSNode *, PSSNode *>
+    createIntrinsic(const llvm::Instruction *Inst);
+
+    PSSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
+
+    std::pair<PSSNode *, PSSNode *>
+    createVarArg(const llvm::IntrinsicInst *Inst);
 };
 
 } // namespace pss

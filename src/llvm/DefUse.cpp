@@ -114,6 +114,12 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst 
         case Intrinsic::memset:
             dest = I->getOperand(0);
             break;
+        case Intrinsic::vastart:
+            dest = I->getOperand(0);
+            break;
+        case Intrinsic::vaend:
+            // nothing to do here
+            return;
         default:
             assert(0 && "DEF-USE: Unhandled intrinsic call");
             //handleUndefinedCall(callNode, CI);

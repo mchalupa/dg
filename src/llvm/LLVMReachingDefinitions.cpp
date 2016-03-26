@@ -92,6 +92,32 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
     return DL->getTypeAllocSize(Ty);
 }
 
+enum MemAllocationFuncs {
+    NONEMEM = 0,
+    MALLOC,
+    CALLOC,
+    ALLOCA,
+};
+
+static int getMemAllocationFunc(const llvm::Function *func)
+{
+    if (!func || !func->hasName())
+        return NONEMEM;
+
+    const char *name = func->getName().data();
+    if (strcmp(name, "malloc") == 0)
+        return MALLOC;
+    else if (strcmp(name, "calloc") == 0)
+        return CALLOC;
+    else if (strcmp(name, "alloca") == 0)
+        return ALLOCA;
+    else if (strcmp(name, "realloc") == 0)
+        // FIXME
+        assert(0 && "realloc not implemented yet");
+
+    return NONEMEM;
+}
+
 RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode();
@@ -143,6 +169,49 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     return node;
 }
 
+static bool isRelevantCall(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    // we don't care about debugging stuff
+    if (isa<DbgValueInst>(Inst))
+        return false;
+
+    const CallInst *CInst = cast<CallInst>(Inst);
+    const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+    const Function *func = dyn_cast<Function>(calledVal);
+
+    if (!func)
+        // function pointer call - we need that in PSS
+        return true;
+
+    if (func->size() == 0) {
+        if (getMemAllocationFunc(func))
+            // we need memory allocations
+            return true;
+
+        if (func->isIntrinsic()) {
+            switch (func->getIntrinsicID()) {
+                case Intrinsic::memmove:
+                case Intrinsic::memcpy:
+                case Intrinsic::memset:
+                case Intrinsic::vastart:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // undefined function
+        return true;
+    } else
+        // we want defined function, since those can contain
+        // pointer's manipulation and modify CFG
+        return true;
+
+    assert(0 && "We should not reach this");
+}
+
 // return first and last nodes of the block
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
@@ -180,7 +249,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                 node = createAlloc(&Inst);
                 break;
             case Instruction::Call:
-                if (isa<DbgValueInst>(&Inst))
+                if (!isRelevantCall(&Inst))
                     break;
 
                 std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
@@ -328,32 +397,6 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
 }
 
-enum MemAllocationFuncs {
-    NONEMEM = 0,
-    MALLOC,
-    CALLOC,
-    ALLOCA,
-};
-
-static int getMemAllocationFunc(const llvm::Function *func)
-{
-    if (!func || !func->hasName())
-        return NONEMEM;
-
-    const char *name = func->getName().data();
-    if (strcmp(name, "malloc") == 0)
-        return MALLOC;
-    else if (strcmp(name, "calloc") == 0)
-        return CALLOC;
-    else if (strcmp(name, "alloca") == 0)
-        return ALLOCA;
-    else if (strcmp(name, "realloc") == 0)
-        // FIXME
-        assert(0 && "realloc not implemented yet");
-
-    return NONEMEM;
-}
-
 RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
@@ -361,6 +404,10 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     const IntrinsicInst *I = cast<IntrinsicInst>(CInst);
     const Value *dest;
     const Value *lenVal;
+
+    RDNode *ret = new RDNode();
+    addNode(CInst, ret);
+    setName(CInst, ret);
 
     switch (I->getIntrinsicID())
     {
@@ -371,6 +418,12 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             dest = I->getOperand(0);
             lenVal = I->getOperand(2);
             break;
+        case Intrinsic::vastart:
+            // we create this node because this nodes works
+            // as ALLOC in points-to, so we can have
+            // reaching definitions to that
+            ret->addDef(ret, 0, UNKNOWN_OFFSET);
+            return ret;
         default:
             assert(0 && "Unhandled intrinsic instruction");
             // return handleUndefinedCall(...);
@@ -378,10 +431,6 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
 
     pss::PSSNode *pts = PTA->getPointsTo(dest);
     assert(pts && "No points-to information");
-
-    RDNode *ret = new RDNode();
-    addNode(CInst, ret);
-    setName(CInst, ret);
 
     uint64_t len;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
@@ -462,8 +511,12 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (ptr.isNull())
                     continue;
 
-                const llvm::Function *F
-                    = ptr.target->getUserData<llvm::Function>();
+                // check if it is a function (varargs may
+                // introduce some unprecision to func. pointers)
+                if (!isa<Function>(ptr.target->getUserData<Value>()))
+                    continue;
+
+                const Function *F = ptr.target->getUserData<Function>();
                 std::pair<RDNode *, RDNode *> cf
                     = createCallToFunction(CInst, F);
 
