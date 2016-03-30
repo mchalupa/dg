@@ -609,9 +609,23 @@ int main(int argc, char *argv[])
     // have no effect
     remove_unused_from_module_rec(M);
     if (remove_unused_only) {
-        errs() << "INFO: remove unused parts of module, exiting...\n";
+        errs() << "INFO: removed unused parts of module, exiting...\n";
         if (statistics)
             print_statistics(M, "Statistics after ");
+
+        // FIXME: factor out to common funciton (we use this sequence
+        // below too
+        if (should_verify_module) {
+            if (!verify_module(M)) {
+                errs() << "ERR: Verifying module failed, the IR is not valid\n";
+                errs() << "INFO: Saving anyway so that you can check it\n";
+            }
+        }
+
+        if (!write_module(M, module)) {
+            errs() << "Saving sliced module failed\n";
+            return 1;
+        }
 
         return 0;
     }
