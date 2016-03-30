@@ -368,7 +368,6 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
     }
 
     // add successors edges from every real return to our artificial ret node
-    assert(!rets.empty() && "BUG: Did not find any return node in function");
     for (RDNode *r : rets)
         r->addSuccessor(ret);
 
