@@ -214,7 +214,7 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
 
         return ret;
     } else {
-        llvm::errs() << "Unspported constant: " << *val << "\n";
+        llvm::errs() << "Unsupported constant: " << *val << "\n";
         abort();
     }
 }
@@ -487,6 +487,14 @@ LLVMPSSBuilder::createIntrinsic(const llvm::Instruction *Inst)
         return std::make_pair(n, n);
     } else if (I->getIntrinsicID() == Intrinsic::vastart) {
         return createVarArg(I);
+    } else if (I->getIntrinsicID() == Intrinsic::stacksave) {
+        errs() << "WARNING: Saving stack may yield unsound results!: "
+               << *Inst << "\n";
+        PSSNode *n = createAlloc(Inst);
+        return std::make_pair(n, n);
+    } else if (I->getIntrinsicID() == Intrinsic::stackrestore) {
+        PSSNode *n = createLoad(Inst);
+        return std::make_pair(n, n);
     } else
         assert(0 && "Unhandled intrinsic");
 }
@@ -755,6 +763,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
                 case Intrinsic::memcpy:
                 case Intrinsic::memset:
                 case Intrinsic::vastart:
+                case Intrinsic::stacksave:
+                case Intrinsic::stackrestore:
                     return true;
                 default:
                     return false;
