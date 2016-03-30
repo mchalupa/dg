@@ -1036,7 +1036,9 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     }
 
     // add successors edges from every real return to our artificial ret node
-    assert(!rets.empty() && "BUG: Did not find any return node in function");
+    // NOTE: if the function has infinite loop we won't have any return nodes,
+    // so this assertion must not hold
+    //assert(!rets.empty() && "BUG: Did not find any return node in function");
     for (PSSNode *r : rets)
         r->addSuccessor(ret);
 
