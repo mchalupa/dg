@@ -418,9 +418,34 @@ static bool slice(llvm::Module *M, const char *module_name,
 
     analysis::SlicerStatistics& st = slicer.getStatistics();
     errs() << "INFO: Sliced away " << st.nodesRemoved
-           << " from " << st.nodesTotal << " nodes\n";
+           << " from " << st.nodesTotal << " nodes in DG\n";
 
     return true;
+}
+
+static void print_statistics(llvm::Module *M, const char *prefix = nullptr)
+{
+    using namespace llvm;
+    uint64_t inum, bnum, fnum, gnum;
+    inum = bnum = fnum = gnum = 0;
+
+    for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+        ++fnum;
+
+        for (const BasicBlock& B : *I) {
+            ++bnum;
+            inum += B.size();
+        }
+    }
+
+    for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I)
+        ++gnum;
+
+    if (prefix)
+        errs() << prefix;
+
+    errs() << "Globals/Functions/Blocks/Instr.: "
+           << gnum << " " << fnum << " " << bnum << " " << inum << "\n";
 }
 
 static bool array_match(llvm::StringRef name, const char *names[])
@@ -518,6 +543,7 @@ int main(int argc, char *argv[])
 
     bool should_verify_module = true;
     bool remove_unused_only = false;
+    bool statistics = false;
     const char *slicing_criterion = nullptr;
     const char *module = nullptr;
     const char *pts = nullptr;
@@ -551,6 +577,8 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
         } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
             remove_unused_only = true;
+        } else if (strcmp(argv[i], "-statistics") == 0) {
+            statistics = true;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
         } else if (strcmp(argv[i], "-dont-verify") == 0) {
@@ -574,11 +602,17 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    if (statistics)
+        print_statistics(M, "Statistics before ");
+
     // remove unused from module before slicing - it should
     // have no effect
     remove_unused_from_module_rec(M);
     if (remove_unused_only) {
         errs() << "INFO: remove unused parts of module, exiting...\n";
+        if (statistics)
+            print_statistics(M, "Statistics after ");
+
         return 0;
     }
 
@@ -588,6 +622,9 @@ int main(int argc, char *argv[])
     }
 
     remove_unused_from_module_rec(M);
+
+    if (statistics)
+        print_statistics(M, "Statistics after ");
 
     if (should_verify_module) {
         if (!verify_module(M)) {
