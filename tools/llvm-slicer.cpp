@@ -430,6 +430,10 @@ static void print_statistics(llvm::Module *M, const char *prefix = nullptr)
     inum = bnum = fnum = gnum = 0;
 
     for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+        // don't count in declarations
+        if (I->size() == 0)
+            continue;
+
         ++fnum;
 
         for (const BasicBlock& B : *I) {
