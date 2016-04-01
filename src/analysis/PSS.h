@@ -8,7 +8,6 @@
 
 #include "Pointer.h"
 #include "ADT/Queue.h"
-#include "DFS.h"
 
 namespace dg {
 namespace analysis {
@@ -402,32 +401,6 @@ public:
 
     bool addPointsToUnknownOffset(PSSNode *target);
 
-    // get all nodes that has no successor (starting search from this node)
-    void getLeafs(std::vector<PSSNode *>& leafs)
-    {
-        static unsigned dfsnum;
-        ++dfsnum;
-
-        ADT::QueueLIFO<PSSNode *> lifo;
-        lifo.push(this);
-        dfsid2 = dfsnum;
-
-        while (!lifo.empty()) {
-            PSSNode *cur = lifo.pop();
-
-            if (cur->successorsNum() == 0) {
-                leafs.push_back(cur);
-            } else {
-                for (PSSNode *succ : cur->successors) {
-                    if (succ->dfsid2 != dfsnum) {
-                        succ->dfsid2 = dfsnum;
-                        lifo.push(succ);
-                    }
-                }
-            }
-        }
-    }
-
     friend class PSS;
 };
 
@@ -458,9 +431,10 @@ public:
 
     virtual ~PSS() {}
 
-    // takes a PSSNode 'where' and 'what' and reference to vector and fill into the vector
-    // the objects that are relevant for the PSSNode 'what' (valid memory states
-    // for of this PSSNode) on place 'where' in PSS
+    // takes a PSSNode 'where' and 'what' and reference to a vector
+    // and fills into the vector the objects that are relevant
+    // for the PSSNode 'what' (valid memory states for of this PSSNode)
+    // on location 'where' in PSS
     virtual void getMemoryObjects(PSSNode *where, PSSNode *what,
                                   std::vector<MemoryObject *>& objects) = 0;
 
