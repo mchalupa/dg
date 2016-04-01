@@ -411,13 +411,13 @@ class PSS
 {
     unsigned int dfsnum;
 
-    // queue used to reach the fixpoint
-    ADT::QueueFIFO<PSSNode *> queue;
-
     // root of the pointer state subgraph
     PSSNode *root;
 
 protected:
+    // queue used to reach the fixpoint
+    ADT::QueueFIFO<PSSNode *> queue;
+
     // protected constructor for child classes
     PSS() : dfsnum(0), root(nullptr) {}
 
@@ -471,24 +471,27 @@ public:
         }
     }
 
-    void getNodes(std::set<PSSNode *>& cont)
+    void getNodes(std::set<PSSNode *>& cont,
+                  bool (*filter)(PSSNode *, void *) = nullptr,
+                  void *filter_data = nullptr)
     {
         assert(root && "Do not have root");
 
         ++dfsnum;
 
-        ADT::QueueLIFO<PSSNode *> lifo;
-        lifo.push(root);
+        ADT::QueueFIFO<PSSNode *> fifio;
+        fifio.push(root);
         root->dfsid = dfsnum;
 
-        while (!lifo.empty()) {
-            PSSNode *cur = lifo.pop();
-            cont.insert(cur);
+        while (!fifio.empty()) {
+            PSSNode *cur = fifio.pop();
+            if (!filter || filter(cur, filter_data))
+                cont.insert(cur);
 
             for (PSSNode *succ : cur->successors) {
                 if (succ->dfsid != dfsnum) {
                     succ->dfsid = dfsnum;
-                    lifo.push(succ);
+                    fifio.push(succ);
                 }
             }
         }
@@ -505,7 +508,6 @@ public:
     {
         (void) n;
     }
-
 
     virtual void afterProcessed(PSSNode *n)
     {
