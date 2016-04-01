@@ -66,7 +66,7 @@ bool PSS::processLoad(PSSNode *node)
                 // is fine, we add nullptr
                 changed |= node->addPointsTo(NULLPTR);
             else
-                errorEmptyPointsTo(node, target);
+                changed |= errorEmptyPointsTo(node, target);
 
             continue;
         }
@@ -82,7 +82,7 @@ bool PSS::processLoad(PSSNode *node)
                     if (target->isZeroInitialized())
                         changed |= node->addPointsTo(NULLPTR);
                     else if (objects.size() == 1)
-                        errorEmptyPointsTo(node, target);
+                        changed |= errorEmptyPointsTo(node, target);
                 }
 
                 // we have some pointers - copy them all,
@@ -107,7 +107,7 @@ bool PSS::processLoad(PSSNode *node)
                 // if we don't have a definition even with unknown offset
                 // it is an error
                 else if (!o->pointsTo.count(UNKNOWN_OFFSET))
-                    errorEmptyPointsTo(node, target);
+                    changed |= errorEmptyPointsTo(node, target);
             } else {
                 // we have pointers on that memory, so we can
                 // do the work
@@ -157,7 +157,7 @@ bool PSS::processMemcpy(PSSNode *node)
             // then everything is fine, we add nullptr
             changed |= node->addPointsTo(NULLPTR);
         } else {
-            errorEmptyPointsTo(node, srcNode);
+            changed |= errorEmptyPointsTo(node, srcNode);
         }
 
         return changed;
