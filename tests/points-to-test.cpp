@@ -72,6 +72,17 @@ public:
         PSSNode L2(pss::LOAD, &B);
         PSSNode L3(pss::LOAD, &B);
 
+        //             A
+        //             |
+        //             B
+        //             |
+        //             C
+        //           /   \
+        //          S1    S2
+        //          |      |
+        //          L1    L2
+        //            \  /
+        //             L3
         A.addSuccessor(&B);
         B.addSuccessor(&C);
         C.addSuccessor(&S1);
