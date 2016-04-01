@@ -1031,7 +1031,7 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0)
+        if (succ_num == 0 && pssn.second->getType() == pss::RETURN)
             rets.push_back(pssn.second);
     }
 
