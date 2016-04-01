@@ -128,6 +128,11 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     pss::PSSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
     assert(pts && "Don't have the points-to information for store");
 
+    if (pts->pointsTo.empty()) {
+        llvm::errs() << "ERROR: empty STORE points-to: " << *Inst << "\n";
+        abort();
+    }
+
     for (const pss::Pointer& ptr: pts->pointsTo) {
         // XXX we should at least warn?
         if (ptr.isNull())
