@@ -88,7 +88,6 @@ class PSSNode
     const char *name;
 
     unsigned int dfsid;
-    unsigned int dfsid2;
     // data that can an analysis store in node
     // for its own needs
     void *data;
@@ -150,7 +149,7 @@ public:
     //               the subprocedure
     PSSNode(PSSNodeType t, ...)
     : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false),
-      is_heap(false), size(0), name(nullptr), dfsid(0), dfsid2(0),
+      is_heap(false), size(0), name(nullptr), dfsid(0),
       data(nullptr), user_data(nullptr)
     {
         // assing operands
