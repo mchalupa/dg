@@ -535,6 +535,27 @@ public:
 
             afterProcessed(cur);
         }
+
+#ifdef DEBUG_ENABLED
+        // NOTE: This works as assertion,
+        // we'd like to be sure that we have reached the fixpoint,
+        // so we'll do one more iteration and check it
+
+        queue.push(root);
+        enqueueDFS(root);
+
+        bool changed = false;
+        while (!queue.empty()) {
+            PSSNode *cur = queue.pop();
+
+            beforeProcessed(cur);
+
+            changed = processNode(cur);
+            assert(!changed && "BUG: Did not reach fixpoint");
+
+            afterProcessed(cur);
+        }
+#endif // DEBUG_ENABLED
     }
 
     // generic error
