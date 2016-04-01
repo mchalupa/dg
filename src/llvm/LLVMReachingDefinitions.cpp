@@ -106,7 +106,7 @@ static int getMemAllocationFunc(const llvm::Function *func)
 
 RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode();
+    RDNode *node = new RDNode(ALLOC);
     addNode(Inst, node);
 
     return node;
@@ -114,7 +114,7 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode();
+    RDNode *node = new RDNode(STORE);
     addNode(Inst, node);
 
     pss::PSSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
@@ -206,7 +206,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     RDNode *prev_node;
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
-    RDNode *node = new RDNode();
+    RDNode *node = new RDNode(PHI);
     ret.first = node;
 
     for (const Instruction& Inst : block) {
@@ -288,9 +288,8 @@ LLVMRDBuilder::createCallToFunction(const llvm::CallInst *CInst,
     RDNode *callNode, *returnNode;
 
     // dummy nodes for easy generation
-    returnNode = new RDNode();
-    callNode = new RDNode();
-
+    returnNode = new RDNode(CALL_RETURN);
+    callNode = new RDNode(CALL);
 
     // reuse built subgraphs if available
     Subgraph subg = subgraphs_map[F];
@@ -322,9 +321,8 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
-    RDNode *root = new RDNode();
-    RDNode *ret = new RDNode();
-
+    RDNode *root = new RDNode(NOOP);
+    RDNode *ret = new RDNode(NOOP);
 
     // add record to built graphs here, so that subsequent call of this function
     // from buildPSSBlock won't get stuck in infinite recursive call when
@@ -379,7 +377,7 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
-    RDNode *node = new RDNode();
+    RDNode *node = new RDNode(CALL);
     addNode(CInst, node);
 
     // every pointer we pass into the undefined call may be defined
@@ -416,7 +414,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     const Value *dest;
     const Value *lenVal;
 
-    RDNode *ret = new RDNode();
+    RDNode *ret = new RDNode(CALL);
     addNode(CInst, ret);
 
     switch (I->getIntrinsicID())
@@ -510,8 +508,8 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         RDNode *call_funcptr = nullptr, *ret_call = nullptr;
 
         if (op->pointsTo.size() > 1) {
-            call_funcptr = new RDNode();
-            ret_call = new RDNode();
+            call_funcptr = new RDNode(CALL);
+            ret_call = new RDNode(CALL_RETURN);
 
             addNode(CInst, call_funcptr);
 
@@ -586,7 +584,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
         prev = cur;
 
         // every global node is like memory allocation
-        cur = new RDNode();
+        cur = new RDNode(ALLOC);
         addNode(&*I, cur);
 
         if (prev)

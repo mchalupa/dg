@@ -33,6 +33,8 @@ enum PSSNodeType {
         CALL,
         // call via function pointer
         CALL_FUNCPTR,
+        // return from the subprocedure (in caller),
+        // synonym to PHI
         CALL_RETURN,
         // this is the entry node of a subprocedure
         // and serves just as no op for our convenience,
