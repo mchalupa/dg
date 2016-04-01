@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <unistd.h>
 #include <stdarg.h>
+#include <cstring>
 
 namespace dg {
 namespace tests {
@@ -35,16 +36,12 @@ public:
 
     virtual void test() = 0;
 
-    void check(bool cond, const char *fmt = nullptr, ...)
-    {
-        va_list vl;
-
-        if (!cond) {
-            va_start(vl, fmt);
-            _fail(fmt, vl);
-            va_end(vl);
+#define check(cond, ...)                                            \
+        if (!(cond)) {                                              \
+            fprintf(stderr, "Failed %s:%u: ",                       \
+                    basename(__FILE__), __LINE__);                  \
+            fail("" __VA_ARGS__);                                   \
         }
-    }
 
     void fail(const char *fmt, ...)
     {
