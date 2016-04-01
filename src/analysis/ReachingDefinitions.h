@@ -183,39 +183,12 @@ public:
 class ReachingDefinitionsAnalysis
 {
     RDNode *root;
-    ADT::QueueFIFO<RDNode *> queue;
     unsigned int dfsnum;
 
 public:
     ReachingDefinitionsAnalysis(RDNode *r): root(r), dfsnum(0)
     {
         assert(r && "Root cannot be null");
-    }
-
-    // n is node that changed something and queues new nodes for
-    // processing
-    void enqueueDFS(RDNode *n)
-    {
-        // default behaviour is to enqueue all pending nodes
-        ++dfsnum;
-
-        ADT::QueueLIFO<RDNode *> lifo;
-        for (RDNode *succ : n->successors) {
-            succ->dfsid = dfsnum;
-            lifo.push(succ);
-        }
-
-        while (!lifo.empty()) {
-            RDNode *cur = lifo.pop();
-            queue.push(cur);
-
-            for (RDNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    lifo.push(succ);
-                }
-            }
-        }
     }
 
     void getNodes(std::set<RDNode *>& cont)
@@ -241,47 +214,27 @@ public:
         }
     }
 
-    virtual void enqueue(RDNode *n)
-    {
-        // default behaviour is to queue all reachable nodes
-        enqueueDFS(n);
-    }
-
-    virtual void beforeProcessed(RDNode *n)
-    {
-        (void) n;
-    }
-
-
-    virtual void afterProcessed(RDNode *n)
-    {
-        (void) n;
-    }
-
     RDNode *getRoot() const { return root; }
     void setRoot(RDNode *r) { root = r; }
-
-    size_t pendingInQueue() const { return queue.size(); }
 
     bool processNode(RDNode *n);
 
     void run()
     {
         assert(root && "Do not have root");
-        // initialize the queue
-        // FIXME let user do that
-        queue.push(root);
-        enqueueDFS(root);
 
-        while (!queue.empty()) {
-            RDNode *cur = queue.pop();
-            beforeProcessed(cur);
+        std::set<RDNode *> nodes;
+        getNodes(nodes);
 
-            if (processNode(cur))
-                enqueue(cur);
+        // do fixpoint
+        bool changed;
+        do {
+            changed = false;
 
-            afterProcessed(cur);
-        }
+            for (RDNode *cur : nodes)
+                changed |= processNode(cur);
+
+        } while (changed);
     }
 };
 
