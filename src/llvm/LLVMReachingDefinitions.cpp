@@ -112,6 +112,14 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
+RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
+{
+    RDNode *node = new RDNode(RETURN);
+    addNode(Inst, node);
+
+    return node;
+}
+
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode(STORE);
@@ -229,7 +237,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                 // these modify CFG and thus data-flow
                 // FIXME: add new type of node NOOP,
                 // and optimize it away later
-                node = createAlloc(&Inst);
+                node = createReturn(&Inst);
                 break;
             case Instruction::Call:
                 if (!isRelevantCall(&Inst))
@@ -361,7 +369,7 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0)
+        if (succ_num == 0 && pssn.second->getType() == RETURN)
             rets.push_back(pssn.second);
     }
 
