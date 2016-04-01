@@ -3,6 +3,7 @@
 
 #include <stack>
 #include <queue>
+#include <set>
 
 namespace dg {
 namespace ADT {
@@ -67,6 +68,37 @@ public:
 
 private:
     std::queue<ValueT> Container;
+};
+
+template <typename ValueT, typename Comp>
+class PrioritySet
+{
+public:
+    ValueT pop()
+    {
+        ValueT ret = *(Container.begin());
+        Container.erase(Container.begin());
+
+        return ret;
+    }
+
+    void push(const ValueT& what)
+    {
+        Container.insert(what);
+    }
+
+    bool empty() const
+    {
+        return Container.empty();
+    }
+
+    size_t size() const
+    {
+        return Container.size();
+    }
+
+private:
+    std::set<ValueT, Comp> Container;
 };
 
 } // namespace ADT

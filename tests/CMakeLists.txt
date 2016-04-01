@@ -36,6 +36,12 @@ add_executable(reaching-definitions-test reaching-definitions-test.cpp)
 add_test(reaching-definitions-test reaching-definitions-test)
 add_dependencies(check reaching-definitions-test)
 target_link_libraries(reaching-definitions-test RD)
+# --------------------------------------------------
+# adt-test
+# --------------------------------------------------
+add_executable(adt-test adt-test.cpp)
+add_test(adt-test adt-test)
+add_dependencies(check adt-test)
 
 # --------------------------------------------------
 # llvm-dg-test
