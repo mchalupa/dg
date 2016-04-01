@@ -485,18 +485,24 @@ LLVMPSSBuilder::createIntrinsic(const llvm::Instruction *Inst)
     if (isa<MemTransferInst>(I)) {
         PSSNode *n = createMemTransfer(I);
         return std::make_pair(n, n);
-    } else if (I->getIntrinsicID() == Intrinsic::vastart) {
-        return createVarArg(I);
-    } else if (I->getIntrinsicID() == Intrinsic::stacksave) {
-        errs() << "WARNING: Saving stack may yield unsound results!: "
-               << *Inst << "\n";
-        PSSNode *n = createAlloc(Inst);
-        return std::make_pair(n, n);
-    } else if (I->getIntrinsicID() == Intrinsic::stackrestore) {
-        PSSNode *n = createLoad(Inst);
-        return std::make_pair(n, n);
-    } else
-        assert(0 && "Unhandled intrinsic");
+    }
+
+    PSSNode *n;
+    switch (I->getIntrinsicID()) {
+        case Intrinsic::vastart:
+            return createVarArg(I);
+        case Intrinsic::stacksave:
+            errs() << "WARNING: Saving stack may yield unsound results!: "
+                   << *Inst << "\n";
+            n = createAlloc(Inst);
+            return std::make_pair(n, n);
+        case Intrinsic::stackrestore:
+            n = createLoad(Inst);
+            return std::make_pair(n, n);
+        default:
+            errs() << *Inst << "\n";
+            assert(0 && "Unhandled intrinsic");
+    }
 }
 
 // create subgraph or add edges to already existing subgraph,
@@ -761,11 +767,12 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
             switch (func->getIntrinsicID()) {
                 case Intrinsic::memmove:
                 case Intrinsic::memcpy:
-                case Intrinsic::memset:
                 case Intrinsic::vastart:
                 case Intrinsic::stacksave:
                 case Intrinsic::stackrestore:
                     return true;
+                case Intrinsic::memset:
+                    errs() << "WARNING: unhandled: " << *CInst << "\n";
                 default:
                     return false;
             }
