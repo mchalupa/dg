@@ -609,9 +609,9 @@ int main(int argc, char *argv[])
     if (statistics)
         print_statistics(M, "Statistics before ");
 
-    // remove unused from module before slicing - it should
-    // have no effect
+    // remove unused from module, we don't need that
     remove_unused_from_module_rec(M);
+
     if (remove_unused_only) {
         errs() << "INFO: removed unused parts of module, exiting...\n";
         if (statistics)
@@ -619,10 +619,12 @@ int main(int argc, char *argv[])
 
         // FIXME: factor out to common funciton (we use this sequence
         // below too
+        int exitcode = 0;
         if (should_verify_module) {
             if (!verify_module(M)) {
                 errs() << "ERR: Verifying module failed, the IR is not valid\n";
                 errs() << "INFO: Saving anyway so that you can check it\n";
+                exitcode = 1;
             }
         }
 
@@ -631,7 +633,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        return 0;
+        return exitcode;
     }
 
     if (!slice(M, module, slicing_criterion, pts, opts)) {
@@ -644,10 +646,12 @@ int main(int argc, char *argv[])
     if (statistics)
         print_statistics(M, "Statistics after ");
 
+    int exitcode = 0;
     if (should_verify_module) {
         if (!verify_module(M)) {
             errs() << "ERR: Verifying module failed, the IR is not valid\n";
             errs() << "INFO: Saving anyway so that you can check it\n";
+            exitcode = 1;
         }
     }
 
@@ -656,5 +660,5 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    return 0;
+    return exitcode;
 }
