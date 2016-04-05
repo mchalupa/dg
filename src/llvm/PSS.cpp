@@ -505,6 +505,24 @@ LLVMPSSBuilder::createIntrinsic(const llvm::Instruction *Inst)
     }
 }
 
+PSSNode *
+LLVMPSSBuilder::createAsm(const llvm::Instruction *Inst)
+{
+    // we filter irrelevant calls in isRelevantCall()
+    // and we don't have assembler there at all. If
+    // we are here, then we got here because this
+    // is undefined call that returns pointer.
+    // In this case return an unknown pointer
+    llvm::errs() << "PTA: Inline assembly found, analysis  may be unsound\n";
+    PSSNode *n = new PSSNode(pss::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    // it is call that returns pointer, so we'd like to have
+    // a 'return' node that contains that pointer
+    n->setPairedNode(n);
+    addNode(Inst, n);
+
+    return n;
+}
+
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PSS
@@ -514,6 +532,11 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+
+    if (CInst->isInlineAsm()) {
+        PSSNode *n = createAsm(Inst);
+        return std::make_pair(n, n);
+    }
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {

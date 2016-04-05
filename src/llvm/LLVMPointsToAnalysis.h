@@ -100,6 +100,7 @@ public:
         return true;
     }
 
+    /*
     virtual bool error(PSSNode *at, const char *msg)
     {
         llvm::Value *val = at->getUserData<llvm::Value>();
@@ -128,6 +129,7 @@ public:
 
         return false;
     }
+    */
 };
 
 }

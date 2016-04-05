@@ -304,6 +304,12 @@ LLVMRDBuilder::createCallToFunction(const llvm::CallInst *CInst,
     returnNode = new RDNode(CALL_RETURN);
     callNode = new RDNode(CALL);
 
+    // FIXME: if this is an inline assembly call
+    // we need to make conservative assumptions
+    // about that - assume that every pointer
+    // passed to the subprocesdure may be defined on
+    // UNKNOWN OFFSET, etc.
+
     // reuse built subgraphs if available
     Subgraph subg = subgraphs_map[F];
     if (!subg.root) {
