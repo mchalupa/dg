@@ -35,9 +35,9 @@ public:
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 
 private:
-    Pointer getConstantExprPointer(const llvm::ConstantExpr *);
-    LLVMNode *getOperand(LLVMNode *, const llvm::Value *, unsigned int);
-    bool addGlobalPointsTo(const llvm::Constant *, LLVMNode *, uint64_t);
+    Pointer getConstantExprPointer(llvm::ConstantExpr *);
+    LLVMNode *getOperand(LLVMNode *, llvm::Value *, unsigned int);
+    bool addGlobalPointsTo(llvm::Constant *, LLVMNode *, uint64_t);
     bool propagatePointersToArguments(LLVMDependenceGraph *,
                                       const llvm::CallInst *, LLVMNode *);
     bool propagatePointersFromArguments(LLVMDependenceGraph *, LLVMNode *);
@@ -48,18 +48,18 @@ private:
     bool handleLoadInstPointsTo(LLVMNode *, LLVMNode *);
 
     bool handleAllocaInst(LLVMNode *);
-    bool handleStoreInst(const llvm::StoreInst *, LLVMNode *);
-    bool handleLoadInst(const llvm::LoadInst *, LLVMNode *);
-    bool handleGepInst(const llvm::GetElementPtrInst *, LLVMNode *);
-    bool handleCallInst(const llvm::CallInst *, LLVMNode *);
-    bool handleIntrinsicFunction(const llvm::CallInst *, LLVMNode *);
-    bool handleIntToPtr(const llvm::IntToPtrInst *, LLVMNode *);
-    bool handleBitCastInst(const llvm::BitCastInst *, LLVMNode *);
-    bool handleReturnInst(const llvm::ReturnInst *, LLVMNode *);
-    bool handlePHINode(const llvm::PHINode *, LLVMNode *);
-    bool handleSelectNode(const llvm::SelectInst *, LLVMNode *);
+    bool handleStoreInst(llvm::StoreInst *, LLVMNode *);
+    bool handleLoadInst(llvm::LoadInst *, LLVMNode *);
+    bool handleGepInst(llvm::GetElementPtrInst *, LLVMNode *);
+    bool handleCallInst(llvm::CallInst *, LLVMNode *);
+    bool handleIntrinsicFunction(llvm::CallInst *, LLVMNode *);
+    bool handleIntToPtr(llvm::IntToPtrInst *, LLVMNode *);
+    bool handleBitCastInst(llvm::BitCastInst *, LLVMNode *);
+    bool handleReturnInst(llvm::ReturnInst *, LLVMNode *);
+    bool handlePHINode(llvm::PHINode *, LLVMNode *);
+    bool handleSelectNode(llvm::SelectInst *, LLVMNode *);
 
-    bool handleMemTransfer(const llvm::IntrinsicInst *, LLVMNode *);
+    bool handleMemTransfer(llvm::IntrinsicInst *, LLVMNode *);
     void propagateVarArgPointsTo(LLVMDGParameters *, size_t, LLVMNode *);
 };
 

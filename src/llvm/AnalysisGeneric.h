@@ -104,11 +104,11 @@ extern MemoryObj NullMemoryObject;
 extern Pointer UnknownMemoryLocation;
 extern Pointer NullPointer;
 
-Pointer getConstantExprPointer(const llvm::ConstantExpr *CE,
+Pointer getConstantExprPointer(llvm::ConstantExpr *CE,
                                LLVMDependenceGraph *dg,
                                const llvm::DataLayout *DL);
 
-LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val,
+LLVMNode *getOperand(LLVMNode *node, llvm::Value *val,
                      unsigned int idx, const llvm::DataLayout *DL);
 
 } // namespace analysis

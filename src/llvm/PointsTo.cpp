@@ -28,7 +28,8 @@ LLVMPointsToAnalysis::LLVMPointsToAnalysis(LLVMDependenceGraph *dg)
     handleGlobals();
 }
 
-static bool handleMemAllocation(LLVMNode *node, size_t size = 0, bool isheap = false)
+static bool handleMemAllocation(LLVMNode *node, size_t size = 0,
+                                bool isheap = false)
 {
     // every global is a pointer
     MemoryObj *&mo = node->getMemoryObj();
@@ -57,7 +58,7 @@ static bool handleGlobal(LLVMNode *node)
 }
 
 LLVMNode *LLVMPointsToAnalysis::getOperand(LLVMNode *node,
-                                           const Value *val, unsigned int idx)
+                                           Value *val, unsigned int idx)
 {
     return dg::analysis::getOperand(node, val, idx, DL);
 }
@@ -80,14 +81,14 @@ static bool handleStoreInstPtr(LLVMNode *valNode, LLVMNode *ptrNode)
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleStoreInst(StoreInst *Inst, LLVMNode *node)
 {
     // get ptrNode before checking if value type is pointer type,
     // because the pointer operand can be ConstantExpr and in getOperand()
     // we resolve its points-to set
     LLVMNode *ptrNode = getOperand(node, Inst->getPointerOperand(), 0);
 
-    const Value *valOp = Inst->getValueOperand();
+    Value *valOp = Inst->getValueOperand();
     if (!valOp->getType()->isPointerTy())
         return false;
 
@@ -98,7 +99,7 @@ bool LLVMPointsToAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node
     return handleStoreInstPtr(valNode, ptrNode);
 }
 
-Pointer LLVMPointsToAnalysis::getConstantExprPointer(const ConstantExpr *CE)
+Pointer LLVMPointsToAnalysis::getConstantExprPointer(ConstantExpr *CE)
 {
     return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
@@ -223,7 +224,7 @@ bool LLVMPointsToAnalysis::handleLoadInstPointsTo(LLVMNode *ptrNode,
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleLoadInst(const LoadInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleLoadInst(LoadInst *Inst, LLVMNode *node)
 {
     if (!Inst->getType()->isPointerTy())
         return false;
@@ -297,11 +298,11 @@ static inline unsigned getPointerBitwidth(const DataLayout *DL, const Value *ptr
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
 
-bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
+bool LLVMPointsToAnalysis::handleGepInst(GetElementPtrInst *Inst,
                                          LLVMNode *node)
 {
     bool changed = false;
-    const Value *ptrOp = Inst->getPointerOperand();
+    Value *ptrOp = Inst->getPointerOperand();
     unsigned bitwidth = getPointerBitwidth(DL, ptrOp);
     APInt offset(bitwidth, 0);
 
@@ -325,7 +326,7 @@ bool LLVMPointsToAnalysis::handleGepInst(const GetElementPtrInst *Inst,
 
 // @CE is ConstantExpr initializer
 // @node is global's node
-bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
+bool LLVMPointsToAnalysis::addGlobalPointsTo(Constant *C,
                                              LLVMNode *node,
                                              uint64_t off)
 {
@@ -333,7 +334,7 @@ bool LLVMPointsToAnalysis::addGlobalPointsTo(const Constant *C,
     MemoryObj *mo = node->getMemoryObj();
     assert(mo && "Global has no mo");
 
-    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
+    if (ConstantExpr *CE = dyn_cast<ConstantExpr>(C)) {
         ptr = getConstantExprPointer(CE);
     } else if (isa<ConstantPointerNull>(C)) {
         ptr.obj = &NullMemoryObject;
@@ -478,10 +479,11 @@ static bool isCallInstCompatible(const Function *func, const CallInst *CI)
     return true;
 }
 
-bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode,
+                                                 LLVMNode *node)
 {
     bool changed = false;
-    const CallInst *CI = cast<CallInst>(node->getValue());
+    CallInst *CI = cast<CallInst>(node->getValue());
 
     for (const Pointer& ptr : calledFuncNode->getPointsTo()) {
         if (!ptr.isKnown()) {
@@ -490,14 +492,15 @@ bool LLVMPointsToAnalysis::handleFunctionPtrCall(LLVMNode *calledFuncNode, LLVMN
             continue;
         }
 
-        const Function *func = dyn_cast<Function>(ptr.obj->node->getValue());
-        // since we have vararg node, it is possible that the calledFuncNode will point
-        // to different types, like function, alloca and whatever
+        Function *func = dyn_cast<Function>(ptr.obj->node->getValue());
+        // since we have vararg node, it is possible that the calledFuncNode
+        // will point to different types, like function, alloca and whatever
         // (for exapmle the code: callva(1, func, a, "str") - this will
         // merge few different types of pointers into one node.
-        // XXX maybe we could filter it in loadinst - like to consider only the variables
-        // with the right type (llvmp is typed, so we know that the different types
-        // are the analysis result, not wrong code)
+        // XXX maybe we could filter it in loadinst - like to consider only
+        // the variables with the right type (llvmp is typed,
+        // so we know that the different types are the analysis result,
+        // not wrong code)
         if (!func)
             continue;
 
@@ -654,10 +657,10 @@ void LLVMPointsToAnalysis::propagateVarArgPointsTo(LLVMDGParameters *formal,
     assert(vaparam && "No vaarg param in vaarg function");
 
     size_t opnum = callNode->getOperandsNum();
-    const CallInst *CI = cast<CallInst>(callNode->getValue());
+    CallInst *CI = cast<CallInst>(callNode->getValue());
 
     for (; argnum < opnum - 1; ++argnum) {
-        const Value *opval = CI->getOperand(argnum);
+        Value *opval = CI->getOperand(argnum);
         if (!opval->getType()->isPointerTy())
             continue;
 
@@ -685,8 +688,7 @@ propagatePointersToArguments(LLVMDependenceGraph *subgraph,
     if (!formal)
         return false;
 
-    const Function *subfunc = dyn_cast<Function>(subgraph->getEntry()->getKey());
-    assert(subfunc && "Entry is not a llvm::Function");
+    Function *subfunc = cast<Function>(subgraph->getEntry()->getKey());
 
     // handle values for arguments
     // argument 0 is the called function, so start from 1
@@ -780,10 +782,10 @@ static bool handleDynamicMemAllocation(const CallInst *Inst,
     return handleMemAllocation(node, size, true);
 }
 
-bool LLVMPointsToAnalysis::handleMemTransfer(const IntrinsicInst *I, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleMemTransfer(IntrinsicInst *I, LLVMNode *node)
 {
     bool changed = false;
-    const Value *dest, *src, *len;
+    Value *dest, *src, *len;
 
     switch (I->getIntrinsicID())
     {
@@ -805,7 +807,7 @@ bool LLVMPointsToAnalysis::handleMemTransfer(const IntrinsicInst *I, LLVMNode *n
     LLVMNode *srcNode = getOperand(node, src, 2);
     uint64_t lenval = ~((uint64_t) 0);
 
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(len))
+    if (ConstantInt *C = dyn_cast<ConstantInt>(len))
         lenval = C->getLimitedValue();
 
     for (const Pointer& srcptr : srcNode->getPointsTo()) {
@@ -840,11 +842,11 @@ bool LLVMPointsToAnalysis::handleMemTransfer(const IntrinsicInst *I, LLVMNode *n
     return changed;
 }
 
-static bool handleVaStart(const IntrinsicInst *I, LLVMNode *node)
+static bool handleVaStart(IntrinsicInst *I, LLVMNode *node)
 {
     // vastart has only one operand which is the struct
     // it uses for storing the va arguments
-    const Value *vl = I->getOperand(0);
+    Value *vl = I->getOperand(0);
     LLVMDependenceGraph *dg = node->getDG();
     LLVMNode *valist = dg->getNode(vl);
     // this is allocainst in this function, we must have it!
@@ -879,9 +881,10 @@ static bool handleVaStart(const IntrinsicInst *I, LLVMNode *node)
     return mo->addPointsTo(UNKNOWN_OFFSET, vaparam->in->getPointsTo());
 }
 
-bool LLVMPointsToAnalysis::handleIntrinsicFunction(const CallInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleIntrinsicFunction(CallInst *Inst,
+                                                   LLVMNode *node)
 {
-    const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
+    IntrinsicInst *I = cast<IntrinsicInst>(Inst);
     if (isa<MemTransferInst>(I))
         return handleMemTransfer(I, node);
     else if (I->getIntrinsicID() == Intrinsic::vastart) {
@@ -891,7 +894,7 @@ bool LLVMPointsToAnalysis::handleIntrinsicFunction(const CallInst *Inst, LLVMNod
     return false;
 }
 
-bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
+bool LLVMPointsToAnalysis::handleCallInst(CallInst *Inst, LLVMNode *node)
 {
     bool changed = false;
     int type;
@@ -902,7 +905,8 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     if (Inst->isInlineAsm())
         return false;
 
-    const Function *func = dyn_cast<Function>(Inst->getCalledValue()->stripPointerCasts());
+    Function *func
+        = dyn_cast<Function>(Inst->getCalledValue()->stripPointerCasts());
 
     if (func && func->isIntrinsic())
         return handleIntrinsicFunction(Inst, node);
@@ -933,7 +937,7 @@ bool LLVMPointsToAnalysis::handleCallInst(const CallInst *Inst, LLVMNode *node)
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleIntToPtr(const IntToPtrInst *Inst,
+bool LLVMPointsToAnalysis::handleIntToPtr(IntToPtrInst *Inst,
                                           LLVMNode *node)
 {
     (void) Inst;
@@ -942,7 +946,7 @@ bool LLVMPointsToAnalysis::handleIntToPtr(const IntToPtrInst *Inst,
     return node->addPointsTo(UnknownMemoryLocation);
 }
 
-bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst,
+bool LLVMPointsToAnalysis::handleBitCastInst(BitCastInst *Inst,
                                              LLVMNode *node)
 {
     bool changed = false;
@@ -965,12 +969,12 @@ bool LLVMPointsToAnalysis::handleBitCastInst(const BitCastInst *Inst,
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst,
+bool LLVMPointsToAnalysis::handleReturnInst(ReturnInst *Inst,
                                             LLVMNode *node)
 {
     bool changed = false;
     LLVMNode *val = node->getOperand(0);
-    const Value *llvmval;
+    Value *llvmval;
 
     (void) Inst;
 
@@ -991,7 +995,7 @@ bool LLVMPointsToAnalysis::handleReturnInst(const ReturnInst *Inst,
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi,
+bool LLVMPointsToAnalysis::handlePHINode(llvm::PHINode *Phi,
                                          LLVMNode *node)
 {
     if (!node->isPointerTy())
@@ -1013,7 +1017,7 @@ bool LLVMPointsToAnalysis::handlePHINode(const llvm::PHINode *Phi,
     return changed;
 }
 
-bool LLVMPointsToAnalysis::handleSelectNode(const llvm::SelectInst *Sel,
+bool LLVMPointsToAnalysis::handleSelectNode(llvm::SelectInst *Sel,
                                             LLVMNode *node)
 {
     if (!node->isPointerTy())
@@ -1072,13 +1076,13 @@ void LLVMPointsToAnalysis::handleGlobals()
 
     // initialize globals
     for (auto it : *dg->getGlobalNodes()) {
-        const GlobalVariable *GV = dyn_cast<GlobalVariable>(it.first);
+        GlobalVariable *GV = dyn_cast<GlobalVariable>(it.first);
         // is it global variable or function?
         if (!GV)
             continue;
 
         if (GV->hasInitializer() && !GV->isExternallyInitialized()) {
-            const Constant *C = GV->getInitializer();
+            Constant *C = GV->getInitializer();
             uint64_t off = 0;
             Type *Ty;
 
@@ -1091,12 +1095,11 @@ void LLVMPointsToAnalysis::handleGlobals()
                 addGlobalPointsTo(C, it.second, off);
             else if (C->getType()->isAggregateType()) {
                 for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
-                    const Value *val = *I;
+                    Value *val = *I;
                     Ty = val->getType();
 
-                    if (Ty->isPointerTy()) {
+                    if (Ty->isPointerTy())
                         addGlobalPointsTo(cast<Constant>(val), it.second, off);
-                    }
 
                     off += DL->getTypeAllocSize(Ty);
                 }
@@ -1106,7 +1109,8 @@ void LLVMPointsToAnalysis::handleGlobals()
                 mo->addPointsTo(Offset(0), NullPointer);
             } else if (!isa<ConstantInt>(C)) {
 #ifdef DEBUG_ENABLED
-                errs() << "ERR points-to: unhandled global initializer: " << *C << "\n";
+                errs() << "ERR points-to: unhandled global initializer: "
+                       << *C << "\n";
 #endif
             }
         }
@@ -1118,32 +1122,32 @@ void LLVMPointsToAnalysis::handleGlobals()
 bool LLVMPointsToAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
 {
     bool changed = false;
-    const Value *val = node->getKey();
+    Value *val = node->getKey();
     (void) prev;
 
     if (isa<AllocaInst>(val)) {
         changed |= handleAllocaInst(node);
-    } else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+    } else if (StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         changed |= handleStoreInst(Inst, node);
-    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+    } else if (LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         changed |= handleLoadInst(Inst, node);
-    } else if (const GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
+    } else if (GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
         changed |= handleGepInst(Inst, node);
-    } else if (const CallInst *Inst = dyn_cast<CallInst>(val)) {
+    } else if (CallInst *Inst = dyn_cast<CallInst>(val)) {
         changed |= handleCallInst(Inst, node);
-    } else if (const ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
+    } else if (ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
         changed |= handleReturnInst(Inst, node);
-    } else if (const IntToPtrInst *Inst = dyn_cast<IntToPtrInst>(val)) {
+    } else if (IntToPtrInst *Inst = dyn_cast<IntToPtrInst>(val)) {
         changed |= handleIntToPtr(Inst, node);
-    } else if (const BitCastInst *Inst = dyn_cast<BitCastInst>(val)) {
+    } else if (BitCastInst *Inst = dyn_cast<BitCastInst>(val)) {
         changed |= handleBitCastInst(Inst, node);
-    } else if (const PHINode *Inst = dyn_cast<PHINode>(val)) {
+    } else if (PHINode *Inst = dyn_cast<PHINode>(val)) {
         changed |= handlePHINode(Inst, node);
-    } else if (const SelectInst *Inst = dyn_cast<SelectInst>(val)) {
+    } else if (SelectInst *Inst = dyn_cast<SelectInst>(val)) {
         changed |= handleSelectNode(Inst, node);
     } else {
 #ifdef DEBUG_ENABLED
-        const Instruction *I = dyn_cast<Instruction>(val);
+        Instruction *I = dyn_cast<Instruction>(val);
         assert(I && "Not an Instruction?");
 
         if (I->mayReadOrWriteMemory())

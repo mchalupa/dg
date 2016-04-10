@@ -33,18 +33,18 @@ typedef dg::DGParameters<LLVMNode> LLVMDGParameters;
 /// ------------------------------------------------------------------
 //  -- LLVMNode
 /// ------------------------------------------------------------------
-class LLVMNode : public Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>
+class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>
 {
 public:
-    LLVMNode(const llvm::Value *val, bool owns_value = false)
-        :dg::Node<LLVMDependenceGraph, const llvm::Value *, LLVMNode>(val),
+    LLVMNode(llvm::Value *val, bool owns_value = false)
+        :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val),
          operands(nullptr), operands_num(0), memoryobj(nullptr),
          owns_key(owns_value), data(nullptr)
     {}
 
     ~LLVMNode();
 
-    const llvm::Value *getValue() const { return getKey(); }
+    llvm::Value *getValue() const { return getKey(); }
 
     // create new subgraph with actual parameters that are given
     // by call-site and add parameter edges between actual and
@@ -52,7 +52,7 @@ public:
     // Must be called only when node is call-site.
     // XXX create new class for parameters
     void addActualParameters(LLVMDependenceGraph *);
-    void addActualParameters(LLVMDependenceGraph *, const llvm::Function *);
+    void addActualParameters(LLVMDependenceGraph *, llvm::Function *);
 
     LLVMNode **getOperands();
     size_t getOperandsNum();

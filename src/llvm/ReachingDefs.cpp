@@ -33,13 +33,13 @@ LLVMReachingDefsAnalysis::LLVMReachingDefsAnalysis(LLVMDependenceGraph *dg)
     DL = new DataLayout(m->getDataLayout());
 }
 
-Pointer LLVMReachingDefsAnalysis::getConstantExprPointer(const ConstantExpr *CE)
+Pointer LLVMReachingDefsAnalysis::getConstantExprPointer(ConstantExpr *CE)
 {
     return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
 
 LLVMNode *LLVMReachingDefsAnalysis::getOperand(LLVMNode *node,
-                                               const Value *val,
+                                               Value *val,
                                                unsigned int idx)
 {
     return dg::analysis::getOperand(node, val, idx, DL);
@@ -219,12 +219,12 @@ static bool handleParams(LLVMNode *callNode, LLVMDependenceGraph *subgraph,
 
 
 bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
-                                                   const CallInst *CI,
+                                                   CallInst *CI,
                                                    DefMap *df)
 {
     bool changed = false;
     for (unsigned n = 1, e = callNode->getOperandsNum(); n < e; ++n) {
-        const Value *llvmOp = CI->getOperand(n - 1);
+        Value *llvmOp = CI->getOperand(n - 1);
         if (!llvmOp->getType()->isPointerTy())
             continue;
 
@@ -246,12 +246,12 @@ bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
 }
 
 bool LLVMReachingDefsAnalysis::handleIntrinsicCall(LLVMNode *callNode,
-                                                   const CallInst *CI,
+                                                   CallInst *CI,
                                                    DefMap *df)
 {
     bool changed = false;
-    const IntrinsicInst *I = cast<IntrinsicInst>(CI);
-    const Value *dest;
+    IntrinsicInst *I = cast<IntrinsicInst>(CI);
+    Value *dest;
 
     switch (I->getIntrinsicID())
     {
@@ -280,8 +280,10 @@ bool LLVMReachingDefsAnalysis::handleIntrinsicCall(LLVMNode *callNode,
 bool LLVMReachingDefsAnalysis::handleUndefinedCall(LLVMNode *callNode,
                                                    DefMap *df)
 {
-    const CallInst *CI = cast<CallInst>(callNode->getKey());
-    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    CallInst *CI = cast<CallInst>(callNode->getKey());
+    Function *func
+        = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+
     if (func && func->isIntrinsic())
         return handleIntrinsicCall(callNode, CI, df);
 
@@ -323,7 +325,7 @@ bool LLVMReachingDefsAnalysis::handleStoreInst(LLVMNode *storeNode, DefMap *df,
                                                PointsToSetT *&strong_update)
 {
     bool changed = false;
-    const llvm::StoreInst *SI = cast<StoreInst>(storeNode->getValue());
+    llvm::StoreInst *SI = cast<StoreInst>(storeNode->getValue());
     LLVMNode *ptrNode = getOperand(storeNode, SI->getPointerOperand(), 0);
     assert(ptrNode && "No pointer operand");
 

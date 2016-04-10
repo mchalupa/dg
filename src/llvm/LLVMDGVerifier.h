@@ -19,7 +19,7 @@ class LLVMDGVerifier {
 
     void fault(const char *fmt, ...);
     void checkMainProc();
-    void checkGraph(const llvm::Function *, LLVMDependenceGraph *);
+    void checkGraph(llvm::Function *, LLVMDependenceGraph *);
     void checkBBlock(const llvm::BasicBlock *, LLVMBBlock *);
     void checkNode(const llvm::Value *, LLVMNode *);
 public:

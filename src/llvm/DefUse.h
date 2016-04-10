@@ -46,10 +46,10 @@ private:
                            const llvm::Value *ptrOp,
                            uint64_t size);
 
-    void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
+    void handleLoadInst(llvm::LoadInst *, LLVMNode *);
     void handleCallInst(LLVMNode *);
     void handleInlineAsm(LLVMNode *callNode);
-    void handleIntrinsicCall(LLVMNode *callNode, const llvm::CallInst *CI);
+    void handleIntrinsicCall(LLVMNode *callNode, llvm::CallInst *CI);
     /*
     void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
     void handleIntrinsicCall(LLVMNode *, const llvm::CallInst *);
@@ -84,15 +84,15 @@ public:
     /* virtual */
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 private:
-    Pointer getConstantExprPointer(const llvm::ConstantExpr *);
-    LLVMNode *getOperand(LLVMNode *node, const llvm::Value *val, unsigned int idx);
+    Pointer getConstantExprPointer(llvm::ConstantExpr *);
+    LLVMNode *getOperand(LLVMNode *node, llvm::Value *val, unsigned int idx);
 
-    void handleLoadInst(const llvm::LoadInst *, LLVMNode *);
-    void handleStoreInst(const llvm::StoreInst *, LLVMNode *);
-    void handleIntrinsicCall(LLVMNode *, const llvm::CallInst *);
+    void handleLoadInst(llvm::LoadInst *, LLVMNode *);
+    void handleStoreInst(llvm::StoreInst *, LLVMNode *);
+    void handleIntrinsicCall(LLVMNode *, llvm::CallInst *);
     void handleUndefinedCall(LLVMNode *);
     void handleCallInst(LLVMNode *);
-    void handleUndefinedCall(LLVMNode *, const llvm::CallInst *);
+    void handleUndefinedCall(LLVMNode *, llvm::CallInst *);
     void handleInlineAsm(LLVMNode *callNode);
 
     void addStoreLoadInstDefUse(LLVMNode *, LLVMNode *, DefMap *);
@@ -102,7 +102,8 @@ private:
     void addIndirectDefUsePtr(const Pointer&, LLVMNode *, DefMap *, uint64_t);
     void addDefUseToParam(LLVMNode *, DefMap *, LLVMDGParameter *);
     void addDefUseToParamNode(LLVMNode *op, DefMap *df, LLVMNode *to);
-    void addInitialDefuse(LLVMDependenceGraph *, ValuesSetT&, const Pointer&, uint64_t);
+    void addInitialDefuse(LLVMDependenceGraph *,
+                          ValuesSetT&, const Pointer&, uint64_t);
 };
 
 } // namespace old

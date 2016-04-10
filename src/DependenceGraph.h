@@ -55,8 +55,9 @@ private:
     // Formal parameters of the graph. Every graph is a graph of some function
     // and formal parameters are parameters from its prototype, i. e. for
     // foo(int a, int b) we have formal parameters 'a' and 'b'. Actual parameters
-    // are the values that are passed to function call, so for foo(3, x) the actual
-    // parameters are '3' and 'x'. Actual parameters are stored in the call node.
+    // are the values that are passed to function call, so for foo(3, x)
+    // the actual parameters are '3' and 'x'.
+    // Actual parameters are stored in the call node.
     // Graph can have none or one formal parameters.
     DGParameters<NodeT> *formalParameters;
 

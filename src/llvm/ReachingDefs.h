@@ -34,15 +34,15 @@ public:
     bool runOnNode(LLVMNode *node, LLVMNode *pred);
     void handleNode(LLVMNode *);
 private:
-    Pointer getConstantExprPointer(const llvm::ConstantExpr *);
+    Pointer getConstantExprPointer(llvm::ConstantExpr *);
     LLVMNode *getOperand(LLVMNode *node,
-                         const llvm::Value *val, unsigned int idx);
+                         llvm::Value *val, unsigned int idx);
 
     bool handleCallInst(LLVMDependenceGraph *, LLVMNode *, DefMap *);
     bool handleStoreInst(LLVMNode *, DefMap *, PointsToSetT *&strong_update);
 
-    bool handleUndefinedCall(LLVMNode *, const llvm::CallInst *, DefMap *);
-    bool handleIntrinsicCall(LLVMNode *, const llvm::CallInst *, DefMap *);
+    bool handleUndefinedCall(LLVMNode *, llvm::CallInst *, DefMap *);
+    bool handleIntrinsicCall(LLVMNode *, llvm::CallInst *, DefMap *);
     bool handleUndefinedCall(LLVMNode *, DefMap *);
     bool handleCallInst(LLVMNode *, DefMap *);
 };

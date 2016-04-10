@@ -38,7 +38,8 @@ typedef dg::BBlock<LLVMNode> LLVMBBlock;
 class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
 public:
-    LLVMDependenceGraph() : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}
+    LLVMDependenceGraph()
+        : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}
 
     // free all allocated memory and unref subgraphs
     virtual ~LLVMDependenceGraph();
@@ -46,15 +47,16 @@ public:
     // build a DependenceGraph from module. This method will
     // build all subgraphs (called procedures). If entry is nullptr,
     // then this methods looks for function named 'main'.
-    bool build(llvm::Module *m, const llvm::Function *entry = nullptr);
-    bool build(llvm::Module *m, LLVMPointsToAnalysis *pts, const llvm::Function *entry = nullptr);
+    bool build(llvm::Module *m, llvm::Function *entry = nullptr);
+    bool build(llvm::Module *m, LLVMPointsToAnalysis *pts,
+               llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions
-    bool build(const llvm::Function *func);
+    bool build(llvm::Function *func);
 
-    bool addFormalParameter(const llvm::Value *val);
-    bool addFormalGlobal(const llvm::Value *val);
+    bool addFormalParameter(llvm::Value *val);
+    bool addFormalGlobal(llvm::Value *val);
 
     llvm::Module *getModule() const { return module; }
 
@@ -85,7 +87,7 @@ public:
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
-    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, const llvm::Function *);
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void computePostDominators(bool addPostDomFrontiers = false);
@@ -116,13 +118,13 @@ private:
     // take action specific to given instruction (while building
     // the graph). This is like if the value is a call-site,
     // then build subgraph or similar
-    void handleInstruction(const llvm::Value *val, LLVMNode *node);
+    void handleInstruction(llvm::Value *val, LLVMNode *node);
 
     // convert llvm basic block to our basic block
     // That includes creating all the nodes and adding them
     // to this graph and creating the basic block and
     // setting first and last instructions
-    LLVMBBlock *build(const llvm::BasicBlock& BB);
+    LLVMBBlock *build(llvm::BasicBlock& BB);
 
     // gather call-sites of functions with given name
     // when building the graph
@@ -144,7 +146,8 @@ private:
     friend class LLVMDGVerifier;
 };
 
-const std::map<const llvm::Value *, LLVMDependenceGraph *>& getConstructedFunctions();
+const std::map<llvm::Value *,
+               LLVMDependenceGraph *>& getConstructedFunctions();
 
 } // namespace dg
 

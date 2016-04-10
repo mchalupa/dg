@@ -101,7 +101,11 @@ public:
         return ret;
     }
 
-    const DGParameter<NodeT> *findParameter(KeyT k) const { return findParameter(k); }
+    const DGParameter<NodeT> *findParameter(KeyT k) const
+    {
+        return findParameter(k);
+    }
+
     const DGParameter<NodeT> *findGlobal(KeyT k) const { return findGlobal(k); }
     const DGParameter<NodeT> *find(KeyT k) const { return find(k); }
 

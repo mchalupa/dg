@@ -28,7 +28,7 @@ bool LLVMDGVerifier::verify()
 {
     checkMainProc();
 
-    extern std::map<const llvm::Value *,
+    extern std::map<llvm::Value *,
                     LLVMDependenceGraph *> constructedFunctions;
     for (auto it : constructedFunctions)
         checkGraph(llvm::cast<llvm::Function>(it.first), it.second);
@@ -43,7 +43,7 @@ void LLVMDGVerifier::checkMainProc()
         fault("has no module set");
 
     // all the subgraphs must have the same global nodes
-    extern std::map<const llvm::Value *,
+    extern std::map<llvm::Value *,
                     LLVMDependenceGraph *> constructedFunctions;
     for (auto it : constructedFunctions) {
         if (it.second->global_nodes != dg->global_nodes)
@@ -80,7 +80,7 @@ void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB, LLVMBBlock *BB)
     // FIXME: check successors and predecessors
 }
 
-void LLVMDGVerifier::checkGraph(const llvm::Function *F, LLVMDependenceGraph *g)
+void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g)
 {
     using namespace llvm;
 
@@ -98,7 +98,7 @@ void LLVMDGVerifier::checkGraph(const llvm::Function *F, LLVMDependenceGraph *g)
     if (a != b)
         fault("have constructed %lu BBlocks but function has %lu basic blocks", a, b);
 
-    for (const BasicBlock& llvmBB : *F) {
+    for (BasicBlock& llvmBB : *F) {
         LLVMBBlock *BB = g->getBlocks()[&llvmBB];
         if (!BB) {
             fault("missing BasicBlock");

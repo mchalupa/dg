@@ -43,9 +43,10 @@ namespace dg {
 /// ------------------------------------------------------------------
 
 // map of all constructed functions
-std::map<const llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+std::map<llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 
-const std::map<const llvm::Value *, LLVMDependenceGraph *>& getConstructedFunctions()
+const std::map<llvm::Value *,
+               LLVMDependenceGraph *>& getConstructedFunctions()
 {
     return constructedFunctions;
 }
@@ -102,7 +103,7 @@ bool LLVMDependenceGraph::verify() const
     return verifier.verify();
 }
 
-bool LLVMDependenceGraph::build(llvm::Module *m, const llvm::Function *entry)
+bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
     // get entry function if not given
     if (!entry)
@@ -129,16 +130,16 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
 {
     using namespace llvm;
 
-    const Value *val = node->getValue();
-    const CallInst *CInst = dyn_cast<CallInst>(val);
+    Value *val = node->getValue();
+    CallInst *CInst = dyn_cast<CallInst>(val);
     assert(CInst && "buildSubgraph called on non-CallInst");
-    const Function *callFunc = CInst->getCalledFunction();
+    Function *callFunc = CInst->getCalledFunction();
 
     return buildSubgraph(node, callFunc);
 }
 
 // FIXME don't duplicate the code
-bool LLVMDependenceGraph::addFormalGlobal(const llvm::Value *val)
+bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
 {
     // add the same formal parameters
     LLVMDGParameters *params = getParameters();
@@ -203,7 +204,7 @@ void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgr
 }
 
 LLVMDependenceGraph *
-LLVMDependenceGraph::buildSubgraph(LLVMNode *node, const llvm::Function *callFunc)
+LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc)
 {
     using namespace llvm;
 
@@ -265,7 +266,7 @@ is_func_defined(const llvm::Function *func)
     return true;
 }
 
-bool LLVMDependenceGraph::addFormalParameter(const llvm::Value *val)
+bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
 {
     // add the same formal parameters
     LLVMDGParameters *params = getParameters();
@@ -305,14 +306,14 @@ static bool isMemAllocationFunc(const llvm::Function *func)
     return false;
 }
 
-void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
+void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                                             LLVMNode *node)
 {
     using namespace llvm;
 
-    if (const CallInst *CInst = dyn_cast<CallInst>(val)) {
-        const Value *strippedValue = CInst->getCalledValue()->stripPointerCasts();
-        const Function *func = dyn_cast<Function>(strippedValue);
+    if (CallInst *CInst = dyn_cast<CallInst>(val)) {
+        Value *strippedValue = CInst->getCalledValue()->stripPointerCasts();
+        Function *func = dyn_cast<Function>(strippedValue);
         // if func is nullptr, then this is indirect call
         // via function pointer. If we have the points-to information,
         // create the subgraph
@@ -321,7 +322,8 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
             PSSNode *op = PTA->getNode(val);
             for (const Pointer& ptr : op->pointsTo) {
                 if (ptr.isNull()) {
-                    llvm::errs() << "Possible call of nullptr: " << *CInst << "\n";
+                    llvm::errs() << "Possible call of nullptr: "
+                                 << *CInst << "\n";
                     continue;
                 } // XXX: unknown pointers
 
@@ -330,7 +332,7 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
                 if (!isa<Function>(ptr.target->getUserData<Value>()))
                     continue;
 
-                const Function *F = ptr.target->getUserData<Function>();
+                Function *F = ptr.target->getUserData<Function>();
                 LLVMDependenceGraph *subg = buildSubgraph(node, F);
                 node->addSubgraph(subg);
             }
@@ -354,15 +356,16 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
         if (isMemAllocationFunc(CInst->getCalledFunction()))
                 addFormalParameter(val);
 
-        // no matter what is the function, this is a CallInst, so create call-graph
+        // no matter what is the function, this is a CallInst,
+        // so create call-graph
         addCallNode(node);
-    } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
+    } else if (Instruction *Inst = dyn_cast<Instruction>(val)) {
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
-            const Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
+            Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
              if (isa<GlobalVariable>(op))
                  addFormalGlobal(op);
         } else if (isa<StoreInst>(val)) {
-            const Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
+            Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
             if (isa<GlobalVariable>(op))
                 addFormalGlobal(op);
 
@@ -373,7 +376,7 @@ void LLVMDependenceGraph::handleInstruction(const llvm::Value *val,
     }
 }
 
-LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
+LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
 {
     using namespace llvm;
 
@@ -383,8 +386,8 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     BB->setKey(&llvmBB);
 
     // iterate over the instruction and create node for every single one of them
-    for (const Instruction& Inst : llvmBB) {
-        const Value *val = &Inst;
+    for (Instruction& Inst : llvmBB) {
+        Value *val = &Inst;
         node = new LLVMNode(val);
 
         // add new node to this dependence graph
@@ -400,7 +403,7 @@ LLVMBBlock *LLVMDependenceGraph::build(const llvm::BasicBlock& llvmBB)
     // check if this is the exit node of function
     // (node is now the last instruction in this BB)
     // if it is, connect it to one artificial return node
-    const Value *termval = node->getValue();
+    Value *termval = node->getValue();
     if (isa<ReturnInst>(termval)) {
         // create one unified exit node from function and add control dependence
         // to it from every return instruction. We could use llvm pass that
@@ -502,14 +505,14 @@ addControlDepsToPHIs(LLVMDependenceGraph *graph)
     // add control dependence to each block going to this phi
     // XXX: it is over-approximation, but we don't have nothing better now
     for (auto I = graph->begin(), E = graph->end(); I != E; ++I) {
-        const llvm::Value *val = I->first;
-        if (const llvm::PHINode *phi = llvm::dyn_cast<llvm::PHINode>(val)) {
+        llvm::Value *val = I->first;
+        if (llvm::PHINode *phi = llvm::dyn_cast<llvm::PHINode>(val)) {
             addControlDepsToPHI(graph, I->second, phi);
         }
     }
 }
 
-bool LLVMDependenceGraph::build(const llvm::Function *func)
+bool LLVMDependenceGraph::build(llvm::Function *func)
 {
     using namespace llvm;
 
@@ -533,7 +536,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
     addFormalParameters();
 
     // iterate over basic blocks
-    for (const llvm::BasicBlock& llvmBB : *func) {
+    for (llvm::BasicBlock& llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
         blocks[&llvmBB] = BB;
 
@@ -544,12 +547,12 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
 
     // add CFG edges
     for (auto it : blocks) {
-        const BasicBlock *llvmBB = cast<BasicBlock>(it.first);
+        BasicBlock *llvmBB = cast<BasicBlock>(it.first);
         LLVMBBlock *BB = it.second;
         BB->setDG(this);
 
         int idx = 0;
-        for (succ_const_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
+        for (succ_iterator S = succ_begin(llvmBB), SE = succ_end(llvmBB);
              S != SE; ++S) {
             LLVMBBlock *succ = blocks[*S];
             assert(succ && "Missing basic block");
@@ -588,7 +591,7 @@ bool LLVMDependenceGraph::build(const llvm::Function *func)
 
 bool LLVMDependenceGraph::build(llvm::Module *m,
                                 LLVMPointsToAnalysis *pts,
-                                const llvm::Function *entry)
+                                llvm::Function *entry)
 {
     this->PTA = pts;
     bool ret = build(m, entry);
@@ -636,7 +639,7 @@ void LLVMDependenceGraph::addFormalParameters()
     LLVMNode *entryNode = getEntry();
     assert(entryNode && "No entry node when adding formal parameters");
 
-    const Function *func = dyn_cast<Function>(entryNode->getValue());
+    Function *func = dyn_cast<Function>(entryNode->getValue());
     assert(func && "entry node value is not a function");
     //assert(func->arg_size() != 0 && "This function is undefined?");
     if (func->arg_size() == 0)
@@ -651,7 +654,7 @@ void LLVMDependenceGraph::addFormalParameters()
     LLVMNode *in, *out;
     for (auto I = func->arg_begin(), E = func->arg_end();
          I != E; ++I) {
-        const Value *val = (&*I);
+        Value *val = (&*I);
 
         in = new LLVMNode(val);
         out = new LLVMNode(val);
@@ -713,7 +716,8 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
             LLVMNode *entry = dg->getEntry();
             assert(entry && "No entry node in graph");
 
-            const Function *func = cast<Function>(entry->getValue()->stripPointerCasts());
+            const Function *func
+                = cast<Function>(entry->getValue()->stripPointerCasts());
             return array_match(func->getName(), names);
         }
     }

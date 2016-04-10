@@ -32,7 +32,7 @@ public:
     {
         using namespace llvm;
 
-        Value *val = const_cast<Value *>(node->getKey());
+        Value *val = node->getKey();
         // if there are any other uses of this value,
         // just replace them with undef
         val->replaceAllUsesWith(UndefValue::get(val->getType()));
@@ -81,13 +81,11 @@ public:
     {
         assert(block);
 
-        const llvm::Value *val = block->getKey();
+        llvm::Value *val = block->getKey();
         if (val == nullptr)
             return;
 
-        llvm::Value *llvmval = const_cast<llvm::Value *>(val);
-        llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(llvmval);
-
+        llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(val);
         for (auto succ : block->successors()) {
             if (succ.label == 255)
                 continue;
@@ -97,7 +95,7 @@ public:
             if (succ.target == block)
                 continue;
 
-            llvm::Value *sval = const_cast<llvm::Value *>(succ.target->getKey());
+            llvm::Value *sval = succ.target->getKey();
             if (sval)
                 adjustPhiNodes(llvm::cast<llvm::BasicBlock>(sval), blk);
         }
@@ -184,46 +182,6 @@ private:
         }
     }
 
-/*
-    static LLVMBBlock *
-    createNewExitBB(LLVMDependenceGraph *graph)
-    {
-        using namespace llvm;
-
-        LLVMBBlock *exitBB = new LLVMBBlock();
-
-        Module *M = graph->getModule();
-        LLVMContext& Ctx = M->getContext();
-        BasicBlock *block = BasicBlock::Create(Ctx, "safe_exit");
-        // terminate the basic block with unreachable
-        // (we'll call _exit() before that)
-        UnreachableInst *UI = new UnreachableInst(Ctx, block);
-        Type *size_t_Ty;
-
-        // call the _exit function
-        Constant *Func = M->getOrInsertFunction("_exit",
-                                                Type::getVoidTy(Ctx),
-                                                Type::getInt32Ty(Ctx),
-                                                NULL);
-
-        std::vector<Value *> args;
-        args.push_back(ConstantInt::get(Type::getInt32Ty(Ctx), 0));
-        CallInst *CI = CallInst::Create(Func, args);
-        CI->insertBefore(UI);
-
-        Value *fval = const_cast<Value *>(graph->getEntry()->getKey());
-        Function *F = cast<Function>(fval);
-        F->getBasicBlockList().push_back(block);
-
-        exitBB->append(new LLVMNode(CI));
-        exitBB->append(new LLVMNode(UI));
-        exitBB->setKey(block);
-        exitBB->setDG(graph);
-
-        return exitBB;
-    }
-*/
-
     static LLVMBBlock *
     createNewExitBB(LLVMDependenceGraph *graph)
     {
@@ -235,7 +193,7 @@ private:
         LLVMContext& Ctx = M->getContext();
         BasicBlock *block = BasicBlock::Create(Ctx, "safe_return");
 
-        Value *fval = const_cast<Value *>(graph->getEntry()->getKey());
+        Value *fval = graph->getEntry()->getKey();
         Function *F = cast<Function>(fval);
         F->getBasicBlockList().push_back(block);
 
@@ -250,7 +208,9 @@ private:
                                     ConstantInt::get(Type::getInt32Ty(Ctx), 0),
                                     block);
         else
-            RI = ReturnInst::Create(Ctx, UndefValue::get(F->getReturnType()), block);
+            RI = ReturnInst::Create(Ctx,
+                                    UndefValue::get(F->getReturnType()),
+                                    block);
 
         exitBB->append(new LLVMNode(RI));
         exitBB->setKey(block);
@@ -494,8 +454,7 @@ private:
                     // don't create return, we created branchinst
                     create_return = false;
 
-                    const BasicBlock *csucc = cast<BasicBlock>(edge.target->getKey());
-                    BasicBlock *succ = const_cast<BasicBlock *>(csucc);
+                    BasicBlock *succ = cast<BasicBlock>(edge.target->getKey());
                     BranchInst::Create(succ, llvmBB);
                 }
             }
@@ -527,7 +486,7 @@ private:
             if (succ.label == 255)
                 continue;
 
-            llvm::Value *val = const_cast<llvm::Value *>(succ.target->getKey());
+            llvm::Value *val = succ.target->getKey();
             assert(val && "nullptr as BB's key");
             llvm::BasicBlock *llvmSucc = llvm::cast<llvm::BasicBlock>(val);
             tinst->setSuccessor(succ.label, llvmSucc);
@@ -540,7 +499,7 @@ private:
     {
         for (auto it : graph->getBlocks()) {
             llvm::BasicBlock *llvmBB
-                = llvm::cast<llvm::BasicBlock>(const_cast<llvm::Value *>(it.first));
+                = llvm::cast<llvm::BasicBlock>(it.first);
             LLVMBBlock *BB = it.second;
 
             reconnectBBlock(BB, llvmBB);
@@ -551,7 +510,7 @@ private:
     {
         using namespace llvm;
 
-        Value *val = const_cast<Value *>(graph->getEntry()->getKey());
+        Value *val = graph->getEntry()->getKey();
         Function *F = cast<Function>(val);
 
         // Function is empty, just bail out

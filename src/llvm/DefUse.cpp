@@ -57,7 +57,8 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
                                        LLVMPointsToAnalysis *pta)
-    : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), analysis::DATAFLOW_INTERPROCEDURAL),
+    : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
+                                           analysis::DATAFLOW_INTERPROCEDURAL),
       dg(dg), RD(rd), PTA(pta)
 {
     assert(PTA && "Need points-to information");
@@ -76,12 +77,12 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
 
 void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
 {
-    const CallInst *CI = cast<CallInst>(callNode->getValue());
+    CallInst *CI = cast<CallInst>(callNode->getValue());
     LLVMDependenceGraph *dg = callNode->getDG();
 
     // the last operand is the asm itself, so iterate only to e - 1
     for (unsigned i = 0, e = CI->getNumOperands(); i < e - 1; ++i) {
-        const Value *opVal = CI->getOperand(i);
+        Value *opVal = CI->getOperand(i);
         if (!opVal->getType()->isPointerTy())
             continue;
 
@@ -100,10 +101,10 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
 }
 
 void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
-                                             const CallInst *CI)
+                                             CallInst *CI)
 {
-    const IntrinsicInst *I = cast<IntrinsicInst>(CI);
-    const Value *dest, *src = nullptr;
+    IntrinsicInst *I = cast<IntrinsicInst>(CI);
+    Value *dest, *src = nullptr;
 
     switch (I->getIntrinsicID())
     {
@@ -136,14 +137,14 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
 
 void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 {
-    const CallInst *CI = cast<CallInst>(node->getKey());
+    CallInst *CI = cast<CallInst>(node->getKey());
 
     if (CI->isInlineAsm()) {
         handleInlineAsm(node);
         return;
     }
 
-    const Function *func
+    Function *func
         = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
     if (func && func->isIntrinsic() && !isa<DbgValueInst>(CI))
         handleIntrinsicCall(node, CI);
@@ -257,7 +258,7 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
     return DL->getTypeAllocSize(Ty);
 }
 
-void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *node)
+void LLVMDefUseAnalysis::handleLoadInst(llvm::LoadInst *Inst, LLVMNode *node)
 {
     using namespace dg::analysis;
 
@@ -267,19 +268,19 @@ void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst, LLVMNode *no
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
 {
-    const Value *val = node->getKey();
+    Value *val = node->getKey();
     (void) prev;
 
-    if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+    if (LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
-    /*} else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+    /*} else if (StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         handleStoreInst(Inst, node);*/
     }
 
     /* just add direct def-use edges to every instruction */
-    if (const Instruction *Inst = dyn_cast<Instruction>(val))
+    if (Instruction *Inst = dyn_cast<Instruction>(val))
         handleInstruction(Inst, node);
 
     // we will run only once
@@ -298,7 +299,7 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg)
     DL = new DataLayout(m->getDataLayout());
 }
 
-Pointer LLVMDefUseAnalysis::getConstantExprPointer(const ConstantExpr *CE)
+Pointer LLVMDefUseAnalysis::getConstantExprPointer(ConstantExpr *CE)
 {
     return dg::analysis::getConstantExprPointer(CE, dg, DL);
 }
@@ -319,7 +320,7 @@ static DefMap *getDefMap(LLVMNode *n)
 }
 
 LLVMNode *LLVMDefUseAnalysis::getOperand(LLVMNode *node,
-                                        const Value *val, unsigned int idx)
+                                        Value *val, unsigned int idx)
 {
     return dg::analysis::getOperand(node, val, idx, DL);
 }
@@ -349,7 +350,7 @@ void LLVMDefUseAnalysis::addInitialDefuse(LLVMDependenceGraph *dg,
                                           uint64_t len)
 {
     LLVMNode *ptrnode = ptr.obj->node;
-    const Value *ptrVal = ptrnode->getKey();
+    Value *ptrVal = ptrnode->getKey();
 
     assert(defs.empty() && "Adding initial def-use to something defined");
 
@@ -442,7 +443,7 @@ static bool isDefinitionInRange(uint64_t off, uint64_t len,
         // check if definition, that has lesser offset than the
         // offset in our pointer can write to our memory
         for (LLVMNode *n : defs) {
-            const Value *v = n->getValue();
+            Value *v = n->getValue();
             // the only instruction that can write into memory is store inst
             // (and actually some intrinsic insts, but we don't care about those here)
             if (!isa<StoreInst>(v))
@@ -538,7 +539,7 @@ void LLVMDefUseAnalysis::addIndirectDefUse(LLVMNode *ptrNode, LLVMNode *to,
 void LLVMDefUseAnalysis::addStoreLoadInstDefUse(LLVMNode *storeNode,
                                                 LLVMNode *op, DefMap *df)
 {
-    const Value *val = op->getKey();
+    Value *val = op->getKey();
     if (isa<ConstantExpr>(val)) {
         // it should be one ptr
         PointsToSetT& PS = op->getPointsTo();
@@ -551,7 +552,7 @@ void LLVMDefUseAnalysis::addStoreLoadInstDefUse(LLVMNode *storeNode,
         op->addDataDependence(storeNode);
 }
 
-void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
+void LLVMDefUseAnalysis::handleStoreInst(StoreInst *Inst, LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
     LLVMNode *valNode = node->getOperand(1);
@@ -562,7 +563,7 @@ void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
     }
 #ifdef DEBUG_ENABLED
     else {
-        const Value *valOp = Inst->getValueOperand();
+        Value *valOp = Inst->getValueOperand();
         if (!isa<ConstantInt>(valOp) && !isa<ConstantPointerNull>(valOp))
             DBG("ERR def-use: Unhandled value operand for " << *Inst);
     }
@@ -583,7 +584,7 @@ void addDefUseToUnknownLocation(LLVMNode *node, DefMap *df)
         n->addDataDependence(node);
 }
 
-void LLVMDefUseAnalysis::handleLoadInst(const llvm::LoadInst *Inst,
+void LLVMDefUseAnalysis::handleLoadInst(llvm::LoadInst *Inst,
                                         LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
@@ -648,7 +649,7 @@ static void addOutParamsEdges(LLVMDependenceGraph *graph)
     if (params) {
         // add edges to parameters
         for (auto it : *params) {
-            const Value *val = it.first;
+            Value *val = it.first;
             if (!val->getType()->isPointerTy())
                 continue;
 
@@ -763,12 +764,12 @@ void LLVMDefUseAnalysis::addDefUseToParameterGlobals(LLVMNode *node,
     }
 }
 
-void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node, const CallInst *CI)
+void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node, CallInst *CI)
 {
     // the function is undefined - add the top-level deps
     LLVMDependenceGraph *dg = node->getDG();
     for (auto I = CI->op_begin(), E = CI->op_end(); I != E; ++I) {
-        const Value *op = *I;
+        Value *op = *I;
         LLVMNode *from;
 
         if (isa<ConstantExpr>(op))
@@ -781,10 +782,10 @@ void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node, const CallInst *CI)
     }
 }
 
-void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst *CI)
+void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, CallInst *CI)
 {
-    const IntrinsicInst *I = cast<IntrinsicInst>(CI);
-    const Value *dest, *src = nullptr;
+    IntrinsicInst *I = cast<IntrinsicInst>(CI);
+    Value *dest, *src = nullptr;
     DefMap *df = getDefMap(callNode);
 
     switch (I->getIntrinsicID())
@@ -826,8 +827,9 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode, const CallInst 
 
 void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node)
 {
-    const CallInst *CI = cast<CallInst>(node->getKey());
-    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    CallInst *CI = cast<CallInst>(node->getKey());
+    Function *func
+        = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
     if (func && func->isIntrinsic())
         handleIntrinsicCall(node, CI);
     else
@@ -836,12 +838,12 @@ void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *node)
 
 void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
 {
-    const CallInst *CI = cast<CallInst>(callNode->getValue());
+    CallInst *CI = cast<CallInst>(callNode->getValue());
     LLVMDependenceGraph *dg = callNode->getDG();
 
     // the last operand is the asm itself, so iterate only to e - 1
     for (unsigned i = 0, e = CI->getNumOperands(); i < e - 1; ++i) {
-        const Value *opVal = CI->getOperand(i);
+        Value *opVal = CI->getOperand(i);
         if (!opVal->getType()->isPointerTy())
             continue;
 
@@ -862,14 +864,15 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
 void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 {
     DefMap *df = getDefMap(node);
-    const CallInst *CI = cast<CallInst>(node->getKey());
+    CallInst *CI = cast<CallInst>(node->getKey());
 
     if (CI->isInlineAsm()) {
         handleInlineAsm(node);
         return;
     }
 
-    const Function *func = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
+    Function *func
+        = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
 
     // if this is call via function pointer, add the
     // data dependence edge to corresponding node
@@ -905,16 +908,16 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
 {
-    const Value *val = node->getKey();
+    Value *val = node->getKey();
     (void) prev;
 
-    if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+    if (StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         handleStoreInst(Inst, node);
-    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+    } else if (LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
-    } else if (const Instruction *Inst = dyn_cast<Instruction>(val)) {
+    } else if (Instruction *Inst = dyn_cast<Instruction>(val)) {
         handleInstruction(Inst, node); // handle rest of Insts
     } else {
         DBG("ERR: Unhandled instruction " << *val);

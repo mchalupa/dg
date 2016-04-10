@@ -82,7 +82,7 @@ void LLVMNode::dumpAll() const
 LLVMNode **LLVMNode::findOperands()
 {
     using namespace llvm;
-    const Value *val = getKey();
+    Value *val = getKey();
 
     // FIXME use op_begin() and op_end() and do it generic
     // for all the instructions (+ maybe some speacial handling
@@ -93,7 +93,7 @@ LLVMNode **LLVMNode::findOperands()
         operands = new LLVMNode *[1];
         operands[0] = dg->getNode(val);
         operands_num = 1;
-    } else if (const StoreInst *Inst = dyn_cast<StoreInst>(val)) {
+    } else if (StoreInst *Inst = dyn_cast<StoreInst>(val)) {
         operands = new LLVMNode *[2];
         operands[0] = dg->getNode(Inst->getPointerOperand());
         operands[1] = dg->getNode(Inst->getValueOperand());
@@ -104,20 +104,20 @@ LLVMNode **LLVMNode::findOperands()
             errs() << "WARN: Didn't found value for " << *Inst << "\n";
 #endif
         operands_num = 2;
-    } else if (const LoadInst *Inst = dyn_cast<LoadInst>(val)) {
+    } else if (LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         operands = new LLVMNode *[1];
-        const Value *op = Inst->getPointerOperand();
+        Value *op = Inst->getPointerOperand();
         operands[0] = dg->getNode(op);
 #ifdef DEBUG_ENABLED
         if (!operands[0] && !isa<ConstantExpr>(Inst->getPointerOperand()))
             errs() << "WARN: Didn't found pointer for " << *Inst << "\n";
 #endif
         operands_num = 1;
-    } else if (const GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
+    } else if (GetElementPtrInst *Inst = dyn_cast<GetElementPtrInst>(val)) {
         operands = new LLVMNode *[1];
         operands[0] = dg->getNode(Inst->getPointerOperand());
         operands_num = 1;
-    } else if (const CallInst *Inst = dyn_cast<CallInst>(val)) {
+    } else if (CallInst *Inst = dyn_cast<CallInst>(val)) {
         // we store the called function as a first operand
         // and all the arguments as the other operands
         operands_num = Inst->getNumArgOperands() + 1;
@@ -125,23 +125,23 @@ LLVMNode **LLVMNode::findOperands()
         operands[0] = dg->getNode(Inst->getCalledValue());
         for (unsigned i = 0; i < operands_num - 1; ++i)
             operands[i + 1] = dg->getNode(Inst->getArgOperand(i));
-    } else if (const ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
+    } else if (ReturnInst *Inst = dyn_cast<ReturnInst>(val)) {
         operands = new LLVMNode *[1];
         operands[0] = dg->getNode(Inst->getReturnValue());
         operands_num = 1;
-    } else if (const CastInst *Inst = dyn_cast<CastInst>(val)) {
+    } else if (CastInst *Inst = dyn_cast<CastInst>(val)) {
         operands = new LLVMNode *[1];
         operands[0] = dg->getNode(Inst->stripPointerCasts());
         if (!operands[0])
             errs() << "WARN: CastInst with unstrippable pointer cast" << *Inst << "\n";
         operands_num = 1;
-    } else if (const PHINode *Inst = dyn_cast<PHINode>(val)) {
+    } else if (PHINode *Inst = dyn_cast<PHINode>(val)) {
         operands_num = Inst->getNumIncomingValues();
         operands = new LLVMNode *[operands_num];
         for (unsigned n = 0; n < operands_num; ++n) {
             operands[n] = dg->getNode(Inst->getIncomingValue(n));
         }
-    } else if (const SelectInst *Inst = dyn_cast<SelectInst>(val)) {
+    } else if (SelectInst *Inst = dyn_cast<SelectInst>(val)) {
         operands_num = 2;
         operands = new LLVMNode *[operands_num];
         for (unsigned n = 0; n < operands_num; ++n) {
@@ -168,7 +168,7 @@ static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMD
     LLVMNode *pin, *pout;
     for (auto I = formal->global_begin(), E = formal->global_end(); I != E; ++I) {
         LLVMDGParameter& p = I->second;
-        const llvm::Value *val = I->first;
+        llvm::Value *val = I->first;
         LLVMDGParameter *act = params->findGlobal(val);
         // reuse or create the parameter
         if (!act) {
@@ -205,7 +205,7 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
             continue;
 
         LLVMDGParameter& p = it.second;
-        const llvm::Value *val = it.first;
+        llvm::Value *val = it.first;
         LLVMDGParameter *act = params->find(val);
 
         // reuse or create the parameter
@@ -235,10 +235,10 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
 static void addOperandsParams(LLVMDGParameters *params,
                               LLVMDGParameters *formal,
                               LLVMNode *callNode,
-                              const llvm::Function *func)
+                              llvm::Function *func)
 {
 
-    const llvm::CallInst *CInst
+    llvm::CallInst *CInst
         = llvm::dyn_cast<llvm::CallInst>(callNode->getValue());
     assert(CInst && "addActualParameters called on non-CallInst");
 
@@ -246,7 +246,7 @@ static void addOperandsParams(LLVMDGParameters *params,
     int idx = 0;
     for (auto A = func->arg_begin(), E = func->arg_end();
          A != E; ++A, ++idx) {
-        const llvm::Value *opval = CInst->getArgOperand(idx);
+        llvm::Value *opval = CInst->getArgOperand(idx);
         LLVMDGParameter *fp = formal->find(&*A);
         if (!fp) {
             errs() << "ERR: no formal param for value: " << *opval << "\n";
@@ -281,11 +281,11 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
 {
     using namespace llvm;
 
-    const CallInst *CInst = dyn_cast<CallInst>(key);
+    CallInst *CInst = dyn_cast<CallInst>(key);
     assert(CInst && "addActualParameters called on non-CallInst");
 
     // do not add redundant nodes
-    const Function *func
+    Function *func
         = dyn_cast<Function>(CInst->getCalledValue()->stripPointerCasts());
     if (!func || func->size() == 0)
         return;
@@ -294,7 +294,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
 }
 
 void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
-                                   const llvm::Function *func)
+                                   llvm::Function *func)
 {
     using namespace llvm;
 

@@ -181,13 +181,14 @@ public:
         return err;
     }
 
-    bool dump(const char *new_file = nullptr, const char *dump_func_only = nullptr)
+    bool dump(const char *new_file = nullptr,
+              const char *dump_func_only = nullptr)
     {
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;
 
-        const std::map<const llvm::Value *,
+        const std::map<llvm::Value *,
                        LLVMDependenceGraph *>& CF = getConstructedFunctions();
 
         start();
@@ -244,13 +245,14 @@ public:
         return false; // no error
     }
 
-    bool dump(const char *new_file = nullptr , const char *dump_func_only = nullptr)
+    bool dump(const char *new_file = nullptr,
+              const char *dump_func_only = nullptr)
     {
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;
 
-        const std::map<const llvm::Value *,
+        const std::map<llvm::Value *,
                        LLVMDependenceGraph *>& CF = getConstructedFunctions();
 
         start();
