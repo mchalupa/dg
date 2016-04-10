@@ -3,6 +3,7 @@
 
 #include <set>
 #include <map>
+#include <cassert>
 
 #include "Offset.h"
 
@@ -34,7 +35,11 @@ struct DefSite
     DefSite(RDNode *t,
             const Offset& o = UNKNOWN_OFFSET,
             const Offset& l = UNKNOWN_OFFSET)
-        : target(t), offset(o), len(l) {}
+        : target(t), offset(o), len(l)
+    {
+        assert(o.isUnknown() || l.isUnknown() ||
+               *o + *l > 0 && "Invalid offset and length given");
+    }
 
     bool operator<(const DefSite& oth) const
     {
