@@ -724,7 +724,12 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
     const llvm::Value *op = Inst->getOperand(0);
 
     PSSNode *op1 = getOperand(op);
-    PSSNode *node = new PSSNode(pss::CAST, op1);
+    // NOTE: we don't support arithmetic operations, so instead of
+    // just casting the value do gep with unknown offset -
+    // this way we cover any shift of the pointer due to arithmetic
+    // operations
+    // PSSNode *node = new PSSNode(pss::CAST, op1);
+    PSSNode *node = new PSSNode(pss::GEP, op1, UNKNOWN_OFFSET);
 
     addNode(Inst, node);
 
