@@ -23,6 +23,7 @@ class LLVMPSSBuilder
     // build pointer state subgraph for given graph
     // \return   root node of the graph
     PSSNode *buildLLVMPSS(const llvm::Function& F);
+    std::pair<PSSNode *, PSSNode *> buildInstruction(const llvm::Instruction&);
     std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block);
 
     std::pair<PSSNode *, PSSNode *> buildArguments(const llvm::Function& F);

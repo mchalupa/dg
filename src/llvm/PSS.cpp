@@ -824,88 +824,128 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
     assert(0 && "We should not reach this");
 }
 
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
+{
+    using namespace llvm;
+    PSSNode *node;
+
+    switch(Inst.getOpcode()) {
+        case Instruction::Alloca:
+            node = createAlloc(&Inst);
+            break;
+        case Instruction::Store:
+            node = createStore(&Inst);
+            break;
+        case Instruction::Load:
+            node = createLoad(&Inst);
+            break;
+        case Instruction::GetElementPtr:
+            node = createGEP(&Inst);
+            break;
+        case Instruction::Select:
+            node = createSelect(&Inst);
+            break;
+        case Instruction::PHI:
+            node = createPHI(&Inst);
+            break;
+        case Instruction::BitCast:
+            node = createCast(&Inst);
+            break;
+        case Instruction::PtrToInt:
+            node = createPtrToInt(&Inst);
+            break;
+        case Instruction::IntToPtr:
+            node = createIntToPtr(&Inst);
+            break;
+        case Instruction::Ret:
+            node = createReturn(&Inst);
+            break;
+        case Instruction::Call:
+            return createCall(&Inst);
+        default:
+            llvm::errs() << Inst << "\n";
+            assert(0 && "Unhandled instruction");
+    }
+
+    return std::make_pair(node, node);
+}
+
+// is the instruction relevant to points-to analysis?
+static bool isRelevantInstruction(const llvm::Instruction& Inst)
+{
+    using namespace llvm;
+
+    switch(Inst.getOpcode()) {
+        case Instruction::Store:
+            // create only nodes that store pointer to another
+            // pointer. We don't care about stores of non-pointers.
+            // The only exception are stores to inttoptr nodes, but these
+            // will be created due to unknown operands later.
+            if (Inst.getOperand(0)->getType()->isPointerTy())
+                return true;
+            else
+                return false;
+        case Instruction::Load:
+        case Instruction::Select:
+        case Instruction::PHI:
+            if (Inst.getType()->isPointerTy())
+                return true;
+            else
+                return false;
+        case Instruction::Call:
+            if (isRelevantCall(&Inst))
+                return true;
+            else
+                return false;
+        case Instruction::Alloca:
+        case Instruction::GetElementPtr:
+        case Instruction::BitCast:
+        case Instruction::PtrToInt:
+        case Instruction::IntToPtr:
+        // we need to create every ret inst, because
+        // it changes the flow of information
+        case Instruction::Ret:
+            return true;
+        default:
+            return false;
+    }
+}
+
 // return first and last nodes of the block
 std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
 {
-    using namespace llvm;
-
+    // first and last node of block
     std::pair<PSSNode *, PSSNode *> ret(nullptr, nullptr);
-    PSSNode *prev_node;
-    PSSNode *node = nullptr;
 
-    for (const Instruction& Inst : block) {
-        prev_node = node;
+    // here we store sequence of nodes that will be created for each instruction
+    std::pair<PSSNode *, PSSNode *> seq;
 
-        switch(Inst.getOpcode()) {
-            case Instruction::Alloca:
-                node = createAlloc(&Inst);
-                break;
-            case Instruction::Store:
-                // create only nodes that store pointer to another
-                // pointer. We don't care about stores of non-pointers.
-                // The only exception are inttoptr nodes. We can recognize
-                // them so that these are created in nodes_map[].
-                // They are not of pointer types but getNode() returns them
-                if (Inst.getOperand(0)->getType()->isPointerTy()
-                    || getNode(Inst.getOperand(0)))
-                    node = createStore(&Inst);
-                break;
-            case Instruction::Load:
-                if (Inst.getType()->isPointerTy()
-                    || getNode(Inst.getOperand(0)))
-                    node = createLoad(&Inst);
-                break;
-            case Instruction::GetElementPtr:
-                node = createGEP(&Inst);
-                break;
-            case Instruction::Select:
-                if (Inst.getType()->isPointerTy())
-                    node = createSelect(&Inst);
-                break;
-            case Instruction::PHI:
-                if (Inst.getType()->isPointerTy())
-                    node = createPHI(&Inst);
-                break;
-            case Instruction::BitCast:
-                node = createCast(&Inst);
-                break;
-            case Instruction::PtrToInt:
-                node = createPtrToInt(&Inst);
-                break;
-            case Instruction::IntToPtr:
-                node = createIntToPtr(&Inst);
-                break;
-            case Instruction::Ret:
-                    node = createReturn(&Inst);
-                break;
-            case Instruction::Call:
-                if (!isRelevantCall(&Inst))
-                    break;
+    PSSNode *last_node = nullptr;
+    for (const llvm::Instruction& Inst : block) {
+        if (!isRelevantInstruction(Inst))
+            continue;
 
-                std::pair<PSSNode *, PSSNode *> subg = createCall(&Inst);
-                if (prev_node)
-                    prev_node->addSuccessor(subg.first);
-                else
-                    // graphs starts with function call?
-                    ret.first = subg.first;
+        seq = buildInstruction(Inst);
+        assert(seq.first && seq.second
+               && "Didn't created the instruction properly");
 
-                // new nodes will connect to the return node
-                node = prev_node = subg.second;
+        // is this first created instruction?
+        if (!last_node)
+            ret.first = seq.first;
+        else
+            // else just add a successor
+            last_node->addSuccessor(seq.first);
 
-                break;
-        }
-
-        // first instruction
-        if (node && !prev_node)
-            ret.first = node;
-
-        if (prev_node && prev_node != node)
-            prev_node->addSuccessor(node);
+        // update last node that we created
+        last_node = seq.second;
     }
 
-    // last node
-    ret.second = node;
+    // set last node
+    ret.second = seq.second;
+    assert((ret.first && ret.second) || (!ret.first && !ret.second)
+            && "BUG: inconsistent block");
 
     return ret;
 }
