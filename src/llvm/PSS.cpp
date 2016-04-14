@@ -222,11 +222,19 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
 PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
 {
     PSSNode *op = nodes_map[val];
-    if (!op)
-        op = getConstant(val);
+    // if we don't have the operant, then it is a ConstantExpr
+    // or some operand of intToPtr instruction (or related to that)
+    if (!op) {
+        if (llvm::isa<llvm::Constant>(val))
+            op = getConstant(val);
+        else
+            // intToPtr instructions can make some
+            // mess in the PSS
+            op = createIrrelevantInst(val);
+    }
 
     // if the operand is a call, use the return node of the call instead
-    // - this is the one that contains returned pointers
+    // - that is the one that contains returned pointers
     if (op->getType() == pss::CALL
         || op->getType() == pss::CALL_FUNCPTR) {
         op = op->getPairedNode();
@@ -730,9 +738,15 @@ PSSNode *LLVMPSSBuilder::createIntToPtr(const llvm::Instruction *Inst)
     PSSNode *op1 = nullptr;
 
     if (llvm::isa<llvm::Constant>(op))
-        llvm::errs() << "PTA warning: IntToPtr with constant: " << *Inst << "\n";
+        llvm::errs() << "PTA warning: IntToPtr with constant: "
+                     << *Inst << "\n";
     else
         op1 = getOperand(op);
+
+    // if this is inttoptr with constant, just make the pointer
+    // unknown
+    if (!op1)
+        op1 = UNKNOWN_MEMORY;
 
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
@@ -880,15 +894,18 @@ static bool isRelevantInstruction(const llvm::Instruction& Inst)
         case Instruction::Store:
             // create only nodes that store pointer to another
             // pointer. We don't care about stores of non-pointers.
-            // The only exception are stores to inttoptr nodes, but these
-            // will be created due to unknown operands later.
-            if (Inst.getOperand(0)->getType()->isPointerTy())
+            // The only exception are stores to inttoptr nodes
+            if (Inst.getOperand(0)->getType()->isPointerTy() ||
+                isa<PtrToIntInst>(Inst.getOperand(0)->stripInBoundsOffsets()) ||
+                isa<IntToPtrInst>(Inst.getOperand(0)->stripInBoundsOffsets()))
                 return true;
             else
                 return false;
         case Instruction::Load:
         case Instruction::Select:
         case Instruction::PHI:
+            // here we don't care about intToPtr, because every such
+            // value must be bitcasted first, and thus is a pointer
             if (Inst.getType()->isPointerTy())
                 return true;
             else
@@ -912,12 +929,97 @@ static bool isRelevantInstruction(const llvm::Instruction& Inst)
     }
 }
 
+// this method creates a node no matter if it is pointer-related
+// instruction. Then it inserts the node (sequence of nodes) into
+// the PSS. This is needed due to arguments of intToPtr instructions,
+// because these are not of pointer-type, therefore are not built
+// in buildPSSBlock
+PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val)
+{
+    using namespace llvm;
+    const llvm::Instruction *Inst = cast<Instruction>(val);
+
+    // this instruction must be irreleventa, otherwise
+    // we would build it in buildPSSBlock
+    assert(!isRelevantInstruction(*Inst));
+
+    // build the node for the instruction
+    std::pair<PSSNode *, PSSNode *> seq = buildInstruction(*Inst);
+    assert(seq.first == seq.second
+           && "BUG: Sequence unsupported here");
+
+    errs() << "WARN: Built irrelevant inst: " << *val << "\n";
+
+    // insert it to unplacedInstructions, we will put it
+    // into the PSS later when we have all basic blocks
+    // created (we could overcome it by creating entry
+    // node to every block and then optimize it away,
+    // but this is overkill IMO)
+    unplacedInstructions.insert(seq.first);
+
+    return seq.first;
+}
+
+void LLVMPSSBuilder::addUnplacedInstructions(void)
+{
+    // Insert the irrelevant instructions into the tree.
+    // Find the block that the instruction belongs and insert it
+    // into it onto the right place
+
+    for (PSSNode *node : unplacedInstructions) {
+        const llvm::Value *val = node->getUserData<llvm::Value>();
+        const llvm::Instruction *Inst = llvm::cast<llvm::Instruction>(val);
+        const llvm::BasicBlock *llvmBlk = Inst->getParent();
+
+        // we must already created the block
+        assert(built_blocks.count(llvmBlk) == 1
+               && "BUG: we should have this block created");
+        std::pair<PSSNode *, PSSNode *>& blk = built_blocks[llvmBlk];
+        if (blk.first) {
+            auto I = llvmBlk->begin();
+            // shift to our instruction
+            while (&*I != val)
+                ++I;
+
+            // now shift to the successor of our instruction,
+            // so that we won't match our instruction later
+            // (it is in nodes_map already)
+            ++I;
+
+            // OK, we found our instruction in block,
+            // now find first instruction that we created in PSS
+            for (auto E = llvmBlk->end(); I != E; ++I) {
+                if (nodes_map.count(&*I) == 1)
+                    break;
+            }
+
+            // now we have in I iterator to the LLVM value that
+            // is in PSS as the first after our value
+            if (I == llvmBlk->end()) {
+                node->insertAfter(blk.second);
+                blk.second = node;
+            } else {
+                PSSNode *n = nodes_map[&*I];
+                // we must have this node, we found it!
+                assert(n && "BUG");
+                node->insertBefore(n);
+            }
+        } else {
+            // if the block is empty, this will be the only instruction
+            blk.first = node;
+            blk.second = node;
+        }
+    }
+
+    unplacedInstructions.clear();
+}
+
 // return first and last nodes of the block
 std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
 {
-    // first and last node of block
-    std::pair<PSSNode *, PSSNode *> ret(nullptr, nullptr);
+    // create the item in built_blocks and use it as return value also
+    std::pair<PSSNode *, PSSNode *>& ret = built_blocks[&block];
 
     // here we store sequence of nodes that will be created for each instruction
     std::pair<PSSNode *, PSSNode *> seq;
@@ -1038,7 +1140,6 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     PSSNode *root = new PSSNode(pss::ENTRY);
     PSSNode *ret = new PSSNode(pss::NOOP);
 
-
     // now build the arguments of the function - if it has any
     std::pair<PSSNode *, PSSNode *> args = buildArguments(F);
 
@@ -1061,6 +1162,7 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     for (const llvm::BasicBlock& block : F) {
         std::pair<PSSNode *, PSSNode *> nds = buildPSSBlock(block);
 
+        // FIXME: just get entry block from LLVM and do it simply
         if (!first) {
             // first block was not created at all? (it has not
             // pointer relevant instructions) - in that case
@@ -1077,9 +1179,13 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
                 lastNode->addSuccessor(first);
             }
         }
-
-        built_blocks[&block] = nds;
     }
+
+
+    // now we have created all the blocks, so place the instructions
+    // that we were not able to place during building
+    addUnplacedInstructions();
+    assert(unplacedInstructions.empty());
 
     std::vector<PSSNode *> rets;
     for (const llvm::BasicBlock& block : F) {
@@ -1097,7 +1203,8 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
         // so many blocks that this could have some big overhead. If proven
         // otherwise later, we'll change this.
         std::set<const llvm::BasicBlock *> found_blocks;
-        size_t succ_num = blockAddSuccessors(built_blocks, found_blocks, pssn, block);
+        size_t succ_num = blockAddSuccessors(built_blocks, found_blocks,
+                                             pssn, block);
 
         // if we have not added any successor, then the last node
         // of this block is a return node
@@ -1135,8 +1242,10 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS()
     // now we can build rest of the graph
     PSSNode *root = buildLLVMPSS(*F);
 
-    // do we have any globals at all? If so, insert them at the begining of the graph
-    // FIXME: we do not need to process them later, should we do it somehow differently?
+    // do we have any globals at all? If so, insert them at the begining
+    // of the graph
+    // FIXME: we do not need to process them later,
+    // should we do it somehow differently?
     // something like 'static nodes' in PSS...
     if (glob.first) {
         assert(glob.second && "Have the start but not the end");
@@ -1146,9 +1255,11 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS()
         root = glob.first;
     }
 
+    // must have placed all the unplaced instructions
+    assert(unplacedInstructions.empty());
+
     return root;
 }
-
 
 PSSNode *
 LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,

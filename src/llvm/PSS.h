@@ -48,7 +48,15 @@ class LLVMPSSBuilder
 
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
-    std::map<const llvm::BasicBlock *, std::pair<PSSNode *, PSSNode *>> built_blocks;
+    std::map<const llvm::BasicBlock *,
+             std::pair<PSSNode *, PSSNode *>> built_blocks;
+
+    // during building graph we can create some nodes as operands
+    // and we don't insert them into the PSS there, because it would
+    // be difficult to get it right. We will store them here
+    // and place them when we have all blocks constructed
+    std::set<PSSNode *> unplacedInstructions;
+
 public:
     LLVMPSSBuilder(const llvm::Module *m)
         : M(m), DL(new llvm::DataLayout(M->getDataLayout()))
@@ -115,6 +123,8 @@ private:
     PSSNode *createIntToPtr(const llvm::Instruction *Inst);
     PSSNode *createAsm(const llvm::Instruction *Inst);
 
+    PSSNode *createIrrelevantInst(const llvm::Value *);
+
     PSSNode *getOperand(const llvm::Value *val);
     PSSNode *getConstant(const llvm::Value *val);
     PSSNode *createConstantExpr(const llvm::ConstantExpr *CE);
@@ -124,9 +134,10 @@ private:
 
     void addPHIOperands(PSSNode *node, const llvm::PHINode *PHI);
     void addPHIOperands(const llvm::Function& F);
+    void addUnplacedInstructions(void);
     std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
-    std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *CInst,
-                                                        const llvm::Function *F);
+    std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *,
+                                                        const llvm::Function *);
 
     PSSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
                                              PSSNode *node);

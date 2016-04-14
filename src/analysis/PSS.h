@@ -355,6 +355,28 @@ public:
         }
     }
 
+    // insert this node in PSS before n
+    // this node must not be in any PSS
+    void insertBefore(PSSNode *n)
+    {
+        assert(predecessorsNum() == 0);
+        assert(successorsNum() == 0);
+
+        // take over predecessors
+        predecessors.swap(n->predecessors);
+
+        // 'n' is a successors of this node
+        addSuccessor(n);
+
+        // replace the reference to n in predecessors
+        for (PSSNode *pred : predecessors) {
+            for (unsigned i = 0; i < pred->successorsNum(); ++i) {
+                if (pred->successors[i] == n)
+                    pred->successors[i] = this;
+            }
+        }
+    }
+
     size_t predecessorsNum() const { return predecessors.size(); }
     size_t successorsNum() const { return successors.size(); }
 
