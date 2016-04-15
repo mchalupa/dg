@@ -52,6 +52,34 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 
+void printPSSType(enum PSSNodeType type)
+{
+#define ELEM(t) case t: do {printf("%s", #t); }while(0); break;
+    switch(type) {
+        ELEM(ALLOC)
+        ELEM(DYN_ALLOC)
+        ELEM(LOAD)
+        ELEM(STORE)
+        ELEM(GEP)
+        ELEM(PHI)
+        ELEM(CAST)
+        ELEM(FUNCTION)
+        ELEM(CALL)
+        ELEM(CALL_FUNCPTR)
+        ELEM(CALL_RETURN)
+        ELEM(ENTRY)
+        ELEM(RETURN)
+        ELEM(CONSTANT)
+        ELEM(NOOP)
+        ELEM(MEMCPY)
+        ELEM(NULL_ADDR)
+        ELEM(UNKNOWN_MEM)
+        default:
+            printf("unknown PSS type");
+    };
+#undef ELEM
+}
+
 static void
 printName(PSSNode *node, bool dot)
 {
@@ -59,10 +87,11 @@ printName(PSSNode *node, bool dot)
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
+            printPSSType(node->getType());
             if (dot)
-                printf("%p\\n", node);
+                printf(" %p\\n", node);
             else
-                printf("%p\n", node);
+                printf(" %p\n", node);
 
             return;
         }
@@ -166,8 +195,6 @@ dumpPSSData(PSSNode *n, PTType type, bool dot = false)
 static void
 dumpPSSNode(PSSNode *n, PTType type)
 {
-    const char *name = n->getName();
-
     printf("NODE: ");
     printName(n, false);
 
