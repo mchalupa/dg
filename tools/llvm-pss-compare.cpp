@@ -158,9 +158,9 @@ static bool verify_ptsets(LLVMPointsToAnalysis *fi, LLVMPointsToAnalysis *fs)
 
 int main(int argc, char *argv[])
 {
+    llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    llvm::Module *M;
     const char *module = nullptr;
     unsigned type = FLOW_SENSITIVE | FLOW_INSENSITIVE;
 
@@ -188,11 +188,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+#if (LLVM_VERSION_MINOR < 5)
     M = llvm::ParseIRFile(module, SMD, context);
-    if (!M) {
-        SMD.print(argv[0], errs());
-        return 1;
-    }
+#else
+    auto _M = llvm::parseIRFile(module, SMD, context);
+    // _M is unique pointer, we need to get Module *
+    M = &*_M;
+#endif
 
     debug::TimeMeasure tm;
 

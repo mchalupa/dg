@@ -8,7 +8,13 @@
 #error "This code needs LLVM enabled"
 #endif
 
-#include <llvm/DebugInfo.h>
+#include <llvm/Config/llvm-config.h>
+#if (LLVM_VERSION_MINOR < 5)
+ #include <llvm/DebugInfo.h>
+#else
+ #include <llvm/DebugInfo/DIContext.h>
+#endif
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/SourceMgr.h>
@@ -101,9 +107,9 @@ static void print_lines_numbers(std::set<unsigned>& lines)
 
 int main(int argc, char *argv[])
 {
+    llvm::Module *M;
     LLVMContext context;
     SMDiagnostic SMD;
-    Module *M;
 
     const char *source = NULL;
     const char *module = NULL;
@@ -117,7 +123,14 @@ int main(int argc, char *argv[])
     if (argc == 3)
         source = argv[2];
 
-    M = ParseIRFile(module, SMD, context);
+#if (LLVM_VERSION_MINOR < 5)
+    M = llvm::ParseIRFile(module, SMD, context);
+#else
+    auto _M = llvm::parseIRFile(module, SMD, context);
+    // _M is unique pointer, we need to get Module *
+    M = &*_M;
+#endif
+
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;

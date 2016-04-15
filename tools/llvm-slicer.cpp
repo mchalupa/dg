@@ -524,7 +524,12 @@ static bool verify_module(llvm::Module *M)
 {
     // the verifyModule function returns false if there
     // are no errors
+
+#if (LLVM_VERSION_MINOR >= 5)
+    return !llvm::verifyModule(*M, &llvm::errs());
+#else
     return !llvm::verifyModule(*M, llvm::PrintMessageAction);
+#endif
 }
 
 static bool write_module(llvm::Module *M, const char *module_name)
@@ -546,9 +551,9 @@ static bool write_module(llvm::Module *M, const char *module_name)
 
 int main(int argc, char *argv[])
 {
+    llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    llvm::Module *M;
 
     bool should_verify_module = true;
     bool remove_unused_only = false;
@@ -605,7 +610,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+#if (LLVM_VERSION_MINOR < 5)
     M = llvm::ParseIRFile(module, SMD, context);
+#else
+    auto _M = llvm::parseIRFile(module, SMD, context);
+    // _M is unique pointer, we need to get Module *
+    M = &*_M;
+#endif
+
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;

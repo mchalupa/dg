@@ -13,13 +13,18 @@
 #include <unordered_map>
 #include <set>
 
+#include <llvm/Config/llvm-config.h>
+#if (LLVM_VERSION_MINOR < 5)
+ #include <llvm/Support/CFG.h>
+#else
+ #include <llvm/IR/CFG.h>
+#endif
+
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/Support/CFG.h>
-
 
 #include "Utils.h"
 #include "LLVMDGVerifier.h"

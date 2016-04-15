@@ -1,5 +1,12 @@
 #include <cassert>
 
+#include <llvm/Config/llvm-config.h>
+#if (LLVM_VERSION_MINOR < 5)
+ #include <llvm/Support/CFG.h>
+#else
+ #include <llvm/IR/CFG.h>
+#endif
+
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
@@ -8,7 +15,6 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Constant.h>
-#include <llvm/Support/CFG.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include "analysis/PSS.h"

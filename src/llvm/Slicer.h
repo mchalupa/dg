@@ -1,12 +1,18 @@
 #ifndef _LLVM_DG_SLICER_H_
 #define _LLVM_DG_SLICER_H_
 
+#include <llvm/Config/llvm-config.h>
+#if (LLVM_VERSION_MINOR < 5)
+ #include <llvm/Support/CFG.h>
+#else
+ #include <llvm/IR/CFG.h>
+#endif
+
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/Support/CFG.h>
 #include <llvm/Support/raw_ostream.h>
 
 #include "analysis/Slicing.h"

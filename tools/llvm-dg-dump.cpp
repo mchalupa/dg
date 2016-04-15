@@ -339,9 +339,9 @@ private:
 
 int main(int argc, char *argv[])
 {
+    llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    llvm::Module *M;
     bool mark_only = false;
     bool bb_only = false;
     const char *module = nullptr;
@@ -392,7 +392,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+#if (LLVM_VERSION_MINOR < 5)
     M = llvm::ParseIRFile(module, SMD, context);
+#else
+    auto _M = llvm::parseIRFile(module, SMD, context);
+    // _M is unique pointer, we need to get Module *
+    M = &*_M;
+#endif
+
     if (!M) {
         SMD.print(argv[0], errs());
         return 1;
