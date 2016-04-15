@@ -1004,8 +1004,20 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
 
             // OK, we found our instruction in block,
             // now find first instruction that we created in PSS
+            auto end = nodes_map.end();
             for (auto E = llvmBlk->end(); I != E; ++I) {
-                if (nodes_map.count(&*I) == 1)
+                auto cur = nodes_map.find(&*I);
+                if (cur == end)
+                    // don't have it in the map
+                    continue;
+
+                // found inst that we have created?
+                // check if it is already placed
+                // (we don't want to place this node
+                // according another unplaced node)
+                // and if so, go with that
+                if (cur->second->predecessorsNum() != 0
+                    || cur->second->successorsNum() != 0)
                     break;
             }
 
