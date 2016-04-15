@@ -326,11 +326,9 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
             using namespace analysis::pss;
             PSSNode *op = PTA->getNode(val);
             for (const Pointer& ptr : op->pointsTo) {
-                if (ptr.isNull()) {
-                    llvm::errs() << "Possible call of nullptr: "
-                                 << *CInst << "\n";
+                if (!ptr.isValid()) {
                     continue;
-                } // XXX: unknown pointers
+                }
 
                 // vararg may introduce imprecision here, so we
                 // must check that it is really pointer to a function
@@ -338,6 +336,12 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                     continue;
 
                 Function *F = ptr.target->getUserData<Function>();
+
+                if (!F->isVarArg() &&
+                    CInst->getNumArgOperands() != F->arg_size())
+                    // incompatible prototypes
+                    continue;
+
                 LLVMDependenceGraph *subg = buildSubgraph(node, F);
                 node->addSubgraph(subg);
             }

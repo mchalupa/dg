@@ -78,6 +78,11 @@ public:
         const llvm::Function *F = called->getUserData<llvm::Function>();
         const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
 
+        // incompatible prototypes, skip it...
+        if (!F->isVarArg() &&
+            CI->getNumArgOperands() != F->arg_size())
+            return false;
+
         std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
 
         // we got the return site for the call stored as the paired node

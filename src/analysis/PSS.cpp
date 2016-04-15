@@ -284,10 +284,10 @@ bool PSS::processNode(PSSNode *node)
                 if (node->addPointsTo(ptr)) {
                     changed = true;
 
-                    if (!ptr.isNull()) {
+                    if (ptr.isValid()) {
                         functionPointerCall(node, ptr.target);
                     } else {
-                        error(node, "Calling nullptr as a function!");
+                        error(node, "Calling invalid pointer as a function!");
                         continue;
                     }
                 }

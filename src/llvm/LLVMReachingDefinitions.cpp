@@ -551,8 +551,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             addNode(CInst, call_funcptr);
 
             for (const pss::Pointer& ptr : op->pointsTo) {
-                // XXX: + unknown pointers
-                if (ptr.isNull())
+                if (!ptr.isValid())
                     continue;
 
                 // check if it is a function (varargs may
@@ -560,7 +559,15 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (!isa<Function>(ptr.target->getUserData<Value>()))
                     continue;
 
+                // FIXME: these checks are repeated here, in PSSBuilder
+                // and in LLVMDependenceGraph, we should factor them
+                // out into a function...
                 const Function *F = ptr.target->getUserData<Function>();
+                if (!F->isVarArg() &&
+                    CInst->getNumArgOperands() != F->arg_size())
+                    // incompatible prototypes
+                    continue;
+
                 std::pair<RDNode *, RDNode *> cf
                     = createCallToFunction(CInst, F);
 
