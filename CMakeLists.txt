@@ -26,8 +26,7 @@ if (LLVM_DG)
 	message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 	message(STATUS "LLVM binaires: ${LLVM_TOOLS_BINARY_DIR}")
 
-	#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
-	list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
+	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
 	include(LLVMConfig)
 
 	message(STATUS "LLVM include dir: ${LLVM_INCLUDE_DIRS}")
