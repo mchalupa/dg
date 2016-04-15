@@ -217,6 +217,10 @@ bool PSS::processNode(PSSNode *node)
     bool changed = false;
     std::vector<MemoryObject *> objects;
 
+#ifdef DEBUG_ENABLED
+    size_t prev_size = node->pointsTo.size();
+#endif
+
     switch(node->type) {
         case LOAD:
             changed |= processLoad(node);
@@ -310,6 +314,15 @@ bool PSS::processNode(PSSNode *node)
         default:
             assert(0 && "Unknown type");
     }
+
+#ifdef DEBUG_ENABLED
+    // the change of points-to set is not the only
+    // change that can happen, so we don't use it as an
+    // indicator and we use the 'changed' variable instead.
+    // However, this assertion must hold:
+    assert((node->pointsTo.size() == prev_size || changed)
+           && "BUG: Did not set change but changed points-to sets");
+#endif
 
     return changed;
 }
