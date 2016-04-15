@@ -2,9 +2,7 @@ struct m {
 	int a;
 };
 
-// don't declare get_ptr function,
-// so that analyses have it covered in bitcast
-// we have another test that declares it
+struct m *get_ptr(struct m *);
 
 int main(void)
 {
