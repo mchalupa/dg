@@ -13,7 +13,7 @@
 
 
 #if (LLVM_VERSION_MAJOR != 3)
-#error "Unsupported version of LLVM
+#error "Unsupported version of LLVM"
 #endif
 
 #if LLVM_VERSION_MINOR < 5
