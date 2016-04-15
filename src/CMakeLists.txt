@@ -1,5 +1,5 @@
 if (LLVM_DG)
-  set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
+#  set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
 add_library(PSS SHARED
 	analysis/Offset.h
@@ -54,11 +54,5 @@ add_library(LLVMdg SHARED
 target_link_libraries(LLVMdg PSS RD ${llvm_libs})
 install(TARGETS LLVMdg PSS RD
 	LIBRARY DESTINATION lib)
-
-if (ENABLE_DEBUG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g -Wall -Wextra -O0")
-else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
-endif ()
 
 endif(LLVM_DG)

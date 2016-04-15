@@ -24,14 +24,18 @@ if (LLVM_DG)
 
 	message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 	message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+	message(STATUS "LLVM binaires: ${LLVM_TOOLS_BINARY_DIR}")
 
-	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
+	#set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
+	list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
 	include(LLVMConfig)
 
 	message(STATUS "LLVM include dir: ${LLVM_INCLUDE_DIRS}")
 	message(STATUS "LLVM libraries dir: ${LLVM_LIBRARY_DIRS}")
 	message(STATUS "LLVM definitions: ${LLVM_DEFINITIONS}")
 
+	# if we were provided a path to custom sources
+	# use that path
 	if (LLVM_SRC_PATH)
 	  include_directories(${LLVM_SRC_PATH}/include)
 	  message(STATUS "Looking for headers in given: ${LLVM_SRC_PATH}/include")
@@ -40,6 +44,8 @@ if (LLVM_DG)
 	  message(STATUS "Looking for headers in: ${LLVM_INCLUDE_DIRS}")
 	endif()
 
+	# if we were provided a path to custom build directory
+	# use that
 	if (LLVM_BUILD_PATH)
 	  link_directories(${LLVM_BUILD_PATH}/lib)
 
@@ -52,7 +58,14 @@ if (LLVM_DG)
 	endif(LLVM_BUILD_PATH)
 
 	add_definitions(${LLVM_DEFINITIONS})
-	llvm_map_components_to_libraries(llvm_libs support core irreader bitwriter analysis)
+
+	if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
+		llvm_map_components_to_libnames(llvm_libs support core
+		                                irreader bitwriter analysis)
+	else()
+		llvm_map_components_to_libraries(llvm_libs support core
+		                                 irreader bitwriter analysis)
+	endif()
 
 	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
