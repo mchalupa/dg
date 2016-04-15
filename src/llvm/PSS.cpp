@@ -408,7 +408,10 @@ LLVMPSSBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
 std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::createUnknownCall(const llvm::CallInst *CInst)
 {
-    assert(CInst->getType()->isPointerTy());
+    // This assertion must not hold if the call is wrapped
+    // inside bitcast - it defaults to int, but is bitcased
+    // to pointer
+    //assert(CInst->getType()->isPointerTy());
     PSSNode *call = new PSSNode(pss::CALL, nullptr);
 
     call->setPairedNode(call);
@@ -875,6 +878,8 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
             node = createPHI(&Inst);
             break;
         case Instruction::BitCast:
+        case Instruction::SExt:
+        case Instruction::ZExt:
             node = createCast(&Inst);
             break;
         case Instruction::PtrToInt:
