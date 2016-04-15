@@ -410,7 +410,15 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i)
     {
         const Value *llvmOp = CInst->getArgOperand(i);
+        // we can modify only the memory passed via pointer
+        // XXX: inttoptr? We should check if we have
+        // a points-to set for the passed value instead of
+        // this type checking...
         if (!llvmOp->getType()->isPointerTy())
+            continue;
+
+        // constants cannot be redefined
+        if (isa<Constant>(llvmOp))
             continue;
 
         pss::PSSNode *pts = PTA->getPointsTo(llvmOp);
@@ -420,6 +428,10 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
                 continue;
 
             const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+            if (llvm::isa<llvm::Function>(ptrVal))
+                // function may not be redefined
+                continue;
+
             RDNode *target = nodes_map[ptrVal];
             assert(target && "Don't have pointer target for call argument");
 
