@@ -416,7 +416,7 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
         pss::PSSNode *pts = PTA->getPointsTo(llvmOp);
         assert(pts && "No points-to information");
         for (const pss::Pointer& ptr : pts->pointsTo) {
-            if (ptr.isNull())
+            if (!ptr.isValid())
                 continue;
 
             const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();

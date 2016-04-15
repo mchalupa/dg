@@ -52,8 +52,6 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
         subgraph->getExit()->addDataDependence(callNode);
 }
 
-
-
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
                                        LLVMPointsToAnalysis *pta)
@@ -68,12 +66,6 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
     // set data layout
     DL = new DataLayout(m->getDataLayout());
 }
-
-/*
-void LLVMDefUseAnalysis::handleStoreInst(const StoreInst *Inst, LLVMNode *node)
-{
-}
-*/
 
 void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
 {
@@ -168,11 +160,11 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
     using namespace dg::analysis;
 
     for (const pss::Pointer& ptr : pts->pointsTo) {
-        if (ptr.isNull())
+        if (!ptr.isValid())
             continue;
 
         llvm::Value *llvmVal = ptr.target->getUserData<llvm::Value>();
-        assert(llvmVal);
+        assert(llvmVal && "Don't have Value in PSS node");
 
         RDNode *val = RD->getNode(llvmVal);
         if(!val) {

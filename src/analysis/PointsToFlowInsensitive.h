@@ -47,7 +47,8 @@ public:
             n = (n->pointsTo.begin())->target;
         }
 
-        assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC);
+        assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC
+               || n->getType() == pss::UNKNOWN_MEM);
 
         MemoryObject *mo = n->getData<MemoryObject>();
         if (!mo) {
