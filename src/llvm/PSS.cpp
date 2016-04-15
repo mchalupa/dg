@@ -211,6 +211,8 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
 {
     if (llvm::isa<llvm::ConstantPointerNull>(val)) {
         return NULLPTR;
+    } else if (llvm::isa<llvm::UndefValue>(val)) {
+        return UNKNOWN_MEMORY;
     } else if (const llvm::ConstantExpr *CE
                     = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
         return createConstantExpr(CE);
