@@ -327,7 +327,6 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
 
-
     // reuse built subgraphs if available
     Subgraph subg = subgraphs_map[F];
     if (!subg.root) {
@@ -380,14 +379,16 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
     }
 
     // handle value returned from the function if it is a pointer
-    if (CInst->getType()->isPointerTy()) {
-        // return node is like a PHI node
-        for (PSSNode *r : subg.ret->getPredecessors())
-            // we're interested only in the nodes that return some value
-            // from subprocedure, not for all nodes that have no successor
-            if (r->getType() == pss::RETURN)
-                returnNode->addOperand(r);
-    }
+    // DONT: if (CInst->getType()->isPointerTy()) {
+    // we need to handle the return values even when it is not
+    // a pointer as we have ptrtoint and inttoptr
+
+    // return node is like a PHI node
+    for (PSSNode *r : subg.ret->getPredecessors())
+        // we're interested only in the nodes that return some value
+        // from subprocedure, not for all nodes that have no successor
+        if (r->getType() == pss::RETURN)
+            returnNode->addOperand(r);
 
     return std::make_pair(callNode, returnNode);
 }
