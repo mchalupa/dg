@@ -221,19 +221,21 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 {
     using namespace llvm;
 
-    std::pair<RDNode *, RDNode *> ret(nullptr, nullptr);
-    RDNode *prev_node;
+    RDNode *last_node = nullptr;
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
     RDNode *node = new RDNode(PHI);
-    ret.first = node;
+    std::pair<RDNode *, RDNode *> ret(node, nullptr);
 
     for (const Instruction& Inst : block) {
         // some nodes may have nullptr as mapping,
         // that means that there are no reaching definitions
         // (well, no nodes to be precise) to map that on
-        mapping[&Inst] = node;
-        prev_node = node;
+        if (node)
+            last_node = node;
+
+        assert(last_node != nullptr && "BUG: Last node is null");
+        mapping[&Inst] = last_node;
 
         switch(Inst.getOpcode()) {
             case Instruction::Alloca:
@@ -255,16 +257,16 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                     break;
 
                 std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
-                prev_node->addSuccessor(subg.first);
+                last_node->addSuccessor(subg.first);
 
                 // new nodes will connect to the return node
-                node = prev_node = subg.second;
-
+                node = last_node = subg.second;
                 break;
         }
 
-        if (prev_node && prev_node != node)
-            prev_node->addSuccessor(node);
+        // if we created a new node, add successor
+        if (last_node != node)
+            last_node->addSuccessor(node);
     }
 
     // last node
@@ -357,13 +359,11 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
     RDNode *first = nullptr;
     for (const llvm::BasicBlock& block : F) {
         std::pair<RDNode *, RDNode *> nds = buildBlock(block);
-        assert((nds.first && nds.second) || (!nds.first && !nds.second));
+        assert(nds.first && nds.second);
 
-        if (nds.first) {
-            built_blocks[&block] = nds;
-            if (!first)
-                first = nds.first;
-        }
+        built_blocks[&block] = nds;
+        if (!first)
+            first = nds.first;
     }
 
     assert(first);
