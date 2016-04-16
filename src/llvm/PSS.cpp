@@ -560,16 +560,21 @@ LLVMPSSBuilder::createCall(const llvm::Instruction *Inst)
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
-        /// memory allocation (malloc, calloc, etc.)
-        int type;
-        if ((type = getMemAllocationFunc(func))) {
-            // NOTE: must be before func->size() == 0 condition,
-            // since malloc and similar are undefined too
-            return createDynamicMemAlloc(CInst, type);
-        } else if (func->isIntrinsic()) {
-            return createIntrinsic(Inst);
-        } else if (func->size() == 0) {
-             return createUnknownCall(CInst);
+        // is function undefined? If so it can be
+        // intrinsic, memory allocation (malloc, calloc,...)
+        // or just undefined function
+        // NOTE: we firt need to check whether the function
+        // is undefined and after that if it is memory allocation,
+        // because some programs may define function named
+        // 'malloc' etc.
+        if (func->size() == 0) {
+            /// memory allocation (malloc, calloc, etc.)
+            if (int type = getMemAllocationFunc(func)) {
+                return createDynamicMemAlloc(CInst, type);
+            } else if (func->isIntrinsic()) {
+                return createIntrinsic(Inst);
+            } else
+                return createUnknownCall(CInst);
         } else {
             return createOrGetSubgraph(CInst, func);
         }

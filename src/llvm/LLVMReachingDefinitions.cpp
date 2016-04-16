@@ -517,18 +517,16 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
-        /// memory allocation (malloc, calloc, etc.)
-        int type;
-        if (func->isIntrinsic()) {
-            RDNode *n = createIntrinsicCall(CInst);
-            return std::make_pair(n, n);
-        } else if ((type = getMemAllocationFunc(func))) {
-            // NOTE: func->size() == 0 holds even for malloc,
-            // do we need the first part of the condition?
-            RDNode *n = createAlloc(CInst);
-            return std::make_pair(n, n);
-        } else if (func->size() == 0) {
-            RDNode *n = createUndefinedCall(CInst);
+        if (func->size() == 0) {
+            RDNode *n;
+            if (func->isIntrinsic()) {
+                n = createIntrinsicCall(CInst);
+            } else if (int type = getMemAllocationFunc(func)) {
+                n = createAlloc(CInst);
+            } else {
+                n = createUndefinedCall(CInst);
+            }
+
             return std::make_pair(n, n);
         } else {
             std::pair<RDNode *, RDNode *> cf
