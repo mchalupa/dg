@@ -1051,7 +1051,7 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
 }
 
 // return first and last nodes of the block
-std::pair<PSSNode *, PSSNode *>
+std::pair<PSSNode *, PSSNode *>&
 LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
 {
     // create the item in built_blocks and use it as return value also
@@ -1196,14 +1196,14 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 
     PSSNode *first = nullptr;
     for (const llvm::BasicBlock& block : F) {
-        std::pair<PSSNode *, PSSNode *> nds = buildPSSBlock(block);
+        std::pair<PSSNode *, PSSNode *>& nds = buildPSSBlock(block);
 
-        // FIXME: just get entry block from LLVM and do it simply
         if (!first) {
             // first block was not created at all? (it has not
             // pointer relevant instructions) - in that case
             // fake that the first block is the root itself
             if (!nds.first) {
+                // nds is a reference
                 nds.first = nds.second = root;
                 first = root;
             } else {
@@ -1216,7 +1216,6 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
             }
         }
     }
-
 
     // now we have created all the blocks, so place the instructions
     // that we were not able to place during building

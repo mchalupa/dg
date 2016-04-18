@@ -24,7 +24,7 @@ class LLVMPSSBuilder
     // \return   root node of the graph
     PSSNode *buildLLVMPSS(const llvm::Function& F);
     std::pair<PSSNode *, PSSNode *> buildInstruction(const llvm::Instruction&);
-    std::pair<PSSNode *, PSSNode *> buildPSSBlock(const llvm::BasicBlock& block);
+    std::pair<PSSNode *, PSSNode *>& buildPSSBlock(const llvm::BasicBlock& block);
 
     std::pair<PSSNode *, PSSNode *> buildArguments(const llvm::Function& F);
     std::pair<PSSNode *, PSSNode *> buildGlobals();
@@ -33,7 +33,7 @@ class LLVMPSSBuilder
         Subgraph(PSSNode *r1, PSSNode *r2, std::pair<PSSNode *, PSSNode *>& a)
             : root(r1), ret(r2), args(a) {}
         Subgraph() {memset(this, 0, sizeof *this);}
-        
+
         // first and last nodes of the subgraph
         PSSNode *root;
         PSSNode *ret;
