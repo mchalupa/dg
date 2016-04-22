@@ -835,7 +835,9 @@ PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
     // points-to information though)
     // XXX is that needed?
 
-    if (retVal && retVal->getType()->isPointerTy())
+    // DONT: if(retVal->getType()->isPointerTy())
+    // we have ptrtoint which break the types...
+    if (retVal && nodes_map.count(retVal))
         op1 = getOperand(retVal);
 
     assert((op1 || !retVal || !retVal->getType()->isPointerTy())
