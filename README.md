@@ -216,6 +216,27 @@ To get this output conveniently, you can use:
 ./sliced-diff.sh fact.bc
 ```
 
+### Tools
+
+The tools subdirectory contains a set of useful program for debugging
+and playing with the llvm bitcode. Except for the llvm-slicer you can find there:
+
+* `llvm-dg-dump` - Dump the dependence graph for given program to graphviz format (to stdout)
+* `ldg-show.sh`  - wrapper for llvm-dg-dump that displays the graph as pdf
+* `llvm-pss-dump` - dump pointer state subgraph and results of the points-to analysis to stdout
+* `pss-show.sh`   - wrapper for llvm-pss-dump that prints a PSS in grapviz to pdf
+* `llvm-rd-dump`  - display reaching definitions in llvm-bitcode
+* `rd-show`       - wrapper for llvm-rd-dump
+
+All these programs take as an input llvm bitcode, for example:
+
+```
+./pss-show code.bc
+```
+
+Some useful switches for programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
+and flow-insensitive points-to analysis within all these programs that use points-to analysis.
+
 ------------------------------------------------
 
 For more information you can write e-mails to:
