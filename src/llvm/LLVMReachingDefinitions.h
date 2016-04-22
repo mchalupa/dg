@@ -88,6 +88,7 @@ private:
 
     RDNode *createStore(const llvm::Instruction *Inst);
     RDNode *createAlloc(const llvm::Instruction *Inst);
+    RDNode *createRealloc(const llvm::Instruction *Inst);
     RDNode *createReturn(const llvm::Instruction *Inst);
 
     std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);

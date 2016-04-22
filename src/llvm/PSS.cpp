@@ -86,6 +86,7 @@ enum MemAllocationFuncs {
     MALLOC,
     CALLOC,
     ALLOCA,
+    REALLOC,
 };
 
 static int getMemAllocationFunc(const llvm::Function *func)
@@ -101,8 +102,7 @@ static int getMemAllocationFunc(const llvm::Function *func)
     else if (strcmp(name, "alloca") == 0)
         return ALLOCA;
     else if (strcmp(name, "realloc") == 0)
-        // FIXME
-        assert(0 && "realloc not implemented yet");
+        return REALLOC;
 
     return NONEMEM;
 }
@@ -252,6 +252,22 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
     return op;
 }
 
+static uint64_t getDynamicMemorySize(const llvm::Value *op)
+{
+    using namespace llvm;
+
+    uint64_t size = 0;
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
+        size = C->getLimitedValue();
+        // if the size cannot be expressed as an uint64_t,
+        // just set it to 0 (that means unknown)
+        if (size == ~((uint64_t) 0))
+            size = 0;
+    }
+
+    return size;
+}
+
 static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
 {
     using namespace llvm;
@@ -276,28 +292,14 @@ static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
             assert(0 && "unknown memory allocation type");
     };
 
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
-        size = C->getLimitedValue();
-        // if the size cannot be expressed as an uint64_t,
-        // just set it to 0 (that means unknown)
-        if (size == ~((uint64_t) 0))
-            size = 0;
-
+    // infer allocated size
+    size = getDynamicMemorySize(op);
+    if (size != 0 && type == CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
-        if (type == CALLOC) {
-            C = dyn_cast<ConstantInt>(CInst->getOperand(0));
-            if (C) {
-                size2 = C->getLimitedValue();
-                if (size2 == ~((uint64_t) 0))
-                    size2 = 0;
-                else
-                    // OK, if getting the size fails, we end up with
-                    // just 1 * size - still better than 0 and UNKNOWN
-                    // (it may be cropped later anyway)
-                    size *= size2;
-            }
-        }
+        size2 = getDynamicMemorySize(CInst->getOperand(0));
+        if (size2 != 0)
+            size *= size2;
     }
 
     node->setSize(size);
@@ -305,14 +307,43 @@ static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
 }
 
 std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createRealloc(const llvm::CallInst *CInst)
+{
+    using namespace llvm;
+
+    // we create new allocation node and memcpy old pointers there
+    PSSNode *orig_mem = getOperand(CInst->getOperand(0)->stripInBoundsOffsets());
+    PSSNode *reall = new PSSNode(pss::DYN_ALLOC);
+    // copy everything that is in orig_mem to reall
+    PSSNode *mcp = new PSSNode(pss::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
+
+    reall->setIsHeap();
+    reall->setSize(getDynamicMemorySize(CInst->getOperand(1)));
+    if (orig_mem->isZeroInitialized())
+        reall->setZeroInitialized();
+
+    reall->addSuccessor(mcp);
+    addNode(CInst, reall);
+
+    return std::make_pair(reall, mcp);
+}
+
+std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
-    PSSNode *node = createDynamicAlloc(CInst, type);
-    addNode(CInst, node);
+    assert(type != NONEMEM
+            && "BUG: creating dyn. memory node for NONMEM");
 
-    // we return (node, node), so that the parent function
-    // will seamlessly connect this node into the graph
-    return std::make_pair(node, node);
+    if (type == REALLOC) {
+        return createRealloc(CInst);
+    } else {
+        PSSNode *node = createDynamicAlloc(CInst, type);
+        addNode(CInst, node);
+
+        // we return (node, node), so that the parent function
+        // will seamlessly connect this node into the graph
+        return std::make_pair(node, node);
+    }
 }
 
 std::pair<PSSNode *, PSSNode *>

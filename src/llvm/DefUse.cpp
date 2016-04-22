@@ -138,8 +138,17 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 
     Function *func
         = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
-    if (func && func->isIntrinsic() && !isa<DbgValueInst>(CI))
-        handleIntrinsicCall(node, CI);
+    if (func) {
+        if (func->isIntrinsic() && !isa<DbgValueInst>(CI)) {
+            handleIntrinsicCall(node, CI);
+            return;
+        }
+
+        // for realloc, we need to make it data dependent on the
+        // memory it reallocates, since that is the memory it copies
+        if (strcmp(func->getName().data(), "realloc") == 0)
+            addDataDependence(node, CI, CI->getOperand(0), UNKNOWN_OFFSET /* FIXME */);
+    }
 
     /*
     if (func && func->size() == 0) {

@@ -84,11 +84,29 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
     return DL->getTypeAllocSize(Ty);
 }
 
+// FIXME: don't duplicate the code (with PSS.cpp)
+static uint64_t getDynamicMemorySize(const llvm::Value *op)
+{
+    using namespace llvm;
+
+    uint64_t size = 0;
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
+        size = C->getLimitedValue();
+        // if the size cannot be expressed as an uint64_t,
+        // just set it to 0 (that means unknown)
+        if (size == ~((uint64_t) 0))
+            size = 0;
+    }
+
+    return size;
+}
+
 enum MemAllocationFuncs {
     NONEMEM = 0,
     MALLOC,
     CALLOC,
     ALLOCA,
+    REALLOC,
 };
 
 static int getMemAllocationFunc(const llvm::Function *func)
@@ -104,8 +122,7 @@ static int getMemAllocationFunc(const llvm::Function *func)
     else if (strcmp(name, "alloca") == 0)
         return ALLOCA;
     else if (strcmp(name, "realloc") == 0)
-        // FIXME
-        assert(0 && "realloc not implemented yet");
+        return REALLOC;
 
     return NONEMEM;
 }
@@ -114,6 +131,22 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode(ALLOC);
     addNode(Inst, node);
+
+    return node;
+}
+
+RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
+{
+    RDNode *node = new RDNode(ALLOC);
+    addNode(Inst, node);
+
+    uint64_t size = getDynamicMemorySize(Inst->getOperand(1));
+    if (size == 0)
+        size = UNKNOWN_OFFSET;
+
+    // realloc defines itself, since it copies the values
+    // from previous memory
+    node->addDef(node, 0, size, false /* strong update */);
 
     return node;
 }
@@ -522,7 +555,10 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             if (func->isIntrinsic()) {
                 n = createIntrinsicCall(CInst);
             } else if (int type = getMemAllocationFunc(func)) {
-                n = createAlloc(CInst);
+                if (type == REALLOC)
+                    n = createRealloc(CInst);
+                else
+                    n = createAlloc(CInst);
             } else {
                 n = createUndefinedCall(CInst);
             }

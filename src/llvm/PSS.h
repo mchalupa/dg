@@ -146,6 +146,9 @@ private:
     createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
 
     std::pair<PSSNode *, PSSNode *>
+    createRealloc(const llvm::CallInst *CInst);
+
+    std::pair<PSSNode *, PSSNode *>
     createUnknownCall(const llvm::CallInst *CInst);
 
     std::pair<PSSNode *, PSSNode *>
