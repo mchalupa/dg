@@ -221,10 +221,8 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
         addNode(val, ret);
 
         return ret;
-    } else {
-        llvm::errs() << "Unsupported constant: " << *val << "\n";
-        abort();
-    }
+    } else
+        return nullptr;
 }
 
 PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
@@ -233,9 +231,13 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
     // if we don't have the operant, then it is a ConstantExpr
     // or some operand of intToPtr instruction (or related to that)
     if (!op) {
-        if (llvm::isa<llvm::Constant>(val))
+        if (llvm::isa<llvm::Constant>(val)) {
             op = getConstant(val);
-        else
+            if (!op) {
+                llvm::errs() << "Unsupported constant: " << *val << "\n";
+                abort();
+            }
+        } else
             // intToPtr instructions can make some
             // mess in the PSS
             op = createIrrelevantInst(val);
