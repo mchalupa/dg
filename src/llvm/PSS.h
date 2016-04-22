@@ -124,6 +124,7 @@ private:
     PSSNode *createAsm(const llvm::Instruction *Inst);
 
     PSSNode *createIrrelevantInst(const llvm::Value *);
+    PSSNode *createUnknown(const llvm::Instruction *Inst);
 
     PSSNode *getOperand(const llvm::Value *val);
     PSSNode *getConstant(const llvm::Value *val);

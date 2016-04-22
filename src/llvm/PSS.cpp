@@ -735,6 +735,23 @@ PSSNode *LLVMPSSBuilder::createCast(const llvm::Instruction *Inst)
     return node;
 }
 
+// sometimes inttoptr is masked using & or | operators,
+// so we need to support that. Anyway, that changes the pointer
+// completely, so we just return unknown pointer
+PSSNode *LLVMPSSBuilder::createUnknown(const llvm::Instruction *Inst)
+{
+    // nothing better we can do, these operations
+    // completely change the value of pointer...
+
+    // FIXME: or there's enough unknown offset? Check it out!
+    PSSNode *node = new PSSNode(pss::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+
+    addNode(Inst, node);
+
+    assert(node);
+    return node;
+}
+
 // ptrToInt work just as a bitcast
 PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
 {
@@ -757,18 +774,16 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
 PSSNode *LLVMPSSBuilder::createIntToPtr(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
-    PSSNode *op1 = nullptr;
+    PSSNode *op1;
 
-    if (llvm::isa<llvm::Constant>(op))
+    if (llvm::isa<llvm::Constant>(op)) {
         llvm::errs() << "PTA warning: IntToPtr with constant: "
                      << *Inst << "\n";
-    else
-        op1 = getOperand(op);
-
-    // if this is inttoptr with constant, just make the pointer
-    // unknown
-    if (!op1)
+        // if this is inttoptr with constant, just make the pointer
+        // unknown
         op1 = UNKNOWN_MEMORY;
+    } else
+        op1 = getOperand(op);
 
     PSSNode *node = new PSSNode(pss::CAST, op1);
 
@@ -901,6 +916,11 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
             break;
         case Instruction::Call:
             return createCall(&Inst);
+        case Instruction::And:
+        case Instruction::Or:
+        case Instruction::Trunc:
+            node = createUnknown(&Inst);
+            break;
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");
