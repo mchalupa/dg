@@ -139,9 +139,6 @@ bool PSS::processMemcpy(PSSNode *node)
     PSSNode *srcNode = node->getOperand(0);
     PSSNode *destNode = node->getOperand(1);
 
-    getMemoryObjects(node, srcNode, srcObjects);
-    getMemoryObjects(node, destNode, destObjects);
-
     /* if one is zero initialized and we copy it whole,
      * set the other zero initialized too */
     if ((!destNode->isZeroInitialized() && srcNode->isZeroInitialized())
@@ -149,6 +146,26 @@ bool PSS::processMemcpy(PSSNode *node)
             || node->offset.isUnknown())) {
         destNode->setZeroInitialized();
         changed = true;
+    }
+
+    // gather srcNode pointer objects
+    for (const Pointer& ptr : srcNode->pointsTo) {
+        assert(ptr.target && "Got nullptr as target");
+
+        if (ptr.isNull())
+            continue;
+
+        getMemoryObjects(node, ptr.target, srcObjects);
+    }
+
+    // gather destNode objects
+    for (const Pointer& dptr : destNode->pointsTo) {
+        assert(dptr.target && "Got nullptr as target");
+
+        if (dptr.isNull())
+            continue;
+
+        getMemoryObjects(node, dptr.target, destObjects);
     }
 
     if (srcObjects.empty()){
