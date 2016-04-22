@@ -61,7 +61,7 @@ make -j4
 ### Using the slicer
 
 Compiled slicer can be found in the tools subdirectory. First, you need to compile your
-program into LLVM (make sure you are using the LLVM 3.4 version binaries!):
+program into LLVM (make sure you are using the correct version of LLVM binaries if you have more of them):
 
 ```
 clang -c -emit-llvm source.c -o bytecode.bc
