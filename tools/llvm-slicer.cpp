@@ -45,6 +45,7 @@
 #include "llvm/LLVMPointsToAnalysis.h"
 #include "analysis/PointsToFlowInsensitive.h"
 #include "analysis/PointsToFlowSensitive.h"
+#include "analysis/Pointer.h"
 
 using namespace dg;
 using llvm::errs;
@@ -72,6 +73,32 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
 {
     LLVMDependenceGraph *dg;
     uint32_t opts;
+
+    void printPointer(const analysis::pss::Pointer& ptr,
+                      llvm::formatted_raw_ostream& os,
+                      const char *prefix = "PTR: ", bool nl = true)
+    {
+        os << "  ; ";
+        if (prefix)
+            os << prefix;
+
+        if (!ptr.isUnknown()) {
+            if (ptr.isNull())
+                os << "null";
+            else
+                os << *ptr.target->getUserData<llvm::Value>();
+
+            os << " + ";
+            if (ptr.offset.isUnknown())
+                os << "UNKNOWN";
+            else
+                os << *ptr.offset;
+        } else
+            os << "unknown";
+
+        if (nl)
+            os << "\n";
+    }
 
     void printPointer(const analysis::Pointer& ptr,
                       llvm::formatted_raw_ostream& os,
@@ -161,15 +188,27 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
         }
 
         if (opts & ANNOTATE_PTR) {
-            for (const analysis::Pointer& ptr : node->getPointsTo())
-                printPointer(ptr, os);
+            LLVMPointsToAnalysis *PTA = node->getDG()->getPTA();
+            if (PTA) { // we used the new analyses
+                llvm::Type *Ty = node->getKey()->getType();
+                if (Ty->isPointerTy() || Ty->isIntegerTy()) {
+                    analysis::pss::PSSNode *ps = PTA->getPointsTo(node->getKey());
+                    if (ps) {
+                        for (const analysis::pss::Pointer& ptr : ps->pointsTo)
+                            printPointer(ptr, os);
+                    }
+                }
+            } else {
+                for (const analysis::Pointer& ptr : node->getPointsTo())
+                    printPointer(ptr, os);
 
-            analysis::MemoryObj *mo = node->getMemoryObj();
-            if (mo) {
-                for (auto it : mo->pointsTo) {
-                    for (const analysis::Pointer& ptr : it.second) {
-                        os << "  ; PTR mem [" << *it.first << "] ";
-                        printPointer(ptr, os, nullptr);
+                analysis::MemoryObj *mo = node->getMemoryObj();
+                if (mo) {
+                    for (auto it : mo->pointsTo) {
+                        for (const analysis::Pointer& ptr : it.second) {
+                            os << "  ; PTR mem [" << *it.first << "] ";
+                            printPointer(ptr, os, nullptr);
+                        }
                     }
                 }
             }

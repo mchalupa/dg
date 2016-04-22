@@ -106,6 +106,8 @@ public:
         entry->setSlice(sid);
     }
 
+    LLVMPointsToAnalysis *getPTA() const { return PTA; }
+
 private:
     // copy points-to information from pointer state subgraph
     // to nodes in DG

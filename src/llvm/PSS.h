@@ -98,7 +98,7 @@ public:
 
         // if this is a call that returns a pointer,
         // then the points-to is in CALL_RETURN node
-        if (n->getType() == CALL)
+        if (n && n->getType() == CALL)
             n = n->getPairedNode();
 
         return n;
