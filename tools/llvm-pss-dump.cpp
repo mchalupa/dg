@@ -45,7 +45,11 @@ getInstName(const llvm::Value *val)
     llvm::raw_os_ostream ro(ostr);
 
     assert(val);
-    ro << *val;
+    if (llvm::isa<llvm::Function>(val))
+        ro << val->getName().data();
+    else
+        ro << *val;
+
     ro.flush();
 
     // break the string if it is too long
