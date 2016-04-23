@@ -19,7 +19,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
-#include "llvm/LLVMPointsToAnalysis.h"
+#include "llvm/analysis/PointsTo.h"
 #include "analysis/PointsToFlowInsensitive.h"
 #include "analysis/PointsToFlowSensitive.h"
 

@@ -34,7 +34,7 @@
 #include "PointsTo.h"
 #include "DefUse.h"
 #include "analysis/PSS.h"
-#include "LLVMPointsToAnalysis.h"
+#include "llvm/analysis/PointsTo.h"
 
 #include "llvm-debug.h"
 

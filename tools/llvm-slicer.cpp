@@ -42,7 +42,7 @@
 #include "llvm/Slicer.h"
 #include "Utils.h"
 
-#include "llvm/LLVMPointsToAnalysis.h"
+#include "llvm/analysis/PointsTo.h"
 #include "analysis/PointsToFlowInsensitive.h"
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/Pointer.h"

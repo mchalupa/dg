@@ -29,7 +29,7 @@
 
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/PointsToFlowInsensitive.h"
-#include "llvm/LLVMPointsToAnalysis.h"
+#include "llvm/analysis/PointsTo.h"
 #include "llvm/LLVMReachingDefinitions.h"
 
 using namespace dg;

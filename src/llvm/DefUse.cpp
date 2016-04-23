@@ -15,7 +15,7 @@
 #include "DefUse.h"
 #include "AnalysisGeneric.h"
 
-#include "LLVMPointsToAnalysis.h"
+#include "analysis/PointsTo.h"
 #include "LLVMReachingDefinitions.h"
 
 #include "analysis/PSS.h"

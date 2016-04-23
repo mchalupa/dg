@@ -8,8 +8,7 @@
 #include <llvm/IR/Constants.h>
 
 #include "analysis/ReachingDefinitions.h"
-
-#include "LLVMPointsToAnalysis.h"
+#include "llvm/analysis/PointsTo.h"
 
 namespace dg {
 namespace analysis {
