@@ -13,8 +13,10 @@ We have implemented dependence graph for LLVM and a static slicer for LLVM.
 ### Requirements & Compilation
 
 LLVM DependenceGraph needs LLVM 3.4 or higher (tested on 3.4 and 3.7).
-We currently started supporting higher version than 3.4 so if you have problems with compilation,
-please let us know (file an issue).
+We recently started supporting higher version than 3.4 so if you have problems with compilation,
+please let us know (file an issue). Also, the project has been restructuralized, so if
+you already have it cloned and after update it fails building, try cleaning the build directory
+and configure & make it again.
 
 ```
 git clone https://github.com/mchalupa/dg
@@ -218,7 +220,7 @@ To get this output conveniently, you can use:
 
 ### Tools
 
-The tools subdirectory contains a set of useful program for debugging
+The tools subdirectory contains a set of useful programs for debugging
 and playing with the llvm bitcode. Except for the llvm-slicer you can find there:
 
 * `llvm-dg-dump` - Dump the dependence graph for given program to graphviz format (to stdout)
