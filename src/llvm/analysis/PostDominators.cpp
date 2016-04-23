@@ -1,12 +1,10 @@
 #include <llvm/IR/Function.h>
-
 #include <llvm/Analysis/PostDominators.h>
 
 #include "analysis/BFS.h"
 #include "analysis/PostDominanceFrontiers.h"
 
-
-#include "LLVMDependenceGraph.h"
+#include "llvm/LLVMDependenceGraph.h"
 
 namespace dg {
 

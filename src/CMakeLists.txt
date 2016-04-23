@@ -31,11 +31,11 @@ add_library(LLVMdg SHARED
 	llvm/LLVMDependenceGraph.cpp
 	llvm/LLVMDGVerifier.h
 	llvm/LLVMDGVerifier.cpp
-	llvm/PostDominators.cpp
 	llvm/DefUse.h
 	llvm/DefUse.cpp
 	llvm/Slicer.h
 	# LLVM analysis
+	llvm/analysis/PostDominators.cpp
 	llvm/analysis/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions.cpp
 	llvm/analysis/PointsTo.h
