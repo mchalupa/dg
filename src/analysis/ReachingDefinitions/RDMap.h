@@ -5,7 +5,7 @@
 #include <map>
 #include <cassert>
 
-#include "Offset.h"
+#include "analysis/Offset.h"
 
 namespace dg {
 namespace analysis {

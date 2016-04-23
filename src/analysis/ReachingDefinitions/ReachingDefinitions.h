@@ -6,7 +6,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "PointsTo/PSS.h"
+#include "analysis/PointsTo/PSS.h"
 #include "analysis/Offset.h"
 
 #include "ADT/Queue.h"

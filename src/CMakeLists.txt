@@ -13,10 +13,10 @@ add_library(PSS SHARED
 
 add_library(RD SHARED
 	analysis/Offset.h
-	analysis/ReachingDefinitions.h
-	analysis/ReachingDefinitions.cpp
-	analysis/RDMap.h
-	analysis/RDMap.cpp
+	analysis/ReachingDefinitions/ReachingDefinitions.h
+	analysis/ReachingDefinitions/ReachingDefinitions.cpp
+	analysis/ReachingDefinitions/RDMap.h
+	analysis/ReachingDefinitions/RDMap.cpp
 )
 
 add_library(LLVMdg SHARED

@@ -6,8 +6,8 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
-#include "analysis/ReachingDefinitions.h"
-#include "analysis/RDMap.h"
+#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "analysis/ReachingDefinitions/RDMap.h"
 
 namespace dg {
 namespace tests {

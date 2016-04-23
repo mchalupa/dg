@@ -7,7 +7,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
 
-#include "analysis/ReachingDefinitions.h"
+#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "llvm/analysis/PointsTo.h"
 
 namespace dg {
