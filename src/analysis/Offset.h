@@ -4,9 +4,6 @@
 namespace dg {
 namespace analysis {
 
-// declare PSSNode
-class PSSNode;
-
 #define UNKNOWN_OFFSET ~((uint64_t) 0)
 
 // just a wrapper around uint64_t to
