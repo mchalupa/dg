@@ -6,8 +6,8 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
-#include "analysis/PointsToFlowInsensitive.h"
-#include "analysis/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "analysis/PointsTo/PointsToFlowSensitive.h"
 
 namespace dg {
 namespace tests {

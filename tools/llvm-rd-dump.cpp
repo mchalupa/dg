@@ -20,9 +20,9 @@
 #include <fstream>
 #include <string>
 
-#include "analysis/PointsToFlowInsensitive.h"
-#include "analysis/PointsToFlowSensitive.h"
-#include "analysis/Pointer.h"
+#include "analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/Pointer.h"
 
 #include "llvm/analysis/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions.h"

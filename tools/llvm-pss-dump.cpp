@@ -21,9 +21,9 @@
 #include <string>
 
 #include "llvm/analysis/PointsTo.h"
-#include "analysis/PointsToFlowInsensitive.h"
-#include "analysis/PointsToFlowSensitive.h"
-#include "analysis/Pointer.h"
+#include "analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/Pointer.h"
 
 #include "Utils.h"
 

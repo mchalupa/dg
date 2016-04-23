@@ -8,8 +8,8 @@
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 
-#include "analysis/PSS.h"
-#include "analysis/Pointer.h"
+#include "analysis/PointsTo/PSS.h"
+#include "analysis/PointsTo/Pointer.h"
 
 namespace dg {
 namespace analysis {

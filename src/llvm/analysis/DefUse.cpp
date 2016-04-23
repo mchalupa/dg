@@ -18,7 +18,7 @@
 #include "ReachingDefinitions.h"
 #include "DefUse.h"
 
-#include "analysis/PSS.h"
+#include "analysis/PointsTo/PSS.h"
 #include "analysis/DFS.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;

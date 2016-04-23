@@ -3,12 +3,12 @@ if (LLVM_DG)
 
 add_library(PSS SHARED
 	analysis/Offset.h
-	analysis/Pointer.h
-	analysis/Pointer.cpp
-	analysis/PSS.h
-	analysis/PSS.cpp
-	analysis/PointsToFlowInsensitive.h
-	analysis/PointsToFlowSensitive.h
+	analysis/PointsTo/Pointer.h
+	analysis/PointsTo/Pointer.cpp
+	analysis/PointsTo/PSS.h
+	analysis/PointsTo/PSS.cpp
+	analysis/PointsTo/PointsToFlowInsensitive.h
+	analysis/PointsTo/PointsToFlowSensitive.h
 )
 
 add_library(RD SHARED

@@ -5,7 +5,7 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "analysis/PSS.h"
+#include "analysis/PointsTo/PSS.h"
 #include "llvm/analysis/PSS.h"
 
 namespace dg {

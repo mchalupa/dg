@@ -29,12 +29,12 @@
 #include "llvm/analysis/old/ReachingDefs.h"
 #include "llvm/analysis/old/DefUse.h"
 
-#include "analysis/PointsToFlowSensitive.h"
-#include "analysis/PointsToFlowInsensitive.h"
-
 #include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions.h"
+
+#include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/PointsToFlowInsensitive.h"
 
 using namespace dg;
 using llvm::errs;

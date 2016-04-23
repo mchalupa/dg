@@ -17,7 +17,7 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
-#include "analysis/PSS.h"
+#include "analysis/PointsTo/PSS.h"
 #include "PSS.h"
 
 #ifdef DEBUG_ENABLED
