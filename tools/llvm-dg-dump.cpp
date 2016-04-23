@@ -20,17 +20,19 @@
 #include <fstream>
 #include <string>
 
-#include "llvm/analysis/old/PointsTo.h"
-#include "llvm/analysis/old/ReachingDefs.h"
-
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/DefUse.h"
 #include "llvm/Slicer.h"
 #include "DG2Dot.h"
 #include "Utils.h"
 
+#include "llvm/analysis/old/PointsTo.h"
+#include "llvm/analysis/old/ReachingDefs.h"
+#include "llvm/analysis/old/DefUse.h"
+
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/PointsToFlowInsensitive.h"
+
+#include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions.h"
 

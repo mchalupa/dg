@@ -24,20 +24,18 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "Utils.h"
 #include "LLVMDGVerifier.h"
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
+#include "Utils.h"
+#include "llvm-debug.h"
 
-#include "llvm/analysis/old/PointsTo.h"
-
-#include "DefUse.h"
 #include "analysis/PSS.h"
 #include "llvm/analysis/PointsTo.h"
-
-#include "llvm-debug.h"
+//#include "llvm/analysis/old/PointsTo.h"
 
 using llvm::errs;
 using std::make_pair;

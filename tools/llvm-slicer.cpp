@@ -36,15 +36,17 @@
 #include <iostream>
 #include <fstream>
 
-#include "llvm/analysis/old/PointsTo.h"
-#include "llvm/analysis/old/ReachingDefs.h"
-
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/DefUse.h"
 #include "llvm/Slicer.h"
 #include "Utils.h"
 
+#include "llvm/analysis/old/PointsTo.h"
+#include "llvm/analysis/old/ReachingDefs.h"
+#include "llvm/analysis/old/DefUse.h"
+
+#include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo.h"
+
 #include "analysis/PointsToFlowInsensitive.h"
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/Pointer.h"
