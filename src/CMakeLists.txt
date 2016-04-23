@@ -43,12 +43,12 @@ add_library(LLVMdg SHARED
 	llvm/ReachingDefs.h
 	llvm/ReachingDefs.cpp
 	llvm/Slicer.h
-	llvm/PSS.h
-	llvm/PSS.cpp
 	# LLVM analysis
 	llvm/analysis/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions.cpp
 	llvm/analysis/PointsTo.h
+	llvm/analysis/PSS.h
+	llvm/analysis/PSS.cpp
 )
 
 target_link_libraries(LLVMdg PSS RD ${llvm_libs})
