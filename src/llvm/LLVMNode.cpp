@@ -18,8 +18,9 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "LLVMNode.h"
-#include "AnalysisGeneric.h"
 #include "LLVMDependenceGraph.h"
+
+#include "llvm/analysis/old/AnalysisGeneric.h"
 
 using llvm::errs;
 using dg::analysis::Pointer;

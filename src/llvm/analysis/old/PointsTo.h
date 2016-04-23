@@ -6,7 +6,7 @@
 #include <llvm/IR/DataLayout.h>
 
 #include "analysis/DataFlowAnalysis.h"
-#include "llvm/AnalysisGeneric.h"
+#include "AnalysisGeneric.h"
 
 namespace llvm {
     class IntrinsicInst;

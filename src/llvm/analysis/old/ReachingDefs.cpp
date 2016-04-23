@@ -12,13 +12,13 @@
 
 #include "llvm/LLVMNode.h"
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/AnalysisGeneric.h"
+#include "llvm/llvm-debug.h"
 
 #include "ReachingDefs.h"
 #include "DefMap.h"
+#include "AnalysisGeneric.h"
 
 #include "analysis/DFS.h"
-#include "llvm/llvm-debug.h"
 
 using namespace llvm;
 

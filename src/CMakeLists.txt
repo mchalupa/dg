@@ -32,8 +32,6 @@ add_library(LLVMdg SHARED
 	llvm/LLVMDGVerifier.h
 	llvm/LLVMDGVerifier.cpp
 	llvm/PostDominators.cpp
-	llvm/AnalysisGeneric.h
-	llvm/AnalysisGeneric.cpp
 	llvm/DefUse.h
 	llvm/DefUse.cpp
 	llvm/Slicer.h
@@ -44,6 +42,8 @@ add_library(LLVMdg SHARED
 	llvm/analysis/PSS.h
 	llvm/analysis/PSS.cpp
 	# LLVM analysis (old)
+	llvm/analysis/old/AnalysisGeneric.h
+	llvm/analysis/old/AnalysisGeneric.cpp
 	llvm/analysis/old/PointsTo.h
 	llvm/analysis/old/PointsTo.cpp
 	llvm/analysis/old/ReachingDefs.h

@@ -13,7 +13,8 @@
 #include "LLVMNode.h"
 #include "LLVMDependenceGraph.h"
 #include "DefUse.h"
-#include "AnalysisGeneric.h"
+
+#include "llvm/analysis/old/AnalysisGeneric.h"
 
 #include "llvm/analysis/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions.h"
