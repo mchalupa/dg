@@ -30,7 +30,7 @@
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/PointsToFlowInsensitive.h"
 #include "llvm/analysis/PointsTo.h"
-#include "llvm/LLVMReachingDefinitions.h"
+#include "llvm/analysis/ReachingDefinitions.h"
 
 using namespace dg;
 using llvm::errs;

@@ -7,7 +7,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/DataLayout.h>
 
-#include "LLVMReachingDefinitions.h"
+#include "llvm/analysis/ReachingDefinitions.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
 

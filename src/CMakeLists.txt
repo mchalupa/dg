@@ -45,8 +45,9 @@ add_library(LLVMdg SHARED
 	llvm/Slicer.h
 	llvm/PSS.h
 	llvm/PSS.cpp
-	llvm/LLVMReachingDefinitions.h
-	llvm/LLVMReachingDefinitions.cpp
+	# LLVM analysis
+	llvm/analysis/ReachingDefinitions.h
+	llvm/analysis/ReachingDefinitions.cpp
 	llvm/analysis/PointsTo.h
 )
 

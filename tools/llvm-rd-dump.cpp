@@ -20,12 +20,12 @@
 #include <fstream>
 #include <string>
 
-#include "llvm/analysis/PointsTo.h"
 #include "analysis/PointsToFlowInsensitive.h"
 #include "analysis/PointsToFlowSensitive.h"
 #include "analysis/Pointer.h"
 
-#include "llvm/LLVMReachingDefinitions.h"
+#include "llvm/analysis/PointsTo.h"
+#include "llvm/analysis/ReachingDefinitions.h"
 
 #include "Utils.h"
 

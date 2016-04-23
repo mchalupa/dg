@@ -18,8 +18,8 @@
 #include <llvm/Support/raw_os_ostream.h>
 
 #include "analysis/PSS.h"
-#include "PSS.h"
-#include "LLVMReachingDefinitions.h"
+#include "llvm/PSS.h"
+#include "ReachingDefinitions.h"
 
 #ifdef DEBUG_ENABLED
 #include <iostream>
