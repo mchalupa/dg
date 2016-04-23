@@ -6,7 +6,7 @@
 #include <llvm/IR/DataLayout.h>
 
 #include "analysis/DataFlowAnalysis.h"
-#include "AnalysisGeneric.h"
+#include "llvm/AnalysisGeneric.h"
 
 namespace llvm {
     class IntrinsicInst;
@@ -16,6 +16,7 @@ namespace dg {
 
 class LLVMDependenceGraph;
 class LLVMNode;
+typedef dg::DGParameters<LLVMNode> LLVMDGParameters;
 
 namespace analysis {
 

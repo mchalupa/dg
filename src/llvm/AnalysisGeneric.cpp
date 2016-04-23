@@ -7,8 +7,8 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "AnalysisGeneric.h"
-#include "LLVMDependenceGraph.h"
-#include "PointsTo.h"
+#include "llvm/LLVMDependenceGraph.h"
+#include "llvm/analysis/old/PointsTo.h"
 
 using namespace llvm;
 

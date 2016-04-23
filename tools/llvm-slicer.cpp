@@ -35,8 +35,10 @@
 
 #include <iostream>
 #include <fstream>
+
+#include "llvm/analysis/old/PointsTo.h"
+
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/PointsTo.h"
 #include "llvm/ReachingDefs.h"
 #include "llvm/DefUse.h"
 #include "llvm/Slicer.h"

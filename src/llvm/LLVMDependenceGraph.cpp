@@ -31,7 +31,8 @@
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
 
-#include "PointsTo.h"
+#include "llvm/analysis/old/PointsTo.h"
+
 #include "DefUse.h"
 #include "analysis/PSS.h"
 #include "llvm/analysis/PointsTo.h"

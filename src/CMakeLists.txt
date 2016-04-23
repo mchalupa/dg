@@ -34,8 +34,6 @@ add_library(LLVMdg SHARED
 	llvm/PostDominators.cpp
 	llvm/AnalysisGeneric.h
 	llvm/AnalysisGeneric.cpp
-	llvm/PointsTo.h
-	llvm/PointsTo.cpp
 	llvm/DefUse.h
 	llvm/DefUse.cpp
 	llvm/DefMap.h
@@ -49,6 +47,9 @@ add_library(LLVMdg SHARED
 	llvm/analysis/PointsTo.h
 	llvm/analysis/PSS.h
 	llvm/analysis/PSS.cpp
+	# LLVM analysis (old)
+	llvm/analysis/old/PointsTo.h
+	llvm/analysis/old/PointsTo.cpp
 )
 
 target_link_libraries(LLVMdg PSS RD ${llvm_libs})

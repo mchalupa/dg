@@ -6,11 +6,11 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "LLVMDependenceGraph.h"
+#include "llvm/LLVMDependenceGraph.h"
 #include "PointsTo.h"
-#include "AnalysisGeneric.h"
+#include "llvm/AnalysisGeneric.h"
 
-#include "llvm-debug.h"
+#include "llvm/llvm-debug.h"
 
 using namespace llvm;
 
