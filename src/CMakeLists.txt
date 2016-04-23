@@ -36,10 +36,6 @@ add_library(LLVMdg SHARED
 	llvm/AnalysisGeneric.cpp
 	llvm/DefUse.h
 	llvm/DefUse.cpp
-	llvm/DefMap.h
-	llvm/DefMap.cpp
-	llvm/ReachingDefs.h
-	llvm/ReachingDefs.cpp
 	llvm/Slicer.h
 	# LLVM analysis
 	llvm/analysis/ReachingDefinitions.h
@@ -50,6 +46,10 @@ add_library(LLVMdg SHARED
 	# LLVM analysis (old)
 	llvm/analysis/old/PointsTo.h
 	llvm/analysis/old/PointsTo.cpp
+	llvm/analysis/old/ReachingDefs.h
+	llvm/analysis/old/ReachingDefs.cpp
+	llvm/analysis/old/DefMap.h
+	llvm/analysis/old/DefMap.cpp
 )
 
 target_link_libraries(LLVMdg PSS RD ${llvm_libs})

@@ -10,14 +10,15 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "LLVMNode.h"
-#include "LLVMDependenceGraph.h"
+#include "llvm/LLVMNode.h"
+#include "llvm/LLVMDependenceGraph.h"
+#include "llvm/AnalysisGeneric.h"
+
 #include "ReachingDefs.h"
-#include "AnalysisGeneric.h"
 #include "DefMap.h"
 
 #include "analysis/DFS.h"
-#include "llvm-debug.h"
+#include "llvm/llvm-debug.h"
 
 using namespace llvm;
 

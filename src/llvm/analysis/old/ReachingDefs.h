@@ -2,6 +2,7 @@
 #define _LLVM_REACHING_DEFS_ANALYSIS_H_
 
 #include "analysis/DataFlowAnalysis.h"
+#include "DefMap.h"
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>

@@ -1,7 +1,7 @@
 #ifndef _LLVM_DG_DEF_MAP_H_
 #define _LLVM_DG_DEF_MAP_H_
 
-#include "AnalysisGeneric.h"
+#include "llvm/AnalysisGeneric.h"
 #include <utility>
 
 namespace dg {
