@@ -239,14 +239,15 @@ PSSNode *LLVMPSSBuilder::tryGetOperand(const llvm::Value *val)
     if (!op) {
         if (llvm::isa<llvm::Constant>(val)) {
             op = getConstant(val);
-            if (!op)
+            if (!op) {
+                // unknown constant
+                llvm::errs() << "ERR: unknown constant: " << *val << "\n";
                 return nullptr;
+            }
         } else
-            // intToPtr instructions can make some
-            // mess in the PSS
-            op = createIrrelevantInst(val);
+            // unknown operand
+            return nullptr;
     }
-
 
     // we either found the operand, or we bailed out earlier,
     // so we need to have the operand here
@@ -268,6 +269,19 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
     if (!op) {
         llvm::errs() << "Did not find an operand: " << *val << "\n";
         abort();
+
+        /*
+        const llvm::Instruction *Inst
+            = llvm::dyn_cast<llvm::Instruction>(val);
+
+        if (Inst && !isRelevantInstruction(*Inst)) {
+            // create irrelevant operand if we don't have it
+            op = createIrrelevantInst(Inst, false);
+        } else {
+            llvm::errs() << "Did not find an operand: " << *val << "\n";
+            abort();
+        }
+        */
     }
 
     return op;
@@ -816,8 +830,15 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
     // operations
     // PSSNode *node = new PSSNode(pss::CAST, op1);
     PSSNode *node = new PSSNode(pss::GEP, op1, UNKNOWN_OFFSET);
-
     addNode(Inst, node);
+
+    // ptrToInt make mess in types. Our normal machinery does not
+    // build instructions that are not of pointer type, but these
+    // are and we still need them... At this point, build the
+    // instructions that use this value but would not be built otherwise.
+    // Do it transitively, because the new instructions could have further
+    // uses
+    createIrrelevantUses(Inst);
 
     assert(node);
     return node;
@@ -993,9 +1014,7 @@ bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
             // create only nodes that store pointer to another
             // pointer. We don't care about stores of non-pointers.
             // The only exception are stores to inttoptr nodes
-            if (Inst.getOperand(0)->getType()->isPointerTy() ||
-                isa<PtrToIntInst>(Inst.getOperand(0)->stripInBoundsOffsets()) ||
-                isa<IntToPtrInst>(Inst.getOperand(0)->stripInBoundsOffsets()))
+            if (Inst.getOperand(0)->getType()->isPointerTy())
                 return true;
             else
                 return false;
@@ -1023,16 +1042,10 @@ bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
         case Instruction::Ret:
             return true;
         default:
-            // check if we have some operand created
-            // - in that case we should build this instruction
-            // FIXME: this is useless over-approximation,
-            // build just what we need...
-            for (auto I = Inst.op_begin(), E = Inst.op_end(); I != E; ++I)
-                if (nodes_map.count(*I))
-                    return true;
-
             return false;
     }
+
+    assert(0 && "Not to be reached");
 }
 
 // this method creates a node no matter if it is pointer-related
@@ -1040,7 +1053,9 @@ bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
 // the PSS. This is needed due to arguments of intToPtr instructions,
 // because these are not of pointer-type, therefore are not built
 // in buildPSSBlock
-PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val)
+PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val,
+                                              bool build_uses)
+
 {
     using namespace llvm;
     const llvm::Instruction *Inst = cast<Instruction>(val);
@@ -1063,7 +1078,44 @@ PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val)
     // but this is overkill IMO)
     unplacedInstructions.insert(seq.first);
 
+    // we should build recurently uses of this instruction
+    // that are also "irrelevant"?
+    if (build_uses)
+        createIrrelevantUses(val);
+
     return seq.first;
+}
+
+void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
+{
+    using namespace llvm;
+
+    for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
+        const Value *use = *I;
+        const Instruction *Inst = dyn_cast<Instruction>(use);
+
+        // create the irrelevant instruction if we don't have
+        // it created already
+        if (Inst && nodes_map.count(use) == 0) {
+            if (!isRelevantInstruction(*Inst)) {
+                createIrrelevantInst(use, true /* recursive */);
+
+                if (isa<StoreInst>(use))
+                    // for StoreInst we need to create even uses
+                    // of the pointer, since we stored the value
+                    // into it (we want to have the loads from it)
+                    createIrrelevantUses(Inst->getOperand(1));
+            }
+
+            if (isa<CallInst>(use)) {
+                // if the use is CallInst, then we use the value
+                // as an argument - we need to build new argument
+                // and put it into the procedure
+
+                assert(0 && "Not implemented");
+            }
+        }
+    }
 }
 
 void LLVMPSSBuilder::addUnplacedInstructions(void)

@@ -125,7 +125,10 @@ private:
     PSSNode *createIntToPtr(const llvm::Instruction *Inst);
     PSSNode *createAsm(const llvm::Instruction *Inst);
 
-    PSSNode *createIrrelevantInst(const llvm::Value *);
+    PSSNode *createIrrelevantInst(const llvm::Value *,
+                                  bool build_uses = false);
+    void createIrrelevantUses(const llvm::Value *val);
+
     PSSNode *createUnknown(const llvm::Instruction *Inst);
 
     PSSNode *getOperand(const llvm::Value *val);
