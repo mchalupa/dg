@@ -1023,6 +1023,14 @@ bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
         case Instruction::Ret:
             return true;
         default:
+            // check if we have some operand created
+            // - in that case we should build this instruction
+            // FIXME: this is useless over-approximation,
+            // build just what we need...
+            for (auto I = Inst.op_begin(), E = Inst.op_end(); I != E; ++I)
+                if (nodes_map.count(*I))
+                    return true;
+
             return false;
     }
 }
