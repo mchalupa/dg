@@ -111,6 +111,8 @@ private:
         node->setUserData(const_cast<llvm::Value *>(val));
     }
 
+    bool isRelevantInstruction(const llvm::Instruction& Inst);
+
     PSSNode *createAlloc(const llvm::Instruction *Inst);
     PSSNode *createStore(const llvm::Instruction *Inst);
     PSSNode *createLoad(const llvm::Instruction *Inst);

@@ -984,7 +984,7 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
 }
 
 // is the instruction relevant to points-to analysis?
-static bool isRelevantInstruction(const llvm::Instruction& Inst)
+bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
 {
     using namespace llvm;
 
