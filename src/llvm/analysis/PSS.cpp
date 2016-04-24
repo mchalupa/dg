@@ -225,23 +225,32 @@ PSSNode *LLVMPSSBuilder::getConstant(const llvm::Value *val)
         return nullptr;
 }
 
-PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
+// try get operand, return null if no such value has been constructed
+PSSNode *LLVMPSSBuilder::tryGetOperand(const llvm::Value *val)
 {
-    PSSNode *op = nodes_map[val];
-    // if we don't have the operant, then it is a ConstantExpr
+    auto it = nodes_map.find(val);
+    PSSNode *op = nullptr;
+
+    if (it != nodes_map.end())
+        op = it->second;
+
+    // if we don't have the operand, then it is a ConstantExpr
     // or some operand of intToPtr instruction (or related to that)
     if (!op) {
         if (llvm::isa<llvm::Constant>(val)) {
             op = getConstant(val);
-            if (!op) {
-                llvm::errs() << "Unsupported constant: " << *val << "\n";
-                abort();
-            }
+            if (!op)
+                return nullptr;
         } else
             // intToPtr instructions can make some
             // mess in the PSS
             op = createIrrelevantInst(val);
     }
+
+
+    // we either found the operand, or we bailed out earlier,
+    // so we need to have the operand here
+    assert(op && "Did not find an operand");
 
     // if the operand is a call, use the return node of the call instead
     // - that is the one that contains returned pointers
@@ -250,7 +259,17 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
         op = op->getPairedNode();
     }
 
-    assert(op && "Did not find an operand");
+    return op;
+}
+
+PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
+{
+    PSSNode *op = tryGetOperand(val);
+    if (!op) {
+        llvm::errs() << "Did not find an operand: " << *val << "\n";
+        abort();
+    }
+
     return op;
 }
 

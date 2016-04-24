@@ -127,6 +127,7 @@ private:
     PSSNode *createUnknown(const llvm::Instruction *Inst);
 
     PSSNode *getOperand(const llvm::Value *val);
+    PSSNode *tryGetOperand(const llvm::Value *val);
     PSSNode *getConstant(const llvm::Value *val);
     PSSNode *createConstantExpr(const llvm::ConstantExpr *CE);
     Pointer handleConstantGep(const llvm::GetElementPtrInst *GEP);
