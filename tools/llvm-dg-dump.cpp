@@ -101,7 +101,7 @@ public:
         : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual */
-    std::ostream& printKey(std::ostream& os, const llvm::Value *val)
+    std::ostream& printKey(std::ostream& os, llvm::Value *val)
     {
         return printLLVMVal(os, val);
     }
@@ -237,7 +237,7 @@ public:
         : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual
-    std::ostream& printKey(std::ostream& os, const llvm::Value *val)
+    std::ostream& printKey(std::ostream& os, llvm::Value *val)
     {
         return printLLVMVal(os, val);
     }
