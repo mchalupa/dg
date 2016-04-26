@@ -287,7 +287,7 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
     return op;
 }
 
-static uint64_t getDynamicMemorySize(const llvm::Value *op)
+static uint64_t getConstantValue(const llvm::Value *op)
 {
     using namespace llvm;
 
@@ -328,11 +328,11 @@ static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
     };
 
     // infer allocated size
-    size = getDynamicMemorySize(op);
+    size = getConstantValue(op);
     if (size != 0 && type == CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
-        size2 = getDynamicMemorySize(CInst->getOperand(0));
+        size2 = getConstantValue(CInst->getOperand(0));
         if (size2 != 0)
             size *= size2;
     }
@@ -353,7 +353,7 @@ LLVMPSSBuilder::createRealloc(const llvm::CallInst *CInst)
     PSSNode *mcp = new PSSNode(pss::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
 
     reall->setIsHeap();
-    reall->setSize(getDynamicMemorySize(CInst->getOperand(1)));
+    reall->setSize(getConstantValue(CInst->getOperand(1)));
     if (orig_mem->isZeroInitialized())
         reall->setZeroInitialized();
 
@@ -829,7 +829,7 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
     // this way we cover any shift of the pointer due to arithmetic
     // operations
     // PSSNode *node = new PSSNode(pss::CAST, op1);
-    PSSNode *node = new PSSNode(pss::GEP, op1, UNKNOWN_OFFSET);
+    PSSNode *node = new PSSNode(pss::GEP, op1, 0);
     addNode(Inst, node);
 
     // ptrToInt make mess in types. Our normal machinery does not
@@ -859,6 +859,57 @@ PSSNode *LLVMPSSBuilder::createIntToPtr(const llvm::Instruction *Inst)
         op1 = getOperand(op);
 
     PSSNode *node = new PSSNode(pss::CAST, op1);
+
+    addNode(Inst, node);
+
+    assert(node);
+    return node;
+}
+
+PSSNode *LLVMPSSBuilder::createAdd(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    PSSNode *node;
+    const Value *val = Inst->getOperand(1);
+    PSSNode *op = tryGetOperand(Inst->getOperand(0));
+
+    // add val1, val2
+    // we don't know if val1 is the pointer or the val2
+    // is the pointer, so we must check both
+    if (!op) {
+        op = tryGetOperand(Inst->getOperand(1));
+        val = Inst->getOperand(0);
+    }
+
+
+    assert(op && "Don't have operand for add");
+
+    uint64_t off = getConstantValue(val);
+    node = new PSSNode(pss::GEP, op, off);
+
+    addNode(Inst, node);
+
+    assert(node);
+    return node;
+}
+
+PSSNode *LLVMPSSBuilder::createArithmetic(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    PSSNode *node;
+    PSSNode *op = tryGetOperand(Inst->getOperand(0));
+
+    // this is binary operation, but we don't
+    // know which operand is a pointer, so we must check both
+    if (!op)
+        op = tryGetOperand(Inst->getOperand(1));
+
+    assert(op && "Don't have operand for binary op");
+    // we don't know what the operation does,
+    // so set unknown offset
+    node = new PSSNode(pss::GEP, op, UNKNOWN_OFFSET);
 
     addNode(Inst, node);
 
@@ -996,6 +1047,12 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::Trunc:
             node = createUnknown(&Inst);
             break;
+        case Instruction::Add:
+            node = createAdd(&Inst);
+            break;
+        case Instruction::Mul:
+            node = createArithmetic(&Inst);
+            break;
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");
@@ -1090,8 +1147,17 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
 {
     using namespace llvm;
 
-    for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
-        const Value *use = *I;
+    // NOTE: go backward the uses list, so that we first discover
+    // the close uses and then the uses that are further in the program
+    // I haven't find out how to use something like reverse iterator,
+    // so we hack it here with vector...
+    std::vector<const Value *> uses;
+    for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I)
+        uses.push_back(*I);
+
+    // go backward the uses we gathered
+    for (int i = uses.size() - 1; i >= 0; --i) {
+        const Value *use = uses[i];
         const Instruction *Inst = dyn_cast<Instruction>(use);
 
         // create the irrelevant instruction if we don't have

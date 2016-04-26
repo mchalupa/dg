@@ -129,6 +129,8 @@ private:
                                   bool build_uses = false);
     void createIrrelevantUses(const llvm::Value *val);
 
+    PSSNode *createAdd(const llvm::Instruction *Inst);
+    PSSNode *createArithmetic(const llvm::Instruction *Inst);
     PSSNode *createUnknown(const llvm::Instruction *Inst);
 
     PSSNode *getOperand(const llvm::Value *val);
