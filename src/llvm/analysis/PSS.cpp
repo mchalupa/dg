@@ -1173,12 +1173,41 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
                     createIrrelevantUses(Inst->getOperand(1));
             }
 
-            if (isa<CallInst>(use)) {
+            if (const CallInst *CI = dyn_cast<CallInst>(use)) {
                 // if the use is CallInst, then we use the value
                 // as an argument - we need to build new argument
-                // and put it into the procedure
+                // and put it into the procedure later
 
-                assert(0 && "Not implemented");
+                const Function *F = CI->getCalledFunction();
+                assert(F && "ptrtoint via function pointer call not implemented");
+
+                // find the formal argument of function into which we pass
+                // the value
+                const llvm::Value *farg = nullptr;
+                int idx = 0;
+                for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+                    if (CI->getArgOperand(idx) == val) {
+                        farg = &*A;
+                        break;
+                    }
+                }
+
+                // did not found?
+                if (!farg) {
+                    // FIXME: vararg functions.
+                    // and what about calll of vararg via pointer?
+                    // or just call via pointer? Than we cannot create it...
+                    // maan, the ptrtoint will kill me...
+                    assert(0 && "Did not find the use of val. "
+                                "If this is a vararg, this is not implemented yet");
+                }
+
+                PSSNode *arg = new PSSNode(pss::PHI, getOperand(val), nullptr);
+                addNode(farg, arg);
+
+                // and we also need to build the instructions that use the formal
+                // parameter
+                createIrrelevantUses(farg);
             }
         }
     }
@@ -1192,6 +1221,14 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
 
     for (PSSNode *node : unplacedInstructions) {
         const llvm::Value *val = node->getUserData<llvm::Value>();
+
+        if (llvm::isa<llvm::Argument>(val)) {
+            // we created an argument - put it in to the beginning
+            // of its function
+            llvm::errs() << "Placing arg: " << *val << "\n";
+            continue;
+        }
+
         const llvm::Instruction *Inst = llvm::cast<llvm::Instruction>(val);
         const llvm::BasicBlock *llvmBlk = Inst->getParent();
 
@@ -1327,10 +1364,9 @@ LLVMPSSBuilder::buildArguments(const llvm::Function& F)
     // create PHI nodes for arguments of the function. These will be
     // successors of call-node
     std::pair<PSSNode *, PSSNode *> ret;
-    int idx = 0;
     PSSNode *prev, *arg = nullptr;
 
-    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A, ++idx) {
+    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
         if (A->getType()->isPointerTy()) {
             prev = arg;
 
@@ -1341,7 +1377,6 @@ LLVMPSSBuilder::buildArguments(const llvm::Function& F)
                 prev->addSuccessor(arg);
             else
                 ret.first = arg;
-
         }
     }
 
