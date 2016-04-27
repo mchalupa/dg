@@ -12,7 +12,7 @@ We have implemented dependence graph for LLVM and a static slicer for LLVM.
 
 ### Requirements & Compilation
 
-LLVM DependenceGraph needs LLVM 3.4 or higher (tested on 3.4 and 3.7).
+LLVM DependenceGraph needs LLVM 3.4 or higher (tested on 3.4, 3.7 and 3.8).
 We recently started supporting higher version than 3.4 so if you have problems with compilation,
 please let us know (file an issue). Also, the project has been restructuralized, so if
 you already have it cloned and after update it fails building, try cleaning the build directory
@@ -35,8 +35,8 @@ LLVM\_DIR is environment variable used by LLVM to find cmake config files
 LLVM\_SRC\_DIR is variable that tells cmake where to look for llvm's sources
 and it is used to override include paths. The same holds for LLVM\_BUILD\_PATH
 that is used for overriding library paths. Usually, you don't need to specify
-all these variables. When LLVM 3.4 is installed on your system in standard paths
-(and no other LLVM is installed), the configuration should look just like:
+all these variables. When LLVM is installed on your system in standard paths,
+the configuration should look just like:
 
 ```
 cmake .
@@ -235,9 +235,11 @@ All these programs take as an input llvm bitcode, for example:
 ```
 ./pss-show code.bc
 ```
-
-Some useful switches for programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
+will show the pointer state subgraph for code.bc and the results of points-to analysis.
+Some useful switches for all programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
 and flow-insensitive points-to analysis within all these programs that use points-to analysis.
+`llvm-slicer` and `llvm-dg-dump` still use the old points-to analysis by default, so when `-pta`
+switch is not used, the points-to analysis is different from that one that is used in `llvm-pss-dump`.
 
 ------------------------------------------------
 
