@@ -133,10 +133,15 @@ static bool verify_ptsets(LLVMPointsToAnalysis *fi, LLVMPointsToAnalysis *fs)
         for (const Pointer& ptr : fsnode->pointsTo) {
             bool found = false;
             for (const Pointer& ptr2 : it.second->pointsTo) {
-                // FIXME: what about UNKNOWN_OFFSETS?
+                // either the pointer is there or
+                // FS has (target, offset) and FI has (target, UNKNOWN_OFFSET),
+                // than everything is fine. The other case (FS has UNKNOWN_OFFSET)
+                // we don't consider here, since that should not happen
                 if ((ptr2.target->getUserData<llvm::Value>()
                     == ptr.target->getUserData<llvm::Value>())
-                    && (ptr2.offset == ptr.offset)) {
+                    && (ptr2.offset == ptr.offset ||
+                        ptr2.offset.isUnknown()
+                        /* || ptr.offset.isUnknown()*/)) {
                     found = true;
                     break;
                 }
