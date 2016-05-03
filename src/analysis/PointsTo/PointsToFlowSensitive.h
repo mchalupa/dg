@@ -110,13 +110,15 @@ public:
             return;
         }
 
-        // FIXME very unefficient: we could use the ordering on map
-        for (auto it : *mm) {
-            for (const Pointer& ptr : n->pointsTo) {
-                if (it.first.target == ptr.target) {
-                    for (MemoryObject *o : it.second)
-                        objects.push_back(o);
-                }
+        for (const Pointer& ptr : n->pointsTo) {
+            auto bounds = getObjectRange(mm, ptr);
+            for (MemoryMapT::iterator I = bounds.first;
+                 I != bounds.second; ++I) {
+                assert(I->first.target == ptr.target
+                        && "Bug in getObjectRange");
+
+                for (MemoryObject *mo : I->second)
+                    objects.push_back(mo);
             }
         }
     }
@@ -125,6 +127,20 @@ protected:
     PointsToFlowSensitive() {}
 
 private:
+
+    static bool comp(const std::pair<const Pointer, MemoryObjectsSetT>& a,
+                     const std::pair<const Pointer, MemoryObjectsSetT>& b)
+    {
+        return a.first.target < b.first.target;
+    }
+
+    std::pair<MemoryMapT::iterator, MemoryMapT::iterator>
+    getObjectRange(MemoryMapT *mm, const Pointer& ptr)
+    {
+        std::pair<const Pointer, MemoryObjectsSetT> what(ptr, MemoryObjectsSetT());
+        return std::equal_range(mm->begin(), mm->end(), what, comp);
+    }
+
     void mergeMaps(MemoryMapT *mm, MemoryMapT *pm, PointsToSetT *strong_update)
     {
         for (auto it : *pm) {
