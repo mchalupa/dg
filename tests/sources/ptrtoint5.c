@@ -1,12 +1,15 @@
-void foo(unsigned long b)
+void foo(unsigned long a, unsigned long b)
 {
-	*((int *) b) = 13;
+	*((int **) a) = (int *) b;
 }
 
 int main(void)
 {
 	int c;
-	foo((unsigned long) &c);
-	test_assert(c == 13);
+	int *p;
+	foo((unsigned long) &p, (unsigned long) &c);
+	*p = 3;
+
+	test_assert(c == 3);
 	return 0;
 }

@@ -1125,6 +1125,7 @@ PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val,
     // created (we could overcome it by creating entry
     // node to every block and then optimize it away,
     // but this is overkill IMO)
+    addNode(val, seq.first);
     unplacedInstructions.insert(seq.first);
 
     // we should build recurently uses of this instruction
@@ -1196,6 +1197,8 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
 
                 PSSNode *arg = new PSSNode(pss::PHI, getOperand(val), nullptr);
                 addNode(farg, arg);
+                unplacedInstructions.insert(arg);
+                llvm::errs() << "WARN: build irrelevant arg: " << *farg << "\n";
 
                 // and we also need to build the instructions that use the formal
                 // parameter
@@ -1220,10 +1223,26 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
     for (PSSNode *node : unplacedInstructions) {
         const llvm::Value *val = node->getUserData<llvm::Value>();
 
-        if (llvm::isa<llvm::Argument>(val)) {
-            // we created an argument - put it in to the beginning
-            // of its function
-            llvm::errs() << "Placing arg: " << *val << "\n";
+        if (const llvm::Argument *arg = llvm::dyn_cast<llvm::Argument>(val)) {
+            // we created an argument - put it in to the end
+            // of arguments of its function
+            Subgraph& subg = subgraphs_map[arg->getParent()];
+            assert(subg.root && "Don't have subgraph");
+
+            // we do not have any arguments?
+            if (!subg.args.second) {
+                assert(!subg.args.first && "Have one but not the other argument");
+
+                node->insertAfter(subg.root);
+                // update the arguments, we want consistent information
+                subg.args.first = subg.args.second = node;
+            } else {
+                // we have, so insert it at the end
+                node->insertAfter(subg.args.second);
+                // update the arguments
+                subg.args.second = node;
+            }
+
             continue;
         }
 
