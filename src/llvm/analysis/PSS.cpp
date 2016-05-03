@@ -267,21 +267,17 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
 {
     PSSNode *op = tryGetOperand(val);
     if (!op) {
-        llvm::errs() << "Did not find an operand: " << *val << "\n";
-        abort();
-
-        /*
         const llvm::Instruction *Inst
             = llvm::dyn_cast<llvm::Instruction>(val);
 
         if (Inst && !isRelevantInstruction(*Inst)) {
-            // create irrelevant operand if we don't have it
+            // Create irrelevant operand if we don't have it.
+            // We will place it later
             op = createIrrelevantInst(Inst, false);
         } else {
             llvm::errs() << "Did not find an operand: " << *val << "\n";
             abort();
         }
-        */
     }
 
     return op;
@@ -832,13 +828,9 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
     PSSNode *node = new PSSNode(pss::GEP, op1, 0);
     addNode(Inst, node);
 
-    // ptrToInt make mess in types. Our normal machinery does not
-    // build instructions that are not of pointer type, but these
-    // are and we still need them... At this point, build the
-    // instructions that use this value but would not be built otherwise.
-    // Do it transitively, because the new instructions could have further
-    // uses
-    createIrrelevantUses(Inst);
+    // we need to build uses for this instruction, but we need to
+    // do it later, when we have all blocks build
+    buildUses.insert(Inst);
 
     assert(node);
     return node;
@@ -1212,13 +1204,19 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
         }
     }
 }
+void LLVMPSSBuilder::buildUnbuiltUses(void)
+{
+    for (const llvm::Value *use : buildUses)
+        createIrrelevantUses(use);
+
+    buildUses.clear();
+}
 
 void LLVMPSSBuilder::addUnplacedInstructions(void)
 {
     // Insert the irrelevant instructions into the tree.
     // Find the block that the instruction belongs and insert it
     // into it onto the right place
-
     for (PSSNode *node : unplacedInstructions) {
         const llvm::Value *val = node->getUserData<llvm::Value>();
 
@@ -1454,6 +1452,7 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 
     // now we have created all the blocks, so place the instructions
     // that we were not able to place during building
+    buildUnbuiltUses();
     addUnplacedInstructions();
     assert(unplacedInstructions.empty());
 

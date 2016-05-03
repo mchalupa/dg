@@ -56,6 +56,9 @@ class LLVMPSSBuilder
     // be difficult to get it right. We will store them here
     // and place them when we have all blocks constructed
     std::set<PSSNode *> unplacedInstructions;
+    // set of instructions for which we need to build uses
+    // (these are ptrtoints)
+    std::set<const llvm::Value *> buildUses;
 
 public:
     LLVMPSSBuilder(const llvm::Module *m)
@@ -144,6 +147,7 @@ private:
     void addPHIOperands(PSSNode *node, const llvm::PHINode *PHI);
     void addPHIOperands(const llvm::Function& F);
     void addUnplacedInstructions(void);
+    void buildUnbuiltUses(void);
     std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *,
                                                         const llvm::Function *);
