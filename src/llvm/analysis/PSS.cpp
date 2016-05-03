@@ -1037,12 +1037,18 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::And:
         case Instruction::Or:
         case Instruction::Trunc:
+        case Instruction::Shl:
+            // these instructions reinterpert the pointer,
+            // nothing better we can do here (I think?)
             node = createUnknown(&Inst);
             break;
         case Instruction::Add:
             node = createAdd(&Inst);
             break;
+        case Instruction::Sub:
+            llvm::errs() << "FIXME: handle Sub with constants as GEP\n";
         case Instruction::Mul:
+        case Instruction::SDiv:
             node = createArithmetic(&Inst);
             break;
         default:
