@@ -21,6 +21,8 @@
 #include "llvm/analysis/PSS.h"
 #include "ReachingDefinitions.h"
 
+#include <set>
+
 #ifdef DEBUG_ENABLED
 #include <iostream>
 #include <sstream>
@@ -151,10 +153,61 @@ RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
     return node;
 }
 
+static void getLocalVariables(const llvm::Function *F,
+                              std::set<const llvm::Value *>& ret)
+{
+    using namespace llvm;
+
+    // get all alloca insts that are not address taken
+    // (are not stored into a pointer)
+    // -- that means that they can not be used outside of
+    // this function
+    for (const BasicBlock& block : *F) {
+        for (const Instruction& Inst : block) {
+            if (isa<AllocaInst>(&Inst)) {
+                bool is_address_taken = false;
+                for (auto I = Inst.use_begin(), E = Inst.use_end();
+                     I != E; ++I) {
+                    const StoreInst *SI = dyn_cast<StoreInst>(*I);
+                    // is the value operand our alloca?
+                    if (SI && SI->getValueOperand() == &Inst) {
+                        is_address_taken = true;
+                        break;
+                    }
+                }
+
+                if (!is_address_taken)
+                    ret.insert(&Inst);
+            }
+        }
+    }
+}
+
 RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode(RETURN);
     addNode(Inst, node);
+
+    // FIXME: don't do that for every return instruction,
+    // compute it only once for a function
+    std::set<const llvm::Value *> locals;
+    getLocalVariables(Inst->getParent()->getParent(),
+                      locals);
+
+    for (const llvm::Value *ptrVal : locals) {
+        RDNode *ptrNode = nodes_map[ptrVal];
+        if (!ptrNode) {
+            llvm::errs() << *ptrVal << "\n";
+            llvm::errs() << "Don't have created node for local variable\n";
+            abort();
+        }
+
+        // make this return node behave like we overwrite the definitions.
+        // We actually don't override them, therefore they are dropped
+        // and that is what we want (we don't want to propagade
+        // local definitions from functions into callees)
+        node->addOverwrites(ptrNode, 0, UNKNOWN_OFFSET);
+    }
 
     return node;
 }

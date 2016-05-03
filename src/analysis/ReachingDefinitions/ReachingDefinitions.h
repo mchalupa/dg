@@ -141,6 +141,18 @@ public:
         addDef(DefSite(target, off, len), strong_update);
     }
 
+    void addOverwrites(RDNode *target,
+                       const Offset& off = UNKNOWN_OFFSET,
+                       const Offset& len = UNKNOWN_OFFSET)
+    {
+        addOverwrites(DefSite(target, off, len));
+    }
+
+    void addOverwrites(const DefSite& ds)
+    {
+        overwrites.insert(ds);
+    }
+
     const RDMap& getReachingDefinitions() const { return def_map; }
     RDMap& getReachingDefinitions() { return def_map; }
     size_t getReachingDefinitions(RDNode *n, const Offset& off,
