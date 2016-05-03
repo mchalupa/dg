@@ -1038,6 +1038,7 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::Or:
         case Instruction::Trunc:
         case Instruction::Shl:
+        case Instruction::LShr:
             // these instructions reinterpert the pointer,
             // nothing better we can do here (I think?)
             node = createUnknown(&Inst);
