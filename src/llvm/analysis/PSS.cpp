@@ -1145,8 +1145,13 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
     // I haven't find out how to use something like reverse iterator,
     // so we hack it here with vector...
     std::vector<const Value *> uses;
-    for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I)
+    for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
+        // these uses we don't want to build
+        if (isa<ICmpInst>(*I))
+            continue;
+
         uses.push_back(*I);
+    }
 
     // go backward the uses we gathered
     for (int i = uses.size() - 1; i >= 0; --i) {
