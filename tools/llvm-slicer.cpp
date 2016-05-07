@@ -592,6 +592,28 @@ static bool write_module(llvm::Module *M, const char *module_name)
     return true;
 }
 
+static int verify_and_write_module(llvm::Module *M, const char *module) {
+    if (!verify_module(M)) {
+        errs() << "ERR: Verifying module failed, the IR is not valid\n";
+        errs() << "INFO: Saving anyway so that you can check it\n";
+        return 1;
+    }
+
+    if (!write_module(M, module)) {
+        errs() << "Saving sliced module failed\n";
+        return 1;
+    }
+}
+
+static int save_module(llvm::Module *M, const char *module,
+                       bool should_verify_module = true)
+{
+    if (should_verify_module)
+        return verify_and_write_module(M, module);
+    else
+        return write_module(M, module);
+}
+
 int main(int argc, char *argv[])
 {
     llvm::Module *M;
@@ -677,23 +699,7 @@ int main(int argc, char *argv[])
         if (statistics)
             print_statistics(M, "Statistics after ");
 
-        // FIXME: factor out to common funciton (we use this sequence
-        // below too
-        int exitcode = 0;
-        if (should_verify_module) {
-            if (!verify_module(M)) {
-                errs() << "ERR: Verifying module failed, the IR is not valid\n";
-                errs() << "INFO: Saving anyway so that you can check it\n";
-                exitcode = 1;
-            }
-        }
-
-        if (!write_module(M, module)) {
-            errs() << "Saving sliced module failed\n";
-            return 1;
-        }
-
-        return exitcode;
+        return save_module(M, module, should_verify_module);
     }
 
     if (!slice(M, module, slicing_criterion, pts, opts)) {
@@ -701,24 +707,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // remove unused from module again, since slicing
+    // could and probably did make some other parts unused
     remove_unused_from_module_rec(M);
 
     if (statistics)
         print_statistics(M, "Statistics after ");
 
-    int exitcode = 0;
-    if (should_verify_module) {
-        if (!verify_module(M)) {
-            errs() << "ERR: Verifying module failed, the IR is not valid\n";
-            errs() << "INFO: Saving anyway so that you can check it\n";
-            exitcode = 1;
-        }
-    }
-
-    if (!write_module(M, module)) {
-        errs() << "Saving sliced module failed\n";
-        return 1;
-    }
-
-    return exitcode;
+    return save_module(M, module, should_verify_module);
 }
