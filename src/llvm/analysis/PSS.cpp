@@ -597,7 +597,12 @@ LLVMPSSBuilder::createAsm(const llvm::Instruction *Inst)
     // we are here, then we got here because this
     // is undefined call that returns pointer.
     // In this case return an unknown pointer
-    llvm::errs() << "PTA: Inline assembly found, analysis  may be unsound\n";
+    static bool warned = false;
+    if (!warned) {
+        llvm::errs() << "PTA: Inline assembly found, analysis  may be unsound\n";
+        warned = true;
+    }
+
     PSSNode *n = new PSSNode(pss::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
     // it is call that returns pointer, so we'd like to have
     // a 'return' node that contains that pointer
@@ -1120,7 +1125,8 @@ PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val,
 
     // build the node for the instruction
     std::pair<PSSNode *, PSSNode *> seq = buildInstruction(*Inst);
-    errs() << "WARN: Built irrelevant inst: " << *val << "\n";
+
+    //errs() << "WARN: Built irrelevant inst: " << *val << "\n";
 
     // insert it to unplacedInstructions, we will put it
     // into the PSS later when we have all basic blocks
