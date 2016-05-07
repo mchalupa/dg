@@ -78,6 +78,9 @@ public:
         return it->second;
     }
 
+    RDNode *getOperand(const llvm::Value *val);
+    RDNode *createNode(const llvm::Instruction& Inst);
+
 private:
     void addNode(const llvm::Value *val, RDNode *node)
     {

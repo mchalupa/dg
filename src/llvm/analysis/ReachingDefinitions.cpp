@@ -195,7 +195,7 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
                       locals);
 
     for (const llvm::Value *ptrVal : locals) {
-        RDNode *ptrNode = nodes_map[ptrVal];
+        RDNode *ptrNode = getOperand(ptrVal);
         if (!ptrNode) {
             llvm::errs() << *ptrVal << "\n";
             llvm::errs() << "Don't have created node for local variable\n";
@@ -207,6 +207,35 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
         // and that is what we want (we don't want to propagade
         // local definitions from functions into callees)
         node->addOverwrites(ptrNode, 0, UNKNOWN_OFFSET);
+    }
+
+    return node;
+}
+
+RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
+{
+    RDNode *op = nodes_map[val];
+    if (!op)
+        return createNode(*llvm::cast<llvm::Instruction>(val));
+}
+
+RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
+{
+    using namespace llvm;
+
+    RDNode *node = nullptr;
+    switch(Inst.getOpcode()) {
+        case Instruction::Alloca:
+            // we need alloca's as target to DefSites
+            node = createAlloc(&Inst);
+            break;
+        case Instruction::Call:
+            assert(isa<IntrinsicInst>(&Inst));
+            node = createCall(&Inst).second;
+            break;
+        default:
+            llvm::errs() << "BUG: " << Inst << "\n";
+            abort();
     }
 
     return node;
@@ -246,7 +275,11 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         }
 
         const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        RDNode *ptrNode = nodes_map[ptrVal];
+        // this may emerge with vararg function
+        if (llvm::isa<llvm::Function>(ptrVal))
+            continue;
+
+        RDNode *ptrNode = getOperand(ptrVal);
         //assert(ptrNode && "Don't have created node for pointer's target");
         if (!ptrNode) {
             // keeping such set is faster then printing it all to terminal
@@ -339,31 +372,37 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
         assert(last_node != nullptr && "BUG: Last node is null");
         mapping[&Inst] = last_node;
 
-        switch(Inst.getOpcode()) {
-            case Instruction::Alloca:
-                // we need alloca's as target to DefSites
-                node = createAlloc(&Inst);
-                break;
-            case Instruction::Store:
-                node = createStore(&Inst);
-                break;
-            case Instruction::Ret:
-                // we need create returns, since
-                // these modify CFG and thus data-flow
-                // FIXME: add new type of node NOOP,
-                // and optimize it away later
-                node = createReturn(&Inst);
-                break;
-            case Instruction::Call:
-                if (!isRelevantCall(&Inst))
+        auto it = nodes_map.find(&Inst);
+        if (it != nodes_map.end()) {
+            // reuse node if we already created it as an argument
+            node = it->second;
+        } else {
+            switch(Inst.getOpcode()) {
+                case Instruction::Alloca:
+                    // we need alloca's as target to DefSites
+                    node = createAlloc(&Inst);
                     break;
+                case Instruction::Store:
+                    node = createStore(&Inst);
+                    break;
+                case Instruction::Ret:
+                    // we need create returns, since
+                    // these modify CFG and thus data-flow
+                    // FIXME: add new type of node NOOP,
+                    // and optimize it away later
+                    node = createReturn(&Inst);
+                    break;
+                case Instruction::Call:
+                    if (!isRelevantCall(&Inst))
+                        break;
 
-                std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
-                last_node->addSuccessor(subg.first);
+                    std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
+                    last_node->addSuccessor(subg.first);
 
-                // new nodes will connect to the return node
-                node = last_node = subg.second;
-                break;
+                    // new nodes will connect to the return node
+                    node = last_node = subg.second;
+                    break;
+            }
         }
 
         // if we created a new node, add successor
@@ -583,6 +622,9 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
         len = C->getLimitedValue();
 
     for (const pss::Pointer& ptr : pts->pointsTo) {
+        if (!ptr.isValid())
+            continue;
+
         uint64_t from;
         uint64_t to;
         if (ptr.offset.isUnknown()) {
@@ -600,7 +642,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             to = UNKNOWN_OFFSET;
 
         const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        RDNode *target = nodes_map[ptrVal];
+        RDNode *target = getOperand(ptrVal);
         assert(target && "Don't have pointer target for intrinsic call");
 
         // add the definition
