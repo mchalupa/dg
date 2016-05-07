@@ -54,6 +54,29 @@
 using namespace dg;
 using llvm::errs;
 
+const char *usage =
+"Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
+"                   [-remove-unused-only] [-dont-verify] [-pts fs|fi|old]\n"
+"                   [-c|-crit|-slice func_call] module\n"
+"\n"
+"-debug               Save annotated version of module as a text (.ll).\n"
+"                         (dd: data dependencies, cd:control dependencies,\n"
+"                          rd: reaching definitions, ptr: points-to information,\n"
+"                          slice: comment out what is going to be sliced away, etc.)\n"
+"                     This option can be used more times, i. e. '-debug dd -debug slice'\n"
+"-remove-unused-only  Remove unused parts of module, but do not slice\n"
+"-dont-verify         Don't verify wheter the module is valid after slicing\n"
+"-pts                 What points-to analysis use:\n"
+"                         fs - flow-sensitive\n"
+"                         fi - flow-insensitive\n"
+"                         old - old flow-insensitive, default\n"
+" -c                  Slice with respect to the call-sites of func_call\n"
+"                     i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
+"                     in which case the slice is taken with respect to return value\n"
+"                     of main procedure\n"
+"\n"
+"'module' is the LLVM bitcode files to be sliced. It must contain 'main' function\n";
+
 enum {
     // annotate
     ANNOTATE                    = 1,
@@ -362,14 +385,15 @@ static bool slice(llvm::Module *M, const char *module_name,
     std::set<LLVMNode *> callsites;
 
     LLVMPointsToAnalysis *PTA = nullptr;
-    if (pts) {
+    // check if we should run new analyses
+    if (pts && strcmp(pts, "old") != 0) {
         if (strcmp(pts, "fs") == 0) {
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
         } else if (strcmp(pts, "fi") == 0) {
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
         } else {
-            llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
-            abort();
+            llvm::errs() << "Unknown points to analysis, try: fs, fi, old\n";
+            exit(1);
         }
 
         tm.start();
@@ -669,9 +693,7 @@ int main(int argc, char *argv[])
     }
 
     if (!(slicing_criterion || remove_unused_only) || !module) {
-        errs() << "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
-                  "                   [-remove-unused-only] [-dont-verify] [-pts fs|fi]\n"
-                  "                   [-c|-crit|-slice] func_call module\n";
+        errs() << usage;
         return 1;
     }
 
