@@ -153,6 +153,8 @@ private:
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *,
                                                         const llvm::Function *);
 
+    std::pair<PSSNode *, PSSNode *> createMemSet(const llvm::Instruction *);
+
     PSSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
                                              PSSNode *node);
     std::pair<PSSNode *, PSSNode *>

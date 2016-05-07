@@ -568,6 +568,8 @@ LLVMPSSBuilder::createIntrinsic(const llvm::Instruction *Inst)
     if (isa<MemTransferInst>(I)) {
         n = createMemTransfer(I);
         return std::make_pair(n, n);
+    } else if (isa<MemSetInst>(I)) {
+        return createMemSet(I);
     }
 
     switch (I->getIntrinsicID()) {
@@ -1351,6 +1353,26 @@ static bool tyContainsPointer(const llvm::Type *Ty)
     return false;
 }
 
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createMemSet(const llvm::Instruction *Inst)
+{
+    PSSNode *val;
+    if (memsetIsZeroInitialization(llvm::cast<llvm::IntrinsicInst>(Inst)))
+        val = NULLPTR;
+    else
+        // if the memset is not 0-initialized, it does some
+        // garbage into the pointer
+        val = UNKNOWN_MEMORY;
+
+    PSSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
+    // we need to make unknown offsets
+    PSSNode *G = new PSSNode(pss::GEP, op, UNKNOWN_OFFSET);
+    PSSNode *S = new PSSNode(pss::STORE, val, G);
+    G->addSuccessor(S);
+
+    return std::make_pair(G, S);
+}
+
 void LLVMPSSBuilder::checkMemSet(const llvm::Instruction *Inst)
 {
     using namespace llvm;
@@ -1364,11 +1386,7 @@ void LLVMPSSBuilder::checkMemSet(const llvm::Instruction *Inst)
     const Value *src = Inst->getOperand(0)->stripInBoundsOffsets();
     PSSNode *op = getOperand(src);
 
-    // dynamic mem allocation
-    if (isa<CallInst>(src)) {
-        // we do not know the type...
-        op->setZeroInitialized();
-    } else if (const AllocaInst *AI = dyn_cast<AllocaInst>(src)) {
+    if (const AllocaInst *AI = dyn_cast<AllocaInst>(src)) {
         // if there cannot be stored a pointer, we can bail out here
         // XXX: what if it is alloca of generic mem (e. g. [100 x i8])
         // and we then store there a pointer? Or zero it and load from it?
@@ -1379,9 +1397,12 @@ void LLVMPSSBuilder::checkMemSet(const llvm::Instruction *Inst)
         if (tyContainsPointer(AI->getAllocatedType()))
             op->setZeroInitialized();
     } else {
-        llvm::errs() << *Inst << "\n";
-        llvm::errs() << "Unhandled memset";
-        abort();
+        // fallback: create a store that represents memset
+        // the store will save null to ptr + UNKNOWN_OFFSET,
+        // so we need to do:
+        // G = GEP(op, UNKNOWN_OFFSET)
+        // STORE(null, G)
+        createIrrelevantInst(Inst, false /* recursive */);
     }
 }
 
