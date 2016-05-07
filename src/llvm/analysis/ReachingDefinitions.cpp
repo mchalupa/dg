@@ -222,7 +222,17 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 
     if (pts->pointsTo.empty()) {
         llvm::errs() << "ERROR: empty STORE points-to: " << *Inst << "\n";
-        abort();
+        // this may happen on invalid reads and writes to memory,
+        // like when you try for example this:
+        //
+        //   int p, q;
+        //   memcpy(p, q, sizeof p);
+        //
+        // (there should be &p and &q)
+        // NOTE: maybe this is a bit strong to say unknown memory,
+        // but better be sound then incorrect
+        node->addDef(UNKNOWN_MEMORY);
+        return node;
     }
 
     for (const pss::Pointer& ptr: pts->pointsTo) {
