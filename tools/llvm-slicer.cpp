@@ -96,6 +96,12 @@ enum {
     ANNOTATE_SLICE              = 1 << 7,
 };
 
+enum PtaType {
+    PTA_OLD = 0,
+    PTA_FS,
+    PTA_FI
+};
+
 class CommentDBG : public llvm::AssemblyAnnotationWriter
 {
     LLVMDependenceGraph *dg;
@@ -342,8 +348,8 @@ class Slicer {
 protected:
     llvm::Module *M;
     const char *module_name;
-    const char *pta;
     uint32_t opts = 0;
+    PtaType pta;
     LLVMPointsToAnalysis *PTA;
 
     // for SlicerOld
@@ -458,12 +464,11 @@ protected:
 public:
 
     // FIXME: make pts enum, not a string
-    Slicer(llvm::Module *mod, const char *modnm, uint32_t o, const char *pts)
+    Slicer(llvm::Module *mod, const char *modnm, uint32_t o, PtaType pt)
     :Slicer(mod, modnm, o)
     {
-        assert((strcmp(pts, "fi") == 0 ||
-               strcmp(pts, "fs") == 0) && "Invalid PTA");
-        this->pta = pts; // cannot do it in mem-initialization,
+        assert((pt == PTA_FI || pt == PTA_FS) && "Invalid PTA");
+        this->pta = pt; // cannot do it in mem-initialization,
                          // since we delegate the constructor
     }
 
@@ -472,10 +477,12 @@ public:
         debug::TimeMeasure tm;
         LLVMDependenceGraph d;
 
-        if (strcmp(pta, "fs") == 0)
+        if (pta == PTA_FS)
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
-        else if (strcmp(pta, "fi") == 0)
+        else if (pta == PTA_FI)
             PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
+        else
+            assert(0 && "Should not be reached");
 
         tm.start();
         PTA->run();
@@ -697,8 +704,8 @@ int main(int argc, char *argv[])
     bool statistics = false;
     const char *slicing_criterion = nullptr;
     const char *module = nullptr;
-    const char *pts = nullptr;
     uint32_t opts = 0;
+    PtaType pta = PTA_OLD;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -731,7 +738,18 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-statistics") == 0) {
             statistics = true;
         } else if (strcmp(argv[i], "-pta") == 0) {
-            pts = argv[++i];
+            if (strcmp(argv[i+1], "fi") == 0)
+                pta = PTA_FI;
+            else if (strcmp(argv[i+1], "fs") == 0)
+                pta = PTA_FS;
+            else if (strcmp(argv[i+1], "old") == 0)
+                pta = PTA_OLD;
+            else {
+                errs() << "Invalid points-to analysis, try: fi, fs, old (or none)\n";
+                return 1;
+            }
+
+            ++i;
         } else if (strcmp(argv[i], "-dont-verify") == 0) {
             // for debugging
             should_verify_module = false;
@@ -775,23 +793,21 @@ int main(int argc, char *argv[])
     /// ---------------
     // slice the code
     /// ---------------
-    if (!pts || strcmp("old", pts) == 0) {
+    if (pta == PTA_OLD) {
         SlicerOld slicer(M, module, opts);
         if (!slicer.slice(slicing_criterion)) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
-    } else if (strcmp(pts, "fi") == 0 || strcmp(pts, "fs") == 0) {
+    } else if (pta == PTA_FI || pta == PTA_FS) {
         // FIXME: do one parent class and use overriding
-        Slicer slicer(M, module, opts, pts);
+        Slicer slicer(M, module, opts, pta);
         if (!slicer.slice(slicing_criterion)) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
-    } else {
-        errs() << "Invalid points-to analysis, try: fi, fs, old (or none)\n";
-        return 1;
-    }
+    } else
+        assert(0 && "Should not be reached");
 
     // remove unused from module again, since slicing
     // could and probably did make some other parts unused
