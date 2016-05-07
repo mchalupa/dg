@@ -86,8 +86,9 @@ class PSSNode
     // size of the memory
     size_t size;
 
-    // for debugging
+#ifdef DEBUG_ENABLED
     const char *name;
+#endif
 
     unsigned int dfsid;
     // data that can an analysis store in node
@@ -151,8 +152,11 @@ public:
     //               the subprocedure
     PSSNode(PSSNodeType t, ...)
     : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false),
-      is_heap(false), size(0), name(nullptr), dfsid(0),
-      data(nullptr), user_data(nullptr)
+      is_heap(false), size(0),
+#ifdef DEBUG_ENABLED
+      name(nullptr),
+#endif
+      dfsid(0), data(nullptr), user_data(nullptr)
     {
         // assing operands
         PSSNode *op;
@@ -197,16 +201,10 @@ public:
                 break;
             case NULL_ADDR:
                 pointsTo.insert(Pointer(this, 0));
-#ifdef DEBUG_ENABLED
-                setName("null");
-#endif
                 break;
             case pss::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
-#ifdef DEBUG_ENABLED
-                setName("unknown");
-#endif
                 break;
             case CALL_RETURN:
             case PHI:
@@ -258,7 +256,11 @@ public:
 
     PSSNodeType getType() const { return type; }
     const char *getName() const { return name; }
-    void setName(const char *n) { delete name; name = strdup(n); }
+    void setName(const char *n)
+    {
+        delete name;
+        name = strdup(n);
+    }
 
     PSSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSSNode *n) { pairedNode = n; }

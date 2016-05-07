@@ -87,8 +87,16 @@ void printPSSType(enum PSSNodeType type)
 static void
 printName(PSSNode *node, bool dot)
 {
-    const char *name = node->getName();
     std::string nm;
+    const char *name = node->getName();
+
+    if (!name) {
+        if (node->isNull())
+            name = "null";
+        else if (node->isUnknownMemory())
+            name = "unknown";
+    }
+
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
             printPSSType(node->getType());
