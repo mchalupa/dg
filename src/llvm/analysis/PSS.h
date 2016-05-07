@@ -144,6 +144,7 @@ private:
     Pointer handleConstantBitCast(const llvm::BitCastInst *BC);
     Pointer getConstantExprPointer(const llvm::ConstantExpr *CE);
 
+    void checkMemSet(const llvm::Instruction *Inst);
     void addPHIOperands(PSSNode *node, const llvm::PHINode *PHI);
     void addPHIOperands(const llvm::Function& F);
     void addUnplacedInstructions(void);

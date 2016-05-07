@@ -562,14 +562,14 @@ std::pair<PSSNode *, PSSNode *>
 LLVMPSSBuilder::createIntrinsic(const llvm::Instruction *Inst)
 {
     using namespace llvm;
+    PSSNode *n;
 
     const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
     if (isa<MemTransferInst>(I)) {
-        PSSNode *n = createMemTransfer(I);
+        n = createMemTransfer(I);
         return std::make_pair(n, n);
     }
 
-    PSSNode *n;
     switch (I->getIntrinsicID()) {
         case Intrinsic::vastart:
             return createVarArg(I);
@@ -662,12 +662,9 @@ PSSNode *LLVMPSSBuilder::createAlloc(const llvm::Instruction *Inst)
     addNode(Inst, node);
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
-    if (AI) {
-        uint64_t size = getAllocatedSize(AI->getAllocatedType(), DL);
-        node->setSize(size);
-    }
+    if (AI)
+        node->setSize(getAllocatedSize(AI->getAllocatedType(), DL));
 
-    assert(node);
     return node;
 }
 
@@ -963,8 +960,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
                 case Intrinsic::stacksave:
                 case Intrinsic::stackrestore:
                     return true;
-                case Intrinsic::memset:
-                    errs() << "WARNING: unhandled: " << *CInst << "\n";
+                // case Intrinsic::memset:
                 default:
                     return false;
             }
@@ -1316,6 +1312,69 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
     unplacedInstructions.clear();
 }
 
+static bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I)
+{
+    using namespace llvm;
+
+    const Value *val = I->getOperand(1);
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(val)) {
+        // we got memset that is not setting to 0 ...
+        return C->isZero();
+    }
+
+    return false;
+}
+
+// recursively find out if type contains a pointer type as a subtype
+// (or if it is a pointer type itself)
+static bool tyContainsPointer(const llvm::Type *Ty)
+{
+    if (Ty->isAggregateType()) {
+        for (auto I = Ty->subtype_begin(), E = Ty->subtype_end();
+             I != E; ++I) {
+            if (tyContainsPointer(*I))
+                return true;
+        }
+    } else
+        return Ty->isPointerTy();
+
+    return false;
+}
+
+void LLVMPSSBuilder::checkMemSet(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    bool zeroed = memsetIsZeroInitialization(cast<IntrinsicInst>(Inst));
+    if (!zeroed) {
+        llvm::errs() << "WARNING: Non-0 memset: " << *Inst << "\n";
+        return;
+    }
+
+    const Value *src = Inst->getOperand(0)->stripInBoundsOffsets();
+    PSSNode *op = getOperand(src);
+
+    // dynamic mem allocation
+    if (isa<CallInst>(src)) {
+        // we do not know the type...
+        op->setZeroInitialized();
+    } else if (const AllocaInst *AI = dyn_cast<AllocaInst>(src)) {
+        // if there cannot be stored a pointer, we can bail out here
+        // XXX: what if it is alloca of generic mem (e. g. [100 x i8])
+        // and we then store there a pointer? Or zero it and load from it?
+        // like:
+        // char mem[100];
+        // void *ptr = (void *) mem;
+        // void *p = *ptr;
+        if (tyContainsPointer(AI->getAllocatedType()))
+            op->setZeroInitialized();
+    } else {
+        llvm::errs() << *Inst << "\n";
+        llvm::errs() << "Unhandled memset";
+        abort();
+    }
+}
+
 // return first and last nodes of the block
 std::pair<PSSNode *, PSSNode *>&
 LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
@@ -1328,8 +1387,14 @@ LLVMPSSBuilder::buildPSSBlock(const llvm::BasicBlock& block)
 
     PSSNode *last_node = nullptr;
     for (const llvm::Instruction& Inst : block) {
-        if (!isRelevantInstruction(Inst))
+        if (!isRelevantInstruction(Inst)) {
+            // check if it is a zeroing of memory,
+            // if so, set the corresponding memory to zeroed
+            if (llvm::isa<llvm::MemSetInst>(&Inst))
+                checkMemSet(&Inst);
+
             continue;
+        }
 
         seq = buildInstruction(Inst);
         assert(seq.first && seq.second
