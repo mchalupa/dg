@@ -55,7 +55,7 @@ class LLVMPSSBuilder
     // and we don't insert them into the PSS there, because it would
     // be difficult to get it right. We will store them here
     // and place them when we have all blocks constructed
-    std::set<PSSNode *> unplacedInstructions;
+    std::set<std::pair<PSSNode *, PSSNode *>> unplacedInstructions;
     // set of instructions for which we need to build uses
     // (these are ptrtoints)
     std::set<const llvm::Value *> buildUses;

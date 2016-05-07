@@ -377,6 +377,30 @@ public:
         }
     }
 
+    // insert a sequence before this node in PSS
+    void insertSequenceBefore(std::pair<PSSNode *, PSSNode *>& seq)
+    {
+        // the sequence must not be inserted in any PSS
+        assert(seq.first->predecessorsNum() == 0);
+        assert(seq.second->successorsNum() == 0);
+
+        // first node of the sequence takes over predecessors
+        // this also clears 'this->predecessors' since seq.first
+        // has no predecessors
+        predecessors.swap(seq.first->predecessors);
+
+        // replace the reference to 'this' in predecessors
+        for (PSSNode *pred : seq.first->predecessors) {
+            for (unsigned i = 0; i < pred->successorsNum(); ++i) {
+                if (pred->successors[i] == this)
+                    pred->successors[i] = seq.first;
+            }
+        }
+
+        // this node is successors of the last node in sequence
+        seq.second->addSuccessor(this);
+    }
+
     size_t predecessorsNum() const { return predecessors.size(); }
     size_t successorsNum() const { return successors.size(); }
 

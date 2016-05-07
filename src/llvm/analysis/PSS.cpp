@@ -1118,18 +1118,16 @@ PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val,
 
     // build the node for the instruction
     std::pair<PSSNode *, PSSNode *> seq = buildInstruction(*Inst);
-    assert(seq.first == seq.second
-           && "BUG: Sequence unsupported here");
-
     errs() << "WARN: Built irrelevant inst: " << *val << "\n";
 
     // insert it to unplacedInstructions, we will put it
     // into the PSS later when we have all basic blocks
-    // created (we could overcome it by creating entry
-    // node to every block and then optimize it away,
-    // but this is overkill IMO)
-    addNode(val, seq.first);
-    unplacedInstructions.insert(seq.first);
+    // created
+    unplacedInstructions.insert(seq);
+
+    // add node to the map. We suppose that only the
+    // last node is 'real' i. e. has corresponding llvm value
+    addNode(val, seq.second);
 
     // we should build recurently uses of this instruction
     // that are also "irrelevant"?
@@ -1205,7 +1203,7 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
 
                 PSSNode *arg = new PSSNode(pss::PHI, getOperand(val), nullptr);
                 addNode(farg, arg);
-                unplacedInstructions.insert(arg);
+                unplacedInstructions.insert(std::make_pair(arg, arg));
                 llvm::errs() << "WARN: build irrelevant arg: " << *farg << "\n";
 
                 // and we also need to build the instructions that use the formal
@@ -1228,7 +1226,9 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
     // Insert the irrelevant instructions into the tree.
     // Find the block that the instruction belongs and insert it
     // into it onto the right place
-    for (PSSNode *node : unplacedInstructions) {
+    for (std::pair<PSSNode *, PSSNode *> seq : unplacedInstructions) {
+        // the last element contains the representant
+        PSSNode *node = seq.second;
         const llvm::Value *val = node->getUserData<llvm::Value>();
 
         if (const llvm::Argument *arg = llvm::dyn_cast<llvm::Argument>(val)) {
@@ -1236,6 +1236,7 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
             // of arguments of its function
             Subgraph& subg = subgraphs_map[arg->getParent()];
             assert(subg.root && "Don't have subgraph");
+            assert(seq.first == seq.second);
 
             // we do not have any arguments?
             if (!subg.args.second) {
@@ -1294,18 +1295,27 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
             // now we have in I iterator to the LLVM value that
             // is in PSS as the first after our value
             if (I == llvmBlk->end()) {
-                node->insertAfter(blk.second);
-                blk.second = node;
+                    seq.first->insertAfter(blk.second);
+                    blk.second = seq.second;
             } else {
                 PSSNode *n = nodes_map[&*I];
                 // we must have this node, we found it!
                 assert(n && "BUG");
-                node->insertBefore(n);
+
+                // if it is the first node in block,
+                // update the block to keep it consistent
+                if (n->predecessorsNum() == 0) {
+                    blk.first = seq.first;
+                    seq.second->addSuccessor(node);
+                } else {
+                    // insert the sequence before the node
+                    n->insertSequenceBefore(seq);
+                }
             }
         } else {
-            // if the block is empty, this will be the only instruction
-            blk.first = node;
-            blk.second = node;
+            // if the block is empty we just insert it
+            blk.first = seq.first;
+            blk.second = seq.second;
         }
     }
 
