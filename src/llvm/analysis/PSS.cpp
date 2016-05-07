@@ -1297,8 +1297,9 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
             // now we have in I iterator to the LLVM value that
             // is in PSS as the first after our value
             if (I == llvmBlk->end()) {
-                    seq.first->insertAfter(blk.second);
-                    blk.second = seq.second;
+                // did we get at the end of the block?
+                blk.second->addSuccessor(seq.first);
+                blk.second = seq.second;
             } else {
                 PSSNode *n = nodes_map[&*I];
                 // we must have this node, we found it!
