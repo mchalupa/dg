@@ -314,44 +314,6 @@ static void annotate(llvm::Module *M, const char *module_name,
     delete annot;
 }
 
-static void computeGraphEdges(LLVMDependenceGraph *d, LLVMPointsToAnalysis *PTA)
-{
-    debug::TimeMeasure tm;
-
-    if (PTA) {
-        //use new analyses
-        analysis::rd::LLVMReachingDefinitions RDA(d->getModule(), PTA);
-        tm.start();
-        RDA.run();  // compute reaching definitions
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis took");
-
-        LLVMDefUseAnalysis DUA(d, &RDA, PTA);
-        tm.start();
-        DUA.run(); // add def-use edges according that
-        tm.stop();
-        tm.report("INFO: Adding Def-Use edges took");
-    } else {
-        analysis::LLVMReachingDefsAnalysis RDA(d);
-        tm.start();
-        RDA.run();  // compute reaching definitions
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis [old] took");
-
-        analysis::old::LLVMDefUseAnalysis DUA(d);
-        tm.start();
-        DUA.run(); // add def-use edges according that
-        tm.stop();
-        tm.report("INFO: Adding Def-Use edges [old] took");
-    }
-
-    tm.start();
-    // add post-dominator frontiers
-    d->computePostDominators(true);
-    tm.stop();
-    tm.report("INFO: Computing post-dominator frontiers took");
-}
-
 static bool createEmptyMain(llvm::Module *M)
 {
     llvm::Function *main_func = M->getFunction("main");
@@ -376,25 +338,144 @@ static bool createEmptyMain(llvm::Module *M)
     return true;
 }
 
-static bool slice(llvm::Module *M, const char *module_name,
-                  const char *slicing_criterion, const char *pts,
-                  uint32_t opts = 0)
-{
-    debug::TimeMeasure tm;
-    LLVMDependenceGraph d;
-    std::set<LLVMNode *> callsites;
+class Slicer {
+protected:
+    llvm::Module *M;
+    const char *module_name;
+    const char *pta;
+    uint32_t opts = 0;
+    LLVMPointsToAnalysis *PTA;
 
-    LLVMPointsToAnalysis *PTA = nullptr;
-    // check if we should run new analyses
-    if (pts && strcmp(pts, "old") != 0) {
-        if (strcmp(pts, "fs") == 0) {
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
-        } else if (strcmp(pts, "fi") == 0) {
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
-        } else {
-            llvm::errs() << "Unknown points to analysis, try: fs, fi, old\n";
-            exit(1);
+    // for SlicerOld
+    Slicer(llvm::Module *mod, const char *modnm, uint32_t o)
+    :M(mod), module_name(modnm), opts(o), PTA(nullptr)
+    {
+        assert(mod && "Need module");
+        assert(modnm && "Need name of module");
+    }
+
+    // shared by old and new analyses
+    bool sliceGraph(LLVMDependenceGraph &d, const char *slicing_criterion)
+    {
+        debug::TimeMeasure tm;
+        std::set<LLVMNode *> callsites;
+
+        // verify if the graph is built correctly
+        // FIXME - do it optionally (command line argument)
+        if (!d.verify()) {
+            errs() << "ERR: verifying failed\n";
+            return false;
         }
+
+        // FIXME add command line switch -svcomp and
+        // do this only with -svcomp switch
+        const char *sc[] = {
+            slicing_criterion,
+            "klee_assume",
+            NULL // termination
+        };
+
+        // check for slicing criterion here, because
+        // we might have built new subgraphs that contain
+        // it during points-to analysis
+        bool ret = d.getCallSites(sc, &callsites);
+        bool got_slicing_criterion = true;
+        if (!ret) {
+            if (strcmp(slicing_criterion, "ret") == 0) {
+                callsites.insert(d.getExit());
+            } else {
+                errs() << "Did not find slicing criterion: "
+                       << slicing_criterion << "\n";
+                got_slicing_criterion = false;
+            }
+        }
+
+        // if we found slicing criterion, compute the rest
+        // of the graph. Otherwise just slice away the whole graph
+        // Also count the edges when user wants to annotate
+        // the file - due to debugging
+        if (got_slicing_criterion || (opts & ANNOTATE))
+            computeEdges(&d);
+
+        // don't go through the graph when we know the result:
+        // only empty main will stay there. Just delete the body
+        // of main and keep the return value
+        if (!got_slicing_criterion)
+            return createEmptyMain(M);
+
+        LLVMSlicer slicer;
+        uint32_t slid = 0xdead;
+
+        // do not slice klee_assume at all
+        // FIXME: do this optional
+        slicer.keepFunctionUntouched("klee_assume");
+
+        tm.start();
+        for (LLVMNode *start : callsites)
+            slid = slicer.mark(start, slid);
+
+        // print debugging llvm IR if user asked for it
+        if (opts & ANNOTATE)
+            annotate(M, module_name, &d, opts);
+
+        slicer.slice(&d, nullptr, slid);
+
+        tm.stop();
+        tm.report("INFO: Slicing dependence graph took");
+
+        analysis::SlicerStatistics& st = slicer.getStatistics();
+        errs() << "INFO: Sliced away " << st.nodesRemoved
+               << " from " << st.nodesTotal << " nodes in DG\n";
+
+        return true;
+    }
+
+    virtual void computeEdges(LLVMDependenceGraph *d)
+    {
+        debug::TimeMeasure tm;
+        assert(PTA && "BUG: No PTA");
+
+        //use new analyses
+        analysis::rd::LLVMReachingDefinitions RDA(d->getModule(), PTA);
+        tm.start();
+        RDA.run();  // compute reaching definitions
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis took");
+
+        LLVMDefUseAnalysis DUA(d, &RDA, PTA);
+        tm.start();
+        DUA.run(); // add def-use edges according that
+        tm.stop();
+        tm.report("INFO: Adding Def-Use edges took");
+
+        tm.start();
+        // add post-dominator frontiers
+        d->computePostDominators(true);
+        tm.stop();
+        tm.report("INFO: Computing post-dominator frontiers took");
+    }
+
+public:
+
+    // FIXME: make pts enum, not a string
+    Slicer(llvm::Module *mod, const char *modnm, uint32_t o, const char *pts)
+    :Slicer(mod, modnm, o)
+    {
+        assert((strcmp(pts, "fi") == 0 ||
+               strcmp(pts, "fs") == 0) && "Invalid PTA");
+        this->pta = pts; // cannot do it in mem-initialization,
+                         // since we delegate the constructor
+    }
+
+    bool slice(const char *slicing_criterion)
+    {
+        debug::TimeMeasure tm;
+        LLVMDependenceGraph d;
+
+        if (strcmp(pta, "fs") == 0)
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
+        else if (strcmp(pta, "fi") == 0)
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
 
         tm.start();
         PTA->run();
@@ -402,20 +483,55 @@ static bool slice(llvm::Module *M, const char *module_name,
         tm.report("INFO: Points-to analysis took");
 
         d.build(&*M, PTA);
-    } else {
-        // build the graph
-        d.build(&*M);
+
+        return sliceGraph(d, slicing_criterion);
+        // FIXME: we're leaking PTA
+    }
+};
+
+class SlicerOld : public Slicer
+{
+    virtual void computeEdges(LLVMDependenceGraph *d)
+    {
+        debug::TimeMeasure tm;
         assert(PTA == nullptr);
+
+        analysis::LLVMReachingDefsAnalysis RDA(d);
+        tm.start();
+        RDA.run();  // compute reaching definitions
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis [old] took");
+
+        analysis::old::LLVMDefUseAnalysis DUA(d);
+        tm.start();
+        DUA.run(); // add def-use edges according that
+        tm.stop();
+        tm.report("INFO: Adding Def-Use edges [old] took");
+
+        tm.start();
+        // add post-dominator frontiers
+        d->computePostDominators(true);
+        tm.stop();
+        tm.report("INFO: Computing post-dominator frontiers took");
     }
 
-    // verify if the graph is built correctly
-    // FIXME - do it optionally (command line argument)
-    if (!d.verify())
-        errs() << "ERR: verifying failed\n";
+public:
+    SlicerOld(llvm::Module *mod, const char *modnm, uint32_t o = 0)
+        :Slicer(mod, module_name, o) {}
 
-    // run the old points-to analysis on the graph
-    // if we should not use some other analysis
-    if (!pts) {
+    bool slice(const char *slicing_criterion)
+    {
+        debug::TimeMeasure tm;
+        LLVMDependenceGraph d;
+
+        // build the graph
+        d.build(&*M);
+
+        // verify if the graph is built correctly
+        // FIXME - do it optionally (command line argument)
+        if (!d.verify())
+            errs() << "ERR: verifying failed\n";
+
         analysis::LLVMPointsToAnalysis PTA(&d);
 
         tm.start();
@@ -423,77 +539,9 @@ static bool slice(llvm::Module *M, const char *module_name,
         tm.stop();
         tm.report("INFO: Points-to analysis [old] took");
 
-        // we might added some new functions
-        // so verify once again
-        if (!d.verify())
-            errs() << "ERR: verifying failed\n";
+        return sliceGraph(d, slicing_criterion);
     }
-
-    // FIXME add command line switch -svcomp and
-    // do this only with -svcomp switch
-    const char *sc[] = {
-        slicing_criterion,
-        "klee_assume",
-        NULL
-    };
-
-    // check for slicing criterion here, because
-    // we might have built new subgraphs that contain
-    // it during (old) points-to analysis
-    tm.start();
-    bool ret = d.getCallSites(sc, &callsites);
-    tm.stop();
-
-    bool got_slicing_criterion = true;
-    if (!ret) {
-        if (strcmp(slicing_criterion, "ret") == 0) {
-            callsites.insert(d.getExit());
-        } else {
-            errs() << "Did not find slicing criterion: "
-                   << slicing_criterion << "\n";
-            got_slicing_criterion = false;
-        }
-    }
-
-    // if we found slicing criterion, compute the rest
-    // of the graph. Otherwise just slice away the whole graph
-    // Also count the edges when user wants to annotate
-    // the file - due to debugging
-    if (got_slicing_criterion || (opts & ANNOTATE))
-        computeGraphEdges(&d, PTA);
-
-    // don't go through the graph when we know the result:
-    // only empty main will stay there. Just delete the body
-    // of main and keep the return value
-    if (!got_slicing_criterion)
-        return createEmptyMain(M);
-
-    LLVMSlicer slicer;
-    uint32_t slid = 0xdead;
-
-    // do not slice klee_assume at all
-    // FIXME: do this optional
-    slicer.keepFunctionUntouched("klee_assume");
-
-    tm.start();
-    for (LLVMNode *start : callsites)
-        slid = slicer.mark(start, slid);
-
-    // print debugging llvm IR if user asked for it
-    if (opts & ANNOTATE)
-        annotate(M, module_name, &d, opts);
-
-    slicer.slice(&d, nullptr, slid);
-
-    tm.stop();
-    tm.report("INFO: Slicing dependence graph took");
-
-    analysis::SlicerStatistics& st = slicer.getStatistics();
-    errs() << "INFO: Sliced away " << st.nodesRemoved
-           << " from " << st.nodesTotal << " nodes in DG\n";
-
-    return true;
-}
+};
 
 static void print_statistics(llvm::Module *M, const char *prefix = nullptr)
 {
@@ -724,8 +772,24 @@ int main(int argc, char *argv[])
         return save_module(M, module, should_verify_module);
     }
 
-    if (!slice(M, module, slicing_criterion, pts, opts)) {
-        errs() << "ERR: Slicing failed\n";
+    /// ---------------
+    // slice the code
+    /// ---------------
+    if (!pts || strcmp("old", pts) == 0) {
+        SlicerOld slicer(M, module, opts);
+        if (!slicer.slice(slicing_criterion)) {
+            errs() << "ERR: Slicing failed\n";
+            return 1;
+        }
+    } else if (strcmp(pts, "fi") == 0 || strcmp(pts, "fs") == 0) {
+        // FIXME: do one parent class and use overriding
+        Slicer slicer(M, module, opts, pts);
+        if (!slicer.slice(slicing_criterion)) {
+            errs() << "ERR: Slicing failed\n";
+            return 1;
+        }
+    } else {
+        errs() << "Invalid points-to analysis, try: fi, fs, old (or none)\n";
         return 1;
     }
 
