@@ -249,8 +249,14 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         RDNode *ptrNode = nodes_map[ptrVal];
         //assert(ptrNode && "Don't have created node for pointer's target");
         if (!ptrNode) {
-            llvm::errs() << *ptrVal << "\n";
-            llvm::errs() << "Don't have created node for pointer's target\n";
+            // keeping such set is faster then printing it all to terminal
+            // ... and we don't flood the terminal that way
+            static std::set<const llvm::Value *> warned;
+            if (warned.insert(ptrVal).second) {
+                llvm::errs() << *ptrVal << "\n";
+                llvm::errs() << "Don't have created node for pointer's target\n";
+            }
+
             continue;
         }
 
