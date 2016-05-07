@@ -610,6 +610,17 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+    static bool warned_inline_assembly = false;
+
+    if (CInst->isInlineAsm()) {
+        if (!warned_inline_assembly) {
+            llvm::errs() << "WARNING: RD: Inline assembler found\n";
+            warned_inline_assembly = true;
+        }
+
+        RDNode *n = createUndefinedCall(CInst);
+        return std::make_pair(n, n);
+    }
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
