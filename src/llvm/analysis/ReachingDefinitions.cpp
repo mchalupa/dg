@@ -168,7 +168,12 @@ static void getLocalVariables(const llvm::Function *F,
                 bool is_address_taken = false;
                 for (auto I = Inst.use_begin(), E = Inst.use_end();
                      I != E; ++I) {
-                    const StoreInst *SI = dyn_cast<StoreInst>(*I);
+#if (LLVM_VERSION_MINOR < 5)
+                    const llvm::Value *use = *I;
+#else
+                    const llvm::Value *use = I->getUser();
+#endif
+                    const StoreInst *SI = dyn_cast<StoreInst>(use);
                     // is the value operand our alloca?
                     if (SI && SI->getValueOperand() == &Inst) {
                         is_address_taken = true;

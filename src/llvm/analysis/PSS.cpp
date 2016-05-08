@@ -1155,11 +1155,16 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
     // so we hack it here with vector...
     std::vector<const Value *> uses;
     for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
+#if (LLVM_VERSION_MINOR < 5)
+        const llvm::Value *use = *I;
+#else
+        const llvm::Value *use = I->getUser();
+#endif
         // these uses we don't want to build
-        if (isa<ICmpInst>(*I))
+        if (isa<ICmpInst>(use))
             continue;
 
-        uses.push_back(*I);
+        uses.push_back(use);
     }
 
     // go backward the uses we gathered
