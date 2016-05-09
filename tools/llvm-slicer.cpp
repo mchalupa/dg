@@ -46,6 +46,7 @@
 
 #include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo.h"
+#include "llvm/analysis/ReachingDefinitions.h"
 
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
@@ -104,8 +105,22 @@ enum PtaType {
 
 class CommentDBG : public llvm::AssemblyAnnotationWriter
 {
+    LLVMReachingDefinitions *RD;
     LLVMDependenceGraph *dg;
     uint32_t opts;
+
+    void printValue(const llvm::Value *val,
+                    llvm::formatted_raw_ostream& os,
+                    bool nl = false)
+    {
+        if (val->hasName())
+            os << val->getName().data();
+        else
+            os << *val;
+
+        if (nl)
+            os << "\n";
+    }
 
     void printPointer(const analysis::pss::Pointer& ptr,
                       llvm::formatted_raw_ostream& os,
@@ -121,10 +136,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             else {
                 const llvm::Value *val
                     = ptr.target->getUserData<llvm::Value>();
-                if (val->hasName())
-                    os << val->getName().data();
-                else
-                    os << *val;
+                printValue(val, os);
             }
 
             os << " + ";
@@ -149,10 +161,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
 
         if (ptr.isKnown()) {
             const llvm::Value *val = ptr.obj->node->getKey();
-            if (val->hasName())
-                os << val->getName().data();
-            else
-                os << *val;
+            printValue(val, os);
 
             if (ptr.offset.isUnknown())
                 os << " + UNKNOWN";
@@ -165,15 +174,60 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             os << "\n";
     }
 
+    void printDefSite(const analysis::rd::DefSite& ds,
+                      llvm::formatted_raw_ostream& os,
+                      const char *prefix = nullptr, bool nl = false)
+    {
+        os << "  ; ";
+        if (prefix)
+            os << prefix;
+
+        if (ds.target) {
+            const llvm::Value *val = ds.target->getUserData<llvm::Value>();
+            printValue(val, os);
+
+            if (ds.offset.isUnknown())
+                os << " bytes |UNKNOWN";
+            else
+                os << " bytes |" << *ds.offset;
+
+            if (ds.len.isUnknown())
+                os << " - UNKNOWN|";
+            else
+                os << " - " << *ds.len - 1 << "|";
+        } else
+            os << "target is null!";
+
+        if (nl)
+            os << "\n";
+
+    }
+
     void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
     {
         if (opts & ANNOTATE_RD) {
-            analysis::DefMap *df = node->getData<analysis::DefMap>();
-            if (df) {
-                for (auto it : *df) {
-                    for (LLVMNode *d : it.second) {
-                        printPointer(it.first, os, "RD: ", false);
-                        os << " @ " << *d->getKey() << "(" << d << ")\n";
+            if (RD) {
+                analysis::rd::RDNode *rd = RD->getMapping(node->getKey());
+                if (!rd) {
+                    os << "  ; RD: no mapping\n";
+                } else {
+                    auto defs = rd->getReachingDefinitions();
+                    for (auto it : defs) {
+                        printDefSite(it.first, os, "RD: ");
+                        for (auto nd : it.second) {
+                            os << " @ ";
+                            printValue(nd->getUserData<llvm::Value>(), os, true);
+                        }
+                    }
+                }
+            } else {
+                analysis::DefMap *df = node->getData<analysis::DefMap>();
+                if (df) {
+                    for (auto it : *df) {
+                        for (LLVMNode *d : it.second) {
+                            printPointer(it.first, os, "RD: ", false);
+                            os << " @ " << *d->getKey() << "(" << d << ")\n";
+                        }
                     }
                 }
             }
@@ -232,6 +286,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
         }
 
         if (opts & ANNOTATE_PTR) {
+            // FIXME: use the PTA from Slicer class
             LLVMPointsToAnalysis *PTA = node->getDG()->getPTA();
             if (PTA) { // we used the new analyses
                 llvm::Type *Ty = node->getKey()->getType();
@@ -264,8 +319,9 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
     }
 
 public:
-    CommentDBG(LLVMDependenceGraph *dg, uint32_t o = ANNOTATE_DD)
-        :dg(dg), opts(o) {}
+    CommentDBG(LLVMDependenceGraph *dg, uint32_t o = ANNOTATE_DD,
+               LLVMReachingDefinitions *rd = nullptr)
+        :dg(dg), RD(rd), opts(o) {}
 
     virtual void emitInstructionAnnot(const llvm::Instruction *I,
                                       llvm::formatted_raw_ostream& os)
@@ -314,7 +370,8 @@ public:
 };
 
 static void annotate(llvm::Module *M, const char *module_name,
-                     LLVMDependenceGraph *d, uint32_t opts)
+                     LLVMDependenceGraph *d, uint32_t opts,
+                     LLVMReachingDefinitions *rd = nullptr)
 {
     // compose name
     std::string fl(module_name);
@@ -325,7 +382,7 @@ static void annotate(llvm::Module *M, const char *module_name,
     llvm::raw_os_ostream output(ofs);
 
     errs() << "INFO: Saving IR with annotations to " << fl << "\n";
-    llvm::AssemblyAnnotationWriter *annot = new CommentDBG(d, opts);
+    llvm::AssemblyAnnotationWriter *annot = new CommentDBG(d, opts, rd);
     M->print(output, annot);
 
     delete annot;
@@ -362,10 +419,11 @@ protected:
     uint32_t opts = 0;
     PtaType pta;
     LLVMPointsToAnalysis *PTA;
+    LLVMReachingDefinitions *RD;
 
     // for SlicerOld
     Slicer(llvm::Module *mod, const char *modnm, uint32_t o)
-    :M(mod), module_name(modnm), opts(o), PTA(nullptr)
+    :M(mod), module_name(modnm), opts(o), PTA(nullptr), RD(nullptr)
     {
         assert(mod && "Need module");
         assert(modnm && "Need name of module");
@@ -433,7 +491,7 @@ protected:
 
         // print debugging llvm IR if user asked for it
         if (opts & ANNOTATE)
-            annotate(M, module_name, &d, opts);
+            annotate(M, module_name, &d, opts, RD);
 
         slicer.slice(&d, nullptr, slid);
 
@@ -452,14 +510,7 @@ protected:
         debug::TimeMeasure tm;
         assert(PTA && "BUG: No PTA");
 
-        //use new analyses
-        analysis::rd::LLVMReachingDefinitions RDA(d->getModule(), PTA);
-        tm.start();
-        RDA.run();  // compute reaching definitions
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis took");
-
-        LLVMDefUseAnalysis DUA(d, &RDA, PTA);
+        LLVMDefUseAnalysis DUA(d, RD, PTA);
         tm.start();
         DUA.run(); // add def-use edges according that
         tm.stop();
@@ -500,10 +551,16 @@ public:
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 
+        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA);
+        tm.start();
+        RD->run();
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis took");
+
         d.build(&*M, PTA);
 
         return sliceGraph(d, slicing_criterion);
-        // FIXME: we're leaking PTA
+        // FIXME: we're leaking PTA & RD
     }
 };
 
