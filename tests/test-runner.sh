@@ -45,6 +45,15 @@ compile()
 	clang -emit-llvm -c -include "$TESTS_DIR/test_assert.h"\
 		$TESTS_CFLAGS -Wall -Wextra "$CODE" -o "$BCFILE" \
 		|| errmsg "Compilation failed"
+
+	if [ "x$DG_TESTS_OPTIMIZE" != "x" ]; then
+		opt $DG_TESTS_OPTIMIZE -o "$BCFILE-opt" "$BCFILE"\
+		|| errmsg "Failed optimizing the file"
+
+		# rename the optimize file to the output file
+		mv "$BCFILE-opt" "$BCFILE"\
+		|| errmsg "Failed renaming optimized file"
+	fi
 }
 
 link_with_assert()
