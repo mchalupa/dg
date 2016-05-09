@@ -118,8 +118,14 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
         if (!ptr.isUnknown()) {
             if (ptr.isNull())
                 os << "null";
-            else
-                os << *ptr.target->getUserData<llvm::Value>();
+            else {
+                const llvm::Value *val
+                    = ptr.target->getUserData<llvm::Value>();
+                if (val->hasName())
+                    os << val->getName().data();
+                else
+                    os << *val;
+            }
 
             os << " + ";
             if (ptr.offset.isUnknown())
@@ -142,11 +148,16 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             os << prefix;
 
         if (ptr.isKnown()) {
-            os << *ptr.obj->node->getKey() << " + ";
-            if (ptr.offset.isUnknown())
-                os << "UNKNOWN";
+            const llvm::Value *val = ptr.obj->node->getKey();
+            if (val->hasName())
+                os << val->getName().data();
             else
-                os << *ptr.offset;
+                os << *val;
+
+            if (ptr.offset.isUnknown())
+                os << " + UNKNOWN";
+            else
+                os << " + " << *ptr.offset;
         } else
             os << "unknown";
 
