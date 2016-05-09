@@ -75,9 +75,9 @@ endif()
 
 if (ENABLE_DEBUG)
 	add_definitions(-DDEBUG_ENABLED)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frtti -fno-rtti -std=c++11 -g -O0")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -g -O0")
 else ()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -frtti -fno-rtti -std=c++11 -O2")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -O2")
 endif ()
 
 # generate a git-version.h with a HEAD commit hash tag
