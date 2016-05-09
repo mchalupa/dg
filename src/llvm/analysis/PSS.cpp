@@ -274,6 +274,9 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
             // Create irrelevant operand if we don't have it.
             // We will place it later
             op = createIrrelevantInst(Inst, false);
+        } else if (const llvm::Argument *A
+                    = llvm::dyn_cast<llvm::Argument>(val)) {
+            op = createIrrelevantArgument(A);
         } else {
             llvm::errs() << "Did not find an operand: " << *val << "\n";
             abort();
@@ -1145,6 +1148,19 @@ PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val,
     return seq.first;
 }
 
+// create a formal argument
+PSSNode *LLVMPSSBuilder::createIrrelevantArgument(const llvm::Argument *farg)
+{
+    using namespace llvm;
+
+    PSSNode *arg = new PSSNode(pss::PHI, nullptr);
+    addNode(farg, arg);
+    unplacedInstructions.insert(std::make_pair(arg, arg));
+    llvm::errs() << "WARN: built irrelevant arg: " << *farg << "\n";
+
+    return arg;
+}
+
 void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
 {
     using namespace llvm;
@@ -1214,10 +1230,15 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
                                 "If this is a vararg, this is not implemented yet");
                 }
 
-                PSSNode *arg = new PSSNode(pss::PHI, getOperand(val), nullptr);
-                addNode(farg, arg);
-                unplacedInstructions.insert(std::make_pair(arg, arg));
-                llvm::errs() << "WARN: build irrelevant arg: " << *farg << "\n";
+                // create the argument now if we haven't created it due to some
+                // use as operand in an instruction earlier
+                PSSNode *arg = nodes_map[farg];
+                if (!arg) {
+                    arg = createIrrelevantArgument(llvm::cast<llvm::Argument>(farg));
+                }
+
+                // add the PHI operands
+                arg->addOperand(getOperand(val));
 
                 // and we also need to build the instructions that use the formal
                 // parameter

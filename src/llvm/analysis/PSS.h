@@ -130,6 +130,7 @@ private:
 
     PSSNode *createIrrelevantInst(const llvm::Value *,
                                   bool build_uses = false);
+    PSSNode *createIrrelevantArgument(const llvm::Argument *);
     void createIrrelevantUses(const llvm::Value *val);
 
     PSSNode *createAdd(const llvm::Instruction *Inst);
