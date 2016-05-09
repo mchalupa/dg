@@ -592,7 +592,7 @@ class SlicerOld : public Slicer
 
 public:
     SlicerOld(llvm::Module *mod, const char *modnm, uint32_t o = 0)
-        :Slicer(mod, module_name, o) {}
+        :Slicer(mod, modnm, o) {}
 
     bool slice(const char *slicing_criterion)
     {
