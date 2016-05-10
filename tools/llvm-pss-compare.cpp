@@ -58,7 +58,7 @@ printName(PSSNode *node)
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
-            printf("%p\n", node);
+            printf("%p", node);
 
             return;
         }
@@ -95,7 +95,7 @@ dumpPSSNode(PSSNode *n)
                n->getSize(), n->isHeap(), n->isZeroInitialized());
 
     if (n->pointsTo.empty()) {
-        puts(" -- no points-to");
+        puts("\n    -> no points-to");
         return;
     } else
         putchar('\n');
@@ -149,9 +149,9 @@ static bool verify_ptsets(LLVMPointsToAnalysis *fi, LLVMPointsToAnalysis *fs)
 
             if (!found) {
                     llvm::errs() << "FS not subset of FI: " << *it.first << "\n";
-                    llvm::errs() << "FI:\n";
+                    llvm::errs() << "FI ";
                     dumpPSSNode(it.second);
-                    llvm::errs() << "FS:\n";
+                    llvm::errs() << "FS ";
                     dumpPSSNode(fsnode);
                     llvm::errs() << " ---- \n";
                     ok = false;
