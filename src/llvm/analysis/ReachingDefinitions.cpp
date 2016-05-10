@@ -235,7 +235,6 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
             node = createAlloc(&Inst);
             break;
         case Instruction::Call:
-            assert(isa<IntrinsicInst>(&Inst));
             node = createCall(&Inst).second;
             break;
         default:
