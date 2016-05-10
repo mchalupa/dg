@@ -423,7 +423,6 @@ LLVMPSSBuilder::createCallToFunction(const llvm::CallInst *CInst,
             arg->addOperand(op);
 
             // shift in arguments
-            assert(arg->successorsNum() <= 1);
             if (arg->successorsNum() == 1)
                 arg = arg->getSingleSuccessor();
         }
@@ -1587,10 +1586,13 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     // make arguments the entry block of the subgraphs (if there
     // are any arguments)
     if (args.first) {
+        assert(args.second && "BUG: Have only first argument");
         root->addSuccessor(args.first);
         lastNode = args.second;
-    } else
+    } else {
+        assert(!args.second && "BUG: Have only last argument");
         lastNode = root;
+    }
 
     assert(lastNode);
 
@@ -1600,12 +1602,17 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
 
         if (!first) {
             // first block was not created at all? (it has not
-            // pointer relevant instructions) - in that case
+            // pointer relevant instructions) -- in that case
             // fake that the first block is the root itself
+            // (or the arguments if we have them)
             if (!nds.first) {
                 // nds is a reference
-                nds.first = nds.second = root;
-                first = root;
+                if (args.first)
+                    nds = args;
+                else
+                    nds.first = nds.second = lastNode;
+
+                first = lastNode;
             } else {
                 first = nds.first;
 
