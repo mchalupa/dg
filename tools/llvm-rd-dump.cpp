@@ -236,6 +236,12 @@ int main(int argc, char *argv[])
     M = &*_M;
 #endif
 
+    if (!M) {
+        llvm::errs() << "Failed parsing '" << module << "' file:\n";
+        SMD.print(argv[0], errs());
+        return 1;
+    }
+
     debug::TimeMeasure tm;
 
     LLVMPointsToAnalysis *PTA;
