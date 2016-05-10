@@ -5,6 +5,10 @@ include(CTest)
 
 include_directories( ${CMAKE_SOURCE_DIR}/src )
 
+# we need C++11 standard
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
+
 # define DEBUG by default for now
 OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
@@ -75,9 +79,9 @@ endif()
 
 if (ENABLE_DEBUG)
 	add_definitions(-DDEBUG_ENABLED)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -g -O0")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -g -O0")
 else ()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -O2")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -O2")
 endif ()
 
 # generate a git-version.h with a HEAD commit hash tag
