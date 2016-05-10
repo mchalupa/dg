@@ -522,26 +522,31 @@ public:
     }
 
     void getNodes(std::set<PSSNode *>& cont,
-                  bool (*filter)(PSSNode *, void *) = nullptr,
-                  void *filter_data = nullptr)
+                  std::set<PSSNode *> *start = nullptr)
     {
         assert(root && "Do not have root");
 
         ++dfsnum;
 
-        ADT::QueueFIFO<PSSNode *> fifio;
-        fifio.push(root);
+        ADT::QueueFIFO<PSSNode *> fifo;
+        if (start) {
+            // FIXME: get rid of the loop,
+            // make it via iterator range
+            for (PSSNode *s : *start)
+                fifo.push(s);
+        } else
+            fifo.push(root);
+
         root->dfsid = dfsnum;
 
-        while (!fifio.empty()) {
-            PSSNode *cur = fifio.pop();
-            if (!filter || filter(cur, filter_data))
-                cont.insert(cur);
+        while (!fifo.empty()) {
+            PSSNode *cur = fifo.pop();
+            cont.insert(cur);
 
             for (PSSNode *succ : cur->successors) {
                 if (succ->dfsid != dfsnum) {
                     succ->dfsid = dfsnum;
-                    fifio.push(succ);
+                    fifo.push(succ);
                 }
             }
         }

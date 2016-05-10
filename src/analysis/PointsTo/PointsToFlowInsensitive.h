@@ -14,19 +14,6 @@ class PointsToFlowInsensitive : public PSS
 {
     std::set<PSSNode *> changed;
 
-    // FIXME: we could do common ancestor for this class
-    // and PointsToFlowSensitive, since this code is
-    // duplicated
-    static bool removeFromChanged(PSSNode *n, void *data)
-    {
-        std::set<PSSNode *> *changed
-            = static_cast<std::set<PSSNode *> *>(data);
-        assert(changed);
-
-        changed->erase(n);
-        return true;
-    }
-
 protected:
     PointsToFlowInsensitive() {}
 
@@ -70,11 +57,14 @@ public:
 
         if (pendingInQueue() == 0 && !changed.empty()) {
             std::set<PSSNode *> nodes;
-            getNodes(nodes, removeFromChanged, &changed);
+            getNodes(nodes, &changed /* starting set */);
 
             //FIXME: do it more efficiently
+            // (add swap method)
             for (PSSNode *node : nodes)
                 queue.push(node);
+
+            changed.clear();
         }
     }
 };
