@@ -18,7 +18,7 @@ class DependenceGraph;
 //     one node in DependenceGraph. The type of dependence graph is
 //     fully determined by the type of node. Dependence graph is just
 //     a container for nodes - everything interesting is here.
-//     Concrete implementation will inherit from instance of this
+//     Concrete implementation will inherit from an instance of this
 //     template.
 /// ------------------------------------------------------------------
 template <typename DependenceGraphT, typename KeyT, typename NodeT>
@@ -68,6 +68,8 @@ public:
         return dg;
     }
 
+    // add control dependence edge 'this'-->'n',
+    // thus making 'n' control dependend on this node
     bool addControlDependence(NodeT * n)
     {
         bool ret1, ret2;
@@ -81,6 +83,8 @@ public:
         return ret2;
     }
 
+    // add data dependence edge 'this'-->'n',
+    // thus making 'n' data dependend on this node
     bool addDataDependence(NodeT * n)
     {
         bool ret1, ret2;
@@ -93,6 +97,7 @@ public:
         return ret2;
     }
 
+    // remove edge 'this'-->'n' from data dependencies
     bool removeDataDependence(NodeT * n)
     {
         bool ret1, ret2;
@@ -106,6 +111,7 @@ public:
         return ret1;
     }
 
+    // remove edge 'this'-->'n' from control dependencies
     bool removeControlDependence(NodeT * n)
     {
         bool ret1, ret2;
