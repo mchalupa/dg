@@ -56,14 +56,11 @@ public:
         (void) n;
 
         if (pendingInQueue() == 0 && !changed.empty()) {
-            std::set<PSSNode *> nodes;
-            getNodes(nodes, &changed /* starting set */);
+            ADT::QueueFIFO<PSSNode *> nodes;
+            getNodes(nodes, nullptr /* starting node */,
+                     &changed /* starting set */);
 
-            //FIXME: do it more efficiently
-            // (add swap method)
-            for (PSSNode *node : nodes)
-                queue.push(node);
-
+            queue.swap(nodes);
             changed.clear();
         }
     }

@@ -12,6 +12,8 @@ namespace pss {
 
 class PointsToFlowSensitive : public PSS
 {
+    std::set<PSSNode *> changed;
+
 public:
     typedef std::set<MemoryObject *> MemoryObjectsSetT;
     typedef std::map<const Pointer, MemoryObjectsSetT> MemoryMapT;
@@ -97,6 +99,22 @@ public:
                     mergeMaps(mm, pm, strong_update);
             }
         }
+
+        // check if we should enqueue new nodes and if so,
+        // enqueue them. This code is duplicated with FlowInsensitive
+        if (pendingInQueue() == 0 && !changed.empty()) {
+            ADT::QueueFIFO<PSSNode *> nodes;
+            getNodes(nodes, nullptr /* starting node */,
+                     &changed /* starting set */);
+
+            queue.swap(nodes);
+            changed.clear();
+        }
+    }
+
+    virtual void enqueue(PSSNode *n)
+    {
+        changed.insert(n);
     }
 
     virtual void getMemoryObjects(PSSNode *where, PSSNode *n,

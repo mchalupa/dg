@@ -495,53 +495,66 @@ public:
     }
     */
 
-    // n is node that changed something and queues new nodes for
-    // processing
-    void enqueueDFS(PSSNode *n)
+    void getNodes(std::set<PSSNode *>& cont,
+                  PSSNode *n = nullptr)
     {
         // default behaviour is to enqueue all pending nodes
         ++dfsnum;
 
-        ADT::QueueLIFO<PSSNode *> lifo;
+        if (!n)
+            n = root;
+
+        ADT::QueueFIFO<PSSNode *> fifo;
         for (PSSNode *succ : n->successors) {
             succ->dfsid = dfsnum;
-            lifo.push(succ);
+            fifo.push(succ);
         }
 
-        while (!lifo.empty()) {
-            PSSNode *cur = lifo.pop();
-            queue.push(cur);
+        while (!fifo.empty()) {
+            PSSNode *cur = fifo.pop();
+            bool ret = cont.insert(cur).second;
+            assert(ret && "BUG: Tried to insert something twice");
 
             for (PSSNode *succ : cur->successors) {
                 if (succ->dfsid != dfsnum) {
                     succ->dfsid = dfsnum;
-                    lifo.push(succ);
+                    fifo.push(succ);
                 }
             }
         }
     }
 
-    void getNodes(std::set<PSSNode *>& cont,
-                  std::set<PSSNode *> *start = nullptr)
+    // get nodes in BFS order and store them into
+    // the container
+    template <typename ContT>
+    void getNodes(ContT& cont,
+                  PSSNode *start_node = nullptr,
+                  std::set<PSSNode *> *start_set = nullptr)
     {
         assert(root && "Do not have root");
+        assert(!(start_set && start_node)
+               && "Need either starting set or starting node, not both");
 
         ++dfsnum;
-
         ADT::QueueFIFO<PSSNode *> fifo;
-        if (start) {
+
+        if (start_set) {
             // FIXME: get rid of the loop,
             // make it via iterator range
-            for (PSSNode *s : *start)
+            for (PSSNode *s : *start_set)
                 fifo.push(s);
-        } else
-            fifo.push(root);
+        } else {
+            if (!start_node)
+                start_node = root;
+
+            fifo.push(start_node);
+        }
 
         root->dfsid = dfsnum;
 
         while (!fifo.empty()) {
             PSSNode *cur = fifo.pop();
-            cont.insert(cur);
+            cont.push(cur);
 
             for (PSSNode *succ : cur->successors) {
                 if (succ->dfsid != dfsnum) {
@@ -555,7 +568,7 @@ public:
     virtual void enqueue(PSSNode *n)
     {
         // default behaviour is to queue all reachable nodes
-        enqueueDFS(n);
+        getNodes(queue, n);
     }
 
     /* hooks for analysis - optional */
@@ -580,7 +593,7 @@ public:
         // initialize the queue
         // FIXME let user do that
         queue.push(root);
-        enqueueDFS(root);
+        getNodes(queue);
 
         while (!queue.empty()) {
             PSSNode *cur = queue.pop();
@@ -598,7 +611,7 @@ public:
         // so we'll do one more iteration and check it
 
         queue.push(root);
-        enqueueDFS(root);
+        getNodes(queue);
 
         bool changed = false;
         while (!queue.empty()) {
