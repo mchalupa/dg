@@ -500,11 +500,13 @@ public:
     {
         // default behaviour is to enqueue all pending nodes
         ++dfsnum;
-
-        if (!n)
-            n = root;
-
         ADT::QueueFIFO<PSSNode *> fifo;
+
+        if (!n) {
+            fifo.push(root);
+            n = root;
+        }
+
         for (PSSNode *succ : n->successors) {
             succ->dfsid = dfsnum;
             fifo.push(succ);
