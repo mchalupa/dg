@@ -929,8 +929,15 @@ PSSNode *LLVMPSSBuilder::createReturn(const llvm::Instruction *Inst)
 
     // DONT: if(retVal->getType()->isPointerTy())
     // we have ptrtoint which break the types...
-    if (retVal && nodes_map.count(retVal))
-        op1 = getOperand(retVal);
+    if (retVal) {
+        if (llvm::isa<llvm::ConstantPointerNull>(retVal))
+            op1 = NULLPTR;
+        else if (nodes_map.count(retVal))
+            op1 = getOperand(retVal);
+        // else op1 is nullptr and thus this return
+        // is irrelevant for data-flow, but we still need
+        // to keep it since it changes control-flow
+    }
 
     assert((op1 || !retVal || !retVal->getType()->isPointerTy())
            && "Don't have operand for ReturnInst with pointer");
