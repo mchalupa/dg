@@ -35,6 +35,11 @@ public:
         return Container.size();
     }
 
+    void swap(QueueLIFO<ValueT>& oth)
+    {
+        Container.swap(oth.Container);
+    }
+
 private:
     std::stack<ValueT> Container;
 };
@@ -64,6 +69,11 @@ public:
     size_t size() const
     {
         return Container.size();
+    }
+
+    void swap(QueueFIFO<ValueT>& oth)
+    {
+        Container.swap(oth.Container);
     }
 
 private:
