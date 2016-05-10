@@ -607,6 +607,24 @@ public:
             afterProcessed(cur);
         }
 
+        // FIXME: There's a bug in flow-sensitive that it does
+        // not reach fixpoint in the loop above, because it reads
+        // from values that has not been processed yet (thus it has
+        // empty points-to set) - nothing is changed, so it seems
+        // that we reached fixpoint, but we didn't and we fail
+        // the assert below. This is temporary workaround -
+        // just make another iteration. Proper fix would be to
+        // fix queuing the nodes, but that will be more difficult
+        while (!queue.empty()) {
+            PSSNode *cur = queue.pop();
+            beforeProcessed(cur);
+
+            if (processNode(cur))
+                enqueue(cur);
+
+            afterProcessed(cur);
+        }
+
 #ifdef DEBUG_ENABLED
         // NOTE: This works as assertion,
         // we'd like to be sure that we have reached the fixpoint,
