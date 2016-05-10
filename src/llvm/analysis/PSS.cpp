@@ -1748,6 +1748,7 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
     } else if (!isa<ConstantInt>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
+        abort();
     }
 
     return last;
@@ -1773,19 +1774,25 @@ std::pair<PSSNode *, PSSNode *> LLVMPSSBuilder::buildGlobals()
     // only now handle the initializers - we need to have then
     // built, because they can point to each other
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
+        PSSNode *node = nodes_map[&*I];
+        assert(node && "BUG: Do not have global variable");
+
         // handle globals initialization
         const llvm::GlobalVariable *GV
                             = llvm::dyn_cast<llvm::GlobalVariable>(&*I);
         if (GV && GV->hasInitializer() && !GV->isExternallyInitialized()) {
             const llvm::Constant *C = GV->getInitializer();
-            PSSNode *node = nodes_map[&*I];
-            assert(node && "BUG: Do not have global variable");
             cur = handleGlobalVariableInitializer(C, node);
+        } else {
+            // without initializer we can not do anything else than
+            // assume that it can point everywhere
+            cur = new PSSNode(pss::STORE, UNKNOWN_MEMORY, node);
+            cur->insertAfter(node);
         }
     }
 
     assert((!first && !cur) || (first && cur));
-    return std::pair<PSSNode *, PSSNode *>(first, cur);
+    return std::make_pair(first, cur);
 }
 
 } // namespace pss
