@@ -110,56 +110,79 @@ dumpPSSNode(PSSNode *n)
     }
 }
 
-static bool verify_ptsets(LLVMPointsToAnalysis *fi, LLVMPointsToAnalysis *fs)
+static bool verify_ptsets(const llvm::Value *val,
+                          LLVMPointsToAnalysis *fi,
+                          LLVMPointsToAnalysis *fs)
 {
-    bool ok = true;
-    const std::unordered_map<const llvm::Value *, PSSNode *>& mp = fi->getNodesMap();
-    for (auto it : mp) {
-        PSSNode *fsnode = fs->getPointsTo(it.first);
-        if (!fsnode) {
-            llvm::errs() << "FS don't have points-to for: " << *it.first << "\n"
+    PSSNode *finode = fi->getPointsTo(val);
+    PSSNode *fsnode = fs->getPointsTo(val);
+
+    if (!finode) {
+        if (fsnode) {
+            llvm::errs() << "FI don't have points-to for: " << *val << "\n"
+                         << "but FS has:\n";
+            dumpPSSNode(fsnode);
+        } else
+            // if boths mapping are null we assume that
+            // the value is not reachable from main
+            // (if nothing more, its not different for FI and FS)
+            return true;
+
+        return false;
+    }
+
+    if (!fsnode) {
+        if (finode) {
+            llvm::errs() << "FS don't have points-to for: " << *val << "\n"
                          << "but FI has:\n";
-            dumpPSSNode(it.second);
-            ok = false;
-            continue;
+            dumpPSSNode(finode);
+        } else
+            return true;
+
+        return false;
+    }
+
+    for (const Pointer& ptr : fsnode->pointsTo) {
+        bool found = false;
+        for (const Pointer& ptr2 : finode->pointsTo) {
+            // either the pointer is there or
+            // FS has (target, offset) and FI has (target, UNKNOWN_OFFSET),
+            // than everything is fine. The other case (FS has UNKNOWN_OFFSET)
+            // we don't consider here, since that should not happen
+            if ((ptr2.target->getUserData<llvm::Value>()
+                == ptr.target->getUserData<llvm::Value>())
+                && (ptr2.offset == ptr.offset ||
+                    ptr2.offset.isUnknown()
+                    /* || ptr.offset.isUnknown()*/)) {
+                found = true;
+                break;
+            }
         }
 
-        if (!it.second) {
-            llvm::errs() << "PSS node is null: " << *it.first << "\n";
-            ok = false;
-            continue;
-        }
-
-        for (const Pointer& ptr : fsnode->pointsTo) {
-            bool found = false;
-            for (const Pointer& ptr2 : it.second->pointsTo) {
-                // either the pointer is there or
-                // FS has (target, offset) and FI has (target, UNKNOWN_OFFSET),
-                // than everything is fine. The other case (FS has UNKNOWN_OFFSET)
-                // we don't consider here, since that should not happen
-                if ((ptr2.target->getUserData<llvm::Value>()
-                    == ptr.target->getUserData<llvm::Value>())
-                    && (ptr2.offset == ptr.offset ||
-                        ptr2.offset.isUnknown()
-                        /* || ptr.offset.isUnknown()*/)) {
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found) {
-                    llvm::errs() << "FS not subset of FI: " << *it.first << "\n";
-                    llvm::errs() << "FI ";
-                    dumpPSSNode(it.second);
-                    llvm::errs() << "FS ";
-                    dumpPSSNode(fsnode);
-                    llvm::errs() << " ---- \n";
-                    ok = false;
-            }
+        if (!found) {
+                llvm::errs() << "FS not subset of FI: " << *val << "\n";
+                llvm::errs() << "FI ";
+                dumpPSSNode(finode);
+                llvm::errs() << "FS ";
+                dumpPSSNode(fsnode);
+                llvm::errs() << " ---- \n";
+                return false;
         }
     }
 
-    return ok;
+    return true;
+}
+
+static bool verify_ptsets(llvm::Module *M,
+                          LLVMPointsToAnalysis *fi,
+                          LLVMPointsToAnalysis *fs)
+{
+    using namespace llvm;
+
+    for (Function& F : *M)
+        for (BasicBlock& B : F)
+            for (Instruction& I : B)
+                verify_ptsets(&I, fi, fs);
 }
 
 int main(int argc, char *argv[])
@@ -225,7 +248,7 @@ int main(int argc, char *argv[])
 
     int ret = 0;
     if (type == (FLOW_SENSITIVE | FLOW_INSENSITIVE)) {
-        ret = !verify_ptsets(PTAfi, PTAfs);
+        ret = !verify_ptsets(M, PTAfi, PTAfs);
         if (ret == 0)
             llvm::errs() << "FS is a subset of FI, all OK\n";
     }
