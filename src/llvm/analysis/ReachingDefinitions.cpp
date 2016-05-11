@@ -577,7 +577,7 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
                 // function may not be redefined
                 continue;
 
-            RDNode *target = nodes_map[ptrVal];
+            RDNode *target = getOperand(ptrVal);
             assert(target && "Don't have pointer target for call argument");
 
             // this call may define this memory
