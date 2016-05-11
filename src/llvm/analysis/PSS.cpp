@@ -1215,6 +1215,11 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
                 const Function *F = CI->getCalledFunction();
                 assert(F && "ptrtoint via function pointer call not implemented");
 
+                // if the function is not defined in this module, don't
+                // try to create the argument
+                if (F->size() == 0)
+                    continue;
+
                 // find the formal argument of function into which we pass
                 // the value
                 const llvm::Value *farg = nullptr;
