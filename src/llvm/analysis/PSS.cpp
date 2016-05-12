@@ -1391,6 +1391,9 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
             blk.first = seq.first;
             blk.second = seq.second;
         }
+
+        assert(blk.first && blk.second
+                && "BUG: corrupted or not inserted a block");
     }
 
     unplacedInstructions.clear();
@@ -1550,6 +1553,9 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             pssn.second->addSuccessor(succ.first);
             ++num;
         }
+
+        // assert that we didn't corrupt the block
+        assert((succ.first && succ.second) || (!succ.first && !succ.second));
     }
 
     return num;
@@ -1667,8 +1673,7 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     for (const llvm::BasicBlock& block : F) {
         std::pair<PSSNode *, PSSNode *>& pssn = built_blocks[&block];
         // if the block do not contain any points-to relevant instruction,
-        // we returned (nullptr, nullptr)
-        // FIXME: do not store such blocks at all
+        // we get (nullptr, nullptr)
         assert((pssn.first && pssn.second) || (!pssn.first && !pssn.second));
         if (!pssn.first)
             continue;
@@ -1686,6 +1691,8 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
         // of this block is a return node
         if (succ_num == 0 && pssn.second->getType() == pss::RETURN)
             rets.push_back(pssn.second);
+
+        assert(pssn.first && pssn.second);
     }
 
     // add successors edges from every real return to our artificial ret node
