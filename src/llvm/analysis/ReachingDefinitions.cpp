@@ -659,6 +659,28 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     return ret;
 }
 
+// FIXME: factor this out, we use it even in PoinsTo
+static bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
+{
+    using namespace llvm;
+
+    // FIXME: check for return value
+    if (F->arg_size() > CI->getNumArgOperands())
+        return false;
+
+    int idx = 0;
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+        Type *CTy = CI->getArgOperand(idx)->getType();
+        Type *ATy = A->getType();
+
+        // FIXME: we could check that the types are equal!
+        if (!CTy->canLosslesslyBitCastTo(ATy))
+            return false;
+    }
+
+    return true;
+}
+
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 {
@@ -714,11 +736,6 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         RDNode *call_funcptr = nullptr, *ret_call = nullptr;
 
         if (op->pointsTo.size() > 1) {
-            call_funcptr = new RDNode(CALL);
-            ret_call = new RDNode(CALL_RETURN);
-
-            addNode(CInst, call_funcptr);
-
             for (const pss::Pointer& ptr : op->pointsTo) {
                 if (!ptr.isValid())
                     continue;
@@ -732,25 +749,45 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 // and in LLVMDependenceGraph, we should factor them
                 // out into a function...
                 const Function *F = ptr.target->getUserData<Function>();
-                if (!F->isVarArg() &&
-                    CInst->getNumArgOperands() != F->arg_size())
-                    // incompatible prototypes
+                if (F->size() == 0 || !callIsCompatible(F, CInst))
                     continue;
 
                 std::pair<RDNode *, RDNode *> cf
                     = createCallToFunction(CInst, F);
 
                 // connect the graphs
+                if (!call_funcptr) {
+                    assert(!ret_call);
+
+                    // create the new nodes lazily
+                    call_funcptr = new RDNode(CALL);
+                    ret_call = new RDNode(CALL_RETURN);
+                    addNode(CInst, call_funcptr);
+                }
+
                 call_funcptr->addSuccessor(cf.first);
                 cf.second->addSuccessor(ret_call);
             }
         } else {
             // don't add redundant nodes if not needed
-            const llvm::Function *F
-                = (op->pointsTo.begin())->target->getUserData<llvm::Function>();
-            std::pair<RDNode *, RDNode *> cf = createCallToFunction(CInst, F);
-            call_funcptr = cf.first;
-            ret_call = cf.second;
+            const pss::Pointer& ptr = *(op->pointsTo.begin());
+            if (ptr.isValid()) {
+                const llvm::Value *valF = ptr.target->getUserData<llvm::Value>();
+                const llvm::Function *F = llvm::cast<llvm::Function>(valF);
+
+                if (F->size() != 0 && callIsCompatible(F, CInst)) {
+                    std::pair<RDNode *, RDNode *> cf = createCallToFunction(CInst, F);
+                    call_funcptr = cf.first;
+                    ret_call = cf.second;
+                }
+            }
+        }
+
+        if (!ret_call) {
+            assert(!call_funcptr);
+            llvm::errs() << "ERROR: Funcptr call with no pointer compatible\n";
+            RDNode *n = createUndefinedCall(CInst);
+            return std::make_pair(n, n);
         }
 
         assert(call_funcptr && ret_call);
