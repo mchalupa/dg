@@ -869,23 +869,34 @@ PSSNode *LLVMPSSBuilder::createAdd(const llvm::Instruction *Inst)
     using namespace llvm;
 
     PSSNode *node;
-    const Value *val = Inst->getOperand(1);
-    PSSNode *op = tryGetOperand(Inst->getOperand(0));
+    PSSNode *op;
+    const Value *val = nullptr;
+    uint64_t off = UNKNOWN_OFFSET;
 
-    // add val1, val2
-    // we don't know if val1 is the pointer or the val2
-    // is the pointer, so we must check both
-    if (!op) {
-        op = tryGetOperand(Inst->getOperand(1));
+    if (isa<ConstantInt>(Inst->getOperand(0))) {
+        op = getOperand(Inst->getOperand(1));
         val = Inst->getOperand(0);
+    } else if (isa<ConstantInt>(Inst->getOperand(0))) {
+        op = getOperand(Inst->getOperand(0));
+        val = Inst->getOperand(1);
+    } else {
+        // the operands are both non-constant. Check if we
+        // can get an operand as one of them and if not,
+        // fall-back to unknown memory, because we
+        // would need to track down both operads...
+        op = tryGetOperand(Inst->getOperand(0));
+        if (!op)
+            op = tryGetOperand(Inst->getOperand(1));
+
+        if (!op)
+            return createUnknown(Inst);
     }
 
-
     assert(op && "Don't have operand for add");
+    if (val)
+        off = getConstantValue(val);
 
-    uint64_t off = getConstantValue(val);
     node = new PSSNode(pss::GEP, op, off);
-
     addNode(Inst, node);
 
     assert(node);
@@ -897,18 +908,30 @@ PSSNode *LLVMPSSBuilder::createArithmetic(const llvm::Instruction *Inst)
     using namespace llvm;
 
     PSSNode *node;
-    PSSNode *op = tryGetOperand(Inst->getOperand(0));
+    PSSNode *op;
 
-    // this is binary operation, but we don't
-    // know which operand is a pointer, so we must check both
-    if (!op)
-        op = tryGetOperand(Inst->getOperand(1));
+    // we don't know if the operand is the first or
+    // the other operand
+    if (isa<ConstantInt>(Inst->getOperand(0))) {
+        op = getOperand(Inst->getOperand(1));
+    } else if (isa<ConstantInt>(Inst->getOperand(0))) {
+        op = getOperand(Inst->getOperand(0));
+    } else {
+        // the operands are both non-constant. Check if we
+        // can get an operand as one of them and if not,
+        // fall-back to unknown memory, because we
+        // would need to track down both operads...
+        op = tryGetOperand(Inst->getOperand(0));
+        if (!op)
+            op = tryGetOperand(Inst->getOperand(1));
 
-    assert(op && "Don't have operand for binary op");
+        if (!op)
+            return createUnknown(Inst);
+    }
+
     // we don't know what the operation does,
     // so set unknown offset
     node = new PSSNode(pss::GEP, op, UNKNOWN_OFFSET);
-
     addNode(Inst, node);
 
     assert(node);
