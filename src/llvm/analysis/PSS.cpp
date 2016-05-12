@@ -751,6 +751,25 @@ PSSNode *LLVMPSSBuilder::createSelect(const llvm::Instruction *Inst)
     return node;
 }
 
+std::pair<PSSNode *, PSSNode *>
+LLVMPSSBuilder::createExtract(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    const ExtractValueInst *EI = cast<ExtractValueInst>(Inst);
+
+    // extract <agg> <idx> {<idx>, ...}
+    PSSNode *op1 = getOperand(EI->getAggregateOperand());
+    // FIXME: get the correct offset
+    PSSNode *G = new PSSNode(pss::GEP, op1, UNKNOWN_OFFSET);
+    PSSNode *L = new PSSNode(pss::LOAD, G);
+    addNode(Inst, L);
+
+    G->addSuccessor(L);
+
+    return std::make_pair(G, L);
+}
+
 PSSNode *LLVMPSSBuilder::createPHI(const llvm::Instruction *Inst)
 {
     // we need a pointer
@@ -1049,6 +1068,8 @@ LLVMPSSBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::GetElementPtr:
             node = createGEP(&Inst);
             break;
+        case Instruction::ExtractValue:
+            return createExtract(&Inst);
         case Instruction::Select:
             node = createSelect(&Inst);
             break;
@@ -1112,6 +1133,8 @@ bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
                 return true;
             else
                 return false;
+        case Instruction::ExtractValue:
+            return Inst.getType()->isPointerTy();
         case Instruction::Load:
         case Instruction::Select:
         case Instruction::PHI:
@@ -1136,6 +1159,11 @@ bool LLVMPSSBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
         case Instruction::Ret:
             return true;
         default:
+            if (Inst.getType()->isPointerTy()) {
+                llvm::errs() << "Unhandled relevant inst: " << Inst << "\n";
+                abort();
+            }
+
             return false;
     }
 

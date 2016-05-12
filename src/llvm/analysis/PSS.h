@@ -153,6 +153,7 @@ private:
     void addUnplacedInstructions(Subgraph& subg);
     void buildUnbuiltUses(Subgraph& subg);
 
+    std::pair<PSSNode *, PSSNode *> createExtract(const llvm::Instruction *Inst);
     std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *,
                                                         const llvm::Function *);
