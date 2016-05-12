@@ -710,6 +710,30 @@ static void remove_unused_from_module_rec(llvm::Module *M)
     } while (fixpoint);
 }
 
+// after we slice the LLVM, we somethimes have troubles
+// with function declarations:
+//
+//   Global is external, but doesn't have external or dllimport or weak linkage!
+//   i32 (%struct.usbnet*)* @always_connected
+//   invalid linkage type for function declaration
+//
+// This function makes the declarations external
+static void make_declarations_external(llvm::Module *M)
+{
+    using namespace llvm;
+
+    // when erasing while iterating the slicer crashes
+    // so set the to be erased values into container
+    // and then erase them
+    for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+        Function *func = &*I;
+        if (func->size() == 0) {
+            // this will make sure that the linkage has right type
+            func->deleteBody();
+        }
+    }
+}
+
 static bool verify_module(llvm::Module *M)
 {
     // the verifyModule function returns false if there
@@ -881,6 +905,9 @@ int main(int argc, char *argv[])
     // remove unused from module again, since slicing
     // could and probably did make some other parts unused
     remove_unused_from_module_rec(M);
+
+    // fix linkage of declared functions (if needs to be fixed)
+    make_declarations_external(M);
 
     if (statistics)
         print_statistics(M, "Statistics after ");
