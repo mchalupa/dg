@@ -60,6 +60,25 @@ public:
 template <typename PTType>
 class LLVMPointsToAnalysisImpl : public PTType, public LLVMPointsToAnalysis
 {
+    bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
+    {
+        using namespace llvm;
+
+        if (F->arg_size() > CI->getNumArgOperands())
+            return false;
+
+        int idx = 0;
+        for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+            Type *CTy = CI->getArgOperand(idx)->getType();
+            Type *ATy = A->getType();
+
+            if (!CTy->canLosslesslyBitCastTo(ATy))
+                return false;
+        }
+
+        return true;
+    }
+
 public:
     LLVMPointsToAnalysisImpl(const llvm::Module* M)
         : LLVMPointsToAnalysis(M)
@@ -79,8 +98,7 @@ public:
         const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
 
         // incompatible prototypes, skip it...
-        if (!F->isVarArg() &&
-            CI->getNumArgOperands() != F->arg_size())
+        if (!callIsCompatible(F, CI))
             return false;
 
         std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
