@@ -646,6 +646,9 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             to = UNKNOWN_OFFSET;
 
         const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+        if (llvm::isa<llvm::Function>(ptrVal))
+            continue;
+
         RDNode *target = getOperand(ptrVal);
         assert(target && "Don't have pointer target for intrinsic call");
 
@@ -700,7 +703,13 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         // function pointer call
         pss::PSSNode *op = PTA->getPointsTo(calledVal);
         assert(op && "Don't have points-to information");
-        assert(!op->pointsTo.empty() && "Don't have pointer to the func");
+        //assert(!op->pointsTo.empty() && "Don't have pointer to the func");
+        if (op->pointsTo.empty()) {
+            llvm::errs() << "WARNING: calling function via pointer, but the points-to is empty\n"
+                         << *CInst << "\n";
+            RDNode *n = createUndefinedCall(CInst);
+            return std::make_pair(n, n);
+        }
 
         RDNode *call_funcptr = nullptr, *ret_call = nullptr;
 
