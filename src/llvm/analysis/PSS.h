@@ -38,6 +38,15 @@ class LLVMPSSBuilder
         PSSNode *root;
         PSSNode *ret;
 
+        // during building graph we can create some nodes as operands
+        // and we don't insert them into the PSS there, because it would
+        // be difficult to get it right. We will store them here
+        // and place them when we have all blocks constructed
+        std::set<std::pair<PSSNode *, PSSNode *>> unplacedInstructions;
+        // set of instructions for which we need to build uses
+        // (these are ptrtoints)
+        std::set<const llvm::Value *> buildUses;
+
         std::pair<PSSNode *, PSSNode *> args;
     };
 
@@ -50,15 +59,6 @@ class LLVMPSSBuilder
     // connected together according to successors
     std::map<const llvm::BasicBlock *,
              std::pair<PSSNode *, PSSNode *>> built_blocks;
-
-    // during building graph we can create some nodes as operands
-    // and we don't insert them into the PSS there, because it would
-    // be difficult to get it right. We will store them here
-    // and place them when we have all blocks constructed
-    std::set<std::pair<PSSNode *, PSSNode *>> unplacedInstructions;
-    // set of instructions for which we need to build uses
-    // (these are ptrtoints)
-    std::set<const llvm::Value *> buildUses;
 
 public:
     LLVMPSSBuilder(const llvm::Module *m)
@@ -149,8 +149,10 @@ private:
     void checkMemSet(const llvm::Instruction *Inst);
     void addPHIOperands(PSSNode *node, const llvm::PHINode *PHI);
     void addPHIOperands(const llvm::Function& F);
-    void addUnplacedInstructions(void);
-    void buildUnbuiltUses(void);
+
+    void addUnplacedInstructions(Subgraph& subg);
+    void buildUnbuiltUses(Subgraph& subg);
+
     std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
     std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *,
                                                         const llvm::Function *);

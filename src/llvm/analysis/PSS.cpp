@@ -836,7 +836,9 @@ PSSNode *LLVMPSSBuilder::createPtrToInt(const llvm::Instruction *Inst)
 
     // we need to build uses for this instruction, but we need to
     // do it later, when we have all blocks build
-    buildUses.insert(Inst);
+    Subgraph& subg = subgraphs_map[Inst->getParent()->getParent()];
+    assert(subg.root && "Don't have the subgraph created");
+    subg.buildUses.insert(Inst);
 
     assert(node);
     return node;
@@ -1163,7 +1165,9 @@ PSSNode *LLVMPSSBuilder::createIrrelevantInst(const llvm::Value *val,
     // insert it to unplacedInstructions, we will put it
     // into the PSS later when we have all basic blocks
     // created
-    unplacedInstructions.insert(seq);
+    Subgraph& subg = subgraphs_map[Inst->getParent()->getParent()];
+    assert(subg.root && "Don't have the subgraph created");
+    subg.unplacedInstructions.insert(seq);
 
     // add node to the map. We suppose that only the
     // last node is 'real' i. e. has corresponding llvm value
@@ -1184,7 +1188,11 @@ PSSNode *LLVMPSSBuilder::createIrrelevantArgument(const llvm::Argument *farg)
 
     PSSNode *arg = new PSSNode(pss::PHI, nullptr);
     addNode(farg, arg);
-    unplacedInstructions.insert(std::make_pair(arg, arg));
+
+    Subgraph& subg = subgraphs_map[farg->getParent()];
+    assert(subg.root && "Don't have the subgraph created");
+    subg.unplacedInstructions.insert(std::make_pair(arg, arg));
+
     llvm::errs() << "WARN: built irrelevant arg: " << *farg << "\n";
 
     return arg;
@@ -1281,20 +1289,24 @@ void LLVMPSSBuilder::createIrrelevantUses(const llvm::Value *val)
         }
     }
 }
-void LLVMPSSBuilder::buildUnbuiltUses(void)
+
+void LLVMPSSBuilder::buildUnbuiltUses(Subgraph& subg)
 {
-    for (const llvm::Value *use : buildUses)
+    for (const llvm::Value *use : subg.buildUses)
         createIrrelevantUses(use);
 
-    buildUses.clear();
+    subg.buildUses.clear();
 }
 
-void LLVMPSSBuilder::addUnplacedInstructions(void)
+void LLVMPSSBuilder::addUnplacedInstructions(Subgraph& subg)
 {
+    assert(subg.root && "Don't have subgraph");
+    buildUnbuiltUses(subg);
+
     // Insert the irrelevant instructions into the tree.
     // Find the block that the instruction belongs and insert it
     // into it onto the right place
-    for (std::pair<PSSNode *, PSSNode *> seq : unplacedInstructions) {
+    for (std::pair<PSSNode *, PSSNode *> seq : subg.unplacedInstructions) {
         assert(seq.first && seq.second);
 
         // the last element contains the representant
@@ -1304,8 +1316,7 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
         if (const llvm::Argument *arg = llvm::dyn_cast<llvm::Argument>(val)) {
             // we created an argument - put it in to the end
             // of arguments of its function
-            Subgraph& subg = subgraphs_map[arg->getParent()];
-            assert(subg.root && "Don't have subgraph");
+
             assert(seq.first == seq.second);
 
             // we do not have any arguments?
@@ -1387,7 +1398,9 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
                 }
             }
         } else {
-            // if the block is empty we just insert it
+            // if the block is empty we just initialize it
+            // (it will be put into PSS with other blocks
+            // later)
             blk.first = seq.first;
             blk.second = seq.second;
         }
@@ -1396,7 +1409,7 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
                 && "BUG: corrupted or not inserted a block");
     }
 
-    unplacedInstructions.clear();
+    subg.unplacedInstructions.clear();
 }
 
 static bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I)
@@ -1664,15 +1677,14 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     }
 
     // now we have created all the blocks, so place the instructions
-    // that we were not able to place during building
-    buildUnbuiltUses();
-    addUnplacedInstructions();
-    assert(unplacedInstructions.empty());
+    // that we were not able to place during building. Must be before
+    // adding successors, because we can create new blocks
+    addUnplacedInstructions(subgraphs_map[&F]);
 
     std::vector<PSSNode *> rets;
     for (const llvm::BasicBlock& block : F) {
         std::pair<PSSNode *, PSSNode *>& pssn = built_blocks[&block];
-        // if the block do not contain any points-to relevant instruction,
+        // if the block does not contain any points-to relevant instruction,
         // we get (nullptr, nullptr)
         assert((pssn.first && pssn.second) || (!pssn.first && !pssn.second));
         if (!pssn.first)
@@ -1739,7 +1751,12 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS()
     }
 
     // must have placed all the unplaced instructions
-    assert(unplacedInstructions.empty());
+
+#ifdef DEBUG_ENABLED
+    Subgraph& subg = subgraphs_map[F];
+    assert(subg.root && "Don't have the subgraph created");
+    assert(subg.unplacedInstructions.empty());
+#endif
 
     return root;
 }
