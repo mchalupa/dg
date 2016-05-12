@@ -1769,8 +1769,7 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
     PSSNode *last = node;
 
     // if the global is zero initialized, just set the zeroInitialized flag
-    if (isa<ConstantPointerNull>(C)
-        || isa<ConstantAggregateZero>(C)) {
+    if (C->isNullValue()) {
         node->setZeroInitialized();
     } else if (C->getType()->isAggregateType()) {
         uint64_t off = 0;
@@ -1793,7 +1792,8 @@ LLVMPSSBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
 
             off += DL->getTypeAllocSize(Ty);
         }
-    } else if (isa<ConstantExpr>(C) || isa<Function>(C)) {
+    } else if (isa<ConstantExpr>(C) || isa<Function>(C)
+                || C->getType()->isPointerTy()) {
        if (C->getType()->isPointerTy()) {
            PSSNode *value = getOperand(C);
            assert(value->pointsTo.size() == 1 && "BUG: We should have constant");
