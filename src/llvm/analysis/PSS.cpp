@@ -1295,6 +1295,8 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
     // Find the block that the instruction belongs and insert it
     // into it onto the right place
     for (std::pair<PSSNode *, PSSNode *> seq : unplacedInstructions) {
+        assert(seq.first && seq.second);
+
         // the last element contains the representant
         PSSNode *node = seq.second;
         const llvm::Value *val = node->getUserData<llvm::Value>();
@@ -1331,6 +1333,9 @@ void LLVMPSSBuilder::addUnplacedInstructions(void)
                && "BUG: we should have this block created");
         std::pair<PSSNode *, PSSNode *>& blk = built_blocks[llvmBlk];
         if (blk.first) {
+            assert(blk.second
+                   && "Have beginning of the block, but not the end");
+
             auto I = llvmBlk->begin();
             // shift to our instruction
             while (&*I != val)
