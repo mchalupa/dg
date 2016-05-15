@@ -310,6 +310,27 @@ static bool isMemAllocationFunc(const llvm::Function *func)
     return false;
 }
 
+static bool isCallInstCompatible(const llvm::Function *func, const llvm::CallInst *CI)
+{
+    using namespace llvm;
+
+    int i = 0;
+    if (func->getReturnType() != CI->getType())
+        return false;
+
+    for (auto I = func->arg_begin(), E = func->arg_end(); I != E; ++I, ++i) {
+        if (!I->getType()->isPointerTy())
+            continue;
+        Type *CT = CI->getOperand(i)->getType();
+        Type *FT = I->getType();
+        if (CT != FT)
+            return false;
+    }
+
+    return true;
+}
+
+
 void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                                             LLVMNode *node)
 {
@@ -335,10 +356,9 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                     continue;
 
                 Function *F = ptr.target->getUserData<Function>();
-
-                if (!F->isVarArg() &&
-                    CInst->getNumArgOperands() != F->arg_size())
-                    // incompatible prototypes
+                if (F->size() == 0 || !isCallInstCompatible(F, CInst))
+                    // incompatible prototypes or the function
+                    // is only declaration
                     continue;
 
                 LLVMDependenceGraph *subg = buildSubgraph(node, F);
