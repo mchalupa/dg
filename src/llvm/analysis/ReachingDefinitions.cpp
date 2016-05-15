@@ -297,9 +297,14 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
             continue;
         }
 
-        uint64_t size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
-        if (size == 0)
+        uint64_t size;
+        if (ptr.offset.isUnknown()) {
             size = UNKNOWN_OFFSET;
+        } else {
+            size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
+            if (size == 0)
+                size = UNKNOWN_OFFSET;
+        }
 
         //llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
         //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
