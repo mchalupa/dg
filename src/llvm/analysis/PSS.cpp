@@ -1678,8 +1678,26 @@ PSSNode *LLVMPSSBuilder::buildLLVMPSS(const llvm::Function& F)
     assert(lastNode);
 
     PSSNode *first = nullptr;
-    for (const llvm::BasicBlock& block : F) {
-        std::pair<PSSNode *, PSSNode *>& nds = buildPSSBlock(block);
+    // build the block in BFS order, so that we build instructions that can be
+    // operands before their use
+    std::set<const llvm::BasicBlock *> queued;
+    ADT::QueueFIFO<const llvm::BasicBlock *> queue;
+    // initialize the queue
+    const llvm::BasicBlock *entry = &F.getBasicBlockList().front();
+    queue.push(entry);
+    queued.insert(entry);
+
+    while(!queue.empty()) {
+        const llvm::BasicBlock *block = queue.pop();
+        // add successors
+        for (llvm::succ_const_iterator
+             S = llvm::succ_begin(block), SE = llvm::succ_end(block);
+             S != SE; ++S) {
+            if (queued.insert(*S).second)
+                queue.push(*S);
+        }
+
+        std::pair<PSSNode *, PSSNode *>& nds = buildPSSBlock(*block);
 
         if (!first) {
             // first block was not created at all? (it has not
