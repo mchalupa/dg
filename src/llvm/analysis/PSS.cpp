@@ -124,6 +124,121 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
     return DL->getTypeAllocSize(Ty);
 }
 
+Pointer LLVMPSSBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I)
+{
+    using namespace llvm;
+
+    const Value *llvmOp = P2I->getOperand(0);
+    // (possibly recursively) get the operand of this bit-cast
+    PSSNode *op = getOperand(llvmOp);
+    assert(op->pointsTo.size() == 1
+           && "Constant PtrToInt with not only one pointer");
+
+    return *op->pointsTo.begin();
+}
+
+Pointer LLVMPSSBuilder::handleConstantIntToPtr(const llvm::IntToPtrInst *I2P)
+{
+    using namespace llvm;
+
+    const Value *llvmOp = I2P->getOperand(0);
+    if (isa<ConstantInt>(llvmOp)) {
+        llvm::errs() << "IntToPtr with constant: " << *I2P << "\n";
+        return PointerUnknown;
+    }
+
+    // (possibly recursively) get the operand of this bit-cast
+    PSSNode *op = getOperand(llvmOp);
+    assert(op->pointsTo.size() == 1
+           && "Constant PtrToInt with not only one pointer");
+
+    return *op->pointsTo.begin();
+}
+
+static uint64_t getConstantValue(const llvm::Value *op)
+{
+    using namespace llvm;
+
+    uint64_t size = 0;
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
+        size = C->getLimitedValue();
+        // if the size cannot be expressed as an uint64_t,
+        // just set it to 0 (that means unknown)
+        if (size == ~((uint64_t) 0))
+            size = 0;
+    }
+
+    return size;
+}
+
+Pointer LLVMPSSBuilder::handleConstantAdd(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    PSSNode *node;
+    PSSNode *op;
+    const Value *val = nullptr;
+    uint64_t off = UNKNOWN_OFFSET;
+
+    // see createAdd() for details
+    if (isa<ConstantInt>(Inst->getOperand(0))) {
+        op = getOperand(Inst->getOperand(1));
+        val = Inst->getOperand(0);
+    } else if (isa<ConstantInt>(Inst->getOperand(1))) {
+        op = getOperand(Inst->getOperand(0));
+        val = Inst->getOperand(1);
+    } else {
+        op = tryGetOperand(Inst->getOperand(0));
+        if (!op)
+            op = tryGetOperand(Inst->getOperand(1));
+
+        if (!op)
+            return createUnknown(Inst);
+    }
+
+    assert(op && "Don't have operand for add");
+    if (val)
+        off = getConstantValue(val);
+
+    assert(op->pointsTo.size() == 1
+           && "Constant add with not only one pointer");
+
+    Pointer ptr = *op->pointsTo.begin();
+    if (off)
+        return Pointer(ptr.target, *ptr.offset + off);
+    else
+        return Pointer(ptr.target, UNKNOWN_OFFSET);
+}
+
+Pointer LLVMPSSBuilder::handleConstantArithmetic(const llvm::Instruction *Inst)
+{
+    using namespace llvm;
+
+    PSSNode *node;
+    PSSNode *op;
+    const Value *val = nullptr;
+
+    if (isa<ConstantInt>(Inst->getOperand(0))) {
+        op = getOperand(Inst->getOperand(1));
+    } else if (isa<ConstantInt>(Inst->getOperand(1))) {
+        op = getOperand(Inst->getOperand(0));
+    } else {
+        op = tryGetOperand(Inst->getOperand(0));
+        if (!op)
+            op = tryGetOperand(Inst->getOperand(1));
+
+        if (!op)
+            return createUnknown(Inst);
+    }
+
+    assert(op && "Don't have operand for add");
+    assert(op->pointsTo.size() == 1
+           && "Constant add with not only one pointer");
+
+    Pointer ptr = *op->pointsTo.begin();
+    return Pointer(ptr.target, UNKNOWN_OFFSET);
+}
+
 Pointer LLVMPSSBuilder::handleConstantBitCast(const llvm::BitCastInst *BC)
 {
     using namespace llvm;
@@ -180,14 +295,41 @@ Pointer LLVMPSSBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE)
     Pointer pointer(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
     const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
 
-    if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Inst)) {
-        pointer = handleConstantGep(GEP);
-    } else if (const BitCastInst *BC = dyn_cast<BitCastInst>(Inst)) {
-        pointer = handleConstantBitCast(BC);
-    } else if (isa<IntToPtrInst>(Inst)) {
-        // FIXME: we can do more!
-        pointer = PointerUnknown;
-    } else {
+    switch(Inst->getOpcode()) {
+        case Instruction::GetElementPtr:
+            pointer = handleConstantGep(cast<GetElementPtrInst>(Inst));
+            break;
+        //case Instruction::ExtractValue:
+        //case Instruction::Select:
+            break;
+        case Instruction::BitCast:
+        case Instruction::SExt:
+        case Instruction::ZExt:
+            pointer = handleConstantBitCast(cast<BitCastInst>(Inst));
+            break;
+        case Instruction::PtrToInt:
+            pointer = handleConstantPtrToInt(cast<PtrToIntInst>(Inst));
+            break;
+        case Instruction::IntToPtr:
+            pointer = handleConstantIntToPtr(cast<IntToPtrInst>(Inst));
+            break;
+        case Instruction::Add:
+            pointer = handleConstantAdd(Inst);
+            break;
+        case Instruction::And:
+        case Instruction::Or:
+        case Instruction::Trunc:
+        case Instruction::Shl:
+        case Instruction::LShr:
+        case Instruction::AShr:
+            pointer = PointerUnknown;
+            break;
+        case Instruction::Sub:
+        case Instruction::Mul:
+        case Instruction::SDiv:
+            pointer = handleConstantArithmetic(Inst);
+            break;
+        default:
             errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
             abort();
     }
@@ -284,22 +426,6 @@ PSSNode *LLVMPSSBuilder::getOperand(const llvm::Value *val)
     }
 
     return op;
-}
-
-static uint64_t getConstantValue(const llvm::Value *op)
-{
-    using namespace llvm;
-
-    uint64_t size = 0;
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
-        size = C->getLimitedValue();
-        // if the size cannot be expressed as an uint64_t,
-        // just set it to 0 (that means unknown)
-        if (size == ~((uint64_t) 0))
-            size = 0;
-    }
-
-    return size;
 }
 
 static PSSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
@@ -897,7 +1023,7 @@ PSSNode *LLVMPSSBuilder::createAdd(const llvm::Instruction *Inst)
     if (isa<ConstantInt>(Inst->getOperand(0))) {
         op = getOperand(Inst->getOperand(1));
         val = Inst->getOperand(0);
-    } else if (isa<ConstantInt>(Inst->getOperand(0))) {
+    } else if (isa<ConstantInt>(Inst->getOperand(1))) {
         op = getOperand(Inst->getOperand(0));
         val = Inst->getOperand(1);
     } else {
