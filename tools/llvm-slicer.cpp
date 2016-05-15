@@ -213,8 +213,8 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
                 } else {
                     auto defs = rd->getReachingDefinitions();
                     for (auto it : defs) {
-                        printDefSite(it.first, os, "RD: ");
                         for (auto nd : it.second) {
+                            printDefSite(it.first, os, "RD: ");
                             os << " @ ";
                             printValue(nd->getUserData<llvm::Value>(), os, true);
                         }
