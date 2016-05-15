@@ -2,6 +2,7 @@
 #include <cassert>
 
 #include "RDMap.h"
+#include "ReachingDefinitions.h"
 
 namespace dg {
 namespace analysis {
@@ -63,7 +64,11 @@ bool RDMap::merge(const RDMap *oth,
         // should we update this def-site (strong update)?
         // but only if the offset is concrete, because if
         // it is not concrete, we want to do weak update
-        if (!is_unknown && no_update) {
+        // Also, we don't want to do strong updates for
+        // heap allocated objects, since they are all represented
+        // by the call site
+        if (!is_unknown && no_update
+            && ds.target->getType() != DYN_ALLOC) {
             bool skip = false;
 
             // FIXME: use getObjectRange

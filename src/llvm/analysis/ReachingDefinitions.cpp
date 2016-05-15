@@ -129,9 +129,10 @@ static int getMemAllocationFunc(const llvm::Function *func)
     return NONEMEM;
 }
 
-RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
+RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst, bool is_heap)
 {
-    RDNode *node = new RDNode(ALLOC);
+    RDNodeType type = is_heap ? DYN_ALLOC : ALLOC;
+    RDNode *node = new RDNode(type);
     addNode(Inst, node);
 
     return node;
@@ -308,8 +309,25 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 
         //llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
         //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
-        node->addDef(ptrNode, ptr.offset, size,
-                     pts->pointsTo.size() == 1 /* strong update */);
+
+        // strong update is possible only with must aliases. Also we can not
+        // be pointing to heap, because then we don't know which object it
+        // is in run-time, like:
+        //  void *foo(int a)
+        //  {
+        //      void *mem = malloc(...)
+        //      mem->n = a;
+        //  }
+        //
+        //  1. mem1 = foo(3);
+        //  2. mem2 = foo(4);
+        //  3. assert(mem1->n == 3);
+        //
+        //  If we would do strong update on line 2 (which we would, since
+        //  there we have must alias for the malloc), we would loose the
+        //  definitions for line 1 and we would get incorrect results
+        bool strong_update = pts->pointsTo.size() == 1 && !pts->isHeap();
+        node->addDef(ptrNode, ptr.offset, size, strong_update);
     }
 
     assert(node);
@@ -714,7 +732,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (type == REALLOC)
                     n = createRealloc(CInst);
                 else
-                    n = createAlloc(CInst);
+                    n = createAlloc(CInst, true /* heap */);
             } else {
                 n = createUndefinedCall(CInst);
             }

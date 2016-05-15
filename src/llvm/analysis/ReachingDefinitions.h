@@ -89,7 +89,7 @@ private:
     }
 
     RDNode *createStore(const llvm::Instruction *Inst);
-    RDNode *createAlloc(const llvm::Instruction *Inst);
+    RDNode *createAlloc(const llvm::Instruction *Inst, bool is_heap = false);
     RDNode *createRealloc(const llvm::Instruction *Inst);
     RDNode *createReturn(const llvm::Instruction *Inst);
 
