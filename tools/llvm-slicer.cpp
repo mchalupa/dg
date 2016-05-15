@@ -194,7 +194,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             if (ds.len.isUnknown())
                 os << " - UNKNOWN|";
             else
-                os << " - " << *ds.len - 1 << "|";
+                os << " - " <<  *ds.offset + *ds.len- 1 << "|";
         } else
             os << "target is null!";
 
