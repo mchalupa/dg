@@ -101,7 +101,14 @@ public:
         if (!callIsCompatible(F, CI))
             return false;
 
+        if (F->size() == 0) {
+            // calling declaration that returns a pointer?
+            // That is unknown pointer
+            return callsite->getPairedNode()->addPointsTo(analysis::pss::PointerUnknown);
+        }
+
         std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
+        assert(cf.first && cf.second);
 
         // we got the return site for the call stored as the paired node
         PSSNode *ret = callsite->getPairedNode();
