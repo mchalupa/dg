@@ -233,7 +233,9 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             }
 
             LLVMDGParameters *params = node->getParameters();
-            if (params) {
+            // don't dump params when we use new analyses (RD is not null)
+            // because there we don't add definitions with new analyses
+            if (params && !RD) {
                 for (auto it : *params) {
                     os << "  ; PARAMS: in " << it.second.in
                        << ", out " << it.second.out << "\n";
