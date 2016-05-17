@@ -4,13 +4,13 @@
 #include <cassert>
 
 #include "Pointer.h"
-#include "PSS.h"
+#include "PointerSubgraph.h"
 
 namespace dg {
 namespace analysis {
 namespace pss {
 
-class PointsToFlowSensitive : public PSS
+class PointsToFlowSensitive : public PointerSubgraph
 {
     std::set<PSNode *> changed;
 
@@ -20,7 +20,7 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PSNode *r) : PSS(r) {}
+    PointsToFlowSensitive(PSNode *r) : PointerSubgraph(r) {}
 
     virtual void beforeProcessed(PSNode *n)
     {

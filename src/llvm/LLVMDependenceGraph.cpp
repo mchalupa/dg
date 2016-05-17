@@ -33,7 +33,7 @@
 #include "Utils.h"
 #include "llvm-debug.h"
 
-#include "analysis/PSS.h"
+#include "analysis/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo.h"
 //#include "llvm/analysis/old/PointsTo.h"
 
@@ -622,42 +622,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m,
                                 llvm::Function *entry)
 {
     this->PTA = pts;
-    bool ret = build(m, entry);
-
-    if (ret)
-        copyPSS();
-
-    return ret;
-}
-
-void LLVMDependenceGraph::copyPSS()
-{
-    assert(PTA && "No PSS in DG");
-    /*
-    using namespace analysis::pss;
-    for (auto I = begin(), E = end(); I != E; ++I) {
-        const llvm::Value *val = I->first;
-        LLVMNode *node = I->second;
-
-        PSNode *pn = pts->getNode(val);
-        if (!pn) {
-            llvm::errs() << "WARN: don't have points-to info for " << *val <<"\n";
-            continue;
-        }
-
-        // copy pointers from PSNode to LLVMNode
-        for (const analysis::pss::Pointer& ptr : pn->pointsTo) {
-            const llvm::Value *tval = ptr.target->getUserData<llvm::Value>();
-            LLVMNode *target = getNode(tval);
-            if (!target) {
-                llvm::errs() << "WARN: don't have LLVM node for " << *tval <<"\n";
-                continue;
-            }
-
-            // XXX copy the pointers
-        }
-    }
-    */
+    return build(m, entry);
 }
 
 void LLVMDependenceGraph::addFormalParameters()

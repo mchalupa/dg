@@ -4,13 +4,13 @@
 #include <cassert>
 #include <set>
 
-#include "PSS.h"
+#include "PointerSubgraph.h"
 
 namespace dg {
 namespace analysis {
 namespace pss {
 
-class PointsToFlowInsensitive : public PSS
+class PointsToFlowInsensitive : public PointerSubgraph
 {
     std::set<PSNode *> changed;
 
@@ -18,7 +18,7 @@ protected:
     PointsToFlowInsensitive() {}
 
 public:
-    PointsToFlowInsensitive(PSNode *r) : PSS(r) {}
+    PointsToFlowInsensitive(PSNode *r) : PointerSubgraph(r) {}
 
     virtual void getMemoryObjects(PSNode *where, PSNode *n,
                                   std::vector<MemoryObject *>& objects)

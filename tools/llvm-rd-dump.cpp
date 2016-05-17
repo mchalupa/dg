@@ -181,7 +181,7 @@ dumpRDdot(LLVMReachingDefinitions *RD)
 }
 
 static void
-dumpPSS(LLVMReachingDefinitions *RD, bool todot)
+dumpRD(LLVMReachingDefinitions *RD, bool todot)
 {
     assert(RD);
 
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
-    dumpPSS(&RD, todot);
+    dumpRD(&RD, todot);
 
     return 0;
 }

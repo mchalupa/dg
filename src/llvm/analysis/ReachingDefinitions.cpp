@@ -17,8 +17,8 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
-#include "analysis/PointsTo/PSS.h"
-#include "llvm/analysis/PSS.h"
+#include "analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/analysis/PointerSubgraph.h"
 #include "ReachingDefinitions.h"
 
 #include <set>
@@ -347,7 +347,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
     const Function *func = dyn_cast<Function>(calledVal);
 
     if (!func)
-        // function pointer call - we need that in PSS
+        // function pointer call - we need that
         return true;
 
     if (func->size() == 0) {
@@ -491,8 +491,7 @@ LLVMRDBuilder::createCallToFunction(const llvm::CallInst *CInst,
     if (!subg.root) {
         // create new subgraph
         buildFunction(*F);
-        // FIXME: don't find it again, return it from buildLLVMPSS
-        // this is redundant
+        // FIXME: don't find it again, it is redundant
         subg = subgraphs_map[F];
     }
 
@@ -520,7 +519,7 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
     RDNode *ret = new RDNode(NOOP);
 
     // add record to built graphs here, so that subsequent call of this function
-    // from buildPSSBlock won't get stuck in infinite recursive call when
+    // from won't get stuck in infinite recursive call when
     // this function is recursive
     subgraphs_map[&F] = Subgraph(root, ret);
 
@@ -852,7 +851,6 @@ RDNode *LLVMRDBuilder::build()
 std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
 {
     RDNode *cur = nullptr, *prev, *first = nullptr;
-    // create PSS nodes
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         prev = cur;
 

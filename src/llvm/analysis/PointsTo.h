@@ -5,28 +5,28 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "analysis/PointsTo/PSS.h"
-#include "llvm/analysis/PSS.h"
+#include "analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/analysis/PointerSubgraph.h"
 
 namespace dg {
 
-using analysis::pss::PSS;
+using analysis::pss::PointerSubgraph;
 using analysis::pss::PSNode;
-using analysis::pss::LLVMPSSBuilder;
+using analysis::pss::LLVMPointerSubgraphBuilder;
 
 class LLVMPointsToAnalysis
 {
 protected:
-    PSS *impl;
-    LLVMPSSBuilder *builder;
+    PointerSubgraph *impl;
+    LLVMPointerSubgraphBuilder *builder;
     LLVMPointsToAnalysis(const llvm::Module *M)
-        :builder(new LLVMPSSBuilder(M)) {}
+        :builder(new LLVMPointerSubgraphBuilder(M)) {}
 
     // the real analysis that will run
-    void setImpl(PSS *im) { impl = im; }
+    void setImpl(PointerSubgraph *im) { impl = im; }
 
 public:
-    LLVMPointsToAnalysis(PSS *p) : impl(p) {};
+    LLVMPointsToAnalysis(PointerSubgraph *p) : impl(p) {};
     ~LLVMPointsToAnalysis() { delete builder; }
 
     PSNode *getNode(const llvm::Value *val)
@@ -52,7 +52,7 @@ public:
 
     void run()
     {
-        impl->setRoot(builder->buildLLVMPSS());
+        impl->setRoot(builder->buildLLVMPointerSubgraph());
         impl->run();
     }
 };
@@ -150,7 +150,7 @@ public:
         assert(val2);
 
         // due to int2ptr we may have spurious loads
-        // in PSS. Don't do anything in this case
+        // in PointerSubgraph. Don't do anything in this case
         if (!val->getType()->isPointerTy())
             return false;
 

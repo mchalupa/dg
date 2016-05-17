@@ -109,10 +109,6 @@ public:
     LLVMPointsToAnalysis *getPTA() const { return PTA; }
 
 private:
-    // copy points-to information from pointer state subgraph
-    // to nodes in DG
-    void copyPSS();
-
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
     void addFormalParameters();

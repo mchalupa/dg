@@ -18,7 +18,7 @@
 #include "ReachingDefinitions.h"
 #include "DefUse.h"
 
-#include "analysis/PointsTo/PSS.h"
+#include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/DFS.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
@@ -172,7 +172,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
             continue;
 
         llvm::Value *llvmVal = ptr.target->getUserData<llvm::Value>();
-        assert(llvmVal && "Don't have Value in PSS node");
+        assert(llvmVal && "Don't have Value in PSNode");
 
         RDNode *val = RD->getNode(llvmVal);
         if(!val) {

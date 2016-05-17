@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_PSS_H_
-#define _LLVM_DG_PSS_H_
+#ifndef _LLVM_DG_POINTER_SUBGRAPH_H_
+#define _LLVM_DG_POINTER_SUBGRAPH_H_
 
 #include <unordered_map>
 
@@ -8,23 +8,23 @@
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 
-#include "analysis/PointsTo/PSS.h"
+#include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/Pointer.h"
 
 namespace dg {
 namespace analysis {
 namespace pss {
 
-class LLVMPSSBuilder
+class LLVMPointerSubgraphBuilder
 {
     const llvm::Module *M;
     const llvm::DataLayout *DL;
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
-    PSNode *buildLLVMPSS(const llvm::Function& F);
+    PSNode *buildLLVMPointerSubgraph(const llvm::Function& F);
     std::pair<PSNode *, PSNode *> buildInstruction(const llvm::Instruction&);
-    std::pair<PSNode *, PSNode *>& buildPSSBlock(const llvm::BasicBlock& block);
+    std::pair<PSNode *, PSNode *>& buildPointerSubgraphBlock(const llvm::BasicBlock& block);
 
     std::pair<PSNode *, PSNode *> buildArguments(const llvm::Function& F);
     std::pair<PSNode *, PSNode *> buildGlobals();
@@ -39,7 +39,7 @@ class LLVMPSSBuilder
         PSNode *ret;
 
         // during building graph we can create some nodes as operands
-        // and we don't insert them into the PSS there, because it would
+        // and we don't insert them into the PointerSubgraph there, because it would
         // be difficult to get it right. We will store them here
         // and place them when we have all blocks constructed
         std::set<std::pair<PSNode *, PSNode *>> unplacedInstructions;
@@ -61,16 +61,16 @@ class LLVMPSSBuilder
              std::pair<PSNode *, PSNode *>> built_blocks;
 
 public:
-    LLVMPSSBuilder(const llvm::Module *m)
+    LLVMPointerSubgraphBuilder(const llvm::Module *m)
         : M(m), DL(new llvm::DataLayout(M->getDataLayout()))
     {}
 
-    ~LLVMPSSBuilder()
+    ~LLVMPointerSubgraphBuilder()
     {
         delete DL;
     }
 
-    PSNode *buildLLVMPSS();
+    PSNode *buildLLVMPointerSubgraph();
 
     // create subgraph of function @F and call+return nodes
     // to/from it

@@ -1,5 +1,5 @@
-#ifndef _DG_PSS_H_
-#define _DG_PSS_H_
+#ifndef _DG_POINTER_SUBGRAPH_H_
+#define _DG_POINTER_SUBGRAPH_H_
 
 #include <cassert>
 #include <vector>
@@ -47,7 +47,7 @@ enum PSNodeType {
         // that never changes
         CONSTANT,
         // no operation node - this nodes can be used as a branch or join
-        // node for convenient PSS generation. For example as an
+        // node for convenient PointerSubgraph generation. For example as an
         // unified entry to the function or unified return from the function.
         // These nodes can be optimized away later. No points-to computation
         // is performed on them
@@ -72,7 +72,7 @@ class PSNode
 
     // in some cases some nodes are kind of paired - like formal and actual
     // parameters or call and return node. Here the analasis can store
-    // such a node - if it needs for generating the PSS
+    // such a node - if it needs for generating the PointerSubgraph
     // - it is not used anyhow by the base analysis itself
     // XXX: maybe we cold store this somewhere in a map instead of in every
     // node (if the map is sparse, it would be much more memory efficient)
@@ -140,7 +140,7 @@ public:
     //               use arbitrarily - they are not used by the analysis itself.
     //               The arguments can be used e. g. when mapping call arguments
     //               back to original CFG. Actually, the CALL node is not needed
-    //               in most cases (just 'inline' the subprocedure into the PSS
+    //               in most cases (just 'inline' the subprocedure into the PointerSubgraph
     //               when building it)
     // CALL_FUNCPTR: call via function pointer. The argument is the node that
     //               bears the pointers.
@@ -335,8 +335,8 @@ public:
         return predecessors.front();
     }
 
-    // insert this node in PSS after n
-    // this node must not be in any PSS
+    // insert this node in PointerSubgraph after n
+    // this node must not be in any PointerSubgraph
     void insertAfter(PSNode *n)
     {
         assert(predecessorsNum() == 0);
@@ -357,8 +357,8 @@ public:
         }
     }
 
-    // insert this node in PSS before n
-    // this node must not be in any PSS
+    // insert this node in PointerSubgraph before n
+    // this node must not be in any PointerSubgraph
     void insertBefore(PSNode *n)
     {
         assert(predecessorsNum() == 0);
@@ -379,10 +379,10 @@ public:
         }
     }
 
-    // insert a sequence before this node in PSS
+    // insert a sequence before this node in PointerSubgraph
     void insertSequenceBefore(std::pair<PSNode *, PSNode *>& seq)
     {
-        // the sequence must not be inserted in any PSS
+        // the sequence must not be inserted in any PointerSubgraph
         assert(seq.first->predecessorsNum() == 0);
         assert(seq.second->successorsNum() == 0);
 
@@ -407,7 +407,7 @@ public:
     size_t successorsNum() const { return successors.size(); }
 
     // make this public, that's basically the only
-    // reason the PSS node exists, so don't hide it
+    // reason the PointerSubgraph node exists, so don't hide it
     PointsToSetT pointsTo;
 
     // convenient helper
@@ -450,14 +450,14 @@ public:
 
     bool addPointsToUnknownOffset(PSNode *target);
 
-    friend class PSS;
+    friend class PointerSubgraph;
 };
 
-// special PSS nodes
+// special PointerSubgraph nodes
 extern PSNode *NULLPTR;
 extern PSNode *UNKNOWN_MEMORY;
 
-class PSS
+class PointerSubgraph
 {
     unsigned int dfsnum;
 
@@ -469,21 +469,21 @@ protected:
     ADT::QueueFIFO<PSNode *> queue;
 
     // protected constructor for child classes
-    PSS() : dfsnum(0), root(nullptr) {}
+    PointerSubgraph() : dfsnum(0), root(nullptr) {}
 
 public:
     bool processNode(PSNode *);
-    PSS(PSNode *r) : dfsnum(0), root(r)
+    PointerSubgraph(PSNode *r) : dfsnum(0), root(r)
     {
-        assert(root && "Cannot create PSS with null root");
+        assert(root && "Cannot create PointerSubgraph with null root");
     }
 
-    virtual ~PSS() {}
+    virtual ~PointerSubgraph() {}
 
     // takes a PSNode 'where' and 'what' and reference to a vector
     // and fills into the vector the objects that are relevant
     // for the PSNode 'what' (valid memory states for of this PSNode)
-    // on location 'where' in PSS
+    // on location 'where' in PointerSubgraph
     virtual void getMemoryObjects(PSNode *where, PSNode *what,
                                   std::vector<MemoryObject *>& objects) = 0;
 
@@ -674,7 +674,7 @@ public:
         return false;
     }
 
-    // adjust the PSS on function pointer call
+    // adjust the PointerSubgraph on function pointer call
     // @ where is the callsite
     // @ what is the function that is being called
     virtual bool functionPointerCall(PSNode *where, PSNode *what)

@@ -48,9 +48,6 @@ public:
 
     ~LLVMRDBuilder() { delete DL; }
 
-    std::pair<RDNode *, RDNode *>
-    buildPSSBlock(const llvm::BasicBlock& block);
-
     RDNode *build();
 
     // let the user get the nodes map, so that we can

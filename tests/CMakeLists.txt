@@ -27,7 +27,7 @@ add_dependencies(check data-flow-test)
 add_executable(points-to-test points-to-test.cpp)
 add_test(points-to-test points-to-test)
 add_dependencies(check points-to-test)
-target_link_libraries(points-to-test PSS)
+target_link_libraries(points-to-test PTA)
 
 # --------------------------------------------------
 # reaching-definitions-test

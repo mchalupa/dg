@@ -6,7 +6,7 @@
 #include <cassert>
 #include <cstring>
 
-#include "analysis/PointsTo/PSS.h"
+#include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/Offset.h"
 
 #include "ADT/Queue.h"
@@ -52,7 +52,7 @@ class RDNode {
     // marks for DFS/BFS
     unsigned int dfsid;
 
-    // same data as in PSSNode
+    // same data as in PSNode
     const char *name;
     void *data;
     void *user_data;

@@ -1,12 +1,11 @@
 if (LLVM_DG)
-#  set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
-add_library(PSS SHARED
+add_library(PTA SHARED
 	analysis/Offset.h
 	analysis/PointsTo/Pointer.h
 	analysis/PointsTo/Pointer.cpp
-	analysis/PointsTo/PSS.h
-	analysis/PointsTo/PSS.cpp
+	analysis/PointsTo/PointerSubgraph.h
+	analysis/PointsTo/PointerSubgraph.cpp
 	analysis/PointsTo/PointsToFlowInsensitive.h
 	analysis/PointsTo/PointsToFlowSensitive.h
 )
@@ -38,8 +37,8 @@ add_library(LLVMdg SHARED
 	llvm/analysis/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions.cpp
 	llvm/analysis/PointsTo.h
-	llvm/analysis/PSS.h
-	llvm/analysis/PSS.cpp
+	llvm/analysis/PointerSubgraph.h
+	llvm/analysis/PointerSubgraph.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
 	# -- LLVM analysis (old)
@@ -55,8 +54,8 @@ add_library(LLVMdg SHARED
 	llvm/analysis/old/DefMap.cpp
 )
 
-target_link_libraries(LLVMdg PSS RD ${llvm_libs})
-install(TARGETS LLVMdg PSS RD
+target_link_libraries(LLVMdg PTA RD ${llvm_libs})
+install(TARGETS LLVMdg PTA RD
 	LIBRARY DESTINATION lib)
 
 endif(LLVM_DG)

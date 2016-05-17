@@ -56,7 +56,7 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 
-void printPSSType(enum PSNodeType type)
+void printPSNodeType(enum PSNodeType type)
 {
 #define ELEM(t) case t: do {printf("%s", #t); }while(0); break;
     switch(type) {
@@ -79,7 +79,7 @@ void printPSSType(enum PSNodeType type)
         ELEM(NULL_ADDR)
         ELEM(UNKNOWN_MEM)
         default:
-            printf("unknown PSS type");
+            printf("unknown PointerSubgraph type");
     };
 #undef ELEM
 }
@@ -99,7 +99,7 @@ printName(PSNode *node, bool dot)
 
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
-            printPSSType(node->getType());
+            printPSNodeType(node->getType());
             if (dot)
                 printf(" %p\\n", node);
             else
@@ -170,7 +170,7 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
 }
 
 static void
-dumpPSSData(PSNode *n, PTType type, bool dot = false)
+dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
 {
     if (type == FLOW_INSENSITIVE) {
         MemoryObject *mo = n->getData<MemoryObject>();
@@ -229,12 +229,12 @@ dumpPSNode(PSNode *n, PTType type)
             printf(" + %lu\n", *ptr.offset);
     }
     if (verbose) {
-        dumpPSSData(n, type);
+        dumpPointerSubgraphData(n, type);
     }
 }
 
 static void
-dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
+dumpPointerSubgraphdot(LLVMPointsToAnalysis *pss, PTType type)
 {
     std::set<PSNode *> nodes;
     pss->getNodes(nodes);
@@ -261,7 +261,7 @@ dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
         }
 
         if (verbose)
-            dumpPSSData(node, type, true /* dot */);
+            dumpPointerSubgraphData(node, type, true /* dot */);
 
         printf("\"");
         if (node->getType() != STORE) {
@@ -285,12 +285,12 @@ dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
 }
 
 static void
-dumpPSS(LLVMPointsToAnalysis *pss, PTType type, bool todot)
+dumpPointerSubgraph(LLVMPointsToAnalysis *pss, PTType type, bool todot)
 {
     assert(pss);
 
     if (todot)
-        dumpPSSdot(pss, type);
+        dumpPointerSubgraphdot(pss, type);
     else {
         std::set<PSNode *> nodes;
         pss->getNodes(nodes);
@@ -356,7 +356,7 @@ int main(int argc, char *argv[])
     PTA->run();
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
-    dumpPSS(PTA, type, todot);
+    dumpPointerSubgraph(PTA, type, todot);
 
     return 0;
 }
