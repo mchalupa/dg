@@ -29,7 +29,7 @@
 
 namespace dg {
 namespace analysis {
-namespace pss {
+namespace pta {
 
 /* keep it for debugging */
 #if 0
@@ -341,7 +341,7 @@ Pointer LLVMPointerSubgraphBuilder::getConstantExprPointer(const llvm::ConstantE
 PSNode *LLVMPointerSubgraphBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
 {
     Pointer ptr = getConstantExprPointer(CE);
-    PSNode *node = new PSNode(pss::CONSTANT, ptr.target, ptr.offset);
+    PSNode *node = new PSNode(pta::CONSTANT, ptr.target, ptr.offset);
 
     addNode(CE, node);
 
@@ -397,8 +397,8 @@ PSNode *LLVMPointerSubgraphBuilder::tryGetOperand(const llvm::Value *val)
 
     // if the operand is a call, use the return node of the call instead
     // - that is the one that contains returned pointers
-    if (op->getType() == pss::CALL
-        || op->getType() == pss::CALL_FUNCPTR) {
+    if (op->getType() == pta::CALL
+        || op->getType() == pta::CALL_FUNCPTR) {
         op = op->getPairedNode();
     }
 
@@ -434,7 +434,7 @@ static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
 
     const Value *op;
     uint64_t size = 0, size2 = 0;
-    PSNode *node = new PSNode(pss::DYN_ALLOC);
+    PSNode *node = new PSNode(pta::DYN_ALLOC);
 
     switch (type) {
         case MALLOC:
@@ -473,9 +473,9 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
 
     // we create new allocation node and memcpy old pointers there
     PSNode *orig_mem = getOperand(CInst->getOperand(0)->stripInBoundsOffsets());
-    PSNode *reall = new PSNode(pss::DYN_ALLOC);
+    PSNode *reall = new PSNode(pta::DYN_ALLOC);
     // copy everything that is in orig_mem to reall
-    PSNode *mcp = new PSNode(pss::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
+    PSNode *mcp = new PSNode(pta::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
 
     reall->setIsHeap();
     reall->setSize(getConstantValue(CInst->getOperand(1)));
@@ -514,8 +514,8 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
 
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
-    returnNode = new PSNode(pss::CALL_RETURN, nullptr);
-    callNode = new PSNode(pss::CALL, nullptr);
+    returnNode = new PSNode(pta::CALL_RETURN, nullptr);
+    callNode = new PSNode(pta::CALL, nullptr);
 
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
@@ -579,7 +579,7 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     for (PSNode *r : subg.ret->getPredecessors())
         // we're interested only in the nodes that return some value
         // from subprocedure, not for all nodes that have no successor
-        if (r->getType() == pss::RETURN)
+        if (r->getType() == pta::RETURN)
             returnNode->addOperand(r);
 
     return std::make_pair(callNode, returnNode);
@@ -605,7 +605,7 @@ LLVMPointerSubgraphBuilder::createUnknownCall(const llvm::CallInst *CInst)
     // inside bitcast - it defaults to int, but is bitcased
     // to pointer
     //assert(CInst->getType()->isPointerTy());
-    PSNode *call = new PSNode(pss::CALL, nullptr);
+    PSNode *call = new PSNode(pta::CALL, nullptr);
 
     call->setPairedNode(call);
 
@@ -662,21 +662,21 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     // vastart will be node that will keep the memory
     // with pointers, its argument is the alloca, that
     // alloca will keep pointer to vastart
-    PSNode *vastart = new PSNode(pss::ALLOC);
+    PSNode *vastart = new PSNode(pta::ALLOC);
 
     // vastart has only one operand which is the struct
     // it uses for storing the va arguments. Strip it so that we'll
     // get the underlying alloca inst
     PSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
-    assert(op->getType() == pss::ALLOC
+    assert(op->getType() == pta::ALLOC
            && "Argument of vastart is not an alloca");
     // get node with the same pointer, but with UNKNOWN_OFFSET
     // FIXME: we're leaking it
     // make the memory in alloca point to our memory in vastart
-    PSNode *ptr = new PSNode(pss::CONSTANT, op, UNKNOWN_OFFSET);
-    PSNode *S1 = new PSNode(pss::STORE, vastart, ptr);
+    PSNode *ptr = new PSNode(pta::CONSTANT, op, UNKNOWN_OFFSET);
+    PSNode *S1 = new PSNode(pta::STORE, vastart, ptr);
     // and also make vastart point to the vararg args
-    PSNode *S2 = new PSNode(pss::STORE, arg, vastart);
+    PSNode *S2 = new PSNode(pta::STORE, arg, vastart);
 
     addNode(Inst, vastart);
 
@@ -731,7 +731,7 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
         warned = true;
     }
 
-    PSNode *n = new PSNode(pss::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    PSNode *n = new PSNode(pta::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
     // it is call that returns pointer, so we'd like to have
     // a 'return' node that contains that pointer
     n->setPairedNode(n);
@@ -778,7 +778,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
     } else {
         // function pointer call
         PSNode *op = getOperand(calledVal);
-        PSNode *call_funcptr = new PSNode(pss::CALL_FUNCPTR, op);
+        PSNode *call_funcptr = new PSNode(pta::CALL_FUNCPTR, op);
         PSNode *ret_call = new PSNode(RETURN, nullptr);
 
         ret_call->setPairedNode(call_funcptr);
@@ -793,7 +793,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
 
 PSNode *LLVMPointerSubgraphBuilder::createAlloc(const llvm::Instruction *Inst)
 {
-    PSNode *node = new PSNode(pss::ALLOC);
+    PSNode *node = new PSNode(pta::ALLOC);
     addNode(Inst, node);
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
@@ -810,7 +810,7 @@ PSNode *LLVMPointerSubgraphBuilder::createStore(const llvm::Instruction *Inst)
     PSNode *op1 = getOperand(valOp);
     PSNode *op2 = getOperand(Inst->getOperand(1));
 
-    PSNode *node = new PSNode(pss::STORE, op1, op2);
+    PSNode *node = new PSNode(pta::STORE, op1, op2);
     addNode(Inst, node);
 
     assert(node);
@@ -822,7 +822,7 @@ PSNode *LLVMPointerSubgraphBuilder::createLoad(const llvm::Instruction *Inst)
     const llvm::Value *op = Inst->getOperand(0);
 
     PSNode *op1 = getOperand(op);
-    PSNode *node = new PSNode(pss::LOAD, op1);
+    PSNode *node = new PSNode(pta::LOAD, op1);
 
     addNode(Inst, node);
 
@@ -844,14 +844,14 @@ PSNode *LLVMPointerSubgraphBuilder::createGEP(const llvm::Instruction *Inst)
 
     if (GEP->accumulateConstantOffset(*DL, offset)) {
         if (offset.isIntN(bitwidth))
-            node = new PSNode(pss::GEP, op, offset.getZExtValue());
+            node = new PSNode(pta::GEP, op, offset.getZExtValue());
         else
             errs() << "WARN: GEP offset greater than " << bitwidth << "-bit";
             // fall-through to UNKNOWN_OFFSET in this case
     }
 
     if (!node)
-        node = new PSNode(pss::GEP, op, UNKNOWN_OFFSET);
+        node = new PSNode(pta::GEP, op, UNKNOWN_OFFSET);
 
     addNode(Inst, node);
 
@@ -870,7 +870,7 @@ PSNode *LLVMPointerSubgraphBuilder::createSelect(const llvm::Instruction *Inst)
     PSNode *op2 = getOperand(Inst->getOperand(2));
 
     // select works as a PHI in points-to analysis
-    PSNode *node = new PSNode(pss::PHI, op1, op2, nullptr);
+    PSNode *node = new PSNode(pta::PHI, op1, op2, nullptr);
     addNode(Inst, node);
 
     assert(node);
@@ -887,8 +887,8 @@ LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
     // extract <agg> <idx> {<idx>, ...}
     PSNode *op1 = getOperand(EI->getAggregateOperand());
     // FIXME: get the correct offset
-    PSNode *G = new PSNode(pss::GEP, op1, UNKNOWN_OFFSET);
-    PSNode *L = new PSNode(pss::LOAD, G);
+    PSNode *G = new PSNode(pta::GEP, op1, UNKNOWN_OFFSET);
+    PSNode *L = new PSNode(pta::LOAD, G);
     addNode(Inst, L);
 
     G->addSuccessor(L);
@@ -901,7 +901,7 @@ PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
     // we need a pointer
     assert(Inst->getType()->isPointerTy() && "BUG: This PHI is not a pointer");
 
-    PSNode *node = new PSNode(pss::PHI, nullptr);
+    PSNode *node = new PSNode(pta::PHI, nullptr);
     addNode(Inst, node);
 
     // NOTE: we didn't add operands to PHI node here, but after building
@@ -940,7 +940,7 @@ PSNode *LLVMPointerSubgraphBuilder::createCast(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
     PSNode *op1 = getOperand(op);
-    PSNode *node = new PSNode(pss::CAST, op1);
+    PSNode *node = new PSNode(pta::CAST, op1);
 
     addNode(Inst, node);
 
@@ -957,7 +957,7 @@ PSNode *LLVMPointerSubgraphBuilder::createUnknown(const llvm::Instruction *Inst)
     // completely change the value of pointer...
 
     // FIXME: or there's enough unknown offset? Check it out!
-    PSNode *node = new PSNode(pss::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    PSNode *node = new PSNode(pta::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
 
     addNode(Inst, node);
 
@@ -975,8 +975,8 @@ PSNode *LLVMPointerSubgraphBuilder::createPtrToInt(const llvm::Instruction *Inst
     // just casting the value do gep with unknown offset -
     // this way we cover any shift of the pointer due to arithmetic
     // operations
-    // PSNode *node = new PSNode(pss::CAST, op1);
-    PSNode *node = new PSNode(pss::GEP, op1, 0);
+    // PSNode *node = new PSNode(pta::CAST, op1);
+    PSNode *node = new PSNode(pta::GEP, op1, 0);
     addNode(Inst, node);
 
     // we need to build uses for this instruction, but we need to
@@ -1003,7 +1003,7 @@ PSNode *LLVMPointerSubgraphBuilder::createIntToPtr(const llvm::Instruction *Inst
     } else
         op1 = getOperand(op);
 
-    PSNode *node = new PSNode(pss::CAST, op1);
+    PSNode *node = new PSNode(pta::CAST, op1);
 
     addNode(Inst, node);
 
@@ -1043,7 +1043,7 @@ PSNode *LLVMPointerSubgraphBuilder::createAdd(const llvm::Instruction *Inst)
     if (val)
         off = getConstantValue(val);
 
-    node = new PSNode(pss::GEP, op, off);
+    node = new PSNode(pta::GEP, op, off);
     addNode(Inst, node);
 
     assert(node);
@@ -1078,7 +1078,7 @@ PSNode *LLVMPointerSubgraphBuilder::createArithmetic(const llvm::Instruction *In
 
     // we don't know what the operation does,
     // so set unknown offset
-    node = new PSNode(pss::GEP, op, UNKNOWN_OFFSET);
+    node = new PSNode(pta::GEP, op, UNKNOWN_OFFSET);
     addNode(Inst, node);
 
     assert(node);
@@ -1111,7 +1111,7 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     assert((op1 || !retVal || !retVal->getType()->isPointerTy())
            && "Don't have operand for ReturnInst with pointer");
 
-    PSNode *node = new PSNode(pss::RETURN, op1, nullptr);
+    PSNode *node = new PSNode(pta::RETURN, op1, nullptr);
     addNode(Inst, node);
 
     return node;
@@ -1341,7 +1341,7 @@ PSNode *LLVMPointerSubgraphBuilder::createIrrelevantArgument(const llvm::Argumen
 {
     using namespace llvm;
 
-    PSNode *arg = new PSNode(pss::PHI, nullptr);
+    PSNode *arg = new PSNode(pta::PHI, nullptr);
     addNode(farg, arg);
 
     Subgraph& subg = subgraphs_map[farg->getParent()];
@@ -1609,8 +1609,8 @@ LLVMPointerSubgraphBuilder::createMemSet(const llvm::Instruction *Inst)
 
     PSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
     // we need to make unknown offsets
-    PSNode *G = new PSNode(pss::GEP, op, UNKNOWN_OFFSET);
-    PSNode *S = new PSNode(pss::STORE, val, G);
+    PSNode *G = new PSNode(pta::GEP, op, UNKNOWN_OFFSET);
+    PSNode *S = new PSNode(pta::STORE, val, G);
     G->addSuccessor(S);
 
     return std::make_pair(G, S);
@@ -1696,7 +1696,7 @@ LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& bl
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
                                           std::pair<PSNode *, PSNode *>>& built_blocks,
                                  std::set<const llvm::BasicBlock *>& found_blocks,
-                                 std::pair<PSNode *, PSNode *>& pssn,
+                                 std::pair<PSNode *, PSNode *>& ptan,
                                  const llvm::BasicBlock& block)
 {
     size_t num = 0;
@@ -1715,10 +1715,10 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             // relevant instruction), we must pretend to be there for
             // control flow information. Thus instead of adding it as
             // successor, add its successors as successors
-            num += blockAddSuccessors(built_blocks, found_blocks, pssn, *(*S));
+            num += blockAddSuccessors(built_blocks, found_blocks, ptan, *(*S));
         } else {
             // add successor to the last nodes
-            pssn.second->addSuccessor(succ.first);
+            ptan.second->addSuccessor(succ.first);
             ++num;
         }
 
@@ -1741,7 +1741,7 @@ LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
         if (A->getType()->isPointerTy()) {
             prev = arg;
 
-            arg = new PSNode(pss::PHI, nullptr);
+            arg = new PSNode(pta::PHI, nullptr);
             addNode(&*A, arg);
 
             if (prev)
@@ -1754,7 +1754,7 @@ LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
     // if the function has variable arguments,
     // then create the node for it and make it the last node
     if (F.isVarArg()) {
-        ret.second = new PSNode(pss::PHI, nullptr);
+        ret.second = new PSNode(pta::PHI, nullptr);
         if (arg)
             arg->addSuccessor(ret.second);
         else
@@ -1779,8 +1779,8 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
     // XXX: do we need entry type?
-    PSNode *root = new PSNode(pss::ENTRY);
-    PSNode *ret = new PSNode(pss::NOOP);
+    PSNode *root = new PSNode(pta::ENTRY);
+    PSNode *ret = new PSNode(pta::NOOP);
 
     // now build the arguments of the function - if it has any
     std::pair<PSNode *, PSNode *> args = buildArguments(F);
@@ -1856,11 +1856,11 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
 
     std::vector<PSNode *> rets;
     for (const llvm::BasicBlock& block : F) {
-        std::pair<PSNode *, PSNode *>& pssn = built_blocks[&block];
+        std::pair<PSNode *, PSNode *>& ptan = built_blocks[&block];
         // if the block does not contain any points-to relevant instruction,
         // we get (nullptr, nullptr)
-        assert((pssn.first && pssn.second) || (!pssn.first && !pssn.second));
-        if (!pssn.first)
+        assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
+        if (!ptan.first)
             continue;
 
         // add successors to this block (skipping the empty blocks).
@@ -1870,14 +1870,14 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
         // otherwise later, we'll change this.
         std::set<const llvm::BasicBlock *> found_blocks;
         size_t succ_num = blockAddSuccessors(built_blocks, found_blocks,
-                                             pssn, block);
+                                             ptan, block);
 
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0 && pssn.second->getType() == pss::RETURN)
-            rets.push_back(pssn.second);
+        if (succ_num == 0 && ptan.second->getType() == pta::RETURN)
+            rets.push_back(ptan.second);
 
-        assert(pssn.first && pssn.second);
+        assert(ptan.first && ptan.second);
     }
 
     // add successors edges from every real return to our artificial ret node
@@ -1992,7 +1992,7 @@ std::pair<PSNode *, PSNode *> LLVMPointerSubgraphBuilder::buildGlobals()
         prev = cur;
 
         // every global node is like memory allocation
-        cur = new PSNode(pss::ALLOC);
+        cur = new PSNode(pta::ALLOC);
         addNode(&*I, cur);
 
         if (prev)
@@ -2016,7 +2016,7 @@ std::pair<PSNode *, PSNode *> LLVMPointerSubgraphBuilder::buildGlobals()
         } else {
             // without initializer we can not do anything else than
             // assume that it can point everywhere
-            cur = new PSNode(pss::STORE, UNKNOWN_MEMORY, node);
+            cur = new PSNode(pta::STORE, UNKNOWN_MEMORY, node);
             cur->insertAfter(node);
         }
     }
@@ -2025,6 +2025,6 @@ std::pair<PSNode *, PSNode *> LLVMPointerSubgraphBuilder::buildGlobals()
     return std::make_pair(first, cur);
 }
 
-} // namespace pss
+} // namespace pta
 } // namespace analysis
 } // namespace dg

@@ -8,7 +8,7 @@
 
 namespace dg {
 namespace analysis {
-namespace pss {
+namespace pta {
 
 class PointsToFlowSensitive : public PointerSubgraph
 {
@@ -30,7 +30,7 @@ public:
             if (n->predecessorsNum() == 0) { // root node
                 // FIXME: we're leaking the memory maps
                 mm = new MemoryMapT();
-            } else if (n->getType() == pss::STORE) {
+            } else if (n->getType() == pta::STORE) {
                 mm = new MemoryMapT();
 
                 // create empty memory object so that STORE can
@@ -39,7 +39,7 @@ public:
                     // FIXME: we're leaking the mem. objects, use autoptr?
                     (*mm)[ptr].insert(new MemoryObject(ptr.target));
                 }
-            }  else if (n->getType() == pss::MEMCPY) {
+            }  else if (n->getType() == pta::MEMCPY) {
                 mm = new MemoryMapT();
 
                 // create empty memory object so that MEMCPY can
@@ -83,7 +83,7 @@ public:
 
         // every store is strong update
         // FIXME: memcpy can be strong update too
-        if (n->getType() == pss::STORE)
+        if (n->getType() == pta::STORE)
             strong_update = &n->getOperand(1)->pointsTo;
 
         // merge information from predecessors if there's
@@ -91,7 +91,7 @@ public:
         // and this is not a store, the memory map couldn't
         // change, so we don't have to do that)
         if (n->predecessorsNum() > 1 || strong_update
-            || n->getType() == pss::MEMCPY) {
+            || n->getType() == pta::MEMCPY) {
             for (PSNode *p : n->getPredecessors()) {
                 MemoryMapT *pm = p->getData<MemoryMapT>();
                 // merge pm to mm (if pm was already created)
@@ -172,7 +172,7 @@ private:
     }
 };
 
-} // namespace pss
+} // namespace pta
 } // namespace analysis
 } // namespace dg
 

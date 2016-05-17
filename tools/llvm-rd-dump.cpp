@@ -246,9 +246,9 @@ int main(int argc, char *argv[])
 
     LLVMPointsToAnalysis *PTA;
     if (type == FLOW_INSENSITIVE) {
-        PTA = new LLVMPointsToAnalysisImpl<pss::PointsToFlowInsensitive>(M);
+        PTA = new LLVMPointsToAnalysisImpl<pta::PointsToFlowInsensitive>(M);
     } else {
-        PTA = new LLVMPointsToAnalysisImpl<pss::PointsToFlowSensitive>(M);
+        PTA = new LLVMPointsToAnalysisImpl<pta::PointsToFlowSensitive>(M);
     }
 
     tm.start();

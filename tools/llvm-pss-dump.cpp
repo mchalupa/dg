@@ -28,7 +28,7 @@
 #include "Utils.h"
 
 using namespace dg;
-using namespace dg::analysis::pss;
+using namespace dg::analysis::pta;
 using llvm::errs;
 
 static bool verbose;
@@ -234,10 +234,10 @@ dumpPSNode(PSNode *n, PTType type)
 }
 
 static void
-dumpPointerSubgraphdot(LLVMPointsToAnalysis *pss, PTType type)
+dumpPointerSubgraphdot(LLVMPointsToAnalysis *pta, PTType type)
 {
     std::set<PSNode *> nodes;
-    pss->getNodes(nodes);
+    pta->getNodes(nodes);
 
     printf("digraph \"Pointer State Subgraph\" {\n");
 
@@ -285,15 +285,15 @@ dumpPointerSubgraphdot(LLVMPointsToAnalysis *pss, PTType type)
 }
 
 static void
-dumpPointerSubgraph(LLVMPointsToAnalysis *pss, PTType type, bool todot)
+dumpPointerSubgraph(LLVMPointsToAnalysis *pta, PTType type, bool todot)
 {
-    assert(pss);
+    assert(pta);
 
     if (todot)
-        dumpPointerSubgraphdot(pss, type);
+        dumpPointerSubgraphdot(pta, type);
     else {
         std::set<PSNode *> nodes;
-        pss->getNodes(nodes);
+        pta->getNodes(nodes);
 
         for (PSNode *node : nodes) {
             dumpPSNode(node, type);
@@ -348,9 +348,9 @@ int main(int argc, char *argv[])
 
     LLVMPointsToAnalysis *PTA;
     if (type == FLOW_INSENSITIVE)
-        PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
+        PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
     else
-        PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
+        PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
 
     tm.start();
     PTA->run();

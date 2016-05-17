@@ -13,7 +13,7 @@
 
 namespace dg {
 namespace analysis {
-namespace pss {
+namespace pta {
 
 class LLVMPointerSubgraphBuilder
 {
@@ -101,8 +101,8 @@ public:
 
         // if this is a call that returns a pointer,
         // then the points-to is in CALL_RETURN node
-        if (n && (n->getType() == pss::CALL
-            || n->getType() == pss::CALL_FUNCPTR))
+        if (n && (n->getType() == pta::CALL
+            || n->getType() == pta::CALL_FUNCPTR))
             n = n->getPairedNode();
 
         return n;
@@ -184,7 +184,7 @@ private:
     createVarArg(const llvm::IntrinsicInst *Inst);
 };
 
-} // namespace pss
+} // namespace pta
 } // namespace dg
 } // namespace analysis
 

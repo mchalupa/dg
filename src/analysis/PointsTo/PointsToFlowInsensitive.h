@@ -8,7 +8,7 @@
 
 namespace dg {
 namespace analysis {
-namespace pss {
+namespace pta {
 
 class PointsToFlowInsensitive : public PointerSubgraph
 {
@@ -27,18 +27,18 @@ public:
         (void) where;
 
         // we want to have memory in allocation sites
-        if (n->getType() == pss::CAST || n->getType() == pss::GEP)
+        if (n->getType() == pta::CAST || n->getType() == pta::GEP)
             n = n->getOperand(0);
-        else if (n->getType() == pss::CONSTANT) {
+        else if (n->getType() == pta::CONSTANT) {
             assert(n->pointsTo.size() == 1);
             n = (n->pointsTo.begin())->target;
         }
 
-        if (n->getType() == pss::FUNCTION)
+        if (n->getType() == pta::FUNCTION)
             return;
 
-        assert(n->getType() == pss::ALLOC || n->getType() == pss::DYN_ALLOC
-               || n->getType() == pss::UNKNOWN_MEM);
+        assert(n->getType() == pta::ALLOC || n->getType() == pta::DYN_ALLOC
+               || n->getType() == pta::UNKNOWN_MEM);
 
         MemoryObject *mo = n->getData<MemoryObject>();
         if (!mo) {
@@ -69,7 +69,7 @@ public:
     }
 };
 
-} // namespace pss
+} // namespace pta
 } // namespace analysis
 } // namespace dg
 

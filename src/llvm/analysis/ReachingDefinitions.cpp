@@ -251,7 +251,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     RDNode *node = new RDNode(STORE);
     addNode(Inst, node);
 
-    pss::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
+    pta::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
     assert(pts && "Don't have the points-to information for store");
 
     if (pts->pointsTo.empty()) {
@@ -269,7 +269,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         return node;
     }
 
-    for (const pss::Pointer& ptr: pts->pointsTo) {
+    for (const pta::Pointer& ptr: pts->pointsTo) {
         // XXX we should at least warn?
         if (ptr.isNull())
             continue;
@@ -445,7 +445,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
                                           std::pair<RDNode *, RDNode *>>& built_blocks,
-                                 std::pair<RDNode *, RDNode *>& pssn,
+                                 std::pair<RDNode *, RDNode *>& ptan,
                                  const llvm::BasicBlock& block)
 {
     size_t num = 0;
@@ -459,10 +459,10 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             // relevant instruction), we must pretend to be there for
             // control flow information. Thus instead of adding it as
             // successor, add its successors as successors
-            num += blockAddSuccessors(built_blocks, pssn, *(*S));
+            num += blockAddSuccessors(built_blocks, ptan, *(*S));
         } else {
             // add successor to the last nodes
-            pssn.second->addSuccessor(succ.first);
+            ptan.second->addSuccessor(succ.first);
             ++num;
         }
     }
@@ -542,19 +542,19 @@ RDNode *LLVMRDBuilder::buildFunction(const llvm::Function& F)
         if (it == built_blocks.end())
             continue;
 
-        std::pair<RDNode *, RDNode *>& pssn = it->second;
-        assert((pssn.first && pssn.second) || (!pssn.first && !pssn.second));
-        if (!pssn.first)
+        std::pair<RDNode *, RDNode *>& ptan = it->second;
+        assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
+        if (!ptan.first)
             continue;
 
         // add successors to this block (skipping the empty blocks)
         // FIXME: this function is shared with PSS, factor it out
-        size_t succ_num = blockAddSuccessors(built_blocks, pssn, block);
+        size_t succ_num = blockAddSuccessors(built_blocks, ptan, block);
 
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0 && pssn.second->getType() == RETURN)
-            rets.push_back(pssn.second);
+        if (succ_num == 0 && ptan.second->getType() == RETURN)
+            rets.push_back(ptan.second);
     }
 
     // add successors edges from every real return to our artificial ret node
@@ -588,9 +588,9 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
         if (isa<Constant>(llvmOp))
             continue;
 
-        pss::PSNode *pts = PTA->getPointsTo(llvmOp);
+        pta::PSNode *pts = PTA->getPointsTo(llvmOp);
         assert(pts && "No points-to information");
-        for (const pss::Pointer& ptr : pts->pointsTo) {
+        for (const pta::Pointer& ptr : pts->pointsTo) {
             if (!ptr.isValid())
                 continue;
 
@@ -640,14 +640,14 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             return createUndefinedCall(CInst);
     }
 
-    pss::PSNode *pts = PTA->getPointsTo(dest);
+    pta::PSNode *pts = PTA->getPointsTo(dest);
     assert(pts && "No points-to information");
 
     uint64_t len;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
         len = C->getLimitedValue();
 
-    for (const pss::Pointer& ptr : pts->pointsTo) {
+    for (const pta::Pointer& ptr : pts->pointsTo) {
         if (!ptr.isValid())
             continue;
 
@@ -745,7 +745,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         }
     } else {
         // function pointer call
-        pss::PSNode *op = PTA->getPointsTo(calledVal);
+        pta::PSNode *op = PTA->getPointsTo(calledVal);
         assert(op && "Don't have points-to information");
         //assert(!op->pointsTo.empty() && "Don't have pointer to the func");
         if (op->pointsTo.empty()) {
@@ -758,7 +758,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         RDNode *call_funcptr = nullptr, *ret_call = nullptr;
 
         if (op->pointsTo.size() > 1) {
-            for (const pss::Pointer& ptr : op->pointsTo) {
+            for (const pta::Pointer& ptr : op->pointsTo) {
                 if (!ptr.isValid())
                     continue;
 
@@ -792,7 +792,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             }
         } else {
             // don't add redundant nodes if not needed
-            const pss::Pointer& ptr = *(op->pointsTo.begin());
+            const pta::Pointer& ptr = *(op->pointsTo.begin());
             if (ptr.isValid()) {
                 const llvm::Value *valF = ptr.target->getUserData<llvm::Value>();
                 const llvm::Function *F = llvm::cast<llvm::Function>(valF);

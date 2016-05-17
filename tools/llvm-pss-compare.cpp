@@ -29,7 +29,7 @@
 #include "Utils.h"
 
 using namespace dg;
-using namespace dg::analysis::pss;
+using namespace dg::analysis::pta;
 using llvm::errs;
 
 enum PTType {
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     }
 
     if (!module) {
-        errs() << "Usage: % llvm-pss-compare [-pta fs|fi] IR_module\n";
+        errs() << "Usage: % llvm-pta-compare [-pta fs|fi] IR_module\n";
         return 1;
     }
 
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
     LLVMPointsToAnalysis *PTAfs;
     LLVMPointsToAnalysis *PTAfi;
     if (type & FLOW_INSENSITIVE) {
-        PTAfi = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
+        PTAfi = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
 
         tm.start();
         PTAfi->run();
@@ -245,7 +245,7 @@ int main(int argc, char *argv[])
     }
 
     if (type & FLOW_SENSITIVE) {
-            PTAfs = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
+            PTAfs = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
         tm.start();
         PTAfs->run();
         tm.stop();

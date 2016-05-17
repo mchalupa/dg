@@ -36,7 +36,7 @@ public:
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 private:
     void addDataDependence(LLVMNode *node,
-                           analysis::pss::PSNode *pts,
+                           analysis::pta::PSNode *pts,
                            analysis::rd::RDNode *mem,
                            uint64_t size);
 

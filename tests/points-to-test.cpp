@@ -12,8 +12,8 @@
 namespace dg {
 namespace tests {
 
-using analysis::pss::Pointer;
-using analysis::pss::PSNode;
+using analysis::pta::Pointer;
+using analysis::pta::PSNode;
 
 static void
 dumpPSNode(PSNode *n)
@@ -44,10 +44,10 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
-        PSNode S(pss::STORE, &A, &B);
-        PSNode L(pss::LOAD, &B);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
+        PSNode S(pta::STORE, &A, &B);
+        PSNode L(pta::LOAD, &B);
 
         A.addSuccessor(&B);
         B.addSuccessor(&S);
@@ -63,14 +63,14 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
-        PSNode C(pss::ALLOC);
-        PSNode S1(pss::STORE, &A, &B);
-        PSNode S2(pss::STORE, &C, &B);
-        PSNode L1(pss::LOAD, &B);
-        PSNode L2(pss::LOAD, &B);
-        PSNode L3(pss::LOAD, &B);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
+        PSNode C(pta::ALLOC);
+        PSNode S1(pta::STORE, &A, &B);
+        PSNode S2(pta::STORE, &C, &B);
+        PSNode L1(pta::LOAD, &B);
+        PSNode L2(pta::LOAD, &B);
+        PSNode L3(pta::LOAD, &B);
 
         //             A
         //             |
@@ -118,13 +118,13 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
-        PSNode C(pss::ALLOC);
-        PSNode S1(pss::STORE, &A, &B);
-        PSNode L1(pss::LOAD, &B);
-        PSNode S2(pss::STORE, &C, &B);
-        PSNode L2(pss::LOAD, &B);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
+        PSNode C(pta::ALLOC);
+        PSNode S1(pta::STORE, &A, &B);
+        PSNode L1(pta::LOAD, &B);
+        PSNode S2(pta::STORE, &C, &B);
+        PSNode L2(pta::LOAD, &B);
 
         A.addSuccessor(&B);
         B.addSuccessor(&C);
@@ -144,15 +144,15 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(8);
-        PSNode B(pss::ALLOC);
-        PSNode C(pss::ALLOC);
-        PSNode GEP(pss::GEP, &A, 4);
-        PSNode S1(pss::STORE, &GEP, &B);
-        PSNode L1(pss::LOAD, &B);
-        PSNode S2(pss::STORE, &C, &B);
-        PSNode L2(pss::LOAD, &B);
+        PSNode B(pta::ALLOC);
+        PSNode C(pta::ALLOC);
+        PSNode GEP(pta::GEP, &A, 4);
+        PSNode S1(pta::STORE, &GEP, &B);
+        PSNode L1(pta::LOAD, &B);
+        PSNode S2(pta::STORE, &C, &B);
+        PSNode L2(pta::LOAD, &B);
 
         A.addSuccessor(&B);
         B.addSuccessor(&C);
@@ -187,18 +187,18 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(8);
-        PSNode B(pss::ALLOC);
+        PSNode B(pta::ALLOC);
         B.setSize(16);
-        PSNode C(pss::ALLOC);
-        PSNode GEP1(pss::GEP, &A, 4);
-        PSNode GEP2(pss::GEP, &B, 8);
-        PSNode S1(pss::STORE, &GEP1, &GEP2);
-        PSNode GEP3(pss::GEP, &B, 8);
-        PSNode L1(pss::LOAD, &GEP3);
-        PSNode S2(pss::STORE, &C, &B);
-        PSNode L2(pss::LOAD, &B);
+        PSNode C(pta::ALLOC);
+        PSNode GEP1(pta::GEP, &A, 4);
+        PSNode GEP2(pta::GEP, &B, 8);
+        PSNode S1(pta::STORE, &GEP1, &GEP2);
+        PSNode GEP3(pta::GEP, &B, 8);
+        PSNode L1(pta::LOAD, &GEP3);
+        PSNode S2(pta::STORE, &C, &B);
+        PSNode L2(pta::LOAD, &B);
 
         A.addSuccessor(&B);
         B.addSuccessor(&C);
@@ -232,15 +232,15 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         // we must set size, so that GEP won't
         // make the offset UNKNOWN
         A.setSize(8);
-        PSNode B(pss::ALLOC);
-        PSNode GEP1(pss::GEP, &A, 4);
-        PSNode S(pss::STORE, &B, &GEP1);
-        PSNode GEP2(pss::GEP, &A, 4);
-        PSNode L(pss::LOAD, &GEP2);
+        PSNode B(pta::ALLOC);
+        PSNode GEP1(pta::GEP, &A, 4);
+        PSNode S(pta::STORE, &B, &GEP1);
+        PSNode GEP2(pta::GEP, &A, 4);
+        PSNode L(pta::LOAD, &GEP2);
 
         A.addSuccessor(&B);
         B.addSuccessor(&GEP1);
@@ -273,14 +273,14 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(16);
-        PSNode B(pss::ALLOC);
-        PSNode GEP1(pss::GEP, &A, 4);
-        PSNode GEP2(pss::GEP, &GEP1, 4);
-        PSNode S(pss::STORE, &B, &GEP2);
-        PSNode GEP3(pss::GEP, &A, 8);
-        PSNode L(pss::LOAD, &GEP3);
+        PSNode B(pta::ALLOC);
+        PSNode GEP1(pta::GEP, &A, 4);
+        PSNode GEP2(pta::GEP, &GEP1, 4);
+        PSNode S(pta::STORE, &B, &GEP2);
+        PSNode GEP3(pta::GEP, &A, 8);
+        PSNode L(pta::LOAD, &GEP3);
 
         A.addSuccessor(&B);
         B.addSuccessor(&GEP1);
@@ -316,18 +316,18 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
-        PSNode ARRAY(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
+        PSNode ARRAY(pta::ALLOC);
         ARRAY.setSize(40);
-        PSNode GEP1(pss::GEP, &ARRAY, 0);
-        PSNode GEP2(pss::GEP, &ARRAY, 4);
-        PSNode S1(pss::STORE, &A, &GEP1);
-        PSNode S2(pss::STORE, &B, &GEP2);
-        PSNode GEP3(pss::GEP, &ARRAY, 0);
-        PSNode GEP4(pss::GEP, &ARRAY, 4);
-        PSNode L1(pss::LOAD, &GEP3);
-        PSNode L2(pss::LOAD, &GEP4);
+        PSNode GEP1(pta::GEP, &ARRAY, 0);
+        PSNode GEP2(pta::GEP, &ARRAY, 4);
+        PSNode S1(pta::STORE, &A, &GEP1);
+        PSNode S2(pta::STORE, &B, &GEP2);
+        PSNode GEP3(pta::GEP, &ARRAY, 0);
+        PSNode GEP4(pta::GEP, &ARRAY, 4);
+        PSNode L1(pta::LOAD, &GEP3);
+        PSNode L2(pta::LOAD, &GEP4);
 
         A.addSuccessor(&B);
         B.addSuccessor(&ARRAY);
@@ -351,18 +351,18 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
-        PSNode ARRAY(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
+        PSNode ARRAY(pta::ALLOC);
         ARRAY.setSize(40);
-        PSNode GEP1(pss::GEP, &ARRAY, 0);
-        PSNode GEP2(pss::GEP, &ARRAY, 4);
-        PSNode S1(pss::STORE, &A, &GEP1);
-        PSNode S2(pss::STORE, &B, &GEP2);
-        PSNode GEP3(pss::GEP, &ARRAY, 0);
-        PSNode GEP4(pss::GEP, &ARRAY, 4);
-        PSNode L1(pss::LOAD, &GEP3);
-        PSNode L2(pss::LOAD, &GEP4);
+        PSNode GEP1(pta::GEP, &ARRAY, 0);
+        PSNode GEP2(pta::GEP, &ARRAY, 4);
+        PSNode S1(pta::STORE, &A, &GEP1);
+        PSNode S2(pta::STORE, &B, &GEP2);
+        PSNode GEP3(pta::GEP, &ARRAY, 0);
+        PSNode GEP4(pta::GEP, &ARRAY, 4);
+        PSNode L1(pta::LOAD, &GEP3);
+        PSNode L2(pta::LOAD, &GEP4);
 
         A.addSuccessor(&B);
         B.addSuccessor(&ARRAY);
@@ -390,21 +390,21 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
-        PSNode ARRAY(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
+        PSNode ARRAY(pta::ALLOC);
         ARRAY.setSize(20);
-        PSNode GEP1(pss::GEP, &ARRAY, 0);
-        PSNode GEP2(pss::GEP, &ARRAY, 4);
-        PSNode S1(pss::STORE, &A, &GEP1);
-        PSNode S2(pss::STORE, &B, &GEP2);
-        PSNode GEP3(pss::GEP, &ARRAY, 0);
-        PSNode GEP4(pss::GEP, &ARRAY, 4);
-        PSNode L1(pss::LOAD, &GEP3);
-        PSNode L2(pss::LOAD, &GEP4);
-        PSNode GEP5(pss::GEP, &ARRAY, 0);
-        PSNode S3(pss::STORE, &B, &GEP5);
-        PSNode L3(pss::LOAD, &GEP5);
+        PSNode GEP1(pta::GEP, &ARRAY, 0);
+        PSNode GEP2(pta::GEP, &ARRAY, 4);
+        PSNode S1(pta::STORE, &A, &GEP1);
+        PSNode S2(pta::STORE, &B, &GEP2);
+        PSNode GEP3(pta::GEP, &ARRAY, 0);
+        PSNode GEP4(pta::GEP, &ARRAY, 4);
+        PSNode L1(pta::LOAD, &GEP3);
+        PSNode L2(pta::LOAD, &GEP4);
+        PSNode GEP5(pta::GEP, &ARRAY, 0);
+        PSNode S3(pta::STORE, &B, &GEP5);
+        PSNode L3(pta::LOAD, &GEP5);
 
         A.addSuccessor(&B);
         B.addSuccessor(&ARRAY);
@@ -437,9 +437,9 @@ public:
     {
         using namespace analysis;
 
-        PSNode B(pss::ALLOC);
-        PSNode S(pss::STORE, pss::NULLPTR, &B);
-        PSNode L(pss::LOAD, &B);
+        PSNode B(pta::ALLOC);
+        PSNode S(pta::STORE, pta::NULLPTR, &B);
+        PSNode L(pta::LOAD, &B);
 
         B.addSuccessor(&S);
         S.addSuccessor(&L);
@@ -447,20 +447,20 @@ public:
         PTStoT PA(&B);
         PA.run();
 
-        check(L.doesPointsTo(pss::NULLPTR), "L do not points to NULL");
+        check(L.doesPointsTo(pta::NULLPTR), "L do not points to NULL");
     }
 
     void constant_store()
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
         B.setSize(16);
-        PSNode C(pss::CONSTANT, &B, 4);
-        PSNode S(pss::STORE, &A, &C);
-        PSNode GEP(pss::GEP, &B, 4);
-        PSNode L(pss::LOAD, &GEP);
+        PSNode C(pta::CONSTANT, &B, 4);
+        PSNode S(pta::STORE, &A, &C);
+        PSNode GEP(pta::GEP, &B, 4);
+        PSNode L(pta::LOAD, &GEP);
 
         A.addSuccessor(&B);
         B.addSuccessor(&S);
@@ -477,29 +477,29 @@ public:
     {
         using namespace analysis;
 
-        PSNode B(pss::ALLOC);
+        PSNode B(pta::ALLOC);
         B.setZeroInitialized();
-        PSNode L(pss::LOAD, &B);
+        PSNode L(pta::LOAD, &B);
 
         B.addSuccessor(&L);
 
         PTStoT PA(&B);
         PA.run();
 
-        check(L.doesPointsTo(pss::NULLPTR), "L do not points to nullptr");
+        check(L.doesPointsTo(pta::NULLPTR), "L do not points to nullptr");
     }
 
     void load_from_unknown_offset()
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
         B.setSize(20);
-        PSNode GEP(pss::GEP, &B, UNKNOWN_OFFSET);
-        PSNode S(pss::STORE, &A, &GEP);
-        PSNode GEP2(pss::GEP, &B, 4);
-        PSNode L(pss::LOAD, &GEP2); // load from B + 4
+        PSNode GEP(pta::GEP, &B, UNKNOWN_OFFSET);
+        PSNode S(pta::STORE, &A, &GEP);
+        PSNode GEP2(pta::GEP, &B, 4);
+        PSNode L(pta::LOAD, &GEP2); // load from B + 4
 
         A.addSuccessor(&B);
         B.addSuccessor(&GEP);
@@ -519,13 +519,13 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
         B.setSize(20);
-        PSNode GEP(pss::GEP, &B, 4);
-        PSNode S(pss::STORE, &A, &GEP);
-        PSNode GEP2(pss::GEP, &B, UNKNOWN_OFFSET);
-        PSNode L(pss::LOAD, &GEP2); // load from B + UNKNOWN_OFFSET
+        PSNode GEP(pta::GEP, &B, 4);
+        PSNode S(pta::STORE, &A, &GEP);
+        PSNode GEP2(pta::GEP, &B, UNKNOWN_OFFSET);
+        PSNode L(pta::LOAD, &GEP2); // load from B + UNKNOWN_OFFSET
 
         A.addSuccessor(&B);
         B.addSuccessor(&GEP);
@@ -545,13 +545,13 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
-        PSNode B(pss::ALLOC);
+        PSNode A(pta::ALLOC);
+        PSNode B(pta::ALLOC);
         B.setSize(20);
-        PSNode GEP(pss::GEP, &B, UNKNOWN_OFFSET);
-        PSNode S(pss::STORE, &A, &GEP);
-        PSNode GEP2(pss::GEP, &B, UNKNOWN_OFFSET);
-        PSNode L(pss::LOAD, &GEP2);
+        PSNode GEP(pta::GEP, &B, UNKNOWN_OFFSET);
+        PSNode S(pta::STORE, &A, &GEP);
+        PSNode GEP2(pta::GEP, &B, UNKNOWN_OFFSET);
+        PSNode L(pta::LOAD, &GEP2);
 
         A.addSuccessor(&B);
         B.addSuccessor(&GEP);
@@ -569,34 +569,34 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(20);
-        PSNode SRC(pss::ALLOC);
+        PSNode SRC(pta::ALLOC);
         SRC.setSize(16);
-        PSNode DEST(pss::ALLOC);
+        PSNode DEST(pta::ALLOC);
         DEST.setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3 and A + 12
          * at offsets 4 and 8 */
-        PSNode GEP1(pss::GEP, &A, 3);
-        PSNode GEP2(pss::GEP, &A, 12);
-        PSNode G1(pss::GEP, &SRC, 4);
-        PSNode G2(pss::GEP, &SRC, 8);
-        PSNode S1(pss::STORE, &GEP1, &G1);
-        PSNode S2(pss::STORE, &GEP2, &G2);
+        PSNode GEP1(pta::GEP, &A, 3);
+        PSNode GEP2(pta::GEP, &A, 12);
+        PSNode G1(pta::GEP, &SRC, 4);
+        PSNode G2(pta::GEP, &SRC, 8);
+        PSNode S1(pta::STORE, &GEP1, &G1);
+        PSNode S2(pta::STORE, &GEP2, &G2);
 
         /* copy the memory,
          * after this node dest should point to
          * A + 3 and A + 12 at offsets 4 and 8 */
-        PSNode CPY(pss::MEMCPY, &SRC, &DEST,
+        PSNode CPY(pta::MEMCPY, &SRC, &DEST,
                     0 /* from 0 */, UNKNOWN_OFFSET /* len = all */);
 
         /* load from the dest memory */
-        PSNode G3(pss::GEP, &DEST, 4);
-        PSNode G4(pss::GEP, &DEST, 8);
-        PSNode L1(pss::LOAD, &G3);
-        PSNode L2(pss::LOAD, &G4);
+        PSNode G3(pta::GEP, &DEST, 4);
+        PSNode G4(pta::GEP, &DEST, 8);
+        PSNode L1(pta::LOAD, &G3);
+        PSNode L2(pta::LOAD, &G4);
 
         A.addSuccessor(&SRC);
         SRC.addSuccessor(&DEST);
@@ -623,35 +623,35 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(20);
-        PSNode SRC(pss::ALLOC);
+        PSNode SRC(pta::ALLOC);
         SRC.setSize(16);
-        PSNode DEST(pss::ALLOC);
+        PSNode DEST(pta::ALLOC);
         DEST.setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3 and A + 12
          * at offsets 4 and 8 */
-        PSNode GEP1(pss::GEP, &A, 3);
-        PSNode GEP2(pss::GEP, &A, 12);
-        PSNode G1(pss::GEP, &SRC, 4);
-        PSNode G2(pss::GEP, &SRC, 8);
-        PSNode S1(pss::STORE, &GEP1, &G1);
-        PSNode S2(pss::STORE, &GEP2, &G2);
+        PSNode GEP1(pta::GEP, &A, 3);
+        PSNode GEP2(pta::GEP, &A, 12);
+        PSNode G1(pta::GEP, &SRC, 4);
+        PSNode G2(pta::GEP, &SRC, 8);
+        PSNode S1(pta::STORE, &GEP1, &G1);
+        PSNode S2(pta::STORE, &GEP2, &G2);
 
         /* copy first 8 bytes from the memory,
          * after this node dest should point to
          * A + 3 at offset 4 (8 is 9th byte,
          * so it should not be included) */
-        PSNode CPY(pss::MEMCPY, &SRC, &DEST,
+        PSNode CPY(pta::MEMCPY, &SRC, &DEST,
                     0 /* from 0 */, 8 /* len*/);
 
         /* load from the dest memory */
-        PSNode G3(pss::GEP, &DEST, 4);
-        PSNode G4(pss::GEP, &DEST, 8);
-        PSNode L1(pss::LOAD, &G3);
-        PSNode L2(pss::LOAD, &G4);
+        PSNode G3(pta::GEP, &DEST, 4);
+        PSNode G4(pta::GEP, &DEST, 8);
+        PSNode L1(pta::LOAD, &G3);
+        PSNode L2(pta::LOAD, &G4);
 
         A.addSuccessor(&SRC);
         SRC.addSuccessor(&DEST);
@@ -678,34 +678,34 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(20);
-        PSNode SRC(pss::ALLOC);
+        PSNode SRC(pta::ALLOC);
         SRC.setSize(16);
-        PSNode DEST(pss::ALLOC);
+        PSNode DEST(pta::ALLOC);
         DEST.setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3 and A + 12
          * at offsets 4 and 8 */
-        PSNode GEP1(pss::GEP, &A, 3);
-        PSNode GEP2(pss::GEP, &A, 12);
-        PSNode G1(pss::GEP, &SRC, 4);
-        PSNode G2(pss::GEP, &SRC, 8);
-        PSNode S1(pss::STORE, &GEP1, &G1);
-        PSNode S2(pss::STORE, &GEP2, &G2);
+        PSNode GEP1(pta::GEP, &A, 3);
+        PSNode GEP2(pta::GEP, &A, 12);
+        PSNode G1(pta::GEP, &SRC, 4);
+        PSNode G2(pta::GEP, &SRC, 8);
+        PSNode S1(pta::STORE, &GEP1, &G1);
+        PSNode S2(pta::STORE, &GEP2, &G2);
 
         /* copy memory from 8 bytes and further
          * after this node dest should point to
          * A + 12 at offset 8 */
-        PSNode CPY(pss::MEMCPY, &SRC, &DEST,
+        PSNode CPY(pta::MEMCPY, &SRC, &DEST,
                     8 /* from */, UNKNOWN_OFFSET /* len*/);
 
         /* load from the dest memory */
-        PSNode G3(pss::GEP, &DEST, 4);
-        PSNode G4(pss::GEP, &DEST, 8);
-        PSNode L1(pss::LOAD, &G3);
-        PSNode L2(pss::LOAD, &G4);
+        PSNode G3(pta::GEP, &DEST, 4);
+        PSNode G4(pta::GEP, &DEST, 8);
+        PSNode L1(pta::LOAD, &G3);
+        PSNode L2(pta::LOAD, &G4);
 
         A.addSuccessor(&SRC);
         SRC.addSuccessor(&DEST);
@@ -732,33 +732,33 @@ public:
     {
         using namespace analysis;
 
-        PSNode A(pss::ALLOC);
+        PSNode A(pta::ALLOC);
         A.setSize(20);
-        PSNode SRC(pss::ALLOC);
+        PSNode SRC(pta::ALLOC);
         SRC.setSize(16);
         SRC.setZeroInitialized();
 
-        PSNode DEST(pss::ALLOC);
+        PSNode DEST(pta::ALLOC);
         DEST.setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3
          * offsets 4 */
-        PSNode GEP1(pss::GEP, &A, 3);
-        PSNode G1(pss::GEP, &SRC, 4);
-        PSNode S1(pss::STORE, &GEP1, &G1);
+        PSNode GEP1(pta::GEP, &A, 3);
+        PSNode G1(pta::GEP, &SRC, 4);
+        PSNode S1(pta::STORE, &GEP1, &G1);
 
         /* copy memory from 8 bytes and further
          * after this node dest should point to
          * A + 12 at offset 8 */
-        PSNode CPY(pss::MEMCPY, &SRC, &DEST,
+        PSNode CPY(pta::MEMCPY, &SRC, &DEST,
                     8 /* from */, UNKNOWN_OFFSET /* len*/);
 
         /* load from the dest memory */
-        PSNode G3(pss::GEP, &SRC, 8);
-        PSNode G4(pss::GEP, &DEST, 8);
-        PSNode L1(pss::LOAD, &G3);
-        PSNode L2(pss::LOAD, &G4);
+        PSNode G3(pta::GEP, &SRC, 8);
+        PSNode G4(pta::GEP, &DEST, 8);
+        PSNode L1(pta::LOAD, &G3);
+        PSNode L2(pta::LOAD, &G4);
 
         A.addSuccessor(&SRC);
         SRC.addSuccessor(&DEST);
@@ -774,8 +774,8 @@ public:
         PTStoT PA(&A);
         PA.run();
 
-        check(L1.doesPointsTo(pss::NULLPTR), "L1 does not point to NULL");
-        check(L2.doesPointsTo(pss::NULLPTR), "L2 does not point to NULL");
+        check(L1.doesPointsTo(pta::NULLPTR), "L1 does not point to NULL");
+        check(L2.doesPointsTo(pta::NULLPTR), "L2 does not point to NULL");
     }
 
     void test()
@@ -804,20 +804,20 @@ public:
 };
 
 class FlowInsensitivePointsToTest
-    : public PointsToTest<analysis::pss::PointsToFlowInsensitive>
+    : public PointsToTest<analysis::pta::PointsToFlowInsensitive>
 {
 public:
     FlowInsensitivePointsToTest()
-        : PointsToTest<analysis::pss::PointsToFlowInsensitive>
+        : PointsToTest<analysis::pta::PointsToFlowInsensitive>
           ("flow-insensitive points-to test") {}
 };
 
 class FlowSensitivePointsToTest
-    : public PointsToTest<analysis::pss::PointsToFlowSensitive>
+    : public PointsToTest<analysis::pta::PointsToFlowSensitive>
 {
 public:
     FlowSensitivePointsToTest()
-        : PointsToTest<analysis::pss::PointsToFlowSensitive>
+        : PointsToTest<analysis::pta::PointsToFlowSensitive>
           ("flow-sensitive points-to test") {}
 };
 
@@ -830,7 +830,7 @@ public:
 
     void unknown_offset1()
     {
-        using namespace dg::analysis::pss;
+        using namespace dg::analysis::pta;
         PSNode N1(ALLOC);
         PSNode N2(LOAD, &N1);
 

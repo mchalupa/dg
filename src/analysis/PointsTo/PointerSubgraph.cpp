@@ -3,7 +3,7 @@
 
 namespace dg {
 namespace analysis {
-namespace pss {
+namespace pta {
 
 // nodes representing NULL and unknown memory
 PSNode NULLPTR_LOC(NULL_ADDR);
@@ -344,6 +344,6 @@ bool PointerSubgraph::processNode(PSNode *node)
     return changed;
 }
 
-} // namespace pss
+} // namespace pta
 } // namespace analysis
 } // namespace dg

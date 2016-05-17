@@ -167,7 +167,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
 {
     using namespace dg::analysis;
 
-    for (const pss::Pointer& ptr : pts->pointsTo) {
+    for (const pta::Pointer& ptr : pts->pointsTo) {
         if (!ptr.isValid())
             continue;
 
@@ -229,7 +229,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     using namespace dg::analysis;
 
     // get points-to information for the operand
-    pss::PSNode *pts = PTA->getPointsTo(ptrOp);
+    pta::PSNode *pts = PTA->getPointsTo(ptrOp);
     //assert(pts && "Don't have points-to information for LoadInst");
     if (!pts) {
         llvm::errs() << "No points-to: " << *ptrOp << "\n";

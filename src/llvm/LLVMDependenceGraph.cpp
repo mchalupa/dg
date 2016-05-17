@@ -343,7 +343,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // via function pointer. If we have the points-to information,
         // create the subgraph
         if (!func && PTA) {
-            using namespace analysis::pss;
+            using namespace analysis::pta;
             PSNode *op = PTA->getNode(val);
             for (const Pointer& ptr : op->pointsTo) {
                 if (!ptr.isValid()) {

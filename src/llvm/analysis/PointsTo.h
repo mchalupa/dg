@@ -10,9 +10,9 @@
 
 namespace dg {
 
-using analysis::pss::PointerSubgraph;
-using analysis::pss::PSNode;
-using analysis::pss::LLVMPointerSubgraphBuilder;
+using analysis::pta::PointerSubgraph;
+using analysis::pta::PSNode;
+using analysis::pta::LLVMPointerSubgraphBuilder;
 
 class LLVMPointsToAnalysis
 {
@@ -104,7 +104,7 @@ public:
         if (F->size() == 0) {
             // calling declaration that returns a pointer?
             // That is unknown pointer
-            return callsite->getPairedNode()->addPointsTo(analysis::pss::PointerUnknown);
+            return callsite->getPairedNode()->addPointsTo(analysis::pta::PointerUnknown);
         }
 
         std::pair<PSNode *, PSNode *> cf = builder->createCallToFunction(CI, F);

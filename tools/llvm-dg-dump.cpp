@@ -419,9 +419,9 @@ int main(int argc, char *argv[])
     if (pts) {
         // use new analyses
         if (strcmp(pts, "fs") == 0) {
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
         } else if (strcmp(pts, "fi") == 0) {
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
         } else {
             llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
             abort();

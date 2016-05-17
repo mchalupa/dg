@@ -11,7 +11,7 @@
 
 namespace dg {
 namespace analysis {
-namespace pss {
+namespace pta {
 
 enum PSNodeType {
         // these are nodes that just represent memory allocation sites
@@ -202,7 +202,7 @@ public:
             case NULL_ADDR:
                 pointsTo.insert(Pointer(this, 0));
                 break;
-            case pss::UNKNOWN_MEM:
+            case pta::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
@@ -689,7 +689,7 @@ private:
     bool processMemcpy(PSNode *node);
 };
 
-} // namespace pss
+} // namespace pta
 } // namespace analysis
 } // namespace dg
 

@@ -122,7 +122,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             os << "\n";
     }
 
-    void printPointer(const analysis::pss::Pointer& ptr,
+    void printPointer(const analysis::pta::Pointer& ptr,
                       llvm::formatted_raw_ostream& os,
                       const char *prefix = "PTR: ", bool nl = true)
     {
@@ -293,9 +293,9 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             if (PTA) { // we used the new analyses
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
-                    analysis::pss::PSNode *ps = PTA->getPointsTo(node->getKey());
+                    analysis::pta::PSNode *ps = PTA->getPointsTo(node->getKey());
                     if (ps) {
-                        for (const analysis::pss::Pointer& ptr : ps->pointsTo)
+                        for (const analysis::pta::Pointer& ptr : ps->pointsTo)
                             printPointer(ptr, os);
                     }
                 }
@@ -542,9 +542,9 @@ public:
         LLVMDependenceGraph d;
 
         if (pta == PTA_FS)
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowSensitive>(M);
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
         else if (pta == PTA_FI)
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pss::PointsToFlowInsensitive>(M);
+            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
         else
             assert(0 && "Should not be reached");
 
