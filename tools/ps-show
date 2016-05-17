@@ -9,5 +9,5 @@ elif which evince &>/dev/null; then
 	GUI=evince
 fi
 
-`dirname $0`/llvm-pss-dump -dot $@ > _pss.dot && dot -Tpdf -o _pss.pdf _pss.dot && $GUI _pss.pdf
-rm _pss.pdf _pss.dot
+`dirname $0`/llvm-ps-dump -dot $@ > _ps.dot && dot -Tpdf -o _ps.pdf _ps.dot && $GUI _ps.pdf
+rm _ps.pdf _ps.dot

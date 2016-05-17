@@ -223,23 +223,23 @@ To get this output conveniently, you can use:
 The tools subdirectory contains a set of useful programs for debugging
 and playing with the llvm bitcode. Except for the llvm-slicer you can find there:
 
-* `llvm-dg-dump` - Dump the dependence graph for given program to graphviz format (to stdout)
-* `ldg-show.sh`  - wrapper for llvm-dg-dump that displays the graph as pdf
-* `llvm-pss-dump` - dump pointer state subgraph and results of the points-to analysis to stdout
-* `pss-show.sh`   - wrapper for llvm-pss-dump that prints a PSS in grapviz to pdf
+* `llvm-dg-dump`  - Dump the dependence graph for given program to graphviz format (to stdout)
+* `ldg-show.sh`   - wrapper for llvm-dg-dump that displays the graph as pdf
+* `llvm-ps-dump`  - dump pointer subgraph and results of the points-to analysis to stdout
+* `ps-show`       - wrapper for llvm-ps-dump that prints the PS in grapviz to pdf
 * `llvm-rd-dump`  - display reaching definitions in llvm-bitcode
 * `rd-show`       - wrapper for llvm-rd-dump
 
 All these programs take as an input llvm bitcode, for example:
 
 ```
-./pss-show code.bc
+./ps-show code.bc
 ```
 will show the pointer state subgraph for code.bc and the results of points-to analysis.
 Some useful switches for all programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
 and flow-insensitive points-to analysis within all these programs that use points-to analysis.
 `llvm-slicer` and `llvm-dg-dump` still use the old points-to analysis by default, so when `-pta`
-switch is not used, the points-to analysis is different from that one that is used in `llvm-pss-dump`.
+switch is not used, the points-to analysis is different from that one that is used in `llvm-ps-dump`.
 
 ------------------------------------------------
 

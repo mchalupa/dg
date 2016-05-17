@@ -7,11 +7,11 @@ if (LLVM_DG)
 	add_executable(llvm-slicer llvm-slicer.cpp)
 	target_link_libraries(llvm-slicer LLVMdg)
 
-	add_executable(llvm-pss-dump llvm-pss-dump.cpp)
-	target_link_libraries(llvm-pss-dump LLVMdg)
+	add_executable(llvm-ps-dump llvm-ps-dump.cpp)
+	target_link_libraries(llvm-ps-dump LLVMdg)
 
-	add_executable(llvm-pss-compare llvm-pss-compare.cpp)
-	target_link_libraries(llvm-pss-compare LLVMdg)
+	add_executable(llvm-pta-compare llvm-pta-compare.cpp)
+	target_link_libraries(llvm-pta-compare LLVMdg)
 
 	add_executable(llvm-rd-dump llvm-rd-dump.cpp)
 	target_link_libraries(llvm-rd-dump LLVMdg)
