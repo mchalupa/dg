@@ -22,43 +22,43 @@ class LLVMPSSBuilder
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
-    PSSNode *buildLLVMPSS(const llvm::Function& F);
-    std::pair<PSSNode *, PSSNode *> buildInstruction(const llvm::Instruction&);
-    std::pair<PSSNode *, PSSNode *>& buildPSSBlock(const llvm::BasicBlock& block);
+    PSNode *buildLLVMPSS(const llvm::Function& F);
+    std::pair<PSNode *, PSNode *> buildInstruction(const llvm::Instruction&);
+    std::pair<PSNode *, PSNode *>& buildPSSBlock(const llvm::BasicBlock& block);
 
-    std::pair<PSSNode *, PSSNode *> buildArguments(const llvm::Function& F);
-    std::pair<PSSNode *, PSSNode *> buildGlobals();
+    std::pair<PSNode *, PSNode *> buildArguments(const llvm::Function& F);
+    std::pair<PSNode *, PSNode *> buildGlobals();
 
     struct Subgraph {
-        Subgraph(PSSNode *r1, PSSNode *r2, std::pair<PSSNode *, PSSNode *>& a)
+        Subgraph(PSNode *r1, PSNode *r2, std::pair<PSNode *, PSNode *>& a)
             : root(r1), ret(r2), args(a) {}
         Subgraph() {memset(this, 0, sizeof *this);}
 
         // first and last nodes of the subgraph
-        PSSNode *root;
-        PSSNode *ret;
+        PSNode *root;
+        PSNode *ret;
 
         // during building graph we can create some nodes as operands
         // and we don't insert them into the PSS there, because it would
         // be difficult to get it right. We will store them here
         // and place them when we have all blocks constructed
-        std::set<std::pair<PSSNode *, PSSNode *>> unplacedInstructions;
+        std::set<std::pair<PSNode *, PSNode *>> unplacedInstructions;
         // set of instructions for which we need to build uses
         // (these are ptrtoints)
         std::set<const llvm::Value *> buildUses;
 
-        std::pair<PSSNode *, PSSNode *> args;
+        std::pair<PSNode *, PSNode *> args;
     };
 
     // map of all nodes we created - use to look up operands
-    std::unordered_map<const llvm::Value *, PSSNode *> nodes_map;
+    std::unordered_map<const llvm::Value *, PSNode *> nodes_map;
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *,
-             std::pair<PSSNode *, PSSNode *>> built_blocks;
+             std::pair<PSNode *, PSNode *>> built_blocks;
 
 public:
     LLVMPSSBuilder(const llvm::Module *m)
@@ -70,19 +70,19 @@ public:
         delete DL;
     }
 
-    PSSNode *buildLLVMPSS();
+    PSNode *buildLLVMPSS();
 
     // create subgraph of function @F and call+return nodes
     // to/from it
-    std::pair<PSSNode *, PSSNode *>
+    std::pair<PSNode *, PSNode *>
     createCallToFunction(const llvm::CallInst *CInst,
                          const llvm::Function *F);
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, PSSNode *>&
+    const std::unordered_map<const llvm::Value *, PSNode *>&
                                 getNodesMap() const { return nodes_map; }
-    PSSNode *getNode(const llvm::Value *val)
+    PSNode *getNode(const llvm::Value *val)
     {
         auto it = nodes_map.find(val);
         if (it == nodes_map.end())
@@ -93,9 +93,9 @@ public:
 
     // this is the same as the getNode, but it
     // creates ConstantExpr
-    PSSNode *getPointsTo(const llvm::Value *val)
+    PSNode *getPointsTo(const llvm::Value *val)
     {
-        PSSNode *n = getNode(val);
+        PSNode *n = getNode(val);
         if (!n)
             n = getConstant(val);
 
@@ -109,7 +109,7 @@ public:
     }
 
 private:
-    void addNode(const llvm::Value *val, PSSNode *node)
+    void addNode(const llvm::Value *val, PSNode *node)
     {
         nodes_map[val] = node;
         node->setUserData(const_cast<llvm::Value *>(val));
@@ -117,31 +117,31 @@ private:
 
     bool isRelevantInstruction(const llvm::Instruction& Inst);
 
-    PSSNode *createAlloc(const llvm::Instruction *Inst);
-    PSSNode *createStore(const llvm::Instruction *Inst);
-    PSSNode *createLoad(const llvm::Instruction *Inst);
-    PSSNode *createGEP(const llvm::Instruction *Inst);
-    PSSNode *createSelect(const llvm::Instruction *Inst);
-    PSSNode *createPHI(const llvm::Instruction *Inst);
-    PSSNode *createCast(const llvm::Instruction *Inst);
-    PSSNode *createReturn(const llvm::Instruction *Inst);
-    PSSNode *createPtrToInt(const llvm::Instruction *Inst);
-    PSSNode *createIntToPtr(const llvm::Instruction *Inst);
-    PSSNode *createAsm(const llvm::Instruction *Inst);
+    PSNode *createAlloc(const llvm::Instruction *Inst);
+    PSNode *createStore(const llvm::Instruction *Inst);
+    PSNode *createLoad(const llvm::Instruction *Inst);
+    PSNode *createGEP(const llvm::Instruction *Inst);
+    PSNode *createSelect(const llvm::Instruction *Inst);
+    PSNode *createPHI(const llvm::Instruction *Inst);
+    PSNode *createCast(const llvm::Instruction *Inst);
+    PSNode *createReturn(const llvm::Instruction *Inst);
+    PSNode *createPtrToInt(const llvm::Instruction *Inst);
+    PSNode *createIntToPtr(const llvm::Instruction *Inst);
+    PSNode *createAsm(const llvm::Instruction *Inst);
 
-    PSSNode *createIrrelevantInst(const llvm::Value *,
+    PSNode *createIrrelevantInst(const llvm::Value *,
                                   bool build_uses = false);
-    PSSNode *createIrrelevantArgument(const llvm::Argument *);
+    PSNode *createIrrelevantArgument(const llvm::Argument *);
     void createIrrelevantUses(const llvm::Value *val);
 
-    PSSNode *createAdd(const llvm::Instruction *Inst);
-    PSSNode *createArithmetic(const llvm::Instruction *Inst);
-    PSSNode *createUnknown(const llvm::Instruction *Inst);
+    PSNode *createAdd(const llvm::Instruction *Inst);
+    PSNode *createArithmetic(const llvm::Instruction *Inst);
+    PSNode *createUnknown(const llvm::Instruction *Inst);
 
-    PSSNode *getOperand(const llvm::Value *val);
-    PSSNode *tryGetOperand(const llvm::Value *val);
-    PSSNode *getConstant(const llvm::Value *val);
-    PSSNode *createConstantExpr(const llvm::ConstantExpr *CE);
+    PSNode *getOperand(const llvm::Value *val);
+    PSNode *tryGetOperand(const llvm::Value *val);
+    PSNode *getConstant(const llvm::Value *val);
+    PSNode *createConstantExpr(const llvm::ConstantExpr *CE);
     Pointer handleConstantGep(const llvm::GetElementPtrInst *GEP);
     Pointer handleConstantBitCast(const llvm::BitCastInst *BC);
     Pointer handleConstantPtrToInt(const llvm::PtrToIntInst *P2I);
@@ -151,36 +151,36 @@ private:
     Pointer getConstantExprPointer(const llvm::ConstantExpr *CE);
 
     void checkMemSet(const llvm::Instruction *Inst);
-    void addPHIOperands(PSSNode *node, const llvm::PHINode *PHI);
+    void addPHIOperands(PSNode *node, const llvm::PHINode *PHI);
     void addPHIOperands(const llvm::Function& F);
 
     void addUnplacedInstructions(Subgraph& subg);
     void buildUnbuiltUses(Subgraph& subg);
 
-    std::pair<PSSNode *, PSSNode *> createExtract(const llvm::Instruction *Inst);
-    std::pair<PSSNode *, PSSNode *> createCall(const llvm::Instruction *Inst);
-    std::pair<PSSNode *, PSSNode *> createOrGetSubgraph(const llvm::CallInst *,
+    std::pair<PSNode *, PSNode *> createExtract(const llvm::Instruction *Inst);
+    std::pair<PSNode *, PSNode *> createCall(const llvm::Instruction *Inst);
+    std::pair<PSNode *, PSNode *> createOrGetSubgraph(const llvm::CallInst *,
                                                         const llvm::Function *);
 
-    std::pair<PSSNode *, PSSNode *> createMemSet(const llvm::Instruction *);
+    std::pair<PSNode *, PSNode *> createMemSet(const llvm::Instruction *);
 
-    PSSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
-                                             PSSNode *node);
-    std::pair<PSSNode *, PSSNode *>
+    PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
+                                             PSNode *node);
+    std::pair<PSNode *, PSNode *>
     createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
 
-    std::pair<PSSNode *, PSSNode *>
+    std::pair<PSNode *, PSNode *>
     createRealloc(const llvm::CallInst *CInst);
 
-    std::pair<PSSNode *, PSSNode *>
+    std::pair<PSNode *, PSNode *>
     createUnknownCall(const llvm::CallInst *CInst);
 
-    std::pair<PSSNode *, PSSNode *>
+    std::pair<PSNode *, PSNode *>
     createIntrinsic(const llvm::Instruction *Inst);
 
-    PSSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
+    PSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
 
-    std::pair<PSSNode *, PSSNode *>
+    std::pair<PSNode *, PSNode *>
     createVarArg(const llvm::IntrinsicInst *Inst);
 };
 

@@ -56,7 +56,7 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 
-void printPSSType(enum PSSNodeType type)
+void printPSSType(enum PSNodeType type)
 {
 #define ELEM(t) case t: do {printf("%s", #t); }while(0); break;
     switch(type) {
@@ -85,7 +85,7 @@ void printPSSType(enum PSSNodeType type)
 }
 
 static void
-printName(PSSNode *node, bool dot)
+printName(PSNode *node, bool dot)
 {
     std::string nm;
     const char *name = node->getName();
@@ -170,7 +170,7 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
 }
 
 static void
-dumpPSSData(PSSNode *n, PTType type, bool dot = false)
+dumpPSSData(PSNode *n, PTType type, bool dot = false)
 {
     if (type == FLOW_INSENSITIVE) {
         MemoryObject *mo = n->getData<MemoryObject>();
@@ -205,7 +205,7 @@ dumpPSSData(PSSNode *n, PTType type, bool dot = false)
 }
 
 static void
-dumpPSSNode(PSSNode *n, PTType type)
+dumpPSNode(PSNode *n, PTType type)
 {
     printf("NODE: ");
     printName(n, false);
@@ -236,13 +236,13 @@ dumpPSSNode(PSSNode *n, PTType type)
 static void
 dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
 {
-    std::set<PSSNode *> nodes;
+    std::set<PSNode *> nodes;
     pss->getNodes(nodes);
 
     printf("digraph \"Pointer State Subgraph\" {\n");
 
     /* dump nodes */
-    for (PSSNode *node : nodes) {
+    for (PSNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
         printName(node, true);
 
@@ -276,8 +276,8 @@ dumpPSSdot(LLVMPointsToAnalysis *pss, PTType type)
     }
 
     /* dump edges */
-    for (PSSNode *node : nodes) {
-        for (PSSNode *succ : node->getSuccessors())
+    for (PSNode *node : nodes) {
+        for (PSNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
     }
 
@@ -292,11 +292,11 @@ dumpPSS(LLVMPointsToAnalysis *pss, PTType type, bool todot)
     if (todot)
         dumpPSSdot(pss, type);
     else {
-        std::set<PSSNode *> nodes;
+        std::set<PSNode *> nodes;
         pss->getNodes(nodes);
 
-        for (PSSNode *node : nodes) {
-            dumpPSSNode(node, type);
+        for (PSNode *node : nodes) {
+            dumpPSNode(node, type);
         }
     }
 }

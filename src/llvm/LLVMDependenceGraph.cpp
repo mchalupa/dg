@@ -344,7 +344,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // create the subgraph
         if (!func && PTA) {
             using namespace analysis::pss;
-            PSSNode *op = PTA->getNode(val);
+            PSNode *op = PTA->getNode(val);
             for (const Pointer& ptr : op->pointsTo) {
                 if (!ptr.isValid()) {
                     continue;
@@ -639,13 +639,13 @@ void LLVMDependenceGraph::copyPSS()
         const llvm::Value *val = I->first;
         LLVMNode *node = I->second;
 
-        PSSNode *pn = pts->getNode(val);
+        PSNode *pn = pts->getNode(val);
         if (!pn) {
             llvm::errs() << "WARN: don't have points-to info for " << *val <<"\n";
             continue;
         }
 
-        // copy pointers from PSSNode to LLVMNode
+        // copy pointers from PSNode to LLVMNode
         for (const analysis::pss::Pointer& ptr : pn->pointsTo) {
             const llvm::Value *tval = ptr.target->getUserData<llvm::Value>();
             LLVMNode *target = getNode(tval);

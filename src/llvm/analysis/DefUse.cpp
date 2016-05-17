@@ -162,7 +162,7 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         addReturnEdge(node, subgraph);
 }
 
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSSNode *pts,
+void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
                                            RDNode *mem, uint64_t size)
 {
     using namespace dg::analysis;
@@ -229,7 +229,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     using namespace dg::analysis;
 
     // get points-to information for the operand
-    pss::PSSNode *pts = PTA->getPointsTo(ptrOp);
+    pss::PSNode *pts = PTA->getPointsTo(ptrOp);
     //assert(pts && "Don't have points-to information for LoadInst");
     if (!pts) {
         llvm::errs() << "No points-to: " << *ptrOp << "\n";

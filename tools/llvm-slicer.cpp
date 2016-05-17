@@ -293,7 +293,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             if (PTA) { // we used the new analyses
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
-                    analysis::pss::PSSNode *ps = PTA->getPointsTo(node->getKey());
+                    analysis::pss::PSNode *ps = PTA->getPointsTo(node->getKey());
                     if (ps) {
                         for (const analysis::pss::Pointer& ptr : ps->pointsTo)
                             printPointer(ptr, os);

@@ -12,15 +12,15 @@ namespace pss {
 
 class PointsToFlowInsensitive : public PSS
 {
-    std::set<PSSNode *> changed;
+    std::set<PSNode *> changed;
 
 protected:
     PointsToFlowInsensitive() {}
 
 public:
-    PointsToFlowInsensitive(PSSNode *r) : PSS(r) {}
+    PointsToFlowInsensitive(PSNode *r) : PSS(r) {}
 
-    virtual void getMemoryObjects(PSSNode *where, PSSNode *n,
+    virtual void getMemoryObjects(PSNode *where, PSNode *n,
                                   std::vector<MemoryObject *>& objects)
     {
         // irrelevant in flow-insensitive
@@ -49,17 +49,17 @@ public:
         objects.push_back(mo);
     }
 
-    virtual void enqueue(PSSNode *n)
+    virtual void enqueue(PSNode *n)
     {
         changed.insert(n);
     }
 
-    virtual void afterProcessed(PSSNode *n)
+    virtual void afterProcessed(PSNode *n)
     {
         (void) n;
 
         if (pendingInQueue() == 0 && !changed.empty()) {
-            ADT::QueueFIFO<PSSNode *> nodes;
+            ADT::QueueFIFO<PSNode *> nodes;
             getNodes(nodes, nullptr /* starting node */,
                      &changed /* starting set */);
 

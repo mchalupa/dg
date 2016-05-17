@@ -12,7 +12,7 @@ namespace pss {
 
 class PointsToFlowSensitive : public PSS
 {
-    std::set<PSSNode *> changed;
+    std::set<PSNode *> changed;
 
 public:
     typedef std::set<MemoryObject *> MemoryObjectsSetT;
@@ -20,9 +20,9 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PSSNode *r) : PSS(r) {}
+    PointsToFlowSensitive(PSNode *r) : PSS(r) {}
 
-    virtual void beforeProcessed(PSSNode *n)
+    virtual void beforeProcessed(PSNode *n)
     {
         MemoryMapT *mm = n->getData<MemoryMapT>();
         if (!mm) {
@@ -54,14 +54,14 @@ public:
                 mm = new MemoryMapT();
 
                 // merge information from predecessors into new map
-                for (PSSNode *p : n->getPredecessors()) {
+                for (PSNode *p : n->getPredecessors()) {
                     MemoryMapT *pm = p->getData<MemoryMapT>();
                     // merge pm to mm (if pm was already created)
                     if (pm)
                         mergeMaps(mm, pm, nullptr);
                 }
             } else {
-                PSSNode *pred = n->getSinglePredecessor();
+                PSNode *pred = n->getSinglePredecessor();
                 mm = pred->getData<MemoryMapT>();
                 assert(mm && "No memory map in the predecessor");
             }
@@ -72,7 +72,7 @@ public:
         }
     }
 
-    virtual void afterProcessed(PSSNode *n)
+    virtual void afterProcessed(PSNode *n)
     {
         PointsToSetT *strong_update = nullptr;
 
@@ -92,7 +92,7 @@ public:
         // change, so we don't have to do that)
         if (n->predecessorsNum() > 1 || strong_update
             || n->getType() == pss::MEMCPY) {
-            for (PSSNode *p : n->getPredecessors()) {
+            for (PSNode *p : n->getPredecessors()) {
                 MemoryMapT *pm = p->getData<MemoryMapT>();
                 // merge pm to mm (if pm was already created)
                 if (pm)
@@ -103,7 +103,7 @@ public:
         // check if we should enqueue new nodes and if so,
         // enqueue them. This code is duplicated with FlowInsensitive
         if (pendingInQueue() == 0 && !changed.empty()) {
-            ADT::QueueFIFO<PSSNode *> nodes;
+            ADT::QueueFIFO<PSNode *> nodes;
             getNodes(nodes, nullptr /* starting node */,
                      &changed /* starting set */);
 
@@ -112,12 +112,12 @@ public:
         }
     }
 
-    virtual void enqueue(PSSNode *n)
+    virtual void enqueue(PSNode *n)
     {
         changed.insert(n);
     }
 
-    virtual void getMemoryObjects(PSSNode *where, PSSNode *n,
+    virtual void getMemoryObjects(PSNode *where, PSNode *n,
                                   std::vector<MemoryObject *>& objects)
     {
         MemoryMapT *mm= where->getData<MemoryMapT>();

@@ -251,7 +251,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     RDNode *node = new RDNode(STORE);
     addNode(Inst, node);
 
-    pss::PSSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
+    pss::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
     assert(pts && "Don't have the points-to information for store");
 
     if (pts->pointsTo.empty()) {
@@ -589,7 +589,7 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
         if (isa<Constant>(llvmOp))
             continue;
 
-        pss::PSSNode *pts = PTA->getPointsTo(llvmOp);
+        pss::PSNode *pts = PTA->getPointsTo(llvmOp);
         assert(pts && "No points-to information");
         for (const pss::Pointer& ptr : pts->pointsTo) {
             if (!ptr.isValid())
@@ -641,7 +641,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             return createUndefinedCall(CInst);
     }
 
-    pss::PSSNode *pts = PTA->getPointsTo(dest);
+    pss::PSNode *pts = PTA->getPointsTo(dest);
     assert(pts && "No points-to information");
 
     uint64_t len;
@@ -746,7 +746,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         }
     } else {
         // function pointer call
-        pss::PSSNode *op = PTA->getPointsTo(calledVal);
+        pss::PSNode *op = PTA->getPointsTo(calledVal);
         assert(op && "Don't have points-to information");
         //assert(!op->pointsTo.empty() && "Don't have pointer to the func");
         if (op->pointsTo.empty()) {

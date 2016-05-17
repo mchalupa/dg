@@ -11,7 +11,7 @@
 namespace dg {
 
 using analysis::pss::PSS;
-using analysis::pss::PSSNode;
+using analysis::pss::PSNode;
 using analysis::pss::LLVMPSSBuilder;
 
 class LLVMPointsToAnalysis
@@ -29,23 +29,23 @@ public:
     LLVMPointsToAnalysis(PSS *p) : impl(p) {};
     ~LLVMPointsToAnalysis() { delete builder; }
 
-    PSSNode *getNode(const llvm::Value *val)
+    PSNode *getNode(const llvm::Value *val)
     {
         return builder->getNode(val);
     }
 
-    PSSNode *getPointsTo(const llvm::Value *val)
+    PSNode *getPointsTo(const llvm::Value *val)
     {
         return builder->getPointsTo(val);
     }
 
-    const std::unordered_map<const llvm::Value *, PSSNode *>&
+    const std::unordered_map<const llvm::Value *, PSNode *>&
     getNodesMap() const
     {
         return builder->getNodesMap();
     }
 
-    void getNodes(std::set<PSSNode *>& cont)
+    void getNodes(std::set<PSNode *>& cont)
     {
         impl->getNodes(cont);
     }
@@ -87,7 +87,7 @@ public:
     };
 
     // build new subgraphs on calls via pointer
-    virtual bool functionPointerCall(PSSNode *callsite, PSSNode *called)
+    virtual bool functionPointerCall(PSNode *callsite, PSNode *called)
     {
         // with vararg it may happen that we get pointer that
         // is not to function, so just bail out here in that case
@@ -107,11 +107,11 @@ public:
             return callsite->getPairedNode()->addPointsTo(analysis::pss::PointerUnknown);
         }
 
-        std::pair<PSSNode *, PSSNode *> cf = builder->createCallToFunction(CI, F);
+        std::pair<PSNode *, PSNode *> cf = builder->createCallToFunction(CI, F);
         assert(cf.first && cf.second);
 
         // we got the return site for the call stored as the paired node
-        PSSNode *ret = callsite->getPairedNode();
+        PSNode *ret = callsite->getPairedNode();
         // ret is a PHI node, so pass the values returned from the
         // procedure call
         ret->addOperand(cf.second);
@@ -131,7 +131,7 @@ public:
     }
 
     /*
-    virtual bool error(PSSNode *at, const char *msg)
+    virtual bool error(PSNode *at, const char *msg)
     {
         llvm::Value *val = at->getUserData<llvm::Value>();
         assert(val);
@@ -140,7 +140,7 @@ public:
         return false;
     }
 
-    virtual bool errorEmptyPointsTo(PSSNode *from, PSSNode *to)
+    virtual bool errorEmptyPointsTo(PSNode *from, PSNode *to)
     {
         // this is valid even in flow-insensitive points-to
         // because we process the nodes in CFG order

@@ -13,7 +13,7 @@ namespace dg {
 namespace analysis {
 namespace pss {
 
-enum PSSNodeType {
+enum PSNodeType {
         // these are nodes that just represent memory allocation sites
         ALLOC = 1,
         DYN_ALLOC,
@@ -59,14 +59,14 @@ enum PSSNodeType {
         UNKNOWN_MEM,
 };
 
-class PSSNode
+class PSNode
 {
     // FIXME: maybe we could use SmallPtrVector or something like that
-    std::vector<PSSNode *> operands;
-    std::vector<PSSNode *> successors;
-    std::vector<PSSNode *> predecessors;
+    std::vector<PSNode *> operands;
+    std::vector<PSNode *> successors;
+    std::vector<PSNode *> predecessors;
 
-    PSSNodeType type;
+    PSNodeType type;
     Offset offset; // for the case this node is GEP or MEMCPY
     Offset len; // for the case this node is MEMCPY
 
@@ -76,7 +76,7 @@ class PSSNode
     // - it is not used anyhow by the base analysis itself
     // XXX: maybe we cold store this somewhere in a map instead of in every
     // node (if the map is sparse, it would be much more memory efficient)
-    PSSNode *pairedNode;
+    PSNode *pairedNode;
 
     /// some additional information
     // was memory zeroed at initialization or right after allocating?
@@ -97,7 +97,7 @@ class PSSNode
 
     // data that can user store in the node
     // NOTE: I considered if this way is better than
-    // creating subclass of PSSNode and have whatever we
+    // creating subclass of PSNode and have whatever we
     // need in the subclass. Since AFAIK we need just this one pointer
     // at this moment, I decided to do it this way since it
     // is more simple than dynamic_cast... Once we need more
@@ -106,7 +106,7 @@ class PSSNode
 
 public:
     ///
-    // Construct a PSSNode
+    // Construct a PSNode
     // \param t     type of the node
     // Different types take different arguments:
     //
@@ -150,7 +150,7 @@ public:
     // RETURN:       represents returning value from a subprocedure,
     //               works as a PHI node - it gathers pointers returned from
     //               the subprocedure
-    PSSNode(PSSNodeType t, ...)
+    PSNode(PSNodeType t, ...)
     : type(t), offset(0), pairedNode(nullptr), zeroInitialized(false),
       is_heap(false), size(0),
 #ifdef DEBUG_ENABLED
@@ -159,7 +159,7 @@ public:
       dfsid(0), data(nullptr), user_data(nullptr)
     {
         // assing operands
-        PSSNode *op;
+        PSNode *op;
         va_list args;
         va_start(args, t);
 
@@ -178,24 +178,24 @@ public:
             case CAST:
             case LOAD:
             case CALL_FUNCPTR:
-                operands.push_back(va_arg(args, PSSNode *));
+                operands.push_back(va_arg(args, PSNode *));
                 break;
             case STORE:
-                operands.push_back(va_arg(args, PSSNode *));
-                operands.push_back(va_arg(args, PSSNode *));
+                operands.push_back(va_arg(args, PSNode *));
+                operands.push_back(va_arg(args, PSNode *));
                 break;
             case MEMCPY:
-                operands.push_back(va_arg(args, PSSNode *));
-                operands.push_back(va_arg(args, PSSNode *));
+                operands.push_back(va_arg(args, PSNode *));
+                operands.push_back(va_arg(args, PSNode *));
                 offset = va_arg(args, uint64_t);
                 len = va_arg(args, uint64_t);
                 break;
             case GEP:
-                operands.push_back(va_arg(args, PSSNode *));
+                operands.push_back(va_arg(args, PSNode *));
                 offset = va_arg(args, uint64_t);
                 break;
             case CONSTANT:
-                op = va_arg(args, PSSNode *);
+                op = va_arg(args, PSNode *);
                 offset = va_arg(args, uint64_t);
                 pointsTo.insert(Pointer(op, offset));
                 break;
@@ -210,11 +210,11 @@ public:
             case PHI:
             case RETURN:
             case CALL:
-                op = va_arg(args, PSSNode *);
+                op = va_arg(args, PSNode *);
                 // the operands are null terminated
                 while (op) {
                     operands.push_back(op);
-                    op = va_arg(args, PSSNode *);
+                    op = va_arg(args, PSNode *);
                 }
                 break;
             default:
@@ -224,7 +224,7 @@ public:
         va_end(args);
     }
 
-    ~PSSNode() { delete name; }
+    ~PSNode() { delete name; }
 
     // getters & setters for analysis's data in the node
     template <typename T>
@@ -254,7 +254,7 @@ public:
         return old;
     }
 
-    PSSNodeType getType() const { return type; }
+    PSNodeType getType() const { return type; }
     const char *getName() const { return name; }
     void setName(const char *n)
     {
@@ -262,10 +262,10 @@ public:
         name = strdup(n);
     }
 
-    PSSNode *getPairedNode() const { return pairedNode; }
-    void setPairedNode(PSSNode *n) { pairedNode = n; }
+    PSNode *getPairedNode() const { return pairedNode; }
+    void setPairedNode(PSNode *n) { pairedNode = n; }
 
-    PSSNode *getOperand(int idx) const
+    PSNode *getOperand(int idx) const
     {
         assert(idx >= 0 && (size_t) idx < operands.size()
                && "Operand index out of range");
@@ -273,7 +273,7 @@ public:
         return operands[idx];
     }
 
-    size_t addOperand(PSSNode *n)
+    size_t addOperand(PSNode *n)
     {
         operands.push_back(n);
         return operands.size();
@@ -291,16 +291,16 @@ public:
     bool isNull() const { return type == NULL_ADDR; }
     bool isUnknownMemory() const { return type == UNKNOWN_MEM; }
 
-    void addSuccessor(PSSNode *succ)
+    void addSuccessor(PSNode *succ)
     {
         successors.push_back(succ);
         succ->predecessors.push_back(this);
     }
 
-    void replaceSingleSuccessor(PSSNode *succ)
+    void replaceSingleSuccessor(PSNode *succ)
     {
         assert(successors.size() == 1);
-        PSSNode *old = successors[0];
+        PSNode *old = successors[0];
 
         // replace the successor
         successors.clear();
@@ -308,9 +308,9 @@ public:
 
         // we need to remove this node from
         // successor's predecessors
-        std::vector<PSSNode *> tmp;
+        std::vector<PSNode *> tmp;
         tmp.reserve(old->predecessorsNum() - 1);
-        for (PSSNode *p : old->predecessors)
+        for (PSNode *p : old->predecessors)
             tmp.push_back(p);
 
         old->predecessors.swap(tmp);
@@ -318,18 +318,18 @@ public:
 
     // return const only, so that we cannot change them
     // other way then addSuccessor()
-    const std::vector<PSSNode *>& getSuccessors() const { return successors; }
-    const std::vector<PSSNode *>& getPredecessors() const { return predecessors; }
+    const std::vector<PSNode *>& getSuccessors() const { return successors; }
+    const std::vector<PSNode *>& getPredecessors() const { return predecessors; }
 
     // get successor when we know there's only one of them
-    PSSNode *getSingleSuccessor() const
+    PSNode *getSingleSuccessor() const
     {
         assert(successors.size() == 1);
         return successors.front();
     }
 
     // get predecessor when we know there's only one of them
-    PSSNode *getSinglePredecessor() const
+    PSNode *getSinglePredecessor() const
     {
         assert(predecessors.size() == 1);
         return predecessors.front();
@@ -337,7 +337,7 @@ public:
 
     // insert this node in PSS after n
     // this node must not be in any PSS
-    void insertAfter(PSSNode *n)
+    void insertAfter(PSNode *n)
     {
         assert(predecessorsNum() == 0);
         assert(successorsNum() == 0);
@@ -349,7 +349,7 @@ public:
         n->addSuccessor(this);
 
         // replace the reference to n in successors
-        for (PSSNode *succ : successors) {
+        for (PSNode *succ : successors) {
             for (unsigned i = 0; i < succ->predecessorsNum(); ++i) {
                 if (succ->predecessors[i] == n)
                     succ->predecessors[i] = this;
@@ -359,7 +359,7 @@ public:
 
     // insert this node in PSS before n
     // this node must not be in any PSS
-    void insertBefore(PSSNode *n)
+    void insertBefore(PSNode *n)
     {
         assert(predecessorsNum() == 0);
         assert(successorsNum() == 0);
@@ -371,7 +371,7 @@ public:
         addSuccessor(n);
 
         // replace the reference to n in predecessors
-        for (PSSNode *pred : predecessors) {
+        for (PSNode *pred : predecessors) {
             for (unsigned i = 0; i < pred->successorsNum(); ++i) {
                 if (pred->successors[i] == n)
                     pred->successors[i] = this;
@@ -380,7 +380,7 @@ public:
     }
 
     // insert a sequence before this node in PSS
-    void insertSequenceBefore(std::pair<PSSNode *, PSSNode *>& seq)
+    void insertSequenceBefore(std::pair<PSNode *, PSNode *>& seq)
     {
         // the sequence must not be inserted in any PSS
         assert(seq.first->predecessorsNum() == 0);
@@ -392,7 +392,7 @@ public:
         predecessors.swap(seq.first->predecessors);
 
         // replace the reference to 'this' in predecessors
-        for (PSSNode *pred : seq.first->predecessors) {
+        for (PSNode *pred : seq.first->predecessors) {
             for (unsigned i = 0; i < pred->successorsNum(); ++i) {
                 if (pred->successors[i] == this)
                     pred->successors[i] = seq.first;
@@ -411,7 +411,7 @@ public:
     PointsToSetT pointsTo;
 
     // convenient helper
-    bool addPointsTo(PSSNode *n, Offset o)
+    bool addPointsTo(PSNode *n, Offset o)
     {
         // do not add concrete offsets when we have the UNKNOWN_OFFSET
         // - unknown offset stands for any offset
@@ -443,48 +443,48 @@ public:
         return pointsTo.count(p) == 1;
     }
 
-    bool doesPointsTo(PSSNode *n, Offset o = 0)
+    bool doesPointsTo(PSNode *n, Offset o = 0)
     {
         return doesPointsTo(Pointer(n, o));
     }
 
-    bool addPointsToUnknownOffset(PSSNode *target);
+    bool addPointsToUnknownOffset(PSNode *target);
 
     friend class PSS;
 };
 
 // special PSS nodes
-extern PSSNode *NULLPTR;
-extern PSSNode *UNKNOWN_MEMORY;
+extern PSNode *NULLPTR;
+extern PSNode *UNKNOWN_MEMORY;
 
 class PSS
 {
     unsigned int dfsnum;
 
     // root of the pointer state subgraph
-    PSSNode *root;
+    PSNode *root;
 
 protected:
     // queue used to reach the fixpoint
-    ADT::QueueFIFO<PSSNode *> queue;
+    ADT::QueueFIFO<PSNode *> queue;
 
     // protected constructor for child classes
     PSS() : dfsnum(0), root(nullptr) {}
 
 public:
-    bool processNode(PSSNode *);
-    PSS(PSSNode *r) : dfsnum(0), root(r)
+    bool processNode(PSNode *);
+    PSS(PSNode *r) : dfsnum(0), root(r)
     {
         assert(root && "Cannot create PSS with null root");
     }
 
     virtual ~PSS() {}
 
-    // takes a PSSNode 'where' and 'what' and reference to a vector
+    // takes a PSNode 'where' and 'what' and reference to a vector
     // and fills into the vector the objects that are relevant
-    // for the PSSNode 'what' (valid memory states for of this PSSNode)
+    // for the PSNode 'what' (valid memory states for of this PSNode)
     // on location 'where' in PSS
-    virtual void getMemoryObjects(PSSNode *where, PSSNode *what,
+    virtual void getMemoryObjects(PSNode *where, PSNode *what,
                                   std::vector<MemoryObject *>& objects) = 0;
 
     /*
@@ -495,29 +495,29 @@ public:
     }
     */
 
-    void getNodes(std::set<PSSNode *>& cont,
-                  PSSNode *n = nullptr)
+    void getNodes(std::set<PSNode *>& cont,
+                  PSNode *n = nullptr)
     {
         // default behaviour is to enqueue all pending nodes
         ++dfsnum;
-        ADT::QueueFIFO<PSSNode *> fifo;
+        ADT::QueueFIFO<PSNode *> fifo;
 
         if (!n) {
             fifo.push(root);
             n = root;
         }
 
-        for (PSSNode *succ : n->successors) {
+        for (PSNode *succ : n->successors) {
             succ->dfsid = dfsnum;
             fifo.push(succ);
         }
 
         while (!fifo.empty()) {
-            PSSNode *cur = fifo.pop();
+            PSNode *cur = fifo.pop();
             bool ret = cont.insert(cur).second;
             assert(ret && "BUG: Tried to insert something twice");
 
-            for (PSSNode *succ : cur->successors) {
+            for (PSNode *succ : cur->successors) {
                 if (succ->dfsid != dfsnum) {
                     succ->dfsid = dfsnum;
                     fifo.push(succ);
@@ -530,20 +530,20 @@ public:
     // the container
     template <typename ContT>
     void getNodes(ContT& cont,
-                  PSSNode *start_node = nullptr,
-                  std::set<PSSNode *> *start_set = nullptr)
+                  PSNode *start_node = nullptr,
+                  std::set<PSNode *> *start_set = nullptr)
     {
         assert(root && "Do not have root");
         assert(!(start_set && start_node)
                && "Need either starting set or starting node, not both");
 
         ++dfsnum;
-        ADT::QueueFIFO<PSSNode *> fifo;
+        ADT::QueueFIFO<PSNode *> fifo;
 
         if (start_set) {
             // FIXME: get rid of the loop,
             // make it via iterator range
-            for (PSSNode *s : *start_set)
+            for (PSNode *s : *start_set)
                 fifo.push(s);
         } else {
             if (!start_node)
@@ -555,10 +555,10 @@ public:
         root->dfsid = dfsnum;
 
         while (!fifo.empty()) {
-            PSSNode *cur = fifo.pop();
+            PSNode *cur = fifo.pop();
             cont.push(cur);
 
-            for (PSSNode *succ : cur->successors) {
+            for (PSNode *succ : cur->successors) {
                 if (succ->dfsid != dfsnum) {
                     succ->dfsid = dfsnum;
                     fifo.push(succ);
@@ -567,25 +567,25 @@ public:
         }
     }
 
-    virtual void enqueue(PSSNode *n)
+    virtual void enqueue(PSNode *n)
     {
         // default behaviour is to queue all reachable nodes
         getNodes(queue, n);
     }
 
     /* hooks for analysis - optional */
-    virtual void beforeProcessed(PSSNode *n)
+    virtual void beforeProcessed(PSNode *n)
     {
         (void) n;
     }
 
-    virtual void afterProcessed(PSSNode *n)
+    virtual void afterProcessed(PSNode *n)
     {
         (void) n;
     }
 
-    PSSNode *getRoot() const { return root; }
-    void setRoot(PSSNode *r) { root = r; }
+    PSNode *getRoot() const { return root; }
+    void setRoot(PSNode *r) { root = r; }
 
     size_t pendingInQueue() const { return queue.size(); }
 
@@ -598,7 +598,7 @@ public:
         getNodes(queue);
 
         while (!queue.empty()) {
-            PSSNode *cur = queue.pop();
+            PSNode *cur = queue.pop();
             beforeProcessed(cur);
 
             if (processNode(cur))
@@ -615,8 +615,11 @@ public:
         // the assert below. This is temporary workaround -
         // just make another iteration. Proper fix would be to
         // fix queuing the nodes, but that will be more difficult
+        //queue.push(root);
+        //getNodes(queue);
+
         while (!queue.empty()) {
-            PSSNode *cur = queue.pop();
+            PSNode *cur = queue.pop();
             beforeProcessed(cur);
 
             if (processNode(cur))
@@ -635,12 +638,12 @@ public:
 
         bool changed = false;
         while (!queue.empty()) {
-            PSSNode *cur = queue.pop();
+            PSNode *cur = queue.pop();
 
             beforeProcessed(cur);
 
             changed = processNode(cur);
-            assert(!changed && "BUG: Did not reach fixpoint");
+        //    assert(!changed && "BUG: Did not reach fixpoint");
 
             afterProcessed(cur);
         }
@@ -650,7 +653,7 @@ public:
     // generic error
     // @msg - message for the user
     // FIXME: maybe create some enum that will represent the error
-    virtual bool error(PSSNode *at, const char *msg)
+    virtual bool error(PSNode *at, const char *msg)
     {
         // let this on the user - in flow-insensitive analysis this is
         // no error, but in flow sensitive it is ...
@@ -662,7 +665,7 @@ public:
     // handle specific situation (error) in the analysis
     // @return whether the function changed the some points-to set
     //  (e. g. added pointer to unknown memory)
-    virtual bool errorEmptyPointsTo(PSSNode *from, PSSNode *to)
+    virtual bool errorEmptyPointsTo(PSNode *from, PSNode *to)
     {
         // let this on the user - in flow-insensitive analysis this is
         // no error, but in flow sensitive it is ...
@@ -674,7 +677,7 @@ public:
     // adjust the PSS on function pointer call
     // @ where is the callsite
     // @ what is the function that is being called
-    virtual bool functionPointerCall(PSSNode *where, PSSNode *what)
+    virtual bool functionPointerCall(PSNode *where, PSNode *what)
     {
         (void) where;
         (void) what;
@@ -682,8 +685,8 @@ public:
     }
 
 private:
-    bool processLoad(PSSNode *node);
-    bool processMemcpy(PSSNode *node);
+    bool processLoad(PSNode *node);
+    bool processMemcpy(PSNode *node);
 };
 
 } // namespace pss

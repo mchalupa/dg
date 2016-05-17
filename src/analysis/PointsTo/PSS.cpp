@@ -6,10 +6,10 @@ namespace analysis {
 namespace pss {
 
 // nodes representing NULL and unknown memory
-PSSNode NULLPTR_LOC(NULL_ADDR);
-PSSNode *NULLPTR = &NULLPTR_LOC;
-PSSNode UNKNOWN_MEMLOC(UNKNOWN_MEM);
-PSSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+PSNode NULLPTR_LOC(NULL_ADDR);
+PSNode *NULLPTR = &NULLPTR_LOC;
+PSNode UNKNOWN_MEMLOC(UNKNOWN_MEM);
+PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 // pointers to those memory
 const Pointer PointerUnknown(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
@@ -17,7 +17,7 @@ const Pointer PointerNull(NULLPTR, 0);
 
 // replace all pointers to given target with one
 // to that target, but UNKNOWN_OFFSET
-bool PSSNode::addPointsToUnknownOffset(PSSNode *target)
+bool PSNode::addPointsToUnknownOffset(PSNode *target)
 {
     bool changed = false;
     // FIXME: use equal range, it is much faster
@@ -38,10 +38,10 @@ bool PSSNode::addPointsToUnknownOffset(PSSNode *target)
     return changed;
 }
 
-bool PSS::processLoad(PSSNode *node)
+bool PSS::processLoad(PSNode *node)
 {
     bool changed = false;
-    PSSNode *operand = node->getOperand(0);
+    PSNode *operand = node->getOperand(0);
 
     if (operand->pointsTo.empty())
         return error(operand, "Load's operand has no points-to set");
@@ -50,7 +50,7 @@ bool PSS::processLoad(PSSNode *node)
         if (ptr.isNull())
             continue;
 
-        PSSNode *target = ptr.target;
+        PSNode *target = ptr.target;
         assert(target && "Got nullptr as target");
 
         // find memory objects holding relevant points-to
@@ -128,7 +128,7 @@ bool PSS::processLoad(PSSNode *node)
     return changed;
 }
 
-bool PSS::processMemcpy(PSSNode *node)
+bool PSS::processMemcpy(PSNode *node)
 {
     bool changed = false;
 
@@ -136,8 +136,8 @@ bool PSS::processMemcpy(PSSNode *node)
     std::vector<MemoryObject *> srcObjects;
     // where to copy
     std::vector<MemoryObject *> destObjects;
-    PSSNode *srcNode = node->getOperand(0);
-    PSSNode *destNode = node->getOperand(1);
+    PSNode *srcNode = node->getOperand(0);
+    PSNode *destNode = node->getOperand(1);
 
     /* if one is zero initialized and we copy it whole,
      * set the other zero initialized too */
@@ -229,7 +229,7 @@ bool PSS::processMemcpy(PSSNode *node)
     return changed;
 }
 
-bool PSS::processNode(PSSNode *node)
+bool PSS::processNode(PSNode *node)
 {
     bool changed = false;
     std::vector<MemoryObject *> objects;
@@ -244,7 +244,7 @@ bool PSS::processNode(PSSNode *node)
             break;
         case STORE:
             for (const Pointer& ptr : node->getOperand(1)->pointsTo) {
-                PSSNode *target = ptr.target;
+                PSNode *target = ptr.target;
                 assert(target && "Got nullptr as target");
 
                 if (ptr.isNull())
@@ -293,7 +293,7 @@ bool PSS::processNode(PSSNode *node)
             // gather pointers returned from subprocedure - the same way
             // as PHI works
         case PHI:
-            for (PSSNode *op : node->operands)
+            for (PSNode *op : node->operands)
                 changed |= node->addPointsTo(op->pointsTo);
             break;
         case CALL_FUNCPTR:

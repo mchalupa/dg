@@ -11,26 +11,26 @@ namespace dg {
 namespace analysis {
 namespace pss {
 
-// declare PSSNode
-class PSSNode;
+// declare PSNode
+class PSNode;
 
 struct MemoryObject;
 struct Pointer;
 
 extern const Pointer PointerUnknown;
 extern const Pointer PointerNull;
-extern PSSNode *NULLPTR;
-extern PSSNode *UNKNOWN_MEMORY;
+extern PSNode *NULLPTR;
+extern PSNode *UNKNOWN_MEMORY;
 
 struct Pointer
 {
-    Pointer(PSSNode *n, Offset off = 0) : target(n), offset(off)
+    Pointer(PSNode *n, Offset off = 0) : target(n), offset(off)
     {
         assert(n && "Cannot have a pointer with nullptr as target");
     }
 
-    // PSSNode that allocated the memory this pointer points-to
-    PSSNode *target;
+    // PSNode that allocated the memory this pointer points-to
+    PSNode *target;
     // offset into the memory it points to
     Offset offset;
 
@@ -51,16 +51,16 @@ struct Pointer
 
 typedef std::set<Pointer> PointsToSetT;
 typedef std::map<Offset, PointsToSetT> PointsToMapT;
-typedef std::set<PSSNode *> ValuesSetT;
+typedef std::set<PSNode *> ValuesSetT;
 typedef std::map<Offset, ValuesSetT> ValuesMapT;
 
 struct MemoryObject
 {
-    MemoryObject(/*uint64_t s = 0, bool isheap = false, */PSSNode *n = nullptr)
+    MemoryObject(/*uint64_t s = 0, bool isheap = false, */PSNode *n = nullptr)
         : node(n) /*, is_heap(isheap), size(s)*/ {}
 
     // where was this memory allocated? for debugging
-    PSSNode *node;
+    PSNode *node;
     // possible pointers stored in this memory object
     PointsToMapT pointsTo;
 

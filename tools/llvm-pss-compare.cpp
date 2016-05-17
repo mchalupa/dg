@@ -52,7 +52,7 @@ getInstName(const llvm::Value *val)
 }
 
 static void
-printName(PSSNode *node)
+printName(PSNode *node)
 {
     const char *name = node->getName();
     std::string nm;
@@ -83,7 +83,7 @@ printName(PSSNode *node)
 }
 
 static void
-dumpPSSNode(PSSNode *n)
+dumpPSNode(PSNode *n)
 {
     const char *name = n->getName();
 
@@ -114,14 +114,14 @@ static bool verify_ptsets(const llvm::Value *val,
                           LLVMPointsToAnalysis *fi,
                           LLVMPointsToAnalysis *fs)
 {
-    PSSNode *finode = fi->getPointsTo(val);
-    PSSNode *fsnode = fs->getPointsTo(val);
+    PSNode *finode = fi->getPointsTo(val);
+    PSNode *fsnode = fs->getPointsTo(val);
 
     if (!finode) {
         if (fsnode) {
             llvm::errs() << "FI don't have points-to for: " << *val << "\n"
                          << "but FS has:\n";
-            dumpPSSNode(fsnode);
+            dumpPSNode(fsnode);
         } else
             // if boths mapping are null we assume that
             // the value is not reachable from main
@@ -135,7 +135,7 @@ static bool verify_ptsets(const llvm::Value *val,
         if (finode) {
             llvm::errs() << "FS don't have points-to for: " << *val << "\n"
                          << "but FI has:\n";
-            dumpPSSNode(finode);
+            dumpPSNode(finode);
         } else
             return true;
 
@@ -162,9 +162,9 @@ static bool verify_ptsets(const llvm::Value *val,
         if (!found) {
                 llvm::errs() << "FS not subset of FI: " << *val << "\n";
                 llvm::errs() << "FI ";
-                dumpPSSNode(finode);
+                dumpPSNode(finode);
                 llvm::errs() << "FS ";
-                dumpPSSNode(fsnode);
+                dumpPSNode(fsnode);
                 llvm::errs() << " ---- \n";
                 return false;
         }
