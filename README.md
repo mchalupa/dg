@@ -111,7 +111,7 @@ The other is wrapper around llvm-dg-dump. It uses evince or okular (or xdg-open)
 It takes exactly the same arguments as llvm-dg-dump:
 
 ```
-./ldg-show.sh -mark crit code.bc
+./llvmdg-show -mark crit code.bc
 ```
 If the dependence graph is too big to be displayed using .dot files, you can debug the slice right from
 the LLVM. Just pass -debug option to llvm-slicer and it will store readable annotated LLVM in file-debug.ll
@@ -224,7 +224,7 @@ The tools subdirectory contains a set of useful programs for debugging
 and playing with the llvm bitcode. Except for the llvm-slicer you can find there:
 
 * `llvm-dg-dump`  - Dump the dependence graph for given program to graphviz format (to stdout)
-* `ldg-show.sh`   - wrapper for llvm-dg-dump that displays the graph as pdf
+* `llvmdg-show`   - wrapper for llvm-dg-dump that displays the graph as pdf
 * `llvm-ps-dump`  - dump pointer subgraph and results of the points-to analysis to stdout
 * `ps-show`       - wrapper for llvm-ps-dump that prints the PS in grapviz to pdf
 * `llvm-rd-dump`  - display reaching definitions in llvm-bitcode
