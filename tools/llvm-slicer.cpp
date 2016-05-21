@@ -776,6 +776,9 @@ static int verify_and_write_module(llvm::Module *M, const char *module) {
         errs() << "Saving sliced module failed\n";
         return 1;
     }
+
+    // exit code
+    return 0;
 }
 
 static int save_module(llvm::Module *M, const char *module,

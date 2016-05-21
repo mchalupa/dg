@@ -221,6 +221,8 @@ RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
     RDNode *op = nodes_map[val];
     if (!op)
         return createNode(*llvm::cast<llvm::Instruction>(val));
+
+    return op;
 }
 
 RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
