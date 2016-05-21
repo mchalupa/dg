@@ -185,11 +185,15 @@ static bool verify_ptsets(llvm::Module *M,
                           LLVMPointsToAnalysis *fs)
 {
     using namespace llvm;
+    bool ret = true;
 
     for (Function& F : *M)
         for (BasicBlock& B : F)
             for (Instruction& I : B)
-                verify_ptsets(&I, fi, fs);
+                if (!verify_ptsets(&I, fi, fs))
+                    ret = false;
+
+    return ret;
 }
 
 int main(int argc, char *argv[])
