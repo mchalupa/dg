@@ -20,11 +20,12 @@ protected:
 public:
     PointsToFlowInsensitive(PSNode *r) : PointerSubgraph(r) {}
 
-    virtual void getMemoryObjects(PSNode *where, PSNode *n,
+    virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects)
     {
         // irrelevant in flow-insensitive
         (void) where;
+        PSNode *n = pointer.target;
 
         // we want to have memory in allocation sites
         if (n->getType() == pta::CAST || n->getType() == pta::GEP)

@@ -117,27 +117,20 @@ public:
         changed.insert(n);
     }
 
-    virtual void getMemoryObjects(PSNode *where, PSNode *n,
+    virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects)
     {
         MemoryMapT *mm= where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
 
-        if (n->pointsTo.empty()) {
-            error(where, "getMemoryObjects on node with no points-to");
-            return;
-        }
+        auto bounds = getObjectRange(mm, pointer);
+        for (MemoryMapT::iterator I = bounds.first;
+             I != bounds.second; ++I) {
+            assert(I->first.target == pointer.target
+                    && "Bug in getObjectRange");
 
-        for (const Pointer& ptr : n->pointsTo) {
-            auto bounds = getObjectRange(mm, ptr);
-            for (MemoryMapT::iterator I = bounds.first;
-                 I != bounds.second; ++I) {
-                assert(I->first.target == ptr.target
-                        && "Bug in getObjectRange");
-
-                for (MemoryObject *mo : I->second)
-                    objects.push_back(mo);
-            }
+            for (MemoryObject *mo : I->second)
+                objects.push_back(mo);
         }
     }
 

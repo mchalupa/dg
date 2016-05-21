@@ -484,7 +484,7 @@ public:
     // and fills into the vector the objects that are relevant
     // for the PSNode 'what' (valid memory states for of this PSNode)
     // on location 'where' in PointerSubgraph
-    virtual void getMemoryObjects(PSNode *where, PSNode *what,
+    virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects) = 0;
 
     /*

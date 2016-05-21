@@ -50,23 +50,20 @@ bool PointerSubgraph::processLoad(PSNode *node)
         if (ptr.isNull())
             continue;
 
-        PSNode *target = ptr.target;
-        assert(target && "Got nullptr as target");
-
         // find memory objects holding relevant points-to
         // information
         std::vector<MemoryObject *> objects;
-        getMemoryObjects(node, target, objects);
+        getMemoryObjects(node, ptr, objects);
 
         // no objects found for this target? That is
         // load from unknown memory
         if (objects.empty()) {
-            if (target->isZeroInitialized())
+            if (ptr.target->isZeroInitialized())
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
                 changed |= node->addPointsTo(NULLPTR);
             else
-                changed |= errorEmptyPointsTo(node, target);
+                changed |= errorEmptyPointsTo(node, ptr.target);
 
             continue;
         }
@@ -78,11 +75,12 @@ bool PointerSubgraph::processLoad(PSNode *node)
             if (ptr.offset.isUnknown()) {
                 // we should load from memory that has
                 // no pointers in it - it may be an error
+                // FIXME: don't duplicate the code
                 if (o->pointsTo.empty()) {
-                    if (target->isZeroInitialized())
+                    if (ptr.target->isZeroInitialized())
                         changed |= node->addPointsTo(NULLPTR);
                     else if (objects.size() == 1)
-                        changed |= errorEmptyPointsTo(node, target);
+                        changed |= errorEmptyPointsTo(node, ptr.target);
                 }
 
                 // we have some pointers - copy them all,
@@ -102,12 +100,13 @@ bool PointerSubgraph::processLoad(PSNode *node)
             if (!o->pointsTo.count(ptr.offset)) {
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
-                if (target->isZeroInitialized())
+                if (ptr.target->isZeroInitialized())
                     changed |= node->addPointsTo(NULLPTR);
                 // if we don't have a definition even with unknown offset
                 // it is an error
+                // FIXME: don't triplicate the code!
                 else if (!o->pointsTo.count(UNKNOWN_OFFSET))
-                    changed |= errorEmptyPointsTo(node, target);
+                    changed |= errorEmptyPointsTo(node, ptr.target);
             } else {
                 // we have pointers on that memory, so we can
                 // do the work
@@ -155,7 +154,7 @@ bool PointerSubgraph::processMemcpy(PSNode *node)
         if (ptr.isNull())
             continue;
 
-        getMemoryObjects(node, ptr.target, srcObjects);
+        getMemoryObjects(node, ptr, srcObjects);
     }
 
     // gather destNode objects
@@ -165,7 +164,7 @@ bool PointerSubgraph::processMemcpy(PSNode *node)
         if (dptr.isNull())
             continue;
 
-        getMemoryObjects(node, dptr.target, destObjects);
+        getMemoryObjects(node, dptr, destObjects);
     }
 
     if (srcObjects.empty()){
@@ -251,7 +250,7 @@ bool PointerSubgraph::processNode(PSNode *node)
                     continue;
 
                 objects.clear();
-                getMemoryObjects(node, target, objects);
+                getMemoryObjects(node, ptr, objects);
                 for (MemoryObject *o : objects) {
                     for (const Pointer& to : node->getOperand(0)->pointsTo)
                         changed |= o->addPointsTo(ptr.offset, to);
