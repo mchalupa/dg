@@ -711,7 +711,8 @@ LLVMPointerSubgraphBuilder::createIntrinsic(const llvm::Instruction *Inst)
             return std::make_pair(n, n);
         default:
             errs() << *Inst << "\n";
-            assert(0 && "Unhandled intrinsic");
+            errs() << "Unhandled intrinsic ^^\n";
+            abort();
     }
 }
 
