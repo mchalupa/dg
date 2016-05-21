@@ -91,7 +91,7 @@ dumpPSNode(PSNode *n)
 {
     const char *name = nullptr;
 #if DEBUG_ENABLED
-    name = node->getName();
+    name = n->getName();
 #endif
 
     printf("NODE: ");
