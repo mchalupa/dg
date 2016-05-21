@@ -648,7 +648,7 @@ public:
             beforeProcessed(cur);
 
             changed = processNode(cur);
-        //    assert(!changed && "BUG: Did not reach fixpoint");
+            assert(!changed && "BUG: Did not reach fixpoint");
 
             afterProcessed(cur);
         }

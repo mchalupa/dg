@@ -20,19 +20,17 @@
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "PointerSubgraph.h"
 
-#ifdef DEBUG_ENABLED
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
-#endif
-
 namespace dg {
 namespace analysis {
 namespace pta {
 
 /* keep it for debugging */
 #if 0
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+
 static std::string
 getInstName(const llvm::Value *val)
 {

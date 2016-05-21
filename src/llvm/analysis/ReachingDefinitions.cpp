@@ -23,18 +23,16 @@
 
 #include <set>
 
-#ifdef DEBUG_ENABLED
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
-#endif
-
 namespace dg {
 namespace analysis {
 namespace rd {
 
 #if 0
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+
 static std::string
 getInstName(const llvm::Value *val)
 {
