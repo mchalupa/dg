@@ -54,7 +54,11 @@ getInstName(const llvm::Value *val)
 static void
 printName(PSNode *node)
 {
-    const char *name = node->getName();
+    const char *name = nullptr;
+#if DEBUG_ENABLED
+    name = node->getName();
+#endif
+
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
@@ -85,7 +89,10 @@ printName(PSNode *node)
 static void
 dumpPSNode(PSNode *n)
 {
-    const char *name = n->getName();
+    const char *name = nullptr;
+#if DEBUG_ENABLED
+    name = node->getName();
+#endif
 
     printf("NODE: ");
     printName(n);

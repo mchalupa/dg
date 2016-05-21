@@ -88,7 +88,10 @@ static void
 printName(PSNode *node, bool dot)
 {
     std::string nm;
-    const char *name = node->getName();
+    const char *name = nullptr;
+#if DEBUG_ENABLED
+    name = node->getName();
+#endif
 
     if (!name) {
         if (node->isNull())

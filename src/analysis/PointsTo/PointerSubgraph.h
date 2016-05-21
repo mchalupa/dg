@@ -224,7 +224,9 @@ public:
         va_end(args);
     }
 
+#ifdef DEBUG_ENABLED
     ~PSNode() { delete name; }
+#endif
 
     // getters & setters for analysis's data in the node
     template <typename T>
@@ -255,12 +257,15 @@ public:
     }
 
     PSNodeType getType() const { return type; }
+
+#ifdef DEBUG_ENABLED
     const char *getName() const { return name; }
     void setName(const char *n)
     {
         delete name;
         name = strdup(n);
     }
+#endif
 
     PSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSNode *n) { pairedNode = n; }
