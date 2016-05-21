@@ -9,12 +9,10 @@ include_directories( ${CMAKE_SOURCE_DIR}/src )
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-# define DEBUG by default for now
-OPTION(ENABLE_DEBUG "Enable debugging" ON)
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
 
-message(STATUS "Compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 if (LLVM_DG)
 	# for llvm dg we need cfg and postdom edges
@@ -77,19 +75,33 @@ if (ENABLE_CFG)
 	add_definitions(-DENABLE_CFG)
 endif()
 
-if (ENABLE_DEBUG)
+message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
+
+# explicitly add -std=c++11
+# we have CMAKE_CXX_STANDARD, but for some reason it does not
+# put the -std=c++11 or -std=gnu++11 to the flags
+# on some systems
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+# Debug Release RelWithDebInfo MinSizeRel.
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_definitions(-DDEBUG_ENABLED)
-	# explicitly add -std=c++11
-	# we have CMAKE_CXX_STANDARD, but for some reason it does not
-	# put the -std=c++11 or -std=gnu++11 to the flags
-	# on some systems
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -g -O0")
-else ()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -O2")
+	message(STATUS "Using compilation flags: ${CMAKE_CXX_FLAGS_DEBUG}")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Release")
+	message(STATUS "Using compilation flags: ${CMAKE_CXX_FLAGS_RELEASE}")
+elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+	message(STATUS
+		"Using compilation flags: ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+elseif (CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+	message(STATUS "Using compilation flags: ${CMAKE_CXX_FLAGS_MINSIZEREL}")
 endif ()
 
-message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
-message(STATUS "Using compilation flags: ${CMAKE_CXX_FLAGS}")
+# LLVM 3.4 and older have problem with turning off the RTTI
+if (NOT ${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
+  llvm_replace_compiler_option(CMAKE_CXX_FLAGS "-frtti" "-fno-rtti")
+endif()
+
+message(STATUS "Additional compilation flags: ${CMAKE_CXX_FLAGS}")
 
 # generate a git-version.h with a HEAD commit hash tag
 add_custom_target(
