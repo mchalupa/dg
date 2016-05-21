@@ -58,7 +58,10 @@ printName(RDNode *node, bool dot)
         return;
     }
 
-    const char *name = node->getName();
+    const char *name = nullptr;
+#ifdef DEBUG_ENABLED
+    name = node->getName();
+#endif
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
@@ -73,8 +76,6 @@ printName(RDNode *node, bool dot)
         nm = getInstName(node->getUserData<llvm::Value>());
         name = nm.c_str();
     }
-
-
 
     // escape the " character
     for (int i = 0; name[i] != '\0'; ++i) {

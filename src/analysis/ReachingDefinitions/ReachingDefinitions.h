@@ -52,13 +52,19 @@ class RDNode {
     // marks for DFS/BFS
     unsigned int dfsid;
 
+#ifdef DEBUG_ENABLED
     // same data as in PSNode
     const char *name;
+#endif
+
     void *data;
     void *user_data;
 public:
     RDNode(RDNodeType t = NONE)
-        : type(t), dfsid(0), name(nullptr),
+        : type(t), dfsid(0),
+#ifdef DEBUG_ENABLED
+          name(nullptr),
+#endif
           data(nullptr), user_data(nullptr) {}
 
     // this is the gro of this node, so make it public
@@ -71,8 +77,10 @@ public:
 
     RDNodeType getType() const { return type; }
 
+#ifdef DEBUG_ENABLED
     const char *getName() const { return name; }
     void setName(const char *n) { delete name; name = strdup(n); }
+#endif
 
     const std::vector<RDNode *>& getSuccessors() const { return successors; }
     const std::vector<RDNode *>& getPredecessors() const { return predecessors; }

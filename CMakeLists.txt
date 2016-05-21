@@ -88,6 +88,7 @@ else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -O2")
 endif ()
 
+message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Using compilation flags: ${CMAKE_CXX_FLAGS}")
 
 # generate a git-version.h with a HEAD commit hash tag

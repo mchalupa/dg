@@ -14,6 +14,7 @@ namespace tests {
 
 using namespace analysis::rd;
 
+#ifdef DEBUG_ENABLED
 static void
 dumpMap(RDNode *node)
 {
@@ -30,6 +31,7 @@ dumpMap(RDNode *node)
     }
     printf("---\n");
 }
+#endif
 
 class ReachingDefinitionsTest : public Test
 {
@@ -181,10 +183,12 @@ public:
         RDNode AL2;
         RDNode S1;
         RDNode S2;
+        /*
         AL1.setName("AL1");
         AL2.setName("AL2");
         S1.setName("S1: AL1 0+4");
         S2.setName("S2: AL1 2+4");
+        */
 
         S1.addDef(&AL1, 0, 4, true /* strong update */);
         S2.addDef(&AL1, 2, 4, true /* strong update */);
