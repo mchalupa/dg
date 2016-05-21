@@ -15,6 +15,7 @@ namespace tests {
 using analysis::pta::Pointer;
 using analysis::pta::PSNode;
 
+#ifdef DEBUG_ENABLED
 static void
 dumpPSNode(PSNode *n)
 {
@@ -33,6 +34,7 @@ dumpPSNode(PSNode *n)
             printf(" + %lu\n", *ptr.offset);
     }
 }
+#endif
 
 template <typename PTStoT>
 class PointsToTest : public Test
