@@ -30,6 +30,7 @@ if (LLVM_DG)
 
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
 	include(LLVMConfig)
+	include(AddLLVM)
 
 	message(STATUS "LLVM include dir: ${LLVM_INCLUDE_DIRS}")
 	message(STATUS "LLVM libraries dir: ${LLVM_LIBRARY_DIRS}")
@@ -77,11 +78,12 @@ endif()
 
 message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 
-# explicitly add -std=c++11
+# explicitly add -std=c++11 and -fno-rtti
 # we have CMAKE_CXX_STANDARD, but for some reason it does not
 # put the -std=c++11 or -std=gnu++11 to the flags
-# on some systems
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+# on some systems. For the -fno-rtti: LLVM still got problems
+# with turning RTTI off...
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11")
 
 # Debug Release RelWithDebInfo MinSizeRel.
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -95,11 +97,6 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
 elseif (CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
 	message(STATUS "Using compilation flags: ${CMAKE_CXX_FLAGS_MINSIZEREL}")
 endif ()
-
-# LLVM 3.4 and older have problem with turning off the RTTI
-if (NOT ${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
-  llvm_replace_compiler_option(CMAKE_CXX_FLAGS "-frtti" "-fno-rtti")
-endif()
 
 message(STATUS "Additional compilation flags: ${CMAKE_CXX_FLAGS}")
 
