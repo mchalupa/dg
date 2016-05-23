@@ -2,12 +2,26 @@
 
 #defult program
 GUI=xdg-open
+DIRECTDOT=0
 
-if which okular &>/dev/null; then
+set -e
+
+if which xdot &>/dev/null; then
+	GUI=xdot
+	DIRECTDOT=1
+elif which okular &>/dev/null; then
 	GUI=okular
 elif which evince &>/dev/null; then
 	GUI=evince
 fi
 
-`dirname $0`/llvm-rd-dump -dot $@ > _rd.dot && dot -Tpdf -o _rd.pdf _rd.dot && $GUI _rd.pdf
-rm _rd.pdf _rd.dot
+`dirname $0`/llvm-rd-dump -dot $@ > _rd.dot
+
+if [ $DIRECTDOT -eq 1 ]; then
+	$GUI _rd.dot
+	rm _rd.dot
+else
+	dot -Tpdf -o _rd.pdf _rd.dot
+	$GUI _rd.pdf
+	rm _rd.pdf _rd.dot
+fi
