@@ -12,7 +12,7 @@
 
 #include "llvm/LLVMNode.h"
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/llvm-debug.h"
+#include "llvm/llvm-util.h"
 
 #include "PointsTo.h"
 #include "ReachingDefinitions.h"
@@ -80,7 +80,7 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
         LLVMNode *opNode = dg->getNode(opVal->stripInBoundsOffsets());
         if (!opNode) {
             // FIXME: ConstantExpr
-            errs() << "WARN: unhandled inline asm operand: " << *opVal << "\n";
+            llvmutil::printerr("WARN: unhandled inline asm operand: ", opVal);
             continue;
         }
 
@@ -176,7 +176,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
 
         RDNode *val = RD->getNode(llvmVal);
         if(!val) {
-            llvm::errs() << "Don't have mapping: " << *llvmVal << "\n";
+            llvmutil::printerr("Don't have mapping:\n  ", llvmVal);
             continue;
         }
 
@@ -210,7 +210,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
                 assert(graph != dg && "Cannot find a node");
                 rdnode = graph->getNode(rdval);
                 if (!rdnode) {
-                    llvm::errs() << "DG has not val: " << *rdval << "\n";
+                    llvmutil::printerr("ERROR: DG has not val: ", rdval);
                     continue;
                 }
             }
@@ -232,7 +232,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     pta::PSNode *pts = PTA->getPointsTo(ptrOp);
     //assert(pts && "Don't have points-to information for LoadInst");
     if (!pts) {
-        llvm::errs() << "No points-to: " << *ptrOp << "\n";
+        llvmutil::printerr("ERROR: No points-to: ", ptrOp);
         return;
     }
 
@@ -240,7 +240,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     // all the reaching definitions
     RDNode *mem = RD->getMapping(where);
     if(!mem) {
-        llvm::errs() << "Don't have mapping: " << *where<< "\n";
+        llvmutil::printerr("ERROR: Don't have mapping: ", where);
         return;
     }
 
