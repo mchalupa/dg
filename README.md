@@ -60,6 +60,11 @@ After configuring the project, usual make takes place:
 make -j4
 ```
 
+### Testing
+
+You can run tests with `make check` or `make test`. To change the pointer analysis used while testing,
+you can export `DG_TESTS_PTA` variable before running tests and set it to one of `fi`, `fs` or `old`.
+
 ### Using the slicer
 
 Compiled slicer can be found in the tools subdirectory. First, you need to compile your
