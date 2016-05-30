@@ -58,7 +58,7 @@ using llvm::errs;
 const char *usage =
 "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
 "                   [-remove-unused-only] [-dont-verify] [-pts fs|fi|old]\n"
-"                   [-c|-crit|-slice func_call] module\n"
+"                   [-c|-crit|-slice func_call] [-o file] module\n"
 "\n"
 "-debug               Save annotated version of module as a text (.ll).\n"
 "                         (dd: data dependencies, cd:control dependencies,\n"
@@ -75,6 +75,8 @@ const char *usage =
 "                     i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
 "                     in which case the slice is taken with respect to return value\n"
 "                     of main procedure\n"
+" -o                  Save the output to given file. If not specified, a .sliced suffix\n"
+"                     is used with the original module name\n"
 "\n"
 "'module' is the LLVM bitcode files to be sliced. It must contain 'main' function\n";
 
@@ -748,31 +750,48 @@ static bool verify_module(llvm::Module *M)
 #endif
 }
 
-static bool write_module(llvm::Module *M, const char *module_name)
+static bool write_module(llvm::Module *M, const char *module_name,
+                         const char *output)
 {
-    // compose name
-    std::string fl(module_name);
-    fl.replace(fl.end() - 3, fl.end(), ".sliced");
+    // compose name if not given
+    std::string fl;
+    if (output) {
+        fl = std::string(output);
+    } else {
+        fl = std::string(module_name);
+
+        if (fl.size() > 2) {
+            if (fl.compare(fl.size() - 2, 2, ".o") == 0)
+                fl.replace(fl.end() - 2, fl.end(), ".sliced");
+            else if (fl.compare(fl.size() - 3, 3, ".bc") == 0)
+                fl.replace(fl.end() - 3, fl.end(), ".sliced");
+            else
+                fl += ".sliced";
+        } else {
+            fl += ".sliced";
+        }
+    }
 
     // open stream to write to
     std::ofstream ofs(fl);
-    llvm::raw_os_ostream output(ofs);
+    llvm::raw_os_ostream ostream(ofs);
 
     // write the module
     errs() << "INFO: saving sliced module to: " << fl.c_str() << "\n";
-    llvm::WriteBitcodeToFile(M, output);
+    llvm::WriteBitcodeToFile(M, ostream);
 
     return true;
 }
 
-static int verify_and_write_module(llvm::Module *M, const char *module) {
+static int verify_and_write_module(llvm::Module *M, const char *module,
+                                   const char *output) {
     if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
         errs() << "INFO: Saving anyway so that you can check it\n";
         return 1;
     }
 
-    if (!write_module(M, module)) {
+    if (!write_module(M, module, output)) {
         errs() << "Saving sliced module failed\n";
         return 1;
     }
@@ -782,12 +801,12 @@ static int verify_and_write_module(llvm::Module *M, const char *module) {
 }
 
 static int save_module(llvm::Module *M, const char *module,
-                       bool should_verify_module = true)
+                       const char *output, bool should_verify_module = true)
 {
     if (should_verify_module)
-        return verify_and_write_module(M, module);
+        return verify_and_write_module(M, module, output);
     else
-        return write_module(M, module);
+        return write_module(M, module, output);
 }
 
 int main(int argc, char *argv[])
@@ -801,6 +820,7 @@ int main(int argc, char *argv[])
     bool statistics = false;
     const char *slicing_criterion = nullptr;
     const char *module = nullptr;
+    const char *output = nullptr;
     uint32_t opts = 0;
     PtaType pta = PTA_FI;
 
@@ -832,6 +852,12 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
         } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
             remove_unused_only = true;
+        } else if (strcmp(argv[i], "-o") == 0) {
+            output = strdup(argv[++i]);
+            if (!output) {
+                errs() << "Out of memory\n";
+                abort();
+            }
         } else if (strcmp(argv[i], "-statistics") == 0) {
             statistics = true;
         } else if (strcmp(argv[i], "-pta") == 0) {
@@ -885,7 +911,7 @@ int main(int argc, char *argv[])
         if (statistics)
             print_statistics(M, "Statistics after ");
 
-        return save_module(M, module, should_verify_module);
+        return save_module(M, module, output, should_verify_module);
     }
 
     /// ---------------
@@ -917,5 +943,5 @@ int main(int argc, char *argv[])
     if (statistics)
         print_statistics(M, "Statistics after ");
 
-    return save_module(M, module, should_verify_module);
+    return save_module(M, module, output, should_verify_module);
 }
