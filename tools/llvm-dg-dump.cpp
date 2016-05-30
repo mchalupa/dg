@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
     const char *module = nullptr;
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
-    const char *pts = nullptr;
+    const char *pts = "fi";
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
@@ -416,7 +416,7 @@ int main(int argc, char *argv[])
     // TODO refactor the code...
 
     LLVMPointsToAnalysis *PTA = nullptr;
-    if (pts) {
+    if (strcmp(pts, "old")) {
         // use new analyses
         if (strcmp(pts, "fs") == 0) {
             PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
         tm.report("INFO: Finding slicing criterions took");
     }
 
-    if (pts) {
+    if (strcmp(pts, "old")) {
         assert(PTA && "BUG: Need points-to analysis");
         //use new analyses
         analysis::rd::LLVMReachingDefinitions RDA(M, PTA);

@@ -802,7 +802,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *module = nullptr;
     uint32_t opts = 0;
-    PtaType pta = PTA_OLD;
+    PtaType pta = PTA_FI;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
