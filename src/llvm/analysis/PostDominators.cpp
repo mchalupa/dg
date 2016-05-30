@@ -11,18 +11,24 @@ namespace dg {
 void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 {
     using namespace llvm;
-
-    PostDominatorTree *pdtree = new PostDominatorTree();
-    analysis::PostDominanceFrontiers<LLVMNode> pdfrontiers;
-
     // iterate over all functions
     for (auto F : getConstructedFunctions()) {
+        analysis::PostDominanceFrontiers<LLVMNode> pdfrontiers;
+
         // root of post-dominator tree
         LLVMBBlock *root = nullptr;
         Value *val = const_cast<Value *>(F.first);
         Function& f = *cast<Function>(val);
+        PostDominatorTree *pdtree;
+
+#if LLVM_VERSION_MINOR < 8
+        pdtree = new PostDominatorTree();
         // compute post-dominator tree for this function
         pdtree->runOnFunction(f);
+#else
+        PostDominatorTreeAnalysis PDT;
+        pdtree = new PostDominatorTree(PDT.run(f));
+#endif
 
         // add immediate post-dominator edges
         auto our_blocks = F.second->getBlocks();
@@ -33,7 +39,8 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
             DomTreeNode *N = pdtree->getNode(B);
             // when function contains infinite loop, we're screwed
             // and we don't have anything
-            // FIXME: just check for the root, don't iterate over all blocks, stupid...
+            // FIXME: just check for the root,
+            // don't iterate over all blocks, stupid...
             if (!N)
                 continue;
 
@@ -78,9 +85,9 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
             if (root)
                 pdfrontiers.compute(root);
         }
-    }
 
-    delete pdtree;
+        delete pdtree;
+    }
 }
 
 } // namespace dg
