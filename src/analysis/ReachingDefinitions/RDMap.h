@@ -61,11 +61,10 @@ typedef std::set<RDNode *> RDNodesSetT;
 
 class RDMap
 {
-    std::map<DefSite, RDNodesSetT> defs;
-
 public:
-    typedef std::map<DefSite, RDNodesSetT>::iterator iterator;
-    typedef std::map<DefSite, RDNodesSetT>::const_iterator const_iterator;
+    typedef std::map<DefSite, RDNodesSetT> MapT;
+    typedef MapT::iterator iterator;
+    typedef MapT::const_iterator const_iterator;
 
     RDMap() {}
     RDMap(const RDMap& o);
@@ -130,7 +129,10 @@ public:
         return ret.size();
     }
 
-    const std::map<DefSite, RDNodesSetT> getDefs() const { return defs; }
+    const MapT& getDefs() const { return defs; }
+
+private:
+     MapT defs;
 };
 
 } // rd
