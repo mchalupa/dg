@@ -514,6 +514,12 @@ protected:
         debug::TimeMeasure tm;
         assert(PTA && "BUG: No PTA");
 
+        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA);
+        tm.start();
+        RD->run();
+        tm.stop();
+        tm.report("INFO: Reaching defs analysis took");
+
         LLVMDefUseAnalysis DUA(d, RD, PTA);
         tm.start();
         DUA.run(); // add def-use edges according that
@@ -554,12 +560,6 @@ public:
         PTA->run();
         tm.stop();
         tm.report("INFO: Points-to analysis took");
-
-        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA);
-        tm.start();
-        RD->run();
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis took");
 
         d.build(&*M, PTA);
 
