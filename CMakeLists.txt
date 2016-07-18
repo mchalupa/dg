@@ -3,7 +3,7 @@ project(dg)
 
 include(CTest)
 
-include_directories( ${CMAKE_SOURCE_DIR}/src )
+include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src )
 
 # we need C++11 standard
 set(CMAKE_CXX_STANDARD 11)
