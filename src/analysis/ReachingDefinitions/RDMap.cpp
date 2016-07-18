@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <cstdlib>
 
 #include "RDMap.h"
 #include "ReachingDefinitions.h"
@@ -178,7 +179,7 @@ static bool comp(const std::pair<const DefSite, RDNodesSetT>& a,
 std::pair<RDMap::iterator, RDMap::iterator>
 getObjectRange(RDNode *n)
 {
-    abort();
+    std::abort();
 }
 
 std::pair<RDMap::iterator, RDMap::iterator>
