@@ -5,28 +5,28 @@ else ()
 endif ()
 
 # add check target
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
+add_custom_target(dg-check COMMAND ${CMAKE_CTEST_COMMAND})
 
 # --------------------------------------------------
 # dg-test
 # --------------------------------------------------
 add_executable(dg-test dg-test.cpp)
 add_test(dg-test dg-test)
-add_dependencies(check dg-test)
+add_dependencies(dg-check dg-test)
 
 # --------------------------------------------------
 # data-flow-test
 # --------------------------------------------------
 add_executable(data-flow-test data-flow-test.cpp)
 add_test(data-flow-test data-flow-test)
-add_dependencies(check data-flow-test)
+add_dependencies(dg-check data-flow-test)
 
 # --------------------------------------------------
 # points-to-test
 # --------------------------------------------------
 add_executable(points-to-test points-to-test.cpp)
 add_test(points-to-test points-to-test)
-add_dependencies(check points-to-test)
+add_dependencies(dg-check points-to-test)
 target_link_libraries(points-to-test PTA)
 
 # --------------------------------------------------
@@ -34,14 +34,14 @@ target_link_libraries(points-to-test PTA)
 # --------------------------------------------------
 add_executable(reaching-definitions-test reaching-definitions-test.cpp)
 add_test(reaching-definitions-test reaching-definitions-test)
-add_dependencies(check reaching-definitions-test)
+add_dependencies(dg-check reaching-definitions-test)
 target_link_libraries(reaching-definitions-test RD)
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
 add_executable(adt-test adt-test.cpp)
 add_test(adt-test adt-test)
-add_dependencies(check adt-test)
+add_dependencies(dg-check adt-test)
 
 # --------------------------------------------------
 # llvm-dg-test
@@ -52,7 +52,7 @@ if (LLVM_DG)
 	target_link_libraries(llvm-dg-test LLVMdg)
 
 	add_test(llvm-dg-test llvm-dg-test)
-	add_dependencies(check llvm-dg-test)
+	add_dependencies(dg-check llvm-dg-test)
 
 	add_test(slicing-test1 slicing-test1.sh)
 	add_test(slicing-test2 slicing-test2.sh)
