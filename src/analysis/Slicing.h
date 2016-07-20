@@ -136,13 +136,14 @@ public:
     uint32_t mark(NodeT *start, uint32_t sl_id = 0,
                   uint32_t flags = NODES_WALK_REV_CD |
                                    NODES_WALK_REV_DD |
-                                   NODES_WALK_BB_POSTDOM_FRONTIERS)
+                                   NODES_WALK_BB_POSTDOM_FRONTIERS,
+                  bool withEntry = true)
     {
         if (sl_id == 0)
             sl_id = ++slice_id;
 
         WalkAndMark<NodeT> wm(flags);
-        wm.mark(start, sl_id);
+        wm.mark(start, sl_id, withEntry);
 
         return sl_id;
     }
