@@ -304,10 +304,21 @@ public:
     // XXX: do this optional?
     BBlockContainerT& getPostDomFrontiers() { return postDomFrontiers; }
     const BBlockContainerT& getPostDomFrontiers() const { return postDomFrontiers; }
+    BBlockContainerT& getRevPostDomFrontiers() { return revPostDomFrontiers; }
+    const BBlockContainerT& getRevPostDomFrontiers() const { return revPostDomFrontiers; }
 
     bool addPostDomFrontier(BBlock<NodeT> *BB)
     {
-        return postDomFrontiers.insert(BB);
+        bool ret1, ret2;
+        assert(BB && "passed nullptr as BB");
+
+        ret1 = postDomFrontiers.insert(BB);
+        ret2 = BB->revPostDomFrontiers.insert(this);
+
+        // we either have both edges or none
+        assert(ret1 == ret2);
+
+        return ret1;
     }
 
     void setIPostDom(BBlock<NodeT> *BB)
@@ -383,6 +394,9 @@ private:
 
     // post-dominator frontiers
     BBlockContainerT postDomFrontiers;
+    // reverse post-dominator frontiers
+    BBlockContainerT revPostDomFrontiers;
+
     BBlock<NodeT> *ipostdom;
     // the post-dominator tree edges
     // (reverse to immediate post-dominator)
