@@ -4,6 +4,8 @@
 #include "llvm/LLVMNode.h"
 
 using namespace dg;
+namespace dg {
+namespace debug {
 
 static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 {
@@ -245,3 +247,5 @@ private:
         }
     }
 };
+} /* namespace debug */
+} /* namespace dg */
