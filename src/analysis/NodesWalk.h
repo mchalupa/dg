@@ -25,6 +25,7 @@ enum NodesWalkFlags {
     NODES_WALK_BB_REV_CFG               = 1 << 6,
     NODES_WALK_BB_POSTDOM               = 1 << 7,
     NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 8,
+    NODES_WALK_BB_REV_POSTDOM_FRONTIERS = 1 << 9,
 };
 
 // this is a base class for nodes walk, it contains
@@ -106,6 +107,9 @@ public:
 
             if (options & NODES_WALK_BB_POSTDOM_FRONTIERS)
                 processBBlockPostDomFrontieres(n);
+
+            if (options & NODES_WALK_BB_REV_POSTDOM_FRONTIERS)
+                processBBlockPostDomFrontieres(n, true);
 
             // FIXME interprocedural
         }
@@ -193,14 +197,19 @@ private:
             enqueue(S->getLastNode());
     }
 
-    void processBBlockPostDomFrontieres(NodeT *n)
+    void processBBlockPostDomFrontieres(NodeT *n, bool reverse = false)
     {
         BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->getPostDomFrontiers())
-            enqueue(S->getLastNode());
+        if (reverse) {
+            for (BBlock<NodeT> *S : BB->getRevPostDomFrontiers())
+                enqueue(S->getLastNode());
+        } else {
+            for (BBlock<NodeT> *S : BB->getPostDomFrontiers())
+                enqueue(S->getLastNode());
+        }
     }
 #endif // ENABLE_CFG
 
