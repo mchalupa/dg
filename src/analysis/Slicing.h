@@ -23,10 +23,8 @@ template <typename NodeT>
 class WalkAndMark : public NodesWalk<NodeT, QueueFIFO<NodeT *>>
 {
 public:
-    WalkAndMark()
-        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(NODES_WALK_REV_CD |
-                                               NODES_WALK_REV_DD |
-                                               NODES_WALK_BB_POSTDOM_FRONTIERS) {}
+    WalkAndMark(uint32_t flags)
+        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(flags) {}
 
     void mark(NodeT *start, uint32_t slice_id, bool with_entry = true)
     {
@@ -135,12 +133,15 @@ public:
     SlicerStatistics& getStatistics() { return statistics; }
     const SlicerStatistics& getStatistics() const { return statistics; }
 
-    uint32_t mark(NodeT *start, uint32_t sl_id = 0)
+    uint32_t mark(NodeT *start, uint32_t sl_id = 0,
+                  uint32_t flags = NODES_WALK_REV_CD |
+                                   NODES_WALK_REV_DD |
+                                   NODES_WALK_BB_POSTDOM_FRONTIERS)
     {
         if (sl_id == 0)
             sl_id = ++slice_id;
 
-        WalkAndMark<NodeT> wm;
+        WalkAndMark<NodeT> wm(flags);
         wm.mark(start, sl_id);
 
         return sl_id;
