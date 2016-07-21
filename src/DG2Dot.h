@@ -445,6 +445,7 @@ private:
         bool err = false;
         unsigned int dfsorder = node->getDFSOrder();
         unsigned int bfsorder = node->getDFSOrder();
+        unsigned int topo_order = node->getTopoOrder();
         uint32_t slice_id = node->getSlice();
         Indent Ind(ind);
 
@@ -459,9 +460,11 @@ private:
         if (node->hasSubgraphs())
             out << "\\nsubgraphs: " << node->subgraphsNum();
         if (dfsorder != 0)
-            out << "\\ndfs order: "<< dfsorder;
+            out << "\\ndfs order: " << dfsorder;
         if (bfsorder != 0)
-            out << "\\nbfs order: "<< bfsorder;
+            out << "\\nbfs order: " << bfsorder;
+        if (topo_order != 0)
+            out << "\\ntopo order: " << topo_order;
 
         if (slice_id != 0)
             out << "\\nslice: "<< slice_id;

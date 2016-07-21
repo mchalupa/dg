@@ -239,6 +239,11 @@ public:
         return analysisAuxData.dfsorder;
     }
 
+    unsigned int getTopoOrder() const
+    {
+        return analysisAuxData.topo_order;
+    }
+
 #endif /* ENABLE_CFG */
 
     bool addSubgraph(DependenceGraphT *sub)
