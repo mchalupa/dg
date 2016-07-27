@@ -32,7 +32,7 @@ class LLVMPointerSubgraphBuilder
     struct Subgraph {
         Subgraph(PSNode *r1, PSNode *r2, std::pair<PSNode *, PSNode *>& a)
             : root(r1), ret(r2), args(a) {}
-        Subgraph() {memset(this, 0, sizeof *this);}
+        Subgraph(): root(nullptr), ret(nullptr), args(nullptr, nullptr) {}
 
         // first and last nodes of the subgraph
         PSNode *root;
