@@ -1,5 +1,3 @@
-#include <assert.h>
-#include <cstdio>
 
 #include <set>
 
@@ -233,7 +231,7 @@ int main(int argc, char *argv[])
 #else
     auto _M = llvm::parseIRFile(module, SMD, context);
     // _M is unique pointer, we need to get Module *
-    M = &*_M;
+    M = _M.get();
 #endif
 
     if (!M) {
