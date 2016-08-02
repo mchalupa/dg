@@ -53,7 +53,7 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
-                                       LLVMPointsToAnalysis *pta)
+                                       LLVMPointerAnalysis *pta)
     : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
                                            analysis::DATAFLOW_INTERPROCEDURAL),
       dg(dg), RD(rd), PTA(pta)

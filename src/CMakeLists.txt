@@ -5,7 +5,8 @@ add_library(PTA SHARED
 	analysis/PointsTo/Pointer.h
 	analysis/PointsTo/Pointer.cpp
 	analysis/PointsTo/PointerSubgraph.h
-	analysis/PointsTo/PointerSubgraph.cpp
+	analysis/PointsTo/PointerAnalysis.h
+	analysis/PointsTo/PointerAnalysis.cpp
 	analysis/PointsTo/PointsToFlowInsensitive.h
 	analysis/PointsTo/PointsToFlowSensitive.h
 )

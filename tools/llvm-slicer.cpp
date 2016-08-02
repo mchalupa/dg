@@ -291,7 +291,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
 
         if (opts & ANNOTATE_PTR) {
             // FIXME: use the PTA from Slicer class
-            LLVMPointsToAnalysis *PTA = node->getDG()->getPTA();
+            LLVMPointerAnalysis *PTA = node->getDG()->getPTA();
             if (PTA) { // we used the new analyses
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
@@ -422,12 +422,13 @@ protected:
     const char *module_name;
     uint32_t opts = 0;
     PtaType pta;
-    LLVMPointsToAnalysis *PTA;
+    LLVMPointerAnalysis *PTA;
     LLVMReachingDefinitions *RD;
 
     // for SlicerOld
     Slicer(llvm::Module *mod, const char *modnm, uint32_t o)
-    :M(mod), module_name(modnm), opts(o), PTA(nullptr), RD(nullptr)
+    :M(mod), module_name(modnm), opts(o),
+     PTA(new LLVMPointerAnalysis(mod)), RD(nullptr)
     {
         assert(mod && "Need module");
         assert(modnm && "Need name of module");
@@ -549,15 +550,15 @@ public:
         debug::TimeMeasure tm;
         LLVMDependenceGraph d;
 
+        tm.start();
+
         if (pta == PTA_FS)
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
+            PTA->run<analysis::pta::PointsToFlowSensitive>();
         else if (pta == PTA_FI)
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
+            PTA->run<analysis::pta::PointsToFlowInsensitive>();
         else
             assert(0 && "Should not be reached");
 
-        tm.start();
-        PTA->run();
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 

@@ -4,13 +4,13 @@
 #include <cassert>
 #include <set>
 
-#include "PointerSubgraph.h"
+#include "PointerAnalysis.h"
 
 namespace dg {
 namespace analysis {
 namespace pta {
 
-class PointsToFlowInsensitive : public PointerSubgraph
+class PointsToFlowInsensitive : public PointerAnalysis
 {
     std::set<PSNode *> changed;
 
@@ -18,7 +18,7 @@ protected:
     PointsToFlowInsensitive() {}
 
 public:
-    PointsToFlowInsensitive(PSNode *r) : PointerSubgraph(r) {}
+    PointsToFlowInsensitive(PointerSubgraph *ps) : PointerAnalysis(ps) {}
 
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects)
@@ -61,8 +61,8 @@ public:
 
         if (pendingInQueue() == 0 && !changed.empty()) {
             ADT::QueueFIFO<PSNode *> nodes;
-            getNodes(nodes, nullptr /* starting node */,
-                     &changed /* starting set */);
+            getPS()->getNodes(nodes, nullptr /* starting node */,
+                              &changed /* starting set */);
 
             queue.swap(nodes);
             changed.clear();

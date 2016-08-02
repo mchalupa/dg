@@ -28,7 +28,7 @@ namespace llvm {
 namespace dg {
 
 // forward declaration
-class LLVMPointsToAnalysis;
+class LLVMPointerAnalysis;
 
 typedef dg::BBlock<LLVMNode> LLVMBBlock;
 
@@ -48,7 +48,7 @@ public:
     // build all subgraphs (called procedures). If entry is nullptr,
     // then this methods looks for function named 'main'.
     bool build(llvm::Module *m, llvm::Function *entry = nullptr);
-    bool build(llvm::Module *m, LLVMPointsToAnalysis *pts,
+    bool build(llvm::Module *m, LLVMPointerAnalysis *pts,
                llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
@@ -106,7 +106,7 @@ public:
         entry->setSlice(sid);
     }
 
-    LLVMPointsToAnalysis *getPTA() const { return PTA; }
+    LLVMPointerAnalysis *getPTA() const { return PTA; }
 
 private:
     // add formal parameters of the function to the graph
@@ -138,7 +138,7 @@ private:
     llvm::Module *module;
 
     // points-to information (if available)
-    LLVMPointsToAnalysis *PTA;
+    LLVMPointerAnalysis *PTA;
 
     // verifier needs access to private elements
     friend class LLVMDGVerifier;

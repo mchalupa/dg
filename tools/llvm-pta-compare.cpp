@@ -116,8 +116,8 @@ dumpPSNode(PSNode *n)
 }
 
 static bool verify_ptsets(const llvm::Value *val,
-                          LLVMPointsToAnalysis *fi,
-                          LLVMPointsToAnalysis *fs)
+                          LLVMPointerAnalysis *fi,
+                          LLVMPointerAnalysis *fs)
 {
     PSNode *finode = fi->getPointsTo(val);
     PSNode *fsnode = fs->getPointsTo(val);
@@ -179,8 +179,8 @@ static bool verify_ptsets(const llvm::Value *val,
 }
 
 static bool verify_ptsets(llvm::Module *M,
-                          LLVMPointsToAnalysis *fi,
-                          LLVMPointsToAnalysis *fs)
+                          LLVMPointerAnalysis *fi,
+                          LLVMPointerAnalysis *fs)
 {
     using namespace llvm;
     bool ret = true;
@@ -242,21 +242,22 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointsToAnalysis *PTAfs;
-    LLVMPointsToAnalysis *PTAfi;
+    LLVMPointerAnalysis *PTAfs;
+    LLVMPointerAnalysis *PTAfi;
     if (type & FLOW_INSENSITIVE) {
-        PTAfi = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
+        PTAfi = new LLVMPointerAnalysis(M);
 
         tm.start();
-        PTAfi->run();
+        PTAfi->run<analysis::pta::PointsToFlowInsensitive>();
         tm.stop();
         tm.report("INFO: Points-to flow-insensitive analysis took");
     }
 
     if (type & FLOW_SENSITIVE) {
-            PTAfs = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
+        PTAfs = new LLVMPointerAnalysis(M);
+
         tm.start();
-        PTAfs->run();
+        PTAfs->run<analysis::pta::PointsToFlowSensitive>();
         tm.stop();
         tm.report("INFO: Points-to flow-sensitive analysis took");
     }

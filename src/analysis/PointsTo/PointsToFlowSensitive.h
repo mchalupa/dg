@@ -10,7 +10,7 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-class PointsToFlowSensitive : public PointerSubgraph
+class PointsToFlowSensitive : public PointerAnalysis
 {
     std::set<PSNode *> changed;
 
@@ -20,7 +20,7 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PSNode *r) : PointerSubgraph(r) {}
+    PointsToFlowSensitive(PointerSubgraph *ps) : PointerAnalysis(ps) {}
 
     virtual void beforeProcessed(PSNode *n)
     {
@@ -104,8 +104,8 @@ public:
         // enqueue them. This code is duplicated with FlowInsensitive
         if (pendingInQueue() == 0 && !changed.empty()) {
             ADT::QueueFIFO<PSNode *> nodes;
-            getNodes(nodes, nullptr /* starting node */,
-                     &changed /* starting set */);
+            getPS()->getNodes(nodes, nullptr /* starting node */,
+                              &changed /* starting set */);
 
             queue.swap(nodes);
             changed.clear();

@@ -237,7 +237,7 @@ dumpPSNode(PSNode *n, PTType type)
 }
 
 static void
-dumpPointerSubgraphdot(LLVMPointsToAnalysis *pta, PTType type)
+dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 {
     std::set<PSNode *> nodes;
     pta->getNodes(nodes);
@@ -288,7 +288,7 @@ dumpPointerSubgraphdot(LLVMPointsToAnalysis *pta, PTType type)
 }
 
 static void
-dumpPointerSubgraph(LLVMPointsToAnalysis *pta, PTType type, bool todot)
+dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
 {
     assert(pta);
 
@@ -349,14 +349,15 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointsToAnalysis *PTA;
-    if (type == FLOW_INSENSITIVE)
-        PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
-    else
-        PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
+    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
 
     tm.start();
-    PTA->run();
+
+    if (type == FLOW_INSENSITIVE)
+        PTA->run<analysis::pta::PointsToFlowInsensitive>();
+    else
+        PTA->run<analysis::pta::PointsToFlowSensitive>();
+
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
     dumpPointerSubgraph(PTA, type, todot);

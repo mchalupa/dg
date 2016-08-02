@@ -29,7 +29,7 @@ class LLVMRDBuilder
     };
 
     // points-to information
-    dg::LLVMPointsToAnalysis *PTA;
+    dg::LLVMPointerAnalysis *PTA;
 
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, RDNode *> nodes_map;
@@ -43,7 +43,7 @@ class LLVMRDBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 public:
-    LLVMRDBuilder(const llvm::Module *m, dg::LLVMPointsToAnalysis *p)
+    LLVMRDBuilder(const llvm::Module *m, dg::LLVMPointerAnalysis *p)
         : M(m), DL(new llvm::DataLayout(M->getDataLayout())), PTA(p) {}
 
     ~LLVMRDBuilder() { delete DL; }
@@ -112,7 +112,7 @@ class LLVMReachingDefinitions
     RDNode *root;
 
 public:
-    LLVMReachingDefinitions(const llvm::Module *m, dg::LLVMPointsToAnalysis *pta)
+    LLVMReachingDefinitions(const llvm::Module *m, dg::LLVMPointerAnalysis *pta)
         : builder(new LLVMRDBuilder(m, pta)) {}
 
     void run()

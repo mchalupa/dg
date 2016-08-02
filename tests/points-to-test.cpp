@@ -6,6 +6,7 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
+#include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
 
@@ -13,6 +14,7 @@ namespace dg {
 namespace tests {
 
 using analysis::pta::Pointer;
+using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 
 #ifdef DEBUG_ENABLED
@@ -55,7 +57,8 @@ public:
         B.addSuccessor(&S);
         S.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L.doesPointsTo(&A), "L do not points to A");
@@ -94,7 +97,8 @@ public:
         L1.addSuccessor(&L3);
         L2.addSuccessor(&L3);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A), "not L1->A");
@@ -135,7 +139,8 @@ public:
         L1.addSuccessor(&S2);
         S2.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A), "L1 do not points to A");
@@ -164,7 +169,8 @@ public:
         L1.addSuccessor(&S2);
         S2.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A, 4), "L1 do not points to A[4]");
@@ -212,7 +218,8 @@ public:
         L1.addSuccessor(&S2);
         S2.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A, 4), "L1 do not points to A[4]");
@@ -250,7 +257,8 @@ public:
         S.addSuccessor(&GEP2);
         GEP2.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(GEP1.doesPointsTo(&A, 4), "not GEP1 -> A + 4");
@@ -291,7 +299,8 @@ public:
         S.addSuccessor(&GEP3);
         GEP3.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(GEP1.doesPointsTo(&A, 4), "not GEP1 -> A + 4");
@@ -342,7 +351,8 @@ public:
         GEP4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A), "not L1->A");
@@ -381,7 +391,8 @@ public:
         GEP4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A), "not L1->A");
@@ -426,7 +437,8 @@ public:
         GEP4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A), "not L1->A");
@@ -446,7 +458,8 @@ public:
         B.addSuccessor(&S);
         S.addSuccessor(&L);
 
-        PTStoT PA(&B);
+        PointerSubgraph PS(&B);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L.doesPointsTo(pta::NULLPTR), "L do not points to NULL");
@@ -469,7 +482,8 @@ public:
         S.addSuccessor(&GEP);
         GEP.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L.doesPointsTo(&A), "L do not points to A");
@@ -485,7 +499,8 @@ public:
 
         B.addSuccessor(&L);
 
-        PTStoT PA(&B);
+        PointerSubgraph PS(&B);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L.doesPointsTo(pta::NULLPTR), "L do not points to nullptr");
@@ -509,7 +524,8 @@ public:
         S.addSuccessor(&GEP2);
         GEP2.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         // B points to A + 0 at unknown offset,
@@ -535,7 +551,8 @@ public:
         S.addSuccessor(&GEP2);
         GEP2.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         // B points to A + 0 at offset 4,
@@ -561,7 +578,8 @@ public:
         S.addSuccessor(&GEP2);
         GEP2.addSuccessor(&L);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L.doesPointsTo(&A), "L do not points to A");
@@ -614,7 +632,8 @@ public:
         G4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A, 3), "L do not points to A + 3");
@@ -669,7 +688,8 @@ public:
         G4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(&A, 3), "L1 do not points to A + 3");
@@ -723,7 +743,8 @@ public:
         G4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L2.doesPointsTo(&A, 12), "L2 do not points to A + 12");
@@ -773,7 +794,8 @@ public:
         G4.addSuccessor(&L1);
         L1.addSuccessor(&L2);
 
-        PTStoT PA(&A);
+        PointerSubgraph PS(&A);
+        PTStoT PA(&PS);
         PA.run();
 
         check(L1.doesPointsTo(pta::NULLPTR), "L1 does not point to NULL");

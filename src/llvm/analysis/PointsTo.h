@@ -6,6 +6,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "analysis/PointsTo/PointerSubgraph.h"
+#include "analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/analysis/PointerSubgraph.h"
 
 namespace dg {
@@ -14,52 +15,11 @@ using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 using analysis::pta::LLVMPointerSubgraphBuilder;
 
-class LLVMPointsToAnalysis
-{
-protected:
-    PointerSubgraph *impl;
-    LLVMPointerSubgraphBuilder *builder;
-    LLVMPointsToAnalysis(const llvm::Module *M)
-        :builder(new LLVMPointerSubgraphBuilder(M)) {}
-
-    // the real analysis that will run
-    void setImpl(PointerSubgraph *im) { impl = im; }
-
-public:
-    LLVMPointsToAnalysis(PointerSubgraph *p) : impl(p) {};
-    ~LLVMPointsToAnalysis() { delete builder; }
-
-    PSNode *getNode(const llvm::Value *val)
-    {
-        return builder->getNode(val);
-    }
-
-    PSNode *getPointsTo(const llvm::Value *val)
-    {
-        return builder->getPointsTo(val);
-    }
-
-    const std::unordered_map<const llvm::Value *, PSNode *>&
-    getNodesMap() const
-    {
-        return builder->getNodesMap();
-    }
-
-    void getNodes(std::set<PSNode *>& cont)
-    {
-        impl->getNodes(cont);
-    }
-
-    void run()
-    {
-        impl->setRoot(builder->buildLLVMPointerSubgraph());
-        impl->run();
-    }
-};
-
 template <typename PTType>
-class LLVMPointsToAnalysisImpl : public PTType, public LLVMPointsToAnalysis
+class LLVMPointerAnalysisImpl : public PTType
 {
+    LLVMPointerSubgraphBuilder *builder;
+
     bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
     {
         using namespace llvm;
@@ -80,11 +40,8 @@ class LLVMPointsToAnalysisImpl : public PTType, public LLVMPointsToAnalysis
     }
 
 public:
-    LLVMPointsToAnalysisImpl(const llvm::Module* M)
-        : LLVMPointsToAnalysis(M)
-    {
-        setImpl(this);
-    };
+    LLVMPointerAnalysisImpl(PointerSubgraph *PS, LLVMPointerSubgraphBuilder *b)
+    : PTType(PS), builder(b) {}
 
     // build new subgraphs on calls via pointer
     virtual bool functionPointerCall(PSNode *callsite, PSNode *called)
@@ -162,6 +119,58 @@ public:
     */
 };
 
-}
+class LLVMPointerAnalysis
+{
+    const llvm::Module *M;
+    PointerSubgraph *PS;
+    LLVMPointerSubgraphBuilder *builder;
+
+public:
+
+    LLVMPointerAnalysis(const llvm::Module *m)
+        : M(m), PS(new PointerSubgraph()),
+          builder(new LLVMPointerSubgraphBuilder(m)) {}
+
+    //LLVMPointerAnalysis(PointerSubgraph *p) : {};
+    //~LLVMPointerAnalysis() { delete builder; }
+
+    PSNode *getNode(const llvm::Value *val)
+    {
+        return builder->getNode(val);
+    }
+
+    PSNode *getPointsTo(const llvm::Value *val)
+    {
+        return builder->getPointsTo(val);
+    }
+
+    const std::unordered_map<const llvm::Value *, PSNode *>&
+    getNodesMap() const
+    {
+        return builder->getNodesMap();
+    }
+
+    void getNodes(std::set<PSNode *>& cont)
+    {
+        PS->getNodes(cont);
+    }
+
+    template <typename PTType>
+    void run()
+    {
+        // build the subgraph
+        assert(PS && "Incorrectly constructer PTA, missing PS");
+        PS->setRoot(builder->buildLLVMPointerSubgraph());
+
+        // run the analysis itself
+        assert(builder && "Incorrectly constructer PTA, missing builder");
+        auto PTA = new LLVMPointerAnalysisImpl<PTType>(PS, builder);
+        PTA->run();
+
+        // delete PTA
+    }
+};
+
+} // namespace dg
 
 #endif // _LLVM_DG_POINTS_TO_ANALYSIS_H_

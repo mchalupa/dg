@@ -245,15 +245,16 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointsToAnalysis *PTA;
-    if (type == FLOW_INSENSITIVE) {
-        PTA = new LLVMPointsToAnalysisImpl<pta::PointsToFlowInsensitive>(M);
-    } else {
-        PTA = new LLVMPointsToAnalysisImpl<pta::PointsToFlowSensitive>(M);
-    }
+    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
 
     tm.start();
-    PTA->run();
+
+    if (type == FLOW_INSENSITIVE) {
+        PTA->run<pta::PointsToFlowInsensitive>();
+    } else {
+        PTA->run<pta::PointsToFlowSensitive>();
+    }
+
     tm.stop();
     tm.report("INFO: Points-to analysis took");
 

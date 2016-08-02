@@ -33,9 +33,7 @@
 #include "Utils.h"
 #include "llvm-debug.h"
 
-#include "analysis/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo.h"
-//#include "llvm/analysis/old/PointsTo.h"
 
 using llvm::errs;
 using std::make_pair;
@@ -618,7 +616,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 }
 
 bool LLVMDependenceGraph::build(llvm::Module *m,
-                                LLVMPointsToAnalysis *pts,
+                                LLVMPointerAnalysis *pts,
                                 llvm::Function *entry)
 {
     this->PTA = pts;

@@ -109,21 +109,22 @@ int main(int argc, char *argv[])
     LLVMDependenceGraph d;
     // TODO refactor the code...
 
-    LLVMPointsToAnalysis *PTA = nullptr;
+    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
     if (strcmp(pts, "old")) {
-        // use new analyses
+        // new analyses
         if (strcmp(pts, "fs") == 0) {
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowSensitive>(M);
+            tm.start();
+            PTA->run<analysis::pta::PointsToFlowSensitive>();
+            tm.stop();
         } else if (strcmp(pts, "fi") == 0) {
-            PTA = new LLVMPointsToAnalysisImpl<analysis::pta::PointsToFlowInsensitive>(M);
+            tm.start();
+            PTA->run<analysis::pta::PointsToFlowInsensitive>();
+            tm.stop();
         } else {
             llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
             abort();
         }
 
-        tm.start();
-        PTA->run();
-        tm.stop();
         tm.report("INFO: Points-to analysis took");
 
         d.build(M, PTA);

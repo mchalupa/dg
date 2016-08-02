@@ -1,5 +1,6 @@
 #include "Pointer.h"
 #include "PointerSubgraph.h"
+#include "PointerAnalysis.h"
 
 namespace dg {
 namespace analysis {
@@ -38,7 +39,7 @@ bool PSNode::addPointsToUnknownOffset(PSNode *target)
     return changed;
 }
 
-bool PointerSubgraph::processLoad(PSNode *node)
+bool PointerAnalysis::processLoad(PSNode *node)
 {
     bool changed = false;
     PSNode *operand = node->getOperand(0);
@@ -127,7 +128,7 @@ bool PointerSubgraph::processLoad(PSNode *node)
     return changed;
 }
 
-bool PointerSubgraph::processMemcpy(PSNode *node)
+bool PointerAnalysis::processMemcpy(PSNode *node)
 {
     bool changed = false;
 
@@ -228,7 +229,7 @@ bool PointerSubgraph::processMemcpy(PSNode *node)
     return changed;
 }
 
-bool PointerSubgraph::processNode(PSNode *node)
+bool PointerAnalysis::processNode(PSNode *node)
 {
     bool changed = false;
     std::vector<MemoryObject *> objects;
