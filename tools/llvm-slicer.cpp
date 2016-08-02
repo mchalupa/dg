@@ -545,6 +545,12 @@ public:
                          // since we delegate the constructor
     }
 
+    ~Slicer()
+    {
+        delete PTA;
+        delete RD;
+    }
+
     bool slice(const char *slicing_criterion)
     {
         debug::TimeMeasure tm;

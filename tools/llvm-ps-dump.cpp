@@ -349,18 +349,18 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
+    LLVMPointerAnalysis PTA(M);
 
     tm.start();
 
     if (type == FLOW_INSENSITIVE)
-        PTA->run<analysis::pta::PointsToFlowInsensitive>();
+        PTA.run<analysis::pta::PointsToFlowInsensitive>();
     else
-        PTA->run<analysis::pta::PointsToFlowSensitive>();
+        PTA.run<analysis::pta::PointsToFlowSensitive>();
 
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
-    dumpPointerSubgraph(PTA, type, todot);
+    dumpPointerSubgraph(&PTA, type, todot);
 
     return 0;
 }

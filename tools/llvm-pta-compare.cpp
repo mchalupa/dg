@@ -242,8 +242,9 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis *PTAfs;
-    LLVMPointerAnalysis *PTAfi;
+    LLVMPointerAnalysis *PTAfs = nullptr;
+    LLVMPointerAnalysis *PTAfi = nullptr;
+
     if (type & FLOW_INSENSITIVE) {
         PTAfi = new LLVMPointerAnalysis(M);
 
@@ -268,6 +269,9 @@ int main(int argc, char *argv[])
         if (ret == 0)
             llvm::errs() << "FS is a subset of FI, all OK\n";
     }
+
+    delete PTAfi;
+    delete PTAfs;
 
     return ret;
 }

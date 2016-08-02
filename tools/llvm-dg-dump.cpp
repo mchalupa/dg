@@ -166,6 +166,9 @@ int main(int argc, char *argv[])
         DUA.run(); // add def-use edges according that
         tm.stop();
         tm.report("INFO: Adding Def-Use edges took");
+
+        // we won't need PTA anymore
+        delete PTA;
     } else {
         analysis::LLVMReachingDefsAnalysis RDA(&d);
         tm.start();

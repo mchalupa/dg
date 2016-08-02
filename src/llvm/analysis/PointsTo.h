@@ -131,8 +131,11 @@ public:
         : M(m), PS(new PointerSubgraph()),
           builder(new LLVMPointerSubgraphBuilder(m)) {}
 
-    //LLVMPointerAnalysis(PointerSubgraph *p) : {};
-    //~LLVMPointerAnalysis() { delete builder; }
+    ~LLVMPointerAnalysis()
+    {
+        delete PS;
+        delete builder;
+    }
 
     PSNode *getNode(const llvm::Value *val)
     {
@@ -164,10 +167,8 @@ public:
 
         // run the analysis itself
         assert(builder && "Incorrectly constructer PTA, missing builder");
-        auto PTA = new LLVMPointerAnalysisImpl<PTType>(PS, builder);
-        PTA->run();
-
-        // delete PTA
+        auto PTA = LLVMPointerAnalysisImpl<PTType>(PS, builder);
+        PTA.run();
     }
 };
 
