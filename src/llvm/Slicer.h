@@ -106,6 +106,19 @@ public:
                 adjustPhiNodes(llvm::cast<llvm::BasicBlock>(sval), blk);
         }
 
+        // We need to drop this block in all braching instructions
+        // that jump to this block
+        for (auto I = blk->use_begin(), E = blk->use_end(); I != E; ++I) {
+#if (LLVM_VERSION_MINOR < 5)
+            llvm::Value *use = *I;
+#else
+            llvm::Value *use = I->getUser();
+#endif
+
+            // drop the reference to this block
+            llvm::cast<llvm::Instruction>(use)->replaceUsesOfWith(blk, nullptr);
+        }
+
         blk->eraseFromParent();
     }
 
