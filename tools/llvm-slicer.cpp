@@ -32,6 +32,8 @@
 #include <llvm/Support/FormattedStream.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Bitcode/ReaderWriter.h>
+#include <llvm/Support/Signals.h>
+#include <llvm/Support/PrettyStackTrace.h>
 
 #include <iostream>
 #include <fstream>
@@ -818,6 +820,9 @@ static int save_module(llvm::Module *M, const char *module,
 
 int main(int argc, char *argv[])
 {
+    llvm::sys::PrintStackTraceOnErrorSignal();
+    llvm::PrettyStackTraceProgram X(argc, argv);
+
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
