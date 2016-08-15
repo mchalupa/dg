@@ -25,6 +25,8 @@ struct AnalysesAuxiliaryData
     unsigned int dfsorder;
     // BFS order number of the node
     unsigned int bfsorder;
+    // Topological order number of the node
+    unsigned int topo_order;
 };
 
 // gather statistics about a run

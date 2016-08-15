@@ -23,15 +23,16 @@ template <typename NodeT>
 class WalkAndMark : public NodesWalk<NodeT, QueueFIFO<NodeT *>>
 {
 public:
-    WalkAndMark()
-        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(NODES_WALK_REV_CD |
-                                               NODES_WALK_REV_DD |
-                                               NODES_WALK_BB_POSTDOM_FRONTIERS) {}
+    WalkAndMark(uint32_t flags)
+        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(flags) {}
 
-    void mark(NodeT *start, uint32_t slice_id)
+    void mark(NodeT *start, uint32_t slice_id, bool with_entry = true)
     {
         WalkData data(slice_id, this);
-        this->walk(start, markSlice, &data);
+        if (with_entry)
+            this->walk(start, markSliceWithEntry, &data);
+        else
+            this->walk(start, markSlice, &data);
     }
 
 private:
@@ -60,9 +61,17 @@ private:
         // the same with dependence graph, if we keep a node from
         // a dependence graph, we need to keep the dependence graph
         DependenceGraph<NodeT> *dg = n->getDG();
-        if (dg) {
+        if (dg)
             dg->setSlice(slice_id);
-            // and keep also all call-sites of this func (they are
+    }
+
+    static void markSliceWithEntry(NodeT *n, WalkData *data)
+    {
+        markSlice(n, data);
+
+        DependenceGraph<NodeT> *dg = n->getDG();
+        if (dg) {
+            // keep also all call-sites of this func (they are
             // control dependent on the entry node)
             // This is correct but not so precise - fix it later.
             // Now I need the correctness...
@@ -124,13 +133,17 @@ public:
     SlicerStatistics& getStatistics() { return statistics; }
     const SlicerStatistics& getStatistics() const { return statistics; }
 
-    uint32_t mark(NodeT *start, uint32_t sl_id = 0)
+    uint32_t mark(NodeT *start, uint32_t sl_id = 0,
+                  uint32_t flags = NODES_WALK_REV_CD |
+                                   NODES_WALK_REV_DD |
+                                   NODES_WALK_BB_POSTDOM_FRONTIERS,
+                  bool withEntry = true)
     {
         if (sl_id == 0)
             sl_id = ++slice_id;
 
-        WalkAndMark<NodeT> wm;
-        wm.mark(start, sl_id);
+        WalkAndMark<NodeT> wm(flags);
+        wm.mark(start, sl_id, withEntry);
 
         return sl_id;
     }
