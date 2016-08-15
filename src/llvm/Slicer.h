@@ -23,6 +23,22 @@ namespace dg {
 
 class LLVMNode;
 
+template <typename Val>
+static void dropAllUses(Val *V)
+{
+    for (auto I = V->use_begin(), E = V->use_end(); I != E; ++I) {
+#if (LLVM_VERSION_MINOR < 5)
+        llvm::Value *use = *I;
+#else
+        llvm::Value *use = I->getUser();
+#endif
+
+       // drop the reference to this value
+       llvm::cast<llvm::Instruction>(use)->replaceUsesOfWith(V, nullptr);
+   }
+}
+
+
 class LLVMSlicer : public analysis::Slicer<LLVMNode>
 {
 public:
@@ -106,19 +122,19 @@ public:
                 adjustPhiNodes(llvm::cast<llvm::BasicBlock>(sval), blk);
         }
 
-        // We need to drop this block in all braching instructions
-        // that jump to this block
-        for (auto I = blk->use_begin(), E = blk->use_end(); I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
-            llvm::Value *use = *I;
-#else
-            llvm::Value *use = I->getUser();
-#endif
+        // We need to drop the reference to this block in all
+        // braching instructions that jump to this block.
+        // See #99
+        dropAllUses(blk);
 
-            // drop the reference to this block
-            llvm::cast<llvm::Instruction>(use)->replaceUsesOfWith(blk, nullptr);
-        }
 
+        // we also must drop refrences to instructions that are in
+        // this block (or we would need to delete the blocks in
+        // post-dominator order), see #101
+        for (llvm::Instruction& Inst : *blk)
+            dropAllUses(&Inst);
+
+        // finally, erase the block per se
         blk->eraseFromParent();
     }
 
