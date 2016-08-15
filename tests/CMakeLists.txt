@@ -167,5 +167,6 @@ if (LLVM_DG)
 	add_test(pta_fs_regression1 slicing-pta_fs_regression1.sh)
 	add_test(pta_regression2 slicing-pta_regression2.sh)
 	add_test(alias_of_return slicing-alias_of_return.sh)
+	add_test(regression1 slicing-regression1.sh)
 
 endif (LLVM_DG)
