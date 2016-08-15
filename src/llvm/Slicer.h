@@ -71,33 +71,6 @@ public:
         return true;
     }
 
-    static void
-    adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk)
-    {
-        using namespace llvm;
-
-        for(Instruction& I : *pred) {
-            PHINode *phi = dyn_cast<PHINode>(&I);
-            if (phi) {
-                // don't try remove block that we already removed
-                int idx = phi->getBasicBlockIndex(blk);
-                if (idx < 0)
-                    continue;
-
-                // the second argument is DeletePHIIFEmpty.
-                // We don't want that, since that would make
-                // dependence graph inconsistent. We'll
-                // slice it away later, if it's empty
-                phi->removeIncomingValue(idx, false);
-            } else {
-                // phi nodes are always at the beginning of the block
-                // so if this is the first value that is not PHI,
-                // there won't be any other and we can bail out
-                break;
-            }
-        }
-    }
-
     /* virtual */
     void removeBlock(LLVMBBlock *block)
     {
@@ -195,6 +168,33 @@ private:
     {
         for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
             sliceCallNode(callNode, subgraph, slice_id);
+    }
+
+    static void
+    adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk)
+    {
+        using namespace llvm;
+
+        for(Instruction& I : *pred) {
+            PHINode *phi = dyn_cast<PHINode>(&I);
+            if (phi) {
+                // don't try remove block that we already removed
+                int idx = phi->getBasicBlockIndex(blk);
+                if (idx < 0)
+                    continue;
+
+                // the second argument is DeletePHIIFEmpty.
+                // We don't want that, since that would make
+                // dependence graph inconsistent. We'll
+                // slice it away later, if it's empty
+                phi->removeIncomingValue(idx, false);
+            } else {
+                // phi nodes are always at the beginning of the block
+                // so if this is the first value that is not PHI,
+                // there won't be any other and we can bail out
+                break;
+            }
+        }
     }
 
     static inline bool shouldSliceInst(const llvm::Value *val)
