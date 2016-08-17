@@ -10,19 +10,6 @@
 namespace dg {
 namespace tests {
 
-struct TestConstructors : public Test
-{
-    TestConstructors() : Test("constructor tests") {}
-
-    void test()
-    {
-        LLVMDependenceGraph *d = new LLVMDependenceGraph();
-        // we leak it, but if we would call destructor,
-        // it would raise SIGABRT because we do not have
-        // set entry basic block
-    }
-};
-
 struct TestRefcount : public Test
 {
     TestRefcount() : Test("reference counting test") {}
@@ -62,6 +49,9 @@ struct TestRefcount : public Test
 
         d.setEntryBB(entryBB1);
         s.setEntryBB(entryBB2);
+
+        delete entryBB1;
+        delete entryBB2;
     }
 };
 
@@ -74,7 +64,6 @@ int main(int argc, char *argv[])
 
     TestRunner Runner;
 
-    Runner.add(new TestConstructors());
     Runner.add(new TestRefcount());
 
     return Runner();
