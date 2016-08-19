@@ -27,6 +27,12 @@ protected:
     CENode(CENodeType t) : type(t) {}
 
 public:
+    ~CENode()
+    {
+        for (CENode *n : childs)
+            delete n;
+    }
+
     void addChild(CENode *n)
     {
         childs.push_back(n);
@@ -53,7 +59,15 @@ public:
 
     virtual CENode *clone() const
     {
-        return new CENode(*this);
+        CENode *n = new CENode(*this);
+
+        // make a deep copy
+        std::list<CENode *> chlds;
+        for (CENode *chld : childs)
+            chlds.push_back(chld->clone());
+
+        n->childs.swap(chlds);
+        return n;
     }
 
     // compute alwaysVisits and sometimesVisits sets
@@ -116,6 +130,8 @@ public:
 
     virtual CENode *clone() const override
     {
+        // this node do not have children,
+        // so a shallow copy is OK
         return new CELabel(*this);
     }
 
@@ -161,9 +177,21 @@ public:
 
 template <typename T>
 class CFANode {
+    T label;
 public:
     typedef std::pair<CFANode<T> *, CENode *> EdgeT;
 
+    CFANode<T>(const T& l)
+        :label(l) {}
+
+    ~CFANode<T>()
+    {
+        for (EdgeT& edge : successors) {
+            // delete the labels, we allocate them
+            // using 'new'
+            delete edge.second;
+        }
+    }
 
     // add a new successors - merge two successors
     // when they go to the same node
@@ -199,6 +227,13 @@ public:
         }
     }
 
+    // simple helper that adds successors to a node
+    // and sets the label for the node
+    void addSuccessor(CFANode<T> *n)
+    {
+        addSuccessor(EdgeT(n, new CELabel<T>(n->label)));
+    }
+
     const std::list<EdgeT>& getSuccessors() const
     {
         return successors;
@@ -215,7 +250,7 @@ public:
         // loop and get a flag if we have a self-loop.
         // When we have a self-loop, we must insert it
         // into the new labels
-        CENode *self_loop_label = makeOneSelfLoop();
+        CENode *self_loop_label = getSelfLoopLabel();
 
         // are we a node that has only self-loop, but no successor
         // or predecessor?
@@ -245,7 +280,7 @@ public:
                         if (edge.first == this)
                             continue;
 
-                        // create new label
+                        // create a new label
                         CESeq *seq = new CESeq();
                         // add the label of the edge
                         seq->addChild(tmp->second->clone());
@@ -268,6 +303,7 @@ public:
                     }
 
                     // erase the old edge
+                    delete tmp->second;
                     pred->successors.erase(tmp);
                 } else {
                     // this is an edge that goes somewhere else
@@ -276,7 +312,6 @@ public:
                 }
             }
 
-
             // add the new edges from predecessor to successors
             for (EdgeT& e : new_edges)
                 pred->addSuccessor(e);
@@ -284,9 +319,11 @@ public:
 
         // erase this node from successors
         for (EdgeT& edge : successors) {
+            delete edge.second; // delete the label
             edge.first->predecessors.erase(this);
         }
 
+        // prevent double free of the labels
         successors.clear();
         predecessors.clear();
     }
@@ -301,50 +338,14 @@ public:
     }
 
 private:
-    // merge self loops into one self loop
-    // if there is more of them
-    // \return pointer to the self-loop label or nullptr
-    //         when there is no self-loop
-    CENode *makeOneSelfLoop()
+    CENode *getSelfLoopLabel()
     {
-        CENode *self_loop_label = nullptr;
-        // there is not going to be much successors,
-        // so go trough all of them and count self-loops
-        unsigned count = 0;
         for (EdgeT& edge : successors)
             if (edge.first == this) {
-                self_loop_label = edge.second;
-                ++count;
+                return edge.second;
             }
 
-        // no multiple self-loop? We're done!
-        if (count < 2)
-            // if we have self_loop_label, then this
-            // is the only self-loop label, otherwise
-            // it is nullptr when there is no self-loop
-            return self_loop_label;
-
-        // we have at least two self-loops, so
-        // gather them in branch
-        CEBranch *br = new CEBranch();
-        for (auto I = successors.begin(), E = successors.end();
-             I != E;) {
-             // if this is not a self-loop, continue
-             if (I->first != this) {
-                ++I;
-                continue;
-            }
-
-            br->addChild(I->second->clone());
-            auto tmp = I++;
-            // erase this self-loop
-            successors.erase(tmp);
-        }
-
-        addSuccessor(EdgeT(this, br));
-
-        // we have a self-loop, return true
-        return br;
+        return nullptr;
     }
 
     // we need both links, because
@@ -357,11 +358,6 @@ private:
     std::list<EdgeT> successors;
     std::set<CFANode<T> *> predecessors;
 };
-
-
-
-
-
 
 
 template <typename T>
