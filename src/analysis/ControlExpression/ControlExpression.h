@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 #include <iostream>
+#include <algorithm>
 
 enum CENodeType {
         LABEL  = 1,
@@ -15,22 +16,55 @@ enum CENodeType {
 };
 
 class CENode {
-    std::list<CENode *> childs;
-
-    std::set<CENode *> alwaysVisits;
-    std::set<CENode *> sometimesVisits;
-
     // to avoid RTTI
     CENodeType type;
 
+    std::list<CENode *> childs;
+
+    // comparator for the Visits sets.
+    // every element in that set is a label
+    struct CECmp {
+        bool operator()(const CENode *a, const CENode *b) const
+        {
+            assert(a->isa(LABEL));
+            assert(b->isa(LABEL));
+
+            return a->lt(b);
+        }
+    };
+
 protected:
     CENode(CENodeType t) : type(t) {}
+
+    typedef std::set<CENode *, CECmp> VisitsSetT;
+    VisitsSetT alwaysVisits;
+    VisitsSetT sometimesVisits;
 
 public:
     ~CENode()
     {
         for (CENode *n : childs)
             delete n;
+    }
+
+    std::list<CENode *>& getChildren()
+    {
+        return childs;
+    }
+
+    bool hasChildren() const
+    {
+        return !childs.empty();
+    }
+
+    VisitsSetT& getAlwaysVisits()
+    {
+        return alwaysVisits;
+    }
+
+    VisitsSetT& getSometimesVisits()
+    {
+        return sometimesVisits;
     }
 
     void addChild(CENode *n)
@@ -45,6 +79,16 @@ public:
     bool isa(CENodeType t) const
     {
         return t == type;
+    }
+
+    // less than operator, needed for
+    // correct comparsion inside containers
+    // when we want to compare according
+    // to the label
+    virtual bool lt(const CENode *n) const
+    {
+        // default
+        return this < n;
     }
 
     bool isLabel() const
@@ -71,7 +115,12 @@ public:
     }
 
     // compute alwaysVisits and sometimesVisits sets
-    //virtual void computeSets() = 0;
+    virtual void computeSets()
+    {
+        // don't want to do this an abstract method,
+        // because we use this class also self-standingly
+        assert(false && "This method must be overriden");
+    }
 
     virtual void print() const
     {
@@ -91,7 +140,7 @@ public:
                     chld->dump(ind + 3);
 
                 mkind();
-                std::cout << "]\n";
+                std::cout << "]";
                 break;
             case LOOP:
                 std::cout << "[*\n";
@@ -99,7 +148,7 @@ public:
                     chld->dump(ind + 3);
 
                 mkind();
-                std::cout << "]\n";
+                std::cout << "]";
                 break;
             case SEQ:
                 std::cout << "[seq\n";
@@ -107,12 +156,76 @@ public:
                     chld->dump(ind + 3);
 
                 mkind();
-                std::cout << "]\n";
+                std::cout << "]";
                 break;
             default:
                 print();
-                std::cout << "\n";
         }
+
+        if (!alwaysVisits.empty()) {
+            std::cout << "   | ALWAYS: { ";
+            for (CENode *ch : alwaysVisits) {
+                ch->print();
+                std::cout << " ";
+            }
+            std::cout << "}";
+        }
+
+        if (!sometimesVisits.empty()) {
+            std::cout << " SMTM: { ";
+            for (CENode *ch : sometimesVisits) {
+                ch->print();
+                std::cout << " ";
+            }
+            std::cout << "}";
+        }
+
+        std::cout << "\n";
+
+    }
+
+    // simplify the CENode and its children
+    // (recursively the whole subtree),
+    // for example, move subsequent sequences to this
+    // node, since it is the same (dot is the SEQ symbol):
+    //     .            .
+    //    / \         / | \
+    //   .   C  =    A  B  C
+    //  / \
+    // A   B
+    void simplify()
+    {
+        // fist simplify the children
+        if (!childs.empty())
+            for (CENode *chld : childs)
+                chld->simplify();
+
+        // we'll create new container
+        // and then we swap the contents
+        std::list<CENode *> new_children;
+        for (auto I = childs.begin(), E = childs.end();
+             I != E; ++I) {
+            // if this node is a SEQ node
+            // and it has a child also SEQ,
+            // just merge the child SEQ into
+            // this node. Also, if this is a loop and
+            // it contains SEQ, we can make the SEQ
+            // just a children of the loop
+            if ((*I)->type == SEQ &&
+                (type == SEQ || type == LOOP)) {
+                    // we inserted the children SEQ
+                    // before our sequence, so we can
+                    // easily just remote the old SEQ
+                    new_children.insert(new_children.end(),
+                                        (*I)->childs.begin(),
+                                        (*I)->childs.end());
+            } else {
+                // no change? so just copy the child
+                new_children.push_back(*I);
+            }
+        }
+
+        childs.swap(new_children);
     }
 };
 
@@ -128,18 +241,33 @@ public:
         return label;
     }
 
+    virtual bool lt(const CENode *n) const override
+    {
+        if (n->isa(LABEL))
+            return label < static_cast<const CELabel<T> *>(n)->label;
+        else
+            return this < n;
+    }
+
     virtual CENode *clone() const override
     {
+        assert(!hasChildren() && "A label has children");
+
         // this node do not have children,
         // so a shallow copy is OK
         return new CELabel(*this);
     }
 
-    /*
     virtual void computeSets() override
     {
+        assert(!hasChildren() && "A label has children, whata?");
+        assert(alwaysVisits.empty());
+        assert(sometimesVisits.empty());
+        // A label always just goes over itself.
+        // We may skip this, but then the computation
+        // is easier.
+        alwaysVisits.insert(this);
     }
-    */
 
     virtual void print() const override
     {
@@ -158,16 +286,104 @@ protected:
 class CEBranch: public CESymbol {
 public:
     CEBranch(): CESymbol(CENodeType::BRANCH) {}
+
+    virtual void computeSets() override
+    {
+        assert(alwaysVisits.empty());
+        assert(sometimesVisits.empty());
+        assert(hasChildren() && "Branch has no children");
+
+        // first recurse into children
+        for (CENode *chld : getChildren())
+            chld->computeSets();
+
+        // get the labels that are in all branches
+        // - we go over them no matter we do
+
+        // initialize the alwaysVisits - copy the first child's
+        // alwaysVisits
+        auto I = getChildren().begin();
+        alwaysVisits = (*I)->getAlwaysVisits();
+        ++I;
+        for (auto E = getChildren().end(); I != E; ++I) {
+            VisitsSetT intersect;
+            // do intersection with another child
+            std::set_intersection(getAlwaysVisits().begin(), getAlwaysVisits().end(),
+                                  (*I)->getAlwaysVisits().begin(),
+                                  (*I)->getAlwaysVisits().end(),
+                                  std::inserter(intersect, intersect.end()));
+
+            // swap the intersection for alwaysVisit, so that we can
+            // use it further
+            intersect.swap(alwaysVisits);
+        }
+
+        // compute the sometimesVisit
+        for (CENode *chld : getChildren()) {
+            for (CENode *ch : chld->getAlwaysVisits())
+                if (getAlwaysVisits().count(ch) == 0)
+                    getSometimesVisits().insert(ch);
+
+            for (CENode *ch : chld->getSometimesVisits())
+                if (getAlwaysVisits().count(ch) == 0)
+                    getSometimesVisits().insert(ch);
+        }
+    }
 };
 
 class CELoop: public CESymbol {
 public:
     CELoop(): CESymbol(CENodeType::LOOP) {}
+
+    virtual void computeSets() override
+    {
+        assert(alwaysVisits.empty());
+        assert(sometimesVisits.empty());
+        assert(!getChildren().empty() && "Branch has no children");
+
+        // first recurse into children
+        for (CENode *chld : getChildren())
+            chld->computeSets();
+
+        // there's always only a possibility that we
+        // go into a loop, so this is just a union
+        // of all the stuf into sometimesVisit
+
+        for (CENode *chld : getChildren()) {
+            for (CENode *ch : chld->getAlwaysVisits())
+                sometimesVisits.insert(ch);
+
+            for (CENode *ch : chld->getSometimesVisits())
+                sometimesVisits.insert(ch);
+        }
+    }
 };
 
 class CESeq: public CESymbol {
 public:
     CESeq(): CESymbol(CENodeType::SEQ) {}
+
+    virtual void computeSets() override
+    {
+        assert(getAlwaysVisits().empty());
+        assert(getSometimesVisits().empty());
+        assert(!getChildren().empty() && "Branch has no children");
+
+        // first recurse into children
+        for (CENode *chld : getChildren())
+            chld->computeSets();
+
+        // here we just make the union of children's
+        // always and sometimes sets
+        for (CENode *chld : getChildren()) {
+            for (CENode *ch : chld->getAlwaysVisits())
+                getAlwaysVisits().insert(ch);
+
+            for (CENode *ch : chld->getSometimesVisits())
+                if (getAlwaysVisits().count(ch) == 0)
+                    getSometimesVisits().insert(ch);
+        }
+    }
 };
 
 class CEEps: public CESymbol {
