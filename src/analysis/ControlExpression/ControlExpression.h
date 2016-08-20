@@ -19,8 +19,9 @@ class CENode {
     // to avoid RTTI
     CENodeType type;
 
-    std::list<CENode *> childs;
+    std::list<CENode *> children;
 
+protected:
     // comparator for the Visits sets.
     // every element in that set is a label
     struct CECmp {
@@ -33,7 +34,6 @@ class CENode {
         }
     };
 
-protected:
     CENode(CENodeType t) : type(t) {}
 
     typedef std::set<CENode *, CECmp> VisitsSetT;
@@ -41,20 +41,20 @@ protected:
     VisitsSetT sometimesVisits;
 
 public:
-    ~CENode()
+    virtual ~CENode()
     {
-        for (CENode *n : childs)
+        for (CENode *n : children)
             delete n;
     }
 
     std::list<CENode *>& getChildren()
     {
-        return childs;
+        return children;
     }
 
     bool hasChildren() const
     {
-        return !childs.empty();
+        return !children.empty();
     }
 
     VisitsSetT& getAlwaysVisits()
@@ -69,7 +69,7 @@ public:
 
     void addChild(CENode *n)
     {
-        childs.push_back(n);
+        children.push_back(n);
     }
 
     // type identification and casting
@@ -101,16 +101,21 @@ public:
         return type > CENodeType::LABEL;
     }
 
+    // recursively clone children
+    // from 'this' to 'n'
+    void cloneChildrenTo(CENode *n) const
+    {
+        std::list<CENode *> chlds;
+        for (CENode *chld : children)
+            chlds.push_back(chld->clone());
+
+        n->children.swap(chlds);
+    }
+
     virtual CENode *clone() const
     {
         CENode *n = new CENode(*this);
-
-        // make a deep copy
-        std::list<CENode *> chlds;
-        for (CENode *chld : childs)
-            chlds.push_back(chld->clone());
-
-        n->childs.swap(chlds);
+        cloneChildrenTo(n);
         return n;
     }
 
@@ -136,7 +141,7 @@ public:
         switch(type) {
             case BRANCH:
                 std::cout << "[+\n";
-                for (auto chld : childs)
+                for (auto chld : children)
                     chld->dump(ind + 3);
 
                 mkind();
@@ -144,7 +149,7 @@ public:
                 break;
             case LOOP:
                 std::cout << "[*\n";
-                for (auto chld : childs)
+                for (auto chld : children)
                     chld->dump(ind + 3);
 
                 mkind();
@@ -152,11 +157,14 @@ public:
                 break;
             case SEQ:
                 std::cout << "[seq\n";
-                for (auto chld : childs)
+                for (auto chld : children)
                     chld->dump(ind + 3);
 
                 mkind();
                 std::cout << "]";
+                break;
+            case EPS:
+                std::cout << "(e)\n";
                 break;
             default:
                 print();
@@ -196,14 +204,14 @@ public:
     void simplify()
     {
         // fist simplify the children
-        if (!childs.empty())
-            for (CENode *chld : childs)
+        if (!children.empty())
+            for (CENode *chld : children)
                 chld->simplify();
 
         // we'll create new container
         // and then we swap the contents
         std::list<CENode *> new_children;
-        for (auto I = childs.begin(), E = childs.end();
+        for (auto I = children.begin(), E = children.end();
              I != E; ++I) {
             // if this node is a SEQ node
             // and it has a child also SEQ,
@@ -217,15 +225,18 @@ public:
                     // before our sequence, so we can
                     // easily just remote the old SEQ
                     new_children.insert(new_children.end(),
-                                        (*I)->childs.begin(),
-                                        (*I)->childs.end());
+                                        (*I)->children.begin(),
+                                        (*I)->children.end());
+            } else if (type == SEQ && (*I)->type == EPS) {
+                // skip epsilons in SEQuences
+                continue;
             } else {
                 // no change? so just copy the child
                 new_children.push_back(*I);
             }
         }
 
-        childs.swap(new_children);
+        children.swap(new_children);
     }
 };
 
@@ -287,6 +298,13 @@ class CEBranch: public CESymbol {
 public:
     CEBranch(): CESymbol(CENodeType::BRANCH) {}
 
+    virtual CENode *clone() const override
+    {
+        CENode *n = new CEBranch(*this);
+        cloneChildrenTo(n);
+        return n;
+    }
+
     virtual void computeSets() override
     {
         assert(alwaysVisits.empty());
@@ -311,7 +329,7 @@ public:
             std::set_intersection(getAlwaysVisits().begin(), getAlwaysVisits().end(),
                                   (*I)->getAlwaysVisits().begin(),
                                   (*I)->getAlwaysVisits().end(),
-                                  std::inserter(intersect, intersect.end()));
+                                  std::inserter(intersect, intersect.end()), CECmp());
 
             // swap the intersection for alwaysVisit, so that we can
             // use it further
@@ -334,6 +352,13 @@ public:
 class CELoop: public CESymbol {
 public:
     CELoop(): CESymbol(CENodeType::LOOP) {}
+
+    virtual CENode *clone() const override
+    {
+        CENode *n = new CELoop(*this);
+        cloneChildrenTo(n);
+        return n;
+    }
 
     virtual void computeSets() override
     {
@@ -363,10 +388,17 @@ class CESeq: public CESymbol {
 public:
     CESeq(): CESymbol(CENodeType::SEQ) {}
 
+    virtual CENode *clone() const override
+    {
+        CENode *n = new CESeq(*this);
+        cloneChildrenTo(n);
+        return n;
+    }
+
     virtual void computeSets() override
     {
-        assert(getAlwaysVisits().empty());
-        assert(getSometimesVisits().empty());
+        assert(alwaysVisits.empty());
+        assert(sometimesVisits.empty());
         assert(!getChildren().empty() && "Branch has no children");
 
         // first recurse into children
@@ -389,6 +421,19 @@ public:
 class CEEps: public CESymbol {
 public:
     CEEps(): CESymbol(CENodeType::EPS) {}
+
+    virtual CENode *clone() const override
+    {
+        // we do not have children,
+        // make a shallow copy
+        return new CEEps(*this);
+    }
+
+    virtual void print() const override
+    {
+        std::cout << "(e)";
+    }
+
 };
 
 template <typename T>
@@ -399,6 +444,23 @@ public:
 
     CFANode<T>(const T& l)
         :label(l) {}
+
+    // move constructor
+    CFANode<T>(CFANode<T>&& other)
+        : successors(std::move(other.successors)),
+          predecessors(std::move(other.predecessors)),
+          label(std::move(other.label))
+    {
+    }
+
+    // move assign operator
+    CFANode<T>& operator=(CFANode<T>&& other)
+    {
+        other.successors.swap(successors);
+        other.predecessors.swap(predecessors);
+        label = std::move(other.label);
+        return *this;
+    }
 
     ~CFANode<T>()
     {
@@ -553,10 +615,42 @@ public:
         }
     }
 
-private:
-    CENode *getSelfLoopLabel()
+    bool operator<(const CFANode<T>& oth) const
     {
-        for (EdgeT& edge : successors)
+        return label < oth.label;
+    }
+
+    bool hasSelfLoop() const
+    {
+        return predecessors.count(this) != 0;
+    }
+
+
+    bool hasSelfLoop()// const
+    {
+        return predecessors.count(this) != 0;
+    }
+
+    size_t successorsNum() const
+    {
+        return successors.size();
+    }
+
+    size_t predecessorsNum() const
+    {
+        return predecessors.size();
+    }
+
+    void print() const
+    {
+        for (const auto& s : successors)
+            s.second->print();
+    }
+
+private:
+    CENode *getSelfLoopLabel() const
+    {
+        for (const EdgeT& edge : successors)
             if (edge.first == this) {
                 return edge.second;
             }
@@ -578,7 +672,106 @@ private:
 
 template <typename T>
 class ControlExpression {
-    CENode *root;
+    CFANode<T> root;
+    CFANode<T> end;
+
+    // the ControlExpression will have relativelly small number of nodes
+    // in our case, so this kind of expensive comparsion should
+    // not bring big overhead. On the other hand, it could
+    // produce nicer control expressions
+    /*
+    struct NdsCmp {
+        bool operator()(CFANode<T> *a, CFANode<T> *b) const
+        {
+            if (a->hasSelfLoop()) {
+                if (b->hasSelfLoop()) {
+                    return ((a->successorsNum() * a->predecessorsNum()) < 
+                            (b->successorsNum() * b->predecessorsNum()));
+                } else
+                    return false;
+            } else {
+                if (b->hasSelfLoop())
+                    return true;
+                else
+                    return ((a->successorsNum() * a->predecessorsNum()) < 
+                            (b->successorsNum() * b->predecessorsNum()));
+
+            }
+        }
+    };
+    */
+
+    std::set<CFANode<T> * /*, NdsCmp*/> nodes;
+
+public:
+    ControlExpression<T>()
+        :root(T()), end(T()) {}
+
+    void addNode(CFANode<T> *n)
+    {
+        // if this node has no predecessors,
+        // take it as a starting node
+        if (n->predecessorsNum() == 0)
+            root.addSuccessor(n);
+
+        nodes.insert(n);
+    }
+
+    CFANode<T>& getRoot()
+    {
+        return root;
+    }
+
+    CENode *compute()
+    {
+        // no starting point? Then we just choose one...
+        if (root.successorsNum() == 0) {
+            assert(false && "Not implemented yet");
+            /*
+            // set the new root
+            root = std::move(*nodes.begin());
+            // erase the node that is now invalid
+            nodes.erase(nodes.begin());
+            */
+        }
+
+        // until we don't support graphs without
+        // any starting point, we can iterate until
+        // the only one node lefts
+        // // while (nodes.size() > 1) {
+        /*
+        while (nodes.size() > 0) {
+            auto it = std::begin(nodes);
+            // eliminate and delete the node
+            (*it)->eliminate();
+            nodes.erase(it);
+        }
+        */
+
+        for (auto nd : nodes)
+            nd->eliminate();
+
+        // we may have end-up with
+        // a one node having self-loop above
+        // it, s there's no way how to eliminate
+        // it. We must add a new
+        //               __r__
+        //       l      |     |
+        // root ----> (node)<-/
+        //
+        for (auto nd : nodes) {
+            if (nd->hasSelfLoop()) {
+                nd->addSuccessor(typename CFANode<T>::EdgeT(&end, new CEEps()));    
+                nd->eliminate();
+            }
+        }
+
+        assert(root.successorsNum() == 1);
+        CENode *expr = root.getSuccessors().begin()->second;
+        expr->simplify();
+
+        return expr;
+    }
 };
 
 
