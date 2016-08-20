@@ -227,8 +227,18 @@ public:
                     new_children.insert(new_children.end(),
                                         (*I)->children.begin(),
                                         (*I)->children.end());
+                    // we over-took the children,
+                    // so clear the container, so that we won't
+                    // delete the memory twice
+                    (*I)->children.clear();
+
+                    // now we can delete the memory
+                    delete *I;
             } else if (type == SEQ && (*I)->type == EPS) {
                 // skip epsilons in SEQuences
+                // (and since we drop the pointer,
+                // release the memory)
+                delete *I;
                 continue;
             } else {
                 // no change? so just copy the child
@@ -236,6 +246,7 @@ public:
             }
         }
 
+        // put into children the newly computed children
         children.swap(new_children);
     }
 };
@@ -433,7 +444,6 @@ public:
     {
         std::cout << "(e)";
     }
-
 };
 
 template <typename T>
