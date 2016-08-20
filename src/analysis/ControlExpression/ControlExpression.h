@@ -19,9 +19,10 @@ class CENode {
     // to avoid RTTI
     CENodeType type;
 
+protected:
+    CENode *parent;
     std::list<CENode *> children;
 
-protected:
     // comparator for the Visits sets.
     // every element in that set is a label
     struct CECmp {
@@ -34,7 +35,7 @@ protected:
         }
     };
 
-    CENode(CENodeType t) : type(t) {}
+    CENode(CENodeType t) : type(t), parent(nullptr) {}
 
     typedef std::set<CENode *, CECmp> VisitsSetT;
     VisitsSetT alwaysVisits;
@@ -47,9 +48,9 @@ public:
             delete n;
     }
 
-    std::list<CENode *>& getChildren()
+    void setParent(CENode *p)
     {
-        return children;
+        parent = p;
     }
 
     bool hasChildren() const
@@ -70,6 +71,7 @@ public:
     void addChild(CENode *n)
     {
         children.push_back(n);
+        n->parent = this;
     }
 
     // type identification and casting
@@ -106,15 +108,21 @@ public:
     void cloneChildrenTo(CENode *n) const
     {
         std::list<CENode *> chlds;
-        for (CENode *chld : children)
-            chlds.push_back(chld->clone());
+        for (CENode *chld : children) {
+            CENode *nch = chld->clone();
+            nch->parent = n;
+            chlds.push_back(nch);
+        }
 
         n->children.swap(chlds);
     }
 
     virtual CENode *clone() const
     {
+        // (we don't need it right now,
+        // but it should be done)
         CENode *n = new CENode(*this);
+        n->parent = nullptr;
         cloneChildrenTo(n);
         return n;
     }
@@ -136,6 +144,10 @@ public:
     {
         // not very effective
         auto mkind = [&ind]{for (int i = 0; i < ind; ++i) { std::cout << " "; }};
+
+        // DEBUG: do a check
+        for (auto chld : children)
+            assert(chld->parent == this);
 
         mkind();
         switch(type) {
@@ -221,13 +233,13 @@ public:
             // just a children of the loop
             if ((*I)->type == SEQ &&
                 (type == SEQ || type == LOOP)) {
-                    // we inserted the children SEQ
-                    // before our sequence, so we can
-                    // easily just remote the old SEQ
-                    new_children.insert(new_children.end(),
-                                        (*I)->children.begin(),
-                                        (*I)->children.end());
-                    // we over-took the children,
+                    // we over-take the children,
+                    for (CENode *chld : (*I)->children) {
+                        new_children.push_back(chld);
+                        // set the new parent
+                        chld->parent = this;
+                    }
+                    // we over-took the children
                     // so clear the container, so that we won't
                     // delete the memory twice
                     (*I)->children.clear();
@@ -242,12 +254,18 @@ public:
                 continue;
             } else {
                 // no change? so just copy the child
+                assert((*I)->parent == this);
                 new_children.push_back(*I);
             }
         }
 
         // put into children the newly computed children
         children.swap(new_children);
+
+        // DEBUG, remove
+        for (CENode *nd : children)
+            assert(nd->parent == this);
+
     }
 };
 
@@ -277,7 +295,9 @@ public:
 
         // this node do not have children,
         // so a shallow copy is OK
-        return new CELabel(*this);
+        CENode *n = new CELabel(*this);
+        n->setParent(nullptr);
+        return n;
     }
 
     virtual void computeSets() override
@@ -312,6 +332,7 @@ public:
     virtual CENode *clone() const override
     {
         CENode *n = new CEBranch(*this);
+        n->setParent(nullptr);
         cloneChildrenTo(n);
         return n;
     }
@@ -323,7 +344,7 @@ public:
         assert(hasChildren() && "Branch has no children");
 
         // first recurse into children
-        for (CENode *chld : getChildren())
+        for (CENode *chld : children)
             chld->computeSets();
 
         // get the labels that are in all branches
@@ -331,10 +352,10 @@ public:
 
         // initialize the alwaysVisits - copy the first child's
         // alwaysVisits
-        auto I = getChildren().begin();
+        auto I = children.begin();
         alwaysVisits = (*I)->getAlwaysVisits();
         ++I;
-        for (auto E = getChildren().end(); I != E; ++I) {
+        for (auto E = children.end(); I != E; ++I) {
             VisitsSetT intersect;
             // do intersection with another child
             std::set_intersection(getAlwaysVisits().begin(), getAlwaysVisits().end(),
@@ -348,7 +369,7 @@ public:
         }
 
         // compute the sometimesVisit
-        for (CENode *chld : getChildren()) {
+        for (CENode *chld : children) {
             for (CENode *ch : chld->getAlwaysVisits())
                 if (getAlwaysVisits().count(ch) == 0)
                     getSometimesVisits().insert(ch);
@@ -367,6 +388,7 @@ public:
     virtual CENode *clone() const override
     {
         CENode *n = new CELoop(*this);
+        n->setParent(nullptr);
         cloneChildrenTo(n);
         return n;
     }
@@ -375,17 +397,17 @@ public:
     {
         assert(alwaysVisits.empty());
         assert(sometimesVisits.empty());
-        assert(!getChildren().empty() && "Branch has no children");
+        assert(hasChildren() && "Branch has no children");
 
         // first recurse into children
-        for (CENode *chld : getChildren())
+        for (CENode *chld : children)
             chld->computeSets();
 
         // there's always only a possibility that we
         // go into a loop, so this is just a union
         // of all the stuf into sometimesVisit
 
-        for (CENode *chld : getChildren()) {
+        for (CENode *chld : children) {
             for (CENode *ch : chld->getAlwaysVisits())
                 sometimesVisits.insert(ch);
 
@@ -402,6 +424,7 @@ public:
     virtual CENode *clone() const override
     {
         CENode *n = new CESeq(*this);
+        n->setParent(nullptr);
         cloneChildrenTo(n);
         return n;
     }
@@ -410,15 +433,15 @@ public:
     {
         assert(alwaysVisits.empty());
         assert(sometimesVisits.empty());
-        assert(!getChildren().empty() && "Branch has no children");
+        assert(hasChildren() && "Sequence has no children");
 
         // first recurse into children
-        for (CENode *chld : getChildren())
+        for (CENode *chld : children)
             chld->computeSets();
 
         // here we just make the union of children's
         // always and sometimes sets
-        for (CENode *chld : getChildren()) {
+        for (CENode *chld : children) {
             for (CENode *ch : chld->getAlwaysVisits())
                 getAlwaysVisits().insert(ch);
 
@@ -437,7 +460,9 @@ public:
     {
         // we do not have children,
         // make a shallow copy
-        return new CEEps(*this);
+        CENode *n = new CEEps(*this);
+        n->setParent(nullptr);
+        return n;
     }
 
     virtual void print() const override
