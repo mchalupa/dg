@@ -15,9 +15,28 @@ enum CENodeType {
         EPS,
 };
 
+template <typename T> class CELabel;
+
 class CENode {
     // to avoid RTTI
     CENodeType type;
+
+    template <typename T>
+    void getLabels(const T& lab, std::vector<CENode *>& out)
+    {
+        if (isLabel()) {
+         //   CELabel<T> *l = static_cast<CELabel<T> *>(this);
+         //   std::cout << l->getLabel() << " == " << lab << "\n";
+         //   asm("int3");
+         //   if (l->getLabel() == lab) {
+                out.push_back(this);
+         //   }
+        }
+
+        // recursively call to children
+        for (CENode *chld : children)
+            chld->getLabels(lab, out);
+    }
 
 protected:
     CENode *parent;
@@ -42,6 +61,122 @@ protected:
     VisitsSetT sometimesVisits;
 
 public:
+    class iterator {
+        CENode *node;
+
+        // iterator to the container that contains
+        // this node. The invariant is that *it == node
+        // or node == nullptr for end()
+        std::list<CENode *>::iterator it;
+
+        void iteratorReinit(CENode *nd)
+        {
+            if (nd && nd->parent) {
+                it = std::find(nd->parent->children.begin(),
+                               nd->parent->children.end(), nd);
+                node = nd;
+            } else
+                node = nullptr;
+        }
+
+        void setNextNode()
+        {
+            assert(node->parent);
+
+            // shift the iterator to the parent
+            // node
+            iteratorReinit(node->parent);
+
+            if (node == nullptr)
+                return;
+
+            // try to shift the iterator one position
+            // to the right and check if we are not at
+            // the end
+            ++it;
+            if (node->parent->children.end() == it)
+                // if we are again at the end, try it again
+                setNextNode();
+        }
+
+    public:
+        iterator(CENode *nd)
+        {
+            iteratorReinit(nd);
+            // in the case that node was set to nullptr
+            // here, we reset it back to nd, so that
+            // we have valid begin() corresponding to 'this'
+            node = nd;
+        }
+
+        iterator()
+            : node(nullptr)
+        {
+        }
+
+        bool operator==(const iterator& oth) const
+        {
+            return node == oth.node;
+        }
+
+        bool operator!=(const iterator& oth) const
+        {
+            return node != oth.node;
+        }
+
+        iterator& operator++()
+        {
+            if (node->parent) {
+                ++it;
+                if (node->parent->children.end() == it)
+                    setNextNode();
+                else
+                    node = *it;
+            } else
+                node = nullptr;
+
+            return *this;
+        }
+
+        iterator operator++(int)
+        {
+            iterator tmp = *this;
+            operator++();
+            return tmp;
+        }
+
+        CENode *operator*()
+        {
+            return node;
+        }
+
+        CENode **operator->()
+        {
+            return &node;
+        }
+    };
+
+    iterator begin()
+    {
+        return iterator(this);
+    }
+
+    iterator end()
+    {
+        return iterator();
+    }
+
+    // return by value to allow using
+    // move constructor
+    template <typename T>
+    std::vector<CENode *> getLabels(const T& lab)
+    {
+        std::vector<CENode *> tmp;
+        getLabels(lab, tmp);
+        std::cout << "SIZE: " << tmp.size() << "\n";
+        return tmp;
+    }
+
     virtual ~CENode()
     {
         for (CENode *n : children)
@@ -51,6 +186,11 @@ public:
     void setParent(CENode *p)
     {
         parent = p;
+    }
+
+    std::list<CENode *>& getChildren()
+    {
+        return children;
     }
 
     bool hasChildren() const
@@ -276,7 +416,7 @@ public:
     CELabel<T>(const T& l)
         : CENode(CENodeType::LABEL), label(l) {}
 
-    T& getLabel() const
+    const T& getLabel() const
     {
         return label;
     }
