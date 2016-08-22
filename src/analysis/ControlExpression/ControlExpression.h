@@ -6,6 +6,7 @@
 #include <set>
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 
 enum CENodeType {
         LABEL  = 1,
@@ -20,23 +21,6 @@ template <typename T> class CELabel;
 class CENode {
     // to avoid RTTI
     CENodeType type;
-
-    template <typename T>
-    void getLabels(const T& lab, std::vector<CENode *>& out)
-    {
-        if (isLabel()) {
-         //   CELabel<T> *l = static_cast<CELabel<T> *>(this);
-         //   std::cout << l->getLabel() << " == " << lab << "\n";
-         //   asm("int3");
-         //   if (l->getLabel() == lab) {
-                out.push_back(this);
-         //   }
-        }
-
-        // recursively call to children
-        for (CENode *chld : children)
-            chld->getLabels(lab, out);
-    }
 
 protected:
     CENode *parent;
@@ -61,7 +45,7 @@ protected:
     VisitsSetT sometimesVisits;
 
 public:
-    class iterator {
+    class path_iterator {
         CENode *node;
 
         // iterator to the container that contains
@@ -79,28 +63,36 @@ public:
                 node = nullptr;
         }
 
-        void setNextNode()
+        void moveUp()
         {
             assert(node->parent);
 
-            // shift the iterator to the parent
-            // node
+            // shift the iterator to the parent node
             iteratorReinit(node->parent);
 
+            // we're at the end of the expression
             if (node == nullptr)
                 return;
 
-            // try to shift the iterator one position
-            // to the right and check if we are not at
-            // the end
-            ++it;
-            if (node->parent->children.end() == it)
-                // if we are again at the end, try it again
-                setNextNode();
+            // is the node's parent a BRANCH? In that case
+            // we must move up again
+            if (node->parent && node->parent->isa(BRANCH)) {
+                moveUp();
+            } else {
+                // try to shift the iterator one position
+                // to the right and check if we are not at
+                // the end
+                ++it;
+                if (node->parent->children.end() == it)
+                    // if we are again at the end, try it again
+                    moveUp();
+                else
+                    node = *it;
+            }
         }
 
     public:
-        iterator(CENode *nd)
+        path_iterator(CENode *nd)
         {
             iteratorReinit(nd);
             // in the case that node was set to nullptr
@@ -109,38 +101,45 @@ public:
             node = nd;
         }
 
-        iterator()
+        path_iterator()
             : node(nullptr)
         {
         }
 
-        bool operator==(const iterator& oth) const
+        bool operator==(const path_iterator& oth) const
         {
             return node == oth.node;
         }
 
-        bool operator!=(const iterator& oth) const
+        bool operator!=(const path_iterator& oth) const
         {
             return node != oth.node;
         }
 
-        iterator& operator++()
+        path_iterator& operator++()
         {
             if (node->parent) {
-                ++it;
-                if (node->parent->children.end() == it)
-                    setNextNode();
-                else
-                    node = *it;
+                // in SEQ and LOOPs we shift just to the right,
+                // but in BRANCH we shift _up_
+                if (node->parent->isa(BRANCH)) {
+                        moveUp();
+                } else {
+                    ++it;
+
+                    if (node->parent->children.end() == it)
+                        moveUp();
+                    else
+                        node = *it;
+                }
             } else
                 node = nullptr;
 
             return *this;
         }
 
-        iterator operator++(int)
+        path_iterator operator++(int)
         {
-            iterator tmp = *this;
+            path_iterator tmp = *this;
             operator++();
             return tmp;
         }
@@ -156,25 +155,14 @@ public:
         }
     };
 
-    iterator begin()
+    path_iterator path_begin()
     {
-        return iterator(this);
+        return path_iterator(this);
     }
 
-    iterator end()
+    path_iterator path_end()
     {
-        return iterator();
-    }
-
-    // return by value to allow using
-    // move constructor
-    template <typename T>
-    std::vector<CENode *> getLabels(const T& lab)
-    {
-        std::vector<CENode *> tmp;
-        getLabels(lab, tmp);
-        std::cout << "SIZE: " << tmp.size() << "\n";
-        return tmp;
+        return path_iterator();
     }
 
     virtual ~CENode()
@@ -380,6 +368,21 @@ public:
                         chld->parent = this;
                     }
                     // we over-took the children
+                    // so clear the container, so that we won't
+                    // delete the memory twice
+                    (*I)->children.clear();
+
+                    // now we can delete the memory
+                    delete *I;
+            } else if ((*I)->type == SEQ && (*I)->children.size() == 1) {
+                    // eliminate sequence when there is only one node in it
+
+                    CENode *chld = *((*I)->children.begin());
+                    new_children.push_back(chld);
+                    // set the new parent
+                    chld->parent = this;
+
+                    // we over-took the child
                     // so clear the container, so that we won't
                     // delete the memory twice
                     (*I)->children.clear();
@@ -845,12 +848,77 @@ private:
 };
 
 
-template <typename T>
+//template <typename T>
 class ControlExpression {
+    CENode *root;
+
+public:
+    ControlExpression(CENode *r)
+        : root(r) {}
+
+    ControlExpression(ControlExpression&& oth)
+        :root(oth.root)
+    {
+        oth.root = nullptr;
+    }
+
+    ControlExpression(const ControlExpression& oth) = delete;
+    /*
+        : root(oth.root->clone())
+    {
+    }
+    */
+
+    CENode *getRoot()
+    {
+        return root;
+    }
+
+    void computeSets()
+    {
+        root->computeSets();
+    }
+
+    void dump() const
+    {
+        root->dump();
+    }
+
+    // return by value to allow using
+    // move constructor
+    template <typename T>
+    std::vector<CENode *> getLabels(const T& lab)
+    {
+        std::vector<CENode *> tmp;
+        getLabels(root, lab, tmp);
+        return tmp;
+    }
+
+private:
+
+    template <typename T>
+    void getLabels(CENode *nd, const T& lab, std::vector<CENode *>& out)
+    {
+        if (nd->isLabel()) {
+            CELabel<T> *l = static_cast<CELabel<T> *>(nd);
+            // std::cout << l->getLabel() << " == " << lab << "\n";
+            if (l->getLabel() == lab) {
+                out.push_back(nd);
+            }
+        }
+
+        // recursively call to children
+        for (CENode *chld : nd->getChildren())
+            getLabels(chld, lab, out);
+    }
+};
+
+template <typename T>
+class CFA {
     CFANode<T> root;
     CFANode<T> end;
 
-    // the ControlExpression will have relativelly small number of nodes
+    // the CFA will have relativelly small number of nodes
     // in our case, so this kind of expensive comparsion should
     // not bring big overhead. On the other hand, it could
     // produce nicer control expressions
@@ -860,7 +928,7 @@ class ControlExpression {
         {
             if (a->hasSelfLoop()) {
                 if (b->hasSelfLoop()) {
-                    return ((a->successorsNum() * a->predecessorsNum()) < 
+                    return ((a->successorsNum() * a->predecessorsNum()) <
                             (b->successorsNum() * b->predecessorsNum()));
                 } else
                     return false;
@@ -868,7 +936,7 @@ class ControlExpression {
                 if (b->hasSelfLoop())
                     return true;
                 else
-                    return ((a->successorsNum() * a->predecessorsNum()) < 
+                    return ((a->successorsNum() * a->predecessorsNum()) <
                             (b->successorsNum() * b->predecessorsNum()));
 
             }
@@ -879,7 +947,7 @@ class ControlExpression {
     std::set<CFANode<T> * /*, NdsCmp*/> nodes;
 
 public:
-    ControlExpression<T>()
+    CFA<T>()
         :root(T()), end(T()) {}
 
     void addNode(CFANode<T> *n)
@@ -889,6 +957,11 @@ public:
         if (n->predecessorsNum() == 0)
             root.addSuccessor(n);
 
+        // if this node has no successors,
+        // make it the exit node
+        if (n->successorsNum() == 0)
+            n->addSuccessor(typename CFANode<T>::EdgeT(&end, new CEEps()));
+
         nodes.insert(n);
     }
 
@@ -897,7 +970,7 @@ public:
         return root;
     }
 
-    CENode *compute()
+    ControlExpression compute()
     {
         // no starting point? Then we just choose one...
         if (root.successorsNum() == 0) {
@@ -928,15 +1001,18 @@ public:
 
         // we may have end-up with
         // a one node having self-loop above
-        // it, s there's no way how to eliminate
-        // it. We must add a new
+        // it (if there was no end node).
+        // There's no way how to eliminate it, so
+        // add a new end node that is going to be
+        // a successor of the node
+        //
         //               __r__
         //       l      |     |
         // root ----> (node)<-/
         //
         for (auto nd : nodes) {
             if (nd->hasSelfLoop()) {
-                nd->addSuccessor(typename CFANode<T>::EdgeT(&end, new CEEps()));    
+                nd->addSuccessor(typename CFANode<T>::EdgeT(&end, new CEEps()));
                 nd->eliminate();
             }
         }
@@ -945,7 +1021,7 @@ public:
         CENode *expr = root.getSuccessors().begin()->second;
         expr->simplify();
 
-        return expr;
+        return ControlExpression(expr);
     }
 };
 
