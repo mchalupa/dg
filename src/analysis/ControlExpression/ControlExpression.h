@@ -44,6 +44,19 @@ protected:
     VisitsSetT alwaysVisits;
     VisitsSetT sometimesVisits;
 
+    void pruneSometimesVisits()
+    {
+        VisitsSetT diff;
+        // do intersection with another child
+        std::set_difference(sometimesVisits.begin(), sometimesVisits.end(),
+                            alwaysVisits.begin(), alwaysVisits.end(),
+                            std::inserter(diff, diff.end()), CECmp());
+
+        // swap the intersection for alwaysVisit, so that we can
+        // use it further
+        diff.swap(sometimesVisits);
+    }
+
 public:
     class path_iterator {
         CENode *node;
@@ -449,7 +462,7 @@ public:
         assert(alwaysVisits.empty());
         assert(sometimesVisits.empty());
         // A label always just goes over itself.
-        // We may skip this, but then the computation
+        // We may skip this, but this way the computation
         // is easier.
         alwaysVisits.insert(this);
     }
@@ -467,6 +480,46 @@ protected:
         :CENode(t) {}
 };
 
+class CESeq: public CESymbol {
+public:
+    CESeq(): CESymbol(CENodeType::SEQ) {}
+
+    virtual CENode *clone() const override
+    {
+        CENode *n = new CESeq(*this);
+        n->setParent(nullptr);
+        cloneChildrenTo(n);
+        return n;
+    }
+
+    virtual void computeSets() override
+    {
+        assert(alwaysVisits.empty());
+        assert(sometimesVisits.empty());
+        assert(hasChildren() && "Sequence/loop has no children");
+
+        // first recurse into children
+        for (CENode *chld : children)
+            chld->computeSets();
+
+        // here we just make the union of children's
+        // always and sometimes sets
+        for (CENode *chld : children) {
+            for (CENode *ch : chld->getAlwaysVisits())
+                alwaysVisits.insert(ch);
+
+            for (CENode *ch : chld->getSometimesVisits())
+                if (alwaysVisits.count(ch) == 0)
+                    sometimesVisits.insert(ch);
+        }
+
+        // delete the elements from sometimesVisits
+        // that are in alwaysVisits. We tried to do it
+        // while inserting, but there was a bug in STL,
+        // so this is a workaround
+        pruneSometimesVisits();
+    }
+};
 
 class CEBranch: public CESymbol {
 public:
@@ -521,6 +574,8 @@ public:
                 if (getAlwaysVisits().count(ch) == 0)
                     getSometimesVisits().insert(ch);
         }
+
+        pruneSometimesVisits();
     }
 };
 
@@ -546,51 +601,39 @@ public:
         for (CENode *chld : children)
             chld->computeSets();
 
-        // there's always only a possibility that we
-        // go into a loop, so this is just a union
-        // of all the stuf into sometimesVisit
+        // in the case that this loop
+        // is the last part of the expression
+        // (e.g.  AB((C+D)E)* ),
+        // than we are sure that this loop
+        // actually runs (in the middle of the
+        // expression, the loop may not be executed
+        // at all). That means that we should
+        // compute the sets the same way as
+        // in the SEQ, because we always execute
+        // the loop and what nodes are always executed
+        // and sometimes executed is the same as in SEQ.
+        if (++path_begin() == path_end()) {
+            for (CENode *chld : children) {
+                for (CENode *ch : chld->getAlwaysVisits())
+                    alwaysVisits.insert(ch);
 
-        for (CENode *chld : children) {
-            for (CENode *ch : chld->getAlwaysVisits())
-                sometimesVisits.insert(ch);
+                for (CENode *ch : chld->getSometimesVisits())
+                    if (alwaysVisits.count(ch) == 0)
+                        sometimesVisits.insert(ch);
+            }
+        } else {
+            // with a loop in the middle of the expression,
+            // there's always only a possibility that we
+            // go into a loop, so this is just a union
+            // of all the stuf into sometimesVisit
 
-            for (CENode *ch : chld->getSometimesVisits())
-                sometimesVisits.insert(ch);
-        }
-    }
-};
+            for (CENode *chld : children) {
+                for (CENode *ch : chld->getAlwaysVisits())
+                    sometimesVisits.insert(ch);
 
-class CESeq: public CESymbol {
-public:
-    CESeq(): CESymbol(CENodeType::SEQ) {}
-
-    virtual CENode *clone() const override
-    {
-        CENode *n = new CESeq(*this);
-        n->setParent(nullptr);
-        cloneChildrenTo(n);
-        return n;
-    }
-
-    virtual void computeSets() override
-    {
-        assert(alwaysVisits.empty());
-        assert(sometimesVisits.empty());
-        assert(hasChildren() && "Sequence has no children");
-
-        // first recurse into children
-        for (CENode *chld : children)
-            chld->computeSets();
-
-        // here we just make the union of children's
-        // always and sometimes sets
-        for (CENode *chld : children) {
-            for (CENode *ch : chld->getAlwaysVisits())
-                getAlwaysVisits().insert(ch);
-
-            for (CENode *ch : chld->getSometimesVisits())
-                if (getAlwaysVisits().count(ch) == 0)
-                    getSometimesVisits().insert(ch);
+                for (CENode *ch : chld->getSometimesVisits())
+                    sometimesVisits.insert(ch);
+            }
         }
     }
 };
@@ -853,6 +896,8 @@ class ControlExpression {
     CENode *root;
 
 public:
+    typedef std::vector<CENode *> CEPath;
+
     ControlExpression(CENode *r)
         : root(r) {}
 
@@ -892,6 +937,27 @@ public:
         std::vector<CENode *> tmp;
         getLabels(root, lab, tmp);
         return tmp;
+    }
+
+    template <typename T>
+    std::vector<CEPath> getPathsFrom(const T& l)
+    {
+        std::vector<CEPath> paths;
+        std::vector<CENode *> labels = getLabels<T>(l);
+
+        for (CENode *lab : labels) {
+            CEPath P;
+            for (auto I = lab->path_begin(), E = lab->path_end();
+                 I != E; ++I) {
+                P.push_back(*I);
+            }
+
+            // rely on move constructors
+            paths.push_back(P);
+        }
+
+        // hopefully a move constructor again
+        return paths;
     }
 
 private:
@@ -975,36 +1041,20 @@ public:
         // no starting point? Then we just choose one...
         if (root.successorsNum() == 0) {
             assert(false && "Not implemented yet");
-            /*
-            // set the new root
-            root = std::move(*nodes.begin());
-            // erase the node that is now invalid
-            nodes.erase(nodes.begin());
-            */
+            abort();// in the case of NDEBUG
         }
 
-        // until we don't support graphs without
-        // any starting point, we can iterate until
-        // the only one node lefts
-        // // while (nodes.size() > 1) {
-        /*
-        while (nodes.size() > 0) {
-            auto it = std::begin(nodes);
-            // eliminate and delete the node
-            (*it)->eliminate();
-            nodes.erase(it);
-        }
-        */
-
+        // eliminate all the nodes
         for (auto nd : nodes)
             nd->eliminate();
 
-        // we may have end-up with
-        // a one node having self-loop above
-        // it (if there was no end node).
-        // There's no way how to eliminate it, so
-        // add a new end node that is going to be
-        // a successor of the node
+        // we may have end-up with two nodes,
+        // one of them having a self-loop above
+        // it (if there was no end node) and the
+        // other being the root.
+        // There's no way how to eliminate the former,
+        // so add a new end node that is going to be
+        // a successor of it -- then we can eliminate it.
         //
         //               __r__
         //       l      |     |
