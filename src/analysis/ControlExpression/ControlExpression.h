@@ -22,10 +22,7 @@ class CENode {
     // to avoid RTTI
     CENodeType type;
 
-protected:
-    CENode *parent;
-    std::list<CENode *> children;
-
+public:
     // comparator for the Visits sets.
     // every element in that set is a label
     struct CECmp {
@@ -38,11 +35,16 @@ protected:
         }
     };
 
-    CENode(CENodeType t) : type(t), parent(nullptr) {}
-
     typedef std::set<CENode *, CECmp> VisitsSetT;
+
+protected:
+    CENode *parent;
+    std::list<CENode *> children;
+
     VisitsSetT alwaysVisits;
     VisitsSetT sometimesVisits;
+
+    CENode(CENodeType t) : type(t), parent(nullptr) {}
 
     void pruneSometimesVisits()
     {
@@ -959,6 +961,108 @@ public:
         // hopefully a move constructor again
         return paths;
     }
+
+    // FIXME: this should go out of this class
+    std::pair<CENode::VisitsSetT, CENode::VisitsSetT>
+    getSetsForPath(CEPath& path, bool termination_sensitive = false)
+    {
+        CENode::VisitsSetT always, smtm;
+        bool found_loop = false;
+
+        for (CENode *nd : path) {
+            if (nd->isa(LOOP))
+                found_loop = true;
+
+            // in the case we compute termination sensitive
+            // information, we assume that a loop may
+            // not terminate, therefore everything that
+            // follows a loop is only 'sometimes' (possibly) visited
+            if (found_loop && termination_sensitive) {
+                smtm.insert(nd->getAlwaysVisits().begin(),
+                            nd->getAlwaysVisits().end());
+            } else {
+                always.insert(nd->getAlwaysVisits().begin(),
+                              nd->getAlwaysVisits().end());
+            }
+
+            smtm.insert(nd->getSometimesVisits().begin(),
+                        nd->getSometimesVisits().end());
+        }
+
+        return std::make_pair(always, smtm);
+    }
+
+    std::pair<CENode::VisitsSetT, CENode::VisitsSetT>
+    getSets(std::vector<CEPath>& paths, bool termination_sensitive = false)
+    {
+        CENode::VisitsSetT always, smtm;
+
+        assert(paths.size() > 0);
+
+        if (paths.size() == 1)
+            return getSetsForPath(*(paths.begin()), termination_sensitive);
+
+        auto I = paths.begin();
+        auto S = getSetsForPath(*I, termination_sensitive);
+
+        always = std::move(S.first);
+        smtm = std::move(S.second);
+
+        ++I;
+        for (auto E = paths.end(); I != E; ++I) {
+            // make intersection of the always sets
+            CENode::VisitsSetT tmpa;
+
+            auto cur = getSetsForPath(*I, termination_sensitive);
+            std::set_intersection(always.begin(), always.end(),
+                                  cur.first.begin(), cur.first.end(),
+                                  std::inserter(tmpa, tmpa.end()),
+                                  CENode::CECmp());
+
+            always.swap(tmpa);
+
+            // we insert both sets into the insert and then
+            // we simply remove what is in always
+            smtm.insert(cur.first.begin(), cur.first.end());
+            smtm.insert(cur.second.begin(), cur.second.end());
+        }
+
+        CENode::VisitsSetT diff;
+        std::set_difference(smtm.begin(), smtm.end(),
+                            always.begin(), always.end(),
+                            std::inserter(diff, diff.end()), CENode::CECmp());
+
+        diff.swap(smtm);
+
+        return std::make_pair(always, smtm);
+    }
+
+
+    /*
+    template <typename T>
+    {
+        CENode::VisitsSetT always, smtm;
+
+        auto I = children.begin();
+        alwaysVisits = (*I)->getAlwaysVisits();
+        ++I;
+        for (auto E = children.end(); I != E; ++I) {
+            VisitsSetT intersect;
+            // do intersection with another child
+            std::set_intersection(getAlwaysVisits().begin(), getAlwaysVisits().end(),
+                                  (*I)->getAlwaysVisits().begin(),
+                                  (*I)->getAlwaysVisits().end(),
+                                  std::inserter(intersect, intersect.end()), CECmp());
+
+            // swap the intersection for alwaysVisit, so that we can
+            // use it further
+            intersect.swap(alwaysVisits);
+        }
+
+
+
+    }
+    */
 
 private:
 
