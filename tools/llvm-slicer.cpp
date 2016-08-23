@@ -271,7 +271,14 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             for (auto I = node->rev_data_begin(), E = node->rev_data_end();
                  I != E; ++I) {
                 const llvm::Value *d = (*I)->getKey();
-                os << "  ; DD: " << *d << "(" << d << ")\n";
+                os << "  ; DD: ";
+
+                if (d->hasName())
+                    os << d->getName();
+                else
+                    os << *d;
+
+                os << "(" << d << ")\n";
             }
         }
 
@@ -287,7 +294,12 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             for (auto I = node->rev_control_begin(), E = node->rev_control_end();
                  I != E; ++I) {
                 const llvm::Value *d = (*I)->getKey();
-                os << "  ; DD: " << *d << "\n";
+                os << "  ; rCD: ";
+
+                if (d->hasName())
+                    os << d->getName() << "\n";
+                else
+                    os << *d << "\n";
             }
         }
 
@@ -360,16 +372,22 @@ public:
             auto cb = sub->getBlocks();
             LLVMBBlock *BB = cb[const_cast<llvm::BasicBlock *>(B)];
             if (BB) {
+                if (opts & (ANNOTATE_POSTDOM | ANNOTATE_CD))
+                    os << "  ; BB: " << BB << "\n";
+
                 if (opts & ANNOTATE_POSTDOM) {
                     for (LLVMBBlock *p : BB->getPostDomFrontiers())
-                        os << "  ; PDF: " << p->getKey()->getName() << "\n";
+                        os << "  ; PDF: " << p << "\n";
 
                     LLVMBBlock *P = BB->getIPostDom();
                     if (P && P->getKey())
-                        os << "  ; iPD: " << P->getKey()->getName() << "\n";
+                        os << "  ; iPD: " << P << "\n";
                 }
 
-                // fixme - we have control dependencies in the BBs
+                if (opts & ANNOTATE_CD) {
+                    for (LLVMBBlock *p : BB->controlDependence())
+                        os << "  ; CD: " << p << "\n";
+                }
             }
         }
     }
