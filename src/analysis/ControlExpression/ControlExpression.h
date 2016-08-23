@@ -191,6 +191,11 @@ public:
         parent = p;
     }
 
+    CENode *getParent() const
+    {
+        return parent;
+    }
+
     std::list<CENode *>& getChildren()
     {
         return children;
@@ -425,6 +430,21 @@ public:
             assert(nd->parent == this);
 
     }
+
+    // get the closest loop that is above this node
+    CENode *getParentLoop() const
+    {
+        return [](const CENode *nd) -> CENode * {
+            CENode *par = nd->getParent();
+            if (par) {
+                if (par->isa(LOOP))
+                    return par;
+                else
+                    return par->getParentLoop();
+            } else
+                return nullptr;
+        }(this);
+    }
 };
 
 template <typename T>
@@ -614,7 +634,8 @@ public:
         // in the SEQ, because we always execute
         // the loop and what nodes are always executed
         // and sometimes executed is the same as in SEQ.
-        if (++path_begin() == path_end()) {
+        if (++path_begin() == path_end()
+            && getParentLoop() == nullptr) {
             for (CENode *chld : children) {
                 for (CENode *ch : chld->getAlwaysVisits())
                     alwaysVisits.insert(ch);
@@ -897,6 +918,28 @@ private:
 class ControlExpression {
     CENode *root;
 
+    // get the top-most loop on the right-most branch
+    // you can find from the 'nd' node
+    //
+    //                 . (nd)
+    //                / \
+    //               /  /\
+    //              /   */\
+    //                    /\
+    //                      *  <==
+    //                     / \
+    //                        *
+    CENode *getEndingLoop(CENode *nd) const
+    {
+        if (nd->isa(LOOP))
+            return nd;
+
+        if (nd->hasChildren())
+            return getEndingLoop(*(--nd->getChildren().end()));
+        else
+            return nullptr;
+    }
+
 public:
     typedef std::vector<CENode *> CEPath;
 
@@ -915,6 +958,11 @@ public:
     {
     }
     */
+
+    CENode *getEndingLoop() const
+    {
+        return getEndingLoop(root);
+    }
 
     CENode *getRoot()
     {
@@ -953,6 +1001,19 @@ public:
                  I != E; ++I) {
                 P.push_back(*I);
             }
+
+            // in the case that there is a loop at
+            // the end of the expression
+            // we must put the loop into the path,
+            // because since the loop is at the end,
+            // it is going to be executed for sure
+
+            // find the loop (the closest one)
+            // and push it into the path (if it is not
+            // already there)
+            CENode *loop = getEndingLoop();
+            if (loop && P.back() != loop)
+                P.push_back(loop);
 
             // rely on move constructors
             paths.push_back(P);
