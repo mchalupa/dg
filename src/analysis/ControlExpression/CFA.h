@@ -4,9 +4,10 @@
 #include <list>
 #include <vector>
 #include <set>
-#include <iostream>
+//#include <iostream>
 
 #include "CENode.h"
+#include "ControlExpression.h"
 
 namespace dg {
 
@@ -180,6 +181,7 @@ public:
         predecessors.clear();
     }
 
+    /*
     void dump() const
     {
         std::cout << " -- " << this << " --\n";
@@ -188,6 +190,7 @@ public:
             E.second->dump(5);
         }
     }
+    */
 
     bool operator<(const CFANode<T>& oth) const
     {
@@ -280,6 +283,13 @@ class CFA {
 public:
     CFA<T>()
         :root(T()), end(T()) {}
+
+    CFA<T>(CFA<T>&& oth)
+        :root(std::move(oth.root)),
+         end(std::move(oth.end)),
+         nodes(std::move(oth.nodes))
+    {
+    }
 
     void addNode(CFANode<T> *n)
     {

@@ -25,7 +25,16 @@ namespace llvm {
 #include "LLVMNode.h"
 #include "DependenceGraph.h"
 
+#include "analysis/ControlExpression/ControlExpression.h"
+
 namespace dg {
+
+enum CD_ALG {
+    // Ferrante & Ottenstein
+    CLASSIC,
+    // our algorithm
+    CONTROL_EXPRESSION,
+};
 
 // forward declaration
 class LLVMPointerAnalysis;
@@ -90,7 +99,15 @@ public:
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
-    void computePostDominators(bool addPostDomFrontiers = false);
+    void computeControlDependencies(enum CD_ALG alg_type)
+    {
+        if (alg_type == CLASSIC)
+            computePostDominators(true);
+        else if (alg_type == CONTROL_EXPRESSION)
+            computeControlExpression(true);
+        else
+            abort();
+    }
 
     bool verify() const;
 
@@ -109,6 +126,9 @@ public:
     LLVMPointerAnalysis *getPTA() const { return PTA; }
 
 private:
+    void computePostDominators(bool addPostDomFrontiers = false);
+    void computeControlExpression(bool addCDs = false);
+
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
     void addFormalParameters();
@@ -139,6 +159,9 @@ private:
 
     // points-to information (if available)
     LLVMPointerAnalysis *PTA;
+
+    // control expression for this graph
+    ControlExpression CE;
 
     // verifier needs access to private elements
     friend class LLVMDGVerifier;

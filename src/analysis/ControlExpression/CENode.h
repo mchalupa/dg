@@ -3,7 +3,7 @@
 
 #include <list>
 #include <set>
-#include <iostream>
+//#include <iostream>
 #include <algorithm>
 #include <cassert>
 
@@ -284,6 +284,7 @@ public:
         assert(false && "This method must be overriden");
     }
 
+/*
     virtual void print() const
     {
         std::cout << this;
@@ -299,6 +300,7 @@ public:
             assert(chld->parent == this);
 
         mkind();
+        //std::cout << "<" << this << ">";
         switch(type) {
             case BRANCH:
                 std::cout << "[+\n";
@@ -352,6 +354,7 @@ public:
         std::cout << "\n";
 
     }
+*/
 
     // simplify the CENode and its children
     // (recursively the whole subtree),
@@ -490,10 +493,12 @@ public:
         alwaysVisits.insert(this);
     }
 
+    /*
     virtual void print() const override
     {
         std::cout << label;
     }
+    */
 
 };
 
@@ -675,10 +680,12 @@ public:
         return n;
     }
 
+    /*
     virtual void print() const override
     {
         std::cout << "(e)";
     }
+    */
 };
 
 } // namespace dg

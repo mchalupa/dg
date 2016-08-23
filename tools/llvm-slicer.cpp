@@ -60,7 +60,8 @@ using llvm::errs;
 const char *usage =
 "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
 "                   [-remove-unused-only] [-dont-verify] [-pts fs|fi|old]\n"
-"                   [-c|-crit|-slice func_call] [-o file] module\n"
+"                   [-c|-crit|-slice func_call] [-cd-alg classic|ce]\n"
+"                   [-o file] module\n"
 "\n"
 "-debug               Save annotated version of module as a text (.ll).\n"
 "                         (dd: data dependencies, cd:control dependencies,\n"
@@ -77,6 +78,9 @@ const char *usage =
 "                     i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
 "                     in which case the slice is taken with respect to return value\n"
 "                     of main procedure\n"
+" -cd-alg             Which algorithm for computing control dependencies to use.\n"
+"                     'classical' is the original Ferrante's algorithm and ce\n"
+"                     is our algorithm using so called control expression (default)\n"
 " -o                  Save the output to given file. If not specified, a .sliced suffix\n"
 "                     is used with the original module name\n"
 "\n"
@@ -442,12 +446,14 @@ protected:
     const char *module_name;
     uint32_t opts = 0;
     PtaType pta;
+    CD_ALG cd_alg;
     LLVMPointerAnalysis *PTA;
     LLVMReachingDefinitions *RD;
 
     // for SlicerOld
-    Slicer(llvm::Module *mod, const char *modnm, uint32_t o)
-    :M(mod), module_name(modnm), opts(o),
+    Slicer(llvm::Module *mod, const char *modnm,
+           uint32_t o, CD_ALG cda = CONTROL_EXPRESSION)
+    :M(mod), module_name(modnm), opts(o), cd_alg(cda),
      PTA(new LLVMPointerAnalysis(mod)), RD(nullptr)
     {
         assert(mod && "Need module");
@@ -549,16 +555,17 @@ protected:
 
         tm.start();
         // add post-dominator frontiers
-        d->computePostDominators(true);
+        d->computeControlDependencies(cd_alg);
         tm.stop();
-        tm.report("INFO: Computing post-dominator frontiers took");
+        tm.report("INFO: Computing control dependencies took");
     }
 
 public:
 
     // FIXME: make pts enum, not a string
-    Slicer(llvm::Module *mod, const char *modnm, uint32_t o, PtaType pt)
-    :Slicer(mod, modnm, o)
+    Slicer(llvm::Module *mod, const char *modnm,
+           uint32_t o, PtaType pt, CD_ALG cda = CONTROL_EXPRESSION)
+    :Slicer(mod, modnm, o, cda)
     {
         assert((pt == PTA_FI || pt == PTA_FS) && "Invalid PTA");
         this->pta = pt; // cannot do it in mem-initialization,
@@ -616,14 +623,15 @@ class SlicerOld : public Slicer
 
         tm.start();
         // add post-dominator frontiers
-        d->computePostDominators(true);
+        d->computeControlDependencies(cd_alg);
         tm.stop();
-        tm.report("INFO: Computing post-dominator frontiers took");
+        tm.report("INFO: Computing control dependencies took");
     }
 
 public:
-    SlicerOld(llvm::Module *mod, const char *modnm, uint32_t o = 0)
-        :Slicer(mod, modnm, o) {}
+    SlicerOld(llvm::Module *mod, const char *modnm,
+              uint32_t o = 0, CD_ALG cda = CONTROL_EXPRESSION)
+        :Slicer(mod, modnm, o, cda) {}
 
     bool slice(const char *slicing_criterion)
     {
@@ -853,6 +861,7 @@ int main(int argc, char *argv[])
     const char *output = nullptr;
     uint32_t opts = 0;
     PtaType pta = PTA_FI;
+    CD_ALG cd_alg = CONTROL_EXPRESSION;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -882,6 +891,16 @@ int main(int argc, char *argv[])
                 opts |= (ANNOTATE | ANNOTATE_POSTDOM);
         } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
             remove_unused_only = true;
+        } else if (strcmp(argv[i], "-cd-alg") == 0) {
+            const char *arg = argv[++i];
+            if (strcmp(arg, "classic") == 0)
+                cd_alg = CLASSIC;
+            else if (strcmp(arg, "ce") == 0)
+                cd_alg = CONTROL_EXPRESSION;
+            else {
+                errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
+                abort();
+            }
         } else if (strcmp(argv[i], "-o") == 0) {
             output = strdup(argv[++i]);
             if (!output) {
@@ -948,14 +967,14 @@ int main(int argc, char *argv[])
     // slice the code
     /// ---------------
     if (pta == PTA_OLD) {
-        SlicerOld slicer(M, module, opts);
+        SlicerOld slicer(M, module, opts, cd_alg);
         if (!slicer.slice(slicing_criterion)) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
     } else if (pta == PTA_FI || pta == PTA_FS) {
         // FIXME: do one parent class and use overriding
-        Slicer slicer(M, module, opts, pta);
+        Slicer slicer(M, module, opts, pta, cd_alg);
         if (!slicer.slice(slicing_criterion)) {
             errs() << "ERR: Slicing failed\n";
             return 1;
@@ -974,4 +993,5 @@ int main(int argc, char *argv[])
         print_statistics(M, "Statistics after ");
 
     return save_module(M, module, output, should_verify_module);
+    // FIXME: we leak the output string
 }

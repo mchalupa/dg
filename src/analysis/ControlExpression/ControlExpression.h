@@ -4,7 +4,7 @@
 #include <list>
 #include <vector>
 #include <set>
-#include <iostream>
+//#include <iostream>
 #include <algorithm>
 #include <cassert>
 
@@ -44,9 +44,18 @@ public:
     ControlExpression(CENode *r)
         : root(r) {}
 
+    ControlExpression()
+        :root(nullptr) {}
+
     ControlExpression(ControlExpression&& oth)
         :root(oth.root)
     {
+        oth.root = nullptr;
+    }
+
+    ControlExpression& operator=(ControlExpression&& oth)
+    {
+        root = oth.root;
         oth.root = nullptr;
     }
 
@@ -72,10 +81,12 @@ public:
         root->computeSets();
     }
 
+    /*
     void dump() const
     {
         root->dump();
     }
+    */
 
     // return by value to allow using
     // move constructor
@@ -171,8 +182,13 @@ public:
         auto I = paths.begin();
         auto S = getSetsForPath(*I, termination_sensitive);
 
+        // initialize the alwas set
         always = std::move(S.first);
+
+        // initialize the somtimes set (we put there everything
+        // and then filter it at the end)
         smtm = std::move(S.second);
+        smtm.insert(always.begin(), always.end());
 
         ++I;
         for (auto E = paths.end(); I != E; ++I) {
@@ -207,6 +223,9 @@ public:
     CENode::VisitsSetT getControlScope(const T& lab,
                                        bool termination_sensitive = false) const
     {
+        assert((!root->getAlwaysVisits().empty() ||
+               !root->getSometimesVisits().empty()) && "Did you called computeSets?");
+
         auto paths = getPathsFrom<T>(lab);
         // return the 'sometimes' set
         return getSets(paths, termination_sensitive).second;

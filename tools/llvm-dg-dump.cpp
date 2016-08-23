@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
+    CD_ALG cd_alg = CONTROL_EXPRESSION;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
@@ -80,6 +81,17 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-mark") == 0) {
             mark_only = true;
             slicing_criterion = argv[++i];
+        } else if (strcmp(argv[i], "-cd-alg") == 0) {
+            const char *arg = argv[++i];
+            if (strcmp(arg, "classic") == 0)
+                cd_alg = CLASSIC;
+            else if (strcmp(arg, "ce") == 0)
+                cd_alg = CONTROL_EXPRESSION;
+            else {
+                errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
+                abort();
+            }
+
         } else {
             module = argv[i];
         }
@@ -185,9 +197,9 @@ int main(int argc, char *argv[])
 
     tm.start();
     // add post-dominator frontiers
-    d.computePostDominators(true);
+    d.computeControlDependencies(cd_alg);
     tm.stop();
-    tm.report("INFO: computing post-dominator frontiers took");
+    tm.report("INFO: computing control dependencies took");
 
     if (slicing_criterion) {
         LLVMSlicer slicer;

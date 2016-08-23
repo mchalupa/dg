@@ -34,6 +34,7 @@
 #include "llvm-debug.h"
 
 #include "llvm/analysis/PointsTo.h"
+#include "llvm/analysis/ControlExpression.h"
 
 using llvm::errs;
 using std::make_pair;
@@ -738,6 +739,44 @@ bool LLVMDependenceGraph::getCallSites(const char *names[],
     }
 
     return callsites->size() != 0;
+}
+
+void LLVMDependenceGraph::computeControlExpression(bool addCDs)
+{
+    LLVMCFABuilder builder;
+
+    for (auto F : getConstructedFunctions()) {
+        llvm::Function *func = llvm::cast<llvm::Function>(F.first);
+        LLVMCFA cfa = builder.build(*func);
+
+        CE = std::move(cfa.compute());
+
+        if (addCDs) {
+            // compute the control scope
+            CE.computeSets();
+            auto our_blocks = F.second->getBlocks();
+
+            for (llvm::BasicBlock& B : *func) {
+                LLVMBBlock *B1 = our_blocks[&B];
+
+                // if this block is a predicate block,
+                // we compute the control deps for it
+                // XXX: for now we compute the control
+                // scope, which is enough for slicing,
+                // but may add some extra (transitive)
+                // edges
+                if (B.getTerminator()->getNumSuccessors() > 1) {
+                    auto CS = CE.getControlScope(&B);
+                    for (auto cs : CS) {
+                        assert(cs->isa(LABEL));
+                        auto lab = static_cast<CELabel<llvm::BasicBlock *> *>(cs);
+                        LLVMBBlock *B2 = our_blocks[lab->getLabel()];
+                        B1->addControlDependence(B2);
+                    }
+                }
+            }
+        }
+    }
 }
 
 } // namespace dg
