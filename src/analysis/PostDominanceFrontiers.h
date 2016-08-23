@@ -35,26 +35,35 @@ class PostDominanceFrontiers
         blocks->push_back(BB);
     }
 
-    void computePDFrontiers(BBlock<NodeT> *BB)
+    void computePDFrontiers(BBlock<NodeT> *BB, bool add_cd)
     {
         // compute DFlocal
         for (BBlock<NodeT> *pred : BB->predecessors()) {
             BBlock<NodeT> *ipdom = pred->getIPostDom();
-            if (ipdom && ipdom != BB)
+            if (ipdom && ipdom != BB) {
                 BB->addPostDomFrontier(pred);
+
+                // pd-frontiers are the reverse control dependencies
+                if (add_cd)
+                    pred->addControlDependence(BB);
+            }
         }
 
         for (BBlock<NodeT> *pdom : BB->getPostDominators()) {
             for (BBlock<NodeT> *df : pdom->getPostDomFrontiers()) {
                 BBlock<NodeT> *ipdom = df->getIPostDom();
-                if (ipdom && ipdom != BB && df != BB)
+                if (ipdom && ipdom != BB && df != BB) {
                     BB->addPostDomFrontier(df);
+
+                    if (add_cd)
+                        df->addControlDependence(BB);
+                }
             }
         }
     }
 
 public:
-    void compute(BBlock<NodeT> *root)
+    void compute(BBlock<NodeT> *root, bool add_cd = false)
     {
         std::vector<BBlock<NodeT> *> blocks;
         BBlockBFS<NodeT> bfs(BFS_BB_POSTDOM);
@@ -65,7 +74,7 @@ public:
 
         // go bottom-up the post-dom tree and compute post-domninance frontiers
         for (int i = blocks.size() - 1; i >= 0; --i)
-            computePDFrontiers(blocks[i]);
+            computePDFrontiers(blocks[i], add_cd);
     }
 };
 

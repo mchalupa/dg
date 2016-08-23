@@ -70,20 +70,23 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         }
 
         // well, if we haven't built the pdtree, this is probably infinite loop
-        // that has no pdtree. Until we have anything better, just add sound
+        // that has no pdtree. Until we have anything better, just add sound control
         // edges that are not so precise - to predecessors.
-        if (!built) {
+        if (!built && addPostDomFrontiers) {
             for (auto it : our_blocks) {
                 LLVMBBlock *BB = it.second;
-                for (const LLVMBBlock::BBlockEdge& succ : BB->successors())
-                    succ.target->addPostDomFrontier(BB);
+                for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
+                    // in this case we add only the control dependencies,
+                    // since we have no pd frontiers
+                    BB->addControlDependence(succ.target);
+                }
             }
         }
 
         if (addPostDomFrontiers) {
             // assert(root && "BUG: must have root");
             if (root)
-                pdfrontiers.compute(root);
+                pdfrontiers.compute(root, true /* store also control depend. */);
         }
 
         delete pdtree;

@@ -25,8 +25,7 @@ class WalkAndMark : public NodesWalk<NodeT, QueueFIFO<NodeT *>>
 public:
     WalkAndMark()
         : NodesWalk<NodeT, QueueFIFO<NodeT *>>(NODES_WALK_REV_CD |
-                                               NODES_WALK_REV_DD |
-                                               NODES_WALK_BB_POSTDOM_FRONTIERS) {}
+                                               NODES_WALK_REV_DD) {}
 
     void mark(NodeT *start, uint32_t slice_id)
     {
