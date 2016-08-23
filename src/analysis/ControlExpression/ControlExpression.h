@@ -212,33 +212,6 @@ public:
         return getSets(paths, termination_sensitive).second;
     }
 
-
-    /*
-    template <typename T>
-    {
-        CENode::VisitsSetT always, smtm;
-
-        auto I = children.begin();
-        alwaysVisits = (*I)->getAlwaysVisits();
-        ++I;
-        for (auto E = children.end(); I != E; ++I) {
-            VisitsSetT intersect;
-            // do intersection with another child
-            std::set_intersection(getAlwaysVisits().begin(), getAlwaysVisits().end(),
-                                  (*I)->getAlwaysVisits().begin(),
-                                  (*I)->getAlwaysVisits().end(),
-                                  std::inserter(intersect, intersect.end()), CECmp());
-
-            // swap the intersection for alwaysVisit, so that we can
-            // use it further
-            intersect.swap(alwaysVisits);
-        }
-
-
-
-    }
-    */
-
 private:
 
     template <typename T>
