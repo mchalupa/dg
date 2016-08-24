@@ -57,6 +57,7 @@ public:
     {
         root = oth.root;
         oth.root = nullptr;
+        return *this;
     }
 
     ControlExpression(const ControlExpression& oth) = delete;
