@@ -291,6 +291,19 @@ public:
     {
     }
 
+    ~CFA<T>()
+    {
+        for (auto n : nodes)
+            // delete the nodes,
+            // we overtake the ownership
+            // FIXME: use std::unique_ptr?
+            delete n;
+    }
+
+    // add a node into CFA. The memory must
+    // be allocated using 'new' operator and
+    // it is over-taken and deleted on CFA's
+    // destruction
     void addNode(CFANode<T> *n)
     {
         // if this node has no predecessors,
