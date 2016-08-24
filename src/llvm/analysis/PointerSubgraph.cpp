@@ -1223,6 +1223,7 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::Shl:
         case Instruction::LShr:
         case Instruction::AShr:
+        case Instruction::Xor:
             // these instructions reinterpert the pointer,
             // nothing better we can do here (I think?)
             node = createUnknown(&Inst);
