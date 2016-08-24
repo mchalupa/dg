@@ -56,13 +56,80 @@ struct DefSite
     Offset len;
 };
 
+extern RDNode *UNKNOWN_MEMORY;
+
+// wrapper around std::set<> with few
+// improvements that will be handy in our set-up
+class RDNodesSet {
+    std::set<RDNode *> nodes;
+    bool is_unknown;
+
+public:
+    RDNodesSet() : is_unknown(false) {}
+
+    // the set contains unknown mem. location
+    void makeUnknown()
+    {
+        nodes.clear();
+        nodes.insert(UNKNOWN_MEMORY);
+        is_unknown = true;
+    }
+
+    bool insert(RDNode *n)
+    {
+        if (is_unknown)
+            return false;
+
+        if (n == UNKNOWN_MEMORY)
+            makeUnknown();
+        else
+            return nodes.insert(n).second;
+    }
+
+    size_t count(RDNode *n) const
+    {
+        return nodes.count(n);
+    }
+
+    size_t size() const
+    {
+        return nodes.size();
+    }
+
+    void clear()
+    {
+        nodes.clear();
+        is_unknown = false;
+    }
+
+    bool isUnknown() const
+    {
+        return is_unknown;
+    }
+
+    std::set<RDNode *>::iterator begin()
+    {
+        return nodes.begin();
+    }
+
+    std::set<RDNode *>::iterator end()
+    {
+        return nodes.end();
+    }
+
+    std::set<RDNode *>& getNodes()
+    {
+        return nodes;
+    };
+
+};
+
 typedef std::set<DefSite> DefSiteSetT;
-typedef std::set<RDNode *> RDNodesSetT;
 
 class RDMap
 {
 public:
-    typedef std::map<DefSite, RDNodesSetT> MapT;
+    typedef std::map<DefSite, RDNodesSet> MapT;
     typedef MapT::iterator iterator;
     typedef MapT::const_iterator const_iterator;
 
@@ -92,10 +159,10 @@ public:
     const_iterator begin() const { return defs.begin(); }
     const_iterator end() const { return defs.end(); }
 
-    RDNodesSetT& get(const DefSite& ds){ return defs[ds]; }
+    RDNodesSet& get(const DefSite& ds){ return defs[ds]; }
     //const RDNodesSetT& get(const DefSite& ds) const { return defs[ds]; }
-    RDNodesSetT& operator[](const DefSite& ds) { return defs[ds]; }
-    //RDNodesSetT& get(RDNode *, const Offset&);
+    RDNodesSet& operator[](const DefSite& ds) { return defs[ds]; }
+    //RDNodesSet& get(RDNode *, const Offset&);
     // gather reaching definitions of memory [n + off, n + off + len]
     // and store them to the @ret
     size_t get(RDNode *n, const Offset& off,
