@@ -72,11 +72,14 @@ bool RDMap::merge(const RDMap *oth,
             && ds.target->getType() != DYN_ALLOC) {
             bool skip = false;
 
-            // FIXME: use getObjectRange
-            for (const DefSite& ds2 : *no_update) {
-                if (ds.target != ds2.target)
-                    continue;
-
+            auto range = std::equal_range(no_update->begin(),
+                                          no_update->end(),
+                                          ds,[](const DefSite& a,
+                                                const DefSite& b) -> bool
+                                                { return a.target < b.target; });
+            for (auto I = range.first; I!= range.second; ++I) {
+                const DefSite& ds2 = *I;
+                assert(ds.target == ds2.target);
                 // if the 'no_update' set contains target with unknown
                 // pointer, we should always keep that value
                 // and the value being merged (just all possible definitions)
@@ -170,16 +173,10 @@ bool RDMap::definesWithAnyOffset(const DefSite& ds)
     return false;
 }
 
-static bool comp(const std::pair<const DefSite, RDNodesSetT>& a,
-                 const std::pair<const DefSite, RDNodesSetT>& b)
+static inline bool comp(const std::pair<const DefSite, RDNodesSetT>& a,
+                        const std::pair<const DefSite, RDNodesSetT>& b)
 {
     return a.first.target < b.first.target;
-}
-
-std::pair<RDMap::iterator, RDMap::iterator>
-getObjectRange(RDNode *n)
-{
-    std::abort();
 }
 
 std::pair<RDMap::iterator, RDMap::iterator>
