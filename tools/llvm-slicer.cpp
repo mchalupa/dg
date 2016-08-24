@@ -452,7 +452,7 @@ protected:
 
     // for SlicerOld
     Slicer(llvm::Module *mod, const char *modnm,
-           uint32_t o, CD_ALG cda = CONTROL_EXPRESSION)
+           uint32_t o, CD_ALG cda = CLASSIC)
     :M(mod), module_name(modnm), opts(o), cd_alg(cda),
      PTA(new LLVMPointerAnalysis(mod)), RD(nullptr)
     {
@@ -564,7 +564,7 @@ public:
 
     // FIXME: make pts enum, not a string
     Slicer(llvm::Module *mod, const char *modnm,
-           uint32_t o, PtaType pt, CD_ALG cda = CONTROL_EXPRESSION)
+           uint32_t o, PtaType pt, CD_ALG cda = CLASSIC)
     :Slicer(mod, modnm, o, cda)
     {
         assert((pt == PTA_FI || pt == PTA_FS) && "Invalid PTA");
@@ -630,7 +630,7 @@ class SlicerOld : public Slicer
 
 public:
     SlicerOld(llvm::Module *mod, const char *modnm,
-              uint32_t o = 0, CD_ALG cda = CONTROL_EXPRESSION)
+              uint32_t o = 0, CD_ALG cda = CLASSIC)
         :Slicer(mod, modnm, o, cda) {}
 
     bool slice(const char *slicing_criterion)
@@ -861,7 +861,7 @@ int main(int argc, char *argv[])
     const char *output = nullptr;
     uint32_t opts = 0;
     PtaType pta = PTA_FI;
-    CD_ALG cd_alg = CONTROL_EXPRESSION;
+    CD_ALG cd_alg = CLASSIC;
 
     // parse options
     for (int i = 1; i < argc; ++i) {

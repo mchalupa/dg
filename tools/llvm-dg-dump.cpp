@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
-    CD_ALG cd_alg = CONTROL_EXPRESSION;
+    CD_ALG cd_alg = CLASSIC;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
