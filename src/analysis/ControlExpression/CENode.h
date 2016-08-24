@@ -90,9 +90,13 @@ public:
             if (node == nullptr)
                 return;
 
-            // is the node's parent a BRANCH? In that case
-            // we must move up again
-            if (node->parent && node->parent->isa(BRANCH)) {
+            if (node->isa(LOOP)) {
+                // when the node is loop, we want it in the path,
+                // since the loop is where the execution continues
+                node = *it;
+            } else if (node->parent && node->parent->isa(BRANCH)) {
+                // is the node's parent a BRANCH? In that case
+                // we must move up again
                 moveUp();
             } else {
                 // try to shift the iterator one position
@@ -629,41 +633,20 @@ public:
         for (CENode *chld : children)
             chld->computeSets();
 
-        // in the case that this loop
-        // is the last part of the expression
-        // (e.g.  AB((C+D)E)* ),
-        // than we are sure that this loop
-        // actually runs (in the middle of the
-        // expression, the loop may not be executed
-        // at all). That means that we should
-        // compute the sets the same way as
-        // in the SEQ, because we always execute
-        // the loop and what nodes are always executed
-        // and sometimes executed is the same as in SEQ.
-        if (++path_begin() == path_end()
-            && getParentLoop() == nullptr) {
-            for (CENode *chld : children) {
-                for (CENode *ch : chld->getAlwaysVisits())
-                    alwaysVisits.insert(ch);
+        // while computing sets, we suppose the loop
+        // is always executed - the cases where it may
+        // not be executed are solved later when browsing
+        // the paths
+        for (CENode *chld : children) {
+            for (CENode *ch : chld->getAlwaysVisits())
+                alwaysVisits.insert(ch);
 
-                for (CENode *ch : chld->getSometimesVisits())
-                    if (alwaysVisits.count(ch) == 0)
-                        sometimesVisits.insert(ch);
-            }
-        } else {
-            // with a loop in the middle of the expression,
-            // there's always only a possibility that we
-            // go into a loop, so this is just a union
-            // of all the stuf into sometimesVisit
-
-            for (CENode *chld : children) {
-                for (CENode *ch : chld->getAlwaysVisits())
+            for (CENode *ch : chld->getSometimesVisits())
+                if (alwaysVisits.count(ch) == 0)
                     sometimesVisits.insert(ch);
-
-                for (CENode *ch : chld->getSometimesVisits())
-                    sometimesVisits.insert(ch);
-            }
         }
+
+        pruneSometimesVisits();
     }
 };
 

@@ -16,28 +16,6 @@ namespace dg {
 class ControlExpression {
     CENode *root;
 
-    // get the top-most loop on the right-most branch
-    // you can find from the 'nd' node
-    //
-    //                 . (nd)
-    //                / \
-    //               /  /\
-    //              /   */\
-    //                    /\
-    //                      *  <==
-    //                     / \
-    //                        *
-    CENode *getEndingLoop(CENode *nd) const
-    {
-        if (nd->isa(LOOP))
-            return nd;
-
-        if (nd->hasChildren())
-            return getEndingLoop(*(--nd->getChildren().end()));
-        else
-            return nullptr;
-    }
-
 public:
     typedef std::vector<CENode *> CEPath;
 
@@ -66,11 +44,6 @@ public:
     {
     }
     */
-
-    CENode *getEndingLoop() const
-    {
-        return getEndingLoop(root);
-    }
 
     CENode *getRoot()
     {
@@ -110,20 +83,15 @@ public:
             for (auto I = lab->path_begin(), E = lab->path_end();
                  I != E; ++I) {
                 P.push_back(*I);
+
+                // XXX: Consider selective termination
+                // every loop may non-terminate, so every loop terminates a path
+                if ((*I)->isa(LOOP))
+                    // copy the path that is terminated with this loop
+                    paths.push_back(CEPath(P));
+
+                // continue building the path
             }
-
-            // in the case that there is a loop at
-            // the end of the expression
-            // we must put the loop into the path,
-            // because since the loop is at the end,
-            // it is going to be executed for sure
-
-            // find the loop (the closest one)
-            // and push it into the path (if it is not
-            // already there)
-            CENode *loop = getEndingLoop();
-            if (loop && P.back() != loop)
-                P.push_back(loop);
 
             // rely on move constructors
             paths.push_back(P);
