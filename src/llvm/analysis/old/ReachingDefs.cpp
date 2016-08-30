@@ -27,11 +27,8 @@ namespace analysis {
 
 LLVMReachingDefsAnalysis::LLVMReachingDefsAnalysis(LLVMDependenceGraph *dg)
     : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
-      dg(dg)
+      dg(dg), DL(new DataLayout(dg->getModule()))
 {
-    Module *m = dg->getModule();
-    // set data layout
-    DL = new DataLayout(m->getDataLayout());
 }
 
 Pointer LLVMReachingDefsAnalysis::getConstantExprPointer(ConstantExpr *CE)

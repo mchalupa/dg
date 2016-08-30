@@ -28,11 +28,8 @@ namespace old {
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg)
     : DataFlowAnalysis<LLVMNode>(dg->getEntryBB(), DATAFLOW_INTERPROCEDURAL),
-      dg(dg)
+      dg(dg), DL(new DataLayout(dg->getModule()))
 {
-    Module *m = dg->getModule();
-    // set data layout
-    DL = new DataLayout(m->getDataLayout());
 }
 
 Pointer LLVMDefUseAnalysis::getConstantExprPointer(ConstantExpr *CE)

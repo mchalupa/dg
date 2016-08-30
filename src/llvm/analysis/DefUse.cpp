@@ -56,14 +56,10 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMPointerAnalysis *pta)
     : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
                                            analysis::DATAFLOW_INTERPROCEDURAL),
-      dg(dg), RD(rd), PTA(pta)
+      dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule()))
 {
     assert(PTA && "Need points-to information");
     assert(RD && "Need reaching definitions");
-
-    Module *m = dg->getModule();
-    // set data layout
-    DL = new DataLayout(m->getDataLayout());
 }
 
 void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)

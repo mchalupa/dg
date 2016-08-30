@@ -62,8 +62,8 @@ class LLVMPointerSubgraphBuilder
 
 public:
     LLVMPointerSubgraphBuilder(const llvm::Module *m)
-        : M(m), DL(new llvm::DataLayout(M->getDataLayout()))
-    {}
+        : M(m),
+        DL(new llvm::DataLayout(m)) {}
 
     ~LLVMPointerSubgraphBuilder()
     {

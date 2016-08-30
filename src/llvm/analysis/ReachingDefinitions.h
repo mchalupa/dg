@@ -44,7 +44,7 @@ class LLVMRDBuilder
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 public:
     LLVMRDBuilder(const llvm::Module *m, dg::LLVMPointerAnalysis *p)
-        : M(m), DL(new llvm::DataLayout(M->getDataLayout())), PTA(p) {}
+        : M(m), DL(new llvm::DataLayout(m)), PTA(p) {}
 
     ~LLVMRDBuilder() { delete DL; }
 
