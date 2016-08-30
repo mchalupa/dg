@@ -418,8 +418,16 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
                     = llvm::dyn_cast<llvm::Argument>(val)) {
             op = createIrrelevantArgument(A);
         } else {
-            llvm::errs() << "Did not find an operand: " << *val << "\n";
-            abort();
+            // this may happen when C code is corrupted like this:
+            // int a, b;
+            // a = &b;
+            // a = 3;
+            //
+            // 'a' is int but is assigned an address of 'b', which leads
+            // to creating an inttoptr/ptrtoint instructions that
+            // have forexample 'i32 3' as operand
+            llvm::errs() << "Invalid operand leading to UNKNOWN: " << *val << "\n";
+            op = createUnknown(val);
         }
     }
 
@@ -950,7 +958,7 @@ PSNode *LLVMPointerSubgraphBuilder::createCast(const llvm::Instruction *Inst)
 // sometimes inttoptr is masked using & or | operators,
 // so we need to support that. Anyway, that changes the pointer
 // completely, so we just return unknown pointer
-PSNode *LLVMPointerSubgraphBuilder::createUnknown(const llvm::Instruction *Inst)
+PSNode *LLVMPointerSubgraphBuilder::createUnknown(const llvm::Value *val)
 {
     // nothing better we can do, these operations
     // completely change the value of pointer...
@@ -958,7 +966,7 @@ PSNode *LLVMPointerSubgraphBuilder::createUnknown(const llvm::Instruction *Inst)
     // FIXME: or there's enough unknown offset? Check it out!
     PSNode *node = new PSNode(pta::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
 
-    addNode(Inst, node);
+    addNode(val, node);
 
     assert(node);
     return node;
@@ -1398,7 +1406,10 @@ void LLVMPointerSubgraphBuilder::createIrrelevantUses(const llvm::Value *val)
                 // as an argument - we need to build new argument
                 // and put it into the procedure later
 
-                const Function *F = CI->getCalledFunction();
+                // we must stip the bitcast, because if the function is not
+                // declared, we would get null
+                const Function *F
+                    = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
                 assert(F && "ptrtoint via function pointer call not implemented");
 
                 // if the function is not defined in this module, don't
