@@ -493,11 +493,12 @@ protected:
             return false;
         }
 
-        // FIXME add command line switch -svcomp and
-        // do this only with -svcomp switch
         const char *sc[] = {
             slicing_criterion,
-            "klee_assume",
+            // FIXME add command line switch that
+            // will add these according to user's will
+            // (or extend the slicing criterion to be a list)
+            "__VERIFIER_assume",
             NULL // termination
         };
 
