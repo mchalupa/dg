@@ -16,6 +16,11 @@ RDMap::RDMap(const RDMap& o)
     merge(&o);
 }
 
+static bool comp_ds(const DefSite& a, const DefSite& b)
+{
+    return a.target < b.target;
+}
+
 ///
 // merge @oth map to this map. If given @no_update set,
 // take those definitions as 'overwrites'. That is -
@@ -52,6 +57,8 @@ RDMap::RDMap(const RDMap& o)
 // in the map
 bool RDMap::merge(const RDMap *oth,
                   DefSiteSetT *no_update,
+                  bool field_insensitive,
+                  uint32_t max_set_size,
                   bool merge_unknown)
 {
     if (this == oth)
@@ -62,21 +69,21 @@ bool RDMap::merge(const RDMap *oth,
         const DefSite& ds = it.first;
         bool is_unknown = ds.offset.isUnknown();
 
+        // STRONG UPDATE
+        // --------------------
         // should we update this def-site (strong update)?
         // but only if the offset is concrete, because if
         // it is not concrete, we want to do weak update
         // Also, we don't want to do strong updates for
         // heap allocated objects, since they are all represented
         // by the call site
-        if (!is_unknown && no_update
+        if (!field_insensitive && !is_unknown && no_update
             && ds.target->getType() != DYN_ALLOC) {
             bool skip = false;
 
             auto range = std::equal_range(no_update->begin(),
                                           no_update->end(),
-                                          ds,[](const DefSite& a,
-                                                const DefSite& b) -> bool
-                                                { return a.target < b.target; });
+                                          ds, comp_ds);
             for (auto I = range.first; I!= range.second; ++I) {
                 const DefSite& ds2 = *I;
                 assert(ds.target == ds2.target);
@@ -106,16 +113,24 @@ bool RDMap::merge(const RDMap *oth,
                 continue;
         }
 
+        if (field_insensitive)
+            merge_unknown = true;
+
+        // MERGE CONCRETE OFFSETS (if desired)
+        // ------------------------------------
         RDNodesSet *our_vals = nullptr;
         if (merge_unknown && is_unknown) {
-            // merge all concrete offset to UNKOWN
+            // this loop finds all concrete offsets and merges them into one
+            // defsite with UNKNOWN_OFFSET. This defsite is set in 'our_vals'
+            // after the loop exit
             our_vals = &defs[DefSite(ds.target, UNKNOWN_OFFSET, UNKNOWN_OFFSET)];
 
-            for (auto I = defs.begin(), E = defs.end(); I != E;) {
+            auto range = getObjectRange(ds);
+            for (auto I = range.first; I != range.second;) {
                 auto cur = I++;
-                // look only for our target
-                if (cur->first.target != ds.target)
-                    continue;
+
+                // this must hold (getObjectRange)
+                assert(cur->first.target == ds.target);
 
                 // don't remove the one with UNKNOWN_OFFSET
                 if (&cur->second == our_vals)
@@ -141,6 +156,12 @@ bool RDMap::merge(const RDMap *oth,
         // copy values that have the map 'oth' for the defsite 'ds' to our map
         for (RDNode *defnode : it.second)
             changed |= our_vals->insert(defnode);
+
+        // crop the set to UNKNOWN_MEMORY if it is too big.
+        // But only in the case that the  DefSite is not also UNKNOWN,
+        // because then we would be 'unknown memory defined @ unknown place'
+        if (!ds.target->isUnknown() && our_vals->size() > max_set_size)
+            our_vals->makeUnknown();
     }
 
     return changed;

@@ -44,6 +44,10 @@ private:
                            const llvm::Value *where, /* in CFG */
                            const llvm::Value *ptrOp,
                            uint64_t size);
+    void addDataDependence(LLVMNode *node, analysis::rd::RDNode *rd);
+    void addDataDependence(LLVMNode *node, llvm::Value *val);
+
+    void addUnknownDataDependence(LLVMNode *node, PSNode *pts);
 
     void handleLoadInst(llvm::LoadInst *, LLVMNode *);
     void handleCallInst(LLVMNode *);

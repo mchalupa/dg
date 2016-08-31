@@ -110,15 +110,21 @@ class LLVMReachingDefinitions
     LLVMRDBuilder *builder;
     ReachingDefinitionsAnalysis *RDA;
     RDNode *root;
+    bool field_insensitive;
+    uint32_t max_set_size;
 
 public:
-    LLVMReachingDefinitions(const llvm::Module *m, dg::LLVMPointerAnalysis *pta)
-        : builder(new LLVMRDBuilder(m, pta)) {}
+    LLVMReachingDefinitions(const llvm::Module *m,
+                            dg::LLVMPointerAnalysis *pta,
+                            bool field_insens = false,
+                            uint32_t max_set_sz = ~((uint32_t) 0))
+        : builder(new LLVMRDBuilder(m, pta)),
+          field_insensitive(field_insens), max_set_size(max_set_sz) {}
 
     void run()
     {
         root = builder->build();
-        RDA = new ReachingDefinitionsAnalysis(root);
+        RDA = new ReachingDefinitionsAnalysis(root, field_insensitive, max_set_size);
         RDA->run();
     }
 

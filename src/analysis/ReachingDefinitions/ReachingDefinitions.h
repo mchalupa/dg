@@ -197,6 +197,11 @@ public:
         return old;
     }
 
+    bool isUnknown() const
+    {
+        return this == UNKNOWN_MEMORY;
+    }
+
 
     friend class ReachingDefinitionsAnalysis;
 };
@@ -205,11 +210,19 @@ class ReachingDefinitionsAnalysis
 {
     RDNode *root;
     unsigned int dfsnum;
+    bool field_insensitive;
+    uint32_t max_set_size;
 
 public:
-    ReachingDefinitionsAnalysis(RDNode *r): root(r), dfsnum(0)
+    ReachingDefinitionsAnalysis(RDNode *r,
+                                bool field_insens = false,
+                                uint32_t max_set_sz = ~((uint32_t)0))
+    : root(r), dfsnum(0), field_insensitive(field_insens), max_set_size(max_set_sz)
     {
         assert(r && "Root cannot be null");
+        // with max_set_size == 0 (everything is defined on unknown location)
+        // we get unsound results with vararg functions and similar weird stuff
+        assert(max_set_size > 0 && "The set size must be at least 1");
     }
 
     void getNodes(std::set<RDNode *>& cont)

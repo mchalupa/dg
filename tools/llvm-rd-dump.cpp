@@ -205,6 +205,8 @@ int main(int argc, char *argv[])
     bool todot = false;
     const char *module = nullptr;
     uint64_t field_senitivity = UNKNOWN_OFFSET;
+    bool rd_field_insensitive = false;
+    uint32_t max_set_size = ~((uint32_t) 0);
 
     enum {
         FLOW_SENSITIVE = 1,
@@ -219,6 +221,14 @@ int main(int argc, char *argv[])
                 type = FLOW_SENSITIVE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_senitivity = (uint64_t) atoll(argv[i + 1]);
+        } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
+            max_set_size = (uint64_t) atoll(argv[i + 1]);
+            if (max_set_size == 0) {
+                llvm::errs() << "Invalid -rd-max-set-size argument\n";
+                abort();
+            }
+        } else if (strcmp(argv[i], "-rd-field-insensitive") == 0) {
+            rd_field_insensitive = true;
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
@@ -262,7 +272,7 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Points-to analysis took");
 
-    LLVMReachingDefinitions RD(M, &PTA);
+    LLVMReachingDefinitions RD(M, &PTA, rd_field_insensitive, max_set_size);
     tm.start();
     RD.run();
     tm.stop();

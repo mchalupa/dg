@@ -255,7 +255,8 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     assert(pts && "Don't have the points-to information for store");
 
     if (pts->pointsTo.empty()) {
-        llvm::errs() << "ERROR: empty STORE points-to: " << *Inst << "\n";
+        //llvm::errs() << "ERROR: empty STORE points-to: " << *Inst << "\n";
+
         // this may happen on invalid reads and writes to memory,
         // like when you try for example this:
         //

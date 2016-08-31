@@ -17,7 +17,11 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
     // merge maps from predecessors
     for (RDNode *n : node->predecessors)
         changed |= node->def_map.merge(&n->def_map,
-                                       &node->overwrites /* strong update */);
+                                       &node->overwrites /* strong update */,
+                                       field_insensitive,
+                                       max_set_size /* max size of set of reaching definition
+                                                       of one definition site */,
+                                       false /* merge unknown */);
 
     return changed;
 }

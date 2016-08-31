@@ -138,7 +138,9 @@ public:
 
     bool merge(const RDMap *o,
                DefSiteSetT *without = nullptr,
-               bool merge_unknown = false);
+               bool field_insensitive = false,
+               uint32_t max_set_size  = (~((uint32_t) 0)),
+               bool merge_unknown     = false);
     bool add(const DefSite&, RDNode *n);
     bool update(const DefSite&, RDNode *n);
     bool empty() const { return defs.empty(); }

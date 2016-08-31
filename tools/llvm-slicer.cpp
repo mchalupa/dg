@@ -62,6 +62,7 @@ const char *usage =
 "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
 "                   [-remove-unused-only] [-dont-verify]\n"
 "                   [-pta fs|fi|old][-pta-field-sensitive N]\n"
+"                   [-rd-field-insensitive][-rd-max-set-size N]\n"
 "                   [-c|-crit|-slice func_call] [-cd-alg classic|ce]\n"
 "                   [-o file] module\n"
 "\n"
@@ -79,6 +80,8 @@ const char *usage =
 "-pta-field-sensitive N  Make PTA field sensitive/insensitive. The offset in a pointer\n"
 "                        is cropped to UNKNOWN_OFFSET when it is greater than N bytes.\n"
 "                        Default is full field-sensitivity (N = UNKNOWN_OFFSET).\n"
+"-rd-field-insensitive   Make reaching definitions analysis kind of field insensitive\n."
+"-rd-max-set-size N      Crop set of reaching definitions to unknown when it is greater than N\n."
 " -c                     Slice with respect to the call-sites of func_call\n"
 "                        i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
 "                        in which case the slice is taken with respect to return value\n"
@@ -197,7 +200,10 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
 
         if (ds.target) {
             const llvm::Value *val = ds.target->getUserData<llvm::Value>();
-            printValue(val, os);
+            if (ds.target->isUnknown())
+                os << "unknown";
+            else
+                printValue(val, os);
 
             if (ds.offset.isUnknown())
                 os << " bytes |UNKNOWN";
@@ -229,7 +235,10 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
                         for (auto nd : it.second) {
                             printDefSite(it.first, os, "RD: ");
                             os << " @ ";
-                            printValue(nd->getUserData<llvm::Value>(), os, true);
+                            if (nd->isUnknown())
+                                os << " UNKNOWN\n";
+                            else
+                                printValue(nd->getUserData<llvm::Value>(), os, true);
                         }
                     }
                 }
@@ -454,13 +463,18 @@ protected:
     CD_ALG cd_alg;
     LLVMPointerAnalysis *PTA;
     LLVMReachingDefinitions *RD;
+    uint32_t rd_max_set_size;
+    bool rd_field_insensitive;
 
     // for SlicerOld
     Slicer(llvm::Module *mod, const char *modnm,
            uint32_t o, CD_ALG cda = CLASSIC,
-           uint64_t field_sens = UNKNOWN_OFFSET)
+           uint64_t field_sens = UNKNOWN_OFFSET,
+           uint32_t rd_max_set_sz = ~((uint32_t) 0),
+           bool rd_field_insens = false)
     :M(mod), module_name(modnm), opts(o), cd_alg(cda),
-     PTA(new LLVMPointerAnalysis(mod, field_sens)), RD(nullptr)
+     PTA(new LLVMPointerAnalysis(mod, field_sens)), RD(nullptr),
+     rd_max_set_size(rd_max_set_sz), rd_field_insensitive(rd_field_insens)
     {
         assert(mod && "Need module");
         assert(modnm && "Need name of module");
@@ -547,7 +561,9 @@ protected:
         debug::TimeMeasure tm;
         assert(PTA && "BUG: No PTA");
 
-        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA);
+        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA,
+                                                       rd_field_insensitive,
+                                                       rd_max_set_size);
         tm.start();
         RD->run();
         tm.stop();
@@ -571,8 +587,10 @@ public:
     // FIXME: make pts enum, not a string
     Slicer(llvm::Module *mod, const char *modnm,
            uint32_t o, PtaType pt, CD_ALG cda = CLASSIC,
-           uint64_t field_sens = UNKNOWN_OFFSET)
-    :Slicer(mod, modnm, o, cda, field_sens)
+           uint64_t field_sens = UNKNOWN_OFFSET,
+           uint32_t rd_max_set_size = ~((uint32_t) 0),
+           bool rd_field_insens = false)
+    :Slicer(mod, modnm, o, cda, field_sens, rd_max_set_size, rd_field_insens)
     {
         assert((pt == PTA_FI || pt == PTA_FS) && "Invalid PTA");
         this->pta = pt; // cannot do it in mem-initialization,
@@ -870,6 +888,8 @@ int main(int argc, char *argv[])
     PtaType pta = PTA_FI;
     CD_ALG cd_alg = CLASSIC;
     uint64_t field_senitivity = UNKNOWN_OFFSET;
+    bool rd_field_insensitive = false;
+    uint32_t rd_max_set_size = ~((uint32_t) 0);
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -933,6 +953,15 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             // FIXME: check the converted value
             field_senitivity = (uint64_t) atoll(argv[i+1]);
+        } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
+            rd_max_set_size = (uint64_t) atoll(argv[i + 1]);
+            if (rd_max_set_size == 0) {
+                llvm::errs() << "Invalid -rd-max-set-size argument\n";
+                abort();
+            }
+        } else if (strcmp(argv[i], "-rd-field-insensitive") == 0) {
+            rd_field_insensitive = true;
+
         } else if (strcmp(argv[i], "-dont-verify") == 0) {
             // for debugging
             should_verify_module = false;
@@ -985,7 +1014,8 @@ int main(int argc, char *argv[])
         }
     } else if (pta == PTA_FI || pta == PTA_FS) {
         // FIXME: do one parent class and use overriding
-        Slicer slicer(M, module, opts, pta, cd_alg);
+        Slicer slicer(M, module, opts, pta, cd_alg,
+                      field_senitivity, rd_max_set_size, rd_field_insensitive);
         if (!slicer.slice(slicing_criterion)) {
             errs() << "ERR: Slicing failed\n";
             return 1;
