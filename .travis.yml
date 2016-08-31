@@ -3,3 +3,17 @@ language: cpp
 compiler:
   - clang
   - gcc
+
+addons:
+  apt:
+    packages:
+    - cmake
+
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script:
+  - make
+  - make test
