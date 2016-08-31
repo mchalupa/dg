@@ -1248,7 +1248,6 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             node = createAdd(&Inst);
             break;
         case Instruction::Sub:
-            llvm::errs() << "FIXME: handle Sub with constants as GEP\n";
         case Instruction::Mul:
         case Instruction::SDiv:
             node = createArithmetic(&Inst);
