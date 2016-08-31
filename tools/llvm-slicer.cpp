@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 
@@ -59,30 +60,34 @@ using llvm::errs;
 
 const char *usage =
 "Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
-"                   [-remove-unused-only] [-dont-verify] [-pts fs|fi|old]\n"
+"                   [-remove-unused-only] [-dont-verify]\n"
+"                   [-pta fs|fi|old][-pta-field-sensitive N]\n"
 "                   [-c|-crit|-slice func_call] [-cd-alg classic|ce]\n"
 "                   [-o file] module\n"
 "\n"
-"-debug               Save annotated version of module as a text (.ll).\n"
-"                         (dd: data dependencies, cd:control dependencies,\n"
-"                          rd: reaching definitions, ptr: points-to information,\n"
-"                          slice: comment out what is going to be sliced away, etc.)\n"
-"                     This option can be used more times, i. e. '-debug dd -debug slice'\n"
-"-remove-unused-only  Remove unused parts of module, but do not slice\n"
-"-dont-verify         Don't verify wheter the module is valid after slicing\n"
-"-pts                 What points-to analysis use:\n"
-"                         fs - flow-sensitive\n"
-"                         fi - flow-insensitive\n"
-"                         old - old flow-insensitive, default\n"
-" -c                  Slice with respect to the call-sites of func_call\n"
-"                     i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
-"                     in which case the slice is taken with respect to return value\n"
-"                     of main procedure\n"
-" -cd-alg             Which algorithm for computing control dependencies to use.\n"
-"                     'classical' is the original Ferrante's algorithm and ce\n"
-"                     is our algorithm using so called control expression (default)\n"
-" -o                  Save the output to given file. If not specified, a .sliced suffix\n"
-"                     is used with the original module name\n"
+"-debug                  Save annotated version of module as a text (.ll).\n"
+"                            (dd: data dependencies, cd:control dependencies,\n"
+"                             rd: reaching definitions, ptr: points-to information,\n"
+"                             slice: comment out what is going to be sliced away, etc.)\n"
+"                        This option can be used more times, i. e. '-debug dd -debug slice'\n"
+"-remove-unused-only     Remove unused parts of module, but do not slice\n"
+"-dont-verify            Don't verify wheter the module is valid after slicing\n"
+"-pta                    What points-to analysis use:\n"
+"                            fs - flow-sensitive\n"
+"                            fi - flow-insensitive\n"
+"                            old - old flow-insensitive, default\n"
+"-pta-field-sensitive N  Make PTA field sensitive/insensitive. The offset in a pointer\n"
+"                        is cropped to UNKNOWN_OFFSET when it is greater than N bytes.\n"
+"                        Default is full field-sensitivity (N = UNKNOWN_OFFSET).\n"
+" -c                     Slice with respect to the call-sites of func_call\n"
+"                        i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
+"                        in which case the slice is taken with respect to return value\n"
+"                        of main procedure\n"
+" -cd-alg                Which algorithm for computing control dependencies to use.\n"
+"                        'classical' is the original Ferrante's algorithm and ce\n"
+"                        is our algorithm using so called control expression (default)\n"
+" -o                     Save the output to given file. If not specified, a .sliced suffix\n"
+"                        is used with the original module name\n"
 "\n"
 "'module' is the LLVM bitcode files to be sliced. It must contain 'main' function\n";
 
@@ -452,9 +457,10 @@ protected:
 
     // for SlicerOld
     Slicer(llvm::Module *mod, const char *modnm,
-           uint32_t o, CD_ALG cda = CLASSIC)
+           uint32_t o, CD_ALG cda = CLASSIC,
+           uint64_t field_sens = UNKNOWN_OFFSET)
     :M(mod), module_name(modnm), opts(o), cd_alg(cda),
-     PTA(new LLVMPointerAnalysis(mod)), RD(nullptr)
+     PTA(new LLVMPointerAnalysis(mod, field_sens)), RD(nullptr)
     {
         assert(mod && "Need module");
         assert(modnm && "Need name of module");
@@ -564,8 +570,9 @@ public:
 
     // FIXME: make pts enum, not a string
     Slicer(llvm::Module *mod, const char *modnm,
-           uint32_t o, PtaType pt, CD_ALG cda = CLASSIC)
-    :Slicer(mod, modnm, o, cda)
+           uint32_t o, PtaType pt, CD_ALG cda = CLASSIC,
+           uint64_t field_sens = UNKNOWN_OFFSET)
+    :Slicer(mod, modnm, o, cda, field_sens)
     {
         assert((pt == PTA_FI || pt == PTA_FS) && "Invalid PTA");
         this->pta = pt; // cannot do it in mem-initialization,
@@ -862,6 +869,7 @@ int main(int argc, char *argv[])
     uint32_t opts = 0;
     PtaType pta = PTA_FI;
     CD_ALG cd_alg = CLASSIC;
+    uint64_t field_senitivity = UNKNOWN_OFFSET;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -922,6 +930,9 @@ int main(int argc, char *argv[])
             }
 
             ++i;
+        } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
+            // FIXME: check the converted value
+            field_senitivity = (uint64_t) atoll(argv[i+1]);
         } else if (strcmp(argv[i], "-dont-verify") == 0) {
             // for debugging
             should_verify_module = false;

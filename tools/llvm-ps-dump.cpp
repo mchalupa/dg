@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <cstdio>
+#include <cstdlib>
 
 #include <set>
 
@@ -312,6 +313,7 @@ int main(int argc, char *argv[])
     bool todot = false;
     const char *module = nullptr;
     PTType type = FLOW_INSENSITIVE;
+    uint64_t field_senitivity = UNKNOWN_OFFSET;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -319,6 +321,8 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+        } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
+            field_senitivity = (uint64_t) atoll(argv[i + 1]);
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
@@ -349,7 +353,7 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M);
+    LLVMPointerAnalysis PTA(M, field_senitivity);
 
     tm.start();
 

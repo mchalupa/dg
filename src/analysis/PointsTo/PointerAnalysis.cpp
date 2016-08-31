@@ -270,7 +270,8 @@ bool PointerAnalysis::processNode(PSNode *node)
                 // in the case the memory has size 0, then every pointer
                 // will have unknown offset with the exception that it points
                 // to the begining of the memory - therefore make 0 exception
-                if (new_offset == 0 || new_offset < ptr.target->getSize())
+                if ((new_offset == 0 || new_offset < ptr.target->getSize())
+                    && new_offset < max_offset)
                     changed |= node->addPointsTo(ptr.target, new_offset);
                 else
                     changed |= node->addPointsToUnknownOffset(ptr.target);

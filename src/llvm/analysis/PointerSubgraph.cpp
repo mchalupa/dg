@@ -849,14 +849,22 @@ PSNode *LLVMPointerSubgraphBuilder::createGEP(const llvm::Instruction *Inst)
     PSNode *node = nullptr;
     PSNode *op = getOperand(ptrOp);
 
-    if (GEP->accumulateConstantOffset(*DL, offset)) {
-        if (offset.isIntN(bitwidth))
-            node = new PSNode(pta::GEP, op, offset.getZExtValue());
-        else
+    if (field_sensitivity > 0
+        && GEP->accumulateConstantOffset(*DL, offset)) {
+        // is offset in given bitwidth?
+        if (offset.isIntN(bitwidth)) {
+            // is 0 < offset < field_sensitivity ?
+            uint64_t off = offset.getLimitedValue(field_sensitivity);
+            if (off == 0 || off < field_sensitivity)
+                node = new PSNode(pta::GEP, op, offset.getZExtValue());
+        } else
             errs() << "WARN: GEP offset greater than " << bitwidth << "-bit";
             // fall-through to UNKNOWN_OFFSET in this case
     }
 
+    // we didn't create the node with concrete offset,
+    // in which case we are supposed to create a node
+    // with UNKNOWN_OFFSET
     if (!node)
         node = new PSNode(pta::GEP, op, UNKNOWN_OFFSET);
 

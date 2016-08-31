@@ -19,6 +19,7 @@ class LLVMPointerSubgraphBuilder
 {
     const llvm::Module *M;
     const llvm::DataLayout *DL;
+    uint64_t field_sensitivity;
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
@@ -61,9 +62,13 @@ class LLVMPointerSubgraphBuilder
              std::pair<PSNode *, PSNode *>> built_blocks;
 
 public:
-    LLVMPointerSubgraphBuilder(const llvm::Module *m)
-        : M(m),
-        DL(new llvm::DataLayout(m)) {}
+    // \param field_sensitivity -- how much should be the PS field sensitive:
+    //        UNKNOWN_OFFSET means full field sensitivity, 0 means field insensivity
+    //        (every pointer with offset greater than 0 will have UNKNOWN_OFFSET)
+    LLVMPointerSubgraphBuilder(const llvm::Module *m,
+                               uint64_t field_sensitivity = UNKNOWN_OFFSET)
+        : M(m), DL(new llvm::DataLayout(m)), field_sensitivity(field_sensitivity)
+        {}
 
     ~LLVMPointerSubgraphBuilder()
     {

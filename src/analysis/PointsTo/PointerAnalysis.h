@@ -23,6 +23,11 @@ class PointerAnalysis
     // the pointer state subgraph
     PointerSubgraph *PS;
 
+    // Maximal offset that we want to keep
+    // within a pointer.
+    // Default is unconstrained (UNKNOWN_OFFSET)
+    uint64_t max_offset;
+
 protected:
     // queue used to reach the fixpoint
     ADT::QueueFIFO<PSNode *> queue;
@@ -31,7 +36,9 @@ protected:
     PointerAnalysis() : dfsnum(0), PS(nullptr) {}
 
 public:
-    PointerAnalysis(PointerSubgraph *ps) : dfsnum(0), PS(ps)
+    PointerAnalysis(PointerSubgraph *ps,
+                    uint64_t max_off = UNKNOWN_OFFSET)
+    : dfsnum(0), PS(ps), max_offset(max_off)
     {
         assert(PS && "Need valid PointerSubgraph object");
     }

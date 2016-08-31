@@ -204,6 +204,8 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     bool todot = false;
     const char *module = nullptr;
+    uint64_t field_senitivity = UNKNOWN_OFFSET;
+
     enum {
         FLOW_SENSITIVE = 1,
         FLOW_INSENSITIVE,
@@ -212,9 +214,11 @@ int main(int argc, char *argv[])
     // parse options
     for (int i = 1; i < argc; ++i) {
         // run given points-to analysis
-        if (strcmp(argv[i], "-pts") == 0) {
+        if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+        } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
+            field_senitivity = (uint64_t) atoll(argv[i + 1]);
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
@@ -245,7 +249,7 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M);
+    LLVMPointerAnalysis PTA(M, field_senitivity);
 
     tm.start();
 
