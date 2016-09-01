@@ -113,13 +113,10 @@ bool RDMap::merge(const RDMap *oth,
                 continue;
         }
 
-        if (field_insensitive)
-            merge_unknown = true;
-
         // MERGE CONCRETE OFFSETS (if desired)
         // ------------------------------------
         RDNodesSet *our_vals = nullptr;
-        if (merge_unknown && is_unknown) {
+        if (field_insensitive || (merge_unknown && is_unknown)) {
             // this loop finds all concrete offsets and merges them into one
             // defsite with UNKNOWN_OFFSET. This defsite is set in 'our_vals'
             // after the loop exit
