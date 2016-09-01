@@ -4,15 +4,22 @@ compiler:
   - clang
   - gcc
 
-before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y cmake llvm-dev
+addons:
+ apt:
+  sources:
+   - llvm-toolchain-precise-3.8
+   - ubuntu-toolchain-r-test
+  packages:
+   - libllvm3.8
+   - libllvm3.8-dbg
+   - llvm-3.8
+   - llvm-3.8-dev
+   - llvm-3.8-runtime
+   - gcc-4.8
+   - g++-4.8
+   - clang
+   - cmake
 
-#addons:
-#  apt:
-#    packages:
-#    - cmake
-#    - llvm-dev
 
 before_script:
   - mkdir build
