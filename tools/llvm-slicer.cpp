@@ -533,9 +533,9 @@ protected:
         LLVMSlicer slicer;
         uint32_t slid = 0xdead;
 
-        // do not slice klee_assume at all
+        // do not slice __VERIFIER_assume at all
         // FIXME: do this optional
-        slicer.keepFunctionUntouched("klee_assume");
+        slicer.keepFunctionUntouched("__VERIFIER_assume");
 
         tm.start();
         for (LLVMNode *start : callsites)
