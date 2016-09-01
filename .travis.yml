@@ -8,7 +8,7 @@ addons:
   apt:
     packages:
     - cmake
-      llvm-dev
+    - llvm-dev
 
 before_script:
   - mkdir build
