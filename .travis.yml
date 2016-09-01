@@ -4,11 +4,15 @@ compiler:
   - clang
   - gcc
 
-addons:
-  apt:
-    packages:
-    - cmake
-    - llvm-dev
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y cmake llvm-dev
+
+#addons:
+#  apt:
+#    packages:
+#    - cmake
+#    - llvm-dev
 
 before_script:
   - mkdir build
