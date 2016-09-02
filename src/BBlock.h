@@ -180,8 +180,15 @@ public:
         prevBBs.clear();
 
         // remove reverse edges to this BB
-        for (auto B : controlDeps)
+        for (auto B : controlDeps) {
+            // we don't want to corrupt the iterator
+            // if this block is control dependent on itself.
+            // We're gonna clear it anyway
+            if (B == this)
+                continue;
+
             B->revControlDeps.erase(this);
+        }
 
         controlDeps.clear();
     }
@@ -270,10 +277,6 @@ public:
     bool addControlDependence(BBlock<NodeT> *b)
     {
         bool ret, ret2;
-
-        // do not allow self-loops
-        if (b == this)
-            return false;
 
         ret = controlDeps.insert(b);
         ret2 = b->revControlDeps.insert(this);
