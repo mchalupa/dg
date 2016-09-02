@@ -174,8 +174,6 @@ public:
 
         removeSuccessors();
 
-        // we reconnected and deleted edges from other
-        // BBs, but we still have edges from this to other BBs
         // NOTE: nextBBs were cleared in removeSuccessors()
         prevBBs.clear();
 
@@ -190,6 +188,16 @@ public:
             B->revControlDeps.erase(this);
         }
 
+        // clear also cd edges that blocks have
+        // to this block
+        for (auto B : revControlDeps) {
+            if (B == this)
+                continue;
+
+            B->controlDeps.erase(this);
+        }
+
+        revControlDeps.clear();
         controlDeps.clear();
     }
 
