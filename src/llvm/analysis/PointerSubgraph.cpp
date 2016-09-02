@@ -877,9 +877,8 @@ PSNode *LLVMPointerSubgraphBuilder::createGEP(const llvm::Instruction *Inst)
 
 PSNode *LLVMPointerSubgraphBuilder::createSelect(const llvm::Instruction *Inst)
 {
-    // the value needs to be a pointer - we call this function only under
-    // this condition
-    assert(Inst->getType()->isPointerTy() && "BUG: This select is not a pointer");
+    // with ptrtoint/inttoptr it may not be a pointer
+    // assert(Inst->getType()->isPointerTy() && "BUG: This select is not a pointer");
 
     // select <cond> <op1> <op2>
     PSNode *op1 = getOperand(Inst->getOperand(1));
