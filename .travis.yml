@@ -1,5 +1,8 @@
 language: cpp
 
+# use Ubuntu 14.04
+dist: trusty
+
 compiler:
   - clang
   - gcc
