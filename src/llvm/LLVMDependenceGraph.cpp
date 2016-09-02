@@ -41,6 +41,22 @@ using std::make_pair;
 
 namespace dg {
 
+namespace debug {
+    // this is a wrapper for the cases when we do not have
+    // LLVM compiled with debug information, thus
+    // debugger do not know the dump() method
+    void dumpLLVM(const llvm::Value *val)
+    {
+        val->dump();
+    }
+
+    // gdb I currently have has problems with inheritance...
+    void dumpLLVM(const llvm::Instruction *Inst)
+    {
+        Inst->dump();
+    }
+}
+
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------
