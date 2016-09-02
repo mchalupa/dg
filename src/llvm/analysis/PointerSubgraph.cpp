@@ -914,7 +914,12 @@ LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
 PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
 {
     // we need a pointer
-    assert(Inst->getType()->isPointerTy() && "BUG: This PHI is not a pointer");
+    // NOTE: this is not true. Due to ptrtoint/intoptr we may have PHI with
+    // integers
+    // assert(Inst->getType()->isPointerTy());
+
+    assert((Inst->getType()->isPointerTy() ||
+            Inst->getType()->isIntegerTy()) && "BUG: This PHI is invalid");
 
     PSNode *node = new PSNode(pta::PHI, nullptr);
     addNode(Inst, node);
