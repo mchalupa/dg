@@ -687,8 +687,10 @@ static bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
 {
     using namespace llvm;
 
-    // FIXME: check for return value
     if (F->arg_size() > CI->getNumArgOperands())
+        return false;
+
+    if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
         return false;
 
     int idx = 0;

@@ -325,25 +325,30 @@ static bool isMemAllocationFunc(const llvm::Function *func)
     return false;
 }
 
-static bool isCallInstCompatible(const llvm::Function *func, const llvm::CallInst *CI)
+// FIXME: factor this out, we use it even in PoinsTo
+static bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
 {
     using namespace llvm;
 
-    int i = 0;
-    if (func->getReturnType() != CI->getType())
+    if (F->arg_size() > CI->getNumArgOperands())
         return false;
 
-    for (auto I = func->arg_begin(), E = func->arg_end(); I != E; ++I, ++i) {
-        if (!I->getType()->isPointerTy())
-            continue;
-        Type *CT = CI->getOperand(i)->getType();
-        Type *FT = I->getType();
-        if (CT != FT)
+    if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
+        return false;
+
+    int idx = 0;
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+        Type *CTy = CI->getArgOperand(idx)->getType();
+        Type *ATy = A->getType();
+
+        // FIXME: we could check that the types are equal!
+        if (!CTy->canLosslesslyBitCastTo(ATy))
             return false;
     }
 
     return true;
 }
+
 
 
 void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
@@ -371,7 +376,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                     continue;
 
                 Function *F = ptr.target->getUserData<Function>();
-                if (F->size() == 0 || !isCallInstCompatible(F, CInst))
+                if (F->size() == 0 || !callIsCompatible(F, CInst))
                     // incompatible prototypes or the function
                     // is only declaration
                     continue;

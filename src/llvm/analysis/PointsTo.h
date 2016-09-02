@@ -27,6 +27,9 @@ class LLVMPointerAnalysisImpl : public PTType
         if (F->arg_size() > CI->getNumArgOperands())
             return false;
 
+        if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
+            return false;
+
         int idx = 0;
         for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
             Type *CTy = CI->getArgOperand(idx)->getType();
