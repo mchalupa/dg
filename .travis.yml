@@ -27,7 +27,7 @@ addons:
 before_script:
   - mkdir build
   - cd build
-  - cmake .. -DLLVM_DIR=/usr/share/llvm-3.4/cmake
+  - cmake .. -DLLVM_DIR=/usr/local/share/llvm-3.4/cmake
 
 script:
   - make
