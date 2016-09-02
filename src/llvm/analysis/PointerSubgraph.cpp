@@ -414,6 +414,8 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
             // Create irrelevant operand if we don't have it.
             // We will place it later
             op = createIrrelevantInst(Inst, false);
+            if (!op)
+                op = createUnknown(val);
         } else if (const llvm::Argument *A
                     = llvm::dyn_cast<llvm::Argument>(val)) {
             op = createIrrelevantArgument(A);
@@ -431,6 +433,7 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
         }
     }
 
+    assert(op);
     return op;
 }
 
@@ -1316,6 +1319,14 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
     assert(0 && "Not to be reached");
 }
 
+static bool isInvalid(const llvm::Value *val)
+{
+    if (llvm::isa<llvm::ICmpInst>(val))
+        return true;
+
+    return false;
+}
+
 // this method creates a node no matter if it is pointer-related
 // instruction. Then it inserts the node (sequence of nodes) into
 // the PointerSubgraph. This is needed due to arguments of intToPtr instructions,
@@ -1327,6 +1338,14 @@ PSNode *LLVMPointerSubgraphBuilder::createIrrelevantInst(const llvm::Value *val,
 {
     using namespace llvm;
     const llvm::Instruction *Inst = cast<Instruction>(val);
+
+    // check whether what we should build is at least
+    // a little bit reasonable or whether the uses got
+    // led us away from the right path... unfortunatly,
+    // without the type information there's nothing we
+    // can do...
+    if (isInvalid(Inst))
+        return nullptr;
 
     // this instruction must be irreleventa, otherwise
     // we would build it in buildPointerSubgraphBlock
