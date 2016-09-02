@@ -530,15 +530,13 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     callNode->setPairedNode(returnNode);
 
     // reuse built subgraphs if available
-    Subgraph subg = subgraphs_map[F];
+    Subgraph& subg = subgraphs_map[F];
     if (!subg.root) {
         // create new subgraph
         buildLLVMPointerSubgraph(*F);
-        // FIXME: don't find it again, return it from buildLLVMPointerSubgraph
-        // this is redundant
-        subg = subgraphs_map[F];
     }
 
+    // we took the subg by reference, so it should be filled now
     assert(subg.root && subg.ret);
 
     // add an edge from last argument to root of the subgraph
@@ -1360,7 +1358,6 @@ PSNode *LLVMPointerSubgraphBuilder::createIrrelevantInst(const llvm::Value *val,
     // into the PointerSubgraph later when we have all basic blocks
     // created
     Subgraph& subg = subgraphs_map[Inst->getParent()->getParent()];
-    assert(subg.root && "Don't have the subgraph created");
     subg.unplacedInstructions.insert(seq);
 
     // add node to the map. We suppose that only the
