@@ -165,8 +165,11 @@ public:
             }
 
             // add newly created edges to predecessor
-            for (const BBlockEdge& edge : new_edges)
+            for (const BBlockEdge& edge : new_edges) {
+                assert(edge.target != this
+                       && "Adding an edge to a block that is being isolated");
                 pred->addSuccessor(edge);
+            }
         }
 
         removeSuccessors();
