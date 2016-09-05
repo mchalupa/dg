@@ -259,8 +259,11 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
 
         mem->getReachingDefinitions(val, ptr.offset, size, defs);
         if (defs.empty()) {
-            llvm::errs() << "No reaching definition for: " << *llvmVal
-                         << " off: " << *ptr.offset << "\n";
+            llvm::GlobalVariable *GV
+                = llvm::dyn_cast<llvm::GlobalVariable>(llvmVal);
+            if (!GV || !GV->hasInitializer())
+                llvm::errs() << "No reaching definition for: " << *llvmVal
+                             << " off: " << *ptr.offset << "\n";
             continue;
         }
 
