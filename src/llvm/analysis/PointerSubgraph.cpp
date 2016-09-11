@@ -372,7 +372,7 @@ PSNode *LLVMPointerSubgraphBuilder::tryGetOperand(const llvm::Value *val)
     PSNode *op = nullptr;
 
     if (it != nodes_map.end())
-        op = it->second;
+        op = it->second.second;
 
     // if we don't have the operand, then it is a ConstantExpr
     // or some operand of intToPtr instruction (or related to that)
@@ -475,7 +475,7 @@ static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
     return node;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
 {
     using namespace llvm;
@@ -492,12 +492,14 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
         reall->setZeroInitialized();
 
     reall->addSuccessor(mcp);
-    addNode(CInst, reall);
 
-    return std::make_pair(reall, mcp);
+    PSNodesSeq ret = PSNodesSeq(reall, mcp);
+    addNode(CInst, ret);
+
+    return ret;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
 {
     assert(type != NONEMEM
@@ -515,7 +517,7 @@ LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, i
     }
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
                                      const llvm::Function *F)
 {
@@ -592,11 +594,11 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     return std::make_pair(callNode, returnNode);
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
-                                    const llvm::Function *F)
+                                                const llvm::Function *F)
 {
-    std::pair<PSNode *, PSNode *> cf = createCallToFunction(CInst, F);
+    PSNodesSeq cf = createCallToFunction(CInst, F);
     addNode(CInst, cf.first);
 
     // NOTE: we do not add return node into nodes_map, since this
@@ -605,7 +607,7 @@ LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
     return cf;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createUnknownCall(const llvm::CallInst *CInst)
 {
     // This assertion must not hold if the call is wrapped
@@ -645,13 +647,13 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
     PSNode *srcNode = getOperand(src);
     /* FIXME: compute correct value instead of UNKNOWN_OFFSET */
     PSNode *node = new PSNode(MEMCPY, srcNode, destNode,
-                                UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+                              UNKNOWN_OFFSET, UNKNOWN_OFFSET);
 
     addNode(I, node);
     return node;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
 {
     // just store all the pointers from vararg argument
@@ -685,15 +687,18 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     // and also make vastart point to the vararg args
     PSNode *S2 = new PSNode(pta::STORE, arg, vastart);
 
-    addNode(Inst, vastart);
-
     vastart->addSuccessor(S1);
     S1->addSuccessor(S2);
 
-    return std::make_pair(vastart, S2);
+    // FIXME: we're assuming that in a sequence in the nodes_map
+    // is always the last node the 'real' node. In this case it is not true,
+    // so add only the 'vastart', so that we have the mapping in nodes_map
+    addNode(Inst, vastart);
+
+    return PSNodesSeq(vastart, S2);
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createIntrinsic(const llvm::Instruction *Inst)
 {
     using namespace llvm;
@@ -751,7 +756,7 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PointerSubgraph
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
 {
     using namespace llvm;
@@ -892,7 +897,7 @@ PSNode *LLVMPointerSubgraphBuilder::createSelect(const llvm::Instruction *Inst)
     return node;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
 {
     using namespace llvm;
@@ -904,11 +909,13 @@ LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
     // FIXME: get the correct offset
     PSNode *G = new PSNode(pta::GEP, op1, UNKNOWN_OFFSET);
     PSNode *L = new PSNode(pta::LOAD, G);
-    addNode(Inst, L);
 
     G->addSuccessor(L);
 
-    return std::make_pair(G, L);
+    PSNodesSeq ret = PSNodesSeq(G, L);
+    addNode(Inst, ret);
+
+    return ret;
 }
 
 PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
@@ -1195,7 +1202,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
     assert(0 && "We should not reach this");
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
 {
     using namespace llvm;
@@ -1349,7 +1356,7 @@ PSNode *LLVMPointerSubgraphBuilder::createIrrelevantInst(const llvm::Value *val,
     assert(!isRelevantInstruction(*Inst));
 
     // build the node for the instruction
-    std::pair<PSNode *, PSNode *> seq = buildInstruction(*Inst);
+    PSNodesSeq seq = buildInstruction(*Inst);
 
     //errs() << "WARN: Built irrelevant inst: " << *val << "\n";
 
@@ -1467,10 +1474,9 @@ void LLVMPointerSubgraphBuilder::createIrrelevantUses(const llvm::Value *val)
 
                 // create the argument now if we haven't created it due to some
                 // use as operand in an instruction earlier
-                PSNode *arg = nodes_map[farg];
-                if (!arg) {
+                PSNode *arg = getNode(farg);
+                if (!arg)
                     arg = createIrrelevantArgument(llvm::cast<llvm::Argument>(farg));
-                }
 
                 // add the PHI operands
                 arg->addOperand(getOperand(val));
@@ -1499,7 +1505,7 @@ void LLVMPointerSubgraphBuilder::addUnplacedInstructions(Subgraph& subg)
     // Insert the irrelevant instructions into the tree.
     // Find the block that the instruction belongs and insert it
     // into it onto the right place
-    for (std::pair<PSNode *, PSNode *> seq : subg.unplacedInstructions) {
+    for (PSNodesSeq seq : subg.unplacedInstructions) {
         assert(seq.first && seq.second);
 
         // the last element contains the representant
@@ -1535,7 +1541,7 @@ void LLVMPointerSubgraphBuilder::addUnplacedInstructions(Subgraph& subg)
         // we must already created the block
         assert(built_blocks.count(llvmBlk) == 1
                && "BUG: we should have this block created");
-        std::pair<PSNode *, PSNode *>& blk = built_blocks[llvmBlk];
+        PSNodesSeq& blk = built_blocks[llvmBlk];
         if (blk.first) {
             assert(blk.second
                    && "Have beginning of the block, but not the end");
@@ -1564,8 +1570,8 @@ void LLVMPointerSubgraphBuilder::addUnplacedInstructions(Subgraph& subg)
                 // (we don't want to place this node
                 // according another unplaced node)
                 // and if so, go with that
-                if (cur->second->predecessorsNum() != 0
-                    || cur->second->successorsNum() != 0)
+                if (cur->second.second->predecessorsNum() != 0
+                    || cur->second.second->successorsNum() != 0)
                     break;
             }
 
@@ -1576,7 +1582,7 @@ void LLVMPointerSubgraphBuilder::addUnplacedInstructions(Subgraph& subg)
                 blk.second->addSuccessor(seq.first);
                 blk.second = seq.second;
             } else {
-                PSNode *n = nodes_map[&*I];
+                PSNode *n = getNode(&*I);
                 // we must have this node, we found it!
                 assert(n && "BUG");
 
@@ -1634,7 +1640,7 @@ static bool tyContainsPointer(const llvm::Type *Ty)
     return false;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::createMemSet(const llvm::Instruction *Inst)
 {
     PSNode *val;
@@ -1651,7 +1657,10 @@ LLVMPointerSubgraphBuilder::createMemSet(const llvm::Instruction *Inst)
     PSNode *S = new PSNode(pta::STORE, val, G);
     G->addSuccessor(S);
 
-    return std::make_pair(G, S);
+    PSNodesSeq ret = PSNodesSeq(G, S);
+    addNode(Inst, ret);
+
+    return ret;
 }
 
 void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
@@ -1688,14 +1697,14 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
 }
 
 // return first and last nodes of the block
-std::pair<PSNode *, PSNode *>&
+PSNodesSeq&
 LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block)
 {
     // create the item in built_blocks and use it as return value also
-    std::pair<PSNode *, PSNode *>& ret = built_blocks[&block];
+    PSNodesSeq& ret = built_blocks[&block];
 
     // here we store sequence of nodes that will be created for each instruction
-    std::pair<PSNode *, PSNode *> seq;
+    PSNodesSeq seq;
 
     PSNode *last_node = nullptr;
     for (const llvm::Instruction& Inst : block) {
@@ -1732,9 +1741,9 @@ LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& bl
 }
 
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
-                                          std::pair<PSNode *, PSNode *>>& built_blocks,
+                                          PSNodesSeq>& built_blocks,
                                  std::set<const llvm::BasicBlock *>& found_blocks,
-                                 std::pair<PSNode *, PSNode *>& ptan,
+                                 PSNodesSeq& ptan,
                                  const llvm::BasicBlock& block)
 {
     size_t num = 0;
@@ -1746,7 +1755,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
          if (!found_blocks.insert(*S).second)
             continue;
 
-        std::pair<PSNode *, PSNode *>& succ = built_blocks[*S];
+        PSNodesSeq& succ = built_blocks[*S];
         assert((succ.first && succ.second) || (!succ.first && !succ.second));
         if (!succ.first) {
             // if we don't have this block built (there was no points-to
@@ -1767,12 +1776,12 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
     return num;
 }
 
-std::pair<PSNode *, PSNode *>
+PSNodesSeq
 LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
 {
     // create PHI nodes for arguments of the function. These will be
     // successors of call-node
-    std::pair<PSNode *, PSNode *> ret;
+    PSNodesSeq ret;
     PSNode *prev, *arg = nullptr;
 
     for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
@@ -1821,7 +1830,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
     PSNode *ret = new PSNode(pta::NOOP);
 
     // now build the arguments of the function - if it has any
-    std::pair<PSNode *, PSNode *> args = buildArguments(F);
+    PSNodesSeq args = buildArguments(F);
 
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call when
@@ -1861,7 +1870,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
                 queue.push(*S);
         }
 
-        std::pair<PSNode *, PSNode *>& nds = buildPointerSubgraphBlock(*block);
+        PSNodesSeq& nds = buildPointerSubgraphBlock(*block);
 
         if (!first) {
             // first block was not created at all? (it has not
@@ -1894,7 +1903,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
 
     std::vector<PSNode *> rets;
     for (const llvm::BasicBlock& block : F) {
-        std::pair<PSNode *, PSNode *>& ptan = built_blocks[&block];
+        PSNodesSeq& ptan = built_blocks[&block];
         // if the block does not contain any points-to relevant instruction,
         // we get (nullptr, nullptr)
         assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
@@ -1943,7 +1952,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     }
 
     // first we must build globals, because nodes can use them as operands
-    std::pair<PSNode *, PSNode *> glob = buildGlobals();
+    PSNodesSeq glob = buildGlobals();
 
     // now we can build rest of the graph
     PSNode *root = buildLLVMPointerSubgraph(*F);
@@ -2022,7 +2031,7 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
     return last;
 }
 
-std::pair<PSNode *, PSNode *> LLVMPointerSubgraphBuilder::buildGlobals()
+PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
 {
     PSNode *cur = nullptr, *prev, *first = nullptr;
     // create PointerSubgraph nodes
@@ -2042,7 +2051,7 @@ std::pair<PSNode *, PSNode *> LLVMPointerSubgraphBuilder::buildGlobals()
     // only now handle the initializers - we need to have then
     // built, because they can point to each other
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
-        PSNode *node = nodes_map[&*I];
+        PSNode *node = getNode(&*I);
         assert(node && "BUG: Do not have global variable");
 
         // handle globals initialization

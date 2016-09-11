@@ -15,6 +15,8 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
+typedef std::pair<PSNode *, PSNode *> PSNodesSeq;
+
 class LLVMPointerSubgraphBuilder
 {
     const llvm::Module *M;
@@ -24,14 +26,14 @@ class LLVMPointerSubgraphBuilder
     // build pointer state subgraph for given graph
     // \return   root node of the graph
     PSNode *buildLLVMPointerSubgraph(const llvm::Function& F);
-    std::pair<PSNode *, PSNode *> buildInstruction(const llvm::Instruction&);
-    std::pair<PSNode *, PSNode *>& buildPointerSubgraphBlock(const llvm::BasicBlock& block);
+    PSNodesSeq buildInstruction(const llvm::Instruction&);
+    PSNodesSeq& buildPointerSubgraphBlock(const llvm::BasicBlock& block);
 
-    std::pair<PSNode *, PSNode *> buildArguments(const llvm::Function& F);
-    std::pair<PSNode *, PSNode *> buildGlobals();
+    PSNodesSeq buildArguments(const llvm::Function& F);
+    PSNodesSeq buildGlobals();
 
     struct Subgraph {
-        Subgraph(PSNode *r1, PSNode *r2, std::pair<PSNode *, PSNode *>& a)
+        Subgraph(PSNode *r1, PSNode *r2, PSNodesSeq& a)
             : root(r1), ret(r2), args(a) {}
         Subgraph(): root(nullptr), ret(nullptr), args(nullptr, nullptr) {}
 
@@ -43,23 +45,23 @@ class LLVMPointerSubgraphBuilder
         // and we don't insert them into the PointerSubgraph there, because it would
         // be difficult to get it right. We will store them here
         // and place them when we have all blocks constructed
-        std::set<std::pair<PSNode *, PSNode *>> unplacedInstructions;
+        std::set<PSNodesSeq> unplacedInstructions;
         // set of instructions for which we need to build uses
         // (these are ptrtoints)
         std::set<const llvm::Value *> buildUses;
 
-        std::pair<PSNode *, PSNode *> args;
+        PSNodesSeq args;
     };
 
     // map of all nodes we created - use to look up operands
-    std::unordered_map<const llvm::Value *, PSNode *> nodes_map;
+    std::unordered_map<const llvm::Value *, PSNodesSeq > nodes_map;
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *,
-             std::pair<PSNode *, PSNode *>> built_blocks;
+             PSNodesSeq> built_blocks;
 
 public:
     // \param field_sensitivity -- how much should be the PS field sensitive:
@@ -73,8 +75,19 @@ public:
     ~LLVMPointerSubgraphBuilder()
     {
         // delete the created nodes
-        for (auto it : nodes_map)
-            delete it.second;
+        for (auto it : nodes_map) {
+            PSNode *node = it.second.first;
+            while (node) {
+                PSNode *cur = node;
+
+                if (cur == it.second.second)
+                    node = nullptr;
+                else
+                    node = node->getSingleSuccessor();
+
+                delete cur;
+            }
+        }
 
         // delete allocated memory in subgraph structures
         for (auto it : subgraphs_map) {
@@ -89,21 +102,24 @@ public:
 
     // create subgraph of function @F and call+return nodes
     // to/from it
-    std::pair<PSNode *, PSNode *>
+    PSNodesSeq
     createCallToFunction(const llvm::CallInst *CInst,
                          const llvm::Function *F);
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, PSNode *>&
+    const std::unordered_map<const llvm::Value *, PSNodesSeq>&
                                 getNodesMap() const { return nodes_map; }
+
     PSNode *getNode(const llvm::Value *val)
     {
         auto it = nodes_map.find(val);
         if (it == nodes_map.end())
             return nullptr;
 
-        return it->second;
+        // the node corresponding to the real llvm value
+        // is always the last
+        return it->second.second;
     }
 
     // this is the same as the getNode, but it
@@ -126,8 +142,14 @@ public:
 private:
     void addNode(const llvm::Value *val, PSNode *node)
     {
-        nodes_map[val] = node;
+        nodes_map[val] = std::make_pair(node, node);
         node->setUserData(const_cast<llvm::Value *>(val));
+    }
+
+    void addNode(const llvm::Value *val, PSNodesSeq seq)
+    {
+        nodes_map[val] = seq;
+        seq.second->setUserData(const_cast<llvm::Value *>(val));
     }
 
     bool isRelevantInstruction(const llvm::Instruction& Inst);
@@ -172,31 +194,22 @@ private:
     void addUnplacedInstructions(Subgraph& subg);
     void buildUnbuiltUses(Subgraph& subg);
 
-    std::pair<PSNode *, PSNode *> createExtract(const llvm::Instruction *Inst);
-    std::pair<PSNode *, PSNode *> createCall(const llvm::Instruction *Inst);
-    std::pair<PSNode *, PSNode *> createOrGetSubgraph(const llvm::CallInst *,
-                                                        const llvm::Function *);
+    PSNodesSeq createExtract(const llvm::Instruction *Inst);
+    PSNodesSeq createCall(const llvm::Instruction *Inst);
+    PSNodesSeq createOrGetSubgraph(const llvm::CallInst *,
+                                   const llvm::Function *);
 
-    std::pair<PSNode *, PSNode *> createMemSet(const llvm::Instruction *);
 
     PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
                                              PSNode *node);
-    std::pair<PSNode *, PSNode *>
-    createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
-
-    std::pair<PSNode *, PSNode *>
-    createRealloc(const llvm::CallInst *CInst);
-
-    std::pair<PSNode *, PSNode *>
-    createUnknownCall(const llvm::CallInst *CInst);
-
-    std::pair<PSNode *, PSNode *>
-    createIntrinsic(const llvm::Instruction *Inst);
-
     PSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
 
-    std::pair<PSNode *, PSNode *>
-    createVarArg(const llvm::IntrinsicInst *Inst);
+    PSNodesSeq createMemSet(const llvm::Instruction *);
+    PSNodesSeq createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
+    PSNodesSeq createRealloc(const llvm::CallInst *CInst);
+    PSNodesSeq createUnknownCall(const llvm::CallInst *CInst);
+    PSNodesSeq createIntrinsic(const llvm::Instruction *Inst);
+    PSNodesSeq createVarArg(const llvm::IntrinsicInst *Inst);
 };
 
 } // namespace pta

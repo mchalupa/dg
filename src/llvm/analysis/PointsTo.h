@@ -14,6 +14,7 @@ namespace dg {
 using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 using analysis::pta::LLVMPointerSubgraphBuilder;
+using analysis::pta::PSNodesSeq;
 
 template <typename PTType>
 class LLVMPointerAnalysisImpl : public PTType
@@ -151,7 +152,7 @@ public:
         return builder->getPointsTo(val);
     }
 
-    const std::unordered_map<const llvm::Value *, PSNode *>&
+    const std::unordered_map<const llvm::Value *, PSNodesSeq>&
     getNodesMap() const
     {
         return builder->getNodesMap();
