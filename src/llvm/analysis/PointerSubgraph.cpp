@@ -535,7 +535,7 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     Subgraph& subg = subgraphs_map[F];
     if (!subg.root) {
         // create new subgraph
-        buildLLVMPointerSubgraph(*F);
+        buildFunction(*F);
     }
 
     // we took the subg by reference, so it should be filled now
@@ -1808,7 +1808,7 @@ LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
 
 // build pointer state subgraph for given graph
 // \return   root node of the graph
-PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Function& F)
+PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
 {
     PSNode *lastNode = nullptr;
 
@@ -1964,7 +1964,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     PSNodesSeq glob = buildGlobals();
 
     // now we can build rest of the graph
-    PSNode *root = buildLLVMPointerSubgraph(*F);
+    PSNode *root = buildFunction(*F);
 
     // do we have any globals at all? If so, insert them at the begining
     // of the graph

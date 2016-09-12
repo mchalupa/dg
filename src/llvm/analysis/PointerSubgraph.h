@@ -25,7 +25,7 @@ class LLVMPointerSubgraphBuilder
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
-    PSNode *buildLLVMPointerSubgraph(const llvm::Function& F);
+    PSNode *buildFunction(const llvm::Function& F);
     PSNodesSeq buildInstruction(const llvm::Instruction&);
     PSNodesSeq& buildPointerSubgraphBlock(const llvm::BasicBlock& block);
 
@@ -121,6 +121,10 @@ public:
 
         // the node corresponding to the real llvm value
         // is always the last
+        //
+        // XXX: this holds everywhere except for va_start
+        // sequence. Maybe we should use a new class
+        // instead of std::pair to represent the sequence
         return it->second.second;
     }
 
