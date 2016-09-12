@@ -569,7 +569,9 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     // arguments and if some of them is pointer, add it as an operand
     // to the phi node
     if (F->isVarArg()) {
-        assert(arg);
+        arg = subg.vararg;
+        assert(arg && "Do not have vararg node in variadic function");
+
         for (unsigned int i = idx; i < CInst->getNumArgOperands(); ++i) {
             const llvm::Value *llvmOp = CInst->getArgOperand(i);
             if (llvmOp->getType()->isPointerTy()) {
@@ -664,9 +666,9 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     // first we need to get the vararg argument phi
     const llvm::Function *F = Inst->getParent()->getParent();
     Subgraph& subg = subgraphs_map[F];
-    PSNode *arg = subg.args.second;
-    assert(F->isVarArg() && "vastart in non-variadic function");
-    assert(arg && "Don't have variadic argument in variadic function");
+    PSNode *arg = subg.vararg;
+    assert(F->isVarArg() && "vastart in a non-variadic function");
+    assert(arg && "Don't have variadic argument in a variadic function");
 
     // vastart will be node that will keep the memory
     // with pointers, its argument is the alloca, that
@@ -1798,19 +1800,7 @@ LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
         }
     }
 
-    // if the function has variable arguments,
-    // then create the node for it and make it the last node
-    if (F.isVarArg()) {
-        ret.second = new PSNode(pta::PHI, nullptr);
-        if (arg)
-            arg->addSuccessor(ret.second);
-        else
-            // we don't have any other argument than '...',
-            // so this is first and last arg
-            ret.first = ret.second;
-    } else
-        ret.second = arg;
-
+    ret.second = arg;
     assert((ret.first && ret.second) || (!ret.first && !ret.second));
 
     return ret;
@@ -1832,17 +1822,36 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph(const llvm::Functio
     // now build the arguments of the function - if it has any
     PSNodesSeq args = buildArguments(F);
 
+    // if the function has variable arguments,
+    // then create the node for it
+    PSNode *vararg = nullptr;
+    if (F.isVarArg())
+        vararg = new PSNode(pta::PHI, nullptr);
+
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call when
     // this function is recursive
-    subgraphs_map[&F] = Subgraph(root, ret, args);
+    subgraphs_map[&F] = Subgraph(root, ret, args, vararg);
 
     // make arguments the entry block of the subgraphs (if there
     // are any arguments)
     if (args.first) {
         assert(args.second && "BUG: Have only first argument");
         root->addSuccessor(args.first);
-        lastNode = args.second;
+
+        // inset the variadic arg node into the graph if needed
+        if (F.isVarArg()) {
+            assert(vararg);
+            args.second->addSuccessor(vararg);
+            lastNode = vararg;
+        } else
+            lastNode = args.second;
+    } else if (vararg) {
+        // this function has only ... argument
+        assert(F.isVarArg());
+        assert(!args.second && "BUG: Have only last argument");
+        root->addSuccessor(vararg);
+        lastNode = vararg;
     } else {
         assert(!args.second && "BUG: Have only last argument");
         lastNode = root;

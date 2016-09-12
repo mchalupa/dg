@@ -33,9 +33,9 @@ class LLVMPointerSubgraphBuilder
     PSNodesSeq buildGlobals();
 
     struct Subgraph {
-        Subgraph(PSNode *r1, PSNode *r2, PSNodesSeq& a)
-            : root(r1), ret(r2), args(a) {}
-        Subgraph(): root(nullptr), ret(nullptr), args(nullptr, nullptr) {}
+        Subgraph(PSNode *r1, PSNode *r2, PSNodesSeq& a, PSNode *va = nullptr)
+            : root(r1), ret(r2), args(a), vararg(va) {}
+        Subgraph(): root(nullptr), ret(nullptr), args(nullptr, nullptr), vararg(nullptr) {}
 
         // first and last nodes of the subgraph
         PSNode *root;
@@ -51,6 +51,8 @@ class LLVMPointerSubgraphBuilder
         std::set<const llvm::Value *> buildUses;
 
         PSNodesSeq args;
+        // this is the node where we gather the variadic-length arguments
+        PSNode *vararg;
     };
 
     // map of all nodes we created - use to look up operands
