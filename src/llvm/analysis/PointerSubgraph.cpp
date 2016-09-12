@@ -410,15 +410,22 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
         const llvm::Instruction *Inst
             = llvm::dyn_cast<llvm::Instruction>(val);
 
-        if (Inst && !isRelevantInstruction(*Inst)) {
-            // Create irrelevant operand if we don't have it.
-            // We will place it later
-            op = createIrrelevantInst(Inst, false);
-            if (!op)
-                op = createUnknown(val);
+        if (Inst) {
+            if (isRelevantInstruction(*Inst)) {
+                auto seq = buildInstruction(*Inst);
+                assert(seq.first && seq.second);
+                return seq.second;
+            } else {
+                // Create irrelevant operand if we don't have it.
+                // We will place it later
+                op = createIrrelevantInst(Inst, false);
+                if (!op)
+                    op = createUnknown(val);
+
+            }
         } else if (const llvm::Argument *A
                     = llvm::dyn_cast<llvm::Argument>(val)) {
-            op = createIrrelevantArgument(A);
+            op = createArgument(A);
         } else {
             // this may happen when C code is corrupted like this:
             // int a, b;
@@ -519,7 +526,7 @@ LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, i
 
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
-                                     const llvm::Function *F)
+                                                 const llvm::Function *F)
 {
     PSNode *callNode, *returnNode;
 
@@ -534,7 +541,7 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     // reuse built subgraphs if available
     Subgraph& subg = subgraphs_map[F];
     if (!subg.root) {
-        // create new subgraph
+        // create a new subgraph
         buildFunction(*F);
     }
 
@@ -547,53 +554,35 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     callNode->addSuccessor(subg.root);
     subg.ret->addSuccessor(returnNode);
 
-    // add pointers to the arguments PHI nodes
-    int idx = 0;
-    PSNode *arg = subg.args.first;
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
-        if (A->getType()->isPointerTy()) {
-            assert(arg && "BUG: do not have argument");
-
-            PSNode *op = getOperand(CInst->getArgOperand(idx));
-            arg->addOperand(op);
-
-            // shift in arguments
-            if (arg->successorsNum() == 1)
-                arg = arg->getSingleSuccessor();
-        }
-    }
-
-    // is the function variadic? arg now contains the last argument node,
-    // which is the variadic one and idx should be index of the first
-    // value passed as variadic. So go through the rest of callinst
-    // arguments and if some of them is pointer, add it as an operand
-    // to the phi node
-    if (F->isVarArg()) {
-        arg = subg.vararg;
-        assert(arg && "Do not have vararg node in variadic function");
-
-        for (unsigned int i = idx; i < CInst->getNumArgOperands(); ++i) {
-            const llvm::Value *llvmOp = CInst->getArgOperand(i);
-            if (llvmOp->getType()->isPointerTy()) {
-                PSNode *op = getOperand(llvmOp);
-                arg->addOperand(op);
-            }
-        }
-    }
-
     // handle value returned from the function if it is a pointer
     // DONT: if (CInst->getType()->isPointerTy()) {
     // we need to handle the return values even when it is not
     // a pointer as we have ptrtoint and inttoptr
 
-    // return node is like a PHI node
-    for (PSNode *r : subg.ret->getPredecessors())
-        // we're interested only in the nodes that return some value
-        // from subprocedure, not for all nodes that have no successor
-        if (r->getType() == pta::RETURN)
-            returnNode->addOperand(r);
-
     return std::make_pair(callNode, returnNode);
+}
+
+PSNodesSeq
+LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
+                                              const llvm::Function *F)
+{
+    bool add_structure = false;
+
+    Subgraph& subg = subgraphs_map[F];
+    if (!subg.root)
+        add_structure = true;
+
+    auto ret = createCallToFunction(CInst, F);
+
+    // we took a reference
+    assert(subg.root);
+
+    if (add_structure)
+        addProgramStructure(F, subg);
+
+    addInterproceduralOperands(F, subg, CInst);
+
+    return ret;
 }
 
 PSNodesSeq
@@ -605,6 +594,7 @@ LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
 
     // NOTE: we do not add return node into nodes_map, since this
     // is artificial node and does not correspond to any real node
+    // FIXME: this breaks that we have a sequence in the graph
 
     return cf;
 }
@@ -943,7 +933,8 @@ PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
 
 void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
 {
-    assert(PHI->getType()->isPointerTy() && "BUG: This PHI is not a pointer");
+    assert((PHI->getType()->isPointerTy() ||
+            PHI->getType()->isIntegerTy()) && "BUG: This PHI is invalid");
 
     for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
         PSNode *op = getOperand(PHI->getIncomingValue(i));
@@ -955,12 +946,12 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(const llvm::Function &F)
 {
     for (const llvm::BasicBlock& B : F) {
         for (const llvm::Instruction& I : B) {
-            if (!I.getType()->isPointerTy())
-                continue;
-
             const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I);
-            if (PHI)
-                addPHIOperands(getNode(PHI), PHI);
+            if (PHI) {
+                PSNode *node = getNode(PHI);
+                if (node)
+                    addPHIOperands(node, PHI);
+            }
         }
     }
 }
@@ -1008,11 +999,7 @@ PSNode *LLVMPointerSubgraphBuilder::createPtrToInt(const llvm::Instruction *Inst
     PSNode *node = new PSNode(pta::GEP, op1, 0);
     addNode(Inst, node);
 
-    // we need to build uses for this instruction, but we need to
-    // do it later, when we have all blocks build
-    Subgraph& subg = subgraphs_map[Inst->getParent()->getParent()];
-    assert(subg.root && "Don't have the subgraph created");
-    subg.buildUses.insert(Inst);
+    createIrrelevantUses(Inst);
 
     assert(node);
     return node;
@@ -1114,6 +1101,16 @@ PSNode *LLVMPointerSubgraphBuilder::createArithmetic(const llvm::Instruction *In
     return node;
 }
 
+static bool isConstantZero(const llvm::Value *val)
+{
+    using namespace llvm;
+
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(val))
+        return C->isZero();
+
+    return false;
+}
+
 PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
 {
     PSNode *op1 = nullptr;
@@ -1128,13 +1125,11 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     // DONT: if(retVal->getType()->isPointerTy())
     // we have ptrtoint which break the types...
     if (retVal) {
-        if (llvm::isa<llvm::ConstantPointerNull>(retVal))
+        if (llvm::isa<llvm::ConstantPointerNull>(retVal)
+            || isConstantZero(retVal))
             op1 = NULLPTR;
-        else if (nodes_map.count(retVal))
+        else
             op1 = getOperand(retVal);
-        // else op1 is nullptr and thus this return
-        // is irrelevant for data-flow, but we still need
-        // to keep it since it changes control-flow
     }
 
     assert((op1 || !retVal || !retVal->getType()->isPointerTy())
@@ -1339,7 +1334,7 @@ static bool isInvalid(const llvm::Value *val)
 // because these are not of pointer-type, therefore are not built
 // in buildPointerSubgraphBlock
 PSNode *LLVMPointerSubgraphBuilder::createIrrelevantInst(const llvm::Value *val,
-                                              bool build_uses)
+                                                         bool build_uses)
 
 {
     using namespace llvm;
@@ -1362,12 +1357,6 @@ PSNode *LLVMPointerSubgraphBuilder::createIrrelevantInst(const llvm::Value *val,
 
     //errs() << "WARN: Built irrelevant inst: " << *val << "\n";
 
-    // insert it to unplacedInstructions, we will put it
-    // into the PointerSubgraph later when we have all basic blocks
-    // created
-    Subgraph& subg = subgraphs_map[Inst->getParent()->getParent()];
-    subg.unplacedInstructions.insert(seq);
-
     // add node to the map. We suppose that only the
     // last node is 'real' i. e. has corresponding llvm value
     addNode(val, seq.second);
@@ -1381,18 +1370,16 @@ PSNode *LLVMPointerSubgraphBuilder::createIrrelevantInst(const llvm::Value *val,
 }
 
 // create a formal argument
-PSNode *LLVMPointerSubgraphBuilder::createIrrelevantArgument(const llvm::Argument *farg)
+PSNode *LLVMPointerSubgraphBuilder::createArgument(const llvm::Argument *farg)
 {
     using namespace llvm;
 
     PSNode *arg = new PSNode(pta::PHI, nullptr);
     addNode(farg, arg);
 
-    Subgraph& subg = subgraphs_map[farg->getParent()];
-    assert(subg.root && "Don't have the subgraph created");
-    subg.unplacedInstructions.insert(std::make_pair(arg, arg));
+    //llvm::errs() << "WARN: built irrelevant arg: " << *farg << "\n";
 
-    llvm::errs() << "WARN: built irrelevant arg: " << *farg << "\n";
+    createIrrelevantUses(farg);
 
     return arg;
 }
@@ -1478,7 +1465,7 @@ void LLVMPointerSubgraphBuilder::createIrrelevantUses(const llvm::Value *val)
                 // use as operand in an instruction earlier
                 PSNode *arg = getNode(farg);
                 if (!arg)
-                    arg = createIrrelevantArgument(llvm::cast<llvm::Argument>(farg));
+                    arg = createArgument(llvm::cast<llvm::Argument>(farg));
 
                 // add the PHI operands
                 arg->addOperand(getOperand(val));
@@ -1491,139 +1478,9 @@ void LLVMPointerSubgraphBuilder::createIrrelevantUses(const llvm::Value *val)
     }
 }
 
-void LLVMPointerSubgraphBuilder::buildUnbuiltUses(Subgraph& subg)
-{
-    for (const llvm::Value *use : subg.buildUses)
-        createIrrelevantUses(use);
-
-    subg.buildUses.clear();
-}
-
-void LLVMPointerSubgraphBuilder::addUnplacedInstructions(Subgraph& subg)
-{
-    assert(subg.root && "Don't have subgraph");
-    buildUnbuiltUses(subg);
-
-    // Insert the irrelevant instructions into the tree.
-    // Find the block that the instruction belongs and insert it
-    // into it onto the right place
-    for (PSNodesSeq seq : subg.unplacedInstructions) {
-        assert(seq.first && seq.second);
-
-        // the last element contains the representant
-        PSNode *node = seq.second;
-        const llvm::Value *val = node->getUserData<llvm::Value>();
-
-        if (const llvm::Argument *arg = llvm::dyn_cast<llvm::Argument>(val)) {
-            // we created an argument - put it in to the end
-            // of arguments of its function
-
-            assert(seq.first == seq.second);
-
-            // we do not have any arguments?
-            if (!subg.args.second) {
-                assert(!subg.args.first && "Have one but not the other argument");
-
-                node->insertAfter(subg.root);
-                // update the arguments, we want consistent information
-                subg.args.first = subg.args.second = node;
-            } else {
-                // we have, so insert it at the end
-                node->insertAfter(subg.args.second);
-                // update the arguments
-                subg.args.second = node;
-            }
-
-            continue;
-        }
-
-        const llvm::Instruction *Inst = llvm::cast<llvm::Instruction>(val);
-        const llvm::BasicBlock *llvmBlk = Inst->getParent();
-
-        // we must already created the block
-        assert(built_blocks.count(llvmBlk) == 1
-               && "BUG: we should have this block created");
-        PSNodesSeq& blk = built_blocks[llvmBlk];
-        if (blk.first) {
-            assert(blk.second
-                   && "Have beginning of the block, but not the end");
-
-            auto I = llvmBlk->begin();
-            // shift to our instruction
-            while (&*I != val)
-                ++I;
-
-            // now shift to the successor of our instruction,
-            // so that we won't match our instruction later
-            // (it is in nodes_map already)
-            ++I;
-
-            // OK, we found our instruction in block,
-            // now find first instruction that we created in PointerSubgraph
-            auto end = nodes_map.end();
-            for (auto E = llvmBlk->end(); I != E; ++I) {
-                auto cur = nodes_map.find(&*I);
-                if (cur == end)
-                    // don't have it in the map
-                    continue;
-
-                // found inst that we have created?
-                // check if it is already placed
-                // (we don't want to place this node
-                // according another unplaced node)
-                // and if so, go with that
-                if (cur->second.second->predecessorsNum() != 0
-                    || cur->second.second->successorsNum() != 0)
-                    break;
-            }
-
-            // now we have in I iterator to the LLVM value that
-            // is in PointerSubgraph as the first after our value
-            if (I == llvmBlk->end()) {
-                // did we get at the end of the block?
-                blk.second->addSuccessor(seq.first);
-                blk.second = seq.second;
-            } else {
-                PSNode *n = getNode(&*I);
-                // we must have this node, we found it!
-                assert(n && "BUG");
-
-                // if it is the first node in block,
-                // update the block to keep it consistent
-                if (n->predecessorsNum() == 0) {
-                    blk.first = seq.first;
-                    seq.second->addSuccessor(node);
-                } else {
-                    // insert the sequence before the node
-                    n->insertSequenceBefore(seq);
-                }
-            }
-        } else {
-            // if the block is empty we just initialize it
-            // (it will be put into PointerSubgraph with other blocks
-            // later)
-            blk.first = seq.first;
-            blk.second = seq.second;
-        }
-
-        assert(blk.first && blk.second
-                && "BUG: corrupted or not inserted a block");
-    }
-
-    subg.unplacedInstructions.clear();
-}
-
 static bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I)
 {
-    using namespace llvm;
-
-    const Value *val = I->getOperand(1);
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(val)) {
-        // we got memset that is not setting to 0 ...
-        return C->isZero();
-    }
-
-    return false;
+    return isConstantZero(I->getOperand(1));
 }
 
 // recursively find out if type contains a pointer type as a subtype
@@ -1699,16 +1556,8 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
 }
 
 // return first and last nodes of the block
-PSNodesSeq&
-LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block)
+void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block)
 {
-    // create the item in built_blocks and use it as return value also
-    PSNodesSeq& ret = built_blocks[&block];
-
-    // here we store sequence of nodes that will be created for each instruction
-    PSNodesSeq seq;
-
-    PSNode *last_node = nullptr;
     for (const llvm::Instruction& Inst : block) {
         if (!isRelevantInstruction(Inst)) {
             // check if it is a zeroing of memory,
@@ -1719,27 +1568,14 @@ LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& bl
             continue;
         }
 
-        seq = buildInstruction(Inst);
+        // maybe this instruction was already created by getOperand()
+        if (nodes_map.count(&Inst) != 0)
+            continue;
+
+        auto seq = buildInstruction(Inst);
         assert(seq.first && seq.second
                && "Didn't created the instruction properly");
-
-        // is this first created instruction?
-        if (!last_node)
-            ret.first = seq.first;
-        else
-            // else just add a successor
-            last_node->addSuccessor(seq.first);
-
-        // update last node that we created
-        last_node = seq.second;
     }
-
-    // set last node
-    ret.second = seq.second;
-    assert((ret.first && ret.second) || (!ret.first && !ret.second)
-            && "BUG: inconsistent block");
-
-    return ret;
 }
 
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
@@ -1778,34 +1614,6 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
     return num;
 }
 
-PSNodesSeq
-LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
-{
-    // create PHI nodes for arguments of the function. These will be
-    // successors of call-node
-    PSNodesSeq ret;
-    PSNode *prev, *arg = nullptr;
-
-    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
-        if (A->getType()->isPointerTy()) {
-            prev = arg;
-
-            arg = new PSNode(pta::PHI, nullptr);
-            addNode(&*A, arg);
-
-            if (prev)
-                prev->addSuccessor(arg);
-            else
-                ret.first = arg;
-        }
-    }
-
-    ret.second = arg;
-    assert((ret.first && ret.second) || (!ret.first && !ret.second));
-
-    return ret;
-}
-
 // build pointer state subgraph for given graph
 // \return   root node of the graph
 PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
@@ -1819,9 +1627,6 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     PSNode *root = new PSNode(pta::ENTRY);
     PSNode *ret = new PSNode(pta::NOOP);
 
-    // now build the arguments of the function - if it has any
-    PSNodesSeq args = buildArguments(F);
-
     // if the function has variable arguments,
     // then create the node for it
     PSNode *vararg = nullptr;
@@ -1831,87 +1636,306 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call when
     // this function is recursive
-    subgraphs_map[&F] = Subgraph(root, ret, args, vararg);
+    subgraphs_map[&F] = Subgraph(root, ret, vararg);
+
+    // build the instructions from blocks
+    for (const llvm::BasicBlock& block : F)
+        buildPointerSubgraphBlock(block);
+
+    // add operands to PHI nodes. It must be done after all blocks are
+    // built, since the PHI gathers values from different blocks
+    addPHIOperands(F);
+
+    return root;
+}
+
+void LLVMPointerSubgraphBuilder::addProgramStructure()
+{
+    // form intraprocedural program structure (CFG edges)
+    for (auto it : subgraphs_map) {
+        const llvm::Function *F = it.first;
+        Subgraph& subg = it.second;
+
+        // add the CFG edges
+        addProgramStructure(F, subg);
+
+        // add the missing operands (to arguments and return nodes)
+        addInterproceduralOperands(F, subg);
+    }
+}
+
+void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
+                                                     PSNode *arg, int idx)
+{
+    assert(idx < CI->getNumArgOperands());
+    PSNode *op = tryGetOperand(CI->getArgOperand(idx));
+    if (op)
+        arg->addOperand(op);
+}
+
+void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
+                                                     PSNode *arg, int idx)
+{
+    using namespace llvm;
+
+    for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
+#if (LLVM_VERSION_MINOR < 5)
+        const Value *use = *I;
+#else
+        const Value *use = I->getUser();
+#endif
+        if (const CallInst *CI = dyn_cast<CallInst>(use))
+            addArgumentOperands(CI, arg, idx);
+    }
+}
+
+void LLVMPointerSubgraphBuilder::addArgumentsOperands(const llvm::Function *F,
+                                                      const llvm::CallInst *CI)
+{
+    int idx = 0;
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+        auto it = nodes_map.find(&*A);
+        if (it == nodes_map.end())
+            continue;
+
+        PSNodesSeq& cur = it->second;
+        assert(cur.first == cur.second);
+
+        if (CI)
+            // with func ptr call we know from which
+            // call we should take the values
+            addArgumentOperands(CI, cur.first, idx);
+        else
+            // with regular call just use all calls
+            addArgumentOperands(F, cur.first, idx);
+    }
+}
+
+PSNodesSeq
+LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
+{
+    PSNodesSeq seq;
+    PSNode *last = nullptr;
+
+    int idx = 0;
+    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A, ++idx) {
+        auto it = nodes_map.find(&*A);
+        if (it == nodes_map.end())
+            continue;
+
+        PSNodesSeq& cur = it->second;
+        assert(cur.first == cur.second);
+
+        if (!seq.first) {
+            assert(!last);
+            seq.first = cur.first;
+        } else {
+            assert(last);
+            last->addSuccessor(cur.first);
+        }
+
+        last = cur.second;
+    }
+
+    seq.second = last;
+
+    assert((seq.first && seq.second) || (!seq.first && !seq.second));
+
+    return seq;
+}
+
+void LLVMPointerSubgraphBuilder::addVariadicArgumentOperands(const llvm::Function *F,
+                                                             const llvm::CallInst *CI,
+                                                             PSNode *arg)
+{
+    for (int idx = F->arg_size() - 1; idx < CI->getNumArgOperands(); ++idx)
+        addArgumentOperands(CI, arg, idx);
+}
+
+void LLVMPointerSubgraphBuilder::addVariadicArgumentOperands(const llvm::Function *F,
+                                                             PSNode *arg)
+{
+    using namespace llvm;
+
+    for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
+#if (LLVM_VERSION_MINOR < 5)
+        const Value *use = *I;
+#else
+        const Value *use = I->getUser();
+#endif
+        if (const CallInst *CI = dyn_cast<CallInst>(use))
+            addVariadicArgumentOperands(F, CI, arg);
+    }
+}
+
+void LLVMPointerSubgraphBuilder::addReturnNodeOperands(const llvm::Function *F,
+                                                       PSNode *ret,
+                                                       const llvm::CallInst *CI)
+{
+    using namespace llvm;
+
+    for (PSNode *r : ret->getPredecessors()) {
+        // return node is like a PHI node,
+        // we must add the operands too.
+        // But we're interested only in the nodes that return some value
+        // from subprocedure, not for all nodes that have no successor
+        if (r->getType() == pta::RETURN) {
+            if (CI)
+                addReturnNodeOperand(CI, r);
+            else
+                addReturnNodeOperand(F, r);
+        }
+    }
+}
+
+void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::CallInst *CI, PSNode *op)
+{
+    PSNode *callNode = getNode(CI);
+    assert(callNode);
+    PSNode *returnNode = callNode->getPairedNode();
+    assert(returnNode);
+
+    returnNode->addOperand(op);
+}
+
+
+void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::Function *F, PSNode *op)
+{
+    using namespace llvm;
+
+    for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
+#if (LLVM_VERSION_MINOR < 5)
+        const Value *use = *I;
+#else
+        const Value *use = I->getUser();
+#endif
+        // get every call and its assocciated return and add the operand
+        if (const CallInst *CI = dyn_cast<CallInst>(use))
+            addReturnNodeOperand(CI, op);
+    }
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::buildBlockStructure(const llvm::BasicBlock& block)
+{
+    PSNodesSeq seq = PSNodesSeq(nullptr, nullptr);
+
+    PSNode *last = nullptr;
+    for (const llvm::Instruction& Inst : block) {
+        auto it = nodes_map.find(&Inst);
+        if (it == nodes_map.end()) {
+            assert(!isRelevantInstruction(Inst));
+            continue;
+        }
+
+        PSNodesSeq& cur = it->second;
+
+        if (!seq.first) {
+            assert(!last);
+            seq.first = cur.first;
+        } else {
+            assert(last);
+            last->addSuccessor(cur.first);
+        }
+
+        // We store only the call node
+        // in the nodes_map, so there is not valid (call, return)
+        // sequence but only one node (actually, for call that may not
+        // be a sequence). We need to "insert" whole call here,
+        // so set the return node as the last node
+        if (llvm::isa<llvm::CallInst>(&Inst) &&
+            // undeclared funcs do not have paired nodes
+            cur.first->getPairedNode()) {
+            last = cur.first->getPairedNode();
+        } else
+            last = cur.second;
+    }
+
+    seq.second = last;
+
+    assert((seq.first && seq.second) || (!seq.first && !seq.second));
+
+    if (seq.first)
+        built_blocks[&block] = seq;
+
+    return seq;
+}
+
+void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function *F,
+                                                            Subgraph& subg,
+                                                            const llvm::CallInst *CI)
+{
+    // add operands to arguments' PHI nodes
+    addArgumentsOperands(F, CI);
+
+    if (F->isVarArg()) {
+        assert(subg.vararg);
+        if (CI)
+            // funcptr call
+            addVariadicArgumentOperands(F, CI, subg.vararg);
+        else
+            addVariadicArgumentOperands(F, subg.vararg);
+    }
+
+    addReturnNodeOperands(F, subg.ret, CI);
+}
+
+
+void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
+                                                     Subgraph& subg)
+{
+    assert(subg.root && "Subgraph has no root");
+    assert(subg.ret && "Subgraph has no ret");
+
+    PSNodesSeq args = buildArguments(*F);
+    PSNode *lastNode = nullptr;
 
     // make arguments the entry block of the subgraphs (if there
     // are any arguments)
     if (args.first) {
         assert(args.second && "BUG: Have only first argument");
-        root->addSuccessor(args.first);
+        subg.root->addSuccessor(args.first);
 
         // inset the variadic arg node into the graph if needed
-        if (F.isVarArg()) {
-            assert(vararg);
-            args.second->addSuccessor(vararg);
-            lastNode = vararg;
+        if (F->isVarArg()) {
+            assert(subg.vararg);
+            args.second->addSuccessor(subg.vararg);
+            lastNode = subg.vararg;
         } else
             lastNode = args.second;
-    } else if (vararg) {
+    } else if (subg.vararg) {
         // this function has only ... argument
-        assert(F.isVarArg());
+        assert(F->isVarArg());
         assert(!args.second && "BUG: Have only last argument");
-        root->addSuccessor(vararg);
-        lastNode = vararg;
+        subg.root->addSuccessor(subg.vararg);
+        lastNode = subg.vararg;
     } else {
         assert(!args.second && "BUG: Have only last argument");
-        lastNode = root;
+        lastNode = subg.root;
     }
 
     assert(lastNode);
 
-    PSNode *first = nullptr;
-    // build the block in BFS order, so that we build instructions that can be
-    // operands before their use
-    std::set<const llvm::BasicBlock *> queued;
-    ADT::QueueFIFO<const llvm::BasicBlock *> queue;
-    // initialize the queue
-    const llvm::BasicBlock *entry = &F.getBasicBlockList().front();
-    queue.push(entry);
-    queued.insert(entry);
+    // add successors in one basic block
+    for (const llvm::BasicBlock& block : *F)
+        PSNodesSeq seq = buildBlockStructure(block);
 
-    while(!queue.empty()) {
-        const llvm::BasicBlock *block = queue.pop();
-        // add successors
-        for (llvm::succ_const_iterator
-             S = llvm::succ_begin(block), SE = llvm::succ_end(block);
-             S != SE; ++S) {
-            if (queued.insert(*S).second)
-                queue.push(*S);
-        }
-
-        PSNodesSeq& nds = buildPointerSubgraphBlock(*block);
-
-        if (!first) {
-            // first block was not created at all? (it has not
-            // pointer relevant instructions) -- in that case
-            // fake that the first block is the root itself
-            // (or the arguments if we have them)
-            if (!nds.first) {
-                // nds is a reference
-                if (args.first)
-                    nds = args;
-                else
-                    nds.first = nds.second = lastNode;
-
-                first = lastNode;
-            } else {
-                first = nds.first;
-
-                // add correct successors. If we have arguments,
-                // then connect the first block after arguments.
-                // Otherwise connect them after the root node
-                lastNode->addSuccessor(first);
-            }
-        }
+    // check whether we create the entry block. If not, we would
+    // have a problem while adding successors, so fake that
+    // the entry block is the root or the last argument
+    const llvm::BasicBlock *entry = &F->getBasicBlockList().front();
+    PSNodesSeq& enblk = built_blocks[entry];
+    if (!enblk.first) {
+        assert(!enblk.second);
+        enblk.first = subg.root;
+        enblk.second = lastNode;
+    } else {
+        // if we have the entry block, just make it the successor
+        // of the root or the last argument
+        lastNode->addSuccessor(enblk.first);
     }
 
-    // now we have created all the blocks, so place the instructions
-    // that we were not able to place during building. Must be before
-    // adding successors, because we can create new blocks
-    addUnplacedInstructions(subgraphs_map[&F]);
-
     std::vector<PSNode *> rets;
-    for (const llvm::BasicBlock& block : F) {
+    for (const llvm::BasicBlock& block : *F) {
         PSNodesSeq& ptan = built_blocks[&block];
         // if the block does not contain any points-to relevant instruction,
         // we get (nullptr, nullptr)
@@ -1925,7 +1949,8 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
         // so many blocks that this could have some big overhead. If proven
         // otherwise later, we'll change this.
         std::set<const llvm::BasicBlock *> found_blocks;
-        size_t succ_num = blockAddSuccessors(built_blocks, found_blocks,
+        size_t succ_num = blockAddSuccessors(built_blocks,
+                                             found_blocks,
                                              ptan, block);
 
         // if we have not added any successor, then the last node
@@ -1940,15 +1965,9 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // NOTE: if the function has infinite loop we won't have any return nodes,
     // so this assertion must not hold
     //assert(!rets.empty() && "BUG: Did not find any return node in function");
-    for (PSNode *r : rets)
-        r->addSuccessor(ret);
-
-    // add arguments to PHI nodes. We need to do that after the graph is
-    // entirely built, because during building the arguments may not
-    // be built yet
-    addPHIOperands(F);
-
-    return root;
+    for (PSNode *r : rets) {
+        r->addSuccessor(subg.ret);
+    }
 }
 
 PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
@@ -1966,6 +1985,9 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     // now we can build rest of the graph
     PSNode *root = buildFunction(*F);
 
+    // fill in the CFG edges
+    addProgramStructure();
+
     // do we have any globals at all? If so, insert them at the begining
     // of the graph
     // FIXME: we do not need to process them later,
@@ -1978,14 +2000,6 @@ PSNode *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
         glob.second->addSuccessor(root);
         root = glob.first;
     }
-
-    // must have placed all the unplaced instructions
-
-#ifdef DEBUG_ENABLED
-    Subgraph& subg = subgraphs_map[F];
-    assert(subg.root && "Don't have the subgraph created");
-    assert(subg.unplacedInstructions.empty());
-#endif
 
     return root;
 }

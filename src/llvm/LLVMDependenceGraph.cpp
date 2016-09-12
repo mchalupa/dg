@@ -45,13 +45,28 @@ namespace debug {
     // this is a wrapper for the cases when we do not have
     // LLVM compiled with debug information, thus
     // debugger do not know the dump() method
-    void dumpLLVM(const llvm::Value *val)
+    void dumpllvm(const llvm::Value *val)
     {
         val->dump();
     }
 
     // gdb I currently have has problems with inheritance...
-    void dumpLLVM(const llvm::Instruction *Inst)
+    void dumpllvm(const llvm::Instruction *Inst)
+    {
+        Inst->dump();
+    }
+
+    void dumpllvm(const llvm::Argument *Inst)
+    {
+        Inst->dump();
+    }
+
+    void dumpllvm(const llvm::CallInst *Inst)
+    {
+        Inst->dump();
+    }
+
+    void dumpllvm(const llvm::Function *Inst)
     {
         Inst->dump();
     }

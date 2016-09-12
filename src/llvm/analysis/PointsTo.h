@@ -68,7 +68,8 @@ public:
             return callsite->getPairedNode()->addPointsTo(analysis::pta::PointerUnknown);
         }
 
-        std::pair<PSNode *, PSNode *> cf = builder->createCallToFunction(CI, F);
+        // create new instructions
+        std::pair<PSNode *, PSNode *> cf = builder->createFuncptrCall(CI, F);
         assert(cf.first && cf.second);
 
         // we got the return site for the call stored as the paired node

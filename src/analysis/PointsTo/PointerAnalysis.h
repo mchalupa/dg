@@ -128,6 +128,7 @@ public:
         // we'd like to be sure that we have reached the fixpoint,
         // so we'll do one more iteration and check it
 
+        /*
         queue.push(root);
         PS->getNodes(queue);
 
@@ -142,6 +143,7 @@ public:
 
             afterProcessed(cur);
         }
+        */
 #endif // DEBUG_ENABLED
     }
 
