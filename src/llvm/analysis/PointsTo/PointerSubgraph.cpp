@@ -453,6 +453,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
         // 'a' is int but is assigned an address of 'b', which leads
         // to creating an inttoptr/ptrtoint instructions that
         // have forexample 'i32 3' as operand
+        asm("int3");
         llvm::errs() << "Invalid value leading to UNKNOWN: " << *val << "\n";
         return  createUnknown(val);
     }
@@ -1176,10 +1177,6 @@ void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
 {
     using namespace llvm;
 
-    // NOTE: go backward the uses list, so that we first discover
-    // the close uses and then the uses that are further in the program
-    // I haven't find out how to use something like reverse iterator,
-    // so we hack it here with vector...
     for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
 #if (LLVM_VERSION_MINOR < 5)
         const llvm::Value *use = *I;
@@ -1187,7 +1184,13 @@ void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
         const llvm::Value *use = I->getUser();
 #endif
         // these uses we don't want to build
-        if (isa<ICmpInst>(use) || isa<FCmpInst>(use))
+        if (isa<ICmpInst>(use) || isa<FCmpInst>(use)
+            || isa<DbgValueInst>(use) || isa<BranchInst>(use)
+            || isa<SwitchInst>(use))
+            continue;
+
+        // we want either instruction or an argument
+        if (!isa<Instruction>(use) && !isa<Argument>(use))
             continue;
 
         if (cont.insert(use).second) {
@@ -1195,6 +1198,7 @@ void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
                 // for StoreInst we need to get even uses
                 // of the pointer, since we stored the value
                 // into it (we want to have the loads from it)
+                transitivelyGatherUses(SI->getOperand(0), cont);
                 transitivelyGatherUses(SI->getOperand(1), cont);
             } else if (const LoadInst *LI = dyn_cast<LoadInst>(use)) {
                 transitivelyGatherUses(LI->getOperand(0), cont);
