@@ -1128,7 +1128,8 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
         if (llvm::isa<llvm::ConstantPointerNull>(retVal)
             || isConstantZero(retVal))
             op1 = NULLPTR;
-        else
+        else if (retVal->getType()->isPointerTy()
+                    || retVal->getType()->isIntegerTy())
             op1 = getOperand(retVal);
     }
 
