@@ -123,6 +123,18 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
     return DL->getTypeAllocSize(Ty);
 }
 
+bool LLVMPointerSubgraphBuilder::typeCanBePointer(llvm::Type *Ty) const
+{
+    if (Ty->isPointerTy())
+        return true;
+
+    if (Ty->isIntegerTy() && Ty->isSized())
+        return DL->getTypeSizeInBits(Ty)
+                >= DL->getPointerSizeInBits(/*Ty->getPointerAddressSpace()*/);
+
+    return false;
+}
+
 Pointer LLVMPointerSubgraphBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I)
 {
     using namespace llvm;
@@ -926,8 +938,7 @@ PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
     // integers
     // assert(Inst->getType()->isPointerTy());
 
-    assert((Inst->getType()->isPointerTy() ||
-            Inst->getType()->isIntegerTy()) && "BUG: This PHI is invalid");
+    assert(typeCanBePointer(Inst->getType()) && "BUG: This PHI is invalid");
 
     PSNode *node = new PSNode(pta::PHI, nullptr);
     addNode(Inst, node);
@@ -942,8 +953,7 @@ PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
 
 void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
 {
-    assert((PHI->getType()->isPointerTy() ||
-            PHI->getType()->isIntegerTy()) && "BUG: This PHI is invalid");
+    assert(typeCanBePointer(PHI->getType()) && "BUG: This PHI is invalid");
 
     for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
         PSNode *op = getOperand(PHI->getIncomingValue(i));
@@ -1130,6 +1140,15 @@ PSNode *LLVMPointerSubgraphBuilder::createArithmetic(const llvm::Instruction *In
     return node;
 }
 
+static bool isInvalid(const llvm::Value *val)
+{
+    if (llvm::isa<llvm::ICmpInst>(val)
+        || llvm::isa<llvm::FCmpInst>(val))
+        return true;
+
+    return false;
+}
+
 PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
 {
     PSNode *op1 = nullptr;
@@ -1147,9 +1166,8 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
         if (llvm::isa<llvm::ConstantPointerNull>(retVal)
             || isConstantZero(retVal))
             op1 = NULLPTR;
-        else if ((retVal->getType()->isPointerTy() ||
-                  retVal->getType()->isIntegerTy()) &&
-                  !llvm::isa<llvm::ICmpInst>(retVal->stripPointerCasts()))
+        else if (typeCanBePointer(retVal->getType()) &&
+                  !isInvalid(retVal->stripPointerCasts()))
             op1 = getOperand(retVal);
     }
 
@@ -1396,15 +1414,6 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
     }
 
     assert(0 && "Not to be reached");
-}
-
-static bool isInvalid(const llvm::Value *val)
-{
-    if (llvm::isa<llvm::ICmpInst>(val)
-        || llvm::isa<llvm::FCmpInst>(val))
-        return true;
-
-    return false;
 }
 
 // create a formal argument

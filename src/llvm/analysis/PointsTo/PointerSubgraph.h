@@ -164,6 +164,7 @@ private:
         seq.second->setUserData(const_cast<llvm::Value *>(val));
     }
 
+    bool typeCanBePointer(llvm::Type *Ty) const;
     bool isRelevantInstruction(const llvm::Instruction& Inst);
 
     PSNode *createAlloc(const llvm::Instruction *Inst);
