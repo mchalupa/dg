@@ -1611,7 +1611,8 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
 #else
         const Value *use = I->getUser();
 #endif
-        if (const CallInst *CI = dyn_cast<CallInst>(use))
+        const CallInst *CI = dyn_cast<CallInst>(use);
+        if (CI && CI->getCalledFunction() == F)
             addArgumentOperands(CI, arg, idx);
     }
 }
