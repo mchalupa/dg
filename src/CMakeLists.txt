@@ -42,6 +42,7 @@ add_library(LLVMdg SHARED
 	llvm/analysis/PointsTo/PointerSubgraph.h
 	llvm/analysis/PointsTo/PointerSubgraph.cpp
 	llvm/analysis/PointsTo/Structure.cpp
+	llvm/analysis/PointsTo/Globals.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
 	# -- LLVM analysis (old)
