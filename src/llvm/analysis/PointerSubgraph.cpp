@@ -1147,8 +1147,9 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
         if (llvm::isa<llvm::ConstantPointerNull>(retVal)
             || isConstantZero(retVal))
             op1 = NULLPTR;
-        else if (retVal->getType()->isPointerTy()
-                    || retVal->getType()->isIntegerTy())
+        else if ((retVal->getType()->isPointerTy() ||
+                  retVal->getType()->isIntegerTy()) &&
+                  !llvm::isa<llvm::ICmpInst>(retVal->stripPointerCasts()))
             op1 = getOperand(retVal);
     }
 
