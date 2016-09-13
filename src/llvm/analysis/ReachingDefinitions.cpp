@@ -578,19 +578,18 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i)
     {
         const Value *llvmOp = CInst->getArgOperand(i);
-        // we can modify only the memory passed via pointer
-        // XXX: inttoptr? We should check if we have
-        // a points-to set for the passed value instead of
-        // this type checking...
-        if (!llvmOp->getType()->isPointerTy())
-            continue;
 
         // constants cannot be redefined
         if (isa<Constant>(llvmOp))
             continue;
 
         pta::PSNode *pts = PTA->getPointsTo(llvmOp);
-        assert(pts && "No points-to information");
+        // if we do not have a pts, this is not pointer
+        // relevant instruction. We must do it this way
+        // instead of type checking, due to the inttoptr.
+        if (!pts)
+            continue;
+
         for (const pta::Pointer& ptr : pts->pointsTo) {
             if (!ptr.isValid())
                 continue;
