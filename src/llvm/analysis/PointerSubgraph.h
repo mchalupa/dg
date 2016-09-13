@@ -27,10 +27,15 @@ class LLVMPointerSubgraphBuilder
     // \return   root node of the graph
     PSNode *buildFunction(const llvm::Function& F);
     PSNodesSeq buildInstruction(const llvm::Instruction&);
+    PSNode *buildNode(const llvm::Value *val);
+
     void buildPointerSubgraphBlock(const llvm::BasicBlock& block);
 
     PSNodesSeq buildArguments(const llvm::Function& F);
     PSNodesSeq buildGlobals();
+
+    void transitivelyGatherUses(const llvm::Value *val,
+                                std::set<const llvm::Value *>& cont) const;
 
     struct Subgraph {
         Subgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
