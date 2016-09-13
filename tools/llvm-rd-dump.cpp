@@ -24,7 +24,7 @@
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
 #include "analysis/PointsTo/Pointer.h"
 
-#include "llvm/analysis/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions.h"
 
 #include "Utils.h"

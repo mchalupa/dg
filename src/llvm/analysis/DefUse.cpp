@@ -14,7 +14,7 @@
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/llvm-util.h"
 
-#include "PointsTo.h"
+#include "llvm/analysis/PointsTo/PointsTo.h"
 #include "ReachingDefinitions.h"
 #include "DefUse.h"
 

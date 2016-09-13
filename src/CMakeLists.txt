@@ -38,9 +38,9 @@ add_library(LLVMdg SHARED
 	llvm/analysis/PostDominators.cpp
 	llvm/analysis/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions.cpp
-	llvm/analysis/PointsTo.h
-	llvm/analysis/PointerSubgraph.h
-	llvm/analysis/PointerSubgraph.cpp
+	llvm/analysis/PointsTo/PointsTo.h
+	llvm/analysis/PointsTo/PointerSubgraph.h
+	llvm/analysis/PointsTo/PointerSubgraph.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
 	# -- LLVM analysis (old)

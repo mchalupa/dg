@@ -30,7 +30,7 @@
 #include "llvm/analysis/old/DefUse.h"
 
 #include "llvm/analysis/DefUse.h"
-#include "llvm/analysis/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions.h"
 
 #include "analysis/PointsTo/PointsToFlowSensitive.h"

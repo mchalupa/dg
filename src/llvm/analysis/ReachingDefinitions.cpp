@@ -18,7 +18,7 @@
 #include <llvm/Support/raw_os_ostream.h>
 
 #include "analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/PointerSubgraph.h"
+#include "llvm/analysis/PointsTo/PointerSubgraph.h"
 #include "ReachingDefinitions.h"
 
 #include <set>

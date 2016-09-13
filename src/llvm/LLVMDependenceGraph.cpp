@@ -33,7 +33,7 @@
 #include "Utils.h"
 #include "llvm-debug.h"
 
-#include "llvm/analysis/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ControlExpression.h"
 
 using llvm::errs;
