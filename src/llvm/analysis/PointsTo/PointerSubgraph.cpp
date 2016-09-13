@@ -933,13 +933,6 @@ LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
 
 PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
 {
-    // we need a pointer
-    // NOTE: this is not true. Due to ptrtoint/intoptr we may have PHI with
-    // integers
-    // assert(Inst->getType()->isPointerTy());
-
-    assert(typeCanBePointer(Inst->getType()) && "BUG: This PHI is invalid");
-
     PSNode *node = new PSNode(pta::PHI, nullptr);
     addNode(Inst, node);
 
@@ -953,11 +946,10 @@ PSNode *LLVMPointerSubgraphBuilder::createPHI(const llvm::Instruction *Inst)
 
 void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
 {
-    assert(typeCanBePointer(PHI->getType()) && "BUG: This PHI is invalid");
-
     for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
-        PSNode *op = getOperand(PHI->getIncomingValue(i));
-        node->addOperand(op);
+        PSNode *op = tryGetOperand(PHI->getIncomingValue(i));
+        if (op)
+            node->addOperand(op);
     }
 }
 
@@ -967,8 +959,7 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(const llvm::Function &F)
         for (const llvm::Instruction& I : B) {
             const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I);
             if (PHI) {
-                PSNode *node = getNode(PHI);
-                if (node)
+                if (PSNode *node = getNode(PHI))
                     addPHIOperands(node, PHI);
             }
         }
