@@ -459,11 +459,56 @@ PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
     }
 }
 
+static bool isRelevantIntrinsic(const llvm::Function *func)
+{
+    using namespace llvm;
+
+    switch (func->getIntrinsicID()) {
+        case Intrinsic::memmove:
+        case Intrinsic::memcpy:
+        case Intrinsic::vastart:
+        case Intrinsic::stacksave:
+        case Intrinsic::stackrestore:
+            return true;
+        // case Intrinsic::memset:
+        default:
+            return false;
+    }
+}
+
+static bool isInvalid(const llvm::Value *val)
+{
+    using namespace llvm;
+
+    if (!isa<Instruction>(val)) {
+        if (!isa<Argument>(val) && !isa<GlobalValue>(val))
+            return true;
+    } else {
+        if (isa<ICmpInst>(val) || isa<FCmpInst>(val)
+            || isa<DbgValueInst>(val) || isa<BranchInst>(val)
+            || isa<SwitchInst>(val))
+            return true;
+
+        const CallInst *CI = dyn_cast<CallInst>(val);
+        if (CI) {
+            const Function *F = CI->getCalledFunction();
+            if (F && F->isIntrinsic() && !isRelevantIntrinsic(F))
+                return true;
+        }
+    }
+
+    return false;
+}
+
 PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
 {
     PSNode *op = tryGetOperand(val);
-    if (!op)
-        return buildNode(val);
+    if (!op) {
+        if (isInvalid(val))
+            return UNKNOWN_MEMORY;
+        else
+            return buildNode(val);
+    }
 }
 
 static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
@@ -1132,15 +1177,6 @@ PSNode *LLVMPointerSubgraphBuilder::createArithmetic(const llvm::Instruction *In
     return node;
 }
 
-static bool isInvalid(const llvm::Value *val)
-{
-    if (llvm::isa<llvm::ICmpInst>(val)
-        || llvm::isa<llvm::FCmpInst>(val))
-        return true;
-
-    return false;
-}
-
 PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
 {
     PSNode *op1 = nullptr;
@@ -1183,14 +1219,8 @@ void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
 #else
         const llvm::Value *use = I->getUser();
 #endif
-        // these uses we don't want to build
-        if (isa<ICmpInst>(use) || isa<FCmpInst>(use)
-            || isa<DbgValueInst>(use) || isa<BranchInst>(use)
-            || isa<SwitchInst>(use))
-            continue;
 
-        // we want either instruction or an argument
-        if (!isa<Instruction>(use) && !isa<Argument>(use))
+        if (isInvalid(use))
             continue;
 
         if (cont.insert(use).second) {
@@ -1246,19 +1276,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
             // we need memory allocations
             return true;
 
-        if (func->isIntrinsic()) {
-            switch (func->getIntrinsicID()) {
-                case Intrinsic::memmove:
-                case Intrinsic::memcpy:
-                case Intrinsic::vastart:
-                case Intrinsic::stacksave:
-                case Intrinsic::stackrestore:
-                    return true;
-                // case Intrinsic::memset:
-                default:
-                    return false;
-            }
-        }
+        if (func->isIntrinsic())
+            return isRelevantIntrinsic(func);
 
         // returns pointer? We want that too - this is gonna be
         // an unknown pointer
