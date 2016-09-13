@@ -1249,6 +1249,14 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::LShr:
         case Instruction::AShr:
         case Instruction::Xor:
+        case Instruction::FSub:
+        case Instruction::FAdd:
+        case Instruction::FDiv:
+        case Instruction::UDiv:
+        case Instruction::SDiv:
+        case Instruction::URem:
+        case Instruction::SRem:
+        case Instruction::FRem:
             // these instructions reinterpert the pointer,
             // nothing better we can do here (I think?)
             node = createUnknown(&Inst);
@@ -1258,7 +1266,6 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             break;
         case Instruction::Sub:
         case Instruction::Mul:
-        case Instruction::SDiv:
             node = createArithmetic(&Inst);
             break;
         default:
@@ -1322,7 +1329,8 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
 
 static bool isInvalid(const llvm::Value *val)
 {
-    if (llvm::isa<llvm::ICmpInst>(val))
+    if (llvm::isa<llvm::ICmpInst>(val)
+        || llvm::isa<llvm::FCmpInst>(val))
         return true;
 
     return false;
