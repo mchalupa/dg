@@ -1772,8 +1772,11 @@ void LLVMPointerSubgraphBuilder::addVariadicArgumentOperands(const llvm::Functio
 #else
         const Value *use = I->getUser();
 #endif
-        if (const CallInst *CI = dyn_cast<CallInst>(use))
+        const CallInst *CI = dyn_cast<CallInst>(use);
+        if (CI && CI->getCalledFunction() == F)
             addVariadicArgumentOperands(F, CI, arg);
+        // if this is funcptr, we handle it in the other
+        // version of addVariadicArgumentOperands
     }
 }
 
@@ -1800,8 +1803,14 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperands(const llvm::Function *F,
 void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::CallInst *CI, PSNode *op)
 {
     PSNode *callNode = getNode(CI);
-    assert(callNode);
+    // since we're building the graph from main and only where we can reach it,
+    // we may not have all call-sites of a function
+    if (!callNode)
+        return;
+
     PSNode *returnNode = callNode->getPairedNode();
+    // the function must be defined, since we have the return node,
+    // so there must be associated the return node
     assert(returnNode);
 
     returnNode->addOperand(op);
@@ -1819,7 +1828,8 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::Function *F, P
         const Value *use = I->getUser();
 #endif
         // get every call and its assocciated return and add the operand
-        if (const CallInst *CI = dyn_cast<CallInst>(use))
+        const CallInst *CI = dyn_cast<CallInst>(use);
+        if (CI && CI->getCalledFunction() == F)
             addReturnNodeOperand(CI, op);
     }
 }
