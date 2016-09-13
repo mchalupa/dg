@@ -1490,8 +1490,7 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
         // so we need to do:
         // G = GEP(op, UNKNOWN_OFFSET)
         // STORE(null, G)
-        assert(0 && "Not implemented");
-        //createIrrelevantInst(Inst, false /* recursive */);
+        buildInstruction(*Inst);
     }
 }
 
