@@ -1395,7 +1395,9 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
             // pointer. We don't care about stores of non-pointers.
             // The only exception are stores to inttoptr nodes
             if (Inst.getOperand(0)->getType()->isPointerTy()
-                || nodes_map.count(Inst.getOperand(0)) > 0)
+                // this will probably create the operand if we do not
+                // have it, but we would create it later anyway
+                || (tryGetOperand(Inst.getOperand(0)) != UNKNOWN_MEMORY))
                 return true;
             else
                 return false;
@@ -1415,7 +1417,7 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
             // because that probably may be faster on 32-bit machines.
             // That completely breaks our relevancy criterions,
             // so we must use this hack (the same with store)
-            if (nodes_map.count(Inst.getOperand(0)) > 0)
+            if (tryGetOperand(Inst.getOperand(0)) != UNKNOWN_MEMORY)
                 return true;
         case Instruction::Select:
         case Instruction::PHI:
