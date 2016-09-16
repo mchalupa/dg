@@ -1061,12 +1061,8 @@ PSNode *LLVMPointerSubgraphBuilder::createPtrToInt(const llvm::Instruction *Inst
     // here we lost the type information,
     // so we must build all possible nodes that may affect
     // the pointer analysis
-    std::set<const llvm::Value *> uses;
-    transitivelyGatherUses(Inst, uses);
-    transitivelyGatherUses(Inst->getOperand(0), uses);
-    for (const llvm::Value *val : uses)
-        if (nodes_map.count(val) == 0)
-            buildNode(val);
+    transitivelyBuildUses(Inst);
+    transitivelyBuildUses(Inst->getOperand(0));
 
     assert(node);
     return node;
@@ -1092,12 +1088,8 @@ PSNode *LLVMPointerSubgraphBuilder::createIntToPtr(const llvm::Instruction *Inst
     // here we lost the type information,
     // so we must build all possible nodes that may affect
     // the pointer analysis
-    std::set<const llvm::Value *> uses;
-    transitivelyGatherUses(Inst, uses);
-    transitivelyGatherUses(Inst->getOperand(0), uses);
-    for (const llvm::Value *val : uses)
-        if (nodes_map.count(val) == 0)
-            buildNode(val);
+    transitivelyBuildUses(Inst);
+    transitivelyBuildUses(Inst->getOperand(0));
 
     assert(node);
     return node;
@@ -1208,8 +1200,7 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     return node;
 }
 
-void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
-                                                        std::set<const llvm::Value *>& cont) const
+void LLVMPointerSubgraphBuilder::transitivelyBuildUses(const llvm::Value *val)
 {
     using namespace llvm;
 
@@ -1223,15 +1214,23 @@ void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
         if (isInvalid(use))
             continue;
 
-        if (cont.insert(use).second) {
+        if (nodes_map.count(use) == 0) {
+            PSNode *nd = buildNode(use);
+            // we reached some point where we do not know
+            // how to continue (the ptrtoint use-chains probably
+            // got somewhere where we do not know how to handle
+            // the instructions)
+            if (nd == UNKNOWN_MEMORY)
+                continue;
+
             if (const StoreInst *SI = dyn_cast<StoreInst>(use)) {
                 // for StoreInst we need to get even uses
                 // of the pointer, since we stored the value
                 // into it (we want to have the loads from it)
-                transitivelyGatherUses(SI->getOperand(0), cont);
-                transitivelyGatherUses(SI->getOperand(1), cont);
+                transitivelyBuildUses(SI->getOperand(0));
+                transitivelyBuildUses(SI->getOperand(1));
             } else if (const LoadInst *LI = dyn_cast<LoadInst>(use)) {
-                transitivelyGatherUses(LI->getOperand(0), cont);
+                transitivelyBuildUses(LI->getOperand(0));
             } else if (const CallInst *CI = dyn_cast<CallInst>(use)) {
                 const Function *F = CI->getCalledFunction();
                 if (F) {
@@ -1241,16 +1240,22 @@ void LLVMPointerSubgraphBuilder::transitivelyGatherUses(const llvm::Value *val,
                         if (val == CI->getArgOperand(idx))
                             break;
 
+                    // find the argument at the index
                     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, --idx) {
                         if (idx == 0) {
-                            if (cont.insert(&*A).second)
-                                transitivelyGatherUses(&*A, cont);
+                            // if we have not built this argument yet,
+                            // build it!
+                            if (nodes_map.count(&*A) == 0) {
+                                PSNode *nd = buildNode(&*A);
+                                if (nd != UNKNOWN_MEMORY)
+                                    transitivelyBuildUses(&*A);
+                            }
                         }
                     }
                 }
             }
 
-            transitivelyGatherUses(use, cont);
+            transitivelyBuildUses(use);
         }
     }
 }
