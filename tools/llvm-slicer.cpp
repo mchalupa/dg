@@ -493,19 +493,11 @@ protected:
             return false;
         }
 
-        const char *sc[] = {
-            slicing_criterion,
-            // FIXME add command line switch that
-            // will add these according to user's will
-            // (or extend the slicing criterion to be a list)
-            "__VERIFIER_assume",
-            NULL // termination
-        };
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
         // it during points-to analysis
-        bool ret = d.getCallSites(sc, &callsites);
+        bool ret = d.getCallSites(slicing_criterion, &callsites);
         bool got_slicing_criterion = true;
         if (!ret) {
             if (strcmp(slicing_criterion, "ret") == 0) {
@@ -516,6 +508,19 @@ protected:
                 got_slicing_criterion = false;
             }
         }
+
+        // we also do not want to remove any assumptions
+        // about the code
+        // FIXME add command line switch that
+        // will add these according to user's will
+        // (or extend the slicing criterion to be a list)
+        const char *sc[] = {
+            "__VERIFIER_assume",
+            "klee_assume",
+            NULL // termination
+        };
+
+        d.getCallSites(sc, &callsites);
 
         // if we found slicing criterion, compute the rest
         // of the graph. Otherwise just slice away the whole graph
