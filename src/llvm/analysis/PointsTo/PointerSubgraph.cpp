@@ -1360,6 +1360,7 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::FSub:
         case Instruction::FAdd:
         case Instruction::FDiv:
+        case Instruction::FMul:
         case Instruction::UDiv:
         case Instruction::SDiv:
         case Instruction::URem:
