@@ -1389,13 +1389,29 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
             // create only nodes that store pointer to another
             // pointer. We don't care about stores of non-pointers.
             // The only exception are stores to inttoptr nodes
-            if (Inst.getOperand(0)->getType()->isPointerTy())
+            if (Inst.getOperand(0)->getType()->isPointerTy()
+                || nodes_map.count(Inst.getOperand(0)) > 0)
                 return true;
             else
                 return false;
         case Instruction::ExtractValue:
             return Inst.getType()->isPointerTy();
         case Instruction::Load:
+            // LLVM does optimizations like that this code
+            // (it basically does ptrtoint using bitcast)
+            //
+            // %2 = GEP %a, 0, 0
+            //
+            // gets transformed to
+            //
+            // %1 = bitcast %a to *i32
+            // %2 = load i32, i32* %1
+            //
+            // because that probably may be faster on 32-bit machines.
+            // That completely breaks our relevancy criterions,
+            // so we must use this hack (the same with store)
+            if (nodes_map.count(Inst.getOperand(0)) > 0)
+                return true;
         case Instruction::Select:
         case Instruction::PHI:
             // here we don't care about intToPtr, because every such
