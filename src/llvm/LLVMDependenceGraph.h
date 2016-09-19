@@ -99,13 +99,16 @@ public:
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
+    void makeSelfLoopsControlDependent();
+
     void computeControlDependencies(enum CD_ALG alg_type)
     {
-        if (alg_type == CLASSIC)
+        if (alg_type == CLASSIC) {
             computePostDominators(true);
-        else if (alg_type == CONTROL_EXPRESSION)
+            makeSelfLoopsControlDependent();
+        } else if (alg_type == CONTROL_EXPRESSION) {
             computeControlExpression(true);
-        else
+        } else
             abort();
     }
 

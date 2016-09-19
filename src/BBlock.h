@@ -267,6 +267,11 @@ public:
         nextBBs.clear();
     }
 
+    bool hasSelfLoop()
+    {
+        return nextBBs.contains(this);
+    }
+
     void removeSuccessor(const BBlockEdge& succ)
     {
         succ.target->prevBBs.erase(this);
