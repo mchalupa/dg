@@ -15,7 +15,7 @@
 #include "llvm/llvm-util.h"
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
-#include "ReachingDefinitions.h"
+#include "ReachingDefinitions/ReachingDefinitions.h"
 #include "DefUse.h"
 
 #include "analysis/PointsTo/PointerSubgraph.h"

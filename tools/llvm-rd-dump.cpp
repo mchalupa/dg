@@ -25,7 +25,7 @@
 #include "analysis/PointsTo/Pointer.h"
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
-#include "llvm/analysis/ReachingDefinitions.h"
+#include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 #include "Utils.h"
 

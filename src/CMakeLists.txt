@@ -36,8 +36,8 @@ add_library(LLVMdg SHARED
 	llvm/llvm-util.h
 	# -- LLVM analysis
 	llvm/analysis/PostDominators.cpp
-	llvm/analysis/ReachingDefinitions.h
-	llvm/analysis/ReachingDefinitions.cpp
+	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
+	llvm/analysis/ReachingDefinitions/ReachingDefinitions.cpp
 	llvm/analysis/PointsTo/PointsTo.h
 	llvm/analysis/PointsTo/PointerSubgraph.h
 	llvm/analysis/PointsTo/PointerSubgraph.cpp

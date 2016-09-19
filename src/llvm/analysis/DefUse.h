@@ -6,7 +6,7 @@
 #include <llvm/IR/DataLayout.h>
 
 #include "analysis/DataFlowAnalysis.h"
-#include "ReachingDefinitions.h"
+#include "ReachingDefinitions/ReachingDefinitions.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
 
