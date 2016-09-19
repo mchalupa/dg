@@ -183,13 +183,49 @@ bool RDMap::update(const DefSite& p, RDNode *n)
 
 bool RDMap::definesWithAnyOffset(const DefSite& ds)
 {
-    // FIXME do it via binary search
-    for (auto it : defs)
-        if (it.first.target == ds.target)
-            return true;
-
-    return false;
+    auto range = getObjectRange(ds);
+    return range.first != range.second;
 }
+
+size_t RDMap::get(RDNode *n, const Offset& off,
+                  const Offset& len, std::set<RDNode *>& ret)
+{
+    DefSite ds(n, off, len);
+    return get(ds, ret);
+}
+
+size_t RDMap::get(DefSite& ds, std::set<RDNode *>& ret)
+{
+    if (ds.offset.isUnknown()) {
+        auto range = getObjectRange(ds);
+        for (auto I = range.first; I != range.second; ++I) {
+            assert(I->first.target == ds.target);
+            ret.insert(I->second.begin(), I->second.end());
+        }
+    } else {
+        auto range = getObjectRange(ds);
+        for (auto I = range.first; I != range.second; ++I) {
+            assert(I->first.target == ds.target);
+                // if we found a definition with UNKNOWN_OFFSET,
+                // it is possibly a definition that we need */
+                if (I->first.offset.isUnknown() ||
+                    // if the length is unknown, then just check
+                    // if the starts can overlap
+                    (ds.len.isUnknown() && *ds.offset <= *I->first.offset) ||
+                    // just check if the offsets + length have
+                    // some overlap
+                    intervalsOverlap(*I->first.offset,
+                                    // -1 because we're starting from 0
+                                    *I->first.offset + *I->first.len - 1,
+                                    *ds.offset, *ds.offset + *ds.len - 1)){
+                ret.insert(I->second.begin(), I->second.end());
+            }
+        }
+    }
+
+    return ret.size();
+}
+
 
 static inline bool comp(const std::pair<const DefSite, RDNodesSet>& a,
                         const std::pair<const DefSite, RDNodesSet>& b)
