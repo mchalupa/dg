@@ -751,7 +751,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         assert(op && "Don't have points-to information");
         //assert(!op->pointsTo.empty() && "Don't have pointer to the func");
         if (op->pointsTo.empty()) {
-            llvm::errs() << "WARNING: calling function via pointer, but the points-to is empty\n"
+            llvm::errs() << "WARNING: a call via a function pointer, but the points-to is empty\n"
                          << *CInst << "\n";
             RDNode *n = createUndefinedCall(CInst);
             return std::make_pair(n, n);
@@ -769,11 +769,18 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (!isa<Function>(ptr.target->getUserData<Value>()))
                     continue;
 
+                const Function *F = ptr.target->getUserData<Function>();
+                if (F->size() == 0) {
+                    // the function is a declaration only,
+                    // there's nothing better we can do
+                    RDNode *n = createUndefinedCall(CInst);
+                    return std::make_pair(n, n);
+                }
+
                 // FIXME: these checks are repeated here, in PSSBuilder
                 // and in LLVMDependenceGraph, we should factor them
                 // out into a function...
-                const Function *F = ptr.target->getUserData<Function>();
-                if (F->size() == 0 || !callIsCompatible(F, CInst))
+                if (!callIsCompatible(F, CInst))
                     continue;
 
                 std::pair<RDNode *, RDNode *> cf
@@ -809,7 +816,9 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 
         if (!ret_call) {
             assert(!call_funcptr);
-            llvm::errs() << "ERROR: Funcptr call with no pointer compatible\n";
+            llvm::errs() << "Function pointer call with no compatible pointer: "
+                         << *CInst << "\n";
+
             RDNode *n = createUndefinedCall(CInst);
             return std::make_pair(n, n);
         }
