@@ -1,6 +1,7 @@
 if (LLVM_DG)
 
 add_library(PTA SHARED
+	analysis/SubgraphNode.h
 	analysis/Offset.h
 	analysis/PointsTo/Pointer.h
 	analysis/PointsTo/Pointer.cpp
@@ -12,6 +13,7 @@ add_library(PTA SHARED
 )
 
 add_library(RD SHARED
+	analysis/SubgraphNode.h
 	analysis/Offset.h
 	analysis/ReachingDefinitions/ReachingDefinitions.h
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp

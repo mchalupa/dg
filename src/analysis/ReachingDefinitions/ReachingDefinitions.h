@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstring>
 
+#include "analysis/SubgraphNode.h"
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/Offset.h"
 
@@ -43,10 +44,7 @@ enum RDNodeType {
 
 extern RDNode *UNKNOWN_MEMORY;
 
-class RDNode {
-    std::vector<RDNode *> successors;
-    std::vector<RDNode *> predecessors;
-
+class RDNode : public SubgraphNode<RDNode> {
     RDNodeType type;
 
     // marks for DFS/BFS
@@ -57,15 +55,13 @@ class RDNode {
     const char *name;
 #endif
 
-    void *data;
-    void *user_data;
 public:
     RDNode(RDNodeType t = NONE)
         : type(t), dfsid(0),
 #ifdef DEBUG_ENABLED
-          name(nullptr),
+          name(nullptr)
 #endif
-          data(nullptr), user_data(nullptr) {}
+    {}
 
     // this is the gro of this node, so make it public
     DefSiteSetT defs;
@@ -82,33 +78,8 @@ public:
     void setName(const char *n) { delete name; name = strdup(n); }
 #endif
 
-    const std::vector<RDNode *>& getSuccessors() const { return successors; }
-    const std::vector<RDNode *>& getPredecessors() const { return predecessors; }
-    size_t predecessorsNum() const { return predecessors.size(); }
-    size_t successorsNum() const { return successors.size(); }
-
     DefSiteSetT& getDefines() { return defs; }
     const DefSiteSetT& getDefines() const { return defs; }
-
-    void addSuccessor(RDNode *succ)
-    {
-        successors.push_back(succ);
-        succ->predecessors.push_back(this);
-    }
-
-    // get successor when we know there's only one of them
-    RDNode *getSingleSuccessor() const
-    {
-        assert(successors.size() == 1);
-        return successors.front();
-    }
-
-    // get predecessor when we know there's only one of them
-    RDNode *getSinglePredecessor() const
-    {
-        assert(predecessors.size() == 1);
-        return predecessors.front();
-    }
 
     bool defines(RDNode *target, const Offset& off = UNKNOWN_OFFSET) const
     {
@@ -167,34 +138,6 @@ public:
                                   const Offset& len, std::set<RDNode *>& ret)
     {
         return def_map.get(n, off, len, ret);
-    }
-
-    // getters & setters for analysis's data in the node
-    template <typename T>
-    T* getData() { return static_cast<T *>(data); }
-    template <typename T>
-    const T* getData() const { return static_cast<T *>(data); }
-
-    template <typename T>
-    void *setData(T *newdata)
-    {
-        void *old = data;
-        data = static_cast<void *>(newdata);
-        return old;
-    }
-
-    // getters & setters for user's data in the node
-    template <typename T>
-    T* getUserData() { return static_cast<T *>(user_data); }
-    template <typename T>
-    const T* getUserData() const { return static_cast<T *>(user_data); }
-
-    template <typename T>
-    void *setUserData(T *newdata)
-    {
-        void *old = user_data;
-        user_data = static_cast<void *>(newdata);
-        return old;
     }
 
     bool isUnknown() const
