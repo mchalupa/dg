@@ -20,6 +20,11 @@ public:
         return ret;
     }
 
+    ValueT& top()
+    {
+        return Container.top();
+    }
+
     void push(const ValueT& what)
     {
         Container.push(what);
@@ -54,6 +59,11 @@ public:
         Container.pop();
 
         return ret;
+    }
+
+    ValueT& top()
+    {
+        return Container.top();
     }
 
     void push(const ValueT& what)

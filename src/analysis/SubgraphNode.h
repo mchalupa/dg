@@ -32,9 +32,27 @@ protected:
     std::vector<NodeT *> operands;
 
 public:
+    // FIXME: make this private, this is just for debugging
+    /// for computing SCC
+    //XXX: we could do this more generic
+    // the dfs order
+    unsigned int dfs_id;
+    unsigned int lowpt;
+
+    // id of scc component
+    unsigned int scc_id;
+    // true if the node is on stack
+    bool on_stack;
+
+
     SubgraphNode<NodeT>()
-    : data(nullptr), user_data(nullptr)
+    : dfs_id(0), lowpt(0), scc_id(0), on_stack(false), data(nullptr), user_data(nullptr)
     {}
+
+    unsigned getSCCId() const
+    {
+        return scc_id;
+    }
 
     // getters & setters for analysis's data in the node
     template <typename T>
