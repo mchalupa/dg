@@ -8,6 +8,8 @@
 #include "PointerSubgraph.h"
 #include "ADT/Queue.h"
 
+#include "analysis/SCC.h"
+
 namespace dg {
 namespace analysis {
 namespace pta {
@@ -22,6 +24,9 @@ class PointerAnalysis
 
     // the pointer state subgraph
     PointerSubgraph *PS;
+
+    // strongly connected components of the PointerSubgraph
+    std::vector<std::vector<PSNode *> > SCCs;
 
     // Maximal offset that we want to keep
     // within a pointer.
@@ -41,6 +46,10 @@ public:
     : dfsnum(0), PS(ps), max_offset(max_off)
     {
         assert(PS && "Need valid PointerSubgraph object");
+
+        // compute the strongly connected components
+        SCC<PSNode> scc_comp;
+        SCCs = std::move(scc_comp.compute(PS->getRoot()));
     }
 
     virtual ~PointerAnalysis() {}
@@ -80,6 +89,22 @@ public:
     PointerSubgraph *getPS() const { return PS; }
     size_t pendingInQueue() const { return queue.size(); }
 
+    void preprocessGEPs()
+    {
+        // if a node is in a loop (a scc that has more than one node),
+        // then every GEP will end up with UNKNOWN_OFFSET after some
+        // number of iterations, so we can do that right now
+        // and save iterations
+        for (auto scc : SCCs) {
+            if (scc.size() > 1) {
+                for (PSNode *n : scc) {
+                    if (n->getType() == GEP)
+                        n->setOffset(UNKNOWN_OFFSET);
+                }
+            }
+        }
+    }
+
     void run()
     {
         PSNode *root = PS->getRoot();
@@ -89,6 +114,9 @@ public:
         // FIXME let the user do that
         queue.push(root);
         PS->getNodes(queue);
+
+        // do some optimizations
+        preprocessGEPs();
 
         while (!queue.empty()) {
             PSNode *cur = queue.pop();

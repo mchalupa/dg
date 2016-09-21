@@ -221,6 +221,8 @@ public:
     }
 #endif
 
+    void setOffset(uint64_t o) { offset = o; }
+
     PSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSNode *n) { pairedNode = n; }
 
