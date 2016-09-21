@@ -7,6 +7,7 @@
 #include <cstring>
 
 #include "analysis/SubgraphNode.h"
+#include "analysis/SCC.h"
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/Offset.h"
 
@@ -156,6 +157,13 @@ class ReachingDefinitionsAnalysis
     bool field_insensitive;
     uint32_t max_set_size;
 
+    ADT::QueueFIFO<RDNode *> queue;
+
+    // strongly connected components of the RDSubgraph
+    std::vector<std::vector<RDNode *> > SCCs;
+    SCCCondensation<RDNode> SCCcond;
+    std::set<unsigned, std::greater<unsigned>> scc_to_queue;
+
 public:
     ReachingDefinitionsAnalysis(RDNode *r,
                                 bool field_insens = false,
@@ -166,6 +174,16 @@ public:
         // with max_set_size == 0 (everything is defined on unknown location)
         // we get unsound results with vararg functions and similar weird stuff
         assert(max_set_size > 0 && "The set size must be at least 1");
+
+        // compute the strongly connected components
+
+        SCC<RDNode> scc_comp;
+        // use move semantics instead of copying,
+        // since the scc_comp object goes from the scope anyway
+        SCCs = std::move(scc_comp.compute(root));
+
+        // compute condensation graph from SCC
+        SCCcond.compute(SCCs);
     }
 
     void getNodes(std::set<RDNode *>& cont)
@@ -196,23 +214,58 @@ public:
 
     bool processNode(RDNode *n);
 
+    void _addSCCSuccessors(unsigned idx)
+    {
+        for (auto succ_idx : SCCcond[idx].getSuccessors()) {
+            scc_to_queue.insert(succ_idx);
+            // the condensation is a dag, so we must stop eventually
+            // in this recursion
+            _addSCCSuccessors(succ_idx);
+        }
+    }
+
+    void queueNodesInReverseTopoOrder()
+    {
+        auto tmp = scc_to_queue;
+        for (unsigned idx : tmp)
+            _addSCCSuccessors(idx);
+
+        // OK, now we have what we need in scc_to_queue
+        // (the scc that we should add and also
+        // its successors)
+        for (unsigned idx : scc_to_queue) {
+            for (auto node : SCCs[idx])
+                queue.push(node);
+        }
+
+        scc_to_queue.clear();
+    }
+
+    void enqueue(RDNode *n)
+    {
+        scc_to_queue.insert(n->getSCCId());
+    }
+
     void run()
     {
         assert(root && "Do not have root");
 
-        std::set<RDNode *> nodes;
-        getNodes(nodes);
+        enqueue(root);
+        queueNodesInReverseTopoOrder();
 
-        // do fixpoint
-        bool changed;
-        do {
-            changed = false;
+        while (!queue.empty()) {
+            RDNode *cur = queue.pop();
 
-            for (RDNode *cur : nodes)
-                changed |= processNode(cur);
+            if (processNode(cur))
+                enqueue(cur);
 
-        } while (changed);
+            if (queue.empty())
+                queueNodesInReverseTopoOrder();
+        }
+
+        assert(scc_to_queue.empty());
     }
+
 };
 
 } // namespace rd
