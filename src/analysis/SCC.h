@@ -2,6 +2,7 @@
 #define  _DG_SCC_H_
 
 #include <vector>
+#include <set>
 
 #include "ADT/Queue.h"
 
@@ -14,10 +15,42 @@ namespace analysis {
 // from which are all other vertices reachable
 template <typename NodeT>
 class SCC {
+public:
+    typedef std::vector<NodeT *> SCC_component_t;
+    typedef std::vector<SCC_component_t> SCC_t;
+
+    SCC<NodeT>() : index(0) {}
+
+    // returns a vector of vectors - every inner vector
+    // contains the nodes that for a SCC
+    SCC_t& compute(NodeT *start)
+    {
+        assert(start->dfs_id == 0);
+
+        _compute(start);
+        assert(stack.empty());
+
+        return scc;
+    }
+
+    const SCC_t& getSCC() const
+    {
+        return scc;
+    }
+
+    SCC_component_t& operator[](unsigned idx)
+    {
+        assert(idx < scc.size());
+        return scc[idx];
+    }
+
+
+private:
     ADT::QueueLIFO<NodeT *> stack;
     unsigned index;
 
-    std::vector<std::vector<NodeT *>> scc;
+    // container for the strongly connected components.
+    SCC_t scc;
 
     void _compute(NodeT *n)
     {
@@ -39,7 +72,7 @@ class SCC {
         }
 
         if (n->lowpt == n->dfs_id) {
-            std::vector<NodeT *> component;
+            SCC_component_t component;
             size_t component_num = scc.size();
 
             NodeT *w;
@@ -58,20 +91,83 @@ class SCC {
             scc.push_back(std::move(component));
         }
     }
+};
+
+template <typename NodeT>
+class SCCCondensation {
+    typedef typename SCC<NodeT>::SCC_t SCC_t;
+    typedef typename SCC<NodeT>::SCC_component_t SCC_component_t;
+
+    struct Node {
+        SCC_component_t& component;
+        std::set<unsigned> successors;
+
+        Node(SCC_component_t& comp) : component(comp) {}
+
+        void addSuccessor(unsigned idx)
+        {
+            successors.insert(idx);
+        }
+
+        SCC_component_t& operator*() const
+        {
+            return component;
+        }
+
+        // XXX: create iterators instead
+        const std::set<unsigned>& getSuccessors() const
+        {
+            return successors;
+        }
+    };
+
+    std::vector<Node> nodes;
 
 public:
-    SCC<NodeT>() : index(0) {}
-
-    // returns a vector of vectors - every inner vector
-    // contains the nodes that for a SCC
-    std::vector<std::vector<NodeT *>>& compute(NodeT *start)
+    Node& operator[](unsigned idx)
     {
-        assert(start->dfs_id == 0);
-
-        _compute(start);
-        return scc;
+        assert(idx < nodes.size());
+        return nodes[idx];
     }
 
+    void compute(SCC_t& scc)
+    {
+        // we know the size before-hand
+        nodes.reserve(scc.size());
+
+        // create the nodes in our condensation graph
+        for (auto comp : scc)
+            nodes.push_back(Node(comp));
+
+        assert(nodes.size() == scc.size());
+
+        int idx = 0;
+        for (auto comp : scc) {
+            for (auto node : comp) {
+                // we can get from this component
+                // to the component of succ
+                for (auto succ : node->getSuccessors()) {
+                    unsigned succ_idx = succ->getSCCId();
+                    if (succ_idx != idx)
+                        nodes[idx].addSuccessor(succ_idx);
+                }
+            }
+
+            ++idx;
+        }
+    }
+
+    SCCCondensation<NodeT>(){}
+
+    SCCCondensation<NodeT>(SCC<NodeT>& S)
+    {
+        compute(S.getSCC());
+    }
+
+    SCCCondensation<NodeT>(SCC_t& s)
+    {
+        compute(s);
+    }
 };
 
 } // analysis
