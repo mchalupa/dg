@@ -380,6 +380,52 @@ public:
             }
         }
     }
+
+    // get nodes in BFS order and store them into
+    // the container
+    std::vector<PSNode *> getNodes(PSNode *start_node = nullptr,
+                                   std::vector<PSNode *> *start_set = nullptr,
+                                   unsigned expected_num = 0)
+    {
+        assert(root && "Do not have root");
+        assert(!(start_set && start_node)
+               && "Need either starting set or starting node, not both");
+
+        ++dfsnum;
+        ADT::QueueFIFO<PSNode *> fifo;
+
+        if (start_set) {
+            for (PSNode *s : *start_set) {
+                fifo.push(s);
+                s->dfsid = dfsnum;
+            }
+        } else {
+            if (!start_node)
+                start_node = root;
+
+            fifo.push(start_node);
+            start_node->dfsid = dfsnum;
+        }
+
+        std::vector<PSNode *> cont;
+        if (expected_num != 0)
+            cont.reserve(expected_num);
+
+        while (!fifo.empty()) {
+            PSNode *cur = fifo.pop();
+            cont.push_back(cur);
+
+            for (PSNode *succ : cur->successors) {
+                if (succ->dfsid != dfsnum) {
+                    succ->dfsid = dfsnum;
+                    fifo.push(succ);
+                }
+            }
+        }
+
+        return cont;
+    }
+
 };
 
 } // namespace pta

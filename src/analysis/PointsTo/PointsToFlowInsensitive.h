@@ -2,7 +2,7 @@
 #define _DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
 
 #include <cassert>
-#include <set>
+#include <vector>
 
 #include "PointerAnalysis.h"
 
@@ -12,8 +12,6 @@ namespace pta {
 
 class PointsToFlowInsensitive : public PointerAnalysis
 {
-    std::set<PSNode *> changed;
-
 protected:
     PointsToFlowInsensitive() {}
 
@@ -50,23 +48,9 @@ public:
         objects.push_back(mo);
     }
 
-    virtual void enqueue(PSNode *n)
-    {
-        changed.insert(n);
-    }
-
     virtual void afterProcessed(PSNode *n)
     {
         (void) n;
-
-        if (pendingInQueue() == 0 && !changed.empty()) {
-            ADT::QueueFIFO<PSNode *> nodes;
-            getPS()->getNodes(nodes, nullptr /* starting node */,
-                              &changed /* starting set */);
-
-            queue.swap(nodes);
-            changed.clear();
-        }
     }
 };
 

@@ -12,8 +12,6 @@ namespace pta {
 
 class PointsToFlowSensitive : public PointerAnalysis
 {
-    std::set<PSNode *> changed;
-
 public:
     typedef std::set<MemoryObject *> MemoryObjectsSetT;
     typedef std::map<const Pointer, MemoryObjectsSetT> MemoryMapT;
@@ -99,22 +97,6 @@ public:
                     mergeMaps(mm, pm, strong_update);
             }
         }
-
-        // check if we should enqueue new nodes and if so,
-        // enqueue them. This code is duplicated with FlowInsensitive
-        if (pendingInQueue() == 0 && !changed.empty()) {
-            ADT::QueueFIFO<PSNode *> nodes;
-            getPS()->getNodes(nodes, nullptr /* starting node */,
-                              &changed /* starting set */);
-
-            queue.swap(nodes);
-            changed.clear();
-        }
-    }
-
-    virtual void enqueue(PSNode *n)
-    {
-        changed.insert(n);
     }
 
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
