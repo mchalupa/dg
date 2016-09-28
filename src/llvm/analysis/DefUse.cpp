@@ -261,9 +261,14 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
         if (defs.empty()) {
             llvm::GlobalVariable *GV
                 = llvm::dyn_cast<llvm::GlobalVariable>(llvmVal);
-            if (!GV || !GV->hasInitializer())
-                llvm::errs() << "No reaching definition for: " << *llvmVal
-                             << " off: " << *ptr.offset << "\n";
+            if (!GV || !GV->hasInitializer()) {
+                static std::set<const llvm::Value *> reported;
+                if (reported.insert(llvmVal).second) {
+                    llvm::errs() << "No reaching definition for: " << *llvmVal
+                                 << " off: " << *ptr.offset << "\n";
+                }
+            }
+
             continue;
         }
 
