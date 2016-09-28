@@ -94,6 +94,8 @@ const char *usage =
 "\n"
 "'module' is the LLVM bitcode files to be sliced. It must contain 'main' function\n";
 
+const char *slicing_criterion = nullptr;
+
 enum {
     // annotate
     ANNOTATE                    = 1,
@@ -479,7 +481,7 @@ protected:
     }
 
     // shared by old and new analyses
-    bool sliceGraph(LLVMDependenceGraph &d, const char *slicing_criterion)
+    bool sliceGraph(LLVMDependenceGraph &d)
     {
         debug::TimeMeasure tm;
         std::set<LLVMNode *> callsites;
@@ -491,6 +493,7 @@ protected:
             return false;
         }
 
+        assert(slicing_criterion && "Do not have the slicing criterion");
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
@@ -607,7 +610,7 @@ public:
         delete RD;
     }
 
-    bool slice(const char *slicing_criterion)
+    bool slice()
     {
         debug::TimeMeasure tm;
         LLVMDependenceGraph d;
@@ -626,7 +629,7 @@ public:
 
         d.build(&*M, PTA);
 
-        return sliceGraph(d, slicing_criterion);
+        return sliceGraph(d);
         // FIXME: we're leaking PTA & RD
     }
 };
@@ -662,7 +665,7 @@ public:
               uint32_t o = 0, CD_ALG cda = CLASSIC)
         :Slicer(mod, modnm, o, cda) {}
 
-    bool slice(const char *slicing_criterion)
+    bool slice()
     {
         debug::TimeMeasure tm;
         LLVMDependenceGraph d;
@@ -682,7 +685,7 @@ public:
         tm.stop();
         tm.report("INFO: Points-to analysis [old] took");
 
-        return sliceGraph(d, slicing_criterion);
+        return sliceGraph(d);
     }
 };
 
@@ -885,7 +888,6 @@ int main(int argc, char *argv[])
     bool should_verify_module = true;
     bool remove_unused_only = false;
     bool statistics = false;
-    const char *slicing_criterion = nullptr;
     const char *module = nullptr;
     const char *output = nullptr;
     uint32_t opts = 0;
@@ -1012,7 +1014,7 @@ int main(int argc, char *argv[])
     /// ---------------
     if (pta == PTA_OLD) {
         SlicerOld slicer(M, module, opts, cd_alg);
-        if (!slicer.slice(slicing_criterion)) {
+        if (!slicer.slice()) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
@@ -1020,7 +1022,7 @@ int main(int argc, char *argv[])
         // FIXME: do one parent class and use overriding
         Slicer slicer(M, module, opts, pta, cd_alg,
                       field_senitivity, rd_max_set_size, rd_field_insensitive);
-        if (!slicer.slice(slicing_criterion)) {
+        if (!slicer.slice()) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
