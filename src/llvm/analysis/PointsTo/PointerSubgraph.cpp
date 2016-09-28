@@ -505,10 +505,8 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
             return UNKNOWN_MEMORY;
         else
             return buildNode(val);
-    }
-
-    assert(0 && "Did not find an operand");
-    abort();
+    } else
+        return op;
 }
 
 static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
