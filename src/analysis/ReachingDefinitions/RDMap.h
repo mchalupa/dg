@@ -80,9 +80,10 @@ public:
         if (is_unknown)
             return false;
 
-        if (n == UNKNOWN_MEMORY)
+        if (n == UNKNOWN_MEMORY) {
             makeUnknown();
-        else
+            return true;
+        } else
             return nodes.insert(n).second;
     }
 
