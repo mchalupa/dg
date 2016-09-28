@@ -35,6 +35,7 @@
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ControlExpression.h"
+#include "llvm/analysis/llvm-utils.h"
 
 using llvm::errs;
 using std::make_pair;
@@ -340,32 +341,6 @@ static bool isMemAllocationFunc(const llvm::Function *func)
     return false;
 }
 
-// FIXME: factor this out, we use it even in PoinsTo
-static bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
-{
-    using namespace llvm;
-
-    if (F->arg_size() > CI->getNumArgOperands())
-        return false;
-
-    if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
-        return false;
-
-    int idx = 0;
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
-        Type *CTy = CI->getArgOperand(idx)->getType();
-        Type *ATy = A->getType();
-
-        // FIXME: we could check that the types are equal!
-        if (!CTy->canLosslesslyBitCastTo(ATy))
-            return false;
-    }
-
-    return true;
-}
-
-
-
 void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                                             LLVMNode *node)
 {
@@ -391,7 +366,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                     continue;
 
                 Function *F = ptr.target->getUserData<Function>();
-                if (F->size() == 0 || !callIsCompatible(F, CInst))
+                if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst))
                     // incompatible prototypes or the function
                     // is only declaration
                     continue;

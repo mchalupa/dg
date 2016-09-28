@@ -19,6 +19,7 @@
 
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/analysis/llvm-utils.h"
 #include "ReachingDefinitions.h"
 
 #include <set>
@@ -680,30 +681,6 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     return ret;
 }
 
-// FIXME: factor this out, we use it even in PoinsTo
-static bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
-{
-    using namespace llvm;
-
-    if (F->arg_size() > CI->getNumArgOperands())
-        return false;
-
-    if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
-        return false;
-
-    int idx = 0;
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
-        Type *CTy = CI->getArgOperand(idx)->getType();
-        Type *ATy = A->getType();
-
-        // FIXME: we could check that the types are equal!
-        if (!CTy->canLosslesslyBitCastTo(ATy))
-            return false;
-    }
-
-    return true;
-}
-
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 {
@@ -779,7 +756,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 // FIXME: these checks are repeated here, in PSSBuilder
                 // and in LLVMDependenceGraph, we should factor them
                 // out into a function...
-                if (!callIsCompatible(F, CInst))
+                if (!llvmutils::callIsCompatible(F, CInst))
                     continue;
 
                 std::pair<RDNode *, RDNode *> cf
@@ -808,7 +785,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (F->size() == 0) {
                     RDNode *n = createUndefinedCall(CInst);
                     return std::make_pair(n, n);
-                } else if (callIsCompatible(F, CInst)) {
+                } else if (llvmutils::callIsCompatible(F, CInst)) {
                     std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
                     call_funcptr = cf.first;
                     ret_call = cf.second;

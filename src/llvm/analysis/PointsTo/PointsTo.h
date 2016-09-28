@@ -7,6 +7,7 @@
 
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/PointerAnalysis.h"
+#include "llvm/analysis/llvm-utils.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
 
 namespace dg {
@@ -20,28 +21,6 @@ template <typename PTType>
 class LLVMPointerAnalysisImpl : public PTType
 {
     LLVMPointerSubgraphBuilder *builder;
-
-    bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
-    {
-        using namespace llvm;
-
-        if (F->arg_size() > CI->getNumArgOperands())
-            return false;
-
-        if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
-            return false;
-
-        int idx = 0;
-        for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
-            Type *CTy = CI->getArgOperand(idx)->getType();
-            Type *ATy = A->getType();
-
-            if (!CTy->canLosslesslyBitCastTo(ATy))
-                return false;
-        }
-
-        return true;
-    }
 
 public:
     LLVMPointerAnalysisImpl(PointerSubgraph *PS, LLVMPointerSubgraphBuilder *b)
@@ -59,7 +38,7 @@ public:
         const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
 
         // incompatible prototypes, skip it...
-        if (!callIsCompatible(F, CI))
+        if (!llvmutils::callIsCompatible(F, CI))
             return false;
 
         if (F->size() == 0) {
