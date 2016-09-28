@@ -623,6 +623,11 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
     // we need to handle the return values even when it is not
     // a pointer as we have ptrtoint and inttoptr
 
+    // create the pointer arguments -- the other arguments will
+    // be created later if needed
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A)
+        getOperand(&*A);
+
     return std::make_pair(callNode, returnNode);
 }
 
