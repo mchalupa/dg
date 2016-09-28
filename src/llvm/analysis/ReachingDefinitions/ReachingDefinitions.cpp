@@ -805,7 +805,10 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 const llvm::Value *valF = ptr.target->getUserData<llvm::Value>();
                 const llvm::Function *F = llvm::cast<llvm::Function>(valF);
 
-                if (F->size() != 0 && callIsCompatible(F, CInst)) {
+                if (F->size() == 0) {
+                    RDNode *n = createUndefinedCall(CInst);
+                    return std::make_pair(n, n);
+                } else if (callIsCompatible(F, CInst)) {
                     std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
                     call_funcptr = cf.first;
                     ret_call = cf.second;
