@@ -83,7 +83,7 @@ message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 # put the -std=c++11 or -std=gnu++11 to the flags
 # on some systems. For the -fno-rtti: LLVM still got problems
 # with turning RTTI off...
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -Wall -Wextra")
 
 # Debug Release RelWithDebInfo MinSizeRel.
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

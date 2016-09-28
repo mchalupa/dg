@@ -785,7 +785,7 @@ void LLVMDependenceGraph::computeControlExpression(bool addCDs)
         llvm::Function *func = llvm::cast<llvm::Function>(F.first);
         LLVMCFA cfa = builder.build(*func);
 
-        CE = std::move(cfa.compute());
+        CE = cfa.compute();
 
         if (addCDs) {
             // compute the control scope

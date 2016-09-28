@@ -121,7 +121,7 @@ public:
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *maindg,
+    uint32_t slice(LLVMDependenceGraph *,
                    LLVMNode *start, uint32_t sl_id = 0)
     {
         // mark nodes for slicing
@@ -145,13 +145,13 @@ public:
     }
 
 private:
+        /*
     void sliceCallNode(LLVMNode *callNode,
                        LLVMDependenceGraph *graph, uint32_t slice_id)
     {
         LLVMDGParameters *actualparams = callNode->getParameters();
         LLVMDGParameters *formalparams = graph->getParameters();
 
-        /*
         if (!actualparams) {
             assert(!formalparams && "Have only one of params");
             return; // no params - nothing to do
@@ -159,7 +159,6 @@ private:
 
         assert(formalparams && "Have only one of params");
         assert(formalparams->size() == actualparams->size());
-        */
 
         // FIXME slice arguments away
     }
@@ -169,6 +168,7 @@ private:
         for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
             sliceCallNode(callNode, subgraph, slice_id);
     }
+        */
 
     static void
     adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk)

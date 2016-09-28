@@ -186,7 +186,6 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantAdd(const llvm::Instruction *I
 {
     using namespace llvm;
 
-    PSNode *node;
     PSNode *op;
     const Value *val = nullptr;
     uint64_t off = UNKNOWN_OFFSET;
@@ -225,9 +224,7 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantArithmetic(const llvm::Instruc
 {
     using namespace llvm;
 
-    PSNode *node;
     PSNode *op;
-    const Value *val = nullptr;
 
     if (isa<ConstantInt>(Inst->getOperand(0))) {
         op = getOperand(Inst->getOperand(1));
@@ -509,6 +506,9 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
         else
             return buildNode(val);
     }
+
+    assert(0 && "Did not find an operand");
+    abort();
 }
 
 static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
@@ -592,8 +592,7 @@ LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, i
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
-                                                 const llvm::Function *F)
+LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
 {
     PSNode *callNode, *returnNode;
 
@@ -639,7 +638,7 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
     if (!subg.root)
         add_structure = true;
 
-    auto ret = createCallToFunction(CInst, F);
+    auto ret = createCallToFunction(F);
 
     // we took a reference
     assert(subg.root);
@@ -656,7 +655,7 @@ PSNodesSeq
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
                                                 const llvm::Function *F)
 {
-    PSNodesSeq cf = createCallToFunction(CInst, F);
+    PSNodesSeq cf = createCallToFunction(F);
     addNode(CInst, cf.first);
 
     // NOTE: we do not add return node into nodes_map, since this
@@ -1569,8 +1568,6 @@ void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBloc
 // \return   root node of the graph
 PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
 {
-    PSNode *lastNode = nullptr;
-
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
@@ -1618,7 +1615,7 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
 void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
                                                      PSNode *arg, int idx)
 {
-    assert(idx < CI->getNumArgOperands());
+    assert(idx < (int) CI->getNumArgOperands());
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
     if (op)
         arg->addOperand(op);
@@ -1667,7 +1664,7 @@ void LLVMPointerSubgraphBuilder::addVariadicArgumentOperands(const llvm::Functio
                                                              const llvm::CallInst *CI,
                                                              PSNode *arg)
 {
-    for (int idx = F->arg_size() - 1; idx < CI->getNumArgOperands(); ++idx)
+    for (unsigned idx = F->arg_size() - 1; idx < CI->getNumArgOperands(); ++idx)
         addArgumentOperands(CI, arg, idx);
 }
 

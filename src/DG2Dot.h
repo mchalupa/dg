@@ -96,8 +96,11 @@ public:
         return true;
     }
 
-    virtual bool dump(const char *new_file = nullptr)
+    virtual bool dump(const char *new_file = nullptr,
+                      const char *only_functions = nullptr)
     {
+        (void) only_functions;
+
         if (!ensureFile(new_file))
             return false;
 

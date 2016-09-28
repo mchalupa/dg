@@ -30,7 +30,7 @@ enum BFSFlags {
 
 #ifdef ENABLE_CFG
 
-static uint32_t
+static inline uint32_t
 convertBFSBBFlags(uint32_t flags)
 {
     uint32_t ret = 0; // for BBs we always have CFG

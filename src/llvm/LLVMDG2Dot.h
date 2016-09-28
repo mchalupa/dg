@@ -7,6 +7,7 @@ using namespace dg;
 namespace dg {
 namespace debug {
 
+/*
 static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 {
     if (off.offset == UNKNOWN_OFFSET)
@@ -16,6 +17,7 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 
     return os;
 }
+*/
 
 static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 {
@@ -151,7 +153,7 @@ public:
     */
 
     /* virtual */
-    bool checkNode(std::ostream& os, LLVMNode *node)
+    bool checkNode(std::ostream&, LLVMNode *)
     {
         return false; // no error
     }

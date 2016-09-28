@@ -122,7 +122,6 @@ enum PtaType {
 class CommentDBG : public llvm::AssemblyAnnotationWriter
 {
     LLVMReachingDefinitions *RD;
-    LLVMDependenceGraph *dg;
     uint32_t opts;
 
     void printValue(const llvm::Value *val,
@@ -355,9 +354,9 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
     }
 
 public:
-    CommentDBG(LLVMDependenceGraph *dg, uint32_t o = ANNOTATE_DD,
+    CommentDBG(uint32_t o = ANNOTATE_DD,
                LLVMReachingDefinitions *rd = nullptr)
-        :dg(dg), RD(rd), opts(o) {}
+        :RD(rd), opts(o) {}
 
     virtual void emitInstructionAnnot(const llvm::Instruction *I,
                                       llvm::formatted_raw_ostream& os)
@@ -412,8 +411,7 @@ public:
 };
 
 static void annotate(llvm::Module *M, const char *module_name,
-                     LLVMDependenceGraph *d, uint32_t opts,
-                     LLVMReachingDefinitions *rd = nullptr)
+                     uint32_t opts, LLVMReachingDefinitions *rd = nullptr)
 {
     // compose name
     std::string fl(module_name);
@@ -424,7 +422,7 @@ static void annotate(llvm::Module *M, const char *module_name,
     llvm::raw_os_ostream output(ofs);
 
     errs() << "INFO: Saving IR with annotations to " << fl << "\n";
-    llvm::AssemblyAnnotationWriter *annot = new CommentDBG(d, opts, rd);
+    llvm::AssemblyAnnotationWriter *annot = new CommentDBG(opts, rd);
     M->print(output, annot);
 
     delete annot;
@@ -548,7 +546,7 @@ protected:
 
         // print debugging llvm IR if user asked for it
         if (opts & ANNOTATE)
-            annotate(M, module_name, &d, opts, RD);
+            annotate(M, module_name, opts, RD);
 
         slicer.slice(&d, nullptr, slid);
 

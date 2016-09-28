@@ -105,8 +105,7 @@ public:
     // and call+return nodes to/from it. This function
     // won't add the CFG edges if not @with_structure
     PSNodesSeq
-    createCallToFunction(const llvm::CallInst *CInst,
-                         const llvm::Function *F);
+    createCallToFunction(const llvm::Function *F);
 
     PSNodesSeq
     createFuncptrCall(const llvm::CallInst *CInst,

@@ -14,7 +14,7 @@ namespace rd {
 class RDNode;
 class ReachingDefinitionsAnalysis;
 
-static bool
+inline bool
 intervalsDisjunctive(uint64_t a1, uint64_t a2,
                      uint64_t b1, uint64_t b2)
 {
@@ -23,7 +23,7 @@ intervalsDisjunctive(uint64_t a1, uint64_t a2,
     return ((a1 <= b1) ? (a2 < b1) : (b2 < a1));
 }
 
-static bool
+inline bool
 intervalsOverlap(uint64_t a1, uint64_t a2,
                  uint64_t b1, uint64_t b2)
 {

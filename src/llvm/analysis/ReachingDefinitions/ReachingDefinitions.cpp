@@ -472,8 +472,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
 }
 
 std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createCallToFunction(const llvm::CallInst *CInst,
-                                     const llvm::Function *F)
+LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
 {
     RDNode *callNode, *returnNode;
 
@@ -741,7 +740,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             return std::make_pair(n, n);
         } else {
             std::pair<RDNode *, RDNode *> cf
-                = createCallToFunction(CInst, func);
+                = createCallToFunction(func);
             addNode(CInst, cf.first);
             return cf;
         }
@@ -784,7 +783,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     continue;
 
                 std::pair<RDNode *, RDNode *> cf
-                    = createCallToFunction(CInst, F);
+                    = createCallToFunction(F);
 
                 // connect the graphs
                 if (!call_funcptr) {
@@ -807,7 +806,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 const llvm::Function *F = llvm::cast<llvm::Function>(valF);
 
                 if (F->size() != 0 && callIsCompatible(F, CInst)) {
-                    std::pair<RDNode *, RDNode *> cf = createCallToFunction(CInst, F);
+                    std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
                     call_funcptr = cf.first;
                     ret_call = cf.second;
                 }

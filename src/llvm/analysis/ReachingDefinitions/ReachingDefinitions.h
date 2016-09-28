@@ -96,7 +96,7 @@ private:
     std::pair<RDNode *, RDNode *> buildGlobals();
 
     std::pair<RDNode *, RDNode *>
-    createCallToFunction(const llvm::CallInst *CInst, const llvm::Function *F);
+    createCallToFunction(const llvm::Function *F);
 
     std::pair<RDNode *, RDNode *>
     createCall(const llvm::Instruction *Inst);

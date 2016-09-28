@@ -20,8 +20,6 @@ extern PSNode *UNKNOWN_MEMORY;
 
 class PointerAnalysis
 {
-    unsigned int dfsnum;
-
     // the pointer state subgraph
     PointerSubgraph *PS;
 
@@ -40,12 +38,12 @@ protected:
     std::vector<PSNode *> changed;
 
     // protected constructor for child classes
-    PointerAnalysis() : dfsnum(0), PS(nullptr) {}
+    PointerAnalysis() : PS(nullptr), max_offset(UNKNOWN_OFFSET) {}
 
 public:
     PointerAnalysis(PointerSubgraph *ps,
                     uint64_t max_off = UNKNOWN_OFFSET)
-    : dfsnum(0), PS(ps), max_offset(max_off)
+    : PS(ps), max_offset(max_off)
     {
         assert(PS && "Need valid PointerSubgraph object");
 
@@ -113,7 +111,8 @@ public:
         // do some optimizations
         preprocessGEPs();
 
-        to_process = std::move(PS->getNodes(root));
+        // rely on C++11 move semantics
+        to_process = PS->getNodes(root);
 
         // do fixpoint
         do {
@@ -131,9 +130,9 @@ public:
 
             if (!changed.empty()) {
                 to_process.clear();
-                to_process = std::move(PS->getNodes(nullptr /* starting node */,
-                                                    &changed /* starting set */,
-                                                    last_processed_num /* expected num */));
+                to_process = PS->getNodes(nullptr /* starting node */,
+                                          &changed /* starting set */,
+                                          last_processed_num /* expected num */);
 
                 // since changed was not empty,
                 // the to_process must not be empty too

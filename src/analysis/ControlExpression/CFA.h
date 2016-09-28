@@ -22,9 +22,9 @@ public:
 
     // move constructor
     CFANode<T>(CFANode<T>&& other)
-        : successors(std::move(other.successors)),
-          predecessors(std::move(other.predecessors)),
-          label(std::move(other.label))
+        : label(std::move(other.label)),
+          successors(std::move(other.successors)),
+          predecessors(std::move(other.predecessors))
     {
     }
 

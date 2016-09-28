@@ -126,7 +126,7 @@ public:
 
 class LLVMPointerAnalysis
 {
-    const llvm::Module *M;
+    //const llvm::Module *M;
     PointerSubgraph *PS;
     LLVMPointerSubgraphBuilder *builder;
 
@@ -134,7 +134,7 @@ public:
 
     LLVMPointerAnalysis(const llvm::Module *m,
                         uint64_t field_sensitivity = UNKNOWN_OFFSET)
-        : M(m), PS(new PointerSubgraph()),
+        : /*M(m),*/ PS(new PointerSubgraph()),
           builder(new LLVMPointerSubgraphBuilder(m, field_sensitivity)) {}
 
     ~LLVMPointerAnalysis()

@@ -246,7 +246,7 @@ public:
     {
         assert(root && "Do not have root");
 
-        std::vector<RDNode *> to_process = std::move(getNodes(root));
+        std::vector<RDNode *> to_process = getNodes(root);
         std::vector<RDNode *> changed;
 
         // do fixpoint
@@ -261,9 +261,9 @@ public:
 
             if (!changed.empty()) {
                 to_process.clear();
-                to_process = std::move(getNodes(nullptr /* starting node */,
-                                                &changed /* starting set */,
-                                                last_processed_num /* expected num */));
+                to_process = getNodes(nullptr /* starting node */,
+                                      &changed /* starting set */,
+                                      last_processed_num /* expected num */);
 
                 // since changed was not empty,
                 // the to_process must not be empty too

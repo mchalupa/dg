@@ -46,7 +46,8 @@ public:
 
 
     SubgraphNode<NodeT>()
-    : dfs_id(0), lowpt(0), scc_id(0), on_stack(false), data(nullptr), user_data(nullptr)
+    : data(nullptr), user_data(nullptr),
+      dfs_id(0), lowpt(0), scc_id(0), on_stack(false)
     {}
 
     unsigned getSCCId() const
