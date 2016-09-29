@@ -1379,6 +1379,17 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::Mul:
             node = createArithmetic(&Inst);
             break;
+        case Instruction::UIToFP:
+        case Instruction::SIToFP:
+            node = createCast(&Inst);
+            break;
+        case Instruction::FPToUI:
+        case Instruction::FPToSI:
+            if (typeCanBePointer(Inst.getType()))
+                node = createCast(&Inst);
+            else
+                node = createUnknown(&Inst);
+            break;
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");
