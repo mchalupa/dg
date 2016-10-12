@@ -49,19 +49,9 @@ class RDNode : public SubgraphNode<RDNode> {
 
     // marks for DFS/BFS
     unsigned int dfsid;
-
-#ifdef DEBUG_ENABLED
-    // same data as in PSNode
-    const char *name;
-#endif
-
 public:
-    RDNode(RDNodeType t = NONE)
-        : type(t), dfsid(0),
-#ifdef DEBUG_ENABLED
-          name(nullptr)
-#endif
-    {}
+
+    RDNode(RDNodeType t = NONE) : type(t), dfsid(0) {}
 
     // this is the gro of this node, so make it public
     DefSiteSetT defs;
@@ -72,12 +62,6 @@ public:
     RDMap def_map;
 
     RDNodeType getType() const { return type; }
-
-#ifdef DEBUG_ENABLED
-    const char *getName() const { return name; }
-    void setName(const char *n) { delete name; name = strdup(n); }
-#endif
-
     DefSiteSetT& getDefines() { return defs; }
     const DefSiteSetT& getDefines() const { return defs; }
 
