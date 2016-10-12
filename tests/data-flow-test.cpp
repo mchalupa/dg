@@ -42,12 +42,13 @@ public:
 
     TestDG *create_circular_graph(size_t nodes_num)
     {
+        assert(nodes_num > 0);
         TestDG *d = new TestDG();
 
         TestBBlock *B;
         TestNode **nodes = new TestNode *[nodes_num];
 
-        for (int i = 0; i < nodes_num; ++i) {
+        for (unsigned int i = 0; i < nodes_num; ++i) {
             nodes[i] = new TestNode(i);
 
             d->addNode(nodes[i]);
@@ -56,7 +57,7 @@ public:
         }
 
         // connect to circular graph
-        for (int i = 0; i < nodes_num; ++i) {
+        for (unsigned int i = 0; i < nodes_num; ++i) {
             TestBBlock *B1 = nodes[i]->getBBlock();
             TestBBlock *B2 = nodes[(i + 1) % nodes_num]->getBBlock();
             B1->addSuccessor(B2);
@@ -296,7 +297,7 @@ public:
 }; // namespace tests
 }; // namespace dg
 
-int main(int argc, char *argv[])
+int main(void)
 {
     using namespace dg::tests;
     TestRunner Runner;

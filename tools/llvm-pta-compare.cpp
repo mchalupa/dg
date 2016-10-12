@@ -87,11 +87,6 @@ printName(PSNode *node)
 static void
 dumpPSNode(PSNode *n)
 {
-    const char *name = nullptr;
-#if DEBUG_ENABLED
-    name = n->getName();
-#endif
-
     printf("NODE: ");
     printName(n);
 

@@ -77,17 +77,19 @@ public:
         PSNode L2(pta::LOAD, &B);
         PSNode L3(pta::LOAD, &B);
 
-        //             A
-        //             |
-        //             B
-        //             |
-        //             C
-        //           /   \
-        //          S1    S2
-        //          |      |
-        //          L1    L2
-        //            \  /
-        //             L3
+        /*
+         *        A
+         *        |
+         *        B
+         *        |
+         *        C
+         *      /   \
+         *     S1    S2
+         *     |      |
+         *     L1    L2
+         *       \  /
+         *        L3
+         */
         A.addSuccessor(&B);
         B.addSuccessor(&C);
         C.addSuccessor(&S1);
@@ -876,7 +878,7 @@ public:
 }; // namespace tests
 }; // namespace dg
 
-int main(int argc, char *argv[])
+int main(void)
 {
     using namespace dg::tests;
     TestRunner Runner;

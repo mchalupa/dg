@@ -277,7 +277,7 @@ private:
             }
         }
 
-        assert(d.size() == n && "Bug in create_full_graph");
+        assert((int)d.size() == n && "Bug in create_full_graph");
         return nodes;
     }
 
@@ -680,7 +680,7 @@ public:
 }; // namespace tests
 }; // namespace dg
 
-int main(int argc, char *argv[])
+int main(void)
 {
     using namespace dg::tests;
     TestRunner Runner;

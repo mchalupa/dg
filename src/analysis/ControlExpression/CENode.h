@@ -360,15 +360,17 @@ public:
     }
 */
 
-    // simplify the CENode and its children
-    // (recursively the whole subtree),
-    // for example, move subsequent sequences to this
-    // node, since it is the same (dot is the SEQ symbol):
-    //     .            .
-    //    / \         / | \
-    //   .   C  =    A  B  C
-    //  / \
-    // A   B
+    /*
+     * simplify the CENode and its children
+     * (recursively the whole subtree),
+     * for example, move subsequent sequences to this
+     * node, since it is the same (dot is the SEQ symbol):
+     *      .            .
+     *     / \         / | \
+     *    .   C  =    A  B  C
+     *   / \
+     *  A   B
+     */
     void simplify()
     {
         // fist simplify the children

@@ -247,7 +247,7 @@ public:
 }; // namespace tests
 }; // namespace dg
 
-int main(int argc, char *argv[])
+int main(void)
 {
     using namespace dg::tests;
     TestRunner Runner;

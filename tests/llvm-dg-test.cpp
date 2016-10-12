@@ -58,7 +58,7 @@ struct TestRefcount : public Test
 }
 }
 
-int main(int argc, char *argv[])
+int main(void)
 {
     using namespace dg::tests;
 
