@@ -35,6 +35,7 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/PrettyStackTrace.h>
+#include <llvm/Support/CommandLine.h>
 
 #include <iostream>
 #include <fstream>
@@ -58,44 +59,6 @@
 using namespace dg;
 using llvm::errs;
 
-const char *usage =
-"Usage: llvm-slicer [-debug dd|forward-dd|cd|rd|slice|ptr|postdom]\n"
-"                   [-remove-unused-only] [-dont-verify]\n"
-"                   [-pta fs|fi|old][-pta-field-sensitive N]\n"
-"                   [-rd-field-insensitive][-rd-max-set-size N]\n"
-"                   [-c|-crit|-slice func_call] [-cd-alg classic|ce]\n"
-"                   [-o file] module\n"
-"\n"
-"-debug                  Save annotated version of module as a text (.ll).\n"
-"                            (dd: data dependencies, cd:control dependencies,\n"
-"                             rd: reaching definitions, ptr: points-to information,\n"
-"                             slice: comment out what is going to be sliced away, etc.)\n"
-"                        This option can be used more times, i. e. '-debug dd -debug slice'\n"
-"-remove-unused-only     Remove unused parts of module, but do not slice\n"
-"-dont-verify            Don't verify wheter the module is valid after slicing\n"
-"-pta                    What points-to analysis use:\n"
-"                            fs - flow-sensitive\n"
-"                            fi - flow-insensitive\n"
-"                            old - old flow-insensitive, default\n"
-"-pta-field-sensitive N  Make PTA field sensitive/insensitive. The offset in a pointer\n"
-"                        is cropped to UNKNOWN_OFFSET when it is greater than N bytes.\n"
-"                        Default is full field-sensitivity (N = UNKNOWN_OFFSET).\n"
-"-rd-field-insensitive   Make reaching definitions analysis kind of field insensitive\n."
-"-rd-max-set-size N      Crop set of reaching definitions to unknown when it is greater than N\n."
-" -c                     Slice with respect to the call-sites of func_call\n"
-"                        i. e.: '-c foo' or '-c __assert_fail'. Special value is 'ret'\n"
-"                        in which case the slice is taken with respect to return value\n"
-"                        of main procedure\n"
-" -cd-alg                Which algorithm for computing control dependencies to use.\n"
-"                        'classical' is the original Ferrante's algorithm and ce\n"
-"                        is our algorithm using so called control expression (default)\n"
-" -o                     Save the output to given file. If not specified, a .sliced suffix\n"
-"                        is used with the original module name\n"
-"\n"
-"'module' is the LLVM bitcode files to be sliced. It must contain 'main' function\n";
-
-const char *slicing_criterion = nullptr;
-
 enum {
     // annotate
     ANNOTATE                    = 1,
@@ -116,10 +79,50 @@ enum {
 };
 
 enum PtaType {
-    PTA_OLD = 0,
-    PTA_FS,
-    PTA_FI
+    old, fs, fi
 };
+
+llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
+
+llvm::cl::opt<std::string> output("o",
+    llvm::cl::desc("Save the output to given file. If not specified,\n"
+                   "a .sliced suffix is used with the original module name."),
+    llvm::cl::value_desc("filename"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<std::string> llvmfile(llvm::cl::Positional, llvm::cl::Required,
+    llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<std::string> slicing_criterion("c", llvm::cl::Required,
+    llvm::cl::desc("Slice with respect to the call-sites of a given function\n"
+                   "i. e.: '-c foo' or '-c __assert_fail'. Special value is a 'ret'\n"
+                   "in which case the slice is taken with respect to the return value\n"
+                   "of the main() function\n"), llvm::cl::value_desc("func"),
+                   llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<uint64_t> pta_field_sensitivie("pta-field-sensitive",
+    llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
+                   "is cropped to UNKNOWN_OFFSET when it is greater than N bytes.\n"
+                   "Default is full field-sensitivity (N = UNKNOWN_OFFSET).\n"),
+                   llvm::cl::value_desc("N"), llvm::cl::init(UNKNOWN_OFFSET),
+                   llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<PtaType> pta("pta",
+    llvm::cl::desc("Choose pointer analysis to use:"),
+    llvm::cl::values(
+        clEnumVal(old , "Old pointer analysis (flow-insensitive, deprecated)"),
+        clEnumVal(fi, "Flow-insensitive PTA (default)"),
+        clEnumVal(fs, "Flow-sensitive PTA"),
+        nullptr),
+    llvm::cl::init(fi), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
+    llvm::cl::desc("Choose control dependencies algorithm to use:"),
+    llvm::cl::values(
+        clEnumValN(CLASSIC , "classic", "Ferrante's algorithm (default)"),
+        clEnumValN(CONTROL_EXPRESSION, "ce", "Control expression based (experimental)"),
+        nullptr),
+    llvm::cl::init(CLASSIC), llvm::cl::cat(SlicingOpts));
+
 
 class CommentDBG : public llvm::AssemblyAnnotationWriter
 {
@@ -425,20 +428,20 @@ public:
     }
 };
 
-static void annotate(llvm::Module *M, const char *module_name,
-                     uint32_t opts, LLVMReachingDefinitions *rd = nullptr)
+static void annotate(llvm::Module *M, uint32_t opts,
+                     LLVMReachingDefinitions *rd = nullptr)
 {
     // compose name
-    std::string fl(module_name);
+    std::string fl(llvmfile);
     fl.replace(fl.end() - 3, fl.end(), "-debug.ll");
 
     // open stream to write to
     std::ofstream ofs(fl);
-    llvm::raw_os_ostream output(ofs);
+    llvm::raw_os_ostream outputstream(ofs);
 
     errs() << "INFO: Saving IR with annotations to " << fl << "\n";
     llvm::AssemblyAnnotationWriter *annot = new CommentDBG(opts, rd);
-    M->print(output, annot);
+    M->print(outputstream, annot);
 
     delete annot;
 }
@@ -470,28 +473,9 @@ static bool createEmptyMain(llvm::Module *M)
 class Slicer {
 protected:
     llvm::Module *M;
-    const char *module_name;
     uint32_t opts = 0;
-    PtaType pta;
-    CD_ALG cd_alg;
     LLVMPointerAnalysis *PTA;
     LLVMReachingDefinitions *RD;
-    uint32_t rd_max_set_size;
-    bool rd_field_insensitive;
-
-    // for SlicerOld
-    Slicer(llvm::Module *mod, const char *modnm,
-           uint32_t o, CD_ALG cda = CLASSIC,
-           uint64_t field_sens = UNKNOWN_OFFSET,
-           uint32_t rd_max_set_sz = ~((uint32_t) 0),
-           bool rd_field_insens = false)
-    :M(mod), module_name(modnm), opts(o), cd_alg(cda),
-     PTA(new LLVMPointerAnalysis(mod, field_sens)), RD(nullptr),
-     rd_max_set_size(rd_max_set_sz), rd_field_insensitive(rd_field_insens)
-    {
-        assert(mod && "Need module");
-        assert(modnm && "Need name of module");
-    }
 
     // shared by old and new analyses
     bool sliceGraph(LLVMDependenceGraph &d)
@@ -506,15 +490,15 @@ protected:
             return false;
         }
 
-        assert(slicing_criterion && "Do not have the slicing criterion");
+        assert(!slicing_criterion.empty() && "Do not have the slicing criterion");
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
         // it during points-to analysis
-        bool ret = d.getCallSites(slicing_criterion, &callsites);
+        bool ret = d.getCallSites(slicing_criterion.c_str(), &callsites);
         bool got_slicing_criterion = true;
         if (!ret) {
-            if (strcmp(slicing_criterion, "ret") == 0) {
+            if (slicing_criterion == "ret") {
                 callsites.insert(d.getExit());
             } else {
                 errs() << "Did not find slicing criterion: "
@@ -562,7 +546,7 @@ protected:
 
         // print debugging llvm IR if user asked for it
         if (opts & ANNOTATE)
-            annotate(M, module_name, opts, RD);
+            annotate(M, opts, RD);
 
         slicer.slice(&d, nullptr, slid);
 
@@ -581,9 +565,7 @@ protected:
         debug::TimeMeasure tm;
         assert(PTA && "BUG: No PTA");
 
-        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA,
-                                                       rd_field_insensitive,
-                                                       rd_max_set_size);
+        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA);
         tm.start();
         RD->run();
         tm.stop();
@@ -597,24 +579,23 @@ protected:
 
         tm.start();
         // add post-dominator frontiers
-        d->computeControlDependencies(cd_alg);
+        d->computeControlDependencies(CdAlgorithm);
         tm.stop();
         tm.report("INFO: Computing control dependencies took");
     }
 
-public:
-
-    // FIXME: make pts enum, not a string
-    Slicer(llvm::Module *mod, const char *modnm,
-           uint32_t o, PtaType pt, CD_ALG cda = CLASSIC,
-           uint64_t field_sens = UNKNOWN_OFFSET,
-           uint32_t rd_max_set_size = ~((uint32_t) 0),
-           bool rd_field_insens = false)
-    :Slicer(mod, modnm, o, cda, field_sens, rd_max_set_size, rd_field_insens)
+    // for old slicer -- without creating a pointer analysis
+    Slicer(llvm::Module *mod, uint32_t o, bool /* no pta */)
+    :M(mod), opts(o), PTA(nullptr), RD(nullptr)
     {
-        assert((pt == PTA_FI || pt == PTA_FS) && "Invalid PTA");
-        this->pta = pt; // cannot do it in mem-initialization,
-                         // since we delegate the constructor
+        assert(mod && "Need module");
+    }
+public:
+    Slicer(llvm::Module *mod, uint32_t o)
+    :M(mod), opts(o),
+     PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)), RD(nullptr)
+    {
+        assert(mod && "Need module");
     }
 
     ~Slicer()
@@ -630,12 +611,12 @@ public:
 
         tm.start();
 
-        if (pta == PTA_FS)
+        if (pta == PtaType::fs)
             PTA->run<analysis::pta::PointsToFlowSensitive>();
-        else if (pta == PTA_FI)
+        else if (pta == PtaType::fi)
             PTA->run<analysis::pta::PointsToFlowInsensitive>();
         else
-            assert(0 && "Should not be reached");
+            assert(0 && "Wrong pointer analysis");
 
         tm.stop();
         tm.report("INFO: Points-to analysis took");
@@ -668,15 +649,14 @@ class SlicerOld : public Slicer
 
         tm.start();
         // add post-dominator frontiers
-        d->computeControlDependencies(cd_alg);
+        d->computeControlDependencies(CdAlgorithm);
         tm.stop();
         tm.report("INFO: Computing control dependencies took");
     }
 
 public:
-    SlicerOld(llvm::Module *mod, const char *modnm,
-              uint32_t o = 0, CD_ALG cda = CLASSIC)
-        :Slicer(mod, modnm, o, cda) {}
+    SlicerOld(llvm::Module *mod, uint32_t o = 0)
+        :Slicer(mod, o, true /* no new pta */) {}
 
     bool slice()
     {
@@ -830,15 +810,14 @@ static bool verify_module(llvm::Module *M)
 #endif
 }
 
-static bool write_module(llvm::Module *M, const char *module_name,
-                         const char *output)
+static bool write_module(llvm::Module *M)
 {
     // compose name if not given
     std::string fl;
-    if (output) {
-        fl = std::string(output);
+    if (!output.empty()) {
+        fl = output;
     } else {
-        fl = std::string(module_name);
+        fl = llvmfile;
 
         if (fl.size() > 2) {
             if (fl.compare(fl.size() - 2, 2, ".o") == 0)
@@ -863,15 +842,15 @@ static bool write_module(llvm::Module *M, const char *module_name,
     return true;
 }
 
-static int verify_and_write_module(llvm::Module *M, const char *module,
-                                   const char *output) {
+static int verify_and_write_module(llvm::Module *M)
+{
     if (!verify_module(M)) {
         errs() << "ERR: Verifying module failed, the IR is not valid\n";
         errs() << "INFO: Saving anyway so that you can check it\n";
         return 1;
     }
 
-    if (!write_module(M, module, output)) {
+    if (!write_module(M)) {
         errs() << "Saving sliced module failed\n";
         return 1;
     }
@@ -880,13 +859,46 @@ static int verify_and_write_module(llvm::Module *M, const char *module,
     return 0;
 }
 
-static int save_module(llvm::Module *M, const char *module,
-                       const char *output, bool should_verify_module = true)
+static int save_module(llvm::Module *M,
+                       bool should_verify_module = true)
 {
     if (should_verify_module)
-        return verify_and_write_module(M, module, output);
+        return verify_and_write_module(M);
     else
-        return write_module(M, module, output);
+        return write_module(M);
+}
+
+static uint32_t parseAnnotationOpt(const std::string& opt)
+{
+    if (opt.empty())
+        return 0;
+
+    uint32_t opts = 0;
+    size_t pos = 0;
+    while (true) {
+        printf("%s\n", opt.c_str() + pos);
+        if (opt.compare(pos, 2 /* len */, "dd") == 0)
+            opts |= ANNOTATE_DD;
+        else if (opt.compare(pos, 2, "cd") == 0)
+            opts |= ANNOTATE_CD;
+        else if (opt.compare(pos, 2, "rd") == 0)
+            opts |= ANNOTATE_RD;
+        else if (opt.compare(pos, 3, "pta") == 0)
+            opts |= ANNOTATE_RD;
+        else if (opt.compare(pos, 5, "slice") == 0)
+            opts |= ANNOTATE_SLICE;
+
+        pos = opt.find(',', pos);
+        if (pos == std::string::npos)
+            break;
+        else
+            ++pos;
+    }
+
+    if (opts != 0)
+        opts |= ANNOTATE;
+
+    return opts;
 }
 
 int main(int argc, char *argv[])
@@ -894,116 +906,48 @@ int main(int argc, char *argv[])
     llvm::sys::PrintStackTraceOnErrorSignal();
     llvm::PrettyStackTraceProgram X(argc, argv);
 
-    llvm::Module *M;
+    llvm::Module *M = nullptr;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
 
-    bool should_verify_module = true;
-    bool remove_unused_only = false;
-    bool statistics = false;
-    const char *module = nullptr;
-    const char *output = nullptr;
-    uint32_t opts = 0;
-    PtaType pta = PTA_FI;
-    CD_ALG cd_alg = CLASSIC;
-    uint64_t field_senitivity = UNKNOWN_OFFSET;
-    bool rd_field_insensitive = false;
-    uint32_t rd_max_set_size = ~((uint32_t) 0);
+    llvm::cl::opt<bool> should_verify_module("dont-verify",
+        llvm::cl::desc("Verify sliced module (default=true)."),
+        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
-    // parse options
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-v") == 0
-            || strcmp(argv[i], "-version") == 0) {
-            errs() << GIT_VERSION << "\n";
-            exit(0);
-        } else if (strcmp(argv[i], "-c") == 0
-            || strcmp(argv[i], "-crit") == 0
-            || strcmp(argv[i], "-slice") == 0){
-            slicing_criterion = argv[++i];
-        } else if (strcmp(argv[i], "-debug") == 0) {
-            const char *arg = argv[++i];
-            if (strcmp(arg, "dd") == 0)
-                opts |= (ANNOTATE | ANNOTATE_DD);
-            else if (strcmp(arg, "forward-dd") == 0)
-                opts |= (ANNOTATE | ANNOTATE_FORWARD_DD);
-            else if (strcmp(arg, "cd") == 0)
-                opts |= (ANNOTATE | ANNOTATE_CD);
-            else if (strcmp(arg, "ptr") == 0)
-                opts |= (ANNOTATE | ANNOTATE_PTR);
-            else if (strcmp(arg, "slice") == 0)
-                opts |= (ANNOTATE | ANNOTATE_SLICE);
-            else if (strcmp(arg, "rd") == 0)
-                opts |= (ANNOTATE | ANNOTATE_RD);
-            else if (strcmp(arg, "postdom") == 0)
-                opts |= (ANNOTATE | ANNOTATE_POSTDOM);
-        } else if (strcmp(argv[i], "-remove-unused-only") == 0) {
-            remove_unused_only = true;
-        } else if (strcmp(argv[i], "-cd-alg") == 0) {
-            const char *arg = argv[++i];
-            if (strcmp(arg, "classic") == 0)
-                cd_alg = CLASSIC;
-            else if (strcmp(arg, "ce") == 0)
-                cd_alg = CONTROL_EXPRESSION;
-            else {
-                errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
-                abort();
-            }
-        } else if (strcmp(argv[i], "-o") == 0) {
-            output = strdup(argv[++i]);
-            if (!output) {
-                errs() << "Out of memory\n";
-                abort();
-            }
-        } else if (strcmp(argv[i], "-statistics") == 0) {
-            statistics = true;
-        } else if (strcmp(argv[i], "-pta") == 0) {
-            if (strcmp(argv[i+1], "fi") == 0)
-                pta = PTA_FI;
-            else if (strcmp(argv[i+1], "fs") == 0)
-                pta = PTA_FS;
-            else if (strcmp(argv[i+1], "old") == 0)
-                pta = PTA_OLD;
-            else {
-                errs() << "Invalid points-to analysis, try: fi, fs, old (or none)\n";
-                return 1;
-            }
+    llvm::cl::opt<bool> remove_unused_only("remove-unused-only",
+        llvm::cl::desc("Only remove unused parts of module (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-            ++i;
-        } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
-            // FIXME: check the converted value
-            field_senitivity = (uint64_t) atoll(argv[i+1]);
-        } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
-            rd_max_set_size = (uint64_t) atoll(argv[i + 1]);
-            if (rd_max_set_size == 0) {
-                llvm::errs() << "Invalid -rd-max-set-size argument\n";
-                abort();
-            }
-        } else if (strcmp(argv[i], "-rd-field-insensitive") == 0) {
-            rd_field_insensitive = true;
+    llvm::cl::opt<bool> statistics("statistics",
+        llvm::cl::desc("Print statistics about slicing (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-        } else if (strcmp(argv[i], "-dont-verify") == 0) {
-            // for debugging
-            should_verify_module = false;
-        } else {
-            module = argv[i];
-        }
-    }
+    llvm::cl::opt<std::string> annot("annotate",
+        llvm::cl::desc("Save annotated version of module as a text (.ll).\n"
+                       "(dd: data dependencies, cd:control dependencies,\n"
+                       "rd: reaching definitions, pta: points-to information,\n"
+                       "slice: comment out what is going to be sliced away, etc.)\n"
+                       "for more options, use comma separated list"),
+        llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
+        llvm::cl::cat(SlicingOpts));
 
-    if (!(slicing_criterion || remove_unused_only) || !module) {
-        errs() << usage;
-        return 1;
-    }
+    // hide all options except ours options
+    llvm::cl::HideUnrelatedOptions(SlicingOpts);
+    llvm::cl::SetVersionPrinter([](){ printf("%s\n", GIT_VERSION); });
+    llvm::cl::ParseCommandLineOptions(argc, argv);
+
+    uint32_t opts = parseAnnotationOpt(annot);
 
 #if (LLVM_VERSION_MINOR < 5)
-    M = llvm::ParseIRFile(module, SMD, context);
+    M = llvm::ParseIRFile(llvmfile, SMD, context);
 #else
-    auto _M = llvm::parseIRFile(module, SMD, context);
+    auto _M = llvm::parseIRFile(llvmfile, SMD, context);
     // _M is unique pointer, we need to get Module *
     M = _M.get();
 #endif
 
     if (!M) {
-        llvm::errs() << "Failed parsing '" << module << "' file:\n";
+        llvm::errs() << "Failed parsing '" << llvmfile << "' file:\n";
         SMD.print(argv[0], errs());
         return 1;
     }
@@ -1019,28 +963,26 @@ int main(int argc, char *argv[])
         if (statistics)
             print_statistics(M, "Statistics after ");
 
-        return save_module(M, module, output, should_verify_module);
+        return save_module(M, should_verify_module);
     }
 
     /// ---------------
     // slice the code
     /// ---------------
-    if (pta == PTA_OLD) {
-        SlicerOld slicer(M, module, opts, cd_alg);
+    if (pta == PtaType::old) {
+        SlicerOld slicer(M, opts);
         if (!slicer.slice()) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
-    } else if (pta == PTA_FI || pta == PTA_FS) {
+    } else {
         // FIXME: do one parent class and use overriding
-        Slicer slicer(M, module, opts, pta, cd_alg,
-                      field_senitivity, rd_max_set_size, rd_field_insensitive);
+        Slicer slicer(M, opts);
         if (!slicer.slice()) {
             errs() << "ERR: Slicing failed\n";
             return 1;
         }
-    } else
-        assert(0 && "Should not be reached");
+    }
 
     // remove unused from module again, since slicing
     // could and probably did make some other parts unused
@@ -1052,6 +994,5 @@ int main(int argc, char *argv[])
     if (statistics)
         print_statistics(M, "Statistics after ");
 
-    return save_module(M, module, output, should_verify_module);
-    // FIXME: we leak the output string
+    return save_module(M, should_verify_module);
 }
