@@ -123,12 +123,12 @@ It takes exactly the same arguments as the `llvm-dg-dump`:
 ./llvmdg-show -mark crit code.bc
 ```
 If the dependence graph is too big to be displayed using .dot files, you can debug the slice right from
-the LLVM. Just pass `-debug` option to the `llvm-slicer` and it will store readable annotated LLVM in `file-debug.ll`
+the LLVM. Just pass `-annotate` option to the `llvm-slicer` and it will store readable annotated LLVM in `file-debug.ll`
 (where file.bc is the name of file being sliced). There are more options (try `llvm-slicer -help` for all of them),
-but the most interesting is probably the `-debug slicer`:
+but the most interesting is probably the `-annotate slicer`:
 
 ```
-./llvm-slicer -c crit -debug slicer code.bc
+./llvm-slicer -c crit -annotate slicer code.bc
 ```
 
 The content of code-debug.ll will look like this:
@@ -154,7 +154,7 @@ The content of code-debug.ll will look like this:
 
 Other interesting debugging options are `ptr`, `rd`, `dd`, `cd`, `postdom` to annotate points-to information,
 reaching definitions, data dependences, control dependences or post-dominator information.
-You can chain few `-debug` options (`-debug cd -debug slice`)
+You can provide comma-separated list of more options (`-annotate cd,slice,dd`)
 
 ### Example
 
