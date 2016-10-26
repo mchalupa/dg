@@ -14,6 +14,7 @@ namespace tests {
 
 using namespace analysis::rd;
 
+/*
 #ifdef DEBUG_ENABLED
 static void
 dumpMap(RDNode *node)
@@ -32,6 +33,7 @@ dumpMap(RDNode *node)
     printf("---\n");
 }
 #endif
+*/
 
 class ReachingDefinitionsTest : public Test
 {
