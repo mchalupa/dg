@@ -876,7 +876,6 @@ static uint32_t parseAnnotationOpt(const std::string& opt)
     uint32_t opts = 0;
     size_t pos = 0;
     while (true) {
-        printf("%s\n", opt.c_str() + pos);
         if (opt.compare(pos, 2 /* len */, "dd") == 0)
             opts |= ANNOTATE_DD;
         else if (opt.compare(pos, 2, "cd") == 0)
