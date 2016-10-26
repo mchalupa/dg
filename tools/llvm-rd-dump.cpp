@@ -59,8 +59,10 @@ printName(RDNode *node, bool dot)
     }
 
     const char *name = nullptr;
+#if 0
 #ifdef DEBUG_ENABLED
     name = node->getName();
+#endif
 #endif
     std::string nm;
     if (!name) {
