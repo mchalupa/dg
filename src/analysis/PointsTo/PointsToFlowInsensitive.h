@@ -12,11 +12,22 @@ namespace pta {
 
 class PointsToFlowInsensitive : public PointerAnalysis
 {
+    PointerSubgraph *ps;
+
 protected:
     PointsToFlowInsensitive() {}
 
 public:
-    PointsToFlowInsensitive(PointerSubgraph *ps) : PointerAnalysis(ps) {}
+    PointsToFlowInsensitive(PointerSubgraph *ps)
+    : PointerAnalysis(ps), ps(ps) {}
+
+    ~PointsToFlowInsensitive() {
+        std::vector<PSNode *> nodes = ps->getNodes();
+        for (PSNode *n : nodes) {
+            MemoryObject *mo = n->getData<MemoryObject>();
+            delete mo;
+        }
+    }
 
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects)
