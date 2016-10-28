@@ -42,6 +42,7 @@ std::ostream& operator <<(std::ostream& os, const Indent& ind)
 template <typename NodeT>
 class DG2Dot
 {
+    std::set<const typename DependenceGraph<NodeT>::ContainerType *> dumpedGlobals;
 public:
     typedef typename NodeT::KeyType KeyT;
 
@@ -50,6 +51,8 @@ public:
                   const char *file = NULL)
         : options(opts), dg(dg), file(file)
     {
+        // if a graph has no global nodes, this will forbid trying to print them
+        dumpedGlobals.insert(nullptr);
         reopen(file);
     }
 
@@ -182,11 +185,10 @@ public:
                 dump_node_edges(I->second, 2);
             }
 
-            if (sub->ownsGlobalNodes()) {
-                auto globals = sub->getGlobalNodes();
-                for (auto I = globals->begin(), E = globals->end(); I != E; ++I) {
-                    dump_node(I->second, 2, "GLOB");
-                    dump_node_edges(I->second, 2);
+            if (dumpedGlobals.insert(sub->getGlobalNodes().get()).second) {
+                for (auto& I : *sub->getGlobalNodes()) {
+                    dump_node(I.second, 2, "GLOB");
+                    dump_node_edges(I.second, 2);
                 }
             }
         }
@@ -514,8 +516,8 @@ private:
             }
         }
 
-        if (dg->ownsGlobalNodes())
-            for (auto I : *dg->getGlobalNodes())
+        if (dumpedGlobals.insert(dg->getGlobalNodes().get()).second)
+            for (auto& I : *dg->getGlobalNodes())
                 dump_node(I.second, 1, "GL");
     }
 
@@ -524,8 +526,8 @@ private:
         for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
             dump_node_edges(I->second);
 
-        if (dg->ownsGlobalNodes())
-            for (auto I : *dg->getGlobalNodes())
+        if (dumpedGlobals.insert(dg->getGlobalNodes().get()).second)
+            for (auto& I : *dg->getGlobalNodes())
                 dump_node_edges(I.second);
     }
 

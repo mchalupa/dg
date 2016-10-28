@@ -1060,18 +1060,18 @@ static void propagateGlobalPointsToMain(LLVMDependenceGraph *dg)
 void LLVMPointsToAnalysis::handleGlobals()
 {
     // do we have the globals at all?
-    if (!dg->ownsGlobalNodes())
+    if (!dg->getGlobalNodes())
         return;
 
     // add memory object to every global
     // do it in separate loop, because we need to
     // have these memory objects in place before we
     // set the points-to sets due to initialization (in next loop)
-    for (auto it : *dg->getGlobalNodes())
+    for (auto& it : *dg->getGlobalNodes())
         handleGlobal(it.second);
 
     // initialize globals
-    for (auto it : *dg->getGlobalNodes()) {
+    for (auto& it : *dg->getGlobalNodes()) {
         GlobalVariable *GV = dyn_cast<GlobalVariable>(it.first);
         // is it global variable or function?
         if (!GV)

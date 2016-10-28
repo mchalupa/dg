@@ -1,6 +1,3 @@
-/// XXX add licence
-//
-
 #ifndef HAVE_LLVM
 # error "Need LLVM for LLVMDependenceGraph"
 #endif
@@ -122,12 +119,22 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
         }
     }
 
+    // delete global nodes if this is the last graph holding them
+    if (global_nodes && global_nodes.use_count() == 1) {
+        for (auto& it : *global_nodes)
+            delete it.second;
+    }
+
     // delete post-dominator tree root
     delete getPostDominatorTreeRoot();
 }
 
 static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
 {
+    // create a container for globals,
+    // it will be inherited to subgraphs
+    dg->allocateGlobalNodes();
+
     for (auto I = m->global_begin(), E = m->global_end(); I != E; ++I)
         dg->addGlobalNode(new LLVMNode(&*I));
 }

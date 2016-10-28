@@ -1,6 +1,3 @@
-/// XXX add licence
-//
-
 #ifndef _DEPENDENCE_GRAPH_H_
 #define _DEPENDENCE_GRAPH_H_
 
@@ -8,8 +5,8 @@
 #include <queue>
 #include <map>
 #include <cassert>
+#include <memory>
 
-#include "Utils.h" // DBG macro
 #include "BBlock.h"
 #include "ADT/DGContainer.h"
 #include "Node.h"
@@ -66,11 +63,6 @@ private:
 
     // how many nodes keeps pointer to this graph?
     int refcount;
-    // global nodes are a pointer to dynamically allocated container.
-    // Graph that allocated this container has this variable set to true,
-    // so that it knows that it is also responsible for deleting the container.
-    // It is usually the graph for entry function
-    bool own_global_nodes;
 
     // is the graph in some slice?
     uint64_t slice_id;
@@ -94,25 +86,19 @@ protected:
     ContainerType nodes;
     // container that can be shared accross the graphs
     // (therefore it is a pointer)
-    ContainerType *global_nodes;
+    std::shared_ptr<ContainerType> global_nodes;
 
 public:
     DependenceGraph<NodeT>()
         : entryNode(nullptr), exitNode(nullptr), formalParameters(nullptr),
-          refcount(1), own_global_nodes(false), slice_id(0)
+          refcount(1), slice_id(0)
 #ifdef ENABLE_CFG
         , entryBB(nullptr), exitBB(nullptr), PDTreeRoot(nullptr)
 #endif
-        , global_nodes(nullptr)
     {
     }
 
-    // TODO add copy constructor for cloning graph
-    virtual ~DependenceGraph<NodeT>()
-    {
-        if (own_global_nodes)
-            delete global_nodes;
-    }
+    virtual ~DependenceGraph<NodeT>() {}
 
     // iterators for local nodes
     iterator begin(void) { return nodes.begin(); }
@@ -230,21 +216,16 @@ public:
         return refcount;
     }
 
-    ContainerType *setGlobalNodes(ContainerType *ngn)
+    void setGlobalNodes(const std::shared_ptr<ContainerType>& ngn)
     {
-        ContainerType *old = global_nodes;
         global_nodes = ngn;
-        return old;
     }
 
     // allocate new global nodes
-    ContainerType *createGlobalNodes()
+    void allocateGlobalNodes()
     {
         assert(!global_nodes && "Already contains global nodes");
-        global_nodes = new ContainerType();
-        own_global_nodes = true;
-
-        return global_nodes;
+        global_nodes = std::make_shared<ContainerType>();
     }
 
     ContainerType *getNodes()
@@ -257,12 +238,12 @@ public:
         return &nodes;
     }
 
-    ContainerType *getGlobalNodes()
+    std::shared_ptr<ContainerType> getGlobalNodes()
     {
         return global_nodes;
     }
 
-    const ContainerType *getGlobalNodes() const
+    const std::shared_ptr<ContainerType>& getGlobalNodes() const
     {
         return global_nodes;
     }
@@ -293,29 +274,8 @@ public:
 
     bool addGlobalNode(KeyT k, NodeT *n)
     {
-        if (!global_nodes) {
-            global_nodes = new ContainerType();
-            own_global_nodes = true;
-        }
-
-        DependenceGraphT *owner;
-        if (own_global_nodes)
-            owner = static_cast<DependenceGraphT *>(this);
-        else {
-            // FIXME what if the container is empty?
-            // make own_global_nodes variable a pointer to
-            // the owner of the nodes so that instead of
-            // (own_global_nodes == true) we'll have (this == global_nodes_owner)
-            // and we will have the owner directly
-            NodeT* tmp = global_nodes->begin()->second;
-            owner = tmp->getDG();
-        }
-
-        bool ret = global_nodes->insert(std::make_pair(k, n)).second;
-        if (ret)
-            n->setDG(owner);
-
-        return ret;
+        assert(global_nodes && "Need a container for global nodes first");
+        return global_nodes->insert(std::make_pair(k, n)).second;
     }
 
     bool addGlobalNode(NodeT *n)
@@ -400,8 +360,6 @@ public:
 
         return n != nullptr;
     }
-
-    bool ownsGlobalNodes() const { return own_global_nodes; }
 
     DGContainer<NodeT *>& getCallers() { return callers; }
     const DGContainer<NodeT *>& getCallers() const { return callers; }
