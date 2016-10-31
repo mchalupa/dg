@@ -2,6 +2,11 @@
 #include <set>
 
 #include <llvm/Config/llvm-config.h>
+
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+
 #if (LLVM_VERSION_MINOR < 5)
  #include <llvm/Support/CFG.h>
 #else
@@ -17,6 +22,7 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
+#pragma clang diagnostic pop // ignore -Wunused-parameter
 
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "PointerSubgraph.h"

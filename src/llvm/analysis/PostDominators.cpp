@@ -1,5 +1,11 @@
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+
 #include <llvm/IR/Function.h>
 #include <llvm/Analysis/PostDominators.h>
+
+#pragma clang diagnostic pop // ignore -Wunused-parameter
 
 #include "analysis/BFS.h"
 #include "analysis/PostDominanceFrontiers.h"

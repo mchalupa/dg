@@ -9,6 +9,11 @@
 #endif
 
 #include <llvm/Config/llvm-config.h>
+
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+
 #if (LLVM_VERSION_MINOR < 5)
  #include <llvm/DebugInfo.h>
 #else
@@ -20,6 +25,8 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
+
+#pragma clang diagnostic pop // ignore -Wunused-parameter
 
 using namespace llvm;
 

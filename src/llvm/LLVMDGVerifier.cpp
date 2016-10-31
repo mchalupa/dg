@@ -1,9 +1,16 @@
 #include <cstdio>
 #include <cstdarg>
 
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
+
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
 #include "LLVMDGVerifier.h"

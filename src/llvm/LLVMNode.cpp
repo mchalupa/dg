@@ -9,6 +9,10 @@
  #error "Need CFG enabled for building LLVM Dependence Graph"
 #endif
 
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
@@ -16,6 +20,8 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/raw_ostream.h>
+
+#pragma clang diagnostic pop // ignore -Wunused-parameter
 
 #include "LLVMNode.h"
 #include "LLVMDependenceGraph.h"

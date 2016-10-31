@@ -17,6 +17,10 @@
 #error "Unsupported version of LLVM"
 #endif
 
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+
 #if LLVM_VERSION_MINOR < 5
  #include <llvm/Assembly/AssemblyAnnotationWriter.h>
  #include <llvm/Analysis/Verifier.h>
@@ -36,6 +40,8 @@
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/CommandLine.h>
+
+#pragma clang diagnostic pop // ignore -Wunused-parameter
 
 #include <iostream>
 #include <fstream>

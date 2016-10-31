@@ -1,11 +1,18 @@
-#include <assert.h>
-#include <cstdio>
-
-#include <set>
-
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
 #endif
+
+#include <set>
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+#include <cassert>
+#include <cstdio>
+
+// turn off unused-parameter warning for LLVM libraries,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -15,10 +22,7 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Bitcode/ReaderWriter.h>
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
+#pragma clang diagnostic pop // ignore -Wunused-parameter
 
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
