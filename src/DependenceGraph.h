@@ -249,16 +249,18 @@ public:
     }
 
     // add a node to this graph. The DependenceGraph is something like
-    // namespace for nodes, since every node has unique key and we can
-    // have another node with same key in another
-    // graph. So we can have two nodes for the same value but in different
+    // a namespace for nodes, since every node has unique key and we can
+    // have another node with same key in another graph.
+    // So we can have two nodes for the same value but in different
     // graphs. The edges can be between arbitrary nodes and do not
     // depend on graphs the nodes are in.
     bool addNode(KeyT k, NodeT *n)
     {
         bool ret = nodes.insert(std::make_pair(k, n)).second;
-        if (ret)
+        if (ret) {
+            assert(n->getDG() == nullptr && "A node can not belong to more graphs");
             n->setDG(static_cast<DependenceGraphT *>(this));
+        }
 
         return ret;
     }
