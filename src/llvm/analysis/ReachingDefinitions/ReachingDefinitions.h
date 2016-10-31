@@ -2,6 +2,7 @@
 #define _LLVM_DG_RD_H_
 
 #include <unordered_map>
+#include <memory>
 
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/Instructions.h>
@@ -22,7 +23,7 @@ class LLVMRDBuilder
     struct Subgraph {
         Subgraph(RDNode *r1, RDNode *r2)
             : root(r1), ret(r2) {}
-        Subgraph() {memset(this, 0, sizeof *this);}
+        Subgraph(): root(nullptr), ret(nullptr) {}
 
         RDNode *root;
         RDNode *ret;
@@ -42,11 +43,13 @@ class LLVMRDBuilder
 
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
+    // list of dummy nodes (used just to keep the track of memory,
+    // so that we can delete it later)
+    std::vector<RDNode *> dummy_nodes;
 public:
     LLVMRDBuilder(const llvm::Module *m, dg::LLVMPointerAnalysis *p)
         : M(m), DL(new llvm::DataLayout(m)), PTA(p) {}
-
-    ~LLVMRDBuilder() { delete DL; }
+    ~LLVMRDBuilder();
 
     RDNode *build();
 
@@ -107,8 +110,8 @@ private:
 
 class LLVMReachingDefinitions
 {
-    LLVMRDBuilder *builder;
-    ReachingDefinitionsAnalysis *RDA;
+    std::unique_ptr<LLVMRDBuilder> builder;
+    std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
     RDNode *root;
     bool field_insensitive;
     uint32_t max_set_size;
@@ -118,13 +121,15 @@ public:
                             dg::LLVMPointerAnalysis *pta,
                             bool field_insens = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
-        : builder(new LLVMRDBuilder(m, pta)),
+        : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta))),
           field_insensitive(field_insens), max_set_size(max_set_sz) {}
 
     void run()
     {
         root = builder->build();
-        RDA = new ReachingDefinitionsAnalysis(root, field_insensitive, max_set_size);
+        RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
+            new ReachingDefinitionsAnalysis(root, field_insensitive, max_set_size)
+            );
         RDA->run();
     }
 

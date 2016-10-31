@@ -128,6 +128,30 @@ static int getMemAllocationFunc(const llvm::Function *func)
     return NONEMEM;
 }
 
+
+LLVMRDBuilder::~LLVMRDBuilder() {
+    // delete data layout
+    delete DL;
+
+    // delete artificial nodes from subgraphs
+    for (auto& it : subgraphs_map) {
+        assert((it.second.root && it.second.ret) ||
+               (!it.second.root && !it.second.ret));
+        delete it.second.root;
+        delete it.second.ret;
+    }
+
+    // delete nodes
+    for (auto& it : nodes_map) {
+        assert(it.first && "Have a nullptr node mapping");
+        delete it.second;
+    }
+
+    // delete dummy nodes
+    for (RDNode *nd : dummy_nodes)
+        delete nd;
+}
+
 RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst, bool is_heap)
 {
     RDNodeType type = is_heap ? DYN_ALLOC : ALLOC;
@@ -389,6 +413,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
     RDNode *node = new RDNode(PHI);
+    dummy_nodes.push_back(node);
     std::pair<RDNode *, RDNode *> ret(node, nullptr);
 
     for (const Instruction& Inst : block) {
