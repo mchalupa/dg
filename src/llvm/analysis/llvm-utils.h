@@ -3,6 +3,7 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Instructions.h>
 //#include <llvm/IR/DataLayout.h>
 
 namespace dg {
