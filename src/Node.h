@@ -127,14 +127,18 @@ public:
 
     void removeOutcomingDDs()
     {
-        for (auto dd : dataDepEdges)
-            removeDataDependence(dd);
+        while (!dataDepEdges.empty())
+            removeDataDependence(*dataDepEdges.begin());
     }
 
     void removeIncomingDDs()
     {
-        for (auto dd : revDataDepEdges)
-            dd->removeDataDependence(static_cast<NodeT *>(this));
+        while (!revDataDepEdges.empty()) {
+            NodeT *cd = *revDataDepEdges.begin();
+            // this will remove the reverse control dependence from
+            // this node
+            cd->removeDataDependence(static_cast<NodeT *>(this));
+        }
     }
 
     // remove all data dependencies going from/to this node
@@ -147,14 +151,18 @@ public:
     // remove all control dependencies going from/to this node
     void removeOutcomingCDs()
     {
-        for (auto cd : controlDepEdges)
-            removeControlDependence(cd);
+        while (!controlDepEdges.empty())
+            removeControlDependence(*controlDepEdges.begin());
     }
 
     void removeIncomingCDs()
     {
-        for (auto cd : revControlDepEdges)
+        while (!revControlDepEdges.empty()) {
+            NodeT *cd = *revControlDepEdges.begin();
+            // this will remove the reverse control dependence from
+            // this node
             cd->removeControlDependence(static_cast<NodeT *>(this));
+        }
     }
 
     void removeCDs()
