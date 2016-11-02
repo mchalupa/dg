@@ -206,10 +206,12 @@ public:
         // do not leave any dangling reference
         isolate();
 
-        if (dg)
-            dg->removeBlock(key);
-
-        // XXX what to do when this is entry block?
+        if (dg) {
+            bool ret = dg->removeBlock(key);
+            assert(ret && "BUG: block was not in DG");
+            if (dg->getEntryBB() == this)
+                dg->setEntryBB(nullptr);
+        }
 
         if (with_nodes) {
             for (NodeT *n : nodes) {

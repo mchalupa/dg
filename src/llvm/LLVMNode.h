@@ -38,9 +38,11 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>
 public:
     LLVMNode(llvm::Value *val, bool owns_value = false)
         :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val),
-         operands(nullptr), operands_num(0), memoryobj(nullptr),
-         owns_key(owns_value), data(nullptr)
-    {}
+         operands(nullptr), operands_num(0), memoryobj(nullptr), data(nullptr)
+    {
+        if (owns_value)
+            owned_key = std::unique_ptr<llvm::Value>(val);
+    }
 
     ~LLVMNode();
 
@@ -123,7 +125,8 @@ private:
     analysis::PointsToSetT pointsTo;
     analysis::DefMap defMap;
 
-    bool owns_key;
+    // the owned key will be deleted with this node
+    std::unique_ptr<llvm::Value> owned_key;
 
     // user's or analysis's arbitrary data
     void *data;

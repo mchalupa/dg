@@ -126,6 +126,10 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
         }
     }
 
+    // delete blocks
+    for (auto& it : getBlocks())
+        delete it.second;
+
     // delete global nodes if this is the last graph holding them
     if (global_nodes && global_nodes.use_count() == 1) {
         for (auto& it : *global_nodes)
@@ -473,7 +477,8 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
                 abort();
             }
 
-            ext = new LLVMNode(phonyRet);
+            ext = new LLVMNode(phonyRet, true /* node owns the value -
+                                                 it will delete it */);
             addNode(ext);
             setExit(ext);
 

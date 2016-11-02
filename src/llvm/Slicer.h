@@ -100,7 +100,6 @@ public:
         // See #99
         dropAllUses(blk);
 
-
         // we also must drop refrences to instructions that are in
         // this block (or we would need to delete the blocks in
         // post-dominator order), see #101
