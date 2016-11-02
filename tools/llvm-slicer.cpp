@@ -792,9 +792,7 @@ static void make_declarations_external(llvm::Module *M)
 {
     using namespace llvm;
 
-    // when erasing while iterating the slicer crashes
-    // so set the to be erased values into container
-    // and then erase them
+    // iterate over all functions in module
     for (auto I = M->begin(), E = M->end(); I != E; ++I) {
         Function *func = &*I;
         if (func->size() == 0) {
@@ -981,7 +979,7 @@ int main(int argc, char *argv[])
             return 1;
         }
     } else {
-        // FIXME: do one parent class and use overriding
+        // FIXME: make one parent class and use overriding
         Slicer slicer(M, opts);
         if (!slicer.slice()) {
             errs() << "ERR: Slicing failed\n";
