@@ -35,7 +35,7 @@ add_library(LLVMdg SHARED
 	llvm/LLVMDGVerifier.h
 	llvm/LLVMDGVerifier.cpp
 	llvm/Slicer.h
-	llvm/llvm-util.h
+	llvm/llvm-utils.h
 	# -- LLVM analysis
 	llvm/analysis/PostDominators.cpp
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
