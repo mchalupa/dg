@@ -4,18 +4,47 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Instructions.h>
-//#include <llvm/IR/DataLayout.h>
 
 namespace dg {
 namespace llvmutils {
 
-inline bool isPointerOrIntegerTy(const llvm::Type *Ty)
+using namespace llvm;
+
+/* ----------------------------------------------
+ * -- PRINTING
+ * ---------------------------------------------- */
+inline void print(const Value *val,
+                  raw_ostream& os,
+                  const char *prefix=nullptr,
+                  bool newline = false)
+{
+    if (prefix)
+        os << prefix;
+
+    if (isa<Function>(val))
+        os << val->getName().data();
+    else
+        os << *val;
+
+    if (newline)
+        os << "\n";
+}
+
+inline void printerr(const char *msg, const Value *val, bool newline = true)
+{
+    print(val, errs(), msg, newline);
+}
+
+/* ----------------------------------------------
+ * -- CASTING
+ * ---------------------------------------------- */
+inline bool isPointerOrIntegerTy(const Type *Ty)
 {
     return Ty->isPointerTy() || Ty->isIntegerTy();
 }
 
-// can given function be called by the call inst?
-inline bool callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI)
+// can the given function be called by the given call inst?
+inline bool callIsCompatible(const Function *F, const CallInst *CI)
 {
     using namespace llvm;
 

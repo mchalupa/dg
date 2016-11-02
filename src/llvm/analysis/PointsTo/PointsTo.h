@@ -7,7 +7,7 @@
 
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/PointerAnalysis.h"
-#include "llvm/analysis/llvm-utils.h"
+#include "llvm/llvm-utils.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
 
 namespace dg {

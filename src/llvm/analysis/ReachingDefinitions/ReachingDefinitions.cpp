@@ -1,3 +1,4 @@
+#include <set>
 #include <cassert>
 
 #include <llvm/Config/llvm-config.h>
@@ -24,10 +25,8 @@
 
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/llvm-utils.h"
+#include "llvm/llvm-utils.h"
 #include "ReachingDefinitions.h"
-
-#include <set>
 
 namespace dg {
 namespace analysis {

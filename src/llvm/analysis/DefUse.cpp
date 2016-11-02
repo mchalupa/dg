@@ -18,7 +18,7 @@
 
 #include "llvm/LLVMNode.h"
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/llvm-util.h"
+#include "llvm/llvm-utils.h"
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "ReachingDefinitions/ReachingDefinitions.h"
@@ -82,7 +82,7 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
         LLVMNode *opNode = dg->getNode(opVal->stripInBoundsOffsets());
         if (!opNode) {
             // FIXME: ConstantExpr
-            llvmutil::printerr("WARN: unhandled inline asm operand: ", opVal);
+            llvmutils::printerr("WARN: unhandled inline asm operand: ", opVal);
             continue;
         }
 
@@ -214,7 +214,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
         assert(graph != dg && "Cannot find a node");
         rdnode = graph->getNode(rdval);
         if (!rdnode) {
-            llvmutil::printerr("ERROR: DG has not val: ", rdval);
+            llvmutils::printerr("ERROR: DG has not val: ", rdval);
             return;
         }
     }
@@ -246,7 +246,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
 
         RDNode *val = RD->getNode(llvmVal);
         if(!val) {
-            llvmutil::printerr("Don't have mapping:\n  ", llvmVal);
+            llvmutils::printerr("Don't have mapping:\n  ", llvmVal);
             continue;
         }
 
@@ -306,7 +306,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     pta::PSNode *pts = PTA->getPointsTo(ptrOp);
     //assert(pts && "Don't have points-to information for LoadInst");
     if (!pts) {
-        llvmutil::printerr("ERROR: No points-to: ", ptrOp);
+        llvmutils::printerr("ERROR: No points-to: ", ptrOp);
         return;
     }
 
@@ -314,7 +314,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     // all the reaching definitions
     RDNode *mem = RD->getMapping(where);
     if(!mem) {
-        llvmutil::printerr("ERROR: Don't have mapping: ", where);
+        llvmutils::printerr("ERROR: Don't have mapping: ", where);
         return;
     }
 

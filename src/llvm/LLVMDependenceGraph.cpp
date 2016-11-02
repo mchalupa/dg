@@ -39,7 +39,7 @@
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ControlExpression.h"
-#include "llvm/analysis/llvm-utils.h"
+#include "llvm-utils.h"
 
 using llvm::errs;
 using std::make_pair;
