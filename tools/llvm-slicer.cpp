@@ -1,9 +1,9 @@
-#include <assert.h>
+#include <set>
+
+#include <cassert>
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
-
-#include <set>
 
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
@@ -12,14 +12,18 @@
 #include "../git-version.h"
 #include <llvm/Config/llvm-config.h>
 
-
 #if (LLVM_VERSION_MAJOR != 3)
 #error "Unsupported version of LLVM"
 #endif
 
-// turn off unused-parameter warning for LLVM libraries,
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 
 #if LLVM_VERSION_MINOR < 5
  #include <llvm/Assembly/AssemblyAnnotationWriter.h>
@@ -41,7 +45,11 @@
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/CommandLine.h>
 
+#if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include <iostream>
 #include <fstream>

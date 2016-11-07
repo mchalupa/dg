@@ -1,5 +1,3 @@
-/// XXX add licence
-
 #ifndef _LLVM_NODE_H_
 #define _LLVM_NODE_H_
 
@@ -15,8 +13,23 @@
 #include <map>
 #include <set>
 
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Type.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include "Node.h"
 #include "llvm/analysis/old/AnalysisGeneric.h"

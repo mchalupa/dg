@@ -1,6 +1,3 @@
-/// XXX add licence
-//
-
 #ifndef HAVE_LLVM
 # error "Need LLVM for LLVMDependenceGraph"
 #endif
@@ -9,9 +6,14 @@
  #error "Need CFG enabled for building LLVM Dependence Graph"
 #endif
 
-// turn off unused-parameter warning for LLVM libraries,
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
@@ -21,7 +23,11 @@
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/Support/raw_ostream.h>
 
+#if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include "LLVMNode.h"
 #include "LLVMDependenceGraph.h"
