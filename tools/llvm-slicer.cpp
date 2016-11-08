@@ -895,7 +895,7 @@ static uint32_t parseAnnotationOpt(const std::string& opt)
         else if (opt.compare(pos, 2, "rd") == 0)
             opts |= ANNOTATE_RD;
         else if (opt.compare(pos, 3, "pta") == 0)
-            opts |= ANNOTATE_RD;
+            opts |= ANNOTATE_PTR;
         else if (opt.compare(pos, 5, "slice") == 0)
             opts |= ANNOTATE_SLICE;
 
