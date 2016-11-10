@@ -488,8 +488,8 @@ class Slicer {
 protected:
     llvm::Module *M;
     uint32_t opts = 0;
-    LLVMPointerAnalysis *PTA;
-    LLVMReachingDefinitions *RD;
+    std::unique_ptr<LLVMPointerAnalysis> PTA;
+    std::unique_ptr<LLVMReachingDefinitions> RD;
 
     // shared by old and new analyses
     bool sliceGraph(LLVMDependenceGraph &d)
@@ -560,7 +560,7 @@ protected:
 
         // print debugging llvm IR if user asked for it
         if (opts & ANNOTATE)
-            annotate(M, opts, RD);
+            annotate(M, opts, RD.get());
 
         slicer.slice(&d, nullptr, slid);
 
@@ -578,14 +578,14 @@ protected:
     {
         debug::TimeMeasure tm;
         assert(PTA && "BUG: No PTA");
+        assert(RD && "BUG: No RD");
 
-        RD = new analysis::rd::LLVMReachingDefinitions(M, PTA);
         tm.start();
         RD->run();
         tm.stop();
         tm.report("INFO: Reaching defs analysis took");
 
-        LLVMDefUseAnalysis DUA(d, RD, PTA);
+        LLVMDefUseAnalysis DUA(d, RD.get(), PTA.get());
         tm.start();
         DUA.run(); // add def-use edges according that
         tm.stop();
@@ -600,22 +600,17 @@ protected:
 
     // for old slicer -- without creating a pointer analysis
     Slicer(llvm::Module *mod, uint32_t o, bool /* no pta */)
-    :M(mod), opts(o), PTA(nullptr), RD(nullptr)
+    :M(mod), opts(o)
     {
         assert(mod && "Need module");
     }
 public:
     Slicer(llvm::Module *mod, uint32_t o)
     :M(mod), opts(o),
-     PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)), RD(nullptr)
+     PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)),
+      RD(new LLVMReachingDefinitions(mod, PTA.get()))
     {
         assert(mod && "Need module");
-    }
-
-    ~Slicer()
-    {
-        delete PTA;
-        delete RD;
     }
 
     bool slice()
@@ -635,10 +630,9 @@ public:
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 
-        d.build(&*M, PTA);
+        d.build(&*M, PTA.get());
 
         return sliceGraph(d);
-        // FIXME: we're leaking PTA & RD
     }
 };
 
@@ -647,7 +641,8 @@ class SlicerOld : public Slicer
     virtual void computeEdges(LLVMDependenceGraph *d)
     {
         debug::TimeMeasure tm;
-        assert(PTA == nullptr);
+        assert(!PTA);
+        assert(!RD);
 
         analysis::LLVMReachingDefsAnalysis RDA(d);
         tm.start();
