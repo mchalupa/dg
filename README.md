@@ -255,6 +255,5 @@ switch is not used, the points-to analysis is different from that one that is us
 
 ------------------------------------------------
 
-For more information you can write e-mails to:
-<statica@fi.muni.cz>
-<mchqwerty@gmail.com>
+You can find more information about dg in http://is.muni.cz/th/396236/fi_m/thesis.pdf
+or you can write e-mails to: <statica@fi.muni.cz> <mchqwerty@gmail.com>
