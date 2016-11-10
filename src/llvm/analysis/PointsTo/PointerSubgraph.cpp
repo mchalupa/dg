@@ -706,14 +706,14 @@ LLVMPointerSubgraphBuilder::createUnknownCall(const llvm::CallInst *CInst)
 PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I)
 {
     using namespace llvm;
-    const Value *dest, *src, *lenVal;
+    const Value *dest, *src;//, *lenVal;
 
     switch (I->getIntrinsicID()) {
         case Intrinsic::memmove:
         case Intrinsic::memcpy:
             dest = I->getOperand(0);
             src = I->getOperand(1);
-            lenVal = I->getOperand(2);
+            //lenVal = I->getOperand(2);
             break;
         default:
             errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
