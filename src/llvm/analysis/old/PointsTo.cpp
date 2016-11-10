@@ -7,7 +7,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/llvm-debug.h"
+#include "llvm-debug.h"
 
 #include "PointsTo.h"
 #include "AnalysisGeneric.h"

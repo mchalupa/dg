@@ -44,7 +44,6 @@
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
 #include "Utils.h"
-#include "llvm-debug.h"
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ControlExpression.h"
@@ -54,37 +53,6 @@ using llvm::errs;
 using std::make_pair;
 
 namespace dg {
-
-namespace debug {
-    // this is a wrapper for the cases when we do not have
-    // LLVM compiled with debug information, thus
-    // debugger do not know the dump() method
-    void dumpllvm(const llvm::Value *val)
-    {
-        val->dump();
-    }
-
-    // gdb I currently have has problems with inheritance...
-    void dumpllvm(const llvm::Instruction *Inst)
-    {
-        Inst->dump();
-    }
-
-    void dumpllvm(const llvm::Argument *Inst)
-    {
-        Inst->dump();
-    }
-
-    void dumpllvm(const llvm::CallInst *Inst)
-    {
-        Inst->dump();
-    }
-
-    void dumpllvm(const llvm::Function *Inst)
-    {
-        Inst->dump();
-    }
-}
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
@@ -127,11 +95,11 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
             if (!node->getBBlock()
                 && !llvm::isa<llvm::Function>(*I->first))
-                DBG("WARN: Value " << *I->first << "had no BB assigned");
+                llvmutils::printerr("Had no BB assigned", I->first);
 
             delete node;
         } else {
-            DBG("WARN: Value " << *I->first << "had no node assigned");
+            llvmutils::printerr("Had no node assigned", I->first);
         }
     }
 

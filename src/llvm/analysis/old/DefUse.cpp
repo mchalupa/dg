@@ -12,7 +12,7 @@
 
 #include "llvm/LLVMNode.h"
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/llvm-debug.h"
+#include "llvm-debug.h"
 
 #include "AnalysisGeneric.h"
 #include "DefUse.h"
