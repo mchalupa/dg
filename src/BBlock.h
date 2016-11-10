@@ -280,11 +280,26 @@ public:
         nextBBs.erase(succ);
     }
 
+    unsigned removeSuccessorsTarget(BBlock<NodeT> *target)
+    {
+        unsigned removed = 0;
+        SuccContainerT tmp;
+        // approx
+        for (auto& edge : nextBBs) {
+            if (edge.target != target)
+                tmp.insert(std::move(edge));
+            else
+                ++removed;
+        }
+
+        nextBBs.swap(tmp);
+        return removed;
+    }
+
     void removePredecessors()
     {
-        for (auto BB : prevBBs) {
+        for (BBlock<NodeT> *BB : prevBBs)
             BB->nextBBs.erase(this);
-        }
 
         prevBBs.clear();
     }

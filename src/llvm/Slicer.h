@@ -255,13 +255,15 @@ private:
 
     static LLVMBBlock* addNewExitBB(LLVMDependenceGraph *graph)
     {
-
         // FIXME: don't create new one, create it
         // when creating graph and just use that one
         LLVMBBlock *newExitBB = createNewExitBB(graph);
         graph->setExitBB(newExitBB);
         graph->setExit(newExitBB->getLastNode());
-        graph->addBlock(newExitBB->getKey(), newExitBB);
+        // do not add the block to the graph,
+        // we'll do it at the end of makeGraphComplete,
+        // because this function is called while iterating
+        // over blocks, so that we won't corrupt the iterator
 
         return newExitBB;
     }
@@ -276,7 +278,7 @@ private:
 
         LLVMBBlock *newExitBB = nullptr;
 
-        for (auto it : graph->getBlocks()) {
+        for (auto& it : graph->getBlocks()) {
             const llvm::BasicBlock *llvmBB
                 = llvm::cast<llvm::BasicBlock>(it.first);
             const llvm::TerminatorInst *tinst = llvmBB->getTerminator();
@@ -295,16 +297,8 @@ private:
             if (BB->successorsNum() == 2
                 && BB->getLastNode()->getSlice() != slice_id
                 && !BB->successorsAreSame()) {
-                bool found = false;
-                for (auto I = BB->successors().begin(), E = BB->successors().end(); I != E;) {
-                    auto cur = I++;
-                    if (cur->target == BB) {
-                        found = true;
-                        BB->removeSuccessor(*cur);
-                        break;
-                    }
-                }
 
+                bool found = BB->removeSuccessorsTarget(BB);
                 // we have two different successors, none of them
                 // is self-loop and we're slicing away the brach inst?
                 // This should not happen...
@@ -325,10 +319,8 @@ private:
                 edge.label = 0;
 
                 if (edge.target == oldExitBB) {
-                     if (!newExitBB) {
+                     if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
-                        oldExitBB->remove();
-                    }
 
                     edge.target = newExitBB;
                 }
@@ -355,10 +347,8 @@ private:
                 // away and so if we're on this path, we won't affect
                 // behaviour of slice - we can exit
                 if (succ.target == oldExitBB) {
-                    if (!newExitBB) {
+                    if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
-                        oldExitBB->remove();
-                    }
 
                     succ.target = newExitBB;
                 } else
@@ -371,10 +361,8 @@ private:
                 if (labels.contains(i))
                     continue;
                 else {
-                     if (!newExitBB) {
+                     if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
-                        oldExitBB->remove();
-                    }
 
                     bool ret = BB->addSuccessor(newExitBB, i);
                     assert(ret && "Already had this CFG edge, that is wrong");
@@ -394,6 +382,11 @@ private:
                        && "BUG: in removeSuccessors() or addSuccessor()");
 #endif
             }
+        }
+
+        if (newExitBB) {
+            graph->addBlock(newExitBB->getKey(), newExitBB);
+            oldExitBB->remove();
         }
     }
 
