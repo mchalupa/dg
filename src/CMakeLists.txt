@@ -22,7 +22,6 @@ add_library(RD SHARED
 )
 
 add_library(LLVMdg SHARED
-	Utils.h
 	BBlock.h
 	Node.h
 	DependenceGraph.h

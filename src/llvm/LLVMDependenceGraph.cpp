@@ -43,7 +43,6 @@
 #include "LLVMDGVerifier.h"
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
-#include "Utils.h"
 
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ControlExpression.h"

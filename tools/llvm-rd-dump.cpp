@@ -40,7 +40,7 @@
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
-#include "Utils.h"
+#include "TimeMeasure.h"
 
 using namespace dg;
 using namespace dg::analysis;

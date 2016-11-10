@@ -56,7 +56,7 @@
 
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/Slicer.h"
-#include "Utils.h"
+#include "TimeMeasure.h"
 
 #include "llvm/analysis/old/PointsTo.h"
 #include "llvm/analysis/old/ReachingDefs.h"

@@ -39,7 +39,7 @@
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
 #include "analysis/PointsTo/Pointer.h"
 
-#include "Utils.h"
+#include "TimeMeasure.h"
 
 using namespace dg;
 using namespace dg::analysis::pta;
