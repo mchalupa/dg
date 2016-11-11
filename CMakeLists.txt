@@ -100,11 +100,6 @@ endif ()
 
 message(STATUS "Additional compilation flags: ${CMAKE_CXX_FLAGS}")
 
-# generate a git-version.h with a HEAD commit hash tag
-add_custom_target(
-	gitversion ALL sh git-version.sh > git-version.h
-)
-
 add_subdirectory(src)
 add_subdirectory(tests EXCLUDE_FROM_ALL)
 add_subdirectory(tools)

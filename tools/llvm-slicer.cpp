@@ -9,7 +9,6 @@
 #error "This code needs LLVM enabled"
 #endif
 
-#include "../git-version.h"
 #include <llvm/Config/llvm-config.h>
 
 #if (LLVM_VERSION_MAJOR != 3)

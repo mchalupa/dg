@@ -1,6 +1,10 @@
 if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
+	execute_process(COMMAND git rev-parse --short=8 HEAD OUTPUT_VARIABLE GITVERSION)
+	string(REGEX REPLACE "\n$" "" GITVERSION "${GITVERSION}")
+	add_definitions(-DGIT_VERSION="${GITVERSION}")
+
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 	target_link_libraries(llvm-dg-dump LLVMdg)
 
