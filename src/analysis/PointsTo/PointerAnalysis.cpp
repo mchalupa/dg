@@ -21,7 +21,6 @@ const Pointer PointerNull(NULLPTR, 0);
 bool PSNode::addPointsToUnknownOffset(PSNode *target)
 {
     bool changed = false;
-    // FIXME: use equal range, it is much faster
     for (auto I = pointsTo.begin(), E = pointsTo.end(); I != E;) {
         auto cur = I++;
 
@@ -86,7 +85,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
 
                 // we have some pointers - copy them all,
                 // since the offset is unknown
-                for (auto it : o->pointsTo) {
+                for (auto& it : o->pointsTo) {
                     for (const Pointer &p : it.second) {
                         changed |= node->addPointsTo(p);
                     }
@@ -184,7 +183,7 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
         // copy every pointer from srcObjects that is in
         // the range to these objects
         for (MemoryObject *so : srcObjects) {
-            for (auto src : so->pointsTo) {
+            for (auto& src : so->pointsTo) {
                 // src.first is offset, src.second is a PointToSet
 
                 // we need to copy ptrs at UNKNOWN_OFFSET always

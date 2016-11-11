@@ -108,15 +108,10 @@ public:
         return is_unknown;
     }
 
-    std::set<RDNode *>::iterator begin()
-    {
-        return nodes.begin();
-    }
-
-    std::set<RDNode *>::iterator end()
-    {
-        return nodes.end();
-    }
+    std::set<RDNode *>::iterator begin() { return nodes.begin(); }
+    std::set<RDNode *>::iterator end() { return nodes.end(); }
+    std::set<RDNode *>::const_iterator begin() const { return nodes.begin(); }
+    std::set<RDNode *>::const_iterator end() const { return nodes.end(); }
 
     std::set<RDNode *>& getNodes()
     {

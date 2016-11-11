@@ -65,7 +65,7 @@ bool RDMap::merge(const RDMap *oth,
         return false;
 
     bool changed = false;
-    for (auto it : oth->defs) {
+    for (const auto& it : oth->defs) {
         const DefSite& ds = it.first;
         bool is_unknown = ds.offset.isUnknown();
 
