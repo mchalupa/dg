@@ -175,3 +175,6 @@ if (LLVM_DG)
 	add_test(fptoui slicing-fptoui1.sh)
 
 endif (LLVM_DG)
+
+add_executable(rdmap-benchmark rdmap-benchmark.cpp)
+target_link_libraries(rdmap-benchmark RD)
