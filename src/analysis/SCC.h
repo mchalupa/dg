@@ -99,7 +99,7 @@ class SCCCondensation {
     typedef typename SCC<NodeT>::SCC_component_t SCC_component_t;
 
     struct Node {
-        SCC_component_t& component;
+        const SCC_component_t& component;
         std::set<unsigned> successors;
 
         Node(SCC_component_t& comp) : component(comp) {}
@@ -109,7 +109,7 @@ class SCCCondensation {
             successors.insert(idx);
         }
 
-        SCC_component_t& operator*() const
+        const SCC_component_t& operator*() const
         {
             return component;
         }
@@ -136,19 +136,19 @@ public:
         nodes.reserve(scc.size());
 
         // create the nodes in our condensation graph
-        for (auto comp : scc)
+        for (auto& comp : scc)
             nodes.push_back(Node(comp));
 
         assert(nodes.size() == scc.size());
 
         int idx = 0;
-        for (auto comp : scc) {
-            for (auto node : comp) {
+        for (auto& comp : scc) {
+            for (NodeT *node : comp) {
                 // we can get from this component
                 // to the component of succ
-                for (auto succ : node->getSuccessors()) {
+                for (NodeT *succ : node->getSuccessors()) {
                     unsigned succ_idx = succ->getSCCId();
-                    if (succ_idx != idx)
+                    if ((int) succ_idx != idx)
                         nodes[idx].addSuccessor(succ_idx);
                 }
             }
@@ -157,8 +157,7 @@ public:
         }
     }
 
-    SCCCondensation<NodeT>(){}
-
+    SCCCondensation<NodeT>() = default;
     SCCCondensation<NodeT>(SCC<NodeT>& S)
     {
         compute(S.getSCC());
