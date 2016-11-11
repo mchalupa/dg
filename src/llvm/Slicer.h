@@ -81,7 +81,7 @@ public:
             return;
 
         llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(val);
-        for (auto succ : block->successors()) {
+        for (auto& succ : block->successors()) {
             if (succ.label == 255)
                 continue;
 
@@ -132,7 +132,7 @@ public:
         // this includes the main graph
         extern std::map<const llvm::Value *,
                         LLVMDependenceGraph *> constructedFunctions;
-        for (auto it : constructedFunctions) {
+        for (auto& it : constructedFunctions) {
             if (dontTouch(it.first->getName()))
                 continue;
 
@@ -261,7 +261,7 @@ private:
         graph->setExitBB(newExitBB);
         graph->setExit(newExitBB->getLastNode());
         // do not add the block to the graph,
-        // we'll do it at the end of makeGraphComplete,
+        // we'll do it at the end of adjustBBlocksSucessors,
         // because this function is called while iterating
         // over blocks, so that we won't corrupt the iterator
 
@@ -271,7 +271,7 @@ private:
     // when we sliced away a branch of CFG, we need to reconnect it
     // to exit block, since on this path we would silently terminate
     // (this path won't have any effect on the property anymore)
-    void makeGraphComplete(LLVMDependenceGraph *graph, uint32_t slice_id)
+    void adjustBBlocksSucessors(LLVMDependenceGraph *graph, uint32_t slice_id)
     {
         LLVMBBlock *oldExitBB = graph->getExitBB();
         assert(oldExitBB && "Don't have exit BB");
@@ -316,14 +316,18 @@ private:
                 && BB->getLastNode()->getSlice() != slice_id) {
                 auto edge = *(BB->successors().begin());
 
+                // modify the edge
                 edge.label = 0;
-
                 if (edge.target == oldExitBB) {
                      if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
 
                     edge.target = newExitBB;
                 }
+
+                // replace the only edge
+                BB->removeSuccessors();
+                BB->addSuccessor(edge);
 
                 continue;
             }
@@ -336,31 +340,18 @@ private:
             // from edges that go from this BB. Also if there's
             // a jump to return block, replace it with new
             // return block
-            for (auto succ : BB->successors()) {
-                // skip artificial return basic block
-                if (succ.label == 255)
+            for (const auto& succ : BB->successors()) {
+                // skip artificial return basic block.
+                if (succ.label == 255 || succ.target == oldExitBB)
                     continue;
 
-                // we have normal (not 255) label to exit node?
-                // replace it with call to exit, because that means
-                // that some path, that normally returns, was sliced
-                // away and so if we're on this path, we won't affect
-                // behaviour of slice - we can exit
-                if (succ.target == oldExitBB) {
-                    if (!newExitBB)
-                        newExitBB = addNewExitBB(graph);
-
-                    succ.target = newExitBB;
-                } else
-                    labels.insert(succ.label);
+                labels.insert(succ.label);
             }
 
             // replace missing labels. Label should be from 0 to some max,
             // no gaps, so jump to safe exit under missing labels
             for (uint8_t i = 0; i < tinst->getNumSuccessors(); ++i) {
-                if (labels.contains(i))
-                    continue;
-                else {
+                if (!labels.contains(i)) {
                      if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
 
@@ -368,6 +359,10 @@ private:
                     assert(ret && "Already had this CFG edge, that is wrong");
                 }
             }
+
+            // this BB is going to be removed
+            if (newExitBB)
+                BB->removeSuccessorsTarget(oldExitBB);
 
             // if we have all successor edges pointing to the same
             // block, replace them with one successor (thus making
@@ -382,6 +377,26 @@ private:
                        && "BUG: in removeSuccessors() or addSuccessor()");
 #endif
             }
+
+#ifdef ENABLE_DEBUG
+            // check the BB
+            std::set<int> labels;
+            for (const auto& succ : BB->successors()) {
+                assert(!newExitBB || succ.target != oldExitBB
+                        && "A block has the old BB as successor");
+                // we can have more labels with different targets,
+                // but we can not have one target with more labels
+                assert(labels.insert(succ.label).second
+                        && "Already have a label");
+            }
+
+            // check that we have all labels without any gep
+            auto l = labels.begin();
+            for (int i = 0; i < labels.size(); ++i) {
+                // set is ordered, so this must hold
+                assert(i == *l++ && "Labels have a gap");
+            }
+#endif
         }
 
         if (newExitBB) {
@@ -396,7 +411,7 @@ private:
         sliceBBlocks(graph, slice_id);
 
         // make graph complete
-        makeGraphComplete(graph, slice_id);
+        adjustBBlocksSucessors(graph, slice_id);
 
         // now slice away instructions from BBlocks that left
         for (auto I = graph->begin(), E = graph->end(); I != E;) {
@@ -524,7 +539,7 @@ private:
 
     void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph)
     {
-        for (auto it : graph->getBlocks()) {
+        for (auto& it : graph->getBlocks()) {
             llvm::BasicBlock *llvmBB
                 = llvm::cast<llvm::BasicBlock>(it.first);
             LLVMBBlock *BB = it.second;
