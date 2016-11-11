@@ -451,7 +451,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
         = llvm::dyn_cast<llvm::Instruction>(val);
 
     if (Inst) {
-            auto seq = buildInstruction(*Inst);
+            PSNodesSeq seq = buildInstruction(*Inst);
             assert(seq.first && seq.second);
             return seq.second;
     } else if (const llvm::Argument *A
@@ -657,7 +657,7 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
     if (!subg.root)
         add_structure = true;
 
-    auto ret = createCallToFunction(F);
+    PSNodesSeq ret = createCallToFunction(F);
 
     // we took a reference
     assert(subg.root);
@@ -1588,7 +1588,7 @@ void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBloc
         if (nodes_map.count(&Inst) != 0)
             continue;
 
-        auto seq = buildInstruction(Inst);
+        PSNodesSeq seq = buildInstruction(Inst);
         assert(seq.first && seq.second
                && "Didn't created the instruction properly");
     }
@@ -1630,7 +1630,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
 void LLVMPointerSubgraphBuilder::addProgramStructure()
 {
     // form intraprocedural program structure (CFG edges)
-    for (auto it : subgraphs_map) {
+    for (auto& it : subgraphs_map) {
         const llvm::Function *F = it.first;
         Subgraph& subg = it.second;
 

@@ -93,7 +93,7 @@ public:
         // then every GEP will end up with UNKNOWN_OFFSET after some
         // number of iterations, so we can do that right now
         // and save iterations
-        for (auto scc : SCCs) {
+        for (const auto& scc : SCCs) {
             if (scc.size() > 1) {
                 for (PSNode *n : scc) {
                     if (n->getType() == GEP)

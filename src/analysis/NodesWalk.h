@@ -179,7 +179,7 @@ private:
         if (!BB)
             return;
 
-        for (auto E : BB->successors())
+        for (auto& E : BB->successors())
             enqueue(E.target->getFirstNode());
     }
 
@@ -295,7 +295,7 @@ public:
 
             // queue sucessors of this BB
             if (flags & BBLOCK_WALK_CFG)
-                for (auto E : BB->successors())
+                for (auto& E : BB->successors())
                     enqueue(E.target);
         }
     }

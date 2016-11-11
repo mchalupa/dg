@@ -94,7 +94,7 @@ class Slicer : Analysis<NodeT>
 
     void sliceGraph(DependenceGraph<NodeT> *dg, uint32_t slice_id)
     {
-        for (auto it : *dg) {
+        for (auto& it : *dg) {
             NodeT *n = it.second;
 
             // slice subgraphs if this node is a call-site
@@ -208,7 +208,7 @@ public:
         // FIXME: we don't need two loops, just go carefully
         // through the constructed blocks (keep temporary always-valid iterator)
         std::set<BBlock<NodeT> *> blocks;
-        for (auto it : CB) {
+        for (auto& it : CB) {
             if (it.second->getSlice() != sl_id)
                 blocks.insert(it.second);
         }

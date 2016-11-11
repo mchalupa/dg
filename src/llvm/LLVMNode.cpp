@@ -209,7 +209,7 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
         return;
 
     LLVMNode *pin, *pout;
-    for (auto it : *formal) {
+    for (auto& it : *formal) {
         // dyn. memory params are only callinsts
         if (!llvm::isa<llvm::CallInst>(it.first))
             continue;

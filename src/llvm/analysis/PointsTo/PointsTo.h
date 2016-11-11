@@ -152,7 +152,7 @@ public:
 
         // run the analysis itself
         assert(builder && "Incorrectly constructer PTA, missing builder");
-        auto PTA = LLVMPointerAnalysisImpl<PTType>(PS, builder);
+        LLVMPointerAnalysisImpl<PTType> PTA(PS, builder);
         PTA.run();
     }
 };

@@ -179,7 +179,7 @@ void LLVMDefUseAnalysis::addUnknownDataDependence(LLVMNode *node, PSNode *pts)
 {
     // iterate over all nodes from ReachingDefinitions Subgraph. It is faster than
     // going over all llvm nodes and querying the pointer to analysis
-    for (auto it : RD->getNodesMap()) {
+    for (auto& it : RD->getNodesMap()) {
         RDNode *rdnode = it.second;
 
         // only STORE may be a definition site

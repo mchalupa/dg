@@ -293,7 +293,7 @@ public:
 
     ~CFA<T>()
     {
-        for (auto n : nodes)
+        for (CFANode<T> *n : nodes)
             // delete the nodes,
             // we overtake the ownership
             // FIXME: use std::unique_ptr?
@@ -333,7 +333,7 @@ public:
         }
 
         // eliminate all the nodes
-        for (auto nd : nodes)
+        for (CFANode<T> *nd : nodes)
             nd->eliminate();
 
         // we may have end-up with two nodes,
@@ -348,7 +348,7 @@ public:
         //       l      |     |
         // root ----> (node)<-/
         //
-        for (auto nd : nodes) {
+        for (CFANode<T> *nd : nodes) {
             if (nd->hasSelfLoop()) {
                 nd->addSuccessor(typename CFANode<T>::EdgeT(&end, new CEEps()));
                 nd->eliminate();

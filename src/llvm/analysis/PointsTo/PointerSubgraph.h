@@ -76,7 +76,7 @@ public:
     ~LLVMPointerSubgraphBuilder()
     {
         // delete the created nodes
-        for (auto it : nodes_map) {
+        for (auto& it : nodes_map) {
             PSNode *node = it.second.first;
             while (node) {
                 PSNode *cur = node;
@@ -91,7 +91,7 @@ public:
         }
 
         // delete allocated memory in subgraph structures
-        for (auto it : subgraphs_map) {
+        for (auto& it : subgraphs_map) {
             delete it.second.root;
             delete it.second.ret;
         }

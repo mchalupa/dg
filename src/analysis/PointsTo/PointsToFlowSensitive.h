@@ -136,7 +136,7 @@ private:
 
     void mergeMaps(MemoryMapT *mm, MemoryMapT *pm, PointsToSetT *strong_update)
     {
-        for (auto it : *pm) {
+        for (auto& it : *pm) {
             const Pointer& ptr = it.first;
             if (strong_update && strong_update->count(ptr))
                 continue;
