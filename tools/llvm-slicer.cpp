@@ -615,7 +615,7 @@ public:
 
     const LLVMDependenceGraph& getDG() const { return dg; }
 
-    bool slice()
+    virtual bool slice()
     {
         debug::TimeMeasure tm;
 
@@ -668,7 +668,7 @@ public:
     SlicerOld(llvm::Module *mod, uint32_t o = 0)
         :Slicer(mod, o, true /* no new pta */) {}
 
-    bool slice()
+    virtual bool slice()
     {
         debug::TimeMeasure tm;
 
@@ -975,19 +975,15 @@ int main(int argc, char *argv[])
     /// ---------------
     // slice the code
     /// ---------------
-    if (pta == PtaType::old) {
-        SlicerOld slicer(M, opts);
-        if (!slicer.slice()) {
-            errs() << "ERR: Slicing failed\n";
-            return 1;
-        }
-    } else {
-        // FIXME: make one parent class and use overriding
-        Slicer slicer(M, opts);
-        if (!slicer.slice()) {
-            errs() << "ERR: Slicing failed\n";
-            return 1;
-        }
+    std::unique_ptr<Slicer> slicer;
+    if (pta == PtaType::old)
+        slicer = std::unique_ptr<Slicer>(new SlicerOld(M, opts));
+    else
+        slicer = std::unique_ptr<Slicer>(new Slicer(M, opts));
+
+    if (!slicer->slice()) {
+        errs() << "ERR: Slicing failed\n";
+        return 1;
     }
 
     // remove unused from module again, since slicing
