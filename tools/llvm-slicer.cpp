@@ -489,16 +489,17 @@ protected:
     uint32_t opts = 0;
     std::unique_ptr<LLVMPointerAnalysis> PTA;
     std::unique_ptr<LLVMReachingDefinitions> RD;
+    LLVMDependenceGraph dg;
 
     // shared by old and new analyses
-    bool sliceGraph(LLVMDependenceGraph &d)
+    bool sliceGraph()
     {
         debug::TimeMeasure tm;
         std::set<LLVMNode *> callsites;
 
         // verify if the graph is built correctly
         // FIXME - do it optionally (command line argument)
-        if (!d.verify()) {
+        if (!dg.verify()) {
             errs() << "ERR: verifying failed\n";
             return false;
         }
@@ -508,11 +509,11 @@ protected:
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
         // it during points-to analysis
-        bool ret = d.getCallSites(slicing_criterion.c_str(), &callsites);
+        bool ret = dg.getCallSites(slicing_criterion.c_str(), &callsites);
         bool got_slicing_criterion = true;
         if (!ret) {
             if (slicing_criterion == "ret") {
-                callsites.insert(d.getExit());
+                callsites.insert(dg.getExit());
             } else {
                 errs() << "Did not find slicing criterion: "
                        << slicing_criterion << "\n";
@@ -531,14 +532,14 @@ protected:
             NULL // termination
         };
 
-        d.getCallSites(sc, &callsites);
+        dg.getCallSites(sc, &callsites);
 
         // if we found slicing criterion, compute the rest
         // of the graph. Otherwise just slice away the whole graph
         // Also count the edges when user wants to annotate
         // the file - due to debugging
         if (got_slicing_criterion || (opts & ANNOTATE))
-            computeEdges(&d);
+            computeEdges();
 
         // don't go through the graph when we know the result:
         // only empty main will stay there. Just delete the body
@@ -561,7 +562,7 @@ protected:
         if (opts & ANNOTATE)
             annotate(M, opts, RD.get());
 
-        slicer.slice(&d, nullptr, slid);
+        slicer.slice(&dg, nullptr, slid);
 
         tm.stop();
         tm.report("INFO: Slicing dependence graph took");
@@ -573,7 +574,7 @@ protected:
         return true;
     }
 
-    virtual void computeEdges(LLVMDependenceGraph *d)
+    virtual void computeEdges()
     {
         debug::TimeMeasure tm;
         assert(PTA && "BUG: No PTA");
@@ -584,7 +585,7 @@ protected:
         tm.stop();
         tm.report("INFO: Reaching defs analysis took");
 
-        LLVMDefUseAnalysis DUA(d, RD.get(), PTA.get());
+        LLVMDefUseAnalysis DUA(&dg, RD.get(), PTA.get());
         tm.start();
         DUA.run(); // add def-use edges according that
         tm.stop();
@@ -592,7 +593,7 @@ protected:
 
         tm.start();
         // add post-dominator frontiers
-        d->computeControlDependencies(CdAlgorithm);
+        dg.computeControlDependencies(CdAlgorithm);
         tm.stop();
         tm.report("INFO: Computing control dependencies took");
     }
@@ -612,10 +613,11 @@ public:
         assert(mod && "Need module");
     }
 
+    const LLVMDependenceGraph& getDG() const { return dg; }
+
     bool slice()
     {
         debug::TimeMeasure tm;
-        LLVMDependenceGraph d;
 
         tm.start();
 
@@ -629,27 +631,27 @@ public:
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 
-        d.build(&*M, PTA.get());
+        dg.build(&*M, PTA.get());
 
-        return sliceGraph(d);
+        return sliceGraph();
     }
 };
 
 class SlicerOld : public Slicer
 {
-    virtual void computeEdges(LLVMDependenceGraph *d)
+    virtual void computeEdges()
     {
         debug::TimeMeasure tm;
         assert(!PTA);
         assert(!RD);
 
-        analysis::LLVMReachingDefsAnalysis RDA(d);
+        analysis::LLVMReachingDefsAnalysis RDA(&dg);
         tm.start();
         RDA.run();  // compute reaching definitions
         tm.stop();
         tm.report("INFO: Reaching defs analysis [old] took");
 
-        analysis::old::LLVMDefUseAnalysis DUA(d);
+        analysis::old::LLVMDefUseAnalysis DUA(&dg);
         tm.start();
         DUA.run(); // add def-use edges according that
         tm.stop();
@@ -657,7 +659,7 @@ class SlicerOld : public Slicer
 
         tm.start();
         // add post-dominator frontiers
-        d->computeControlDependencies(CdAlgorithm);
+        dg.computeControlDependencies(CdAlgorithm);
         tm.stop();
         tm.report("INFO: Computing control dependencies took");
     }
@@ -669,24 +671,23 @@ public:
     bool slice()
     {
         debug::TimeMeasure tm;
-        LLVMDependenceGraph d;
 
         // build the graph
-        d.build(&*M);
+        dg.build(&*M);
 
         // verify if the graph is built correctly
         // FIXME - do it optionally (command line argument)
-        if (!d.verify())
+        if (!dg.verify())
             errs() << "ERR: verifying failed\n";
 
-        analysis::LLVMPointsToAnalysis PTA(&d);
+        analysis::LLVMPointsToAnalysis PTA(&dg);
 
         tm.start();
         PTA.run();
         tm.stop();
         tm.report("INFO: Points-to analysis [old] took");
 
-        return sliceGraph(d);
+        return sliceGraph();
     }
 };
 
