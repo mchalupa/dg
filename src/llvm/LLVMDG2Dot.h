@@ -110,7 +110,7 @@ public:
 
         start();
 
-        for (auto F : CF) {
+        for (auto& F : CF) {
             if (dump_func_only && !F.first->getName().equals(dump_func_only))
                 continue;
 
@@ -128,11 +128,11 @@ private:
     {
         dumpSubgraphStart(graph, name);
 
-        for (auto B : graph->getBlocks()) {
+        for (auto& B : graph->getBlocks()) {
             dumpBBlock(B.second);
         }
 
-        for (auto B : graph->getBlocks()) {
+        for (auto& B : graph->getBlocks()) {
             dumpBBlockEdges(B.second);
         }
 
@@ -174,7 +174,9 @@ public:
 
         start();
 
-        for (auto F : CF) {
+        for (auto& F : CF) {
+            // XXX: this is inefficient, we can get the dump_func_only function
+            // from the module (F.getParent()->getModule()->getFunction(...)
             if (dump_func_only && !F.first->getName().equals(dump_func_only))
                 continue;
 
@@ -192,11 +194,11 @@ private:
     {
         dumpSubgraphStart(graph, name);
 
-        for (auto B : graph->getBlocks()) {
+        for (auto& B : graph->getBlocks()) {
             dumpBlock(B.second);
         }
 
-        for (auto B : graph->getBlocks()) {
+        for (auto& B : graph->getBlocks()) {
             dumpBlockEdges(B.second);
         }
 
@@ -247,9 +249,9 @@ private:
                 << " [penwidth=2 label=\""<< (int) edge.label << "\"] \n";
         }
 
-        for (const LLVMBBlock *pdf : blk->getPostDomFrontiers()) {
+        for (const LLVMBBlock *pdf : blk->controlDependence()) {
             out << "NODE" << blk << " -> NODE" << pdf
-                << "[color=purple constraint=false]\n";
+                << " [color=blue constraint=false]\n";
         }
     }
 };
