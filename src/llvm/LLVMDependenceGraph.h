@@ -105,7 +105,7 @@ public:
     {
         if (alg_type == CLASSIC) {
             computePostDominators(true);
-            makeSelfLoopsControlDependent();
+            //makeSelfLoopsControlDependent();
         } else if (alg_type == CONTROL_EXPRESSION) {
             computeControlExpression(true);
         } else
