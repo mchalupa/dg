@@ -487,6 +487,7 @@ static bool createEmptyMain(llvm::Module *M)
 
 class Slicer {
     uint32_t slice_id = 0;
+    bool got_slicing_criterion = true;
 protected:
     llvm::Module *M;
     uint32_t opts = 0;
@@ -547,7 +548,7 @@ public:
         // we might have built new subgraphs that contain
         // it during points-to analysis
         bool ret = dg.getCallSites(slicing_criterion.c_str(), &callsites);
-        bool got_slicing_criterion = true;
+        got_slicing_criterion = true;
         if (!ret) {
             if (slicing_criterion == "ret") {
                 callsites.insert(dg.getExit());
@@ -571,7 +572,6 @@ public:
         if (!got_slicing_criterion)
             return createEmptyMain(M);
 
-        slice_id = 0xdead;
         // we also do not want to remove any assumptions
         // about the code
         // FIXME add command line switch that
@@ -588,6 +588,8 @@ public:
         // do not slice __VERIFIER_assume at all
         // FIXME: do this optional
         slicer.keepFunctionUntouched("__VERIFIER_assume");
+        slice_id = 0xdead;
+
         tm.start();
         for (LLVMNode *start : callsites)
             slice_id = slicer.mark(start, slice_id);
@@ -604,6 +606,10 @@ public:
 
     bool slice()
     {
+        // we created an empty main in this case
+        if (!got_slicing_criterion)
+            return true;
+
         if (slice_id == 0) {
             if (!mark())
                 return false;
