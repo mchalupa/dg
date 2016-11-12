@@ -69,7 +69,7 @@ private:
 
 #ifdef ENABLE_CFG
     // blocks contained in this graph
-    BBlocksMapT blocks;
+    BBlocksMapT _blocks;
 
     // if we want to keep CFG information in the dependence graph,
     // these are entry and exit basic blocks
@@ -380,17 +380,17 @@ public:
 
 #ifdef ENABLE_CFG
     // get blocks contained in this graph
-    BBlocksMapT& getBlocks() { return blocks; }
-    const BBlocksMapT& getBlocks() const { return blocks; }
+    BBlocksMapT& getBlocks() { return _blocks; }
+    const BBlocksMapT& getBlocks() const { return _blocks; }
     // add block to this graph
     bool addBlock(KeyT key, BBlock<NodeT> *B)
     {
-        return blocks.insert(std::make_pair(key, B)).second;
+        return _blocks.insert(std::make_pair(key, B)).second;
     }
 
     bool removeBlock(KeyT key)
     {
-        return blocks.erase(key) == 1;
+        return _blocks.erase(key) == 1;
     }
 
     BBlock<NodeT> *getPostDominatorTreeRoot() const { return PDTreeRoot; }
