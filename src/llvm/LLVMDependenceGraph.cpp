@@ -555,20 +555,20 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     if (func->size() == 0)
         return false;
 
+    constructedFunctions.insert(make_pair(func, this));
+
     // create entry node
     LLVMNode *entry = new LLVMNode(func);
     addGlobalNode(entry);
     // we want the entry node to have this DG set
     entry->setDG(this);
     setEntry(entry);
-    BBlocksMapT& blocks = getBlocks();
-
-    constructedFunctions.insert(make_pair(func, this));
 
     // add formal parameters to this graph
     addFormalParameters();
 
     // iterate over basic blocks
+    BBlocksMapT& blocks = getBlocks();
     for (llvm::BasicBlock& llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
         blocks[&llvmBB] = BB;
@@ -577,6 +577,9 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
         if (!getEntryBB())
             setEntryBB(BB);
     }
+
+    assert(blocks.size() == func->size()
+            && "Did not created all blocks");
 
     // add CFG edges
     for (auto& it : blocks) {

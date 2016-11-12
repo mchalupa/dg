@@ -132,9 +132,8 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMDependenceGraph d;
     // TODO refactor the code...
-
+    LLVMDependenceGraph d;
     LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
     if (strcmp(pts, "old")) {
         // new analyses

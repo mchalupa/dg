@@ -1,4 +1,5 @@
 #include <set>
+#include <string>
 
 #include <cassert>
 #include <cstdlib>
@@ -55,6 +56,7 @@
 
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/Slicer.h"
+#include "llvm/LLVMDG2Dot.h"
 #include "TimeMeasure.h"
 
 #include "llvm/analysis/old/PointsTo.h"
@@ -396,7 +398,7 @@ public:
             return;
 
         LLVMNode *node = nullptr;
-        for (auto it : getConstructedFunctions()) {
+        for (auto& it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             node = sub->getNode(const_cast<llvm::Instruction *>(I));
             if (node)
@@ -415,7 +417,7 @@ public:
         if (opts == 0)
             return;
 
-        for (auto it : getConstructedFunctions()) {
+        for (auto& it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             auto cb = sub->getBlocks();
             LLVMBBlock *BB = cb[const_cast<llvm::BasicBlock *>(B)];
@@ -484,95 +486,14 @@ static bool createEmptyMain(llvm::Module *M)
 }
 
 class Slicer {
+    uint32_t slice_id = 0;
 protected:
     llvm::Module *M;
     uint32_t opts = 0;
     std::unique_ptr<LLVMPointerAnalysis> PTA;
     std::unique_ptr<LLVMReachingDefinitions> RD;
     LLVMDependenceGraph dg;
-
-    // shared by old and new analyses
-    bool sliceGraph()
-    {
-        debug::TimeMeasure tm;
-        std::set<LLVMNode *> callsites;
-
-        // verify if the graph is built correctly
-        // FIXME - do it optionally (command line argument)
-        if (!dg.verify()) {
-            errs() << "ERR: verifying failed\n";
-            return false;
-        }
-
-        assert(!slicing_criterion.empty() && "Do not have the slicing criterion");
-
-        // check for slicing criterion here, because
-        // we might have built new subgraphs that contain
-        // it during points-to analysis
-        bool ret = dg.getCallSites(slicing_criterion.c_str(), &callsites);
-        bool got_slicing_criterion = true;
-        if (!ret) {
-            if (slicing_criterion == "ret") {
-                callsites.insert(dg.getExit());
-            } else {
-                errs() << "Did not find slicing criterion: "
-                       << slicing_criterion << "\n";
-                got_slicing_criterion = false;
-            }
-        }
-
-        // we also do not want to remove any assumptions
-        // about the code
-        // FIXME add command line switch that
-        // will add these according to user's will
-        // (or extend the slicing criterion to be a list)
-        const char *sc[] = {
-            "__VERIFIER_assume",
-            "klee_assume",
-            NULL // termination
-        };
-
-        dg.getCallSites(sc, &callsites);
-
-        // if we found slicing criterion, compute the rest
-        // of the graph. Otherwise just slice away the whole graph
-        // Also count the edges when user wants to annotate
-        // the file - due to debugging
-        if (got_slicing_criterion || (opts & ANNOTATE))
-            computeEdges();
-
-        // don't go through the graph when we know the result:
-        // only empty main will stay there. Just delete the body
-        // of main and keep the return value
-        if (!got_slicing_criterion)
-            return createEmptyMain(M);
-
-        LLVMSlicer slicer;
-        uint32_t slid = 0xdead;
-
-        // do not slice __VERIFIER_assume at all
-        // FIXME: do this optional
-        slicer.keepFunctionUntouched("__VERIFIER_assume");
-
-        tm.start();
-        for (LLVMNode *start : callsites)
-            slid = slicer.mark(start, slid);
-
-        // print debugging llvm IR if user asked for it
-        if (opts & ANNOTATE)
-            annotate(M, opts, RD.get());
-
-        slicer.slice(&dg, nullptr, slid);
-
-        tm.stop();
-        tm.report("INFO: Slicing dependence graph took");
-
-        analysis::SlicerStatistics& st = slicer.getStatistics();
-        errs() << "INFO: Sliced away " << st.nodesRemoved
-               << " from " << st.nodesTotal << " nodes in DG\n";
-
-        return true;
-    }
+    LLVMSlicer slicer;
 
     virtual void computeEdges()
     {
@@ -600,22 +521,110 @@ protected:
 
     // for old slicer -- without creating a pointer analysis
     Slicer(llvm::Module *mod, uint32_t o, bool /* no pta */)
-    :M(mod), opts(o)
-    {
+    :M(mod), opts(o) {
         assert(mod && "Need module");
     }
+
 public:
     Slicer(llvm::Module *mod, uint32_t o)
     :M(mod), opts(o),
      PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)),
-      RD(new LLVMReachingDefinitions(mod, PTA.get()))
-    {
+      RD(new LLVMReachingDefinitions(mod, PTA.get())) {
         assert(mod && "Need module");
     }
-
     const LLVMDependenceGraph& getDG() const { return dg; }
+    LLVMDependenceGraph& getDG() { return dg; }
 
-    virtual bool slice()
+    // shared by old and new analyses
+    bool mark()
+    {
+        debug::TimeMeasure tm;
+        std::set<LLVMNode *> callsites;
+
+        assert(!slicing_criterion.empty() && "Do not have the slicing criterion");
+
+        // check for slicing criterion here, because
+        // we might have built new subgraphs that contain
+        // it during points-to analysis
+        bool ret = dg.getCallSites(slicing_criterion.c_str(), &callsites);
+        bool got_slicing_criterion = true;
+        if (!ret) {
+            if (slicing_criterion == "ret") {
+                callsites.insert(dg.getExit());
+            } else {
+                errs() << "Did not find slicing criterion: "
+                       << slicing_criterion << "\n";
+                got_slicing_criterion = false;
+            }
+        }
+
+        // if we found slicing criterion, compute the rest
+        // of the graph. Otherwise just slice away the whole graph
+        // Also count the edges when user wants to annotate
+        // the file - due to debugging
+        if (got_slicing_criterion || (opts & ANNOTATE))
+            computeEdges();
+
+        // don't go through the graph when we know the result:
+        // only empty main will stay there. Just delete the body
+        // of main and keep the return value
+        if (!got_slicing_criterion)
+            return createEmptyMain(M);
+
+        slice_id = 0xdead;
+        // we also do not want to remove any assumptions
+        // about the code
+        // FIXME add command line switch that
+        // will add these according to user's will
+        // (or extend the slicing criterion to be a list)
+        const char *sc[] = {
+            "__VERIFIER_assume",
+            "klee_assume",
+            NULL // termination
+        };
+
+        dg.getCallSites(sc, &callsites);
+
+        // do not slice __VERIFIER_assume at all
+        // FIXME: do this optional
+        slicer.keepFunctionUntouched("__VERIFIER_assume");
+        tm.start();
+        for (LLVMNode *start : callsites)
+            slice_id = slicer.mark(start, slice_id);
+
+        tm.stop();
+        tm.report("INFO: Finding dependent nodes took");
+
+        // print debugging llvm IR if user asked for it
+        if (opts & ANNOTATE)
+            annotate(M, opts, RD.get());
+
+        return true;
+    }
+
+    bool slice()
+    {
+        if (slice_id == 0) {
+            if (!mark())
+                return false;
+        }
+
+        debug::TimeMeasure tm;
+
+        tm.start();
+        slicer.slice(&dg, nullptr, slice_id);
+
+        tm.stop();
+        tm.report("INFO: Slicing dependence graph took");
+
+        analysis::SlicerStatistics& st = slicer.getStatistics();
+        errs() << "INFO: Sliced away " << st.nodesRemoved
+               << " from " << st.nodesTotal << " nodes in DG\n";
+
+        return true;
+    }
+
+    virtual bool buildDG()
     {
         debug::TimeMeasure tm;
 
@@ -633,7 +642,14 @@ public:
 
         dg.build(&*M, PTA.get());
 
-        return sliceGraph();
+        // verify if the graph is built correctly
+        // FIXME - do it optionally (command line argument)
+        if (!dg.verify()) {
+            errs() << "ERR: verifying failed\n";
+            return false;
+        }
+
+        return true;
     }
 };
 
@@ -668,7 +684,7 @@ public:
     SlicerOld(llvm::Module *mod, uint32_t o = 0)
         :Slicer(mod, o, true /* no new pta */) {}
 
-    virtual bool slice()
+    virtual bool buildDG()
     {
         debug::TimeMeasure tm;
 
@@ -677,8 +693,10 @@ public:
 
         // verify if the graph is built correctly
         // FIXME - do it optionally (command line argument)
-        if (!dg.verify())
+        if (!dg.verify()) {
             errs() << "ERR: verifying failed\n";
+            return false;
+        }
 
         analysis::LLVMPointsToAnalysis PTA(&dg);
 
@@ -687,7 +705,7 @@ public:
         tm.stop();
         tm.report("INFO: Points-to analysis [old] took");
 
-        return sliceGraph();
+        return true;
     }
 };
 
@@ -817,6 +835,19 @@ static bool verify_module(llvm::Module *M)
 #endif
 }
 
+static void replace_suffix(std::string& fl, const std::string& with)
+{
+    if (fl.size() > 2) {
+        if (fl.compare(fl.size() - 2, 2, ".o") == 0)
+            fl.replace(fl.end() - 2, fl.end(), with);
+        else if (fl.compare(fl.size() - 3, 3, ".bc") == 0)
+            fl.replace(fl.end() - 3, fl.end(), with);
+        else
+            fl += with;
+    } else {
+        fl += with;
+    }
+}
 static bool write_module(llvm::Module *M)
 {
     // compose name if not given
@@ -825,17 +856,7 @@ static bool write_module(llvm::Module *M)
         fl = output;
     } else {
         fl = llvmfile;
-
-        if (fl.size() > 2) {
-            if (fl.compare(fl.size() - 2, 2, ".o") == 0)
-                fl.replace(fl.end() - 2, fl.end(), ".sliced");
-            else if (fl.compare(fl.size() - 3, 3, ".bc") == 0)
-                fl.replace(fl.end() - 3, fl.end(), ".sliced");
-            else
-                fl += ".sliced";
-        } else {
-            fl += ".sliced";
-        }
+        replace_suffix(fl, ".sliced");
     }
 
     // open stream to write to
@@ -873,6 +894,28 @@ static int save_module(llvm::Module *M,
         return verify_and_write_module(M);
     else
         return write_module(M);
+}
+
+static void dump_dg_to_dot(LLVMDependenceGraph& dg, bool bb_only = false,
+                           uint32_t dump_opts = debug::PRINT_DD | debug::PRINT_CD,
+                           const char *suffix = nullptr)
+{
+    // compose new name
+    std::string fl(llvmfile);
+    if (suffix)
+        replace_suffix(fl, suffix);
+    else
+        replace_suffix(fl, ".dot");
+
+    errs() << "INFO: Dumping DG to to " << fl << "\n";
+
+    if (bb_only) {
+        debug::LLVMDGDumpBlocks dumper(&dg, dump_opts, fl.c_str());
+        dumper.dump();
+    } else {
+        debug::LLVMDG2Dot dumper(&dg, dump_opts, fl.c_str());
+        dumper.dump();
+    }
 }
 
 static uint32_t parseAnnotationOpt(const std::string& opt)
@@ -928,6 +971,20 @@ int main(int argc, char *argv[])
         llvm::cl::desc("Print statistics about slicing (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> dump_dg("dump-dg",
+        llvm::cl::desc("Dump dependence graph to dot (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+    llvm::cl::opt<bool> dump_dg_only("dump-dg-only",
+        llvm::cl::desc("Only dump dependence graph to dot,"
+                       " do not slice the module (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+    llvm::cl::opt<bool> bb_only("dump-bb-only",
+        llvm::cl::desc("Only dump basic blocks of dependence graph to dot"
+                       " (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<std::string> annot("annotate",
         llvm::cl::desc("Save annotated version of module as a text (.ll).\n"
                        "(dd: data dependencies, cd:control dependencies,\n"
@@ -943,6 +1000,10 @@ int main(int argc, char *argv[])
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
     uint32_t opts = parseAnnotationOpt(annot);
+    uint32_t dump_opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD;
+    // dump_dg_only implies dumg_dg
+    if (dump_dg_only)
+        dump_dg = true;
 
 #if (LLVM_VERSION_MINOR < 5)
     M = llvm::ParseIRFile(llvmfile, SMD, context);
@@ -981,9 +1042,31 @@ int main(int argc, char *argv[])
     else
         slicer = std::unique_ptr<Slicer>(new Slicer(M, opts));
 
-    if (!slicer->slice()) {
-        errs() << "ERR: Slicing failed\n";
+    // build the dependence graph, so that we can dump it if desired
+    if (!slicer->buildDG()) {
+        errs() << "ERROR: Failed building DG\n";
         return 1;
+    }
+
+    // mark nodes that are going to be in the slice
+    slicer->mark();
+
+    if (dump_dg) {
+        dump_dg_to_dot(slicer->getDG(), bb_only, dump_opts);
+
+        if (dump_dg_only)
+            return 0;
+    }
+
+    // slice the graph
+    if (!slicer->slice()) {
+        errs() << "ERROR: Slicing failed\n";
+        return 1;
+    }
+
+    if (dump_dg) {
+        dump_dg_to_dot(slicer->getDG(), bb_only,
+                       dump_opts, ".sliced.dot");
     }
 
     // remove unused from module again, since slicing

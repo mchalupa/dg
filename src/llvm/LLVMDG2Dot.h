@@ -1,4 +1,7 @@
-
+#include <iostream>
+#include <ostream>
+#include <sstream>
+#include <string>
 
 #include "DG2Dot.h"
 #include "llvm/LLVMNode.h"
@@ -62,9 +65,10 @@ class LLVMDG2Dot : public debug::DG2Dot<LLVMNode>
 {
 public:
 
+    // FIXME: make dg const
     LLVMDG2Dot(LLVMDependenceGraph *dg,
-                  uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD,
-                  const char *file = NULL)
+               uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD,
+               const char *file = NULL)
         : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual */
