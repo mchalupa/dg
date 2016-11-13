@@ -21,6 +21,16 @@ add_library(RD SHARED
 	analysis/ReachingDefinitions/RDMap.cpp
 )
 
+add_library(LLVMpta SHARED
+	llvm/analysis/PointsTo/PointsTo.h
+	llvm/analysis/PointsTo/PointerSubgraph.h
+	llvm/analysis/PointsTo/PointerSubgraph.cpp
+	llvm/analysis/PointsTo/Structure.cpp
+	llvm/analysis/PointsTo/Globals.cpp
+)
+
+target_link_libraries(LLVMpta PTA)
+
 add_library(LLVMdg SHARED
 	BBlock.h
 	Node.h
@@ -39,11 +49,6 @@ add_library(LLVMdg SHARED
 	llvm/analysis/PostDominators.cpp
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.cpp
-	llvm/analysis/PointsTo/PointsTo.h
-	llvm/analysis/PointsTo/PointerSubgraph.h
-	llvm/analysis/PointsTo/PointerSubgraph.cpp
-	llvm/analysis/PointsTo/Structure.cpp
-	llvm/analysis/PointsTo/Globals.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
 	# -- LLVM analysis (old)
@@ -59,8 +64,8 @@ add_library(LLVMdg SHARED
 	llvm/analysis/old/DefMap.cpp
 )
 
-target_link_libraries(LLVMdg PTA RD ${llvm_libs})
-install(TARGETS LLVMdg PTA RD
+target_link_libraries(LLVMdg LLVMpta RD ${llvm_libs})
+install(TARGETS LLVMdg LLVMpta PTA RD
 	LIBRARY DESTINATION lib)
 
 endif(LLVM_DG)
