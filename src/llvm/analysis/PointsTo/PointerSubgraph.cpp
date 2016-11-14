@@ -547,6 +547,8 @@ static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
         default:
             errs() << *CInst << "\n";
             assert(0 && "unknown memory allocation type");
+            // for NDEBUG
+            abort();
     };
 
     // infer allocated size
