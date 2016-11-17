@@ -64,8 +64,19 @@ public:
 
     ~DGParameters<NodeT>()
     {
+        // delete the parameters itself
+        for (const auto& par : *this) {
+            delete par.second.in;
+            delete par.second.out;
+        }
+
+#if ENABLE_CFG
+        // delete auxiliary basic blocks
         delete BBIn;
         delete BBOut;
+#endif
+
+        // delete vararg argument
         delete vararg;
     }
 
@@ -163,8 +174,7 @@ public:
     const DGParameter<NodeT>* getVarArg() const { return vararg; }
     bool setVarArg(NodeT *in, NodeT *out)
     {
-        if (vararg)
-            return false;
+        assert(!vararg && "Already has a vararg parameter");
 
         vararg = new DGParameter<NodeT>(in, out);
         return true;

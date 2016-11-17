@@ -147,12 +147,10 @@ public:
     DGParameters<NodeT> *getParameters() const { return formalParameters;}
 
     // set new parameters of this graph.
-    // \return old parameters of the graph
-    DGParameters<NodeT> *setParameters(DGParameters<NodeT> *p)
+    void setParameters(DGParameters<NodeT> *p)
     {
-        DGParameters<NodeT> *old = formalParameters;
+        assert(!formalParameters && "Already have formal parameters");
         formalParameters = p;
-        return old;
     }
 
     // Get node from graph for key. The function searches in nodes,

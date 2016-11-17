@@ -82,15 +82,8 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
                     subgraph->unref(subgraph != this);
             }
 
-            LLVMDGParameters *params = node->getParameters();
-            if (params) {
-                for (const auto& par : *params) {
-                    delete par.second.in;
-                    delete par.second.out;
-                }
-
-                delete params;
-            }
+            // delete parameters (on null it is no op)
+            delete node->getParameters();
 
 #ifdef ENABLE_DEBUG
             if (!node->getBBlock()
@@ -111,6 +104,9 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
         for (auto& it : *global_nodes)
             delete it.second;
     }
+
+    // delete formal parameters
+    delete getParameters();
 
     // delete post-dominator tree root
     delete getPostDominatorTreeRoot();
