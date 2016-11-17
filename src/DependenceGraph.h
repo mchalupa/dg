@@ -98,7 +98,28 @@ public:
     {
     }
 
-    virtual ~DependenceGraph<NodeT>() {}
+    virtual ~DependenceGraph<NodeT>() {
+#ifdef ENABLE_CFG
+#ifdef ENABLE_DEBUG
+        bool deleted_entry = false;
+        bool deleted_exit = false;
+#endif // ENABLE_DEBUG
+        for (auto& it : _blocks) {
+#ifdef ENABLE_DEBUG
+            if (it.second == entryBB)
+                deleted_entry = true;
+            else if (it.second == exitBB);
+                deleted_exit = true;
+#endif // ENABLE_DEBUG
+            delete it.second;
+        }
+
+#ifdef ENABLE_DEBUG
+        assert(deleted_entry && "Did not have entry in _blocks");
+        assert(deleted_exit && "Did not have exit in _blocks");
+#endif // ENABLE_DEBUG
+#endif
+    }
 
     // iterators for local nodes
     iterator begin(void) { return nodes.begin(); }
@@ -126,12 +147,10 @@ public:
     DGParameters<NodeT> *getParameters() const { return formalParameters;}
 
     // set new parameters of this graph.
-    // \return old parameters of the graph
-    DGParameters<NodeT> *setParameters(DGParameters<NodeT> *p)
+    void setParameters(DGParameters<NodeT> *p)
     {
-        DGParameters<NodeT> *old = formalParameters;
+        assert(!formalParameters && "Already have formal parameters");
         formalParameters = p;
-        return old;
     }
 
     // Get node from graph for key. The function searches in nodes,
@@ -323,7 +342,7 @@ public:
 
     bool deleteNode(NodeT *n)
     {
-        return removeNode(n->getKey());
+        return deleteNode(n->getKey());
     }
 
     bool deleteNode(KeyT k)
@@ -383,9 +402,8 @@ public:
     BBlocksMapT& getBlocks() { return _blocks; }
     const BBlocksMapT& getBlocks() const { return _blocks; }
     // add block to this graph
-    bool addBlock(KeyT key, BBlock<NodeT> *B)
-    {
-        return _blocks.insert(std::make_pair(key, B)).second;
+    bool addBlock(KeyT key, BBlock<NodeT> *B) {
+        return _blocks.emplace(key, B).second;
     }
 
     bool removeBlock(KeyT key)

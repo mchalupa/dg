@@ -63,6 +63,8 @@ class LLVMPointerSubgraphBuilder
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *, PSNodesSeq> built_blocks;
+    // helper nodes, here we store them to delete the memory later
+    std::vector<PSNode *> dummy_nodes;
 
 public:
     // \param field_sensitivity -- how much should be the PS field sensitive:
@@ -73,31 +75,7 @@ public:
         : M(m), DL(new llvm::DataLayout(m)), field_sensitivity(field_sensitivity)
         {}
 
-    ~LLVMPointerSubgraphBuilder()
-    {
-        // delete the created nodes
-        for (auto& it : nodes_map) {
-            PSNode *node = it.second.first;
-            while (node) {
-                PSNode *cur = node;
-
-                if (cur == it.second.second)
-                    node = nullptr;
-                else
-                    node = node->getSingleSuccessor();
-
-                delete cur;
-            }
-        }
-
-        // delete allocated memory in subgraph structures
-        for (auto& it : subgraphs_map) {
-            delete it.second.root;
-            delete it.second.ret;
-        }
-
-        delete DL;
-    }
+    ~LLVMPointerSubgraphBuilder();
 
     PSNode *buildLLVMPointerSubgraph();
 

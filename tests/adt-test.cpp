@@ -102,7 +102,7 @@ public:
 }; // namespace tests
 }; // namespace dg
 
-int main(int argc, char *argv[])
+int main()
 {
     using namespace dg::tests;
     TestRunner Runner;

@@ -141,7 +141,7 @@ public:
     {
         // take every predecessor and reconnect edges from it
         // to successors
-        for (auto pred : prevBBs) {
+        for (BBlock<NodeT> *pred : prevBBs) {
             // find the edge that is going to this node
             // and create new edges to all successors. The new edges
             // will have the same label as the found one
@@ -178,7 +178,7 @@ public:
         prevBBs.clear();
 
         // remove reverse edges to this BB
-        for (auto B : controlDeps) {
+        for (BBlock<NodeT> *B : controlDeps) {
             // we don't want to corrupt the iterator
             // if this block is control dependent on itself.
             // We're gonna clear it anyway
@@ -190,7 +190,7 @@ public:
 
         // clear also cd edges that blocks have
         // to this block
-        for (auto B : revControlDeps) {
+        for (BBlock<NodeT> *B : revControlDeps) {
             if (B == this)
                 continue;
 
@@ -287,7 +287,7 @@ public:
         // approx
         for (auto& edge : nextBBs) {
             if (edge.target != target)
-                tmp.insert(std::move(edge));
+                tmp.insert(edge);
             else
                 ++removed;
         }

@@ -17,6 +17,7 @@ using analysis::pta::Pointer;
 using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 
+/*
 #ifdef DEBUG_ENABLED
 static void
 dumpPSNode(PSNode *n)
@@ -37,6 +38,7 @@ dumpPSNode(PSNode *n)
     }
 }
 #endif
+*/
 
 template <typename PTStoT>
 class PointsToTest : public Test

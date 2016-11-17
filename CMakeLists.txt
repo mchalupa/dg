@@ -36,6 +36,9 @@ if (LLVM_DG)
 	message(STATUS "LLVM libraries dir: ${LLVM_LIBRARY_DIRS}")
 	message(STATUS "LLVM definitions: ${LLVM_DEFINITIONS}")
 
+	include_directories(${LLVM_INCLUDE_DIRS})
+	link_directories(${LLVM_LIBRARY_DIRS})
+
 	# if we were provided a path to custom sources
 	# use that path
 	if (LLVM_SRC_PATH)
@@ -84,6 +87,10 @@ message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 # on some systems. For the -fno-rtti: LLVM still got problems
 # with turning RTTI off...
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -Wall -Wextra")
+
+if (USE_CLANG_SANITIZERS)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+endif()
 
 # Debug Release RelWithDebInfo MinSizeRel.
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")

@@ -82,35 +82,31 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
                     subgraph->unref(subgraph != this);
             }
 
-            LLVMDGParameters *params = node->getParameters();
-            if (params) {
-                for (const auto& par : *params) {
-                    delete par.second.in;
-                    delete par.second.out;
-                }
+            // delete parameters (on null it is no op)
+            delete node->getParameters();
 
-                delete params;
-            }
-
+#ifdef ENABLE_DEBUG
             if (!node->getBBlock()
                 && !llvm::isa<llvm::Function>(*I->first))
                 llvmutils::printerr("Had no BB assigned", I->first);
+#endif // ENABLE_DEBUG
 
             delete node;
         } else {
+#ifdef ENABLE_DEBUG
             llvmutils::printerr("Had no node assigned", I->first);
+#endif // ENABLE_DEBUG
         }
     }
-
-    // delete blocks
-    for (auto& it : getBlocks())
-        delete it.second;
 
     // delete global nodes if this is the last graph holding them
     if (global_nodes && global_nodes.use_count() == 1) {
         for (auto& it : *global_nodes)
             delete it.second;
     }
+
+    // delete formal parameters
+    delete getParameters();
 
     // delete post-dominator tree root
     delete getPostDominatorTreeRoot();
