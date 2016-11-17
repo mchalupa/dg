@@ -958,7 +958,7 @@ static uint32_t parseAnnotationOpt(const std::string& opt)
 
 int main(int argc, char *argv[])
 {
-    llvm::sys::PrintStackTraceOnErrorSignal();
+    llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
     llvm::PrettyStackTraceProgram X(argc, argv);
 
     llvm::Module *M = nullptr;

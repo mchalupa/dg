@@ -42,7 +42,8 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         pdtree->runOnFunction(f);
 #else
         PostDominatorTreeAnalysis PDT;
-        pdtree = new PostDominatorTree(PDT.run(f));
+        FunctionAnalysisManager DummyFAM;
+        pdtree = new PostDominatorTree(PDT.run(f, DummyFAM));
 #endif
 
         // add immediate post-dominator edges
