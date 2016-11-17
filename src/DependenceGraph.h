@@ -344,7 +344,7 @@ public:
 
     bool deleteNode(NodeT *n)
     {
-        return removeNode(n->getKey());
+        return deleteNode(n->getKey());
     }
 
     bool deleteNode(KeyT k)
