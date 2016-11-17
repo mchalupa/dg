@@ -151,6 +151,36 @@ bool LLVMPointerSubgraphBuilder::typeCanBePointer(llvm::Type *Ty) const
     return false;
 }
 
+
+LLVMPointerSubgraphBuilder::~LLVMPointerSubgraphBuilder()
+{
+    // delete the created nodes
+    for (auto& it : nodes_map) {
+        PSNode *node = it.second.first;
+        while (node) {
+            PSNode *cur = node;
+
+            if (cur == it.second.second)
+                node = nullptr;
+            else
+                node = node->getSingleSuccessor();
+
+            delete cur;
+        }
+    }
+
+    // delete allocated memory in subgraph structures
+    for (auto& it : subgraphs_map) {
+        delete it.second.root;
+        delete it.second.ret;
+    }
+
+    for (PSNode *dummy : dummy_nodes)
+        delete dummy;
+
+    delete DL;
+}
+
 Pointer LLVMPointerSubgraphBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I)
 {
     using namespace llvm;
@@ -613,8 +643,12 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
 
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
-    returnNode = new PSNode(pta::CALL_RETURN, nullptr);
     callNode = new PSNode(pta::CALL, nullptr);
+    returnNode = new PSNode(pta::CALL_RETURN, nullptr);
+
+    // save the returnNode to dummy_nodes, to delete the
+    // memory at destruction.  The call nodes will be stored to nodes_map.
+    dummy_nodes.push_back(returnNode);
 
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
