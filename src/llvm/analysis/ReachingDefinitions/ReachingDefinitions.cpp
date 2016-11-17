@@ -687,7 +687,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     pta::PSNode *pts = PTA->getPointsTo(dest);
     assert(pts && "No points-to information");
 
-    uint64_t len;
+    uint64_t len = UNKNOWN_OFFSET;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
         len = C->getLimitedValue();
 
@@ -695,8 +695,11 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
         if (!ptr.isValid())
             continue;
 
-        uint64_t from;
-        uint64_t to;
+        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+        if (llvm::isa<llvm::Function>(ptrVal))
+            continue;
+
+        uint64_t from, to;
         if (ptr.offset.isUnknown()) {
             // if the offset is UNKNOWN, use whole memory
             from = UNKNOWN_OFFSET;
@@ -705,15 +708,11 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             from = *ptr.offset;
         }
 
-        if (len != ~((uint64_t) 0))
-            // do not allow overflow
+        // do not allow overflow
+        if (UNKNOWN_OFFSET - from > len)
             to = from + len;
         else
             to = UNKNOWN_OFFSET;
-
-        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        if (llvm::isa<llvm::Function>(ptrVal))
-            continue;
 
         RDNode *target = getOperand(ptrVal);
         assert(target && "Don't have pointer target for intrinsic call");
