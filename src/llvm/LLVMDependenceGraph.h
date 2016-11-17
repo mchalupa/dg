@@ -51,7 +51,7 @@ public:
         : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}
 
     // free all allocated memory and unref subgraphs
-    virtual ~LLVMDependenceGraph();
+    ~LLVMDependenceGraph();
 
     // build a DependenceGraph from module. This method will
     // build all subgraphs (called procedures). If entry is nullptr,
