@@ -533,18 +533,23 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
 
     // reuse built subgraphs if available, so that we won't get
     // stuck in infinite loop with recursive functions
-    Subgraph& subg = subgraphs_map[F];
-    if (!subg.root)
+    RDNode *root, *ret;
+    auto it = subgraphs_map.find(F);
+    if (it == subgraphs_map.end()) {
         // create a new subgraph
-        std::tie(subg.root, subg.ret) = buildFunction(*F);
+        std::tie(root, ret) = buildFunction(*F);
+    } else {
+        root = it->second.root;
+        ret = it->second.ret;
+    }
 
-    assert(subg.root && subg.ret);
+    assert(root && ret && "Incomplete subgraph");
 
     // add an edge from last argument to root of the subgraph
     // and from the subprocedure return node (which is one - unified
     // for all return nodes) to return from the call
-    callNode->addSuccessor(subg.root);
-    subg.ret->addSuccessor(returnNode);
+    callNode->addSuccessor(root);
+    ret->addSuccessor(returnNode);
 
     return std::make_pair(callNode, returnNode);
 }
@@ -561,6 +566,9 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     // optimized away later since they are noops
     RDNode *root = new RDNode(NOOP);
     RDNode *ret = new RDNode(NOOP);
+
+    // emplace new subgraph to avoid looping with recursive functions
+    subgraphs_map.emplace(&F, Subgraph(root, ret));
 
     RDNode *first = nullptr;
     for (const llvm::BasicBlock& block : F) {
@@ -860,10 +868,6 @@ RDNode *LLVMRDBuilder::build()
     std::tie(root, ret) = buildFunction(*F);
     assert(root && "Do not have a root node of a function");
     assert(ret && "Do not have a ret node of a function");
-
-    // delete the memory on destruction
-    dummy_nodes.push_back(root);
-    dummy_nodes.push_back(ret);
 
     // do we have any globals at all? If so, insert them at the begining
     // of the graph
