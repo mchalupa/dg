@@ -1,6 +1,15 @@
 #ifndef _LLVM_DG_SLICER_H_
 #define _LLVM_DG_SLICER_H_
 
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <llvm/Config/llvm-config.h>
 #if (LLVM_VERSION_MINOR < 5)
  #include <llvm/Support/CFG.h>
@@ -14,6 +23,12 @@
 #include <llvm/IR/GlobalVariable.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include "analysis/Slicing.h"
 #include "LLVMDependenceGraph.h"
