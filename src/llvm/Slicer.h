@@ -261,7 +261,10 @@ private:
                                     UndefValue::get(F->getReturnType()),
                                     block);
 
-        exitBB->append(new LLVMNode(RI));
+        LLVMNode *newRet = new LLVMNode(RI);
+        graph->addNode(newRet);
+
+        exitBB->append(newRet);
         exitBB->setKey(block);
         exitBB->setDG(graph);
 
@@ -417,6 +420,7 @@ private:
         if (newExitBB) {
             graph->addBlock(newExitBB->getKey(), newExitBB);
             oldExitBB->remove();
+            assert(graph->getExitBB() == newExitBB);
         }
     }
 
