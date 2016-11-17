@@ -94,7 +94,7 @@ private:
     RDNode *createReturn(const llvm::Instruction *Inst);
 
     std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);
-    RDNode *buildFunction(const llvm::Function& F);
+    std::pair<RDNode *, RDNode *> buildFunction(const llvm::Function& F);
 
     std::pair<RDNode *, RDNode *> buildGlobals();
 
