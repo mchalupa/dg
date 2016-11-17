@@ -466,9 +466,8 @@ PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
         // 'a' is int but is assigned an address of 'b', which leads
         // to creating an inttoptr/ptrtoint instructions that
         // have forexample 'i32 3' as operand
-        asm("int3");
         llvm::errs() << "Invalid value leading to UNKNOWN: " << *val << "\n";
-        return  createUnknown(val);
+        return createUnknown(val);
     }
 }
 
