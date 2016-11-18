@@ -46,7 +46,9 @@ static void get_lines_from_module(const Module *M, std::set<unsigned>& lines)
         for (const BasicBlock& B : F) {
             for (const Instruction& I : B) {
                 const DebugLoc& Loc = I.getDebugLoc();
-                lines.insert(Loc.getLine());
+                //Make sure that the llvm istruction has corresponding dbg LOC
+                if (Loc)
+                    lines.insert(Loc.getLine());
             }
         }
     }
