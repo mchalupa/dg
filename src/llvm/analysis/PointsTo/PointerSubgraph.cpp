@@ -693,6 +693,8 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
         add_structure = true;
 
     PSNodesSeq ret = createCallToFunction(F);
+    dummy_nodes.push_back(ret.first);
+    //dummy_nodes.push_back(ret.second);
 
     // we took a reference
     assert(subg.root);
@@ -905,6 +907,8 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         PSNode *op = getOperand(calledVal);
         PSNode *call_funcptr = new PSNode(pta::CALL_FUNCPTR, op);
         PSNode *ret_call = new PSNode(RETURN, nullptr);
+
+        dummy_nodes.push_back(ret_call);
 
         ret_call->setPairedNode(call_funcptr);
         call_funcptr->setPairedNode(ret_call);
