@@ -62,6 +62,13 @@ public:
         }
     }
 
+    ~BBlock<NodeT>() {
+        if (delete_nodes_on_destr) {
+            for (NodeT *nd : nodes)
+                delete nd;
+        }
+    }
+
     typedef EdgesContainer<BBlock<NodeT>> BBlockContainerT;
     // we don't need labels with predecessors
     typedef EdgesContainer<BBlock<NodeT>> PredContainerT;
@@ -398,6 +405,10 @@ public:
 
     uint64_t getSlice() const { return slice_id; }
 
+    void deleteNodesOnDestruction(bool v = true) {
+        delete_nodes_on_destr = v;
+    }
+
 private:
     // optional key
     KeyT key;
@@ -426,6 +437,9 @@ private:
 
     // is this block in some slice?
     uint64_t slice_id;
+
+    // delete nodes on destruction of the block
+    bool delete_nodes_on_destr = false;
 
     // auxiliary data for analyses
     std::set<NodeT *> callSites;

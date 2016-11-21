@@ -46,6 +46,8 @@ typedef dg::BBlock<LLVMNode> LLVMBBlock;
 /// ------------------------------------------------------------------
 class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
+    // our artificial unified exit block
+    std::unique_ptr<LLVMBBlock> unifiedExitBB;
 public:
     LLVMDependenceGraph()
         : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}
