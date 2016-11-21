@@ -804,6 +804,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 
                 std::pair<RDNode *, RDNode *> cf
                     = createCallToFunction(F);
+                dummy_nodes.push_back(cf.first);
 
                 // connect the graphs
                 if (!call_funcptr) {
@@ -813,6 +814,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     call_funcptr = new RDNode(CALL);
                     ret_call = new RDNode(CALL_RETURN);
                     addNode(CInst, call_funcptr);
+                    dummy_nodes.push_back(ret_call);
                 }
 
                 call_funcptr->addSuccessor(cf.first);
@@ -830,6 +832,8 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     return std::make_pair(n, n);
                 } else if (llvmutils::callIsCompatible(F, CInst)) {
                     std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
+                    dummy_nodes.push_back(cf.first);
+
                     call_funcptr = cf.first;
                     ret_call = cf.second;
                 }
