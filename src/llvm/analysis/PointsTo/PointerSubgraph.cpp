@@ -130,13 +130,33 @@ static inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
 
-static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
+static uint64_t getConstantValue(const llvm::Value *op)
 {
-    // Type can be i8 *null or similar
+    using namespace llvm;
+
+    uint64_t size = 0;
+    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
+        size = C->getLimitedValue();
+        // if the size cannot be expressed as an uint64_t,
+        // just set it to 0 (that means unknown)
+        if (size == ~((uint64_t) 0))
+            size = 0;
+    }
+
+    return size;
+}
+
+static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
+                                 const llvm::DataLayout *DL)
+{
+    llvm::Type *Ty = AI->getAllocatedType();
     if (!Ty->isSized())
             return 0;
 
-    return DL->getTypeAllocSize(Ty);
+    if (AI->isArrayAllocation())
+        return getConstantValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
+    else
+        return DL->getTypeAllocSize(Ty);
 }
 
 bool LLVMPointerSubgraphBuilder::typeCanBePointer(llvm::Type *Ty) const
@@ -210,22 +230,6 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantIntToPtr(const llvm::IntToPtrI
            && "Constant PtrToInt with not only one pointer");
 
     return *op->pointsTo.begin();
-}
-
-static uint64_t getConstantValue(const llvm::Value *op)
-{
-    using namespace llvm;
-
-    uint64_t size = 0;
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
-        size = C->getLimitedValue();
-        // if the size cannot be expressed as an uint64_t,
-        // just set it to 0 (that means unknown)
-        if (size == ~((uint64_t) 0))
-            size = 0;
-    }
-
-    return size;
 }
 
 Pointer LLVMPointerSubgraphBuilder::handleConstantAdd(const llvm::Instruction *Inst)
@@ -927,7 +931,7 @@ PSNode *LLVMPointerSubgraphBuilder::createAlloc(const llvm::Instruction *Inst)
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
     if (AI)
-        node->setSize(getAllocatedSize(AI->getAllocatedType(), DL));
+        node->setSize(getAllocatedSize(AI, DL));
 
     return node;
 }
