@@ -623,9 +623,16 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
         const Value *llvmOp = CInst->getArgOperand(i);
 
-        // constants cannot be redefined
-        if (isa<Constant>(llvmOp))
-            continue;
+        // constants cannot be redefined except for global variables
+        // (that are constant, but may point to non constant memory
+        const Value *strippedValue = llvmOp->stripPointerCasts();
+        if (isa<Constant>(strippedValue)) {
+            const GlobalVariable *GV = dyn_cast<GlobalVariable>(strippedValue);
+            // if the constant is not global variable,
+            // or the global variable points to constant memory
+            if (!GV || GV->isConstant())
+                continue;
+        }
 
         pta::PSNode *pts = PTA->getPointsTo(llvmOp);
         // if we do not have a pts, this is not pointer
