@@ -156,6 +156,26 @@ dumpDefines(RDNode *node, bool dot = false)
 }
 
 static void
+dumpOverwrites(RDNode *node, bool dot = false)
+{
+    for (const DefSite& def : node->getOverwrites()) {
+        printf("DEF strong: ");
+        printName(def.target, dot);
+            if (def.offset.isUnknown())
+                printf(" [ UNKNOWN ]");
+            else
+                printf(" [ %lu - %lu ]", *def.offset,
+                       *def.offset + *def.len - 1);
+
+            if (dot)
+                printf("\\n");
+            else
+                putchar('\n');
+    }
+}
+
+
+static void
 dumpRDNode(RDNode *n)
 {
     printf("NODE: ");
@@ -180,6 +200,8 @@ dumpRDdot(LLVMReachingDefinitions *RD)
         printf("\\n-------------\\n");
         if (verbose) {
             dumpDefines(node, true);
+            printf("-------------\\n");
+            dumpOverwrites(node, true);
             printf("-------------\\n");
         }
             dumpMap(node, true /* dot */);

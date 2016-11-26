@@ -63,6 +63,7 @@ public:
 
     RDNodeType getType() const { return type; }
     DefSiteSetT& getDefines() { return defs; }
+    DefSiteSetT& getOverwrites() { return overwrites; }
     const DefSiteSetT& getDefines() const { return defs; }
 
     bool defines(RDNode *target, const Offset& off = UNKNOWN_OFFSET) const
