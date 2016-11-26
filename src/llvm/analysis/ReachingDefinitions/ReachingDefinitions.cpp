@@ -101,7 +101,7 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
 }
 
 // FIXME: don't duplicate the code (with PSS.cpp)
-static uint64_t getDynamicMemorySize(const llvm::Value *op)
+static uint64_t getConstantValue(const llvm::Value *op)
 {
     using namespace llvm;
 
@@ -167,23 +167,81 @@ LLVMRDBuilder::~LLVMRDBuilder() {
         delete nd;
 }
 
-RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst, bool is_heap)
+static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
+                                 const llvm::DataLayout *DL)
 {
-    RDNodeType type = is_heap ? DYN_ALLOC : ALLOC;
-    RDNode *node = new RDNode(type);
+    llvm::Type *Ty = AI->getAllocatedType();
+    if (!Ty->isSized())
+            return 0;
+
+    if (AI->isArrayAllocation())
+        return getConstantValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
+    else
+        return DL->getTypeAllocSize(Ty);
+}
+
+RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
+{
+    RDNode *node = new RDNode(ALLOC);
     addNode(Inst, node);
 
+    if (const llvm::AllocaInst *AI
+            = llvm::dyn_cast<llvm::AllocaInst>(Inst))
+        node->setSize(getAllocatedSize(AI, DL));
+
+    return node;
+}
+
+RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, int type)
+{
+    using namespace llvm;
+
+    RDNode *node = new RDNode(DYN_ALLOC);
+    addNode(Inst, node);
+
+    const CallInst *CInst = cast<CallInst>(Inst);
+    const Value *op;
+    uint64_t size = 0, size2 = 0;
+
+    switch (type) {
+        case MALLOC:
+        case ALLOCA:
+            op = CInst->getOperand(0);
+            break;
+        case CALLOC:
+            op = CInst->getOperand(1);
+            break;
+        default:
+            errs() << *CInst << "\n";
+            assert(0 && "unknown memory allocation type");
+            // for NDEBUG
+            abort();
+    };
+
+    // infer allocated size
+    size = getConstantValue(op);
+    if (size != 0 && type == CALLOC) {
+        // if this is call to calloc, the size is given
+        // in the first argument too
+        size2 = getConstantValue(CInst->getOperand(0));
+        if (size2 != 0)
+            size *= size2;
+    }
+
+    node->setSize(size);
     return node;
 }
 
 RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(ALLOC);
+    RDNode *node = new RDNode(DYN_ALLOC);
     addNode(Inst, node);
 
-    uint64_t size = getDynamicMemorySize(Inst->getOperand(1));
+    uint64_t size = getConstantValue(Inst->getOperand(1));
     if (size == 0)
         size = UNKNOWN_OFFSET;
+    else
+        node->setSize(size);
 
     // realloc defines itself, since it copies the values
     // from previous memory
@@ -759,7 +817,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (type == REALLOC)
                     n = createRealloc(CInst);
                 else
-                    n = createAlloc(CInst, true /* heap */);
+                    n = createDynAlloc(CInst, type);
             } else {
                 n = createUndefinedCall(CInst);
             }

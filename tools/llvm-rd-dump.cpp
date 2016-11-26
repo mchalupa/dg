@@ -180,6 +180,8 @@ dumpRDNode(RDNode *n)
 {
     printf("NODE: ");
     printName(n, false);
+    if (n->getSize() > 0)
+        printf(" [size: %lu]", n->getSize());
     putchar('\n');
     dumpMap(n);
     printf("---\n");
@@ -197,6 +199,8 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     for(RDNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
         printName(node, true);
+        if (node->getSize() > 0)
+            printf("\\n[size: %lu]\\n", node->getSize());
         printf("\\n-------------\\n");
         if (verbose) {
             dumpDefines(node, true);
@@ -242,7 +246,7 @@ int main(int argc, char *argv[])
     bool todot = false;
     const char *module = nullptr;
     uint64_t field_senitivity = UNKNOWN_OFFSET;
-    bool rd_field_insensitive = false;
+    bool rd_strong_update_unknown = false;
     uint32_t max_set_size = ~((uint32_t) 0);
 
     enum {
@@ -264,8 +268,8 @@ int main(int argc, char *argv[])
                 llvm::errs() << "Invalid -rd-max-set-size argument\n";
                 abort();
             }
-        } else if (strcmp(argv[i], "-rd-field-insensitive") == 0) {
-            rd_field_insensitive = true;
+        } else if (strcmp(argv[i], "-rd-strong-update-unknown") == 0) {
+            rd_strong_update_unknown = true;
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
@@ -309,7 +313,7 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Points-to analysis took");
 
-    LLVMReachingDefinitions RD(M, &PTA, rd_field_insensitive, max_set_size);
+    LLVMReachingDefinitions RD(M, &PTA, rd_strong_update_unknown, max_set_size);
     tm.start();
     RD.run();
     tm.stop();

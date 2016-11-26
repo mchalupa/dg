@@ -89,7 +89,8 @@ private:
     }
 
     RDNode *createStore(const llvm::Instruction *Inst);
-    RDNode *createAlloc(const llvm::Instruction *Inst, bool is_heap = false);
+    RDNode *createAlloc(const llvm::Instruction *Inst);
+    RDNode *createDynAlloc(const llvm::Instruction *Inst, int type);
     RDNode *createRealloc(const llvm::Instruction *Inst);
     RDNode *createReturn(const llvm::Instruction *Inst);
 
@@ -113,22 +114,22 @@ class LLVMReachingDefinitions
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
     RDNode *root;
-    bool field_insensitive;
+    bool strong_update_unknown;
     uint32_t max_set_size;
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
                             dg::LLVMPointerAnalysis *pta,
-                            bool field_insens = false,
+                            bool strong_updt_unknown = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
         : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta))),
-          field_insensitive(field_insens), max_set_size(max_set_sz) {}
+          strong_update_unknown(strong_updt_unknown), max_set_size(max_set_sz) {}
 
     void run()
     {
         root = builder->build();
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-            new ReachingDefinitionsAnalysis(root, field_insensitive, max_set_size)
+            new ReachingDefinitionsAnalysis(root, strong_update_unknown, max_set_size)
             );
         RDA->run();
     }
