@@ -32,7 +32,7 @@ class PointerAnalysis
     uint64_t max_offset;
 
     // Flow sensitive flag (contol loop optimization execution)
-    bool flow_sensitive;
+    bool preprocess_geps;
 
 protected:
     // a set of changed nodes that are going to be
@@ -42,19 +42,22 @@ protected:
 
     // protected constructor for child classes
     PointerAnalysis() : PS(nullptr), max_offset(UNKNOWN_OFFSET),
-                         flow_sensitive(false) {}
+                         preprocess_geps(true) {}
 
 public:
     PointerAnalysis(PointerSubgraph *ps,
                     uint64_t max_off = UNKNOWN_OFFSET,
-                    bool flow_sens = false)
-    : PS(ps), max_offset(max_off), flow_sensitive(flow_sens)
+                    bool prepro_geps = true)
+    : PS(ps), max_offset(max_off), preprocess_geps(prepro_geps)
     {
         assert(PS && "Need valid PointerSubgraph object");
 
         // compute the strongly connected components
-        SCC<PSNode> scc_comp;
-        SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        if (prepro_geps)
+        {
+            SCC<PSNode> scc_comp;
+            SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        }
     }
 
     virtual ~PointerAnalysis() {}
@@ -115,7 +118,7 @@ public:
         assert(root && "Do not have root of PS");
 
         // do some optimizations
-        if (!flow_sensitive)
+        if (preprocess_geps)
             preprocessGEPs();
 
         // rely on C++11 move semantics

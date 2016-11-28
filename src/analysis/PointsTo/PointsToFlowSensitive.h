@@ -19,7 +19,7 @@ public:
     // this is an easy but not very efficient implementation,
     // works for testing
     PointsToFlowSensitive(PointerSubgraph *ps) : PointerAnalysis(ps,
-                                                 UNKNOWN_OFFSET, true) {}
+                                                 UNKNOWN_OFFSET, false) {}
 
     virtual void beforeProcessed(PSNode *n)
     {
