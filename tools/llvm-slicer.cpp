@@ -121,6 +121,12 @@ llvm::cl::opt<uint64_t> pta_field_sensitivie("pta-field-sensitive",
                    llvm::cl::value_desc("N"), llvm::cl::init(UNKNOWN_OFFSET),
                    llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> rd_strong_update_unknown("rd-strong-update-unknown",
+    llvm::cl::desc("Let reaching defintions analysis do strong updates on memory defined\n"
+                   "with uknown offset in the case, that new definition overwrites\n"
+                   "the whole memory. May be unsound for out-of-bound access\n"),
+                   llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<PtaType> pta("pta",
     llvm::cl::desc("Choose pointer analysis to use:"),
     llvm::cl::values(
@@ -530,7 +536,7 @@ public:
     Slicer(llvm::Module *mod, uint32_t o)
     :M(mod), opts(o),
      PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)),
-      RD(new LLVMReachingDefinitions(mod, PTA.get())) {
+      RD(new LLVMReachingDefinitions(mod, PTA.get(), rd_strong_update_unknown)) {
         assert(mod && "Need module");
     }
     const LLVMDependenceGraph& getDG() const { return dg; }

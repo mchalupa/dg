@@ -31,6 +31,8 @@ protected:
     // XXX: maybe we could use SmallPtrVector or something like that
     std::vector<NodeT *> operands;
 
+    // size of the memory
+    size_t size;
 public:
     // FIXME: make this private, this is just for debugging
     /// for computing SCC
@@ -44,11 +46,13 @@ public:
     // true if the node is on stack
     bool on_stack;
 
-
     SubgraphNode<NodeT>()
-    : data(nullptr), user_data(nullptr),
+    : data(nullptr), user_data(nullptr), size(0),
       dfs_id(0), lowpt(0), scc_id(0), on_stack(false)
     {}
+
+    void setSize(size_t s) { size = s; }
+    size_t getSize() const { return size; }
 
     unsigned getSCCId() const
     {

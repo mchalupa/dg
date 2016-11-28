@@ -63,6 +63,7 @@ public:
 
     RDNodeType getType() const { return type; }
     DefSiteSetT& getDefines() { return defs; }
+    DefSiteSetT& getOverwrites() { return overwrites; }
     const DefSiteSetT& getDefines() const { return defs; }
 
     bool defines(RDNode *target, const Offset& off = UNKNOWN_OFFSET) const
@@ -137,14 +138,14 @@ class ReachingDefinitionsAnalysis
 {
     RDNode *root;
     unsigned int dfsnum;
-    bool field_insensitive;
+    bool strong_update_unknown;
     uint32_t max_set_size;
 
 public:
     ReachingDefinitionsAnalysis(RDNode *r,
                                 bool field_insens = false,
                                 uint32_t max_set_sz = ~((uint32_t)0))
-    : root(r), dfsnum(0), field_insensitive(field_insens), max_set_size(max_set_sz)
+    : root(r), dfsnum(0), strong_update_unknown(field_insens), max_set_size(max_set_sz)
     {
         assert(r && "Root cannot be null");
         // with max_set_size == 0 (everything is defined on unknown location)

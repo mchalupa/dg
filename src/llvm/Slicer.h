@@ -419,8 +419,11 @@ private:
 
         if (newExitBB) {
             graph->addBlock(newExitBB->getKey(), newExitBB);
-            oldExitBB->remove();
             assert(graph->getExitBB() == newExitBB);
+            // NOTE: do not delete the old block
+            // because it is the unified BB that is kept in
+            // unique_ptr, so it will be deleted later automatically.
+            // Deleting it would lead to double-free
         }
     }
 

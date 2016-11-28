@@ -79,9 +79,6 @@ class PSNode : public SubgraphNode<PSNode>
     bool zeroInitialized;
     // is memory allocated on heap?
     bool is_heap;
-    // size of the memory
-    size_t size;
-
 #ifdef DEBUG_ENABLED
     const char *name;
 #endif
@@ -135,7 +132,7 @@ public:
     //               the subprocedure
     PSNode(PSNodeType t, ...)
     : SubgraphNode<PSNode>(), type(t), offset(0), pairedNode(nullptr),
-      zeroInitialized(false), is_heap(false), size(0),
+      zeroInitialized(false), is_heap(false),
 #ifdef DEBUG_ENABLED
       name(nullptr),
 #endif
@@ -231,9 +228,6 @@ public:
 
     void setIsHeap() { is_heap = true; }
     bool isHeap() const { return is_heap; }
-
-    void setSize(size_t s) { size = s; }
-    size_t getSize() const { return size; }
 
     bool isNull() const { return type == NULL_ADDR; }
     bool isUnknownMemory() const { return type == UNKNOWN_MEM; }

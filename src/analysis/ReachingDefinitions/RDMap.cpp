@@ -57,7 +57,7 @@ static bool comp_ds(const DefSite& a, const DefSite& b)
 // in the map
 bool RDMap::merge(const RDMap *oth,
                   DefSiteSetT *no_update,
-                  bool field_insensitive,
+                  bool strong_update_unknown,
                   uint32_t max_set_size,
                   bool merge_unknown)
 {
@@ -77,46 +77,73 @@ bool RDMap::merge(const RDMap *oth,
         // Also, we don't want to do strong updates for
         // heap allocated objects, since they are all represented
         // by the call site
-        if (!field_insensitive && !is_unknown && no_update
-            && ds.target->getType() != DYN_ALLOC) {
-            bool skip = false;
-
-            auto range = std::equal_range(no_update->begin(),
-                                          no_update->end(),
-                                          ds, comp_ds);
-            for (auto I = range.first; I!= range.second; ++I) {
-                const DefSite& ds2 = *I;
-                assert(ds.target == ds2.target);
-                // if the 'no_update' set contains target with unknown
-                // pointer, we should always keep that value
-                // and the value being merged (just all possible definitions)
-                if (ds2.offset.isUnknown()) {
-                    // break no_update skip = true, thus adding
-                    // the values for UNKOWN to our map
-                    is_unknown = true;
-                    break;
+        if (no_update) { // do we have anything for strong update at all?
+            // if the memory is defined at unknown offset, we can
+            // still do a strong update provided this is the update
+            // of whole memory (so we need to know the size of the memory).
+            if (strong_update_unknown &&
+                is_unknown && ds.target->getSize() > 0) {
+                // get the writes that should overwrite this definition
+                auto range = std::equal_range(no_update->begin(),
+                                              no_update->end(),
+                                              ds, comp_ds);
+                // XXX: we could check wether all the strong updates
+                // together overwrite the memory, but that could be
+                // to much work. Just check wether there's is just a one
+                // update that overwrites the whole memory
+                bool overwrites_whole_memory = false;
+                for (auto I = range.first; I!= range.second; ++I) {
+                    const DefSite& ds2 = *I;
+                    assert(ds.target == ds2.target);
+                    if (*ds2.offset == 0 && *ds2.len >= ds.target->getSize()) {
+                        overwrites_whole_memory = true;
+                        break;
+                    }
                 }
 
-                // targets are the same, check if the what we have
-                // in 'no_update' set overwrites the values that are in
-                // the other map
-                if ((*ds.offset >= *ds2.offset)
-                    && (*ds.offset + *ds.len <= *ds2.offset + *ds2.len)) {
-                    skip = true;
-                    break;
+                // do strong update - just continue the loop without
+                // merging this definition into our map
+                if (overwrites_whole_memory)
+                    continue;
+            } else if (ds.target->getType() != DYN_ALLOC) {
+                bool skip = false;
+                auto range = std::equal_range(no_update->begin(),
+                                              no_update->end(),
+                                              ds, comp_ds);
+                for (auto I = range.first; I!= range.second; ++I) {
+                    const DefSite& ds2 = *I;
+                    assert(ds.target == ds2.target);
+                    // if the 'no_update' set contains target with unknown
+                    // pointer, we should always keep that value
+                    // and the value being merged (just all possible definitions)
+                    if (ds2.offset.isUnknown()) {
+                        // break no_update skip = true, thus adding
+                        // the values for UNKOWN to our map
+                        is_unknown = true;
+                        break;
+                    }
+
+                    // targets are the same, check if the what we have
+                    // in 'no_update' set overwrites the values that are in
+                    // the other map
+                    if ((*ds.offset >= *ds2.offset)
+                        && (*ds.offset + *ds.len <= *ds2.offset + *ds2.len)) {
+                        skip = true;
+                        break;
+                    }
                 }
+
+                // if values in 'no_update' map overwrite the coresponding values
+                // in the other map, don't update our map
+                if (skip)
+                    continue;
             }
-
-            // if values in 'no_update' map overwrite the coresponding values
-            // in the other map, don't update our map
-            if (skip)
-                continue;
         }
 
         // MERGE CONCRETE OFFSETS (if desired)
         // ------------------------------------
         RDNodesSet *our_vals = nullptr;
-        if (field_insensitive || (merge_unknown && is_unknown)) {
+        if (merge_unknown && is_unknown) {
             // this loop finds all concrete offsets and merges them into one
             // defsite with UNKNOWN_OFFSET. This defsite is set in 'our_vals'
             // after the loop exit
