@@ -31,6 +31,9 @@ class PointerAnalysis
     // Default is unconstrained (UNKNOWN_OFFSET)
     uint64_t max_offset;
 
+    // Flow sensitive flag (contol loop optimization execution)
+    bool preprocess_geps;
+
 protected:
     // a set of changed nodes that are going to be
     // processed by the analysis
@@ -38,18 +41,23 @@ protected:
     std::vector<PSNode *> changed;
 
     // protected constructor for child classes
-    PointerAnalysis() : PS(nullptr), max_offset(UNKNOWN_OFFSET) {}
+    PointerAnalysis() : PS(nullptr), max_offset(UNKNOWN_OFFSET),
+                         preprocess_geps(true) {}
 
 public:
     PointerAnalysis(PointerSubgraph *ps,
-                    uint64_t max_off = UNKNOWN_OFFSET)
-    : PS(ps), max_offset(max_off)
+                    uint64_t max_off = UNKNOWN_OFFSET,
+                    bool prepro_geps = true)
+    : PS(ps), max_offset(max_off), preprocess_geps(prepro_geps)
     {
         assert(PS && "Need valid PointerSubgraph object");
 
         // compute the strongly connected components
-        SCC<PSNode> scc_comp;
-        SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        if (prepro_geps)
+        {
+            SCC<PSNode> scc_comp;
+            SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        }
     }
 
     virtual ~PointerAnalysis() {}
@@ -90,7 +98,8 @@ public:
     void preprocessGEPs()
     {
         // if a node is in a loop (a scc that has more than one node),
-        // then every GEP will end up with UNKNOWN_OFFSET after some
+        // then every GEP that is also stored to the same memory afterwards
+        // in the loop will end up with UNKNOWN_OFFSET after some
         // number of iterations, so we can do that right now
         // and save iterations
         for (const auto& scc : SCCs) {
@@ -109,7 +118,8 @@ public:
         assert(root && "Do not have root of PS");
 
         // do some optimizations
-        preprocessGEPs();
+        if (preprocess_geps)
+            preprocessGEPs();
 
         // rely on C++11 move semantics
         to_process = PS->getNodes(root);
