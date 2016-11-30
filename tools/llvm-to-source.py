@@ -7,12 +7,15 @@ from subprocess import Popen, PIPE
 
 srcdir = None
 
-def get_lines(name):
+def get_lines(name, source = None):
     """
     Get lines from source code that are present in the given module
     """
 
     cmd = ['./llvm-to-source', name]
+    if source:
+        #cmd.append('-lines-only')
+        cmd.append(source)
     p = Popen(cmd, cwd = srcdir, stdout=PIPE, stderr=PIPE)
     out, errs = p.communicate()
     if p.poll() != 0:
@@ -48,7 +51,7 @@ if __name__ == "__main__":
     tmp = os.path.realpath(sys.argv[0])
     srcdir = os.path.abspath(os.path.dirname(tmp))
 
-    nums = get_lines(sys.argv[1])
+    nums = get_lines(sys.argv[1], sys.argv[2])
     f = None
     if (len(sys.argv) > 2):
         f = get_html(sys.argv[2])
