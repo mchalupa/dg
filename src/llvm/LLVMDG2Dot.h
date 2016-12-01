@@ -95,6 +95,17 @@ public:
             os << "\\nERR: no BB";
         }
 
+        //Print Location in source file
+        if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            const llvm::DebugLoc& Loc = I->getDebugLoc();
+            if(Loc) {
+                os << "\" labelURL=\"";
+                llvm::raw_os_ostream ross(os);
+                Loc.print(ross);
+                ross.flush();
+            }
+        }
+
         return err;
     }
 
