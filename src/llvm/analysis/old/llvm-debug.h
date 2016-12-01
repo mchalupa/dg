@@ -16,7 +16,7 @@
 
 #else
 
-#define DBG(...) ;
+#define DBG(...) do { } while (0)
 
 #endif // DEBUG_ENABLED
 
