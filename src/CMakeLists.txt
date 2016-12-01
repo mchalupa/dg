@@ -66,6 +66,6 @@ add_library(LLVMdg SHARED
 
 target_link_libraries(LLVMdg LLVMpta RD ${llvm_libs})
 install(TARGETS LLVMdg LLVMpta PTA RD
-	LIBRARY DESTINATION lib)
+	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)

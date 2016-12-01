@@ -107,6 +107,9 @@ endif ()
 
 message(STATUS "Additional compilation flags: ${CMAKE_CXX_FLAGS}")
 
+include(GNUInstallDirs)
+message(STATUS "CMAKE_INSTALL_LIBDIR: \"${CMAKE_INSTALL_LIBDIR}\"")
+
 add_subdirectory(src)
 add_subdirectory(tests EXCLUDE_FROM_ALL)
 add_subdirectory(tools)
