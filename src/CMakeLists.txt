@@ -29,7 +29,18 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/Globals.cpp
 )
 
-target_link_libraries(LLVMpta PTA)
+target_link_libraries(LLVMpta PUBLIC PTA)
+
+# We need all the symbols with dynamic libs. With static libs, we get errors.
+if (BUILD_SHARED_LIBS)
+	if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
+		llvm_map_components_to_libnames(LP_llvm_libs core support)
+	else()
+		llvm_map_components_to_libraries(LP_llvm_libs core support)
+	endif()
+
+	target_link_libraries(LLVMpta PUBLIC ${LP_llvm_libs})
+endif()
 
 add_library(LLVMdg SHARED
 	BBlock.h
@@ -64,7 +75,8 @@ add_library(LLVMdg SHARED
 	llvm/analysis/old/DefMap.cpp
 )
 
-target_link_libraries(LLVMdg LLVMpta RD ${llvm_libs})
+target_link_libraries(LLVMdg PUBLIC LLVMpta RD ${llvm_libs})
+
 install(TARGETS LLVMdg LLVMpta PTA RD
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
