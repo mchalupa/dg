@@ -68,4 +68,26 @@ target_link_libraries(LLVMdg LLVMpta RD ${llvm_libs})
 install(TARGETS LLVMdg LLVMpta PTA RD
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
+install(FILES
+	ADT/Queue.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/ADT/)
+install(FILES
+	analysis/Offset.h
+	analysis/SCC.h
+	analysis/SubgraphNode.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/analysis/)
+install(FILES
+	analysis/PointsTo/PointerAnalysis.h
+	analysis/PointsTo/Pointer.h
+	analysis/PointsTo/PointerSubgraph.h
+	analysis/PointsTo/PointsToFlowInsensitive.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/analysis/PointsTo/)
+install(FILES
+	llvm/llvm-utils.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/llvm/)
+install(FILES
+	llvm/analysis/PointsTo/PointerSubgraph.h
+	llvm/analysis/PointsTo/PointsTo.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/llvm/analysis/PointsTo/)
+
 endif(LLVM_DG)
