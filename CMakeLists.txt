@@ -26,7 +26,7 @@ if (LLVM_DG)
 
 	message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 	message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-	message(STATUS "LLVM binaires: ${LLVM_TOOLS_BINARY_DIR}")
+	message(STATUS "LLVM binaries: ${LLVM_TOOLS_BINARY_DIR}")
 
 	set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${LLVM_DIR}")
 	include(LLVMConfig)
@@ -106,6 +106,10 @@ elseif (CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
 endif ()
 
 message(STATUS "Additional compilation flags: ${CMAKE_CXX_FLAGS}")
+
+include(GNUInstallDirs)
+message(STATUS "CMAKE_INSTALL_LIBDIR: \"${CMAKE_INSTALL_LIBDIR}\"")
+message(STATUS "CMAKE_INSTALL_INCLUDEDIR: \"${CMAKE_INSTALL_INCLUDEDIR}\"")
 
 add_subdirectory(src)
 add_subdirectory(tests EXCLUDE_FROM_ALL)
