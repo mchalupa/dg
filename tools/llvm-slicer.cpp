@@ -139,16 +139,22 @@ llvm::cl::opt<PtaType> pta("pta",
     llvm::cl::values(
         clEnumVal(old , "Old pointer analysis (flow-insensitive, deprecated)"),
         clEnumVal(fi, "Flow-insensitive PTA (default)"),
-        clEnumVal(fs, "Flow-sensitive PTA"),
-        nullptr),
+        clEnumVal(fs, "Flow-sensitive PTA")
+#if LLVM_VERSION_MAJOR < 4
+        , nullptr
+#endif
+        ),
     llvm::cl::init(fi), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
     llvm::cl::desc("Choose control dependencies algorithm to use:"),
     llvm::cl::values(
         clEnumValN(CLASSIC , "classic", "Ferrante's algorithm (default)"),
-        clEnumValN(CONTROL_EXPRESSION, "ce", "Control expression based (experimental)"),
-        nullptr),
+        clEnumValN(CONTROL_EXPRESSION, "ce", "Control expression based (experimental)")
+#if LLVM_VERSION_MAJOR < 4
+        , nullptr
+#endif
+         ),
     llvm::cl::init(CLASSIC), llvm::cl::cat(SlicingOpts));
 
 
