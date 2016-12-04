@@ -33,6 +33,13 @@
  #include <llvm/IR/Verifier.h>
 #endif
 
+#if LLVM_VERSION_MAJOR == 4
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
+#else
+#include <llvm/Bitcode/ReaderWriter.h>
+#endif
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
@@ -40,7 +47,6 @@
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/FormattedStream.h>
 #include <llvm/IRReader/IRReader.h>
-#include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/CommandLine.h>
