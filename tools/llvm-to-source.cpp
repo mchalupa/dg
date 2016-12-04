@@ -21,7 +21,7 @@
 
 #include <llvm/Config/llvm-config.h>
 
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/DebugInfo.h>
 #else
  #include <llvm/DebugInfo/DIContext.h>
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
     if (argc == 3)
         source = argv[2];
 
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
     M = llvm::ParseIRFile(module, SMD, context);
 #else
     auto _M = llvm::parseIRFile(module, SMD, context);

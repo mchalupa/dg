@@ -12,7 +12,7 @@
 
 #include <llvm/Config/llvm-config.h>
 
-#if (LLVM_VERSION_MAJOR != 3)
+#if (LLVM_VERSION_MAJOR < 3)
 #error "Unsupported version of LLVM"
 #endif
 
@@ -25,7 +25,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#if LLVM_VERSION_MINOR < 5
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/Assembly/AssemblyAnnotationWriter.h>
  #include <llvm/Analysis/Verifier.h>
 #else // >= 3.5
@@ -901,7 +901,7 @@ static bool verify_module(llvm::Module *M)
     // the verifyModule function returns false if there
     // are no errors
 
-#if (LLVM_VERSION_MINOR >= 5)
+#if ((LLVM_VERSION_MAJOR == 4) || (LLVM_VERSION_MINOR >= 5))
     return !llvm::verifyModule(*M, &llvm::errs());
 #else
     return !llvm::verifyModule(*M, llvm::PrintMessageAction);
@@ -1019,7 +1019,7 @@ static uint32_t parseAnnotationOpt(const std::string& annot)
 
 int main(int argc, char *argv[])
 {
-#if LLVM_VERSION_MINOR < 9
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
     llvm::sys::PrintStackTraceOnErrorSignal();
 #else
     llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
@@ -1076,7 +1076,7 @@ int main(int argc, char *argv[])
     if (dump_dg_only)
         dump_dg = true;
 
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
     M = llvm::ParseIRFile(llvmfile, SMD, context);
 #else
     auto _M = llvm::parseIRFile(llvmfile, SMD, context);

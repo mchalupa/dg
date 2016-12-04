@@ -11,7 +11,7 @@
 #endif
 
 #include <llvm/Config/llvm-config.h>
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/Support/CFG.h>
 #else
  #include <llvm/IR/CFG.h>
@@ -42,7 +42,7 @@ template <typename Val>
 static void dropAllUses(Val *V)
 {
     for (auto I = V->use_begin(), E = V->use_end(); I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
         llvm::Value *use = *I;
 #else
         llvm::Value *use = I->getUser();

@@ -5,7 +5,7 @@
 #include <llvm/IR/Module.h>
 
 #include <llvm/Config/llvm-config.h>
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/Support/CFG.h>
 #else
  #include <llvm/IR/CFG.h>

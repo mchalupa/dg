@@ -36,7 +36,7 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         Function& f = *cast<Function>(val);
         PostDominatorTree *pdtree;
 
-#if LLVM_VERSION_MINOR < 9
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
         pdtree = new PostDominatorTree();
         // compute post-dominator tree for this function
         pdtree->runOnFunction(f);

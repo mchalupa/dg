@@ -11,7 +11,7 @@
 #endif
 
 #include <llvm/Config/llvm-config.h>
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/Support/CFG.h>
 #else
  #include <llvm/IR/CFG.h>
@@ -265,7 +265,7 @@ static void getLocalVariables(const llvm::Function *F,
                 bool is_address_taken = false;
                 for (auto I = Inst.use_begin(), E = Inst.use_end();
                      I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
                     const llvm::Value *use = *I;
 #else
                     const llvm::Value *use = I->getUser();
