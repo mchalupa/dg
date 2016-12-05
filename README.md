@@ -94,17 +94,19 @@ Now you're ready to slice the program:
 The `slicing_criterion` is a call-site of some function or `ret` to slice
 with respect to the return value of the main function.
 
-To export dependence graph to .dot file, use:
+To export the dependence graph to .dot file, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool
+`llvm-dg-dump`:
 
 ```
 ./llvm-dg-dump bytecode.bc > file.dot
 ```
 
-You can highligh nodes from dependence graph that will be in the slice using -mark switch:
+You can highligh nodes from dependence graph that will be in the slice using `-mark` switch:
 
 ```
 ./llvm-dg-dump -mark slicing_criterion bytecode.bc > file.dot
 ```
+When using `-dump-dg` with `llvm-slicer`, the nodes whould be already highlighted. Also a .dot file with the sliced dependence graph is generated (similar behviour can be achieved with `llvm-dg-dump` using the `-slice` switch).
 
 In the `tools/` directory, there are few scripts for convenient manipulation
 with the sliced bytecode. First is a `sliced-diff.sh`. This script takes file and shows
