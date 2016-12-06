@@ -65,22 +65,13 @@ getInstName(const llvm::Value *val)
 static void
 printName(PSNode *node)
 {
-    const char *name = nullptr;
-#if DEBUG_ENABLED
-    name = node->getName();
-#endif
-
-    std::string nm;
-    if (!name) {
-        if (!node->getUserData<llvm::Value>()) {
-            printf("%p", node);
-
-            return;
-        }
-
-        nm = getInstName(node->getUserData<llvm::Value>());
-        name = nm.c_str();
+    if (!node->getUserData<llvm::Value>()) {
+        printf("%p", node);
+        return;
     }
+
+    std::string nm = getInstName(node->getUserData<llvm::Value>());
+    const char *name = nm.c_str();
 
     // escape the " character
     for (int i = 0; name[i] != '\0'; ++i) {

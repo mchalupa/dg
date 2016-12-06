@@ -79,10 +79,6 @@ class PSNode : public SubgraphNode<PSNode>
     bool zeroInitialized;
     // is memory allocated on heap?
     bool is_heap;
-#ifdef DEBUG_ENABLED
-    const char *name;
-#endif
-
     unsigned int dfsid;
 public:
     ///
@@ -132,11 +128,7 @@ public:
     //               the subprocedure
     PSNode(PSNodeType t, ...)
     : SubgraphNode<PSNode>(), type(t), offset(0), pairedNode(nullptr),
-      zeroInitialized(false), is_heap(false),
-#ifdef DEBUG_ENABLED
-      name(nullptr),
-#endif
-      dfsid(0)
+      zeroInitialized(false), is_heap(false), dfsid(0)
     {
         // assing operands
         PSNode *op;
@@ -204,19 +196,7 @@ public:
         va_end(args);
     }
 
-#ifdef DEBUG_ENABLED
-    ~PSNode() { delete name; }
-#endif
     PSNodeType getType() const { return type; }
-
-#ifdef DEBUG_ENABLED
-    const char *getName() const { return name; }
-    void setName(const char *n)
-    {
-        delete name;
-        name = strdup(n);
-    }
-#endif
 
     void setOffset(uint64_t o) { offset = o; }
 

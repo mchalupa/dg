@@ -41,61 +41,6 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-/* keep it for debugging */
-#if 0
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
-
-static std::string
-getInstName(const llvm::Value *val)
-{
-    using namespace llvm;
-
-    std::ostringstream ostr;
-    raw_os_ostream ro(ostr);
-
-    assert(val);
-    if (const Function *F = dyn_cast<Function>(val))
-        ro << F->getName().data();
-    else
-        ro << *val;
-
-    ro.flush();
-
-    // break the string if it is too long
-    return ostr.str();
-}
-
-const char *__get_name(const llvm::Value *val, const char *prefix)
-{
-    static std::string buf;
-    buf.reserve(255);
-    buf.clear();
-
-    std::string nm = getInstName(val);
-    if (prefix)
-        buf.append(prefix);
-
-    buf.append(nm);
-
-    return buf.c_str();
-}
-
-{
-    const char *name = __get_name(val, prefix);
-}
-
-{
-    if (prefix) {
-        std::string nm;
-        nm.append(prefix);
-        nm.append(name);
-    } else
-}
-#endif
-
 enum MemAllocationFuncs {
     NONEMEM = 0,
     MALLOC,

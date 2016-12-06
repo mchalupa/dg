@@ -17,29 +17,6 @@ using analysis::pta::Pointer;
 using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 
-/*
-#ifdef DEBUG_ENABLED
-static void
-dumpPSNode(PSNode *n)
-{
-    const char *name = n->getName();
-    const char *name2;
-
-    for (const Pointer& ptr : n->pointsTo) {
-        printf("%s -> ", name ? name : "unnamed");
-
-        name2 = ptr.target->getName();
-        printf("%s", name2 ? name2 : "unnamed");
-
-        if (ptr.offset.isUnknown())
-            puts(" + UNKNOWN");
-        else
-            printf(" + %lu\n", *ptr.offset);
-    }
-}
-#endif
-*/
-
 template <typename PTStoT>
 class PointsToTest : public Test
 {
@@ -109,19 +86,6 @@ public:
         check(L2.doesPointsTo(&C), "not L2->C");
         check(L3.doesPointsTo(&A), "not L3->A");
         check(L3.doesPointsTo(&C), "not L3->C");
-
-        /*
-        A.setName(strdup("A"));
-        B.setName(strdup("B"));
-        C.setName(strdup("C"));
-        L1.setName(strdup("L1"));
-        L2.setName(strdup("L2"));
-        L3.setName(strdup("L3"));
-
-        dumpPSNode(&L1);
-        dumpPSNode(&L2);
-        dumpPSNode(&L3);
-        */
     }
 
     void store_load3()
@@ -179,20 +143,6 @@ public:
 
         check(L1.doesPointsTo(&A, 4), "L1 do not points to A[4]");
         check(L2.doesPointsTo(&C), "L2 do not points to C");
-
-        /*
-        A.setName(strdup("A"));
-        B.setName(strdup("B"));
-        C.setName(strdup("C"));
-        L1.setName(strdup("L1 = LOAD B"));
-        L2.setName(strdup("L2 = LOAD B"));
-        GEP.setName(strdup("GEP A, 4"));
-        S1.setName(strdup("STORE GEP to B"));
-        S2.setName(strdup("STORE C to B"));
-
-        dumpPSNode(&L1);
-        dumpPSNode(&L2);
-        */
     }
 
     void store_load5()
@@ -228,17 +178,6 @@ public:
 
         check(L1.doesPointsTo(&A, 4), "L1 do not points to A[4]");
         check(L2.doesPointsTo(&C), "L2 do not points to C");
-
-        /*
-        A.setName(strdup("A"));
-        B.setName(strdup("B"));
-        C.setName(strdup("C"));
-        L1.setName(strdup("L1 = LOAD B"));
-        L2.setName(strdup("L2 = LOAD B"));
-
-        dumpPSNode(&L1);
-        dumpPSNode(&L2);
-        */
     }
 
     void gep1()
@@ -268,19 +207,6 @@ public:
         check(GEP1.doesPointsTo(&A, 4), "not GEP1 -> A + 4");
         check(GEP2.doesPointsTo(&A, 4), "not GEP2 -> A + 4");
         check(L.doesPointsTo(&B), "not L -> B + 0");
-
-        /*
-        A.setName(strdup("ALLOC A"));
-        B.setName(strdup("ALLOC B"));
-        L.setName(strdup("L = LOAD GEP2"));
-        S.setName(strdup("S = STORE B to GEP1"));
-        GEP1.setName(strdup("GEP1 = GEP A, 4"));
-        GEP2.setName(strdup("GEP2 = GEP A, 4"));
-
-        dumpPSNode(&GEP1);
-        dumpPSNode(&GEP2);
-        dumpPSNode(&L);
-        */
     }
 
     void gep2()
@@ -311,20 +237,6 @@ public:
         //check(GEP2.doesPointsTo(&A, 8), "not GEP2 -> A + 4");
         //check(L.doesPointsTo(&B), "not L -> B + 0");
         check(L.doesPointsTo(&B), "not L -> B + 0");
-
-        /*
-        A.setName(strdup("A"));
-        B.setName(strdup("B"));
-        L.setName(strdup("L"));
-        GEP1.setName(strdup("GEP1"));
-        GEP2.setName(strdup("GEP2"));
-        GEP3.setName(strdup("GEP3"));
-
-        dumpPSNode(&GEP1);
-        dumpPSNode(&GEP2);
-        dumpPSNode(&GEP3);
-        dumpPSNode(&L);
-        */
     }
 
     void gep3()

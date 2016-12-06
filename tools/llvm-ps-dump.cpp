@@ -103,15 +103,10 @@ printName(PSNode *node, bool dot)
 {
     std::string nm;
     const char *name = nullptr;
-#if DEBUG_ENABLED
-    name = node->getName();
-#endif
-
-    if (!name) {
-        if (node->isNull())
-            name = "null";
-        else if (node->isUnknownMemory())
-            name = "unknown";
+    if (node->isNull()) {
+        name = "null";
+    } else if (node->isUnknownMemory()) {
+        name = "unknown";
     }
 
     if (!name) {
