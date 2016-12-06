@@ -1265,6 +1265,8 @@ void LLVMPointerSubgraphBuilder::transitivelyBuildUses(const llvm::Value *val)
 {
     using namespace llvm;
 
+    assert(!isa<ConstantInt>(val) && "Tried building uses of constant int");
+
     for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
 #if (LLVM_VERSION_MINOR < 5)
         const llvm::Value *use = *I;
@@ -1285,16 +1287,27 @@ void LLVMPointerSubgraphBuilder::transitivelyBuildUses(const llvm::Value *val)
                 continue;
 
             if (const StoreInst *SI = dyn_cast<StoreInst>(use)) {
+                // build the value, but only if it is a valid thing
+                // - for example, we do not want to build constants
+                if (!isInvalid(SI->getOperand(0)))
+                    transitivelyBuildUses(SI->getOperand(0));
                 // for StoreInst we need to get even uses
                 // of the pointer, since we stored the value
                 // into it (we want to have the loads from it)
-                transitivelyBuildUses(SI->getOperand(0));
                 transitivelyBuildUses(SI->getOperand(1));
             } else if (const LoadInst *LI = dyn_cast<LoadInst>(use)) {
                 transitivelyBuildUses(LI->getOperand(0));
             } else if (const CallInst *CI = dyn_cast<CallInst>(use)) {
                 const Function *F = CI->getCalledFunction();
                 if (F) {
+                    // if this function is not built, build it
+                    if (!F->empty()) {
+                        Subgraph& subg = subgraphs_map[F];
+                        if (!subg.root)
+                            buildFunction(*F);
+                        assert(subg.root && "Did not build the function");
+                    }
+
                     // get the index of the use as an argument
                     int idx = 0;
                     for (int e = CI->getNumArgOperands(); idx < e; ++idx)
