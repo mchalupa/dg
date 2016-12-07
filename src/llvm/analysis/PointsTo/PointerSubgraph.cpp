@@ -635,25 +635,11 @@ PSNodesSeq
 LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
                                               const llvm::Function *F)
 {
-    bool add_structure = false;
-
-    Subgraph& subg = subgraphs_map[F];
-    if (!subg.root)
-        add_structure = true;
-
-    PSNodesSeq ret = createCallToFunction(F);
-    dummy_nodes.push_back(ret.first);
-    //dummy_nodes.push_back(ret.second);
-
-    // we took a reference
-    assert(subg.root);
-
-    if (add_structure)
-        addProgramStructure(F, subg);
-
-    addInterproceduralOperands(F, subg, CInst);
-
-    return ret;
+    // set this flag to true, so that createCallToFunction
+    // will also add the program structure instead of only
+    // building the nodes
+    ad_hoc_building = true;
+    return createOrGetSubgraph(CInst, F);
 }
 
 PSNodesSeq
@@ -662,6 +648,14 @@ LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
 {
     PSNodesSeq cf = createCallToFunction(F);
     addNode(CInst, cf.first);
+
+    if (ad_hoc_building) {
+        Subgraph& subg = subgraphs_map[F];
+        assert(subg.root != nullptr);
+
+        addProgramStructure(F, subg);
+        addInterproceduralOperands(F, subg, CInst);
+    }
 
     // NOTE: we do not add return node into nodes_map, since this
     // is artificial node and does not correspond to any real node

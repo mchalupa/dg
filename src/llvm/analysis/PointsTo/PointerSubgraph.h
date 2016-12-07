@@ -22,6 +22,11 @@ class LLVMPointerSubgraphBuilder
     const llvm::Module *M;
     const llvm::DataLayout *DL;
     uint64_t field_sensitivity;
+    // flag that says whether we are building normally,
+    // or the analysis is already running and we are building
+    // some new parts of already built graph.
+    // This is important with function pointer calls
+    bool ad_hoc_building = false;
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
@@ -47,6 +52,7 @@ class LLVMPointerSubgraphBuilder
 
         // this is the node where we gather the variadic-length arguments
         PSNode *vararg;
+        bool has_structure = false;
     };
 
     // add edges that are derived from CFG to the subgraph

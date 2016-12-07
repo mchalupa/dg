@@ -161,6 +161,11 @@ void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
     assert(subg.root && "Subgraph has no root");
     assert(subg.ret && "Subgraph has no ret");
 
+    // with function pointer calls it may happen that we try
+    // to add structure more times, so bail out in that case
+    if (subg.has_structure)
+        return;
+
     PSNodesSeq args = buildArguments(*F);
     PSNode *lastNode = nullptr;
 
@@ -243,6 +248,8 @@ void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
     for (PSNode *r : rets) {
         r->addSuccessor(subg.ret);
     }
+
+    subg.has_structure = true;
 }
 
 } // namespace pta

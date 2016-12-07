@@ -344,11 +344,10 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // create the subgraph
         if (!func && PTA) {
             using namespace analysis::pta;
-            PSNode *op = PTA->getNode(val);
+            PSNode *op = PTA->getNode(strippedValue);
             for (const Pointer& ptr : op->pointsTo) {
-                if (!ptr.isValid()) {
+                if (!ptr.isValid())
                     continue;
-                }
 
                 // vararg may introduce imprecision here, so we
                 // must check that it is really pointer to a function
