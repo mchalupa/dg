@@ -342,27 +342,30 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // if func is nullptr, then this is indirect call
         // via function pointer. If we have the points-to information,
         // create the subgraph
-        if (!func && PTA) {
+        if (!func && !CInst->isInlineAsm() && PTA) {
             using namespace analysis::pta;
             PSNode *op = PTA->getNode(strippedValue);
-            for (const Pointer& ptr : op->pointsTo) {
-                if (!ptr.isValid())
-                    continue;
+            if (op) {
+                for (const Pointer& ptr : op->pointsTo) {
+                    if (!ptr.isValid())
+                        continue;
 
-                // vararg may introduce imprecision here, so we
-                // must check that it is really pointer to a function
-                if (!isa<Function>(ptr.target->getUserData<Value>()))
-                    continue;
+                    // vararg may introduce imprecision here, so we
+                    // must check that it is really pointer to a function
+                    if (!isa<Function>(ptr.target->getUserData<Value>()))
+                        continue;
 
-                Function *F = ptr.target->getUserData<Function>();
-                if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst))
-                    // incompatible prototypes or the function
-                    // is only declaration
-                    continue;
+                    Function *F = ptr.target->getUserData<Function>();
+                    if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst))
+                        // incompatible prototypes or the function
+                        // is only declaration
+                        continue;
 
-                LLVMDependenceGraph *subg = buildSubgraph(node, F);
-                node->addSubgraph(subg);
-            }
+                    LLVMDependenceGraph *subg = buildSubgraph(node, F);
+                    node->addSubgraph(subg);
+                }
+            } else
+                llvmutils::printerr("Had no PTA node", strippedValue);
         }
 
         if (func && gather_callsites &&
