@@ -245,6 +245,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
                                            RDNode *mem, uint64_t size)
 {
     using namespace dg::analysis;
+    static std::set<const llvm::Value *> reported_mappings;
 
     for (const pta::Pointer& ptr : pts->pointsTo) {
         if (!ptr.isValid())
@@ -255,7 +256,10 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
 
         RDNode *val = RD->getNode(llvmVal);
         if(!val) {
-            llvmutils::printerr("Don't have mapping:\n  ", llvmVal);
+            if (reported_mappings.insert(llvmVal).second)
+                llvmutils::printerr("DEF-USE: no information for: ", llvmVal);
+
+            // XXX: shouldn't we set val to unknown location now?
             continue;
         }
 
