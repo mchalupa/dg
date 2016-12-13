@@ -91,6 +91,16 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
     return last;
 }
 
+static uint64_t getAllocatedSize(const llvm::GlobalVariable *GV,
+                                 const llvm::DataLayout *DL)
+{
+    llvm::Type *Ty = GV->getType()->getContainedType(0);
+    if (!Ty->isSized())
+            return 0;
+
+    return DL->getTypeAllocSize(Ty);
+}
+
 PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
 {
     PSNode *cur = nullptr, *prev, *first = nullptr;
@@ -117,9 +127,13 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
         // handle globals initialization
         const llvm::GlobalVariable *GV
                             = llvm::dyn_cast<llvm::GlobalVariable>(&*I);
-        if (GV && GV->hasInitializer() && !GV->isExternallyInitialized()) {
-            const llvm::Constant *C = GV->getInitializer();
-            cur = handleGlobalVariableInitializer(C, node);
+        if (GV) {
+            node->setSize(getAllocatedSize(GV, DL));
+
+            if (GV->hasInitializer() && !GV->isExternallyInitialized()) {
+                const llvm::Constant *C = GV->getInitializer();
+                cur = handleGlobalVariableInitializer(C, node);
+            }
         } else {
             // without initializer we can not do anything else than
             // assume that it can point everywhere
