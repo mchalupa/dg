@@ -585,6 +585,7 @@ public:
         // (or extend the slicing criterion to be a list)
         const char *sc[] = {
             "__VERIFIER_assume",
+            "__VERIFIER_exit",
             "klee_assume",
             NULL // termination
         };
@@ -594,6 +595,7 @@ public:
         // do not slice __VERIFIER_assume at all
         // FIXME: do this optional
         slicer.keepFunctionUntouched("__VERIFIER_assume");
+        slicer.keepFunctionUntouched("__VERIFIER_exit");
         slice_id = 0xdead;
 
         tm.start();
