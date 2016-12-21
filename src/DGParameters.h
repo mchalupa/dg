@@ -70,6 +70,12 @@ public:
             delete par.second.out;
         }
 
+        // delete globals parameters
+        for (const auto& gl : globals) {
+            delete gl.second.in;
+            delete gl.second.out;
+        }
+
 #if ENABLE_CFG
         // delete auxiliary basic blocks
         delete BBIn;
