@@ -1015,10 +1015,7 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(const llvm::Function &F)
 PSNode *LLVMPointerSubgraphBuilder::createCast(const llvm::Instruction *Inst)
 {
     const llvm::Value *op = Inst->getOperand(0);
-    PSNode *op1 = tryGetOperand(op);
-    if (!op1)
-        op1 = UNKNOWN_MEMORY;
-
+    PSNode *op1 = getOperand(op);
     PSNode *node = new PSNode(pta::CAST, op1);
 
     addNode(Inst, node);
