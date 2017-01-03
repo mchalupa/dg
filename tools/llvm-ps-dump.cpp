@@ -142,9 +142,11 @@ printName(PSNode *node, bool dot)
 static void
 dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 {
-    for (auto it : mo->pointsTo) {
+    for (auto& it : mo->pointsTo) {
         for (const Pointer& ptr : it.second) {
+            // print indentation
             printf("%*s", ind, "");
+
             if (it.first.isUnknown())
                 printf("[UNKNOWN] -> ");
             else
@@ -184,6 +186,7 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
 static void
 dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
 {
+    assert(n && "No node given");
     if (type == FLOW_INSENSITIVE) {
         MemoryObject *mo = n->getData<MemoryObject>();
         if (!mo)
