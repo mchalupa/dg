@@ -277,11 +277,13 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 
         printf("\"");
         if (node->getType() != STORE) {
-            printf(" shape=box");
-            if (node->pointsTo.size() == 0)
-                printf(" fillcolor=red");
+            printf(", shape=box");
+            if (node->pointsTo.size() == 0
+                && (node->getType() == LOAD ||
+                    node->getType() == GEP))
+                printf(", style=filled, fillcolor=red");
         } else {
-            printf(" shape=cds");
+            printf(", shape=cds");
         }
 
         printf("]\n");
