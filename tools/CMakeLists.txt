@@ -21,7 +21,7 @@ if (LLVM_DG)
 	target_link_libraries(llvm-rd-dump LLVMdg)
 
 	add_executable(llvm-to-source llvm-to-source.cpp)
-	target_link_libraries(llvm-to-source ${llvm_libs})
+	target_link_libraries(llvm-to-source PRIVATE ${llvm_libs})
 
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
