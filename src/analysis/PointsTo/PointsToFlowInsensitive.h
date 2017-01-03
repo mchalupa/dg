@@ -15,7 +15,7 @@ class PointsToFlowInsensitive : public PointerAnalysis
     PointerSubgraph *ps;
 
 protected:
-    PointsToFlowInsensitive() {}
+    PointsToFlowInsensitive() = default;
 
 public:
     PointsToFlowInsensitive(PointerSubgraph *ps)

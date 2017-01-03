@@ -157,7 +157,12 @@ dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
             if (ptr.offset.isUnknown())
                 puts(" + UNKNOWN");
             else
-                printf(" + %lu\n", *ptr.offset);
+                printf(" + %lu", *ptr.offset);
+
+            if (dot)
+                printf("\\n");
+            else
+                putchar('\n');
         }
     }
 }
@@ -168,7 +173,8 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
     for (auto it : *mm) {
         // print the key
         const Pointer& key = it.first;
-        printf("%*s", ind, "");
+        if (!dot)
+            printf("%*s", ind, "");
 
         putchar('[');
         printName(key.target, dot);
@@ -176,7 +182,12 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
         if (key.offset.isUnknown())
             puts(" + UNKNOWN]:");
         else
-            printf(" + %lu]:\n", *key.offset);
+            printf(" + %lu]:", *key.offset);
+
+        if (dot)
+            printf("\\n");
+        else
+            putchar('\n');
 
         for (MemoryObject *mo : it.second)
             dumpMemoryObject(mo, ind + 4, dot);
@@ -264,6 +275,15 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         if (node->getSize() || node->isHeap() || node->isZeroInitialized())
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
                node->getSize(), node->isHeap(), node->isZeroInitialized());
+
+        if (verbose && node->getOperandsNum() > 0) {
+            printf("\\n--- operands ---\\n");
+            for (PSNode *op : node->getOperands()) {
+                printName(op, true);
+                printf("\\n");
+            }
+            printf("------\\n");
+        }
 
         for (const Pointer& ptr : node->pointsTo) {
             printf("\\n    -> ");
@@ -367,13 +387,24 @@ int main(int argc, char *argv[])
     debug::TimeMeasure tm;
 
     LLVMPointerAnalysis PTA(M, field_senitivity);
+    std::unique_ptr<PointerAnalysis> PA;
 
     tm.start();
 
-    if (type == FLOW_INSENSITIVE)
-        PTA.run<analysis::pta::PointsToFlowInsensitive>();
-    else
-        PTA.run<analysis::pta::PointsToFlowSensitive>();
+    // use createAnalysis instead of the run() method so that we won't delete
+    // the analysis data (like memory objects) which may be needed
+    if (type == FLOW_INSENSITIVE) {
+        PA = std::unique_ptr<PointerAnalysis>(
+            PTA.createPTA<analysis::pta::PointsToFlowInsensitive>()
+            );
+    } else {
+        PA = std::unique_ptr<PointerAnalysis>(
+            PTA.createPTA<analysis::pta::PointsToFlowSensitive>()
+            );
+    }
+
+    // run the analysis
+    PA->run();
 
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");

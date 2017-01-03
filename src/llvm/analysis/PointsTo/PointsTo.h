@@ -162,13 +162,28 @@ public:
     void run()
     {
         // build the subgraph
-        assert(PS && "Incorrectly constructer PTA, missing PS");
+        assert(PS && "Incorrectly constructed PTA, missing PS");
         PS->setRoot(builder->buildLLVMPointerSubgraph());
 
         // run the analysis itself
-        assert(builder && "Incorrectly constructer PTA, missing builder");
+        assert(builder && "Incorrectly constructed PTA, missing builder");
         LLVMPointerAnalysisImpl<PTType> PTA(PS, builder);
         PTA.run();
+    }
+
+    // this method creates PointerAnalysis object and returns it.
+    // It is alternative to run() method, but it does not delete all
+    // the analysis data as the run() (like memory objects and so on).
+    // run() preserves only PointerSubgraph and the builder
+    template <typename PTType>
+    analysis::pta::PointerAnalysis *createPTA()
+    {
+        // build the subgraph
+        assert(PS && "Incorrectly constructed PTA, missing PS");
+        PS->setRoot(builder->buildLLVMPointerSubgraph());
+
+        assert(builder && "Incorrectly constructed PTA, missing builder");
+        return new LLVMPointerAnalysisImpl<PTType>(PS, builder);
     }
 };
 

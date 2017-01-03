@@ -95,6 +95,11 @@ public:
         return operands[idx];
     }
 
+    size_t getOperandsNum() const
+    {
+        return operands.size();
+    }
+
     size_t addOperand(NodeT *n)
     {
         operands.push_back(n);
@@ -117,6 +122,11 @@ public:
     const std::vector<NodeT *>& getPredecessors() const
     {
         return predecessors;
+    }
+
+    const std::vector<NodeT *>& getOperands() const
+    {
+        return operands;
     }
 
     void replaceSingleSuccessor(NodeT *succ)
