@@ -777,6 +777,7 @@ static bool remove_unused_from_module(llvm::Module *M)
     // and then erase them
     std::set<Function *> funs;
     std::set<GlobalVariable *> globals;
+    std::set<GlobalAlias *> aliases;
     auto cf = getConstructedFunctions();
 
     for (auto I = M->begin(), E = M->end(); I != E; ++I) {
@@ -798,12 +799,19 @@ static bool remove_unused_from_module(llvm::Module *M)
             globals.insert(gv);
     }
 
+    for (GlobalAlias& ga : M->getAliasList()) {
+        if (ga.hasNUses(0))
+            aliases.insert(&ga);
+    }
+
     for (Function *f : funs)
         f->eraseFromParent();
     for (GlobalVariable *gv : globals)
         gv->eraseFromParent();
+    for (GlobalAlias *ga : aliases)
+        ga->eraseFromParent();
 
-    return (!funs.empty() || !globals.empty());
+    return (!funs.empty() || !globals.empty() || !aliases.empty());
 }
 
 static void remove_unused_from_module_rec(llvm::Module *M)
