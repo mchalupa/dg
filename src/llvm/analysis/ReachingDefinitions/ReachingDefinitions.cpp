@@ -890,17 +890,17 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             const pta::Pointer& ptr = *(op->pointsTo.begin());
             if (ptr.isValid()) {
                 const llvm::Value *valF = ptr.target->getUserData<llvm::Value>();
-                const llvm::Function *F = llvm::cast<llvm::Function>(valF);
+                if (const llvm::Function *F = llvm::dyn_cast<llvm::Function>(valF)) {
+                    if (F->size() == 0) {
+                        RDNode *n = createUndefinedCall(CInst);
+                        return std::make_pair(n, n);
+                    } else if (llvmutils::callIsCompatible(F, CInst)) {
+                        std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
+                        dummy_nodes.push_back(cf.first);
 
-                if (F->size() == 0) {
-                    RDNode *n = createUndefinedCall(CInst);
-                    return std::make_pair(n, n);
-                } else if (llvmutils::callIsCompatible(F, CInst)) {
-                    std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
-                    dummy_nodes.push_back(cf.first);
-
-                    call_funcptr = cf.first;
-                    ret_call = cf.second;
+                        call_funcptr = cf.first;
+                        ret_call = cf.second;
+                    }
                 }
             }
         }
