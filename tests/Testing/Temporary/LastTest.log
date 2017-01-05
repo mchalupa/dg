@@ -1,0 +1,3536 @@
+Start testing: Nov 17 02:25 CET
+----------------------------------------------------------
+1/125 Testing: dg-test
+1/125 Test: dg-test
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/dg-test"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"dg-test" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+-- Running: CFG edges test
+-- ---> OK
+-- Running: container test
+-- ---> OK
+-- Running: edges adding test
+-- ---> OK
+-- Running: edges removing test
+-- ---> OK
+-- Running: Slicing BBlocks test
+-- ---> OK
+
+All test passed! o/\o
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"dg-test" end time: Nov 17 02:25 CET
+"dg-test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/125 Testing: data-flow-test
+2/125 Test: data-flow-test
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/data-flow-test"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"data-flow-test" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+-- Running: data flow analysis test
+-- ---> OK
+
+All test passed! o/\o
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"data-flow-test" end time: Nov 17 02:25 CET
+"data-flow-test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/125 Testing: points-to-test
+3/125 Test: points-to-test
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/points-to-test"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"points-to-test" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+-- Running: flow-insensitive points-to test
+-- ---> OK
+-- Running: flow-sensitive points-to test
+-- ---> OK
+-- Running: PSNode test
+-- ---> OK
+
+All test passed! o/\o
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"points-to-test" end time: Nov 17 02:25 CET
+"points-to-test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/125 Testing: reaching-definitions-test
+4/125 Test: reaching-definitions-test
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/reaching-definitions-test"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"reaching-definitions-test" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+-- Running: Reaching definitions test
+-- ---> OK
+
+All test passed! o/\o
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"reaching-definitions-test" end time: Nov 17 02:25 CET
+"reaching-definitions-test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/125 Testing: adt-test
+5/125 Test: adt-test
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/adt-test"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"adt-test" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+-- Running: LIFO test
+-- ---> OK
+-- Running: FIFO test
+-- ---> OK
+-- Running: test priority set
+-- ---> OK
+
+All test passed! o/\o
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"adt-test" end time: Nov 17 02:25 CET
+"adt-test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/125 Testing: llvm-dg-test
+6/125 Test: llvm-dg-test
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/llvm-dg-test"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"llvm-dg-test" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+-- Running: reference counting test
+-- ---> OK
+
+All test passed! o/\o
+<end of output>
+Test time =   0.00 sec
+----------------------------------------------------------
+Test Passed.
+"llvm-dg-test" end time: Nov 17 02:25 CET
+"llvm-dg-test" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/125 Testing: slicing-test1
+7/125 Test: slicing-test1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test1" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.27 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test1" end time: Nov 17 02:25 CET
+"slicing-test1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/125 Testing: slicing-test2
+8/125 Test: slicing-test2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test2" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 24 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test2" end time: Nov 17 02:25 CET
+"slicing-test2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/125 Testing: slicing-test3
+9/125 Test: slicing-test3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test3" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 27 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test3" end time: Nov 17 02:25 CET
+"slicing-test3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/125 Testing: slicing-test4
+10/125 Test: slicing-test4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test4" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 15 from 39 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test4" end time: Nov 17 02:25 CET
+"slicing-test4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/125 Testing: slicing-test5
+11/125 Test: slicing-test5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test5" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 20 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test5" end time: Nov 17 02:25 CET
+"slicing-test5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/125 Testing: slicing-test6
+12/125 Test: slicing-test6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test6" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 13 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test6.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test6" end time: Nov 17 02:25 CET
+"slicing-test6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/125 Testing: slicing-test7
+13/125 Test: slicing-test7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test7" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 32 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test7.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test7.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test7.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test7" end time: Nov 17 02:25 CET
+"slicing-test7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/125 Testing: slicing-test8
+14/125 Test: slicing-test8
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-test8.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-test8" start time: Nov 17 02:25 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 11 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test8.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/test8.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/test8.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-test8" end time: Nov 17 02:26 CET
+"slicing-test8" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/125 Testing: slicing-recursive1
+15/125 Test: slicing-recursive1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-recursive1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-recursive1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 26 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/recursive1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/recursive1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/recursive1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-recursive1" end time: Nov 17 02:26 CET
+"slicing-recursive1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/125 Testing: slicing-interprocedural1
+16/125 Test: slicing-interprocedural1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 15 from 25 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural1" end time: Nov 17 02:26 CET
+"slicing-interprocedural1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/125 Testing: slicing-interprocedural2
+17/125 Test: slicing-interprocedural2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 16 from 38 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural2" end time: Nov 17 02:26 CET
+"slicing-interprocedural2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/125 Testing: slicing-interprocedural3
+18/125 Test: slicing-interprocedural3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural3.c:6:16: warning: unused parameter 'a' [-Wunused-parameter]
+int *pick(int *a, int *b)
+               ^
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 9 from 24 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural3" end time: Nov 17 02:26 CET
+"slicing-interprocedural3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/125 Testing: slicing-interprocedural4
+19/125 Test: slicing-interprocedural4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 10 from 20 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural4" end time: Nov 17 02:26 CET
+"slicing-interprocedural4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/125 Testing: slicing-interprocedural5
+20/125 Test: slicing-interprocedural5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural5" end time: Nov 17 02:26 CET
+"slicing-interprocedural5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/125 Testing: slicing-interprocedural6
+21/125 Test: slicing-interprocedural6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %a = alloca [2 x i32], align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural6.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural6" end time: Nov 17 02:26 CET
+"slicing-interprocedural6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/125 Testing: slicing-interprocedural7
+22/125 Test: slicing-interprocedural7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural7" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %a = alloca [2 x i32], align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural7.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural7.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural7.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural7" end time: Nov 17 02:26 CET
+"slicing-interprocedural7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/125 Testing: slicing-interprocedural8
+23/125 Test: slicing-interprocedural8
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural8.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural8" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 11 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural8.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural8.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural8.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural8" end time: Nov 17 02:26 CET
+"slicing-interprocedural8" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/125 Testing: slicing-interprocedural9
+24/125 Test: slicing-interprocedural9
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-interprocedural9.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-interprocedural9" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 11 from 36 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural9.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural9.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/interprocedural9.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-interprocedural9" end time: Nov 17 02:26 CET
+"slicing-interprocedural9" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/125 Testing: slicing-funcptr1
+25/125 Test: slicing-funcptr1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.c:13:6: warning: variable 'b' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+            ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.c:12:10: note: initialize the variable 'b' to silence this warning
+        int a, b, c;
+                ^
+                 = 0
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.c:13:10: warning: variable 'c' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+                ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.c:12:13: note: initialize the variable 'c' to silence this warning
+        int a, b, c;
+                   ^
+                    = 0
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %b = alloca i32, align 4 off: 0
+No reaching definition for:   %c = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 25 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr1" end time: Nov 17 02:26 CET
+"slicing-funcptr1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+26/125 Testing: slicing-funcptr2
+26/125 Test: slicing-funcptr2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.c:16:6: warning: variable 'b' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+            ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.c:15:10: note: initialize the variable 'b' to silence this warning
+        int a, b, c;
+                ^
+                 = 0
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.c:16:10: warning: variable 'c' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+                ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.c:15:13: note: initialize the variable 'c' to silence this warning
+        int a, b, c;
+                   ^
+                    = 0
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %b = alloca i32, align 4 off: 0
+No reaching definition for:   %c = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr2" end time: Nov 17 02:26 CET
+"slicing-funcptr2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+27/125 Testing: slicing-funcptr3
+27/125 Test: slicing-funcptr3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.c:19:6: warning: variable 'b' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+            ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.c:18:10: note: initialize the variable 'b' to silence this warning
+        int a, b, c;
+                ^
+                 = 0
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.c:19:10: warning: variable 'c' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+                ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.c:18:13: note: initialize the variable 'c' to silence this warning
+        int a, b, c;
+                   ^
+                    = 0
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %b = alloca i32, align 4 off: 0
+No reaching definition for:   %c = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 13 from 31 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr3" end time: Nov 17 02:26 CET
+"slicing-funcptr3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+28/125 Testing: slicing-funcptr4
+28/125 Test: slicing-funcptr4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.c:3:24: warning: unused parameter 'b' [-Wunused-parameter]
+int *set2(int *a, int *b)
+                       ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.c:19:6: warning: variable 'b' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+            ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.c:18:10: note: initialize the variable 'b' to silence this warning
+        int a, b, c;
+                ^
+                 = 0
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.c:19:10: warning: variable 'c' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+                ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.c:18:13: note: initialize the variable 'c' to silence this warning
+        int a, b, c;
+                   ^
+                    = 0
+3 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %b = alloca i32, align 4 off: 0
+No reaching definition for:   %c = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 13 from 37 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr4" end time: Nov 17 02:26 CET
+"slicing-funcptr4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+29/125 Testing: slicing-funcptr5
+29/125 Test: slicing-funcptr5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.c:3:24: warning: unused parameter 'b' [-Wunused-parameter]
+int *set2(int *a, int *b)
+                       ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.c:19:6: warning: variable 'b' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+            ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.c:17:10: note: initialize the variable 'b' to silence this warning
+        int a, b, c;
+                ^
+                 = 0
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.c:19:10: warning: variable 'c' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+                ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.c:17:13: note: initialize the variable 'c' to silence this warning
+        int a, b, c;
+                   ^
+                    = 0
+3 warnings generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %b = alloca i32, align 4 off: 0
+No reaching definition for:   %c = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 6 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 13 from 39 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr5" end time: Nov 17 02:26 CET
+"slicing-funcptr5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+30/125 Testing: slicing-funcptr6
+30/125 Test: slicing-funcptr6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 28 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr6.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr6" end time: Nov 17 02:26 CET
+"slicing-funcptr6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+31/125 Testing: slicing-funcptr7
+31/125 Test: slicing-funcptr7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr7" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.c:16:9: warning: unused variable 's' [-Wunused-variable]
+        void (*s)(int *) = set;
+               ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.c:18:6: warning: variable 'b' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+            ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.c:17:10: note: initialize the variable 'b' to silence this warning
+        int a, b, c;
+                ^
+                 = 0
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.c:18:10: warning: variable 'c' is uninitialized when used here [-Wuninitialized]
+        a = b + c;
+                ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.c:17:13: note: initialize the variable 'c' to silence this warning
+        int a, b, c;
+                   ^
+                    = 0
+3 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %b = alloca i32, align 4 off: 0
+No reaching definition for:   %c = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 15 from 32 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr7.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr7" end time: Nov 17 02:26 CET
+"slicing-funcptr7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+32/125 Testing: slicing-funcptr8
+32/125 Test: slicing-funcptr8
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr8.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr8" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 15 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr8.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr8.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr8.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr8" end time: Nov 17 02:26 CET
+"slicing-funcptr8" time elapsed: 00:00:00
+----------------------------------------------------------
+
+33/125 Testing: slicing-funcptr9
+33/125 Test: slicing-funcptr9
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr9.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr9" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr9.c:9:19: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        struct item *i = malloc(sizeof *i);
+                         ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr9.c:9:19: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 26 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr9.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr9.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr9.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr9" end time: Nov 17 02:26 CET
+"slicing-funcptr9" time elapsed: 00:00:00
+----------------------------------------------------------
+
+34/125 Testing: slicing-funcptr10
+34/125 Test: slicing-funcptr10
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr10.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr10" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr10.c:9:19: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        struct item *i = malloc(sizeof *i);
+                         ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr10.c:9:19: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 44 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr10.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr10.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr10.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr10" end time: Nov 17 02:26 CET
+"slicing-funcptr10" time elapsed: 00:00:00
+----------------------------------------------------------
+
+35/125 Testing: slicing-funcptr11
+35/125 Test: slicing-funcptr11
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr11.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr11" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr11.c:3:23: warning: unused parameter 'b' [-Wunused-parameter]
+int *foo(int *a, int *b)
+                      ^
+1 warning generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 22 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr11.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr11.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr11.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr11" end time: Nov 17 02:26 CET
+"slicing-funcptr11" time elapsed: 00:00:00
+----------------------------------------------------------
+
+36/125 Testing: slicing-funcptr12
+36/125 Test: slicing-funcptr12
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr12.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr12" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr12.c:8:24: warning: unused parameter 'b' [-Wunused-parameter]
+int *foo1(int *a, int *b)
+                       ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr12.c:13:16: warning: unused parameter 'a' [-Wunused-parameter]
+int *foo2(int *a, int *b)
+               ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 29 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr12.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr12.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr12.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr12" end time: Nov 17 02:26 CET
+"slicing-funcptr12" time elapsed: 00:00:00
+----------------------------------------------------------
+
+37/125 Testing: slicing-funcptr13
+37/125 Test: slicing-funcptr13
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcptr13.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcptr13" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 18 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr13.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr13.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr13.sliced'
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr13-withdefs.bc: error: Could not open input file: No such file or directory
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcptr13-withdefs.bc'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcptr13" end time: Nov 17 02:26 CET
+"slicing-funcptr13" time elapsed: 00:00:00
+----------------------------------------------------------
+
+38/125 Testing: slicing-funcarray1
+38/125 Test: slicing-funcarray1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcarray1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcarray1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 11 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcarray1" end time: Nov 17 02:26 CET
+"slicing-funcarray1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+39/125 Testing: slicing-funcarray2
+39/125 Test: slicing-funcarray2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcarray2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcarray2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcarray2" end time: Nov 17 02:26 CET
+"slicing-funcarray2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+40/125 Testing: slicing-funcarray3
+40/125 Test: slicing-funcarray3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-funcarray3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-funcarray3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/funcarray3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-funcarray3" end time: Nov 17 02:26 CET
+"slicing-funcarray3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+41/125 Testing: slicing-unknownptr1
+41/125 Test: slicing-unknownptr1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-unknownptr1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-unknownptr1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr1.c:5:9: warning: unused variable 'b' [-Wunused-variable]
+        int a, b, c;
+               ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr1.c:5:12: warning: unused variable 'c' [-Wunused-variable]
+        int a, b, c;
+                  ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 3 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 15 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr1.sliced'
+lli: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr1.linked: error: Could not open input file: No such file or directory
+Assertion not called
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-unknownptr1" end time: Nov 17 02:26 CET
+"slicing-unknownptr1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+42/125 Testing: slicing-unknownptr2
+42/125 Test: slicing-unknownptr2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-unknownptr2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-unknownptr2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr2.c:3:1: warning: 'volatile' type qualifier on return type has no effect [-Wignored-qualifiers]
+volatile int getidx(void)
+^~~~~~~~~
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 17 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-unknownptr2" end time: Nov 17 02:26 CET
+"slicing-unknownptr2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+43/125 Testing: slicing-unknownptr3
+43/125 Test: slicing-unknownptr3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-unknownptr3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-unknownptr3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr3.c:3:1: warning: 'volatile' type qualifier on return type has no effect [-Wignored-qualifiers]
+volatile int getidx(void)
+^~~~~~~~~
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 26 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-unknownptr3" end time: Nov 17 02:26 CET
+"slicing-unknownptr3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+44/125 Testing: slicing-unknownptr4
+44/125 Test: slicing-unknownptr4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-unknownptr4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-unknownptr4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr4-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr4-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr4-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-unknownptr4" end time: Nov 17 02:26 CET
+"slicing-unknownptr4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+45/125 Testing: slicing-unknownptr5
+45/125 Test: slicing-unknownptr5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-unknownptr5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-unknownptr5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 44 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr5-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr5-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/unknownptr5-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-unknownptr5" end time: Nov 17 02:26 CET
+"slicing-unknownptr5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+46/125 Testing: slicing-pointers1
+46/125 Test: slicing-pointers1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pointers1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-pointers1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-pointers1" end time: Nov 17 02:26 CET
+"slicing-pointers1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+47/125 Testing: slicing-pointers2
+47/125 Test: slicing-pointers2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pointers2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-pointers2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers2.c:16:20: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        struct item2 *A = malloc(n * sizeof(struct item2));
+                          ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers2.c:16:20: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 37 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-pointers2" end time: Nov 17 02:26 CET
+"slicing-pointers2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+48/125 Testing: slicing-pointers3
+48/125 Test: slicing-pointers3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pointers3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-pointers3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers3.c:16:20: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        struct item2 *A = malloc(n * sizeof(struct item2));
+                          ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers3.c:16:20: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 41 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-pointers3" end time: Nov 17 02:26 CET
+"slicing-pointers3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+49/125 Testing: slicing-pointers4
+49/125 Test: slicing-pointers4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pointers4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-pointers4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 5 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 49 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-pointers4" end time: Nov 17 02:26 CET
+"slicing-pointers4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+50/125 Testing: slicing-pointers5
+50/125 Test: slicing-pointers5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pointers5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-pointers5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %bytes = alloca [8 x i8], align 1 off: 0
+No reaching definition for:   %q = alloca i32*, align 8 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers5.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pointers5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-pointers5" end time: Nov 17 02:26 CET
+"slicing-pointers5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+51/125 Testing: slicing-ptrarray1
+51/125 Test: slicing-ptrarray1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrarray1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrarray1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 8 from 37 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrarray1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrarray1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrarray1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrarray1" end time: Nov 17 02:26 CET
+"slicing-ptrarray1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+52/125 Testing: slicing-ptrarray2
+52/125 Test: slicing-ptrarray2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrarray2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrarray2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 39 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrarray2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrarray2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrarray2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrarray2" end time: Nov 17 02:26 CET
+"slicing-ptrarray2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+53/125 Testing: slicing-phi1
+53/125 Test: slicing-phi1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-phi1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-phi1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi1.c:6:20: warning: unused variable 'c' [-Wunused-variable]
+        int a = 2, b = 3, c;
+                          ^
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-phi1" end time: Nov 17 02:26 CET
+"slicing-phi1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+54/125 Testing: slicing-phi2
+54/125 Test: slicing-phi2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-phi2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-phi2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi2.c:16:20: warning: unused variable 'c' [-Wunused-variable]
+        int a = 2, b = 3, c;
+                          ^
+1 warning generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 8 from 33 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.20 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-phi2" end time: Nov 17 02:26 CET
+"slicing-phi2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+55/125 Testing: slicing-phi3
+55/125 Test: slicing-phi3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-phi3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-phi3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 14 from 20 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-phi3" end time: Nov 17 02:26 CET
+"slicing-phi3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+56/125 Testing: slicing-phi4
+56/125 Test: slicing-phi4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-phi4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-phi4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.c:18:5: warning: incompatible pointer types assigning to 'void (*)(int *)' from 'void (unsigned long)' [-Wincompatible-pointer-types]
+                f = set1;
+                  ^ ~~~~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.c:20:5: warning: incompatible pointer types assigning to 'void (*)(int *)' from 'void (unsigned long)' [-Wincompatible-pointer-types]
+                f = set2;
+                  ^ ~~~~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.c:22:4: warning: incompatible integer to pointer conversion passing 'unsigned long' to parameter of type 'int *' [-Wint-conversion]
+        f((unsigned long) &a);
+          ^~~~~~~~~~~~~~~~~~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.c:14:20: warning: unused variable 'c' [-Wunused-variable]
+        int a = 2, b = 3, c;
+                          ^
+4 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 8 from 37 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/phi4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-phi4" end time: Nov 17 02:26 CET
+"slicing-phi4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+57/125 Testing: slicing-global1
+57/125 Test: slicing-global1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 11 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global1" end time: Nov 17 02:26 CET
+"slicing-global1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+58/125 Testing: slicing-global2
+58/125 Test: slicing-global2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 12 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global2" end time: Nov 17 02:26 CET
+"slicing-global2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+59/125 Testing: slicing-global3
+59/125 Test: slicing-global3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 10 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global3" end time: Nov 17 02:26 CET
+"slicing-global3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+60/125 Testing: slicing-global4
+60/125 Test: slicing-global4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global4" end time: Nov 17 02:26 CET
+"slicing-global4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+61/125 Testing: slicing-global5
+61/125 Test: slicing-global5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 10 from 32 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global5" end time: Nov 17 02:26 CET
+"slicing-global5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+62/125 Testing: slicing-global6
+62/125 Test: slicing-global6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 11 from 32 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global6.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global6" end time: Nov 17 02:26 CET
+"slicing-global6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+63/125 Testing: slicing-global7
+63/125 Test: slicing-global7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global7" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 12 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global7.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global7.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global7.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global7" end time: Nov 17 02:26 CET
+"slicing-global7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+64/125 Testing: slicing-global8
+64/125 Test: slicing-global8
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global8.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global8" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 15 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global8.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global8.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global8.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global8" end time: Nov 17 02:26 CET
+"slicing-global8" time elapsed: 00:00:00
+----------------------------------------------------------
+
+65/125 Testing: slicing-global9
+65/125 Test: slicing-global9
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global9.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global9" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global9.c:7:1: warning: control reaches end of non-void function [-Wreturn-type]
+}
+^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global9.c:16:7: warning: unused variable 'p' [-Wunused-variable]
+        int *p = foo(setglob);
+             ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %1 = alloca i32*, align 8 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global9.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global9.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global9.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global9" end time: Nov 17 02:26 CET
+"slicing-global9" time elapsed: 00:00:00
+----------------------------------------------------------
+
+66/125 Testing: slicing-global10
+66/125 Test: slicing-global10
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-global10.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-global10" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 18 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global10.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/global10.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/global10.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-global10" end time: Nov 17 02:26 CET
+"slicing-global10" time elapsed: 00:00:00
+----------------------------------------------------------
+
+67/125 Testing: slicing-ptrtoint1
+67/125 Test: slicing-ptrtoint1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 17 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint1" end time: Nov 17 02:26 CET
+"slicing-ptrtoint1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+68/125 Testing: slicing-ptrtoint2
+68/125 Test: slicing-ptrtoint2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 25 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint2" end time: Nov 17 02:26 CET
+"slicing-ptrtoint2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+69/125 Testing: slicing-ptrtoint3
+69/125 Test: slicing-ptrtoint3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 20 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint3" end time: Nov 17 02:26 CET
+"slicing-ptrtoint3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+70/125 Testing: slicing-ptrtoint4
+70/125 Test: slicing-ptrtoint4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 22 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint4" end time: Nov 17 02:26 CET
+"slicing-ptrtoint4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+71/125 Testing: slicing-ptrtoint5
+71/125 Test: slicing-ptrtoint5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 24 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint5" end time: Nov 17 02:26 CET
+"slicing-ptrtoint5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+72/125 Testing: slicing-ptrtoint6
+72/125 Test: slicing-ptrtoint6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint6.c:11:6: warning: incompatible pointer to integer conversion passing 'int *' to parameter of type 'unsigned long' [-Wint-conversion]
+        set(&a);
+            ^~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint6.c:3:24: note: passing argument to parameter 'addr' here
+void set(unsigned long addr)
+                       ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint6.c:10:13: warning: unused variable 'b' [-Wunused-variable]
+        int a = 0, b = 0;
+                   ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 17 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint6.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint6" end time: Nov 17 02:26 CET
+"slicing-ptrtoint6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+73/125 Testing: slicing-ptrtoint7
+73/125 Test: slicing-ptrtoint7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-ptrtoint7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-ptrtoint7" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint7.c:10:39: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        unsigned long addr = (unsigned long) malloc(sizeof(int));
+                                             ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint7.c:10:39: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 2 from 22 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint7.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint7.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/ptrtoint7.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-ptrtoint7" end time: Nov 17 02:26 CET
+"slicing-ptrtoint7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+74/125 Testing: slicing-llvmmemcpy
+74/125 Test: slicing-llvmmemcpy
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-llvmmemcpy.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-llvmmemcpy" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %good = alloca %struct.Stuff, align 4 off: 0
+No reaching definition for:   %bad = alloca %struct.Stuff, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 15 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/llvmmemcpy.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/llvmmemcpy.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/llvmmemcpy.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-llvmmemcpy" end time: Nov 17 02:26 CET
+"slicing-llvmmemcpy" time elapsed: 00:00:00
+----------------------------------------------------------
+
+75/125 Testing: slicing-llvmmemcpy2
+75/125 Test: slicing-llvmmemcpy2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-llvmmemcpy2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-llvmmemcpy2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %good = alloca %struct.Stuff, align 8 off: 0
+No reaching definition for:   %bad = alloca %struct.Stuff, align 8 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 24 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/llvmmemcpy2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/llvmmemcpy2.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/llvmmemcpy2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-llvmmemcpy2" end time: Nov 17 02:26 CET
+"slicing-llvmmemcpy2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+76/125 Testing: slicing-memcpy1
+76/125 Test: slicing-memcpy1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-memcpy1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-memcpy1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %array2 = alloca [10 x i32*], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy1.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-memcpy1" end time: Nov 17 02:26 CET
+"slicing-memcpy1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+77/125 Testing: slicing-memcpy2
+77/125 Test: slicing-memcpy2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-memcpy2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-memcpy2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %array2 = alloca [10 x i32*], align 16 off: 24
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy2.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-memcpy2" end time: Nov 17 02:26 CET
+"slicing-memcpy2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+78/125 Testing: slicing-memcpy3
+78/125 Test: slicing-memcpy3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-memcpy3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-memcpy3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %array2 = alloca [10 x i32*], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy3.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-memcpy3" end time: Nov 17 02:26 CET
+"slicing-memcpy3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+79/125 Testing: slicing-memcpy4
+79/125 Test: slicing-memcpy4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-memcpy4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-memcpy4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %S2 = alloca %struct.S, align 8 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy4.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-memcpy4" end time: Nov 17 02:26 CET
+"slicing-memcpy4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+80/125 Testing: slicing-memcpy5
+80/125 Test: slicing-memcpy5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-memcpy5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-memcpy5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %S2 = alloca %struct.S, align 8 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 25 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy5.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-memcpy5" end time: Nov 17 02:26 CET
+"slicing-memcpy5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+81/125 Testing: slicing-memcpy6
+81/125 Test: slicing-memcpy6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-memcpy6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-memcpy6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %array2 = alloca [10 x i32*], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 27 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy6.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/memcpy6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-memcpy6" end time: Nov 17 02:26 CET
+"slicing-memcpy6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+82/125 Testing: slicing-bitcast1
+82/125 Test: slicing-bitcast1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-bitcast1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-bitcast1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast1.c:8:16: warning: comparison of integers of different signs: 'int' and 'unsigned long' [-Wsign-compare]
+        for (i = 0; i < sizeof(int); ++i) {
+                    ~ ^ ~~~~~~~~~~~
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 29 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-bitcast1" end time: Nov 17 02:26 CET
+"slicing-bitcast1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+83/125 Testing: slicing-bitcast2
+83/125 Test: slicing-bitcast2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-bitcast2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-bitcast2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast2.c:13:16: warning: comparison of integers of different signs: 'int' and 'unsigned int' [-Wsign-compare]
+        test_assert(a == 0xabababab);
+                    ~ ^  ~~~~~~~~~~
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 24 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-bitcast2" end time: Nov 17 02:26 CET
+"slicing-bitcast2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+84/125 Testing: slicing-bitcast3
+84/125 Test: slicing-bitcast3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-bitcast3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-bitcast3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast3.c:17:18: warning: comparison of integers of different signs: 'int' and 'unsigned int' [-Wsign-compare]
+        test_assert(B.i == 0xabababab);
+                    ~~~ ^  ~~~~~~~~~~
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-bitcast3" end time: Nov 17 02:26 CET
+"slicing-bitcast3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+85/125 Testing: slicing-bitcast4
+85/125 Test: slicing-bitcast4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-bitcast4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-bitcast4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %a = alloca [13 x i8], align 1 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 18 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast4.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-bitcast4" end time: Nov 17 02:26 CET
+"slicing-bitcast4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+86/125 Testing: slicing-bitcast5
+86/125 Test: slicing-bitcast5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-bitcast5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-bitcast5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %a = alloca [13 x i8], align 1 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 10 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast5.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/bitcast5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-bitcast5" end time: Nov 17 02:26 CET
+"slicing-bitcast5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+87/125 Testing: slicing-loop1
+87/125 Test: slicing-loop1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-loop1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-loop1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-loop1" end time: Nov 17 02:26 CET
+"slicing-loop1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+88/125 Testing: slicing-loop2
+88/125 Test: slicing-loop2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-loop2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-loop2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-loop2" end time: Nov 17 02:26 CET
+"slicing-loop2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+89/125 Testing: slicing-loop3
+89/125 Test: slicing-loop3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-loop3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-loop3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 5 from 26 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-loop3" end time: Nov 17 02:26 CET
+"slicing-loop3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+90/125 Testing: slicing-loop4
+90/125 Test: slicing-loop4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-loop4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-loop4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop4.c:5:1: warning: 'volatile' type qualifier on return type has no effect [-Wignored-qualifiers]
+volatile void check(int c)
+^~~~~~~~~
+1 warning generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 7 from 39 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-loop4" end time: Nov 17 02:26 CET
+"slicing-loop4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+91/125 Testing: slicing-loop5
+91/125 Test: slicing-loop5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-loop5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-loop5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop5.c:5:1: warning: 'volatile' type qualifier on return type has no effect [-Wignored-qualifiers]
+volatile void check(int c)
+^~~~~~~~~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop5.c:5:25: warning: unused parameter 'c' [-Wunused-parameter]
+volatile void check(int c)
+                        ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 4 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 6 from 25 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/loop5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-loop5" end time: Nov 17 02:26 CET
+"slicing-loop5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+92/125 Testing: slicing-list1
+92/125 Test: slicing-list1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 7 from 76 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list1-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list1-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list1-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list1" end time: Nov 17 02:26 CET
+"slicing-list1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+93/125 Testing: slicing-list2
+93/125 Test: slicing-list2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 35 from 58 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list2-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list2-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list2-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.13 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list2" end time: Nov 17 02:26 CET
+"slicing-list2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+94/125 Testing: slicing-list3
+94/125 Test: slicing-list3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 9 from 64 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list3-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list3-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list3-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list3" end time: Nov 17 02:26 CET
+"slicing-list3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+95/125 Testing: slicing-list4
+95/125 Test: slicing-list4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 24 from 87 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list4-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list4-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list4-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list4" end time: Nov 17 02:26 CET
+"slicing-list4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+96/125 Testing: slicing-list5
+96/125 Test: slicing-list5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 3 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 61 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list5" end time: Nov 17 02:26 CET
+"slicing-list5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+97/125 Testing: slicing-list6
+97/125 Test: slicing-list6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 43 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list6.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list6" end time: Nov 17 02:26 CET
+"slicing-list6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+98/125 Testing: slicing-list7
+98/125 Test: slicing-list7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list7" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 20 from 73 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list7-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list7-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list7-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.14 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list7" end time: Nov 17 02:26 CET
+"slicing-list7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+99/125 Testing: slicing-list8
+99/125 Test: slicing-list8
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-list8.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-list8" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list8.c:18:10: warning: unused variable 'temp' [-Wunused-variable]
+  mlist *temp;
+         ^
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 22 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list8.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/list8.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/list8.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-list8" end time: Nov 17 02:26 CET
+"slicing-list8" time elapsed: 00:00:00
+----------------------------------------------------------
+
+100/125 Testing: slicing-dynalloc1
+100/125 Test: slicing-dynalloc1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc1.c:9:19: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        struct item *i = malloc(sizeof *i);
+                         ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc1.c:9:19: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc1" end time: Nov 17 02:26 CET
+"slicing-dynalloc1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+101/125 Testing: slicing-dynalloc2
+101/125 Test: slicing-dynalloc2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc2.c:9:9: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        (*i) = malloc(sizeof(struct item));
+               ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc2.c:9:9: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 22 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc2" end time: Nov 17 02:26 CET
+"slicing-dynalloc2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+102/125 Testing: slicing-dynalloc3
+102/125 Test: slicing-dynalloc3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc3.c:10:19: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+        struct item *i = malloc(size);
+                         ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc3.c:10:19: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 25 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc3" end time: Nov 17 02:26 CET
+"slicing-dynalloc3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+103/125 Testing: slicing-dynalloc4
+103/125 Test: slicing-dynalloc4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc4.c:9:19: warning: implicitly declaring library function 'calloc' with type 'void *(unsigned long, unsigned long)'
+        struct item *i = calloc(4, sizeof *i);
+                         ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc4.c:9:19: note: please include the header <stdlib.h> or explicitly provide a declaration for 'calloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc4" end time: Nov 17 02:26 CET
+"slicing-dynalloc4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+104/125 Testing: slicing-dynalloc5
+104/125 Test: slicing-dynalloc5
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc5.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc5" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 22 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc5.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc5.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc5.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc5" end time: Nov 17 02:26 CET
+"slicing-dynalloc5" time elapsed: 00:00:00
+----------------------------------------------------------
+
+105/125 Testing: slicing-dynalloc6
+105/125 Test: slicing-dynalloc6
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc6.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc6" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.c:10:24: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+    struct node *ptr = malloc(sizeof *ptr);
+                       ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.c:10:24: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.c:24:16: warning: passing 'const struct node **' to parameter of type 'struct node **' discards qualifiers in nested pointer types [-Wincompatible-pointer-types-discards-qualifiers]
+    chain_node(pp1);
+               ^~~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.c:16:38: note: passing argument to parameter 'ppnode' here
+static void chain_node(struct node **ppnode)
+                                     ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %p1 = alloca %struct.node*, align 8 off: 0
+INFO: Adding Def-Use edges took 0 sec 1 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 16 from 45 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc6.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc6" end time: Nov 17 02:26 CET
+"slicing-dynalloc6" time elapsed: 00:00:00
+----------------------------------------------------------
+
+106/125 Testing: slicing-dynalloc7
+106/125 Test: slicing-dynalloc7
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-dynalloc7.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-dynalloc7" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 24 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc7.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc7.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/dynalloc7.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-dynalloc7" end time: Nov 17 02:26 CET
+"slicing-dynalloc7" time elapsed: 00:00:00
+----------------------------------------------------------
+
+107/125 Testing: slicing-realloc1
+107/125 Test: slicing-realloc1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-realloc1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-realloc1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %a = alloca i32, align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 10 from 42 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/realloc1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/realloc1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/realloc1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-realloc1" end time: Nov 17 02:26 CET
+"slicing-realloc1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+108/125 Testing: slicing-switch1
+108/125 Test: slicing-switch1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-switch1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-switch1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 8 from 21 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/switch1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/switch1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/switch1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-switch1" end time: Nov 17 02:26 CET
+"slicing-switch1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+109/125 Testing: slicing-switch2
+109/125 Test: slicing-switch2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-switch2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-switch2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 26 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/switch2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/switch2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/switch2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-switch2" end time: Nov 17 02:26 CET
+"slicing-switch2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+110/125 Testing: slicing-vararg1
+110/125 Test: slicing-vararg1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-vararg1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-vararg1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %l = alloca [1 x %struct.__va_list_tag], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 14 from 44 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-vararg1" end time: Nov 17 02:26 CET
+"slicing-vararg1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+111/125 Testing: slicing-vararg2
+111/125 Test: slicing-vararg2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-vararg2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-vararg2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %l = alloca [1 x %struct.__va_list_tag], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 10 from 54 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-vararg2" end time: Nov 17 02:26 CET
+"slicing-vararg2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+112/125 Testing: slicing-vararg3
+112/125 Test: slicing-vararg3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-vararg3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-vararg3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg3.c:25:6: warning: unused variable 'a' [-Wunused-variable]
+        int a;
+            ^
+1 warning generated.
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %l = alloca [1 x %struct.__va_list_tag], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 16 from 43 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-vararg3" end time: Nov 17 02:26 CET
+"slicing-vararg3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+113/125 Testing: slicing-vararg4
+113/125 Test: slicing-vararg4
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-vararg4.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-vararg4" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %l = alloca [1 x %struct.__va_list_tag], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 15 from 74 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg4.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg4.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/vararg4.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-vararg4" end time: Nov 17 02:26 CET
+"slicing-vararg4" time elapsed: 00:00:00
+----------------------------------------------------------
+
+114/125 Testing: slicing-negoffset1
+114/125 Test: slicing-negoffset1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-negoffset1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-negoffset1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-negoffset1" end time: Nov 17 02:26 CET
+"slicing-negoffset1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+115/125 Testing: slicing-negoffset2
+115/125 Test: slicing-negoffset2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-negoffset2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-negoffset2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 19 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset2.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-negoffset2" end time: Nov 17 02:26 CET
+"slicing-negoffset2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+116/125 Testing: slicing-negoffset3
+116/125 Test: slicing-negoffset3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-negoffset3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-negoffset3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 26 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset3.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/negoffset3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-negoffset3" end time: Nov 17 02:26 CET
+"slicing-negoffset3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+117/125 Testing: slicing-sum1
+117/125 Test: slicing-sum1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-sum1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-sum1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+No reaching definition for:   %x = alloca [4 x i32], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 9 from 73 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum1.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-sum1" end time: Nov 17 02:26 CET
+"slicing-sum1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+118/125 Testing: slicing-sum2
+118/125 Test: slicing-sum2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-sum2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-sum2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for:   %x = alloca [3 x i32], align 4 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 53 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum2.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum2.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum2.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-sum2" end time: Nov 17 02:26 CET
+"slicing-sum2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+119/125 Testing: slicing-sum3
+119/125 Test: slicing-sum3
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-sum3.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"slicing-sum3" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+No reaching definition for:   %x = alloca [4 x i32], align 16 off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 76 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum3.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum3.sliced: error: Invalid value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/sum3.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"slicing-sum3" end time: Nov 17 02:26 CET
+"slicing-sum3" time elapsed: 00:00:00
+----------------------------------------------------------
+
+120/125 Testing: control-regression1
+120/125 Test: control-regression1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-control-regression1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"control-regression1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 1 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 5 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 8 from 30 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/control-regression1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/control-regression1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/control-regression1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"control-regression1" end time: Nov 17 02:26 CET
+"control-regression1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+121/125 Testing: pta_fs_regression1
+121/125 Test: pta_fs_regression1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pta_fs_regression1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"pta_fs_regression1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+No reaching definition for: @stderr = external global %struct._IO_FILE* off: 0
+No reaching definition for: @stdout = external global %struct._IO_FILE* off: 0
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 4 from 20 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_fs_regression1-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_fs_regression1-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_fs_regression1-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.12 sec
+----------------------------------------------------------
+Test Failed.
+"pta_fs_regression1" end time: Nov 17 02:26 CET
+"pta_fs_regression1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+122/125 Testing: pta_regression2
+122/125 Test: pta_regression2
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-pta_regression2.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"pta_regression2" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_regression2.c:11:25: warning: implicitly declaring library function 'malloc' with type 'void *(unsigned long)'
+    struct node *node = malloc(sizeof *node);
+                        ^
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_regression2.c:11:25: note: please include the header <stdlib.h> or explicitly provide a declaration for 'malloc'
+1 warning generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 1 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 7 from 34 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_regression2-withdefs.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_regression2-withdefs.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/pta_regression2-withdefs.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.11 sec
+----------------------------------------------------------
+Test Failed.
+"pta_regression2" end time: Nov 17 02:26 CET
+"pta_regression2" time elapsed: 00:00:00
+----------------------------------------------------------
+
+123/125 Testing: alias_of_return
+123/125 Test: alias_of_return
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-alias_of_return.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"alias_of_return" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 2 from 10 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/alias_of_return.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/alias_of_return.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/alias_of_return.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.10 sec
+----------------------------------------------------------
+Test Failed.
+"alias_of_return" end time: Nov 17 02:26 CET
+"alias_of_return" time elapsed: 00:00:00
+----------------------------------------------------------
+
+124/125 Testing: regression1
+124/125 Test: regression1
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-regression1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"regression1" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/regression1.c:16:3: warning: expression result unused [-Wunused-value]
+  argc;
+  ^~~~
+/media/thierry/TestMutants/DG-dependency/dg/tests/sources/regression1.c:11:26: warning: unused parameter 'argv' [-Wunused-parameter]
+int main(int argc, char *argv[]) {
+                         ^
+2 warnings generated.
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 12 from 13 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/regression1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/regression1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/regression1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"regression1" end time: Nov 17 02:26 CET
+"regression1" time elapsed: 00:00:00
+----------------------------------------------------------
+
+125/125 Testing: fptoui
+125/125 Test: fptoui
+Command: "/media/thierry/TestMutants/DG-dependency/dg/tests/slicing-fptoui1.sh"
+Directory: /media/thierry/TestMutants/DG-dependency/dg/tests
+"fptoui" start time: Nov 17 02:26 CET
+Output:
+----------------------------------------------------------
+INFO: Points-to analysis took 0 sec 0 ms
+INFO: Reaching defs analysis took 0 sec 0 ms
+INFO: Adding Def-Use edges took 0 sec 0 ms
+INFO: Computing control dependencies took 0 sec 0 ms
+INFO: Finding dependent nodes took 0 sec 0 ms
+INFO: Slicing dependence graph took 0 sec 0 ms
+INFO: Sliced away 3 from 23 nodes in DG
+INFO: saving sliced module to: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/fptoui1.sliced
+llvm-link: /media/thierry/TestMutants/DG-dependency/dg/tests/sources/fptoui1.sliced: error: Invalid type for value
+llvm-link: error loading file '/media/thierry/TestMutants/DG-dependency/dg/tests/sources/fptoui1.sliced'
+Linking with test_assert failed
+<end of output>
+Test time =   0.09 sec
+----------------------------------------------------------
+Test Failed.
+"fptoui" end time: Nov 17 02:26 CET
+"fptoui" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 17 02:26 CET
