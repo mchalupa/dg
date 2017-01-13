@@ -940,30 +940,47 @@ static void dump_dg_to_dot(LLVMDependenceGraph& dg, bool bb_only = false,
     }
 }
 
-static uint32_t parseAnnotationOpt(const std::string& opt)
+static std::vector<std::string> splitList(const std::string& opt)
 {
+    std::vector<std::string> ret;
     if (opt.empty())
-        return 0;
+        return ret;
 
-    uint32_t opts = 0;
+    size_t old_pos = 0;
     size_t pos = 0;
     while (true) {
-        if (opt.compare(pos, 2 /* len */, "dd") == 0)
-            opts |= ANNOTATE_DD;
-        else if (opt.compare(pos, 2, "cd") == 0)
-            opts |= ANNOTATE_CD;
-        else if (opt.compare(pos, 2, "rd") == 0)
-            opts |= ANNOTATE_RD;
-        else if (opt.compare(pos, 3, "pta") == 0)
-            opts |= ANNOTATE_PTR;
-        else if (opt.compare(pos, 5, "slice") == 0)
-            opts |= ANNOTATE_SLICE;
+        old_pos = pos;
 
         pos = opt.find(',', pos);
+        ret.push_back(opt.substr(old_pos, pos - old_pos));
+
         if (pos == std::string::npos)
             break;
         else
             ++pos;
+    }
+
+    return ret;
+}
+
+static uint32_t parseAnnotationOpt(const std::string& annot)
+{
+    if (annot.empty())
+        return 0;
+
+    uint32_t opts = 0;
+    std::vector<std::string> lst = splitList(annot);
+    for (const std::string& opt : lst) {
+        if (opt == "dd")
+            opts |= ANNOTATE_DD;
+        else if (opt == "cd")
+            opts |= ANNOTATE_CD;
+        else if (opt == "rd")
+            opts |= ANNOTATE_RD;
+        else if (opt == "pta")
+            opts |= ANNOTATE_PTR;
+        else if (opt == "slice" || opt == "sl" || opt == "slicer")
+            opts |= ANNOTATE_SLICE;
     }
 
     if (opts != 0)
