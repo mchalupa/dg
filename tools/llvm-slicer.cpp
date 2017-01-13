@@ -111,7 +111,8 @@ llvm::cl::opt<std::string> slicing_criterion("c", llvm::cl::Required,
     llvm::cl::desc("Slice with respect to the call-sites of a given function\n"
                    "i. e.: '-c foo' or '-c __assert_fail'. Special value is a 'ret'\n"
                    "in which case the slice is taken with respect to the return value\n"
-                   "of the main() function\n"), llvm::cl::value_desc("func"),
+                   "of the main() function. You can use comma separated list of more\n"
+                   "function calls, e.g. -c foo,bar\n"), llvm::cl::value_desc("func"),
                    llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<uint64_t> pta_field_sensitivie("pta-field-sensitive",
@@ -502,6 +503,36 @@ static bool createEmptyMain(llvm::Module *M)
     return true;
 }
 
+static std::vector<std::string> splitList(const std::string& opt)
+{
+    std::vector<std::string> ret;
+    if (opt.empty())
+        return ret;
+
+    size_t old_pos = 0;
+    size_t pos = 0;
+    while (true) {
+        old_pos = pos;
+
+        pos = opt.find(',', pos);
+        ret.push_back(opt.substr(old_pos, pos - old_pos));
+
+        if (pos == std::string::npos)
+            break;
+        else
+            ++pos;
+    }
+
+    return ret;
+}
+
+
+/// --------------------------------------------------------------------
+//   - Slicer class -
+//
+//  The main class that represents slicer and covers the elementary
+//  functionality
+/// --------------------------------------------------------------------
 class Slicer {
     uint32_t slice_id = 0;
     bool got_slicing_criterion = true;
@@ -559,27 +590,29 @@ public:
         debug::TimeMeasure tm;
         std::set<LLVMNode *> callsites;
 
-        assert(!slicing_criterion.empty() && "Do not have the slicing criterion");
+        std::vector<std::string> criterions = splitList(slicing_criterion);
+        assert(!criterions.empty() && "Do not have the slicing criterion");
+
+        // if user wants to slice with respect to the retrn of main
+        for (const auto& c : criterions)
+            if (c == "ret")
+                callsites.insert(dg.getExit());
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
         // it during points-to analysis
-        bool ret = dg.getCallSites(slicing_criterion.c_str(), &callsites);
+        bool ret = dg.getCallSites(criterions, &callsites);
         got_slicing_criterion = true;
         if (!ret) {
-            if (slicing_criterion == "ret") {
-                callsites.insert(dg.getExit());
-            } else {
-                errs() << "Did not find slicing criterion: "
-                       << slicing_criterion << "\n";
-                got_slicing_criterion = false;
-            }
+            errs() << "Did not find slicing criterion: "
+                   << slicing_criterion << "\n";
+            got_slicing_criterion = false;
         }
 
         // if we found slicing criterion, compute the rest
         // of the graph. Otherwise just slice away the whole graph
-        // Also count the edges when user wants to annotate
-        // the file - due to debugging
+        // Also compute the edges when the user wants to annotate
+        // the file - due to debugging.
         if (got_slicing_criterion || (opts & ANNOTATE))
             computeEdges();
 
@@ -591,9 +624,9 @@ public:
 
         // we also do not want to remove any assumptions
         // about the code
-        // FIXME add command line switch that
-        // will add these according to user's will
-        // (or extend the slicing criterion to be a list)
+        // FIXME: make it configurable and add control dependencies
+        // for these functions, so that we slice away the
+        // unneeded one
         const char *sc[] = {
             "__VERIFIER_assume",
             "__VERIFIER_exit",
@@ -678,6 +711,13 @@ public:
     }
 };
 
+
+/// --------------------------------------------------------------------
+//   - SlicerOld class -
+//
+//  The slicer instance that uses old analyses that are not developed
+//  anymore. This one is going to be removed at some point.
+/// --------------------------------------------------------------------
 class SlicerOld : public Slicer
 {
     virtual void computeEdges()
@@ -949,29 +989,6 @@ static void dump_dg_to_dot(LLVMDependenceGraph& dg, bool bb_only = false,
         debug::LLVMDG2Dot dumper(&dg, dump_opts, fl.c_str());
         dumper.dump();
     }
-}
-
-static std::vector<std::string> splitList(const std::string& opt)
-{
-    std::vector<std::string> ret;
-    if (opt.empty())
-        return ret;
-
-    size_t old_pos = 0;
-    size_t pos = 0;
-    while (true) {
-        old_pos = pos;
-
-        pos = opt.find(',', pos);
-        ret.push_back(opt.substr(old_pos, pos - old_pos));
-
-        if (pos == std::string::npos)
-            break;
-        else
-            ++pos;
-    }
-
-    return ret;
 }
 
 static uint32_t parseAnnotationOpt(const std::string& annot)

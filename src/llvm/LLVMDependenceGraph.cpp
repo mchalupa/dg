@@ -697,7 +697,48 @@ static bool array_match(llvm::StringRef name, const char *names[])
     return false;
 }
 
+static bool array_match(llvm::StringRef name, const std::vector<std::string>& names)
+{
+    for (const auto& nm : names) {
+        if (name == nm)
+            return true;
+    }
+
+    return false;
+}
+
 static bool match_callsite_name(LLVMNode *callNode, const char *names[])
+{
+    using namespace llvm;
+
+    // if the function is undefined, it has no subgraphs,
+    // but is not called via function pointer
+    if (!callNode->hasSubgraphs()) {
+        const CallInst *callInst = cast<CallInst>(callNode->getValue());
+        const Value *calledValue = callInst->getCalledValue();
+        const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
+        // in the case we haven't run points-to analysis
+        if (!func)
+            return false;
+
+        return array_match(func->getName(), names);
+    } else {
+        // simply iterate over the subgraphs, get the entry node
+        // and check it
+        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
+            LLVMNode *entry = dg->getEntry();
+            assert(entry && "No entry node in graph");
+
+            const Function *func
+                = cast<Function>(entry->getValue()->stripPointerCasts());
+            return array_match(func->getName(), names);
+        }
+    }
+
+    return false;
+}
+
+static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::string>& names)
 {
     using namespace llvm;
 
@@ -739,6 +780,24 @@ bool LLVMDependenceGraph::getCallSites(const char *names[],
 {
     for (auto& F : constructedFunctions) {
         for (auto& I : F.second->getBlocks()) {
+            LLVMBBlock *BB = I.second;
+            for (LLVMNode *n : BB->getNodes()) {
+                if (llvm::isa<llvm::CallInst>(n->getValue())) {
+                    if (match_callsite_name(n, names))
+                        callsites->insert(n);
+                }
+            }
+        }
+    }
+
+    return callsites->size() != 0;
+}
+
+bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
+                                       std::set<LLVMNode *> *callsites)
+{
+    for (const auto& F : constructedFunctions) {
+        for (const auto& I : F.second->getBlocks()) {
             LLVMBBlock *BB = I.second;
             for (LLVMNode *n : BB->getNodes()) {
                 if (llvm::isa<llvm::CallInst>(n->getValue())) {
