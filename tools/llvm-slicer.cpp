@@ -33,7 +33,7 @@
  #include <llvm/IR/Verifier.h>
 #endif
 
-#if LLVM_VERSION_MAJOR == 4
+#if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #else
@@ -913,7 +913,7 @@ static bool verify_module(llvm::Module *M)
     // the verifyModule function returns false if there
     // are no errors
 
-#if ((LLVM_VERSION_MAJOR == 4) || (LLVM_VERSION_MINOR >= 5))
+#if ((LLVM_VERSION_MAJOR >= 4) || (LLVM_VERSION_MINOR >= 5))
     return !llvm::verifyModule(*M, &llvm::errs());
 #else
     return !llvm::verifyModule(*M, llvm::PrintMessageAction);
