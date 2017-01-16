@@ -54,7 +54,8 @@ static void get_lines_from_module(const Module *M, std::set<unsigned>& lines)
             for (const Instruction& I : B) {
                 const DebugLoc& Loc = I.getDebugLoc();
                 //Make sure that the llvm istruction has corresponding dbg LOC
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 5))
+#if ((LLVM_VERSION_MAJOR > 3)\
+      || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 5)))
                 if (Loc)
 #else
                 if (Loc.getLine() > 0)
