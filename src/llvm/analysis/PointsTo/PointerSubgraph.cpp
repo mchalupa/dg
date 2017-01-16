@@ -12,7 +12,7 @@
 
 #include <llvm/Config/llvm-config.h>
 
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/Support/CFG.h>
 #else
  #include <llvm/IR/CFG.h>
@@ -1204,7 +1204,7 @@ void LLVMPointerSubgraphBuilder::transitivelyBuildUses(const llvm::Value *val)
     assert(!isa<ConstantInt>(val) && "Tried building uses of constant int");
 
     for (auto I = val->use_begin(), E = val->use_end(); I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
         const llvm::Value *use = *I;
 #else
         const llvm::Value *use = I->getUser();
@@ -1650,7 +1650,7 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
         const Value *use = *I;
 #else
         const Value *use = I->getUser();
@@ -1697,7 +1697,7 @@ void LLVMPointerSubgraphBuilder::addVariadicArgumentOperands(const llvm::Functio
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
         const Value *use = *I;
 #else
         const Value *use = I->getUser();
@@ -1752,7 +1752,7 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::Function *F, P
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
         const Value *use = *I;
 #else
         const Value *use = I->getUser();

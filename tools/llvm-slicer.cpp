@@ -12,7 +12,7 @@
 
 #include <llvm/Config/llvm-config.h>
 
-#if (LLVM_VERSION_MAJOR != 3)
+#if (LLVM_VERSION_MAJOR < 3)
 #error "Unsupported version of LLVM"
 #endif
 
@@ -25,12 +25,19 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#if LLVM_VERSION_MINOR < 5
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
  #include <llvm/Assembly/AssemblyAnnotationWriter.h>
  #include <llvm/Analysis/Verifier.h>
 #else // >= 3.5
  #include <llvm/IR/AssemblyAnnotationWriter.h>
  #include <llvm/IR/Verifier.h>
+#endif
+
+#if LLVM_VERSION_MAJOR >= 4
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
+#else
+#include <llvm/Bitcode/ReaderWriter.h>
 #endif
 
 #include <llvm/IR/LLVMContext.h>
@@ -40,7 +47,6 @@
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/Support/FormattedStream.h>
 #include <llvm/IRReader/IRReader.h>
-#include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/CommandLine.h>
@@ -133,16 +139,22 @@ llvm::cl::opt<PtaType> pta("pta",
     llvm::cl::values(
         clEnumVal(old , "Old pointer analysis (flow-insensitive, deprecated)"),
         clEnumVal(fi, "Flow-insensitive PTA (default)"),
-        clEnumVal(fs, "Flow-sensitive PTA"),
-        nullptr),
+        clEnumVal(fs, "Flow-sensitive PTA")
+#if LLVM_VERSION_MAJOR < 4
+        , nullptr
+#endif
+        ),
     llvm::cl::init(fi), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
     llvm::cl::desc("Choose control dependencies algorithm to use:"),
     llvm::cl::values(
         clEnumValN(CLASSIC , "classic", "Ferrante's algorithm (default)"),
-        clEnumValN(CONTROL_EXPRESSION, "ce", "Control expression based (experimental)"),
-        nullptr),
+        clEnumValN(CONTROL_EXPRESSION, "ce", "Control expression based (experimental)")
+#if LLVM_VERSION_MAJOR < 4
+        , nullptr
+#endif
+         ),
     llvm::cl::init(CLASSIC), llvm::cl::cat(SlicingOpts));
 
 
@@ -901,7 +913,7 @@ static bool verify_module(llvm::Module *M)
     // the verifyModule function returns false if there
     // are no errors
 
-#if (LLVM_VERSION_MINOR >= 5)
+#if ((LLVM_VERSION_MAJOR >= 4) || (LLVM_VERSION_MINOR >= 5))
     return !llvm::verifyModule(*M, &llvm::errs());
 #else
     return !llvm::verifyModule(*M, llvm::PrintMessageAction);
@@ -1019,7 +1031,7 @@ static uint32_t parseAnnotationOpt(const std::string& annot)
 
 int main(int argc, char *argv[])
 {
-#if LLVM_VERSION_MINOR < 9
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
     llvm::sys::PrintStackTraceOnErrorSignal();
 #else
     llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
@@ -1076,7 +1088,7 @@ int main(int argc, char *argv[])
     if (dump_dg_only)
         dump_dg = true;
 
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
     M = llvm::ParseIRFile(llvmfile, SMD, context);
 #else
     auto _M = llvm::parseIRFile(llvmfile, SMD, context);

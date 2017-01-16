@@ -25,7 +25,13 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
+
+#if LLVM_VERSION_MAJOR >= 4
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
+#else
 #include <llvm/Bitcode/ReaderWriter.h>
+#endif
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
@@ -284,7 +290,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-#if (LLVM_VERSION_MINOR < 5)
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
     M = llvm::ParseIRFile(module, SMD, context);
 #else
     auto _M = llvm::parseIRFile(module, SMD, context);
