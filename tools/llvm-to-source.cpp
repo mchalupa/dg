@@ -58,8 +58,8 @@ static void get_lines_from_module(const Module *M, std::set<unsigned>& lines)
                 if (Loc)
 #else
                 if (Loc.getLine() > 0)
-                    lines.insert(Loc.getLine());
 #endif
+                    lines.insert(Loc.getLine());
             }
         }
     }
