@@ -1088,7 +1088,7 @@ int main(int argc, char *argv[])
     if (dump_dg_only)
         dump_dg = true;
 
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
     M = llvm::ParseIRFile(llvmfile, SMD, context);
 #else
     auto _M = llvm::parseIRFile(llvmfile, SMD, context);
