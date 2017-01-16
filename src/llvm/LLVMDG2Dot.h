@@ -95,13 +95,23 @@ public:
             os << "\\nERR: no BB";
         }
 
-        //Print Location in source file
+        //Print Location in source file. Print it only for LLVM 3.6 and higher.
+        // The versions before 3.6 had different API, so this is quite
+        // a workaround, not a real fix. If anybody needs this functionality
+        // on those versions, fix this :)
         if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(val)) {
             const llvm::DebugLoc& Loc = I->getDebugLoc();
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 5))
             if(Loc) {
                 os << "\" labelURL=\"";
                 llvm::raw_os_ostream ross(os);
                 Loc.print(ross);
+#else
+            if(Loc.getLine() > 0) {
+                os << "\" labelURL=\"";
+                llvm::raw_os_ostream ross(os);
+                Loc.print(I->getParent()->getContext(), ross);
+#endif
                 ross.flush();
             }
         }

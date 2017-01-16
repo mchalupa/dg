@@ -1078,7 +1078,11 @@ int main(int argc, char *argv[])
         llvm::cl::cat(SlicingOpts));
 
     // hide all options except ours options
+    // this method is available since LLVM 3.7
+#if ((LLVM_VERSION_MAJOR > 3)\
+      || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR >= 7)))
     llvm::cl::HideUnrelatedOptions(SlicingOpts);
+#endif
     llvm::cl::SetVersionPrinter([](){ printf("%s\n", GIT_VERSION); });
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
