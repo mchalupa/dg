@@ -102,7 +102,7 @@ public:
         if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(val)) {
             const llvm::DebugLoc& Loc = I->getDebugLoc();
 #if ((LLVM_VERSION_MAJOR > 3)\
-      || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 5)))
+      || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 6)))
             if(Loc) {
                 os << "\" labelURL=\"";
                 llvm::raw_os_ostream ross(os);
