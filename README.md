@@ -16,7 +16,7 @@ We have implemented a dependence graph for LLVM and a static slicer for LLVM.
 
 ### Requirements & Compilation
 
-LLVM DependenceGraph needs LLVM 3.4 or higher (tested on 3.4, 3.5, 3.7, 3.8, and 3.9).
+LLVM DependenceGraph needs LLVM 3.4 or higher.
 Clone the repository to your machine:
 
 ```
