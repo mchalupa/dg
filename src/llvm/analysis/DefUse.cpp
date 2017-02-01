@@ -105,6 +105,7 @@ void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
 void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
                                              CallInst *CI)
 {
+    static std::set<Instruction *> warnings;
     IntrinsicInst *I = cast<IntrinsicInst>(CI);
     Value *dest, *src = nullptr;
 
@@ -124,7 +125,13 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
         case Intrinsic::vaend:
         case Intrinsic::lifetime_start:
         case Intrinsic::lifetime_end:
+        case Intrinsic::trap:
             // nothing to be done
+            return;
+        case Intrinsic::stacksave:
+        case Intrinsic::stackrestore:
+            if (warnings.insert(CI).second)
+                llvmutils::printerr("WARN: stack save/restore not implemented", CI);
             return;
         default:
             I->dump();
