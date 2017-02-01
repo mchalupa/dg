@@ -628,6 +628,11 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
     RDNode *node = new RDNode(CALL);
     addNode(CInst, node);
 
+    // if we assume that undefined functions are pure
+    // (have no side effects), we can bail out here
+    if (assume_pure_functions)
+        return node;
+
     // every pointer we pass into the undefined call may be defined
     // in the function
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
@@ -667,6 +672,10 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
             node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
         }
     }
+
+    // XXX: to be completely correct, we should assume also modification
+    // of all global variables, so we should perform a write to
+    // unknown memory instead of the loop above
 
     return node;
 }

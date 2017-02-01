@@ -19,6 +19,7 @@ class LLVMRDBuilder
 {
     const llvm::Module *M;
     const llvm::DataLayout *DL;
+    bool assume_pure_functions;
 
     struct Subgraph {
         Subgraph(RDNode *r1, RDNode *r2)
@@ -47,8 +48,11 @@ class LLVMRDBuilder
     // so that we can delete it later)
     std::vector<RDNode *> dummy_nodes;
 public:
-    LLVMRDBuilder(const llvm::Module *m, dg::LLVMPointerAnalysis *p)
-        : M(m), DL(new llvm::DataLayout(m)), PTA(p) {}
+    LLVMRDBuilder(const llvm::Module *m,
+                  dg::LLVMPointerAnalysis *p,
+                  bool pure_funs = false)
+        : M(m), DL(new llvm::DataLayout(m)),
+          assume_pure_functions(pure_funs), PTA(p) {}
     ~LLVMRDBuilder();
 
     RDNode *build();
@@ -116,13 +120,15 @@ class LLVMReachingDefinitions
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
+    bool assume_pure_functions;
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
                             dg::LLVMPointerAnalysis *pta,
                             bool strong_updt_unknown = false,
+                            bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
-        : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta))),
+        : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
           strong_update_unknown(strong_updt_unknown), max_set_size(max_set_sz) {}
 
     void run()

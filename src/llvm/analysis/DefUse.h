@@ -26,10 +26,12 @@ class LLVMDefUseAnalysis : public analysis::DataFlowAnalysis<LLVMNode>
     LLVMReachingDefinitions *RD;
     LLVMPointerAnalysis *PTA;
     const llvm::DataLayout *DL;
+    bool assume_pure_functions;
 public:
     LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                        LLVMReachingDefinitions *rd,
-                       LLVMPointerAnalysis *pta);
+                       LLVMPointerAnalysis *pta,
+                       bool assume_pure_functions = false);
     ~LLVMDefUseAnalysis() { delete DL; }
 
     /* virtual */
