@@ -169,7 +169,7 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
     Function *func
         = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
     if (func) {
-        if (func->isIntrinsic() && !isa<DbgValueInst>(CI)) {
+        if (func->isIntrinsic() && !isa<DbgInfoIntrinsic>(CI)) {
             handleIntrinsicCall(node, CI);
             return;
         }
