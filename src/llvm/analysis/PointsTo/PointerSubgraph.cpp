@@ -747,6 +747,12 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     vastart->addSuccessor(S1);
     S1->addSuccessor(S2);
 
+    // set paired node to S2 for vararg, so that when adding structure,
+    // we add the whole sequence (it adds from call-node to pair-node,
+    // because of the old system where we did not store all sequences)
+    // FIXME: fix this
+    vastart->setPairedNode(S2);
+
     // FIXME: we're assuming that in a sequence in the nodes_map
     // is always the last node the 'real' node. In this case it is not true,
     // so add only the 'vastart', so that we have the mapping in nodes_map
