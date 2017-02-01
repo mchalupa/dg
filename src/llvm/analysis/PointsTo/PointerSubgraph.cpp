@@ -734,17 +734,20 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     // it uses for storing the va arguments. Strip it so that we'll
     // get the underlying alloca inst
     PSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
-    assert(op->getType() == pta::ALLOC
-           && "Argument of vastart is not an alloca");
+    // the argument is usually an alloca, but it may be a load
+    // in the case the code was transformed by -reg2mem
+    assert((op->getType() == pta::ALLOC || op->getType() == pta::LOAD)
+           && "Argument of vastart is invalid");
     // get node with the same pointer, but with UNKNOWN_OFFSET
     // FIXME: we're leaking it
     // make the memory in alloca point to our memory in vastart
-    PSNode *ptr = new PSNode(pta::CONSTANT, op, UNKNOWN_OFFSET);
+    PSNode *ptr = new PSNode(pta::GEP, op, UNKNOWN_OFFSET);
     PSNode *S1 = new PSNode(pta::STORE, vastart, ptr);
     // and also make vastart point to the vararg args
     PSNode *S2 = new PSNode(pta::STORE, arg, vastart);
 
-    vastart->addSuccessor(S1);
+    vastart->addSuccessor(ptr);
+    ptr->addSuccessor(S1);
     S1->addSuccessor(S2);
 
     // set paired node to S2 for vararg, so that when adding structure,
