@@ -43,54 +43,6 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-#if 0
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
-
-static std::string
-getInstName(const llvm::Value *val)
-{
-    std::ostringstream ostr;
-    llvm::raw_os_ostream ro(ostr);
-
-    assert(val);
-    ro << *val;
-    ro.flush();
-
-    // break the string if it is too long
-    return ostr.str();
-}
-
-const char *__get_name(const llvm::Value *val, const char *prefix)
-{
-    static std::string buf;
-    buf.reserve(255);
-    buf.clear();
-
-    std::string nm = getInstName(val);
-    if (prefix)
-        buf.append(prefix);
-
-    buf.append(nm);
-
-    return buf.c_str();
-}
-
-{
-    const char *name = __get_name(val, prefix);
-}
-
-{
-    if (prefix) {
-        std::string nm;
-        nm.append(prefix);
-        nm.append(name);
-    } else
-}
-#endif
-
 static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
 {
     // Type can be i8 *null or similar
