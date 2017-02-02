@@ -128,7 +128,11 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
         case Intrinsic::lifetime_start:
         case Intrinsic::lifetime_end:
         case Intrinsic::trap:
-            // nothing to be done
+        case Intrinsic::bswap:
+        case Intrinsic::prefetch:
+        case Intrinsic::objectsize:
+            // nothing to be done, direct def-use edges
+            // will be added later
             return;
         case Intrinsic::stacksave:
         case Intrinsic::stackrestore:
