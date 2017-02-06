@@ -176,6 +176,7 @@ if (LLVM_DG)
 	add_test(alias_of_return slicing-alias_of_return.sh)
 	add_test(regression1 slicing-regression1.sh)
 	add_test(fptoui slicing-fptoui1.sh)
+	add_test(malloc-redef slicing-malloc-redef.sh)
 
 endif (LLVM_DG)
 
