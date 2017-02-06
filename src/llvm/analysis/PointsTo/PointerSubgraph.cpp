@@ -1412,6 +1412,7 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");
+            node = createUnknown(&Inst);
     }
 
     return std::make_pair(node, node);
