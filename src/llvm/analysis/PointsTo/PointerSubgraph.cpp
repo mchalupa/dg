@@ -553,6 +553,8 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
     PSNode *reall = new PSNode(pta::DYN_ALLOC);
     // copy everything that is in orig_mem to reall
     PSNode *mcp = new PSNode(pta::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
+    // we need the pointer in the last node that we return
+    PSNode *ptr = new PSNode(pta::CONSTANT, reall, 0);
 
     reall->setIsHeap();
     reall->setSize(getConstantValue(CInst->getOperand(1)));
@@ -560,9 +562,10 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
         reall->setZeroInitialized();
 
     reall->addSuccessor(mcp);
+    mcp->addSuccessor(ptr);
 
-    PSNodesSeq ret = PSNodesSeq(reall, mcp);
-    addNode(CInst, ret);
+    PSNodesSeq ret = PSNodesSeq(reall, ptr);
+    addNode(CInst, ptr);
 
     return ret;
 }
