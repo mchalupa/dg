@@ -564,6 +564,8 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
     reall->addSuccessor(mcp);
     mcp->addSuccessor(ptr);
 
+    reall->setUserData(const_cast<llvm::CallInst *>(CInst));
+
     PSNodesSeq ret = PSNodesSeq(reall, ptr);
     addNode(CInst, ptr);
 
