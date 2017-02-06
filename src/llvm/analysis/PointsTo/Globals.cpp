@@ -43,10 +43,13 @@ namespace pta {
 
 PSNode *
 LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
-                                                PSNode *node)
+                                                            PSNode *node, PSNode *last,
+                                                            uint64_t offset)
 {
     using namespace llvm;
-    PSNode *last = node;
+
+    if (!last)
+        last = node;
 
     // if the global is zero initialized, just set the zeroInitialized flag
     if (C->isNullValue()) {
@@ -54,25 +57,25 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
     } else if (C->getType()->isAggregateType()) {
         uint64_t off = 0;
         for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I) {
-            const Value *val = *I;
-            Type *Ty = val->getType();
-
-            if (Ty->isPointerTy()) {
-                PSNode *op = getOperand(val);
-                PSNode *target = new PSNode(CONSTANT, node, off);
-                // FIXME: we're leaking the target
-                // NOTE: mabe we could do something like
-                // CONSTANT_STORE that would take Pointer instead of node??
-                // PSNode(CONSTANT_STORE, op, Pointer(node, off)) or
-                // PSNode(COPY, op, Pointer(node, off))??
-                PSNode *store = new PSNode(STORE, op, target);
-                store->insertAfter(last);
-                last = store;
-            }
-
+            const Constant *op = cast<Constant>(*I);
+            Type *Ty = op->getType();
+            // recursively dive into the aggregate type
+            last = handleGlobalVariableInitializer(op, node, last, offset + off);
             off += DL->getTypeAllocSize(Ty);
         }
-    } else if (isa<ConstantExpr>(C) || isa<Function>(C)
+    } else if (C->getType()->isPointerTy()) {
+        PSNode *op = getOperand(C);
+        PSNode *target = new PSNode(CONSTANT, node, offset);
+        // FIXME: we're leaking the target
+        // NOTE: mabe we could do something like
+        // CONSTANT_STORE that would take Pointer instead of node??
+        // PSNode(CONSTANT_STORE, op, Pointer(node, off)) or
+        // PSNode(COPY, op, Pointer(node, off))??
+        PSNode *store = new PSNode(STORE, op, target);
+        store->insertAfter(last);
+        last = store;
+    } else if (isa<ConstantExpr>(C)
+                || isa<Function>(C)
                 || C->getType()->isPointerTy()) {
        if (C->getType()->isPointerTy()) {
            PSNode *value = getOperand(C);

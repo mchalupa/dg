@@ -211,7 +211,10 @@ private:
 
 
     PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
-                                             PSNode *node);
+                                            PSNode *node,
+                                            PSNode *last = nullptr,
+                                            uint64_t offset = 0);
+
     PSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
 
     PSNodesSeq createMemSet(const llvm::Instruction *);
