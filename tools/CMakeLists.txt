@@ -14,6 +14,9 @@ if (LLVM_DG)
 	add_executable(llvm-ps-dump llvm-ps-dump.cpp)
 	target_link_libraries(llvm-ps-dump LLVMdg)
 
+	add_executable(llvm-pta-eval llvm-pta-eval.cpp)
+	target_link_libraries(llvm-pta-eval LLVMdg)
+
 	add_executable(llvm-pta-compare llvm-pta-compare.cpp)
 	target_link_libraries(llvm-pta-compare LLVMdg)
 
