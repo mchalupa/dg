@@ -53,8 +53,7 @@ public:
         assert(PS && "Need valid PointerSubgraph object");
 
         // compute the strongly connected components
-        if (prepro_geps)
-        {
+        if (prepro_geps) {
             SCC<PSNode> scc_comp;
             SCCs = std::move(scc_comp.compute(PS->getRoot()));
         }
@@ -77,20 +76,15 @@ public:
     }
     */
 
-    virtual void enqueue(PSNode *n)
-    {
-        changed.push_back(n);
+    /* hooks for analysis - optional. The analysis may do everything
+     * in getMemoryObjects, but spliting it into before-get-after sequence
+     * is more readable */
+    virtual bool beforeProcessed(PSNode *) {
+        return false;
     }
 
-    /* hooks for analysis - optional */
-    virtual void beforeProcessed(PSNode *n)
-    {
-        (void) n;
-    }
-
-    virtual void afterProcessed(PSNode *n)
-    {
-        (void) n;
+    virtual bool afterProcessed(PSNode *) {
+        return false;
     }
 
     PointerSubgraph *getPS() const { return PS; }
@@ -112,6 +106,11 @@ public:
         }
     }
 
+    virtual void enqueue(PSNode *n)
+    {
+        changed.push_back(n);
+    }
+
     void run()
     {
         PSNode *root = PS->getRoot();
@@ -130,16 +129,19 @@ public:
             changed.clear();
 
             for (PSNode *cur : to_process) {
-                beforeProcessed(cur);
+                bool enq = false;
+                enq |= beforeProcessed(cur);
+                enq |= processNode(cur);
+                enq |= afterProcessed(cur);
 
-                if (processNode(cur))
+                if (enq)
                     enqueue(cur);
-
-                afterProcessed(cur);
             }
 
+            to_process.clear();
+
             if (!changed.empty()) {
-                to_process.clear();
+                // DONT std::move - it prevents compiler from copy ellision
                 to_process = PS->getNodes(nullptr /* starting node */,
                                           &changed /* starting set */,
                                           last_processed_num /* expected num */);
@@ -147,8 +149,12 @@ public:
                 // since changed was not empty,
                 // the to_process must not be empty too
                 assert(!to_process.empty());
+                assert(to_process.size() >= changed.size());
             }
-        } while (!changed.empty());
+        } while (!to_process.empty());
+
+        assert(to_process.empty());
+        assert(changed.empty());
     }
 
     // generic error

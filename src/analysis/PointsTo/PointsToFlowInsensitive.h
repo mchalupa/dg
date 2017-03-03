@@ -29,8 +29,8 @@ public:
         }
     }
 
-    virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
-                                  std::vector<MemoryObject *>& objects)
+    void getMemoryObjects(PSNode *where, const Pointer& pointer,
+                          std::vector<MemoryObject *>& objects) override
     {
         // irrelevant in flow-insensitive
         (void) where;
@@ -58,11 +58,6 @@ public:
         }
 
         objects.push_back(mo);
-    }
-
-    virtual void afterProcessed(PSNode *n)
-    {
-        (void) n;
     }
 };
 
