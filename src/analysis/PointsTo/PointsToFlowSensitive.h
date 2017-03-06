@@ -21,7 +21,7 @@ public:
     PointsToFlowSensitive(PointerSubgraph *ps) : PointerAnalysis(ps,
                                                  UNKNOWN_OFFSET, false) {}
 
-    virtual void beforeProcessed(PSNode *n)
+    void beforeProcessed(PSNode *n) override
     {
         MemoryMapT *mm = n->getData<MemoryMapT>();
         if (!mm) {
@@ -71,7 +71,7 @@ public:
         }
     }
 
-    virtual void afterProcessed(PSNode *n)
+    void afterProcessed(PSNode *n) override
     {
         PointsToSetT *strong_update = nullptr;
 
@@ -100,8 +100,8 @@ public:
         }
     }
 
-    virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
-                                  std::vector<MemoryObject *>& objects)
+    void getMemoryObjects(PSNode *where, const Pointer& pointer,
+                          std::vector<MemoryObject *>& objects) override
     {
         MemoryMapT *mm= where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
