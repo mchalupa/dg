@@ -126,8 +126,8 @@ public:
 
         // if this is a call that returns a pointer,
         // then the points-to is in CALL_RETURN node
-        if (n && (n->getType() == pta::CALL
-            || n->getType() == pta::CALL_FUNCPTR))
+        if (n && (n->getType() == PSNodeType::CALL
+            || n->getType() == PSNodeType::CALL_FUNCPTR))
             n = n->getPairedNode();
 
         return n;

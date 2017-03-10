@@ -18,8 +18,17 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PointerSubgraph *ps) : PointerAnalysis(ps,
-                                                 UNKNOWN_OFFSET, false) {}
+    PointsToFlowSensitive(PointerSubgraph *ps)
+    : PointerAnalysis(ps, UNKNOWN_OFFSET, false) {}
+
+    static bool canChangeMM(PSNode *n) {
+        if (n->predecessorsNum() == 0 || // root node
+            n->getType() == PSNodeType::STORE ||
+            n->getType() == PSNodeType::MEMCPY)
+            return true;
+
+        return false;
+    }
 
     void beforeProcessed(PSNode *n) override
     {
@@ -82,7 +91,7 @@ public:
 
         // every store is strong update
         // FIXME: memcpy can be strong update too
-        if (n->getType() == pta::STORE)
+        if (n->getType() == PSNodeType::STORE)
             strong_update = &n->getOperand(1)->pointsTo;
 
         // merge information from predecessors if there's
@@ -90,7 +99,7 @@ public:
         // and this is not a store, the memory map couldn't
         // change, so we don't have to do that)
         if (n->predecessorsNum() > 1 || strong_update
-            || n->getType() == pta::MEMCPY) {
+            || n->getType() == PSNodeType::MEMCPY) {
             for (PSNode *p : n->getPredecessors()) {
                 MemoryMapT *pm = p->getData<MemoryMapT>();
                 // merge pm to mm (if pm was already created)

@@ -65,13 +65,13 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
         }
     } else if (C->getType()->isPointerTy()) {
         PSNode *op = getOperand(C);
-        PSNode *target = new PSNode(CONSTANT, node, offset);
+        PSNode *target = new PSNode(PSNodeType::CONSTANT, node, offset);
         // FIXME: we're leaking the target
         // NOTE: mabe we could do something like
         // CONSTANT_STORE that would take Pointer instead of node??
         // PSNode(CONSTANT_STORE, op, Pointer(node, off)) or
         // PSNode(COPY, op, Pointer(node, off))??
-        PSNode *store = new PSNode(STORE, op, target);
+        PSNode *store = new PSNode(PSNodeType::STORE, op, target);
         store->insertAfter(last);
         last = store;
     } else if (isa<ConstantExpr>(C)
@@ -81,7 +81,7 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
            PSNode *value = getOperand(C);
            assert(value->pointsTo.size() == 1 && "BUG: We should have constant");
            // FIXME: we're leaking the target
-           PSNode *store = new PSNode(STORE, value, node);
+           PSNode *store = new PSNode(PSNodeType::STORE, value, node);
            store->insertAfter(last);
            last = store;
        }
@@ -112,7 +112,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
         prev = cur;
 
         // every global node is like memory allocation
-        cur = new PSNode(pta::ALLOC);
+        cur = new PSNode(PSNodeType::ALLOC);
         addNode(&*I, cur);
 
         if (prev)
@@ -140,7 +140,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
         } else {
             // without initializer we can not do anything else than
             // assume that it can point everywhere
-            cur = new PSNode(pta::STORE, UNKNOWN_MEMORY, node);
+            cur = new PSNode(PSNodeType::STORE, UNKNOWN_MEMORY, node);
             cur->insertAfter(node);
         }
     }

@@ -14,7 +14,7 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-enum PSNodeType {
+enum class PSNodeType {
         // these are nodes that just represent memory allocation sites
         ALLOC = 1,
         DYN_ALLOC,
@@ -136,52 +136,52 @@ public:
         va_start(args, t);
 
         switch(type) {
-            case ALLOC:
-            case DYN_ALLOC:
-            case FUNCTION:
+            case PSNodeType::ALLOC:
+            case PSNodeType::DYN_ALLOC:
+            case PSNodeType::FUNCTION:
                 // these always points-to itself
                 // (they points to the node where the memory was allocated)
                 addPointsTo(this, 0);
                 break;
-            case NOOP:
-            case ENTRY:
+            case PSNodeType::NOOP:
+            case PSNodeType::ENTRY:
                 // no operands
                 break;
-            case CAST:
-            case LOAD:
-            case CALL_FUNCPTR:
+            case PSNodeType::CAST:
+            case PSNodeType::LOAD:
+            case PSNodeType::CALL_FUNCPTR:
                 operands.push_back(va_arg(args, PSNode *));
                 break;
-            case STORE:
+            case PSNodeType::STORE:
                 operands.push_back(va_arg(args, PSNode *));
                 operands.push_back(va_arg(args, PSNode *));
                 break;
-            case MEMCPY:
+            case PSNodeType::MEMCPY:
                 operands.push_back(va_arg(args, PSNode *));
                 operands.push_back(va_arg(args, PSNode *));
                 offset = va_arg(args, uint64_t);
                 len = va_arg(args, uint64_t);
                 break;
-            case GEP:
+            case PSNodeType::GEP:
                 operands.push_back(va_arg(args, PSNode *));
                 offset = va_arg(args, uint64_t);
                 break;
-            case CONSTANT:
+            case PSNodeType::CONSTANT:
                 op = va_arg(args, PSNode *);
                 offset = va_arg(args, uint64_t);
                 pointsTo.insert(Pointer(op, offset));
                 break;
-            case NULL_ADDR:
+            case PSNodeType::NULL_ADDR:
                 pointsTo.insert(Pointer(this, 0));
                 break;
-            case pta::UNKNOWN_MEM:
+            case PSNodeType::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
-            case CALL_RETURN:
-            case PHI:
-            case RETURN:
-            case CALL:
+            case PSNodeType::CALL_RETURN:
+            case PSNodeType::PHI:
+            case PSNodeType::RETURN:
+            case PSNodeType::CALL:
                 op = va_arg(args, PSNode *);
                 // the operands are null terminated
                 while (op) {
@@ -209,8 +209,8 @@ public:
     void setIsHeap() { is_heap = true; }
     bool isHeap() const { return is_heap; }
 
-    bool isNull() const { return type == NULL_ADDR; }
-    bool isUnknownMemory() const { return type == UNKNOWN_MEM; }
+    bool isNull() const { return type == PSNodeType::NULL_ADDR; }
+    bool isUnknownMemory() const { return type == PSNodeType::UNKNOWN_MEM; }
 
     // make this public, that's basically the only
     // reason the PointerSubgraph node exists, so don't hide it

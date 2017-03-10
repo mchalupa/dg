@@ -79,24 +79,24 @@ void printPSNodeType(enum PSNodeType type)
 {
 #define ELEM(t) case t: do {printf("%s", #t); }while(0); break;
     switch(type) {
-        ELEM(ALLOC)
-        ELEM(DYN_ALLOC)
-        ELEM(LOAD)
-        ELEM(STORE)
-        ELEM(GEP)
-        ELEM(PHI)
-        ELEM(CAST)
-        ELEM(FUNCTION)
-        ELEM(CALL)
-        ELEM(CALL_FUNCPTR)
-        ELEM(CALL_RETURN)
-        ELEM(ENTRY)
-        ELEM(RETURN)
-        ELEM(CONSTANT)
-        ELEM(NOOP)
-        ELEM(MEMCPY)
-        ELEM(NULL_ADDR)
-        ELEM(UNKNOWN_MEM)
+        ELEM(PSNodeType::ALLOC)
+        ELEM(PSNodeType::DYN_ALLOC)
+        ELEM(PSNodeType::LOAD)
+        ELEM(PSNodeType::STORE)
+        ELEM(PSNodeType::GEP)
+        ELEM(PSNodeType::PHI)
+        ELEM(PSNodeType::CAST)
+        ELEM(PSNodeType::FUNCTION)
+        ELEM(PSNodeType::CALL)
+        ELEM(PSNodeType::CALL_FUNCPTR)
+        ELEM(PSNodeType::CALL_RETURN)
+        ELEM(PSNodeType::ENTRY)
+        ELEM(PSNodeType::RETURN)
+        ELEM(PSNodeType::CONSTANT)
+        ELEM(PSNodeType::NOOP)
+        ELEM(PSNodeType::MEMCPY)
+        ELEM(PSNodeType::NULL_ADDR)
+        ELEM(PSNodeType::UNKNOWN_MEM)
         default:
             printf("unknown PointerSubgraph type");
     };
@@ -304,11 +304,11 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
             dumpPointerSubgraphData(node, type, true /* dot */);
 
         printf("\"");
-        if (node->getType() != STORE) {
+        if (node->getType() != PSNodeType::STORE) {
             printf(", shape=box");
             if (node->pointsTo.size() == 0
-                && (node->getType() == LOAD ||
-                    node->getType() == GEP))
+                && (node->getType() == PSNodeType::LOAD ||
+                    node->getType() == PSNodeType::GEP))
                 printf(", style=filled, fillcolor=red");
         } else {
             printf(", shape=cds");

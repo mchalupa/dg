@@ -235,7 +235,7 @@ void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
 
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0 && ptan.second->getType() == pta::RETURN)
+        if (succ_num == 0 && ptan.second->getType() == PSNodeType::RETURN)
             rets.push_back(ptan.second);
 
         assert(ptan.first && ptan.second);

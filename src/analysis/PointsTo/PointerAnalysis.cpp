@@ -7,9 +7,9 @@ namespace analysis {
 namespace pta {
 
 // nodes representing NULL and unknown memory
-PSNode NULLPTR_LOC(NULL_ADDR);
+PSNode NULLPTR_LOC(PSNodeType::NULL_ADDR);
 PSNode *NULLPTR = &NULLPTR_LOC;
-PSNode UNKNOWN_MEMLOC(UNKNOWN_MEM);
+PSNode UNKNOWN_MEMLOC(PSNodeType::UNKNOWN_MEM);
 PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 // pointers to those memory
@@ -238,10 +238,10 @@ bool PointerAnalysis::processNode(PSNode *node)
 #endif
 
     switch(node->type) {
-        case LOAD:
+        case PSNodeType::LOAD:
             changed |= processLoad(node);
             break;
-        case STORE:
+        case PSNodeType::STORE:
             for (const Pointer& ptr : node->getOperand(1)->pointsTo) {
                 PSNode *target = ptr.target;
                 assert(target && "Got nullptr as target");
@@ -257,7 +257,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
-        case GEP:
+        case PSNodeType::GEP:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
                 uint64_t new_offset;
                 if (ptr.offset.isUnknown() || node->offset.isUnknown())
@@ -266,7 +266,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                 else
                     new_offset = *ptr.offset + *node->offset;
 
-                // in the case the memory has size 0, then every pointer
+                // in the case PSNodeType::the memory has size 0, then every pointer
                 // will have unknown offset with the exception that it points
                 // to the begining of the memory - therefore make 0 exception
                 if ((new_offset == 0 || new_offset < ptr.target->getSize())
@@ -276,27 +276,27 @@ bool PointerAnalysis::processNode(PSNode *node)
                     changed |= node->addPointsToUnknownOffset(ptr.target);
             }
             break;
-        case CAST:
+        case PSNodeType::CAST:
             // cast only copies the pointers
             for (const Pointer& ptr : node->getOperand(0)->pointsTo)
                 changed |= node->addPointsTo(ptr);
             break;
-        case CONSTANT:
+        case PSNodeType::CONSTANT:
             // maybe warn? It has no sense to insert the constants into the graph.
             // On the other hand it is harmless. We can at least check if it is
             // correctly initialized 8-)
             assert(node->pointsTo.size() == 1
                    && "Constant should have exactly one pointer");
             break;
-        case CALL_RETURN:
-        case RETURN:
+        case PSNodeType::CALL_RETURN:
+        case PSNodeType::RETURN:
             // gather pointers returned from subprocedure - the same way
             // as PHI works
-        case PHI:
+        case PSNodeType::PHI:
             for (PSNode *op : node->operands)
                 changed |= node->addPointsTo(op->pointsTo);
             break;
-        case CALL_FUNCPTR:
+        case PSNodeType::CALL_FUNCPTR:
             // call via function pointer:
             // first gather the pointers that can be used to the
             // call and if something changes, let backend take some action
@@ -314,18 +314,18 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
-        case MEMCPY:
+        case PSNodeType::MEMCPY:
             changed |= processMemcpy(node);
             break;
-        case ALLOC:
-        case DYN_ALLOC:
-        case FUNCTION:
+        case PSNodeType::ALLOC:
+        case PSNodeType::DYN_ALLOC:
+        case PSNodeType::FUNCTION:
             // these two always points to itself
             assert(node->doesPointsTo(node, 0));
             assert(node->pointsTo.size() == 1);
-        case CALL:
-        case ENTRY:
-        case NOOP:
+        case PSNodeType::CALL:
+        case PSNodeType::ENTRY:
+        case PSNodeType::NOOP:
             // just no op
             break;
         default:

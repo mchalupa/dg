@@ -105,7 +105,7 @@ public:
         for (const auto& scc : SCCs) {
             if (scc.size() > 1) {
                 for (PSNode *n : scc) {
-                    if (n->getType() == GEP)
+                    if (n->getType() == PSNodeType::GEP)
                         n->setOffset(UNKNOWN_OFFSET);
                 }
             }
