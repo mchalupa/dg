@@ -62,17 +62,6 @@ add_library(LLVMdg SHARED
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
-	# -- LLVM analysis (old)
-	llvm/analysis/old/DefUse.h
-	llvm/analysis/old/DefUse.cpp
-	llvm/analysis/old/AnalysisGeneric.h
-	llvm/analysis/old/AnalysisGeneric.cpp
-	llvm/analysis/old/PointsTo.h
-	llvm/analysis/old/PointsTo.cpp
-	llvm/analysis/old/ReachingDefs.h
-	llvm/analysis/old/ReachingDefs.cpp
-	llvm/analysis/old/DefMap.h
-	llvm/analysis/old/DefMap.cpp
 )
 
 target_link_libraries(LLVMdg PUBLIC LLVMpta RD ${llvm_libs})

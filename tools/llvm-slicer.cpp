@@ -204,29 +204,6 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             os << "\n";
     }
 
-    void printPointer(const analysis::Pointer& ptr,
-                      llvm::formatted_raw_ostream& os,
-                      const char *prefix = "PTR: ", bool nl = true)
-    {
-        os << "  ; ";
-        if (prefix)
-            os << prefix;
-
-        if (ptr.isKnown()) {
-            const llvm::Value *val = ptr.obj->node->getKey();
-            printValue(val, os);
-
-            if (ptr.offset.isUnknown())
-                os << " + UNKNOWN";
-            else
-                os << " + " << *ptr.offset;
-        } else
-            os << "unknown";
-
-        if (nl)
-            os << "\n";
-    }
-
     void printDefSite(const analysis::rd::DefSite& ds,
                       llvm::formatted_raw_ostream& os,
                       const char *prefix = nullptr, bool nl = false)
@@ -262,31 +239,20 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
     void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
     {
         if (opts & ANNOTATE_RD) {
-            if (RD) {
-                analysis::rd::RDNode *rd = RD->getMapping(node->getKey());
-                if (!rd) {
-                    os << "  ; RD: no mapping\n";
-                } else {
-                    auto defs = rd->getReachingDefinitions();
-                    for (auto it : defs) {
-                        for (auto nd : it.second) {
-                            printDefSite(it.first, os, "RD: ");
-                            os << " @ ";
-                            if (nd->isUnknown())
-                                os << " UNKNOWN\n";
-                            else
-                                printValue(nd->getUserData<llvm::Value>(), os, true);
-                        }
-                    }
-                }
+            assert(RD && "No reaching definitions analysis");
+            analysis::rd::RDNode *rd = RD->getMapping(node->getKey());
+            if (!rd) {
+                os << "  ; RD: no mapping\n";
             } else {
-                analysis::DefMap *df = node->getData<analysis::DefMap>();
-                if (df) {
-                    for (auto it : *df) {
-                        for (LLVMNode *d : it.second) {
-                            printPointer(it.first, os, "RD: ", false);
-                            os << " @ " << *d->getKey() << "(" << d << ")\n";
-                        }
+                auto& defs = rd->getReachingDefinitions();
+                for (auto& it : defs) {
+                    for (auto& nd : it.second) {
+                        printDefSite(it.first, os, "RD: ");
+                        os << " @ ";
+                        if (nd->isUnknown())
+                            os << " UNKNOWN\n";
+                        else
+                            printValue(nd->getUserData<llvm::Value>(), os, true);
                     }
                 }
             }
@@ -360,27 +326,13 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
 
         if (opts & ANNOTATE_PTR) {
             // FIXME: use the PTA from Slicer class
-            LLVMPointerAnalysis *PTA = node->getDG()->getPTA();
-            if (PTA) { // we used the new analyses
+            if (LLVMPointerAnalysis *PTA = node->getDG()->getPTA()) {
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
                     analysis::pta::PSNode *ps = PTA->getPointsTo(node->getKey());
                     if (ps) {
                         for (const analysis::pta::Pointer& ptr : ps->pointsTo)
                             printPointer(ptr, os);
-                    }
-                }
-            } else {
-                for (const analysis::Pointer& ptr : node->getPointsTo())
-                    printPointer(ptr, os);
-
-                analysis::MemoryObj *mo = node->getMemoryObj();
-                if (mo) {
-                    for (auto it : mo->pointsTo) {
-                        for (const analysis::Pointer& ptr : it.second) {
-                            os << "  ; PTR mem [" << *it.first << "] ";
-                            printPointer(ptr, os, nullptr);
-                        }
                     }
                 }
             }

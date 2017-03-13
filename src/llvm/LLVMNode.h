@@ -32,12 +32,11 @@
 #endif
 
 #include "Node.h"
-#include "llvm/analysis/old/AnalysisGeneric.h"
-#include "llvm/analysis/old/DefMap.h"
 
 namespace dg {
 
 class LLVMDependenceGraph;
+class LLVMNode;
 
 typedef dg::BBlock<LLVMNode> LLVMBBlock;
 typedef dg::DGParameter<LLVMNode> LLVMDGParameter;
@@ -51,7 +50,7 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>
 public:
     LLVMNode(llvm::Value *val, bool owns_value = false)
         :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val),
-         operands(nullptr), operands_num(0), memoryobj(nullptr), data(nullptr)
+         operands(nullptr), operands_num(0)
     {
         if (owns_value)
             owned_key = std::unique_ptr<llvm::Value>(val);
@@ -74,14 +73,7 @@ public:
     LLVMNode *getOperand(unsigned int idx);
     LLVMNode *setOperand(LLVMNode *op, unsigned int idx);
 
-    analysis::PointsToSetT& getPointsTo() { return pointsTo; }
-    const analysis::PointsToSetT& getPointsTo() const { return pointsTo; }
-    analysis::MemoryObj *&getMemoryObj() { return memoryobj; }
-    analysis::MemoryObj *getMemoryObj() const { return memoryobj; }
-
     void dump() const;
-    void dumpPointsTo() const;
-    void dumpAll() const;
 
     bool isPointerTy() const
     {
@@ -93,40 +85,6 @@ public:
         return getKey()->getType()->isVoidTy();
     }
 
-    bool addPointsTo(const analysis::Pointer& vr)
-    {
-        return pointsTo.insert(vr).second;
-    }
-
-    bool addPointsTo(analysis::MemoryObj *m, analysis::Offset off = 0)
-    {
-        return pointsTo.insert(analysis::Pointer(m, off)).second;
-    }
-
-    bool addPointsTo(const analysis::PointsToSetT& S)
-    {
-        bool changed = false;
-        for (const analysis::Pointer& p : S)
-            changed |= addPointsTo(p);
-
-        return changed;
-    }
-
-    template <typename T>
-    T* getData() { return static_cast<T *>(data); }
-
-    template <typename T>
-    const T* getData() const { return static_cast<T *>(data); }
-
-    template <typename T>
-    void *setData(T *newdata)
-    {
-        void *old = data;
-        data = static_cast<void *>(newdata);
-        return old;
-    }
-
-
 private:
     LLVMNode **findOperands();
     // here we can store operands of instructions so that
@@ -134,15 +92,8 @@ private:
     LLVMNode **operands;
     size_t operands_num;
 
-    analysis::MemoryObj *memoryobj;
-    analysis::PointsToSetT pointsTo;
-    analysis::DefMap defMap;
-
     // the owned key will be deleted with this node
     std::unique_ptr<llvm::Value> owned_key;
-
-    // user's or analysis's arbitrary data
-    void *data;
 };
 
 } // namespace dg
