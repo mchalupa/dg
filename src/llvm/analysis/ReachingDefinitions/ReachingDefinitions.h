@@ -120,7 +120,6 @@ class LLVMReachingDefinitions
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
-    bool assume_pure_functions;
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
