@@ -261,7 +261,7 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
             // don't dump params when we use new analyses (RD is not null)
             // because there we don't add definitions with new analyses
             if (params && !RD) {
-                for (auto it : *params) {
+                for (auto& it : *params) {
                     os << "  ; PARAMS: in " << it.second.in
                        << ", out " << it.second.out << "\n";
 
@@ -399,7 +399,7 @@ public:
 
         for (auto& it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
-            auto cb = sub->getBlocks();
+            auto& cb = sub->getBlocks();
             LLVMBBlock *BB = cb[const_cast<llvm::BasicBlock *>(B)];
             if (BB) {
                 if (opts & (ANNOTATE_POSTDOM | ANNOTATE_CD))
@@ -724,7 +724,6 @@ static bool remove_unused_from_module(llvm::Module *M)
     std::set<Function *> funs;
     std::set<GlobalVariable *> globals;
     std::set<GlobalAlias *> aliases;
-    auto cf = getConstructedFunctions();
 
     for (auto I = M->begin(), E = M->end(); I != E; ++I) {
         Function *func = &*I;
