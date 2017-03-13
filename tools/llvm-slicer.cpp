@@ -65,10 +65,6 @@
 #include "llvm/LLVMDG2Dot.h"
 #include "TimeMeasure.h"
 
-#include "llvm/analysis/old/PointsTo.h"
-#include "llvm/analysis/old/ReachingDefs.h"
-#include "llvm/analysis/old/DefUse.h"
-
 #include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
@@ -100,7 +96,7 @@ enum {
 };
 
 enum PtaType {
-    old, fs, fi
+    fs, fi
 };
 
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
@@ -141,7 +137,6 @@ llvm::cl::opt<bool> undefined_are_pure("undefined-are-pure",
 llvm::cl::opt<PtaType> pta("pta",
     llvm::cl::desc("Choose pointer analysis to use:"),
     llvm::cl::values(
-        clEnumVal(old , "Old pointer analysis (flow-insensitive, deprecated)"),
         clEnumVal(fi, "Flow-insensitive PTA (default)"),
         clEnumVal(fs, "Flow-sensitive PTA")
 #if LLVM_VERSION_MAJOR < 4
@@ -415,10 +410,8 @@ public:
                << ";   * pointer analysis: ";
             if (pta == fi)
                 os << "flow-insensitive\n";
-            else if (pta == old)
-                os << "flow-insensitive (old)\n";
             else if (pta == fs)
-                os << "flow-sensitive (old)\n";
+                os << "flow-sensitive\n";
 
             os << ";   * PTA field sensitivity: " << pta_field_sensitivie << "\n";
 
@@ -586,12 +579,6 @@ protected:
         tm.report("INFO: Computing control dependencies took");
     }
 
-    // for old slicer -- without creating a pointer analysis
-    Slicer(llvm::Module *mod, uint32_t o, bool /* no pta */)
-    :M(mod), opts(o) {
-        assert(mod && "Need module");
-    }
-
 public:
     Slicer(llvm::Module *mod, uint32_t o)
     :M(mod), opts(o),
@@ -725,69 +712,6 @@ public:
             errs() << "ERR: verifying failed\n";
             return false;
         }
-
-        return true;
-    }
-};
-
-
-/// --------------------------------------------------------------------
-//   - SlicerOld class -
-//
-//  The slicer instance that uses old analyses that are not developed
-//  anymore. This one is going to be removed at some point.
-/// --------------------------------------------------------------------
-class SlicerOld : public Slicer
-{
-    virtual void computeEdges()
-    {
-        debug::TimeMeasure tm;
-        assert(!PTA);
-        assert(!RD);
-
-        analysis::LLVMReachingDefsAnalysis RDA(&dg);
-        tm.start();
-        RDA.run();  // compute reaching definitions
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis [old] took");
-
-        analysis::old::LLVMDefUseAnalysis DUA(&dg);
-        tm.start();
-        DUA.run(); // add def-use edges according that
-        tm.stop();
-        tm.report("INFO: Adding Def-Use edges [old] took");
-
-        tm.start();
-        // add post-dominator frontiers
-        dg.computeControlDependencies(CdAlgorithm);
-        tm.stop();
-        tm.report("INFO: Computing control dependencies took");
-    }
-
-public:
-    SlicerOld(llvm::Module *mod, uint32_t o = 0)
-        :Slicer(mod, o, true /* no new pta */) {}
-
-    virtual bool buildDG()
-    {
-        debug::TimeMeasure tm;
-
-        // build the graph
-        dg.build(&*M);
-
-        // verify if the graph is built correctly
-        // FIXME - do it optionally (command line argument)
-        if (!dg.verify()) {
-            errs() << "ERR: verifying failed\n";
-            return false;
-        }
-
-        analysis::LLVMPointsToAnalysis PTA(&dg);
-
-        tm.start();
-        PTA.run();
-        tm.stop();
-        tm.report("INFO: Points-to analysis [old] took");
 
         return true;
     }
@@ -1130,36 +1054,32 @@ int main(int argc, char *argv[])
     /// ---------------
     // slice the code
     /// ---------------
-    std::unique_ptr<Slicer> slicer;
-    if (pta == PtaType::old)
-        slicer = std::unique_ptr<Slicer>(new SlicerOld(M, opts));
-    else
-        slicer = std::unique_ptr<Slicer>(new Slicer(M, opts));
+    Slicer slicer(M, opts);
 
     // build the dependence graph, so that we can dump it if desired
-    if (!slicer->buildDG()) {
+    if (!slicer.buildDG()) {
         errs() << "ERROR: Failed building DG\n";
         return 1;
     }
 
     // mark nodes that are going to be in the slice
-    slicer->mark();
+    slicer.mark();
 
     if (dump_dg) {
-        dump_dg_to_dot(slicer->getDG(), bb_only, dump_opts);
+        dump_dg_to_dot(slicer.getDG(), bb_only, dump_opts);
 
         if (dump_dg_only)
             return 0;
     }
 
     // slice the graph
-    if (!slicer->slice()) {
+    if (!slicer.slice()) {
         errs() << "ERROR: Slicing failed\n";
         return 1;
     }
 
     if (dump_dg) {
-        dump_dg_to_dot(slicer->getDG(), bb_only,
+        dump_dg_to_dot(slicer.getDG(), bb_only,
                        dump_opts, ".sliced.dot");
     }
 

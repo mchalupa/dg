@@ -45,10 +45,6 @@
 #include "llvm/LLVMDG2Dot.h"
 #include "TimeMeasure.h"
 
-#include "llvm/analysis/old/PointsTo.h"
-#include "llvm/analysis/old/ReachingDefs.h"
-#include "llvm/analysis/old/DefUse.h"
-
 #include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
@@ -141,33 +137,23 @@ int main(int argc, char *argv[])
     // TODO refactor the code...
     LLVMDependenceGraph d;
     LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
-    if (strcmp(pts, "old")) {
-        // new analyses
-        if (strcmp(pts, "fs") == 0) {
-            tm.start();
-            PTA->run<analysis::pta::PointsToFlowSensitive>();
-            tm.stop();
-        } else if (strcmp(pts, "fi") == 0) {
-            tm.start();
-            PTA->run<analysis::pta::PointsToFlowInsensitive>();
-            tm.stop();
-        } else {
-            llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
-            abort();
-        }
 
-        tm.report("INFO: Points-to analysis took");
-
-        d.build(M, PTA);
-    } else {
-        d.build(M);
-        analysis::LLVMPointsToAnalysis PTA(&d);
-
+    if (strcmp(pts, "fs") == 0) {
         tm.start();
-        PTA.run();
+        PTA->run<analysis::pta::PointsToFlowSensitive>();
         tm.stop();
-        tm.report("INFO: Points-to analysis [old] took");
+    } else if (strcmp(pts, "fi") == 0) {
+        tm.start();
+        PTA->run<analysis::pta::PointsToFlowInsensitive>();
+        tm.stop();
+    } else {
+        llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
+        abort();
     }
+
+    tm.report("INFO: Points-to analysis took");
+
+    d.build(M, PTA);
 
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
@@ -183,36 +169,22 @@ int main(int argc, char *argv[])
         tm.report("INFO: Finding slicing criterions took");
     }
 
-    if (strcmp(pts, "old")) {
-        assert(PTA && "BUG: Need points-to analysis");
-        //use new analyses
-        analysis::rd::LLVMReachingDefinitions RDA(M, PTA);
-        tm.start();
-        RDA.run();  // compute reaching definitions
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis took");
+    assert(PTA && "BUG: Need points-to analysis");
+    //use new analyses
+    analysis::rd::LLVMReachingDefinitions RDA(M, PTA);
+    tm.start();
+    RDA.run();  // compute reaching definitions
+    tm.stop();
+    tm.report("INFO: Reaching defs analysis took");
 
-        LLVMDefUseAnalysis DUA(&d, &RDA, PTA);
-        tm.start();
-        DUA.run(); // add def-use edges according that
-        tm.stop();
-        tm.report("INFO: Adding Def-Use edges took");
+    LLVMDefUseAnalysis DUA(&d, &RDA, PTA);
+    tm.start();
+    DUA.run(); // add def-use edges according that
+    tm.stop();
+    tm.report("INFO: Adding Def-Use edges took");
 
-        // we won't need PTA anymore
-        delete PTA;
-    } else {
-        analysis::LLVMReachingDefsAnalysis RDA(&d);
-        tm.start();
-        RDA.run();  // compute reaching definitions
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis [old] took");
-
-        analysis::old::LLVMDefUseAnalysis DUA(&d);
-        tm.start();
-        DUA.run(); // add def-use edges according that
-        tm.stop();
-        tm.report("INFO: Adding Def-Use edges [old] took");
-    }
+    // we won't need PTA anymore
+    delete PTA;
 
     tm.start();
     // add post-dominator frontiers
