@@ -101,12 +101,16 @@ void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g)
     using namespace llvm;
 
     LLVMNode *entry = g->getEntry();
-    if (!entry)
+    if (!entry) {
         fault("has no entry for %s", F->getName().data());
+        return;
+    }
 
     const llvm::Function *func = dyn_cast<Function>(entry->getKey());
-    if (!func)
+    if (!func) {
         fault("key in entry node is not a llvm::Function");
+        return;
+    }
 
     size_t a, b;
     a = g->getBlocks().size();

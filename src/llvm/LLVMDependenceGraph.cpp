@@ -430,6 +430,12 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
         handleInstruction(val, node);
     }
 
+    // did we created at least one node?
+    if (!node) {
+        assert(llvmBB.empty());
+        return BB;
+    }
+
     // check if this is the exit node of function
     // (node is now the last instruction in this BB)
     // if it is, connect it to one artificial return node
