@@ -268,7 +268,7 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
 
 RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
 {
-    RDNode *op = nodes_map[val];
+    RDNode *op = getNode(val);
     if (!op)
         return createNode(*llvm::cast<llvm::Instruction>(val));
 
@@ -438,7 +438,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
     RDNode *node = new RDNode(PHI);
-    dummy_nodes.push_back(node);
+    addNode(node);
     std::pair<RDNode *, RDNode *> ret(node, nullptr);
 
     for (const Instruction& Inst : block) {
@@ -449,14 +449,11 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
             last_node = node;
 
         assert(last_node != nullptr && "BUG: Last node is null");
-        mapping[&Inst] = last_node;
+        addMapping(&Inst, last_node);
 
-        auto it = nodes_map.find(&Inst);
-        if (it != nodes_map.end()) {
-            // reuse node if we already created it as an argument
-            node = it->second;
-        } else {
-            switch(Inst.getOpcode()) {
+        node = getNode(&Inst);
+        if (!node) {
+           switch(Inst.getOpcode()) {
                 case Instruction::Alloca:
                     // we need alloca's as target to DefSites
                     node = createAlloc(&Inst);
@@ -533,7 +530,7 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
 
     // do not leak the memory of returnNode (the callNode
     // will be added to nodes_map)
-    dummy_nodes.push_back(returnNode);
+    addNode(returnNode);
 
     // FIXME: if this is an inline assembly call
     // we need to make conservative assumptions
@@ -830,7 +827,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 
                 std::pair<RDNode *, RDNode *> cf
                     = createCallToFunction(F);
-                dummy_nodes.push_back(cf.first);
+                addNode(cf.first);
 
                 // connect the graphs
                 if (!call_funcptr) {
@@ -840,7 +837,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     call_funcptr = new RDNode(CALL);
                     ret_call = new RDNode(CALL_RETURN);
                     addNode(CInst, call_funcptr);
-                    dummy_nodes.push_back(ret_call);
+                    addNode(ret_call);
                 }
 
                 call_funcptr->addSuccessor(cf.first);
@@ -857,7 +854,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                         return std::make_pair(n, n);
                     } else if (llvmutils::callIsCompatible(F, CInst)) {
                         std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
-                        dummy_nodes.push_back(cf.first);
+                        addNode(cf.first);
 
                         call_funcptr = cf.first;
                         ret_call = cf.second;

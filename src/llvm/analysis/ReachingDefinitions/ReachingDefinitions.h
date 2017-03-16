@@ -88,8 +88,26 @@ public:
 private:
     void addNode(const llvm::Value *val, RDNode *node)
     {
-        nodes_map[val] = node;
+        auto it = nodes_map.find(val);
+        assert(it == nodes_map.end() && "Adding a node that we already have");
+
+        nodes_map.emplace_hint(it, val, node);
         node->setUserData(const_cast<llvm::Value *>(val));
+    }
+
+    ///
+    // Add a dummy node for which there's no real LLVM node
+    void addNode(RDNode *node)
+    {
+        dummy_nodes.push_back(node);
+    }
+
+    void addMapping(const llvm::Value *val, RDNode *node)
+    {
+        auto it = mapping.find(val);
+        assert(it == mapping.end() && "Adding mapping that we already have");
+
+        mapping.emplace_hint(it, val, node);
     }
 
     RDNode *createStore(const llvm::Instruction *Inst);
