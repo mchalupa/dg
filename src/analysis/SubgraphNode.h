@@ -102,12 +102,14 @@ public:
 
     size_t addOperand(NodeT *n)
     {
+        assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         return operands.size();
     }
 
     void addSuccessor(NodeT *succ)
     {
+        assert(succ && "Passed nullptr as the successor");
         successors.push_back(succ);
         succ->predecessors.push_back(static_cast<NodeT *>(this));
     }
@@ -131,6 +133,7 @@ public:
 
     void replaceSingleSuccessor(NodeT *succ)
     {
+        assert(succ && "Passed nullptr as the successor");
         assert(successors.size() == 1);
         NodeT *old = successors[0];
 
@@ -166,6 +169,7 @@ public:
     // this node must not be in any PointerSubgraph
     void insertAfter(NodeT *n)
     {
+        assert(n && "Passed nullptr as the node");
         assert(predecessorsNum() == 0);
         assert(successorsNum() == 0);
 
@@ -188,6 +192,7 @@ public:
     // this node must not be in any PointerSubgraph
     void insertBefore(NodeT *n)
     {
+        assert(n && "Passed nullptr as the node");
         assert(predecessorsNum() == 0);
         assert(successorsNum() == 0);
 
@@ -209,6 +214,7 @@ public:
     // insert a sequence before this node in PointerSubgraph
     void insertSequenceBefore(std::pair<NodeT *, NodeT *>& seq)
     {
+        assert(seq.first && seq.second && "Passed nullptr in the sequence");
         // the sequence must not be inserted in any PointerSubgraph
         assert(seq.first->predecessorsNum() == 0);
         assert(seq.second->successorsNum() == 0);
