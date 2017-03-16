@@ -434,23 +434,15 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 {
     using namespace llvm;
 
-    RDNode *last_node = nullptr;
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
     RDNode *node = new RDNode(PHI);
+    RDNode *last_node = node;
+
     addNode(node);
     std::pair<RDNode *, RDNode *> ret(node, nullptr);
 
     for (const Instruction& Inst : block) {
-        // some nodes may have nullptr as mapping,
-        // that means that there are no reaching definitions
-        // (well, no nodes to be precise) to map that on
-        if (node)
-            last_node = node;
-
-        assert(last_node != nullptr && "BUG: Last node is null");
-        addMapping(&Inst, last_node);
-
         node = getNode(&Inst);
         if (!node) {
            switch(Inst.getOpcode()) {
@@ -481,13 +473,24 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
             }
         }
 
+        // last_node should never be null
+        assert(last_node != nullptr && "BUG: Last node is null");
+
+        // we either created a new node or reused some old node,
+        // or node is nullptr (if we haven't created or found anything)
         // if we created a new node, add successor
-        if (last_node != node)
+        if (node) {
             last_node->addSuccessor(node);
+            last_node = node;
+        }
+
+        // reaching definitions for this Inst are contained
+        // in the last created node
+        addMapping(&Inst, last_node);
     }
 
     // last node
-    ret.second = node;
+    ret.second = last_node;
 
     return ret;
 }
