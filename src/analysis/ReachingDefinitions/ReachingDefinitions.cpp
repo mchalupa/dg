@@ -26,6 +26,37 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
     return changed;
 }
 
+void ReachingDefinitionsAnalysis::run()
+{
+    assert(root && "Do not have root");
+
+    std::vector<RDNode *> to_process = getNodes(root);
+    std::vector<RDNode *> changed;
+
+    // do fixpoint
+    do {
+        unsigned last_processed_num = to_process.size();
+        changed.clear();
+
+        for (RDNode *cur : to_process) {
+            if (processNode(cur))
+                changed.push_back(cur);
+        }
+
+        if (!changed.empty()) {
+            to_process.clear();
+            to_process = getNodes(nullptr /* starting node */,
+                                  &changed /* starting set */,
+                                  last_processed_num /* expected num */);
+
+            // since changed was not empty,
+            // the to_process must not be empty too
+            assert(!to_process.empty());
+        }
+    } while (!changed.empty());
+}
+
+
 } // namespace rd
 } // namespace analysis
 } // namespace dg
