@@ -400,8 +400,9 @@ public:
         for (auto& it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             auto& cb = sub->getBlocks();
-            LLVMBBlock *BB = cb[const_cast<llvm::BasicBlock *>(B)];
-            if (BB) {
+            auto I = cb.find(const_cast<llvm::BasicBlock *>(B));
+            if (I != cb.end()) {
+                LLVMBBlock *BB = I->second;
                 if (opts & (ANNOTATE_POSTDOM | ANNOTATE_CD))
                     os << "  ; BB: " << BB << "\n";
 
