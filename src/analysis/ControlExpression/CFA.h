@@ -15,7 +15,7 @@ template <typename T>
 class CFANode {
     T label;
 public:
-    typedef std::pair<CFANode<T> *, CENode *> EdgeT;
+    using EdgeT = std::pair<CFANode<T> *, CENode *>;
 
     CFANode<T>(const T& l)
         :label(l) {}

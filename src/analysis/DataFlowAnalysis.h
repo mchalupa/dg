@@ -115,8 +115,8 @@ private:
     // because the BB's newly added does have dfsorder unset
     // and the BlocksSet thinks it already contains it, so
     // it is not added
-    typedef std::set<BBlock<NodeT> * /*,
-                     DFSOrderLess<BBlock<NodeT> *>*/> BlocksSetT;
+    using BlocksSetT = std::set<BBlock<NodeT> * /*,
+                     DFSOrderLess<BBlock<NodeT> *>*/>;
     struct DFSDataT
     {
         DFSDataT(BlocksSetT& b, bool& c, BBlockDataFlowAnalysis<NodeT> *r)

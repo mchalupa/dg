@@ -17,7 +17,7 @@ class ControlExpression {
     CENode *root;
 
 public:
-    typedef std::vector<CENode *> CEPath;
+    using CEPath = std::vector<CENode *>;
 
     ControlExpression(CENode *r)
         : root(r) {}

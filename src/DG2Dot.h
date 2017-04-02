@@ -44,7 +44,7 @@ class DG2Dot
 {
     std::set<const typename DependenceGraph<NodeT>::ContainerType *> dumpedGlobals;
 public:
-    typedef typename NodeT::KeyType KeyT;
+    using KeyT = typename NodeT::KeyType;
 
     DG2Dot<NodeT>(DependenceGraph<NodeT> *dg,
                   uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,

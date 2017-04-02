@@ -33,15 +33,15 @@ class DependenceGraph
 {
 public:
     // type of key that is used in nodes
-    typedef typename NodeT::KeyType KeyT;
+    using KeyT = typename NodeT::KeyType;
     // type of this dependence graph - so that we can refer to it in the code
-    typedef typename NodeT::DependenceGraphType DependenceGraphT;
+    using DependenceGraphT = typename NodeT::DependenceGraphType;
 
-    typedef std::map<KeyT, NodeT *> ContainerType;
-    typedef typename ContainerType::iterator iterator;
-    typedef typename ContainerType::const_iterator const_iterator;
+    using ContainerType = std::map<KeyT, NodeT *>;
+    using iterator = typename ContainerType::iterator;
+    using const_iterator = typename ContainerType::const_iterator;
 #ifdef ENABLE_CFG
-    typedef std::map<KeyT, BBlock<NodeT> *> BBlocksMapT;
+    using BBlocksMapT = std::map<KeyT, BBlock<NodeT> *>;
 #endif
 
 private:

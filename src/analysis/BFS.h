@@ -54,7 +54,7 @@ class BBlockBFS : public BBlockWalk<NodeT,
                                     QueueFIFO<BBlock<NodeT> *> >
 {
 public:
-    typedef BBlock<NodeT> *BBlockPtrT;
+    using BBlockPtrT = BBlock<NodeT> *;
 
     BBlockBFS<NodeT>(uint32_t fl = 0)
         : BBlockWalk<NodeT, QueueFIFO<BBlock<NodeT> *>>(convertBFSBBFlags(fl)),

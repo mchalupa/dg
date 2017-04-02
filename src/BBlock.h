@@ -24,8 +24,8 @@ template <typename NodeT>
 class BBlock
 {
 public:
-    typedef typename NodeT::KeyType KeyT;
-    typedef typename NodeT::DependenceGraphType DependenceGraphT;
+    using KeyT = typename NodeT::KeyType;
+    using DependenceGraphT = typename NodeT::DependenceGraphType;
 
     struct BBlockEdge {
         BBlockEdge(BBlock<NodeT>* t, uint8_t label = 0)
@@ -69,10 +69,10 @@ public:
         }
     }
 
-    typedef EdgesContainer<BBlock<NodeT>> BBlockContainerT;
+    using BBlockContainerT = EdgesContainer<BBlock<NodeT>>;
     // we don't need labels with predecessors
-    typedef EdgesContainer<BBlock<NodeT>> PredContainerT;
-    typedef DGContainer<BBlockEdge> SuccContainerT;
+    using PredContainerT = EdgesContainer<BBlock<NodeT>>;
+    using SuccContainerT = DGContainer<BBlockEdge>;
 
     SuccContainerT& successors() { return nextBBs; }
     const SuccContainerT& successors() const { return nextBBs; }

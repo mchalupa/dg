@@ -25,17 +25,17 @@ template <typename DependenceGraphT, typename KeyT, typename NodeT>
 class Node
 {
 public:
-    typedef EdgesContainer<NodeT> ControlEdgesT;
-    typedef EdgesContainer<NodeT> DependenceEdgesT;
+    using ControlEdgesT = EdgesContainer<NodeT>;
+    using DependenceEdgesT = EdgesContainer<NodeT>;
 
     // to be able to reference the KeyT and DG
-    typedef KeyT KeyType;
-    typedef DependenceGraphT DependenceGraphType;
+    using KeyType = KeyT;
+    using DependenceGraphType = DependenceGraphT;
 
-    typedef typename ControlEdgesT::iterator control_iterator;
-    typedef typename ControlEdgesT::const_iterator const_control_iterator;
-    typedef typename DependenceEdgesT::iterator data_iterator;
-    typedef typename DependenceEdgesT::const_iterator const_data_iterator;
+    using control_iterator = typename ControlEdgesT::iterator;
+    using const_control_iterator = typename ControlEdgesT::const_iterator;
+    using data_iterator = typename DependenceEdgesT::iterator;
+    using const_data_iterator = typename DependenceEdgesT::const_iterator;
 
     Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k,
                                         DependenceGraphT *dg = nullptr)

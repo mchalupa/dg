@@ -118,7 +118,7 @@ class BBlockDFS : public BBlockWalk<NodeT,
                                     QueueLIFO<BBlock<NodeT> *> >
 {
 public:
-    typedef BBlock<NodeT> *BBlockPtrT;
+    using BBlockPtrT = BBlock<NodeT> *;
 
     BBlockDFS<NodeT>(uint32_t fl = DFS_BB_CFG)
         : BBlockWalk<NodeT, QueueLIFO<BBlock<NodeT> *>>(convertBBFlags(fl)),

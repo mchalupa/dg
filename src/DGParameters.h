@@ -54,10 +54,10 @@ template <typename NodeT>
 class DGParameters
 {
 public:
-    typedef typename NodeT::KeyType KeyT;
-    typedef std::map<KeyT, DGParameter<NodeT>> ContainerType;
-    typedef typename ContainerType::iterator iterator;
-    typedef typename ContainerType::const_iterator const_iterator;
+    using KeyT = typename NodeT::KeyType;
+    using ContainerType = std::map<KeyT, DGParameter<NodeT>>;
+    using iterator = typename ContainerType::iterator;
+    using const_iterator = typename ContainerType::const_iterator;
 
     DGParameters<NodeT>(NodeT *cs = nullptr)
     : vararg(nullptr), BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs){}

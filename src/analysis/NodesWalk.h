@@ -249,7 +249,7 @@ template <typename NodeT, typename QueueT>
 class BBlockWalk : public BBlockWalkBase<NodeT>
 {
 public:
-    typedef dg::BBlock<NodeT> *BBlockPtrT;
+    using BBlockPtrT = dg::BBlock<NodeT> *;
 
     BBlockWalk<NodeT, QueueT>(uint32_t fl = BBLOCK_WALK_CFG)
         : flags(fl) {}

@@ -15,7 +15,7 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-typedef std::pair<PSNode *, PSNode *> PSNodesSeq;
+using PSNodesSeq = std::pair<PSNode *, PSNode *>;
 
 class LLVMPointerSubgraphBuilder
 {

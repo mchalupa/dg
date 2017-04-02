@@ -16,8 +16,8 @@ namespace analysis {
 template <typename NodeT>
 class SCC {
 public:
-    typedef std::vector<NodeT *> SCC_component_t;
-    typedef std::vector<SCC_component_t> SCC_t;
+    using SCC_component_t = std::vector<NodeT *>;
+    using SCC_t = std::vector<SCC_component_t>;
 
     SCC<NodeT>() : index(0) {}
 
@@ -95,8 +95,8 @@ private:
 
 template <typename NodeT>
 class SCCCondensation {
-    typedef typename SCC<NodeT>::SCC_t SCC_t;
-    typedef typename SCC<NodeT>::SCC_component_t SCC_component_t;
+    using SCC_t = typename SCC<NodeT>::SCC_t;
+    using SCC_component_t = typename SCC<NodeT>::SCC_component_t;
 
     struct Node {
         const SCC_component_t& component;

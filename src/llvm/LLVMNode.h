@@ -38,9 +38,9 @@ namespace dg {
 class LLVMDependenceGraph;
 class LLVMNode;
 
-typedef dg::BBlock<LLVMNode> LLVMBBlock;
-typedef dg::DGParameter<LLVMNode> LLVMDGParameter;
-typedef dg::DGParameters<LLVMNode> LLVMDGParameters;
+using LLVMBBlock = dg::BBlock<LLVMNode>;
+using LLVMDGParameter = dg::DGParameter<LLVMNode>;
+using LLVMDGParameters = dg::DGParameters<LLVMNode>;
 
 /// ------------------------------------------------------------------
 //  -- LLVMNode
