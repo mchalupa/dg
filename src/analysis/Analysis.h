@@ -70,7 +70,7 @@ template <typename NodeT>
 class BBlockAnalysis : public Analysis<BBlock<NodeT>>
 {
 public:
-    typedef BBlock<NodeT> *BBlockPtrT;
+    using BBlockPtrT = BBlock<NodeT> *;
 
     AnalysesAuxiliaryData& getAnalysisData(BBlockPtrT BB)
     {

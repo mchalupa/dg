@@ -36,7 +36,7 @@ public:
         }
     };
 
-    typedef std::set<CENode *, CECmp> VisitsSetT;
+    using VisitsSetT = std::set<CENode *, CECmp>;
 
 protected:
     CENode *parent;

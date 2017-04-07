@@ -19,7 +19,7 @@ public:
 };
 
 #ifdef ENABLE_CFG
-typedef BBlock<TestNode> TestBBlock;
+using TestBBlock = BBlock<TestNode>;
 #endif // ENABLE_CFG
 
 class TestDG : public DependenceGraph<TestNode>

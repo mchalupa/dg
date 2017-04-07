@@ -49,10 +49,10 @@ struct Pointer
     bool isValid() const { return !isNull() && !isUnknown(); }
 };
 
-typedef std::set<Pointer> PointsToSetT;
-typedef std::map<Offset, PointsToSetT> PointsToMapT;
-typedef std::set<PSNode *> ValuesSetT;
-typedef std::map<Offset, ValuesSetT> ValuesMapT;
+using PointsToSetT = std::set<Pointer>;
+using PointsToMapT = std::map<Offset, PointsToSetT>;
+using ValuesSetT = std::set<PSNode *>;
+using ValuesMapT = std::map<Offset, ValuesSetT>;
 
 struct MemoryObject
 {

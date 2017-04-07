@@ -16,8 +16,8 @@
 
 namespace dg {
 
-typedef CFA<llvm::BasicBlock *> LLVMCFA;
-typedef CFANode<llvm::BasicBlock *> LLVMCFANode;
+using LLVMCFA = CFA<llvm::BasicBlock *>;
+using LLVMCFANode = CFANode<llvm::BasicBlock *>;
 
 class LLVMCFABuilder {
 

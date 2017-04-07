@@ -120,14 +120,14 @@ public:
 
 };
 
-typedef std::set<DefSite> DefSiteSetT;
+using DefSiteSetT = std::set<DefSite>;
 
 class RDMap
 {
 public:
-    typedef std::map<DefSite, RDNodesSet> MapT;
-    typedef MapT::iterator iterator;
-    typedef MapT::const_iterator const_iterator;
+    using MapT = std::map<DefSite, RDNodesSet>;
+    using iterator = MapT::iterator;
+    using const_iterator = MapT::const_iterator;
 
     RDMap() {}
     RDMap(const RDMap& o);

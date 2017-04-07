@@ -19,10 +19,10 @@ class DGContainer
 {
 public:
     // XXX use llvm ADTs when available, or BDDs?
-    typedef typename std::set<ValueT> ContainerT;
-    typedef typename ContainerT::iterator iterator;
-    typedef typename ContainerT::const_iterator const_iterator;
-    typedef typename ContainerT::size_type size_type;
+    using ContainerT = typename std::set<ValueT>;
+    using iterator = typename ContainerT::iterator;
+    using const_iterator = typename ContainerT::const_iterator;
+    using size_type = typename ContainerT::size_type;
 
     iterator begin() { return container.begin(); }
     const_iterator begin() const { return container.begin(); }

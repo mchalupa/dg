@@ -39,7 +39,7 @@ enum CD_ALG {
 // forward declaration
 class LLVMPointerAnalysis;
 
-typedef dg::BBlock<LLVMNode> LLVMBBlock;
+using LLVMBBlock = dg::BBlock<LLVMNode>;
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph

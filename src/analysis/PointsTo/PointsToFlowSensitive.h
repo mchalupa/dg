@@ -13,8 +13,8 @@ namespace pta {
 class PointsToFlowSensitive : public PointerAnalysis
 {
 public:
-    typedef std::set<MemoryObject *> MemoryObjectsSetT;
-    typedef std::map<const Pointer, MemoryObjectsSetT> MemoryMapT;
+    using MemoryObjectsSetT = std::set<MemoryObject *>;
+    using MemoryMapT = std::map<const Pointer, MemoryObjectsSetT>;
 
     // this is an easy but not very efficient implementation,
     // works for testing
