@@ -14,15 +14,28 @@ namespace rd {
 class RDNode;
 class ReachingDefinitionsAnalysis;
 
+///
+// Take two intervals (a1, a2) and (b1, b2)
+// (over non-negative whole numbers) and check
+// whether their are disjunctive.
+// \return true iff intervals are disjunctive
+//         false iff intervals are not disjunctive
 inline bool
 intervalsDisjunctive(uint64_t a1, uint64_t a2,
                      uint64_t b1, uint64_t b2)
 {
     // XXX: does this work if a2 or b2 is UNKNOWN_OFFSET??
     // think it through
+    assert(a1 <= a2);
+    assert(b1 <= b2);
     return ((a1 <= b1) ? (a2 < b1) : (b2 < a1));
 }
 
+///
+// Take two intervals (a1, a2) and (b1, b2)
+// (over non-negative whole numbers) and check
+//  whether they overlap (not sharply, i.e.
+//  if a2 == b1, then itervals already overlap)
 inline bool
 intervalsOverlap(uint64_t a1, uint64_t a2,
                  uint64_t b1, uint64_t b2)
