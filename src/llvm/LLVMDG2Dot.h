@@ -6,6 +6,10 @@
 #include "DG2Dot.h"
 #include "llvm/LLVMNode.h"
 
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 6))
+#include "llvm/DebugInfo.h"     //DIScope
+#endif
+
 using namespace dg;
 namespace dg {
 namespace debug {
@@ -111,7 +115,33 @@ public:
             if(Loc.getLine() > 0) {
                 os << "\" labelURL=\"";
                 llvm::raw_os_ostream ross(os);
-                Loc.print(I->getParent()->getContext(), ross);
+                //Loc.print(I->getParent()->getContext(), ross);
+                const llvm::DebugLoc *tmpLoc = &Loc;
+                int nclosingBrack = 0;
+                while (tmpLoc) {
+                    llvm::DIScope Scope(tmpLoc->getScope(I->getParent()->getContext()));
+                    ross << Scope.getFilename();
+                    ross << ':' << tmpLoc->getLine();
+                    if (tmpLoc->getCol() != 0)
+                        ross << ':' << tmpLoc->getCol();
+
+                    llvm::MDNode * inlineMN =  tmpLoc->getInlinedAt(I->getParent()->getContext());
+                    if (inlineMN) {
+                        llvm::DebugLoc InlinedAtDL = llvm::DebugLoc::getFromDILocation(inlineMN);
+                        if (! InlinedAtDL.isUnknown()) {
+                            ross << " @[ ";
+                            tmpLoc = &InlinedAtDL;
+                            nclosingBrack++;
+                        }
+                        else {
+                            tmpLoc = nullptr;
+                        }
+                    }
+                }
+                while (nclosingBrack > 0) {
+                    ross << " ]";
+                    nclosingBrack--;
+                }
 #endif
                 ross.flush();
             }

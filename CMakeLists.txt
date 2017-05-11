@@ -64,7 +64,7 @@ if (LLVM_DG)
 
 	add_definitions(${LLVM_DEFINITIONS})
 
-	if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
+	if (NOT ${LLVM_PACKAGE_VERSION} VERSION_LESS "3.5")
 		llvm_map_components_to_libnames(llvm_libs support core
 		                                irreader bitwriter analysis)
 	else()
