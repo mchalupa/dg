@@ -6,8 +6,10 @@
 #include "DG2Dot.h"
 #include "llvm/LLVMNode.h"
 
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 6))
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
 #include "llvm/DebugInfo.h"     //DIScope
+#else
+#include "llvm/IR/DebugInfo.h"     //DIScope
 #endif
 
 using namespace dg;
