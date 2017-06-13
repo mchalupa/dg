@@ -514,6 +514,7 @@ static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
     switch (type) {
         case MALLOC:
             node->setIsHeap();
+            /* fallthrough */
         case ALLOCA:
             op = CInst->getOperand(0);
             break;
@@ -1459,6 +1460,7 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
             // so we must use this hack (the same with store)
             if (tryGetOperand(Inst.getOperand(0)) != UNKNOWN_MEMORY)
                 return true;
+            /* fallthrough */
         case Instruction::Select:
         case Instruction::PHI:
             // here we don't care about intToPtr, because every such
