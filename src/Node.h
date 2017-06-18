@@ -40,7 +40,7 @@ public:
     Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k,
                                         DependenceGraphT *dg = nullptr)
         : key(k), dg(dg), parameters(nullptr), slice_id(0)
-#if ENABLE_CFG
+#ifdef ENABLE_CFG
          , basicBlock(nullptr)
 #endif
     {
