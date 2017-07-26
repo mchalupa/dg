@@ -362,6 +362,14 @@ public:
         return postDomFrontiers.insert(BB);
     }
 
+    bool addDomFrontier(BBlock<NodeT> *DF) 
+    {
+        return domFrontiers.insert(DF);
+    }
+
+    BBlockContainerT& getDomFrontiers() { return domFrontiers; }
+    const BBlockContainerT& getDomFrontiers() const { return domFrontiers; }
+
     void setIPostDom(BBlock<NodeT> *BB)
     {
         assert(!ipostdom && "Already has the immedate post-dominator");
@@ -371,8 +379,21 @@ public:
 
     BBlock<NodeT> *getIPostDom() { return ipostdom; }
     const BBlock<NodeT> *getIPostDom() const { return ipostdom; }
+
     BBlockContainerT& getPostDominators() { return postDominators; }
     const BBlockContainerT& getPostDominators() const { return postDominators; }
+
+    void setIDom(BBlock<NodeT>* BB) 
+    {
+        assert(!idom && "Already has immediate dominator");
+        idom = BB;
+        BB->dominators.insert(this);
+    }
+    BBlock<NodeT> *getIDom() { return idom; }
+    const BBlock<NodeT> *getIDom() const { return idom; }
+
+    BBlockContainerT& getDominators() { return dominators; }
+    const BBlockContainerT& getDominators() const { return dominators; }
 
     unsigned int getDFSOrder() const
     {
@@ -443,6 +464,13 @@ private:
     // the post-dominator tree edges
     // (reverse to immediate post-dominator)
     BBlockContainerT postDominators;
+
+    // parent of @this in dominator tree
+    BBlock<NodeT> *idom = nullptr;
+    // BB.dominators = all children in dominator tree
+    BBlockContainerT dominators;
+    // dominance frontiers
+    BBlockContainerT domFrontiers;
 
     // is this block in some slice?
     uint64_t slice_id;
