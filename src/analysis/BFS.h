@@ -26,6 +26,7 @@ enum BFSFlags {
     BFS_BB_POSTDOM_FRONTIERS    = 1 << 11,
 
     BFS_BB_NO_CALLSITES         = 1 << 12,
+    BFS_BB_DOM              = 1 << 13,
 };
 
 #ifdef ENABLE_CFG
@@ -43,6 +44,8 @@ convertBFSBBFlags(uint32_t flags)
         ret |= BBLOCK_WALK_PARAMS;
     if (flags & BFS_BB_POSTDOM)
         ret |= BBLOCK_WALK_POSTDOM;
+    if (flags & BFS_BB_DOM)
+        ret |= BBLOCK_WALK_DOM;
     if (flags & BFS_BB_NO_CALLSITES)
         ret |= BBLOCK_NO_CALLSITES;
 

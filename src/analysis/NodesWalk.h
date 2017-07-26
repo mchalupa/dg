@@ -223,6 +223,8 @@ enum BBlockWalkFlags {
     // because bblocks does not keep information
     // about call-sites
     BBLOCK_NO_CALLSITES             = 1 << 4,
+    // walk dominator tree edges
+    BBLOCK_WALK_DOM                 = 1 << 5,
 };
 
 // this is a base class for bblock walk, it contains
@@ -291,6 +293,11 @@ public:
             // queue post-dominated blocks if we should
             if (flags & BBLOCK_WALK_POSTDOM)
                 for (BBlockPtrT S : BB->getPostDominators())
+                    enqueue(S);
+
+            // queue dominated blocks
+            if (flags & BBLOCK_WALK_DOM)
+                for (BBlockPtrT S : BB->getDominators())
                     enqueue(S);
 
             // queue sucessors of this BB
