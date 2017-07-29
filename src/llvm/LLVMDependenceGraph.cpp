@@ -844,7 +844,7 @@ void LLVMDependenceGraph::computeControlExpression(bool addCDs)
                 if (B.getTerminator()->getNumSuccessors() > 1) {
                     auto CS = CE.getControlScope(&B);
                     for (auto cs : CS) {
-                        assert(cs->isa(LABEL));
+                        assert(cs->isa(CENodeType::LABEL));
                         auto lab = static_cast<CELabel<llvm::BasicBlock *> *>(cs);
                         LLVMBBlock *B2 = our_blocks[lab->getLabel()];
                         B1->addControlDependence(B2);
