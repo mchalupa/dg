@@ -8,6 +8,7 @@
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 
+#include "llvm/MemAllocationFuncs.h"
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/Pointer.h"
 
@@ -218,7 +219,7 @@ private:
     PSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
 
     PSNodesSeq createMemSet(const llvm::Instruction *);
-    PSNodesSeq createDynamicMemAlloc(const llvm::CallInst *CInst, int type);
+    PSNodesSeq createDynamicMemAlloc(const llvm::CallInst *CInst, MemAllocationFuncs type);
     PSNodesSeq createRealloc(const llvm::CallInst *CInst);
     PSNodesSeq createUnknownCall(const llvm::CallInst *CInst);
     PSNodesSeq createIntrinsic(const llvm::Instruction *Inst);

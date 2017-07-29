@@ -69,33 +69,6 @@ static uint64_t getConstantValue(const llvm::Value *op)
     return size;
 }
 
-enum MemAllocationFuncs {
-    NONEMEM = 0,
-    MALLOC,
-    CALLOC,
-    ALLOCA,
-    REALLOC,
-};
-
-static int getMemAllocationFunc(const llvm::Function *func)
-{
-    if (!func || !func->hasName())
-        return NONEMEM;
-
-    const char *name = func->getName().data();
-    if (strcmp(name, "malloc") == 0)
-        return MALLOC;
-    else if (strcmp(name, "calloc") == 0)
-        return CALLOC;
-    else if (strcmp(name, "alloca") == 0)
-        return ALLOCA;
-    else if (strcmp(name, "realloc") == 0)
-        return REALLOC;
-
-    return NONEMEM;
-}
-
-
 LLVMRDBuilder::~LLVMRDBuilder() {
     // delete data layout
     delete DL;
@@ -144,7 +117,7 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
-RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, int type)
+RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type)
 {
     using namespace llvm;
 
@@ -156,11 +129,11 @@ RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, int type)
     uint64_t size = 0, size2 = 0;
 
     switch (type) {
-        case MALLOC:
-        case ALLOCA:
+        case MemAllocationFuncs::MALLOC:
+        case MemAllocationFuncs::ALLOCA:
             op = CInst->getOperand(0);
             break;
-        case CALLOC:
+        case MemAllocationFuncs::CALLOC:
             op = CInst->getOperand(1);
             break;
         default:
@@ -172,7 +145,7 @@ RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, int type)
 
     // infer allocated size
     size = getConstantValue(op);
-    if (size != 0 && type == CALLOC) {
+    if (size != 0 && type == MemAllocationFuncs::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
         size2 = getConstantValue(CInst->getOperand(0));
@@ -402,7 +375,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
         return true;
 
     if (func->size() == 0) {
-        if (getMemAllocationFunc(func))
+        if (getMemAllocationFunc(func) != MemAllocationFuncs::NONEMEM)
             // we need memory allocations
             return true;
 
@@ -772,10 +745,11 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
     if (func) {
         if (func->size() == 0) {
             RDNode *n;
+            MemAllocationFuncs type = getMemAllocationFunc(func);
             if (func->isIntrinsic()) {
                 n = createIntrinsicCall(CInst);
-            } else if (int type = getMemAllocationFunc(func)) {
-                if (type == REALLOC)
+            } else if (type != MemAllocationFuncs::NONEMEM) {
+                if (type == MemAllocationFuncs::REALLOC)
                     n = createRealloc(CInst);
                 else
                     n = createDynAlloc(CInst, type);

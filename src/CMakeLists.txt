@@ -22,6 +22,7 @@ add_library(RD SHARED
 )
 
 add_library(LLVMpta SHARED
+    llvm/MemAllocationFuncs.cpp
 	llvm/analysis/PointsTo/PointsTo.h
 	llvm/analysis/PointsTo/PointerSubgraph.h
 	llvm/analysis/PointsTo/PointerSubgraph.cpp

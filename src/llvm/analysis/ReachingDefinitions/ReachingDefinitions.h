@@ -8,6 +8,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
 
+#include "llvm/MemAllocationFuncs.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 
@@ -112,7 +113,7 @@ private:
 
     RDNode *createStore(const llvm::Instruction *Inst);
     RDNode *createAlloc(const llvm::Instruction *Inst);
-    RDNode *createDynAlloc(const llvm::Instruction *Inst, int type);
+    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type);
     RDNode *createRealloc(const llvm::Instruction *Inst);
     RDNode *createReturn(const llvm::Instruction *Inst);
 
