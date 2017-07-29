@@ -29,7 +29,7 @@ namespace llvm {
 
 namespace dg {
 
-enum CD_ALG {
+enum class CD_ALG {
     // Ferrante & Ottenstein
     CLASSIC,
     // our algorithm
@@ -104,12 +104,12 @@ public:
 
     void makeSelfLoopsControlDependent();
 
-    void computeControlDependencies(enum CD_ALG alg_type)
+    void computeControlDependencies(CD_ALG alg_type)
     {
-        if (alg_type == CLASSIC) {
+        if (alg_type == CD_ALG::CLASSIC) {
             computePostDominators(true);
             //makeSelfLoopsControlDependent();
-        } else if (alg_type == CONTROL_EXPRESSION) {
+        } else if (alg_type == CD_ALG::CONTROL_EXPRESSION) {
             computeControlExpression(true);
         } else
             abort();
