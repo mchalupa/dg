@@ -105,7 +105,7 @@ bool RDMap::merge(const RDMap *oth,
                 // merging this definition into our map
                 if (overwrites_whole_memory)
                     continue;
-            } else if (ds.target->getType() != DYN_ALLOC) {
+            } else if (ds.target->getType() != RDNodeType::DYN_ALLOC) {
                 bool skip = false;
                 auto range = std::equal_range(no_update->begin(),
                                               no_update->end(),

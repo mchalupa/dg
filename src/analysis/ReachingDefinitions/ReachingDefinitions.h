@@ -22,13 +22,13 @@ class ReachingDefinitionsAnalysis;
 
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations
-enum RDNodeType {
+enum class RDNodeType {
         // for backward compatibility
-        NONE = 0,
+        NONE,
         // these are nodes that just represent memory allocation sites
         // we need to have them even in reaching definitions analysis,
         // so that we can use them as targets in DefSites
-        ALLOC = 1,
+        ALLOC,
         STORE,
         DYN_ALLOC,
         PHI,
@@ -51,7 +51,7 @@ class RDNode : public SubgraphNode<RDNode> {
     unsigned int dfsid;
 public:
 
-    RDNode(RDNodeType t = NONE) : type(t), dfsid(0) {}
+    RDNode(RDNodeType t = RDNodeType::NONE) : type(t), dfsid(0) {}
 
     // this is the gro of this node, so make it public
     DefSiteSetT defs;
