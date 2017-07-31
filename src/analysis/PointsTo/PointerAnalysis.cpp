@@ -326,6 +326,7 @@ bool PointerAnalysis::processNode(PSNode *node)
         case PSNodeType::CALL:
         case PSNodeType::ENTRY:
         case PSNodeType::NOOP:
+		case PSNodeType::INVALIDATE:
             // just no op
             break;
         default:

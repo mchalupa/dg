@@ -58,6 +58,8 @@ enum class PSNodeType {
         // special nodes
         NULL_ADDR,
         UNKNOWN_MEM,
+		// tags memory as invalidated
+        INVALIDATE
 };
 
 class PSNode : public SubgraphNode<PSNode>
@@ -177,6 +179,9 @@ public:
             case PSNodeType::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
+                break;
+            case PSNodeType::INVALIDATE:
+                operands.push_back(va_arg(args, PSNode *));
                 break;
             case PSNodeType::CALL_RETURN:
             case PSNodeType::PHI:
