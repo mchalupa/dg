@@ -247,19 +247,19 @@ dumpRD(LLVMReachingDefinitions *RD, bool todot)
 static void
 dumpRDBlocksDot(LLVMReachingDefinitions &RD)
 {
-    const std::vector<std::unique_ptr<RDBlock>>& blocks = RD.getBlocks();
+    const auto& blocks = RD.getBlocks();
 
     printf("digraph \"RDBlocks\" {\n");
 
     /* dump nodes */
-    for (const auto& pBlock : blocks) {
-        printf("\tNODE%p", pBlock.get());
-        printf("[label=\"%p\"shape=box]\n", pBlock.get());
+    for (const auto& pair : blocks) {
+        printf("\tNODE%p", pair.second.get());
+        printf("[label=\"%p\"shape=box]\n", pair.second.get());
     }
 
-    for (const auto& pBlock : blocks) {
-        for (const auto& edge : pBlock->successors()) {
-            printf("\tNODE%p -> NODE%p\n", pBlock.get(), edge.target);
+    for (const auto& pair : blocks) {
+        for (const auto& edge : pair.second->successors()) {
+            printf("\tNODE%p -> NODE%p\n", pair.second.get(), edge.target);
         }
     }
 
