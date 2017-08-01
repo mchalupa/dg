@@ -268,12 +268,36 @@ dumpRD(LLVMReachingDefinitions *RD, bool todot)
     }
 }
 
+static void
+dumpRDBlocksDot(LLVMReachingDefinitions &RD)
+{
+    const std::vector<std::unique_ptr<RDBlock>>& blocks = RD.getBlocks();
+
+    printf("digraph \"RDBlocks\" {\n");
+
+    /* dump nodes */
+    for (const auto& pBlock : blocks) {
+        printf("\tNODE%p", pBlock.get());
+        printf("[label=\"%p\"shape=box]\n", pBlock.get());
+    }
+
+    for (const auto& pBlock : blocks) {
+        for (const auto& edge : pBlock->successors()) {
+            printf("\tNODE%p -> NODE%p\n", pBlock.get(), edge.target);
+        }
+    }
+
+    printf("}\n");
+
+}
+
 int main(int argc, char *argv[])
 {
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     bool todot = false;
+    bool blocks = false;
     const char *module = nullptr;
     uint64_t field_senitivity = UNKNOWN_OFFSET;
     bool rd_strong_update_unknown = false;
@@ -304,6 +328,8 @@ int main(int argc, char *argv[])
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-blocks") == 0) {
+            blocks = true;
         } else {
             module = argv[i];
         }
@@ -349,7 +375,13 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
-    dumpRD(&RD, todot);
+    if (blocks) {
+        if (!todot) {
+            errs() << "warning: -dot not specified, but -blocks only supports dot format. overriding...\n";
+        }
+        dumpRDBlocksDot(RD);
+    } else
+        dumpRD(&RD, todot);
 
     return 0;
 }
