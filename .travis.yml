@@ -1,34 +1,77 @@
 language: cpp
+sudo: true
 
-# use Ubuntu 14.04
 dist: trusty
 
-compiler:
-  - clang
-  - gcc
+git:
+  depth: 1
 
 addons:
- apt:
-  sources:
-   - llvm-toolchain-precise-3.8
-   - ubuntu-toolchain-r-test
-  packages:
-   - libllvm3.8
-   - libllvm3.8-dbg
-   - llvm-3.8
-   - llvm-3.8-dev
-   - llvm-3.8-runtime
-   - gcc-4.8
-   - g++-4.8
-   - clang
-   - cmake
+  apt:
+    sources:
+      # newer gcc and clang
+      - ubuntu-toolchain-r-test
+    packages:
+      - libz-dev
 
+matrix:
+  include:
+    # compile with g++4, use LLVM 4
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - g++
+      env:
+        - MATRIX_EVAL="CC=gcc && CXX=g++"
+        - LLVM_VERSION=4.0
 
-before_script:
-  - mkdir build
-  - cd build
-  - cmake .. -DLLVM_DIR=/usr/local/share/llvm-3.4/cmake
+    # compile with g++5, use LLVM 4
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - g++-5
+      env:
+        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
+        - LLVM_VERSION=4.0
+
+    # compile with clang 4, use LLVM 4
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-4.0
+      env:
+        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
+        - LLVM_VERSION=4.0
+
+before_install:
+    - eval "${MATRIX_EVAL}"
+install:
+  - git clone --depth 1 https://github.com/tomsik68/travis-llvm.git
+  - cd travis-llvm
+  - chmod +x travis-llvm.sh
+  - ./travis-llvm.sh ${LLVM_VERSION}
+  - cd ..
 
 script:
+  - cmake .
+  - make -j2
+  - cd tests
   - make
   - make test
+
+notifications:
+    email: false
