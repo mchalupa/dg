@@ -58,7 +58,7 @@ enum class PSNodeType {
         // special nodes
         NULL_ADDR,
         UNKNOWN_MEM,
-		// tags memory as invalidated
+        // tags memory as invalidated
         INVALIDATE
 };
 

@@ -6,11 +6,14 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-// nodes representing NULL and unknown memory
+// nodes representing NULL, unknown memory
+// and invalidated memory
 PSNode NULLPTR_LOC(PSNodeType::NULL_ADDR);
 PSNode *NULLPTR = &NULLPTR_LOC;
 PSNode UNKNOWN_MEMLOC(PSNodeType::UNKNOWN_MEM);
 PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+PSNode INVALIDATED_LOC(PSNodeType::INVALIDATE);
+PSNode *INVALIDATED = &INVALIDATED_LOC;
 
 // pointers to those memory
 const Pointer PointerUnknown(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
@@ -257,6 +260,21 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
+        case PSNodeType::INVALIDATE:
+            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
+                PSNode *target = ptr.target;
+                assert(target && "Got nullptr as target");
+
+                if (ptr.isNull())
+                    continue;
+
+                objects.clear();
+                getMemoryObjects(node, ptr, objects);
+                for (MemoryObject *o : objects) {
+                    changed |= o->addPointsTo(ptr.offset, INVALIDATED);
+                }
+            }
+            break;
         case PSNodeType::GEP:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
                 uint64_t new_offset;
@@ -326,7 +344,6 @@ bool PointerAnalysis::processNode(PSNode *node)
         case PSNodeType::CALL:
         case PSNodeType::ENTRY:
         case PSNodeType::NOOP:
-		case PSNodeType::INVALIDATE:
             // just no op
             break;
         default:
