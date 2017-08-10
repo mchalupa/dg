@@ -612,6 +612,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         r->addSuccessor(ret);
     lastblock->append(ret);
 
+    functions_blocks[&F] = std::move(built_blocks);
     return std::make_pair(fstblock, lastblock);
 }
 
