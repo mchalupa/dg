@@ -53,6 +53,9 @@ class LLVMRDBuilder
     std::vector<RDNode *> dummy_nodes;
     // RD Blocks mapping
     std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>> blocks;
+    // all constructed functions and their corresponding blocks
+    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, RDBlock *>> functions_blocks;
+
 public:
     LLVMRDBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
@@ -94,6 +97,11 @@ public:
     const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& getBlocks() const {
         return blocks;
     }
+
+    const std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, RDBlock *>>& getConstructedFunctions() {
+        return functions_blocks;
+    }
+
 private:
     void addNode(const llvm::Value *val, RDNode *node)
     {
