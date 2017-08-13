@@ -114,6 +114,7 @@ private:
     }
 
     void addBlock(const llvm::Value *val, RDBlock *block) {
+        block->setKey(const_cast<llvm::Value *>(val));
         blocks.emplace(std::make_pair(val, std::unique_ptr<RDBlock>(block)));
     }
 
