@@ -12,6 +12,7 @@
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/SingleAssignment/SsaBuilder.h"
 
 namespace dg {
 namespace analysis {
@@ -157,6 +158,7 @@ class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
+    SsaBuilder ssa_builder;
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
@@ -173,6 +175,7 @@ public:
     void run()
     {
         root = builder->build();
+        ssa_builder.build(root, builder->getConstructedFunctions());
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             new ReachingDefinitionsAnalysis(root, strong_update_unknown, max_set_size)
             );
