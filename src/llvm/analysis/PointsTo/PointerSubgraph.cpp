@@ -802,10 +802,10 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
     return n;
 }
 
-PSNode * LLVMPointerSubgraphBuilder::createInvalidate(const llvm::Instruction *Inst)
+PSNode * LLVMPointerSubgraphBuilder::createFree(const llvm::Instruction *Inst)
 {
     PSNode *op1 = getOperand(Inst->getOperand(0));
-    PSNode *node = new PSNode(PSNodeType::INVALIDATE, op1);
+    PSNode *node = new PSNode(PSNodeType::FREE, op1);
 
     addNode(Inst, node);
 
@@ -834,7 +834,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         // is it a call to free? If so, create invalidate node
         // instead.
         if(func->getName().equals("free")) {
-            PSNode *n = createInvalidate(Inst);
+            PSNode *n = createFree(Inst);
             return std::make_pair(n, n);
         }
         

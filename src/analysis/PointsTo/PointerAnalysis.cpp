@@ -12,7 +12,7 @@ PSNode NULLPTR_LOC(PSNodeType::NULL_ADDR);
 PSNode *NULLPTR = &NULLPTR_LOC;
 PSNode UNKNOWN_MEMLOC(PSNodeType::UNKNOWN_MEM);
 PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
-PSNode INVALIDATED_LOC(PSNodeType::INVALIDATE);
+PSNode INVALIDATED_LOC(PSNodeType::INVALIDATED);
 PSNode *INVALIDATED = &INVALIDATED_LOC;
 
 // pointers to those memory
@@ -255,12 +255,17 @@ bool PointerAnalysis::processNode(PSNode *node)
                 objects.clear();
                 getMemoryObjects(node, ptr, objects);
                 for (MemoryObject *o : objects) {
-                    for (const Pointer& to : node->getOperand(0)->pointsTo)
+                    if (o->isInvalidated(ptr))
+                        changed |= node->addPointsTo(INVALIDATED);
+                    for (const Pointer& to : node->getOperand(0)->pointsTo) {
                         changed |= o->addPointsTo(ptr.offset, to);
+                        if (o->isInvalidated(to))
+                            changed |= node->addPointsTo(INVALIDATED);
+                    }
                 }
             }
             break;
-        case PSNodeType::INVALIDATE:
+        case PSNodeType::FREE:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
                 PSNode *target = ptr.target;
                 assert(target && "Got nullptr as target");

@@ -44,6 +44,8 @@ enum class PSNodeType {
         // this is the exit node of a subprocedure
         // that returns a value - works as phi node
         RETURN,
+        // node that freed memory allocated with malloc
+        FREE,
         // node that has only one points-to relation
         // that never changes
         CONSTANT,
@@ -59,7 +61,7 @@ enum class PSNodeType {
         NULL_ADDR,
         UNKNOWN_MEM,
         // tags memory as invalidated
-        INVALIDATE
+        INVALIDATED
 };
 
 class PSNode : public SubgraphNode<PSNode>
@@ -147,6 +149,7 @@ public:
                 break;
             case PSNodeType::NOOP:
             case PSNodeType::ENTRY:
+            case PSNodeType::INVALIDATED:
                 // no operands
                 break;
             case PSNodeType::CAST:
@@ -180,7 +183,7 @@ public:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
-            case PSNodeType::INVALIDATE:
+            case PSNodeType::FREE:
                 operands.push_back(va_arg(args, PSNode *));
                 break;
             case PSNodeType::CALL_RETURN:
@@ -216,6 +219,7 @@ public:
 
     bool isNull() const { return type == PSNodeType::NULL_ADDR; }
     bool isUnknownMemory() const { return type == PSNodeType::UNKNOWN_MEM; }
+    bool isInvalidated() const { return type == PSNodeType::INVALIDATED; }
 
     // make this public, that's basically the only
     // reason the PointerSubgraph node exists, so don't hide it

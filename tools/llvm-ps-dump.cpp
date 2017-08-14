@@ -97,7 +97,8 @@ void printPSNodeType(enum PSNodeType type)
         ELEM(PSNodeType::MEMCPY)
         ELEM(PSNodeType::NULL_ADDR)
         ELEM(PSNodeType::UNKNOWN_MEM)
-        ELEM(PSNodeType::INVALIDATE)
+        ELEM(PSNodeType::FREE)
+        ELEM(PSNodeType::INVALIDATED)
         default:
             printf("unknown PointerSubgraph type");
     };
@@ -113,9 +114,9 @@ printName(PSNode *node, bool dot)
         name = "null";
     } else if (node->isUnknownMemory()) {
         name = "unknown";
-    } else if (node->isInvalidate() && 
+    } else if (node->isInvalidated() && 
         !node->getUserData<llvm::Value>()) {
-            name = "invalidate";
+            name = "invalidated";
     }
 
     if (!name) {
