@@ -41,31 +41,7 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-enum MemAllocationFuncs {
-    NONEMEM = 0,
-    MALLOC,
-    CALLOC,
-    ALLOCA,
-    REALLOC,
-};
-
-static int getMemAllocationFunc(const llvm::Function *func)
-{
-    if (!func || !func->hasName())
-        return NONEMEM;
-
-    const char *name = func->getName().data();
-    if (strcmp(name, "malloc") == 0)
-        return MALLOC;
-    else if (strcmp(name, "calloc") == 0)
-        return CALLOC;
-    else if (strcmp(name, "alloca") == 0)
-        return ALLOCA;
-    else if (strcmp(name, "realloc") == 0)
-        return REALLOC;
-
-    return NONEMEM;
-}
+using dg::MemAllocationFuncs;
 
 static inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
                                           const llvm::Value *ptr)
@@ -503,7 +479,7 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
         return op;
 }
 
-static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
+static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, MemAllocationFuncs type)
 {
     using namespace llvm;
 
@@ -512,13 +488,13 @@ static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
     PSNode *node = new PSNode(PSNodeType::DYN_ALLOC);
 
     switch (type) {
-        case MALLOC:
+        case MemAllocationFuncs::MALLOC:
             node->setIsHeap();
             /* fallthrough */
-        case ALLOCA:
+        case MemAllocationFuncs::ALLOCA:
             op = CInst->getOperand(0);
             break;
-        case CALLOC:
+        case MemAllocationFuncs::CALLOC:
             node->setIsHeap();
             node->setZeroInitialized();
             op = CInst->getOperand(1);
@@ -532,7 +508,7 @@ static PSNode *createDynamicAlloc(const llvm::CallInst *CInst, int type)
 
     // infer allocated size
     size = getConstantValue(op);
-    if (size != 0 && type == CALLOC) {
+    if (size != 0 && type == MemAllocationFuncs::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
         size2 = getConstantValue(CInst->getOperand(0));
@@ -574,12 +550,12 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, int type)
+LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst, MemAllocationFuncs type)
 {
-    assert(type != NONEMEM
+    assert(type != MemAllocationFuncs::NONEMEM
             && "BUG: creating dyn. memory node for NONMEM");
 
-    if (type == REALLOC) {
+    if (type == MemAllocationFuncs::REALLOC) {
         return createRealloc(CInst);
     } else {
         PSNode *node = createDynamicAlloc(CInst, type);
@@ -852,7 +828,8 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         // 'malloc' etc.
         if (func->size() == 0) {
             /// memory allocation (malloc, calloc, etc.)
-            if (int type = getMemAllocationFunc(func)) {
+            MemAllocationFuncs type = getMemAllocationFunc(func);
+            if (type != MemAllocationFuncs::NONEMEM) {
                 return createDynamicMemAlloc(CInst, type);
             } else if (func->isIntrinsic()) {
                 return createIntrinsic(Inst);
@@ -1304,7 +1281,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
         return true;
 
     if (func->size() == 0) {
-        if (getMemAllocationFunc(func))
+        if (getMemAllocationFunc(func) != MemAllocationFuncs::NONEMEM)
             // we need memory allocations
             return true;
 
