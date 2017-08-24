@@ -227,7 +227,7 @@ void LLVMDefUseAnalysis::addUnknownDataDependence(LLVMNode *node, PSNode *pts)
         RDNode *rdnode = it.second;
 
         // only STORE may be a definition site
-        if (rdnode->getType() != analysis::rd::STORE)
+        if (rdnode->getType() != analysis::rd::RDNodeType::STORE)
             continue;
 
         llvm::Value *rdVal = rdnode->getUserData<llvm::Value>();

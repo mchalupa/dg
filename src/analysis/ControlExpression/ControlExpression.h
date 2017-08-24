@@ -86,7 +86,7 @@ public:
 
                 // XXX: Consider selective termination
                 // every loop may non-terminate, so every loop terminates a path
-                if ((*I)->isa(LOOP))
+                if ((*I)->isa(CENodeType::LOOP))
                     // copy the path that is terminated with this loop
                     paths.push_back(CEPath(P));
 
@@ -109,7 +109,7 @@ public:
         bool found_loop = false;
 
         for (CENode *nd : path) {
-            if (nd->isa(LOOP))
+            if (nd->isa(CENodeType::LOOP))
                 found_loop = true;
 
             // in the case we compute termination sensitive

@@ -58,7 +58,7 @@ public:
             if (I->first == succ.first) {
                 // if the label already is a branch, just
                 // add new branch to it (take over the ownership)
-                if (I->second->isa(BRANCH)) {
+                if (I->second->isa(CENodeType::BRANCH)) {
                     I->second->addChild(succ.second);
                 } else {
                     CEBranch *br = new CEBranch();

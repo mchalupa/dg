@@ -134,7 +134,7 @@ static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
 
 RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(ALLOC);
+    RDNode *node = new RDNode(RDNodeType::ALLOC);
     addNode(Inst, node);
 
     if (const llvm::AllocaInst *AI
@@ -148,7 +148,7 @@ RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, int type)
 {
     using namespace llvm;
 
-    RDNode *node = new RDNode(DYN_ALLOC);
+    RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
     addNode(Inst, node);
 
     const CallInst *CInst = cast<CallInst>(Inst);
@@ -186,7 +186,7 @@ RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, int type)
 
 RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(DYN_ALLOC);
+    RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
     addNode(Inst, node);
 
     uint64_t size = getConstantValue(Inst->getOperand(1));
@@ -239,7 +239,7 @@ static void getLocalVariables(const llvm::Function *F,
 
 RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(RETURN);
+    RDNode *node = new RDNode(RDNodeType::RETURN);
     addNode(Inst, node);
 
     // FIXME: don't do that for every return instruction,
@@ -298,7 +298,7 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
 
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(STORE);
+    RDNode *node = new RDNode(RDNodeType::STORE);
     addNode(Inst, node);
 
     pta::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
@@ -436,7 +436,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
-    RDNode *node = new RDNode(PHI);
+    RDNode *node = new RDNode(RDNodeType::PHI);
     RDNode *last_node = node;
 
     addNode(node);
@@ -528,8 +528,8 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
     RDNode *callNode, *returnNode;
 
     // dummy nodes for easy generation
-    callNode = new RDNode(CALL);
-    returnNode = new RDNode(CALL_RETURN);
+    callNode = new RDNode(RDNodeType::CALL);
+    returnNode = new RDNode(RDNodeType::CALL_RETURN);
 
     // do not leak the memory of returnNode (the callNode
     // will be added to nodes_map)
@@ -574,8 +574,8 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
-    RDNode *root = new RDNode(NOOP);
-    RDNode *ret = new RDNode(NOOP);
+    RDNode *root = new RDNode(RDNodeType::NOOP);
+    RDNode *ret = new RDNode(RDNodeType::NOOP);
 
     // emplace new subgraph to avoid looping with recursive functions
     subgraphs_map.emplace(&F, Subgraph(root, ret));
@@ -610,7 +610,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0 && ptan.second->getType() == RETURN)
+        if (succ_num == 0 && ptan.second->getType() == RDNodeType::RETURN)
             rets.push_back(ptan.second);
     }
 
@@ -625,7 +625,7 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
-    RDNode *node = new RDNode(CALL);
+    RDNode *node = new RDNode(RDNodeType::CALL);
     addNode(CInst, node);
 
     // if we assume that undefined functions are pure
@@ -688,7 +688,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     const Value *dest;
     const Value *lenVal;
 
-    RDNode *ret = new RDNode(CALL);
+    RDNode *ret = new RDNode(RDNodeType::CALL);
     addNode(CInst, ret);
 
     switch (I->getIntrinsicID())
@@ -837,8 +837,8 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     assert(!ret_call);
 
                     // create the new nodes lazily
-                    call_funcptr = new RDNode(CALL);
-                    ret_call = new RDNode(CALL_RETURN);
+                    call_funcptr = new RDNode(RDNodeType::CALL);
+                    ret_call = new RDNode(RDNodeType::CALL_RETURN);
                     addNode(CInst, call_funcptr);
                     addNode(ret_call);
                 }
@@ -920,7 +920,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
         prev = cur;
 
         // every global node is like memory allocation
-        cur = new RDNode(ALLOC);
+        cur = new RDNode(RDNodeType::ALLOC);
         addNode(&*I, cur);
 
         if (prev)

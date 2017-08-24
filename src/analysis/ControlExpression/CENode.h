@@ -9,8 +9,8 @@
 
 namespace dg {
 
-enum CENodeType {
-        LABEL  = 1,
+enum class CENodeType {
+        LABEL,
         SEQ,
         BRANCH,
         LOOP,
@@ -29,8 +29,8 @@ public:
     struct CECmp {
         bool operator()(const CENode *a, const CENode *b) const
         {
-            assert(a->isa(LABEL));
-            assert(b->isa(LABEL));
+            assert(a->isa(CENodeType::LABEL));
+            assert(b->isa(CENodeType::LABEL));
 
             return a->lt(b);
         }
@@ -90,11 +90,11 @@ public:
             if (node == nullptr)
                 return;
 
-            if (node->isa(LOOP)) {
+            if (node->isa(CENodeType::LOOP)) {
                 // when the node is loop, we want it in the path,
                 // since the loop is where the execution continues
                 node = *it;
-            } else if (node->parent && node->parent->isa(BRANCH)) {
+            } else if (node->parent && node->parent->isa(CENodeType::BRANCH)) {
                 // is the node's parent a BRANCH? In that case
                 // we must move up again
                 moveUp();
@@ -141,7 +141,7 @@ public:
             if (node->parent) {
                 // in SEQ and LOOPs we shift just to the right,
                 // but in BRANCH we shift _up_
-                if (node->parent->isa(BRANCH)) {
+                if (node->parent->isa(CENodeType::BRANCH)) {
                         moveUp();
                 } else {
                     ++it;
@@ -389,8 +389,8 @@ public:
             // this node. Also, if this is a loop and
             // it contains SEQ, we can make the SEQ
             // just a children of the loop
-            if ((*I)->type == SEQ &&
-                (type == SEQ || type == LOOP)) {
+            if ((*I)->type == CENodeType::SEQ &&
+                (type == CENodeType::SEQ || type == CENodeType::LOOP)) {
                     // we over-take the children,
                     for (CENode *chld : (*I)->children) {
                         new_children.push_back(chld);
@@ -404,7 +404,7 @@ public:
 
                     // now we can delete the memory
                     delete *I;
-            } else if ((*I)->type == SEQ && (*I)->children.size() == 1) {
+            } else if ((*I)->type == CENodeType::SEQ && (*I)->children.size() == 1) {
                     // eliminate sequence when there is only one node in it
 
                     CENode *chld = *((*I)->children.begin());
@@ -419,7 +419,7 @@ public:
 
                     // now we can delete the memory
                     delete *I;
-            } else if (type == SEQ && (*I)->type == EPS) {
+            } else if (type == CENodeType::SEQ && (*I)->type == CENodeType::EPS) {
                 // skip epsilons in SEQuences
                 // (and since we drop the pointer,
                 // release the memory)
@@ -447,7 +447,7 @@ public:
         return [](const CENode *nd) -> CENode * {
             CENode *par = nd->getParent();
             if (par) {
-                if (par->isa(LOOP))
+                if (par->isa(CENodeType::LOOP))
                     return par;
                 else
                     return par->getParentLoop();
@@ -471,7 +471,7 @@ public:
 
     virtual bool lt(const CENode *n) const override
     {
-        if (n->isa(LABEL))
+        if (n->isa(CENodeType::LABEL))
             return label < static_cast<const CELabel<T> *>(n)->label;
         else
             return this < n;

@@ -148,13 +148,13 @@ llvm::cl::opt<PtaType> pta("pta",
 llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
     llvm::cl::desc("Choose control dependencies algorithm to use:"),
     llvm::cl::values(
-        clEnumValN(CLASSIC , "classic", "Ferrante's algorithm (default)"),
-        clEnumValN(CONTROL_EXPRESSION, "ce", "Control expression based (experimental)")
+        clEnumValN(CD_ALG::CLASSIC , "classic", "Ferrante's algorithm (default)"),
+        clEnumValN(CD_ALG::CONTROL_EXPRESSION, "ce", "Control expression based (experimental)")
 #if LLVM_VERSION_MAJOR < 4
         , nullptr
 #endif
          ),
-    llvm::cl::init(CLASSIC), llvm::cl::cat(SlicingOpts));
+    llvm::cl::init(CD_ALG::CLASSIC), llvm::cl::cat(SlicingOpts));
 
 
 class CommentDBG : public llvm::AssemblyAnnotationWriter

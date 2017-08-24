@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
-    CD_ALG cd_alg = CLASSIC;
+    CD_ALG cd_alg = CD_ALG::CLASSIC;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
@@ -100,9 +100,9 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-cd-alg") == 0) {
             const char *arg = argv[++i];
             if (strcmp(arg, "classic") == 0)
-                cd_alg = CLASSIC;
+                cd_alg = CD_ALG::CLASSIC;
             else if (strcmp(arg, "ce") == 0)
-                cd_alg = CONTROL_EXPRESSION;
+                cd_alg = CD_ALG::CONTROL_EXPRESSION;
             else {
                 errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
                 abort();
