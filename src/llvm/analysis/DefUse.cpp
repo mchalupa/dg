@@ -193,17 +193,17 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         // for realloc, we need to make it data dependent on the
         // memory it reallocates, since that is the memory it copies
         if (func->size() == 0) {
-            const char *name = func->getName().data();
-            if (strcmp(name, "realloc") == 0) {
+            using dg::MemAllocationFuncs;
+            MemAllocationFuncs type = getMemAllocationFunc(func);
+
+            if (type == MemAllocationFuncs::REALLOC) {
                 addDataDependence(node, CI, CI->getOperand(0), UNKNOWN_OFFSET /* FIXME */);
-            } else if (strcmp(name, "malloc") == 0 ||
-                       strcmp(name, "calloc") == 0 ||
-                       strcmp(name, "alloca") == 0) {
-                // we do not want to do anything for the memory
-                // allocation functions
-            } else {
+            } else if (type == MemAllocationFuncs::NONEMEM) {
                 handleUndefinedCall(node, CI);
-            }
+            }// else {
+             // we do not want to do anything for the memory
+             // allocation functions
+             // }
 
             // the function is undefined, so do not even try to
             // add the edges from return statements
