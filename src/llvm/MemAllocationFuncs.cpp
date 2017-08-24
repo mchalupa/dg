@@ -7,14 +7,14 @@ MemAllocationFuncs getMemAllocationFunc(const llvm::Function *func)
     if (!func || !func->hasName())
         return MemAllocationFuncs::NONEMEM;
 
-    const char *name = func->getName().data();
-    if (strcmp(name, "malloc") == 0)
+    const auto& name = func->getName();
+    if (name.equals("malloc"))
         return MemAllocationFuncs::MALLOC;
-    else if (strcmp(name, "calloc") == 0)
+    else if (name.equals("calloc"))
         return MemAllocationFuncs::CALLOC;
-    else if (strcmp(name, "alloca") == 0)
+    else if (name.equals("alloca"))
         return MemAllocationFuncs::ALLOCA;
-    else if (strcmp(name, "realloc") == 0)
+    else if (name.equals("realloc"))
         return MemAllocationFuncs::REALLOC;
 
     return MemAllocationFuncs::NONEMEM;
