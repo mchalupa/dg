@@ -369,7 +369,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         }
 
         if (func && gather_callsites &&
-            strcmp(func->getName().data(), gather_callsites) == 0) {
+            func->getName().equals(gather_callsites)) {
             gatheredCallsites->insert(node);
         }
 
