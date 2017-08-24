@@ -347,7 +347,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
             PSNode *op = PTA->getNode(strippedValue);
             if (op) {
                 for (const Pointer& ptr : op->pointsTo) {
-                    if (!ptr.isValid())
+                    if (!ptr.isValid() || ptr.isInvalidated())
                         continue;
 
                     // vararg may introduce imprecision here, so we
