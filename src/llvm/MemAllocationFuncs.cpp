@@ -1,5 +1,7 @@
 #include "llvm/MemAllocationFuncs.h"
 
+#include <llvm/IR/Function.h>
+
 namespace dg {
 
 MemAllocationFuncs getMemAllocationFunc(const llvm::Function *func)
