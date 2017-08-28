@@ -24,6 +24,7 @@
 
 namespace dg {
 namespace analysis {
+namespace rd {
 namespace ssa {
 
 
@@ -45,7 +46,7 @@ public:
         for (auto& pair : functions_blocks){
 
             BlockT *root = nullptr;
-            Function& f = *cast<Function>(pair.first);
+            Function& f = *const_cast<Function *>(pair.first);
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
             DominatorTree dt;
@@ -59,7 +60,7 @@ public:
             auto& blocks = pair.second;
             bool built = false;
             for (auto& block : blocks) {
-                BasicBlock *llvm_block = cast<BasicBlock>(const_cast<Value *>(block.first));
+                BasicBlock *llvm_block = const_cast<BasicBlock *>(block.first);
                 BlockT *basic_block = block.second;
 
                 DomTreeNode *N = dt.getNode(llvm_block);
@@ -84,7 +85,7 @@ public:
                 }
             }
 
-            if constexpr(CalculateDF) {
+            if (CalculateDF) {
                 analysis::DominanceFrontiers<NodeT> dfrontiers;
                 if (root)
                     dfrontiers.compute(root);
@@ -93,6 +94,7 @@ public:
     }
 };
 
+}
 }
 }
 }
