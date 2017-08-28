@@ -562,7 +562,6 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     // optimized away later since they are noops
     RDNode *root = new RDNode(RDNodeType::NOOP);
     RDNode *ret = new RDNode(RDNodeType::NOOP);
-    rb->append(root);
 
     // emplace new subgraph to avoid looping with recursive functions
     subgraphs_map.emplace(&F, Subgraph(root, ret));

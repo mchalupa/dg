@@ -47,7 +47,7 @@ private:
         std::unordered_map<NodeT *, NodeT *> oldLHS;
         for (NodeT *A : X->getNodes())
         {
-            if (A->getType() == STORE) {
+            if (A->getType() == RDNodeType::STORE) {
                 // A is an ordinary assignment...
                 // TODO: for each variable used in RHS???
             }
@@ -65,7 +65,7 @@ private:
 
         for (NodeT *A : X->getNodes())
         {
-            if (A->getType() != STORE)
+            if (A->getType() != RDNodeType::STORE)
                 continue;
         }
     }

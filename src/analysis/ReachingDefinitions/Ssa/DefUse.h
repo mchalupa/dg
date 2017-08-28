@@ -63,12 +63,12 @@ public:
         DefUseGraph result;
         std::vector<NodeT *> cfg = bfs(root);
         for (auto& def : cfg) {
-            if (def->getType() != ALLOC)
+            if (def->getType() != RDNodeType::ALLOC)
                 continue;
 
             std::vector<NodeT *> uses;
             for(auto& use : cfg) {
-                if (use->getType() != STORE)
+                if (use->getType() != RDNodeType::STORE)
                     continue;
 
                 if (use->defines(def)) {
