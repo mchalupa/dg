@@ -99,7 +99,7 @@ public:
         return blocks;
     }
 
-    const std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, RDBlock *>>& getConstructedFunctions() {
+    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, RDBlock *>>& getConstructedFunctions() {
         return functions_blocks;
     }
 
@@ -158,7 +158,7 @@ class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
-    SsaBuilder ssa_builder;
+    dg::analysis::rd::ssa::SsaBuilder ssa_builder;
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
@@ -182,6 +182,10 @@ public:
         RDA->run();
     }
 
+    RDNode *getRoot() {
+        return root;
+    }
+
     RDNode *getNode(const llvm::Value *val)
     {
         return builder->getNode(val);
@@ -197,15 +201,16 @@ public:
                                 getMapping() const
     { return builder->getMapping(); }
 
-    const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& getBlocks() const {
-        return builder->getBlocks();
-    }
+    const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& 
+        getBlocks() const
+        { return builder->getBlocks(); }
 
     RDNode *getMapping(const llvm::Value *val)
     {
         return builder->getMapping(val);
     }
 
+    const dg::analysis::rd::ssa::SsaBuilder& getSsa() const { return ssa_builder; }
     void getNodes(std::set<RDNode *>& cont)
     {
         assert(RDA);
