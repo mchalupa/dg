@@ -13,6 +13,8 @@
 #include "BBlock.h"
 #include "ADT/Queue.h"
 #include "RDMap.h"
+#include "DGParameters.h"
+#include "DependenceGraph.h"
 
 // forward declaration
 namespace llvm {
@@ -22,6 +24,10 @@ namespace llvm {
 namespace dg {
 namespace analysis {
 namespace rd {
+
+namespace ssa {
+    class DugBuilder;
+}
 
 class RDNode;
 class ReachingDefinitionsAnalysis;
@@ -140,7 +146,7 @@ public:
     using KeyType = llvm::Value*;
 
     // this node is not part of any DependenceGraph
-    using DependenceGraphType = void;
+    using DependenceGraphType = DependenceGraph<RDNode>;
 
     DependenceGraphType *getDG() {
         return nullptr;
@@ -163,7 +169,20 @@ public:
     void removeFromDG() {
     }
 
+    bool hasSubgraphs() const {
+        return false;
+    }
+
+    dg::DGParameters<RDNode> *getParameters() const {
+        return nullptr;
+    }
+
+    std::vector<DependenceGraphType *> getSubgraphs() const {
+        return {};
+    }
+
     friend class ReachingDefinitionsAnalysis;
+    friend class dg::analysis::rd::ssa::DugBuilder;
 };
 
 class ReachingDefinitionsAnalysis
