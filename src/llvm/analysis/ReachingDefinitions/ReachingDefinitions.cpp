@@ -745,16 +745,18 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
     if (func) {
         if (func->size() == 0) {
             RDNode *n;
-            MemAllocationFuncs type = getMemAllocationFunc(func);
             if (func->isIntrinsic()) {
                 n = createIntrinsicCall(CInst);
-            } else if (type != MemAllocationFuncs::NONEMEM) {
-                if (type == MemAllocationFuncs::REALLOC)
-                    n = createRealloc(CInst);
-                else
-                    n = createDynAlloc(CInst, type);
             } else {
-                n = createUndefinedCall(CInst);
+                MemAllocationFuncs type = getMemAllocationFunc(func);
+                if (type != MemAllocationFuncs::NONEMEM) {
+                    if (type == MemAllocationFuncs::REALLOC)
+                        n = createRealloc(CInst);
+                    else
+                        n = createDynAlloc(CInst, type);
+                } else {
+                    n = createUndefinedCall(CInst);
+                }
             }
 
             return std::make_pair(n, n);
