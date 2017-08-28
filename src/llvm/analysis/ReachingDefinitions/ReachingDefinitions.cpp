@@ -661,9 +661,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     const Value *dest;
     const Value *lenVal;
 
-    RDNode *ret = new RDNode(RDNodeType::CALL);
-    addNode(CInst, ret);
-
+    RDNode *ret;
     switch (I->getIntrinsicID())
     {
         case Intrinsic::memmove:
@@ -677,11 +675,16 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             // we create this node because this nodes works
             // as ALLOC in points-to, so we can have
             // reaching definitions to that
+            ret = new RDNode(RDNodeType::CALL);
             ret->addDef(ret, 0, UNKNOWN_OFFSET);
+            addNode(CInst, ret);
             return ret;
         default:
             return createUndefinedCall(CInst);
     }
+
+    ret = new RDNode(RDNodeType::CALL);
+    addNode(CInst, ret);
 
     pta::PSNode *pts = PTA->getPointsTo(dest);
     assert(pts && "No points-to information");
