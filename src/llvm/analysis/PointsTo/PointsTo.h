@@ -27,6 +27,8 @@
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 
+#include "EquivalentNodesMerger.h"
+
 namespace dg {
 
 using analysis::pta::PointerSubgraph;
@@ -138,6 +140,7 @@ class LLVMPointerAnalysis
 {
     PointerSubgraph *PS = nullptr;
     LLVMPointerSubgraphBuilder *builder;
+    analysis::pta::PSEquivalentNodesMerger::MappingT equivalence_mapping;
 
 public:
 
@@ -157,7 +160,16 @@ public:
 
     PSNode *getPointsTo(const llvm::Value *val)
     {
-        return builder->getPointsTo(val);
+        PSNode *nd = builder->getPointsTo(val);
+        // check whether this node has been merged
+        // and it has a representant
+        if (nd) {
+            auto it = equivalence_mapping.find(nd);
+            if (it != equivalence_mapping.end())
+                return it->second;
+        }
+
+        return nd;
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
@@ -184,6 +196,10 @@ public:
             abort();
         }
 
+        // merge equivalent nodes
+        analysis::pta::PSEquivalentNodesMerger merger(PS);
+        equivalence_mapping = std::move(merger.mergeNodes());
+
         // run the analysis itself
         assert(builder && "Incorrectly constructed PTA, missing builder");
         LLVMPointerAnalysisImpl<PTType> PTA(PS, builder);
@@ -203,6 +219,10 @@ public:
             llvm::errs() << "Pointer Subgraph was not built, aborting\n";
             abort();
         }
+
+        // merge equivalent nodes
+        analysis::pta::PSEquivalentNodesMerger merger(PS);
+        equivalence_mapping = std::move(merger.mergeNodes());
 
         assert(builder && "Incorrectly constructed PTA, missing builder");
         return new LLVMPointerAnalysisImpl<PTType>(PS, builder);
