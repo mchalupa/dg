@@ -91,7 +91,9 @@ extern RDNode *UNKNOWN_MEMORY;
 // wrapper around std::set<> with few
 // improvements that will be handy in our set-up
 class RDNodesSet {
-    std::set<RDNode *> nodes;
+    using ContainerTy = std::set<RDNode *>;
+
+    ContainerTy nodes;
     bool is_unknown;
 
 public:
@@ -138,13 +140,12 @@ public:
         return is_unknown;
     }
 
-    std::set<RDNode *>::iterator begin() { return nodes.begin(); }
-    std::set<RDNode *>::iterator end() { return nodes.end(); }
-    std::set<RDNode *>::const_iterator begin() const { return nodes.begin(); }
-    std::set<RDNode *>::const_iterator end() const { return nodes.end(); }
+    ContainerTy::iterator begin() { return nodes.begin(); }
+    ContainerTy::iterator end() { return nodes.end(); }
+    ContainerTy::const_iterator begin() const { return nodes.begin(); }
+    ContainerTy::const_iterator end() const { return nodes.end(); }
 
-    std::set<RDNode *>& getNodes()
-    {
+    ContainerTy& getNodes() {
         return nodes;
     };
 
