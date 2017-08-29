@@ -83,6 +83,8 @@ class PSNode : public SubgraphNode<PSNode>
     bool zeroInitialized;
     // is memory allocated on heap?
     bool is_heap;
+    // is it a global value?
+    bool is_global;
     unsigned int dfsid;
 public:
     ///
@@ -132,7 +134,7 @@ public:
     //               the subprocedure
     PSNode(PSNodeType t, ...)
     : SubgraphNode<PSNode>(), type(t), offset(0), pairedNode(nullptr),
-      zeroInitialized(false), is_heap(false), dfsid(0)
+      zeroInitialized(false), is_heap(false), is_global(false), dfsid(0)
     {
         // assing operands
         PSNode *op;
@@ -216,6 +218,9 @@ public:
 
     void setIsHeap() { is_heap = true; }
     bool isHeap() const { return is_heap; }
+
+    void setIsGlobal() { is_global = true; }
+    bool isGlobal() { return is_global; }
 
     bool isNull() const { return type == PSNodeType::NULL_ADDR; }
     bool isUnknownMemory() const { return type == PSNodeType::UNKNOWN_MEM; }
