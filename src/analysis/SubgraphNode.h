@@ -101,6 +101,15 @@ public:
         return operands[idx];
     }
 
+    void setOperand(int idx, NodeT *nd)
+    {
+        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size()
+               && "Operand index out of range");
+
+        operands[idx] = nd;
+    }
+
+
     const std::vector<NodeT *>& getUsers() const {
         return users;
     }
@@ -119,6 +128,7 @@ public:
         assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         n->addUser(static_cast<NodeT *>(this));
+        assert(n->users.size() > 0);
 
         return operands.size();
     }
@@ -252,6 +262,61 @@ public:
 
         // this node is successors of the last node in sequence
         seq.second->addSuccessor(this);
+    }
+
+    void isolate() {
+        // Remove this node from successors of the predecessors
+        for (NodeT *pred : predecessors) {
+            std::vector<NodeT *> new_succs;
+            new_succs.reserve(pred->successors.size() - 1);
+
+            for (NodeT *n : pred->successors) {
+                if (n != this)
+                    new_succs.push_back(n);
+            }
+
+            new_succs.swap(pred->successors);
+        }
+
+        // remove this nodes from successors' predecessors
+        for (NodeT *succ : successors) {
+            std::vector<NodeT *> new_preds;
+            new_preds.reserve(succ->predecessors.size() - 1);
+
+            for (NodeT *n : succ->predecessors) {
+                if (n != this)
+                    new_preds.push_back(n);
+            }
+
+            new_preds.swap(succ->predecessors);
+        }
+
+        // Take every predecessor and connect it to every successor.
+        for (NodeT *pred : predecessors) {
+            for (NodeT *succ : successors) {
+                assert(succ != this && "Self-loop");
+                pred->addSuccessor(succ);
+            }
+        }
+
+        successors.clear();
+        predecessors.clear();
+    }
+
+    void replaceAllUsesWith(NodeT *nd) {
+        // Replace 'this' in every user with 'nd'.
+        // NOTE: Suppose there is only one use of 'this' in
+        // every user.
+        for (NodeT *user : users) {
+            for (int i = 0, e = user->getOperandsNum(); i < e; ++i) {
+                if (user->getOperand(i) == this) {
+                    user->setOperand(i, nd);
+                    break;
+                }
+            }
+        }
+
+        users.clear();
     }
 
     size_t predecessorsNum() const
