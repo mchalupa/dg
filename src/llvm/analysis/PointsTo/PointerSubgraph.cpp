@@ -583,8 +583,19 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
 {
     assert(idx < static_cast<int>(CI->getNumArgOperands()));
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
-    if (op)
-        arg->addOperand(op);
+    if (op) {
+        // do not add an operand multiple-times
+        // (when a function is called multiple-times with
+        // the same actual parameters)
+        bool found = false;
+        for (PSNode *tmp : arg->getOperands())
+            if (tmp == op) {
+                found = true;
+                break;
+            }
+        if (!found)
+            arg->addOperand(op);
+    }
 }
 
 void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
