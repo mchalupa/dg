@@ -85,17 +85,17 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
             // delete parameters (on null it is no op)
             delete node->getParameters();
 
-#ifdef ENABLE_DEBUG
+#ifdef DEBUG_ENABLED
             if (!node->getBBlock()
                 && !llvm::isa<llvm::Function>(*I->first))
                 llvmutils::printerr("Had no BB assigned", I->first);
-#endif // ENABLE_DEBUG
+#endif
 
             delete node;
         } else {
-#ifdef ENABLE_DEBUG
+#ifdef DEBUG_ENABLED
             llvmutils::printerr("Had no node assigned", I->first);
-#endif // ENABLE_DEBUG
+#endif //
         }
     }
 
