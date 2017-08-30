@@ -11,6 +11,7 @@
 #include "llvm/MemAllocationFuncs.h"
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "llvm/analysis/SingleAssignment/SsaBuilder.h"
 
@@ -175,6 +176,9 @@ public:
     void run()
     {
         root = builder->build();
+        // calculate dominators, true=calculate also DomFrontiers
+        Dominators<RDNode,true> d;
+        d.calculate(builder->getConstructedFunctions());
         ssa_builder.build(root, builder->getConstructedFunctions());
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             new ReachingDefinitionsAnalysis(root, strong_update_unknown, max_set_size)

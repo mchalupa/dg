@@ -24,14 +24,15 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
-namespace ssa {
 
 
 /**
- * Calculates dominators
+ * Calculates dominators using LLVM framework
+ * Template parameters:
+ *  NodeT
+ *  CalculateDF = should dominance frontiers be calculated, too?
  */
-template <typename NodeT,bool CalculateDF=true>
+template <typename NodeT, bool CalculateDF=true>
 class Dominators
 {
 private:
@@ -50,7 +51,7 @@ public:
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
             DominatorTree dt;
-            // compute post-dominator tree for this function
+            // compute dominator tree for this function
             dt.runOnFunction(f);
 #else
             DominatorTreeAnalysis PDT;
@@ -58,7 +59,6 @@ public:
             DominatorTree dt(PDT.run(f, DummyFAM));
 #endif
             auto& blocks = pair.second;
-            bool built = false;
             for (auto& block : blocks) {
                 BasicBlock *llvm_block = const_cast<BasicBlock *>(block.first);
                 BlockT *basic_block = block.second;
@@ -69,7 +69,6 @@ public:
 
                 DomTreeNode *idom = N->getIDom();
                 BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
-                built = true;
 
                 if (idomBB) {
                     BlockT *db = blocks[idomBB];
@@ -94,8 +93,6 @@ public:
     }
 };
 
-}
-}
 }
 }
 
