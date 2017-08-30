@@ -12,12 +12,12 @@ namespace analysis {
 namespace rd {
 namespace ssa {
 
-using DefUseGraph = std::unordered_map<dg::analysis::rd::RDNode *, std::vector<dg::analysis::rd::RDNode *>>;
+using AssignmentMap = std::unordered_map<dg::analysis::rd::RDNode *, std::vector<dg::analysis::rd::RDNode *>>;
 
 /**
  * Constructs Def->Use graph from RDNode-s
  */
-class DugBuilder
+class AssignmentFinder
 {
 private:
     static constexpr unsigned DFS = 10;
@@ -55,12 +55,12 @@ private:
 public:
 
     /**
-     * Constructs def->use graph from given cfg.
+     * For each alloca node, finds all assignments to it
      */
-    DefUseGraph build(NodeT *root)
+    AssignmentMap build(NodeT *root)
     {
         assert(root && "root may not be null");
-        DefUseGraph result;
+        AssignmentMap result;
         std::vector<NodeT *> cfg = bfs(root);
         for (auto& def : cfg) {
             if (def->getType() != RDNodeType::ALLOC)
@@ -68,9 +68,6 @@ public:
 
             std::vector<NodeT *> uses;
             for(auto& use : cfg) {
-                if (use->getType() != RDNodeType::STORE)
-                    continue;
-
                 if (use->defines(def)) {
                     uses.push_back(use);
                 }

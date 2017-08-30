@@ -3,7 +3,7 @@
 #define _DG_PHIPLACEMENT_H_
 
 #include "BBlock.h"
-#include "analysis/ReachingDefinitions/Ssa/DefUse.h"
+#include "analysis/ReachingDefinitions/Ssa/AssignmentFinder.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
@@ -17,7 +17,7 @@ using PhiAdditions = std::unordered_map<BBlock<RDNode> *, std::vector<RDNode *>>
  * Calculates where phi-functions for variables should be placed to create SSA form
  * Prerequisites:
  * + Dominance Frontiers calculated on BBlock-s
- * + Def->Use graph
+ * + Assignment Map
  */
 class PhiPlacement
 {
@@ -25,10 +25,10 @@ private:
     using RDBlock = BBlock<RDNode>;
 
 public:
-    PhiAdditions calculate(DefUseGraph&& dug) const
+    PhiAdditions calculate(AssignmentMap&& am) const
     {
         PhiAdditions result;
-        for (auto& def : dug) {
+        for (auto& def : am) {
             // DomFronPlus
             std::set<RDBlock *> dfp;
             std::vector<RDNode *> w = std::move(def.second);

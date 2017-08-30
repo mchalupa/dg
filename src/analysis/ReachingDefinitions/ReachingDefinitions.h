@@ -26,7 +26,7 @@ namespace analysis {
 namespace rd {
 
 namespace ssa {
-    class DugBuilder;
+    class AssignmentFinder;
 }
 
 class RDNode;
@@ -182,7 +182,7 @@ public:
     }
 
     friend class ReachingDefinitionsAnalysis;
-    friend class dg::analysis::rd::ssa::DugBuilder;
+    friend class dg::analysis::rd::ssa::AssignmentFinder;
 };
 
 class ReachingDefinitionsAnalysis
