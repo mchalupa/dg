@@ -332,6 +332,20 @@ std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock 
     return result;
 }
 
+RDNode *LLVMRDBuilder::createLoad(const llvm::Instruction *Inst, RDBlock *rb)
+{
+    RDNode *node = new RDNode(RDNodeType::LOAD);
+    addNode(Inst, node);
+    rb->append(node);
+
+    for (unsigned i = 0; i < Inst->getNumOperands(); ++i) {
+        if (Inst->getOperand(i)->getType()->isPointerTy()) {
+            node->addUses(getPointsTo(Inst->getOperand(i), rb));
+        }
+    }
+
+    return node;
+}
 
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
 {
@@ -431,6 +445,9 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                     // FIXME: add new type of node NOOP,
                     // and optimize it away later
                     node = createReturn(&Inst, rb);
+                    break;
+                case Instruction::Load:
+                    node = createLoad(&Inst, rb);
                     break;
                 case Instruction::Call:
                     if (!isRelevantCall(&Inst))
