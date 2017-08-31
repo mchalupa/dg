@@ -310,7 +310,9 @@ public:
     void setRoot(RDNode *r) { root = r; }
 
     bool processNode(RDNode *n);
-    void run();
+    virtual void run();
+
+    virtual ~ReachingDefinitionsAnalysis() = default;
 };
 
 } // namespace rd
