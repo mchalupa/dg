@@ -116,10 +116,19 @@ public:
         uses.insert(std::forward<T>(ds));
     }
 
-    void addUses(std::vector<DefSite>& u)
+    template <typename T>
+    void addUses(T&& u)
     {
-        for (DefSite& ds : u) {
+        for (auto& ds : u) {
             uses.insert(ds);
+        }
+    }
+
+    template <typename T>
+    void addDefs(T&& defs)
+    {
+        for (auto& ds : defs) {
+            addDef(ds);
         }
     }
 
