@@ -51,7 +51,8 @@ enum class RDNodeType {
         // return from the call (in caller)
         CALL_RETURN,
         // dummy nodes
-        NOOP
+        NOOP,
+        LOAD
 };
 
 extern RDNode *UNKNOWN_MEMORY;
@@ -73,12 +74,17 @@ public:
     // on this node
     DefSiteSetT overwrites;
 
+    // this is set of variables used in this node
+    DefSiteSetT uses;
+
     RDMap def_map;
 
     RDNodeType getType() const { return type; }
     DefSiteSetT& getDefines() { return defs; }
     DefSiteSetT& getOverwrites() { return overwrites; }
+    DefSiteSetT& getUses() { return uses; }
     const DefSiteSetT& getDefines() const { return defs; }
+    const DefSiteSetT& getUses() const { return uses; }
 
     bool defines(RDNode *target, const Offset& off = UNKNOWN_OFFSET) const
     {
@@ -97,6 +103,24 @@ public:
         }
 
         return false;
+    }
+
+    void addUse(RDNode *target, const Offset& off = UNKNOWN_OFFSET, const Offset& len = UNKNOWN_OFFSET)
+    {
+        addUse(DefSite(target, off, len));
+    }
+
+    template <typename T>
+    void addUse(T&& ds)
+    {
+        uses.insert(std::forward<T>(ds));
+    }
+
+    void addUses(std::vector<DefSite>& u)
+    {
+        for (DefSite& ds : u) {
+            uses.insert(ds);
+        }
     }
 
     void addDef(const DefSite& ds, bool strong_update = false)
