@@ -11,9 +11,10 @@
 #include "llvm/MemAllocationFuncs.h"
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "analysis/ReachingDefinitions/Ssa/SparseRDGraphBuilder.h"
+#include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
-#include "llvm/analysis/SingleAssignment/SsaBuilder.h"
 
 namespace dg {
 namespace analysis {
@@ -162,7 +163,8 @@ class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
-    dg::analysis::rd::ssa::SsaBuilder ssa_builder;
+    dg::analysis::rd::ssa::SparseRDGraphBuilder srg_builder;
+    dg::analysis::rd::ssa::SparseRDGraph srg;
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
@@ -182,7 +184,8 @@ public:
         // calculate dominators, true=calculate also DomFrontiers
         Dominators<RDNode,true> d;
         d.calculate(builder->getConstructedFunctions());
-        ssa_builder.build(root, builder->getConstructedFunctions());
+
+        srg = srg_builder.build(root);
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             new ReachingDefinitionsAnalysis(root, strong_update_unknown, max_set_size)
             );
@@ -217,7 +220,7 @@ public:
         return builder->getMapping(val);
     }
 
-    const dg::analysis::rd::ssa::SsaBuilder& getSsa() const { return ssa_builder; }
+    const dg::analysis::rd::ssa::SparseRDGraph& getSrg() const { return srg; }
     void getNodes(std::set<RDNode *>& cont)
     {
         assert(RDA);
