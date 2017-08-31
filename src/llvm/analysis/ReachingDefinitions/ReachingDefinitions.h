@@ -185,9 +185,10 @@ public:
         Dominators<RDNode,true> d;
         d.calculate(builder->getConstructedFunctions());
 
-        srg = srg_builder.build(root);
+        /* srg = srg_builder.build(root); */
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-            new ReachingDefinitionsAnalysis(root, strong_update_unknown, max_set_size)
+            new ReachingDefinitionsAnalysis(root)
+            /* new SemisparseRda(srg, root) */
             );
         RDA->run();
     }
