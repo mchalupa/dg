@@ -40,7 +40,6 @@ public:
                 RDBlock *X = n->getBBlock();
 
                 for (RDBlock* Y : X->getDomFrontiers()) {
-                    // TODO: Y->getFirstNode()
                     if (dfp.find(Y) == dfp.end()) {
                         result[Y].push_back(def.first);
                         dfp.insert(Y);
@@ -50,6 +49,30 @@ public:
                         }
                     }
                 }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Return ownership of added phi-nodes
+     */
+    std::vector<std::unique_ptr<RDNode>> place(const PhiAdditions& pa) const
+    {
+        std::vector<std::unique_ptr<RDNode>> result;
+        for (auto& pair : pa) {
+            RDBlock *target = pair.first;
+            // assumption: target->getFirstNode() does not manipulate any var that is in pair.second
+            RDNode *last = target->getFirstNode();
+            for (auto& var : pair.second) {
+                RDNode *node = new RDNode(RDNodeType::PHI);
+                node->addDef(var, 0, UNKNOWN_OFFSET, true);
+                node->addUse(var, 0, UNKNOWN_OFFSET);
+                result.push_back(std::unique_ptr<RDNode>(node));
+                node->insertAfter(last);
+                last = node;
+                // order of nodes in block will be different but it is not big deal with phi nodes
+                target->prepend(node);
             }
         }
         return result;
