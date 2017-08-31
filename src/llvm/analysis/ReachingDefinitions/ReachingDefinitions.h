@@ -134,6 +134,9 @@ private:
         mapping.emplace_hint(it, val, node);
     }
 
+    std::vector<DefSite> getPointsTo(const llvm::Value *val, RDBlock *rb);
+
+    RDNode *createLoad(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createStore(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createAlloc(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type, RDBlock *rb);
