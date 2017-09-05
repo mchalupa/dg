@@ -326,7 +326,7 @@ std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock 
         }
 
         // TODO: fix strong updates
-        bool strong_update = pts->pointsTo.size() == 1 && !pts->isHeap();
+        bool strong_update = psn->pointsTo.size()  == 1 && !psn->isHeap();
         result.push_back(DefSite(ptrNode, ptr.offset, size));
     }
     return result;
