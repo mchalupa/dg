@@ -29,41 +29,25 @@ public:
         }
 
         // do fixpoint
-        do {
+        while (!to_process.empty()) {
             RDNode *source = to_process.back();
             to_process.pop_back();
             bool changed = false;
             for (auto& pair : srg[source]) {
                 // variable to propagate
-                RDNode *var = pair.first;
+                DefSite *var = pair.first;
                 // where to propagate
                 RDNode *dest = pair.second;
-                for (const DefSite& ds : source->getDefines()) {
-                    if (true || ds.target == var) {
-                        if (dest->getReachingDefinitions().update(ds, source)) {
-                            changed = true;
-                            to_process.push_back(dest);
-                        }
-                    }
-                }
 
-                for (const DefSite& ds : source->getUses()) {
-                    if (true || ds.target == var) {
-                        if (dest->getReachingDefinitions().update(ds, source)) {
-                            changed = true;
-                            to_process.push_back(dest);
-                        }
-                    }
+                if (dest->def_map.update(*var, source)) {
+                    to_process.push_back(dest);
+                    changed = true;
                 }
-                /* if (dest->def_map.merge(&source->def_map, &source->overwrites, true, (uint32_t)(~0), true)) { */
-                /*     to_process.push_back(dest); */
-                /*     changed = true; */
-                /* } */
             }
             if (changed)
                 to_process.push_back(source);
 
-        } while(!to_process.empty());
+        }
     }
 };
 
