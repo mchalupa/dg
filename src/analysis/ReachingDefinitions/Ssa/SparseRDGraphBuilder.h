@@ -24,17 +24,15 @@ private:
     using NodeT = dg::analysis::rd::RDNode;
     using BlockT = BBlock<NodeT>;
 
-    // NodeT is sometimes used as a CFG node, otherwise as a variable(as a target of DefSite).
-    // this alias should aid readability a little
-    using VarT = NodeT*;
+    using VarT = DefSite*;
 
     // just for convenience
     template <typename _Tp> using StackT = std::stack<_Tp, std::vector<_Tp>>;
 
 public:
-    using SRGEdge = std::pair<NodeT *, NodeT*>;
+    using SRGEdge = std::pair<VarT, NodeT*>;
     // neighbour lists representation of Sparse Graph
-    //                                       Definition                  Variable    Def/Use
+    //                                       ALLOCA             pair(Variable, Def/Use)
     using SparseRDGraph = std::unordered_map<NodeT *, std::vector<SRGEdge>>;
 
 private:
@@ -42,7 +40,7 @@ private:
     SparseRDGraph srg;
 
     // stack of last definitions for each variable
-    std::unordered_map<VarT, StackT<NodeT *>> stacks;
+    std::unordered_map<NodeT *, StackT<NodeT *>> stacks;
 
     // for each assignment contains variables modified by setting its LHS
     std::unordered_map<NodeT *, std::vector<VarT>> oldLHS;
@@ -61,17 +59,17 @@ private:
     {
         oldLHS[assignment].push_back(var);
 
-        if (!stacks[var].empty()) {
-            srg[stacks[var].top()].push_back(std::make_pair(var, assignment));
+        if (!stacks[var->target].empty()) {
+            srg[stacks[var->target].top()].push_back(std::make_pair(var, assignment));
         }
 
-        stacks[var].push(assignment);
+        stacks[var->target].push(assignment);
     }
 
     void addUse(NodeT *use, VarT var)
     {
-        assert( !stacks[var].empty() );
-        srg[stacks[var].top()].push_back(std::make_pair(var, use));
+        if (!stacks[var->target].empty())
+            srg[stacks[var->target].top()].push_back(std::make_pair(var, use));
     }
 
     void search(BlockT *X)
@@ -82,12 +80,12 @@ private:
         {
             for (const DefSite& cds : A->defs)
             {
-                VarT var = const_cast<VarT>(cds.target);
+                VarT var = const_cast<VarT>(&cds);
                 addAssignment(A, var);
             }
             for (const DefSite& use : A->uses)
             {
-                VarT var = const_cast<VarT>(use.target);
+                VarT var = const_cast<VarT>(&use);
                 addUse(A, var);
             }
         }
@@ -99,7 +97,8 @@ private:
             for (NodeT *F : Y->getNodes())
             {
                 for (const DefSite& use : F->getUses()) {
-                    addUse(F, use.target);
+                    VarT var = const_cast<VarT>(&use);
+                    addUse(F, var);
                 }
             }
         }
@@ -113,7 +112,7 @@ private:
         {
             for (VarT var : oldLHS[A])
             {
-                stacks[var].pop();
+                stacks[var->target].pop();
             }
         }
     }

@@ -11,7 +11,7 @@ namespace analysis {
 namespace rd {
 namespace ssa {
 
-using PhiAdditions = std::unordered_map<BBlock<RDNode> *, std::vector<RDNode *>>;
+using PhiAdditions = std::unordered_map<BBlock<RDNode> *, std::vector<DefSite>>;
 
 /**
  * Calculates where phi-functions for variables should be placed to create SSA form
@@ -41,7 +41,20 @@ public:
 
                 for (RDBlock* Y : X->getDomFrontiers()) {
                     if (dfp.find(Y) == dfp.end()) {
-                        result[Y].push_back(def.first);
+
+                        for (RDNode *N : Y->getNodes()) {
+                            for (const DefSite& cds : N->getDefines()) {
+                                if (cds.target == def.first) {
+                                    result[Y].push_back(cds);
+                                }
+                            }
+                            for (const DefSite& cds : N->getUses()) {
+                                if (cds.target == def.first) {
+                                    result[Y].push_back(cds);
+                                }
+                            }
+                        }
+
                         dfp.insert(Y);
                         if (work.find(Y->getFirstNode()) == work.end()) {
                             work.insert(Y->getFirstNode());
@@ -66,8 +79,8 @@ public:
             RDNode *last = target->getFirstNode();
             for (auto& var : pair.second) {
                 RDNode *node = new RDNode(RDNodeType::PHI);
-                node->addDef(var, 0, UNKNOWN_OFFSET, true);
-                node->addUse(var, 0, UNKNOWN_OFFSET);
+                node->addDef(var, true);
+                node->addUse(var);
                 result.push_back(std::unique_ptr<RDNode>(node));
                 node->insertAfter(last);
                 last = node;
