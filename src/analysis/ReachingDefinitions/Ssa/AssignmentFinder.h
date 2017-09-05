@@ -52,6 +52,11 @@ private:
         return result;
     }
 
+    bool isDefinition(NodeT *node)
+    {
+        return node->getType() == RDNodeType::ALLOC;
+    }
+
 public:
 
     /**
@@ -63,7 +68,7 @@ public:
         AssignmentMap result;
         std::vector<NodeT *> cfg = bfs(root);
         for (auto& def : cfg) {
-            if (def->getType() != RDNodeType::ALLOC)
+            if (!isDefinition(def))
                 continue;
 
             std::vector<NodeT *> uses;
