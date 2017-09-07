@@ -75,17 +75,15 @@ public:
         std::vector<std::unique_ptr<RDNode>> result;
         for (auto& pair : pa) {
             RDBlock *target = pair.first;
-            // assumption: target->getFirstNode() does not manipulate any var that is in pair.second
             RDNode *last = target->getFirstNode();
             for (auto& var : pair.second) {
                 RDNode *node = new RDNode(RDNodeType::PHI);
                 node->addDef(var, true);
                 node->addUse(var);
                 result.push_back(std::unique_ptr<RDNode>(node));
-                node->insertAfter(last);
-                last = node;
-                // order of nodes in block will be different but it is not big deal with phi nodes
+                node->insertBefore(last);
                 target->prepend(node);
+                last = node;
             }
         }
         return result;
