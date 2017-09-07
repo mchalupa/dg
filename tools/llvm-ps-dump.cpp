@@ -42,6 +42,7 @@
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/PointsToWithInvalidate.h"
 #include "analysis/PointsTo/Pointer.h"
 
 #include "TimeMeasure.h"
@@ -55,6 +56,7 @@ static bool verbose;
 enum PTType {
     FLOW_SENSITIVE = 1,
     FLOW_INSENSITIVE,
+    WITH_INVALIDATE,
 };
 
 static std::string
@@ -364,6 +366,8 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+            else if (strcmp(argv[i+1], "inv") == 0)
+                type = WITH_INVALIDATE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_senitivity = (uint64_t) atoll(argv[i + 1]);
         } else if (strcmp(argv[i], "-dot") == 0) {
@@ -406,6 +410,10 @@ int main(int argc, char *argv[])
     if (type == FLOW_INSENSITIVE) {
         PA = std::unique_ptr<PointerAnalysis>(
             PTA.createPTA<analysis::pta::PointsToFlowInsensitive>()
+            );
+    } else if (type == WITH_INVALIDATE) {
+        PA = std::unique_ptr<PointerAnalysis>(
+            PTA.createPTA<analysis::pta::PointsToWithInvalidate>()
             );
     } else {
         PA = std::unique_ptr<PointerAnalysis>(
