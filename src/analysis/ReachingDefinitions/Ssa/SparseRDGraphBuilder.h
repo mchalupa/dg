@@ -51,6 +51,8 @@ private:
     {
         // restart state
         stacks.clear();
+        oldLHS.clear();
+        phi_nodes.clear();
 
         search(root_block);
     }
@@ -74,19 +76,20 @@ private:
 
     void search(BlockT *X)
     {
-
         // find assignments in block
         for (NodeT *A : X->getNodes())
         {
+            if (A->getType() != RDNodeType::PHI) {
+                for (const DefSite& use : A->uses)
+                {
+                    VarT var = const_cast<VarT>(&use);
+                    addUse(A, var);
+                }
+            }
             for (const DefSite& cds : A->defs)
             {
                 VarT var = const_cast<VarT>(&cds);
                 addAssignment(A, var);
-            }
-            for (const DefSite& use : A->uses)
-            {
-                VarT var = const_cast<VarT>(&use);
-                addUse(A, var);
             }
         }
 
@@ -96,6 +99,9 @@ private:
             BlockT *Y = edge.target;
             for (NodeT *F : Y->getNodes())
             {
+                if (F->getType() != RDNodeType::PHI)
+                    continue;
+
                 for (const DefSite& use : F->getUses()) {
                     VarT var = const_cast<VarT>(&use);
                     addUse(F, var);
