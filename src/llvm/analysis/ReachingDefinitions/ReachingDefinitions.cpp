@@ -422,7 +422,6 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
     RDNode *node = new RDNode(RDNodeType::PHI);
-    RDNode *first_node = node;
     RDNode *last_node = node;
 
     addNode(node);
@@ -521,7 +520,7 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F, RDBlock *rb)
     // do not leak the memory of returnNode (the callNode
     // will be added to nodes_map)
     addNode(returnNode);
-    rb->append(returnNode);
+    rb->append(callNode);
 
     // FIXME: if this is an inline assembly call
     // we need to make conservative assumptions
@@ -551,6 +550,8 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F, RDBlock *rb)
     // for all return nodes) to return from the call
     callNode->addSuccessor(root);
     ret->addSuccessor(returnNode);
+    rb->addSuccessor(root->getBBlock());
+    rb->append(returnNode);
 
     return std::make_pair(callNode, returnNode);
 }
@@ -933,7 +934,6 @@ RDNode *LLVMRDBuilder::build()
     RDBlock *start, *stop;
     std::tie(start, stop) = buildFunction(*F);
     RDNode *root = start->getFirstNode();
-    RDNode *ret = stop->getLastNode();
     assert(root);
 
     // do we have any globals at all? If so, insert them at the begining
