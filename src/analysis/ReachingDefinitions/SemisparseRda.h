@@ -39,7 +39,8 @@ public:
                 // where to propagate
                 RDNode *dest = pair.second;
 
-                if (dest->def_map.update(*var, source)) {
+                /* if (dest->def_map.update(*var, source)) { */
+                if (dest->def_map.merge(&source->def_map)) {
                     to_process.push_back(dest);
                     changed = true;
                 }
