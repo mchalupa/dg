@@ -37,27 +37,29 @@ class Dominators
 {
 private:
     using BlockT = BBlock<dg::analysis::rd::RDNode>;
-    using MapT = std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, BlockT *>>;
+    using CFMapT = std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, BlockT *>>;
+    using BMapT = std::unordered_map<const llvm::Value *, std::unique_ptr<BlockT>>;
 
 public:
-    void calculate(MapT& functions_blocks)
+    void calculate(CFMapT& functions_blocks, const BMapT& all_blocks)
     {
         using namespace llvm;
 
+
         for (auto& pair : functions_blocks){
 
-            BlockT *root = nullptr;
             Function& f = *const_cast<Function *>(pair.first);
 
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
             DominatorTree dt;
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
             // compute dominator tree for this function
             dt.runOnFunction(f);
 #else
-            DominatorTreeAnalysis PDT;
-            FunctionAnalysisManager DummyFAM;
-            DominatorTree dt(PDT.run(f, DummyFAM));
+            dt.recalculate(f);
 #endif
+            auto it = all_blocks.find(dt.getRoot());
+            assert( it != all_blocks.end() && "root block must exist");
+            BlockT *root = it->second.get();
             auto& blocks = pair.second;
             for (auto& block : blocks) {
                 BasicBlock *llvm_block = const_cast<BasicBlock *>(block.first);
@@ -70,17 +72,23 @@ public:
                 DomTreeNode *idom = N->getIDom();
                 BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
 
+                for (const auto& dom : N->getChildren()) {
+                    const BasicBlock *dom_llvm_block = dom->getBlock();
+                    const auto it = all_blocks.find(static_cast<const llvm::Value *>(dom_llvm_block));
+                    assert( it != all_blocks.end() && "Do not have constructed domBB" );
+                    const BlockT *dom_block = it->second.get();
+                    if (dom_block != root)
+                        basic_block->addDominator(const_cast<BlockT *>(dom_block));
+                }
+
                 if (idomBB) {
-                    BlockT *db = blocks[idomBB];
-                    assert(db && "Do not have constructed BB");
+                    auto it = all_blocks.find(idomBB);
+                    assert( it != all_blocks.end() && "Do not have constructed BB" );
+                    BlockT *db = it->second.get();
                     basic_block->setIDom(db);
                 } else {
-                    if (!root) {
-                        root = new BlockT();
-                        root->setKey(nullptr);
-                    }
-
-                    basic_block->setIDom(root);
+                    if (basic_block != root)
+                        basic_block->setIDom(root);
                 }
             }
 
