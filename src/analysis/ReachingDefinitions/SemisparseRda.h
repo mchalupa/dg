@@ -35,7 +35,7 @@ public:
             bool changed = false;
             for (auto& pair : srg[source]) {
                 // variable to propagate
-                DefSite *var = pair.first;
+                DefSite var = pair.first;
                 // where to propagate
                 RDNode *dest = pair.second;
 
