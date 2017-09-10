@@ -45,8 +45,6 @@ private:
     // for each assignment contains variables modified by setting its LHS
     std::unordered_map<NodeT *, std::vector<VarT>> oldLHS;
 
-    std::vector<std::unique_ptr<NodeT>> phi_nodes;
-
     void constructSrg(BlockT *root_block)
     {
         // restart state
@@ -125,22 +123,21 @@ public:
     /**
      * Builds a sparse graph
      */
-    SparseRDGraph&& build(NodeT *root)
+    std::pair<SparseRDGraph, std::vector<std::unique_ptr<NodeT>>> build(NodeT *root)
     {
         assert( root && "need root" );
 
         // find assignments and use them to find places for phi-functions
         AssignmentFinder af;
         PhiPlacement pp;
-        phi = pp.calculate(af.build(root));
 
         // place the phi functions into program
-        phi_nodes = pp.place(phi);
+        std::vector<std::unique_ptr<NodeT>> phi_nodes = pp.place(pp.calculate(af.build(root)));
 
         // now recursively construct the SparseRDGraph
         constructSrg(root->getBBlock());
 
-        return std::move(srg);
+        return std::make_pair(std::move(srg), std::move(phi_nodes));
     }
 };
 
