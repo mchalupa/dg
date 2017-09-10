@@ -78,14 +78,14 @@ public:
         for (auto& pair : pa) {
             RDBlock *target = pair.first;
             RDNode *last = target->getFirstNode();
-            for (auto& var : pair.second) {
-                RDNode *node = new RDNode(RDNodeType::PHI);
+            for (const auto& var : pair.second) {
+                std::unique_ptr<RDNode> node = llvm::make_unique<RDNode>(RDNodeType::PHI);
                 node->addDef(var, true);
                 node->addUse(var);
-                result.push_back(std::unique_ptr<RDNode>(node));
                 node->insertBefore(last);
-                target->prepend(node);
-                last = node;
+                target->prepend(node.get());
+                last = node.get();
+                result.push_back(std::move(node));
             }
         }
         return result;
