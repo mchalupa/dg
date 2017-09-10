@@ -2,6 +2,8 @@
 #ifndef _DG_PHIPLACEMENT_H_
 #define _DG_PHIPLACEMENT_H_
 
+#include <set>
+
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/Ssa/AssignmentFinder.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
@@ -11,7 +13,7 @@ namespace analysis {
 namespace rd {
 namespace ssa {
 
-using PhiAdditions = std::unordered_map<BBlock<RDNode> *, std::vector<DefSite>>;
+using PhiAdditions = std::unordered_map<BBlock<RDNode> *, std::set<DefSite>>;
 
 /**
  * Calculates where phi-functions for variables should be placed to create SSA form
@@ -45,12 +47,12 @@ public:
                         for (RDNode *N : Y->getNodes()) {
                             for (const DefSite& cds : N->getDefines()) {
                                 if (cds.target == def.first) {
-                                    result[Y].push_back(cds);
+                                    result[Y].insert(cds);
                                 }
                             }
                             for (const DefSite& cds : N->getUses()) {
                                 if (cds.target == def.first) {
-                                    result[Y].push_back(cds);
+                                    result[Y].insert(cds);
                                 }
                             }
                         }
