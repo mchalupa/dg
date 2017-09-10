@@ -378,8 +378,15 @@ public:
     {
         assert(!idom && "Already has immediate dominator");
         idom = BB;
-        BB->dominators.insert(this);
+        BB->addDominator(this);
     }
+    
+    void addDominator(BBlock<NodeT>* BB)
+    {
+        assert( BB && "need dominator bblock" );
+        dominators.insert(BB);
+    }
+
     BBlock<NodeT> *getIDom() { return idom; }
     const BBlock<NodeT> *getIDom() const { return idom; }
 
