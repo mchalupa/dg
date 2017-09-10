@@ -183,7 +183,7 @@ public:
         root = builder->build();
         // calculate dominators, true=calculate also DomFrontiers
         Dominators<RDNode,true> d;
-        d.calculate(builder->getConstructedFunctions());
+        d.calculate(builder->getConstructedFunctions(), builder->getBlocks());
 
         /* srg = srg_builder.build(root); */
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
