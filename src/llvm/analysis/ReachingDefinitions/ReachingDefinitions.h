@@ -168,6 +168,7 @@ class LLVMReachingDefinitions
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
+    std::vector<std::unique_ptr<RDNode>> phi_nodes;
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
@@ -185,10 +186,11 @@ public:
         Dominators<RDNode,true> d;
         d.calculate(builder->getConstructedFunctions(), builder->getBlocks());
 
-        /* srg = srg_builder.build(root); */
+        /* auto result = srg_builder.build(root); */
+        phi_nodes = std::move(result.second);
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             new ReachingDefinitionsAnalysis(root)
-            /* new SemisparseRda(srg, root) */
+            /* new SemisparseRda(result.first, root) */
             );
         RDA->run();
     }
