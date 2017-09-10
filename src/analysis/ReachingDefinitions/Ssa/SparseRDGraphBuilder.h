@@ -52,7 +52,6 @@ private:
         // restart state
         stacks.clear();
         oldLHS.clear();
-        phi_nodes.clear();
 
         search(root_block);
     }
