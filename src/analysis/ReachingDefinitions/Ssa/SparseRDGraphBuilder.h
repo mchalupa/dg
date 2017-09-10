@@ -24,7 +24,7 @@ private:
     using NodeT = dg::analysis::rd::RDNode;
     using BlockT = BBlock<NodeT>;
 
-    using VarT = DefSite*;
+    using VarT = DefSite;
 
     // just for convenience
     template <typename _Tp> using StackT = std::stack<_Tp, std::vector<_Tp>>;
@@ -57,21 +57,21 @@ private:
         search(root_block);
     }
 
-    void addAssignment(NodeT *assignment, VarT var)
+    void addAssignment(NodeT *assignment, const VarT& var)
     {
         oldLHS[assignment].push_back(var);
 
-        if (!stacks[var->target].empty()) {
-            srg[stacks[var->target].top()].push_back(std::make_pair(var, assignment));
+        if (!stacks[var.target].empty()) {
+            srg[stacks[var.target].top()].push_back(std::make_pair(var, assignment));
         }
 
-        stacks[var->target].push(assignment);
+        stacks[var.target].push(assignment);
     }
 
-    void addUse(NodeT *use, VarT var)
+    void addUse(NodeT *use, const VarT& var)
     {
-        if (!stacks[var->target].empty())
-            srg[stacks[var->target].top()].push_back(std::make_pair(var, use));
+        if (!stacks[var.target].empty())
+            srg[stacks[var.target].top()].push_back(std::make_pair(var, use));
     }
 
     void search(BlockT *X)
@@ -80,16 +80,14 @@ private:
         for (NodeT *A : X->getNodes())
         {
             if (A->getType() != RDNodeType::PHI) {
-                for (const DefSite& use : A->uses)
+                for (const DefSite& use : A->getUses())
                 {
-                    VarT var = const_cast<VarT>(&use);
-                    addUse(A, var);
+                    addUse(A, use);
                 }
             }
-            for (const DefSite& cds : A->defs)
+            for (const DefSite& def : A->getDefines())
             {
-                VarT var = const_cast<VarT>(&cds);
-                addAssignment(A, var);
+                addAssignment(A, def);
             }
         }
 
@@ -103,8 +101,7 @@ private:
                     continue;
 
                 for (const DefSite& use : F->getUses()) {
-                    VarT var = const_cast<VarT>(&use);
-                    addUse(F, var);
+                    addUse(F, use);
                 }
             }
         }
@@ -118,7 +115,7 @@ private:
         {
             for (VarT var : oldLHS[A])
             {
-                stacks[var->target].pop();
+                stacks[var.target].pop();
             }
         }
     }
