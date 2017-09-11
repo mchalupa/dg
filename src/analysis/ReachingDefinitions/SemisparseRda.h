@@ -16,6 +16,19 @@ private:
     using SparseRDGraph = dg::analysis::rd::ssa::SparseRDGraph;
     SparseRDGraph& srg;
 
+    bool merge_maps(RDNode *source, RDNode *dest, DefSite& var) {
+        bool changed = dest->def_map.add(var, source);
+
+        if (source->getType() != RDNodeType::PHI) {
+            auto nodes = source->def_map[var];
+
+            for (const auto& node : nodes) {
+                changed |= dest->def_map.add(var, node);
+            }
+        }
+        return changed;
+    }
+
 public:
     SemisparseRda(SparseRDGraph& srg, RDNode *root) : ReachingDefinitionsAnalysis(root), srg(srg) {}
 
@@ -39,10 +52,11 @@ public:
                 // where to propagate
                 RDNode *dest = pair.second;
 
-                /* if (dest->def_map.update(*var, source)) { */
-                if (dest->def_map.merge(&source->def_map)) {
-                    to_process.push_back(dest);
-                    changed = true;
+                if (merge_maps(source, dest, var)) {
+                    if (dest->defines(var.target, var.offset)) {
+                        to_process.push_back(dest);
+                        changed = true;
+                    }
                 }
             }
             if (changed)
