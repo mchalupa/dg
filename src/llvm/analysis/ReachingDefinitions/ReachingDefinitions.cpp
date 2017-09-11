@@ -338,11 +338,7 @@ RDNode *LLVMRDBuilder::createLoad(const llvm::Instruction *Inst, RDBlock *rb)
     addNode(Inst, node);
     rb->append(node);
 
-    for (unsigned i = 0; i < Inst->getNumOperands(); ++i) {
-        if (Inst->getOperand(i)->getType()->isPointerTy()) {
-            node->addUses(getPointsTo(Inst->getOperand(i), rb));
-        }
-    }
+    node->addUses(getPointsTo(Inst->getOperand(0), rb));
 
     return node;
 }
