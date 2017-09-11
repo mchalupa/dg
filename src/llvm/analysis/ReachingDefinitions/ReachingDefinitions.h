@@ -188,9 +188,11 @@ public:
 
         auto result = srg_builder.build(root);
         phi_nodes = std::move(result.second);
+        srg = std::move(result.first);
+
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             /* new ReachingDefinitionsAnalysis(root) */
-            new SemisparseRda(result.first, root)
+            new SemisparseRda(srg, root)
             );
         RDA->run();
     }
