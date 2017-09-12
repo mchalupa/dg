@@ -1,4 +1,5 @@
 #include <map>
+#include <sstream>
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -45,6 +46,20 @@ using namespace llvm;
 //   Add def-use edges
 /// --------------------------------------------------
 namespace dg {
+
+static std::string
+getInstName(const llvm::Value *val)
+{
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
+    assert(val);
+    ro << *val;
+    ro.flush();
+
+    // break the string if it is too long
+    return ostr.str();
+}
 
 static void handleInstruction(const Instruction *Inst, LLVMNode *node)
 {
@@ -327,8 +342,10 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
             if (!GV || !GV->hasInitializer()) {
                 static std::set<const llvm::Value *> reported;
                 if (reported.insert(llvmVal).second) {
-                    llvm::errs() << "No reaching definition for: " << *llvmVal
-                                 << " off: " << *ptr.offset << "\n";
+                    llvm::errs() << "No reaching definition for: " << *llvmVal;
+                    if (mem->getUserData<llvm::Value>())
+                        llvm::errs() << " in: " << getInstName(mem->getUserData<llvm::Value>());
+                    llvm::errs() << " off: " << *ptr.offset << "\n";
                 }
             }
 
