@@ -766,10 +766,6 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst, RDBlock *rb)
         }
 
         RDNode *n = createUndefinedCall(CInst, rb);
-        for (unsigned i = 0; i < CInst->getNumArgOperands(); ++i) {
-            if (CInst->getArgOperand(i)->getType()->isPointerTy())
-                n->addUses(getPointsTo(CInst->getArgOperand(i), rb));
-        }
         return std::make_pair(n, n);
     }
 
@@ -790,20 +786,12 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst, RDBlock *rb)
                     n = createUndefinedCall(CInst, rb);
                 }
             }
-            for (unsigned i = 0; i < CInst->getNumArgOperands(); ++i) {
-                if (CInst->getArgOperand(i)->getType()->isPointerTy())
-                    n->addUses(getPointsTo(CInst->getArgOperand(i), rb));
-            }
 
             return std::make_pair(n, n);
         } else {
             std::pair<RDNode *, RDNode *> cf
                 = createCallToFunction(func, rb);
             addNode(CInst, cf.first);
-            for (unsigned i = 0; i < CInst->getNumArgOperands(); ++i) {
-                if (CInst->getArgOperand(i)->getType()->isPointerTy())
-                    cf.first->addUses(getPointsTo(CInst->getArgOperand(i), rb));
-            }
             return cf;
         }
     } else {
@@ -835,10 +823,6 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst, RDBlock *rb)
                     // the function is a declaration only,
                     // there's nothing better we can do
                     RDNode *n = createUndefinedCall(CInst, rb);
-                    for (unsigned i = 0; i < CInst->getNumArgOperands(); ++i) {
-                        if (CInst->getArgOperand(i)->getType()->isPointerTy())
-                            n->addUses(getPointsTo(CInst->getArgOperand(i), rb));
-                    }
                     return std::make_pair(n, n);
                 }
 
