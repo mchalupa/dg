@@ -186,9 +186,7 @@ public:
         Dominators<RDNode,true> d;
         d.calculate(builder->getConstructedFunctions(), builder->getBlocks());
 
-        auto result = srg_builder.build(root);
-        phi_nodes = std::move(result.second);
-        srg = std::move(result.first);
+        std::tie(srg, phi_nodes) = srg_builder.build(root);
 
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             /* new ReachingDefinitionsAnalysis(root) */

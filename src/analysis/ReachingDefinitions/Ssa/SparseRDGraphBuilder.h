@@ -110,7 +110,7 @@ private:
 
         for (NodeT *A : X->getNodes())
         {
-            for (VarT var : oldLHS[A])
+            for (VarT& var : oldLHS[A])
             {
                 stacks[var.target].pop();
             }
