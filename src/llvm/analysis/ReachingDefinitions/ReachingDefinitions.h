@@ -12,7 +12,7 @@
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "analysis/ReachingDefinitions/Ssa/SparseRDGraphBuilder.h"
-#include "analysis/ReachingDefinitions/Ssa/CytronSRGBuilder.h"
+#include "analysis/ReachingDefinitions/Ssa/MarkerSRGBuilder.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
@@ -178,7 +178,7 @@ public:
                             bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
         : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
-        srg_builder(llvm::make_unique<dg::analysis::rd::ssa::CytronSRGBuilder>()), strong_update_unknown(strong_updt_unknown), 
+        srg_builder(llvm::make_unique<dg::analysis::rd::ssa::MarkerSRGBuilder>()), strong_update_unknown(strong_updt_unknown),
         max_set_size(max_set_sz) {}
 
     void run()
