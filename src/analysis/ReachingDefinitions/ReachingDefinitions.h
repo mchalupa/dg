@@ -104,6 +104,19 @@ public:
         return false;
     }
 
+    /**
+     * return true if this node uses UNKNOWN_MEMORY
+     */
+    bool usesUnknown() const
+    {
+        bool result = false;
+        for (const DefSite& use : uses)
+        {
+            result |= use.target->isUnknown();
+        }
+        return result;
+    }
+
     void addUse(RDNode *target, const Offset& off = UNKNOWN_OFFSET, const Offset& len = UNKNOWN_OFFSET)
     {
         addUse(DefSite(target, off, len));

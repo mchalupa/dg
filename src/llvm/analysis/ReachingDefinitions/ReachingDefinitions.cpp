@@ -625,10 +625,6 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst, RDBlock 
     addNode(CInst, node);
     rb->append(node);
 
-    // if we assume that undefined functions are pure
-    // (have no side effects), we can bail out here
-    if (assume_pure_functions)
-        return node;
 
     // every pointer we pass into the undefined call may be defined
     // in the function
@@ -665,8 +661,10 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst, RDBlock 
             RDNode *target = getOperand(ptrVal, rb);
             assert(target && "Don't have pointer target for call argument");
 
-            // this call may define this memory
-            node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+            // this call may define or use this memory
+            if (!assume_pure_functions)
+                node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+            node->addUse(DefSite(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET));
         }
     }
 
