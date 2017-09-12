@@ -12,6 +12,7 @@
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "analysis/ReachingDefinitions/Ssa/SparseRDGraphBuilder.h"
+#include "analysis/ReachingDefinitions/Ssa/CytronSRGBuilder.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
@@ -163,7 +164,7 @@ class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
-    dg::analysis::rd::ssa::SparseRDGraphBuilder srg_builder;
+    std::unique_ptr<dg::analysis::rd::ssa::SparseRDGraphBuilder> srg_builder;
     dg::analysis::rd::ssa::SparseRDGraph srg;
     RDNode *root;
     bool strong_update_unknown;
@@ -177,7 +178,8 @@ public:
                             bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
         : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
-          strong_update_unknown(strong_updt_unknown), max_set_size(max_set_sz) {}
+        srg_builder(llvm::make_unique<dg::analysis::rd::ssa::CytronSRGBuilder>()), strong_update_unknown(strong_updt_unknown), 
+        max_set_size(max_set_sz) {}
 
     void run()
     {
@@ -186,7 +188,7 @@ public:
         Dominators<RDNode,true> d;
         d.calculate(builder->getConstructedFunctions(), builder->getBlocks());
 
-        std::tie(srg, phi_nodes) = srg_builder.build(root);
+        std::tie(srg, phi_nodes) = srg_builder->build(root);
 
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             /* new ReachingDefinitionsAnalysis(root) */
