@@ -269,13 +269,17 @@ dumpRDBlocksDot(LLVMReachingDefinitions &RD)
 
     /* dump nodes */
     for (const auto& pair : blocks) {
-        printf("\tNODE%p", pair.second.get());
-        printf("[label=\"%p\"shape=box]\n", pair.second.get());
+        for (const auto& block : pair.second) {
+            printf("\tNODE%p", block.get());
+            printf("[label=\"%p\"shape=box]\n", block.get());
+        }
     }
 
     for (const auto& pair : blocks) {
-        for (const auto& edge : pair.second->successors()) {
-            printf("\tNODE%p -> NODE%p\n", pair.second.get(), edge.target);
+        for (const auto& block : pair.second) {
+            for (const auto& edge : block->successors()) {
+                printf("\tNODE%p -> NODE%p\n", block.get(), edge.target);
+            }
         }
     }
 

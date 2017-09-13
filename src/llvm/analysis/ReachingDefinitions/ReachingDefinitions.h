@@ -55,10 +55,11 @@ class LLVMRDBuilder
     // list of dummy nodes (used just to keep the track of memory,
     // so that we can delete it later)
     std::vector<RDNode *> dummy_nodes;
-    // RD Blocks mapping
-    std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>> blocks;
+    // each LLVM block is mapped to multiple RDBlocks.
+    // this is necessary for function inlining, where
+    std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>> blocks;
     // all constructed functions and their corresponding blocks
-    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, RDBlock *>> functions_blocks;
+    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, std::vector<RDBlock *>>> functions_blocks;
 
 public:
     LLVMRDBuilder(const llvm::Module *m,
@@ -98,11 +99,11 @@ public:
     RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
     RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);
 
-    const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& getBlocks() const {
+    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>& getBlocks() const {
         return blocks;
     }
 
-    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, RDBlock *>>& getConstructedFunctions() {
+    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, std::vector<RDBlock *>>>& getConstructedFunctions() {
         return functions_blocks;
     }
 
@@ -118,7 +119,7 @@ private:
 
     void addBlock(const llvm::Value *val, RDBlock *block) {
         block->setKey(const_cast<llvm::Value *>(val));
-        blocks.emplace(std::make_pair(val, std::unique_ptr<RDBlock>(block)));
+        blocks[val].push_back(std::unique_ptr<RDBlock>(block));
     }
 
     ///
@@ -145,7 +146,7 @@ private:
     RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
 
-    RDBlock *buildBlock(const llvm::BasicBlock& block);
+    std::vector<RDBlock *> buildBlock(const llvm::BasicBlock& block, RDBlock *parent);
     std::pair<RDBlock *,RDBlock *> buildFunction(const llvm::Function& F);
 
     RDBlock *buildGlobals();
@@ -184,16 +185,13 @@ public:
     void run()
     {
         root = builder->build();
-        // calculate dominators, true=calculate also DomFrontiers
-        Dominators<RDNode,true> d;
-        d.calculate(builder->getConstructedFunctions(), builder->getBlocks());
 
         std::tie(srg, phi_nodes) = srg_builder->build(root);
 
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
             /* new ReachingDefinitionsAnalysis(root) */
             new SemisparseRda(srg, root)
-            );
+        );
         RDA->run();
     }
 
@@ -216,7 +214,7 @@ public:
                                 getMapping() const
     { return builder->getMapping(); }
 
-    const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& 
+    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>& 
         getBlocks() const
         { return builder->getBlocks(); }
 
