@@ -24,8 +24,6 @@ class MarkerSRGBuilder : public SparseRDGraphBuilder
 
     /* work structures */
     std::map<DefSite, std::unordered_map<BlockT *, NodeT *>> current_def;
-    std::unordered_set<BlockT *> sealed_blocks;
-    std::unordered_map<BlockT *, std::map<DefSite, NodeT *>> incomplete_phis;
 
     void writeVariable(const DefSite& var, NodeT *assignment);
     NodeT *readVariableRecursive(const DefSite& var, BlockT *block);
@@ -35,8 +33,6 @@ class MarkerSRGBuilder : public SparseRDGraphBuilder
 
     void processBlock(BlockT *block) {
         for (NodeT *node : block->getNodes()) {
-            if (node->getType() == RDNodeType::PHI)
-                continue;
 
             for (const DefSite& def : node->defs) {
                 NodeT *assignment = readVariable(def, block);
