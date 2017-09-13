@@ -19,12 +19,10 @@ private:
     bool merge_maps(RDNode *source, RDNode *dest, DefSite& var) {
         bool changed = dest->def_map.add(var, source);
 
-        if (source->getType() != RDNodeType::PHI) {
-            auto nodes = source->def_map[var];
+        auto nodes = source->def_map[var];
 
-            for (const auto& node : nodes) {
-                changed |= dest->def_map.add(var, node);
-            }
+        for (const auto& node : nodes) {
+            changed |= dest->def_map.add(var, node);
         }
         return changed;
     }
