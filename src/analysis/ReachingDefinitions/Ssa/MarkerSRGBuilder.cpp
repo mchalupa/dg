@@ -22,9 +22,13 @@ MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariable(const DefSite& var, Bloc
 }
 
 void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi) {
+    writeVariable(var, phi);
+
+    phi->addDef(var, true);
+    phi->addUse(var);
+
     for (BlockT *pred : phi->getBBlock()->predecessors()) {
-        phi->addDef(var, true);
-        phi->addUse(var);
+        srg[readVariable(var, pred)].push_back(std::make_pair(var, phi));
     }
 }
 
