@@ -34,17 +34,18 @@ void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi) {
 
 MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariableRecursive(const DefSite& var, BlockT *block) {
     NodeT *val = nullptr;
-    if (sealed_blocks.find(block) != sealed_blocks.end()) {
-        auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
-        incomplete_phis[block][var] = phi.get();
-        block->prepend(phi.get());
-        val = phi.get();
-
-        phi_nodes.push_back(std::move(phi));
-    } else if (block->predecessorsNum() == 1) {
+    if (block->predecessorsNum() == 1) {
         val = readVariable(var, *block->predecessors().begin());
     } else {
+        auto operandless_phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
+        operandless_phi->insertBefore(block->getFirstNode());
+        block->prepend(operandless_phi.get());
+
+        writeVariable(var, operandless_phi.get());
+        phi_nodes.push_back(std::move(operandless_phi));
+
         auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
+        phi->insertBefore(block->getFirstNode());
         block->prepend(phi.get());
 
         val = phi.get();
