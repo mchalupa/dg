@@ -454,9 +454,8 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block, RDBlock *return_block)
 
                     std::pair<RDNode *, RDNode *> subg = createCall(&Inst, rb);
                     last_node->addSuccessor(subg.first);
-                    if( subg.first->successorsNum() > 0) {
+                    if (subg.first->successorsNum() > 0) {
                         rb->addSuccessor((*subg.first->getSuccessors().begin())->getBBlock());
-                        last_node->addSuccessor(subg.first);
 
                         // successors for blocks with return will be added later
                         new_block = new RDBlock();
