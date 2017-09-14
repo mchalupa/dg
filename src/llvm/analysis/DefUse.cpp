@@ -47,20 +47,6 @@ using namespace llvm;
 /// --------------------------------------------------
 namespace dg {
 
-static std::string
-getInstName(const llvm::Value *val)
-{
-    std::ostringstream ostr;
-    llvm::raw_os_ostream ro(ostr);
-
-    assert(val);
-    ro << *val;
-    ro.flush();
-
-    // break the string if it is too long
-    return ostr.str();
-}
-
 static void handleInstruction(const Instruction *Inst, LLVMNode *node)
 {
     LLVMDependenceGraph *dg = node->getDG();
@@ -343,8 +329,9 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
                 static std::set<const llvm::Value *> reported;
                 if (reported.insert(llvmVal).second) {
                     llvm::errs() << "No reaching definition for: " << *llvmVal;
-                    if (mem->getUserData<llvm::Value>())
-                        llvm::errs() << " in: " << getInstName(mem->getUserData<llvm::Value>());
+                    const llvm::Value *val = mem->getUserData<llvm::Value>();
+                    if (val)
+                        llvm::errs() << " in: " << *val;
                     llvm::errs() << " off: " << *ptr.offset << "\n";
                 }
             }
