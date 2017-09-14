@@ -31,19 +31,25 @@ class MarkerSRGBuilder : public SparseRDGraphBuilder
     NodeT *readVariable(const DefSite& var, BlockT *read);
     void addPhiOperands(const DefSite& var, NodeT *phi);
 
+    void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
+        srg[from].push_back(std::make_pair(var, to));
+    }
+
     void processBlock(BlockT *block) {
         for (NodeT *node : block->getNodes()) {
 
             for (const DefSite& def : node->defs) {
                 NodeT *assignment = readVariable(def, block);
-                srg[assignment].push_back(std::make_pair(def, node));
+                if (assignment)
+                    insertSrgEdge(assignment, node, def);
                 writeVariable(def, node);
             }
 
             for (const DefSite& use : node->getUses()) {
                 NodeT *assignment = readVariable(use, block);
                 // add edge from last definition to here
-                srg[assignment].push_back(std::make_pair(use, node));
+                if (assignment)
+                    insertSrgEdge(assignment, node, use);
             }
         }
     }
