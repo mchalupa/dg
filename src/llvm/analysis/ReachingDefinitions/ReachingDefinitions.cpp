@@ -408,7 +408,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
  * returns all RDBlock-s to which the LLVM block maps.
  */
 std::vector<RDBlock *>
-LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block, RDBlock *return_block)
+LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 {
     using namespace llvm;
 
@@ -584,14 +584,13 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
     RDNode *first = nullptr;
     RDBlock *fstblock = nullptr;
-    const llvm::BasicBlock *last_llvm_block = nullptr;
-    RDBlock *lastblock = new RDBlock();
+    RDBlock *lastblock = nullptr;
 
     RDBlock *prev_bblock_end = nullptr;
     for (const llvm::BasicBlock& block : F) {
-        std::vector<RDBlock *> blocks = buildBlock(block, lastblock);
+        std::vector<RDBlock *> blocks = buildBlock(block);
         if (prev_bblock_end) {
-            // connect the blocks
+            // connect the blocks within function
             prev_bblock_end->addSuccessor(blocks[0]);
         }
 
@@ -602,23 +601,22 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         prev_bblock_end = blocks.back();
 
         built_blocks[&block] = std::move(blocks);
-        last_llvm_block = &block;
     }
-    addBlock(last_llvm_block, lastblock);
 
     assert(first);
     fstblock->prepend(root);
     root->addSuccessor(first);
 
     std::vector<RDNode *> rets;
+    const llvm::BasicBlock *last_llvm_block = nullptr;
+    RDBlock *last_function_block = nullptr;
     for (const llvm::BasicBlock& block : F) {
         auto it = built_blocks.find(&block);
         if (it == built_blocks.end())
             continue;
 
-        RDBlock *last_function_block = nullptr;
         for (RDBlock *ptan : it->second) {
-            //assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
+            // assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
             if (!ptan->getFirstNode())
                 continue;
 
@@ -626,24 +624,23 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
             // of this block is a return node
             if (ptan->getLastNode()->getType() == RDNodeType::RETURN)
                 rets.push_back(ptan->getLastNode());
-
-            last_function_block = ptan;
+            last_function_block = it->second.back();
         }
+        last_llvm_block = &block;
         // add successors to this block (skipping the empty blocks)
         // FIXME: this function is shared with PSS, factor it out
-        size_t succ_num = blockAddSuccessors(built_blocks, last_function_block, block);
-
+        size_t succ_num = blockAddSuccessors(built_blocks, last_function_block, *last_llvm_block);
     }
 
     // add successors edges from every real return to our artificial ret node
-    lastblock->append(ret);
+    last_function_block->append(ret);
     for (RDNode *r : rets) {
         r->addSuccessor(ret);
-        r->getBBlock()->addSuccessor(lastblock);
+        r->getBBlock()->addSuccessor(last_function_block);
     }
 
     functions_blocks[&F] = std::move(built_blocks);
-    return std::make_pair(fstblock, lastblock);
+    return std::make_pair(fstblock, last_function_block);
 }
 
 RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb)
