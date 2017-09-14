@@ -25,11 +25,11 @@ class MarkerSRGBuilder : public SparseRDGraphBuilder
     /* work structures */
     std::map<DefSite, std::unordered_map<BlockT *, NodeT *>> current_def;
 
-    void writeVariable(const DefSite& var, NodeT *assignment);
+    void writeVariable(const DefSite& var, NodeT *assignment, BlockT *block);
     NodeT *readVariableRecursive(const DefSite& var, BlockT *block);
 
     NodeT *readVariable(const DefSite& var, BlockT *read);
-    void addPhiOperands(const DefSite& var, NodeT *phi);
+    void addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block);
 
     void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
         srg[from].push_back(std::make_pair(var, to));
@@ -42,7 +42,7 @@ class MarkerSRGBuilder : public SparseRDGraphBuilder
                 NodeT *assignment = readVariable(def, block);
                 if (assignment)
                     insertSrgEdge(assignment, node, def);
-                writeVariable(def, node);
+                writeVariable(def, node, block);
             }
 
             for (const DefSite& use : node->getUses()) {

@@ -2,9 +2,9 @@
 
 using namespace dg::analysis::rd::ssa;
 
-void MarkerSRGBuilder::writeVariable(const DefSite& var, NodeT *assignment) {
+void MarkerSRGBuilder::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
     // remember the last definition
-    current_def[var][assignment->getBBlock()] = assignment;
+    current_def[var][block] = assignment;
 }
 
 MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariable(const DefSite& var, BlockT *read) {
@@ -21,12 +21,12 @@ MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariable(const DefSite& var, Bloc
     return assignment;
 }
 
-void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi) {
+void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block) {
 
     phi->addDef(var, true);
     phi->addUse(var);
 
-    for (BlockT *pred : phi->getBBlock()->predecessors()) {
+    for (BlockT *pred : block->predecessors()) {
         NodeT *last_def = readVariable(var, pred);
         if (last_def) {
             insertSrgEdge(last_def, phi, var);
@@ -43,23 +43,19 @@ MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariableRecursive(const DefSite& 
     } else {
         auto operandless_phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
         val = operandless_phi.get();
-        val->insertAfter(block->getFirstNode());
-        block->prepend(val);
 
-        writeVariable(var, val);
+        writeVariable(var, val, block);
         phi_nodes.push_back(std::move(operandless_phi));
 
         auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
 
         val = phi.get();
-        val->insertAfter(block->getFirstNode());
-        block->prepend(val);
-        addPhiOperands(var, val);
+        addPhiOperands(var, val, block);
 
         phi_nodes.push_back(std::move(phi));
     }
     if (val) {
-        writeVariable(var, val);
+        writeVariable(var, val, block);
     }
     return val;
 }
