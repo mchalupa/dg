@@ -17,12 +17,15 @@ private:
     SparseRDGraph& srg;
 
     bool merge_maps(RDNode *source, RDNode *dest, DefSite& var) {
-        bool changed = dest->def_map.add(var, source);
+        bool changed = false;
+        if (source->getType() != RDNodeType::PHI)
+            changed |= dest->def_map.add(var, source);
 
         auto nodes = source->def_map[var];
 
         for (const auto& node : nodes) {
-            changed |= dest->def_map.add(var, node);
+            if (node->getType() != RDNodeType::PHI)
+                changed |= dest->def_map.add(var, node);
         }
         return changed;
     }
