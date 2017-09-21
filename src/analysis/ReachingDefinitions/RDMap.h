@@ -14,21 +14,38 @@ namespace rd {
 class RDNode;
 class ReachingDefinitionsAnalysis;
 
-///
-// Take two intervals (a1, a2) and (b1, b2)
-// (over non-negative whole numbers) and check
-// whether their are disjunctive.
+/// Take two intervals (a, a_len) and (b, b_len) where 'a' ('b', resp.) is the
+// start of the interval and 'a_len' ('b_len', resp.) is the length of the
+// interval and check whether their are disjunctive.
+// The length can be UNKNOWN_OFFSET for unknown length.
+// The start ('a' and 'b') must be concrete numbers.
 // \return true iff intervals are disjunctive
 //         false iff intervals are not disjunctive
 inline bool
-intervalsDisjunctive(uint64_t a1, uint64_t a2,
-                     uint64_t b1, uint64_t b2)
+intervalsDisjunctive(uint64_t a, uint64_t a_len,
+                     uint64_t b, uint64_t b_len)
 {
-    // XXX: does this work if a2 or b2 is UNKNOWN_OFFSET??
-    // think it through
-    assert(a1 <= a2);
-    assert(b1 <= b2);
-    return ((a1 <= b1) ? (a2 < b1) : (b2 < a1));
+    assert(a != UNKNOWN_OFFSET && "Start of an interval is unknown");
+    assert(b != UNKNOWN_OFFSET && "Start of an interval is unknown");
+    assert(a_len > 0 && "Interval of lenght 0 given");
+    assert(b_len > 0 && "Interval of lenght 0 given");
+
+    if (a_len == UNKNOWN_OFFSET) {
+        if (b_len == UNKNOWN_OFFSET) {
+            return false;
+        } else {
+            // b_len is concrete and a_len is unknown
+            // use less or equal, because we are starting
+            // from 0 and the bytes are distinct (e.g. 4th byte
+            // is on offset 3)
+            return (a <= b) ? false : b_len <= a - b;
+        }
+    } else if (b_len == UNKNOWN_OFFSET) {
+        return (a <= b) ? a_len <= b - a : false;
+    }
+
+    // the lenghts and starts are both concrete
+    return ((a <= b) ? (a_len <= b - a) : (b_len <= a - b));
 }
 
 ///

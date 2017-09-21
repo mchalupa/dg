@@ -233,19 +233,12 @@ size_t RDMap::get(DefSite& ds, std::set<RDNode *>& ret)
         auto range = getObjectRange(ds);
         for (auto I = range.first; I != range.second; ++I) {
             assert(I->first.target == ds.target);
-                // if we found a definition with UNKNOWN_OFFSET,
-                // it is possibly a definition that we need */
-                if (I->first.offset.isUnknown() ||
-                    // if the length is unknown, then just check
-                    // if the starts can overlap
-                    (ds.len.isUnknown() && *ds.offset <= *I->first.offset) ||
-                    // just check if the offsets + length have
-                    // some overlap
-                    intervalsOverlap(*I->first.offset,
-                                    // -1 because we're starting from 0
-                                    *I->first.offset + *I->first.len - 1,
-                                    *ds.offset, *ds.offset + *ds.len - 1)){
-                ret.insert(I->second.begin(), I->second.end());
+            // if we found a definition with UNKNOWN_OFFSET,
+            // it is possibly a definition that we need */
+            if (I->first.offset.isUnknown() ||
+                intervalsOverlap(*I->first.offset, *I->first.len,
+                                *ds.offset, *ds.len)){
+            ret.insert(I->second.begin(), I->second.end());
             }
         }
     }
