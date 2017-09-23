@@ -1,4 +1,7 @@
 # DG
+
+[![Build Status](https://travis-ci.org/mchalupa/dg.svg?branch=master)](https://travis-ci.org/mchalupa/dg)
+
 Dg is a library which implements dependence graphs for programs.
 It contains a set of generic templates that can be specialized to user's needs.
 Dg can be used for different analyses, optimizations or program slicing
@@ -7,7 +10,7 @@ https://github.com/staticafi/symbiotic). As a part of dg, you can find
 pointer analyses, reaching definitions analysis and a static slicer
 for LLVM.
 
-Whole project is under hard developement and lacks documentation for now,
+Whole project is under developement and lacks documentation for now,
 so in the case of need, contact us by an e-mail (below).
 
 ## LLVM DependenceGraph && llvm-slicer
