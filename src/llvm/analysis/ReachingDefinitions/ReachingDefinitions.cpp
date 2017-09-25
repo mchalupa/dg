@@ -458,11 +458,17 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 
                     if (subg.first->successorsNum() > 0) {
                         RDBlock *succBB = (*subg.first->getSuccessors().begin())->getBBlock();
-                        if (succBB)
+                        if (succBB != nullptr) {
                             rb->addSuccessor(succBB);
-                        else
-                            rb->addSuccessor(rb);
+                        } else {
+                            fprintf(stderr, "Node without succBB: %d %p\nsuccBB: %x\n", (*subg.first->getSuccessors().begin())->getType(), *subg.first->getSuccessors().begin(), succBB );
+                        }
+                    }
+                        
 
+                    // if the function consists of single node(intrinsics, undefined etc)
+                    // do not add more nodes for this function
+                    if (subg.first != subg.second) {
                         // successors for blocks with return will be added later
                         new_block = new RDBlock();
                         addBlock(const_cast<llvm::BasicBlock *>(&block), new_block);
@@ -470,11 +476,19 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                         new_block->append(subg.second);
                         rb = new_block;
 
-                        RDBlock *predBB = (*subg.second->getPredecessors().begin())->getBBlock();
-                        if (predBB)
-                            predBB->addSuccessor(new_block);
-                        else
-                            rb->addSuccessor(new_block);
+                        for (RDNode *pred : subg.second->getPredecessors()) {
+                            RDBlock *predBB = pred->getBBlock();
+                            if (pred != subg.second && predBB) {
+                                predBB->addSuccessor(rb);
+                            } else if (!predBB) {
+                                for (RDNode *p2 : pred->getPredecessors()) {
+                                    if (p2->getBBlock() != predBB) {
+                                        p2->getBBlock()->addSuccessor(rb);
+                                        p2->getBBlock()->append(pred);
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     // new nodes will connect to the return node
@@ -602,13 +616,13 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         if (!first) {
             first = blocks[0]->getFirstNode();
             fstblock = blocks[0];
+            fstblock->prepend(root);
         }
 
         built_blocks[&block] = std::move(blocks);
     }
 
-    assert(first);
-    fstblock->prepend(root);
+    assert(first && fstblock);
     root->addSuccessor(first);
 
     std::vector<RDNode *> rets;
@@ -640,6 +654,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     last_function_block->append(ret);
     for (RDNode *r : rets) {
         r->addSuccessor(ret);
+        assert( r->getBBlock() );
         if (r->getBBlock() != last_function_block)
             r->getBBlock()->addSuccessor(last_function_block);
     }
@@ -879,6 +894,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst, RDBlock *rb)
                 }
 
                 call_funcptr->addSuccessor(cf.first);
+                rb->addSuccessor((*cf.first->getSuccessors().begin())->getBBlock());
                 cf.second->addSuccessor(ret_call);
             }
         } else {
