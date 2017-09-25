@@ -117,7 +117,7 @@ static void
 dumpMap(RDNode *node, bool dot = false)
 {
     RDMap& map = node->getReachingDefinitions();
-    for (auto it : map) {
+    for (const auto& it : map) {
         for (RDNode *site : it.second) {
             printName(it.first.target, dot);
             // don't print offsets with unknown memory

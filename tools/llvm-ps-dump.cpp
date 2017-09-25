@@ -175,7 +175,7 @@ dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 static void
 dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
 {
-    for (auto it : *mm) {
+    for (const auto& it : *mm) {
         // print the key
         const Pointer& key = it.first;
         if (!dot)
