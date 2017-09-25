@@ -334,6 +334,8 @@ std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock 
 
 RDNode *LLVMRDBuilder::createLoad(const llvm::Instruction *Inst, RDBlock *rb)
 {
+    using namespace llvm;
+
     RDNode *node = new RDNode(RDNodeType::LOAD);
     addNode(Inst, node);
     rb->append(node);
@@ -445,6 +447,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                     // and optimize it away later
                     node = createReturn(&Inst, rb);
                     break;
+                case Instruction::GetElementPtr:
                 case Instruction::Load:
                     node = createLoad(&Inst, rb);
                     break;
