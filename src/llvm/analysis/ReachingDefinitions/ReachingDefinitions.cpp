@@ -730,15 +730,14 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
     const Value *lenVal;
     const Value *source;
 
-    RDNode *ret = new RDNode(RDNodeType::CALL);
-    addNode(CInst, ret);
-    rb->append(ret);
+    RDNode *ret;
 
     switch (I->getIntrinsicID())
     {
         case Intrinsic::memmove:
         case Intrinsic::memcpy:
             source = I->getOperand(1);
+            // fall-through
         case Intrinsic::memset:
             // memcpy/set <dest>, <src/val>, <len>
             dest = I->getOperand(0);
@@ -757,6 +756,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
     }
 
     ret = new RDNode(RDNodeType::CALL);
+    rb->append(ret);
     addNode(CInst, ret);
 
     pta::PSNode *pts = PTA->getPointsTo(dest);
