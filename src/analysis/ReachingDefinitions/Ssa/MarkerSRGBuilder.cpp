@@ -4,11 +4,12 @@ using namespace dg::analysis::rd::ssa;
 
 void MarkerSRGBuilder::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
     // remember the last definition
-    current_def[var][block] = assignment;
+    current_def[var.target][block] = assignment;
 }
 
 MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariable(const DefSite& var, BlockT *read) {
-    auto& block_defs = current_def[var];
+    assert( read );
+    auto& block_defs = current_def[var.target];
     auto it = block_defs.find(read);
     NodeT *assignment = nullptr;
 
@@ -27,17 +28,21 @@ void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *bl
     phi->addUse(var);
 
     for (BlockT *pred : block->predecessors()) {
-        NodeT *last_def = readVariable(var, pred);
-        if (last_def) {
-            insertSrgEdge(last_def, phi, var);
-        }
+        NodeT *assignment = nullptr;
+        assignment = last_def[var.target][pred];
+        if (!assignment)
+            assignment = readVariable(var, pred);
+        insertSrgEdge(assignment, phi, var);
     }
 }
 
 MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariableRecursive(const DefSite& var, BlockT *block) {
     NodeT *val = nullptr;
     if (block->predecessorsNum() == 1) {
-        val = readVariable(var, *block->predecessors().begin());
+        BlockT *predBB = *(block->predecessors().begin());
+        val = last_def[var.target][predBB];
+        if (!val)
+            val = readVariable(var, predBB);
     } else {
         auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
 
@@ -48,8 +53,6 @@ MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariableRecursive(const DefSite& 
         val = phi.get();
         phi_nodes.push_back(std::move(phi));
     }
-    if (val) {
-        writeVariable(var, val, block);
-    }
+    writeVariable(var, val, block);
     return val;
 }
