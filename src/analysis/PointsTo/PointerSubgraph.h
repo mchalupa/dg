@@ -14,6 +14,8 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
+void getNodes(std::set<PSNode *>& cont, PSNode *n, unsigned int dfsnum);
+    
 enum class PSNodeType {
         // these are nodes that just represent memory allocation sites
         ALLOC = 1,
@@ -81,6 +83,10 @@ class PSNode : public SubgraphNode<PSNode>
     // XXX: maybe we cold store this somewhere in a map instead of in every
     // node (if the map is sparse, it would be much more memory efficient)
     PSNode *pairedNode;
+
+    // in some cases we need to know from which function the node is
+    // so we need to remember the entry node 
+    PSNode *parent;
 
     /// some additional information
     // was memory zeroed at initialization or right after allocating?
@@ -217,6 +223,9 @@ public:
     PSNodeType getType() const { return type; }
 
     void setOffset(uint64_t o) { offset = o; }
+    
+    void setParent(PSNode *p) { parent = p; }
+    PSNode* getParent() { return parent; }
 
     PSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSNode *n) { pairedNode = n; }
@@ -281,7 +290,36 @@ public:
     // FIXME: maybe get rid of these friendships?
     friend class PointerAnalysis;
     friend class PointerSubgraph;
+
+    friend void getNodes(std::set<PSNode *>& cont, PSNode *n, unsigned int dfsnum);
 };
+
+inline void getNodes(std::set<PSNode *>& cont, PSNode *n, unsigned int dfsnum)
+{
+    // default behaviour is to enqueue all pending nodes
+    ++dfsnum;
+    ADT::QueueFIFO<PSNode *> fifo;
+
+    assert(n && "No starting node given."); 
+
+    for (PSNode *succ : n->successors) {
+        succ->dfsid = dfsnum;
+        fifo.push(succ);
+    }
+
+    while (!fifo.empty()) {
+        PSNode *cur = fifo.pop();
+        bool ret = cont.insert(cur).second;
+        assert(ret && "BUG: Tried to insert something twice");
+
+        for (PSNode *succ : cur->successors) {
+            if (succ->dfsid != dfsnum) {
+                succ->dfsid = dfsnum;
+                fifo.push(succ);
+            }
+        }
+    }
+}
 
 class PointerSubgraph
 {
@@ -299,83 +337,6 @@ public:
 
     PSNode *getRoot() const { return root; }
     void setRoot(PSNode *r) { root = r; }
-
-    // FIXME: make this a static member, since we take
-    // the starting node
-    void getNodes(std::set<PSNode *>& cont,
-                  PSNode *n = nullptr)
-    {
-        // default behaviour is to enqueue all pending nodes
-        ++dfsnum;
-        ADT::QueueFIFO<PSNode *> fifo;
-
-        if (!n) {
-            if (!root)
-                return;
-
-            fifo.push(root);
-            n = root;
-        }
-
-        for (PSNode *succ : n->successors) {
-            succ->dfsid = dfsnum;
-            fifo.push(succ);
-        }
-
-        while (!fifo.empty()) {
-            PSNode *cur = fifo.pop();
-            bool ret = cont.insert(cur).second;
-            assert(ret && "BUG: Tried to insert something twice");
-
-            for (PSNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    fifo.push(succ);
-                }
-            }
-        }
-    }
-
-    // get nodes in BFS order and store them into
-    // the container
-    template <typename ContT>
-    void getNodes(ContT& cont,
-                  PSNode *start_node = nullptr,
-                  std::set<PSNode *> *start_set = nullptr)
-    {
-        assert(root && "Do not have root");
-        assert(!(start_set && start_node)
-               && "Need either starting set or starting node, not both");
-
-        ++dfsnum;
-        ADT::QueueFIFO<PSNode *> fifo;
-
-        if (start_set) {
-            // FIXME: get rid of the loop,
-            // make it via iterator range
-            for (PSNode *s : *start_set)
-                fifo.push(s);
-        } else {
-            if (!start_node)
-                start_node = root;
-
-            fifo.push(start_node);
-        }
-
-        root->dfsid = dfsnum;
-
-        while (!fifo.empty()) {
-            PSNode *cur = fifo.pop();
-            cont.push(cur);
-
-            for (PSNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    fifo.push(succ);
-                }
-            }
-        }
-    }
 
     // get nodes in BFS order and store them into
     // the container

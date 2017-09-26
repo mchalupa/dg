@@ -68,7 +68,22 @@ public:
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects) = 0;
 
+    // takes a PSNode, a pointer and reference to a vector
+    // and fills into the vector the objects that are relevant
+    // for the PSNode (valid memory states for of this PSNode)
+    // and that point to the pointer  
     virtual void getMemoryObjectsPointingTo(PSNode*, const Pointer&,
+                                            std::vector<MemoryObject *>&)
+    {
+        // this function will be called only by some analyses
+        abort();
+    }
+
+    // takes a PSNode, an entry node and reference to a vector
+    // and fills into the vector the objects that are relevant
+    // for the PSNode (valid memory states for of this PSNode)
+    // and that point to a stack  
+    virtual void getLocalMemoryObjects(PSNode*, PSNode*,
                                             std::vector<MemoryObject *>&)
     {
         // this function will be called only by some analyses

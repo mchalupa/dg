@@ -147,6 +147,7 @@ public:
             objects.push_back(mo);
         }
     }
+   
     
     void getMemoryObjectsPointingTo(PSNode *where, const Pointer& pointer,
                           std::vector<MemoryObject *>& objects) override
@@ -166,15 +167,6 @@ public:
                 }
             }
         }
-
-        // if we haven't found any memory object, but this psnode
-        // is a write to memory, create a new one, so that
-        // the write has something to write to
-        /*if (objects.empty() && canChangeMM(where)) {
-            MemoryObject *mo = new MemoryObject(pointer.target);
-            (*mm)[pointer].insert(mo);
-            objects.push_back(mo);
-        }*/
     }
 
 protected:

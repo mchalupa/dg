@@ -154,9 +154,9 @@ public:
         return builder->getNodesMap();
     }
 
-    void getNodes(std::set<PSNode *>& cont)
+    std::vector<PSNode *> getNodes()
     {
-        PS->getNodes(cont);
+        return PS->getNodes();
     }
 
     template <typename PTType>

@@ -275,15 +275,16 @@ dumpPSNode(PSNode *n, PTType type)
 static void
 dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 {
-    std::set<PSNode *> nodes;
-    pta->getNodes(nodes);
 
     printf("digraph \"Pointer State Subgraph\" {\n");
 
     /* dump nodes */
+    const auto& nodes = pta->getNodes();
     for (PSNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
         printName(node, true);
+        printf("\\n--- parent ---\\n");
+        printf("%p \n", node->getParent());
 
         if (node->getSize() || node->isHeap() || node->isZeroInitialized())
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
@@ -342,9 +343,7 @@ dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
     if (todot)
         dumpPointerSubgraphdot(pta, type);
     else {
-        std::set<PSNode *> nodes;
-        pta->getNodes(nodes);
-
+        const auto& nodes = pta->getNodes();
         for (PSNode *node : nodes) {
             dumpPSNode(node, type);
         }

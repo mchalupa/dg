@@ -1648,6 +1648,12 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // built, since the PHI gathers values from different blocks
     addPHIOperands(F);
 
+    std::set<PSNode *> cont;
+    getNodes(cont, root, 0xdead);
+    for (PSNode* n : cont) {
+        n->setParent(root);
+    }
+
     return root;
 }
 
