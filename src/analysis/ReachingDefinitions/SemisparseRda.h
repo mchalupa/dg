@@ -21,11 +21,16 @@ private:
         if (source->getType() != RDNodeType::PHI)
             changed |= dest->def_map.add(var, source);
 
-        auto nodes = source->def_map[var];
+        for (auto& pair : source->def_map) {
+            const DefSite& ds = pair.first;
+            auto& nodes = pair.second;
 
-        for (const auto& node : nodes) {
-            if (node->getType() != RDNodeType::PHI)
-                changed |= dest->def_map.add(var, node);
+            if (ds.target == var.target) {
+                for (RDNode *node : nodes) {
+                    if (node->getType() != RDNodeType::PHI)
+                        changed |= dest->def_map.add(ds, node);
+                }
+            }
         }
         return changed;
     }
@@ -34,19 +39,22 @@ public:
     SemisparseRda(SparseRDGraph& srg, RDNode *root) : ReachingDefinitionsAnalysis(root), srg(srg) {}
 
     void run() override {
-        std::vector<RDNode *> to_process;
+        std::unordered_set<RDNode *> to_process;
 
         // add all sources to @to_process
         for (auto& pair : srg) {
             RDNode *source = pair.first;
-            to_process.push_back(source);
+            to_process.insert(source);
         }
 
         // do fixpoint
         while (!to_process.empty()) {
-            RDNode *source = to_process.back();
-            to_process.pop_back();
+            auto it = to_process.begin();
+            RDNode *source = *it;
+            to_process.erase(it);
+
             bool changed = false;
+
             for (auto& pair : srg[source]) {
                 // variable to propagate
                 DefSite var = pair.first;
@@ -54,15 +62,12 @@ public:
                 RDNode *dest = pair.second;
 
                 if (merge_maps(source, dest, var)) {
-                    if (dest->defines(var.target, var.offset)) {
-                        to_process.push_back(dest);
-                        changed = true;
+                    // if dest does not define this variable, it is unnecessary to process it again
+                    if (dest->defines(var.target)) {
+                        to_process.insert(dest);
                     }
                 }
             }
-            if (changed)
-                to_process.push_back(source);
-
         }
     }
 };
