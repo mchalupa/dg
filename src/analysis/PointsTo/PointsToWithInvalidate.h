@@ -26,8 +26,7 @@ public:
             n->getType() == PSNodeType::STORE ||
             n->getType() == PSNodeType::MEMCPY ||
             n->getType() == PSNodeType::FREE ||
-            n->getType() == PSNodeType::CALL_RETURN ||
-            n->getType() == PSNodeType::RETURN)
+            n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return true;
 
         return false;
@@ -99,10 +98,9 @@ public:
 
         if (n->getType() == PSNodeType::FREE)
             strong_update = &n->getOperand(0)->pointsTo;
-        
-        if (n->getType() == PSNodeType::CALL_RETURN || n->getType() == PSNodeType::RETURN)
-            strong_update = &n->pointsTo;
 
+        if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
+            strong_update = &n->pointsTo;
 
         // merge information from predecessors if there's
         // more of them (if there's just one predecessor

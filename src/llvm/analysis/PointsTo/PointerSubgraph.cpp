@@ -610,7 +610,13 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A)
         getOperand(&*A);
 
-    return std::make_pair(callNode, returnNode);
+    if (invalidate_nodes) {
+        PSNode *invalidateNode = new PSNode(PSNodeType::INVALIDATE, returnNode);
+        invalidateNode->insertBefore(returnNode);
+        return std::make_pair(callNode, invalidateNode);
+    } else {
+        return std::make_pair(callNode, returnNode);
+    }
 }
 
 PSNodesSeq
@@ -1615,7 +1621,13 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // optimized away later since they are noops
     // XXX: do we need entry type?
     PSNode *root = new PSNode(PSNodeType::ENTRY);
-    PSNode *ret = new PSNode(PSNodeType::NOOP);
+    PSNode *ret;
+
+    if (invalidate_nodes) {
+        ret = new PSNode(PSNodeType::INVALIDATE_LOCALS, root);
+    } else {
+        ret = new PSNode(PSNodeType::NOOP);
+    }
 
     // if the function has variable arguments,
     // then create the node for it

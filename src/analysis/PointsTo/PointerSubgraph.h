@@ -44,7 +44,11 @@ enum class PSNodeType {
         // this is the exit node of a subprocedure
         // that returns a value - works as phi node
         RETURN,
-        // node that freed memory allocated with malloc
+        // node that invalidates allocated memory
+        // after returning from a function
+        INVALIDATE_LOCALS,
+        // node that invalidates memory after calling free
+        // on a pointer
         FREE,
         // node that has only one points-to relation
         // that never changes
@@ -132,6 +136,9 @@ public:
     // RETURN:       represents returning value from a subprocedure,
     //               works as a PHI node - it gathers pointers returned from
     //               the subprocedure
+    // INVALIDATE_LOCALS:
+    //               invalidates memory after returning from a function
+    // FREE:         invalidates memory after calling free function on a pointer
     PSNode(PSNodeType t, ...)
     : SubgraphNode<PSNode>(), type(t), offset(0), pairedNode(nullptr),
       zeroInitialized(false), is_heap(false), is_global(false), dfsid(0)
@@ -185,6 +192,7 @@ public:
                 // UNKNOWN_MEMLOC points to itself
                 pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
                 break;
+            case PSNodeType::INVALIDATE_LOCALS:
             case PSNodeType::FREE:
                 operands.push_back(va_arg(args, PSNode *));
                 break;

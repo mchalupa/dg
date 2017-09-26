@@ -280,6 +280,8 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
+        case PSNodeType::INVALIDATE_LOCALS:
+            break;
         case PSNodeType::GEP:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
                 uint64_t new_offset;

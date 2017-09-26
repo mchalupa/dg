@@ -100,6 +100,7 @@ void printPSNodeType(enum PSNodeType type)
         ELEM(PSNodeType::NULL_ADDR)
         ELEM(PSNodeType::UNKNOWN_MEM)
         ELEM(PSNodeType::FREE)
+        ELEM(PSNodeType::INVALIDATE_LOCALS)
         ELEM(PSNodeType::INVALIDATED)
         default:
             printf("unknown PointerSubgraph type");
