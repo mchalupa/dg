@@ -28,6 +28,9 @@ class LLVMPointerSubgraphBuilder
     // some new parts of already built graph.
     // This is important with function pointer calls
     bool ad_hoc_building = false;
+    // flag that determines whether invalidate nodes
+    // should be created
+    bool invalidate_nodes = false;
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
@@ -132,6 +135,11 @@ public:
             n = n->getPairedNode();
 
         return n;
+    }
+
+    void setInvalidateNodesFlag(bool value) 
+    {
+        this->invalidate_nodes = value;
     }
 
 private:

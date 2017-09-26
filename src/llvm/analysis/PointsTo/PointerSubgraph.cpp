@@ -833,7 +833,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
     if (func) {
         // is it a call to free? If so, create invalidate node
         // instead.
-        if(func->getName().equals("free")) {
+        if(invalidate_nodes && func->getName().equals("free")) {
             PSNode *n = createFree(Inst);
             return std::make_pair(n, n);
         }
