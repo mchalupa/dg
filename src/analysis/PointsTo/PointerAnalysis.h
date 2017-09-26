@@ -68,6 +68,13 @@ public:
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects) = 0;
 
+    virtual void getMemoryObjectsPointingTo(PSNode*, const Pointer&,
+                                            std::vector<MemoryObject *>&)
+    {
+        // this function will be called only by some analyses
+        abort();
+    }
+
     /*
     virtual bool addEdge(MemoryObject *from, MemoryObject *to,
                          Offset off1 = 0, Offset off2 = 0)

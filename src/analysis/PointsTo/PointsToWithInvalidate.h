@@ -147,6 +147,35 @@ public:
             objects.push_back(mo);
         }
     }
+    
+    void getMemoryObjectsPointingTo(PSNode *where, const Pointer& pointer,
+                          std::vector<MemoryObject *>& objects) override
+    {
+        MemoryMapT *mm= where->getData<MemoryMapT>();
+        assert(mm && "Node does not have memory map");
+
+        for (auto& I : *mm) {
+            for (MemoryObject *mo : I.second) {
+                for (auto& it : mo->pointsTo) {
+                    for (const auto& ptr : it.second) {
+                        if (ptr.target == pointer.target) {
+                            objects.push_back(mo);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // if we haven't found any memory object, but this psnode
+        // is a write to memory, create a new one, so that
+        // the write has something to write to
+        /*if (objects.empty() && canChangeMM(where)) {
+            MemoryObject *mo = new MemoryObject(pointer.target);
+            (*mm)[pointer].insert(mo);
+            objects.push_back(mo);
+        }*/
+    }
 
 protected:
 
