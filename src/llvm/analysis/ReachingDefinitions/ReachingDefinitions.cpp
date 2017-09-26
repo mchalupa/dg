@@ -174,6 +174,8 @@ RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst, RDBlock *rb)
     // realloc defines itself, since it copies the values
     // from previous memory
     node->addDef(node, 0, size, false /* strong update */);
+    // operand 0 is pointer
+    node->addUses(getPointsTo(Inst->getOperand(0),rb));
 
     return node;
 }
@@ -855,7 +857,9 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
         // add the definition
         ret->addDef(target, from, to, true /* strong update */);
     }
+
     pta::PSNode *pts2 = PTA->getPointsTo(source);
+    assert(pts && "No points-to information");
     for (const pta::Pointer& ptr : pts2->pointsTo) {
         if (!ptr.isValid())
             continue;
