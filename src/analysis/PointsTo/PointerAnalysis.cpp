@@ -263,8 +263,6 @@ bool PointerAnalysis::processNode(PSNode *node)
             break;
         case PSNodeType::FREE:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
-                changed |= node->addPointsTo(INVALIDATED);
-
                 PSNode *target = ptr.target;
                 assert(target && "Got nullptr as target");
 
@@ -279,6 +277,11 @@ bool PointerAnalysis::processNode(PSNode *node)
             }
             break;
         case PSNodeType::INVALIDATE_LOCALS:
+            objects.clear();
+            getLocalMemoryObjects(node, objects);
+            for (MemoryObject *o : objects) {
+                changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
+            }
             break;
         case PSNodeType::GEP:
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {

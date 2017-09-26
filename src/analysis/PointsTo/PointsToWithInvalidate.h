@@ -168,6 +168,29 @@ public:
             }
         }
     }
+    
+    void getLocalMemoryObjects(PSNode *where, 
+                          std::vector<MemoryObject *>& objects) override
+    {
+        MemoryMapT *mm= where->getData<MemoryMapT>();
+        assert(mm && "Node does not have memory map");
+
+        for (auto& I : *mm) {
+            for (MemoryObject *mo : I.second) {
+                for (auto& it : mo->pointsTo) {
+                    for (const auto& ptr : it.second) {
+                        if (!ptr.target->isHeap() &&
+                            !ptr.target->isGlobal() &&
+                            ptr.target->getParent() == where->getParent()) {
+                            objects.push_back(mo);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
 protected:
 

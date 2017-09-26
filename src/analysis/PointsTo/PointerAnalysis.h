@@ -79,12 +79,11 @@ public:
         abort();
     }
 
-    // takes a PSNode, an entry node and reference to a vector
+    // takes a PSNode and reference to a vector
     // and fills into the vector the objects that are relevant
     // for the PSNode (valid memory states for of this PSNode)
     // and that point to a stack  
-    virtual void getLocalMemoryObjects(PSNode*, PSNode*,
-                                            std::vector<MemoryObject *>&)
+    virtual void getLocalMemoryObjects(PSNode*, std::vector<MemoryObject *>&)
     {
         // this function will be called only by some analyses
         abort();

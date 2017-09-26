@@ -86,7 +86,7 @@ class PSNode : public SubgraphNode<PSNode>
 
     // in some cases we need to know from which function the node is
     // so we need to remember the entry node 
-    PSNode *parent;
+    PSNode *parent = nullptr;
 
     /// some additional information
     // was memory zeroed at initialization or right after allocating?
@@ -225,7 +225,7 @@ public:
     void setOffset(uint64_t o) { offset = o; }
     
     void setParent(PSNode *p) { parent = p; }
-    PSNode* getParent() { return parent; }
+    PSNode *getParent() { return parent; }
 
     PSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSNode *n) { pairedNode = n; }

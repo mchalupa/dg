@@ -284,7 +284,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         printf("\tNODE%p [label=\"", node);
         printName(node, true);
         printf("\\n--- parent ---\\n");
-        printf("%p \n", node->getParent());
+        printf("%p \\n", node->getParent());
 
         if (node->getSize() || node->isHeap() || node->isZeroInitialized())
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",

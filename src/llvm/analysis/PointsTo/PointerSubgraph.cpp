@@ -611,12 +611,11 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
         getOperand(&*A);
 
     if (invalidate_nodes) {
-        PSNode *invalidateNode = new PSNode(PSNodeType::INVALIDATE, returnNode);
+        PSNode *invalidateNode = new PSNode(PSNodeType::INVALIDATE);
         invalidateNode->insertBefore(returnNode);
-        return std::make_pair(callNode, invalidateNode);
-    } else {
-        return std::make_pair(callNode, returnNode);
     }
+    
+    return std::make_pair(callNode, returnNode);
 }
 
 PSNodesSeq
@@ -1648,12 +1647,6 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // built, since the PHI gathers values from different blocks
     addPHIOperands(F);
 
-    std::set<PSNode *> cont;
-    getNodes(cont, root, 0xdead);
-    for (PSNode* n : cont) {
-        n->setParent(root);
-    }
-
     return root;
 }
 
@@ -1666,6 +1659,12 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
 
         // add the CFG edges
         addProgramStructure(F, subg);
+
+         std::set<PSNode *> cont;
+        getNodes(cont, subg.root, 0xdead);
+        for (PSNode* n : cont) {
+            n->setParent(subg.root);
+        }
 
         // add the missing operands (to arguments and return nodes)
         addInterproceduralOperands(F, subg);
