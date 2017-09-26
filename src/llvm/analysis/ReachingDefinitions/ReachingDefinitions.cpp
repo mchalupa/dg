@@ -736,6 +736,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
     const Value *source;
 
     RDNode *ret;
+    pta::PSNode *pts2;
 
     switch (I->getIntrinsicID())
     {
@@ -754,7 +755,40 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
             // reaching definitions to that
             ret = new RDNode(RDNodeType::CALL);
             ret->addDef(ret, 0, UNKNOWN_OFFSET);
+            pts2 = PTA->getPointsTo(I->getOperand(0));
+            assert(pts2 && "No points-to information");
+            for (const pta::Pointer& ptr : pts2->pointsTo) {
+                if (!ptr.isValid())
+                    continue;
+
+                const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+                if (llvm::isa<llvm::Function>(ptrVal))
+                    continue;
+
+                uint64_t from, to;
+                uint64_t len = UNKNOWN_OFFSET;
+                if (ptr.offset.isUnknown()) {
+                    // if the offset is UNKNOWN, use whole memory
+                    from = UNKNOWN_OFFSET;
+                    len = UNKNOWN_OFFSET;
+                } else {
+                    from = *ptr.offset;
+                }
+
+                // do not allow overflow
+                if (UNKNOWN_OFFSET - from > len)
+                    to = from + len;
+                else
+                    to = UNKNOWN_OFFSET;
+
+                RDNode *target = getOperand(ptrVal, rb);
+                assert(target && "Don't have pointer target for intrinsic call");
+
+                // add the definition
+                ret->addUse(target, from, to);
+            }
             addNode(CInst, ret);
+            rb->append(ret);
             return ret;
         default:
             return createUndefinedCall(CInst, rb);
@@ -801,7 +835,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
         ret->addDef(target, from, to, true /* strong update */);
     }
 
-    pta::PSNode *pts2 = PTA->getPointsTo(source);
+    pts2 = PTA->getPointsTo(source);
     assert(pts && "No points-to information");
     for (const pta::Pointer& ptr : pts2->pointsTo) {
         if (!ptr.isValid())
@@ -831,7 +865,6 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
 
         // add the definition
         ret->addUse(target, from, to);
-
     }
 
     return ret;
