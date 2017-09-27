@@ -610,11 +610,6 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A)
         getOperand(&*A);
 
-    if (invalidate_nodes) {
-        PSNode *invalidateNode = new PSNode(PSNodeType::INVALIDATE);
-        invalidateNode->insertBefore(returnNode);
-    }
-    
     return std::make_pair(callNode, returnNode);
 }
 
@@ -1660,8 +1655,8 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
         // add the CFG edges
         addProgramStructure(F, subg);
 
-         std::set<PSNode *> cont;
-        getNodes(cont, subg.root, 0xdead);
+        std::set<PSNode *> cont;
+        getNodes(cont, subg.root, subg.ret, 0xdead);
         for (PSNode* n : cont) {
             n->setParent(subg.root);
         }
