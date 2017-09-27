@@ -483,13 +483,17 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 
                         for (RDNode *pred : subg.second->getPredecessors()) {
                             RDBlock *predBB = pred->getBBlock();
-                            for (RDNode *succ : pred->getSuccessors()) {
-                                if (succ == subg.second) continue;
-                                RDBlock *succBB = succ->getBBlock();
-                                predBB->addSuccessor(succBB);
-
+                            if (predBB) {
+                                for (RDNode *succ : pred->getSuccessors()) {
+                                    if (succ == subg.second) 
+                                        continue;
+                                    RDBlock *succBB = succ->getBBlock();
+                                    if (succBB)
+                                        predBB->addSuccessor(succBB);
+                                }
                             }
                         }
+
                         for (RDNode *pred : subg.second->getPredecessors()) {
                             RDBlock *predBB = pred->getBBlock();
                             if (pred != subg.second && predBB) {
