@@ -272,7 +272,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                 objects.clear();
                 getMemoryObjectsPointingTo(node, ptr, objects);
                 for (MemoryObject *o : objects) {
-                   // changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
+                    changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
                 }
             }
             break;
@@ -281,7 +281,6 @@ bool PointerAnalysis::processNode(PSNode *node)
             objects.clear();
             getLocalMemoryObjects(node, objects);
             for (MemoryObject *o : objects) {
-                assert(false && "some object here");
                 changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
             }
             break;
@@ -317,6 +316,15 @@ bool PointerAnalysis::processNode(PSNode *node)
                    && "Constant should have exactly one pointer");
             break;
         case PSNodeType::CALL_RETURN:
+            if (invalidate_nodes) {
+                for (PSNode *op : node->operands) {
+                    for (const Pointer& ptr : op->pointsTo) {
+                        if (!ptr.target->isHeap() && !ptr.target->isGlobal())
+                            changed |= node->addPointsTo(INVALIDATED);
+                    }
+                }
+            }
+            // fall-through
         case PSNodeType::RETURN:
             // gather pointers returned from subprocedure - the same way
             // as PHI works

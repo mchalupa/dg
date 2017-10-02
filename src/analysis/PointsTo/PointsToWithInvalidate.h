@@ -19,7 +19,7 @@ public:
     // this is an easy but not very efficient implementation,
     // works for testing
     PointsToWithInvalidate(PointerSubgraph *ps)
-    : PointerAnalysis(ps, UNKNOWN_OFFSET, false) {}
+    : PointerAnalysis(ps, UNKNOWN_OFFSET, false, true) {}
 
     static bool canChangeMM(PSNode *n) {
         if (n->predecessorsNum() == 0 || // root node
