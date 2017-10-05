@@ -83,9 +83,11 @@ install(FILES
 	analysis/PointsTo/Pointer.h
 	analysis/PointsTo/PointerSubgraph.h
 	analysis/PointsTo/PointsToFlowInsensitive.h
+	analysis/PointsTo/PointsToFlowSensitive.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/analysis/PointsTo/)
 install(FILES
 	llvm/llvm-utils.h
+	llvm/MemAllocationFuncs.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/llvm/)
 install(FILES
 	llvm/analysis/PointsTo/PointerSubgraph.h
