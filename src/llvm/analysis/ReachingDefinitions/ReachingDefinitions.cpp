@@ -469,7 +469,6 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                             fprintf(stderr, "Node without succBB: %d %p\nsuccBB: %x\n", (*subg.first->getSuccessors().begin())->getType(), *subg.first->getSuccessors().begin(), succBB );
                         }
                     }
-                        
 
                     // if the function consists of single node(intrinsics, undefined etc)
                     // do not add more nodes for this function
@@ -485,7 +484,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                             RDBlock *predBB = pred->getBBlock();
                             if (predBB) {
                                 for (RDNode *succ : pred->getSuccessors()) {
-                                    if (succ == subg.second) 
+                                    if (succ == subg.second)
                                         continue;
                                     RDBlock *succBB = succ->getBBlock();
                                     if (succBB)

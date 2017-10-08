@@ -165,7 +165,7 @@ dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
     }
 }
 
-static void 
+static void
 dumpDefines(RDNode *node, bool dot = false)
 {
     dumpDefSites(node->getDefines(), "DEF", dot);

@@ -94,7 +94,7 @@ public:
 
 // namespaces
 }
-} 
+}
 }
 }
 #endif /* _DG_PHIPLACEMENT_H_ */
