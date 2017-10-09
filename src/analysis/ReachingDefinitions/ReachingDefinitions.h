@@ -52,6 +52,7 @@ enum class RDNodeType {
         CALL_RETURN,
         // dummy nodes
         NOOP,
+        // nodes that use the memory
         LOAD
 };
 
