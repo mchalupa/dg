@@ -4,7 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "analysis/ReachingDefinitions/Ssa/SparseRDGraphBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/SparseRDGraphBuilder.h"
 
 namespace dg {
 namespace analysis {
@@ -13,7 +13,7 @@ namespace rd {
 class SemisparseRda : public ReachingDefinitionsAnalysis
 {
 private:
-    using SparseRDGraph = dg::analysis::rd::ssa::SparseRDGraph;
+    using SparseRDGraph = dg::analysis::rd::srg::SparseRDGraph;
     SparseRDGraph& srg;
 
     bool merge_maps(RDNode *source, RDNode *dest, DefSite& var) {

@@ -5,13 +5,13 @@
 #include <set>
 
 #include "BBlock.h"
-#include "analysis/ReachingDefinitions/Ssa/AssignmentFinder.h"
+#include "analysis/ReachingDefinitions/Srg/AssignmentFinder.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
 namespace analysis {
 namespace rd {
-namespace ssa {
+namespace srg {
 
 using PhiAdditions = std::unordered_map<BBlock<RDNode> *, std::set<DefSite>>;
 
