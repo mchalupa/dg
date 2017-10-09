@@ -1,5 +1,5 @@
-#ifndef SEMISPARSERDA_H
-#define SEMISPARSERDA_H
+#ifndef _DG_SEMISPARSERDA_H_
+#define _DG_SEMISPARSERDA_H_
 
 #include <vector>
 #include <unordered_map>
@@ -75,4 +75,4 @@ public:
 }
 }
 }
-#endif /* SEMISPARSERDA_H */
+#endif /* _DG_SEMISPARSERDA_H_ */

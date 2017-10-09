@@ -1,5 +1,5 @@
-#ifndef _DG_DEFUSE_H_
-#define _DG_DEFUSE_H_
+#ifndef _DG_ASSIGNMENTFINDER_H_
+#define _DG_ASSIGNMENTFINDER_H_
 
 #include <unordered_map>
 #include <vector>
@@ -121,4 +121,4 @@ public:
 }
 }
 
-#endif // _DG_DEFUSE_H_
+#endif // _DG_ASSIGNMENTFINDER_H_

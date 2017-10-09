@@ -61,11 +61,11 @@ public:
         std::vector<BBlock<NodeT> *> blocks;
         BBlockBFS<NodeT> bfs(BFS_BB_DOM);
 
-        // get BBs in the order of post-dom tree edges (BFS),
+        // get BBs in the order of dom tree edges (BFS),
         // so that we process it bottom-up
         bfs.run(root, queueDomBBs, &blocks);
 
-        // go bottom-up the dom tree and compute post-domninance frontiers
+        // go bottom-up the dom tree and compute domninance frontiers
         for (int i = blocks.size() - 1; i >= 0; --i)
             computeDFrontiers(blocks[i]);
     }

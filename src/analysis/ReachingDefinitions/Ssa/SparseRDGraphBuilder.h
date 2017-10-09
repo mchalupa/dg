@@ -1,5 +1,5 @@
-#ifndef _DG_SSABUILDER_H_
-#define _DG_SSABUILDER_H_
+#ifndef _DG_SRGBUILDER_H_
+#define _DG_SRGBUILDER_H_
 
 #include <map>
 #include <unordered_map>
@@ -51,4 +51,4 @@ using SparseRDGraph = SparseRDGraphBuilder::SparseRDGraph;
 }
 }
 }
-#endif /* _DG_SSABUILDER_H_ */
+#endif /* _DG_SRGBUILDER_H_ */
