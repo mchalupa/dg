@@ -8,12 +8,12 @@
 
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "analysis/ReachingDefinitions/Ssa/PhiPlacement.h"
+#include "analysis/ReachingDefinitions/Srg/PhiPlacement.h"
 
 namespace dg {
 namespace analysis {
 namespace rd {
-namespace ssa {
+namespace srg {
 
 /**
  * Calculates a Sparse Graph for RD information propagation

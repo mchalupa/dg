@@ -10,7 +10,7 @@
 namespace dg {
 namespace analysis {
 namespace rd {
-namespace ssa {
+namespace srg {
 
 using AssignmentMap = std::unordered_map<dg::analysis::rd::RDNode *, std::vector<dg::analysis::rd::RDNode *>>;
 

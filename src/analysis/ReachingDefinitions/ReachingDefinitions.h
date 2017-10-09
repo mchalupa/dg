@@ -25,7 +25,7 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-namespace ssa {
+namespace srg {
     class AssignmentFinder;
 }
 
@@ -230,7 +230,7 @@ public:
     }
 
     friend class ReachingDefinitionsAnalysis;
-    friend class dg::analysis::rd::ssa::AssignmentFinder;
+    friend class dg::analysis::rd::srg::AssignmentFinder;
 };
 
 class ReachingDefinitionsAnalysis

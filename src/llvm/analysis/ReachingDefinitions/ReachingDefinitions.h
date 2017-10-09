@@ -11,8 +11,8 @@
 #include "llvm/MemAllocationFuncs.h"
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "analysis/ReachingDefinitions/Ssa/SparseRDGraphBuilder.h"
-#include "analysis/ReachingDefinitions/Ssa/MarkerSRGBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/SparseRDGraphBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilder.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
@@ -165,8 +165,8 @@ class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
-    std::unique_ptr<dg::analysis::rd::ssa::SparseRDGraphBuilder> srg_builder;
-    dg::analysis::rd::ssa::SparseRDGraph srg;
+    std::unique_ptr<dg::analysis::rd::srg::SparseRDGraphBuilder> srg_builder;
+    dg::analysis::rd::srg::SparseRDGraph srg;
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
@@ -179,7 +179,7 @@ public:
                             bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
         : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
-        srg_builder(llvm::make_unique<dg::analysis::rd::ssa::MarkerSRGBuilder>()), strong_update_unknown(strong_updt_unknown),
+        srg_builder(llvm::make_unique<dg::analysis::rd::srg::MarkerSRGBuilder>()), strong_update_unknown(strong_updt_unknown),
         max_set_size(max_set_sz) {}
 
     void run()
@@ -223,7 +223,7 @@ public:
         return builder->getMapping(val);
     }
 
-    const dg::analysis::rd::ssa::SparseRDGraph& getSrg() const { return srg; }
+    const dg::analysis::rd::srg::SparseRDGraph& getSrg() const { return srg; }
     void getNodes(std::set<RDNode *>& cont)
     {
         assert(RDA);

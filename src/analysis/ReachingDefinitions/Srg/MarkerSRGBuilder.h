@@ -8,12 +8,12 @@
 #include <map>
 
 #include "analysis/BFS.h"
-#include "analysis/ReachingDefinitions/Ssa/SparseRDGraphBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/SparseRDGraphBuilder.h"
 
 namespace dg {
 namespace analysis {
 namespace rd {
-namespace ssa {
+namespace srg {
 
 class MarkerSRGBuilder : public SparseRDGraphBuilder
 {
