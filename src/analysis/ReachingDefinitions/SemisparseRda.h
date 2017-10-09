@@ -53,8 +53,6 @@ public:
             RDNode *source = *it;
             to_process.erase(it);
 
-            bool changed = false;
-
             for (auto& pair : srg[source]) {
                 // variable to propagate
                 DefSite var = pair.first;
