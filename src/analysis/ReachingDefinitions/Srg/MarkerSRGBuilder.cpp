@@ -1,6 +1,6 @@
-#include "analysis/ReachingDefinitions/Ssa/MarkerSRGBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilder.h"
 
-using namespace dg::analysis::rd::ssa;
+using namespace dg::analysis::rd::srg;
 
 void MarkerSRGBuilder::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
     // remember the last definition
