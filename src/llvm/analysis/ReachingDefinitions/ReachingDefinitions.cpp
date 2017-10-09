@@ -275,14 +275,6 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst, RDBlock *rb)
     return node;
 }
 
-static void operandDump(const llvm::Instruction *inst, RDNode *)
-{
-    printf("%s instruction %p: Operand Count: %u\t\n", inst->getOpcodeName(), inst, inst->getNumOperands());
-    for (size_t i = 0; i < inst->getNumOperands(); ++i) {
-        printf("\t%lu: %p\n", i, inst->getOperand(i));
-    }
-}
-
 std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock *rb)
 {
     std::vector<DefSite> result;
@@ -516,8 +508,6 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                         RDBlock *succBB = (*subg.first->getSuccessors().begin())->getBBlock();
                         if (succBB != nullptr) {
                             rb->addSuccessor(succBB);
-                        } else {
-                            fprintf(stderr, "Node without succBB: %d %p\nsuccBB: %x\n", (*subg.first->getSuccessors().begin())->getType(), *subg.first->getSuccessors().begin(), succBB );
                         }
                     }
 
@@ -678,9 +668,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
     RDNode *first = nullptr;
     RDBlock *fstblock = nullptr;
-    RDBlock *lastblock = nullptr;
 
-    RDBlock *prev_bblock_end = nullptr;
     for (const llvm::BasicBlock& block : F) {
         std::vector<RDBlock *> blocks = buildBlock(block);
         if (!first) {
@@ -718,7 +706,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         last_llvm_block = &block;
         // add successors to this block (skipping the empty blocks)
         // FIXME: this function is shared with PSS, factor it out
-        size_t succ_num = blockAddSuccessors(built_blocks, last_function_block, *last_llvm_block);
+        blockAddSuccessors(built_blocks, last_function_block, *last_llvm_block);
     }
 
     // add successors edges from every real return to our artificial ret node
