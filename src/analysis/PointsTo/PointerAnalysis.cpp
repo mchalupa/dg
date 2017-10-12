@@ -6,11 +6,14 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-// nodes representing NULL and unknown memory
+// nodes representing NULL, unknown memory
+// and invalidated memory
 PSNode NULLPTR_LOC(PSNodeType::NULL_ADDR);
 PSNode *NULLPTR = &NULLPTR_LOC;
 PSNode UNKNOWN_MEMLOC(PSNodeType::UNKNOWN_MEM);
 PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+PSNode INVALIDATED_LOC(PSNodeType::INVALIDATED);
+PSNode *INVALIDATED = &INVALIDATED_LOC;
 
 // pointers to those memory
 const Pointer PointerUnknown(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
@@ -252,9 +255,33 @@ bool PointerAnalysis::processNode(PSNode *node)
                 objects.clear();
                 getMemoryObjects(node, ptr, objects);
                 for (MemoryObject *o : objects) {
-                    for (const Pointer& to : node->getOperand(0)->pointsTo)
+                    for (const Pointer& to : node->getOperand(0)->pointsTo) {
                         changed |= o->addPointsTo(ptr.offset, to);
+                    }
                 }
+            }
+            break;
+        case PSNodeType::FREE:
+            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
+                PSNode *target = ptr.target;
+                assert(target && "Got nullptr as target");
+
+                if (ptr.isNull())
+                    continue;
+
+                objects.clear();
+                getMemoryObjectsPointingTo(node, ptr, objects);
+                for (MemoryObject *o : objects) {
+                    changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
+                }
+            }
+            break;
+        case PSNodeType::INVALIDATE_LOCALS:
+            node->setParent(node->getOperand(0)->getSingleSuccessor()->getParent());
+            objects.clear();
+            getLocalMemoryObjects(node, objects);
+            for (MemoryObject *o : objects) {
+                changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
             }
             break;
         case PSNodeType::GEP:
@@ -289,6 +316,15 @@ bool PointerAnalysis::processNode(PSNode *node)
                    && "Constant should have exactly one pointer");
             break;
         case PSNodeType::CALL_RETURN:
+            if (invalidate_nodes) {
+                for (PSNode *op : node->operands) {
+                    for (const Pointer& ptr : op->pointsTo) {
+                        if (!ptr.target->isHeap() && !ptr.target->isGlobal())
+                            changed |= node->addPointsTo(INVALIDATED);
+                    }
+                }
+            }
+            // fall-through
         case PSNodeType::RETURN:
             // gather pointers returned from subprocedure - the same way
             // as PHI works
@@ -305,7 +341,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                 if (node->addPointsTo(ptr)) {
                     changed = true;
 
-                    if (ptr.isValid()) {
+                    if (ptr.isValid() && !ptr.isInvalidated()) {
                         functionPointerCall(node, ptr.target);
                     } else {
                         error(node, "Calling invalid pointer as a function!");

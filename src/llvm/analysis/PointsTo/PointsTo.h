@@ -24,6 +24,7 @@
 #include "analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/llvm-utils.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "analysis/PointsTo/PointsToWithInvalidate.h"
 
 namespace dg {
 
@@ -153,9 +154,9 @@ public:
         return builder->getNodesMap();
     }
 
-    void getNodes(std::set<PSNode *>& cont)
+    std::vector<PSNode *> getNodes()
     {
-        PS->getNodes(cont);
+        return PS->getNodes();
     }
 
     template <typename PTType>
@@ -186,6 +187,32 @@ public:
         return new LLVMPointerAnalysisImpl<PTType>(PS, builder);
     }
 };
+
+template <>
+inline void LLVMPointerAnalysis::run<analysis::pta::PointsToWithInvalidate>()
+{
+    // build the subgraph
+    assert(PS && "Incorrectly constructed PTA, missing PS");
+    builder->setInvalidateNodesFlag(true);
+    PS->setRoot(builder->buildLLVMPointerSubgraph());
+
+    // run the analysis itself
+    assert(builder && "Incorrectly constructed PTA, missing builder");
+    LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate> PTA(PS, builder);
+    PTA.run();
+}
+
+template <>
+inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::pta::PointsToWithInvalidate>()
+{
+    // build the subgraph
+    assert(PS && "Incorrectly constructed PTA, missing PS");
+    builder->setInvalidateNodesFlag(true);
+    PS->setRoot(builder->buildLLVMPointerSubgraph());
+
+    assert(builder && "Incorrectly constructed PTA, missing builder");
+    return new LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate>(PS, builder);
+}
 
 } // namespace dg
 

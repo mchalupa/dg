@@ -42,6 +42,7 @@
 #include "llvm/analysis/PointsTo/PointsTo.h"
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/PointsToWithInvalidate.h"
 #include "analysis/PointsTo/Pointer.h"
 
 #include "TimeMeasure.h"
@@ -55,6 +56,7 @@ static bool verbose;
 enum PTType {
     FLOW_SENSITIVE = 1,
     FLOW_INSENSITIVE,
+    WITH_INVALIDATE,
 };
 
 static std::string
@@ -97,6 +99,9 @@ void printPSNodeType(enum PSNodeType type)
         ELEM(PSNodeType::MEMCPY)
         ELEM(PSNodeType::NULL_ADDR)
         ELEM(PSNodeType::UNKNOWN_MEM)
+        ELEM(PSNodeType::FREE)
+        ELEM(PSNodeType::INVALIDATE_LOCALS)
+        ELEM(PSNodeType::INVALIDATED)
         default:
             printf("unknown PointerSubgraph type");
     };
@@ -112,6 +117,9 @@ printName(PSNode *node, bool dot)
         name = "null";
     } else if (node->isUnknownMemory()) {
         name = "unknown";
+    } else if (node->isInvalidated() && 
+        !node->getUserData<llvm::Value>()) {
+            name = "invalidated";
     }
 
     if (!name) {
@@ -267,15 +275,16 @@ dumpPSNode(PSNode *n, PTType type)
 static void
 dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 {
-    std::set<PSNode *> nodes;
-    pta->getNodes(nodes);
 
     printf("digraph \"Pointer State Subgraph\" {\n");
 
     /* dump nodes */
+    const auto& nodes = pta->getNodes();
     for (PSNode *node : nodes) {
         printf("\tNODE%p [label=\"", node);
         printName(node, true);
+        printf("\\n--- parent ---\\n");
+        printf("%p \\n", node->getParent());
 
         if (node->getSize() || node->isHeap() || node->isZeroInitialized())
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
@@ -334,9 +343,7 @@ dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
     if (todot)
         dumpPointerSubgraphdot(pta, type);
     else {
-        std::set<PSNode *> nodes;
-        pta->getNodes(nodes);
-
+        const auto& nodes = pta->getNodes();
         for (PSNode *node : nodes) {
             dumpPSNode(node, type);
         }
@@ -359,6 +366,8 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+            else if (strcmp(argv[i+1], "inv") == 0)
+                type = WITH_INVALIDATE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_senitivity = (uint64_t) atoll(argv[i + 1]);
         } else if (strcmp(argv[i], "-dot") == 0) {
@@ -401,6 +410,10 @@ int main(int argc, char *argv[])
     if (type == FLOW_INSENSITIVE) {
         PA = std::unique_ptr<PointerAnalysis>(
             PTA.createPTA<analysis::pta::PointsToFlowInsensitive>()
+            );
+    } else if (type == WITH_INVALIDATE) {
+        PA = std::unique_ptr<PointerAnalysis>(
+            PTA.createPTA<analysis::pta::PointsToWithInvalidate>()
             );
     } else {
         PA = std::unique_ptr<PointerAnalysis>(

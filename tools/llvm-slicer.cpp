@@ -71,6 +71,7 @@
 
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "analysis/PointsTo/PointsToWithInvalidate.h"
 #include "analysis/PointsTo/Pointer.h"
 
 using namespace dg;
@@ -96,7 +97,7 @@ enum {
 };
 
 enum PtaType {
-    fs, fi
+    fs, fi, inv
 };
 
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
@@ -138,7 +139,8 @@ llvm::cl::opt<PtaType> pta("pta",
     llvm::cl::desc("Choose pointer analysis to use:"),
     llvm::cl::values(
         clEnumVal(fi, "Flow-insensitive PTA (default)"),
-        clEnumVal(fs, "Flow-sensitive PTA")
+        clEnumVal(fs, "Flow-sensitive PTA"),
+        clEnumVal(inv, "PTA with invalidate nodes")
 #if LLVM_VERSION_MAJOR < 4
         , nullptr
 #endif
@@ -364,6 +366,8 @@ public:
                 os << "flow-insensitive\n";
             else if (pta == fs)
                 os << "flow-sensitive\n";
+            else if (pta == inv)
+                os << "flow-sensitive with invalidate\n";
 
             os << ";   * PTA field sensitivity: " << pta_field_sensitivie << "\n";
 
@@ -651,6 +655,8 @@ public:
             PTA->run<analysis::pta::PointsToFlowSensitive>();
         else if (pta == PtaType::fi)
             PTA->run<analysis::pta::PointsToFlowInsensitive>();
+        else if (pta == PtaType::inv)
+            PTA->run<analysis::pta::PointsToWithInvalidate>();
         else
             assert(0 && "Wrong pointer analysis");
 

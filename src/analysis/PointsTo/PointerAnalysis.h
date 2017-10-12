@@ -34,6 +34,9 @@ class PointerAnalysis
     // Flow sensitive flag (contol loop optimization execution)
     bool preprocess_geps;
 
+    // Invalidate flag
+    bool invalidate_nodes;
+
 protected:
     // a set of changed nodes that are going to be
     // processed by the analysis
@@ -42,13 +45,13 @@ protected:
 
     // protected constructor for child classes
     PointerAnalysis() : PS(nullptr), max_offset(UNKNOWN_OFFSET),
-                         preprocess_geps(true) {}
+                         preprocess_geps(true), invalidate_nodes(false) {}
 
 public:
     PointerAnalysis(PointerSubgraph *ps,
                     uint64_t max_off = UNKNOWN_OFFSET,
-                    bool prepro_geps = true)
-    : PS(ps), max_offset(max_off), preprocess_geps(prepro_geps)
+                    bool prepro_geps = true, bool invalid_nodes = false)
+    : PS(ps), max_offset(max_off), preprocess_geps(prepro_geps), invalidate_nodes(invalid_nodes)
     {
         assert(PS && "Need valid PointerSubgraph object");
 
@@ -67,6 +70,27 @@ public:
     // on location 'where' in PointerSubgraph
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects) = 0;
+
+    // takes a PSNode, a pointer and reference to a vector
+    // and fills into the vector the objects that are relevant
+    // for the PSNode (valid memory states for of this PSNode)
+    // and that point to the pointer  
+    virtual void getMemoryObjectsPointingTo(PSNode*, const Pointer&,
+                                            std::vector<MemoryObject *>&)
+    {
+        // this function will be called only by some analyses
+        abort();
+    }
+
+    // takes a PSNode and reference to a vector
+    // and fills into the vector the objects that are relevant
+    // for the PSNode (valid memory states for of this PSNode)
+    // and that point to a stack  
+    virtual void getLocalMemoryObjects(PSNode*, std::vector<MemoryObject *>&)
+    {
+        // this function will be called only by some analyses
+        abort();
+    }
 
     /*
     virtual bool addEdge(MemoryObject *from, MemoryObject *to,

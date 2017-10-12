@@ -802,6 +802,18 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
     return n;
 }
 
+PSNode * LLVMPointerSubgraphBuilder::createFree(const llvm::Instruction *Inst)
+{
+    PSNode *op1 = getOperand(Inst->getOperand(0));
+    PSNode *node = new PSNode(PSNodeType::FREE, op1);
+
+    addNode(Inst, node);
+
+    assert(node);
+    return node;
+}
+
+
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PointerSubgraph
@@ -819,10 +831,17 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
+        // is it a call to free? If so, create invalidate node
+        // instead.
+        if(invalidate_nodes && func->getName().equals("free")) {
+            PSNode *n = createFree(Inst);
+            return std::make_pair(n, n);
+        }
+        
         // is function undefined? If so it can be
         // intrinsic, memory allocation (malloc, calloc,...)
         // or just undefined function
-        // NOTE: we firt need to check whether the function
+        // NOTE: we first need to check whether the function
         // is undefined and after that if it is memory allocation,
         // because some programs may define function named
         // 'malloc' etc.
@@ -1285,6 +1304,10 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
             // we need memory allocations
             return true;
 
+        if (func->getName().equals("free"))
+            // we need calls of free
+            return true;
+
         if (func->isIntrinsic())
             return isRelevantIntrinsic(func);
 
@@ -1592,7 +1615,13 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // optimized away later since they are noops
     // XXX: do we need entry type?
     PSNode *root = new PSNode(PSNodeType::ENTRY);
-    PSNode *ret = new PSNode(PSNodeType::NOOP);
+    PSNode *ret;
+
+    if (invalidate_nodes) {
+        ret = new PSNode(PSNodeType::INVALIDATE_LOCALS, root);
+    } else {
+        ret = new PSNode(PSNodeType::NOOP);
+    }
 
     // if the function has variable arguments,
     // then create the node for it
@@ -1625,6 +1654,12 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
 
         // add the CFG edges
         addProgramStructure(F, subg);
+
+        std::set<PSNode *> cont;
+        getNodes(cont, subg.root, subg.ret, 0xdead);
+        for (PSNode* n : cont) {
+            n->setParent(subg.root);
+        }
 
         // add the missing operands (to arguments and return nodes)
         addInterproceduralOperands(F, subg);

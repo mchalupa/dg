@@ -28,6 +28,9 @@ class LLVMPointerSubgraphBuilder
     // some new parts of already built graph.
     // This is important with function pointer calls
     bool ad_hoc_building = false;
+    // flag that determines whether invalidate nodes
+    // should be created
+    bool invalidate_nodes = false;
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
@@ -134,6 +137,11 @@ public:
         return n;
     }
 
+    void setInvalidateNodesFlag(bool value) 
+    {
+        this->invalidate_nodes = value;
+    }
+
 private:
     void addNode(const llvm::Value *val, PSNode *node)
     {
@@ -170,6 +178,7 @@ private:
     PSNode *createAdd(const llvm::Instruction *Inst);
     PSNode *createArithmetic(const llvm::Instruction *Inst);
     PSNode *createUnknown(const llvm::Value *val);
+    PSNode *createFree(const llvm::Instruction *Inst);
 
     PSNode *getOperand(const llvm::Value *val);
     PSNode *tryGetOperand(const llvm::Value *val);

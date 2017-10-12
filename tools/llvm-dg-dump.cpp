@@ -51,6 +51,7 @@
 
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "analysis/PointsTo/PointsToWithInvalidate.h"
 
 using namespace dg;
 using llvm::errs;
@@ -145,6 +146,10 @@ int main(int argc, char *argv[])
     } else if (strcmp(pts, "fi") == 0) {
         tm.start();
         PTA->run<analysis::pta::PointsToFlowInsensitive>();
+        tm.stop();
+    } else if (strcmp(pts, "inv") == 0) {
+        tm.start();
+        PTA->run<analysis::pta::PointsToWithInvalidate>();
         tm.stop();
     } else {
         llvm::errs() << "Unknown points to analysis, try: fs, fi\n";

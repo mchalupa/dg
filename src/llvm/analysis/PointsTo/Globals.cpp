@@ -113,6 +113,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
 
         // every global node is like memory allocation
         cur = new PSNode(PSNodeType::ALLOC);
+        cur->setIsGlobal();
         addNode(&*I, cur);
 
         if (prev)
