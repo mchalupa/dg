@@ -441,7 +441,6 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                     // and optimize it away later
                     node = createReturn(&Inst, rb);
                     break;
-                case Instruction::GetElementPtr:
                 case Instruction::Load:
                     node = createLoad(&Inst, rb);
                     break;
