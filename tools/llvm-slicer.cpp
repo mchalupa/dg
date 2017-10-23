@@ -60,6 +60,7 @@
 
 #include "llvm/analysis/DefUse.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
+#include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
@@ -76,6 +77,10 @@ using AnnotationOptsT
 
 enum PtaType {
     fs, fi, inv
+};
+
+enum class RdaType {
+    dense, ss
 };
 
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
@@ -130,6 +135,17 @@ llvm::cl::opt<PtaType> pta("pta",
 #endif
         ),
     llvm::cl::init(fi), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<RdaType> rda("rda",
+    llvm::cl::desc("Choose reaching definitions analysis to use:"),
+    llvm::cl::values(
+        clEnumVal(RdaType::dense, "Dense RDA (default)"),
+        clEnumVal(RdaType::ss, "Semi-sparse RDA")
+#if LLVM_VERSION_MAJOR < 4
+        , nullptr
+#endif
+        ),
+    llvm::cl::init(RdaType::dense), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
     llvm::cl::desc("Choose control dependencies algorithm to use:"),
@@ -257,7 +273,13 @@ protected:
         assert(RD && "BUG: No RD");
 
         tm.start();
-        RD->run();
+        if (rda == RdaType::dense) {
+            RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis, false>();
+        } else if (rda == RdaType::ss) {
+            RD->run<dg::analysis::rd::SemisparseRda, true>();
+        } else {
+            assert( false && "unknown RDA type" );
+        }
         tm.stop();
         tm.report("INFO: Reaching defs analysis took");
 
