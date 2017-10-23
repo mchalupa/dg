@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
+    const char *rda = "dense";
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
     using namespace debug;
@@ -78,6 +79,8 @@ int main(int argc, char *argv[])
             opts &= ~PRINT_CD;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
+        } else if (strcmp(argv[i], "-rda") == 0) {
+            rda = argv[++i];
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
         } else if (strcmp(argv[i], "-nocfg") == 0) {
@@ -178,7 +181,19 @@ int main(int argc, char *argv[])
     //use new analyses
     analysis::rd::LLVMReachingDefinitions RDA(M, PTA);
     tm.start();
-    RDA.run();  // compute reaching definitions
+
+    if (strcmp(rda, "dense") == 0) {
+        tm.start();
+        RDA.run<analysis::rd::ReachingDefinitionsAnalysis, false>();
+        tm.stop();
+    } else if (strcmp(rda, "ss") == 0) {
+        tm.start();
+        RDA.run<analysis::rd::SemisparseRda, true>();
+        tm.stop();
+    } else {
+        llvm::errs() << "Unknown reaching definitions analysis, try: dense, ss\n";
+        abort();
+    }
     tm.stop();
     tm.report("INFO: Reaching defs analysis took");
 
