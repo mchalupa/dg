@@ -304,12 +304,20 @@ int main(int argc, char *argv[])
         FLOW_INSENSITIVE,
     } type = FLOW_INSENSITIVE;
 
+    enum class RdaType {
+        DENSE,
+        SEMISPARSE
+    } rda = RdaType::DENSE;
+
     // parse options
     for (int i = 1; i < argc; ++i) {
         // run given points-to analysis
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+        } else if (strcmp(argv[0], "-rda") == 0) {
+            if (strcmp(argv[i+1], "ss") == 0)
+                rda = RdaType::SEMISPARSE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_senitivity = (uint64_t) atoll(argv[i + 1]);
         } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
@@ -367,7 +375,10 @@ int main(int argc, char *argv[])
 
     LLVMReachingDefinitions RD(M, &PTA, rd_strong_update_unknown, max_set_size);
     tm.start();
-    RD.run();
+    if (rda == RdaType::SEMISPARSE) {
+        RD.run<dg::analysis::rd::SemisparseRda, true>();
+    } else
+        RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis, false>();
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 

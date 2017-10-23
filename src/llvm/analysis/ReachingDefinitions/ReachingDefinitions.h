@@ -172,6 +172,19 @@ class LLVMReachingDefinitions
     uint32_t max_set_size;
     std::vector<std::unique_ptr<RDNode>> phi_nodes;
 
+    // CalculateSRG = true
+    template <typename RdaType>
+    void createRDA(RDNode *root, std::true_type) {
+        std::tie(srg, phi_nodes) = srg_builder->build(root);
+        RDA = std::unique_ptr<RdaType>(new RdaType(srg, root));
+    }
+
+    // CalculateSRG = false
+    template <typename RdaType>
+    void createRDA(RDNode *root, std::false_type) {
+        RDA = std::unique_ptr<RdaType>(new RdaType(root));
+    }
+
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
                             dg::LLVMPointerAnalysis *pta,
@@ -182,16 +195,17 @@ public:
         srg_builder(llvm::make_unique<dg::analysis::rd::srg::MarkerSRGBuilder>()), strong_update_unknown(strong_updt_unknown),
         max_set_size(max_set_sz) {}
 
+    /**
+     * Template parameters:
+     * RdaType - class extending dg::analysis::rd::ReachingDefinitions to be used as analysis
+     * CalculateSRG - whether or not to calculate SparseRDGraph (and pass it as the first constructor parameter to constructor called as `new RdaType(root, srg)` )
+     */
+    template <typename RdaType, bool CalculateSRG=false>
     void run()
     {
         root = builder->build();
 
-        std::tie(srg, phi_nodes) = srg_builder->build(root);
-
-        RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-            /* new ReachingDefinitionsAnalysis(root) */
-            new SemisparseRda(srg, root)
-        );
+        createRDA<RdaType>(root, std::integral_constant<bool, CalculateSRG>());
         RDA->run();
     }
 
