@@ -131,8 +131,15 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
         case Intrinsic::bswap:
         case Intrinsic::prefetch:
         case Intrinsic::objectsize:
+        case Intrinsic::sadd_with_overflow:
+        case Intrinsic::uadd_with_overflow:
+        case Intrinsic::ssub_with_overflow:
+        case Intrinsic::usub_with_overflow:
+        case Intrinsic::smul_with_overflow:
+        case Intrinsic::umul_with_overflow:
             // nothing to be done, direct def-use edges
             // will be added later
+            assert(I->getCalledFunction()->doesNotAccessMemory());
             return;
         case Intrinsic::stacksave:
         case Intrinsic::stackrestore:
@@ -140,8 +147,14 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
                 llvmutils::printerr("WARN: stack save/restore not implemented", CI);
             return;
         default:
-            I->dump();
-            assert(0 && "DEF-USE: Unhandled intrinsic call");
+            llvmutils::printerr("WARNING: unhandled intrinsic call", I);
+            // if it does not access memory, we can just add
+            // direct def-use edges
+            if (I->getCalledFunction()->doesNotAccessMemory())
+                return;
+
+            assert (0 && "Unhandled intrinsic that accesses memory");
+            // for release builds, do the best we can here
             handleUndefinedCall(callNode, CI);
             return;
     }
