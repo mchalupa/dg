@@ -272,7 +272,7 @@ Pointer LLVMPointerSubgraphBuilder::getConstantExprPointer(const llvm::ConstantE
     using namespace llvm;
 
     Pointer pointer(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
-    const Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
+    Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
 
     switch(Inst->getOpcode()) {
         case Instruction::GetElementPtr:
@@ -313,7 +313,11 @@ Pointer LLVMPointerSubgraphBuilder::getConstantExprPointer(const llvm::ConstantE
             abort();
     }
 
+#if LLVM_VERSION_MAJOR < 5
     delete Inst;
+#else
+    Inst->deleteValue();
+#endif
     return pointer;
 }
 
