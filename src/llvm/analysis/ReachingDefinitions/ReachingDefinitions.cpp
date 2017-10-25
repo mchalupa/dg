@@ -730,9 +730,9 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
     using namespace llvm;
 
     const IntrinsicInst *I = cast<IntrinsicInst>(CInst);
-    const Value *dest;
-    const Value *lenVal;
-    const Value *source;
+    const Value *dest = nullptr;
+    const Value *lenVal = nullptr;
+    const Value *source = nullptr;
 
     RDNode *ret;
     pta::PSNode *pts2;
