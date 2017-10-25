@@ -788,9 +788,9 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
     using namespace llvm;
 
     const IntrinsicInst *I = cast<IntrinsicInst>(CInst);
-    const Value *dest;
-    const Value *lenVal;
-    const Value *source;
+    const Value *dest = nullptr;
+    const Value *lenVal = nullptr;
+    const Value *source = nullptr;
 
     RDNode *ret;
     pta::PSNode *pts2;
@@ -892,36 +892,38 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock 
         ret->addDef(target, from, to, true /* strong update */);
     }
 
-    pts2 = PTA->getPointsTo(source);
-    assert(pts && "No points-to information");
-    for (const pta::Pointer& ptr : pts2->pointsTo) {
-        if (!ptr.isValid())
-            continue;
+    if (source) {
+        pts2 = PTA->getPointsTo(source);
+        assert(pts && "No points-to information");
+        for (const pta::Pointer& ptr : pts2->pointsTo) {
+            if (!ptr.isValid())
+                continue;
 
-        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        if (llvm::isa<llvm::Function>(ptrVal))
-            continue;
+            const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+            if (llvm::isa<llvm::Function>(ptrVal))
+                continue;
 
-        uint64_t from, to;
-        if (ptr.offset.isUnknown()) {
-            // if the offset is UNKNOWN, use whole memory
-            from = UNKNOWN_OFFSET;
-            len = UNKNOWN_OFFSET;
-        } else {
-            from = *ptr.offset;
+            uint64_t from, to;
+            if (ptr.offset.isUnknown()) {
+                // if the offset is UNKNOWN, use whole memory
+                from = UNKNOWN_OFFSET;
+                len = UNKNOWN_OFFSET;
+            } else {
+                from = *ptr.offset;
+            }
+
+            // do not allow overflow
+            if (UNKNOWN_OFFSET - from > len)
+                to = from + len;
+            else
+                to = UNKNOWN_OFFSET;
+
+            RDNode *target = getOperand(ptrVal, rb);
+            assert(target && "Don't have pointer target for intrinsic call");
+
+            // add the definition
+            ret->addUse(target, from, to);
         }
-
-        // do not allow overflow
-        if (UNKNOWN_OFFSET - from > len)
-            to = from + len;
-        else
-            to = UNKNOWN_OFFSET;
-
-        RDNode *target = getOperand(ptrVal, rb);
-        assert(target && "Don't have pointer target for intrinsic call");
-
-        // add the definition
-        ret->addUse(target, from, to);
     }
 
     return ret;
