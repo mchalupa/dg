@@ -100,7 +100,7 @@ enum PtaType {
     fs, fi
 };
 
-enum class RdaType {
+enum RdaType {
     dense, ss
 };
 
@@ -153,13 +153,13 @@ llvm::cl::opt<PtaType> pta("pta",
 llvm::cl::opt<RdaType> rda("rda",
     llvm::cl::desc("Choose reaching definitions analysis to use:"),
     llvm::cl::values(
-        clEnumVal(RdaType::dense, "Dense RDA (default)"),
-        clEnumVal(RdaType::ss, "Semi-sparse RDA")
+        clEnumVal(dense, "Dense RDA (default)"),
+        clEnumVal(ss, "Semi-sparse RDA")
 #if LLVM_VERSION_MAJOR < 4
         , nullptr
 #endif
         ),
-    llvm::cl::init(RdaType::dense), llvm::cl::cat(SlicingOpts));
+    llvm::cl::init(dense), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
     llvm::cl::desc("Choose control dependencies algorithm to use:"),
@@ -530,9 +530,9 @@ protected:
         assert(RD && "BUG: No RD");
 
         tm.start();
-        if (rda == RdaType::dense) {
+        if (rda == dense) {
             RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis, false>();
-        } else if (rda == RdaType::ss) {
+        } else if (rda == ss) {
             RD->run<dg::analysis::rd::SemisparseRda, true>();
         } else {
             assert( false && "unknown RDA type" );
