@@ -115,18 +115,17 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
     {
         case Intrinsic::memmove:
         case Intrinsic::memcpy:
-            dest = I->getOperand(0);
             src = I->getOperand(1);
-            break;
+            // fall-through
         case Intrinsic::memset:
-            dest = I->getOperand(0);
-            break;
         case Intrinsic::vastart:
             dest = I->getOperand(0);
             break;
         case Intrinsic::vaend:
         case Intrinsic::lifetime_start:
         case Intrinsic::lifetime_end:
+            // nothing to be done here
+            return;
         case Intrinsic::trap:
         case Intrinsic::bswap:
         case Intrinsic::prefetch:
