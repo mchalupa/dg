@@ -74,6 +74,8 @@
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 #include "analysis/PointsTo/Pointer.h"
 
+#include "git-version.h"
+
 using namespace dg;
 using llvm::errs;
 

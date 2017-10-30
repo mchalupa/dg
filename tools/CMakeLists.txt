@@ -1,15 +1,16 @@
 if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader support)
 
-	execute_process(COMMAND git rev-parse --short=8 HEAD
-	                OUTPUT_VARIABLE GITVERSION
-			OUTPUT_STRIP_TRAILING_WHITESPACE)
-	add_definitions(-DGIT_VERSION="${GITVERSION}")
+	# generate a git-version.h with a HEAD commit hash tag
+	# (if it changed)
+	add_custom_target(
+		gitversion ALL sh git-version.sh
+	)
 
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 	target_link_libraries(llvm-dg-dump LLVMdg)
 
-	add_executable(llvm-slicer llvm-slicer.cpp)
+	add_executable(llvm-slicer llvm-slicer.cpp git-version.h)
 	target_link_libraries(llvm-slicer LLVMdg)
 
 	add_executable(llvm-ps-dump llvm-ps-dump.cpp)
