@@ -10,8 +10,9 @@ if (LLVM_DG)
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 	target_link_libraries(llvm-dg-dump LLVMdg)
 
-	add_executable(llvm-slicer llvm-slicer.cpp git-version.h)
+	add_executable(llvm-slicer llvm-slicer.cpp)
 	target_link_libraries(llvm-slicer LLVMdg)
+	add_dependencies(llvm-slicer gitversion)
 
 	add_executable(llvm-ps-dump llvm-ps-dump.cpp)
 	target_link_libraries(llvm-ps-dump LLVMdg)
