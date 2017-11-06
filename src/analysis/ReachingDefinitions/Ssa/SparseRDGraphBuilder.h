@@ -129,6 +129,9 @@ public:
 
         // find assignments and use them to find places for phi-functions
         AssignmentFinder af;
+        // add def-use edges for unknown memory
+        af.populateUnknownMemory(root);
+
         PhiPlacement pp;
 
         // place the phi functions into program
