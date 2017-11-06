@@ -124,9 +124,9 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
         case Intrinsic::vaend:
         case Intrinsic::lifetime_start:
         case Intrinsic::lifetime_end:
+        case Intrinsic::trap:
             // nothing to be done here
             return;
-        case Intrinsic::trap:
         case Intrinsic::bswap:
         case Intrinsic::prefetch:
         case Intrinsic::objectsize:
