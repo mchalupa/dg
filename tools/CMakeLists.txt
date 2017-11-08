@@ -4,8 +4,9 @@ if (LLVM_DG)
 	# generate a git-version.h with a HEAD commit hash tag
 	# (if it changed)
 	add_custom_target(
-		gitversion ALL sh git-version.sh
+		gitversion ALL sh ${CMAKE_CURRENT_SOURCE_DIR}/git-version.sh
 	)
+	include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 	target_link_libraries(llvm-dg-dump LLVMdg)
@@ -30,5 +31,5 @@ if (LLVM_DG)
 		RUNTIME DESTINATION bin)
 endif (LLVM_DG)
 
-include_directories('../src')
+include_directories(../src)
 
