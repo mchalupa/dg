@@ -84,6 +84,7 @@ install(FILES
 	analysis/PointsTo/PointerSubgraph.h
 	analysis/PointsTo/PointsToFlowInsensitive.h
 	analysis/PointsTo/PointsToFlowSensitive.h
+	analysis/PointsTo/PointsToWithInvalidate.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/analysis/PointsTo/)
 install(FILES
 	llvm/llvm-utils.h

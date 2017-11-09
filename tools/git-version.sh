@@ -1,6 +1,10 @@
 #!/bin/sh
 
-GIT_VERSION="`git rev-parse --short=8 HEAD`"
+if which git >/dev/null 2>&1; then
+	GIT_VERSION="`git rev-parse --short=8 HEAD`"
+else
+	GIT_VERSION="unknown"
+fi
 
 OLD_GIT_VERSION=
 if [ -f "git-version.h" ]; then
