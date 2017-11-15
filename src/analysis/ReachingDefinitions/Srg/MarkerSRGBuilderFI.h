@@ -1,5 +1,5 @@
-#ifndef _DG_MARKERSRGBUILDER_H
-#define _DG_MARKERSRGBUILDER_H
+#ifndef _DG_MARKERSRGBUILDERFI_H
+#define _DG_MARKERSRGBUILDERFI_H
 
 #include <memory>
 #include <vector>
@@ -15,7 +15,7 @@ namespace analysis {
 namespace rd {
 namespace srg {
 
-class MarkerSRGBuilder : public SparseRDGraphBuilder
+class MarkerSRGBuilderFI : public SparseRDGraphBuilder
 {
     /* see using-s in SparseRDGraphBuilder for reference... */
 
@@ -103,4 +103,4 @@ public:
 }
 }
 
-#endif /* _DG_MARKERSRGBUILDER_H */
+#endif /* _DG_MARKERSRGBUILDERFI_H */

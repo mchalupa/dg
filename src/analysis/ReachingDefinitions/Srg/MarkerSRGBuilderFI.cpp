@@ -1,13 +1,13 @@
-#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFI.h"
 
 using namespace dg::analysis::rd::srg;
 
-void MarkerSRGBuilder::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
+void MarkerSRGBuilderFI::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
     // remember the last definition
     current_def[var.target][block] = assignment;
 }
 
-MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariable(const DefSite& var, BlockT *read) {
+MarkerSRGBuilderFI::NodeT *MarkerSRGBuilderFI::readVariable(const DefSite& var, BlockT *read) {
     assert( read );
     auto& block_defs = current_def[var.target];
     auto it = block_defs.find(read);
@@ -22,7 +22,7 @@ MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariable(const DefSite& var, Bloc
     return assignment;
 }
 
-void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block) {
+void MarkerSRGBuilderFI::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block) {
 
     phi->addDef(var, true);
     phi->addUse(var);
@@ -36,7 +36,7 @@ void MarkerSRGBuilder::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *bl
     }
 }
 
-MarkerSRGBuilder::NodeT *MarkerSRGBuilder::readVariableRecursive(const DefSite& var, BlockT *block) {
+MarkerSRGBuilderFI::NodeT *MarkerSRGBuilderFI::readVariableRecursive(const DefSite& var, BlockT *block) {
     NodeT *val = nullptr;
     if (block->predecessorsNum() == 1) {
         BlockT *predBB = *(block->predecessors().begin());
