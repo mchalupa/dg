@@ -41,10 +41,6 @@ LLVMNode::~LLVMNode()
     delete[] operands;
 }
 
-void LLVMNode::dump() const {
-    getKey()->dump();
-}
-
 LLVMNode **LLVMNode::findOperands()
 {
     using namespace llvm;

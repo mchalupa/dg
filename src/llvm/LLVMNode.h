@@ -73,8 +73,6 @@ public:
     LLVMNode *getOperand(unsigned int idx);
     LLVMNode *setOperand(LLVMNode *op, unsigned int idx);
 
-    void dump() const;
-
     bool isPointerTy() const
     {
         return getKey()->getType()->isPointerTy();
