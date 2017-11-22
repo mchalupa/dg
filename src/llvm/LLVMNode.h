@@ -85,13 +85,7 @@ public:
     LLVMNode *getOperand(unsigned int idx);
     LLVMNode *setOperand(LLVMNode *op, unsigned int idx);
 
-    bool isPointerTy() const
-    {
-        return getKey()->getType()->isPointerTy();
-    }
-
-    bool isVoidTy() const
-    {
+    bool isVoidTy() const {
         return getKey()->getType()->isVoidTy();
     }
 
