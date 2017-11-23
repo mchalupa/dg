@@ -1,6 +1,9 @@
 #ifndef _DG_INTERVALSET_H
 #define _DG_INTERVALSET_H
 
+#include "analysis/Offset.h"
+#include "analysis/ReachingDefinitions/RDMap.h"
+
 namespace dg {
 namespace analysis {
 namespace rd {
@@ -27,22 +30,41 @@ class Interval {
 public:
     Interval(T start, T len): start(start), len(len) {}
 
+    bool unknown() const {
+        return start.isUnknown() || len.isUnknown();
+    }
+
     bool overlaps(const Interval& other) const {
+        if (unknown() || other.unknown()) {
+            return true;
+        }
         return intervalsOverlap(start.offset, len.offset, other.start.offset, other.len.offset);
     }
 
     bool isSubsetOf(const Interval& other) const {
+        if (unknown() || other.unknown()) {
+            return true;
+        }
         return start >= other.start && start + len <= other.start + other.len;
     }
 
     bool unite(const Interval& other) {
-        if (overlaps(other)) {
-            start = min(start, other.start);
-            T end = max(start + len, other.start + len);
-            len = end - start;
+        if (overlaps(other) || start + len == other.start || other.start + other.len == start) {
+            T a = min(start, other.start);
+            T b = max(start + len, other.start + other.len);
+            len = b - a;
+            start = a;
             return true;
         }
         return false;
+    }
+
+    T getStart() const {
+        return start;
+    }
+    
+    T getLength() const {
+        return len;
     }
 
 };
@@ -62,9 +84,11 @@ public:
 
     void insert(Interval interval) {
         // find & remove all overlapping intervals
-        for (auto it = begin(); it != end(); ++it) {
+        for (auto it = begin(); it != end(); ) {
             if (interval.unite(*it)) {
-                intervals.erase(it);
+                it = intervals.erase(it);
+            } else {
+                ++it;
             }
         }
 
@@ -152,7 +176,7 @@ public:
 
         static_assert(ReverseLookup, "forward lookup in IntervalMap is not yet supported");
         for (auto it = buckets.rbegin(); !is_covered && it != buckets.rend(); ++it) {
-            if (it->first.overlaps(interval)) {
+            if (it->first.overlaps(interval) && !isCovered(it->first, intervals)) {
                 intervals.insert(it->first);
                 result.push_back(it->second);
                 is_covered = isCovered(interval, intervals);
