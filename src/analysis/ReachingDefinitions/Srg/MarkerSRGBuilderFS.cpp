@@ -19,11 +19,11 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
         bool is_covered = false;
         std::tie(result, cov, is_covered) = it->second.collect(detail::Interval{var.offset, var.len}, covered);
         if (!is_covered) {
-            auto assignments2 = readVariableRecursive(var, read, cov);
-            result.insert(result.begin(), assignments2.begin(), assignments2.end());
+            NodeT *phi = readVariableRecursive(var, read, cov);
+            result.push_back(phi);
         }
     } else {
-        result = readVariableRecursive(var, read, covered);
+        result.push_back(readVariableRecursive(var, read, covered));
     }
     return result;
 }
@@ -47,7 +47,7 @@ void MarkerSRGBuilderFS::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *
     }
 }
 
-std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariableRecursive(const DefSite& var, BlockT *block, const std::vector<detail::Interval>& covered) {
+MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSite& var, BlockT *block, const std::vector<detail::Interval>& covered) {
     std::vector<NodeT *> result;
     bool is_covered = false;
 
@@ -55,11 +55,25 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariableRecursi
     if (block->predecessorsNum() == 1) {
         BlockT *predBB = *(block->predecessors().begin());
         Intervals cov;
-        std::tie(result, cov, is_covered) = last_def[var.target][predBB].collect(detail::Interval{var.offset,var.len}, covered);
+
+        auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
+        phi->addDef(var, true);
+        phi->addUse(var);
+        phi->setBasicBlock(block);
+        writeVariable(var, phi.get(), block);
+
+        std::vector<NodeT *> assignments;
+        std::tie(assignments, cov, is_covered) = last_def[var.target][predBB].collect(detail::Interval{var.offset,var.len}, covered);
         if (!is_covered) {
             std::vector<NodeT *> assignments2 = readVariable(var, predBB, cov);
-            result.insert(result.begin(), assignments2.begin(), assignments2.end());
+            assignments.insert(assignments.begin(), assignments2.begin(), assignments2.end());
         }
+        for (NodeT *node : assignments) {
+            insertSrgEdge(node, phi.get(), var);
+        }
+        val = phi.get();
+        phi_nodes.push_back(std::move(phi));
+
     } else {
         auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
 
@@ -71,5 +85,5 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariableRecursi
         phi_nodes.push_back(std::move(phi));
     }
     writeVariable(var, val, block);
-    return result;
+    return val;
 }

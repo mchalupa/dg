@@ -18,8 +18,9 @@ private:
 
     bool merge_maps(RDNode *source, RDNode *dest, DefSite& var) {
         bool changed = false;
+	
         if (source->getType() != RDNodeType::PHI)
-            changed |= dest->def_map.add(var, source);
+            changed |= dest->def_map.add(var, source);	
 
         for (auto& pair : source->def_map) {
             const DefSite& ds = pair.first;
@@ -50,6 +51,7 @@ public:
         // do fixpoint
         while (!to_process.empty()) {
             auto it = to_process.begin();
+	    
             RDNode *source = *it;
             to_process.erase(it);
 

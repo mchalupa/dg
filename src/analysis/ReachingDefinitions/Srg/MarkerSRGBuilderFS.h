@@ -38,7 +38,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     DefMapT last_def;
 
     void writeVariable(const DefSite& var, NodeT *assignment, BlockT *block);
-    std::vector<NodeT *> readVariableRecursive(const DefSite& var, BlockT *block, const Intervals& covered);
+    NodeT *readVariableRecursive(const DefSite& var, BlockT *block, const Intervals& covered);
 
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read) {
         Intervals empty_vector;
