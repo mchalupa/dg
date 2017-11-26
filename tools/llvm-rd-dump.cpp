@@ -86,6 +86,10 @@ printName(RDNode *node, bool dot)
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
+            if (node->getType() == RDNodeType::PHI) {
+                printf( "PHI" );
+                return;
+            }
             if (dot)
                 printf("%p\\n", node);
             else
@@ -143,10 +147,10 @@ dumpMap(RDNode *node, bool dot = false)
 }
 
 static void
-dumpDefines(RDNode *node, bool dot = false)
+dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
 {
-    for (const DefSite& def : node->getDefines()) {
-        printf("DEF: ");
+    for (const DefSite& def : defs) {
+        printf("%s: ", kind);
         printName(def.target, dot);
             if (def.offset.isUnknown())
                 printf(" [ UNKNOWN ]");
@@ -162,24 +166,23 @@ dumpDefines(RDNode *node, bool dot = false)
 }
 
 static void
-dumpOverwrites(RDNode *node, bool dot = false)
+dumpDefines(RDNode *node, bool dot = false)
 {
-    for (const DefSite& def : node->getOverwrites()) {
-        printf("DEF strong: ");
-        printName(def.target, dot);
-            if (def.offset.isUnknown())
-                printf(" [ UNKNOWN ]");
-            else
-                printf(" [ %lu - %lu ]", *def.offset,
-                       *def.offset + *def.len - 1);
-
-            if (dot)
-                printf("\\n");
-            else
-                putchar('\n');
-    }
+    dumpDefSites(node->getDefines(), "DEF", dot);
 }
 
+
+static void
+dumpOverwrites(RDNode *node, bool dot = false)
+{
+    dumpDefSites(node->getOverwrites(), "DEF strong", dot);
+}
+
+static void
+dumpUses(RDNode *node, bool dot = false)
+{
+    dumpDefSites(node->getUses(), "USE", dot);
+}
 
 static void
 dumpRDNode(RDNode *n)
@@ -213,6 +216,7 @@ dumpRDdot(LLVMReachingDefinitions *RD)
             printf("-------------\\n");
             dumpOverwrites(node, true);
             printf("-------------\\n");
+            dumpUses(node, true);
         }
             dumpMap(node, true /* dot */);
 
@@ -223,6 +227,18 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     for (RDNode *node : nodes) {
         for (RDNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
+    }
+
+    std::unordered_map<RDNode*, unsigned> colors;
+    for (auto& pair : RD->getSrg()) {
+        RDNode *source = pair.first;
+        for (auto& var_where: pair.second) {
+            DefSite var = var_where.first;
+            RDNode *dest = var_where.second;
+            if (colors.find(var.target) == colors.end())
+                colors[var.target] = rand();
+            printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]", source, dest, colors[var.target]);
+        }
     }
 
     printf("}\n");
@@ -244,12 +260,40 @@ dumpRD(LLVMReachingDefinitions *RD, bool todot)
     }
 }
 
+static void
+dumpRDBlocksDot(LLVMReachingDefinitions &RD)
+{
+    const auto& blocks = RD.getBlocks();
+
+    printf("digraph \"RDBlocks\" {\n");
+
+    /* dump nodes */
+    for (const auto& pair : blocks) {
+        for (const auto& block : pair.second) {
+            printf("\tNODE%p", block.get());
+            printf("[label=\"%p\"shape=box]\n", block.get());
+        }
+    }
+
+    for (const auto& pair : blocks) {
+        for (const auto& block : pair.second) {
+            for (const auto& edge : block->successors()) {
+                printf("\tNODE%p -> NODE%p\n", block.get(), edge.target);
+            }
+        }
+    }
+
+    printf("}\n");
+
+}
+
 int main(int argc, char *argv[])
 {
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     bool todot = false;
+    bool blocks = false;
     const char *module = nullptr;
     uint64_t field_senitivity = UNKNOWN_OFFSET;
     bool rd_strong_update_unknown = false;
@@ -260,12 +304,20 @@ int main(int argc, char *argv[])
         FLOW_INSENSITIVE,
     } type = FLOW_INSENSITIVE;
 
+    enum class RdaType {
+        DENSE,
+        SEMISPARSE
+    } rda = RdaType::DENSE;
+
     // parse options
     for (int i = 1; i < argc; ++i) {
         // run given points-to analysis
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+        } else if (strcmp(argv[i], "-rda") == 0) {
+            if (strcmp(argv[i+1], "ss") == 0)
+                rda = RdaType::SEMISPARSE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_senitivity = (uint64_t) atoll(argv[i + 1]);
         } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
@@ -280,6 +332,8 @@ int main(int argc, char *argv[])
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-blocks") == 0) {
+            blocks = true;
         } else {
             module = argv[i];
         }
@@ -321,11 +375,20 @@ int main(int argc, char *argv[])
 
     LLVMReachingDefinitions RD(M, &PTA, rd_strong_update_unknown, max_set_size);
     tm.start();
-    RD.run();
+    if (rda == RdaType::SEMISPARSE) {
+        RD.run<dg::analysis::rd::SemisparseRda, true>();
+    } else
+        RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis, false>();
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
-    dumpRD(&RD, todot);
+    if (blocks) {
+        if (!todot) {
+            errs() << "warning: -dot not specified, but -blocks only supports dot format. overriding...\n";
+        }
+        dumpRDBlocksDot(RD);
+    } else
+        dumpRD(&RD, todot);
 
     return 0;
 }

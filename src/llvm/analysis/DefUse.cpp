@@ -38,6 +38,7 @@
 
 using dg::analysis::rd::LLVMReachingDefinitions;
 using dg::analysis::rd::RDNode;
+using dg::analysis::rd::RDNodeType;
 
 using namespace llvm;
 
@@ -329,7 +330,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
         if (!defs.empty()) {
             for (RDNode *rd : defs) {
                 assert(!rd->isUnknown() && "Unknown memory defined at unknown location?");
-                addDataDependence(node, rd);
+                if (rd->getType() != RDNodeType::PHI)
+                    addDataDependence(node, rd);
             }
 
             defs.clear();
@@ -362,7 +364,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
                 break;
             }
 
-            addDataDependence(node, rd);
+            if (rd->getType() != RDNodeType::PHI)
+                addDataDependence(node, rd);
         }
     }
 }

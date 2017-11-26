@@ -9,12 +9,19 @@
 #include <llvm/IR/Constants.h>
 
 #include "llvm/MemAllocationFuncs.h"
+#include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "analysis/ReachingDefinitions/Srg/SparseRDGraphBuilder.h"
+#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilder.h"
+#include "analysis/ReachingDefinitions/SemisparseRda.h"
+#include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 
 namespace dg {
 namespace analysis {
 namespace rd {
+
+using RDBlock = BBlock<RDNode>;
 
 class LLVMRDBuilder
 {
@@ -48,6 +55,12 @@ class LLVMRDBuilder
     // list of dummy nodes (used just to keep the track of memory,
     // so that we can delete it later)
     std::vector<RDNode *> dummy_nodes;
+    // each LLVM block is mapped to multiple RDBlocks.
+    // this is necessary for function inlining, where
+    std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>> blocks;
+    // all constructed functions and their corresponding blocks
+    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, std::vector<RDBlock *>>> functions_blocks;
+
 public:
     LLVMRDBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
@@ -83,8 +96,16 @@ public:
         return it->second;
     }
 
-    RDNode *getOperand(const llvm::Value *val);
-    RDNode *createNode(const llvm::Instruction& Inst);
+    RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
+    RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);
+
+    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>& getBlocks() const {
+        return blocks;
+    }
+
+    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, std::vector<RDBlock *>>>& getConstructedFunctions() {
+        return functions_blocks;
+    }
 
 private:
     void addNode(const llvm::Value *val, RDNode *node)
@@ -94,6 +115,11 @@ private:
 
         nodes_map.emplace_hint(it, val, node);
         node->setUserData(const_cast<llvm::Value *>(val));
+    }
+
+    void addBlock(const llvm::Value *val, RDBlock *block) {
+        block->setKey(const_cast<llvm::Value *>(val));
+        blocks[val].push_back(std::unique_ptr<RDBlock>(block));
     }
 
     ///
@@ -111,34 +137,53 @@ private:
         mapping.emplace_hint(it, val, node);
     }
 
-    RDNode *createStore(const llvm::Instruction *Inst);
-    RDNode *createAlloc(const llvm::Instruction *Inst);
-    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type);
-    RDNode *createRealloc(const llvm::Instruction *Inst);
-    RDNode *createReturn(const llvm::Instruction *Inst);
+    std::vector<DefSite> getPointsTo(const llvm::Value *val, RDBlock *rb);
 
-    std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);
-    std::pair<RDNode *, RDNode *> buildFunction(const llvm::Function& F);
+    RDNode *createLoad(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createStore(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createAlloc(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type, RDBlock *rb);
+    RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
 
-    std::pair<RDNode *, RDNode *> buildGlobals();
+    std::vector<RDBlock *> buildBlock(const llvm::BasicBlock& block);
+    std::pair<RDBlock *,RDBlock *> buildFunction(const llvm::Function& F);
+
+    RDBlock *buildGlobals();
 
     std::pair<RDNode *, RDNode *>
-    createCallToFunction(const llvm::Function *F);
+    createCallToFunction(const llvm::Function *F, RDBlock *rb);
 
     std::pair<RDNode *, RDNode *>
-    createCall(const llvm::Instruction *Inst);
+    createCall(const llvm::Instruction *Inst, RDBlock *rb);
 
-    RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
-    RDNode *createUndefinedCall(const llvm::CallInst *CInst);
+    RDNode *createIntrinsicCall(const llvm::CallInst *CInst, RDBlock *rb);
+    RDNode *createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb);
 };
 
 class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
+    std::unique_ptr<dg::analysis::rd::srg::SparseRDGraphBuilder> srg_builder;
+    dg::analysis::rd::srg::SparseRDGraph srg;
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
+    std::vector<std::unique_ptr<RDNode>> phi_nodes;
+
+    // CalculateSRG = true
+    template <typename RdaType>
+    void createRDA(RDNode *root, std::true_type) {
+        std::tie(srg, phi_nodes) = srg_builder->build(root);
+        RDA = std::unique_ptr<RdaType>(new RdaType(srg, root));
+    }
+
+    // CalculateSRG = false
+    template <typename RdaType>
+    void createRDA(RDNode *root, std::false_type) {
+        RDA = std::unique_ptr<RdaType>(new RdaType(root));
+    }
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
@@ -147,15 +192,25 @@ public:
                             bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
         : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
-          strong_update_unknown(strong_updt_unknown), max_set_size(max_set_sz) {}
+        srg_builder(llvm::make_unique<dg::analysis::rd::srg::MarkerSRGBuilder>()), strong_update_unknown(strong_updt_unknown),
+        max_set_size(max_set_sz) {}
 
+    /**
+     * Template parameters:
+     * RdaType - class extending dg::analysis::rd::ReachingDefinitions to be used as analysis
+     * CalculateSRG - whether or not to calculate SparseRDGraph (and pass it as the first constructor parameter to constructor called as `new RdaType(root, srg)` )
+     */
+    template <typename RdaType, bool CalculateSRG=false>
     void run()
     {
         root = builder->build();
-        RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-            new ReachingDefinitionsAnalysis(root, strong_update_unknown, max_set_size)
-            );
+
+        createRDA<RdaType>(root, std::integral_constant<bool, CalculateSRG>());
         RDA->run();
+    }
+
+    RDNode *getRoot() {
+        return root;
     }
 
     RDNode *getNode(const llvm::Value *val)
@@ -173,11 +228,16 @@ public:
                                 getMapping() const
     { return builder->getMapping(); }
 
+    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>&
+        getBlocks() const
+        { return builder->getBlocks(); }
+
     RDNode *getMapping(const llvm::Value *val)
     {
         return builder->getMapping(val);
     }
 
+    const dg::analysis::rd::srg::SparseRDGraph& getSrg() const { return srg; }
     void getNodes(std::set<RDNode *>& cont)
     {
         assert(RDA);

@@ -19,6 +19,8 @@ add_library(RD SHARED
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp
 	analysis/ReachingDefinitions/RDMap.h
 	analysis/ReachingDefinitions/RDMap.cpp
+	analysis/ReachingDefinitions/Srg/MarkerSRGBuilder.h
+	analysis/ReachingDefinitions/Srg/MarkerSRGBuilder.cpp
 )
 
 add_library(LLVMpta SHARED

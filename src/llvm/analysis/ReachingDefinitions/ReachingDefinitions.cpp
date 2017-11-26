@@ -105,10 +105,11 @@ static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
         return DL->getTypeAllocSize(Ty);
 }
 
-RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
+RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst, RDBlock *rb)
 {
     RDNode *node = new RDNode(RDNodeType::ALLOC);
     addNode(Inst, node);
+    rb->append(node);
 
     if (const llvm::AllocaInst *AI
             = llvm::dyn_cast<llvm::AllocaInst>(Inst))
@@ -117,12 +118,13 @@ RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
-RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type)
+RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type, RDBlock *rb)
 {
     using namespace llvm;
 
     RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
     addNode(Inst, node);
+    rb->append(node);
 
     const CallInst *CInst = cast<CallInst>(Inst);
     const Value *op;
@@ -157,10 +159,11 @@ RDNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, MemAllocati
     return node;
 }
 
-RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
+RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst, RDBlock *rb)
 {
     RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
     addNode(Inst, node);
+    rb->append(node);
 
     uint64_t size = getConstantValue(Inst->getOperand(1));
     if (size == 0)
@@ -171,6 +174,8 @@ RDNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
     // realloc defines itself, since it copies the values
     // from previous memory
     node->addDef(node, 0, size, false /* strong update */);
+    // operand 0 is pointer
+    node->addUses(getPointsTo(Inst->getOperand(0),rb));
 
     return node;
 }
@@ -210,10 +215,11 @@ static void getLocalVariables(const llvm::Function *F,
     }
 }
 
-RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
+RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst, RDBlock *rb)
 {
     RDNode *node = new RDNode(RDNodeType::RETURN);
     addNode(Inst, node);
+    rb->append(node);
 
     // FIXME: don't do that for every return instruction,
     // compute it only once for a function
@@ -222,7 +228,7 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
                       locals);
 
     for (const llvm::Value *ptrVal : locals) {
-        RDNode *ptrNode = getOperand(ptrVal);
+        RDNode *ptrNode = getOperand(ptrVal, rb);
         if (!ptrNode) {
             llvm::errs() << *ptrVal << "\n";
             llvm::errs() << "Don't have created node for local variable\n";
@@ -239,16 +245,16 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
     return node;
 }
 
-RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
+RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val, RDBlock *rb)
 {
     RDNode *op = getNode(val);
     if (!op)
-        return createNode(*llvm::cast<llvm::Instruction>(val));
+        return createNode(*llvm::cast<llvm::Instruction>(val), rb);
 
     return op;
 }
 
-RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
+RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst, RDBlock *rb)
 {
     using namespace llvm;
 
@@ -256,10 +262,10 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
     switch(Inst.getOpcode()) {
         case Instruction::Alloca:
             // we need alloca's as target to DefSites
-            node = createAlloc(&Inst);
+            node = createAlloc(&Inst, rb);
             break;
         case Instruction::Call:
-            node = createCall(&Inst).second;
+            node = createCall(&Inst, rb).second;
             break;
         default:
             llvm::errs() << "BUG: " << Inst << "\n";
@@ -269,37 +275,26 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
     return node;
 }
 
-RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
+std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock *rb)
 {
-    RDNode *node = new RDNode(RDNodeType::STORE);
-    addNode(Inst, node);
+    std::vector<DefSite> result;
 
-    pta::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
-    assert(pts && "Don't have the points-to information for store");
+    pta::PSNode *psn = PTA->getPointsTo(val);
 
-    if (pts->pointsTo.empty()) {
-        //llvm::errs() << "ERROR: empty STORE points-to: " << *Inst << "\n";
+    if (!psn)
+        // don't have points-to information for used pointer
+        return result;
 
-        // this may happen on invalid reads and writes to memory,
-        // like when you try for example this:
-        //
-        //   int p, q;
-        //   memcpy(p, q, sizeof p);
-        //
-        // (there should be &p and &q)
-        // NOTE: maybe this is a bit strong to say unknown memory,
-        // but better be sound then incorrect
-        node->addDef(UNKNOWN_MEMORY);
-        return node;
+    if (psn->pointsTo.empty()) {
+        result.push_back(DefSite(UNKNOWN_MEMORY));
     }
 
-    for (const pta::Pointer& ptr: pts->pointsTo) {
-        // XXX we should at least warn?
+    for (const pta::Pointer& ptr : psn->pointsTo) {
         if (ptr.isNull())
             continue;
 
         if (ptr.isUnknown()) {
-            node->addDef(UNKNOWN_MEMORY);
+            result.push_back(DefSite(UNKNOWN_MEMORY));
             continue;
         }
 
@@ -307,21 +302,14 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
             continue;
 
         const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        // this may emerge with vararg function
         if (llvm::isa<llvm::Function>(ptrVal))
             continue;
 
-        RDNode *ptrNode = getOperand(ptrVal);
-        //assert(ptrNode && "Don't have created node for pointer's target");
+        RDNode *ptrNode = getOperand(ptrVal, rb);
         if (!ptrNode) {
-            // keeping such set is faster then printing it all to terminal
-            // ... and we don't flood the terminal that way
-            static std::set<const llvm::Value *> warned;
-            if (warned.insert(ptrVal).second) {
-                llvm::errs() << *ptrVal << "\n";
-                llvm::errs() << "Don't have created node for pointer's target\n";
-            }
-
+            // XXX: maybe warn here
+            llvm::errs() << *ptrVal << "\n";
+            llvm::errs() << "Don't have created node for pointer's source\n";
             continue;
         }
 
@@ -329,33 +317,44 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         if (ptr.offset.isUnknown()) {
             size = UNKNOWN_OFFSET;
         } else {
-            size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
+            size = getAllocatedSize(val->getType(), DL);
             if (size == 0)
                 size = UNKNOWN_OFFSET;
         }
 
-        //llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
-        //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
-
-        // strong update is possible only with must aliases. Also we can not
-        // be pointing to heap, because then we don't know which object it
-        // is in run-time, like:
-        //  void *foo(int a)
-        //  {
-        //      void *mem = malloc(...)
-        //      mem->n = a;
-        //  }
-        //
-        //  1. mem1 = foo(3);
-        //  2. mem2 = foo(4);
-        //  3. assert(mem1->n == 3);
-        //
-        //  If we would do strong update on line 2 (which we would, since
-        //  there we have must alias for the malloc), we would loose the
-        //  definitions for line 1 and we would get incorrect results
-        bool strong_update = pts->pointsTo.size() == 1 && !pts->isHeap();
-        node->addDef(ptrNode, ptr.offset, size, strong_update);
+        // TODO: fix strong updates
+        /* bool strong_update = psn->pointsTo.size()  == 1 && !psn->isHeap(); */
+        result.push_back(DefSite(ptrNode, ptr.offset, size));
     }
+    return result;
+}
+
+RDNode *LLVMRDBuilder::createLoad(const llvm::Instruction *Inst, RDBlock *rb)
+{
+    using namespace llvm;
+
+    RDNode *node = new RDNode(RDNodeType::LOAD);
+    addNode(Inst, node);
+    rb->append(node);
+
+    node->addUses(getPointsTo(Inst->getOperand(0), rb));
+
+    return node;
+}
+
+RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
+{
+    RDNode *node = new RDNode(RDNodeType::STORE);
+    addNode(Inst, node);
+    rb->append(node);
+
+    // check if argument 0 is a pointer
+    llvm::Value *val = Inst->getOperand(0);
+    if (val->getType()->isPointerTy()) {
+        node->addUses(getPointsTo(val, rb));
+    }
+
+    node->addDefs(getPointsTo(Inst->getOperand(1), rb));
 
     assert(node);
     return node;
@@ -404,11 +403,19 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
     assert(0 && "We should not reach this");
 }
 
-// return first and last nodes of the block
-std::pair<RDNode *, RDNode *>
+/**
+ * returns all RDBlock-s to which the LLVM block maps.
+ */
+std::vector<RDBlock *>
 LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 {
     using namespace llvm;
+
+    std::vector<RDBlock *> result;
+    RDBlock *rb = new RDBlock();
+    rb->setKey(const_cast<llvm::BasicBlock *>(&block));
+    addBlock(&block, rb);
+    result.push_back(rb);
 
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
@@ -416,32 +423,82 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     RDNode *last_node = node;
 
     addNode(node);
-    std::pair<RDNode *, RDNode *> ret(node, nullptr);
+    rb->append(node);
 
     for (const Instruction& Inst : block) {
         node = getNode(&Inst);
         if (!node) {
-           switch(Inst.getOpcode()) {
+            RDBlock *new_block = nullptr;
+            switch(Inst.getOpcode()) {
                 case Instruction::Alloca:
                     // we need alloca's as target to DefSites
-                    node = createAlloc(&Inst);
+                    node = createAlloc(&Inst, rb);
                     break;
                 case Instruction::Store:
-                    node = createStore(&Inst);
+                    node = createStore(&Inst, rb);
                     break;
                 case Instruction::Ret:
                     // we need create returns, since
                     // these modify CFG and thus data-flow
                     // FIXME: add new type of node NOOP,
                     // and optimize it away later
-                    node = createReturn(&Inst);
+                    node = createReturn(&Inst, rb);
+                    break;
+                case Instruction::Load:
+                    node = createLoad(&Inst, rb);
                     break;
                 case Instruction::Call:
                     if (!isRelevantCall(&Inst))
                         break;
 
-                    std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
+                    std::pair<RDNode *, RDNode *> subg = createCall(&Inst, rb);
+
                     last_node->addSuccessor(subg.first);
+
+                    if (subg.first->successorsNum() > 0) {
+                        RDBlock *succBB = (*subg.first->getSuccessors().begin())->getBBlock();
+                        if (succBB != nullptr) {
+                            rb->addSuccessor(succBB);
+                        }
+                    }
+
+                    // if the function consists of single node(intrinsics, undefined etc)
+                    // do not add more nodes for this function
+                    if (subg.first != subg.second) {
+                        // successors for blocks with return will be added later
+                        new_block = new RDBlock();
+                        addBlock(const_cast<llvm::BasicBlock *>(&block), new_block);
+                        result.push_back(new_block);
+                        new_block->append(subg.second);
+                        rb = new_block;
+
+                        for (RDNode *pred : subg.second->getPredecessors()) {
+                            RDBlock *predBB = pred->getBBlock();
+                            if (predBB) {
+                                for (RDNode *succ : pred->getSuccessors()) {
+                                    if (succ == subg.second)
+                                        continue;
+                                    RDBlock *succBB = succ->getBBlock();
+                                    if (succBB)
+                                        predBB->addSuccessor(succBB);
+                                }
+                            }
+                        }
+
+                        for (RDNode *pred : subg.second->getPredecessors()) {
+                            RDBlock *predBB = pred->getBBlock();
+                            if (pred != subg.second && predBB) {
+                                predBB->addSuccessor(rb);
+                            } else if (!predBB) {
+                                for (RDNode *p2 : pred->getPredecessors()) {
+                                    if (p2->getBBlock() != predBB) {
+                                        p2->getBBlock()->addSuccessor(rb);
+                                        p2->getBBlock()->append(pred);
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // new nodes will connect to the return node
                     node = last_node = subg.second;
@@ -465,24 +522,21 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
         addMapping(&Inst, last_node);
     }
 
-    // last node
-    ret.second = last_node;
-
-    return ret;
+    return result;
 }
 
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
-                                          std::pair<RDNode *, RDNode *>>& built_blocks,
-                                 std::pair<RDNode *, RDNode *>& ptan,
+                                          std::vector<RDBlock *>>& built_blocks,
+                                 RDBlock *ptan,
                                  const llvm::BasicBlock& block)
 {
     size_t num = 0;
 
     for (llvm::succ_const_iterator
          S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
-        std::pair<RDNode *, RDNode *>& succ = built_blocks[*S];
-        assert((succ.first && succ.second) || (!succ.first && !succ.second));
-        if (!succ.first) {
+        RDBlock *succ = *(built_blocks[*S].begin());
+        assert((succ->getFirstNode() && succ->getLastNode()) || (!succ->getFirstNode() && !succ->getLastNode()));
+        if (!succ->getFirstNode()) {
             // if we don't have this block built (there was no points-to
             // relevant instruction), we must pretend to be there for
             // control flow information. Thus instead of adding it as
@@ -490,7 +544,8 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             num += blockAddSuccessors(built_blocks, ptan, *(*S));
         } else {
             // add successor to the last nodes
-            ptan.second->addSuccessor(succ.first);
+            ptan->getLastNode()->addSuccessor(succ->getFirstNode());
+            ptan->addSuccessor(succ);
             ++num;
         }
     }
@@ -499,7 +554,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
 }
 
 std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
+LLVMRDBuilder::createCallToFunction(const llvm::Function *F, RDBlock *rb)
 {
     RDNode *callNode, *returnNode;
 
@@ -510,6 +565,7 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
     // do not leak the memory of returnNode (the callNode
     // will be added to nodes_map)
     addNode(returnNode);
+    rb->append(callNode);
 
     // FIXME: if this is an inline assembly call
     // we need to make conservative assumptions
@@ -523,7 +579,10 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
     auto it = subgraphs_map.find(F);
     if (it == subgraphs_map.end()) {
         // create a new subgraph
-        std::tie(root, ret) = buildFunction(*F);
+        RDBlock *first, *last;
+        std::tie(first, last) = buildFunction(*F);
+        root = first->getFirstNode();
+        ret = last->getLastNode();
     } else {
         root = it->second.root;
         ret = it->second.ret;
@@ -540,12 +599,12 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
     return std::make_pair(callNode, returnNode);
 }
 
-std::pair<RDNode *, RDNode *>
+std::pair<RDBlock *, RDBlock *>
 LLVMRDBuilder::buildFunction(const llvm::Function& F)
 {
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
-    std::map<const llvm::BasicBlock *, std::pair<RDNode *, RDNode *>> built_blocks;
+    std::map<const llvm::BasicBlock *, std::vector<RDBlock *>> built_blocks;
 
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
@@ -557,57 +616,68 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     subgraphs_map.emplace(&F, Subgraph(root, ret));
 
     RDNode *first = nullptr;
-    for (const llvm::BasicBlock& block : F) {
-        std::pair<RDNode *, RDNode *> nds = buildBlock(block);
-        assert(nds.first && nds.second);
+    RDBlock *fstblock = nullptr;
 
-        built_blocks[&block] = nds;
-        if (!first)
-            first = nds.first;
+    for (const llvm::BasicBlock& block : F) {
+        std::vector<RDBlock *> blocks = buildBlock(block);
+        if (!first) {
+            first = blocks[0]->getFirstNode();
+            fstblock = blocks[0];
+            fstblock->prepend(root);
+        }
+
+        built_blocks[&block] = std::move(blocks);
     }
 
-    assert(first);
+    assert(first && fstblock);
     root->addSuccessor(first);
 
     std::vector<RDNode *> rets;
+    const llvm::BasicBlock *last_llvm_block = nullptr;
+    RDBlock *last_function_block = nullptr;
     for (const llvm::BasicBlock& block : F) {
         auto it = built_blocks.find(&block);
         if (it == built_blocks.end())
             continue;
 
-        std::pair<RDNode *, RDNode *>& ptan = it->second;
-        assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
-        if (!ptan.first)
-            continue;
+        for (RDBlock *ptan : it->second) {
+            // assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
+            if (!ptan->getFirstNode())
+                continue;
 
+            // if we have not added any successor, then the last node
+            // of this block is a return node
+            if (ptan->getLastNode()->getType() == RDNodeType::RETURN)
+                rets.push_back(ptan->getLastNode());
+            last_function_block = it->second.back();
+        }
+        last_llvm_block = &block;
         // add successors to this block (skipping the empty blocks)
         // FIXME: this function is shared with PSS, factor it out
-        size_t succ_num = blockAddSuccessors(built_blocks, ptan, block);
-
-        // if we have not added any successor, then the last node
-        // of this block is a return node
-        if (succ_num == 0 && ptan.second->getType() == RDNodeType::RETURN)
-            rets.push_back(ptan.second);
+        blockAddSuccessors(built_blocks, last_function_block, *last_llvm_block);
     }
 
     // add successors edges from every real return to our artificial ret node
-    for (RDNode *r : rets)
+    last_function_block->append(ret);
+    for (RDNode *r : rets) {
         r->addSuccessor(ret);
+        assert( r->getBBlock() );
+        if (r->getBBlock() != last_function_block)
+            r->getBBlock()->addSuccessor(last_function_block);
+    }
 
-    return {root, ret};
+    functions_blocks[&F] = std::move(built_blocks);
+    return std::make_pair(fstblock, last_function_block);
 }
 
-RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
+RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb)
 {
     using namespace llvm;
 
     RDNode *node = new RDNode(RDNodeType::CALL);
     addNode(CInst, node);
+    rb->append(node);
 
-    // if we assume that undefined functions are pure
-    // (have no side effects), we can bail out here
-    if (assume_pure_functions)
-        return node;
 
     // every pointer we pass into the undefined call may be defined
     // in the function
@@ -644,11 +714,13 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
                 // function may not be redefined
                 continue;
 
-            RDNode *target = getOperand(ptrVal);
+            RDNode *target = getOperand(ptrVal, rb);
             assert(target && "Don't have pointer target for call argument");
 
-            // this call may define this memory
-            node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+            // this call may define or use this memory
+            if (!assume_pure_functions)
+                node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+            node->addUse(DefSite(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET));
         }
     }
 
@@ -659,19 +731,24 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
     return node;
 }
 
-RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
+RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst, RDBlock *rb)
 {
     using namespace llvm;
 
     const IntrinsicInst *I = cast<IntrinsicInst>(CInst);
-    const Value *dest;
-    const Value *lenVal;
+    const Value *dest = nullptr;
+    const Value *lenVal = nullptr;
+    const Value *source = nullptr;
 
     RDNode *ret;
+    pta::PSNode *pts2;
+
     switch (I->getIntrinsicID())
     {
         case Intrinsic::memmove:
         case Intrinsic::memcpy:
+            source = I->getOperand(1);
+            // fall-through
         case Intrinsic::memset:
             // memcpy/set <dest>, <src/val>, <len>
             dest = I->getOperand(0);
@@ -683,13 +760,47 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             // reaching definitions to that
             ret = new RDNode(RDNodeType::CALL);
             ret->addDef(ret, 0, UNKNOWN_OFFSET);
+            pts2 = PTA->getPointsTo(I->getOperand(0));
+            assert(pts2 && "No points-to information");
+            for (const pta::Pointer& ptr : pts2->pointsTo) {
+                if (!ptr.isValid())
+                    continue;
+
+                const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+                if (llvm::isa<llvm::Function>(ptrVal))
+                    continue;
+
+                uint64_t from, to;
+                uint64_t len = UNKNOWN_OFFSET;
+                if (ptr.offset.isUnknown()) {
+                    // if the offset is UNKNOWN, use whole memory
+                    from = UNKNOWN_OFFSET;
+                    len = UNKNOWN_OFFSET;
+                } else {
+                    from = *ptr.offset;
+                }
+
+                // do not allow overflow
+                if (UNKNOWN_OFFSET - from > len)
+                    to = from + len;
+                else
+                    to = UNKNOWN_OFFSET;
+
+                RDNode *target = getOperand(ptrVal, rb);
+                assert(target && "Don't have pointer target for intrinsic call");
+
+                // add the definition
+                ret->addUse(target, from, to);
+            }
             addNode(CInst, ret);
+            rb->append(ret);
             return ret;
         default:
-            return createUndefinedCall(CInst);
+            return createUndefinedCall(CInst, rb);
     }
 
     ret = new RDNode(RDNodeType::CALL);
+    rb->append(ret);
     addNode(CInst, ret);
 
     pta::PSNode *pts = PTA->getPointsTo(dest);
@@ -722,18 +833,52 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
         else
             to = UNKNOWN_OFFSET;
 
-        RDNode *target = getOperand(ptrVal);
+        RDNode *target = getOperand(ptrVal, rb);
         assert(target && "Don't have pointer target for intrinsic call");
 
         // add the definition
         ret->addDef(target, from, to, true /* strong update */);
     }
 
+    if (source) {
+        pts2 = PTA->getPointsTo(source);
+        assert(pts && "No points-to information");
+        for (const pta::Pointer& ptr : pts2->pointsTo) {
+            if (!ptr.isValid())
+                continue;
+
+            const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+            if (llvm::isa<llvm::Function>(ptrVal))
+                continue;
+
+            uint64_t from, to;
+            if (ptr.offset.isUnknown()) {
+                // if the offset is UNKNOWN, use whole memory
+                from = UNKNOWN_OFFSET;
+                len = UNKNOWN_OFFSET;
+            } else {
+                from = *ptr.offset;
+            }
+
+            // do not allow overflow
+            if (UNKNOWN_OFFSET - from > len)
+                to = from + len;
+            else
+                to = UNKNOWN_OFFSET;
+
+            RDNode *target = getOperand(ptrVal, rb);
+            assert(target && "Don't have pointer target for intrinsic call");
+
+            // add the definition
+            ret->addUse(target, from, to);
+        }
+    }
+
     return ret;
 }
 
 std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
+LLVMRDBuilder::createCall(const llvm::Instruction *Inst, RDBlock *rb)
 {
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
@@ -746,7 +891,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             warned_inline_assembly = true;
         }
 
-        RDNode *n = createUndefinedCall(CInst);
+        RDNode *n = createUndefinedCall(CInst, rb);
         return std::make_pair(n, n);
     }
 
@@ -755,23 +900,23 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         if (func->size() == 0) {
             RDNode *n;
             if (func->isIntrinsic()) {
-                n = createIntrinsicCall(CInst);
+                n = createIntrinsicCall(CInst, rb);
             } else {
                 MemAllocationFuncs type = getMemAllocationFunc(func);
                 if (type != MemAllocationFuncs::NONEMEM) {
                     if (type == MemAllocationFuncs::REALLOC)
-                        n = createRealloc(CInst);
+                        n = createRealloc(CInst, rb);
                     else
-                        n = createDynAlloc(CInst, type);
+                        n = createDynAlloc(CInst, type, rb);
                 } else {
-                    n = createUndefinedCall(CInst);
+                    n = createUndefinedCall(CInst, rb);
                 }
             }
 
             return std::make_pair(n, n);
         } else {
             std::pair<RDNode *, RDNode *> cf
-                = createCallToFunction(func);
+                = createCallToFunction(func, rb);
             addNode(CInst, cf.first);
             return cf;
         }
@@ -783,7 +928,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         if (op->pointsTo.empty()) {
             llvm::errs() << "WARNING: a call via a function pointer, but the points-to is empty\n"
                          << *CInst << "\n";
-            RDNode *n = createUndefinedCall(CInst);
+            RDNode *n = createUndefinedCall(CInst, rb);
             return std::make_pair(n, n);
         }
 
@@ -803,7 +948,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 if (F->size() == 0) {
                     // the function is a declaration only,
                     // there's nothing better we can do
-                    RDNode *n = createUndefinedCall(CInst);
+                    RDNode *n = createUndefinedCall(CInst, rb);
                     return std::make_pair(n, n);
                 }
 
@@ -814,7 +959,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     continue;
 
                 std::pair<RDNode *, RDNode *> cf
-                    = createCallToFunction(F);
+                    = createCallToFunction(F, rb);
                 addNode(cf.first);
 
                 // connect the graphs
@@ -829,6 +974,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 }
 
                 call_funcptr->addSuccessor(cf.first);
+                rb->addSuccessor((*cf.first->getSuccessors().begin())->getBBlock());
                 cf.second->addSuccessor(ret_call);
             }
         } else {
@@ -838,10 +984,10 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                 const llvm::Value *valF = ptr.target->getUserData<llvm::Value>();
                 if (const llvm::Function *F = llvm::dyn_cast<llvm::Function>(valF)) {
                     if (F->size() == 0) {
-                        RDNode *n = createUndefinedCall(CInst);
+                        RDNode *n = createUndefinedCall(CInst, rb);
                         return std::make_pair(n, n);
                     } else if (llvmutils::callIsCompatible(F, CInst)) {
-                        std::pair<RDNode *, RDNode *> cf = createCallToFunction(F);
+                        std::pair<RDNode *, RDNode *> cf = createCallToFunction(F, rb);
                         addNode(cf.first);
 
                         call_funcptr = cf.first;
@@ -856,7 +1002,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
             llvm::errs() << "Function pointer call with no compatible pointer: "
                          << *CInst << "\n";
 
-            RDNode *n = createUndefinedCall(CInst);
+            RDNode *n = createUndefinedCall(CInst, rb);
             return std::make_pair(n, n);
         }
 
@@ -875,31 +1021,37 @@ RDNode *LLVMRDBuilder::build()
     }
 
     // first we must build globals, because nodes can use them as operands
-    std::pair<RDNode *, RDNode *> glob = buildGlobals();
+    RDBlock *glob = buildGlobals();
 
     // now we can build rest of the graph
-    RDNode *root, *ret;
-    std::tie(root, ret) = buildFunction(*F);
-    assert(root && "Do not have a root node of a function");
-    assert(ret && "Do not have a ret node of a function");
+    RDBlock *start, *stop;
+    std::tie(start, stop) = buildFunction(*F);
+    RDNode *root = start->getFirstNode();
+    assert(root);
 
     // do we have any globals at all? If so, insert them at the begining
     // of the graph
-    if (glob.first) {
-        assert(glob.second && "Have the start but not the end");
+    if (glob->getFirstNode()) {
+        assert(glob->getLastNode() && "Have the start but not the end");
+        llvm::Value *data = glob->getFirstNode()->getUserData<llvm::Value>();
+        addBlock(data, glob);
 
         // this is a sequence of global nodes, make it the root of the graph
-        glob.second->addSuccessor(root);
+        glob->addSuccessor(start);
+        glob->getLastNode()->addSuccessor(root);
 
         assert(root->successorsNum() > 0);
-        root = glob.first;
+        root = glob->getFirstNode();
+    } else {
+        delete glob;
     }
 
     return root;
 }
 
-std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
+RDBlock *LLVMRDBuilder::buildGlobals()
 {
+    RDBlock *glob = new RDBlock();
     RDNode *cur = nullptr, *prev, *first = nullptr;
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         prev = cur;
@@ -907,6 +1059,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
         // every global node is like memory allocation
         cur = new RDNode(RDNodeType::ALLOC);
         addNode(&*I, cur);
+        glob->append(cur);
 
         if (prev)
             prev->addSuccessor(cur);
@@ -915,7 +1068,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
     }
 
     assert((!first && !cur) || (first && cur));
-    return std::pair<RDNode *, RDNode *>(first, cur);
+    return glob;
 }
 
 } // namespace rd

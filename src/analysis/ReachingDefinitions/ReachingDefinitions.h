@@ -10,12 +10,24 @@
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/Offset.h"
 
+#include "BBlock.h"
 #include "ADT/Queue.h"
 #include "RDMap.h"
+#include "DGParameters.h"
+#include "DependenceGraph.h"
+
+// forward declaration
+namespace llvm {
+    class Value;
+}
 
 namespace dg {
 namespace analysis {
 namespace rd {
+
+namespace srg {
+    class AssignmentFinder;
+}
 
 class RDNode;
 class ReachingDefinitionsAnalysis;
@@ -39,7 +51,9 @@ enum class RDNodeType {
         // return from the call (in caller)
         CALL_RETURN,
         // dummy nodes
-        NOOP
+        NOOP,
+        // nodes that use the pointer (not necessarily the memory)
+        LOAD
 };
 
 extern RDNode *UNKNOWN_MEMORY;
@@ -47,6 +61,7 @@ extern RDNode *UNKNOWN_MEMORY;
 class RDNode : public SubgraphNode<RDNode> {
     RDNodeType type;
 
+    BBlock<RDNode> *bblock = nullptr;
     // marks for DFS/BFS
     unsigned int dfsid;
 public:
@@ -59,12 +74,17 @@ public:
     // on this node
     DefSiteSetT overwrites;
 
+    // this is set of variables used in this node
+    DefSiteSetT uses;
+
     RDMap def_map;
 
     RDNodeType getType() const { return type; }
     DefSiteSetT& getDefines() { return defs; }
     DefSiteSetT& getOverwrites() { return overwrites; }
+    DefSiteSetT& getUses() { return uses; }
     const DefSiteSetT& getDefines() const { return defs; }
+    const DefSiteSetT& getUses() const { return uses; }
 
     bool defines(RDNode *target, const Offset& off = UNKNOWN_OFFSET) const
     {
@@ -83,6 +103,46 @@ public:
         }
 
         return false;
+    }
+
+    /**
+     * return true if this node uses UNKNOWN_MEMORY
+     */
+    bool usesUnknown() const
+    {
+        bool result = false;
+        for (const DefSite& use : uses)
+        {
+            result |= use.target->isUnknown();
+        }
+        return result;
+    }
+
+    void addUse(RDNode *target, const Offset& off = UNKNOWN_OFFSET, const Offset& len = UNKNOWN_OFFSET)
+    {
+        addUse(DefSite(target, off, len));
+    }
+
+    template <typename T>
+    void addUse(T&& ds)
+    {
+        uses.insert(std::forward<T>(ds));
+    }
+
+    template <typename T>
+    void addUses(T&& u)
+    {
+        for (auto ds : u) {
+            uses.insert(ds);
+        }
+    }
+
+    template <typename T>
+    void addDefs(T&& defs)
+    {
+        for (auto ds : defs) {
+            addDef(ds);
+        }
     }
 
     void addDef(const DefSite& ds, bool strong_update = false)
@@ -130,8 +190,46 @@ public:
         return this == UNKNOWN_MEMORY;
     }
 
+    using KeyType = llvm::Value*;
+
+    // this node is not part of any DependenceGraph
+    using DependenceGraphType = DependenceGraph<RDNode>;
+
+    DependenceGraphType *getDG() {
+        return nullptr;
+    }
+
+    BBlock<RDNode> *getBBlock() {
+        return bblock;
+    }
+
+    void setBasicBlock(BBlock<RDNode> *bb) {
+        bblock = bb;
+    }
+
+    void removeCDs() {
+    }
+
+    void removeDDs() {
+    }
+
+    void removeFromDG() {
+    }
+
+    bool hasSubgraphs() const {
+        return false;
+    }
+
+    dg::DGParameters<RDNode> *getParameters() const {
+        return nullptr;
+    }
+
+    std::vector<DependenceGraphType *> getSubgraphs() const {
+        return {};
+    }
 
     friend class ReachingDefinitionsAnalysis;
+    friend class dg::analysis::rd::srg::AssignmentFinder;
 };
 
 class ReachingDefinitionsAnalysis
@@ -226,7 +324,9 @@ public:
     void setRoot(RDNode *r) { root = r; }
 
     bool processNode(RDNode *n);
-    void run();
+    virtual void run();
+
+    virtual ~ReachingDefinitionsAnalysis() = default;
 };
 
 } // namespace rd
