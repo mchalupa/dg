@@ -51,7 +51,8 @@ class RDNode : public SubgraphNode<RDNode> {
     unsigned int dfsid;
 public:
 
-    RDNode(RDNodeType t = RDNodeType::NONE) : type(t), dfsid(0) {}
+    RDNode(RDNodeType t = RDNodeType::NONE)
+    : SubgraphNode<RDNode>(0), type(t), dfsid(0) {}
 
     // this is the gro of this node, so make it public
     DefSiteSetT defs;

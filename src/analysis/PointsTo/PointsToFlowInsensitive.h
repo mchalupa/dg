@@ -24,6 +24,8 @@ public:
     ~PointsToFlowInsensitive() {
         std::vector<PSNode *> nodes = ps->getNodes();
         for (PSNode *n : nodes) {
+            if (n == nullptr)
+                continue;
             MemoryObject *mo = n->getData<MemoryObject>();
             delete mo;
         }

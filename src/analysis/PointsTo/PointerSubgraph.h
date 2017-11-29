@@ -71,6 +71,8 @@ enum class PSNodeType {
         INVALIDATED
 };
 
+class PointerSubgraph;
+
 class PSNode : public SubgraphNode<PSNode>
 {
     PSNodeType type;
@@ -97,7 +99,7 @@ class PSNode : public SubgraphNode<PSNode>
     // is it a global value?
     bool is_global;
     unsigned int dfsid;
-public:
+
     ///
     // Construct a PSNode
     // \param t     type of the node
@@ -146,14 +148,11 @@ public:
     // INVALIDATE_LOCALS:
     //               invalidates memory after returning from a function
     // FREE:         invalidates memory after calling free function on a pointer
-    PSNode(PSNodeType t, ...)
-    : SubgraphNode<PSNode>(), type(t), offset(0), pairedNode(nullptr),
+    PSNode(unsigned id, PSNodeType t, va_list args)
+    : SubgraphNode<PSNode>(id), type(t), offset(0), pairedNode(nullptr),
       zeroInitialized(false), is_heap(false), is_global(false), dfsid(0)
     {
-        // assing operands
         PSNode *op;
-        va_list args;
-        va_start(args, t);
 
         switch(type) {
             case PSNodeType::ALLOC:
@@ -165,7 +164,6 @@ public:
                 break;
             case PSNodeType::NOOP:
             case PSNodeType::ENTRY:
-            case PSNodeType::INVALIDATED:
                 // no operands
                 break;
             case PSNodeType::CAST:
@@ -192,13 +190,6 @@ public:
                 offset = va_arg(args, uint64_t);
                 pointsTo.insert(Pointer(op, offset));
                 break;
-            case PSNodeType::NULL_ADDR:
-                pointsTo.insert(Pointer(this, 0));
-                break;
-            case PSNodeType::UNKNOWN_MEM:
-                // UNKNOWN_MEMLOC points to itself
-                pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
-                break;
             case PSNodeType::INVALIDATE_LOCALS:
             case PSNodeType::FREE:
                 operands.push_back(va_arg(args, PSNode *));
@@ -217,14 +208,35 @@ public:
             default:
                 assert(0 && "Unknown type");
         }
+    }
 
-        va_end(args);
+public:
+
+    PSNode(PSNodeType t)
+    : SubgraphNode<PSNode>(0), type(t), offset(0), pairedNode(nullptr),
+      zeroInitialized(false), is_heap(false), is_global(false), dfsid(0)
+    {
+        switch(t) {
+            case PSNodeType::INVALIDATED:
+                break;
+            case PSNodeType::NULL_ADDR:
+                pointsTo.insert(Pointer(this, 0));
+                break;
+            case PSNodeType::UNKNOWN_MEM:
+                // UNKNOWN_MEMLOC points to itself
+                pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
+                break;
+            default:
+                // this constructor is for the above mentioned types only
+                assert(0 && "Invalid type");
+                abort();
+        }
     }
 
     PSNodeType getType() const { return type; }
 
     void setOffset(uint64_t o) { offset = o; }
-    
+
     void setParent(PSNode *p) { parent = p; }
     PSNode *getParent() { return parent; }
 
@@ -358,19 +370,56 @@ class PointerSubgraph
     // root of the pointer state subgraph
     PSNode *root;
 
+    unsigned int last_node_id = 0;
+    std::vector<PSNode *> nodes;
+
 public:
-    PointerSubgraph() : dfsnum(0), root(nullptr) {}
-    PointerSubgraph(PSNode *r) : dfsnum(0), root(r)
-    {
-        assert(root && "Cannot create PointerSubgraph with null root");
+    ~PointerSubgraph() {
+        for (PSNode *n : nodes)
+            delete n;
     }
 
+    PointerSubgraph() : dfsnum(0), root(nullptr) {
+        nodes.reserve(128);
+        // nodes[0] is nullptr (the node with id 0)
+        nodes.push_back(nullptr);
+    }
+
+    const std::vector<PSNode *>& getNodes() { return nodes; }
+    size_t size() const { return nodes.size(); }
+
+    PointerSubgraph(PointerSubgraph&&) = default;
+    PointerSubgraph& operator=(PointerSubgraph&&) = default;
+    PointerSubgraph(const PointerSubgraph&) = delete;
+    PointerSubgraph operator=(const PointerSubgraph&) = delete;
+
     PSNode *getRoot() const { return root; }
-    void setRoot(PSNode *r) { root = r; }
+    void setRoot(PSNode *r) {
+#if DEBUG_ENABLED
+        bool found = false;
+        for (PSNode *n : nodes) {
+            if (n == r) {
+                found = true;
+                break;
+            }
+        }
+        assert(found && "The root lies outside of the graph");
+#endif
+        root = r;
+    }
+
+    PSNode *create(PSNodeType t, ...) {
+        va_list args;
+        va_start(args, t);
+        PSNode *node = new PSNode(++last_node_id, t, args);
+        nodes.push_back(node);
+        va_end(args);
+        return node;
+    }
 
     // get nodes in BFS order and store them into
     // the container
-    std::vector<PSNode *> getNodes(PSNode *start_node = nullptr,
+    std::vector<PSNode *> getNodes(PSNode *start_node,
                                    std::vector<PSNode *> *start_set = nullptr,
                                    unsigned expected_num = 0)
     {
