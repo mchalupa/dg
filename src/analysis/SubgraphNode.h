@@ -11,6 +11,9 @@ namespace analysis {
 
 template <typename NodeT>
 class SubgraphNode {
+    // id of the node. Every node from a graph has a unique ID;
+    unsigned int id = 0;
+
     // data that can an analysis store in node
     // for its own needs
     void *data;
@@ -23,7 +26,6 @@ class SubgraphNode {
     // is more simple than dynamic_cast... Once we need more
     // than one pointer, we can change this design.
     void *user_data;
-
 protected:
     // XXX: make those private?
     std::vector<NodeT *> successors;
@@ -46,10 +48,12 @@ public:
     // true if the node is on stack
     bool on_stack;
 
-    SubgraphNode<NodeT>()
-    : data(nullptr), user_data(nullptr), size(0),
+    SubgraphNode<NodeT>(unsigned id)
+    : id(id), data(nullptr), user_data(nullptr), size(0),
       dfs_id(0), lowpt(0), scc_id(0), on_stack(false)
     {}
+
+    unsigned int getID() const { return id; }
 
     void setSize(size_t s) { size = s; }
     size_t getSize() const { return size; }

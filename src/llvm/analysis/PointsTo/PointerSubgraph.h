@@ -20,6 +20,8 @@ using PSNodesSeq = std::pair<PSNode *, PSNode *>;
 
 class LLVMPointerSubgraphBuilder
 {
+    PointerSubgraph PS;
+
     const llvm::Module *M;
     const llvm::DataLayout *DL;
     uint64_t field_sensitivity;
@@ -73,8 +75,6 @@ class LLVMPointerSubgraphBuilder
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *, PSNodesSeq> built_blocks;
-    // helper nodes, here we store them to delete the memory later
-    std::vector<PSNode *> dummy_nodes;
 
 public:
     // \param field_sensitivity -- how much should be the PS field sensitive:
@@ -82,12 +82,12 @@ public:
     //        (every pointer with offset greater than 0 will have UNKNOWN_OFFSET)
     LLVMPointerSubgraphBuilder(const llvm::Module *m,
                                uint64_t field_sensitivity = UNKNOWN_OFFSET)
-        : M(m), DL(new llvm::DataLayout(m)), field_sensitivity(field_sensitivity)
+        : PS(), M(m), DL(new llvm::DataLayout(m)), field_sensitivity(field_sensitivity)
         {}
 
     ~LLVMPointerSubgraphBuilder();
 
-    PSNode *buildLLVMPointerSubgraph();
+    PointerSubgraph *buildLLVMPointerSubgraph();
 
     // create subgraph of function @F (the nodes)
     // and call+return nodes to/from it. This function
@@ -159,6 +159,7 @@ private:
     bool isRelevantInstruction(const llvm::Instruction& Inst);
 
     PSNode *createAlloc(const llvm::Instruction *Inst);
+    PSNode *createDynamicAlloc(const llvm::CallInst *CInst, MemAllocationFuncs type);
     PSNode *createStore(const llvm::Instruction *Inst);
     PSNode *createLoad(const llvm::Instruction *Inst);
     PSNode *createGEP(const llvm::Instruction *Inst);
