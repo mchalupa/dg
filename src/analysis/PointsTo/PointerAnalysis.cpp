@@ -53,6 +53,11 @@ bool PointerAnalysis::processLoad(PSNode *node)
         if (ptr.isNull())
             continue;
 
+        if (ptr.isUnknown()) {
+            changed |= node->addPointsTo(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+            continue;
+        }
+        
         // find memory objects holding relevant points-to
         // information
         std::vector<MemoryObject *> objects;
