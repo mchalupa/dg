@@ -465,7 +465,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
         // we either created a new node or reused some old node,
         // or node is nullptr (if we haven't created or found anything)
         // if we created a new node, add successor
-        if (node) {
+        if (node && last_node != node) {
             makeEdge(last_node, node);
             last_node = node;
         }
