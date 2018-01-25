@@ -404,6 +404,16 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
     assert(0 && "We should not reach this");
 }
 
+static inline void makeEdge(RDNode *src, RDNode *dst)
+{
+    assert(src != dst && "Tried creating self-loop");
+    assert(src != nullptr);
+    // This is checked by addSuccessor():
+    // assert(dst != nullptr);
+
+    src->addSuccessor(dst);
+}
+
 // return first and last nodes of the block
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
@@ -441,7 +451,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                         break;
 
                     std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
-                    last_node->addSuccessor(subg.first);
+                    makeEdge(last_node, subg.first);
 
                     // new nodes will connect to the return node
                     node = last_node = subg.second;
@@ -456,7 +466,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
         // or node is nullptr (if we haven't created or found anything)
         // if we created a new node, add successor
         if (node) {
-            last_node->addSuccessor(node);
+            makeEdge(last_node, node);
             last_node = node;
         }
 
@@ -490,7 +500,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             num += blockAddSuccessors(built_blocks, ptan, *(*S));
         } else {
             // add successor to the last nodes
-            ptan.second->addSuccessor(succ.first);
+            makeEdge(ptan.second, succ.first);
             ++num;
         }
     }
@@ -534,8 +544,8 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F)
     // add an edge from last argument to root of the subgraph
     // and from the subprocedure return node (which is one - unified
     // for all return nodes) to return from the call
-    callNode->addSuccessor(root);
-    ret->addSuccessor(returnNode);
+    makeEdge(callNode, root);
+    makeEdge(ret, returnNode);
 
     return std::make_pair(callNode, returnNode);
 }
@@ -567,7 +577,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     }
 
     assert(first);
-    root->addSuccessor(first);
+    makeEdge(root, first);
 
     std::vector<RDNode *> rets;
     for (const llvm::BasicBlock& block : F) {
@@ -592,7 +602,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
     // add successors edges from every real return to our artificial ret node
     for (RDNode *r : rets)
-        r->addSuccessor(ret);
+        makeEdge(r, ret);
 
     return {root, ret};
 }
@@ -828,8 +838,8 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
                     addNode(ret_call);
                 }
 
-                call_funcptr->addSuccessor(cf.first);
-                cf.second->addSuccessor(ret_call);
+                makeEdge(call_funcptr, cf.first);
+                makeEdge(cf.second, ret_call);
             }
         } else {
             // don't add redundant nodes if not needed
@@ -889,7 +899,7 @@ RDNode *LLVMRDBuilder::build()
         assert(glob.second && "Have the start but not the end");
 
         // this is a sequence of global nodes, make it the root of the graph
-        glob.second->addSuccessor(root);
+        makeEdge(glob.second, root);
 
         assert(root->successorsNum() > 0);
         root = glob.first;
@@ -909,7 +919,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
         addNode(&*I, cur);
 
         if (prev)
-            prev->addSuccessor(cur);
+            makeEdge(prev, cur);
         else
             first = cur;
     }
