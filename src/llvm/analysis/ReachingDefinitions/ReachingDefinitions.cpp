@@ -43,15 +43,6 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
-{
-    // Type can be i8 *null or similar
-    if (!Ty->isSized())
-            return 0;
-
-    return DL->getTypeAllocSize(Ty);
-}
-
 // FIXME: don't duplicate the code (with PSS.cpp)
 static uint64_t getConstantValue(const llvm::Value *op)
 {
@@ -67,6 +58,28 @@ static uint64_t getConstantValue(const llvm::Value *op)
     }
 
     return size;
+}
+
+static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
+{
+    // Type can be i8 *null or similar
+    if (!Ty->isSized())
+            return 0;
+
+    return DL->getTypeAllocSize(Ty);
+}
+
+static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
+                                 const llvm::DataLayout *DL)
+{
+    llvm::Type *Ty = AI->getAllocatedType();
+    if (!Ty->isSized())
+            return 0;
+
+    if (AI->isArrayAllocation())
+        return getConstantValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
+    else
+        return DL->getTypeAllocSize(Ty);
 }
 
 LLVMRDBuilder::~LLVMRDBuilder() {
@@ -90,19 +103,6 @@ LLVMRDBuilder::~LLVMRDBuilder() {
     // delete dummy nodes
     for (RDNode *nd : dummy_nodes)
         delete nd;
-}
-
-static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
-                                 const llvm::DataLayout *DL)
-{
-    llvm::Type *Ty = AI->getAllocatedType();
-    if (!Ty->isSized())
-            return 0;
-
-    if (AI->isArrayAllocation())
-        return getConstantValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
-    else
-        return DL->getTypeAllocSize(Ty);
 }
 
 RDNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
