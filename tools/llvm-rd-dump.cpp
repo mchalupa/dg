@@ -83,7 +83,7 @@ static void printRDNodeType(enum RDNodeType type)
         ELEM(RDNodeType::NOOP)
         ELEM(RDNodeType::NONE)
         default:
-            printf("unknown PointerSubgraph type");
+            printf("unknown reaching definitions subgraph type");
     };
 #undef ELEM
 }
@@ -223,7 +223,7 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     std::set<RDNode *> nodes;
     RD->getNodes(nodes);
 
-    printf("digraph \"Pointer State Subgraph\" {\n");
+    printf("digraph \"Reaching Definitions Subgraph\" {\n");
 
     /* dump nodes */
     for(RDNode *node : nodes) {
