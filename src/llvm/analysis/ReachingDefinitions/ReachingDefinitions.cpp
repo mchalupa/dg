@@ -337,7 +337,7 @@ std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock 
         if (ptr.offset.isUnknown()) {
             size = UNKNOWN_OFFSET;
         } else {
-            size = getAllocatedSize(val->getType(), DL);
+            size = ptr.target->getSize();
             if (size == 0)
                 size = UNKNOWN_OFFSET;
         }
