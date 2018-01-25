@@ -69,6 +69,33 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 
+static void printRDNodeType(enum RDNodeType type)
+{
+#define ELEM(t) case(t): do {printf("%s", #t); }while(0); break;
+    switch(type) {
+        ELEM(RDNodeType::ALLOC)
+        ELEM(RDNodeType::DYN_ALLOC)
+        ELEM(RDNodeType::STORE)
+        ELEM(RDNodeType::PHI)
+        ELEM(RDNodeType::CALL)
+        ELEM(RDNodeType::CALL_RETURN)
+        ELEM(RDNodeType::RETURN)
+        ELEM(RDNodeType::NOOP)
+        ELEM(RDNodeType::NONE)
+        default:
+            printf("unknown PointerSubgraph type");
+    };
+#undef ELEM
+}
+
+static inline void printAddress(RDNode *node, bool dot)
+{
+    if (dot)
+        printf(" [%p]\\n", node);
+    else
+        printf(" [%p]\n", node);
+}
+
 static void
 printName(RDNode *node, bool dot)
 {
@@ -86,11 +113,8 @@ printName(RDNode *node, bool dot)
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
-            if (dot)
-                printf("%p\\n", node);
-            else
-                printf("%p\n", node);
-
+            printRDNodeType(node->getType());
+            printAddress(node, dot);
             return;
         }
 
