@@ -209,7 +209,7 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
         else
             putchar('\n');
 
-        dumpMemoryObject(it.second, ind + 4, dot);
+        dumpMemoryObject(it.second.get(), ind + 4, dot);
     }
 }
 

@@ -15,7 +15,7 @@ class PointsToFlowSensitive : public PointerAnalysis
 {
 public:
     //using MemoryObjectsSetT = std::set<MemoryObject *>;
-    using MemoryMapT = std::map<PSNode *, MemoryObject *>;
+    using MemoryMapT = std::map<PSNode *, std::unique_ptr<MemoryObject>>;
 
     // this is an easy but not very efficient implementation,
     // works for testing
@@ -93,7 +93,7 @@ public:
 
         auto I = mm->find(pointer.target);
         if (I != mm->end()) {
-            objects.push_back(I->second);
+            objects.push_back(I->second.get());
         }
 
         // if we haven't found any memory object, but this psnode
@@ -101,7 +101,7 @@ public:
         // the write has something to write to
         if (objects.empty() && canChangeMM(where)) {
             MemoryObject *mo = new MemoryObject(pointer.target);
-            (*mm)[pointer.target] = mo;
+            mm->emplace(pointer.target, std::unique_ptr<MemoryObject>(mo));
             objects.push_back(mo);
         }
     }
@@ -175,12 +175,12 @@ private:
         bool changed = false;
         for (auto& it : *from) {
             PSNode *fromTarget = it.first;
-            MemoryObject *&toMo = (*mm)[fromTarget];
+            std::unique_ptr<MemoryObject>& toMo = (*mm)[fromTarget];
             if (toMo == nullptr)
-                toMo = new MemoryObject(fromTarget);
+                toMo.reset(new MemoryObject(fromTarget));
 
-            changed |= mergeObjects(fromTarget, toMo,
-                                    it.second, strong_update);
+            changed |= mergeObjects(fromTarget, toMo.get(),
+                                    it.second.get(), strong_update);
         }
 
         return changed;
