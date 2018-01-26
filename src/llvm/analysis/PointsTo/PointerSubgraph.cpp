@@ -836,7 +836,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         // function pointer call
         PSNode *op = getOperand(calledVal);
         PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
-        PSNode *ret_call = PS.create(PSNodeType::RETURN, nullptr);
+        PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
 
         ret_call->setPairedNode(call_funcptr);
         call_funcptr->setPairedNode(ret_call);
