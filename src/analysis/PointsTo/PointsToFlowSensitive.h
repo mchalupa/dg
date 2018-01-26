@@ -2,6 +2,7 @@
 #define _DG_ANALYSIS_POINTS_TO_FLOW_SENSITIVE_H_
 
 #include <cassert>
+#include <memory>
 
 #include "Pointer.h"
 #include "PointerSubgraph.h"
@@ -13,21 +14,15 @@ namespace pta {
 class PointsToFlowSensitive : public PointerAnalysis
 {
 public:
-    using MemoryObjectsSetT = std::set<MemoryObject *>;
-    using MemoryMapT = std::map<const Pointer, MemoryObjectsSetT>;
+    //using MemoryObjectsSetT = std::set<MemoryObject *>;
+    using MemoryMapT = std::map<PSNode *, MemoryObject *>;
 
     // this is an easy but not very efficient implementation,
     // works for testing
     PointsToFlowSensitive(PointerSubgraph *ps)
-    : PointerAnalysis(ps, UNKNOWN_OFFSET, false) {}
-
-    static bool canChangeMM(PSNode *n) {
-        if (n->predecessorsNum() == 0 || // root node
-            n->getType() == PSNodeType::STORE ||
-            n->getType() == PSNodeType::MEMCPY)
-            return true;
-
-        return false;
+    : PointerAnalysis(ps, UNKNOWN_OFFSET, false)
+    {
+        memoryMaps.reserve(ps->size() / 5);
     }
 
     bool beforeProcessed(PSNode *n) override
@@ -36,29 +31,10 @@ public:
         if (mm)
             return false;
 
-        bool changed = false;
-
         // on these nodes the memory map can change
-        if (canChangeMM(n)) { // root node
-            // FIXME: we're leaking the memory maps
+        if (needsMerge(n)) { // root node
             mm = new MemoryMapT();
-        } else if (n->predecessorsNum() > 1) {
-            // this is a join node, create a new map and
-            // merge the predecessors to it
-            mm = new MemoryMapT();
-
-            // merge information from predecessors into the new map
-            // XXX: this is necessary also with the merge in afterProcess,
-            // because this copies the information even for single
-            // predecessor, whereas afterProcessed copies the
-            // information only for two or more predecessors
-            for (PSNode *p : n->getPredecessors()) {
-                MemoryMapT *pm = p->getData<MemoryMapT>();
-                // merge pm to mm (if pm was already created)
-                if (pm) {
-                    changed |= mergeMaps(mm, pm, nullptr);
-                }
-            }
+            memoryMaps.emplace_back(mm);
         } else {
             // this node can not change the memory map,
             // so just add a pointer from the predecessor
@@ -74,9 +50,7 @@ public:
         // so that we won't initialize it again
         n->setData<MemoryMapT>(mm);
 
-        // ignore any changes here except when we merged some new information.
-        // The other changes we'll detect later
-        return changed;
+        return true;
     }
 
     bool afterProcessed(PSNode *n) override
@@ -98,8 +72,7 @@ public:
         // more of them (if there's just one predecessor
         // and this is not a store, the memory map couldn't
         // change, so we don't have to do that)
-        if (n->predecessorsNum() > 1 || strong_update
-            || n->getType() == PSNodeType::MEMCPY) {
+        if (needsMerge(n)) {
             for (PSNode *p : n->getPredecessors()) {
                 MemoryMapT *pm = p->getData<MemoryMapT>();
                 // merge pm to mm (but only if pm was already created)
@@ -115,27 +88,20 @@ public:
     void getMemoryObjects(PSNode *where, const Pointer& pointer,
                           std::vector<MemoryObject *>& objects) override
     {
-        MemoryMapT *mm= where->getData<MemoryMapT>();
+        MemoryMapT *mm = where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
 
-        auto bounds = getObjectRange(mm, pointer);
-        for (MemoryMapT::iterator I = bounds.first; I != bounds.second; ++I) {
-            assert(I->first.target == pointer.target
-                    && "Bug in getObjectRange");
-
-            for (MemoryObject *mo : I->second)
-                objects.push_back(mo);
+        auto I = mm->find(pointer.target);
+        if (I != mm->end()) {
+            objects.push_back(I->second);
         }
-
-        assert(bounds.second->first.target != pointer.target
-                && "Bug in getObjectRange");
 
         // if we haven't found any memory object, but this psnode
         // is a write to memory, create a new one, so that
         // the write has something to write to
         if (objects.empty() && canChangeMM(where)) {
             MemoryObject *mo = new MemoryObject(pointer.target);
-            (*mm)[pointer].insert(mo);
+            (*mm)[pointer.target] = mo;
             objects.push_back(mo);
         }
     }
@@ -146,35 +112,75 @@ protected:
 
 private:
 
-    static bool comp(const std::pair<const Pointer, MemoryObjectsSetT>& a,
-                     const std::pair<const Pointer, MemoryObjectsSetT>& b) {
-        return a.first.target < b.first.target;
+    // keep all the maps in order to free the memory
+    // FIXME: we still leak the memory objects
+    std::vector<std::unique_ptr<MemoryMapT>> memoryMaps;
+
+    static bool canChangeMM(PSNode *n) {
+        if (n->predecessorsNum() == 0) // root node
+            return true;
+
+        switch (n->getType()) {
+            case PSNodeType::STORE:
+            case PSNodeType::MEMCPY:
+            case PSNodeType::CALL_FUNCPTR:
+                // a call via function pointer needs to
+                // have its own memory map as we dont know
+                // how the graph will look like after the
+                // call yet
+                return true;
+            case PSNodeType::CALL_RETURN:
+                // return from function that was called via function
+                // pointer must have its own memory map from the
+                // same reason why CALL_FUNCPTR nodes need its
+                // own memory map
+                assert(n->getPairedNode());
+                return n->getPairedNode()->getType() == PSNodeType::CALL_FUNCPTR;
+            default:
+                return false;
+            }
+
+            return false;
     }
 
-    ///
-    // get interator range for elements that have information
-    // about the ptr.target node (ignoring the offsets)
-    std::pair<MemoryMapT::iterator, MemoryMapT::iterator>
-    getObjectRange(MemoryMapT *mm, const Pointer& ptr) {
-        std::pair<const Pointer, MemoryObjectsSetT> what(ptr, MemoryObjectsSetT());
-        return std::equal_range(mm->begin(), mm->end(), what, comp);
+    static bool needsMerge(PSNode *n) {
+        return n->predecessorsNum() > 1 || canChangeMM(n);
     }
 
-    ///
-    // Merge two Memory maps, return true if any new information was created,
-    // otherwise return false
-    bool mergeMaps(MemoryMapT *mm, MemoryMapT *pm,
-                   PointsToSetT *strong_update) {
+
+
+    static bool mergeObjects(PSNode *node,
+                             MemoryObject *to,
+                             MemoryObject *from,
+                             PointsToSetT *strong_update) {
         bool changed = false;
-        for (auto& it : *pm) {
-            const Pointer& ptr = it.first;
-            if (strong_update && strong_update->count(ptr))
+
+        for (auto& fromIt : from->pointsTo) {
+            if (strong_update &&
+                strong_update->count(Pointer(node, fromIt.first)))
                 continue;
 
-            // use [] to create the object if needed
-            MemoryObjectsSetT& S = (*mm)[ptr];
-            for (auto& elem : it.second)
-                changed |= S.insert(elem).second;
+            auto& S = to->pointsTo[fromIt.first];
+            for (auto& ptr : fromIt.second)
+                changed |= S.insert(ptr).second;
+        }
+
+        return changed;
+    }
+
+    // Merge two Memory maps, return true if any new information was created,
+    // otherwise return false
+    bool mergeMaps(MemoryMapT *mm, MemoryMapT *from,
+                   PointsToSetT *strong_update) {
+        bool changed = false;
+        for (auto& it : *from) {
+            PSNode *fromTarget = it.first;
+            MemoryObject *&toMo = (*mm)[fromTarget];
+            if (toMo == nullptr)
+                toMo = new MemoryObject(fromTarget);
+
+            changed |= mergeObjects(fromTarget, toMo,
+                                    it.second, strong_update);
         }
 
         return changed;
