@@ -110,6 +110,9 @@ void printPSNodeType(enum PSNodeType type)
 #undef ELEM
 }
 
+
+static void dumpPointer(const Pointer& ptr, bool dot);
+
 static void
 printName(PSNode *node, bool dot)
 {
@@ -119,14 +122,19 @@ printName(PSNode *node, bool dot)
         name = "null";
     } else if (node->isUnknownMemory()) {
         name = "unknown";
-    } else if (node->isInvalidated() && 
+    } else if (node->isInvalidated() &&
         !node->getUserData<llvm::Value>()) {
             name = "invalidated";
     }
 
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
-            printPSNodeType(node->getType());
+            if (node->getType() == PSNodeType::CONSTANT) {
+                printf("CONSTANT ");
+                dumpPointer(*(node->pointsTo.begin()), dot);
+            } else
+                printPSNodeType(node->getType());
+
             if (!dot)
                 printf(" <%u>\n", node->getID());
 
@@ -152,6 +160,16 @@ printName(PSNode *node, bool dot)
     }
 }
 
+static void dumpPointer(const Pointer& ptr, bool dot)
+{
+    printName(ptr.target, dot);
+
+    if (ptr.offset.isUnknown())
+        puts(" + UNKNOWN");
+    else
+        printf(" + %lu", *ptr.offset);
+}
+
 static void
 dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 {
@@ -165,12 +183,7 @@ dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
             else
                 printf("[%lu] -> ", *it.first);
 
-            printName(ptr.target, dot);
-
-            if (ptr.offset.isUnknown())
-                puts(" + UNKNOWN");
-            else
-                printf(" + %lu", *ptr.offset);
+            dumpPointer(ptr, dot);
 
             if (dot)
                 printf("\\n");
@@ -185,25 +198,18 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
 {
     for (const auto& it : *mm) {
         // print the key
-        const Pointer& key = it.first;
         if (!dot)
             printf("%*s", ind, "");
 
         putchar('[');
-        printName(key.target, dot);
-
-        if (key.offset.isUnknown())
-            puts(" + UNKNOWN]:");
-        else
-            printf(" + %lu]:", *key.offset);
+        printName(it.first, dot);
 
         if (dot)
             printf("\\n");
         else
             putchar('\n');
 
-        for (MemoryObject *mo : it.second)
-            dumpMemoryObject(mo, ind + 4, dot);
+        dumpMemoryObject(it.second, ind + 4, dot);
     }
 }
 
@@ -232,9 +238,9 @@ dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
             return;
 
         if (dot)
-            printf("\\n    Memory map: ---\\n");
+            printf("\\n    Memory map: [%p]\\n", mm);
         else
-            printf("    Memory map: ---\n");
+            printf("    Memory map: [%p]\n", mm);
 
         dumpMemoryMap(mm, 6, dot);
 
@@ -281,6 +287,8 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
     /* dump nodes */
     const auto& nodes = pta->getNodes();
     for (PSNode *node : nodes) {
+        if (!node)
+            continue;
         printf("\tNODE%p [label=\"<%u> ", node, node->getID());
         printName(node, true);
         printf("\\n--- parent ---\\n");
@@ -328,6 +336,9 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 
     /* dump edges */
     for (PSNode *node : nodes) {
+        if (!node) // node id 0 is nullptr
+            continue;
+
         for (PSNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
     }
@@ -345,7 +356,8 @@ dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
     else {
         const auto& nodes = pta->getNodes();
         for (PSNode *node : nodes) {
-            dumpPSNode(node, type);
+            if (node) // node id 0 is nullptr
+                dumpPSNode(node, type);
         }
     }
 }
