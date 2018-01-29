@@ -110,12 +110,6 @@ protected:
 
     PointsToFlowSensitive() = default;
 
-private:
-
-    // keep all the maps in order to free the memory
-    // FIXME: we still leak the memory objects
-    std::vector<std::unique_ptr<MemoryMapT>> memoryMaps;
-
     static bool canChangeMM(PSNode *n) {
         if (n->predecessorsNum() == 0) // root node
             return true;
@@ -143,12 +137,6 @@ private:
             return false;
     }
 
-    static bool needsMerge(PSNode *n) {
-        return n->predecessorsNum() > 1 || canChangeMM(n);
-    }
-
-
-
     static bool mergeObjects(PSNode *node,
                              MemoryObject *to,
                              MemoryObject *from,
@@ -170,8 +158,8 @@ private:
 
     // Merge two Memory maps, return true if any new information was created,
     // otherwise return false
-    bool mergeMaps(MemoryMapT *mm, MemoryMapT *from,
-                   PointsToSetT *strong_update) {
+    static bool mergeMaps(MemoryMapT *mm, MemoryMapT *from,
+                          PointsToSetT *strong_update) {
         bool changed = false;
         for (auto& it : *from) {
             PSNode *fromTarget = it.first;
@@ -185,6 +173,15 @@ private:
 
         return changed;
     }
+
+private:
+    static bool needsMerge(PSNode *n) {
+        return n->predecessorsNum() > 1 || canChangeMM(n);
+    }
+
+    // keep all the maps in order to free the memory
+    // FIXME: we still leak the memory objects
+    std::vector<std::unique_ptr<MemoryMapT>> memoryMaps;
 };
 
 } // namespace pta
