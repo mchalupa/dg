@@ -190,6 +190,8 @@ class CommentDBG : public llvm::AssemblyAnnotationWriter
         if (!ptr.isUnknown()) {
             if (ptr.isNull())
                 os << "null";
+            else if (ptr.isInvalidated())
+                os << "invalidated";
             else {
                 const llvm::Value *val
                     = ptr.target->getUserData<llvm::Value>();
