@@ -35,7 +35,7 @@ install:
   - cd ..
 
 script:
-  - cmake .
+  - cmake -DCMAKE_BUILD_TYPE=DEBUG .
   - make -j2
   - cd tests
   - make
