@@ -1102,6 +1102,15 @@ RDNode *LLVMRDBuilder::build()
     return root;
 }
 
+static uint64_t getGlobalVariableSize(const llvm::GlobalVariable *var, const llvm::DataLayout *DL)
+{
+    if (var->getType()->isArrayTy()) {
+        return var->getType()->getArrayNumElements() * getAllocatedSize(var->getType()->getArrayElementType(), DL);
+    } else {
+        return getAllocatedSize(var->getType(), DL);
+    }
+}
+
 RDBlock *LLVMRDBuilder::buildGlobals()
 {
     RDBlock *glob = new RDBlock();
@@ -1111,6 +1120,9 @@ RDBlock *LLVMRDBuilder::buildGlobals()
 
         // every global node is like memory allocation
         cur = new RDNode(RDNodeType::ALLOC);
+        cur->setSize(getGlobalVariableSize(&*I, DL));
+        // all global variables are initialized on creation
+        cur->addDef(cur, 0, cur->getSize());
         addNode(&*I, cur);
         glob->append(cur);
 
