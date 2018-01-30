@@ -222,7 +222,7 @@ private:
 
 
     PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
-                                            PSNode *node,
+                                            PSNodeAlloc *node,
                                             PSNode *last = nullptr,
                                             uint64_t offset = 0);
 

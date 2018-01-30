@@ -255,9 +255,11 @@ dumpPSNode(PSNode *n, PTType type)
     printf("NODE %3u: ", n->getID());
     printName(n, false);
 
-    if (n->getSize() || n->isHeap() || n->isZeroInitialized())
+    PSNodeAlloc *alloc = PSNodeAlloc::get(n);
+    if (alloc &&
+        (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
         printf(" [size: %lu, heap: %u, zeroed: %u]",
-               n->getSize(), n->isHeap(), n->isZeroInitialized());
+               alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
     if (n->pointsTo.empty()) {
         puts(" -- no points-to");
@@ -294,9 +296,10 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         printf("\\n--- parent ---\\n");
         printf("%p \\n", node->getParent());
 
-        if (node->getSize() || node->isHeap() || node->isZeroInitialized())
+        PSNodeAlloc *alloc = PSNodeAlloc::get(node);
+        if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
-               node->getSize(), node->isHeap(), node->isZeroInitialized());
+               alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
         if (verbose && node->getOperandsNum() > 0) {
             printf("\\n--- operands ---\\n");

@@ -353,7 +353,9 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         //  If we would do strong update on line 2 (which we would, since
         //  there we have must alias for the malloc), we would loose the
         //  definitions for line 1 and we would get incorrect results
-        bool strong_update = pts->pointsTo.size() == 1 && !pts->isHeap();
+        pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(ptr.target);
+        assert(target && "Target of pointer is not an allocation");
+        bool strong_update = pts->pointsTo.size() == 1 && !target->isHeap();
         node->addDef(ptrNode, ptr.offset, size, strong_update);
     }
 

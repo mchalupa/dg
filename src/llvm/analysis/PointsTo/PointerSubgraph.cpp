@@ -464,7 +464,7 @@ PSNode *LLVMPointerSubgraphBuilder::createDynamicAlloc(const llvm::CallInst *CIn
 
     const Value *op;
     uint64_t size = 0, size2 = 0;
-    PSNode *node = PS.create(PSNodeType::DYN_ALLOC);
+    PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
 
     switch (type) {
         case MemAllocationFuncs::MALLOC:
@@ -506,7 +506,7 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
 
     // we create new allocation node and memcpy old pointers there
     PSNode *orig_mem = getOperand(CInst->getOperand(0)->stripInBoundsOffsets());
-    PSNode *reall = PS.create(PSNodeType::DYN_ALLOC);
+    PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
     // copy everything that is in orig_mem to reall
     PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
     // we need the pointer in the last node that we return
@@ -514,8 +514,6 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
 
     reall->setIsHeap();
     reall->setSize(getConstantValue(CInst->getOperand(1)));
-    if (orig_mem->isZeroInitialized())
-        reall->setZeroInitialized();
 
     reall->addSuccessor(mcp);
     mcp->addSuccessor(ptr);
@@ -662,7 +660,9 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
     /* FIXME: compute correct value instead of UNKNOWN_OFFSET */
     PSNode *node = PS.create(PSNodeType::MEMCPY,
                               srcNode, destNode,
-                              UNKNOWN_OFFSET, UNKNOWN_OFFSET);
+                              UNKNOWN_OFFSET,
+                              UNKNOWN_OFFSET,
+                              UNKNOWN_OFFSET);
 
     addNode(I, node);
     return node;
@@ -850,7 +850,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
 
 PSNode *LLVMPointerSubgraphBuilder::createAlloc(const llvm::Instruction *Inst)
 {
-    PSNode *node = PS.create(PSNodeType::ALLOC);
+    PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
     addNode(Inst, node);
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
@@ -1545,7 +1545,7 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
         // void *ptr = (void *) mem;
         // void *p = *ptr;
         if (tyContainsPointer(AI->getAllocatedType()))
-            op->setZeroInitialized();
+            PSNodeAlloc::get(op)->setZeroInitialized();
     } else {
         // fallback: create a store that represents memset
         // the store will save null to ptr + UNKNOWN_OFFSET,

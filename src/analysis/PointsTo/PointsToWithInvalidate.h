@@ -96,9 +96,11 @@ public:
             MemoryObject *mo = I.second.get();
             for (auto& it : mo->pointsTo) {
                 for (const auto& ptr : it.second) {
-                    if (!ptr.target->isHeap() &&
-                        !ptr.target->isGlobal() &&
-                        ptr.target->getParent() == where->getParent()) {
+                    PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
+                    assert(target && "Target is not an allocation");
+                    if (!target->isHeap() &&
+                        !target->isGlobal() &&
+                        target->getParent() == where->getParent()) {
                         objects.push_back(mo);
                         break;
                     }

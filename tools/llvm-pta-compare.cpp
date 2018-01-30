@@ -96,12 +96,14 @@ printName(PSNode *node)
 static void
 dumpPSNode(PSNode *n)
 {
-    printf("NODE: ");
+    printf("NODE %3u: ", n->getID());
     printName(n);
 
-    if (n->getSize() || n->isHeap() || n->isZeroInitialized())
+    PSNodeAlloc *alloc = PSNodeAlloc::get(n);
+    if (alloc &&
+        (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
         printf(" [size: %lu, heap: %u, zeroed: %u]",
-               n->getSize(), n->isHeap(), n->isZeroInitialized());
+               alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
     if (n->pointsTo.empty()) {
         puts("\n    -> no points-to");

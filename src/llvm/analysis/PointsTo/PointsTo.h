@@ -121,7 +121,7 @@ public:
 
 class LLVMPointerAnalysis
 {
-    PointerSubgraph *PS;
+    PointerSubgraph *PS = nullptr;
     LLVMPointerSubgraphBuilder *builder;
 
 public:

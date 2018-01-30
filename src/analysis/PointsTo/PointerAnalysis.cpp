@@ -54,24 +54,28 @@ bool PointerAnalysis::processLoad(PSNode *node)
             continue;
 
         if (ptr.isUnknown()) {
-            changed |= node->addPointsTo(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+            // load from unknown pointer yields unknown pointer
+            changed |= node->addPointsTo(UNKNOWN_MEMORY);
             continue;
         }
-        
+
         // find memory objects holding relevant points-to
         // information
         std::vector<MemoryObject *> objects;
         getMemoryObjects(node, ptr, objects);
 
+        PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
+        assert(target && "Target is not memory allocation");
+
         // no objects found for this target? That is
         // load from unknown memory
         if (objects.empty()) {
-            if (ptr.target->isZeroInitialized())
+            if (target->isZeroInitialized())
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
                 changed |= node->addPointsTo(NULLPTR);
             else
-                changed |= errorEmptyPointsTo(node, ptr.target);
+                changed |= errorEmptyPointsTo(node, target);
 
             continue;
         }
@@ -85,10 +89,10 @@ bool PointerAnalysis::processLoad(PSNode *node)
                 // no pointers in it - it may be an error
                 // FIXME: don't duplicate the code
                 if (o->pointsTo.empty()) {
-                    if (ptr.target->isZeroInitialized())
+                    if (target->isZeroInitialized())
                         changed |= node->addPointsTo(NULLPTR);
                     else if (objects.size() == 1)
-                        changed |= errorEmptyPointsTo(node, ptr.target);
+                        changed |= errorEmptyPointsTo(node, target);
                 }
 
                 // we have some pointers - copy them all,
@@ -108,13 +112,13 @@ bool PointerAnalysis::processLoad(PSNode *node)
             if (!o->pointsTo.count(ptr.offset)) {
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
-                if (ptr.target->isZeroInitialized())
+                if (target->isZeroInitialized())
                     changed |= node->addPointsTo(NULLPTR);
                 // if we don't have a definition even with unknown offset
                 // it is an error
                 // FIXME: don't triplicate the code!
                 else if (!o->pointsTo.count(UNKNOWN_OFFSET))
-                    changed |= errorEmptyPointsTo(node, ptr.target);
+                    changed |= errorEmptyPointsTo(node, target);
             } else {
                 // we have pointers on that memory, so we can
                 // do the work
@@ -138,28 +142,33 @@ bool PointerAnalysis::processLoad(PSNode *node)
 bool PointerAnalysis::processMemcpy(PSNode *node)
 {
     bool changed = false;
+    PSNodeMemcpy *memcpy = PSNodeMemcpy::get(node);
 
     // what to copy
     std::vector<MemoryObject *> srcObjects;
     // where to copy
     std::vector<MemoryObject *> destObjects;
-    PSNode *srcNode = node->getOperand(0);
-    PSNode *destNode = node->getOperand(1);
+    PSNode *srcNode = memcpy->getSource();
+    PSNode *destNode = memcpy->getDestination();
 
     /* if one is zero initialized and we copy it whole,
-     * set the other zero initialized too */
-    if ((!destNode->isZeroInitialized() && srcNode->isZeroInitialized())
-        && ((*node->offset == 0 && node->len.isUnknown())
-            || node->offset.isUnknown())) {
-        destNode->setZeroInitialized();
-        changed = true;
-    }
+     * set the other zero initialized too.
+     * FIXME: this should be  check on the pointed memory,
+     * not on the operands 
+        if ((!destNode->isZeroInitialized() && srcNode->isZeroInitialized())
+            && (memcpy->getSourceOffset() == 0 &&
+                (memcpy->getLength().isUnknown() ||
+                 memcpy->getLength() == srcNode->getSize()))) {
+            destNode->setZeroInitialized();
+            changed = true;
+        }
+        */
 
     // gather srcNode pointer objects
     for (const Pointer& ptr : srcNode->pointsTo) {
         assert(ptr.target && "Got nullptr as target");
 
-        if (ptr.isNull())
+        if (!ptr.isValid())
             continue;
 
         getMemoryObjects(node, ptr, srcObjects);
@@ -169,13 +178,19 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
     for (const Pointer& dptr : destNode->pointsTo) {
         assert(dptr.target && "Got nullptr as target");
 
-        if (dptr.isNull())
+        if (!dptr.isValid())
             continue;
 
         getMemoryObjects(node, dptr, destObjects);
     }
 
     if (srcObjects.empty()){
+        // FIXME: we need to solve this -- this should
+        // not be checked on srcNode, but on the pointers
+        // (and write a test for me
+        abort();
+
+/*
         if (srcNode->isZeroInitialized()) {
             // if the memory is zero initialized,
             // then everything is fine, we add nullptr
@@ -183,6 +198,7 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
         } else {
             changed |= errorEmptyPointsTo(node, srcNode);
         }
+        */
 
         return changed;
     }
@@ -195,17 +211,17 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
                 // src.first is offset, src.second is a PointToSet
 
                 // we need to copy ptrs at UNKNOWN_OFFSET always
-                if (src.first.isUnknown() || node->offset.isUnknown()) {
+                if (src.first.isUnknown() || memcpy->getSourceOffset().isUnknown()) {
                     changed |= o->addPointsTo(src.first, src.second);
                     continue;
                 }
 
-                if (node->len.isUnknown()) {
-                    if (*src.first < *node->offset)
+                if (memcpy->getLength().isUnknown()) {
+                    if (*src.first < *memcpy->getSourceOffset())
                         continue;
                 } else {
-                    if (!src.first.inRange(*node->offset,
-                                           *node->offset + *node->len - 1))
+                    if (!src.first.inRange(*memcpy->getSourceOffset(),
+                                           *memcpy->getSourceOffset() + *memcpy->getLength() - 1))
                     continue;
                 }
 
@@ -226,11 +242,41 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
         // point to null at offset 8, but it should... fix it by adding
         // nullptr at UNKNOWN_OFFSET (we may loose precision, but we'll
         // be sound)
+        //
+        /* FIXME and write test for me:
         if (srcNode->isZeroInitialized()
-            && !((*node->offset == 0 && node->len.isUnknown())
-                 || node->offset.isUnknown()))
+            && !((*memcpy->getSourceOffset() == 0 && memcpy->getLength().isUnknown())
+                 || memcpy->getSourceOffset().isUnknown()))
             // src is zeroed and we don't copy whole memory?
             changed |= o->addPointsTo(UNKNOWN_OFFSET, NULLPTR);
+            */
+    }
+
+    return changed;
+}
+
+bool PointerAnalysis::processGep(PSNode *node) {
+    bool changed = false;
+
+    PSNodeGep *gep = PSNodeGep::get(node);
+    assert(gep && "Non-GEP given");
+
+    for (const Pointer& ptr : gep->getSource()->pointsTo) {
+        uint64_t new_offset;
+        if (ptr.offset.isUnknown() || gep->getOffset().isUnknown())
+            // set it like this to avoid overflow when adding
+            new_offset = UNKNOWN_OFFSET;
+        else
+            new_offset = *ptr.offset + *gep->getOffset();
+    
+        // in the case PSNodeType::the memory has size 0, then every pointer
+        // will have unknown offset with the exception that it points
+        // to the begining of the memory - therefore make 0 exception
+        if ((new_offset == 0 || new_offset < ptr.target->getSize())
+            && new_offset < max_offset)
+            changed |= node->addPointsTo(ptr.target, new_offset);
+        else
+            changed |= node->addPointsToUnknownOffset(ptr.target);
     }
 
     return changed;
@@ -290,23 +336,7 @@ bool PointerAnalysis::processNode(PSNode *node)
             }
             break;
         case PSNodeType::GEP:
-            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
-                uint64_t new_offset;
-                if (ptr.offset.isUnknown() || node->offset.isUnknown())
-                    // set it like this to avoid overflow when adding
-                    new_offset = UNKNOWN_OFFSET;
-                else
-                    new_offset = *ptr.offset + *node->offset;
-
-                // in the case PSNodeType::the memory has size 0, then every pointer
-                // will have unknown offset with the exception that it points
-                // to the begining of the memory - therefore make 0 exception
-                if ((new_offset == 0 || new_offset < ptr.target->getSize())
-                    && new_offset < max_offset)
-                    changed |= node->addPointsTo(ptr.target, new_offset);
-                else
-                    changed |= node->addPointsToUnknownOffset(ptr.target);
-            }
+            changed |= processGep(node); 
             break;
         case PSNodeType::CAST:
             // cast only copies the pointers
@@ -324,7 +354,9 @@ bool PointerAnalysis::processNode(PSNode *node)
             if (invalidate_nodes) {
                 for (PSNode *op : node->operands) {
                     for (const Pointer& ptr : op->pointsTo) {
-                        if (!ptr.target->isHeap() && !ptr.target->isGlobal())
+                        PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
+                        assert(target && "Target is not memory allocation");
+                        if (!target->isHeap() && !target->isGlobal())
                             changed |= node->addPointsTo(INVALIDATED);
                     }
                 }
