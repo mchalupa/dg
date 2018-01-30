@@ -13,11 +13,14 @@ addons:
       - ubuntu-toolchain-r-test
       - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
         key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+      - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-5.0 main'
     packages:
       - libz-dev
 
 env:
+    - LLVM=3.8
     - LLVM=4.0
+    - LLVM=5.0
 
 compiler:
     - 'clang++'
