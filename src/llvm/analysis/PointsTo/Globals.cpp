@@ -43,7 +43,8 @@ namespace pta {
 
 PSNode *
 LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
-                                                            PSNode *node, PSNode *last,
+                                                            PSNodeAlloc *node,
+                                                            PSNode *last,
                                                             uint64_t offset)
 {
     using namespace llvm;
@@ -112,8 +113,10 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
         prev = cur;
 
         // every global node is like memory allocation
-        cur = PS.create(PSNodeType::ALLOC);
-        cur->setIsGlobal();
+        PSNodeAlloc *nd = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        nd->setIsGlobal();
+        cur = nd;
+
         addNode(&*I, cur);
 
         if (prev)
@@ -125,8 +128,9 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
     // only now handle the initializers - we need to have then
     // built, because they can point to each other
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
-        PSNode *node = getNode(&*I);
-        assert(node && "BUG: Do not have global variable");
+        PSNodeAlloc *node = PSNodeAlloc::get(getNode(&*I));
+        assert(node && "BUG: Do not have global variable"
+                       " or it is not an allocation");
 
         // handle globals initialization
         const llvm::GlobalVariable *GV

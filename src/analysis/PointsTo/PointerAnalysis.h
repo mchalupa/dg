@@ -123,8 +123,8 @@ public:
         for (const auto& scc : SCCs) {
             if (scc.size() > 1) {
                 for (PSNode *n : scc) {
-                    if (n->getType() == PSNodeType::GEP)
-                        n->setOffset(UNKNOWN_OFFSET);
+                    if (PSNodeGep *gep = PSNodeGep::get(n))
+                        gep->setOffset(UNKNOWN_OFFSET);
                 }
             }
         }
@@ -213,6 +213,7 @@ private:
     bool processNode(PSNode *);
     bool processLoad(PSNode *node);
     bool processMemcpy(PSNode *node);
+    bool processGep(PSNode *node);
 };
 
 } // namespace pta

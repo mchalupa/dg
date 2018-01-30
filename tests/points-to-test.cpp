@@ -289,7 +289,7 @@ public:
         PointerSubgraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *ARRAY = PS.create(PSNodeType::ALLOC);
+        PSNodeAlloc *ARRAY = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         ARRAY->setSize(40);
         PSNode *GEP1 = PS.create(PSNodeType::GEP, ARRAY, 0);
         PSNode *GEP2 = PS.create(PSNodeType::GEP, ARRAY, 4);
@@ -421,7 +421,7 @@ public:
         using namespace analysis;
 
         PointerSubgraph PS;
-        PSNode *B = PS.create(PSNodeType::ALLOC);
+        PSNodeAlloc *B = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         B->setZeroInitialized();
         PSNode *L = PS.create(PSNodeType::LOAD, B);
 
@@ -691,9 +691,9 @@ public:
         using namespace analysis;
 
         PointerSubgraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         A->setSize(20);
-        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         SRC->setSize(16);
         SRC->setZeroInitialized();
         PSNode *DEST = PS.create(PSNodeType::ALLOC);
