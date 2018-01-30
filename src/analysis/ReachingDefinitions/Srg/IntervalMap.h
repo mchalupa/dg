@@ -30,25 +30,23 @@ class Interval {
 public:
     Interval(T start, T len): start(start), len(len) {}
 
-    bool unknown() const {
-        return start.isUnknown() || len.isUnknown();
+    bool isUnknown() const {
+        return start.isUnknown() || len == 0;
     }
 
     bool overlaps(const Interval& other) const {
-        if (unknown() || other.unknown()) {
-            return true;
-        }
+        if (isUnknown() || other.isUnknown())
+            return false;
         return intervalsOverlap(start.offset, len.offset, other.start.offset, other.len.offset);
     }
 
     bool isSubsetOf(const Interval& other) const {
-        if (unknown() || other.unknown()) {
-            return true;
-        }
         return start >= other.start && start + len <= other.start + other.len;
     }
 
     bool unite(const Interval& other) {
+        if (isUnknown() || other.isUnknown())
+            return false;
         if (overlaps(other) || start + len == other.start || other.start + other.len == start) {
             T a = min(start, other.start);
             T b = max(start + len, other.start + other.len);
@@ -142,6 +140,10 @@ class IntervalMap {
      * Returns true if @interval is subset of union of intervals in @intervals
      */
     static inline bool isCovered(const Interval& interval, const DisjointIntervalSet& intervals) {
+        // it could be, that would be an under-approximation
+        if (interval.isUnknown()) {
+            return true;
+        }
         for (auto it = intervals.cbegin(); it != intervals.cend(); ++it) {
             if (interval.overlaps(*it) && interval.isSubsetOf(*it)) {
                 return true;
@@ -175,8 +177,8 @@ public:
         bool is_covered = false;
 
         static_assert(ReverseLookup, "forward lookup in IntervalMap is not yet supported");
-        for (auto it = buckets.rbegin(); !is_covered && it != buckets.rend(); ++it) {
-            if (it->first.overlaps(interval) && !isCovered(it->first, intervals)) {
+        for (auto it = buckets.rbegin(); it != buckets.rend(); ++it) {
+            if (interval.isUnknown() || it->first.isUnknown() || (it->first.overlaps(interval) && !isCovered(it->first, intervals))) {
                 intervals.insert(it->first);
                 result.push_back(it->second);
                 is_covered = isCovered(interval, intervals);
