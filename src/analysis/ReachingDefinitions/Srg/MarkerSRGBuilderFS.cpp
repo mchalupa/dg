@@ -96,6 +96,5 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
         val = phi.get();
         phi_nodes.push_back(std::move(phi));
     }
-    writeVariable(var, val, block);
     return val;
 }
