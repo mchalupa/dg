@@ -11,59 +11,24 @@ addons:
     sources:
       # newer gcc and clang
       - ubuntu-toolchain-r-test
+      - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
+        key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
     packages:
       - libz-dev
 
-matrix:
-  include:
-    # compile with g++4, use LLVM 4
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - g++
-      env:
-        - MATRIX_EVAL="CC=gcc && CXX=g++"
-        - LLVM_VERSION=4.0
+env:
+    - LLVM=4.0
 
-    # compile with g++5, use LLVM 4
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - g++-5
-      env:
-        - MATRIX_EVAL="CC=gcc-5 && CXX=g++-5"
-        - LLVM_VERSION=4.0
+compiler:
+    - 'clang++'
+    - 'g++'
+    - 'g++-5'
 
-    # compile with clang 4, use LLVM 4
-    - os: linux
-      addons:
-        apt:
-          sources:
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main'
-              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
-          packages:
-            - clang-4.0
-      env:
-        - MATRIX_EVAL="CC=clang-4.0 && CXX=clang++-4.0"
-        - LLVM_VERSION=4.0
-
-before_install:
-    - eval "${MATRIX_EVAL}"
 install:
   - git clone --depth 1 https://github.com/tomsik68/travis-llvm.git
   - cd travis-llvm
   - chmod +x travis-llvm.sh
-  - ./travis-llvm.sh ${LLVM_VERSION}
+  - ./travis-llvm.sh ${LLVM}
   - cd ..
 
 script:
