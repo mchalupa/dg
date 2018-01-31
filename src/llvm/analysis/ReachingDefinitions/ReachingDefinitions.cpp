@@ -278,8 +278,9 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     assert(pts && "Don't have the points-to information for store");
 
     if (pts->pointsTo.empty()) {
-        //llvm::errs() << "ERROR: empty STORE points-to: " << *Inst << "\n";
-
+#ifdef DEBUG_ENABLED
+        llvm::errs() << "[RD] error: empty STORE points-to: " << *Inst << "\n";
+#else
         // this may happen on invalid reads and writes to memory,
         // like when you try for example this:
         //
@@ -290,6 +291,7 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
         // NOTE: maybe this is a bit strong to say unknown memory,
         // but better be sound then incorrect
         node->addDef(UNKNOWN_MEMORY);
+#endif
         return node;
     }
 
@@ -303,6 +305,8 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
             continue;
         }
 
+        // XXX: we should do something, shouldn't we?
+        // Or we just slice only well-defined programs?
         if (ptr.isInvalidated())
             continue;
 
@@ -333,9 +337,6 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
             if (size == 0)
                 size = UNKNOWN_OFFSET;
         }
-
-        //llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
-        //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
 
         // strong update is possible only with must aliases. Also we can not
         // be pointing to heap, because then we don't know which object it
@@ -793,7 +794,8 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         assert(op && "Don't have points-to information");
         //assert(!op->pointsTo.empty() && "Don't have pointer to the func");
         if (op->pointsTo.empty()) {
-            llvm::errs() << "WARNING: a call via a function pointer, but the points-to is empty\n"
+            llvm::errs() << "[RD] error: a call via a function pointer, "
+                            "but the points-to is empty\n"
                          << *CInst << "\n";
             RDNode *n = createUndefinedCall(CInst);
             return std::make_pair(n, n);
