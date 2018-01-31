@@ -212,8 +212,12 @@ public:
 private:
     bool processNode(PSNode *);
     bool processLoad(PSNode *node);
-    bool processMemcpy(PSNode *node);
     bool processGep(PSNode *node);
+    bool processMemcpy(PSNode *node);
+    bool processMemcpy(std::vector<MemoryObject *>& srcObjects,
+                       std::vector<MemoryObject *>& destObjects,
+                       Offset srcOffset, Offset destOffset,
+                       Offset len);
 };
 
 } // namespace pta

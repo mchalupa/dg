@@ -143,13 +143,11 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
 {
     bool changed = false;
     PSNodeMemcpy *memcpy = PSNodeMemcpy::get(node);
-
-    // what to copy
-    std::vector<MemoryObject *> srcObjects;
-    // where to copy
-    std::vector<MemoryObject *> destObjects;
     PSNode *srcNode = memcpy->getSource();
     PSNode *destNode = memcpy->getDestination();
+
+    std::vector<MemoryObject *> srcObjects;
+    std::vector<MemoryObject *> destObjects;
 
     /* if one is zero initialized and we copy it whole,
      * set the other zero initialized too.
@@ -168,64 +166,85 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
     for (const Pointer& ptr : srcNode->pointsTo) {
         assert(ptr.target && "Got nullptr as target");
 
-        if (!ptr.isValid())
+        if (!ptr.isValid() || ptr.isInvalidated())
             continue;
 
+        srcObjects.clear();
         getMemoryObjects(node, ptr, srcObjects);
-    }
 
-    // gather destNode objects
-    for (const Pointer& dptr : destNode->pointsTo) {
-        assert(dptr.target && "Got nullptr as target");
-
-        if (!dptr.isValid())
-            continue;
-
-        getMemoryObjects(node, dptr, destObjects);
-    }
-
-    if (srcObjects.empty()){
-        // FIXME: we need to solve this -- this should
-        // not be checked on srcNode, but on the pointers
-        // (and write a test for me
-        abort();
-
-/*
-        if (srcNode->isZeroInitialized()) {
-            // if the memory is zero initialized,
-            // then everything is fine, we add nullptr
-            changed |= node->addPointsTo(NULLPTR);
-        } else {
-            changed |= errorEmptyPointsTo(node, srcNode);
+        if (srcObjects.empty()){
+            abort();
+            return changed;
         }
-        */
 
-        return changed;
+        // gather destNode objects
+        for (const Pointer& dptr : destNode->pointsTo) {
+            assert(dptr.target && "Got nullptr as target");
+
+            if (!dptr.isValid() || dptr.isInvalidated())
+                continue;
+
+            destObjects.clear();
+            getMemoryObjects(node, dptr, destObjects);
+
+            if (destObjects.empty()) {
+                abort();
+                return changed;
+            }
+
+            changed |= processMemcpy(srcObjects, destObjects,
+                                     ptr.offset, dptr.offset,
+                                     memcpy->getLength());
+        }
     }
 
-    for (MemoryObject *o : destObjects) {
+    return changed;
+}
+
+bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
+                                    std::vector<MemoryObject *>& destObjects,
+                                    Offset srcOffset, Offset destOffset,
+                                    Offset len)
+{
+    bool changed = false;
+
+    for (MemoryObject *destO : destObjects) {
         // copy every pointer from srcObjects that is in
-        // the range to these objects
+        // the range to destination's objects
         for (MemoryObject *so : srcObjects) {
-            for (auto& src : so->pointsTo) {
-                // src.first is offset, src.second is a PointToSet
+            for (auto& src : so->pointsTo) { // src.first is offset,
+                                             // src.second is a PointToSet
 
-                // we need to copy ptrs at UNKNOWN_OFFSET always
-                if (src.first.isUnknown() || memcpy->getSourceOffset().isUnknown()) {
-                    changed |= o->addPointsTo(src.first, src.second);
-                    continue;
+                // if the offset is inbound of the copied memory
+                // or we copy from unknown offset, or this pointer
+                // is on unknown offset, copy this pointer
+                if (src.first.isUnknown() ||
+                    srcOffset.isUnknown() ||
+                    (srcOffset <= src.first &&
+                     (len.isUnknown() ||
+                      *src.first - *srcOffset < *len))) {
+
+                    // copy the pointer, but shift it by the offsets
+                    // we are working with
+                    if (!src.first.isUnknown() && !srcOffset.isUnknown() &&
+                        !destOffset.isUnknown()) {
+                        // check that new offset does not overflow UNKNOWN_OFFSET
+                        if (UNKNOWN_OFFSET - *destOffset <= *src.first - *srcOffset) {
+                            changed |= destO->addPointsTo(UNKNOWN_OFFSET, src.second);
+                            continue;
+                        }
+
+                        Offset newOff = *src.first - *srcOffset + *destOffset;
+                        if (newOff >= destO->node->getSize() ||
+                            newOff >= max_offset) {
+                            changed |= destO->addPointsTo(UNKNOWN_OFFSET, src.second);
+                        } else {
+                            changed |= destO->addPointsTo(newOff, src.second);
+                        }
+                    } else {
+                        changed |= destO->addPointsTo(UNKNOWN_OFFSET, src.second);
+                    }
                 }
-
-                if (memcpy->getLength().isUnknown()) {
-                    if (*src.first < *memcpy->getSourceOffset())
-                        continue;
-                } else {
-                    if (!src.first.inRange(*memcpy->getSourceOffset(),
-                                           *memcpy->getSourceOffset() + *memcpy->getLength() - 1))
-                    continue;
-                }
-
-                changed |= o->addPointsTo(src.first, src.second);
             }
         }
 
@@ -268,7 +287,7 @@ bool PointerAnalysis::processGep(PSNode *node) {
             new_offset = UNKNOWN_OFFSET;
         else
             new_offset = *ptr.offset + *gep->getOffset();
-    
+
         // in the case PSNodeType::the memory has size 0, then every pointer
         // will have unknown offset with the exception that it points
         // to the begining of the memory - therefore make 0 exception
@@ -336,7 +355,7 @@ bool PointerAnalysis::processNode(PSNode *node)
             }
             break;
         case PSNodeType::GEP:
-            changed |= processGep(node); 
+            changed |= processGep(node);
             break;
         case PSNodeType::CAST:
             // cast only copies the pointers

@@ -14,23 +14,22 @@ struct Offset
     using type = uint64_t;
 
     Offset(type o = UNKNOWN_OFFSET) : offset(o) {}
-    Offset& operator+=(const Offset& o)
+    Offset operator+(const Offset o)
     {
-        if (offset == UNKNOWN_OFFSET)
-            return *this;
+        if (offset == UNKNOWN_OFFSET || o.offset == UNKNOWN_OFFSET ||
+            offset >= UNKNOWN_OFFSET - o.offset) {
+            return UNKNOWN_OFFSET;
+        }
 
-        if (o.offset == UNKNOWN_OFFSET)
-            offset = UNKNOWN_OFFSET;
-        else
-            offset += o.offset;
-
-        return *this;
+        return Offset(offset + o.offset);
     }
 
-    Offset operator+(const Offset& o)
+    Offset operator-(const Offset o)
     {
-        if (offset == UNKNOWN_OFFSET || o.offset == UNKNOWN_OFFSET)
+        if (offset == UNKNOWN_OFFSET || o.offset == UNKNOWN_OFFSET ||
+            offset < o.offset) {
             return UNKNOWN_OFFSET;
+        }
 
         return Offset(offset + o.offset);
     }
@@ -38,6 +37,16 @@ struct Offset
     bool operator<(const Offset& o) const
     {
         return offset < o.offset;
+    }
+
+    bool operator<=(const Offset& o) const
+    {
+        return offset <= o.offset;
+    }
+
+    bool operator>=(const Offset& o) const
+    {
+        return offset >= o.offset;
     }
 
     bool operator==(const Offset& o) const
