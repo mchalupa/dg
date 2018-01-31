@@ -343,15 +343,11 @@ public:
 };
 
 class PSNodeMemcpy : public PSNode {
-    Offset src_offset;
-    Offset dest_offset;
     Offset len;
 
 public:
-    PSNodeMemcpy(unsigned id, PSNode *src, PSNode *dest,
-                 Offset src_o, Offset dst_off, Offset len)
-    :PSNode(id, PSNodeType::MEMCPY, src, dest),
-     src_offset(src_o), dest_offset(dst_off), len(len) {}
+    PSNodeMemcpy(unsigned id, PSNode *src, PSNode *dest, Offset len)
+    :PSNode(id, PSNodeType::MEMCPY, src, dest), len(len) {}
 
     static PSNodeMemcpy *get(PSNode *n) {
         return isa<PSNodeType::MEMCPY>(n) ? static_cast<PSNodeMemcpy *>(n) : nullptr;
@@ -359,8 +355,6 @@ public:
 
     PSNode *getSource() const { return getOperand(0); }
     PSNode *getDestination() const { return getOperand(1); }
-    Offset getSourceOffset() const { return src_offset; }
-    Offset getDestinationOffset() const { return dest_offset; }
     Offset getLength() const { return len; }
 };
 
@@ -445,8 +439,6 @@ public:
                 node = new PSNodeMemcpy(++last_node_id,
                                         va_arg(args, PSNode *),
                                         va_arg(args, PSNode *),
-                                        va_arg(args, Offset::type),
-                                        va_arg(args, Offset::type),
                                         va_arg(args, Offset::type));
                 break;
             case PSNodeType::CONSTANT:

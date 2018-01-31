@@ -542,7 +542,6 @@ public:
          * after this node dest should point to
          * A + 3 and A + 12 at offsets 4 and 8 */
         PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
-                                0 /* from 0 */,
                                 UNKNOWN_OFFSET /* len = all */);
 
         /* load from the dest memory */
@@ -599,8 +598,7 @@ public:
          * after this node dest should point to
          * A + 3 at offset 4  = PS.create(8 is 9th byte,
          * so it should not be included) */
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
-                                0 /* from 0 */, 8 /* len*/);
+        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST, 8 /* len*/);
 
         /* load from the dest memory */
         PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
@@ -654,13 +652,13 @@ public:
 
         /* copy memory from 8 bytes and further
          * after this node dest should point to
-         * A + 12 at offset 8 */
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
-                                8 /* from */, UNKNOWN_OFFSET /* len*/);
+         * A + 12 at offset 0 */
+        PSNode *CPY = PS.create(PSNodeType::MEMCPY, G2, DEST,
+                                UNKNOWN_OFFSET /* len*/);
 
         /* load from the dest memory */
         PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 8);
+        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 0);
         PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
         PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
 
@@ -686,6 +684,8 @@ public:
         check(L1->pointsTo.empty(), "L1 is not empty");
     }
 
+#if 0
+    // THIS TEST DOES NOT MAKE SENSE
     void memcpy_test4()
     {
         using namespace analysis;
@@ -699,16 +699,13 @@ public:
         PSNode *DEST = PS.create(PSNodeType::ALLOC);
         DEST->setSize(16);
 
-        /* initialize SRC, so that
-         * it will point to A + 3
-         * offsets 4 */
+        /* initialize SRC, so that it will point to A + 3 at offset 4 */
         PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
         PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
         PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
 
-        /* copy memory from 8 bytes and further
-         * after this node dest should point to
-         * A + 12 at offset 8 */
+        /* copy memory from 8 bytes and further after this node dest should
+         * point to A + 12 at offset 8 */
         PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
                                 8 /* from */, UNKNOWN_OFFSET /* len*/);
 
@@ -736,6 +733,51 @@ public:
         check(L1->doesPointsTo(NULLPTR), "L1 does not point to NULL");
         check(L2->doesPointsTo(NULLPTR), "L2 does not point to NULL");
     }
+#endif
+
+    void memcpy_test5()
+    {
+        using namespace analysis;
+
+        PointerSubgraph PS;
+        PSNode *A = PS.create(PSNodeType::ALLOC);
+        A->setSize(20);
+        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        SRC->setSize(16);
+        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        DEST->setSize(16);
+
+        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
+        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
+        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
+
+        // copy the only pointer to dest + 0
+        PSNode *CPY = PS.create(PSNodeType::MEMCPY, G1, DEST, 1);
+
+        /* load from the dest memory */
+        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 0);
+        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
+        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 1);
+        PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
+
+        A->addSuccessor(SRC);
+        SRC->addSuccessor(DEST);
+        DEST->addSuccessor(GEP1);
+        GEP1->addSuccessor(G1);
+        G1->addSuccessor(S1);
+        S1->addSuccessor(CPY);
+        CPY->addSuccessor(G3);
+        G3->addSuccessor(L1);
+        L1->addSuccessor(G4);
+        G4->addSuccessor(L2);
+
+        PS.setRoot(A);
+        PTStoT PA(&PS);
+        PA.run();
+
+        check(L1->doesPointsTo(A, 3), "L2 do not points to A + 3");
+        check(L2->pointsTo.empty(), "L2 does not have empty points-to");
+    }
 
     void test()
     {
@@ -758,7 +800,8 @@ public:
         memcpy_test();
         memcpy_test2();
         memcpy_test3();
-        memcpy_test4();
+    //    memcpy_test4();
+        memcpy_test5();
     }
 };
 

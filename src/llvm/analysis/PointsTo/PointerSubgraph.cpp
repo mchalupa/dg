@@ -642,13 +642,14 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
 {
     using namespace llvm;
     const Value *dest, *src;//, *lenVal;
+    uint64_t lenVal = UNKNOWN_OFFSET;
 
     switch (I->getIntrinsicID()) {
         case Intrinsic::memmove:
         case Intrinsic::memcpy:
             dest = I->getOperand(0);
             src = I->getOperand(1);
-            //lenVal = I->getOperand(2);
+            lenVal = getConstantValue(I->getOperand(2));
             break;
         default:
             errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
@@ -659,10 +660,7 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
     PSNode *srcNode = getOperand(src);
     /* FIXME: compute correct value instead of UNKNOWN_OFFSET */
     PSNode *node = PS.create(PSNodeType::MEMCPY,
-                              srcNode, destNode,
-                              UNKNOWN_OFFSET,
-                              UNKNOWN_OFFSET,
-                              UNKNOWN_OFFSET);
+                              srcNode, destNode, lenVal);
 
     addNode(I, node);
     return node;
