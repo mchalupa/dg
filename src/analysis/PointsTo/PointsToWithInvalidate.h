@@ -85,26 +85,21 @@ public:
             }
         }
     }
-    
-    void getLocalMemoryObjects(PSNode *where, 
+
+    void getLocalMemoryObjects(PSNode *where,
                           std::vector<MemoryObject *>& objects) override
     {
         MemoryMapT *mm = where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
 
         for (auto& I : *mm) {
-            MemoryObject *mo = I.second.get();
-            for (auto& it : mo->pointsTo) {
-                for (const auto& ptr : it.second) {
-                    PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
-                    assert(target && "Target is not an allocation");
-                    if (!target->isHeap() &&
-                        !target->isGlobal() &&
-                        target->getParent() == where->getParent()) {
-                        objects.push_back(mo);
-                        break;
-                    }
-                }
+            PSNodeAlloc *alloc = PSNodeAlloc::get(I.first);
+            assert(alloc && "Target is not an allocation");
+            if (!alloc->isHeap() &&
+                !alloc->isGlobal() &&
+                alloc->getParent() == where->getParent()) {
+                objects.push_back(I.second.get());
+                break;
             }
         }
     }
