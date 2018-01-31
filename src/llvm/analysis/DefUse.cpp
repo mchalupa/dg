@@ -1,5 +1,4 @@
 #include <map>
-#include <sstream>
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
