@@ -189,9 +189,9 @@ template <>
 inline void LLVMPointerAnalysis::run<analysis::pta::PointsToWithInvalidate>()
 {
     // build the subgraph
-    assert(PS && "Incorrectly constructed PTA, missing PS");
     builder->setInvalidateNodesFlag(true);
     PS = builder->buildLLVMPointerSubgraph();
+    assert(PS && "Incorrectly constructed PTA, missing PS");
 
     // run the analysis itself
     assert(builder && "Incorrectly constructed PTA, missing builder");
@@ -203,9 +203,9 @@ template <>
 inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::pta::PointsToWithInvalidate>()
 {
     // build the subgraph
-    assert(PS && "Incorrectly constructed PTA, missing PS");
     builder->setInvalidateNodesFlag(true);
     PS = builder->buildLLVMPointerSubgraph();
+    assert(PS && "Incorrectly constructed PTA, missing PS");
 
     assert(builder && "Incorrectly constructed PTA, missing builder");
     return new LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate>(PS, builder);

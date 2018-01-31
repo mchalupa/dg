@@ -50,7 +50,8 @@ bool PointerAnalysis::processLoad(PSNode *node)
         return error(operand, "Load's operand has no points-to set");
 
     for (const Pointer& ptr : operand->pointsTo) {
-        if (ptr.isNull())
+        // XXX: should this yield also UNKNOWN pointer
+        if (!ptr.isValid() || ptr.isInvalidated())
             continue;
 
         if (ptr.isUnknown()) {
