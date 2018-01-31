@@ -115,7 +115,7 @@ public:
         // is always the last
         //
         // XXX: this holds everywhere except for va_start
-        // sequence. Maybe we should use a new class
+        // and realloc sequences. Maybe we should use a new class
         // instead of std::pair to represent the sequence
         return it->second.second;
     }

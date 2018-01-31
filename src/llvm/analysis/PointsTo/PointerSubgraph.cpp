@@ -505,10 +505,10 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
     using namespace llvm;
 
     // we create new allocation node and memcpy old pointers there
-    PSNode *orig_mem = getOperand(CInst->getOperand(0)->stripInBoundsOffsets());
+    PSNode *orig_mem = getOperand(CInst->getOperand(0));
     PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
     // copy everything that is in orig_mem to reall
-    PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, 0, UNKNOWN_OFFSET);
+    PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, UNKNOWN_OFFSET);
     // we need the pointer in the last node that we return
     PSNode *ptr = PS.create(PSNodeType::CONSTANT, reall, 0);
 
@@ -521,7 +521,7 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
     reall->setUserData(const_cast<llvm::CallInst *>(CInst));
 
     PSNodesSeq ret = PSNodesSeq(reall, ptr);
-    addNode(CInst, ptr);
+    addNode(CInst, ret);
 
     return ret;
 }
