@@ -1,30 +1,28 @@
-/* Written by @thierry-tct <tctthierry@gmail.com>
- * from issue #133
- */
-
 #include <stdlib.h>
 
-int x;
+struct s {
+	int *a;
+	int *b;
+};
 
- void foo(int a) {
-         x = 1;
- }
+int main(void)
+{
+	int a, b;
+	struct s *s1, *s2;
 
- void foo2(int a) {
-         x = 2;
- }
+	s1 = malloc(sizeof *s1);
+	if (!s1)
+		return 1;
 
- struct T {
-      void (*f) (int c);
-      int c;
- };
+	s1->a = &a;
+	s1->b = &b;
 
- int main(void) {
-         int a = 1;
-         struct T *pt = NULL;
-         pt = (struct T*) realloc (pt, sizeof(struct T));
-         pt[0].f = (a == 1 ? foo : foo2);
-         pt[0].f(a);
-         test_assert(x == 1);
-         return 0;
+	s2 = realloc(s1, sizeof(*s2));
+	if (!s2)
+		return 1;
+
+	*s2->b = 9;
+	test_assert(b == 9);
+
+	return 0;
 }
