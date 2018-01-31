@@ -279,7 +279,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
         assert(graph != dg && "Cannot find a node");
         rdnode = graph->getNode(rdval);
         if (!rdnode) {
-            llvmutils::printerr("ERROR: DG has not val: ", rdval);
+            llvmutils::printerr("[DU] error: DG doesn't have val: ", rdval);
+            abort();
             return;
         }
     }
@@ -325,7 +326,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
         std::set<RDNode *> defs;
         // Get even reaching definitions for UNKNOWN_MEMORY.
         // Since those can be ours definitions, we must add them always
-        mem->getReachingDefinitions(rd::UNKNOWN_MEMORY, UNKNOWN_OFFSET, UNKNOWN_OFFSET, defs);
+        mem->getReachingDefinitions(rd::UNKNOWN_MEMORY, UNKNOWN_OFFSET,
+                                    UNKNOWN_OFFSET, defs);
         if (!defs.empty()) {
             for (RDNode *rd : defs) {
                 assert(!rd->isUnknown() && "Unknown memory defined at unknown location?");
@@ -377,9 +379,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
 {
     // get points-to information for the operand
     PSNode *pts = PTA->getPointsTo(ptrOp);
-    //assert(pts && "Don't have points-to information for LoadInst");
     if (!pts) {
-        llvmutils::printerr("ERROR: No points-to: ", ptrOp);
+        llvmutils::printerr("[DU] error: no points-to: ", ptrOp);
         return;
     }
 
@@ -397,7 +398,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     // all the reaching definitions
     RDNode *mem = RD->getMapping(where);
     if(!mem) {
-        llvmutils::printerr("ERROR: Don't have mapping: ", where);
+        llvmutils::printerr("[DU] error: don't have mapping: ", where);
         return;
     }
 
@@ -432,8 +433,6 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
         handleLoadInst(Inst, node);
     } else if (isa<CallInst>(val)) {
         handleCallInst(node);
-    /*} else if (StoreInst *Inst = dyn_cast<StoreInst>(val)) {
-        handleStoreInst(Inst, node);*/
     }
 
     /* just add direct def-use edges to every instruction */
