@@ -14,7 +14,6 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-void getNodes(std::set<PSNode *>& cont, PSNode *n, unsigned int dfsnum);
 void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned int dfsnum);
 
 enum class PSNodeType {
@@ -303,7 +302,6 @@ public:
     friend class PointerAnalysis;
     friend class PointerSubgraph;
 
-    friend void getNodes(std::set<PSNode *>& cont, PSNode *n, unsigned int dfsnum);
     friend void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode* exit, unsigned int dfsnum);
 };
 
@@ -503,33 +501,6 @@ public:
     }
 
 };
-
-inline void getNodes(std::set<PSNode *>& cont, PSNode *n, unsigned int dfsnum)
-{
-    // default behaviour is to enqueue all pending nodes
-    ++dfsnum;
-    ADT::QueueFIFO<PSNode *> fifo;
-
-    assert(n && "No starting node given."); 
-
-    for (PSNode *succ : n->successors) {
-        succ->dfsid = dfsnum;
-        fifo.push(succ);
-    }
-
-    while (!fifo.empty()) {
-        PSNode *cur = fifo.pop();
-        bool ret = cont.insert(cur).second;
-        assert(ret && "BUG: Tried to insert something twice");
-
-        for (PSNode *succ : cur->successors) {
-            if (succ->dfsid != dfsnum) {
-                succ->dfsid = dfsnum;
-                fifo.push(succ);
-            }
-        }
-    }
-}
 
 inline void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned int dfsnum)
 {
