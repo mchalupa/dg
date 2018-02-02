@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <vector>
+#include <memory>
 
 #include "PointerAnalysis.h"
 
@@ -13,22 +14,15 @@ namespace pta {
 class PointsToFlowInsensitive : public PointerAnalysis
 {
     PointerSubgraph *ps;
+    std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
 protected:
     PointsToFlowInsensitive() = default;
 
 public:
     PointsToFlowInsensitive(PointerSubgraph *ps)
-    : PointerAnalysis(ps), ps(ps) {}
-
-    ~PointsToFlowInsensitive() {
-        std::vector<PSNode *> nodes = ps->getNodes();
-        for (PSNode *n : nodes) {
-            if (n == nullptr)
-                continue;
-            MemoryObject *mo = n->getData<MemoryObject>();
-            delete mo;
-        }
+    : PointerAnalysis(ps), ps(ps) {
+        memory_objects.reserve(std::max(ps->size() / 100, (size_t)8));
     }
 
     void getMemoryObjects(PSNode *where, const Pointer& pointer,
@@ -56,6 +50,7 @@ public:
         MemoryObject *mo = n->getData<MemoryObject>();
         if (!mo) {
             mo = new MemoryObject(n);
+            memory_objects.emplace_back(mo);
             n->setData<MemoryObject>(mo);
         }
 
