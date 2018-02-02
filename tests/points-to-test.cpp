@@ -791,10 +791,10 @@ public:
         PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
         PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
         PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
-        PSNode *G3 = PS.create(PSNodeType::GEP, SRC, 5);
+        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 5);
         PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 1);
 
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, G4, 4);
+        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, G4, 8);
 
         /* load from the dest memory */
         PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
@@ -860,7 +860,53 @@ public:
         check(L3->doesPointsTo(NULLPTR), "L2 does not point to NULL");
     }
 
+    void memcpy_test8()
+    {
+        using namespace analysis;
 
+        PointerSubgraph PS;
+        PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        A->setSize(20);
+        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        SRC->setSize(16);
+        SRC->setZeroInitialized();
+        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        DEST->setSize(16);
+
+        /* initialize SRC, so that it will point to A + 3 at offset 0 */
+        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
+        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, SRC);
+
+        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST, 10);
+
+        /* load from the dest memory */
+        PSNode *G1 = PS.create(PSNodeType::GEP, DEST, 0);
+        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
+        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 8);
+        PSNode *L1 = PS.create(PSNodeType::LOAD, G1);
+        PSNode *L2 = PS.create(PSNodeType::LOAD, G3);
+        PSNode *L3 = PS.create(PSNodeType::LOAD, G4);
+
+        A->addSuccessor(SRC);
+        SRC->addSuccessor(DEST);
+        DEST->addSuccessor(GEP1);
+        GEP1->addSuccessor(G1);
+        G1->addSuccessor(S1);
+        S1->addSuccessor(G3);
+        G3->addSuccessor(CPY);
+        CPY->addSuccessor(G4);
+        G4->addSuccessor(L1);
+        L1->addSuccessor(L2);
+        L2->addSuccessor(L3);
+
+        PS.setRoot(A);
+        PTStoT PA(&PS);
+        PA.run();
+
+        check(L1->doesPointsTo(A, 3), "L1 does not point A + 3");
+        check(L2->doesPointsTo(NULLPTR), "L2 does not point to NULL");
+        check(L3->doesPointsTo(NULLPTR), "L3 does not point to NULL");
+    }
 
     void test()
     {
@@ -887,6 +933,7 @@ public:
         memcpy_test5();
         memcpy_test6();
         memcpy_test7();
+        memcpy_test8();
     }
 };
 

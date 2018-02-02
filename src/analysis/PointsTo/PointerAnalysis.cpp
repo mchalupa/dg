@@ -150,19 +150,6 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
     std::vector<MemoryObject *> srcObjects;
     std::vector<MemoryObject *> destObjects;
 
-    /* if one is zero initialized and we copy it whole,
-     * set the other zero initialized too.
-     * FIXME: this should be  check on the pointed memory,
-     * not on the operands 
-        if ((!destNode->isZeroInitialized() && srcNode->isZeroInitialized())
-            && (memcpy->getSourceOffset() == 0 &&
-                (memcpy->getLength().isUnknown() ||
-                 memcpy->getLength() == srcNode->getSize()))) {
-            destNode->setZeroInitialized();
-            changed = true;
-        }
-        */
-
     // gather srcNode pointer objects
     for (const Pointer& ptr : srcNode->pointsTo) {
         assert(ptr.target && "Got nullptr as target");
@@ -194,7 +181,7 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
             }
 
             changed |= processMemcpy(srcObjects, destObjects,
-                                     ptr.offset, dptr.offset,
+                                     ptr, dptr,
                                      memcpy->getLength());
         }
     }
@@ -204,12 +191,44 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
 
 bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
                                     std::vector<MemoryObject *>& destObjects,
-                                    Offset srcOffset, Offset destOffset,
+                                    const Pointer& sptr, const Pointer& dptr,
                                     Offset len)
 {
     bool changed = false;
+    Offset srcOffset = sptr.offset;
+    Offset destOffset = dptr.offset;
+
+    assert(*len > 0 && "Memcpy of length 0");
+
+    PSNodeAlloc *sourceAlloc = PSNodeAlloc::get(sptr.target);
+    assert(sourceAlloc && "Pointer's target in memcpy is not an allocation");
+    PSNodeAlloc *destAlloc = PSNodeAlloc::get(dptr.target);
+    assert(destAlloc && "Pointer's target in memcpy is not an allocation");
+
+    // set to true if the contents of destination memory
+    // can contain null
+    bool contains_null_somewhere = false;
+
+    // if the source is zero initialized, we may copy null pointer
+    if (sourceAlloc->isZeroInitialized()) {
+        // if we really copy the whole object, just set it zero-initialized
+        if ((sourceAlloc->getSize() != UNKNOWN_OFFSET) &&
+            (sourceAlloc->getSize() == destAlloc->getSize()) &&
+            len == sourceAlloc->getSize() && sptr.offset == 0) {
+            destAlloc->setZeroInitialized();
+        } else {
+            // we could analyze in a lot of cases where
+            // shoulde be stored the nullptr, but the question
+            // is whether it is worth it... For now, just say
+            // that somewhere may be null in the destination
+            contains_null_somewhere = true;
+        }
+    }
 
     for (MemoryObject *destO : destObjects) {
+        if (contains_null_somewhere)
+            changed |= destO->addPointsTo(UNKNOWN_OFFSET, NULLPTR);
+
         // copy every pointer from srcObjects that is in
         // the range to destination's objects
         for (MemoryObject *so : srcObjects) {
@@ -248,28 +267,6 @@ bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
                 }
             }
         }
-
-        // we need to take care of the case when src is zero initialized,
-        // but points-to somewhere, imagine this:
-        //
-        // struct s { ptr1, ptr2, ptr3 };
-        // struct s1 = {0}; /* s1 is zero initialized */
-        // struct s1.ptr1 = &a;
-        // struct s2;
-        // memcpy(s1, s2, 0, 16); /* copy first two pointers */
-        //
-        // in this case s2 will point to 'a' at offset 0, but won't
-        // point to null at offset 8, but it should... fix it by adding
-        // nullptr at UNKNOWN_OFFSET (we may loose precision, but we'll
-        // be sound)
-        //
-        /* FIXME and write test for me:
-        if (srcNode->isZeroInitialized()
-            && !((*memcpy->getSourceOffset() == 0 && memcpy->getLength().isUnknown())
-                 || memcpy->getSourceOffset().isUnknown()))
-            // src is zeroed and we don't copy whole memory?
-            changed |= o->addPointsTo(UNKNOWN_OFFSET, NULLPTR);
-            */
     }
 
     return changed;

@@ -216,7 +216,7 @@ private:
     bool processMemcpy(PSNode *node);
     bool processMemcpy(std::vector<MemoryObject *>& srcObjects,
                        std::vector<MemoryObject *>& destObjects,
-                       Offset srcOffset, Offset destOffset,
+                       const Pointer& sptr, const Pointer& dptr,
                        Offset len);
 };
 
