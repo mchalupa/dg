@@ -68,12 +68,17 @@ public:
     }
 
     void getMemoryObjectsPointingTo(PSNode *where, const Pointer& pointer,
-                          std::vector<MemoryObject *>& objects) override
+                                    std::vector<MemoryObject *>& objects) override
     {
         MemoryMapT *mm = where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
 
         for (auto& I : *mm) {
+            if (I.first == INVALIDATED ||
+                I.first == UNKNOWN_MEMORY ||
+                I.first == NULLPTR)
+                continue;
+
             MemoryObject *mo = I.second.get();
             for (auto& it : mo->pointsTo) {
                 for (const auto& ptr : it.second) {
@@ -93,6 +98,11 @@ public:
         assert(mm && "Node does not have memory map");
 
         for (auto& I : *mm) {
+            if (I.first == INVALIDATED ||
+                I.first == UNKNOWN_MEMORY ||
+                I.first == NULLPTR)
+                continue;
+
             PSNodeAlloc *alloc = PSNodeAlloc::get(I.first);
             assert(alloc && "Target is not an allocation");
             if (!alloc->isHeap() &&
