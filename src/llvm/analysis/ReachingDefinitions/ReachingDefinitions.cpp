@@ -1174,8 +1174,9 @@ RDBlock *LLVMRDBuilder::buildGlobals()
         // every global node is like memory allocation
         cur = new RDNode(RDNodeType::ALLOC);
         cur->setSize(getGlobalVariableSize(&*I, DL));
-        // all global variables are initialized on creation
-        cur->addDef(cur, 0, cur->getSize());
+        // some global variables are initialized on creation
+        if (I->hasInitializer())
+            cur->addDef(cur, 0, cur->getSize(), true);
         addNode(&*I, cur);
         glob->append(cur);
 
