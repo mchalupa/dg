@@ -739,7 +739,10 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
     std::vector<RDNode *> rets;
     const llvm::BasicBlock *last_llvm_block = nullptr;
-    RDBlock *last_function_block = nullptr;
+
+    RDBlock *artificial_ret = new RDBlock();
+    artificial_ret->append(ret);
+
     for (const llvm::BasicBlock& block : F) {
         auto it = built_blocks.find(&block);
         if (it == built_blocks.end())
@@ -754,25 +757,34 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
             // of this block is a return node
             if (ptan->getLastNode()->getType() == RDNodeType::RETURN)
                 rets.push_back(ptan->getLastNode());
-            last_function_block = it->second.back();
         }
-        last_llvm_block = &block;
+        RDBlock *last_subblock = it->second.back();
+        // assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
+        if (!last_subblock->getFirstNode())
+            continue;
         // add successors to this block (skipping the empty blocks)
         // FIXME: this function is shared with PSS, factor it out
-        blockAddSuccessors(built_blocks, last_function_block, *last_llvm_block);
+        size_t succ_num = blockAddSuccessors(built_blocks, last_subblock, block);
+        // if we have not added any successor, then the last node
+        // of this block is a return node
+        if (succ_num == 0)
+            rets.push_back(last_subblock->getLastNode());
+        last_llvm_block = &block;
     }
+    // push the artificial return block
+    // artificial_ret needs to be the last block
+    built_blocks[last_llvm_block].push_back(artificial_ret);
+    addBlock(last_llvm_block, artificial_ret);
 
     // add successors edges from every real return to our artificial ret node
-    last_function_block->append(ret);
     for (RDNode *r : rets) {
         makeEdge(r, ret);
         assert( r->getBBlock() );
-        if (r->getBBlock() != last_function_block)
-            r->getBBlock()->addSuccessor(last_function_block);
+        r->getBBlock()->addSuccessor(artificial_ret);
     }
 
     functions_blocks[&F] = std::move(built_blocks);
-    return std::make_pair(fstblock, last_function_block);
+    return std::make_pair(fstblock, artificial_ret);
 }
 
 RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb)
