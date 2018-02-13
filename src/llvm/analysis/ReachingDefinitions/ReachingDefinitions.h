@@ -146,7 +146,7 @@ private:
     RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
 
-    std::vector<RDBlock *> buildBlock(const llvm::BasicBlock& block, RDBlock *parent);
+    std::vector<RDBlock *> buildBlock(const llvm::BasicBlock& block);
     std::pair<RDBlock *,RDBlock *> buildFunction(const llvm::Function& F);
 
     RDBlock *buildGlobals();
