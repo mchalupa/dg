@@ -507,9 +507,15 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                         break;
 
                     std::pair<RDNode *, RDNode *> subg = createCall(&Inst, rb);
+
                     makeEdge(last_node, subg.first);
-                    if( subg.first->successorsNum() > 0) {
-                        rb->addSuccessor((*subg.first->getSuccessors().begin())->getBBlock());
+
+                    if (subg.first->successorsNum() > 0) {
+                        RDBlock *succBB = (*subg.first->getSuccessors().begin())->getBBlock();
+                        if (succBB)
+                            rb->addSuccessor(succBB);
+                        else
+                            rb->addSuccessor(rb);
 
                         // successors for blocks with return will be added later
                         new_block = new RDBlock();
@@ -518,7 +524,11 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                         new_block->append(subg.second);
                         rb = new_block;
 
-                        (*subg.second->getPredecessors().begin())->getBBlock()->addSuccessor(new_block);
+                        RDBlock *predBB = (*subg.second->getPredecessors().begin())->getBBlock();
+                        if (predBB)
+                            predBB->addSuccessor(new_block);
+                        else
+                            rb->addSuccessor(new_block);
                     }
 
                     // new nodes will connect to the return node
@@ -645,16 +655,10 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     RDBlock *prev_bblock_end = nullptr;
     for (const llvm::BasicBlock& block : F) {
         std::vector<RDBlock *> blocks = buildBlock(block);
-        if (prev_bblock_end) {
-            // connect the blocks within function
-            prev_bblock_end->addSuccessor(blocks[0]);
-        }
-
         if (!first) {
             first = blocks[0]->getFirstNode();
             fstblock = blocks[0];
         }
-        prev_bblock_end = blocks.back();
 
         built_blocks[&block] = std::move(blocks);
     }
