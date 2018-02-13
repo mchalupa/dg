@@ -521,7 +521,6 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                         }
                     }
 
-
                     // if the function consists of single node(intrinsics, undefined etc)
                     // do not add more nodes for this function
                     if (subg.first != subg.second) {
@@ -536,7 +535,7 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                             RDBlock *predBB = pred->getBBlock();
                             if (predBB) {
                                 for (RDNode *succ : pred->getSuccessors()) {
-                                    if (succ == subg.second) 
+                                    if (succ == subg.second)
                                         continue;
                                     RDBlock *succBB = succ->getBBlock();
                                     if (succBB)

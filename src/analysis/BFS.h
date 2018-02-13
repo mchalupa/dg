@@ -26,7 +26,7 @@ enum BFSFlags {
     BFS_BB_POSTDOM_FRONTIERS    = 1 << 11,
 
     BFS_BB_NO_CALLSITES         = 1 << 12,
-    BFS_BB_DOM              = 1 << 13,
+    BFS_BB_DOM                  = 1 << 13,
 };
 
 #ifdef ENABLE_CFG

@@ -362,7 +362,7 @@ public:
         return postDomFrontiers.insert(BB);
     }
 
-    bool addDomFrontier(BBlock<NodeT> *DF) 
+    bool addDomFrontier(BBlock<NodeT> *DF)
     {
         return domFrontiers.insert(DF);
     }
@@ -383,13 +383,13 @@ public:
     BBlockContainerT& getPostDominators() { return postDominators; }
     const BBlockContainerT& getPostDominators() const { return postDominators; }
 
-    void setIDom(BBlock<NodeT>* BB) 
+    void setIDom(BBlock<NodeT>* BB)
     {
         assert(!idom && "Already has immediate dominator");
         idom = BB;
         BB->addDominator(this);
     }
-    
+
     void addDominator(BBlock<NodeT>* BB)
     {
         assert( BB && "need dominator bblock" );
