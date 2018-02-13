@@ -79,7 +79,7 @@ public:
             RDBlock *target = pair.first;
             RDNode *last = target->getFirstNode();
             for (const auto& var : pair.second) {
-                std::unique_ptr<RDNode> node = llvm::make_unique<RDNode>(RDNodeType::PHI);
+                std::unique_ptr<RDNode> node = std::unique_ptr<RDNode>(new RDNode(RDNodeType::PHI));
                 node->addDef(var, true);
                 node->addUse(var);
                 node->insertBefore(last);
