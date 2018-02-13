@@ -424,14 +424,14 @@ static inline void makeEdge(RDNode *src, RDNode *dst)
 
 // return first and last nodes of the block
 RDBlock *
-LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block, RDBlock *parent_block)
+LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 {
     using namespace llvm;
 
     RDBlock *rb = new RDBlock();
     rb->setKey(const_cast<llvm::BasicBlock *>(&block));
     //parent_block->addSuccessor(rb);
-    addBlock(rb);
+    addBlock(&block, rb);
 
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
@@ -546,9 +546,10 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F, RDBlock *rb)
     auto it = subgraphs_map.find(F);
     if (it == subgraphs_map.end()) {
         // create a new subgraph
-        RDBlock *block = buildFunction(*F);
-        root = block->getFirstNode();
-        ret = block->getLastNode();
+        RDBlock *first, *last;
+        std::tie(first, last) = buildFunction(*F);
+        root = first->getFirstNode();
+        ret = last->getLastNode();
     } else {
         root = it->second.root;
         ret = it->second.ret;
@@ -565,28 +566,27 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F, RDBlock *rb)
     return std::make_pair(callNode, returnNode);
 }
 
-RDBlock *
+std::pair<RDBlock *, RDBlock *>
 LLVMRDBuilder::buildFunction(const llvm::Function& F)
 {
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *, RDBlock *> built_blocks;
 
-    RDBlock *rb = new RDBlock();
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
     RDNode *root = new RDNode(RDNodeType::NOOP);
     RDNode *ret = new RDNode(RDNodeType::NOOP);
-    rb->append(root);
 
     // emplace new subgraph to avoid looping with recursive functions
     subgraphs_map.emplace(&F, Subgraph(root, ret));
 
     RDNode *first = nullptr;
     RDBlock *fstblock = nullptr;
+    RDBlock *lastblock = nullptr;
     for (const llvm::BasicBlock& block : F) {
-        RDBlock *nds = buildBlock(block, rb);
+        RDBlock *nds = buildBlock(block);
         //assert(nds.first && nds.second);
 
         built_blocks[&block] = nds;
@@ -594,11 +594,12 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
             first = nds->getFirstNode();
             fstblock = nds;
         }
+        lastblock = nds;
     }
 
-    assert(first);
-    rb->addSuccessor(fstblock);
+    assert(first && fstblock);
     makeEdge(root, first);
+    fstblock->prepend(root);
 
     std::vector<RDNode *> rets;
     for (const llvm::BasicBlock& block : F) {
@@ -624,10 +625,9 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     // add successors edges from every real return to our artificial ret node
     for (RDNode *r : rets)
         makeEdge(r, ret);
+    lastblock->append(ret);
 
-    rb->append(ret);
-    addBlock(rb);
-    return rb;
+    return std::make_pair(fstblock, lastblock);
 }
 
 RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb)
@@ -916,23 +916,27 @@ RDNode *LLVMRDBuilder::build()
     RDBlock *glob = buildGlobals();
 
     // now we can build rest of the graph
-    RDBlock *main = buildFunction(*F);
-    assert(main);
-
-    RDNode *root = main->getFirstNode();
-    /* RDNode *ret = main->getReturn(); */
+    RDBlock *start, *stop;
+    std::tie(start, stop) = buildFunction(*F);
+    RDNode *root = start->getFirstNode();
+    RDNode *ret = stop->getLastNode();
+    assert(root);
 
     // do we have any globals at all? If so, insert them at the begining
     // of the graph
     if (glob->getFirstNode()) {
         assert(glob->getLastNode() && "Have the start but not the end");
+        llvm::Value *data = glob->getFirstNode()->getUserData<llvm::Value>();
+        addBlock(data, glob);
 
         // this is a sequence of global nodes, make it the root of the graph
-        glob->addSuccessor(main);
+        glob->addSuccessor(start);
         makeEdge(glob->getLastNode(), root);
 
         assert(root->successorsNum() > 0);
         root = glob->getFirstNode();
+    } else {
+        delete glob;
     }
 
     return root;
@@ -957,7 +961,6 @@ RDBlock *LLVMRDBuilder::buildGlobals()
     }
 
     assert((!first && !cur) || (first && cur));
-    addBlock(glob);
     return glob;
 }
 
