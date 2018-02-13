@@ -273,16 +273,24 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst, RDBlock *rb)
     return node;
 }
 
-RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
+static void operandDump(const llvm::Instruction *inst, RDNode *node)
 {
-    RDNode *node = new RDNode(RDNodeType::STORE);
-    addNode(Inst, node);
-    rb->append(node);
+    printf("%s instruction %p: Operand Count: %u\t\n", inst->getOpcodeName(), inst, inst->getNumOperands());
+    for (size_t i = 0; i < inst->getNumOperands(); ++i) {
+        printf("\t%lu: %p\n", i, inst->getOperand(i));
+    }
+}
 
-    pta::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
-    assert(pts && "Don't have the points-to information for store");
+std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock *rb)
+{
+    std::vector<DefSite> result;
 
-    if (pts->pointsTo.empty()) {
+    pta::PSNode *psn = PTA->getPointsTo(val);
+    if (!psn)
+        // don't have points-to information for used pointer
+        return result;
+
+    if (psn->pointsTo.empty()) {
 #ifdef DEBUG_ENABLED
         llvm::errs() << "[RD] error: empty STORE points-to: " << *Inst << "\n";
 #else
@@ -295,18 +303,18 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
         // (there should be &p and &q)
         // NOTE: maybe this is a bit strong to say unknown memory,
         // but better be sound then incorrect
-        node->addDef(UNKNOWN_MEMORY);
+        result.push_back(DefSite(UNKNOWN_MEMORY));
 #endif
-        return node;
+        return result;
     }
 
-    for (const pta::Pointer& ptr: pts->pointsTo) {
+    for (const pta::Pointer& ptr: psn->pointsTo) {
         // XXX we should at least warn?
         if (ptr.isNull())
             continue;
 
         if (ptr.isUnknown()) {
-            node->addDef(UNKNOWN_MEMORY);
+            result.push_back(DefSite(UNKNOWN_MEMORY));
             continue;
         }
 
@@ -316,12 +324,10 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
             continue;
 
         const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        // this may emerge with vararg function
         if (llvm::isa<llvm::Function>(ptrVal))
             continue;
 
         RDNode *ptrNode = getOperand(ptrVal, rb);
-        //assert(ptrNode && "Don't have created node for pointer's target");
         if (!ptrNode) {
             // keeping such set is faster then printing it all to terminal
             // ... and we don't flood the terminal that way
@@ -330,7 +336,6 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
                 llvm::errs() << *ptrVal << "\n";
                 llvm::errs() << "Don't have created node for pointer's target\n";
             }
-
             continue;
         }
 
@@ -338,10 +343,14 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
         if (ptr.offset.isUnknown()) {
             size = UNKNOWN_OFFSET;
         } else {
-            size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
+            size = getAllocatedSize(val->getType(), DL);
             if (size == 0)
                 size = UNKNOWN_OFFSET;
         }
+
+        // TODO: fix strong updates
+        // llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
+        //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
 
         // strong update is possible only with must aliases. Also we can not
         // be pointing to heap, because then we don't know which object it
@@ -362,8 +371,25 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
         pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(ptr.target);
         assert(target && "Target of pointer is not an allocation");
         bool strong_update = pts->pointsTo.size() == 1 && !target->isHeap();
-        node->addDef(ptrNode, ptr.offset, size, strong_update);
+        result.push_back(DefSite(ptrNode, ptr.offset, size));
     }
+    return result;
+}
+
+
+RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
+{
+    RDNode *node = new RDNode(RDNodeType::STORE);
+    addNode(Inst, node);
+    rb->append(node);
+
+    // check if argument 0 is a pointer
+    llvm::Value *val = Inst->getOperand(0);
+    if (val->getType()->isPointerTy()) {
+        node->addUses(getPointsTo(val, rb));
+    }
+
+    node->addDefs(getPointsTo(Inst->getOperand(1), rb));
 
     assert(node);
     return node;
