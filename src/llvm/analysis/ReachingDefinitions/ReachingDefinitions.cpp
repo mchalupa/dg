@@ -646,16 +646,17 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     RDBlock *prev_bblock_end = nullptr;
     for (const llvm::BasicBlock& block : F) {
         std::vector<RDBlock *> blocks = buildBlock(block, lastblock);
-        if (prev_bblock_end)
+        if (prev_bblock_end) {
+            // connect the blocks
             prev_bblock_end->addSuccessor(blocks[0]);
-
-        for (RDBlock *nds : blocks) {
-            if (!first) {
-                first = nds->getFirstNode();
-                fstblock = nds;
-            }
-            prev_bblock_end = nds;
         }
+
+        if (!first) {
+            first = blocks[0]->getFirstNode();
+            fstblock = blocks[0];
+        }
+        prev_bblock_end = blocks.back();
+
         built_blocks[&block] = std::move(blocks);
         last_llvm_block = &block;
     }
@@ -671,20 +672,23 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         if (it == built_blocks.end())
             continue;
 
+        RDBlock *last_function_block = nullptr;
         for (RDBlock *ptan : it->second) {
             //assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
             if (!ptan->getFirstNode())
                 continue;
 
-            // add successors to this block (skipping the empty blocks)
-            // FIXME: this function is shared with PSS, factor it out
-            size_t succ_num = blockAddSuccessors(built_blocks, ptan, block);
-
             // if we have not added any successor, then the last node
             // of this block is a return node
             if (ptan->getLastNode()->getType() == RDNodeType::RETURN)
                 rets.push_back(ptan->getLastNode());
+
+            last_function_block = ptan;
         }
+        // add successors to this block (skipping the empty blocks)
+        // FIXME: this function is shared with PSS, factor it out
+        size_t succ_num = blockAddSuccessors(built_blocks, last_function_block, block);
+
     }
 
     // add successors edges from every real return to our artificial ret node
