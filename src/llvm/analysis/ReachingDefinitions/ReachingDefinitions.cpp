@@ -273,7 +273,7 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst, RDBlock *rb)
     return node;
 }
 
-static void operandDump(const llvm::Instruction *inst, RDNode *node)
+static void operandDump(const llvm::Instruction *inst, RDNode *)
 {
     printf("%s instruction %p: Operand Count: %u\t\n", inst->getOpcodeName(), inst, inst->getNumOperands());
     for (size_t i = 0; i < inst->getNumOperands(); ++i) {
@@ -370,7 +370,7 @@ std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock 
         //  definitions for line 1 and we would get incorrect results
         pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(ptr.target);
         assert(target && "Target of pointer is not an allocation");
-        bool strong_update = pts->pointsTo.size() == 1 && !target->isHeap();
+        /* bool strong_update = pts->pointsTo.size() == 1 && !target->isHeap(); */
         result.push_back(DefSite(ptrNode, ptr.offset, size));
     }
     return result;
@@ -458,16 +458,19 @@ static inline void makeEdge(RDNode *src, RDNode *dst)
     src->addSuccessor(dst);
 }
 
-// return first and last nodes of the block
-RDBlock *
-LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
+/**
+ * returns all RDBlock-s to which the LLVM block maps.
+ */
+std::vector<RDBlock *>
+LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block, RDBlock *return_block)
 {
     using namespace llvm;
 
+    std::vector<RDBlock *> result;
     RDBlock *rb = new RDBlock();
     rb->setKey(const_cast<llvm::BasicBlock *>(&block));
-    //parent_block->addSuccessor(rb);
     addBlock(&block, rb);
+    result.push_back(rb);
 
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
@@ -480,7 +483,8 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
     for (const Instruction& Inst : block) {
         node = getNode(&Inst);
         if (!node) {
-           switch(Inst.getOpcode()) {
+            RDBlock *new_block = nullptr;
+            switch(Inst.getOpcode()) {
                 case Instruction::Alloca:
                     // we need alloca's as target to DefSites
                     node = createAlloc(&Inst, rb);
@@ -504,6 +508,18 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
 
                     std::pair<RDNode *, RDNode *> subg = createCall(&Inst, rb);
                     makeEdge(last_node, subg.first);
+                    if( subg.first->successorsNum() > 0) {
+                        rb->addSuccessor((*subg.first->getSuccessors().begin())->getBBlock());
+
+                        // successors for blocks with return will be added later
+                        new_block = new RDBlock();
+                        addBlock(const_cast<llvm::BasicBlock *>(&block), new_block);
+                        result.push_back(new_block);
+                        new_block->append(subg.second);
+                        rb = new_block;
+
+                        (*subg.second->getPredecessors().begin())->getBBlock()->addSuccessor(new_block);
+                    }
 
                     // new nodes will connect to the return node
                     node = last_node = subg.second;
@@ -527,11 +543,11 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
         addMapping(&Inst, last_node);
     }
 
-    return rb;
+    return result;
 }
 
 static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
-                                          RDBlock *>& built_blocks,
+                                          std::vector<RDBlock *>>& built_blocks,
                                  RDBlock *ptan,
                                  const llvm::BasicBlock& block)
 {
@@ -539,7 +555,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
 
     for (llvm::succ_const_iterator
          S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
-        RDBlock *succ = built_blocks[*S];
+        RDBlock *succ = *(built_blocks[*S].begin());
         assert((succ->getFirstNode() && succ->getLastNode()) || (!succ->getFirstNode() && !succ->getLastNode()));
         if (!succ->getFirstNode()) {
             // if we don't have this block built (there was no points-to
@@ -611,7 +627,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 {
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
-    std::map<const llvm::BasicBlock *, RDBlock *> built_blocks;
+    std::map<const llvm::BasicBlock *, std::vector<RDBlock *>> built_blocks;
 
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
@@ -624,18 +640,26 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
 
     RDNode *first = nullptr;
     RDBlock *fstblock = nullptr;
-    RDBlock *lastblock = nullptr;
-    for (const llvm::BasicBlock& block : F) {
-        RDBlock *nds = buildBlock(block);
-        //assert(nds.first && nds.second);
+    const llvm::BasicBlock *last_llvm_block = nullptr;
+    RDBlock *lastblock = new RDBlock();
 
-        built_blocks[&block] = nds;
-        if (!first) {
-            first = nds->getFirstNode();
-            fstblock = nds;
+    RDBlock *prev_bblock_end = nullptr;
+    for (const llvm::BasicBlock& block : F) {
+        std::vector<RDBlock *> blocks = buildBlock(block, lastblock);
+        if (prev_bblock_end)
+            prev_bblock_end->addSuccessor(blocks[0]);
+
+        for (RDBlock *nds : blocks) {
+            if (!first) {
+                first = nds->getFirstNode();
+                fstblock = nds;
+            }
+            prev_bblock_end = nds;
         }
-        lastblock = nds;
+        built_blocks[&block] = std::move(blocks);
+        last_llvm_block = &block;
     }
+    addBlock(last_llvm_block, lastblock);
 
     assert(first && fstblock);
     makeEdge(root, first);
@@ -647,25 +671,28 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         if (it == built_blocks.end())
             continue;
 
-        RDBlock *ptan = it->second;
-        //assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
-        if (!ptan->getFirstNode())
-            continue;
+        for (RDBlock *ptan : it->second) {
+            //assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
+            if (!ptan->getFirstNode())
+                continue;
 
-        // add successors to this block (skipping the empty blocks)
-        // FIXME: this function is shared with PSS, factor it out
-        size_t succ_num = blockAddSuccessors(built_blocks, ptan, block);
+            // add successors to this block (skipping the empty blocks)
+            // FIXME: this function is shared with PSS, factor it out
+            size_t succ_num = blockAddSuccessors(built_blocks, ptan, block);
 
-        // if we have not added any successor, then the last node
-        // of this block is a return node
-        if (succ_num == 0 && ptan->getLastNode()->getType() == RDNodeType::RETURN)
-            rets.push_back(ptan->getLastNode());
+            // if we have not added any successor, then the last node
+            // of this block is a return node
+            if (ptan->getLastNode()->getType() == RDNodeType::RETURN)
+                rets.push_back(ptan->getLastNode());
+        }
     }
 
     // add successors edges from every real return to our artificial ret node
-    for (RDNode *r : rets)
-        makeEdge(r, ret);
     lastblock->append(ret);
+    for (RDNode *r : rets) {
+        makeEdge(r, ret);
+        r->getBBlock()->addSuccessor(lastblock);
+    }
 
     functions_blocks[&F] = std::move(built_blocks);
     return std::make_pair(fstblock, lastblock);
