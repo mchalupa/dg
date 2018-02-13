@@ -167,10 +167,10 @@ dumpMap(RDNode *node, bool dot = false)
 }
 
 static void
-dumpDefines(RDNode *node, bool dot = false)
+dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
 {
-    for (const DefSite& def : node->getDefines()) {
-        printf("DEF: ");
+    for (const DefSite& def : defs) {
+        printf("%s: ", kind);
         printName(def.target, dot);
             if (def.offset.isUnknown())
                 printf(" [ UNKNOWN ]");
@@ -184,26 +184,25 @@ dumpDefines(RDNode *node, bool dot = false)
                 putchar('\n');
     }
 }
+
+static void 
+dumpDefines(RDNode *node, bool dot = false)
+{
+    dumpDefSites(node->getDefines(), "DEF", dot);
+}
+
 
 static void
 dumpOverwrites(RDNode *node, bool dot = false)
 {
-    for (const DefSite& def : node->getOverwrites()) {
-        printf("DEF strong: ");
-        printName(def.target, dot);
-            if (def.offset.isUnknown())
-                printf(" [ UNKNOWN ]");
-            else
-                printf(" [ %lu - %lu ]", *def.offset,
-                       *def.offset + *def.len - 1);
-
-            if (dot)
-                printf("\\n");
-            else
-                putchar('\n');
-    }
+    dumpDefSites(node->getOverwrites(), "DEF strong", dot);
 }
 
+static void
+dumpUses(RDNode *node, bool dot = false)
+{
+    dumpDefSites(node->getUses(), "USE", dot);
+}
 
 static void
 dumpRDNode(RDNode *n)
@@ -237,6 +236,7 @@ dumpRDdot(LLVMReachingDefinitions *RD)
             printf("-------------\\n");
             dumpOverwrites(node, true);
             printf("-------------\\n");
+            dumpUses(node, true);
         }
             dumpMap(node, true /* dot */);
 
@@ -247,6 +247,18 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     for (RDNode *node : nodes) {
         for (RDNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
+    }
+
+    std::unordered_map<RDNode*, unsigned> colors;
+    for (auto& pair : RD->getSrg()) {
+        RDNode *source = pair.first;
+        for (auto& var_where: pair.second) {
+            DefSite var = var_where.first;
+            RDNode *dest = var_where.second;
+            if (colors.find(var.target) == colors.end())
+                colors[var.target] = rand();
+            printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]", source, dest, colors[var.target]);
+        }
     }
 
     printf("}\n");
