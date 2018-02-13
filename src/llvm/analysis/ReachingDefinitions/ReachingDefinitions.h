@@ -51,8 +51,8 @@ class LLVMRDBuilder
     // list of dummy nodes (used just to keep the track of memory,
     // so that we can delete it later)
     std::vector<RDNode *> dummy_nodes;
-    // list of RD Blocks
-    std::vector<std::unique_ptr<RDBlock>> blocks;
+    // RD Blocks mapping
+    std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>> blocks;
 public:
     LLVMRDBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
@@ -91,7 +91,7 @@ public:
     RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
     RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);
 
-    const std::vector<std::unique_ptr<RDBlock>>& getBlocks() const {
+    const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& getBlocks() const {
         return blocks;
     }
 private:
@@ -104,8 +104,9 @@ private:
         node->setUserData(const_cast<llvm::Value *>(val));
     }
 
-    void addBlock(RDBlock *block) {
-        blocks.emplace_back(std::unique_ptr<RDBlock>(block));
+    void addBlock(const llvm::Value *val, RDBlock *block) {
+        block->setKey(const_cast<llvm::Value *>(val));
+        blocks.emplace(std::make_pair(val, std::unique_ptr<RDBlock>(block)));
     }
 
     ///
@@ -129,8 +130,8 @@ private:
     RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
 
-    RDBlock *buildBlock(const llvm::BasicBlock& block, RDBlock *rb);
-    RDBlock *buildFunction(const llvm::Function& F);
+    RDBlock *buildBlock(const llvm::BasicBlock& block);
+    std::pair<RDBlock *,RDBlock *> buildFunction(const llvm::Function& F);
 
     RDBlock *buildGlobals();
 
@@ -185,7 +186,7 @@ public:
                                 getMapping() const
     { return builder->getMapping(); }
 
-    const std::vector<std::unique_ptr<RDBlock>>& getBlocks() const {
+    const std::unordered_map<const llvm::Value *, std::unique_ptr<RDBlock>>& getBlocks() const {
         return builder->getBlocks();
     }
 
