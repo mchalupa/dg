@@ -413,11 +413,12 @@ std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock 
 
 RDNode *LLVMRDBuilder::createLoad(const llvm::Instruction *Inst, RDBlock *rb)
 {
+    const llvm::LoadInst *LI = static_cast<const llvm::LoadInst *>(Inst);
     RDNode *node = new RDNode(RDNodeType::LOAD);
     addNode(Inst, node);
     rb->append(node);
 
-    node->addUses(getPointsTo(Inst->getOperand(0), rb));
+    node->addUses(getPointsTo(LI->getPointerOperand(), rb));
 
     return node;
 }
@@ -431,12 +432,19 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
     // check if argument 0 is a pointer
     llvm::Value *val = Inst->getOperand(0);
     if (val->getType()->isPointerTy()) {
-        node->addUses(getPointsTo(val, rb));
+        llvm::Type *pte_type = val->getType()->getPointerElementType();
+        uint64_t sz = getAllocatedSize(pte_type, DL);
+        auto uses = getPointsTo(val, rb);
+        for (auto& use : uses) {
+            use.len = sz;
+            node->addUse(use);
+        }
     }
 
     auto pts = getPointsTo(Inst->getOperand(1), rb);
     for (auto& ds : pts) {
         bool strong = isStrongUpdate(Inst->getOperand(1), ds, rb);
+        ds.len = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
         node->addDef(ds, strong);
     }
 
