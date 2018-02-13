@@ -692,7 +692,8 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     last_function_block->append(ret);
     for (RDNode *r : rets) {
         makeEdge(r, ret);
-        r->getBBlock()->addSuccessor(last_function_block);
+        if (r->getBBlock() != last_function_block)
+            r->getBBlock()->addSuccessor(last_function_block);
     }
 
     functions_blocks[&F] = std::move(built_blocks);
