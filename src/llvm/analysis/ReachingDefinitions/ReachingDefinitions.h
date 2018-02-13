@@ -138,6 +138,7 @@ private:
     }
 
     std::vector<DefSite> getPointsTo(const llvm::Value *val, RDBlock *rb);
+    bool isStrongUpdate(const llvm::Value *val, const DefSite& ds, RDBlock *rb);
 
     RDNode *createLoad(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createStore(const llvm::Instruction *Inst, RDBlock *rb);

@@ -275,6 +275,47 @@ RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst, RDBlock *rb)
     return node;
 }
 
+bool LLVMRDBuilder::isStrongUpdate(const llvm::Value *val, const DefSite& ds, RDBlock *rb) {
+    pta::PSNode *psn = PTA->getPointsTo(val);
+    for (const pta::Pointer& ptr : psn->pointsTo) {
+        if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
+            continue;
+        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+        // this may emerge with vararg function
+        if (llvm::isa<llvm::Function>(ptrVal))
+            continue;
+
+        RDNode *ptrNode = getOperand(ptrVal, rb);
+        if (ptrNode != ds.target)
+            continue;
+
+        // strong update is possible only with must aliases. Also we can not
+        // be pointing to heap, because then we don't know which object it
+        // is in run-time, like:
+        //  void *foo(int a)
+        //  {
+        //      void *mem = malloc(...)
+        //      mem->n = a;
+        //  }
+        //
+        //  1. mem1 = foo(3);
+        //  2. mem2 = foo(4);
+        //  3. assert(mem1->n == 3);
+        //
+        //  If we would do strong update on line 2 (which we would, since
+        //  there we have must alias for the malloc), we would loose the
+        //  definitions for line 1 and we would get incorrect results
+        pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(ptr.target);
+        assert(target && "Target of pointer is not an allocation");
+        bool strong_update = psn->pointsTo.size() == 1 && !target->isHeap();
+        return strong_update;
+    }
+    if (!ds.target->isUnknown())
+        // the definition wasn't found, this should never happen
+        assert(false && "Pointer that was in points-to set could not be found again. Points-to set has probably changed.");
+    return false;
+}
+
 std::vector<DefSite> LLVMRDBuilder::getPointsTo(const llvm::Value *val, RDBlock *rb)
 {
     std::vector<DefSite> result;
@@ -393,7 +434,11 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
         node->addUses(getPointsTo(val, rb));
     }
 
-    node->addDefs(getPointsTo(Inst->getOperand(1), rb));
+    auto pts = getPointsTo(Inst->getOperand(1), rb);
+    for (auto& ds : pts) {
+        bool strong = isStrongUpdate(Inst->getOperand(1), ds, rb);
+        node->addDef(ds, strong);
+    }
 
     assert(node);
     return node;
