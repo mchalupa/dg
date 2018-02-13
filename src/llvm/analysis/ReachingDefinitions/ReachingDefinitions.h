@@ -9,12 +9,15 @@
 #include <llvm/IR/Constants.h>
 
 #include "llvm/MemAllocationFuncs.h"
+#include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 
 namespace dg {
 namespace analysis {
 namespace rd {
+
+using RDBlock = BBlock<RDNode>;
 
 class LLVMRDBuilder
 {
@@ -48,6 +51,8 @@ class LLVMRDBuilder
     // list of dummy nodes (used just to keep the track of memory,
     // so that we can delete it later)
     std::vector<RDNode *> dummy_nodes;
+    // list of RD Blocks
+    std::vector<std::unique_ptr<RDBlock>> blocks;
 public:
     LLVMRDBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
@@ -83,9 +88,12 @@ public:
         return it->second;
     }
 
-    RDNode *getOperand(const llvm::Value *val);
-    RDNode *createNode(const llvm::Instruction& Inst);
+    RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
+    RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);
 
+    const std::vector<std::unique_ptr<RDBlock>>& getBlocks() const {
+        return blocks;
+    }
 private:
     void addNode(const llvm::Value *val, RDNode *node)
     {
@@ -94,6 +102,10 @@ private:
 
         nodes_map.emplace_hint(it, val, node);
         node->setUserData(const_cast<llvm::Value *>(val));
+    }
+
+    void addBlock(RDBlock *block) {
+        blocks.emplace_back(std::unique_ptr<RDBlock>(block));
     }
 
     ///
@@ -111,25 +123,25 @@ private:
         mapping.emplace_hint(it, val, node);
     }
 
-    RDNode *createStore(const llvm::Instruction *Inst);
-    RDNode *createAlloc(const llvm::Instruction *Inst);
-    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type);
-    RDNode *createRealloc(const llvm::Instruction *Inst);
-    RDNode *createReturn(const llvm::Instruction *Inst);
+    RDNode *createStore(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createAlloc(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type, RDBlock *rb);
+    RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
+    RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
 
-    std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);
-    std::pair<RDNode *, RDNode *> buildFunction(const llvm::Function& F);
+    RDBlock *buildBlock(const llvm::BasicBlock& block, RDBlock *rb);
+    RDBlock *buildFunction(const llvm::Function& F);
 
-    std::pair<RDNode *, RDNode *> buildGlobals();
-
-    std::pair<RDNode *, RDNode *>
-    createCallToFunction(const llvm::Function *F);
+    RDBlock *buildGlobals();
 
     std::pair<RDNode *, RDNode *>
-    createCall(const llvm::Instruction *Inst);
+    createCallToFunction(const llvm::Function *F, RDBlock *rb);
 
-    RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
-    RDNode *createUndefinedCall(const llvm::CallInst *CInst);
+    std::pair<RDNode *, RDNode *>
+    createCall(const llvm::Instruction *Inst, RDBlock *rb);
+
+    RDNode *createIntrinsicCall(const llvm::CallInst *CInst, RDBlock *rb);
+    RDNode *createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb);
 };
 
 class LLVMReachingDefinitions
@@ -172,6 +184,10 @@ public:
     const std::unordered_map<const llvm::Value *, RDNode *>&
                                 getMapping() const
     { return builder->getMapping(); }
+
+    const std::vector<std::unique_ptr<RDBlock>>& getBlocks() const {
+        return builder->getBlocks();
+    }
 
     RDNode *getMapping(const llvm::Value *val)
     {
