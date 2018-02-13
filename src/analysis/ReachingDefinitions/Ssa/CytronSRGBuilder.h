@@ -15,7 +15,7 @@ namespace rd {
 namespace ssa {
 
 /**
- * SparseRDGraphBuilder based on algorithm introduced in 
+ * SparseRDGraphBuilder based on algorithm introduced in
  * "An Efficient Method of Computing Static Single Assignment Form" [Cytron et al.]
  */
 class CytronSRGBuilder : public SparseRDGraphBuilder
@@ -107,7 +107,7 @@ public:
     /**
      * see: SparseRDGraphBuilder::build
      */
-    std::pair<SparseRDGraph, std::vector<std::unique_ptr<NodeT>>> 
+    std::pair<SparseRDGraph, std::vector<std::unique_ptr<NodeT>>>
         build(NodeT *root) override
     {
         assert( root && "need root" );

@@ -214,7 +214,7 @@ public:
                                 getMapping() const
     { return builder->getMapping(); }
 
-    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>& 
+    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>&
         getBlocks() const
         { return builder->getBlocks(); }
 
