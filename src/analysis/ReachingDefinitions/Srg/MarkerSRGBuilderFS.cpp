@@ -1,0 +1,75 @@
+#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFS.h"
+
+using namespace dg::analysis::rd::srg;
+
+void MarkerSRGBuilderFS::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
+    // remember the last definition
+    current_def[var.target][block].add(detail::Interval{var.offset, var.len}, assignment);
+}
+
+std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const DefSite& var, BlockT *read, const Intervals& covered) {
+    assert( read );
+    auto& block_defs = current_def[var.target];
+    auto it = block_defs.find(read);
+    std::vector<NodeT *> result;
+
+    // find the last definition
+    if (it != block_defs.end()) {
+        Intervals cov;
+        bool is_covered = false;
+        std::tie(result, cov, is_covered) = it->second.collect(detail::Interval{var.offset, var.len}, covered);
+        if (!is_covered) {
+            auto assignments2 = readVariableRecursive(var, read, cov);
+            result.insert(result.begin(), assignments2.begin(), assignments2.end());
+        }
+    } else {
+        result = readVariableRecursive(var, read, covered);
+    }
+    return result;
+}
+
+void MarkerSRGBuilderFS::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, const std::vector<detail::Interval>& covered) {
+
+    phi->addDef(var, true);
+    phi->addUse(var);
+
+    for (BlockT *pred : block->predecessors()) {
+        std::vector<NodeT *> assignments;
+        Intervals cov;
+        bool is_covered = false;
+        std::tie(assignments,cov,is_covered) = last_def[var.target][pred].collect(detail::Interval{var.offset, var.len}, covered);
+        if (!is_covered) {
+            std::vector<NodeT *> assignments2 = readVariable(var, pred, cov);
+            assignments.insert(assignments.begin(), assignments2.begin(), assignments2.end());
+        }
+        for (auto& assignment : assignments)
+            insertSrgEdge(assignment, phi, var);
+    }
+}
+
+std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariableRecursive(const DefSite& var, BlockT *block, const std::vector<detail::Interval>& covered) {
+    std::vector<NodeT *> result;
+    bool is_covered = false;
+
+    NodeT *val = nullptr;
+    if (block->predecessorsNum() == 1) {
+        BlockT *predBB = *(block->predecessors().begin());
+        Intervals cov;
+        std::tie(result, cov, is_covered) = last_def[var.target][predBB].collect(detail::Interval{var.offset,var.len}, covered);
+        if (!is_covered) {
+            std::vector<NodeT *> assignments2 = readVariable(var, predBB, cov);
+            result.insert(result.begin(), assignments2.begin(), assignments2.end());
+        }
+    } else {
+        auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
+
+        phi->setBasicBlock(block);
+        writeVariable(var, phi.get(), block);
+        addPhiOperands(var, phi.get(), block, covered);
+
+        val = phi.get();
+        phi_nodes.push_back(std::move(phi));
+    }
+    writeVariable(var, val, block);
+    return result;
+}
