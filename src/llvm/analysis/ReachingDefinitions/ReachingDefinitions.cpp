@@ -686,7 +686,6 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F, RDBlock *rb)
     makeEdge(callNode, root);
     makeEdge(ret, returnNode);
     rb->addSuccessor(root->getBBlock());
-    rb->append(returnNode);
 
     return std::make_pair(callNode, returnNode);
 }
