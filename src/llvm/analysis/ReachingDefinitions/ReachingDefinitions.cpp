@@ -761,7 +761,6 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     // push the artificial return block
     // artificial_ret needs to be the last block
     built_blocks[last_llvm_block].push_back(artificial_ret);
-    addBlock(last_llvm_block, artificial_ret);
 
     // add successors edges from every real return to our artificial ret node
     for (RDNode *r : rets) {
@@ -771,6 +770,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     }
 
     functions_blocks[&F] = std::move(built_blocks);
+    addBlock(last_llvm_block, artificial_ret);
     return std::make_pair(fstblock, artificial_ret);
 }
 
