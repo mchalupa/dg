@@ -12,9 +12,17 @@ static detail::Interval concretize(detail::Interval interval) {
     return interval;
 }
 
-void MarkerSRGBuilderFS::writeVariable(const DefSite& var, NodeT *assignment, BlockT *block) {
+/**
+ * Saves the current definition of certain variable in given block
+ * Used from value numbering procedures.
+ */
+void MarkerSRGBuilderFS::writeVariableStrong(const DefSite& var, NodeT *assignment, BlockT *block) {
     // remember the last definition
     current_def[var.target][block].add(concretize(detail::Interval{var.offset, var.len}), assignment);
+}
+
+void MarkerSRGBuilderFS::writeVariableWeak(const DefSite& var, NodeT *assignment, BlockT *block) {
+    weak_def[var.target][block].add(concretize(detail::Interval{var.offset, var.len}), assignment);
 }
 
 std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const DefSite& var, BlockT *read, const Intervals& covered) {
@@ -30,13 +38,18 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
         Intervals cov;
         bool is_covered = false;
         std::tie(result, cov, is_covered) = it->second.collect(interval, covered);
-        if (!is_covered && !interval.isUnknown()) {
+        if (!is_covered || interval.isUnknown()) {
             NodeT *phi = readVariableRecursive(var, read, cov);
             result.push_back(phi);
         }
     } else {
         result.push_back(readVariableRecursive(var, read, covered));
     }
+
+    // add weak defs
+    const auto block_weak_defs = weak_def[var.target][read].collectAll(interval);
+    result.insert(result.end(), block_weak_defs.begin(), block_weak_defs.end());
+
     return result;
 }
 
@@ -72,7 +85,7 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
         phi->addDef(var, true);
         phi->addUse(var);
         phi->setBasicBlock(block);
-        writeVariable(var, phi.get(), block);
+        writeVariableStrong(var, phi.get(), block);
 
         std::vector<NodeT *> assignments;
         std::tie(assignments, cov, is_covered) = last_def[var.target][predBB].collect(concretize(detail::Interval{var.offset,var.len}), covered);
@@ -90,7 +103,7 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
         auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
 
         phi->setBasicBlock(block);
-        writeVariable(var, phi.get(), block);
+        writeVariableStrong(var, phi.get(), block);
         addPhiOperands(var, phi.get(), block, covered);
 
         val = phi.get();

@@ -24,7 +24,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     using OffsetT = uint64_t;
     using Intervals = std::vector<detail::Interval>;
 
-    // for each variable { for each block { for each offset in variable { remember last definition } } }
+    // for each variable { for each block { for each offset in variable { remember definition } } }
     using DefMapT = std::unordered_map<NodeT *, std::unordered_map<BlockT *, detail::IntervalMap<NodeT *>>>;
 
     /* the resulting graph - stored in class for convenience, moved away on return */
@@ -33,11 +33,15 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     /* phi nodes added during the process */
     std::vector<std::unique_ptr<NodeT>> phi_nodes;
 
-    /* work structures */
+    /* work structures for strong defs */
     DefMapT current_def;
     DefMapT last_def;
 
-    void writeVariable(const DefSite& var, NodeT *assignment, BlockT *block);
+    /* work structure for weak defs */
+    DefMapT weak_def;
+
+    void writeVariableStrong(const DefSite& var, NodeT *assignment, BlockT *block);
+    void writeVariableWeak(const DefSite& var, NodeT *assignment, BlockT *block);
     NodeT *readVariableRecursive(const DefSite& var, BlockT *block, const Intervals& covered);
 
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read) {
@@ -75,11 +79,10 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
             }
 
             for (const DefSite& def : node->defs) {
-                std::vector<NodeT *> assignments = readVariable(def, block);
-                for (NodeT *assignment : assignments) {
-                    insertSrgEdge(assignment, node, def);
-                }
-                writeVariable(def, node, block);
+                if (node->isOverwrite(def))
+                    writeVariableStrong(def, node, block);
+                else
+                    writeVariableWeak(def, node, block);
             }
         }
     }

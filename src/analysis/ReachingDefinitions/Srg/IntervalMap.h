@@ -155,7 +155,7 @@ class IntervalMap {
 public:
     void add(Interval&& interval, const V& value) {
         //                                    move interval, copy value
-        auto to_add = std::pair<Interval, V>(std::move(interval), value);
+        auto to_add = std::make_pair<Interval, V>(std::move(interval), V(value));
         buckets.push_back(std::move(to_add));
     }
 
@@ -186,6 +186,22 @@ public:
         }
 
         return std::tuple<std::vector<V>, std::vector<Interval>, bool>(std::move(result), std::move(intervals.moveVector()), is_covered);
+    }
+
+    /**
+     * Returns set of all values such, that @interval intersects with
+     * interval associated with each of values
+     */
+    std::vector<V> collectAll(const Interval& interval) const {
+        std::vector<V> result;
+
+        static_assert(ReverseLookup, "forward lookup in IntervalMap is not yet supported");
+        for (auto it = buckets.rbegin(); it != buckets.rend(); ++it) {
+            if (interval.isUnknown() || it->first.isUnknown() || it->first.overlaps(interval)) {
+                result.push_back(it->second);
+            }
+        }
+        return result;
     }
 
 };
