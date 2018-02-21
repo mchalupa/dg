@@ -178,6 +178,11 @@ public:
         overwrites.insert(ds);
     }
 
+    bool isOverwrite(const DefSite& ds)
+    {
+        return overwrites.find(ds) != overwrites.end();
+    }
+
     const RDMap& getReachingDefinitions() const { return def_map; }
     RDMap& getReachingDefinitions() { return def_map; }
     size_t getReachingDefinitions(RDNode *n, const Offset& off,
