@@ -330,27 +330,11 @@ bool PointerAnalysis::processNode(PSNode *node)
             }
             break;
         case PSNodeType::FREE:
-            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
-                PSNode *target = ptr.target;
-                assert(target && "Got nullptr as target");
-
-                if (ptr.isNull())
-                    continue;
-
-                objects.clear();
-                getMemoryObjectsPointingTo(node, ptr, objects);
-                for (MemoryObject *o : objects) {
-                    changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
-                }
-            }
             break;
         case PSNodeType::INVALIDATE_LOCALS:
+            // FIXME: get rid of this type of node
+            // (make the analysis extendable and move it there)
             node->setParent(node->getOperand(0)->getSingleSuccessor()->getParent());
-            objects.clear();
-            getLocalMemoryObjects(node, objects);
-            for (MemoryObject *o : objects) {
-                changed |= o->addPointsTo(UNKNOWN_OFFSET, INVALIDATED);
-            }
             break;
         case PSNodeType::GEP:
             changed |= processGep(node);

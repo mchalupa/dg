@@ -61,13 +61,14 @@ public:
     bool afterProcessed(PSNode *n) override
     {
         bool changed = false;
+
+        if (n->getType() == PSNodeType::INVALIDATE_LOCALS) {
+            changed |= handleInvalidateLocals(n);
+        } else if (n->getType() == PSNodeType::FREE) {
+            changed |= handleFree(n);
+        }
+
         PointsToSetT *strong_update = nullptr;
-
-        MemoryMapT *mm = n->getData<MemoryMapT>();
-        // we must have the memory map, we created it
-        // in the beforeProcessed method
-        assert(mm && "Do not have memory map");
-
         // every store is a strong update
         // FIXME: memcpy can be strong update too
         if (n->getType() == PSNodeType::STORE)
@@ -76,6 +77,9 @@ public:
             strong_update = &n->getOperand(0)->pointsTo;
         else if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
             strong_update = &n->pointsTo;
+
+        MemoryMapT *mm = n->getData<MemoryMapT>();
+        assert(mm && "Do not have memory map");
 
         // merge information from predecessors if there's
         // more of them (if there's just one predecessor
@@ -94,10 +98,47 @@ public:
         return changed;
     }
 
-    void getMemoryObjectsPointingTo(PSNode *where, const Pointer& pointer,
-                                    std::vector<MemoryObject *>& objects) override
+    static bool isLocal(PSNodeAlloc *alloc, PSNode *where) {
+        return !alloc->isHeap() && !alloc->isGlobal() &&
+                alloc->getParent() == where->getParent();
+    }
+
+    static bool containsLocal(PSNode *where, PointsToSetT& S) {
+        for (const auto& ptr : S) {
+            if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
+                continue;
+
+            if (PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target)) {
+                if (isLocal(alloc, where))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    // not very efficient
+    static void replaceLocalWithInv(PSNode *where, PointsToSetT& S1) {
+        PointsToSetT S;
+
+        for (const auto& ptr : S1) {
+            if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
+                continue;
+
+            if (PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target)) {
+                if (!isLocal(alloc, where))
+                    S.insert(ptr);
+            }
+        }
+
+        S.insert(INVALIDATED);
+        S1.swap(S);
+    }
+
+    bool handleInvalidateLocals(PSNode *node)
     {
-        MemoryMapT *mm = where->getData<MemoryMapT>();
+        bool changed = false;
+        MemoryMapT *mm = node->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
 
         for (auto& I : *mm) {
@@ -108,21 +149,50 @@ public:
 
             MemoryObject *mo = I.second.get();
             for (auto& it : mo->pointsTo) {
-                for (const auto& ptr : it.second) {
-                    if (ptr.target == pointer.target) {
-                        objects.push_back(mo);
-                        break;
-                    }
+                if (containsLocal(node, it.second)) {
+                    replaceLocalWithInv(node, it.second);
+                    // perform a strong update on this MO
+                    // XXX: do not use addPointsTo, because it could
+                    // merge together concrete offsets to unnown offset,
+                    // we need here all the offsets
+                    node->pointsTo.insert({I.first, it.first});
+                    changed = true;
                 }
             }
         }
+
+        return changed;
     }
 
-    void getLocalMemoryObjects(PSNode *where,
-                          std::vector<MemoryObject *>& objects) override
+    static bool pointsToTarget(PointsToSetT& S, PSNode *target) {
+        for (const auto& ptr : S) {
+            if (ptr.target == target) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    static void replaceTargetWithInv(PointsToSetT& S1, PSNode *target) {
+        PointsToSetT S;
+        for (const auto& ptr : S1) {
+            if (ptr.target != target)
+                S.insert(ptr);
+        }
+
+        S.insert(INVALIDATED);
+        S.swap(S1);
+    }
+
+    bool handleFree(PSNode *node)
     {
-        MemoryMapT *mm = where->getData<MemoryMapT>();
+        bool changed = false;
+
+        MemoryMapT *mm = node->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
+
+        PSNode *operand = node->getOperand(0);
 
         for (auto& I : *mm) {
             if (I.first == INVALIDATED ||
@@ -130,15 +200,26 @@ public:
                 I.first == NULLPTR)
                 continue;
 
-            PSNodeAlloc *alloc = PSNodeAlloc::get(I.first);
-            assert(alloc && "Target is not an allocation");
-            if (!alloc->isHeap() &&
-                !alloc->isGlobal() &&
-                alloc->getParent() == where->getParent()) {
-                objects.push_back(I.second.get());
-                break;
+            MemoryObject *mo = I.second.get();
+            for (auto& it : mo->pointsTo) {
+                for (const auto& ptr : operand->pointsTo) {
+                    if (pointsToTarget(it.second, ptr.target)) {
+                        replaceTargetWithInv(it.second, ptr.target);
+
+                        // XXX: do not use addPointsTo, because it could
+                        // merge together concrete offsets to unnown offset,
+                        // we need here all the offsets
+                        // FIXME: store the information about strong update
+                        // somewhere else that in pointsTo set
+                        // as it is not a points-to set...
+                        node->pointsTo.insert({I.first, it.first});
+                        changed = true;
+                    }
+                }
             }
         }
+
+        return changed;
     }
 };
 
