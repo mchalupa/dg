@@ -33,8 +33,7 @@ public:
 
         // on these nodes the memory map can change
         if (needsMerge(n)) { // root node
-            mm = new MemoryMapT();
-            memoryMaps.emplace_back(mm);
+            mm = createMM();
         } else {
             // this node can not change the memory map,
             // so just add a pointer from the predecessor
@@ -174,13 +173,18 @@ protected:
         return changed;
     }
 
+    MemoryMapT *createMM() {
+        MemoryMapT *mm = new MemoryMapT();
+        memoryMaps.emplace_back(mm);
+        return mm;
+    }
+
 private:
     static bool needsMerge(PSNode *n) {
         return n->predecessorsNum() > 1 || canChangeMM(n);
     }
 
     // keep all the maps in order to free the memory
-    // FIXME: we still leak the memory objects
     std::vector<std::unique_ptr<MemoryMapT>> memoryMaps;
 };
 

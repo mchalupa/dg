@@ -31,6 +31,33 @@ public:
     PointsToWithInvalidate(PointerSubgraph *ps)
     : PointsToFlowSensitive(ps) {}
 
+    bool beforeProcessed(PSNode *n) override
+    {
+        MemoryMapT *mm = n->getData<MemoryMapT>();
+        if (mm)
+            return false;
+
+        // on these nodes the memory map can change
+        if (needsMerge(n)) { // root node
+            mm = createMM();
+        } else {
+            // this node can not change the memory map,
+            // so just add a pointer from the predecessor
+            // to this map
+            PSNode *pred = n->getSinglePredecessor();
+            mm = pred->getData<MemoryMapT>();
+            assert(mm && "No memory map in the predecessor");
+        }
+
+        assert(mm && "Did not create the MM");
+
+        // memory map initialized, set it as data,
+        // so that we won't initialize it again
+        n->setData<MemoryMapT>(mm);
+
+        return true;
+    }
+
     bool afterProcessed(PSNode *n) override
     {
         bool changed = false;
