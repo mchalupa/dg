@@ -66,7 +66,20 @@ struct MemoryObject
     // possible pointers stored in this memory object
     PointsToMapT pointsTo;
 
-    PointsToSetT& getPointsTo(const Offset& off) { return pointsTo[off]; }
+    PointsToSetT& getPointsTo(const Offset off) { return pointsTo[off]; }
+
+    PointsToMapT::iterator find(const Offset off) {
+        return pointsTo.find(off);
+    }
+
+    PointsToMapT::const_iterator find(const Offset off) const {
+        return pointsTo.find(off);
+    }
+
+    PointsToMapT::iterator begin() { return pointsTo.begin(); }
+    PointsToMapT::iterator end() { return pointsTo.end(); }
+    PointsToMapT::const_iterator begin() const { return pointsTo.begin(); }
+    PointsToMapT::const_iterator end() const { return pointsTo.end(); }
 
     bool addPointsTo(const Offset& off, const Pointer& ptr)
     {

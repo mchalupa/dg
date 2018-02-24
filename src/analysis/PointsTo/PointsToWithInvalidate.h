@@ -63,20 +63,19 @@ public:
         bool changed = false;
 
         if (n->getType() == PSNodeType::INVALIDATE_LOCALS) {
-            changed |= handleInvalidateLocals(n);
+            return handleInvalidateLocals(n);
         } else if (n->getType() == PSNodeType::FREE) {
-            changed |= handleFree(n);
+            return handleFree(n);
         }
+
+        assert(n->getType() != PSNodeType::FREE &&
+               n->getType() != PSNodeType::INVALIDATE_LOCALS);
 
         PointsToSetT *strong_update = nullptr;
         // every store is a strong update
         // FIXME: memcpy can be strong update too
         if (n->getType() == PSNodeType::STORE)
             strong_update = &n->getOperand(1)->pointsTo;
-        else if (n->getType() == PSNodeType::FREE)
-            strong_update = &n->getOperand(0)->pointsTo;
-        else if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
-            strong_update = &n->pointsTo;
 
         MemoryMapT *mm = n->getData<MemoryMapT>();
         assert(mm && "Do not have memory map");
@@ -87,9 +86,8 @@ public:
         // change, so we don't have to do that)
         if (needsMerge(n)) {
             for (PSNode *p : n->getPredecessors()) {
-                MemoryMapT *pm = p->getData<MemoryMapT>();
-                // merge pm to mm (but only if pm was already created)
-                if (pm) {
+                if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
+                    // merge pm to mm (but only if pm was already created)
                     changed |= mergeMaps(mm, pm, strong_update);
                 }
             }
@@ -135,28 +133,66 @@ public:
         S1.swap(S);
     }
 
-    bool handleInvalidateLocals(PSNode *node)
+    static inline bool isInvalidTarget(const PSNode * const target) {
+        return  target == INVALIDATED ||
+                target == UNKNOWN_MEMORY ||
+                target == NULLPTR;
+    }
+
+    bool handleInvalidateLocals(PSNode *node) {
+        bool changed = false;
+        for (PSNode *pred : node->getPredecessors()) {
+            changed |= handleInvalidateLocals(node, pred);
+        }
+        return changed;
+    }
+
+    bool handleInvalidateLocals(PSNode *node, PSNode *pred)
     {
         bool changed = false;
         MemoryMapT *mm = node->getData<MemoryMapT>();
-        assert(mm && "Node does not have memory map");
+        assert(mm && "Node does not have a memory map");
+        MemoryMapT *pmm = pred->getData<MemoryMapT>();
+        assert(pmm && "Node's predecessor does not have a memory map");
 
-        for (auto& I : *mm) {
-            if (I.first == INVALIDATED ||
-                I.first == UNKNOWN_MEMORY ||
-                I.first == NULLPTR)
+        for (auto& I : *pmm) {
+            if (isInvalidTarget(I.first))
                 continue;
 
-            MemoryObject *mo = I.second.get();
-            for (auto& it : mo->pointsTo) {
+            // get or create a memory object for this target
+            std::unique_ptr<MemoryObject>& moptr = (*mm)[I.first];
+            if (!moptr)
+                moptr.reset(new MemoryObject(I.first));
+
+            MemoryObject *mo = moptr.get();
+            MemoryObject *pmo = I.second.get();
+
+            for (auto& it : *mo) {
+                // remove pointers to locals from the points-to set
                 if (containsLocal(node, it.second)) {
                     replaceLocalWithInv(node, it.second);
-                    // perform a strong update on this MO
-                    // XXX: do not use addPointsTo, because it could
-                    // merge together concrete offsets to unnown offset,
-                    // we need here all the offsets
-                    node->pointsTo.insert({I.first, it.first});
                     changed = true;
+                }
+            }
+
+            for (auto& it : *pmo) {
+                PointsToSetT& predS = it.second;
+                PointsToSetT& S = mo->pointsTo[it.first];
+
+                // merge pointers from the previous states
+                // but do not include the pointers
+                // that may point to freed memory
+                for (auto& ptr : predS) {
+                    PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target);
+                    if (alloc && isLocal(alloc, node))
+                        changed |= S.insert(INVALIDATED).second;
+                    else
+                        changed |= S.insert(ptr).second;
+                }
+
+                // keep the map clean
+                if (S.empty()) {
+                    mo->pointsTo.erase(it.first);
                 }
             }
         }
@@ -182,39 +218,69 @@ public:
         }
 
         S.insert(INVALIDATED);
-        S.swap(S1);
+        S1.swap(S);
     }
 
-    bool handleFree(PSNode *node)
+    bool handleFree(PSNode *node) {
+        bool changed = false;
+        for (PSNode *pred : node->getPredecessors()) {
+            changed |= handleFree(node, pred);
+        }
+        return changed;
+    }
+
+    bool handleFree(PSNode *node, PSNode *pred)
     {
         bool changed = false;
 
         MemoryMapT *mm = node->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
+        MemoryMapT *pmm = pred->getData<MemoryMapT>();
+        assert(pmm && "Node does not have memory map");
 
         PSNode *operand = node->getOperand(0);
 
-        for (auto& I : *mm) {
-            if (I.first == INVALIDATED ||
-                I.first == UNKNOWN_MEMORY ||
-                I.first == NULLPTR)
+        for (auto& I : *pmm) {
+            if (isInvalidTarget(I.first))
                 continue;
 
-            MemoryObject *mo = I.second.get();
-            for (auto& it : mo->pointsTo) {
+            // get or create a memory object for this target
+            std::unique_ptr<MemoryObject>& moptr = (*mm)[I.first];
+            if (!moptr)
+                moptr.reset(new MemoryObject(I.first));
+
+            MemoryObject *mo = moptr.get();
+            MemoryObject *pmo = I.second.get();
+
+            //remove references to invalidated memory from mo
+            for (auto& it : *mo) {
                 for (const auto& ptr : operand->pointsTo) {
                     if (pointsToTarget(it.second, ptr.target)) {
                         replaceTargetWithInv(it.second, ptr.target);
-
-                        // XXX: do not use addPointsTo, because it could
-                        // merge together concrete offsets to unnown offset,
-                        // we need here all the offsets
-                        // FIXME: store the information about strong update
-                        // somewhere else that in pointsTo set
-                        // as it is not a points-to set...
-                        node->pointsTo.insert({I.first, it.first});
                         changed = true;
                     }
+                }
+            }
+
+            // merge pointers from pmo to mo, but skip
+            // the pointers that may point to the freed memory
+            for (auto& it : *pmo) {
+                PointsToSetT& predS = it.second;
+                PointsToSetT& S = mo->pointsTo[it.first];
+
+                // merge pointers from the previous states
+                // but do not include the pointers
+                // that may point to freed memory
+                for (auto& ptr : predS) {
+                    if (operand->pointsTo.count(ptr) == 0)
+                        changed |= S.insert(ptr).second;
+                    else
+                        changed |= S.insert(INVALIDATED).second;
+                }
+
+                // keep the map clean
+                if (S.empty()) {
+                    mo->pointsTo.erase(it.first);
                 }
             }
         }
