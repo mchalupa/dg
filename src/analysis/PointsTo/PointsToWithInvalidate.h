@@ -255,6 +255,9 @@ public:
             //remove references to invalidated memory from mo
             for (auto& it : *mo) {
                 for (const auto& ptr : operand->pointsTo) {
+                    if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
+                        continue;
+
                     if (pointsToTarget(it.second, ptr.target)) {
                         replaceTargetWithInv(it.second, ptr.target);
                         changed = true;
