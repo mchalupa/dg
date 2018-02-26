@@ -61,7 +61,10 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
         for (NodeT *node : block->getNodes()) {
 
             for (const DefSite& def : node->defs) {
-                last_def[def.target][block].add(detail::Interval{def.offset, def.len}, node);
+                if (node->isOverwrite(def) && def.len != 0 && def.offset != UNKNOWN_OFFSET)
+                    last_def[def.target][block].add(detail::Interval{def.offset, def.len}, node);
+                else
+                    writeVariableWeak(def, node, block);
             }
         }
     }
@@ -79,10 +82,8 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
             }
 
             for (const DefSite& def : node->defs) {
-                if (node->isOverwrite(def))
+                if (node->isOverwrite(def) && def.len != 0 && def.offset != UNKNOWN_OFFSET)
                     writeVariableStrong(def, node, block);
-                else
-                    writeVariableWeak(def, node, block);
             }
         }
     }
