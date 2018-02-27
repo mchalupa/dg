@@ -20,7 +20,7 @@ protected:
 
 public:
     PointsToFlowInsensitive(PointerSubgraph *ps)
-    : PointerAnalysis(ps), ps(ps) {
+    : PointerAnalysis(ps) {
         memory_objects.reserve(std::max(ps->size() / 100, (size_t)8));
     }
 
