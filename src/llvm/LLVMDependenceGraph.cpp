@@ -251,12 +251,17 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc)
         subgraph->gatherCallsites(gather_callsites, gatheredCallsites);
 
         // make the real work
-        bool ret = subgraph->build(callFunc);
+#ifndef NDEBUG
+        bool ret =
+#endif
+        subgraph->build(callFunc);
 
+#ifndef NDEBUG
         // at least for now use just assert, if we'll
         // have a reason to handle such failures at some
         // point, we can change it
         assert(ret && "Building subgraph failed");
+#endif
 
         // we built the subgraph, so it has refcount = 1,
         // later in the code we call addSubgraph, which

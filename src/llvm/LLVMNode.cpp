@@ -270,7 +270,10 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     LLVMDGParameters *params = getParameters();
     if (!params) {
         params = new LLVMDGParameters(this);
-        LLVMDGParameters *old = setParameters(params);
+#ifndef NDEBUG
+        LLVMDGParameters *old =
+#endif
+        setParameters(params);
         assert(old == nullptr && "Replaced parameters");
     }
 

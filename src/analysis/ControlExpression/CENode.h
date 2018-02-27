@@ -435,9 +435,10 @@ public:
         // put into children the newly computed children
         children.swap(new_children);
 
-        // DEBUG, remove
+#ifndef NDEBUG
         for (CENode *nd : children)
             assert(nd->parent == this);
+#endif
 
     }
 

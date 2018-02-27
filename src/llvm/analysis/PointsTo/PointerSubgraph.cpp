@@ -1571,7 +1571,11 @@ void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBloc
         if (nodes_map.count(&Inst) != 0)
             continue;
 
-        PSNodesSeq seq = buildInstruction(Inst);
+#ifndef NDEBUG
+        PSNodesSeq seq =
+#endif
+        buildInstruction(Inst);
+
         assert(seq.first && seq.second
                && "Didn't created the instruction properly");
     }

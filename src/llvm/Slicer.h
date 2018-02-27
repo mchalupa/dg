@@ -316,7 +316,10 @@ private:
                 && BB->getLastNode()->getSlice() != slice_id
                 && !BB->successorsAreSame()) {
 
-                bool found = BB->removeSuccessorsTarget(BB);
+#ifndef NDEBUG
+                bool found =
+#endif
+                BB->removeSuccessorsTarget(BB);
                 // we have two different successors, none of them
                 // is self-loop and we're slicing away the brach inst?
                 // This should not happen...
@@ -373,7 +376,10 @@ private:
                      if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
 
-                    bool ret = BB->addSuccessor(newExitBB, i);
+#ifndef NDEBUG
+                    bool ret =
+#endif
+                    BB->addSuccessor(newExitBB, i);
                     assert(ret && "Already had this CFG edge, that is wrong");
                 }
             }

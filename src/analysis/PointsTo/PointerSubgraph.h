@@ -517,8 +517,12 @@ inline void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned
 
     while (!fifo.empty()) {
         PSNode *cur = fifo.pop();
+#ifndef NDEBUG
         bool ret = cont.insert(cur).second;
         assert(ret && "BUG: Tried to insert something twice");
+#else
+        cont.insert(cur);
+#endif
 
         for (PSNode *succ : cur->successors) {
             if (succ == exit) continue;

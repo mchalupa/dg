@@ -72,9 +72,15 @@ public:
     // thus making 'n' control dependend on this node
     bool addControlDependence(NodeT * n)
     {
-        bool ret1, ret2;
+#ifndef NDEBUG
+        bool ret1;
+#endif
+        bool ret2;
 
-        ret1 = n->revControlDepEdges.insert(static_cast<NodeT *>(this));
+#ifndef NDEBUG
+        ret1 =
+#endif
+        n->revControlDepEdges.insert(static_cast<NodeT *>(this));
         ret2 = controlDepEdges.insert(n);
 
         // we either have both edges or none
@@ -87,9 +93,16 @@ public:
     // thus making 'n' data dependend on this node
     bool addDataDependence(NodeT * n)
     {
-        bool ret1, ret2;
+#ifndef NDEBUG
+        bool ret1;
+#endif
+        bool ret2;
 
-        ret1 = n->revDataDepEdges.insert(static_cast<NodeT *>(this));
+
+#ifndef NDEBUG
+        ret1 =
+#endif
+        n->revDataDepEdges.insert(static_cast<NodeT *>(this));
         ret2 = dataDepEdges.insert(n);
 
         assert(ret1 == ret2);
@@ -100,10 +113,15 @@ public:
     // remove edge 'this'-->'n' from data dependencies
     bool removeDataDependence(NodeT * n)
     {
-        bool ret1, ret2;
-
+        bool ret1;
+#ifndef NDEBUG
+        bool ret2;
+#endif
         ret1 = n->revDataDepEdges.erase(static_cast<NodeT *>(this));
-        ret2 = dataDepEdges.erase(n);
+#ifndef NDEBUG
+        ret2 =
+#endif
+        dataDepEdges.erase(n);
 
         // must have both or none
         assert(ret1 == ret2 && "Dep. edge without rev. or vice versa");
@@ -114,10 +132,16 @@ public:
     // remove edge 'this'-->'n' from control dependencies
     bool removeControlDependence(NodeT * n)
     {
-        bool ret1, ret2;
+        bool ret1;
+#ifndef NDEBUG
+        bool ret2;
+#endif
 
         ret1 = n->revControlDepEdges.erase(static_cast<NodeT *>(this));
-        ret2 = controlDepEdges.erase(n);
+#ifndef NDEBUG
+        ret2 =
+#endif
+        controlDepEdges.erase(n);
 
         // must have both or none
         assert(ret1 == ret2 && "Control edge without rev. or vice versa");
@@ -193,7 +217,10 @@ public:
             // if this is a callSite it is no longer part of BBlock,
             // so we must remove it from callSites
             if (hasSubgraphs()) {
-                bool ret = basicBlock->removeCallSite(static_cast<NodeT *>(this));
+#ifndef NDEBUG
+                bool ret =
+#endif
+                basicBlock->removeCallSite(static_cast<NodeT *>(this));
                 assert(ret && "the call site was not in BB's callSites");
             }
 

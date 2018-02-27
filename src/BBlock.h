@@ -214,7 +214,10 @@ public:
         isolate();
 
         if (dg) {
-            bool ret = dg->removeBlock(key);
+#ifndef NDEBUG
+            bool ret =
+#endif
+            dg->removeBlock(key);
             assert(ret && "BUG: block was not in DG");
             if (dg->getEntryBB() == this)
                 dg->setEntryBB(nullptr);
@@ -313,10 +316,16 @@ public:
 
     bool addControlDependence(BBlock<NodeT> *b)
     {
-        bool ret, ret2;
+        bool ret;
+#ifndef NDEBUG
+        bool ret2;
+#endif
 
         ret = controlDeps.insert(b);
-        ret2 = b->revControlDeps.insert(this);
+#ifndef NDEBUG
+        ret2 =
+#endif
+        b->revControlDeps.insert(this);
 
         // we either have both edges or none
         assert(ret == ret2);

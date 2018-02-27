@@ -314,8 +314,7 @@ bool PointerAnalysis::processNode(PSNode *node)
             break;
         case PSNodeType::STORE:
             for (const Pointer& ptr : node->getOperand(1)->pointsTo) {
-                PSNode *target = ptr.target;
-                assert(target && "Got nullptr as target");
+                assert(ptr.target && "Got nullptr as target");
 
                 if (ptr.isNull())
                     continue;
