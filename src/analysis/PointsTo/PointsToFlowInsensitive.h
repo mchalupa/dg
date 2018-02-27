@@ -13,7 +13,6 @@ namespace pta {
 
 class PointsToFlowInsensitive : public PointerAnalysis
 {
-    PointerSubgraph *ps;
     std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
 protected:
