@@ -1,52 +1,50 @@
 #ifndef _DG_UTILS_H_
 #define _DG_UTILS_H_
 
-#include <cstdio>
-#include <ctime>
+#include <chrono>
+#include <iostream>
 
 namespace dg {
 namespace debug {
 
 class TimeMeasure
 {
-    struct timespec s, e, r;
-    clockid_t clockid;
+    using Clock      = std::chrono::steady_clock;
+    using TimePointT = Clock::time_point;
+    using DurationT  = Clock::duration;
+
+    TimePointT s, e;
+    DurationT elapsed;
+
+    constexpr static auto ms_in_sec = std::chrono::milliseconds(std::chrono::seconds{1}).count();
 
 public:
-    TimeMeasure(clockid_t clkid = CLOCK_MONOTONIC)
-        : clockid(clkid) {}
+    TimeMeasure() {}
 
     void start() {
-        clock_gettime(clockid, &s);
+        s = Clock::now();
     };
 
     void stop() {
-        clock_gettime(clockid, &e);
+        e = Clock::now();
     };
 
-    const struct timespec& duration()
+    const DurationT& duration()
     {
-        r.tv_sec = e.tv_sec - s.tv_sec;
-        if (e.tv_nsec > s.tv_nsec)
-            r.tv_nsec = e.tv_nsec - s.tv_nsec;
-        else {
-            --r.tv_sec;
-            r.tv_nsec = 1000000000 - e.tv_nsec;
-        }
-
-        return r;
+        elapsed = e - s;
+        return elapsed;
     }
 
-    void report(const char *prefix = nullptr, FILE *out = stderr)
+    void report(const std::string& prefix="", std::ostream& out=std::cout)
     {
         // compute the duration
         duration();
 
-        if (prefix)
-            fprintf(out, "%s ", prefix);
+        out << prefix << " ";
 
-        fprintf(out, "%lu sec %lu ms\n", r.tv_sec, r.tv_nsec / 1000000);
-        fflush(out);
+        const auto msec = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() % ms_in_sec;
+        const auto sec  = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+        out << sec << " sec " << msec << " ms" << std::endl;
     }
 };
 } // namespace debug
