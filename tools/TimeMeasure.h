@@ -35,7 +35,7 @@ public:
         return elapsed;
     }
 
-    void report(const std::string& prefix="", std::ostream& out=std::cout)
+    void report(const std::string& prefix="", std::ostream& out=std::cerr)
     {
         // compute the duration
         duration();
