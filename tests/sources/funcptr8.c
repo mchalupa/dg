@@ -1,5 +1,3 @@
-
-
 int a;
 void set(void)
 {

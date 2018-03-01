@@ -1,10 +1,9 @@
-
-
 struct node {
     int val;
     struct node *next;
     struct node *prev;
 };
+
 static struct node* alloc_node(void)
 {
     struct node *ptr = malloc(sizeof *ptr);

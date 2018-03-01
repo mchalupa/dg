@@ -1,9 +1,9 @@
-
-
 int glob;
+
 int *setglob(void)
 {
 	glob = 23;
+	return ((void*)0);
 }
 
 int *foo(int *(f)(void))

@@ -15,7 +15,7 @@ void set(int *a)
 void (*s)(int *) = set;
 int main(void)
 {
-	int a, b, c;
+	int a, b = 0xda, c = 0xd1;
 	a = b + c;
 	b = 3;
 	c = 5;

@@ -12,7 +12,7 @@ void set(int *a)
 void (*s)(int *) = set;
 int main(void)
 {
-	int a, b, c;
+	int a, b = 0xfe, c = 0xef;
 	a = b + c;
 	b = 3;
 	c = 5;
