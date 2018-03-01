@@ -25,14 +25,6 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Assembly/AssemblyAnnotationWriter.h>
- #include <llvm/Analysis/Verifier.h>
-#else // >= 3.5
- #include <llvm/IR/AssemblyAnnotationWriter.h>
- #include <llvm/IR/Verifier.h>
-#endif
-
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
@@ -61,6 +53,7 @@
 #include <fstream>
 
 #include "llvm/LLVMDependenceGraph.h"
+#include "llvm/LLVMDGAssemblyAnnotationWriter.h"
 #include "llvm/Slicer.h"
 #include "llvm/LLVMDG2Dot.h"
 #include "TimeMeasure.h"
@@ -76,27 +69,10 @@
 
 #include "git-version.h"
 
-using namespace dg;
 using llvm::errs;
-
-enum {
-    // annotate
-    ANNOTATE                    = 1,
-    // data dependencies
-    ANNOTATE_DD                 = 1 << 1,
-    // forward data dependencies
-    ANNOTATE_FORWARD_DD         = 1 << 2,
-    // control dependencies
-    ANNOTATE_CD                 = 1 << 3,
-    // points-to information
-    ANNOTATE_PTR                = 1 << 4,
-    // reaching definitions
-    ANNOTATE_RD                 = 1 << 5,
-    // post-dominators
-    ANNOTATE_POSTDOM            = 1 << 6,
-    // comment out nodes that will be sliced
-    ANNOTATE_SLICE              = 1 << 7,
-};
+using namespace dg;
+using AnnotationOptsT
+        = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
 
 enum PtaType {
     fs, fi, inv
@@ -167,280 +143,9 @@ llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
     llvm::cl::init(CD_ALG::CLASSIC), llvm::cl::cat(SlicingOpts));
 
 
-class CommentDBG : public llvm::AssemblyAnnotationWriter
-{
-    LLVMReachingDefinitions *RD;
-    uint32_t opts;
-
-    void printValue(const llvm::Value *val,
-                    llvm::formatted_raw_ostream& os,
-                    bool nl = false)
-    {
-        if (val->hasName())
-            os << val->getName().data();
-        else
-            os << *val;
-
-        if (nl)
-            os << "\n";
-    }
-
-    void printPointer(const analysis::pta::Pointer& ptr,
-                      llvm::formatted_raw_ostream& os,
-                      const char *prefix = "PTR: ", bool nl = true)
-    {
-        os << "  ; ";
-        if (prefix)
-            os << prefix;
-
-        if (!ptr.isUnknown()) {
-            if (ptr.isNull())
-                os << "null";
-            else if (ptr.isInvalidated())
-                os << "invalidated";
-            else {
-                const llvm::Value *val
-                    = ptr.target->getUserData<llvm::Value>();
-                printValue(val, os);
-            }
-
-            os << " + ";
-            if (ptr.offset.isUnknown())
-                os << "UNKNOWN";
-            else
-                os << *ptr.offset;
-        } else
-            os << "unknown";
-
-        if (nl)
-            os << "\n";
-    }
-
-    void printDefSite(const analysis::rd::DefSite& ds,
-                      llvm::formatted_raw_ostream& os,
-                      const char *prefix = nullptr, bool nl = false)
-    {
-        os << "  ; ";
-        if (prefix)
-            os << prefix;
-
-        if (ds.target) {
-            const llvm::Value *val = ds.target->getUserData<llvm::Value>();
-            if (ds.target->isUnknown())
-                os << "unknown";
-            else
-                printValue(val, os);
-
-            if (ds.offset.isUnknown())
-                os << " bytes |UNKNOWN";
-            else
-                os << " bytes |" << *ds.offset;
-
-            if (ds.len.isUnknown())
-                os << " - UNKNOWN|";
-            else
-                os << " - " <<  *ds.offset + *ds.len- 1 << "|";
-        } else
-            os << "target is null!";
-
-        if (nl)
-            os << "\n";
-
-    }
-
-    void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
-    {
-        if (opts & ANNOTATE_RD) {
-            assert(RD && "No reaching definitions analysis");
-            analysis::rd::RDNode *rd = RD->getMapping(node->getKey());
-            if (!rd) {
-                os << "  ; RD: no mapping\n";
-            } else {
-                auto& defs = rd->getReachingDefinitions();
-                for (auto& it : defs) {
-                    for (auto& nd : it.second) {
-                        printDefSite(it.first, os, "RD: ");
-                        os << " @ ";
-                        if (nd->isUnknown())
-                            os << " UNKNOWN\n";
-                        else
-                            printValue(nd->getUserData<llvm::Value>(), os, true);
-                    }
-                }
-            }
-
-            LLVMDGParameters *params = node->getParameters();
-            // don't dump params when we use new analyses (RD is not null)
-            // because there we don't add definitions with new analyses
-            if (params && !RD) {
-                for (auto& it : *params) {
-                    os << "  ; PARAMS: in " << it.second.in
-                       << ", out " << it.second.out << "\n";
-
-                    // dump edges for parameters
-                    os <<"  ; in edges\n";
-                    emitNodeAnnotations(it.second.in, os);
-                    os << "  ; out edges\n";
-                    emitNodeAnnotations(it.second.out, os);
-                    os << "\n";
-                }
-
-                for (auto it = params->global_begin(), et = params->global_end();
-                     it != et; ++it) {
-                    os << "  ; PARAM GL: in " << it->second.in
-                       << ", out " << it->second.out << "\n";
-
-                    // dump edges for parameters
-                    os << "  ; in edges\n";
-                    emitNodeAnnotations(it->second.in, os);
-                    os << "  ; out edges\n";
-                    emitNodeAnnotations(it->second.out, os);
-                    os << "\n";
-                }
-            }
-        }
-
-        if (opts & ANNOTATE_DD) {
-            for (auto I = node->rev_data_begin(), E = node->rev_data_end();
-                 I != E; ++I) {
-                const llvm::Value *d = (*I)->getKey();
-                os << "  ; DD: ";
-
-                if (d->hasName())
-                    os << d->getName();
-                else
-                    os << *d;
-
-                os << "(" << d << ")\n";
-            }
-        }
-
-        if (opts & ANNOTATE_FORWARD_DD) {
-            for (auto I = node->data_begin(), E = node->data_end();
-                 I != E; ++I) {
-                const llvm::Value *d = (*I)->getKey();
-                os << "  ; fDD: " << *d << "(" << d << ")\n";
-            }
-        }
-
-        if (opts & ANNOTATE_CD) {
-            for (auto I = node->rev_control_begin(), E = node->rev_control_end();
-                 I != E; ++I) {
-                const llvm::Value *d = (*I)->getKey();
-                os << "  ; rCD: ";
-
-                if (d->hasName())
-                    os << d->getName() << "\n";
-                else
-                    os << *d << "\n";
-            }
-        }
-
-        if (opts & ANNOTATE_PTR) {
-            // FIXME: use the PTA from Slicer class
-            if (LLVMPointerAnalysis *PTA = node->getDG()->getPTA()) {
-                llvm::Type *Ty = node->getKey()->getType();
-                if (Ty->isPointerTy() || Ty->isIntegerTy()) {
-                    analysis::pta::PSNode *ps = PTA->getPointsTo(node->getKey());
-                    if (ps) {
-                        for (const analysis::pta::Pointer& ptr : ps->pointsTo)
-                            printPointer(ptr, os);
-                    }
-                }
-            }
-        }
-
-        if (opts & ANNOTATE_SLICE)
-            if (node->getSlice() == 0)
-                os << "  ; x ";
-    }
-
-public:
-    CommentDBG(uint32_t o = ANNOTATE_DD,
-               LLVMReachingDefinitions *rd = nullptr)
-        :RD(rd), opts(o) {}
-
-    virtual void emitFunctionAnnot (const llvm::Function *,
-                                    llvm::formatted_raw_ostream &os)
-    {
-        // dump the slicer's setting to the file
-        // for easier comprehension
-        static bool didit = false;
-        if (!didit) {
-            didit = true;
-            os << "; -- Generated by llvm-slicer --\n"
-               << ";   * slicing criteria: '" << slicing_criteria << "'\n"
-               << ";   * remove slicing criteria: '" << remove_slicing_criteria << "'\n"
-               << ";   * undefined are pure: '" << undefined_are_pure << "'\n"
-               << ";   * pointer analysis: ";
-            if (pta == fi)
-                os << "flow-insensitive\n";
-            else if (pta == fs)
-                os << "flow-sensitive\n";
-            else if (pta == inv)
-                os << "flow-sensitive with invalidate\n";
-
-            os << ";   * PTA field sensitivity: " << pta_field_sensitivie << "\n";
-
-            os << "\n";
-        }
-    }
-
-    virtual void emitInstructionAnnot(const llvm::Instruction *I,
-                                      llvm::formatted_raw_ostream& os)
-    {
-        if (opts == 0)
-            return;
-
-        LLVMNode *node = nullptr;
-        for (auto& it : getConstructedFunctions()) {
-            LLVMDependenceGraph *sub = it.second;
-            node = sub->getNode(const_cast<llvm::Instruction *>(I));
-            if (node)
-                break;
-        }
-
-        if (!node)
-            return;
-
-        emitNodeAnnotations(node, os);
-    }
-
-    virtual void emitBasicBlockStartAnnot(const llvm::BasicBlock *B,
-                                          llvm::formatted_raw_ostream& os)
-    {
-        if (opts == 0)
-            return;
-
-        for (auto& it : getConstructedFunctions()) {
-            LLVMDependenceGraph *sub = it.second;
-            auto& cb = sub->getBlocks();
-            auto I = cb.find(const_cast<llvm::BasicBlock *>(B));
-            if (I != cb.end()) {
-                LLVMBBlock *BB = I->second;
-                if (opts & (ANNOTATE_POSTDOM | ANNOTATE_CD))
-                    os << "  ; BB: " << BB << "\n";
-
-                if (opts & ANNOTATE_POSTDOM) {
-                    for (LLVMBBlock *p : BB->getPostDomFrontiers())
-                        os << "  ; PDF: " << p << "\n";
-
-                    LLVMBBlock *P = BB->getIPostDom();
-                    if (P && P->getKey())
-                        os << "  ; iPD: " << P << "\n";
-                }
-
-                if (opts & ANNOTATE_CD) {
-                    for (LLVMBBlock *p : BB->controlDependence())
-                        os << "  ; CD: " << p << "\n";
-                }
-            }
-        }
-    }
-};
-
-static void annotate(llvm::Module *M, uint32_t opts,
-                     LLVMReachingDefinitions *rd = nullptr)
+static void annotate(llvm::Module *M, AnnotationOptsT opts,
+                     LLVMPointerAnalysis *PTA,
+                     LLVMReachingDefinitions *RD)
 {
     // compose name
     std::string fl(llvmfile);
@@ -450,8 +155,31 @@ static void annotate(llvm::Module *M, uint32_t opts,
     std::ofstream ofs(fl);
     llvm::raw_os_ostream outputstream(ofs);
 
+
+    std::string module_comment =
+    "; -- Generated by llvm-slicer --\n"
+    ";   * slicing criteria: '" + slicing_criteria + "'\n" +
+    ";   * remove slicing criteria: '"
+         + std::to_string(remove_slicing_criteria) + "'\n" +
+    ";   * undefined are pure: '"
+         + std::to_string(undefined_are_pure) + "'\n" +
+    ";   * pointer analysis: ";
+    if (pta == PtaType::fi)
+        module_comment += "flow-insensitive\n";
+    else if (pta == PtaType::fs)
+        module_comment += "flow-sensitive\n";
+    else if (pta == PtaType::inv)
+        module_comment += "flow-sensitive with invalidate\n";
+
+    module_comment+= ";   * PTA field sensitivity: ";
+    if (pta_field_sensitivie == UNKNOWN_OFFSET)
+        module_comment += "full\n\n";
+    else
+        module_comment += std::to_string(pta_field_sensitivie) + "\n\n";
+
     errs() << "INFO: Saving IR with annotations to " << fl << "\n";
-    llvm::AssemblyAnnotationWriter *annot = new CommentDBG(opts, rd);
+    auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(opts, PTA, RD);
+    annot->emitModuleComment(std::move(module_comment));
     M->print(outputstream, annot);
 
     delete annot;
@@ -516,7 +244,7 @@ class Slicer {
     bool got_slicing_criteria = true;
 protected:
     llvm::Module *M;
-    uint32_t opts = 0;
+    AnnotationOptsT opts{};
     std::unique_ptr<LLVMPointerAnalysis> PTA;
     std::unique_ptr<LLVMReachingDefinitions> RD;
     LLVMDependenceGraph dg;
@@ -548,7 +276,7 @@ protected:
     }
 
 public:
-    Slicer(llvm::Module *mod, uint32_t o)
+    Slicer(llvm::Module *mod, AnnotationOptsT o)
     :M(mod), opts(o),
      PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)),
       RD(new LLVMReachingDefinitions(mod, PTA.get(),
@@ -587,7 +315,7 @@ public:
         // of the graph. Otherwise just slice away the whole graph
         // Also compute the edges when the user wants to annotate
         // the file - due to debugging.
-        if (got_slicing_criteria || (opts & ANNOTATE))
+        if (got_slicing_criteria || (opts != 0))
             computeEdges();
 
         // don't go through the graph when we know the result:
@@ -635,8 +363,8 @@ public:
         tm.report("INFO: Finding dependent nodes took");
 
         // print debugging llvm IR if user asked for it
-        if (opts & ANNOTATE)
-            annotate(M, opts, RD.get());
+        if (opts != 0)
+            annotate(M, opts, PTA.get(), RD.get());
 
         return true;
     }
@@ -914,28 +642,25 @@ static void dump_dg_to_dot(LLVMDependenceGraph& dg, bool bb_only = false,
     }
 }
 
-static uint32_t parseAnnotationOpt(const std::string& annot)
+static AnnotationOptsT parseAnnotationOpt(const std::string& annot)
 {
     if (annot.empty())
-        return 0;
+        return {};
 
-    uint32_t opts = 0;
+    AnnotationOptsT opts{};
     std::vector<std::string> lst = splitList(annot);
     for (const std::string& opt : lst) {
         if (opt == "dd")
-            opts |= ANNOTATE_DD;
+            opts |= AnnotationOptsT::ANNOTATE_DD;
         else if (opt == "cd")
-            opts |= ANNOTATE_CD;
+            opts |= AnnotationOptsT::ANNOTATE_CD;
         else if (opt == "rd")
-            opts |= ANNOTATE_RD;
+            opts |= AnnotationOptsT::ANNOTATE_RD;
         else if (opt == "pta")
-            opts |= ANNOTATE_PTR;
+            opts |= AnnotationOptsT::ANNOTATE_PTR;
         else if (opt == "slice" || opt == "sl" || opt == "slicer")
-            opts |= ANNOTATE_SLICE;
+            opts |= AnnotationOptsT::ANNOTATE_SLICE;
     }
-
-    if (opts != 0)
-        opts |= ANNOTATE;
 
     return opts;
 }
@@ -997,7 +722,7 @@ int main(int argc, char *argv[])
     llvm::cl::SetVersionPrinter([](){ printf("%s\n", GIT_VERSION); });
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
-    uint32_t opts = parseAnnotationOpt(annot);
+    AnnotationOptsT opts = parseAnnotationOpt(annot);
     uint32_t dump_opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD;
     // dump_dg_only implies dumg_dg
     if (dump_dg_only)
