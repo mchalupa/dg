@@ -14,7 +14,7 @@ void foo(void (*f)(int *), int *p)
 int main(void)
 {
 	void (*s)(int *) = set;
-	int a, b, c;
+	int a, b = 0x235, c = 0xbeef;
 	a = b + c;
 	b = 3;
 	c = 5;

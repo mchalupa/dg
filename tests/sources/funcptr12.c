@@ -1,5 +1,3 @@
-
-
 struct callbacks {
 	int *(*reta)(int *, int *);
 	int *(*retb)(int *, int *);
