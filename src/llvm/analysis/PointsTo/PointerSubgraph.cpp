@@ -35,6 +35,7 @@
 #endif
 
 #include "analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "PointerSubgraph.h"
 
 namespace dg {
@@ -1822,6 +1823,15 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     }
 
     PS.setRoot(root);
+
+    debug::LLVMPointerSubgraphValidator validator(&PS);
+    if (validator.validate()) {
+        llvm::errs() << "Pointer Subgraph is broken!\n";
+        assert(!validator.getErrors().empty());
+        llvm::errs() << validator.getErrors();
+//        return nullptr;
+    }
+
     return &PS;
 }
 

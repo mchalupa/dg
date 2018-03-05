@@ -395,7 +395,7 @@ public:
         nodes.push_back(nullptr);
     }
 
-    const std::vector<PSNode *>& getNodes() { return nodes; }
+    const std::vector<PSNode *>& getNodes() const { return nodes; }
     size_t size() const { return nodes.size(); }
 
     PointerSubgraph(PointerSubgraph&&) = default;
@@ -533,6 +533,40 @@ inline void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned
         }
     }
 }
+
+inline const char *PSNodeTypeToCString(enum PSNodeType type)
+{
+#define ELEM(t) case t: do {return (#t); }while(0); break;
+    switch(type) {
+        ELEM(PSNodeType::ALLOC)
+        ELEM(PSNodeType::DYN_ALLOC)
+        ELEM(PSNodeType::LOAD)
+        ELEM(PSNodeType::STORE)
+        ELEM(PSNodeType::GEP)
+        ELEM(PSNodeType::PHI)
+        ELEM(PSNodeType::CAST)
+        ELEM(PSNodeType::FUNCTION)
+        ELEM(PSNodeType::CALL)
+        ELEM(PSNodeType::CALL_FUNCPTR)
+        ELEM(PSNodeType::CALL_RETURN)
+        ELEM(PSNodeType::ENTRY)
+        ELEM(PSNodeType::RETURN)
+        ELEM(PSNodeType::CONSTANT)
+        ELEM(PSNodeType::NOOP)
+        ELEM(PSNodeType::MEMCPY)
+        ELEM(PSNodeType::NULL_ADDR)
+        ELEM(PSNodeType::UNKNOWN_MEM)
+        ELEM(PSNodeType::FREE)
+        ELEM(PSNodeType::INVALIDATE_LOCALS)
+        ELEM(PSNodeType::INVALIDATED)
+        default:
+            assert(0 && "unknown PointerSubgraph type");
+            return "Unknown type";
+    };
+#undef ELEM
+}
+
+
 
 
 

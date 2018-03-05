@@ -49,6 +49,7 @@
 
 using namespace dg;
 using namespace dg::analysis::pta;
+using dg::debug::TimeMeasure;
 using llvm::errs;
 
 static bool verbose;
@@ -79,35 +80,8 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 
-void printPSNodeType(enum PSNodeType type)
-{
-#define ELEM(t) case t: do {printf("%s", #t); }while(0); break;
-    switch(type) {
-        ELEM(PSNodeType::ALLOC)
-        ELEM(PSNodeType::DYN_ALLOC)
-        ELEM(PSNodeType::LOAD)
-        ELEM(PSNodeType::STORE)
-        ELEM(PSNodeType::GEP)
-        ELEM(PSNodeType::PHI)
-        ELEM(PSNodeType::CAST)
-        ELEM(PSNodeType::FUNCTION)
-        ELEM(PSNodeType::CALL)
-        ELEM(PSNodeType::CALL_FUNCPTR)
-        ELEM(PSNodeType::CALL_RETURN)
-        ELEM(PSNodeType::ENTRY)
-        ELEM(PSNodeType::RETURN)
-        ELEM(PSNodeType::CONSTANT)
-        ELEM(PSNodeType::NOOP)
-        ELEM(PSNodeType::MEMCPY)
-        ELEM(PSNodeType::NULL_ADDR)
-        ELEM(PSNodeType::UNKNOWN_MEM)
-        ELEM(PSNodeType::FREE)
-        ELEM(PSNodeType::INVALIDATE_LOCALS)
-        ELEM(PSNodeType::INVALIDATED)
-        default:
-            printf("unknown PointerSubgraph type");
-    };
-#undef ELEM
+void printPSNodeType(enum PSNodeType type) {
+    printf("%s", PSNodeTypeToCString(type));
 }
 
 
@@ -413,7 +387,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    debug::TimeMeasure tm;
+    TimeMeasure tm;
 
     LLVMPointerAnalysis PTA(M, field_senitivity);
 

@@ -156,12 +156,18 @@ public:
         return PS->getNodes();
     }
 
+    PointerSubgraph *getPS() { return PS; }
+    const PointerSubgraph *getPS() const { return PS; }
+
     template <typename PTType>
     void run()
     {
         // build the subgraph
         PS = builder->buildLLVMPointerSubgraph();
-        assert(PS && "Incorrectly constructed PTA, missing PS");
+        if (!PS) {
+            llvm::errs() << "Pointer Subgraph was not built, aborting\n";
+            abort();
+        }
 
         // run the analysis itself
         assert(builder && "Incorrectly constructed PTA, missing builder");
@@ -178,7 +184,10 @@ public:
     {
         // build the subgraph
         PS = builder->buildLLVMPointerSubgraph();
-        assert(PS && "Incorrectly constructed PTA, missing PS");
+        if (!PS) {
+            llvm::errs() << "Pointer Subgraph was not built, aborting\n";
+            abort();
+        }
 
         assert(builder && "Incorrectly constructed PTA, missing builder");
         return new LLVMPointerAnalysisImpl<PTType>(PS, builder);
@@ -191,7 +200,10 @@ inline void LLVMPointerAnalysis::run<analysis::pta::PointsToWithInvalidate>()
     // build the subgraph
     builder->setInvalidateNodesFlag(true);
     PS = builder->buildLLVMPointerSubgraph();
-    assert(PS && "Incorrectly constructed PTA, missing PS");
+    if (!PS) {
+        llvm::errs() << "Pointer Subgraph was not built, aborting\n";
+        abort();
+    }
 
     // run the analysis itself
     assert(builder && "Incorrectly constructed PTA, missing builder");
@@ -205,7 +217,10 @@ inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::
     // build the subgraph
     builder->setInvalidateNodesFlag(true);
     PS = builder->buildLLVMPointerSubgraph();
-    assert(PS && "Incorrectly constructed PTA, missing PS");
+    if (!PS) {
+        llvm::errs() << "Pointer Subgraph was not built, aborting\n";
+        abort();
+    }
 
     assert(builder && "Incorrectly constructed PTA, missing builder");
     return new LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate>(PS, builder);
