@@ -323,15 +323,15 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         if (verbose)
             dumpPointerSubgraphData(node, type, true /* dot */);
 
-        printf("\"");
+        printf("\", shape=box");
         if (node->getType() != PSNodeType::STORE) {
-            printf(", shape=box");
             if (node->pointsTo.size() == 0
                 && (node->getType() == PSNodeType::LOAD ||
-                    node->getType() == PSNodeType::GEP))
+                    node->getType() == PSNodeType::GEP  ||
+                    node->getType() == PSNodeType::PHI))
                 printf(", style=filled, fillcolor=red");
         } else {
-            printf(", shape=cds");
+            printf(", style=filled, fillcolor=orange");
         }
 
         printf("]\n");
