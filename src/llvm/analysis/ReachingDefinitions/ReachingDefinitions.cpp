@@ -432,7 +432,8 @@ RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst, RDBlock *rb)
     auto pts = getPointsTo(Inst->getOperand(1), rb);
     for (auto& ds : pts) {
         bool strong = isStrongUpdate(Inst->getOperand(1), ds, rb);
-        ds.len = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
+        if (!ds.offset.isUnknown())
+            ds.len = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
         node->addDef(ds, strong);
     }
 
