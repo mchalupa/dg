@@ -1590,7 +1590,9 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
     // XXX: do we need entry type?
-    PSNode *root = PS.create(PSNodeType::ENTRY);
+    PSNodeEntry *root = PSNodeEntry::get(PS.create(PSNodeType::ENTRY));
+    assert(root);
+    root->setFunctionName(F.getName().str());
     PSNode *ret;
 
     if (invalidate_nodes) {

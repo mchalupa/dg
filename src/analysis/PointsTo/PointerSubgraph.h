@@ -4,7 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <cstdarg>
-#include <cstring> // for strdup
+#include <string>
 
 #include "Pointer.h"
 #include "ADT/Queue.h"
@@ -373,6 +373,22 @@ public:
     Offset getOffset() const { return offset; }
 };
 
+class PSNodeEntry : public PSNode {
+    std::string functionName;
+
+public:
+    PSNodeEntry(unsigned id, const std::string& name = "not-known")
+    :PSNode(id, PSNodeType::ENTRY), functionName(name) {}
+
+    static PSNodeEntry *get(PSNode *n) {
+        return isa<PSNodeType::ENTRY>(n) ?
+            static_cast<PSNodeEntry *>(n) : nullptr;
+    }
+
+    void setFunctionName(const std::string& name) { functionName = name; }
+    const std::string& getFunctionName() const { return functionName; }
+};
+
 class PointerSubgraph
 {
     unsigned int dfsnum;
@@ -444,6 +460,9 @@ public:
                                   va_arg(args, PSNode *),
                                   va_arg(args, Offset::type));
                 break;
+            case PSNodeType::ENTRY:
+                node = new PSNodeEntry(++last_node_id);
+                break;
             default:
                 node = new PSNode(++last_node_id, t, args);
                 break;
@@ -508,7 +527,7 @@ inline void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned
     ++dfsnum;
     ADT::QueueFIFO<PSNode *> fifo;
 
-    assert(n && "No starting node given."); 
+    assert(n && "No starting node given.");
 
     for (PSNode *succ : n->successors) {
         succ->dfsid = dfsnum;
@@ -565,10 +584,6 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
     };
 #undef ELEM
 }
-
-
-
-
 
 } // namespace pta
 } // namespace analysis
