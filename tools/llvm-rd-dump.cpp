@@ -217,7 +217,7 @@ dumpRDNode(RDNode *n)
 }
 
 static void
-dumpRDdot(LLVMReachingDefinitions *RD)
+dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
 {
     std::set<RDNode *> nodes;
     RD->getNodes(nodes);
@@ -244,20 +244,21 @@ dumpRDdot(LLVMReachingDefinitions *RD)
     }
 
     /* dump edges */
+    std::unordered_map<RDNode*, unsigned> colors;
     for (RDNode *node : nodes) {
         for (RDNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
-    }
-
-    std::unordered_map<RDNode*, unsigned> colors;
-    for (auto& pair : RD->getSrg()) {
-        RDNode *source = pair.first;
-        for (auto& var_where: pair.second) {
-            DefSite var = var_where.first;
-            RDNode *dest = var_where.second;
-            if (colors.find(var.target) == colors.end())
-                colors[var.target] = rand();
-            printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]", source, dest, colors[var.target]);
+        if (dump_rd) {
+            // dump Reaching Definitions
+            auto rds = node->getReachingDefinitions();
+            for (const auto& pair : rds) {
+                DefSite var = pair.first;
+                if (colors.find(var.target) == colors.end())
+                    colors[var.target] = rand();
+                for (auto& dest: pair.second) {
+                    printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]", node, dest, colors[var.target]);
+                }
+            }
         }
     }
 
@@ -265,12 +266,12 @@ dumpRDdot(LLVMReachingDefinitions *RD)
 }
 
 static void
-dumpRD(LLVMReachingDefinitions *RD, bool todot)
+dumpRD(LLVMReachingDefinitions *RD, bool todot, bool dump_rd)
 {
     assert(RD);
 
     if (todot)
-        dumpRDdot(RD);
+        dumpRDdot(RD, dump_rd);
     else {
         std::set<RDNode *> nodes;
         RD->getNodes(nodes);
@@ -334,6 +335,7 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     bool todot = false;
     bool blocks = false;
+    bool dump_rd = false;
     const char *module = nullptr;
     uint64_t field_senitivity = UNKNOWN_OFFSET;
     bool rd_strong_update_unknown = false;
@@ -374,6 +376,8 @@ int main(int argc, char *argv[])
             verbose = true;
         } else if (strcmp(argv[i], "-blocks") == 0) {
             blocks = true;
+        } else if (strcmp(argv[i], "-dump-rd") == 0) {
+            dump_rd = true;
         } else {
             module = argv[i];
         }
@@ -416,9 +420,9 @@ int main(int argc, char *argv[])
     LLVMReachingDefinitions RD(M, &PTA, rd_strong_update_unknown, max_set_size);
     tm.start();
     if (rda == RdaType::SEMISPARSE) {
-        RD.run<dg::analysis::rd::SemisparseRda, true>();
+        RD.run<dg::analysis::rd::SemisparseRda>();
     } else
-        RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis, false>();
+        RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
@@ -428,7 +432,7 @@ int main(int argc, char *argv[])
         }
         dumpRDBlocksDot(RD);
     } else
-        dumpRD(&RD, todot);
+        dumpRD(&RD, todot, dump_rd);
 
     return 0;
 }
