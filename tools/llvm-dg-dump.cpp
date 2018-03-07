@@ -184,11 +184,11 @@ int main(int argc, char *argv[])
 
     if (strcmp(rda, "dense") == 0) {
         tm.start();
-        RDA.run<analysis::rd::ReachingDefinitionsAnalysis, false>();
+        RDA.run<analysis::rd::ReachingDefinitionsAnalysis>();
         tm.stop();
     } else if (strcmp(rda, "ss") == 0) {
         tm.start();
-        RDA.run<analysis::rd::SemisparseRda, true>();
+        RDA.run<analysis::rd::SemisparseRda>();
         tm.stop();
     } else {
         llvm::errs() << "Unknown reaching definitions analysis, try: dense, ss\n";

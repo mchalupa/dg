@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <memory>
+#include <type_traits>
 
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/Instructions.h>
@@ -11,8 +12,6 @@
 #include "llvm/MemAllocationFuncs.h"
 #include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "analysis/ReachingDefinitions/Srg/SparseRDGraphBuilder.h"
-#include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFS.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
@@ -166,25 +165,9 @@ class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
-    std::unique_ptr<dg::analysis::rd::srg::SparseRDGraphBuilder> srg_builder;
-    dg::analysis::rd::srg::SparseRDGraph srg;
     RDNode *root;
     bool strong_update_unknown;
     uint32_t max_set_size;
-    std::vector<std::unique_ptr<RDNode>> phi_nodes;
-
-    // CalculateSRG = true
-    template <typename RdaType>
-    void createRDA(RDNode *root, std::true_type) {
-        std::tie(srg, phi_nodes) = srg_builder->build(root);
-        RDA = std::unique_ptr<RdaType>(new RdaType(srg, root));
-    }
-
-    // CalculateSRG = false
-    template <typename RdaType>
-    void createRDA(RDNode *root, std::false_type) {
-        RDA = std::unique_ptr<RdaType>(new RdaType(root));
-    }
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
@@ -193,20 +176,21 @@ public:
                             bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
         : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
-        srg_builder(llvm::make_unique<dg::analysis::rd::srg::MarkerSRGBuilderFS>()), strong_update_unknown(strong_updt_unknown),
+        strong_update_unknown(strong_updt_unknown),
         max_set_size(max_set_sz) {}
 
     /**
      * Template parameters:
      * RdaType - class extending dg::analysis::rd::ReachingDefinitions to be used as analysis
-     * CalculateSRG - whether or not to calculate SparseRDGraph (and pass it as the first constructor parameter to constructor called as `new RdaType(root, srg)` )
      */
-    template <typename RdaType, bool CalculateSRG=false>
+    template <typename RdaType>
     void run()
     {
+        // this helps while guessing causes of template substitution errors
+        static_assert(std::is_base_of<ReachingDefinitionsAnalysis, RdaType>::value, "RdaType has to be subclass of ReachingDefinitionsAnalysis");
         root = builder->build();
 
-        createRDA<RdaType>(root, std::integral_constant<bool, CalculateSRG>());
+        RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(new RdaType(root));
         RDA->run();
     }
 
@@ -238,7 +222,6 @@ public:
         return builder->getMapping(val);
     }
 
-    const dg::analysis::rd::srg::SparseRDGraph& getSrg() const { return srg; }
     void getNodes(std::set<RDNode *>& cont)
     {
         assert(RDA);

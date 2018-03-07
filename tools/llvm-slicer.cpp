@@ -274,9 +274,9 @@ protected:
 
         tm.start();
         if (rda == dense) {
-            RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis, false>();
+            RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
         } else if (rda == ss) {
-            RD->run<dg::analysis::rd::SemisparseRda, true>();
+            RD->run<dg::analysis::rd::SemisparseRda>();
         } else {
             assert( false && "unknown RDA type" );
         }

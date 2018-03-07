@@ -240,6 +240,7 @@ public:
 
 class ReachingDefinitionsAnalysis
 {
+protected:
     RDNode *root;
     unsigned int dfsnum;
     bool strong_update_unknown;
