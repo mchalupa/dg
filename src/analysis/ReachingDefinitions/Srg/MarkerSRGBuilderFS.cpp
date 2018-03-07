@@ -53,8 +53,12 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
     return result;
 }
 
-void MarkerSRGBuilderFS::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, const std::vector<detail::Interval>& covered) {
+void MarkerSRGBuilderFS::addPhiOperands(DefSite var, NodeT *phi, BlockT *block, const std::vector<detail::Interval>& covered) {
 
+    if (var.len == 0 || var.offset.isUnknown()) {
+        var.len = UNKNOWN_OFFSET;
+        var.offset = 0;
+    }
     phi->addDef(var, true);
     phi->addUse(var);
 
