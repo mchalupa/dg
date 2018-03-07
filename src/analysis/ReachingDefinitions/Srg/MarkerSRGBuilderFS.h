@@ -51,7 +51,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
 
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, const Intervals& covered);
 
-    void addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, const Intervals& covered);
+    void addPhiOperands(DefSite var, NodeT *phi, BlockT *block, const Intervals& covered);
 
     void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
         srg[from].push_back(std::make_pair(var, to));
