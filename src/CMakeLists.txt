@@ -64,7 +64,11 @@ add_library(LLVMdg SHARED
 	# -- LLVM analysis
 	llvm/analysis/PostDominators.cpp
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
-	llvm/analysis/ReachingDefinitions/ReachingDefinitions.cpp
+    llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
+    llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h
+    llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.cpp
+    llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
+    llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
 )

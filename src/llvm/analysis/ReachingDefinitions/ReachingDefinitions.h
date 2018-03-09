@@ -10,163 +10,39 @@
 #include <llvm/IR/Constants.h>
 
 #include "llvm/MemAllocationFuncs.h"
-#include "BBlock.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
-#include "llvm/analysis/Dominators.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
+#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h"
+#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h"
 
 namespace dg {
 namespace analysis {
 namespace rd {
 
-using RDBlock = BBlock<RDNode>;
+namespace detail {
+    template <typename Rda>
+        struct BuilderSelector {
+            // TODO dense
+            using BuilderT = LLVMRDBuilderDense;
+        };
 
-class LLVMRDBuilder
-{
-    const llvm::Module *M;
-    const llvm::DataLayout *DL;
-    bool assume_pure_functions;
-
-    struct Subgraph {
-        Subgraph(RDNode *r1, RDNode *r2)
-            : root(r1), ret(r2) {}
-        Subgraph(): root(nullptr), ret(nullptr) {}
-
-        RDNode *root;
-        RDNode *ret;
-    };
-
-    // points-to information
-    dg::LLVMPointerAnalysis *PTA;
-
-    // map of all nodes we created - use to look up operands
-    std::unordered_map<const llvm::Value *, RDNode *> nodes_map;
-
-    // mapping of llvm nodes to relevant reaching definitions nodes
-    // (this is a super-set of nodes_map)
-    // we could keep just one map of these two and don't duplicate
-    // the information, but this way it is more bug-proof
-    std::unordered_map<const llvm::Value *, RDNode *> mapping;
-
-    // map of all built subgraphs - the value type is a pair (root, return)
-    std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
-    // list of dummy nodes (used just to keep the track of memory,
-    // so that we can delete it later)
-    std::vector<RDNode *> dummy_nodes;
-    // each LLVM block is mapped to multiple RDBlocks.
-    // this is necessary for function inlining, where
-    std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>> blocks;
-    // all constructed functions and their corresponding blocks
-    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, std::vector<RDBlock *>>> functions_blocks;
-
-public:
-    LLVMRDBuilder(const llvm::Module *m,
-                  dg::LLVMPointerAnalysis *p,
-                  bool pure_funs = false)
-        : M(m), DL(new llvm::DataLayout(m)),
-          assume_pure_functions(pure_funs), PTA(p) {}
-    ~LLVMRDBuilder();
-
-    RDNode *build();
-
-    // let the user get the nodes map, so that we can
-    // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, RDNode *>&
-                                getNodesMap() const { return nodes_map; }
-    const std::unordered_map<const llvm::Value *, RDNode *>&
-                                getMapping() const { return mapping; }
-
-    RDNode *getMapping(const llvm::Value *val)
-    {
-        auto it = mapping.find(val);
-        if (it == mapping.end())
-            return nullptr;
-
-        return it->second;
-    }
-
-    RDNode *getNode(const llvm::Value *val)
-    {
-        auto it = nodes_map.find(val);
-        if (it == nodes_map.end())
-            return nullptr;
-
-        return it->second;
-    }
-
-    RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
-    RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);
-
-    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>& getBlocks() const {
-        return blocks;
-    }
-
-    std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, std::vector<RDBlock *>>>& getConstructedFunctions() {
-        return functions_blocks;
-    }
-
-private:
-    void addNode(const llvm::Value *val, RDNode *node)
-    {
-        auto it = nodes_map.find(val);
-        assert(it == nodes_map.end() && "Adding a node that we already have");
-
-        nodes_map.emplace_hint(it, val, node);
-        node->setUserData(const_cast<llvm::Value *>(val));
-    }
-
-    void addBlock(const llvm::Value *val, RDBlock *block) {
-        block->setKey(const_cast<llvm::Value *>(val));
-        blocks[val].push_back(std::unique_ptr<RDBlock>(block));
-    }
-
-    ///
-    // Add a dummy node for which there's no real LLVM node
-    void addNode(RDNode *node)
-    {
-        dummy_nodes.push_back(node);
-    }
-
-    void addMapping(const llvm::Value *val, RDNode *node)
-    {
-        auto it = mapping.find(val);
-        assert(it == mapping.end() && "Adding mapping that we already have");
-
-        mapping.emplace_hint(it, val, node);
-    }
-
-    std::vector<DefSite> getPointsTo(const llvm::Value *val, RDBlock *rb);
-    bool isStrongUpdate(const llvm::Value *val, const DefSite& ds, RDBlock *rb);
-
-    RDNode *createLoad(const llvm::Instruction *Inst, RDBlock *rb);
-    RDNode *createStore(const llvm::Instruction *Inst, RDBlock *rb);
-    RDNode *createAlloc(const llvm::Instruction *Inst, RDBlock *rb);
-    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type, RDBlock *rb);
-    RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
-    RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
-
-    std::vector<RDBlock *> buildBlock(const llvm::BasicBlock& block);
-    std::pair<RDBlock *,RDBlock *> buildFunction(const llvm::Function& F);
-
-    RDBlock *buildGlobals();
-
-    std::pair<RDNode *, RDNode *>
-    createCallToFunction(const llvm::Function *F, RDBlock *rb);
-
-    std::pair<RDNode *, RDNode *>
-    createCall(const llvm::Instruction *Inst, RDBlock *rb);
-
-    RDNode *createIntrinsicCall(const llvm::CallInst *CInst, RDBlock *rb);
-    RDNode *createUndefinedCall(const llvm::CallInst *CInst, RDBlock *rb);
-};
+    template <>
+        struct BuilderSelector<SemisparseRda> {
+            using BuilderT = LLVMRDBuilderSemisparse;
+        };
+}
 
 class LLVMReachingDefinitions
 {
     std::unique_ptr<LLVMRDBuilder> builder;
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
     RDNode *root;
+    const llvm::Module *m;
+    dg::LLVMPointerAnalysis *pta;
     bool strong_update_unknown;
+    bool pure_funs;
     uint32_t max_set_size;
 
 public:
@@ -175,9 +51,8 @@ public:
                             bool strong_updt_unknown = false,
                             bool pure_funs = false,
                             uint32_t max_set_sz = ~((uint32_t) 0))
-        : builder(std::unique_ptr<LLVMRDBuilder>(new LLVMRDBuilder(m, pta, pure_funs))),
-        strong_update_unknown(strong_updt_unknown),
-        max_set_size(max_set_sz) {}
+        : m(m), pta(pta), strong_update_unknown(strong_updt_unknown), 
+        pure_funs(pure_funs), max_set_size(max_set_sz) {}
 
     /**
      * Template parameters:
@@ -188,6 +63,8 @@ public:
     {
         // this helps while guessing causes of template substitution errors
         static_assert(std::is_base_of<ReachingDefinitionsAnalysis, RdaType>::value, "RdaType has to be subclass of ReachingDefinitionsAnalysis");
+        using BuilderT = typename detail::BuilderSelector<RdaType>::BuilderT;
+        builder = std::unique_ptr<LLVMRDBuilder>(new BuilderT(m, pta, pure_funs));
         root = builder->build();
 
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(new RdaType(root));
@@ -212,10 +89,6 @@ public:
     const std::unordered_map<const llvm::Value *, RDNode *>&
                                 getMapping() const
     { return builder->getMapping(); }
-
-    const std::unordered_map<const llvm::Value *, std::vector<std::unique_ptr<RDBlock>>>&
-        getBlocks() const
-        { return builder->getBlocks(); }
 
     RDNode *getMapping(const llvm::Value *val)
     {
