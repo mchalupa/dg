@@ -18,7 +18,11 @@ compile "$CODE" "$BCFILE"
 if [ ! -z "$DG_TESTS_PTA" ]; then
     export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
 fi
-llvm-slicer $DG_TESTS_PTA -c test_assert "$BCFILE"
+
+if [ ! -z "$DG_TESTS_RDA" ]; then
+    export DG_TESTS_RDA="-rda $DG_TESTS_RDA"
+fi
+llvm-slicer $DG_TESTS_RDA $DG_TESTS_PTA -c test_assert "$BCFILE"
 
 # link assert to the code
 link_with_assert "$SLICEDFILE" "$LINKEDFILE"
