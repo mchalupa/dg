@@ -281,53 +281,6 @@ dumpRD(LLVMReachingDefinitions *RD, bool todot, bool dump_rd)
     }
 }
 
-static void
-dumpRDBlocksDot(LLVMReachingDefinitions &RD)
-{
-    const auto& blocks = RD.getBlocks();
-
-    printf("digraph \"RDBlocks\" {\n");
-
-    /* dump nodes */
-    for (const auto& pair : blocks) {
-        for (const auto& block : pair.second) {
-            printf("\tNODE%p", block.get());
-            printf("[label=\"");
-
-            /* dump nodes */
-            for(RDNode *node : block->getNodes()) {
-                printName(node, true);
-                if (node->getSize() > 0)
-                    printf("\\n[size: %lu]\\n", node->getSize());
-                printf("\\n-------------\\n");
-                if (verbose) {
-                    dumpDefines(node, true);
-                    printf("-------------\\n");
-                    dumpOverwrites(node, true);
-                    printf("-------------\\n");
-                    dumpUses(node, true);
-                }
-                dumpMap(node, true /* dot */);
-
-            }
-
-
-            printf("\"shape=box]\n");
-        }
-    }
-
-    for (const auto& pair : blocks) {
-        for (const auto& block : pair.second) {
-            for (const auto& edge : block->successors()) {
-                printf("\tNODE%p -> NODE%p\n", block.get(), edge.target);
-            }
-        }
-    }
-
-    printf("}\n");
-
-}
-
 int main(int argc, char *argv[])
 {
     llvm::Module *M;
@@ -374,8 +327,6 @@ int main(int argc, char *argv[])
             todot = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
-        } else if (strcmp(argv[i], "-blocks") == 0) {
-            blocks = true;
         } else if (strcmp(argv[i], "-dump-rd") == 0) {
             dump_rd = true;
         } else {
@@ -426,13 +377,7 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
-    if (blocks) {
-        if (!todot) {
-            errs() << "warning: -dot not specified, but -blocks only supports dot format. overriding...\n";
-        }
-        dumpRDBlocksDot(RD);
-    } else
-        dumpRD(&RD, todot, dump_rd);
+    dumpRD(&RD, todot, dump_rd);
 
     return 0;
 }
