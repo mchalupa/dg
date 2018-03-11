@@ -18,21 +18,6 @@ namespace analysis {
 namespace rd {
 
 class LLVMRDBuilderDense : public LLVMRDBuilder {
-private:
-    struct Subgraph {
-        Subgraph(RDNode *r1, RDNode *r2)
-            : root(r1), ret(r2) {}
-        Subgraph(): root(nullptr), ret(nullptr) {}
-
-        RDNode *root;
-        RDNode *ret;
-    };
-
-    // map of all built subgraphs - the value type is a pair (root, return)
-    std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
-    // list of dummy nodes (used just to keep the track of memory,
-    // so that we can delete it later)
-    std::vector<RDNode *> dummy_nodes;
 public:
     LLVMRDBuilderDense(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
