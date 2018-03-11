@@ -66,7 +66,10 @@ add_library(LLVMdg SHARED
 	llvm/analysis/DefUse.cpp
 )
 
-target_link_libraries(LLVMdg PUBLIC LLVMpta RD ${llvm_libs})
+target_link_libraries(LLVMdg
+			PUBLIC LLVMpta
+			PUBLIC RD
+			INTERFACE ${llvm_core})
 
 install(TARGETS LLVMdg LLVMpta PTA RD
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
