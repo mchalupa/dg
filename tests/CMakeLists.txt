@@ -1,8 +1,6 @@
-if (ENABLE_DEBUG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
-else ()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2")
-endif ()
+# use assertions in tests
+string(REGEX REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
 # add check target
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
