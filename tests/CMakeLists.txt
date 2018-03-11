@@ -27,7 +27,7 @@ add_dependencies(check data-flow-test)
 add_executable(points-to-test points-to-test.cpp)
 add_test(points-to-test points-to-test)
 add_dependencies(check points-to-test)
-target_link_libraries(points-to-test PTA)
+target_link_libraries(points-to-test PRIVATE PTA)
 
 # --------------------------------------------------
 # reaching-definitions-test
@@ -35,7 +35,7 @@ target_link_libraries(points-to-test PTA)
 add_executable(reaching-definitions-test reaching-definitions-test.cpp)
 add_test(reaching-definitions-test reaching-definitions-test)
 add_dependencies(check reaching-definitions-test)
-target_link_libraries(reaching-definitions-test RD)
+target_link_libraries(reaching-definitions-test PRIVATE RD)
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
@@ -49,7 +49,10 @@ add_dependencies(check adt-test)
 if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader)
 	add_executable(llvm-dg-test llvm-dg-test.cpp)
-	target_link_libraries(llvm-dg-test LLVMdg)
+	target_link_libraries(llvm-dg-test
+				PRIVATE LLVMdg
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_analysis})
 
 	add_test(llvm-dg-test llvm-dg-test)
 	add_dependencies(check llvm-dg-test)
