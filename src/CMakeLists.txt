@@ -83,6 +83,11 @@ install(FILES
 install(FILES
 	llvm/llvm-utils.h
 	llvm/MemAllocationFuncs.h
+	llvm/LLVMNode.h
+	llvm/LLVMDependenceGraph.h
+	llvm/LLVMDGAssemblyAnnotationWriter.h
+	llvm/LLVMDGVerifier.h
+	llvm/Slicer.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/llvm/)
 install(FILES
 	llvm/analysis/PointsTo/PointerSubgraph.h
