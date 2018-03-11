@@ -63,15 +63,6 @@ if (LLVM_DG)
 	endif(LLVM_BUILD_PATH)
 
 	add_definitions(${LLVM_DEFINITIONS})
-
-	if (NOT ${LLVM_PACKAGE_VERSION} VERSION_LESS "3.5")
-		llvm_map_components_to_libnames(llvm_libs support core
-		                                irreader bitwriter analysis)
-	else()
-		llvm_map_components_to_libraries(llvm_libs support core
-		                                 irreader bitwriter analysis)
-	endif()
-
 	add_definitions(-DHAVE_LLVM)
 endif(LLVM_DG)
 
