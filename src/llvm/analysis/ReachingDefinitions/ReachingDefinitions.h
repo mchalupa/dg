@@ -24,7 +24,6 @@ namespace rd {
 namespace detail {
     template <typename Rda>
         struct BuilderSelector {
-            // TODO dense
             using BuilderT = LLVMRDBuilderDense;
         };
 
