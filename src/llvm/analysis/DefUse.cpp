@@ -39,6 +39,7 @@
 using dg::analysis::rd::LLVMReachingDefinitions;
 using dg::analysis::rd::RDNode;
 using dg::analysis::rd::RDNodeType;
+using dg::analysis::Offset;
 
 using namespace llvm;
 
@@ -163,10 +164,10 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
     assert(dest);
 
     // these functions touch the memory of the pointers
-    addDataDependence(callNode, CI, dest, UNKNOWN_OFFSET /* FIXME */);
+    addDataDependence(callNode, CI, dest, Offset::UNKNOWN /* FIXME */);
 
     if (src)
-        addDataDependence(callNode, CI, src, UNKNOWN_OFFSET /* FIXME */);
+        addDataDependence(callNode, CI, src, Offset::UNKNOWN /* FIXME */);
 }
 
 void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *callNode, CallInst *CI)
@@ -181,7 +182,7 @@ void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *callNode, CallInst *CI)
         if (auto pts = PTA->getPointsTo(CI->getArgOperand(i))) {
             // the passed memory may be used in the undefined
             // function on the unknown offset
-            addDataDependence(callNode, CI, pts, UNKNOWN_OFFSET);
+            addDataDependence(callNode, CI, pts, Offset::UNKNOWN);
         }
     }
 }
@@ -210,7 +211,7 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
             MemAllocationFuncs type = getMemAllocationFunc(func);
 
             if (type == MemAllocationFuncs::REALLOC) {
-                addDataDependence(node, CI, CI->getOperand(0), UNKNOWN_OFFSET /* FIXME */);
+                addDataDependence(node, CI, CI->getOperand(0), Offset::UNKNOWN /* FIXME */);
             } else if (type == MemAllocationFuncs::NONEMEM) {
                 handleUndefinedCall(node, CI);
             }// else {
@@ -327,8 +328,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
         std::set<RDNode *> defs;
         // Get even reaching definitions for UNKNOWN_MEMORY.
         // Since those can be ours definitions, we must add them always
-        mem->getReachingDefinitions(rd::UNKNOWN_MEMORY, UNKNOWN_OFFSET,
-                                    UNKNOWN_OFFSET, defs);
+        mem->getReachingDefinitions(rd::UNKNOWN_MEMORY, Offset::UNKNOWN,
+                                    Offset::UNKNOWN, defs);
         if (!defs.empty()) {
             for (RDNode *rd : defs) {
                 assert(!rd->isUnknown() && "Unknown memory defined at unknown location?");
@@ -414,7 +415,7 @@ static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
 {
     // Type can be i8 *null or similar
     if (!Ty->isSized())
-            return UNKNOWN_OFFSET;
+            return Offset::UNKNOWN;
 
     return DL->getTypeAllocSize(Ty);
 }

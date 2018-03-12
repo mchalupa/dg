@@ -26,7 +26,7 @@ static bool comp_ds(const DefSite& a, const DefSite& b)
 // take those definitions as 'overwrites'. That is -
 // if some definition in @no_update set overwrites definition
 // in @oth set, don't merge it to our map. The exception are
-// definitions with UNKNOWN_OFFSET, since we don't know what
+// definitions with Offset::UNKNOWN, since we don't know what
 // places can these overwrite, these are always added (weak update).
 // If @merge_unknown flag is set to true, all definitions
 // with concrete offset are merge to the definition with UNKNOWN offset
@@ -58,7 +58,7 @@ static bool comp_ds(const DefSite& a, const DefSite& b)
 bool RDMap::merge(const RDMap *oth,
                   DefSiteSetT *no_update,
                   bool strong_update_unknown,
-                  uint32_t max_set_size,
+                  Offset::type max_set_size,
                   bool merge_unknown)
 {
     if (this == oth)
@@ -145,9 +145,9 @@ bool RDMap::merge(const RDMap *oth,
         RDNodesSet *our_vals = nullptr;
         if (merge_unknown && is_unknown) {
             // this loop finds all concrete offsets and merges them into one
-            // defsite with UNKNOWN_OFFSET. This defsite is set in 'our_vals'
+            // defsite with Offset::UNKNOWN. This defsite is set in 'our_vals'
             // after the loop exit
-            our_vals = &defs[DefSite(ds.target, UNKNOWN_OFFSET, UNKNOWN_OFFSET)];
+            our_vals = &defs[DefSite(ds.target, Offset::UNKNOWN, Offset::UNKNOWN)];
 
             auto range = getObjectRange(ds);
             for (auto I = range.first; I != range.second;) {
@@ -156,7 +156,7 @@ bool RDMap::merge(const RDMap *oth,
                 // this must hold (getObjectRange)
                 assert(cur->first.target == ds.target);
 
-                // don't remove the one with UNKNOWN_OFFSET
+                // don't remove the one with Offset::UNKNOWN
                 if (&cur->second == our_vals)
                     continue;
 
@@ -233,7 +233,7 @@ size_t RDMap::get(DefSite& ds, std::set<RDNode *>& ret)
         auto range = getObjectRange(ds);
         for (auto I = range.first; I != range.second; ++I) {
             assert(I->first.target == ds.target);
-            // if we found a definition with UNKNOWN_OFFSET,
+            // if we found a definition with Offset::UNKNOWN,
             // it is possibly a definition that we need */
             if (I->first.offset.isUnknown() ||
                 intervalsOverlap(*I->first.offset, *I->first.len,

@@ -135,7 +135,7 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantAdd(const llvm::Instruction *I
 
     PSNode *op;
     const Value *val = nullptr;
-    uint64_t off = UNKNOWN_OFFSET;
+    uint64_t off = Offset::UNKNOWN;
 
     // see createAdd() for details
     if (isa<ConstantInt>(Inst->getOperand(0))) {
@@ -164,7 +164,7 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantAdd(const llvm::Instruction *I
     if (off)
         return Pointer(ptr.target, *ptr.offset + off);
     else
-        return Pointer(ptr.target, UNKNOWN_OFFSET);
+        return Pointer(ptr.target, Offset::UNKNOWN);
 }
 
 Pointer LLVMPointerSubgraphBuilder::handleConstantArithmetic(const llvm::Instruction *Inst)
@@ -191,7 +191,7 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantArithmetic(const llvm::Instruc
            && "Constant add with not only one pointer");
 
     Pointer ptr = *op->pointsTo.begin();
-    return Pointer(ptr.target, UNKNOWN_OFFSET);
+    return Pointer(ptr.target, Offset::UNKNOWN);
 }
 
 Pointer LLVMPointerSubgraphBuilder::handleConstantBitCast(const llvm::BitCastInst *BC)
@@ -219,7 +219,7 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantGep(const llvm::GetElementPtrI
     using namespace llvm;
 
     const Value *op = GEP->getPointerOperand();
-    Pointer pointer(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    Pointer pointer(UNKNOWN_MEMORY, Offset::UNKNOWN);
 
     // get operand PSNode (this may result in recursive call,
     // if this gep is recursively defined)
@@ -247,7 +247,7 @@ Pointer LLVMPointerSubgraphBuilder::getConstantExprPointer(const llvm::ConstantE
 {
     using namespace llvm;
 
-    Pointer pointer(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    Pointer pointer(UNKNOWN_MEMORY, Offset::UNKNOWN);
     Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
 
     switch(Inst->getOpcode()) {
@@ -509,7 +509,7 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
     PSNode *orig_mem = getOperand(CInst->getOperand(0));
     PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
     // copy everything that is in orig_mem to reall
-    PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, UNKNOWN_OFFSET);
+    PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, Offset::UNKNOWN);
     // we need the pointer in the last node that we return
     PSNode *ptr = PS.create(PSNodeType::CONSTANT, reall, 0);
 
@@ -643,7 +643,7 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
 {
     using namespace llvm;
     const Value *dest, *src;//, *lenVal;
-    uint64_t lenVal = UNKNOWN_OFFSET;
+    uint64_t lenVal = Offset::UNKNOWN;
 
     switch (I->getIntrinsicID()) {
         case Intrinsic::memmove:
@@ -659,7 +659,7 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
 
     PSNode *destNode = getOperand(dest);
     PSNode *srcNode = getOperand(src);
-    /* FIXME: compute correct value instead of UNKNOWN_OFFSET */
+    /* FIXME: compute correct value instead of Offset::UNKNOWN */
     PSNode *node = PS.create(PSNodeType::MEMCPY,
                               srcNode, destNode, lenVal);
 
@@ -671,7 +671,7 @@ PSNodesSeq
 LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
 {
     // just store all the pointers from vararg argument
-    // to the memory given in vastart() on UNKNOWN_OFFSET.
+    // to the memory given in vastart() on Offset::UNKNOWN.
     // It is the easiest thing we can do without any further
     // analysis
 
@@ -695,10 +695,10 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     // in the case the code was transformed by -reg2mem
     assert((op->getType() == PSNodeType::ALLOC || op->getType() == PSNodeType::LOAD)
            && "Argument of vastart is invalid");
-    // get node with the same pointer, but with UNKNOWN_OFFSET
+    // get node with the same pointer, but with Offset::UNKNOWN
     // FIXME: we're leaking it
     // make the memory in alloca point to our memory in vastart
-    PSNode *ptr = PS.create(PSNodeType::GEP, op, UNKNOWN_OFFSET);
+    PSNode *ptr = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
     PSNode *S1 = PS.create(PSNodeType::STORE, vastart, ptr);
     // and also make vastart point to the vararg args
     PSNode *S2 = PS.create(PSNodeType::STORE, arg, vastart);
@@ -767,7 +767,7 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
         warned = true;
     }
 
-    PSNode *n = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    PSNode *n = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, Offset::UNKNOWN);
     // it is call that returns pointer, so we'd like to have
     // a 'return' node that contains that pointer
     n->setPairedNode(n);
@@ -908,14 +908,14 @@ PSNode *LLVMPointerSubgraphBuilder::createGEP(const llvm::Instruction *Inst)
                 node = PS.create(PSNodeType::GEP, op, offset.getZExtValue());
         } else
             errs() << "WARN: GEP offset greater than " << bitwidth << "-bit";
-            // fall-through to UNKNOWN_OFFSET in this case
+            // fall-through to Offset::UNKNOWN in this case
     }
 
     // we didn't create the node with concrete offset,
     // in which case we are supposed to create a node
-    // with UNKNOWN_OFFSET
+    // with Offset::UNKNOWN
     if (!node)
-        node = PS.create(PSNodeType::GEP, op, UNKNOWN_OFFSET);
+        node = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
 
     addNode(Inst, node);
 
@@ -950,7 +950,7 @@ LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
     // extract <agg> <idx> {<idx>, ...}
     PSNode *op1 = getOperand(EI->getAggregateOperand());
     // FIXME: get the correct offset
-    PSNode *G = PS.create(PSNodeType::GEP, op1, UNKNOWN_OFFSET);
+    PSNode *G = PS.create(PSNodeType::GEP, op1, Offset::UNKNOWN);
     PSNode *L = PS.create(PSNodeType::LOAD, G);
 
     G->addSuccessor(L);
@@ -1017,7 +1017,7 @@ PSNode *LLVMPointerSubgraphBuilder::createUnknown(const llvm::Value *val)
     // completely change the value of pointer...
 
     // FIXME: or there's enough unknown offset? Check it out!
-    PSNode *node = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+    PSNode *node = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, Offset::UNKNOWN);
 
     addNode(val, node);
 
@@ -1083,7 +1083,7 @@ PSNode *LLVMPointerSubgraphBuilder::createAdd(const llvm::Instruction *Inst)
     PSNode *node;
     PSNode *op;
     const Value *val = nullptr;
-    uint64_t off = UNKNOWN_OFFSET;
+    uint64_t off = Offset::UNKNOWN;
 
     if (isa<ConstantInt>(Inst->getOperand(0))) {
         op = getOperand(Inst->getOperand(1));
@@ -1143,7 +1143,7 @@ PSNode *LLVMPointerSubgraphBuilder::createArithmetic(const llvm::Instruction *In
 
     // we don't know what the operation does,
     // so set unknown offset
-    node = PS.create(PSNodeType::GEP, op, UNKNOWN_OFFSET);
+    node = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
     addNode(Inst, node);
 
     assert(node);
@@ -1512,7 +1512,7 @@ LLVMPointerSubgraphBuilder::createMemSet(const llvm::Instruction *Inst)
 
     PSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
     // we need to make unknown offsets
-    PSNode *G = PS.create(PSNodeType::GEP, op, UNKNOWN_OFFSET);
+    PSNode *G = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
     PSNode *S = PS.create(PSNodeType::STORE, val, G);
     G->addSuccessor(S);
 
@@ -1547,9 +1547,9 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
             PSNodeAlloc::get(op)->setZeroInitialized();
     } else {
         // fallback: create a store that represents memset
-        // the store will save null to ptr + UNKNOWN_OFFSET,
+        // the store will save null to ptr + Offset::UNKNOWN,
         // so we need to do:
-        // G = GEP(op, UNKNOWN_OFFSET)
+        // G = GEP(op, Offset::UNKNOWN)
         // STORE(null, G)
         buildInstruction(*Inst);
     }

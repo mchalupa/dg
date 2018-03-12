@@ -108,7 +108,7 @@ protected:
     // GEP:          get pointer to memory on given offset (get element pointer)
     //               first argument is pointer to the memory, second is the offset
     //               (as Offset class instance, unknown offset is represented by
-    //               UNKNOWN_OFFSET constant)
+    //               Offset::UNKNOWN constant)
     // CAST:         cast pointer from one type to other type (like void * to
     //               int *). The pointers are just copied, so we can optimize
     //               away this node later. The argument is just the pointer
@@ -231,7 +231,7 @@ public:
                 break;
             case PSNodeType::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
-                pointsTo.insert(Pointer(this, UNKNOWN_OFFSET));
+                pointsTo.insert(Pointer(this, Offset::UNKNOWN));
                 break;
             default:
                 // this constructor is for the above mentioned types only
@@ -261,9 +261,9 @@ public:
     // convenient helper
     bool addPointsTo(PSNode *n, Offset o)
     {
-        // do not add concrete offsets when we have the UNKNOWN_OFFSET
+        // do not add concrete offsets when we have the Offset::UNKNOWN
         // - unknown offset stands for any offset
-        if (pointsTo.count(Pointer(n, UNKNOWN_OFFSET)))
+        if (pointsTo.count(Pointer(n, Offset::UNKNOWN)))
             return false;
 
         if (o.isUnknown())

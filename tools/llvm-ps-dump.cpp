@@ -250,7 +250,7 @@ dumpPSNode(PSNode *n, PTType type)
         printf("    -> ");
         printName(ptr.target, false);
         if (ptr.offset.isUnknown())
-            puts(" + UNKNOWN_OFFSET");
+            puts(" + Offset::UNKNOWN");
         else
             printf(" + %lu\n", *ptr.offset);
     }
@@ -294,7 +294,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
             printName(ptr.target, true);
             printf(" + ");
             if (ptr.offset.isUnknown())
-                printf("UNKNOWN_OFFSET");
+                printf("Offset::UNKNOWN");
             else
                 printf("%lu", *ptr.offset);
         }
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
     bool todot = false;
     const char *module = nullptr;
     PTType type = FLOW_INSENSITIVE;
-    uint64_t field_senitivity = UNKNOWN_OFFSET;
+    uint64_t field_senitivity = Offset::UNKNOWN;
 
     // parse options
     for (int i = 1; i < argc; ++i) {

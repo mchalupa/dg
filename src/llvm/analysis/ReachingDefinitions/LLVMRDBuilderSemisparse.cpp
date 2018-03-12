@@ -145,7 +145,7 @@ RDNode *LLVMRDBuilderSemisparse::createRealloc(const llvm::Instruction *Inst, RD
 
     uint64_t size = getConstantValue(Inst->getOperand(1));
     if (size == 0)
-        size = UNKNOWN_OFFSET;
+        size = Offset::UNKNOWN;
     else
         node->setSize(size);
 
@@ -217,7 +217,7 @@ RDNode *LLVMRDBuilderSemisparse::createReturn(const llvm::Instruction *Inst, RDB
         // We actually don't override them, therefore they are dropped
         // and that is what we want (we don't want to propagade
         // local definitions from functions into callees)
-        node->addOverwrites(ptrNode, 0, UNKNOWN_OFFSET);
+        node->addOverwrites(ptrNode, 0, Offset::UNKNOWN);
     }
 
     return node;
@@ -305,7 +305,7 @@ std::vector<DefSite> LLVMRDBuilderSemisparse::getPointsTo(const llvm::Value *val
 
     if (psn->pointsTo.empty()) {
 #ifdef DEBUG_ENABLED
-        llvm::errs() << "[RD] error: empty STORE points-to: " << *Inst << "\n";
+        llvm::errs() << "[RD] error: empty STORE points-to: " << *val << "\n";
 #else
         // this may happen on invalid reads and writes to memory,
         // like when you try for example this:
@@ -354,11 +354,11 @@ std::vector<DefSite> LLVMRDBuilderSemisparse::getPointsTo(const llvm::Value *val
 
         uint64_t size;
         if (ptr.offset.isUnknown()) {
-            size = UNKNOWN_OFFSET;
+            size = Offset::UNKNOWN;
         } else {
             size = ptr.target->getSize();
             if (size == 0)
-                size = UNKNOWN_OFFSET;
+                size = Offset::UNKNOWN;
         }
 
         // llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
@@ -801,8 +801,8 @@ RDNode *LLVMRDBuilderSemisparse::createUndefinedCall(const llvm::CallInst *CInst
 
             // this call may define or use this memory
             if (!assume_pure_functions)
-                node->addDef(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET);
-            node->addUse(DefSite(target, UNKNOWN_OFFSET, UNKNOWN_OFFSET));
+                node->addDef(target, Offset::UNKNOWN, Offset::UNKNOWN);
+            node->addUse(DefSite(target, Offset::UNKNOWN, Offset::UNKNOWN));
         }
     }
 
@@ -841,7 +841,7 @@ RDNode *LLVMRDBuilderSemisparse::createIntrinsicCall(const llvm::CallInst *CInst
             // as ALLOC in points-to, so we can have
             // reaching definitions to that
             ret = new RDNode(RDNodeType::CALL);
-            ret->addDef(ret, 0, UNKNOWN_OFFSET);
+            ret->addDef(ret, 0, Offset::UNKNOWN);
             pts2 = PTA->getPointsTo(I->getOperand(0));
             assert(pts2 && "No points-to information");
             for (const pta::Pointer& ptr : pts2->pointsTo) {
@@ -853,20 +853,20 @@ RDNode *LLVMRDBuilderSemisparse::createIntrinsicCall(const llvm::CallInst *CInst
                     continue;
 
                 uint64_t from, to;
-                uint64_t len = UNKNOWN_OFFSET;
+                uint64_t len = Offset::UNKNOWN;
                 if (ptr.offset.isUnknown()) {
                     // if the offset is UNKNOWN, use whole memory
-                    from = UNKNOWN_OFFSET;
-                    len = UNKNOWN_OFFSET;
+                    from = Offset::UNKNOWN;
+                    len = Offset::UNKNOWN;
                 } else {
                     from = *ptr.offset;
                 }
 
                 // do not allow overflow
-                if (UNKNOWN_OFFSET - from > len)
+                if (Offset::UNKNOWN - from > len)
                     to = from + len;
                 else
-                    to = UNKNOWN_OFFSET;
+                    to = Offset::UNKNOWN;
 
                 RDNode *target = getOperand(ptrVal, rb);
                 assert(target && "Don't have pointer target for intrinsic call");
@@ -888,7 +888,7 @@ RDNode *LLVMRDBuilderSemisparse::createIntrinsicCall(const llvm::CallInst *CInst
     pta::PSNode *pts = PTA->getPointsTo(dest);
     assert(pts && "No points-to information");
 
-    uint64_t len = UNKNOWN_OFFSET;
+    uint64_t len = Offset::UNKNOWN;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
         len = C->getLimitedValue();
 
@@ -903,17 +903,17 @@ RDNode *LLVMRDBuilderSemisparse::createIntrinsicCall(const llvm::CallInst *CInst
         uint64_t from, to;
         if (ptr.offset.isUnknown()) {
             // if the offset is UNKNOWN, use whole memory
-            from = UNKNOWN_OFFSET;
-            len = UNKNOWN_OFFSET;
+            from = Offset::UNKNOWN;
+            len = Offset::UNKNOWN;
         } else {
             from = *ptr.offset;
         }
 
         // do not allow overflow
-        if (UNKNOWN_OFFSET - from > len)
+        if (Offset::UNKNOWN - from > len)
             to = from + len;
         else
-            to = UNKNOWN_OFFSET;
+            to = Offset::UNKNOWN;
 
         RDNode *target = getOperand(ptrVal, rb);
         assert(target && "Don't have pointer target for intrinsic call");
@@ -936,17 +936,17 @@ RDNode *LLVMRDBuilderSemisparse::createIntrinsicCall(const llvm::CallInst *CInst
             uint64_t from, to;
             if (ptr.offset.isUnknown()) {
                 // if the offset is UNKNOWN, use whole memory
-                from = UNKNOWN_OFFSET;
-                len = UNKNOWN_OFFSET;
+                from = Offset::UNKNOWN;
+                len = Offset::UNKNOWN;
             } else {
                 from = *ptr.offset;
             }
 
             // do not allow overflow
-            if (UNKNOWN_OFFSET - from > len)
+            if (Offset::UNKNOWN - from > len)
                 to = from + len;
             else
-                to = UNKNOWN_OFFSET;
+                to = Offset::UNKNOWN;
 
             RDNode *target = getOperand(ptrVal, rb);
             assert(target && "Don't have pointer target for intrinsic call");

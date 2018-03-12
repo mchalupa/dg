@@ -24,7 +24,7 @@ class LLVMPointerSubgraphBuilder
 
     const llvm::Module *M;
     const llvm::DataLayout *DL;
-    uint64_t field_sensitivity;
+    Offset::type field_sensitivity;
     // flag that says whether we are building normally,
     // or the analysis is already running and we are building
     // some new parts of already built graph.
@@ -78,10 +78,10 @@ class LLVMPointerSubgraphBuilder
 
 public:
     // \param field_sensitivity -- how much should be the PS field sensitive:
-    //        UNKNOWN_OFFSET means full field sensitivity, 0 means field insensivity
-    //        (every pointer with offset greater than 0 will have UNKNOWN_OFFSET)
+    //        Offset::UNKNOWN means full field sensitivity, 0 means field insensivity
+    //        (every pointer with offset greater than 0 will have Offset::UNKNOWN)
     LLVMPointerSubgraphBuilder(const llvm::Module *m,
-                               uint64_t field_sensitivity = UNKNOWN_OFFSET)
+                               Offset::type field_sensitivity = Offset::UNKNOWN)
         : PS(), M(m), DL(new llvm::DataLayout(m)), field_sensitivity(field_sensitivity)
         {}
 

@@ -19,7 +19,7 @@ namespace debug {
 /*
 static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 {
-    if (off.offset == UNKNOWN_OFFSET)
+    if (off.offset == Offset::UNKNOWN)
         os << "UNKNOWN";
     else
         os << off.offset;

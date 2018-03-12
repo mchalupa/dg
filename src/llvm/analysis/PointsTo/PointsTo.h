@@ -32,6 +32,7 @@ using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 using analysis::pta::LLVMPointerSubgraphBuilder;
 using analysis::pta::PSNodesSeq;
+using analysis::Offset;
 
 template <typename PTType>
 class LLVMPointerAnalysisImpl : public PTType
@@ -127,7 +128,7 @@ class LLVMPointerAnalysis
 public:
 
     LLVMPointerAnalysis(const llvm::Module *m,
-                        uint64_t field_sensitivity = UNKNOWN_OFFSET)
+                        uint64_t field_sensitivity = Offset::UNKNOWN)
         : builder(new LLVMPointerSubgraphBuilder(m, field_sensitivity)) {}
 
     ~LLVMPointerAnalysis()

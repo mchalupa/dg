@@ -14,6 +14,7 @@ namespace dg {
 namespace tests {
 
 using namespace analysis::pta;
+using analysis::Offset;
 
 template <typename PTStoT>
 class PointsToTest : public Test
@@ -442,7 +443,7 @@ public:
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         B->setSize(20);
-        PSNode *GEP = PS.create(PSNodeType::GEP, B, UNKNOWN_OFFSET);
+        PSNode *GEP = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
         PSNode *S = PS.create(PSNodeType::STORE, A, GEP);
         PSNode *GEP2 = PS.create(PSNodeType::GEP, B, 4);
         PSNode *L = PS.create(PSNodeType::LOAD, GEP2); // load from B + 4
@@ -472,8 +473,8 @@ public:
         B->setSize(20);
         PSNode *GEP = PS.create(PSNodeType::GEP, B, 4);
         PSNode *S = PS.create(PSNodeType::STORE, A, GEP);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, UNKNOWN_OFFSET);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP2); // load from B + UNKNOWN_OFFSET
+        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
+        PSNode *L = PS.create(PSNodeType::LOAD, GEP2); // load from B + Offset::UNKNOWN
 
         A->addSuccessor(B);
         B->addSuccessor(GEP);
@@ -498,9 +499,9 @@ public:
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         B->setSize(20);
-        PSNode *GEP = PS.create(PSNodeType::GEP, B, UNKNOWN_OFFSET);
+        PSNode *GEP = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
         PSNode *S = PS.create(PSNodeType::STORE, A, GEP);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, UNKNOWN_OFFSET);
+        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
         PSNode *L = PS.create(PSNodeType::LOAD, GEP2);
 
         A->addSuccessor(B);
@@ -542,7 +543,7 @@ public:
          * after this node dest should point to
          * A + 3 and A + 12 at offsets 4 and 8 */
         PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
-                                UNKNOWN_OFFSET /* len = all */);
+                                Offset::UNKNOWN /* len = all */);
 
         /* load from the dest memory */
         PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
@@ -654,7 +655,7 @@ public:
          * after this node dest should point to
          * A + 12 at offset 0 */
         PSNode *CPY = PS.create(PSNodeType::MEMCPY, G2, DEST,
-                                UNKNOWN_OFFSET /* len*/);
+                                Offset::UNKNOWN /* len*/);
 
         /* load from the dest memory */
         PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
@@ -706,7 +707,7 @@ public:
          * point to NULL */
         PSNode *G3 = PS.create(PSNodeType::GEP, SRC, 8);
         PSNode *CPY = PS.create(PSNodeType::MEMCPY, G3, DEST,
-                                UNKNOWN_OFFSET /* len*/);
+                                Offset::UNKNOWN /* len*/);
 
         /* load from the dest memory */
         PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 0);
@@ -831,12 +832,12 @@ public:
         DEST->setSize(16);
 
         PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
-                                UNKNOWN_OFFSET /* len*/);
+                                Offset::UNKNOWN /* len*/);
 
         /* load from the dest memory */
         PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 0);
         PSNode *G5 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G6 = PS.create(PSNodeType::GEP, DEST, UNKNOWN_OFFSET);
+        PSNode *G6 = PS.create(PSNodeType::GEP, DEST, Offset::UNKNOWN);
         PSNode *L1 = PS.create(PSNodeType::LOAD, G4);
         PSNode *L2 = PS.create(PSNodeType::LOAD, G5);
         PSNode *L3 = PS.create(PSNodeType::LOAD, G6);
@@ -973,7 +974,7 @@ public:
         N2->addPointsTo(N1, 2);
         N2->addPointsTo(N1, 3);
         check(N2->pointsTo.size() == 3);
-        N2->addPointsTo(N1, UNKNOWN_OFFSET);
+        N2->addPointsTo(N1, Offset::UNKNOWN);
         check(N2->pointsTo.size() == 1);
         check(N2->addPointsTo(N1, 3) == false);
     }

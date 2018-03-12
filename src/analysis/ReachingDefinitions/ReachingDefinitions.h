@@ -87,7 +87,7 @@ public:
     const DefSiteSetT& getDefines() const { return defs; }
     const DefSiteSetT& getUses() const { return uses; }
 
-    bool defines(RDNode *target, const Offset& off = UNKNOWN_OFFSET) const
+    bool defines(RDNode *target, const Offset& off = Offset::UNKNOWN) const
     {
         // FIXME: this is not efficient implementation,
         // use the ordering on the nodes
@@ -119,7 +119,7 @@ public:
         return result;
     }
 
-    void addUse(RDNode *target, const Offset& off = UNKNOWN_OFFSET, const Offset& len = UNKNOWN_OFFSET)
+    void addUse(RDNode *target, const Offset& off = Offset::UNKNOWN, const Offset& len = Offset::UNKNOWN)
     {
         addUse(DefSite(target, off, len));
     }
@@ -159,16 +159,16 @@ public:
     }
 
     void addDef(RDNode *target,
-                const Offset& off = UNKNOWN_OFFSET,
-                const Offset& len = UNKNOWN_OFFSET,
+                const Offset& off = Offset::UNKNOWN,
+                const Offset& len = Offset::UNKNOWN,
                 bool strong_update = false)
     {
         addDef(DefSite(target, off, len), strong_update);
     }
 
     void addOverwrites(RDNode *target,
-                       const Offset& off = UNKNOWN_OFFSET,
-                       const Offset& len = UNKNOWN_OFFSET)
+                       const Offset& off = Offset::UNKNOWN,
+                       const Offset& len = Offset::UNKNOWN)
     {
         addOverwrites(DefSite(target, off, len));
     }
@@ -249,7 +249,7 @@ protected:
 public:
     ReachingDefinitionsAnalysis(RDNode *r,
                                 bool field_insens = false,
-                                uint32_t max_set_sz = ~((uint32_t)0))
+                                Offset::type max_set_sz = Offset::UNKNOWN)
     : root(r), dfsnum(0), strong_update_unknown(field_insens), max_set_size(max_set_sz)
     {
         assert(r && "Root cannot be null");

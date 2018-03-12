@@ -67,6 +67,7 @@
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 #include "analysis/PointsTo/Pointer.h"
+#include "analysis/Offset.h"
 
 #include "git-version.h"
 
@@ -109,9 +110,9 @@ llvm::cl::opt<bool> remove_slicing_criteria("remove-slicing-criteria",
 
 llvm::cl::opt<uint64_t> pta_field_sensitivie("pta-field-sensitive",
     llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
-                   "is cropped to UNKNOWN_OFFSET when it is greater than N bytes.\n"
-                   "Default is full field-sensitivity (N = UNKNOWN_OFFSET).\n"),
-                   llvm::cl::value_desc("N"), llvm::cl::init(UNKNOWN_OFFSET),
+                   "is cropped to Offset::UNKNOWN when it is greater than N bytes.\n"
+                   "Default is full field-sensitivity (N = Offset::UNKNOWN).\n"),
+                   llvm::cl::value_desc("N"), llvm::cl::init(Offset::UNKNOWN),
                    llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> rd_strong_update_unknown("rd-strong-update-unknown",
@@ -188,7 +189,7 @@ static void annotate(llvm::Module *M, AnnotationOptsT opts,
         module_comment += "flow-sensitive with invalidate\n";
 
     module_comment+= ";   * PTA field sensitivity: ";
-    if (pta_field_sensitivie == UNKNOWN_OFFSET)
+    if (pta_field_sensitivie == Offset::UNKNOWN)
         module_comment += "full\n\n";
     else
         module_comment += std::to_string(pta_field_sensitivie) + "\n\n";

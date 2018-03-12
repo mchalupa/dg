@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
     bool blocks = false;
     bool dump_rd = false;
     const char *module = nullptr;
-    uint64_t field_senitivity = UNKNOWN_OFFSET;
+    uint64_t field_senitivity = Offset::UNKNOWN;
     bool rd_strong_update_unknown = false;
     uint32_t max_set_size = ~((uint32_t) 0);
 

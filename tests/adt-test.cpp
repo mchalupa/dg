@@ -8,6 +8,7 @@
 #include "analysis/ReachingDefinitions/RDMap.h"
 
 using namespace dg::ADT;
+using dg::analysis::Offset;
 
 namespace dg {
 namespace tests {
@@ -120,13 +121,13 @@ public:
         check(intervalsDisjunctive(1, 1, 2, 2), "BUG: intervals should be disjunctive");
         check(!intervalsDisjunctive(0, 4, 2, 2), "BUG: intervals should not be disjunctive");
 
-        check(!intervalsDisjunctive(0, 4, 2, UNKNOWN_OFFSET),
+        check(!intervalsDisjunctive(0, 4, 2, Offset::UNKNOWN),
                                     "BUG: intervals should not be disjunctive");
-        check(intervalsDisjunctive(0, 4, 4, UNKNOWN_OFFSET),
+        check(intervalsDisjunctive(0, 4, 4, Offset::UNKNOWN),
                                    "BUG: intervals should be disjunctive");
-        check(!intervalsDisjunctive(0, UNKNOWN_OFFSET, 4, UNKNOWN_OFFSET),
+        check(!intervalsDisjunctive(0, Offset::UNKNOWN, 4, Offset::UNKNOWN),
                                     "BUG: intervals should not be disjunctive");
-        check(!intervalsDisjunctive(0, UNKNOWN_OFFSET, 1, 4),
+        check(!intervalsDisjunctive(0, Offset::UNKNOWN, 1, 4),
                                     "BUG: intervals should not be disjunctive");
 
         check(!intervalsOverlap(0, 1, 2, 20), "BUG: intervals should be disjunctive");

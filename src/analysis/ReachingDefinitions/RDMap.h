@@ -17,7 +17,7 @@ class ReachingDefinitionsAnalysis;
 /// Take two intervals (a, a_len) and (b, b_len) where 'a' ('b', resp.) is the
 // start of the interval and 'a_len' ('b_len', resp.) is the length of the
 // interval and check whether their are disjunctive.
-// The length can be UNKNOWN_OFFSET for unknown length.
+// The length can be Offset::UNKNOWN for unknown length.
 // The start ('a' and 'b') must be concrete numbers.
 // \return true iff intervals are disjunctive
 //         false iff intervals are not disjunctive
@@ -25,13 +25,13 @@ inline bool
 intervalsDisjunctive(uint64_t a, uint64_t a_len,
                      uint64_t b, uint64_t b_len)
 {
-    assert(a != UNKNOWN_OFFSET && "Start of an interval is unknown");
-    assert(b != UNKNOWN_OFFSET && "Start of an interval is unknown");
+    assert(a != Offset::UNKNOWN && "Start of an interval is unknown");
+    assert(b != Offset::UNKNOWN && "Start of an interval is unknown");
     assert(a_len > 0 && "Interval of lenght 0 given");
     assert(b_len > 0 && "Interval of lenght 0 given");
 
-    if (a_len == UNKNOWN_OFFSET) {
-        if (b_len == UNKNOWN_OFFSET) {
+    if (a_len == Offset::UNKNOWN) {
+        if (b_len == Offset::UNKNOWN) {
             return false;
         } else {
             // b_len is concrete and a_len is unknown
@@ -40,7 +40,7 @@ intervalsDisjunctive(uint64_t a, uint64_t a_len,
             // is on offset 3)
             return (a <= b) ? false : b_len <= a - b;
         }
-    } else if (b_len == UNKNOWN_OFFSET) {
+    } else if (b_len == Offset::UNKNOWN) {
         return (a <= b) ? a_len <= b - a : false;
     }
 
@@ -63,8 +63,8 @@ intervalsOverlap(uint64_t a1, uint64_t a2,
 struct DefSite
 {
     DefSite(RDNode *t,
-            const Offset& o = UNKNOWN_OFFSET,
-            const Offset& l = UNKNOWN_OFFSET)
+            const Offset& o = Offset::UNKNOWN,
+            const Offset& l = Offset::UNKNOWN)
         : target(t), offset(o), len(l)
     {
         assert((o.isUnknown() || l.isUnknown() ||
@@ -165,7 +165,7 @@ public:
     bool merge(const RDMap *o,
                DefSiteSetT *without = nullptr,
                bool strong_update_unknown = true,
-               uint32_t max_set_size  = (~((uint32_t) 0)),
+               Offset::type max_set_size  = Offset::UNKNOWN,
                bool merge_unknown     = false);
     bool add(const DefSite&, RDNode *n);
     bool update(const DefSite&, RDNode *n);

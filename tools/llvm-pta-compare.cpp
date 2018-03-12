@@ -115,7 +115,7 @@ dumpPSNode(PSNode *n)
         printf("    -> ");
         printName(ptr.target);
         if (ptr.offset.isUnknown())
-            puts(" + UNKNOWN_OFFSET");
+            puts(" + Offset::UNKNOWN");
         else
             printf(" + %lu\n", *ptr.offset);
     }
@@ -157,8 +157,8 @@ static bool verify_ptsets(const llvm::Value *val,
         bool found = false;
         for (const Pointer& ptr2 : finode->pointsTo) {
             // either the pointer is there or
-            // FS has (target, offset) and FI has (target, UNKNOWN_OFFSET),
-            // than everything is fine. The other case (FS has UNKNOWN_OFFSET)
+            // FS has (target, offset) and FI has (target, Offset::UNKNOWN),
+            // than everything is fine. The other case (FS has Offset::UNKNOWN)
             // we don't consider here, since that should not happen
             if ((ptr2.target->getUserData<llvm::Value>()
                 == ptr.target->getUserData<llvm::Value>())

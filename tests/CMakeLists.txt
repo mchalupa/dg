@@ -37,7 +37,7 @@ target_link_libraries(reaching-definitions-test PRIVATE RD)
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
-add_executable(adt-test adt-test.cpp)
+add_executable(adt-test adt-test.cpp ../src/analysis/Offset.cpp)
 add_test(adt-test adt-test)
 add_dependencies(check adt-test)
 

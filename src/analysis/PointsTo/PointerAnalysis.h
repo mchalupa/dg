@@ -28,7 +28,7 @@ class PointerAnalysis
 
     // Maximal offset that we want to keep
     // within a pointer.
-    // Default is unconstrained (UNKNOWN_OFFSET)
+    // Default is unconstrained (Offset::UNKNOWN)
     uint64_t max_offset;
 
     // Flow sensitive flag (contol loop optimization execution)
@@ -44,12 +44,12 @@ protected:
     std::vector<PSNode *> changed;
 
     // protected constructor for child classes
-    PointerAnalysis() : PS(nullptr), max_offset(UNKNOWN_OFFSET),
+    PointerAnalysis() : PS(nullptr), max_offset(Offset::UNKNOWN),
                          preprocess_geps(true), invalidate_nodes(false) {}
 
 public:
     PointerAnalysis(PointerSubgraph *ps,
-                    uint64_t max_off = UNKNOWN_OFFSET,
+                    Offset::type max_off = Offset::UNKNOWN,
                     bool prepro_geps = true, bool invalid_nodes = false)
     : PS(ps), max_offset(max_off), preprocess_geps(prepro_geps), invalidate_nodes(invalid_nodes)
     {
@@ -96,14 +96,14 @@ public:
     {
         // if a node is in a loop (a scc that has more than one node),
         // then every GEP that is also stored to the same memory afterwards
-        // in the loop will end up with UNKNOWN_OFFSET after some
+        // in the loop will end up with Offset::UNKNOWN after some
         // number of iterations, so we can do that right now
         // and save iterations
         for (const auto& scc : SCCs) {
             if (scc.size() > 1) {
                 for (PSNode *n : scc) {
                     if (PSNodeGep *gep = PSNodeGep::get(n))
-                        gep->setOffset(UNKNOWN_OFFSET);
+                        gep->setOffset(Offset::UNKNOWN);
                 }
             }
         }

@@ -16,11 +16,11 @@ PSNode INVALIDATED_LOC(PSNodeType::INVALIDATED);
 PSNode *INVALIDATED = &INVALIDATED_LOC;
 
 // pointers to those memory
-const Pointer PointerUnknown(UNKNOWN_MEMORY, UNKNOWN_OFFSET);
+const Pointer PointerUnknown(UNKNOWN_MEMORY, Offset::UNKNOWN);
 const Pointer PointerNull(NULLPTR, 0);
 
 // replace all pointers to given target with one
-// to that target, but UNKNOWN_OFFSET
+// to that target, but Offset::UNKNOWN
 bool PSNode::addPointsToUnknownOffset(PSNode *target)
 {
     bool changed = false;
@@ -36,7 +36,7 @@ bool PSNode::addPointsToUnknownOffset(PSNode *target)
 
     // DONT use addPointsTo() method, it would recursively call
     // this method again, until stack overflow
-    changed |= pointsTo.insert(Pointer(target, UNKNOWN_OFFSET)).second;
+    changed |= pointsTo.insert(Pointer(target, Offset::UNKNOWN)).second;
 
     return changed;
 }
@@ -118,7 +118,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
                 // if we don't have a definition even with unknown offset
                 // it is an error
                 // FIXME: don't triplicate the code!
-                else if (!o->pointsTo.count(UNKNOWN_OFFSET))
+                else if (!o->pointsTo.count(Offset::UNKNOWN))
                     changed |= errorEmptyPointsTo(node, target);
             } else {
                 // we have pointers on that memory, so we can
@@ -129,8 +129,8 @@ bool PointerAnalysis::processLoad(PSNode *node)
 
             // plus always add the pointers at unknown offset,
             // since these can be what we need too
-            if (o->pointsTo.count(UNKNOWN_OFFSET)) {
-                for (const Pointer& memptr : o->pointsTo[UNKNOWN_OFFSET]) {
+            if (o->pointsTo.count(Offset::UNKNOWN)) {
+                for (const Pointer& memptr : o->pointsTo[Offset::UNKNOWN]) {
                     changed |= node->addPointsTo(memptr);
                 }
             }
@@ -212,7 +212,7 @@ bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
     // if the source is zero initialized, we may copy null pointer
     if (sourceAlloc->isZeroInitialized()) {
         // if we really copy the whole object, just set it zero-initialized
-        if ((sourceAlloc->getSize() != UNKNOWN_OFFSET) &&
+        if ((sourceAlloc->getSize() != Offset::UNKNOWN) &&
             (sourceAlloc->getSize() == destAlloc->getSize()) &&
             len == sourceAlloc->getSize() && sptr.offset == 0) {
             destAlloc->setZeroInitialized();
@@ -227,7 +227,7 @@ bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
 
     for (MemoryObject *destO : destObjects) {
         if (contains_null_somewhere)
-            changed |= destO->addPointsTo(UNKNOWN_OFFSET, NULLPTR);
+            changed |= destO->addPointsTo(Offset::UNKNOWN, NULLPTR);
 
         // copy every pointer from srcObjects that is in
         // the range to destination's objects
@@ -248,21 +248,21 @@ bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
                     // we are working with
                     if (!src.first.isUnknown() && !srcOffset.isUnknown() &&
                         !destOffset.isUnknown()) {
-                        // check that new offset does not overflow UNKNOWN_OFFSET
-                        if (UNKNOWN_OFFSET - *destOffset <= *src.first - *srcOffset) {
-                            changed |= destO->addPointsTo(UNKNOWN_OFFSET, src.second);
+                        // check that new offset does not overflow Offset::UNKNOWN
+                        if (Offset::UNKNOWN - *destOffset <= *src.first - *srcOffset) {
+                            changed |= destO->addPointsTo(Offset::UNKNOWN, src.second);
                             continue;
                         }
 
                         Offset newOff = *src.first - *srcOffset + *destOffset;
                         if (newOff >= destO->node->getSize() ||
                             newOff >= max_offset) {
-                            changed |= destO->addPointsTo(UNKNOWN_OFFSET, src.second);
+                            changed |= destO->addPointsTo(Offset::UNKNOWN, src.second);
                         } else {
                             changed |= destO->addPointsTo(newOff, src.second);
                         }
                     } else {
-                        changed |= destO->addPointsTo(UNKNOWN_OFFSET, src.second);
+                        changed |= destO->addPointsTo(Offset::UNKNOWN, src.second);
                     }
                 }
             }
@@ -282,7 +282,7 @@ bool PointerAnalysis::processGep(PSNode *node) {
         uint64_t new_offset;
         if (ptr.offset.isUnknown() || gep->getOffset().isUnknown())
             // set it like this to avoid overflow when adding
-            new_offset = UNKNOWN_OFFSET;
+            new_offset = Offset::UNKNOWN;
         else
             new_offset = *ptr.offset + *gep->getOffset();
 

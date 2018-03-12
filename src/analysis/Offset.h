@@ -1,36 +1,32 @@
 #ifndef _DG_OFFSET_H_
 #define _DG_OFFSET_H_
 
+#include <cstdint>
+
 namespace dg {
 namespace analysis {
 
-#define UNKNOWN_OFFSET ~((uint64_t) 0)
-
 // just a wrapper around uint64_t to
-// handle UNKNOWN_OFFSET somehow easily
+// handle Offset::UNKNOWN somehow easily
 // maybe later we'll make it a range
 struct Offset
 {
     using type = uint64_t;
 
-    Offset(type o = UNKNOWN_OFFSET) : offset(o) {}
-    Offset& operator+=(const Offset& o)
-    {
-        if (offset == UNKNOWN_OFFSET)
-            return *this;
+    // the value used for the unknown offset
+    static const type UNKNOWN;
 
-        if (o.offset == UNKNOWN_OFFSET)
-            offset = UNKNOWN_OFFSET;
-        else
-            offset += o.offset;
+    // cast to type
+    //operator type() { return offset; }
 
-        return *this;
-    }
-    Offset operator+(const Offset& o) const
+    Offset(type o = UNKNOWN) : offset(o) {}
+    Offset(const Offset&) = default;
+
+    Offset operator+(const Offset o) const
     {
-        if (offset == UNKNOWN_OFFSET || o.offset == UNKNOWN_OFFSET ||
-            offset < o.offset) {
-            return UNKNOWN_OFFSET;
+        if (offset == UNKNOWN || o.offset == UNKNOWN ||
+            offset >= UNKNOWN - o.offset) {
+            return UNKNOWN;
         }
 
         return Offset(offset + o.offset);
@@ -38,8 +34,10 @@ struct Offset
 
     Offset operator-(const Offset& o) const
     {
-        if (offset == UNKNOWN_OFFSET || o.offset == UNKNOWN_OFFSET)
-            return UNKNOWN_OFFSET;
+        if (offset == UNKNOWN || o.offset == UNKNOWN ||
+            offset < o.offset) {
+            return Offset(UNKNOWN);
+        }
 
         return Offset(offset - o.offset);
     }
@@ -79,7 +77,7 @@ struct Offset
         return (offset >= from && offset <= to);
     }
 
-    bool isUnknown() const { return offset == UNKNOWN_OFFSET; }
+    bool isUnknown() const { return offset == UNKNOWN; }
 
     type operator*() const { return offset; }
     const type *operator->() const { return &offset; }
