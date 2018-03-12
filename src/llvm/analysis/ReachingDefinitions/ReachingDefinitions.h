@@ -42,15 +42,15 @@ class LLVMReachingDefinitions
     dg::LLVMPointerAnalysis *pta;
     bool strong_update_unknown;
     bool pure_funs;
-    uint32_t max_set_size;
+    Offset max_set_size;
 
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
                             dg::LLVMPointerAnalysis *pta,
                             bool strong_updt_unknown = false,
                             bool pure_funs = false,
-                            uint32_t max_set_sz = ~((uint32_t) 0))
-        : m(m), pta(pta), strong_update_unknown(strong_updt_unknown), 
+                            Offset max_set_sz = Offset::UNKNOWN)
+        : m(m), pta(pta), strong_update_unknown(strong_updt_unknown),
         pure_funs(pure_funs), max_set_size(max_set_sz) {}
 
     /**

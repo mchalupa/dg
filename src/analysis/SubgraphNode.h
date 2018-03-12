@@ -93,7 +93,7 @@ public:
 
     NodeT *getOperand(int idx) const
     {
-        assert(idx >= 0 && (size_t) idx < operands.size()
+        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size()
                && "Operand index out of range");
 
         return operands[idx];

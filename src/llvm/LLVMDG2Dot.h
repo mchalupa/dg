@@ -300,7 +300,7 @@ private:
     {
         for (const LLVMBBlock::BBlockEdge& edge : blk->successors()) {
             out << "NODE" << blk << " -> NODE" << edge.target
-                << " [penwidth=2 label=\""<< (int) edge.label << "\"] \n";
+                << " [penwidth=2 label=\""<< static_cast<int>(edge.label) << "\"] \n";
         }
 
         for (const LLVMBBlock *pdf : blk->controlDependence()) {

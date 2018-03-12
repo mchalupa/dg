@@ -61,7 +61,7 @@ static uint64_t getConstantValue(const llvm::Value *op)
         size = C->getLimitedValue();
         // if the size cannot be expressed as an uint64_t,
         // just set it to 0 (that means unknown)
-        if (size == ~((uint64_t) 0))
+        if (size == ~(static_cast<uint64_t>(0)))
             size = 0;
     }
 
@@ -1647,7 +1647,7 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
 void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
                                                      PSNode *arg, int idx)
 {
-    assert(idx < (int) CI->getNumArgOperands());
+    assert(idx < static_cast<int>(CI->getNumArgOperands()));
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
     if (op)
         arg->addOperand(op);

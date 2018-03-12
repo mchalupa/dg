@@ -91,9 +91,9 @@ static void printRDNodeType(enum RDNodeType type)
 static inline void printAddress(RDNode *node, bool dot)
 {
     if (dot)
-        printf(" [%p]\\n", node);
+        printf(" [%p]\\n", static_cast<void*>(node));
     else
-        printf(" [%p]\n", node);
+        printf(" [%p]\n", static_cast<void*>(node));
 }
 
 static void
@@ -226,7 +226,7 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
 
     /* dump nodes */
     for(RDNode *node : nodes) {
-        printf("\tNODE%p [label=\"", node);
+        printf("\tNODE%p [label=\"", static_cast<void*>(node));
         printName(node, true);
         if (node->getSize() > 0)
             printf("\\n[size: %lu]\\n", node->getSize());
@@ -247,7 +247,9 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
     std::unordered_map<RDNode*, unsigned> colors;
     for (RDNode *node : nodes) {
         for (RDNode *succ : node->getSuccessors())
-            printf("\tNODE%p -> NODE%p [penwidth=2]\n", node, succ);
+            printf("\tNODE%p -> NODE%p [penwidth=2]\n",
+                   static_cast<void*>(node),
+                   static_cast<void*>(succ));
         if (dump_rd) {
             // dump Reaching Definitions
             auto rds = node->getReachingDefinitions();
@@ -256,7 +258,9 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
                 if (colors.find(var.target) == colors.end())
                     colors[var.target] = rand();
                 for (auto& dest: pair.second) {
-                    printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]", node, dest, colors[var.target]);
+                    printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]",
+                           static_cast<void*>(node), static_cast<void*>(dest),
+                           colors[var.target]);
                 }
             }
         }
@@ -290,9 +294,9 @@ int main(int argc, char *argv[])
     bool blocks = false;
     bool dump_rd = false;
     const char *module = nullptr;
-    uint64_t field_senitivity = Offset::UNKNOWN;
+    Offset::type field_senitivity = Offset::UNKNOWN;
     bool rd_strong_update_unknown = false;
-    uint32_t max_set_size = ~((uint32_t) 0);
+    Offset::type max_set_size = Offset::UNKNOWN;
 
     enum {
         FLOW_SENSITIVE = 1,
@@ -314,9 +318,9 @@ int main(int argc, char *argv[])
             if (strcmp(argv[i+1], "ss") == 0)
                 rda = RdaType::SEMISPARSE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
-            field_senitivity = (uint64_t) atoll(argv[i + 1]);
+            field_senitivity = static_cast<Offset::type>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
-            max_set_size = (uint64_t) atoll(argv[i + 1]);
+            max_set_size = static_cast<Offset::type>(atoll(argv[i + 1]));
             if (max_set_size == 0) {
                 llvm::errs() << "Invalid -rd-max-set-size argument\n";
                 abort();

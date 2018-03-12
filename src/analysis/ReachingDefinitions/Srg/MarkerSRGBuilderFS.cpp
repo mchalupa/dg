@@ -7,7 +7,7 @@ using namespace dg::analysis::rd::srg;
  */
 static detail::Interval concretize(detail::Interval interval) {
     if (interval.isUnknown()) {
-        return detail::Interval{ 0, ~( (uint64_t) 0 ) };
+        return detail::Interval{ 0, ~(static_cast<uint64_t>(0)) };
     }
     return interval;
 }

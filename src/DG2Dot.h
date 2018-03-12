@@ -21,7 +21,7 @@ enum dg2dot_options {
     PRINT_REV_CD    = 1 << 5,
     PRINT_CALL      = 1 << 6,
     PRINT_POSTDOM   = 1 << 7,
-    PRINT_ALL       = ~((uint32_t) 0)
+    PRINT_ALL       = 0xff
 };
 
 struct Indent
@@ -273,7 +273,7 @@ private:
                 out << Ind
                     << "NODE" << lastNode << " -> "
                     <<   "NODE" << firstNode
-                    << " [penwidth=2 label=\"" << (int) S.label << "\""
+                    << " [penwidth=2 label=\"" << static_cast<int>(S.label) << "\""
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S.target << "]\n";
             }

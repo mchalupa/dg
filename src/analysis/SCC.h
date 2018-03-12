@@ -148,7 +148,7 @@ public:
                 // to the component of succ
                 for (NodeT *succ : node->getSuccessors()) {
                     unsigned succ_idx = succ->getSCCId();
-                    if ((int) succ_idx != idx)
+                    if (static_cast<int>(succ_idx) != idx)
                         nodes[idx].addSuccessor(succ_idx);
                 }
             }
