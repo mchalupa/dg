@@ -361,7 +361,6 @@ std::vector<DefSite> LLVMRDBuilderSemisparse::getPointsTo(const llvm::Value *val
                 size = UNKNOWN_OFFSET;
         }
 
-        // TODO: fix strong updates
         // llvm::errs() << *Inst << " DEFS >> " << ptr.target->getName() << " ["
         //             << *ptr.offset << " - " << *ptr.offset + size - 1 << "\n";
 
