@@ -65,12 +65,18 @@ install(TARGETS LLVMdg LLVMpta PTA RD
 
 install(FILES
 	ADT/Queue.h
+        ADT/DGContainer.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/ADT/)
 install(FILES
 	analysis/Offset.h
 	analysis/SCC.h
 	analysis/SubgraphNode.h
+        analysis/Analysis.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/analysis/)
+install(FILES
+        analysis/ControlExpression/ControlExpression.h
+        analysis/ControlExpression/CENode.h
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/analysis/ControlExpression/)
 install(FILES
 	analysis/PointsTo/PointerAnalysis.h
 	analysis/PointsTo/Pointer.h
@@ -94,5 +100,11 @@ install(FILES
 	llvm/analysis/PointsTo/PointerSubgraphValidator.h
 	llvm/analysis/PointsTo/PointsTo.h
 	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/llvm/analysis/PointsTo/)
+install(FILES
+        Node.h
+        DGParameters.h
+        BBlock.h
+        DependenceGraph.h
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/llvm-dg/)
 
 endif(LLVM_DG)
