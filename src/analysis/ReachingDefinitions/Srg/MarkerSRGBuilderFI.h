@@ -81,7 +81,7 @@ public:
 
         std::vector<BlockT *> cfg;
         BlockT *block = root->getBBlock();
-        bfs.run(block, [&,this](BlockT *block, void*){
+        bfs.run(block, [&](BlockT *block, void*){
             cfg.push_back(block);
         }, nullptr);
 
