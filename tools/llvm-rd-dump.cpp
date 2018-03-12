@@ -291,7 +291,6 @@ int main(int argc, char *argv[])
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     bool todot = false;
-    bool blocks = false;
     bool dump_rd = false;
     const char *module = nullptr;
     Offset::type field_senitivity = Offset::UNKNOWN;
