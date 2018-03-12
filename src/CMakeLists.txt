@@ -42,6 +42,18 @@ add_library(LLVMpta SHARED
 
 target_link_libraries(LLVMpta PUBLIC PTA)
 
+add_library(LLVMrd SHARED
+	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
+	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
+	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h
+	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.cpp
+	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
+	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.cpp
+)
+target_link_libraries(LLVMrd
+			PUBLIC LLVMpta
+			PUBLIC RD)
+
 add_library(LLVMdg SHARED
 	BBlock.h
 	Node.h
@@ -58,22 +70,16 @@ add_library(LLVMdg SHARED
 	llvm/llvm-utils.h
 	# -- LLVM analysis
 	llvm/analysis/PostDominators.cpp
-	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.cpp
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.cpp
 	llvm/analysis/DefUse.h
 	llvm/analysis/DefUse.cpp
 )
 
 target_link_libraries(LLVMdg
 			PUBLIC LLVMpta
-			PUBLIC RD
+			PUBLIC LLVMrd
 			INTERFACE ${llvm_core})
 
-install(TARGETS LLVMdg LLVMpta PTA RD
+install(TARGETS LLVMdg LLVMpta LLVMrd PTA RD
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(FILES
