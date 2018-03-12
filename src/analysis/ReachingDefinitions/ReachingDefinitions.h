@@ -178,7 +178,7 @@ public:
         overwrites.insert(ds);
     }
 
-    bool isOverwrite(const DefSite& ds)
+    bool isOverwritten(const DefSite& ds)
     {
         return overwrites.find(ds) != overwrites.end();
     }
