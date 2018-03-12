@@ -22,8 +22,6 @@ env:
 
 compiler:
     - 'clang++'
-    - 'g++'
-    - 'g++-5'
 
 install:
   - git clone --depth 1 https://github.com/tomsik68/travis-llvm.git

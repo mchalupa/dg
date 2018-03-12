@@ -40,7 +40,9 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/Globals.cpp
 )
 
-target_link_libraries(LLVMpta PUBLIC PTA)
+target_link_libraries(LLVMpta
+			PUBLIC PTA
+			INTERFACE ${llvm_core})
 
 add_library(LLVMrd SHARED
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
@@ -52,7 +54,8 @@ add_library(LLVMrd SHARED
 )
 target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
-			PUBLIC RD)
+			PUBLIC RD
+			INTERFACE ${llvm_core})
 
 add_library(LLVMdg SHARED
 	BBlock.h
