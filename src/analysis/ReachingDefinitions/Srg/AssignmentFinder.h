@@ -52,7 +52,7 @@ private:
         return result;
     }
 
-    bool isDefinition(NodeT *node)
+    bool isAllocation(NodeT *node)
     {
         return node->getType() == RDNodeType::ALLOC;
     }
@@ -72,7 +72,7 @@ public:
         std::vector<NodeT *> allocas;
         // find all variables
         for (auto& def : cfg) {
-            if (isDefinition(def))
+            if (isAllocation(def))
                 allocas.push_back(def);
         }
 
@@ -101,7 +101,7 @@ public:
         AssignmentMap result;
         std::vector<NodeT *> cfg = bfs(root);
         for (auto& def : cfg) {
-            if (!isDefinition(def))
+            if (!isAllocation(def))
                 continue;
 
             std::vector<NodeT *> uses;
