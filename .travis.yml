@@ -18,23 +18,10 @@ addons:
       - libz-dev
 
 env:
-    - LLVM=3.8 PTA=fs RDA=dense
-    - LLVM=3.8 PTA=fi RDA=dense
-    - LLVM=4.0 PTA=fs RDA=dense
-    - LLVM=4.0 PTA=fi RDA=dense
-    - LLVM=5.0 PTA=fs RDA=dense
-    - LLVM=5.0 PTA=fi RDA=dense
-    - LLVM=3.8 PTA=fs RDA=ss
-    - LLVM=3.8 PTA=fi RDA=ss
-    - LLVM=4.0 PTA=fs RDA=ss
-    - LLVM=4.0 PTA=fi RDA=ss
     - LLVM=5.0 PTA=fs RDA=ss
-    - LLVM=5.0 PTA=fi RDA=ss
 
 compiler:
     - 'clang++'
-    - 'g++'
-    - 'g++-5'
 
 install:
   - git clone --depth 1 https://github.com/tomsik68/travis-llvm.git
