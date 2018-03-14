@@ -153,6 +153,7 @@ protected:
     //               arguments are null-terminated list of the relevant nodes
     //               from predecessors
     // CALL:         represents call of subprocedure,
+    //               XXX: get rid of the arguments here?
     //               arguments are null-terminated list of nodes that can user
     //               use arbitrarily - they are not used by the analysis itself.
     //               The arguments can be used e. g. when mapping call arguments
@@ -180,6 +181,9 @@ protected:
                 // these always points-to itself
                 // (they points to the node where the memory was allocated)
                 addPointsTo(this, 0);
+                break;
+            case PSNodeType::CALL:
+                // the call without arguments
                 break;
             default:
                 break;
@@ -421,6 +425,35 @@ public:
     void setFunctionName(const std::string& name) { functionName = name; }
     const std::string& getFunctionName() const { return functionName; }
 };
+
+class PSNodeCall : public PSNode {
+    std::vector<PointerSubgraph *> callees;
+
+public:
+    PSNodeCall(unsigned id)
+    :PSNode(id, PSNodeType::CALL) {}
+
+    static PSNodeCall *get(PSNode *n) {
+        return isa<PSNodeType::CALL>(n) ?
+            static_cast<PSNodeCall *>(n) : nullptr;
+    }
+
+    const std::vector<PointerSubgraph *>& getCallees() const { return callees; }
+
+    bool addCalee(PointerSubgraph *ps) {
+        // we suppose there are just few callees,
+        // so this should be faster than std::set
+        for (PointerSubgraph *p : callees) {
+            if (p == ps)
+                return false;
+        }
+
+        callees.push_back(ps);
+        return true;
+    }
+};
+
+
 
 } // namespace pta
 } // namespace analysis
