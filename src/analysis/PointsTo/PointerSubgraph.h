@@ -91,6 +91,9 @@ public:
             case PSNodeType::ENTRY:
                 node = new PSNodeEntry(++last_node_id);
                 break;
+            case PSNodeType::CALL:
+                node = new PSNodeCall(++last_node_id);
+                break;
             default:
                 node = new PSNode(++last_node_id, t, args);
                 break;
