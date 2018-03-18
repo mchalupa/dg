@@ -453,7 +453,33 @@ public:
     }
 };
 
+class PSNodeRet : public PSNode {
+    // this node returns control to...
+    std::vector<PSNode *> returns;
 
+public:
+    PSNodeRet(unsigned id)
+    :PSNode(id, PSNodeType::RETURN) {}
+
+    static PSNodeRet *get(PSNode *n) {
+        return isa<PSNodeType::RETURN>(n) ?
+            static_cast<PSNodeRet *>(n) : nullptr;
+    }
+
+    const std::vector<PSNode*>& getReturnSites() const { return returns; }
+
+    bool addReturnSite(PSNode *r) {
+        // we suppose there are just few callees,
+        // so this should be faster than std::set
+        for (PSNode *p : returns) {
+            if (p == r)
+                return false;
+        }
+
+        returns.push_back(r);
+        return true;
+    }
+};
 
 } // namespace pta
 } // namespace analysis
