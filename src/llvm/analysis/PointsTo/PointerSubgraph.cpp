@@ -56,7 +56,10 @@ static uint64_t getConstantValue(const llvm::Value *op)
 {
     using namespace llvm;
 
-    static_assert(sizeof(Offset::type) == sizeof(uint64_t));
+    //XXX: we should get rid of this dependency
+    static_assert(sizeof(Offset::type) == sizeof(uint64_t),
+                  "The code relies on Offset::type having 8 bytes");
+
     uint64_t size = Offset::UNKNOWN;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
         size = C->getLimitedValue();
