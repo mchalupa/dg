@@ -56,16 +56,25 @@ static uint64_t getConstantValue(const llvm::Value *op)
 {
     using namespace llvm;
 
-    uint64_t size = 0;
+    static_assert(sizeof(Offset::type) == sizeof(uint64_t));
+    uint64_t size = Offset::UNKNOWN;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
         size = C->getLimitedValue();
-        // if the size cannot be expressed as an uint64_t,
-        // just set it to 0 (that means unknown)
-        if (size == ~(static_cast<uint64_t>(0)))
-            size = 0;
     }
 
+    // size is ~((uint64_t)0) if it is unknown
     return size;
+}
+
+// get size of memory allocation argument
+static uint64_t getConstantSizeValue(const llvm::Value *op) {
+    auto sz = getConstantValue(op);
+    // if the size is unknown, make it 0, so that pointer
+    // analysis correctly computes offets into this memory
+    // (which is always UNKNOWN)
+    if (sz == ~static_cast<uint64_t>(0))
+        return 0;
+    return sz;
 }
 
 static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
@@ -75,9 +84,9 @@ static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
     if (!Ty->isSized())
             return 0;
 
-    if (AI->isArrayAllocation())
-        return getConstantValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
-    else
+    if (AI->isArrayAllocation()) {
+        return getConstantSizeValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
+    } else
         return DL->getTypeAllocSize(Ty);
 }
 
@@ -135,7 +144,7 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantAdd(const llvm::Instruction *I
 
     PSNode *op;
     const Value *val = nullptr;
-    uint64_t off = Offset::UNKNOWN;
+    Offset off = Offset::UNKNOWN;
 
     // see createAdd() for details
     if (isa<ConstantInt>(Inst->getOperand(0))) {
@@ -161,10 +170,10 @@ Pointer LLVMPointerSubgraphBuilder::handleConstantAdd(const llvm::Instruction *I
            && "Constant add with not only one pointer");
 
     Pointer ptr = *op->pointsTo.begin();
-    if (off)
-        return Pointer(ptr.target, *ptr.offset + off);
-    else
+    if (off.isUnknown())
         return Pointer(ptr.target, Offset::UNKNOWN);
+    else
+        return Pointer(ptr.target, ptr.offset + off);
 }
 
 Pointer LLVMPointerSubgraphBuilder::handleConstantArithmetic(const llvm::Instruction *Inst)
@@ -487,11 +496,11 @@ PSNode *LLVMPointerSubgraphBuilder::createDynamicAlloc(const llvm::CallInst *CIn
     };
 
     // infer allocated size
-    size = getConstantValue(op);
+    size = getConstantSizeValue(op);
     if (size != 0 && type == MemAllocationFuncs::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
-        size2 = getConstantValue(CInst->getOperand(0));
+        size2 = getConstantSizeValue(CInst->getOperand(0));
         if (size2 != 0)
             size *= size2;
     }
@@ -514,7 +523,7 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
     PSNode *ptr = PS.create(PSNodeType::CONSTANT, reall, 0);
 
     reall->setIsHeap();
-    reall->setSize(getConstantValue(CInst->getOperand(1)));
+    reall->setSize(getConstantSizeValue(CInst->getOperand(1)));
 
     reall->addSuccessor(mcp);
     mcp->addSuccessor(ptr);
@@ -659,7 +668,6 @@ PSNode *LLVMPointerSubgraphBuilder::createMemTransfer(const llvm::IntrinsicInst 
 
     PSNode *destNode = getOperand(dest);
     PSNode *srcNode = getOperand(src);
-    /* FIXME: compute correct value instead of Offset::UNKNOWN */
     PSNode *node = PS.create(PSNodeType::MEMCPY,
                               srcNode, destNode, lenVal);
 

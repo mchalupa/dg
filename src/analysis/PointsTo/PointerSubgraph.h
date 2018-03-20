@@ -345,7 +345,10 @@ class PSNodeMemcpy : public PSNode {
 
 public:
     PSNodeMemcpy(unsigned id, PSNode *src, PSNode *dest, Offset len)
-    :PSNode(id, PSNodeType::MEMCPY, src, dest), len(len) {}
+    :PSNode(id, PSNodeType::MEMCPY, src, dest), len(len) {
+        assert(src && dest);
+        assert(*len > 0 && "Memcpy with 0 length");
+    }
 
     static PSNodeMemcpy *get(PSNode *n) {
         return isa<PSNodeType::MEMCPY>(n) ? static_cast<PSNodeMemcpy *>(n) : nullptr;
