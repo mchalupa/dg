@@ -612,7 +612,12 @@ static bool write_module(llvm::Module *M)
 
     // write the module
     errs() << "INFO: saving sliced module to: " << fl.c_str() << "\n";
+
+#if (LLVM_VERSION_MAJOR > 6)
+    llvm::WriteBitcodeToFile(*M, ostream);
+#else
     llvm::WriteBitcodeToFile(M, ostream);
+#endif
 
     return true;
 }

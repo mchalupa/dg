@@ -250,7 +250,11 @@ int main(int argc, char *argv[])
             errs() << "INFO: Sliced away " << st.nodesRemoved
                    << " from " << st.nodesTotal << " nodes\n";
 
+#if (LLVM_VERSION_MAJOR > 6)
+            llvm::WriteBitcodeToFile(*M, output);
+#else
             llvm::WriteBitcodeToFile(M, output);
+#endif
         }
     }
 
