@@ -156,14 +156,15 @@ public:
     // Get node from graph for key. The function searches in nodes,
     // formal parameters and global nodes (in this order)
     // Return nullptr if no such node exists
-    NodeT *getNode(KeyT k)
+    template <typename T>
+    NodeT *_getNode(T k)
     {
-        iterator it = nodes.find(k);
+        auto it = nodes.find(k);
         if (it != nodes.end())
             return it->second;
 
         if (formalParameters) {
-            DGParameter<NodeT> *p = formalParameters->find(k);
+            auto p = formalParameters->find(k);
             if (p)
                 return p->in;
         }
@@ -171,18 +172,25 @@ public:
         return getGlobalNode(k);
     }
 
+    NodeT *getNode(KeyT k) { return _getNode(k); }
+    const NodeT *getNode(const KeyT k) const { return _getNode(k); }
+
     // get global node with given key or null if there's
     // not such node
-    NodeT *getGlobalNode(KeyT k)
+    template <typename T>
+    NodeT *_getGlobalNode(T k)
     {
         if (global_nodes) {
-            iterator it = global_nodes->find(k);
+            auto it = global_nodes->find(k);
             if (it != global_nodes->end())
                 return it->second;
         }
 
         return nullptr;
     }
+
+    NodeT *getGlobalNode(KeyT k) { return _getGlobalNode(k); }
+    const NodeT *getGlobalNode(const KeyT k) const { return _getGlobalNode(k); }
 
     // number of local nodes
     size_t size() const
