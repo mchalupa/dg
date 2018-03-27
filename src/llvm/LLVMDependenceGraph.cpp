@@ -732,6 +732,8 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
         if (!func)
             return false;
 
+        // otherwise we would have a subgraph
+        assert(func->size() == 0);
         return array_match(func->getName(), names);
     } else {
         // simply iterate over the subgraphs, get the entry node

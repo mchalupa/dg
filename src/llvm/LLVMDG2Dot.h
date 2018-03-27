@@ -39,9 +39,9 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
     llvm::raw_os_ostream ro(ostr);
 
     if (llvm::isa<llvm::Function>(val)) {
-        ro << "FUNC " << val->getName().data();
+        ro << "FUNC " << val->getName();
     } else if (llvm::isa<llvm::BasicBlock>(val)) {
-        ro << "label " << val->getName().data();
+        ro << "label " << val->getName();
     } else {
         ro << *val;
     }

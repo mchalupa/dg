@@ -43,6 +43,8 @@ template <typename NodeT>
 class DG2Dot
 {
     std::set<const typename DependenceGraph<NodeT>::ContainerType *> dumpedGlobals;
+    // slicing criteria
+    std::set<NodeT *> criteria;
 public:
     using KeyT = typename NodeT::KeyType;
 
@@ -54,6 +56,10 @@ public:
         // if a graph has no global nodes, this will forbid trying to print them
         dumpedGlobals.insert(nullptr);
         reopen(file);
+    }
+
+    void setSlicingCriteria(const std::set<NodeT *>& crit) {
+        criteria = crit;
     }
 
     bool open(const char *new_file)
@@ -480,6 +486,8 @@ private:
 
         if (err) {
             out << "style=filled fillcolor=red";
+        } else if (criteria.count(node) > 0) {
+            out << "style=filled fillcolor=orange";
         } else if (slice_id != 0)
             out << "style=filled fillcolor=greenyellow";
         else
