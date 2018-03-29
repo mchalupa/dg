@@ -22,10 +22,11 @@ class PointerSubgraphValidator {
     bool checkNodes();
     bool checkOperands();
 
-    virtual void reportInvalNumberOfOperands(const PSNode *);
-
 protected:
     std::string errors{};
+    std::string warnings{};
+
+    virtual bool reportInvalNumberOfOperands(const PSNode *);
 
 public:
     PointerSubgraphValidator(const PointerSubgraph *ps) : PS(ps) {}

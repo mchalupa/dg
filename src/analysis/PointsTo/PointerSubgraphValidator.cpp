@@ -6,7 +6,7 @@ namespace pta {
 namespace debug {
 
 
-void PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd) {
+bool PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd) {
     errors += "Invalid number of operands for " + std::string(PSNodeTypeToCString(nd->getType())) +
               " with ID " + std::to_string(nd->getID()) + "\n  - operands: [";
     for (unsigned i = 0, e =  nd->getOperandsNum(); i < e; ++i) {
@@ -15,6 +15,8 @@ void PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd) {
             errors += " ";
     }
     errors += "]\n";
+
+    return true;
 }
 
 bool PointerSubgraphValidator::checkOperands() {
@@ -29,8 +31,7 @@ bool PointerSubgraphValidator::checkOperands() {
         switch (nd->getType()) {
             case PSNodeType::PHI:
                 if (nd->getOperandsNum() == 0) {
-                    reportInvalNumberOfOperands(nd);
-                    invalid = true;
+                    invalid |= reportInvalNumberOfOperands(nd);
                 }
                 break;
             case PSNodeType::NULL_ADDR:
@@ -39,8 +40,7 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::FUNCTION:
             case PSNodeType::CONSTANT:
                 if (nd->getOperandsNum() != 0) {
-                    reportInvalNumberOfOperands(nd);
-                    invalid = true;
+                    invalid |= reportInvalNumberOfOperands(nd);
                 }
                 break;
             case PSNodeType::GEP:
@@ -48,15 +48,13 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::CAST:
             case PSNodeType::FREE:
                 if (nd->getOperandsNum() != 1) {
-                    reportInvalNumberOfOperands(nd);
-                    invalid = true;
+                    invalid |= reportInvalNumberOfOperands(nd);
                 }
                 break;
             case PSNodeType::STORE:
             case PSNodeType::MEMCPY:
                 if (nd->getOperandsNum() != 2) {
-                    reportInvalNumberOfOperands(nd);
-                    invalid = true;
+                    invalid |= reportInvalNumberOfOperands(nd);
                 }
                 break;
         }
