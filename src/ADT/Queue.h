@@ -11,6 +11,8 @@ namespace ADT {
 template <typename ValueT>
 class QueueLIFO
 {
+    using ContainerT = std::stack<ValueT>;
+
 public:
     ValueT pop()
     {
@@ -35,7 +37,7 @@ public:
         return Container.empty();
     }
 
-    size_t size() const
+    typename ContainerT::size_type size() const
     {
         return Container.size();
     }
@@ -46,13 +48,15 @@ public:
     }
 
 private:
-    std::stack<ValueT> Container;
+    ContainerT Container;
 };
 
 template <typename ValueT>
 class QueueFIFO
 {
+    using ContainerT = std::queue<ValueT>;
 public:
+
     ValueT pop()
     {
         ValueT ret = Container.front();
@@ -76,7 +80,7 @@ public:
         return Container.empty();
     }
 
-    size_t size() const
+    typename ContainerT::size_type size() const
     {
         return Container.size();
     }
@@ -87,12 +91,13 @@ public:
     }
 
 private:
-    std::queue<ValueT> Container;
+    ContainerT Container;
 };
 
 template <typename ValueT, typename Comp>
 class PrioritySet
 {
+    using ContainerT = std::set<ValueT, Comp>;
 public:
     ValueT pop()
     {
@@ -112,13 +117,13 @@ public:
         return Container.empty();
     }
 
-    size_t size() const
+    typename ContainerT::size_type size() const
     {
         return Container.size();
     }
 
 private:
-    std::set<ValueT, Comp> Container;
+    ContainerT Container;
 };
 
 } // namespace ADT
