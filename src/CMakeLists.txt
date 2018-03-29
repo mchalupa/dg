@@ -40,9 +40,7 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/Globals.cpp
 )
 
-target_link_libraries(LLVMpta
-			PUBLIC PTA
-			INTERFACE ${llvm_core})
+target_link_libraries(LLVMpta PUBLIC PTA)
 
 add_library(LLVMrd SHARED
 	llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
@@ -78,8 +76,7 @@ add_library(LLVMdg SHARED
 
 target_link_libraries(LLVMdg
 			PUBLIC LLVMpta
-			PUBLIC LLVMrd
-			INTERFACE ${llvm_core})
+			PUBLIC LLVMrd)
 
 install(TARGETS LLVMdg LLVMpta LLVMrd PTA RD
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
