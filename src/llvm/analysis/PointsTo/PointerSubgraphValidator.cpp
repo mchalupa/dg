@@ -19,6 +19,12 @@ bool LLVMPointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd)
         assert(val);
 
         if (val->getType()->isPointerTy()) {
+            // this is the PHI node that corresponds to argv,
+            // we're fine here
+            if (isa<llvm::Argument>(val) && nd->getParent() &&
+                nd->getParent()->getParent() == nullptr)
+                return false;
+
             return PointerSubgraphValidator::reportInvalNumberOfOperands(nd);
         } else // else issue a warning?
             return false;

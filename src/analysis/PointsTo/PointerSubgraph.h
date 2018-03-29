@@ -246,6 +246,7 @@ public:
 
     void setParent(PSNode *p) { parent = p; }
     PSNode *getParent() { return parent; }
+    const PSNode *getParent() const { return parent; }
 
     PSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSNode *n) { pairedNode = n; }

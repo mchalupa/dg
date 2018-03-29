@@ -1842,7 +1842,7 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
         llvm::errs() << "Pointer Subgraph is broken!\n";
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();
-//        return nullptr;
+        //return nullptr;
     }
 
     return &PS;
