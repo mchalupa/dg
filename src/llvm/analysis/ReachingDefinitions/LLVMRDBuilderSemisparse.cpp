@@ -395,7 +395,11 @@ RDNode *LLVMRDBuilderSemisparse::createLoad(const llvm::Instruction *Inst, RDBlo
     addNode(Inst, node);
     rb->append(node);
 
-    node->addUses(getPointsTo(LI->getPointerOperand(), rb));
+    std::vector<DefSite> uses = getPointsTo(LI->getPointerOperand(), rb);
+    for (auto& ds : uses) {
+        ds.len = getAllocatedSize(LI->getPointerOperand()->getType()->getPointerElementType(), DL);
+    }
+    node->addUses(uses);
 
     return node;
 }
