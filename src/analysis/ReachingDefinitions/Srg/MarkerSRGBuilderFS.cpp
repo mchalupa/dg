@@ -80,38 +80,13 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
     std::vector<NodeT *> result;
     bool is_covered = false;
 
-    NodeT *val = nullptr;
-    if (block->predecessorsNum() == 1) {
-        BlockT *predBB = *(block->predecessors().begin());
-        Intervals cov;
+    auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
 
-        auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
-        phi->addDef(var, true);
-        phi->addUse(var);
-        phi->setBasicBlock(block);
-        writeVariableStrong(var, phi.get(), block);
+    phi->setBasicBlock(block);
+    writeVariableStrong(var, phi.get(), block);
+    addPhiOperands(var, phi.get(), block, covered);
 
-        std::vector<NodeT *> assignments;
-        std::tie(assignments, cov, is_covered) = last_def[var.target][predBB].collect(concretize(detail::Interval{var.offset,var.len}), covered);
-        if (!is_covered) {
-            std::vector<NodeT *> assignments2 = readVariable(var, predBB, cov);
-            assignments.insert(assignments.begin(), assignments2.begin(), assignments2.end());
-        }
-        for (NodeT *node : assignments) {
-            insertSrgEdge(node, phi.get(), var);
-        }
-        val = phi.get();
-        phi_nodes.push_back(std::move(phi));
-
-    } else {
-        auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
-
-        phi->setBasicBlock(block);
-        writeVariableStrong(var, phi.get(), block);
-        addPhiOperands(var, phi.get(), block, covered);
-
-        val = phi.get();
-        phi_nodes.push_back(std::move(phi));
-    }
+    NodeT *val = phi.get();
+    phi_nodes.push_back(std::move(phi));
     return val;
 }
