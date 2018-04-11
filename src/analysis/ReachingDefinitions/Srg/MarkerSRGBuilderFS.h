@@ -37,12 +37,23 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     DefMapT current_def;
     DefMapT last_def;
 
-    /* work structure for weak defs */
-    DefMapT weak_def;
+    /* work structures for weak defs */
+    DefMapT current_weak_def;
+    DefMapT last_weak_def;
 
     void writeVariableStrong(const DefSite& var, NodeT *assignment, BlockT *block);
     void writeVariableWeak(const DefSite& var, NodeT *assignment, BlockT *block);
     NodeT *readVariableRecursive(const DefSite& var, BlockT *block, const Intervals& covered);
+
+    /*
+     * If the interval has unknown offset or length, it is changed to contain everything
+     */
+    detail::Interval concretize(detail::Interval interval) const {
+        if (interval.isUnknown()) {
+            return detail::Interval{ 0, ~(static_cast<uint64_t>(0)) };
+        }
+        return interval;
+    }
 
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read) {
         Intervals empty_vector;
@@ -59,20 +70,20 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
 
     void performLvn(BlockT *block) {
         for (NodeT *node : block->getNodes()) {
-
             for (const DefSite& def : node->defs) {
-                if (node->isOverwritten(def) && def.len != 0 && def.offset != Offset::UNKNOWN)
+                if (node->isOverwritten(def) && def.len != 0 && def.offset != Offset::UNKNOWN) {
                     last_def[def.target][block].add(detail::Interval{def.offset, def.len}, node);
-                else
-                    writeVariableWeak(def, node, block);
+                    detail::Interval interval = concretize(detail::Interval{def.offset, def.len});
+                    last_weak_def[def.target][block].killOverlapping(interval);
+                } else {
+                    last_weak_def[def.target][block].add(detail::Interval{def.offset, def.len}, node);
+                }
             }
         }
     }
 
     void performGvn(BlockT *block) {
-
         for (NodeT *node : block->getNodes()) {
-
             for (const DefSite& use : node->getUses()) {
                 std::vector<NodeT *> assignments = readVariable(use, block);
                 // add edge from last definition to here
@@ -82,8 +93,10 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
             }
 
             for (const DefSite& def : node->defs) {
-                if (node->isOverwritten(def) && def.len != 0 && def.offset != Offset::UNKNOWN)
+                if (node->isOverwritten(def))
                     writeVariableStrong(def, node, block);
+                else
+                    writeVariableWeak(def, node, block);
             }
         }
     }

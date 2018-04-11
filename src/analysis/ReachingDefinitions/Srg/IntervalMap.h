@@ -152,7 +152,49 @@ class IntervalMap {
         return false;
     }
 
+    template< typename T >
+    const T& max(const T& a, const T& b) const {
+        return a > b ? a : b;
+    }
+
+    template< typename T >
+    const T& min(const T& a, const T& b) const {
+        return a < b ? a : b;
+    }
+
 public:
+
+    /**
+     * Modifies this interval map in a way such, that
+     * collecting using @ki or any of its sub-interval will produce empty vector.
+     * Existing intervals that intersect with @ki will have that intersection removed
+     * (possibly splitting up one interval into two)
+     */
+    void killOverlapping(const Interval& ki) {
+        std::vector<std::pair<Interval, V>> to_add;
+        for (auto&& it = buckets.begin(); it != buckets.end(); ) {
+            Interval& interval = it->first;
+            V& v = it->second;
+
+            if (interval.overlaps(ki)) {
+                if (!ki.isSubsetOf(interval)) {
+                    Offset start = interval.getStart();
+                    Offset end = ki.getStart();
+                    Interval new_int = Interval{start, end - start};
+                    to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+
+                    start = ki.getStart() + ki.getLength();
+                    end = interval.getStart() + interval.getLength();
+                    new_int = Interval{start, end - start};
+                    to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+                } // else kill the whole interval, which is done by erasing it from buckets vector
+                it = buckets.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
     void add(Interval&& interval, const V& value) {
         //                                    move interval, copy value
         auto to_add = std::make_pair<Interval, V>(std::move(interval), V(value));
