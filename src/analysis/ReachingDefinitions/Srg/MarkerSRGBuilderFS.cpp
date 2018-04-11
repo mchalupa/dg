@@ -1,28 +1,19 @@
 #include "analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFS.h"
 
 using namespace dg::analysis::rd::srg;
-
-/*
- * If the interval has unknown offset or length, it is changed to contain everything
- */
-static detail::Interval concretize(detail::Interval interval) {
-    if (interval.isUnknown()) {
-        return detail::Interval{ 0, ~(static_cast<uint64_t>(0)) };
-    }
-    return interval;
-}
-
 /**
  * Saves the current definition of certain variable in given block
  * Used from value numbering procedures.
  */
 void MarkerSRGBuilderFS::writeVariableStrong(const DefSite& var, NodeT *assignment, BlockT *block) {
+    detail::Interval interval = concretize(detail::Interval{var.offset, var.len});
+    current_weak_def[var.target][block].killOverlapping(interval);
     // remember the last definition
-    current_def[var.target][block].add(concretize(detail::Interval{var.offset, var.len}), assignment);
+    current_def[var.target][block].add(std::move(interval), assignment);
 }
 
 void MarkerSRGBuilderFS::writeVariableWeak(const DefSite& var, NodeT *assignment, BlockT *block) {
-    weak_def[var.target][block].add(concretize(detail::Interval{var.offset, var.len}), assignment);
+    current_weak_def[var.target][block].add(concretize(detail::Interval{var.offset, var.len}), assignment);
 }
 
 std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const DefSite& var, BlockT *read, const Intervals& covered) {
@@ -47,8 +38,8 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
     }
 
     // add weak defs
-    const auto block_weak_defs = weak_def[var.target][read].collectAll(interval);
-    result.insert(result.end(), block_weak_defs.begin(), block_weak_defs.end());
+    auto block_weak_defs = current_weak_def[var.target][read].collectAll(interval);
+    std::move(block_weak_defs.begin(), block_weak_defs.end(), std::back_inserter(result));
 
     return result;
 }
@@ -66,11 +57,17 @@ void MarkerSRGBuilderFS::addPhiOperands(DefSite var, NodeT *phi, BlockT *block, 
         std::vector<NodeT *> assignments;
         Intervals cov;
         bool is_covered = false;
-        std::tie(assignments,cov,is_covered) = last_def[var.target][pred].collect(detail::Interval{var.offset, var.len}, covered);
+        const auto interval = detail::Interval{var.offset, var.len};
+        std::tie(assignments,cov,is_covered) = last_def[var.target][pred].collect(interval, covered);
         if (!is_covered) {
             std::vector<NodeT *> assignments2 = readVariable(var, pred, cov);
             assignments.insert(assignments.begin(), assignments2.begin(), assignments2.end());
         }
+
+        // add weak updates
+        auto weak_defs = last_weak_def[var.target][pred].collectAll(interval);
+        std::move(weak_defs.begin(), weak_defs.end(), std::back_inserter(assignments));
+
         for (auto& assignment : assignments)
             insertSrgEdge(assignment, phi, var);
     }
@@ -78,11 +75,16 @@ void MarkerSRGBuilderFS::addPhiOperands(DefSite var, NodeT *phi, BlockT *block, 
 
 MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSite& var, BlockT *block, const std::vector<detail::Interval>& covered) {
     std::vector<NodeT *> result;
-    bool is_covered = false;
 
+    const auto interval = concretize(detail::Interval{var.offset, var.len});
     auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
 
     phi->setBasicBlock(block);
+    // writeVariableStrong kills current weak definitions, which are needed in the phi node, so we need to lookup them first.
+    auto weak_defs = current_weak_def[var.target][block].collectAll(interval);
+    for (auto& assignment : weak_defs)
+        insertSrgEdge(assignment, phi.get(), var);
+
     writeVariableStrong(var, phi.get(), block);
     addPhiOperands(var, phi.get(), block, covered);
 
