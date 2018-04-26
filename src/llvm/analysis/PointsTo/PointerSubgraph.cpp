@@ -194,21 +194,21 @@ PSNodesSeq
 LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
                                               const llvm::Function *F)
 {
-    // set this flag to true, so that createCallToFunction
+    // set build_structure flag to true, so that createCallToFunction
     // will also add the program structure instead of only
     // building the nodes
-    ad_hoc_building = true;
-    return createOrGetSubgraph(CInst, F);
+    return createOrGetSubgraph(CInst, F, true /* build structure */);
 }
 
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
-                                                const llvm::Function *F)
+                                                const llvm::Function *F,
+                                                bool build_structure)
 {
     PSNodesSeq cf = createCallToFunction(F);
     addNode(CInst, cf.first);
 
-    if (ad_hoc_building) {
+    if (build_structure) {
         Subgraph& subg = subgraphs_map[F];
         assert(subg.root != nullptr);
 
