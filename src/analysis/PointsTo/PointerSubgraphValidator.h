@@ -26,7 +26,8 @@ protected:
     std::string errors{};
     std::string warnings{};
 
-    virtual bool reportInvalNumberOfOperands(const PSNode *);
+    virtual bool reportInvalNumberOfOperands(const PSNode *n, const std::string& user_err = "");
+    virtual bool reportInvalEdges(const PSNode *n, const std::string& user_err = "");
 
 public:
     PointerSubgraphValidator(const PointerSubgraph *ps) : PS(ps) {}

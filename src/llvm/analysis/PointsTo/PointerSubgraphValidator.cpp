@@ -11,7 +11,7 @@ static const llvm::Value *getValue(const PSNode *nd) {
     return nd->getUserData<llvm::Value>();
 }
 
-bool LLVMPointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd) {
+bool LLVMPointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd, const std::string& user_err) {
     // just check whether the PHI is a pointer type. If it is a number,
     // we do not know whether it is an error.
     if (nd->getType() == PSNodeType::PHI) {
