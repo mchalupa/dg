@@ -44,67 +44,6 @@ namespace pta {
 
 using dg::MemAllocationFuncs;
 
-static inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
-                                          const llvm::Value *ptr)
-
-{
-    const llvm::Type *Ty = ptr->getType();
-    return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
-}
-
-static uint64_t getConstantValue(const llvm::Value *op)
-{
-    using namespace llvm;
-
-    //XXX: we should get rid of this dependency
-    static_assert(sizeof(Offset::type) == sizeof(uint64_t),
-                  "The code relies on Offset::type having 8 bytes");
-
-    uint64_t size = Offset::UNKNOWN;
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
-        size = C->getLimitedValue();
-    }
-
-    // size is ~((uint64_t)0) if it is unknown
-    return size;
-}
-
-// get size of memory allocation argument
-static uint64_t getConstantSizeValue(const llvm::Value *op) {
-    auto sz = getConstantValue(op);
-    // if the size is unknown, make it 0, so that pointer
-    // analysis correctly computes offets into this memory
-    // (which is always UNKNOWN)
-    if (sz == ~static_cast<uint64_t>(0))
-        return 0;
-    return sz;
-}
-
-static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
-                                 const llvm::DataLayout *DL)
-{
-    llvm::Type *Ty = AI->getAllocatedType();
-    if (!Ty->isSized())
-            return 0;
-
-    if (AI->isArrayAllocation()) {
-        return getConstantSizeValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
-    } else
-        return DL->getTypeAllocSize(Ty);
-}
-
-bool LLVMPointerSubgraphBuilder::typeCanBePointer(llvm::Type *Ty) const
-{
-    if (Ty->isPointerTy())
-        return true;
-
-    if (Ty->isIntegerTy() && Ty->isSized())
-        return DL->getTypeSizeInBits(Ty)
-                >= DL->getPointerSizeInBits(/*Ty->getPointerAddressSpace()*/);
-
-    return false;
-}
-
 LLVMPointerSubgraphBuilder::~LLVMPointerSubgraphBuilder()
 {
     delete DL;
@@ -320,16 +259,6 @@ PSNode *LLVMPointerSubgraphBuilder::createConstantExpr(const llvm::ConstantExpr 
     return node;
 }
 
-static bool isConstantZero(const llvm::Value *val)
-{
-    using namespace llvm;
-
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(val))
-        return C->isZero();
-
-    return false;
-}
-
 PSNode *LLVMPointerSubgraphBuilder::getConstant(const llvm::Value *val)
 {
     if (llvm::isa<llvm::ConstantPointerNull>(val)
@@ -415,48 +344,6 @@ PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
         llvm::errs() << "Invalid value leading to UNKNOWN: " << *val << "\n";
         return createUnknown(val);
     }
-}
-
-static bool isRelevantIntrinsic(const llvm::Function *func)
-{
-    using namespace llvm;
-
-    switch (func->getIntrinsicID()) {
-        case Intrinsic::memmove:
-        case Intrinsic::memcpy:
-        case Intrinsic::vastart:
-        case Intrinsic::stacksave:
-        case Intrinsic::stackrestore:
-        case Intrinsic::lifetime_end:
-            return true;
-        // case Intrinsic::memset:
-        default:
-            return false;
-    }
-}
-
-static bool isInvalid(const llvm::Value *val)
-{
-    using namespace llvm;
-
-    if (!isa<Instruction>(val)) {
-        if (!isa<Argument>(val) && !isa<GlobalValue>(val))
-            return true;
-    } else {
-        if (isa<ICmpInst>(val) || isa<FCmpInst>(val)
-            || isa<DbgValueInst>(val) || isa<BranchInst>(val)
-            || isa<SwitchInst>(val))
-            return true;
-
-        const CallInst *CI = dyn_cast<CallInst>(val);
-        if (CI) {
-            const Function *F = CI->getCalledFunction();
-            if (F && F->isIntrinsic() && !isRelevantIntrinsic(F))
-                return true;
-        }
-    }
-
-    return false;
 }
 
 PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
@@ -1194,7 +1081,7 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
         if (llvm::isa<llvm::ConstantPointerNull>(retVal)
             || isConstantZero(retVal))
             op1 = NULLPTR;
-        else if (typeCanBePointer(retVal->getType()) &&
+        else if (typeCanBePointer(DL, retVal->getType()) &&
                   (!isInvalid(retVal->stripPointerCasts()) ||
                    llvm::isa<llvm::ConstantExpr>(retVal)))
             op1 = getOperand(retVal);
@@ -1410,7 +1297,7 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             break;
         case Instruction::FPToUI:
         case Instruction::FPToSI:
-            if (typeCanBePointer(Inst.getType()))
+            if (typeCanBePointer(DL, Inst.getType()))
                 node = createCast(&Inst);
             else
                 node = createUnknown(&Inst);
@@ -1503,27 +1390,6 @@ PSNode *LLVMPointerSubgraphBuilder::createArgument(const llvm::Argument *farg)
     addNode(farg, arg);
 
     return arg;
-}
-
-static bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I)
-{
-    return isConstantZero(I->getOperand(1));
-}
-
-// recursively find out if type contains a pointer type as a subtype
-// (or if it is a pointer type itself)
-static bool tyContainsPointer(const llvm::Type *Ty)
-{
-    if (Ty->isAggregateType()) {
-        for (auto I = Ty->subtype_begin(), E = Ty->subtype_end();
-             I != E; ++I) {
-            if (tyContainsPointer(*I))
-                return true;
-        }
-    } else
-        return Ty->isPointerTy();
-
-    return false;
 }
 
 PSNodesSeq
