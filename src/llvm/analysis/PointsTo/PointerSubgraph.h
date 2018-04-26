@@ -26,11 +26,7 @@ class LLVMPointerSubgraphBuilder
     const llvm::Module *M;
     const llvm::DataLayout *DL;
     Offset::type field_sensitivity;
-    // flag that says whether we are building normally,
-    // or the analysis is already running and we are building
-    // some new parts of already built graph.
-    // This is important with function pointer calls
-    bool ad_hoc_building = false;
+
     // flag that determines whether invalidate nodes
     // should be created
     bool invalidate_nodes = false;
@@ -218,8 +214,9 @@ private:
 
     PSNodesSeq createExtract(const llvm::Instruction *Inst);
     PSNodesSeq createCall(const llvm::Instruction *Inst);
-    PSNodesSeq createOrGetSubgraph(const llvm::CallInst *,
-                                   const llvm::Function *);
+    PSNodesSeq createOrGetSubgraph(const llvm::CallInst *CI,
+                                   const llvm::Function *F,
+                                   bool build_structure = false);
 
 
     PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
