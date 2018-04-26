@@ -628,7 +628,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
         PSNode *a = tryGetOperand(&*A);
         assert(a == nullptr || a == UNKNOWN_MEMORY);
 #endif
-        getOperand(&*A);
+        buildNode(&*A);
     }
 
     // add record to built graphs here, so that subsequent call of this function
