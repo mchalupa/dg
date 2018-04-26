@@ -182,11 +182,6 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
     // we need to handle the return values even when it is not
     // a pointer as we have ptrtoint and inttoptr
 
-    // create the pointer arguments -- the other arguments will
-    // be created later if needed
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A)
-        getOperand(&*A);
-
     return std::make_pair(callNode, returnNode);
 }
 
@@ -625,6 +620,16 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     PSNode *vararg = nullptr;
     if (F.isVarArg())
         vararg = PS.create(PSNodeType::PHI, nullptr);
+
+    // create the pointer arguments -- the other arguments will
+    // be created later if needed
+    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
+#ifdef NDEBUG
+        PSNode *a = tryGetOperand(&*A);
+        assert(a == nullptr || a == UNKNOWN_MEMORY);
+#endif
+        getOperand(&*A);
+    }
 
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call when
