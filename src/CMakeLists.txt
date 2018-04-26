@@ -38,6 +38,9 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/PointerSubgraphValidator.cpp
 	llvm/analysis/PointsTo/Structure.cpp
 	llvm/analysis/PointsTo/Globals.cpp
+	llvm/analysis/PointsTo/Constants.cpp
+	llvm/analysis/PointsTo/Instructions.cpp
+	llvm/analysis/PointsTo/Calls.cpp
 )
 
 target_link_libraries(LLVMpta PUBLIC PTA)
