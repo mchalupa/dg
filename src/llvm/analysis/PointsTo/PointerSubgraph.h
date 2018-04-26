@@ -47,14 +47,14 @@ class LLVMPointerSubgraphBuilder
     struct Subgraph {
         Subgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
             : root(r1), ret(r2), vararg(va) {}
-        Subgraph(): root(nullptr), ret(nullptr), vararg(nullptr) {}
+        Subgraph() = default;
 
         // first and last nodes of the subgraph
-        PSNode *root;
-        PSNode *ret;
+        PSNode *root{nullptr};
+        PSNode *ret{nullptr};
 
         // this is the node where we gather the variadic-length arguments
-        PSNode *vararg;
+        PSNode *vararg{nullptr};
         bool has_structure = false;
     };
 
