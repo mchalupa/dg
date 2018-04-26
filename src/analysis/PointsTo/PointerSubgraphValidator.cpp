@@ -1,3 +1,4 @@
+#include <string>
 #include "PointerSubgraphValidator.h"
 
 namespace dg {
@@ -6,7 +7,7 @@ namespace pta {
 namespace debug {
 
 
-bool PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd) {
+bool PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd, const std::string& user_err) {
     errors += "Invalid number of operands for " + std::string(PSNodeTypeToCString(nd->getType())) +
               " with ID " + std::to_string(nd->getID()) + "\n  - operands: [";
     for (unsigned i = 0, e =  nd->getOperandsNum(); i < e; ++i) {
@@ -16,8 +17,21 @@ bool PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd) {
     }
     errors += "]\n";
 
+    if (!user_err.empty())
+        errors += "(" + user_err + ")\n";
+
     return true;
 }
+
+bool PointerSubgraphValidator::reportInvalEdges(const PSNode *nd, const std::string& user_err) {
+    errors += "Invalid number of edges for " + std::string(PSNodeTypeToCString(nd->getType())) +
+              " with ID " + std::to_string(nd->getID()) + "\n";
+    if (!user_err.empty())
+        errors += "(" + user_err + ")\n";
+    return true;
+}
+
+
 
 bool PointerSubgraphValidator::checkOperands() {
     bool invalid = false;
@@ -64,10 +78,30 @@ bool PointerSubgraphValidator::checkOperands() {
     return invalid;
 }
 
+bool PointerSubgraphValidator::checkEdges() {
+    bool invalid = false;
+
+    for (const PSNode *nd : PS->getNodes()) {
+        if (!nd)
+            continue;
+
+        if (nd->predecessorsNum() == 0 && nd != PS->getRoot() &&
+            nd->getType() != PSNodeType::FUNCTION &&
+            nd->getType() != PSNodeType::CONSTANT &&
+            nd->getType() != PSNodeType::UNKNOWN_MEM &&
+            nd->getType() != PSNodeType::NULL_ADDR) {
+            invalid |= reportInvalEdges(nd, "Non-root node has no predecessors");
+        }
+    }
+
+    return invalid;
+}
+
 bool PointerSubgraphValidator::validate() {
     bool invalid = false;
 
     invalid |= checkOperands();
+    invalid |= checkEdges();
 
     return invalid;
 }

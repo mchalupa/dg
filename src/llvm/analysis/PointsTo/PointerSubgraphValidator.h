@@ -14,7 +14,7 @@ namespace debug {
  * whether it is not broken
  */
 class LLVMPointerSubgraphValidator : public PointerSubgraphValidator {
-    bool reportInvalNumberOfOperands(const PSNode *) override;
+    bool reportInvalNumberOfOperands(const PSNode *n, const std::string& user_err) override;
 
 public:
     LLVMPointerSubgraphValidator(PointerSubgraph *ps)
