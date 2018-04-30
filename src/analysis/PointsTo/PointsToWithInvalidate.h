@@ -13,6 +13,7 @@ class PointsToWithInvalidate : public PointsToFlowSensitive
 {
     static bool canChangeMM(PSNode *n) {
         if (n->getType() == PSNodeType::FREE ||
+            n->getType() == PSNodeType::INVALIDATE_OBJECT ||
             n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return true;
 
@@ -62,13 +63,15 @@ public:
     {
         bool changed = false;
 
-        if (n->getType() == PSNodeType::INVALIDATE_LOCALS) {
+        if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return handleInvalidateLocals(n);
-        } else if (n->getType() == PSNodeType::FREE) {
+        if (n->getType() == PSNodeType::INVALIDATE_OBJECT)
             return handleFree(n);
-        }
+        if (n->getType() == PSNodeType::FREE)
+            return handleFree(n);
 
         assert(n->getType() != PSNodeType::FREE &&
+               n->getType() != PSNodeType::INVALIDATE_OBJECT &&
                n->getType() != PSNodeType::INVALIDATE_LOCALS);
 
         PointsToSetT *strong_update = nullptr;
