@@ -46,6 +46,7 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::GEP:
             case PSNodeType::LOAD:
             case PSNodeType::CAST:
+            case PSNodeType::INVALIDATE_OBJECT:
             case PSNodeType::FREE:
                 if (nd->getOperandsNum() != 1) {
                     invalid |= reportInvalNumberOfOperands(nd);

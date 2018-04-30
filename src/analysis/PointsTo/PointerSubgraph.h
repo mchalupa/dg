@@ -52,6 +52,9 @@ enum class PSNodeType {
         // node that invalidates memory after calling free
         // on a pointer
         FREE,
+        // node that invalidates allocated memory
+        // after llvm.lifetime.end call
+        INVALIDATE_OBJECT,
         // node that has only one points-to relation
         // that never changes
         CONSTANT,
@@ -138,6 +141,8 @@ protected:
     //               the subprocedure
     // INVALIDATE_LOCALS:
     //               invalidates memory after returning from a function
+    // INVALIDATE_OBJECT:
+    //               invalidates memory after llvm.lifetime.end call
     // FREE:         invalidates memory after calling free function on a pointer
 
     PSNode(unsigned id, PSNodeType t)
@@ -195,6 +200,7 @@ protected:
             case PSNodeType::LOAD:
             case PSNodeType::CALL_FUNCPTR:
             case PSNodeType::INVALIDATE_LOCALS:
+            case PSNodeType::INVALIDATE_OBJECT:
             case PSNodeType::FREE:
                 operands.push_back(va_arg(args, PSNode *));
                 break;
@@ -581,6 +587,7 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
         ELEM(PSNodeType::UNKNOWN_MEM)
         ELEM(PSNodeType::FREE)
         ELEM(PSNodeType::INVALIDATE_LOCALS)
+        ELEM(PSNodeType::INVALIDATE_OBJECT)
         ELEM(PSNodeType::INVALIDATED)
         default:
             assert(0 && "unknown PointerSubgraph type");
