@@ -391,7 +391,6 @@ PSNode *LLVMPointerSubgraphBuilder::tryGetOperand(const llvm::Value *val)
 
 PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
 {
-
     assert(nodes_map.count(val) == 0);
 
     const llvm::Instruction *Inst
@@ -428,6 +427,7 @@ static bool isRelevantIntrinsic(const llvm::Function *func)
         case Intrinsic::vastart:
         case Intrinsic::stacksave:
         case Intrinsic::stackrestore:
+        case Intrinsic::lifetime_end:
             return true;
         // case Intrinsic::memset:
         default:
@@ -787,6 +787,17 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
     return n;
 }
 
+PSNode * LLVMPointerSubgraphBuilder::createInvalidateObject(const llvm::Instruction *Inst)
+{
+    PSNode *op1 = getOperand(Inst->getOperand(1));
+    PSNode *node = PS.create(PSNodeType::INVALIDATE_OBJECT, op1);
+
+    addNode(Inst, node);
+
+    assert(node);
+    return node;
+}
+
 PSNode * LLVMPointerSubgraphBuilder::createFree(const llvm::Instruction *Inst)
 {
     PSNode *op1 = getOperand(Inst->getOperand(0));
@@ -797,7 +808,6 @@ PSNode * LLVMPointerSubgraphBuilder::createFree(const llvm::Instruction *Inst)
     assert(node);
     return node;
 }
-
 
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
@@ -813,6 +823,12 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         PSNode *n = createAsm(Inst);
         return std::make_pair(n, n);
     }
+    const IntrinsicInst *IInst = dyn_cast<IntrinsicInst>(Inst);
+    if (IInst && IInst->getIntrinsicID() == Intrinsic::lifetime_end) {
+
+        PSNode *n = createInvalidateObject(Inst);
+        return std::make_pair(n, n);
+    }
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
@@ -822,7 +838,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
             PSNode *n = createFree(Inst);
             return std::make_pair(n, n);
         }
-        
+
         // is function undefined? If so it can be
         // intrinsic, memory allocation (malloc, calloc,...)
         // or just undefined function

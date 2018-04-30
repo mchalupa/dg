@@ -328,6 +328,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
+        case PSNodeType::INVALIDATE_OBJECT:
         case PSNodeType::FREE:
             break;
         case PSNodeType::INVALIDATE_LOCALS:
