@@ -355,10 +355,15 @@ bool PointerAnalysis::processNode(PSNode *node)
             if (invalidate_nodes) {
                 for (PSNode *op : node->operands) {
                     for (const Pointer& ptr : op->pointsTo) {
+                        if (ptr.target->getType() == PSNodeType::FUNCTION)
+                            continue;
+                        if (ptr.isInvalidated())
+                            continue;
                         PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
                         assert(target && "Target is not memory allocation");
-                        if (!target->isHeap() && !target->isGlobal())
+                        if (!target->isHeap() && !target->isGlobal()) {
                             changed |= node->addPointsTo(INVALIDATED);
+                        }
                     }
                 }
             }

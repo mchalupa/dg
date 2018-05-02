@@ -25,6 +25,12 @@ public:
         memoryMaps.reserve(ps->size() / 5);
     }
 
+    PointsToFlowSensitive(PointerSubgraph *ps, bool invalidate)
+    : PointerAnalysis(ps, Offset::UNKNOWN, false, invalidate)
+    {
+        memoryMaps.reserve(ps->size() / 5);
+    }
+
     bool beforeProcessed(PSNode *n) override
     {
         MemoryMapT *mm = n->getData<MemoryMapT>();
@@ -193,4 +199,3 @@ private:
 } // namespace dg
 
 #endif // _DG_ANALYSIS_POINTS_TO_FLOW_SENSITIVE_H_
-
