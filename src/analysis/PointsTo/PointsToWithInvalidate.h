@@ -65,9 +65,9 @@ public:
         if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return handleInvalidateLocals(n);
         if (n->getType() == PSNodeType::INVALIDATE_OBJECT)
-            return handleFree(n);
+            return invalidateMemory(n);
         if (n->getType() == PSNodeType::FREE)
-            return handleFree(n);
+            return invalidateMemory(n);
 
         assert(n->getType() != PSNodeType::FREE &&
                n->getType() != PSNodeType::INVALIDATE_OBJECT &&
@@ -223,15 +223,15 @@ public:
         S1.swap(S);
     }
 
-    bool handleFree(PSNode *node) {
+    bool invalidateMemory(PSNode *node) {
         bool changed = false;
         for (PSNode *pred : node->getPredecessors()) {
-            changed |= handleFree(node, pred);
+            changed |= invalidateMemory(node, pred);
         }
         return changed;
     }
 
-    bool handleFree(PSNode *node, PSNode *pred)
+    bool invalidateMemory(PSNode *node, PSNode *pred)
     {
         bool changed = false;
 
