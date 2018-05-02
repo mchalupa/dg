@@ -2,7 +2,6 @@
 #define _DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
 
 #include <cassert>
-
 #include "PointsToFlowSensitive.h"
 
 namespace dg {
@@ -30,7 +29,7 @@ public:
     // this is an easy but not very efficient implementation,
     // works for testing
     PointsToWithInvalidate(PointerSubgraph *ps)
-    : PointsToFlowSensitive(ps) {}
+    : PointsToFlowSensitive(ps, true) {}
 
     bool beforeProcessed(PSNode *n) override
     {
@@ -300,4 +299,3 @@ public:
 } // namespace dg
 
 #endif // _DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
-
