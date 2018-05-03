@@ -19,13 +19,7 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PointerSubgraph *ps)
-    : PointerAnalysis(ps, Offset::UNKNOWN, false)
-    {
-        memoryMaps.reserve(ps->size() / 5);
-    }
-
-    PointsToFlowSensitive(PointerSubgraph *ps, bool invalidate)
+    PointsToFlowSensitive(PointerSubgraph *ps, bool invalidate = false)
     : PointerAnalysis(ps, Offset::UNKNOWN, false, invalidate)
     {
         memoryMaps.reserve(ps->size() / 5);
