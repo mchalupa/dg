@@ -787,7 +787,7 @@ LLVMPointerSubgraphBuilder::createAsm(const llvm::Instruction *Inst)
     return n;
 }
 
-PSNode * LLVMPointerSubgraphBuilder::createInvalidateObject(const llvm::Instruction *Inst)
+PSNode * LLVMPointerSubgraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst)
 {
     PSNode *op1 = getOperand(Inst->getOperand(1));
     PSNode *node = PS.create(PSNodeType::INVALIDATE_OBJECT, op1);
@@ -826,7 +826,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
     const IntrinsicInst *IInst = dyn_cast<IntrinsicInst>(Inst);
     if (IInst && IInst->getIntrinsicID() == Intrinsic::lifetime_end) {
 
-        PSNode *n = createInvalidateObject(Inst);
+        PSNode *n = createLifetimeEnd(Inst);
         return std::make_pair(n, n);
     }
 
