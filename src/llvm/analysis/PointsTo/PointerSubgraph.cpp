@@ -28,6 +28,8 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
+#include <llvm/IR/Dominators.h>
+
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
 #else
@@ -596,6 +598,48 @@ void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBloc
     }
 }
 
+// Get llvm BasicBlock's in levels of Dominator Tree (BFS order through the dominator tree)
+std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Function& F)
+{
+    std::vector<const llvm::BasicBlock *> blocks;
+    blocks.reserve(F.size());
+
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
+        auto DTree = new llvm::DominatorTree();
+        DTree->runOnFunction(F);
+#else
+        llvm::DominatorTreeWrapperPass wrapper;
+        wrapper.runOnFunction(F);
+        auto DTree = &wrapper.getDomTree();
+#ifndef NDEBUG
+        wrapper.verifyAnalysis();
+#endif
+#endif
+
+    auto root_node = DTree->getRootNode();
+    blocks.push_back(root_node->getBlock());
+
+    std::vector<llvm::DomTreeNode *> to_process;
+    to_process.reserve(4);
+    to_process.push_back(root_node);
+
+    while (!to_process.empty()) {
+        std::vector<llvm::DomTreeNode *> new_to_process;
+        new_to_process.reserve(to_process.size());
+
+        for (auto cur_node : to_process) {
+            for (auto child : *cur_node) {
+                new_to_process.push_back(child);
+                blocks.push_back(child->getBlock());
+            }
+        }
+
+        to_process.swap(new_to_process);
+    }
+
+    return blocks;
+}
+
 // build pointer state subgraph for given graph
 // \return   root node of the graph
 PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
@@ -637,8 +681,9 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     subgraphs_map[&F] = Subgraph(root, ret, vararg);
 
     // build the instructions from blocks
-    for (const llvm::BasicBlock& block : F)
-        buildPointerSubgraphBlock(block);
+    for (const llvm::BasicBlock *block : getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F))) {
+        buildPointerSubgraphBlock(*block);
+    }
 
     // add operands to PHI nodes. It must be done after all blocks are
     // built, since the PHI gathers values from different blocks
