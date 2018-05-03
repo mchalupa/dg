@@ -51,6 +51,18 @@ LLVMPointerSubgraphBuilder::~LLVMPointerSubgraphBuilder()
     delete DL;
 }
 
+void dump(const llvm::BasicBlock& b) {
+    llvm::errs() << b << "\n";
+}
+
+void dump(const llvm::Instruction& I) {
+    llvm::errs() << I << "\n";
+}
+
+void dump(const llvm::Value& V) {
+    llvm::errs() << V << "\n";
+}
+
 PSNode *LLVMPointerSubgraphBuilder::getConstant(const llvm::Value *val)
 {
     if (llvm::isa<llvm::ConstantPointerNull>(val)
@@ -464,65 +476,14 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
     using namespace llvm;
 
     switch(Inst.getOpcode()) {
-        case Instruction::Store:
-            // create only nodes that store pointer to another
-            // pointer. We don't care about stores of non-pointers.
-            // The only exception are stores to inttoptr nodes
-            if (Inst.getOperand(0)->getType()->isPointerTy()
-                // this will probably create the operand if we do not
-                // have it, but we would create it later anyway
-                || (tryGetOperand(Inst.getOperand(0)) != UNKNOWN_MEMORY))
-                return true;
-            else
-                return false;
-        case Instruction::ExtractValue:
-            return Inst.getType()->isPointerTy();
-        case Instruction::Load:
-            // LLVM does optimizations like that this code
-            // (it basically does ptrtoint using bitcast)
-            //
-            // %2 = GEP %a, 0, 0
-            //
-            // gets transformed to
-            //
-            // %1 = bitcast %a to *i32
-            // %2 = load i32, i32* %1
-            //
-            // because that probably may be faster on 32-bit machines.
-            // That completely breaks our relevancy criterions,
-            // so we must use this hack (the same with store)
-            if (tryGetOperand(Inst.getOperand(0)) != UNKNOWN_MEMORY)
-                return true;
-            /* fallthrough */
-        case Instruction::Select:
-        case Instruction::PHI:
-            // here we don't care about intToPtr, because every such
-            // value must be bitcasted first, and thus is a pointer
-            if (Inst.getType()->isPointerTy())
-                return true;
-            else
-                return false;
-        case Instruction::Call:
-            if (isRelevantCall(&Inst))
-                return true;
-            else
-                return false;
-        case Instruction::Alloca:
-        case Instruction::GetElementPtr:
-        case Instruction::BitCast:
-        case Instruction::PtrToInt:
-        case Instruction::IntToPtr:
-        // we need to create every ret inst, because
-        // it changes the flow of information
-        case Instruction::Ret:
-            return true;
-        default:
-            if (Inst.getType()->isPointerTy()) {
-                llvm::errs() << "Unhandled relevant inst: " << Inst << "\n";
-                abort();
-            }
-
+        case Instruction::ICmp:
+        case Instruction::Br:
+        case Instruction::Switch:
             return false;
+        case Instruction::Call:
+            return isRelevantCall(&Inst);
+        default:
+            return true;
     }
 
     assert(0 && "Not to be reached");
