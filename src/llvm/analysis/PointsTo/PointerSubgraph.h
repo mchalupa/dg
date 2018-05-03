@@ -179,7 +179,7 @@ private:
     PSNode *createAdd(const llvm::Instruction *Inst);
     PSNode *createArithmetic(const llvm::Instruction *Inst);
     PSNode *createUnknown(const llvm::Value *val);
-    PSNode *createInvalidateObject(const llvm::Instruction *Inst);
+    PSNode *createLifetimeEnd(const llvm::Instruction *Inst);
     PSNode *createFree(const llvm::Instruction *Inst);
 
     PSNode *getOperand(const llvm::Value *val);
