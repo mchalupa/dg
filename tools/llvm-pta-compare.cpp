@@ -71,7 +71,7 @@ static void
 printName(PSNode *node)
 {
     if (!node->getUserData<llvm::Value>()) {
-        printf("%p", node);
+        printf("%p", static_cast<void*>(node));
         return;
     }
 
@@ -246,7 +246,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    debug::TimeMeasure tm;
+    dg::debug::TimeMeasure tm;
 
     LLVMPointerAnalysis *PTAfs = nullptr;
     LLVMPointerAnalysis *PTAfi = nullptr;

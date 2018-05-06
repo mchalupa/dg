@@ -784,6 +784,7 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
 
     PS.setRoot(root);
 
+#ifndef NDEBUG
     debug::LLVMPointerSubgraphValidator validator(&PS);
     if (validator.validate()) {
         llvm::errs() << "Pointer Subgraph is broken!\n";
@@ -791,6 +792,7 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
         llvm::errs() << validator.getErrors();
         return nullptr;
     }
+#endif // NDEBUG
 
     return &PS;
 }

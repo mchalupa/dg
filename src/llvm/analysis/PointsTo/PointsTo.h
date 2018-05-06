@@ -24,6 +24,7 @@
 #include "analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/llvm-utils.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 
 namespace dg {
@@ -84,6 +85,19 @@ public:
             callsite->addSuccessor(cf.first);
 
         cf.second->addSuccessor(ret);
+
+#ifndef NDEBUG
+        // check the graph after rebuilding
+        analysis::pta::debug::LLVMPointerSubgraphValidator validator(builder->getPS());
+        if (validator.validate()) {
+            llvm::errs() << "Pointer Subgraph is broken!\n";
+            llvm::errs() << "This happend after building this function called via pointer: "
+                         <<  F->getName() << "\n";
+            assert(!validator.getErrors().empty());
+            llvm::errs() << validator.getErrors();
+            abort();
+        }
+#endif // NDEBUG
 
         return true;
     }

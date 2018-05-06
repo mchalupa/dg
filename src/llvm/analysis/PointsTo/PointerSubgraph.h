@@ -72,6 +72,8 @@ class LLVMPointerSubgraphBuilder
     std::map<const llvm::BasicBlock *, PSNodesSeq> built_blocks;
 
 public:
+    const PointerSubgraph *getPS() const { return &PS; }
+
     // \param field_sensitivity -- how much should be the PS field sensitive:
     //        Offset::UNKNOWN means full field sensitivity, 0 means field insensivity
     //        (every pointer with offset greater than 0 will have Offset::UNKNOWN)
