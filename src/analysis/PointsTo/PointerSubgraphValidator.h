@@ -28,6 +28,7 @@ protected:
 
     virtual bool reportInvalNumberOfOperands(const PSNode *n, const std::string& user_err = "");
     virtual bool reportInvalEdges(const PSNode *n, const std::string& user_err = "");
+    virtual bool reportUnreachableNode(const PSNode *);
 
 public:
     PointerSubgraphValidator(const PointerSubgraph *ps) : PS(ps) {}
