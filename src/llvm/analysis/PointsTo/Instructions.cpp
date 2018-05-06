@@ -159,12 +159,6 @@ PSNode *LLVMPointerSubgraphBuilder::createPtrToInt(const llvm::Instruction *Inst
     PSNode *node = PS.create(PSNodeType::GEP, op1, 0);
     addNode(Inst, node);
 
-    // here we lost the type information,
-    // so we must build all possible nodes that may affect
-    // the pointer analysis
-    transitivelyBuildUses(Inst);
-    transitivelyBuildUses(Inst->getOperand(0));
-
     assert(node);
     return node;
 }
@@ -185,12 +179,6 @@ PSNode *LLVMPointerSubgraphBuilder::createIntToPtr(const llvm::Instruction *Inst
 
     PSNode *node = PS.create(PSNodeType::CAST, op1);
     addNode(Inst, node);
-
-    // here we lost the type information,
-    // so we must build all possible nodes that may affect
-    // the pointer analysis
-    transitivelyBuildUses(Inst);
-    transitivelyBuildUses(Inst->getOperand(0));
 
     assert(node);
     return node;
