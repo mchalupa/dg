@@ -42,8 +42,6 @@ class LLVMPointerSubgraphBuilder
     PSNodesSeq buildArguments(const llvm::Function& F);
     PSNodesSeq buildGlobals();
 
-    void transitivelyBuildUses(const llvm::Value *val);
-
     struct Subgraph {
         Subgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
             : root(r1), ret(r2), vararg(va) {}
