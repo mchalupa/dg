@@ -78,6 +78,15 @@ bool PointerSubgraphValidator::checkOperands() {
     return invalid;
 }
 
+static inline bool isInPredecessors(const PSNode *nd, const PSNode *of) {
+    for (const PSNode *pred: of->getPredecessors()) {
+        if (pred == nd)
+            return true;
+    }
+
+    return false;
+}
+
 bool PointerSubgraphValidator::checkEdges() {
     bool invalid = false;
 
@@ -91,6 +100,11 @@ bool PointerSubgraphValidator::checkEdges() {
             nd->getType() != PSNodeType::UNKNOWN_MEM &&
             nd->getType() != PSNodeType::NULL_ADDR) {
             invalid |= reportInvalEdges(nd, "Non-root node has no predecessors");
+        }
+
+        for (const PSNode *succ : nd->getSuccessors()) {
+            if (!isInPredecessors(nd, succ))
+                invalid |= reportInvalEdges(nd, "Node not set as a predecessor of some of its successors");
         }
     }
 
