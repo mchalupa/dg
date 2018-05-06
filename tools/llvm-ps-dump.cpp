@@ -103,6 +103,7 @@ printName(PSNode *node, bool dot)
 
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
+            printf("(no name) ");
             printPSNodeType(node->getType());
             printf("\\n");
             if (node->getType() == PSNodeType::CONSTANT) {
@@ -232,7 +233,9 @@ static void
 dumpPSNode(PSNode *n, PTType type)
 {
     printf("NODE %3u: ", n->getID());
-    printName(n, false);
+    printf("Ty: ");
+    printPSNodeType(n->getType());
+    printf("\\n");
 
     PSNodeAlloc *alloc = PSNodeAlloc::get(n);
     if (alloc &&
@@ -270,10 +273,9 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
     for (PSNode *node : nodes) {
         if (!node)
             continue;
-        printf("\tNODE%p [label=\"<%u> ", static_cast<void*>(node), node->getID());
+        printf("\tNODE%u [label=\"<%u> ", node->getID(), node->getID());
         printName(node, true);
-        printf("\\n--- parent ---\\n");
-        printf("%p \\n", static_cast<void*>(node->getParent()));
+        printf("\\nparent: %u\\n", node->getParent() ? node->getParent()->getID() : 0);
 
         PSNodeAlloc *alloc = PSNodeAlloc::get(node);
         if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
@@ -323,8 +325,8 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
             continue;
 
         for (PSNode *succ : node->getSuccessors())
-            printf("\tNODE%p -> NODE%p [penwidth=2]\n",
-                   static_cast<void*>(node), static_cast<void*>(succ));
+            printf("\tNODE%u -> NODE%u [penwidth=2]\n",
+                   node->getID(), succ->getID());
     }
 
     printf("}\n");
