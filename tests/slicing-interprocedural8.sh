@@ -25,7 +25,7 @@ fi
 llvm-slicer $DG_TESTS_RDA $DG_TESTS_PTA -c test_assert "$BCFILE"
 
 # link assert to the code
-link_with_assert "$SLICEDFILE" "$LINKEDFILE"
+link_with_assert "$SLICEDFILE" "$LINKEDFILE" -DASSERT_NO_ABORT
 
 OUTPUT="`lli "$LINKEDFILE" 2>&1`"
 
