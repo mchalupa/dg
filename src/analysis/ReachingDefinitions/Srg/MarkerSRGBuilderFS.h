@@ -43,26 +43,29 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
 
     void writeVariableStrong(const DefSite& var, NodeT *assignment, BlockT *block);
     void writeVariableWeak(const DefSite& var, NodeT *assignment, BlockT *block);
-    NodeT *readVariableRecursive(const DefSite& var, BlockT *block, const Intervals& covered);
+    NodeT *readVariableRecursive(const DefSite& var, BlockT *block, BlockT *start, const Intervals& covered);
 
     /*
      * If the interval has unknown offset or length, it is changed to contain everything
      */
-    detail::Interval concretize(detail::Interval interval) const {
+    detail::Interval concretize(detail::Interval interval, uint64_t size = (~((uint64_t)0))) const {
+        if (size == 0) {
+            size = ~((uint64_t) 0);
+        }
         if (interval.isUnknown()) {
-            return detail::Interval{ 0, ~(static_cast<uint64_t>(0)) };
+            return detail::Interval{ 0, size };
         }
         return interval;
     }
 
-    std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read) {
+    std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, BlockT *start) {
         Intervals empty_vector;
-        return readVariable(var, read, empty_vector);
+        return readVariable(var, read, start, empty_vector);
     }
 
-    std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, const Intervals& covered);
+    std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, BlockT *start, const Intervals& covered);
 
-    void addPhiOperands(DefSite var, NodeT *phi, BlockT *block, const Intervals& covered);
+    void addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, BlockT *start, const Intervals& covered);
 
     void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
         srg[from].push_back(std::make_pair(var, to));
@@ -71,12 +74,13 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     void performLvn(BlockT *block) {
         for (NodeT *node : block->getNodes()) {
             for (const DefSite& def : node->defs) {
-                if (node->isOverwritten(def) && def.len != 0 && def.offset != Offset::UNKNOWN) {
-                    last_def[def.target][block].add(detail::Interval{def.offset, def.len}, node);
-                    detail::Interval interval = concretize(detail::Interval{def.offset, def.len});
-                    last_weak_def[def.target][block].killOverlapping(interval);
+                if (node->isOverwritten(def) && !def.offset.isUnknown()) {
+                    detail::Interval interval = concretize(detail::Interval{def.offset, def.len}, def.target->getSize());
+                    last_def[def.target][block].killOverlapping(interval);
+                    //last_weak_def[def.target][block].killOverlapping(interval);
+                    last_def[def.target][block].add(std::move(interval), node);
                 } else {
-                    last_weak_def[def.target][block].add(detail::Interval{def.offset, def.len}, node);
+                    last_weak_def[def.target][block].add(concretize(detail::Interval{def.offset, def.len}, def.target->getSize()), node);
                 }
             }
         }
@@ -85,7 +89,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     void performGvn(BlockT *block) {
         for (NodeT *node : block->getNodes()) {
             for (const DefSite& use : node->getUses()) {
-                std::vector<NodeT *> assignments = readVariable(use, block);
+                std::vector<NodeT *> assignments = readVariable(use, block, block);
                 // add edge from last definition to here
                 for (NodeT *assignment : assignments) {
                     insertSrgEdge(assignment, node, use);
@@ -93,10 +97,11 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
             }
 
             for (const DefSite& def : node->defs) {
-                if (node->isOverwritten(def))
+                if (node->isOverwritten(def) && !def.offset.isUnknown()) {
                     writeVariableStrong(def, node, block);
-                else
+                } else {
                     writeVariableWeak(def, node, block);
+                }
             }
         }
     }

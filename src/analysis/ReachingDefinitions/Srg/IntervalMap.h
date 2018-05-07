@@ -31,7 +31,7 @@ public:
     Interval(T start, T len): start(start), len(len) {}
 
     bool isUnknown() const {
-        return start.isUnknown() || len == 0;
+        return start.isUnknown() || len.offset == 0;
     }
 
     bool overlaps(const Interval& other) const {
@@ -41,7 +41,7 @@ public:
     }
 
     bool isSubsetOf(const Interval& other) const {
-        return start >= other.start && start + len <= other.start + other.len;
+        return (start >= other.start) && (start + len <= other.start + other.len);
     }
 
     bool unite(const Interval& other) {
@@ -171,22 +171,28 @@ public:
      * (possibly splitting up one interval into two)
      */
     void killOverlapping(const Interval& ki) {
+        if (ki.isUnknown())
+            return;
         std::vector<std::pair<Interval, V>> to_add;
         for (auto&& it = buckets.begin(); it != buckets.end(); ) {
             Interval& interval = it->first;
             V& v = it->second;
 
-            if (interval.overlaps(ki)) {
-                if (!ki.isSubsetOf(interval)) {
+            if (!interval.isUnknown() && interval.overlaps(ki)) {
+                if (ki.isSubsetOf(interval) && !interval.isSubsetOf(ki)) {
                     Offset start = interval.getStart();
                     Offset end = ki.getStart();
                     Interval new_int = Interval{start, end - start};
-                    to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+                    if (new_int.getLength().offset > 0) {
+                        to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+                    }
 
                     start = ki.getStart() + ki.getLength();
                     end = interval.getStart() + interval.getLength();
                     new_int = Interval{start, end - start};
-                    to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+                    if (new_int.getLength().offset > 0) {
+                        to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+                    }
                 } // else kill the whole interval, which is done by erasing it from buckets vector
                 it = buckets.erase(it);
             } else {
@@ -220,12 +226,13 @@ public:
 
         static_assert(ReverseLookup, "forward lookup in IntervalMap is not yet supported");
         for (auto it = buckets.rbegin(); it != buckets.rend(); ++it) {
-            if (interval.isUnknown() || it->first.isUnknown() || (it->first.overlaps(interval) && !isCovered(it->first, intervals))) {
+            if (interval.isUnknown() || it->first.isUnknown() || (it->first.overlaps(interval))) {
                 intervals.insert(it->first);
                 result.push_back(it->second);
                 is_covered = isCovered(interval, intervals);
             }
         }
+        is_covered = isCovered(interval, intervals);
 
         return std::tuple<std::vector<V>, std::vector<Interval>, bool>(std::move(result), std::move(intervals.moveVector()), is_covered);
     }
