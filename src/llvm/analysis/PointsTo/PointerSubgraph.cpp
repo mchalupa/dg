@@ -205,10 +205,16 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
                                               const llvm::Function *F)
 {
     // set this flag to true, so that createCallToFunction
+    // (and all recursive calls to this function)
     // will also add the program structure instead of only
-    // building the nodes
+    // building the nodes. This is needed as we have the
+    // graph already built and we are now only building
+    // newly created subgraphs ad hoc.
     ad_hoc_building = true;
-    return createOrGetSubgraph(CInst, F);
+    auto ret = createOrGetSubgraph(CInst, F);
+    ad_hoc_building = false;
+
+    return ret;
 }
 
 PSNodesSeq
