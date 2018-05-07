@@ -41,12 +41,29 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     DefMapT current_weak_def;
     DefMapT last_weak_def;
 
+    /**
+     * Remember strong definition @assignment of a @var in @block.
+     * Side-effect: kill current overlapping strong definitions and current overlapping weak definitions.
+     */
     void writeVariableStrong(const DefSite& var, NodeT *assignment, BlockT *block);
+
+    /**
+     * Remember weak definition @assignment of @var in @block.
+     * Does not affect other definitions.
+     */
     void writeVariableWeak(const DefSite& var, NodeT *assignment, BlockT *block);
+
+    /**
+     * Recursively looks up definition of @var in @block starting in @start. @start is supplied to prevent infinite recursion with weak updates.
+     * @covered is set of intervals where strong update has already been found.
+     * Returns a phi node that joins previous definitions. 
+     * The phi node is owned by the @phi_nodes vector.
+     */
     NodeT *readVariableRecursive(const DefSite& var, BlockT *block, BlockT *start, const Intervals& covered);
 
     /*
-     * If the interval has unknown offset or length, it is changed to contain everything
+     * If the interval has unknown offset or length, it is changed to contain everything.
+     * Optional parameter @size makes it possible to concretize to variable size, in case the size is known.
      */
     detail::Interval concretize(detail::Interval interval, uint64_t size = (~((uint64_t)0))) const {
         if (size == 0) {
@@ -63,10 +80,18 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
         return readVariable(var, read, start, empty_vector);
     }
 
+    /**
+     * Lookup all definitions of @var in @read starting from @start.
+     */
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, BlockT *start, const Intervals& covered);
 
     void addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, BlockT *start, const Intervals& covered);
 
+    /**
+     * Insert a def->use edge into the resulting SparseRDGraph.
+     * @from is a definition
+     * @to is a use
+     */
     void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
         srg[from].push_back(std::make_pair(var, to));
     }

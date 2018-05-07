@@ -1,6 +1,7 @@
 #ifndef _DG_INTERVALSET_H
 #define _DG_INTERVALSET_H
 
+#include <algorithm>
 #include "analysis/Offset.h"
 #include "analysis/ReachingDefinitions/RDMap.h"
 
@@ -18,14 +19,6 @@ class Interval {
 
     T start;
     T len;
-
-    static inline T min(T a, T b) {
-        return a < b ? a : b;
-    }
-
-    static inline T max(T a, T b) {
-        return a > b ? a : b;
-    }
 
 public:
     Interval(T start, T len): start(start), len(len) {}
@@ -45,6 +38,9 @@ public:
     }
 
     bool unite(const Interval& other) {
+        using std::min;
+        using std::max;
+
         if (isUnknown() || other.isUnknown())
             return false;
         if (overlaps(other) || start + len == other.start || other.start + other.len == start) {
@@ -60,13 +56,17 @@ public:
     T getStart() const {
         return start;
     }
-    
+
     T getLength() const {
         return len;
     }
 
 };
 
+/**
+ * Represents a set of disjoint intervals.
+ * DisjointIntervalSet::insert is the main functions, other functions are delegated to the underlying vector.
+ */
 class DisjointIntervalSet {
     std::vector<Interval> intervals;
 public:
@@ -79,6 +79,12 @@ public:
             insert(interval);
         }
     }
+
+    /**
+     * Inserts @interval to the set, maintaining the invariant that all intervals
+     * in the set are disjoint. That is, if @interval overlaps with @x, that is already in the set,
+     * @x is removed, @interval is united with @x and inserted to the set.
+     */
 
     void insert(Interval interval) {
         // find & remove all overlapping intervals
@@ -128,7 +134,7 @@ public:
  *
  * Template parameters:
  *  V - type of value stored against interval
- *  ReverseLookup - order of interval lookup in collect. 
+ *  ReverseLookup - order of interval lookup in collect.
  *          If ReverseLookup=true, search will start at the end, so last values will be returned first
  */
 template <typename V, bool ReverseLookup=true>
@@ -150,16 +156,6 @@ class IntervalMap {
             }
         }
         return false;
-    }
-
-    template< typename T >
-    const T& max(const T& a, const T& b) const {
-        return a > b ? a : b;
-    }
-
-    template< typename T >
-    const T& min(const T& a, const T& b) const {
-        return a < b ? a : b;
     }
 
 public:
@@ -222,6 +218,9 @@ public:
         std::move(to_add.begin(), to_add.end(), std::back_inserter(buckets));
     }
 
+    /**
+     * Adds a new mapping from @interval to @value.
+     */
     void add(Interval&& interval, const V& value) {
         //                                    move interval, copy value
         auto to_add = std::make_pair<Interval, V>(std::move(interval), V(value));
@@ -238,7 +237,7 @@ public:
      *      1 - key intervals that (partially) cover specified interval
      *      2 - true if @interval is fully covered by returned key interval set, false otherwise
      */
-    std::tuple<std::vector<V>, std::vector<Interval>, bool> 
+    std::tuple<std::vector<V>, std::vector<Interval>, bool>
         collect(const Interval& interval, const std::vector<detail::Interval>& covered) const {
 
         std::vector<V> result;
