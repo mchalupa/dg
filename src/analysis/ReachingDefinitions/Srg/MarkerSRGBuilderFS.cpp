@@ -49,10 +49,10 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
 
 void MarkerSRGBuilderFS::addPhiOperands(const DefSite& v, NodeT *phi, BlockT *block, BlockT *start, const std::vector<detail::Interval>& covered) {
 
-    if (var.len == 0 || var.offset.isUnknown()) {
-        var.len = Offset::UNKNOWN;
-        var.offset = 0;
-    }
+    DefSite var = v;
+    const auto interval = concretize(detail::Interval{var.offset, var.len});
+    var.offset = interval.getStart();
+    var.len = interval.getLength();
     phi->addDef(var, true);
     phi->addUse(var);
 
