@@ -77,7 +77,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
                 if (node->isOverwritten(def) && !def.offset.isUnknown()) {
                     detail::Interval interval = concretize(detail::Interval{def.offset, def.len}, def.target->getSize());
                     last_def[def.target][block].killOverlapping(interval);
-                    //last_weak_def[def.target][block].killOverlapping(interval);
+                    last_weak_def[def.target][block].killOverlapping(interval);
                     last_def[def.target][block].add(std::move(interval), node);
                 } else {
                     last_weak_def[def.target][block].add(concretize(detail::Interval{def.offset, def.len}, def.target->getSize()), node);
