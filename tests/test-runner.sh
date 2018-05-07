@@ -60,9 +60,12 @@ link_with_assert()
 {
 	FILE="$1"
 	OUT="$2"
+	shift
+	shift
+
 	TEST_ASSERT="$TESTS_DIR/test_assert.bc"
 
-	clang -emit-llvm -c "$TESTS_DIR/test_assert.c" -o "$TEST_ASSERT" \
+	clang -emit-llvm -c "$TESTS_DIR/test_assert.c" -o "$TEST_ASSERT" $@ \
 		|| errmsg "Compilation of test_assert.c failed"
 	llvm-link "$FILE" "$TEST_ASSERT" -o "$OUT" \
 		|| errmsg "Linking with test_assert failed"
