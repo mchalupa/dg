@@ -173,23 +173,43 @@ public:
     void killOverlapping(const Interval& ki) {
         if (ki.isUnknown())
             return;
+
         std::vector<std::pair<Interval, V>> to_add;
         for (auto&& it = buckets.begin(); it != buckets.end(); ) {
             Interval& interval = it->first;
             V& v = it->second;
 
-            if (!interval.isUnknown() && interval.overlaps(ki)) {
-                if (ki.isSubsetOf(interval) && !interval.isSubsetOf(ki)) {
+            if (!interval.getLength().isUnknown() && !interval.isUnknown() && interval.overlaps(ki)) {
+                if (ki.isSubsetOf(interval)) {
+                    // @interval is split into 2 by @ki
+
+                    // calculate the left part
                     Offset start = interval.getStart();
                     Offset end = ki.getStart();
-                    Interval new_int = Interval{start, end - start};
+                    auto new_int = Interval{start, end - start};
                     if (new_int.getLength().offset > 0) {
                         to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
                     }
-
+                    // calculate the right part
                     start = ki.getStart() + ki.getLength();
                     end = interval.getStart() + interval.getLength();
                     new_int = Interval{start, end - start};
+                    if (new_int.getLength().offset > 0) {
+                        to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
+                    }
+                } else if (!ki.isSubsetOf(interval) && !interval.isSubsetOf(ki)) {
+                    // calculate preserved interval
+                    Offset start, end;
+                    if (ki.getStart() <= interval.getStart()) {
+                        // ki is on the left
+                        start = ki.getStart() + ki.getLength();
+                        end = interval.getStart() + interval.getLength();
+                    } else {
+                        // ki is on the right
+                        start = interval.getStart();
+                        end = ki.getStart();
+                    }
+                    auto new_int = Interval{start, end - start};
                     if (new_int.getLength().offset > 0) {
                         to_add.push_back(std::pair<Interval, V>(std::move(new_int), std::move(v)));
                     }
@@ -199,6 +219,7 @@ public:
                 ++it;
             }
         }
+        std::move(to_add.begin(), to_add.end(), std::back_inserter(buckets));
     }
 
     void add(Interval&& interval, const V& value) {
