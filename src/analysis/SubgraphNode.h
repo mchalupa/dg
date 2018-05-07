@@ -141,18 +141,20 @@ public:
         assert(successors.size() == 1);
         NodeT *old = successors[0];
 
-        // replace the successor
-        successors.clear();
-        addSuccessor(succ);
-
         // we need to remove this node from
         // successor's predecessors
         std::vector<NodeT *> tmp;
         tmp.reserve(old->predecessorsNum() - 1);
-        for (NodeT *p : old->predecessors)
-            tmp.push_back(p);
+        for (NodeT *p : old->predecessors) {
+            if (p != this)
+                tmp.push_back(p);
+        }
 
         old->predecessors.swap(tmp);
+
+        // replace the successor
+        successors.clear();
+        addSuccessor(succ);
     }
 
     // get successor when we know there's only one of them
