@@ -214,9 +214,9 @@ LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
 void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
 {
     for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
-        PSNode *op = tryGetOperand(PHI->getIncomingValue(i));
-        if (op)
+        if (PSNode *op = tryGetOperand(PHI->getIncomingValue(i))) {
             node->addOperand(op);
+        }
     }
 }
 
@@ -224,8 +224,7 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(const llvm::Function &F)
 {
     for (const llvm::BasicBlock& B : F) {
         for (const llvm::Instruction& I : B) {
-            const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I);
-            if (PHI) {
+            if (const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I)) {
                 if (PSNode *node = getNode(PHI))
                     addPHIOperands(node, PHI);
             }
