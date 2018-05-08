@@ -324,9 +324,15 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         if (!node) // node id 0 is nullptr
             continue;
 
-        for (PSNode *succ : node->getSuccessors())
+        for (PSNode *succ : node->getSuccessors()) {
             printf("\tNODE%u -> NODE%u [penwidth=2]\n",
                    node->getID(), succ->getID());
+        }
+
+        for (PSNode *op : node->getOperands()) {
+            printf("\tNODE%u -> NODE%u [color=blue,style=dotted,constraint=false]\n",
+                   op->getID(), node->getID());
+        }
     }
 
     printf("}\n");
