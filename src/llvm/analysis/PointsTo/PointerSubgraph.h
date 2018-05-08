@@ -39,7 +39,6 @@ class LLVMPointerSubgraphBuilder
     // \return   root node of the graph
     PSNode *buildFunction(const llvm::Function& F);
     PSNodesSeq buildInstruction(const llvm::Instruction&);
-    PSNode *buildNode(const llvm::Value *val);
 
     void buildPointerSubgraphBlock(const llvm::BasicBlock& block);
 

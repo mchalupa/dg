@@ -122,34 +122,6 @@ PSNode *LLVMPointerSubgraphBuilder::tryGetOperand(const llvm::Value *val)
     return op;
 }
 
-PSNode *LLVMPointerSubgraphBuilder::buildNode(const llvm::Value *val)
-{
-    assert(nodes_map.count(val) == 0);
-
-    const llvm::Instruction *Inst
-        = llvm::dyn_cast<llvm::Instruction>(val);
-
-    if (Inst) {
-            PSNodesSeq seq = buildInstruction(*Inst);
-            assert(seq.first && seq.second);
-            return seq.second;
-    } else if (const llvm::Argument *A
-                = llvm::dyn_cast<llvm::Argument>(val)) {
-        return createArgument(A);
-    } else {
-        // this may happen when C code is corrupted like this:
-        // int a, b;
-        // a = &b;
-        // a = 3;
-        //
-        // 'a' is int but is assigned an address of 'b', which leads
-        // to creating an inttoptr/ptrtoint instructions that
-        // have forexample 'i32 3' as operand
-        llvm::errs() << "Invalid value leading to UNKNOWN: " << *val << "\n";
-        return createUnknown(val);
-    }
-}
-
 PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
 {
     PSNode *op = tryGetOperand(val);
@@ -479,9 +451,7 @@ void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBloc
             continue;
         }
 
-        // maybe this instruction was already created by getOperand()
-        if (nodes_map.count(&Inst) != 0)
-            continue;
+        assert(nodes_map.count(&Inst) == 0);
 
 #ifndef NDEBUG
         PSNodesSeq seq =
@@ -567,7 +537,7 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
         PSNode *a = tryGetOperand(&*A);
         assert(a == nullptr || a == UNKNOWN_MEMORY);
 #endif
-        buildNode(&*A);
+        createArgument(&*A);
     }
 
     // add record to built graphs here, so that subsequent call of this function
@@ -640,8 +610,7 @@ void LLVMPointerSubgraphBuilder::addArgumentsOperands(const llvm::Function *F,
     int idx = 0;
     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
         auto it = nodes_map.find(&*A);
-        if (it == nodes_map.end())
-            continue;
+        assert(it != nodes_map.end());
 
         PSNodesSeq& cur = it->second;
         assert(cur.first == cur.second);
