@@ -93,7 +93,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
      * @to is a use
      */
     void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
-        srg[from].push_back(std::make_pair(var, to));
+        srg[to].push_back(std::make_pair(var, from));
     }
 
     void performLvn(BlockT *block) {
