@@ -252,7 +252,8 @@ public:
     void allocateGlobalNodes()
     {
         assert(!global_nodes && "Already contains global nodes");
-        global_nodes = std::make_shared<ContainerType>();
+        // std::make_shared returned unaligned pointer for some reason...
+        global_nodes = std::shared_ptr<ContainerType>(new ContainerType());
     }
 
     ContainerType *getNodes()
