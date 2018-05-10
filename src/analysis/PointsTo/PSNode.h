@@ -195,8 +195,8 @@ protected:
     : PSNode(id, t)
     {
         assert(t == PSNodeType::MEMCPY);
-        operands.push_back(op1);
-        operands.push_back(op2);
+        addOperand(op1);
+        addOperand(op2);
     }
 
     // ctor for gep
@@ -204,7 +204,7 @@ protected:
     : PSNode(id, t)
     {
         assert(t == PSNodeType::GEP);
-        operands.push_back(op1);
+        addOperand(op1);
     }
 
     // ctor of constant
@@ -231,11 +231,11 @@ protected:
             case PSNodeType::CALL_FUNCPTR:
             case PSNodeType::INVALIDATE_LOCALS:
             case PSNodeType::FREE:
-                operands.push_back(va_arg(args, PSNode *));
+                addOperand(va_arg(args, PSNode *));
                 break;
             case PSNodeType::STORE:
-                operands.push_back(va_arg(args, PSNode *));
-                operands.push_back(va_arg(args, PSNode *));
+                addOperand(va_arg(args, PSNode *));
+                addOperand(va_arg(args, PSNode *));
                 break;
             case PSNodeType::CALL_RETURN:
             case PSNodeType::PHI:
@@ -244,7 +244,7 @@ protected:
                 op = va_arg(args, PSNode *);
                 // the operands are null terminated
                 while (op) {
-                    operands.push_back(op);
+                    addOperand(op);
                     op = va_arg(args, PSNode *);
                 }
                 break;
