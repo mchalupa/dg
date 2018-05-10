@@ -48,8 +48,8 @@ private:
         // remove node1
         node1->replaceAllUsesWith(node2);
         node1->isolate();
-        // XXX: the builder must have a reference to the node1
-        // or we would leak it
+        // remove the node, we won't need it anymore
+        PS->remove(node1);
 
         // update the mapping
         auto it = mapping.find(node1);
