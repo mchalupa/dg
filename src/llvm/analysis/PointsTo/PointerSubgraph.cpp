@@ -38,6 +38,7 @@
 
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
+#include "analysis/PointsTo/PointerSubgraphOptimizations.h"
 #include "PointerSubgraph.h"
 
 namespace dg {
@@ -773,7 +774,19 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
 #ifndef NDEBUG
     debug::LLVMPointerSubgraphValidator validator(&PS);
     if (validator.validate()) {
-        llvm::errs() << "Pointer Subgraph is broken!\n";
+        llvm::errs() << "Pointer Subgraph is broken (right after building)!\n";
+        assert(!validator.getErrors().empty());
+        llvm::errs() << validator.getErrors();
+        return nullptr;
+    }
+#endif // NDEBUG
+
+    PointerSubgraphOptimizer optimizer(&PS);
+    optimizer.removeNoops();
+
+#ifndef NDEBUG
+    if (validator.validate()) {
+        llvm::errs() << "Pointer Subgraph is broken! (happend after optimizations)\n";
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();
         return nullptr;
