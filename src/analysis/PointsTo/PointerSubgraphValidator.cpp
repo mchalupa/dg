@@ -37,6 +37,17 @@ bool PointerSubgraphValidator::reportUnreachableNode(const PSNode *nd) {
     return true;
 }
 
+static bool hasDuplicateOperand(const PSNode *nd)
+{
+    std::set<const PSNode *> ops;
+    for (const PSNode *op : nd->getOperands()) {
+        if (!ops.insert(op).second)
+            return true;
+    }
+
+    return false;
+}
+
 bool PointerSubgraphValidator::checkOperands() {
     bool invalid = false;
 
@@ -50,6 +61,8 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::PHI:
                 if (nd->getOperandsNum() == 0) {
                     invalid |= reportInvalNumberOfOperands(nd);
+                } else if (hasDuplicateOperand(nd)) {
+                    invalid |= reportInvalNumberOfOperands(nd, "PHI Node contains duplicated operand");
                 }
                 break;
             case PSNodeType::NULL_ADDR:
