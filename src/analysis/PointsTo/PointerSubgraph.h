@@ -62,6 +62,19 @@ public:
         root = r;
     }
 
+    void remove(PSNode *nd) {
+        assert(nd);
+        // the node must be isolated
+        assert(nd->successors.empty());
+        assert(nd->predecessors.empty());
+        assert(nd->getID() < size());
+        assert(nodes[nd->getID()] == nd && "Inconsistency in nodes");
+
+        // clear the nodes entry
+        nodes[nd->getID()] = nullptr;
+        delete nd;
+    }
+
     PSNode *create(PSNodeType t, ...) {
         va_list args;
         PSNode *node = nullptr;
