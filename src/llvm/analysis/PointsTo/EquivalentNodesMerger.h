@@ -1,7 +1,7 @@
 #ifndef _DG_EQUIVALENT_NODES_MERGER_H_
 #define _DG_EQUIVALENT_NODES_MERGER_H_
 
-#include <unordered_map>
+#include "analysis/PointsTo/PointsToMapping.h"
 #include <cassert>
 
 namespace dg {
@@ -10,7 +10,7 @@ namespace pta {
 
 class PSEquivalentNodesMerger {
 public:
-    using MappingT = std::unordered_map<PSNode *, PSNode *>;
+    using MappingT = PointsToMapping<PSNode *>;
 
     PSEquivalentNodesMerger(PointerSubgraph *S)
     : PS(S), merged_nodes_num(0) {
@@ -59,9 +59,7 @@ private:
         PS->remove(node1);
 
         // update the mapping
-        auto it = mapping.find(node1);
-        assert(it == mapping.end());
-        mapping.emplace_hint(it, node1, node2);
+        mapping.add(node1, node2);
 
         ++merged_nodes_num;
     }
