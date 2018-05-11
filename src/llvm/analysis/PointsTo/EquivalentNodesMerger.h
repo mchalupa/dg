@@ -21,26 +21,33 @@ public:
     const MappingT& getMapping() const { return mapping; }
 
     MappingT& mergeNodes() {
-        auto nodes = PS->getNodes();
-        for (PSNode *node : nodes) {
-            if (!node) // id 0
-                continue;
-
-            // bitcast of alloca will always point to that alloca
-            // (it is a must alias)
-            if (node->getType() == PSNodeType::CAST
-                && node->getOperand(0)->getType() == PSNodeType::ALLOC)
-                merge(node, node->getOperand(0));
-        }
-
+        mergeCasts();
         return mapping;
     }
 
-    unsigned getMergedNodesNum() const {
+    unsigned getNumOfMergedNodes() const {
         return merged_nodes_num;
     }
 
 private:
+    // get rid of all casts
+    void mergeCasts() {
+        auto nodes = PS->getNodes();
+        for (PSNode *node : nodes) {
+            if (!node)
+                continue;
+
+            // cast is always 'a proxy' to the real value,
+            // it does not change the pointers
+            if (node->getType() == PSNodeType::CAST)
+                merge(node, node->getOperand(0));
+            else if (PSNodeGep *GEP = PSNodeGep::get(node)) {
+                if (GEP->getOffset().isZero()) // GEP with 0 offest is cast
+                    merge(node, GEP->getSource());
+            }
+        }
+    }
+
     // merge node1 and node2 (node2 will be
     // the representant and node1 will be removed,
     // mapping will be se node1->node2)

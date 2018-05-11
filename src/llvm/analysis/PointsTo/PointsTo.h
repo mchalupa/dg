@@ -25,6 +25,7 @@
 #include "llvm/llvm-utils.h"
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
+#include "analysis/PointsTo/PointerSubgraphOptimizations.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 
 #include "EquivalentNodesMerger.h"
@@ -201,6 +202,8 @@ public:
         analysis::pta::PSEquivalentNodesMerger merger(PS);
         equivalence_mapping = std::move(merger.mergeNodes());
 
+        llvm::errs() << "PS nodes merging merged " << merger.getNumOfMergedNodes() << " nodes\n";
+
 #ifndef NDEBUG
         // check the graph after merging
         analysis::pta::debug::LLVMPointerSubgraphValidator validator(builder->getPS());
@@ -212,6 +215,23 @@ public:
             abort();
         }
 #endif // NDEBUG
+
+        analysis::pta::PointerSubgraphOptimizer optimizer(PS);
+        optimizer.removeNoops();
+        optimizer.removeUnknowns();
+
+        llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
+
+#ifndef NDEBUG
+        if (validator.validate()) {
+            llvm::errs() << "Pointer Subgraph is broken!\n";
+            llvm::errs() << "This happend after optimizing the graph.";
+            assert(!validator.getErrors().empty());
+            llvm::errs() << validator.getErrors();
+            abort();
+        }
+#endif // NDEBUG
+
     }
 
     template <typename PTType>
