@@ -78,6 +78,7 @@ struct Offset
     }
 
     bool isUnknown() const { return offset == UNKNOWN; }
+    bool isZero() const { return offset == 0; }
 
     type operator*() const { return offset; }
     const type *operator->() const { return &offset; }

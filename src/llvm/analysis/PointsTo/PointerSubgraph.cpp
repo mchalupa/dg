@@ -781,18 +781,6 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     }
 #endif // NDEBUG
 
-    PointerSubgraphOptimizer optimizer(&PS);
-    optimizer.removeNoops();
-
-#ifndef NDEBUG
-    if (validator.validate()) {
-        llvm::errs() << "Pointer Subgraph is broken! (happend after optimizations)\n";
-        assert(!validator.getErrors().empty());
-        llvm::errs() << validator.getErrors();
-        return nullptr;
-    }
-#endif // NDEBUG
-
     return &PS;
 }
 
