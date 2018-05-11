@@ -11,6 +11,7 @@
 
 #include "llvm/MemAllocationFuncs.h"
 #include "analysis/PointsTo/PointerSubgraph.h"
+#include "analysis/PointsTo/PointsToMapping.h"
 #include "analysis/PointsTo/Pointer.h"
 
 namespace dg {
@@ -22,6 +23,9 @@ using PSNodesSeq = std::pair<PSNode *, PSNode *>;
 class LLVMPointerSubgraphBuilder
 {
     PointerSubgraph PS;
+    // mapping from llvm values to PSNodes that contain
+    // the points-to information
+    PointsToMapping<const llvm::Value *> mapping;
 
     const llvm::Module *M;
     const llvm::DataLayout *DL;
@@ -120,19 +124,17 @@ public:
         return it->second.second;
     }
 
+    PSNode *getMapping(const llvm::Value *val) {
+        return mapping.get(val);
+    }
+
     // this is the same as the getNode, but it
     // creates ConstantExpr
     PSNode *getPointsTo(const llvm::Value *val)
     {
-        PSNode *n = getNode(val);
+        PSNode *n = getMapping(val);
         if (!n)
             n = getConstant(val);
-
-        // if this is a call that returns a pointer,
-        // then the points-to is in CALL_RETURN node
-        if (n && (n->getType() == PSNodeType::CALL
-            || n->getType() == PSNodeType::CALL_FUNCPTR))
-            n = n->getPairedNode();
 
         return n;
     }
@@ -142,17 +144,35 @@ public:
         this->invalidate_nodes = value;
     }
 
+    void composeMapping(PointsToMapping<PSNode *>&& rhs) {
+        mapping.compose(std::move(rhs));
+    }
+
 private:
+    void setMapping(const llvm::Value *val, PSNode *node) {
+        // if this is a call that returns a pointer,
+        // then the points-to is in CALL_RETURN node
+        if (node->getType() == PSNodeType::CALL
+            || node->getType() == PSNodeType::CALL_FUNCPTR)
+            node = node->getPairedNode();
+
+        mapping.add(val, node);
+    }
+
     void addNode(const llvm::Value *val, PSNode *node)
     {
         nodes_map.emplace(val, std::make_pair(node, node));
         node->setUserData(const_cast<llvm::Value *>(val));
+
+        setMapping(val, node);
     }
 
     void addNode(const llvm::Value *val, PSNodesSeq seq)
     {
         nodes_map.emplace(val, seq);
         seq.second->setUserData(const_cast<llvm::Value *>(val));
+
+        setMapping(val, seq.second);
     }
 
     bool isRelevantInstruction(const llvm::Instruction& Inst);

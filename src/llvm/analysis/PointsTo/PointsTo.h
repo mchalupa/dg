@@ -141,7 +141,6 @@ class LLVMPointerAnalysis
 {
     PointerSubgraph *PS = nullptr;
     LLVMPointerSubgraphBuilder *builder;
-    analysis::pta::PSEquivalentNodesMerger::MappingT equivalence_mapping;
 
 public:
 
@@ -161,16 +160,7 @@ public:
 
     PSNode *getPointsTo(const llvm::Value *val)
     {
-        PSNode *nd = builder->getPointsTo(val);
-        // check whether this node has been merged
-        // and it has a representant
-        if (nd) {
-            auto it = equivalence_mapping.find(nd);
-            if (it != equivalence_mapping.end())
-                return it->second;
-        }
-
-        return nd;
+        return builder->getPointsTo(val);
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
@@ -200,7 +190,8 @@ public:
 
         // merge equivalent nodes
         analysis::pta::PSEquivalentNodesMerger merger(PS);
-        equivalence_mapping = std::move(merger.mergeNodes());
+        merger.mergeNodes();
+        builder->composeMapping(std::move(merger.getMapping()));
 
         llvm::errs() << "PS nodes merging merged " << merger.getNumOfMergedNodes() << " nodes\n";
 
