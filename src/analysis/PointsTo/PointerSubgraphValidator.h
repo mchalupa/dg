@@ -26,8 +26,9 @@ protected:
     std::string errors{};
     std::string warnings{};
 
-    virtual bool reportInvalNumberOfOperands(const PSNode *n, const std::string& user_err = "");
+    virtual bool reportInvalOperands(const PSNode *n, const std::string& user_err = "");
     virtual bool reportInvalEdges(const PSNode *n, const std::string& user_err = "");
+    virtual bool reportInvalNode(const PSNode *n, const std::string& user_err = "");
     virtual bool reportUnreachableNode(const PSNode *);
 
 public:
