@@ -93,13 +93,6 @@ public:
 
     PointerSubgraph *buildLLVMPointerSubgraph();
 
-    // create subgraph of function @F (the nodes)
-    // and call+return nodes to/from it. This function
-    // won't add the CFG edges if not 'ad_hoc_building'
-    // is set to true
-    PSNodesSeq
-    createCallToFunction(const llvm::CallInst *, const llvm::Function *);
-
     PSNodesSeq
     createFuncptrCall(const llvm::CallInst *CInst,
                       const llvm::Function *F);
@@ -109,6 +102,41 @@ public:
     // map the points-to informatio back to LLVM nodes
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
                                 getNodesMap() const { return nodes_map; }
+
+    // this is the same as the getNode, but it
+    // creates ConstantExpr
+    PSNode *getPointsTo(const llvm::Value *val)
+    {
+        PSNode *n = getMapping(val);
+        if (!n)
+            n = getConstant(val);
+
+        return n;
+    }
+
+    void setInvalidateNodesFlag(bool value) 
+    {
+        assert(PS.getRoot() == nullptr &&
+                "This function must be called before building PS");
+        this->invalidate_nodes = value;
+    }
+
+    void composeMapping(PointsToMapping<PSNode *>&& rhs) {
+        mapping.compose(std::move(rhs));
+    }
+
+private:
+
+    // create subgraph of function @F (the nodes)
+    // and call+return nodes to/from it. This function
+    // won't add the CFG edges if not 'ad_hoc_building'
+    // is set to true
+    PSNodesSeq
+    createCallToFunction(const llvm::CallInst *, const llvm::Function *);
+
+    PSNode *getMapping(const llvm::Value *val) {
+        return mapping.get(val);
+    }
 
     PSNode *getNode(const llvm::Value *val)
     {
@@ -125,31 +153,6 @@ public:
         return it->second.second;
     }
 
-    PSNode *getMapping(const llvm::Value *val) {
-        return mapping.get(val);
-    }
-
-    // this is the same as the getNode, but it
-    // creates ConstantExpr
-    PSNode *getPointsTo(const llvm::Value *val)
-    {
-        PSNode *n = getMapping(val);
-        if (!n)
-            n = getConstant(val);
-
-        return n;
-    }
-
-    void setInvalidateNodesFlag(bool value) 
-    {
-        this->invalidate_nodes = value;
-    }
-
-    void composeMapping(PointsToMapping<PSNode *>&& rhs) {
-        mapping.compose(std::move(rhs));
-    }
-
-private:
     void setMapping(const llvm::Value *val, PSNode *node) {
         // if this is a call that returns a pointer,
         // then the points-to is in CALL_RETURN node
