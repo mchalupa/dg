@@ -305,13 +305,10 @@ public:
 
     void replaceAllUsesWith(NodeT *nd) {
         // Replace 'this' in every user with 'nd'.
-        // NOTE: Suppose there is only one use of 'this' in
-        // every user.
         for (NodeT *user : users) {
             for (int i = 0, e = user->getOperandsNum(); i < e; ++i) {
                 if (user->getOperand(i) == this) {
                     user->setOperand(i, nd);
-                    break;
                 }
             }
         }
