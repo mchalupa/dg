@@ -331,15 +331,8 @@ public:
 
 private:
     void addUser(NodeT *nd) {
-#ifdef DEBUG_ENABLED
-        for (NodeT *x : users)
-            assert(x != nd && "User added multiple times");
-#endif // DEBUG_ENABLED
-
         users.push_back(nd);
     }
-
-
 };
 
 } // analysis
