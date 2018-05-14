@@ -26,9 +26,8 @@
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "analysis/PointsTo/PointerSubgraphOptimizations.h"
+#include "analysis/PointsTo/EquivalentNodesMerger.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
-
-#include "EquivalentNodesMerger.h"
 
 namespace dg {
 
