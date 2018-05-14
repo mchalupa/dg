@@ -71,9 +71,8 @@ class PSUnknownsReducer {
                         ++removed;
                     }
 
-                    nd->isolate();
-                    PS->remove(nd);
-                    ++removed;
+                    // NOTE: keep the alloca, as it contains the
+                    // pointer to itself and may be queried for this pointer
                 }
             }
         }
