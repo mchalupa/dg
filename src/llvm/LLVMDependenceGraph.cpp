@@ -349,7 +349,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // create the subgraph
         if (!func && !CInst->isInlineAsm() && PTA) {
             using namespace analysis::pta;
-            PSNode *op = PTA->getNode(strippedValue);
+            PSNode *op = PTA->getPointsTo(strippedValue);
             if (op) {
                 for (const Pointer& ptr : op->pointsTo) {
                     if (!ptr.isValid() || ptr.isInvalidated())
