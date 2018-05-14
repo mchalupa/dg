@@ -63,7 +63,8 @@ class PSUnknownsReducer {
                         if (user->getType() == PSNodeType::LOAD) {
                             // replace the uses of the load value by unknown
                             // (this is what would happen in the analysis)
-                            user->replaceAllUsesWith(UNKNOWN_MEMORY);
+                            user->replaceAllUsesWith(UNKNOWN_MEMORY,
+                                                     true /* remove duplicate operands */);
                         }
                         // store can be removed directly
                         user->isolate();

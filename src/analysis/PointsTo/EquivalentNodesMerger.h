@@ -32,8 +32,7 @@ public:
 private:
     // get rid of all casts
     void mergeCasts() {
-        auto nodes = PS->getNodes();
-        for (PSNode *node : nodes) {
+        for (PSNode *node : PS->getNodes()) {
             if (!node)
                 continue;
 
@@ -50,12 +49,12 @@ private:
 
     // merge node1 and node2 (node2 will be
     // the representant and node1 will be removed,
-    // mapping will be se node1->node2)
+    // mapping will be set to  node1 -> node2)
     void merge(PSNode *node1, PSNode *node2) {
+        //asm("int3");
         // remove node1
-        node1->replaceAllUsesWith(node2);
+        node1->replaceAllUsesWith(node2, true /* remove duplicate operands */);
         node1->isolate();
-        // remove the node, we won't need it anymore
         PS->remove(node1);
 
         // update the mapping

@@ -303,14 +303,19 @@ public:
         predecessors.clear();
     }
 
-    void replaceAllUsesWith(NodeT *nd) {
+    void replaceAllUsesWith(NodeT *nd, bool removeDupl = false) {
         // Replace 'this' in every user with 'nd'.
         for (NodeT *user : users) {
             for (int i = 0, e = user->getOperandsNum(); i < e; ++i) {
                 if (user->getOperand(i) == this) {
                     user->setOperand(i, nd);
+                    // register that 'nd' is now used in 'user'
+                    nd->addUser(user);
                 }
             }
+
+            if (removeDupl)
+                user->removeDuplicitOperands();
         }
 
         users.clear();
@@ -327,7 +332,33 @@ public:
     }
 
 private:
+    bool removeDuplicitOperands() {
+        std::set<NodeT *> ops;
+        bool duplicated = false;
+        for (auto op : getOperands()) {
+            if (!ops.insert(op).second)
+                duplicated = true;
+        }
+
+        if (duplicated) {
+            operands.clear();
+            operands.reserve(ops.size());
+            // just push the new operads,
+            // the users should not change in this case
+            // (as we just remove the duplicated ones)
+            for (auto op : ops)
+                operands.push_back(op);
+        }
+
+        return duplicated;
+    }
+
     void addUser(NodeT *nd) {
+        // do not add duplicate users
+        for (auto u : users)
+            if (u == nd)
+                return;
+
         users.push_back(nd);
     }
 };
