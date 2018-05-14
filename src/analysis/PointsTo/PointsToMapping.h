@@ -24,6 +24,8 @@ public:
         mapping.reserve(s);
     }
 
+    size_t size() const { return mapping.size(); }
+
     PSNode *get(ValT val) const {
         auto it = mapping.find(val);
         if (it == mapping.end())
