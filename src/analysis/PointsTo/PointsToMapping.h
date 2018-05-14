@@ -15,6 +15,8 @@ namespace pta {
 template <typename ValT>
 class PointsToMapping {
     using MappingT = std::unordered_map<ValT, PSNode *>;
+    using iterator = typename MappingT::iterator;
+    using const_iterator = typename MappingT::const_iterator;
 
     MappingT mapping;
 public:
@@ -62,6 +64,11 @@ public:
             }
         }
     }
+
+    iterator begin() { return mapping.begin(); }
+    iterator end() { return mapping.end(); }
+    const_iterator begin() const { return mapping.begin(); }
+    const_iterator end() const { return mapping.end(); }
 };
 
 
