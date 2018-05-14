@@ -26,7 +26,6 @@
 #include "llvm/analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "analysis/PointsTo/PointerSubgraphOptimizations.h"
-#include "analysis/PointsTo/EquivalentNodesMerger.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 
 namespace dg {
@@ -182,32 +181,18 @@ public:
             abort();
         }
 
-        // merge equivalent nodes
-        analysis::pta::PSEquivalentNodesMerger merger(PS);
-        merger.mergeNodes();
-        builder->composeMapping(std::move(merger.getMapping()));
-
-        llvm::errs() << "PS nodes merging merged " << merger.getNumOfMergedNodes() << " nodes\n";
-
-#ifndef NDEBUG
-        // check the graph after merging
-        analysis::pta::debug::LLVMPointerSubgraphValidator validator(builder->getPS());
-        if (validator.validate()) {
-            llvm::errs() << "Pointer Subgraph is broken!\n";
-            llvm::errs() << "This happend after merging nodes.";
-            assert(!validator.getErrors().empty());
-            llvm::errs() << validator.getErrors();
-            abort();
-        }
-#endif // NDEBUG
-
         analysis::pta::PointerSubgraphOptimizer optimizer(PS);
         optimizer.removeNoops();
+        optimizer.removeEquivalentNodes();
         optimizer.removeUnknowns();
+
+        if (optimizer.getNumOfRemovedNodes() > 0)
+            builder->composeMapping(std::move(optimizer.getMapping()));
 
         llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
 
 #ifndef NDEBUG
+        analysis::pta::debug::LLVMPointerSubgraphValidator validator(builder->getPS());
         if (validator.validate()) {
             llvm::errs() << "Pointer Subgraph is broken!\n";
             llvm::errs() << "This happend after optimizing the graph.";
