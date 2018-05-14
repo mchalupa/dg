@@ -95,9 +95,10 @@ public:
 
     // create subgraph of function @F (the nodes)
     // and call+return nodes to/from it. This function
-    // won't add the CFG edges if not @with_structure
+    // won't add the CFG edges if not 'ad_hoc_building'
+    // is set to true
     PSNodesSeq
-    createCallToFunction(const llvm::Function *F);
+    createCallToFunction(const llvm::CallInst *, const llvm::Function *);
 
     PSNodesSeq
     createFuncptrCall(const llvm::CallInst *CInst,
@@ -237,8 +238,9 @@ private:
 
     PSNodesSeq createExtract(const llvm::Instruction *Inst);
     PSNodesSeq createCall(const llvm::Instruction *Inst);
-    PSNodesSeq createOrGetSubgraph(const llvm::CallInst *,
-                                   const llvm::Function *);
+    PSNodesSeq createFunctionCall(const llvm::CallInst *, const llvm::Function *);
+    PSNodesSeq createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
+    Subgraph& createOrGetSubgraph(const llvm::Function *);
 
 
     PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,

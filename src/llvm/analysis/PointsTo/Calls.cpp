@@ -19,36 +19,54 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         return std::make_pair(n, n);
     }
 
-    const Function *func = dyn_cast<Function>(calledVal);
-    if (func) {
-        // is it a call to free? If so, create invalidate node
-        // instead.
-        if(invalidate_nodes && func->getName().equals("free")) {
-            PSNode *n = createFree(Inst);
-            return std::make_pair(n, n);
-        }
-        
-        // is function undefined? If so it can be
-        // intrinsic, memory allocation (malloc, calloc,...)
-        // or just undefined function
-        // NOTE: we first need to check whether the function
-        // is undefined and after that if it is memory allocation,
-        // because some programs may define function named
-        // 'malloc' etc.
-        if (func->size() == 0) {
-            /// memory allocation (malloc, calloc, etc.)
-            MemAllocationFuncs type = getMemAllocationFunc(func);
-            if (type != MemAllocationFuncs::NONEMEM) {
-                return createDynamicMemAlloc(CInst, type);
-            } else if (func->isIntrinsic()) {
-                return createIntrinsic(Inst);
-            } else
-                return createUnknownCall(CInst);
-        } else {
-            return createOrGetSubgraph(CInst, func);
-        }
+    if (const Function *func = dyn_cast<Function>(calledVal)) {
+        return createFunctionCall(CInst, func);
     } else {
-        // function pointer call
+        // this is a function pointer call
+        return createFuncptrCall(CInst, calledVal);
+    }
+}
+
+
+PSNodesSeq
+LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const llvm::Function *func)
+{
+    // is it a call to free? If so, create invalidate node instead.
+    if(invalidate_nodes && func->getName().equals("free")) {
+        PSNode *n = createFree(CInst);
+        return std::make_pair(n, n);
+    }
+    
+    // is function undefined? If so it can be
+    // intrinsic, memory allocation (malloc, calloc,...)
+    // or just undefined function
+    // NOTE: we first need to check whether the function
+    // is undefined and after that if it is memory allocation,
+    // because some programs may define function named
+    // 'malloc' etc.
+    if (func->size() == 0) {
+        /// memory allocation (malloc, calloc, etc.)
+        MemAllocationFuncs type = getMemAllocationFunc(func);
+        if (type != MemAllocationFuncs::NONEMEM) {
+            return createDynamicMemAlloc(CInst, type);
+        } else if (func->isIntrinsic()) {
+            return createIntrinsic(CInst);
+        } else
+            return createUnknownCall(CInst);
+    }
+
+    auto seq = createCallToFunction(CInst, func);
+    addNode(CInst, seq.first);
+
+    return seq;
+}
+
+PSNodesSeq
+LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const llvm::Value *calledVal)
+{
+        // just the call_funcptr and call_return nodes are created and
+        // when the pointers are resolved during analysis, the graph
+        // will be dynamically created and it will replace these nodes
         PSNode *op = getOperand(calledVal);
         PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
         PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
@@ -60,9 +78,7 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         addNode(CInst, call_funcptr);
 
         return std::make_pair(call_funcptr, ret_call);
-    }
 }
-
 
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createUnknownCall(const llvm::CallInst *CInst)

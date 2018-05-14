@@ -137,7 +137,7 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
+LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst, const llvm::Function *F)
 {
     PSNodeCall *callNode;
     PSNode *returnNode;
@@ -151,10 +151,10 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::Function *F)
     callNode->setPairedNode(returnNode);
 
     // reuse built subgraphs if available
-    Subgraph& subg = subgraphs_map[F];
-    if (!subg.root) {
-        // create a new subgraph
-        buildFunction(*F);
+    Subgraph& subg = createOrGetSubgraph(F);
+    if (ad_hoc_building) {
+        // add operands to arguments
+        addInterproceduralOperands(F, subg, CInst);
     }
 
     // we took the subg by reference, so it should be filled now
@@ -185,32 +185,31 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
     // graph already built and we are now only building
     // newly created subgraphs ad hoc.
     ad_hoc_building = true;
-    auto ret = createOrGetSubgraph(CInst, F);
+
+    auto ret = createCallToFunction(CInst, F);
+    Subgraph& subg = subgraphs_map[F];
+    assert(subg.root != nullptr);
+
     ad_hoc_building = false;
 
     return ret;
 }
 
-PSNodesSeq
-LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::CallInst *CInst,
-                                                const llvm::Function *F)
+LLVMPointerSubgraphBuilder::Subgraph&
+LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::Function *F)
 {
-    PSNodesSeq cf = createCallToFunction(F);
-    addNode(CInst, cf.first);
-
-    if (ad_hoc_building) {
-        Subgraph& subg = subgraphs_map[F];
+    Subgraph& subg = subgraphs_map[F];
+    if (!subg.root) {
+        // create a new subgraph
+        buildFunction(*F);
         assert(subg.root != nullptr);
 
-        addProgramStructure(F, subg);
-        addInterproceduralOperands(F, subg, CInst);
+        if (ad_hoc_building) {
+            addProgramStructure(F, subg);
+        }
     }
 
-    // NOTE: we do not add return node into nodes_map, since this
-    // is artificial node and does not correspond to any real node
-    // FIXME: this breaks that we have a sequence in the graph
-
-    return cf;
+    return subg;
 }
 
 void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
@@ -567,12 +566,6 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
 
         // add the CFG edges
         addProgramStructure(F, subg);
-
-        std::set<PSNode *> cont;
-        getNodes(cont, subg.root, subg.ret, 0xdead);
-        for (PSNode* n : cont) {
-            n->setParent(subg.root);
-        }
 
         // add the missing operands (to arguments and return nodes)
         addInterproceduralOperands(F, subg);
