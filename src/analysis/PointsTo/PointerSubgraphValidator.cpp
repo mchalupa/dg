@@ -6,16 +6,22 @@ namespace analysis {
 namespace pta {
 namespace debug {
 
-
-bool PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd, const std::string& user_err) {
-    errors += "Invalid number of operands for " + std::string(PSNodeTypeToCString(nd->getType())) +
-              " with ID " + std::to_string(nd->getID()) + "\n  - operands: [";
+static void dumpNode(const PSNode *nd, std::string& errors) {
+  errors +=  std::string(PSNodeTypeToCString(nd->getType())) + " with ID " +
+             std::to_string(nd->getID()) + "\n  - operands: [";
     for (unsigned i = 0, e =  nd->getOperandsNum(); i < e; ++i) {
-        errors += std::to_string(nd->getID());
+        const PSNode *op = nd->getOperand(i);
+        errors += std::to_string(op->getID()) += " ";
+        errors += std::string(PSNodeTypeToCString(op->getType()));
         if (i != e - 1)
-            errors += " ";
+            errors += ", ";
     }
     errors += "]\n";
+}
+
+bool PointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
+    errors += "Invalid operands:\n";
+    dumpNode(nd, errors);
 
     if (!user_err.empty())
         errors += "(" + user_err + ")\n";
@@ -24,16 +30,25 @@ bool PointerSubgraphValidator::reportInvalNumberOfOperands(const PSNode *nd, con
 }
 
 bool PointerSubgraphValidator::reportInvalEdges(const PSNode *nd, const std::string& user_err) {
-    errors += "Invalid number of edges for " + std::string(PSNodeTypeToCString(nd->getType())) +
-              " with ID " + std::to_string(nd->getID()) + "\n";
+    errors += "Invalid number of edges:\n";
+    dumpNode(nd, errors);
+
+    if (!user_err.empty())
+        errors += "(" + user_err + ")\n";
+    return true;
+}
+
+bool PointerSubgraphValidator::reportInvalNode(const PSNode *nd, const std::string& user_err) {
+    errors += "Invalid node:\n";
+    dumpNode(nd, errors);
     if (!user_err.empty())
         errors += "(" + user_err + ")\n";
     return true;
 }
 
 bool PointerSubgraphValidator::reportUnreachableNode(const PSNode *nd) {
-    errors += "Unreachable " + std::string(PSNodeTypeToCString(nd->getType())) +
-              " with ID " + std::to_string(nd->getID()) + "\n";
+    errors += "Unreachable node:\n";
+    dumpNode(nd, errors);
     return true;
 }
 
@@ -51,18 +66,34 @@ static bool hasDuplicateOperand(const PSNode *nd)
 bool PointerSubgraphValidator::checkOperands() {
     bool invalid = false;
 
-    for (const PSNode *nd : PS->getNodes()) {
-        // this is the first node
-        // XXX: do we know this?
+    std::set<const PSNode *> known_nodes;
+    const auto& nodes = PS->getNodes();
+
+    for (const PSNode *nd : nodes) {
         if (!nd)
             continue;
+
+        if (!known_nodes.insert(nd).second)
+            invalid |= reportInvalNode(nd, "Node multiple times in the graph");
+    }
+
+    for (const PSNode *nd : nodes) {
+        if (!nd)
+            continue;
+
+        for (const PSNode *op : nd->getOperands()) {
+            if (op != NULLPTR && op != UNKNOWN_MEMORY && op != INVALIDATED &&
+                known_nodes.count(op) == 0) {
+                invalid |= reportInvalOperands(nd, "Node has unknown (maybe dangling) operand");
+            }
+        }
 
         switch (nd->getType()) {
             case PSNodeType::PHI:
                 if (nd->getOperandsNum() == 0) {
-                    invalid |= reportInvalNumberOfOperands(nd);
+                    invalid |= reportInvalOperands(nd, "Empty PHI");
                 } else if (hasDuplicateOperand(nd)) {
-                    invalid |= reportInvalNumberOfOperands(nd, "PHI Node contains duplicated operand");
+                    invalid |= reportInvalOperands(nd, "PHI Node contains duplicated operand");
                 }
                 break;
             case PSNodeType::NULL_ADDR:
@@ -71,7 +102,7 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::FUNCTION:
             case PSNodeType::CONSTANT:
                 if (nd->getOperandsNum() != 0) {
-                    invalid |= reportInvalNumberOfOperands(nd);
+                    invalid |= reportInvalOperands(nd, "Should not have an operand");
                 }
                 break;
             case PSNodeType::GEP:
@@ -80,13 +111,13 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::INVALIDATE_OBJECT:
             case PSNodeType::FREE:
                 if (nd->getOperandsNum() != 1) {
-                    invalid |= reportInvalNumberOfOperands(nd);
+                    invalid |= reportInvalOperands(nd, "Should have exactly one operand");
                 }
                 break;
             case PSNodeType::STORE:
             case PSNodeType::MEMCPY:
                 if (nd->getOperandsNum() != 2) {
-                    invalid |= reportInvalNumberOfOperands(nd);
+                    invalid |= reportInvalOperands(nd, "Should have exactly two operands");
                 }
                 break;
         }
