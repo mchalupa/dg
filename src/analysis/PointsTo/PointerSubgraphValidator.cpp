@@ -100,7 +100,6 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::UNKNOWN_MEM:
             case PSNodeType::NOOP:
             case PSNodeType::FUNCTION:
-            case PSNodeType::CONSTANT:
                 if (nd->getOperandsNum() != 0) {
                     invalid |= reportInvalOperands(nd, "Should not have an operand");
                 }
@@ -109,6 +108,7 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::LOAD:
             case PSNodeType::CAST:
             case PSNodeType::INVALIDATE_OBJECT:
+            case PSNodeType::CONSTANT:
             case PSNodeType::FREE:
                 if (nd->getOperandsNum() != 1) {
                     invalid |= reportInvalOperands(nd, "Should have exactly one operand");

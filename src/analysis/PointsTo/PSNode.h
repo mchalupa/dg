@@ -212,6 +212,8 @@ protected:
     : PSNode(id, t)
     {
         assert(t == PSNodeType::CONSTANT);
+        // this is to correctly track def-use chains
+        addOperand(op);
         pointsTo.insert(Pointer(op, offset));
     }
 
