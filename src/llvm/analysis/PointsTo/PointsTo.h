@@ -152,11 +152,6 @@ public:
         delete builder;
     }
 
-    PSNode *getNode(const llvm::Value *val)
-    {
-        return builder->getNode(val);
-    }
-
     PSNode *getPointsTo(const llvm::Value *val)
     {
         return builder->getPointsTo(val);
