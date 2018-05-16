@@ -71,8 +71,7 @@ class PSUnknownsReducer {
                         if (user->getType() == PSNodeType::LOAD) {
                             // replace the uses of the load value by unknown
                             // (this is what would happen in the analysis)
-                            user->replaceAllUsesWith(UNKNOWN_MEMORY,
-                                                     true /* remove duplicate operands */);
+                            user->replaceAllUsesWith(UNKNOWN_MEMORY);
                             mapping.add(user, UNKNOWN_MEMORY);
                         }
                         // store can be removed directly
@@ -144,7 +143,7 @@ private:
     // mapping will be set to  node1 -> node2)
     void merge(PSNode *node1, PSNode *node2) {
         // remove node1
-        node1->replaceAllUsesWith(node2, true /* remove duplicate operands */);
+        node1->replaceAllUsesWith(node2);
         node1->isolate();
         PS->remove(node1);
 
