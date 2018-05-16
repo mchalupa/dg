@@ -178,15 +178,18 @@ public:
 
     void removeUnknowns() {
         PSUnknownsReducer reducer(PS);
-        if (unsigned r = reducer.run()) {
+        if (auto r = reducer.run()) {
+            mapping.merge(std::move(reducer.getMapping()));
             removed += r;
-            mapping.compose(std::move(reducer.getMapping()));
         }
     }
 
     void removeEquivalentNodes() {
         PSEquivalentNodesMerger merger(PS);
-        removed += merger.run();
+	if (auto r = merger.run()) {
+            mapping.merge(std::move(merger.getMapping()));
+            removed += r;
+	}
     }
 
     unsigned run() {
