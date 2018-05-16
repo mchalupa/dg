@@ -329,7 +329,7 @@ bool PointerAnalysis::processNode(PSNode *node)
             for (const Pointer& ptr : node->getOperand(1)->pointsTo) {
                 assert(ptr.target && "Got nullptr as target");
 
-                if (ptr.isNull())
+                if (!canBeDereferenced(ptr))
                     continue;
 
                 objects.clear();
@@ -368,9 +368,7 @@ bool PointerAnalysis::processNode(PSNode *node)
             if (invalidate_nodes) {
                 for (PSNode *op : node->operands) {
                     for (const Pointer& ptr : op->pointsTo) {
-                        if (ptr.target->getType() == PSNodeType::FUNCTION)
-                            continue;
-                        if (ptr.isInvalidated())
+                        if (!canBeDereferenced(ptr))
                             continue;
                         PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
                         assert(target && "Target is not memory allocation");
