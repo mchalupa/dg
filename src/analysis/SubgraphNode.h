@@ -166,7 +166,7 @@ public:
         // we need to remove this node from
         // successor's predecessors
         std::vector<NodeT *> tmp;
-        tmp.reserve(old->predecessorsNum() - 1);
+        tmp.reserve(old->predecessorsNum());
         for (NodeT *p : old->predecessors) {
             if (p != this)
                 tmp.push_back(p);
@@ -268,7 +268,7 @@ public:
         // Remove this node from successors of the predecessors
         for (NodeT *pred : predecessors) {
             std::vector<NodeT *> new_succs;
-            new_succs.reserve(pred->successors.size() - 1);
+            new_succs.reserve(pred->successors.size());
 
             for (NodeT *n : pred->successors) {
                 if (n != this)
@@ -281,7 +281,7 @@ public:
         // remove this nodes from successors' predecessors
         for (NodeT *succ : successors) {
             std::vector<NodeT *> new_preds;
-            new_preds.reserve(succ->predecessors.size() - 1);
+            new_preds.reserve(succ->predecessors.size());
 
             for (NodeT *n : succ->predecessors) {
                 if (n != this)
