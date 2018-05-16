@@ -18,6 +18,7 @@ add_library(PTA SHARED
 add_library(RD SHARED
 	analysis/SubgraphNode.h
 	analysis/Offset.h
+	analysis/Offset.cpp
 	analysis/ReachingDefinitions/ReachingDefinitions.h
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp
 	analysis/ReachingDefinitions/RDMap.h
