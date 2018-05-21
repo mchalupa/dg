@@ -39,20 +39,17 @@ class LLVMPointerSubgraphBuilder
     // should be created
     bool invalidate_nodes = false;
 
-    // build pointer state subgraph for given graph
-    // \return   root node of the graph
-    PSNode *buildFunction(const llvm::Function& F);
-    PSNodesSeq buildInstruction(const llvm::Instruction&);
-
-    void buildPointerSubgraphBlock(const llvm::BasicBlock& block);
-
-    PSNodesSeq buildArguments(const llvm::Function& F);
-    PSNodesSeq buildGlobals();
-
     struct Subgraph {
         Subgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
             : root(r1), ret(r2), vararg(va) {}
+        /*
+        Subgraph(PSNode *r1, PSNode *r2, PSNode *va,
+                 std::vector<const llvm::BasicBlock *>&& blcks)
+            : root(r1), ret(r2), vararg(va), llvmBlocks(blcks) {}
+            */
         Subgraph() = default;
+        Subgraph(Subgraph&&) = default;
+        Subgraph(const Subgraph&) = delete;
 
         // first and last nodes of the subgraph
         PSNode *root{nullptr};
@@ -60,8 +57,21 @@ class LLVMPointerSubgraphBuilder
 
         // this is the node where we gather the variadic-length arguments
         PSNode *vararg{nullptr};
+
+        // reachable LLVM block (those block for which we built the instructions)
+        std::vector<const llvm::BasicBlock *> llvmBlocks;
         bool has_structure = false;
     };
+
+    // build pointer state subgraph for given graph
+    // \return   root node of the graph
+    Subgraph& buildFunction(const llvm::Function& F);
+    PSNodesSeq buildInstruction(const llvm::Instruction&);
+
+    void buildPointerSubgraphBlock(const llvm::BasicBlock& block);
+
+    PSNodesSeq buildArguments(const llvm::Function& F);
+    PSNodesSeq buildGlobals();
 
     // add edges that are derived from CFG to the subgraph
     void addProgramStructure();
