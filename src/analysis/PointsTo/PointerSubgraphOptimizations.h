@@ -185,10 +185,10 @@ public:
 
     void removeEquivalentNodes() {
         PSEquivalentNodesMerger merger(PS);
-	if (auto r = merger.run()) {
-            mapping.merge(std::move(merger.getMapping()));
-            removed += r;
-	}
+        if (auto r = merger.run()) {
+                mapping.merge(std::move(merger.getMapping()));
+                removed += r;
+        }
     }
 
     unsigned run() {
