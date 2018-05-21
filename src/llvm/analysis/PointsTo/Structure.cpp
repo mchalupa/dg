@@ -196,8 +196,8 @@ void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
     assert(lastNode);
 
     // add successors in one basic block
-    for (const llvm::BasicBlock& block : *F)
-        buildBlockStructure(block);
+    for (const llvm::BasicBlock* block : subg.llvmBlocks)
+        buildBlockStructure(*block);
 
     // check whether we create the entry block. If not, we would
     // have a problem while adding successors, so fake that

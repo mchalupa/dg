@@ -198,18 +198,20 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
 LLVMPointerSubgraphBuilder::Subgraph&
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::Function *F)
 {
-    Subgraph& subg = subgraphs_map[F];
-    if (!subg.root) {
+    auto it = subgraphs_map.find(F);
+    if (it == subgraphs_map.end()) {
         // create a new subgraph
-        buildFunction(*F);
+        Subgraph& subg = buildFunction(*F);
         assert(subg.root != nullptr);
 
         if (ad_hoc_building) {
             addProgramStructure(F, subg);
         }
+
+        return subg;
     }
 
-    return subg;
+    return it->second;
 }
 
 void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
@@ -384,6 +386,7 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
         case Instruction::ICmp:
         case Instruction::Br:
         case Instruction::Switch:
+        case Instruction::Unreachable:
             return false;
         case Instruction::Call:
             return isRelevantCall(&Inst);
@@ -505,10 +508,11 @@ std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Funct
     return blocks;
 }
 
-// build pointer state subgraph for given graph
-// \return   root node of the graph
-PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
+LLVMPointerSubgraphBuilder::Subgraph&
+LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
 {
+    assert(subgraphs_map.count(&F) == 0 && "We already built this function");
+
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
@@ -543,10 +547,18 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call when
     // this function is recursive
-    subgraphs_map[&F] = Subgraph(root, ret, vararg);
+    Subgraph subg(root, ret, vararg);
+    auto it = subgraphs_map.emplace(&F, std::move(subg));
+    assert(it.second == true && "Already had this element");
+
+    Subgraph& s = it.first->second;
+    assert(s.root == root && s.ret == ret && s.vararg == vararg);
+
+    s.llvmBlocks
+        = std::move(getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F)));
 
     // build the instructions from blocks
-    for (const llvm::BasicBlock *block : getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F))) {
+    for (const llvm::BasicBlock *block : s.llvmBlocks) {
         buildPointerSubgraphBlock(*block);
     }
 
@@ -554,7 +566,8 @@ PSNode *LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // built, since the PHI gathers values from different blocks
     addPHIOperands(F);
 
-    return root;
+    assert(subgraphs_map[&F].root != nullptr);
+    return s;
 }
 
 void LLVMPointerSubgraphBuilder::addProgramStructure()
@@ -744,7 +757,9 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     PSNodesSeq glob = buildGlobals();
 
     // now we can build rest of the graph
-    PSNode *root = buildFunction(*F);
+    Subgraph& subg = buildFunction(*F);
+    PSNode *root = subg.root;
+    assert(root != nullptr);
 
     // fill in the CFG edges
     addProgramStructure();
