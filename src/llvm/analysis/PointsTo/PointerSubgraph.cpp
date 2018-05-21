@@ -537,7 +537,7 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // create the pointer arguments -- the other arguments will
     // be created later if needed
     for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
-#ifdef NDEBUG
+#ifndef NDEBUG
         PSNode *a = tryGetOperand(&*A);
         assert(a == nullptr || a == UNKNOWN_MEMORY);
 #endif
