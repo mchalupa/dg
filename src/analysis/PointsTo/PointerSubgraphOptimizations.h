@@ -149,7 +149,7 @@ private:
                 if (GEP->getOffset().isZero()) // GEP with 0 offest is cast
                     merge(node, GEP->getSource());
             } else if (node->getType() == PSNodeType::PHI &&
-                        allOperandsAreSame(node)) {
+                        node->getOperandsNum() > 0 && allOperandsAreSame(node)) {
                 merge(node, node->getOperand(0));
             }
         }
