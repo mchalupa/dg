@@ -46,6 +46,20 @@ static inline bool usersImplyUnknown(PSNode *nd) {
     return true;
 }
 
+static inline bool allOperandsAreSame(PSNode *nd) {
+    auto opNum = nd->getOperandsNum();
+    if (opNum < 1)
+        return true;
+
+    PSNode *op0 = nd->getOperand(0);
+    for (decltype(opNum) i = 1; i < opNum; ++i) {
+        if (op0 != nd->getOperand(i))
+            return false;
+    }
+
+    return true;
+}
+
 // try to remove loads/stores that are provably
 // loads and stores of unknown memory
 // (these usually correspond to integers)
@@ -134,6 +148,9 @@ private:
             else if (PSNodeGep *GEP = PSNodeGep::get(node)) {
                 if (GEP->getOffset().isZero()) // GEP with 0 offest is cast
                     merge(node, GEP->getSource());
+            } else if (node->getType() == PSNodeType::PHI &&
+                        allOperandsAreSame(node)) {
+                merge(node, node->getOperand(0));
             }
         }
     }
@@ -195,6 +212,11 @@ public:
         removeNoops();
         removeEquivalentNodes();
         removeUnknowns();
+        // need to call this once more because
+        // the optimizations may have created
+        // the same operands in a phi nodes,
+        // which breaks the validity of the graph
+        removeEquivalentNodes();
 
         return removed;
     }
