@@ -97,6 +97,21 @@ class PSUnknownsReducer {
                     // NOTE: keep the alloca, as it contains the
                     // pointer to itself and may be queried for this pointer
                 }
+            } else if (nd->getType() == PSNodeType::PHI && nd->getOperandsNum() == 0) {
+                for (PSNode *user : nd->getUsers()) {
+                    // replace the uses of this value with unknown
+                    user->replaceAllUsesWith(UNKNOWN_MEMORY);
+                    mapping.add(user, UNKNOWN_MEMORY);
+
+                    // store can be removed directly
+                    user->isolate();
+                    PS->remove(user);
+                    ++removed;
+                }
+
+                nd->isolate();
+                PS->remove(nd);
+                ++removed;
             }
         }
     }
