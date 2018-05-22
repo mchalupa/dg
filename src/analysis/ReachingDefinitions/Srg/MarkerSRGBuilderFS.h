@@ -65,9 +65,9 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
      * If the interval has unknown offset or length, it is changed to contain everything.
      * Optional parameter @size makes it possible to concretize to variable size, in case the size is known.
      */
-    detail::Interval concretize(detail::Interval interval, uint64_t size = (~((uint64_t)0))) const {
+    detail::Interval concretize(detail::Interval interval, uint64_t size = Offset::UNKNOWN) const {
         if (size == 0) {
-            size = ~((uint64_t) 0);
+            size = Offset::UNKNOWN;
         }
         if (interval.isUnknown()) {
             return detail::Interval{ 0, size };
