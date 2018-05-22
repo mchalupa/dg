@@ -182,9 +182,7 @@ public:
         }
 
         analysis::pta::PointerSubgraphOptimizer optimizer(PS);
-        optimizer.removeNoops();
-        optimizer.removeEquivalentNodes();
-        optimizer.removeUnknowns();
+        optimizer.run();
 
         if (optimizer.getNumOfRemovedNodes() > 0)
             builder->composeMapping(std::move(optimizer.getMapping()));
