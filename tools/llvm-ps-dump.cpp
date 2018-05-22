@@ -53,6 +53,7 @@ using dg::debug::TimeMeasure;
 using llvm::errs;
 
 static bool verbose;
+static bool ids_only = false;
 
 std::unique_ptr<PointerAnalysis> PA;
 
@@ -102,6 +103,11 @@ printName(PSNode *node, bool dot)
     }
 
     if (!name) {
+        if (ids_only) {
+            printf(" <%u>", node->getID());
+            return;
+        }
+
         if (!node->getUserData<llvm::Value>()) {
             printf("(no name)\\n");
             if (node->getType() == PSNodeType::CONSTANT) {
@@ -121,6 +127,11 @@ printName(PSNode *node, bool dot)
 
         nm = getInstName(node->getUserData<llvm::Value>());
         name = nm.c_str();
+    }
+
+    if (ids_only) {
+        printf(" <%u>", node->getID());
+        return;
     }
 
     // escape the " character
@@ -376,6 +387,8 @@ int main(int argc, char *argv[])
             field_senitivity = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
+        } else if (strcmp(argv[i], "-ids-only") == 0) {
+            ids_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else {
