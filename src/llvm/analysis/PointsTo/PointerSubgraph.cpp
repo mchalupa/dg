@@ -554,8 +554,8 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     Subgraph& s = it.first->second;
     assert(s.root == root && s.ret == ret && s.vararg == vararg);
 
-    s.llvmBlocks
-        = std::move(getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F)));
+    s.llvmBlocks =
+        getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F));
 
     // build the instructions from blocks
     for (const llvm::BasicBlock *block : s.llvmBlocks) {
