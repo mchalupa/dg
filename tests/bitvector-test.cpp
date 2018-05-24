@@ -50,11 +50,49 @@ TEST_CASE("Extreme values", "SparseBitvector") {
     }
 }
 
+TEST_CASE("Iterator and empty bitvector", "SparseBitvector") {
+    SparseBitvector B;
+    auto it = B.begin();
+    auto et = B.end();
+
+    REQUIRE(it == et);
+    REQUIRE(B.size() == 0);
+    REQUIRE(B.empty());
+}
+
+TEST_CASE("Iterator one element", "SparseBitvector") {
+    SparseBitvector B;
+
+    auto it = B.begin();
+    auto et = B.end();
+
+    REQUIRE(it == et);
+
+    REQUIRE(B.empty());
+    REQUIRE(B.set(1000000) == false);
+
+    it = B.begin();
+    et = B.end();
+
+    REQUIRE(it != et);
+    REQUIRE(*it == 1000000);
+    ++it;
+    REQUIRE(it == et);
+}
+
 TEST_CASE("Iterator test", "SparseBitvector") {
     SparseBitvector B;
     int n = 0;
+
+    B.set(0);
+    B.set(1);
+    B.set(10);
+    B.set(1000);
+    B.set(100000);
+
     auto it = B.begin();
     auto et = B.end();
+
     for (; it != et; ++it) {
         size_t i = *it;
         REQUIRE((i == 0 || i == 1 || i == 10 || i == 1000 || i == 100000));
@@ -66,7 +104,7 @@ TEST_CASE("Iterator test", "SparseBitvector") {
 TEST_CASE("Set continuous values", "SparseBitvector") {
     SparseBitvector B;
 
-#define NUM 10000000
+#define NUM 10000
     for (int i = 0; i < NUM; ++i) {
         REQUIRE(B.get(i) == false);
         B.set(i);
@@ -82,20 +120,38 @@ TEST_CASE("Random", "SparseBitvector") {
     SparseBitvector B;
     srand(time(nullptr));
 
-#define NUM 10000000
+#define NUM 10000
 
-    std::vector<size_t> numbers;
-    numbers.reserve(NUM);
+    std::set<size_t> numbers;
     std::default_random_engine generator;
     std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0));
 
+SECTION("Generating random numbers and putting them to bitvector") {
     for (int i = 0; i < NUM; ++i) {
         auto x = distribution(generator);
         REQUIRE(B.set(x) == false);
-        numbers.push_back(x);
+        numbers.insert(x);
     }
+}
 
+SECTION("Checking that each generated number is in bitvector") {
     for (auto x : numbers) {
         REQUIRE(B.get(x) == true);
     }
+}
+
+SECTION("Checking that each generated number is in bitvector using iterator") {
+    // try iterators
+    for (auto x : B) {
+        REQUIRE(numbers.count(x) > 0);
+    }
+}
+
+SECTION("Checking random numbers") {
+    for (int i = 0; i < NUM; ++i) {
+        auto x = distribution(generator);
+        if (numbers.count(x) > 0)
+            REQUIRE(B.get(x) == true);
+    }
+}
 }
