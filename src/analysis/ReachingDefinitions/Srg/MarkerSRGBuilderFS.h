@@ -140,9 +140,6 @@ public:
 
         BBlockBFS<NodeT> bfs(BFS_BB_CFG | BFS_INTERPROCEDURAL);
 
-        AssignmentFinder af;
-        af.populateUnknownMemory(root);
-
         std::vector<BlockT *> cfg;
         BlockT *block = root->getBBlock();
         bfs.run(block, [&](BlockT *block, void*){
