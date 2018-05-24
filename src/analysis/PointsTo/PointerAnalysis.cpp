@@ -19,28 +19,6 @@ PSNode *INVALIDATED = &INVALIDATED_LOC;
 const Pointer PointerUnknown(UNKNOWN_MEMORY, Offset::UNKNOWN);
 const Pointer PointerNull(NULLPTR, 0);
 
-// replace all pointers to given target with one
-// to that target, but Offset::UNKNOWN
-bool PSNode::addPointsToUnknownOffset(PSNode *target)
-{
-    bool changed = false;
-    for (auto I = pointsTo.begin(), E = pointsTo.end(); I != E;) {
-        auto cur = I++;
-
-        // erase pointers to the same memory but with concrete offset
-        if (cur->target == target && !cur->offset.isUnknown()) {
-            pointsTo.erase(cur);
-            changed = true;
-        }
-    }
-
-    // DONT use addPointsTo() method, it would recursively call
-    // this method again, until stack overflow
-    changed |= pointsTo.insert(Pointer(target, Offset::UNKNOWN)).second;
-
-    return changed;
-}
-
 // Return true if it makes sense to dereference this pointer.
 // PTA is over-approximation, so this is a filter.
 static inline bool canBeDereferenced(const Pointer& ptr)
@@ -306,7 +284,7 @@ bool PointerAnalysis::processGep(PSNode *node) {
             && new_offset < max_offset)
             changed |= node->addPointsTo(ptr.target, new_offset);
         else
-            changed |= node->addPointsToUnknownOffset(ptr.target);
+            changed |= node->pointsTo.addWithUnknownOffset(ptr.target);
     }
 
     return changed;

@@ -214,7 +214,7 @@ protected:
         assert(t == PSNodeType::CONSTANT);
         // this is to correctly track def-use chains
         addOperand(op);
-        pointsTo.insert(Pointer(op, offset));
+        pointsTo.add(Pointer(op, offset));
     }
 
     PSNode(unsigned id, PSNodeType t, va_list args)
@@ -264,11 +264,11 @@ public:
             case PSNodeType::INVALIDATED:
                 break;
             case PSNodeType::NULL_ADDR:
-                pointsTo.insert(Pointer(this, 0));
+                pointsTo.add(Pointer(this, 0));
                 break;
             case PSNodeType::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
-                pointsTo.insert(Pointer(this, Offset::UNKNOWN));
+                pointsTo.add(Pointer(this, Offset::UNKNOWN));
                 break;
             default:
                 // this constructor is for the above mentioned types only
@@ -305,9 +305,9 @@ public:
             return false;
 
         if (o.isUnknown())
-            return addPointsToUnknownOffset(n);
+            return pointsTo.addWithUnknownOffset(n);
         else
-            return pointsTo.insert(Pointer(n, o)).second;
+            return pointsTo.add(Pointer(n, o));
     }
 
     bool addPointsTo(const Pointer& ptr)
@@ -315,13 +315,9 @@ public:
         return addPointsTo(ptr.target, ptr.offset);
     }
 
-    bool addPointsTo(const std::set<Pointer>& ptrs)
+    bool addPointsTo(const PointsToSet& ptrs)
     {
-        bool changed = false;
-        for (const Pointer& ptr: ptrs)
-            changed |= addPointsTo(ptr);
-
-        return changed;
+        return pointsTo.merge(ptrs);
     }
 
     bool doesPointsTo(const Pointer& p)

@@ -36,7 +36,7 @@ public:
             n = n->getOperand(0);
         else if (n->getType() == PSNodeType::CONSTANT) {
             assert(n->pointsTo.size() == 1);
-            n = (n->pointsTo.begin())->target;
+            n = (*n->pointsTo.begin()).target;
         }
 
         if (n->getType() == PSNodeType::FUNCTION)

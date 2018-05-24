@@ -148,8 +148,8 @@ protected:
                 continue;
 
             auto& S = to->pointsTo[fromIt.first];
-            for (auto& ptr : fromIt.second)
-                changed |= S.insert(ptr).second;
+            for (const auto& ptr : fromIt.second)
+                changed |= S.add(ptr);
         }
 
         return changed;

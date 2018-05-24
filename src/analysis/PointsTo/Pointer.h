@@ -2,9 +2,11 @@
 #define _DG_POINTER_H_
 
 #include <map>
+#include <unordered_map>
 #include <set>
 #include <cassert>
 
+#include "ADT/Bitvector.h"
 #include "analysis/Offset.h"
 
 namespace dg {
@@ -51,10 +53,124 @@ struct Pointer
     bool isInvalidated() const { return target == INVALIDATED; }
 };
 
-using PointsToSetT = std::set<Pointer>;
+class PointsToSet {
+    // each pointer is a pair (PSNode *, {offsets}),
+    // so we represent them coinciesly this way
+    using ContainerT = std::unordered_map<PSNode *, ADT::SparseBitvector>;
+    ContainerT pointers;
+
+public:
+    bool add(PSNode *target, Offset off) {
+        return pointers[target].set(*off);
+    }
+
+    bool add(const Pointer& ptr) {
+        return add(ptr.target, *ptr.offset);
+    }
+
+    bool addWithUnknownOffset(PSNode *target) {
+        auto it = pointers.find(target);
+        if (it != pointers.end()) {
+            if (it->second.get(Offset::UNKNOWN)) {
+                if (it->second.size() > 1) {
+                    it->second.reset();
+                    it->second.set(Offset::UNKNOWN);
+                }
+                return false; // we already had that offset
+            } else
+                return it->second.set(Offset::UNKNOWN);
+        }
+
+        return add(target, Offset::UNKNOWN);
+    }
+
+    // make union of the two sets and store it
+    // into 'this' set (i.e. merge rhs to this set)
+    bool merge(const PointsToSet& rhs) {
+        bool changed = false;
+        for (auto& it : rhs.pointers) {
+            auto &ourS = pointers[it.first];
+            changed |= ourS.merge(it.second);
+        }
+
+        return changed;
+    }
+
+    bool empty() const { return pointers.empty(); }
+
+    size_t count(const Pointer& ptr) {
+        auto it = pointers.find(ptr.target);
+        if (it != pointers.end()) {
+            return it->second.get(*ptr.offset);
+        }
+
+        return 0;
+    }
+
+    size_t size() {
+        size_t num = 0;
+        for (auto& it : pointers) {
+            num += it.second.size();
+        }
+
+        return num;
+    }
+
+    void swap(PointsToSet& rhs) { pointers.swap(rhs.pointers); }
+
+    class const_iterator {
+        typename ContainerT::const_iterator container_it;
+        typename ContainerT::const_iterator container_end;
+        typename ADT::SparseBitvector::const_iterator innerIt;
+
+        const_iterator(const ContainerT& cont, bool end = false)
+        : container_it(end ? cont.end() : cont.begin()), container_end(cont.end()) {
+            if (container_it != container_end) {
+                innerIt = container_it->second.begin();
+            }
+        }
+    public:
+        const_iterator& operator++() {
+            ++innerIt;
+            if (innerIt == container_it->second.end()) {
+                ++container_it;
+                if (container_it != container_end)
+                    innerIt = container_it->second.begin();
+                else
+                    innerIt = ADT::SparseBitvector::const_iterator();
+            }
+            return *this;
+        }
+
+        const_iterator operator++(int) {
+            auto tmp = *this;
+            operator++();
+            return tmp;
+        }
+
+        Pointer operator*() const {
+            return Pointer(container_it->first, *innerIt);
+        }
+
+        bool operator==(const const_iterator& rhs) const {
+            return container_it == rhs.container_it && innerIt == rhs.innerIt;
+        }
+
+        bool operator!=(const const_iterator& rhs) const {
+            return !operator==(rhs);
+        }
+
+        friend class PointsToSet;
+    };
+
+    const_iterator begin() const { return const_iterator(pointers); }
+    const_iterator end() const { return const_iterator(pointers, true /* end */); }
+
+    friend class const_iterator;
+};
+
+using PointsToSetT = PointsToSet;
 using PointsToMapT = std::map<Offset, PointsToSetT>;
-using ValuesSetT = std::set<PSNode *>;
-using ValuesMapT = std::map<Offset, ValuesSetT>;
 
 struct MemoryObject
 {
@@ -91,7 +207,7 @@ struct MemoryObject
         assert(ptr.target != nullptr
                && "Cannot have NULL target, use unknown instead");
 
-        return pointsTo[off].insert(ptr).second;
+        return pointsTo[off].add(ptr);
     }
 
     bool addPointsTo(const Offset& off, const PointsToSetT& pointers)

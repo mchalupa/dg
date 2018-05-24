@@ -127,11 +127,11 @@ public:
 
             if (PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target)) {
                 if (!isLocal(alloc, where))
-                    S.insert(ptr);
+                    S.add(ptr);
             }
         }
 
-        S.insert(INVALIDATED);
+        S.add(INVALIDATED);
         S1.swap(S);
     }
 
@@ -184,12 +184,12 @@ public:
                 // merge pointers from the previous states
                 // but do not include the pointers
                 // that may point to freed memory
-                for (auto& ptr : predS) {
+                for (const auto& ptr : predS) {
                     PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target);
                     if (alloc && isLocal(alloc, node))
-                        changed |= S.insert(INVALIDATED).second;
+                        changed |= S.add(INVALIDATED);
                     else
-                        changed |= S.insert(ptr).second;
+                        changed |= S.add(ptr);
                 }
 
                 // keep the map clean
@@ -216,10 +216,10 @@ public:
         PointsToSetT S;
         for (const auto& ptr : S1) {
             if (ptr.target != target)
-                S.insert(ptr);
+                S.add(ptr);
         }
 
-        S.insert(INVALIDATED);
+        S.add(INVALIDATED);
         S1.swap(S);
     }
 
@@ -276,11 +276,11 @@ public:
                 // merge pointers from the previous states
                 // but do not include the pointers
                 // that may point to freed memory
-                for (auto& ptr : predS) {
+                for (const auto& ptr : predS) {
                     if (operand->pointsTo.count(ptr) == 0)
-                        changed |= S.insert(ptr).second;
+                        changed |= S.add(ptr);
                     else
-                        changed |= S.insert(INVALIDATED).second;
+                        changed |= S.add(INVALIDATED);
                 }
 
                 // keep the map clean
