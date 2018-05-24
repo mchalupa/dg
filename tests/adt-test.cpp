@@ -150,64 +150,6 @@ public:
     }
 };
 
-class TestBitvectors : public Test
-{
-public:
-    TestBitvectors() : Test("Test bitvecotr class") {}
-
-    void test1() {
-        SparseBitvector B;
-        check(!B.get(0), "Should not be set");
-        check(!B.get(1), "Should not be set");
-        check(!B.get(10), "Should not be set");
-        check(!B.get(1000), "Should not be set");
-        check(!B.get(100000), "Should not be set");
-        B.set(0);
-        B.set(1);
-        B.set(10);
-        B.set(1000);
-        B.set(100000);
-        check(B.get(0), "Should not be set");
-        check(B.get(1), "Should not be set");
-        check(B.get(10), "Should not be set");
-        check(B.get(1000), "Should not be set");
-        check(B.get(100000), "Should not be set");
-
-        int n = 0;
-        auto it = B.begin();
-        auto et = B.end();
-        for (; it != et; ++it) {
-            size_t i = *it;
-        //for (size_t i : B) {
-            check(i == 0 || i == 1 || i == 10 || i == 1000 || i == 100000, "Wrong element in B");
-            ++n;
-        }
-        check(n == 5, "The number of elements does not fit");
-    }
-
-    void test2() {
-        SparseBitvector B;
-
-#define NUM 13
-        for (int i = 0; i < NUM; ++i) {
-            check(!B.get(i), "Should not be set");
-            B.set(i);
-        }
-
-        for (int i = 0; i < NUM; ++i) {
-            check(B.get(i), "Should be set");
-        }
-    }
-
-    void test()
-    {
-        test1();
-        test2();
-    }
-
-};
-
-
 }; // namespace tests
 }; // namespace dg
 
@@ -220,7 +162,6 @@ int main()
     Runner.add(new TestFIFO());
     Runner.add(new TestPrioritySet());
     Runner.add(new TestIntervalsHandling());
-    Runner.add(new TestBitvectors());
 
     return Runner();
 }

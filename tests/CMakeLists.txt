@@ -34,12 +34,20 @@ add_executable(reaching-definitions-test reaching-definitions-test.cpp)
 add_test(reaching-definitions-test reaching-definitions-test)
 add_dependencies(check reaching-definitions-test)
 target_link_libraries(reaching-definitions-test PRIVATE RD)
+
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
 add_executable(adt-test adt-test.cpp ../src/analysis/Offset.cpp)
 add_test(adt-test adt-test)
 add_dependencies(check adt-test)
+
+# --------------------------------------------------
+# bitvector-test
+# --------------------------------------------------
+add_executable(bitvector-test bitvector-test.cpp)
+add_test(bitvector-test bitvector-test)
+add_dependencies(check bitvector-test)
 
 # --------------------------------------------------
 # llvm-dg-test
