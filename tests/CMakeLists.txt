@@ -50,6 +50,15 @@ add_test(bitvector-test bitvector-test)
 add_dependencies(check bitvector-test)
 
 # --------------------------------------------------
+# points-to-set-test
+# --------------------------------------------------
+add_executable(points-to-set-test points-to-set-test.cpp  ../src/analysis/Offset.cpp)
+add_test(points-to-set-test points-to-set-test)
+add_dependencies(check points-to-set-test)
+
+
+
+# --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 if (LLVM_DG)
