@@ -61,7 +61,10 @@ class PointsToSet {
 
 public:
     bool add(PSNode *target, Offset off) {
-        return pointers[target].set(*off);
+        // the set will return the previous value
+        // of the bit, so that means false if we are
+        // setting a new value
+        return !pointers[target].set(*off);
     }
 
     bool add(const Pointer& ptr) {
