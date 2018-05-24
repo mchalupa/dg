@@ -201,10 +201,13 @@ public:
     class const_iterator {
         const BitsContainerT *container{nullptr};
         size_t pos{0};
-        typename BitsT::const_iterator innerIt;
+        typename BitsT::const_iterator innerIt{};
 
         const_iterator(const BitsContainerT& cont, size_t pos = 0)
-        :container(&cont), pos(pos), innerIt(cont.front().begin()) {}
+        :container(&cont), pos(pos) {
+            if (!cont.empty())
+                innerIt = cont.front().begin();
+        }
     public:
         const_iterator() = default;
 
