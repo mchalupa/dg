@@ -59,32 +59,34 @@ class PointsToSet {
     using ContainerT = std::unordered_map<PSNode *, ADT::SparseBitvector>;
     ContainerT pointers;
 
+    bool addWithUnknownOffset(PSNode *target) {
+        auto it = pointers.find(target);
+        if (it != pointers.end()) {
+            // we already had that offset?
+            bool ret = !it->second.get(Offset::UNKNOWN);
+
+            // get rid of other offsets and keep
+            // only the unknown offset
+            it->second.reset();
+            it->second.set(Offset::UNKNOWN);
+            return ret;
+        }
+
+        return !pointers[target].set(Offset::UNKNOWN);
+    }
+
 public:
     bool add(PSNode *target, Offset off) {
         // the set will return the previous value
         // of the bit, so that means false if we are
         // setting a new value
+        if (off.isUnknown())
+            return addWithUnknownOffset(target);
         return !pointers[target].set(*off);
     }
 
     bool add(const Pointer& ptr) {
-        return add(ptr.target, *ptr.offset);
-    }
-
-    bool addWithUnknownOffset(PSNode *target) {
-        auto it = pointers.find(target);
-        if (it != pointers.end()) {
-            if (it->second.get(Offset::UNKNOWN)) {
-                if (it->second.size() > 1) {
-                    it->second.reset();
-                    it->second.set(Offset::UNKNOWN);
-                }
-                return false; // we already had that offset
-            } else
-                return it->second.set(Offset::UNKNOWN);
-        }
-
-        return add(target, Offset::UNKNOWN);
+        return add(ptr.target, ptr.offset);
     }
 
     // make union of the two sets and store it
@@ -108,6 +110,10 @@ public:
         }
 
         return 0;
+    }
+
+    bool has(const Pointer& ptr) {
+        return count(ptr) > 0;
     }
 
     size_t size() {

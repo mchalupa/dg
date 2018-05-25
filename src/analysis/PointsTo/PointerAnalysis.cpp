@@ -284,7 +284,7 @@ bool PointerAnalysis::processGep(PSNode *node) {
             && new_offset < max_offset)
             changed |= node->addPointsTo(ptr.target, new_offset);
         else
-            changed |= node->pointsTo.addWithUnknownOffset(ptr.target);
+            changed |= node->addPointsTo(ptr.target, Offset::UNKNOWN);
     }
 
     return changed;
