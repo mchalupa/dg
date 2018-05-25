@@ -301,13 +301,10 @@ public:
     {
         // do not add concrete offsets when we have the Offset::UNKNOWN
         // - unknown offset stands for any offset
-        if (pointsTo.count(Pointer(n, Offset::UNKNOWN)))
+        if (pointsTo.has(Pointer(n, Offset::UNKNOWN)))
             return false;
 
-        if (o.isUnknown())
-            return pointsTo.addWithUnknownOffset(n);
-        else
-            return pointsTo.add(Pointer(n, o));
+        return pointsTo.add(Pointer(n, o));
     }
 
     bool addPointsTo(const Pointer& ptr)
@@ -329,8 +326,6 @@ public:
     {
         return doesPointsTo(Pointer(n, o));
     }
-
-    bool addPointsToUnknownOffset(PSNode *target);
 
     // FIXME: maybe get rid of these friendships?
     friend class PointerAnalysis;
