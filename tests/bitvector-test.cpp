@@ -155,3 +155,16 @@ SECTION("Checking random numbers") {
     }
 }
 }
+
+TEST_CASE("Regression 1", "SparseBitvector") {
+    SparseBitvector B;
+    REQUIRE(B.get(~static_cast<uint64_t>(0)) == false);
+    REQUIRE(B.set(~static_cast<uint64_t>(0)) == false);
+    REQUIRE(B.get(~static_cast<uint64_t>(0)) == true);
+    auto it = B.begin();
+    auto et = B.end();
+    REQUIRE(it != et);
+    REQUIRE(*it == ~static_cast<uint64_t>(0));
+    ++it;
+    REQUIRE(it == et);
+}
