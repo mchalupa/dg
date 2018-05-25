@@ -83,7 +83,8 @@ public:
 
         const_iterator& operator++() {
             ++pos;
-            _findNext();
+            if (!isEnd())
+                _findNext();
             return *this;
         }
 
