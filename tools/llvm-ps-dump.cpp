@@ -109,7 +109,7 @@ printName(PSNode *node, bool dot)
         }
 
         if (!node->getUserData<llvm::Value>()) {
-            printf("(no name)\\n");
+            printf("<%u> (no name)\\n", node->getID());
             if (node->getType() == PSNodeType::CONSTANT) {
                 dumpPointer(*(node->pointsTo.begin()), dot);
             } else if (node->getType() == PSNodeType::CALL_RETURN) {
@@ -323,6 +323,8 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
                     node->getType() == PSNodeType::CAST ||
                     node->getType() == PSNodeType::PHI))
                 printf(", style=filled, fillcolor=red");
+        } else if (node->optimized_flag) {
+            printf(", style=filled, fillcolor=green");
         } else {
             printf(", style=filled, fillcolor=orange");
         }
