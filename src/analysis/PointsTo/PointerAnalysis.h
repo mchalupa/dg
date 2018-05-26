@@ -158,6 +158,20 @@ public:
 
         assert(to_process.empty());
         assert(changed.empty());
+
+#ifndef NDEBUG
+        // check that we have the fixpoint
+        to_process = PS->getNodes(root);
+
+        for (PSNode *cur : to_process) {
+            bool enq = false;
+            enq |= beforeProcessed(cur);
+            enq |= processNode(cur);
+            enq |= afterProcessed(cur);
+
+            assert(!enq && "Did not reach fixpoint");
+        }
+#endif // not NDEBUG
     }
 
     // generic error
