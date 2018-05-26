@@ -123,7 +123,7 @@ template <typename BitsT = detail::Bits<uint64_t, uint64_t>,
           size_t SCALE = 1>
 class SparseBitvectorImpl {
     using BitsContainerT = std::vector<BitsT>;
-    BitsContainerT _bits;
+    BitsContainerT _bits{};
 
     // get the element from _bits that may contain i
     // or null if there's no such element
@@ -155,6 +155,12 @@ class SparseBitvectorImpl {
     }
 
 public:
+    SparseBitvectorImpl() = default;
+    SparseBitvectorImpl(size_t i) { set(i); } // singleton ctor
+
+    SparseBitvectorImpl(const SparseBitvectorImpl&) = default;
+    SparseBitvectorImpl(SparseBitvectorImpl&&) = default;
+
     void reset() {
         _bits.clear();
     }
