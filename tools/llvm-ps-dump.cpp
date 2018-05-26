@@ -323,8 +323,6 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
                     node->getType() == PSNodeType::CAST ||
                     node->getType() == PSNodeType::PHI))
                 printf(", style=filled, fillcolor=red");
-        } else if (node->optimized_flag) {
-            printf(", style=filled, fillcolor=green");
         } else {
             printf(", style=filled, fillcolor=orange");
         }
