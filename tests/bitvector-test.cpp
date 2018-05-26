@@ -129,7 +129,7 @@ TEST_CASE("Random", "SparseBitvector") {
 SECTION("Generating random numbers and putting them to bitvector") {
     for (int i = 0; i < NUM; ++i) {
         auto x = distribution(generator);
-        REQUIRE(B.set(x) == false);
+        B.set(x);
         numbers.insert(x);
     }
 }
@@ -167,4 +167,41 @@ TEST_CASE("Regression 1", "SparseBitvector") {
     REQUIRE(*it == ~static_cast<uint64_t>(0));
     ++it;
     REQUIRE(it == et);
+}
+
+/*
+TEST_CASE("Merge bitvectors (union)", "SparseBitvector") {
+    SparseBitvector B;
+    REQUIRED(false);
+}
+*/
+
+TEST_CASE("Merge random bitvectors (union)", "SparseBitvector") {
+    SparseBitvector B1;
+    SparseBitvector B2;
+
+
+    std::default_random_engine generator;
+    std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0));
+
+#undef NUM
+#define NUM 100
+    for (int i = 0; i < NUM; ++i) {
+        auto x = distribution(generator);
+        auto y = distribution(generator);
+        B1.set(x);
+        B2.set(y);
+    }
+
+    auto B1_old = B1;
+    B1.merge(B2);
+    for (auto x : B1_old) {
+        REQUIRE(B1.get(x));
+    }
+    for (auto x : B2) {
+        REQUIRE(B1.get(x));
+    }
+
+//    B2.merge(B1);
+//    REQUIRE(B1 == B2);
 }
