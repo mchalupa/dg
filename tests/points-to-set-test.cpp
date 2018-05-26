@@ -68,5 +68,19 @@ TEST_CASE("Add few elements 2", "PointsToSet") {
     REQUIRE(S.size() == 6);
 }
 
+TEST_CASE("Merge points-to sets", "PointsToSet") {
+    PointsToSet S1;
+    PointsToSet S2;
+    PointerSubgraph PS;
+    PSNode* A = PS.create(PSNodeType::ALLOC);
+    PSNode* B = PS.create(PSNodeType::ALLOC);
 
+    REQUIRE(S1.add({A, 0}));
+    REQUIRE(S2.add({B, 0}));
+
+    REQUIRE(S1.merge(S2));
+    REQUIRE(S1.has({A, 0}));
+    REQUIRE(S1.has({B, 0}));
+    REQUIRE(S1.size() == 2);
+}
 
