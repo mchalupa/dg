@@ -63,13 +63,14 @@ class PointsToSet {
         auto it = pointers.find(target);
         if (it != pointers.end()) {
             // we already had that offset?
-            bool ret = !it->second.get(Offset::UNKNOWN);
+            if (it->second.get(Offset::UNKNOWN))
+                return false;
 
             // get rid of other offsets and keep
             // only the unknown offset
             it->second.reset();
             it->second.set(Offset::UNKNOWN);
-            return ret;
+            return true;
         }
 
         return !pointers[target].set(Offset::UNKNOWN);
@@ -77,12 +78,23 @@ class PointsToSet {
 
 public:
     bool add(PSNode *target, Offset off) {
-        // the set will return the previous value
-        // of the bit, so that means false if we are
-        // setting a new value
         if (off.isUnknown())
             return addWithUnknownOffset(target);
-        return !pointers[target].set(*off);
+
+        auto it = pointers.find(target);
+        if (it == pointers.end()) {
+            pointers.emplace_hint(it, target, *off);
+            return true;
+        } else {
+            if (it->second.get(Offset::UNKNOWN))
+                return false;
+            else {
+                // the set will return the previous value
+                // of the bit, so that means false if we are
+                // setting a new value
+                return !it->second.set(*off);
+            }
+        }
     }
 
     bool add(const Pointer& ptr) {

@@ -299,11 +299,6 @@ public:
     // convenient helper
     bool addPointsTo(PSNode *n, Offset o)
     {
-        // do not add concrete offsets when we have the Offset::UNKNOWN
-        // - unknown offset stands for any offset
-        if (pointsTo.has(Pointer(n, Offset::UNKNOWN)))
-            return false;
-
         return pointsTo.add(Pointer(n, o));
     }
 
