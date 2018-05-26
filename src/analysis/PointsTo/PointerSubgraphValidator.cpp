@@ -63,6 +63,22 @@ static bool hasDuplicateOperand(const PSNode *nd)
     return false;
 }
 
+static bool hasNonpointerOperand(const PSNode *nd)
+{
+    for (const PSNode *op : nd->getOperands()) {
+        if (op->getType() == PSNodeType::NOOP ||
+            op->getType() == PSNodeType::FREE ||
+            op->getType() == PSNodeType::ENTRY ||
+            op->getType() == PSNodeType::INVALIDATE_LOCALS ||
+            op->getType() == PSNodeType::INVALIDATE_OBJECT ||
+            op->getType() == PSNodeType::MEMCPY ||
+            op->getType() == PSNodeType::STORE)
+            return true;
+    }
+
+    return false;
+}
+
 bool PointerSubgraphValidator::checkOperands() {
     bool invalid = false;
 
@@ -94,6 +110,8 @@ bool PointerSubgraphValidator::checkOperands() {
                     invalid |= reportInvalOperands(nd, "Empty PHI");
                 } else if (hasDuplicateOperand(nd)) {
                     invalid |= reportInvalOperands(nd, "PHI Node contains duplicated operand");
+                } else if (hasNonpointerOperand(nd)) {
+                    invalid |= reportInvalOperands(nd, "PHI Node contains non-pointer operand");
                 }
                 break;
             case PSNodeType::NULL_ADDR:
@@ -110,12 +128,18 @@ bool PointerSubgraphValidator::checkOperands() {
             case PSNodeType::INVALIDATE_OBJECT:
             case PSNodeType::CONSTANT:
             case PSNodeType::FREE:
+                if (hasNonpointerOperand(nd)) {
+                    invalid |= reportInvalOperands(nd, "Node has non-pointer operand");
+                }
                 if (nd->getOperandsNum() != 1) {
                     invalid |= reportInvalOperands(nd, "Should have exactly one operand");
                 }
                 break;
             case PSNodeType::STORE:
             case PSNodeType::MEMCPY:
+                if (hasNonpointerOperand(nd)) {
+                    invalid |= reportInvalOperands(nd, "Node has non-pointer operand");
+                }
                 if (nd->getOperandsNum() != 2) {
                     invalid |= reportInvalOperands(nd, "Should have exactly two operands");
                 }
