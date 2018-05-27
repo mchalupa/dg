@@ -249,6 +249,9 @@ void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
         r->addSuccessor(subg.ret);
     }
 
+    // rets.empty() implies void return type
+    assert(!rets.empty() || F->getReturnType()->isVoidTy());
+
     // set parents of nodes
     // FIXME: we should do this when creating the nodes
     std::set<PSNode *> cont;
