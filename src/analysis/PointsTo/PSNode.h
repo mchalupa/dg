@@ -307,7 +307,7 @@ public:
         return addPointsTo(ptr.target, ptr.offset);
     }
 
-    bool addPointsTo(const PointsToSet& ptrs)
+    bool addPointsTo(const PointsToSetT& ptrs)
     {
         return pointsTo.merge(ptrs);
     }
