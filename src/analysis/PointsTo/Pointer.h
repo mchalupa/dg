@@ -190,6 +190,71 @@ public:
     friend class const_iterator;
 };
 
+
+///
+// We keep the implementation of this points-to set because
+// it is good for comparison and regression testing
+class SimplePointsToSet {
+    using ContainerT = std::set<Pointer>;
+    ContainerT pointers;
+
+    using const_iterator = typename ContainerT::const_iterator;
+
+    bool addWithUnknownOffset(PSNode *target) {
+        if (has({target, Offset::UNKNOWN}))
+            return false;
+
+        ContainerT tmp;
+        for (const auto& ptr : pointers) {
+            if (ptr.target != target)
+                tmp.insert(ptr);
+        }
+
+        tmp.swap(pointers);
+        return pointers.insert({target, Offset::UNKNOWN}).second;
+    }
+
+public:
+    bool add(PSNode *target, Offset off) {
+        if (off.isUnknown())
+            return addWithUnknownOffset(target);
+
+        // if we have the same pointer but with unknown offset,
+        // do nothing
+        if (has({target, Offset::UNKNOWN}))
+            return false;
+
+        return pointers.emplace(target, off).second;
+    }
+
+    bool add(const Pointer& ptr) {
+        return add(ptr.target, ptr.offset);
+    }
+
+    // make union of the two sets and store it
+    // into 'this' set (i.e. merge rhs to this set)
+    bool merge(const SimplePointsToSet& rhs) {
+        bool changed = false;
+        for (const auto& ptr : rhs.pointers) {
+            changed |= pointers.insert(ptr).second;
+        }
+
+        return changed;
+    }
+
+    size_t count(const Pointer& ptr) { return pointers.count(ptr); }
+    size_t size() { return pointers.size(); }
+    bool empty() const { return pointers.empty(); }
+    bool has(const Pointer& ptr) { return count(ptr) > 0; }
+
+    void swap(SimplePointsToSet& rhs) { pointers.swap(rhs.pointers); }
+
+    const_iterator begin() const { return pointers.begin(); }
+    const_iterator end() const { return pointers.end(); }
+};
+
+
+
 using PointsToSetT = PointsToSet;
 using PointsToMapT = std::map<Offset, PointsToSetT>;
 
