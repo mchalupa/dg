@@ -580,6 +580,25 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
         // add the CFG edges
         addProgramStructure(F, subg);
 
+        // if the return node has no predecessors,
+        // then this function does not return.
+        // Remove the return node.
+        if (subg.ret->predecessorsNum() == 0) {
+            subg.ret->isolate();
+            PS.remove(subg.ret);
+            subg.ret = nullptr;
+
+            // remove also the CALL_RETURN node as it is
+            // useles now
+            for (PSNode *call : subg.root->getPredecessors()) {
+                assert(call->getType() == PSNodeType::CALL ||
+                       call->getType() == PSNodeType::CALL_FUNCPTR);
+                PSNode *call_ret = call->getPairedNode();
+                call_ret->isolate();
+                PS.remove(call_ret);
+            }
+        }
+
         // add the missing operands (to arguments and return nodes)
         addInterproceduralOperands(F, subg);
     }
@@ -740,7 +759,10 @@ void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function
             addVariadicArgumentOperands(F, subg.vararg);
     }
 
-    addReturnNodeOperands(F, subg.ret, CI);
+    if (subg.ret) {
+        addReturnNodeOperands(F, subg.ret, CI);
+    }
+    assert(subg.ret || F->getReturnType()->isVoidTy());
 }
 
 
