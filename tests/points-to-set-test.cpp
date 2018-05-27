@@ -1,8 +1,6 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include <random>
-
 #include "analysis/PointsTo/PSNode.h"
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/Pointer.h"
