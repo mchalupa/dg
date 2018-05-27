@@ -212,3 +212,5 @@ endif (LLVM_DG)
 
 add_executable(rdmap-benchmark rdmap-benchmark.cpp)
 target_link_libraries(rdmap-benchmark RD)
+
+add_executable(ptset-benchmark ptset-benchmark.cpp  ../src/analysis/Offset.cpp)
