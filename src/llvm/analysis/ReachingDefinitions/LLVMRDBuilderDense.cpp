@@ -480,7 +480,8 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
             num += blockAddSuccessors(built_blocks, ptan, *(*S));
         } else {
             // add successor to the last nodes
-            makeEdge(ptan.second, succ.first);
+            if (ptan.second != succ.first)
+                makeEdge(ptan.second, succ.first);
             ++num;
         }
     }
