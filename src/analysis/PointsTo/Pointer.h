@@ -2,7 +2,6 @@
 #define _DG_POINTER_H_
 
 #include <map>
-#include <unordered_map>
 #include <set>
 #include <cassert>
 
@@ -56,7 +55,7 @@ struct Pointer
 class PointsToSet {
     // each pointer is a pair (PSNode *, {offsets}),
     // so we represent them coinciesly this way
-    using ContainerT = std::unordered_map<PSNode *, ADT::SparseBitvector>;
+    using ContainerT = std::map<PSNode *, ADT::SparseBitvector>;
     ContainerT pointers;
 
     bool addWithUnknownOffset(PSNode *target) {
@@ -252,8 +251,6 @@ public:
     const_iterator begin() const { return pointers.begin(); }
     const_iterator end() const { return pointers.end(); }
 };
-
-
 
 using PointsToSetT = PointsToSet;
 using PointsToMapT = std::map<Offset, PointsToSetT>;
