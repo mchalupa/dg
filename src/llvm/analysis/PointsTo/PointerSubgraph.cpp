@@ -749,7 +749,6 @@ void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function
     if (subg.ret) {
         addReturnNodeOperands(F, subg.ret, CI);
     }
-    assert(subg.ret || F->getReturnType()->isVoidTy());
 }
 
 
