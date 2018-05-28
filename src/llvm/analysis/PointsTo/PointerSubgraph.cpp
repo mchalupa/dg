@@ -130,7 +130,7 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
         if (isInvalid(val))
             return UNKNOWN_MEMORY;
 
-        assert(0 && "Did not created relevant value");
+        llvm::errs() << "ERROR: missing value in graph: " << *val << "\n";
         abort();
     } else
         return op;
@@ -263,21 +263,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
         if (func->isIntrinsic())
             return isRelevantIntrinsic(func);
 
-        // returns pointer? We want that too - this is gonna be
-        // an unknown pointer
-        if (Inst->getType()->isPointerTy())
-            return true;
-
-        // XXX: what if undefined function takes as argument pointer
-        // to memory with pointers? In that case to be really sound
-        // we should make those pointers unknown. Another case is
-        // what if the function returns a structure (is it possible in LLVM?)
-        // It can return a structure containing a pointer - thus we should
-        // make this pointer unknown
-
-        // here we have: undefined function not returning a pointer
-        // and not memory allocation: we don't need that
-        return false;
+        // it returns something? We want that!
+        return !func->getReturnType()->isVoidTy();
     } else
         // we want defined function, since those can contain
         // pointer's manipulation and modify CFG
