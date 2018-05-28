@@ -581,6 +581,7 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
                 assert(call->getType() == PSNodeType::CALL ||
                        call->getType() == PSNodeType::CALL_FUNCPTR);
                 PSNode *call_ret = call->getPairedNode();
+                call->setPairedNode(nullptr);
                 call_ret->isolate();
                 PS.remove(call_ret);
             }
