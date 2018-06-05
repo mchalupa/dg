@@ -121,16 +121,23 @@ public:
 
     size_t addOperand(NodeT *n)
     {
-#ifdef DEBUG_ENABLED
-        for (NodeT *x : operands)
-            assert(x != n && "Operand added multiple times");
-#endif
         assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         n->addUser(static_cast<NodeT *>(this));
         assert(n->users.size() > 0);
 
         return operands.size();
+    }
+
+    bool hasOperand(NodeT *n) const
+    {
+        for (NodeT *x : operands) {
+            if (x == n) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     void addSuccessor(NodeT *succ)
