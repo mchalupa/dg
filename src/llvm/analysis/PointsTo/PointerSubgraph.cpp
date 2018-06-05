@@ -220,7 +220,9 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINod
 {
     for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
         if (PSNode *op = tryGetOperand(PHI->getIncomingValue(i))) {
-            node->addOperand(op);
+            // do not add duplicate operands
+            if (!node->hasOperand(op))
+                node->addOperand(op);
         }
     }
 }
@@ -600,18 +602,11 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
 {
     assert(idx < static_cast<int>(CI->getNumArgOperands()));
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
-    if (op) {
-        // do not add an operand multiple-times
+    if (op && !arg->hasOperand(op)) {
+        // NOTE: do not add an operand multiple-times
         // (when a function is called multiple-times with
         // the same actual parameters)
-        bool found = false;
-        for (PSNode *tmp : arg->getOperands())
-            if (tmp == op) {
-                found = true;
-                break;
-            }
-        if (!found)
-            arg->addOperand(op);
+        arg->addOperand(op);
     }
 }
 
@@ -713,7 +708,8 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::CallInst *CI, 
     // so there must be associated the return node
     assert(returnNode);
 
-    returnNode->addOperand(op);
+    if (!returnNode->hasOperand(op))
+        returnNode->addOperand(op);
 }
 
 
