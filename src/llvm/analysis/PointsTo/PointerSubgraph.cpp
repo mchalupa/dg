@@ -187,8 +187,10 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
     ad_hoc_building = true;
 
     auto ret = createCallToFunction(CInst, F);
+#ifndef NDEBUG
     Subgraph& subg = subgraphs_map[F];
     assert(subg.root != nullptr);
+#endif
 
     ad_hoc_building = false;
 
