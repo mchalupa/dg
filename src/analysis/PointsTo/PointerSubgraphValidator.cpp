@@ -19,6 +19,13 @@ static void dumpNode(const PSNode *nd, std::string& errors) {
     errors += "]\n";
 }
 
+bool PointerSubgraphValidator::warn(const PSNode *nd, const std::string& warning) {
+    warnings += "Warning: " + warning + "\n";
+    dumpNode(nd, warnings);
+
+    return true;
+}
+
 bool PointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
     errors += "Invalid operands:\n";
     dumpNode(nd, errors);
@@ -109,7 +116,9 @@ bool PointerSubgraphValidator::checkOperands() {
                 if (nd->getOperandsNum() == 0) {
                     invalid |= reportInvalOperands(nd, "Empty PHI");
                 } else if (hasDuplicateOperand(nd)) {
-                    invalid |= reportInvalOperands(nd, "PHI Node contains duplicated operand");
+                    // this is not an error, but warn the user
+                    // as this is redundant
+                    warn(nd, "PHI Node contains duplicated operand");
                 } else if (hasNonpointerOperand(nd)) {
                     invalid |= reportInvalOperands(nd, "PHI Node contains non-pointer operand");
                 }
