@@ -373,6 +373,7 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
 
     switch(Inst.getOpcode()) {
         case Instruction::ICmp:
+        case Instruction::FCmp:
         case Instruction::Br:
         case Instruction::Switch:
         case Instruction::Unreachable:
