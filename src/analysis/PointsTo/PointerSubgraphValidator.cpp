@@ -114,7 +114,10 @@ bool PointerSubgraphValidator::checkOperands() {
         switch (nd->getType()) {
             case PSNodeType::PHI:
                 if (nd->getOperandsNum() == 0) {
-                    invalid |= reportInvalOperands(nd, "Empty PHI");
+                    // this may not be always an error
+                    // (say this is a phi of an uninitialized pointer
+                    // for which we do not have any points to)
+                    warn(nd, "Empty PHI");
                 } else if (hasDuplicateOperand(nd)) {
                     // this is not an error, but warn the user
                     // as this is redundant
