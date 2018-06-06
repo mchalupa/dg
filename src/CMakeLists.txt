@@ -5,6 +5,8 @@ add_library(PTA SHARED
 	analysis/Offset.h
 	analysis/Offset.cpp
 	analysis/PointsTo/Pointer.h
+	analysis/PointsTo/PointsToSet.h
+	analysis/PointsTo/MemoryObject.h
 	analysis/PointsTo/Pointer.cpp
 	analysis/PointsTo/PointerSubgraph.h
 	analysis/PointsTo/PointerAnalysis.h
@@ -101,6 +103,8 @@ install(FILES
 install(FILES
 	analysis/PointsTo/PointerAnalysis.h
 	analysis/PointsTo/Pointer.h
+	analysis/PointsTo/PointsToSet.h
+	analysis/PointsTo/MemoryObject.h
 	analysis/PointsTo/PointerSubgraph.h
 	analysis/PointsTo/PointerSubgraphValidator.h
 	analysis/PointsTo/PointsToFlowInsensitive.h

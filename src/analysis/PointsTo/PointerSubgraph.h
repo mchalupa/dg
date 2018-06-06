@@ -4,9 +4,7 @@
 #include <cassert>
 #include <vector>
 #include <cstdarg>
-#include <string>
 
-#include "Pointer.h"
 #include "ADT/Queue.h"
 #include "analysis/SubgraphNode.h"
 #include "PSNode.h"

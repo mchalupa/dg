@@ -6,6 +6,7 @@
 #include <string>
 
 #include "Pointer.h"
+#include "PointsToSet.h"
 #include "analysis/SubgraphNode.h"
 
 namespace dg {

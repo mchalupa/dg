@@ -1,4 +1,6 @@
 #include <string>
+
+#include "PointsToSet.h"
 #include "PointerSubgraphValidator.h"
 
 namespace dg {

@@ -4,7 +4,7 @@
 #include <cassert>
 #include <memory>
 
-#include "Pointer.h"
+#include "MemoryObject.h"
 #include "PointerSubgraph.h"
 
 namespace dg {
