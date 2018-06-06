@@ -1,4 +1,5 @@
 #include "Pointer.h"
+#include "PointsToSet.h"
 #include "PointerSubgraph.h"
 #include "PointerAnalysis.h"
 

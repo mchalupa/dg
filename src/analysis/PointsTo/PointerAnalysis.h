@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Pointer.h"
+#include "MemoryObject.h"
 #include "PointerSubgraph.h"
 #include "ADT/Queue.h"
 
