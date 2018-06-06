@@ -51,15 +51,13 @@ private:
 #ifdef ENABLE_CFG
         // when we marked a node, we need to mark even
         // the basic block - if there are basic blocks
-        BBlock<NodeT> *B = n->getBBlock();
-        if (B)
+        if (BBlock<NodeT> *B = n->getBBlock())
             B->setSlice(slice_id);
 #endif
 
         // the same with dependence graph, if we keep a node from
         // a dependence graph, we need to keep the dependence graph
-        DependenceGraph<NodeT> *dg = n->getDG();
-        if (dg) {
+        if (DependenceGraph<NodeT> *dg = n->getDG()) {
             dg->setSlice(slice_id);
             // and keep also all call-sites of this func (they are
             // control dependent on the entry node)
@@ -92,19 +90,27 @@ class Slicer : Analysis<NodeT>
     uint32_t options;
     uint32_t slice_id;
 
-    void sliceGraph(DependenceGraph<NodeT> *dg, uint32_t slice_id)
+    std::set<DependenceGraph<NodeT> *> sliced_graphs;
+
+    // slice nodes from the graph; do it recursively for call-nodes
+    void sliceNodes(DependenceGraph<NodeT> *dg, uint32_t slice_id)
     {
         for (auto& it : *dg) {
             NodeT *n = it.second;
 
-            // slice subgraphs if this node is a call-site
-            for (DependenceGraph<NodeT> *sub : n->getSubgraphs())
-                sliceGraph(sub, slice_id);
-
             if (n->getSlice() != slice_id) {
-                // do graph specific logic
-                if (removeNode(n))
+                if (removeNode(n)) // do backend's specific logic
                     dg->deleteNode(n);
+
+                continue;
+            }
+
+            // slice subgraphs if this node is
+            // a call-site that is in the slice
+            for (DependenceGraph<NodeT> *sub : n->getSubgraphs()) {
+                // slice the subgraph if we haven't sliced it yet
+                if (sliced_graphs.insert(sub).second)
+                    sliceNodes(sub, slice_id);
             }
         }
 
@@ -134,12 +140,17 @@ public:
         return sl_id;
     }
 
-    uint32_t slice(NodeT *start, uint32_t sl_id = 0)
+    // slice the graph and its subgraphs. mark needs to be called
+    // before this routine (otherwise everything is sliced)
+    uint32_t slice(DependenceGraph<NodeT> *dg, uint32_t sl_id = 0)
     {
-        // for now it will does the same as mark,
-        // just remove the rest of nodes
-        sl_id = mark(start, sl_id);
-        sliceGraph(start->getDG(), sl_id);
+#ifdef ENABLE_CFG
+        // first slice away bblocks that should go away
+        sliceBBlocks(dg, sl_id);
+#endif // ENABLE_CFG
+
+        // now slice the nodes from the remaining graphs
+        sliceNodes(dg, sl_id);
 
         return sl_id;
     }
@@ -148,16 +159,13 @@ public:
     // This virtual method allows to taky an action
     // when node is being removed from the graph. It can also
     // disallow removing this node by returning false
-    virtual bool removeNode(NodeT *node)
-    {
-        (void) node;
+    virtual bool removeNode(NodeT *) {
         return true;
     }
 
 #ifdef ENABLE_CFG
-    virtual void removeBlock(BBlock<NodeT> *block)
-    {
-        (void) block;
+    virtual bool removeBlock(BBlock<NodeT> *) {
+        return true;
     }
 
     struct RemoveBlockData {
@@ -200,8 +208,8 @@ public:
     // sliced graph
     void sliceBBlocks(DependenceGraph<NodeT> *graph, uint32_t sl_id)
     {
-        typename DependenceGraph<NodeT>::BBlocksMapT& CB = graph->getBlocks();
-#ifdef DEBUG_ENABLED
+        auto& CB = graph->getBlocks();
+#ifndef NDEBUG
         uint32_t blocksNum = CB.size();
 #endif
         // gather the blocks
@@ -220,16 +228,14 @@ public:
             ++statistics.blocksRemoved;
 
             // call specific handlers (overriden by child class)
-            removeBlock(blk);
-
-            // remove block from the graph
-            blk->remove();
+            if (removeBlock(blk)) {
+                // remove block from the graph
+                blk->remove();
+            }
         }
 
-#ifdef DEBUG_ENABLED
         assert(CB.size() + blocks.size() == blocksNum &&
                 "Inconsistency in sliced blocks");
-#endif
     }
 
 #endif
