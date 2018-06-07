@@ -50,6 +50,13 @@ add_test(bitvector-test bitvector-test)
 add_dependencies(check bitvector-test)
 
 # --------------------------------------------------
+# numbers-set-test
+# --------------------------------------------------
+add_executable(numbers-set-test numbers-set-test.cpp)
+add_test(numbers-set-test numbers-set-test)
+add_dependencies(check numbers-set-test)
+
+# --------------------------------------------------
 # points-to-set-test
 # --------------------------------------------------
 add_executable(points-to-set-test points-to-set-test.cpp  ../src/analysis/Offset.cpp)

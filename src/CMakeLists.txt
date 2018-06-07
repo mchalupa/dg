@@ -64,6 +64,9 @@ add_library(LLVMdg SHARED
 	Node.h
 	DependenceGraph.h
 	ADT/DGContainer.h
+	ADT/Bitvector.h
+	ADT/Bits.h
+	ADT/NumberSet.h
 	# -- LLVM
 	llvm/LLVMNode.h
 	llvm/LLVMNode.cpp
