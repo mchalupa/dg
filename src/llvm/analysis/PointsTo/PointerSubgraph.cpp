@@ -466,18 +466,18 @@ std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Funct
     blocks.reserve(F.size());
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
-        auto DTree = new llvm::DominatorTree();
-        DTree->runOnFunction(F);
+        llvm::DominatorTree DTree;
+        DTree.recalculate(F);
 #else
         llvm::DominatorTreeWrapperPass wrapper;
         wrapper.runOnFunction(F);
-        auto DTree = &wrapper.getDomTree();
+        auto& DTree = wrapper.getDomTree();
 #ifndef NDEBUG
         wrapper.verifyAnalysis();
 #endif
 #endif
 
-    auto root_node = DTree->getRootNode();
+    auto root_node = DTree.getRootNode();
     blocks.push_back(root_node->getBlock());
 
     std::vector<llvm::DomTreeNode *> to_process;
