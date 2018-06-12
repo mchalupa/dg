@@ -402,19 +402,18 @@ private:
 
 #ifndef NDEBUG
             // check the BB
-            std::set<int> labels;
+            labels.clear();
             for (const auto& succ : BB->successors()) {
-                assert(!newExitBB || succ.target != oldExitBB
+                assert((!newExitBB || succ.target != oldExitBB)
                         && "A block has the old BB as successor");
                 // we can have more labels with different targets,
                 // but we can not have one target with more labels
-                assert(labels.insert(succ.label).second
-                        && "Already have a label");
+                assert(labels.insert(succ.label) && "Already have a label");
             }
 
             // check that we have all labels without any gep
             auto l = labels.begin();
-            for (int i = 0; i < labels.size(); ++i) {
+            for (unsigned i = 0; i < labels.size(); ++i) {
                 // set is ordered, so this must hold
                 assert(i == *l++ && "Labels have a gap");
             }
