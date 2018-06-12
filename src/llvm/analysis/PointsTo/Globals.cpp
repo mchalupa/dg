@@ -67,11 +67,6 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
     } else if (C->getType()->isPointerTy()) {
         PSNode *op = getOperand(C);
         PSNode *target = PS.create(PSNodeType::CONSTANT, node, offset);
-        // FIXME: we're leaking the target
-        // NOTE: mabe we could do something like
-        // CONSTANT_STORE that would take Pointer instead of node??
-        // PSNode(CONSTANT_STORE, op, Pointer(node, off)) or
-        // PSNode(COPY, op, Pointer(node, off))??
         PSNode *store = PS.create(PSNodeType::STORE, op, target);
         store->insertAfter(last);
         last = store;
@@ -86,6 +81,12 @@ LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant
            store->insertAfter(last);
            last = store;
        }
+    } else if (isa<UndefValue>(C)) {
+        // undef value means unknown memory
+        PSNode *target = PS.create(PSNodeType::CONSTANT, node, offset);
+        PSNode *store = PS.create(PSNodeType::STORE, UNKNOWN_MEMORY, target);
+        store->insertAfter(last);
+        last = store;
     } else if (!isa<ConstantInt>(C) && !isa<ConstantFP>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
