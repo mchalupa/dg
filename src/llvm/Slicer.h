@@ -415,7 +415,8 @@ private:
             auto l = labels.begin();
             for (unsigned i = 0; i < labels.size(); ++i) {
                 // set is ordered, so this must hold
-                assert(i == *l++ && "Labels have a gap");
+                // (as 255 is the last possible label)
+                assert((*l == 255 || i == *l++) && "Labels have a gap");
             }
 #endif
         }
