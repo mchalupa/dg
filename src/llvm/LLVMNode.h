@@ -47,26 +47,9 @@ using LLVMDGParameters = dg::DGParameters<LLVMNode>;
 /// ------------------------------------------------------------------
 class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>
 {
-#if LLVM_VERSION_MAJOR >= 5
-    struct LLVMValueDeleter {
-        void operator()(llvm::Value *val) const {
-            val->deleteValue();
-        }
-    };
-#endif
-
 public:
-    LLVMNode(llvm::Value *val, bool owns_value = false)
-        :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val),
-         operands(nullptr), operands_num(0)
-    {
-        if (owns_value)
-#if LLVM_VERSION_MAJOR >= 5
-            owned_key = std::unique_ptr<llvm::Value, LLVMValueDeleter>(val);
-#else
-            owned_key = std::unique_ptr<llvm::Value>(val);
-#endif
-    }
+    LLVMNode(llvm::Value *val, LLVMDependenceGraph *dg = nullptr)
+        :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val, dg) {}
 
     ~LLVMNode();
 
@@ -93,15 +76,8 @@ private:
     LLVMNode **findOperands();
     // here we can store operands of instructions so that
     // finding them will be asymptotically constant
-    LLVMNode **operands;
-    size_t operands_num;
-
-    // the owned key will be deleted with this node
-#if LLVM_VERSION_MAJOR >= 5
-    std::unique_ptr<llvm::Value, LLVMValueDeleter> owned_key;
-#else
-    std::unique_ptr<llvm::Value> owned_key;
-#endif
+    LLVMNode **operands{nullptr};
+    size_t operands_num{0};
 };
 
 } // namespace dg

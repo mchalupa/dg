@@ -88,7 +88,19 @@ public:
     bool removeBlock(LLVMBBlock *block) override
     {
         assert(block);
+        assert(block->getDG());
+        assert(block->getDG()->getExitBB());
 
+        // do not remove the exit BB, we will need
+        // it for reconnecting edges.
+        // We can remove it at the end if it has no predecessors.
+        if (block == block->getDG()->getExitBB())
+            return false;
+
+        return _removeBlock(block);
+    }
+
+    bool _removeBlock(LLVMBBlock *block) {
         llvm::Value *val = block->getKey();
         if (val == nullptr)
             return true;
@@ -188,8 +200,7 @@ private:
         using namespace llvm;
 
         for(Instruction& I : *pred) {
-            PHINode *phi = dyn_cast<PHINode>(&I);
-            if (phi) {
+            if (PHINode *phi = dyn_cast<PHINode>(&I)) {
                 // don't try remove block that we already removed
                 int idx = phi->getBasicBlockIndex(blk);
                 if (idx < 0)
@@ -229,71 +240,11 @@ private:
         }
     }
 
-    static LLVMBBlock *
-    createNewExitBB(LLVMDependenceGraph *graph)
-    {
-        using namespace llvm;
-
-        LLVMBBlock *exitBB = new LLVMBBlock();
-
-        Module *M = graph->getModule();
-        LLVMContext& Ctx = M->getContext();
-        BasicBlock *block = BasicBlock::Create(Ctx, "safe_return");
-
-        Value *fval = graph->getEntry()->getKey();
-        Function *F = cast<Function>(fval);
-        F->getBasicBlockList().push_back(block);
-
-        // fill in basic block just with return value
-        ReturnInst *RI;
-        if (F->getReturnType()->isVoidTy())
-            RI = ReturnInst::Create(Ctx, block);
-        else if (F->getName().equals("main"))
-            // if this is main, than the safe exit equals to returning 0
-            // (it is just for convenience, we wouldn't need to do this)
-            RI = ReturnInst::Create(Ctx,
-                                    ConstantInt::get(Type::getInt32Ty(Ctx), 0),
-                                    block);
-        else
-            RI = ReturnInst::Create(Ctx,
-                                    UndefValue::get(F->getReturnType()),
-                                    block);
-
-        LLVMNode *newRet = new LLVMNode(RI);
-        graph->addNode(newRet);
-
-        exitBB->append(newRet);
-        exitBB->setKey(block);
-        exitBB->setDG(graph);
-
-        return exitBB;
-    }
-
-    static LLVMBBlock* addNewExitBB(LLVMDependenceGraph *graph)
-    {
-        // FIXME: don't create new one, create it
-        // when creating graph and just use that one
-        LLVMBBlock *newExitBB = createNewExitBB(graph);
-        graph->setExitBB(newExitBB);
-        graph->setExit(newExitBB->getLastNode());
-        // do not add the block to the graph,
-        // we'll do it at the end of adjustBBlocksSucessors,
-        // because this function is called while iterating
-        // over blocks, so that we won't corrupt the iterator
-
-        return newExitBB;
-    }
-
     // when we sliced away a branch of CFG, we need to reconnect it
     // to exit block, since on this path we would silently terminate
     // (this path won't have any effect on the property anymore)
     void adjustBBlocksSucessors(LLVMDependenceGraph *graph, uint32_t slice_id)
     {
-        LLVMBBlock *oldExitBB = graph->getExitBB();
-        assert(oldExitBB && "Don't have exit BB");
-
-        LLVMBBlock *newExitBB = nullptr;
-
         for (auto& it : graph->getBlocks()) {
             const llvm::BasicBlock *llvmBB
                 = llvm::cast<llvm::BasicBlock>(it.first);
@@ -337,12 +288,6 @@ private:
 
                 // modify the edge
                 edge.label = 0;
-                if (edge.target == oldExitBB) {
-                     if (!newExitBB)
-                        newExitBB = addNewExitBB(graph);
-
-                    edge.target = newExitBB;
-                }
 
                 // replace the only edge
                 BB->removeSuccessors();
@@ -360,10 +305,6 @@ private:
             // a jump to return block, replace it with new
             // return block
             for (const auto& succ : BB->successors()) {
-                // skip artificial return basic block.
-                if (succ.label == 255 || succ.target == oldExitBB)
-                    continue;
-
                 labels.insert(succ.label);
             }
 
@@ -371,20 +312,14 @@ private:
             // no gaps, so jump to safe exit under missing labels
             for (uint8_t i = 0; i < tinst->getNumSuccessors(); ++i) {
                 if (!labels.contains(i)) {
-                     if (!newExitBB)
-                        newExitBB = addNewExitBB(graph);
-
 #ifndef NDEBUG
                     bool ret =
 #endif
-                    BB->addSuccessor(newExitBB, i);
+                    // the exit BB is the unified exit BB
+                    BB->addSuccessor(graph->getExitBB(), i);
                     assert(ret && "Already had this CFG edge, that is wrong");
                 }
             }
-
-            // this BB is going to be removed
-            if (newExitBB)
-                BB->removeSuccessorsTarget(oldExitBB);
 
             // if we have all successor edges pointing to the same
             // block, replace them with one successor (thus making
@@ -404,8 +339,6 @@ private:
             // check the BB
             labels.clear();
             for (const auto& succ : BB->successors()) {
-                assert((!newExitBB || succ.target != oldExitBB)
-                        && "A block has the old BB as successor");
                 // we can have more labels with different targets,
                 // but we can not have one target with more labels
                 assert(labels.insert(succ.label) && "Already have a label");
@@ -419,15 +352,6 @@ private:
                 assert((*l == 255 || i == *l++) && "Labels have a gap");
             }
 #endif
-        }
-
-        if (newExitBB) {
-            graph->addBlock(newExitBB->getKey(), newExitBB);
-            assert(graph->getExitBB() == newExitBB);
-            // NOTE: do not delete the old block
-            // because it is the unified BB that is kept in
-            // unique_ptr, so it will be deleted later automatically.
-            // Deleting it would lead to double-free
         }
     }
 
@@ -451,8 +375,6 @@ private:
             // take any other action on it
             if (n == graph->getExit())
                 continue;
-
-            ++statistics.nodesTotal;
 
             // keep instructions like ret or unreachable
             // FIXME: if this is ret of some value, then
@@ -514,20 +436,12 @@ private:
 
             LLVMContext& Ctx = llvmBB->getContext();
             Function *F = cast<Function>(llvmBB->getParent());
-            bool create_return = true;
 
             if (BB->successorsNum() == 1) {
                 const LLVMBBlock::BBlockEdge& edge = *(BB->successors().begin());
-                if (edge.label != 255) {
-                    // don't create return, we created branchinst
-                    create_return = false;
-
-                    BasicBlock *succ = cast<BasicBlock>(edge.target->getKey());
-                    BranchInst::Create(succ, llvmBB);
-                }
-            }
-
-            if (create_return) {
+                BasicBlock *succ = cast<BasicBlock>(edge.target->getKey());
+                BranchInst::Create(succ, llvmBB);
+            } else {
                 assert(BB->successorsNum() == 0
                         && "Creating return to BBlock that has successors");
 
@@ -547,25 +461,33 @@ private:
 
             // and that is all we can do here
             return;
+        } else {
+            for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
+                if (succ.label == 255) {
+                    // if we have a terminator inst that should be followed
+                    // by the artificial exit BB, then it must be a return inst.
+                    // In this case do nothing as we want to keep the original
+                    // return inst.
+                    assert(isa<ReturnInst>(tinst));
+                    continue;
+                }
+
+                llvm::Value *val = succ.target->getKey();
+                assert(val && "nullptr as BB's key");
+
+                llvm::BasicBlock *llvmSucc = llvm::cast<llvm::BasicBlock>(val);
+                tinst->setSuccessor(succ.label, llvmSucc);
+            }
         }
-
-        for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
-            // skip artificial return basic block
-            if (succ.label == 255)
-                continue;
-
-            llvm::Value *val = succ.target->getKey();
-            assert(val && "nullptr as BB's key");
-            llvm::BasicBlock *llvmSucc = llvm::cast<llvm::BasicBlock>(val);
-            tinst->setSuccessor(succ.label, llvmSucc);
-        }
-
-        // if the block still does not have terminator
     }
 
     void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph)
     {
         for (auto& it : graph->getBlocks()) {
+            // don't do this for our exit BB
+            if (it.second == graph->getExitBB())
+                continue;
+
             llvm::BasicBlock *llvmBB
                 = llvm::cast<llvm::BasicBlock>(it.first);
             LLVMBBlock *BB = it.second;

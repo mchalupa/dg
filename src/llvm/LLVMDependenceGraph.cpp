@@ -411,6 +411,68 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
     }
 }
 
+static LLVMBBlock *
+createNewExitBB(LLVMDependenceGraph *graph, bool unreachable = false)
+{
+    using namespace llvm;
+
+
+    // create a new LLVM block
+    Module *M = graph->getModule();
+    LLVMContext& Ctx = M->getContext();
+    BasicBlock *block = BasicBlock::Create(Ctx, "safe_return");
+    Function *F = cast<Function>(graph->getEntry()->getKey());
+    F->getBasicBlockList().push_back(block);
+
+    // create a new block in our graph
+    LLVMBBlock *exitBB = new LLVMBBlock();
+    exitBB->setKey(block);
+
+    // Put the terminator instruction into the LLVM basic block.
+    // It is either unreachable or ret instruction.
+    Value *Val;
+    if (unreachable) {
+        Val = new llvm::UnreachableInst(graph->getModule()->getContext(),
+                                        block);
+    } else if (F->getReturnType()->isVoidTy()) {
+        Val = ReturnInst::Create(Ctx, block);
+    } else if (F->getName().equals("main")) {
+        // if this is main, than the safe exit equals to returning 0
+        // (it is just for convenience, we wouldn't need to do this)
+        Val = ReturnInst::Create(Ctx,
+                                 ConstantInt::get(Type::getInt32Ty(Ctx), 0),
+                                 block);
+    } else {
+        Val = ReturnInst::Create(Ctx,
+                                UndefValue::get(F->getReturnType()),
+                                block);
+    }
+
+    // create a node for the instruction and append it to the block
+    LLVMNode *newRet = new LLVMNode(Val);
+    exitBB->append(newRet);
+
+    return exitBB;
+}
+
+static LLVMBBlock* addNewExitBB(LLVMDependenceGraph *graph,
+                                bool unreachable = false)
+{
+    // create the block and add it to the graph
+    LLVMBBlock *newExitBB = createNewExitBB(graph, unreachable);
+    graph->addBlock(newExitBB->getKey(), newExitBB);
+    graph->setExitBB(newExitBB);
+    newExitBB->setDG(graph);
+
+    // add also the only node from the block to the graph
+    LLVMNode *retNode = newExitBB->getLastNode();
+    graph->addNode(retNode);
+    graph->setExit(retNode);
+
+    assert(retNode->getDG() == graph && newExitBB->getDG() == graph);
+    return newExitBB;
+}
+
 LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
 {
     using namespace llvm;
@@ -427,6 +489,7 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
 
         // add new node to this dependence graph
         addNode(node);
+        assert(node->getDG());
 
         // add the node to our basic block
         BB->append(node);
@@ -447,35 +510,22 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
     Value *termval = node->getValue();
     if (isa<ReturnInst>(termval)) {
         // create one unified exit node from function and add control dependence
-        // to it from every return instruction. We could use llvm pass that
-        // would do it for us, but then we would lost the advantage of working
-        // on dep. graph that is not for whole llvm
+        // to it from every return instruction.
+        // The exit block and nodes will be unreachable in the original LLVM,
+        // but after slicing they may become reachable because branchings
+        // that will be irrelevant will jump to them as a "safe exit"
         LLVMNode *ext = getExit();
         if (!ext) {
-            // we need new llvm value, so that the nodes won't collide
-            ReturnInst *phonyRet
-                = ReturnInst::Create(termval->getContext());
-            if (!phonyRet) {
-                errs() << "ERR: Failed creating phony return value "
-                       << "for exit node\n";
-                // XXX later we could return somehow more mercifully
-                abort();
-            }
-
-            ext = new LLVMNode(phonyRet, true /* node owns the value -
-                                                 it will delete it */);
-            setExit(ext);
-
-            LLVMBBlock *retBB = new LLVMBBlock(ext);
-            retBB->deleteNodesOnDestruction();
-            setExitBB(retBB);
-            assert(!unifiedExitBB
-                   && "We should not have it assinged yet (or again) here");
-            unifiedExitBB = std::unique_ptr<LLVMBBlock>(retBB);
+            LLVMBBlock *retBB = addNewExitBB(this);
+            assert(retBB);
+            ext = retBB->getLastNode();
         }
 
-        // add control dependence from this (return) node to EXIT node
         assert(node && "BUG, no node after we went through basic block");
+        assert(ext && "No exit node");
+        assert(getExitBB() && "No exit node");
+
+        // add control dependence from this (return) node to EXIT node
         node->addControlDependence(ext);
         // 255 is maximum value of uint8_t which is the type of the label
         // of the edge
@@ -487,21 +537,6 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
     assert(BB->getLastNode() && "No last node in BB");
 
     return BB;
-}
-
-static LLVMBBlock *createSingleExitBB(LLVMDependenceGraph *graph)
-{
-    llvm::UnreachableInst *ui
-        = new llvm::UnreachableInst(graph->getModule()->getContext());
-    LLVMNode *exit = new LLVMNode(ui, true);
-    graph->addNode(exit);
-    graph->setExit(exit);
-    LLVMBBlock *exitBB = new LLVMBBlock(exit);
-    graph->setExitBB(exitBB);
-
-    // XXX should we add predecessors? If the function does not
-    // return anything, we don't need propagate anything outside...
-    return exitBB;
 }
 
 static void
@@ -582,6 +617,14 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     // iterate over basic blocks
     BBlocksMapT& blocks = getBlocks();
     for (llvm::BasicBlock& llvmBB : *func) {
+        // we do not want to create a BB for the exit BB that
+        // we created, because it already exists
+        if (auto exitBB = getExitBB()) {
+            if (exitBB->getKey() == &llvmBB) {
+                continue;
+            }
+        }
+
         LLVMBBlock *BB = build(llvmBB);
         blocks[&llvmBB] = BB;
 
@@ -618,11 +661,10 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
         }
     }
 
-    // if graph has no return inst, just create artificial exit node
-    // and point there
+    // if graph has no return inst, just create a new exit BB
+    // with unreachable inst, so that we have a exit block and node
     if (!getExit()) {
-        assert(!unifiedExitBB && "We should not have exit BB");
-        unifiedExitBB = std::unique_ptr<LLVMBBlock>(createSingleExitBB(this));
+        addNewExitBB(this, true /* unreachable */);
     }
 
     // check if we have everything
@@ -684,8 +726,8 @@ void LLVMDependenceGraph::addFormalParameters()
     if (func->isVarArg()) {
         Value *val = ConstantPointerNull::get(func->getType());
         val->setName("vararg");
-        in = new LLVMNode(val, true);
-        out = new LLVMNode(val, true);
+        in = new LLVMNode(val);
+        out = new LLVMNode(val);
         in->setDG(this);
         out->setDG(this);
 

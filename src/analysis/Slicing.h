@@ -99,8 +99,10 @@ class Slicer : Analysis<NodeT>
             NodeT *n = it.second;
 
             if (n->getSlice() != slice_id) {
-                if (removeNode(n)) // do backend's specific logic
+                if (removeNode(n)) { // do backend's specific logic
                     dg->deleteNode(n);
+                    ++statistics.nodesRemoved;
+                }
 
                 continue;
             }
@@ -192,6 +194,7 @@ public:
 
         for (BBlock<NodeT> *blk : blocks) {
             // update statistics
+            // XXX: this is not right!
             statistics.nodesRemoved += blk->size();
             statistics.nodesTotal += blk->size();
             ++statistics.blocksRemoved;
@@ -204,37 +207,41 @@ public:
         }
     }
 
-    // remove BBlocks that contain no node that should be in
-    // sliced graph
+    // remove BBlocks that contain no node that should be in the sliced graph
     void sliceBBlocks(DependenceGraph<NodeT> *graph, uint32_t sl_id)
     {
         auto& CB = graph->getBlocks();
 #ifndef NDEBUG
         uint32_t blocksNum = CB.size();
+        uint32_t blocksRemoved = 0;
 #endif
         // gather the blocks
         // FIXME: we don't need two loops, just go carefully
         // through the constructed blocks (keep temporary always-valid iterator)
         std::set<BBlock<NodeT> *> blocks;
         for (auto& it : CB) {
+            statistics.nodesTotal += it.second->size();
+
             if (it.second->getSlice() != sl_id)
                 blocks.insert(it.second);
         }
 
         for (BBlock<NodeT> *blk : blocks) {
-            // update statistics
-            statistics.nodesRemoved += blk->size();
-            statistics.nodesTotal += blk->size();
-            ++statistics.blocksRemoved;
-
             // call specific handlers (overriden by child class)
             if (removeBlock(blk)) {
                 // remove block from the graph
                 blk->remove();
+
+                // update statistics
+                statistics.nodesRemoved += blk->size();
+                ++statistics.blocksRemoved;
+#ifndef NDEBUG
+                ++blocksRemoved;
+#endif
             }
         }
 
-        assert(CB.size() + blocks.size() == blocksNum &&
+        assert(CB.size() + blocksRemoved == blocksNum &&
                 "Inconsistency in sliced blocks");
     }
 
