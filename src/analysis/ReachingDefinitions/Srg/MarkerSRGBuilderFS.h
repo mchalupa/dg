@@ -84,6 +84,7 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
      * Lookup all definitions of @var in @read starting from @start.
      */
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, BlockT *start, const Intervals& covered);
+    NodeT *readUnknown(BlockT *read, std::unordered_map<NodeT *, detail::DisjointIntervalSet>& found);
 
     void addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, BlockT *start, const Intervals& covered);
 
@@ -114,7 +115,8 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     void performGvn(BlockT *block) {
         for (NodeT *node : block->getNodes()) {
             for (const DefSite& use : node->getUses()) {
-                std::vector<NodeT *> assignments = readVariable(use, block, block);
+                // remember uses of unknown memory
+               std::vector<NodeT *> assignments = readVariable(use, block, block);
                 // add edge from last definition to here
                 for (NodeT *assignment : assignments) {
                     insertSrgEdge(assignment, node, use);
@@ -146,10 +148,12 @@ public:
             cfg.push_back(block);
         }, nullptr);
 
+        // local value numbering
         for (BlockT *BB : cfg) {
             performLvn(BB);
         }
 
+        // global value numbering
         for (BlockT *BB : cfg) {
             performGvn(BB);
         }

@@ -19,6 +19,10 @@ void MarkerSRGBuilderFS::writeVariableWeak(const DefSite& var, NodeT *assignment
 
 std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const DefSite& var, BlockT *read, BlockT *start, const Intervals& covered) {
     assert( read );
+    if (var.target == UNKNOWN_MEMORY) {
+        std::unordered_map<NodeT *, detail::DisjointIntervalSet> found;
+        return std::vector<NodeT *> { readUnknown(read, found) };
+    }
 
     auto& block_defs = current_def[var.target];
     auto it = block_defs.find(read);
@@ -27,6 +31,7 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
 
     // find weak defs
     auto block_weak_defs = current_weak_def[var.target][read].collectAll(interval);
+    auto unknown_defs = current_weak_def[UNKNOWN_MEMORY][read].collectAll(interval);
 
     // find the last definition
     if (it != block_defs.end()) {
@@ -41,8 +46,9 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
         result.push_back(readVariableRecursive(var, read, start, covered));
     }
 
-    // add weak defs
+    // add weak defs & unknown weak defs
     std::move(block_weak_defs.begin(), block_weak_defs.end(), std::back_inserter(result));
+    std::move(unknown_defs.begin(), unknown_defs.end(), std::back_inserter(result));
 
     return result;
 }
@@ -92,4 +98,96 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
     NodeT *val = phi.get();
     phi_nodes.push_back(std::move(phi));
     return val;
+}
+
+/*
+  Find relevant definitions of all variables and join them into a single phi node.
+  Only search until all variables are 'covered' or an allocation is found.
+  Branching will be solved via phi nodes
+*/
+ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readUnknown(BlockT *read, std::unordered_map<NodeT *, detail::DisjointIntervalSet>& found) {
+     std::vector<NodeT *> result;
+
+    // try to find definitions of UNKNOWN_MEMORY in the current block.
+    auto& block_defs = current_def[UNKNOWN_MEMORY];
+    auto it = block_defs.find(read);
+    const auto interval = detail::Interval{Offset::UNKNOWN, Offset::UNKNOWN};
+
+    // does any definition exist in this block?
+    if (it != block_defs.end()) {
+        Intervals cov;
+        bool is_covered = false;
+        result = it->second.collectAll(interval);
+
+        // no phi necessary for single definition
+        if (result.size() == 1) {
+            return *result.begin();
+        } else {
+
+            std::unique_ptr<NodeT> phi{new NodeT(RDNodeType::PHI)};
+            NodeT *ptr = phi.get();
+            phi->setBasicBlock(read);
+            writeVariableStrong(UNKNOWN_MEMORY, phi.get(), read);
+            for (auto& node : result) {
+                insertSrgEdge(node, phi.get(), UNKNOWN_MEMORY);
+            }
+            phi_nodes.push_back(std::move(phi));
+
+            return ptr;
+        }
+    }
+    // otherwise, we need to traverse the entire program
+    // find definitions in current block
+    for (auto& var_blocks : current_def) {
+        // we do not care which variable it is -- we are searching for definitions of all variables
+        auto& var = var_blocks.second;
+        // TODO: if not already covered(@var)
+        for (auto& block_defs : var_blocks.second) {
+            if (block_defs.first == read) {
+                for (auto& interval_val : block_defs.second) {
+                    // now we are iterating over the interval map
+                    result.push_back(interval_val.second);
+                    // TODO: only if @interval_val.second is a strong update, add coverage information
+                }
+            }
+        }
+    }
+
+    // find weak definitions in current block
+    for (auto& var_blocks : current_weak_def) {
+        // we do not care which variable it is -- we are searching for definitions of all variables
+        for (auto& block_defs : var_blocks.second) {
+            if (block_defs.first == read) {
+                for (auto& interval_val : block_defs.second) {
+                    // now we are iterating the interval map
+                    result.push_back(interval_val.second);
+                }
+            }
+        }
+    }
+
+    // continue the search for definitions in previous blocks
+    for (auto& pred : read->predecessors()) {
+        auto assignment = readUnknown(pred, found);
+        result.push_back(assignment);
+    }
+
+    // maybe phi is not necessary?
+    if (result.size() == 1) {
+        return *result.begin();
+    }
+
+    // make a phi node for unknown memory
+    auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
+    phi->setBasicBlock(read);
+    for (auto& node : result) {
+        insertSrgEdge(node, phi.get(), UNKNOWN_MEMORY);
+    }
+    writeVariableStrong(UNKNOWN_MEMORY, phi.get(), read);
+
+    NodeT *ptr = phi.get();
+    phi_nodes.push_back(std::move(phi));
+
+    // TODO: return also coverage information
+    return ptr;
 }

@@ -273,6 +273,18 @@ public:
         return result;
     }
 
+    auto begin() -> decltype(buckets.begin()) {
+        return buckets.begin();
+    }
+
+    auto end() -> decltype(buckets.end()) {
+        return buckets.end();
+    }
+
+    auto size() -> decltype(buckets.size()) {
+        return buckets.size();
+    }
+
 };
 
 }
