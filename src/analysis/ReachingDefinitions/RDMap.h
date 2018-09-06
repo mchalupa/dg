@@ -78,6 +78,10 @@ struct DefSite
                 : target < oth.target;
     }
 
+    bool operator==(const DefSite& oth) const {
+        return target == oth.target && offset == oth.offset && len == oth.len;
+    }
+
     // what memory this node defines
     RDNode *target;
     // on what offset

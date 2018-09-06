@@ -1,6 +1,7 @@
 #ifndef _DG_MARKERSRGBUILDERFS_H
 #define _DG_MARKERSRGBUILDERFS_H
 
+#include <algorithm>
 #include <memory>
 #include <vector>
 #include <unordered_set>
@@ -29,6 +30,8 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
 
     /* the resulting graph - stored in class for convenience, moved away on return */
     SparseRDGraph srg;
+    /* reverse srg is remembered for convenience, it never leaves this class */
+    SparseRDGraph reverse_srg;
 
     /* phi nodes added during the process */
     std::vector<std::unique_ptr<NodeT>> phi_nodes;
@@ -86,7 +89,16 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, BlockT *start, const Intervals& covered);
     NodeT *readUnknown(BlockT *read, std::unordered_map<NodeT *, detail::DisjointIntervalSet>& found);
 
-    void addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, BlockT *start, const Intervals& covered);
+    NodeT *addPhiOperands(const DefSite& var, std::unique_ptr<NodeT>&& phi, BlockT *block, BlockT *start, const Intervals& covered);
+
+    /**
+     * If @phi is a trivial phi node, removes it.
+     * Returns either a phi or a replacement node.
+     * If the returned node is a pointer to a phi node, the caller is responsible for free'ing the pointer.
+     */
+    NodeT* tryRemoveTrivialPhi(NodeT *phi);
+
+    void replacePhi(NodeT *phi, NodeT *replacement);
 
     /**
      * Insert a def->use edge into the resulting SparseRDGraph.
@@ -95,6 +107,21 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
      */
     void insertSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
         srg[to].push_back(std::make_pair(var, from));
+        reverse_srg[from].push_back(std::make_pair(var, to));
+    }
+
+    void removeSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
+        auto to_vec = srg[to];
+        auto it = std::find(to_vec.begin(), to_vec.end(), std::make_pair(var, from));
+        if (it != to_vec.end()) {
+            to_vec.erase(it);
+        }
+
+        auto from_vec = reverse_srg[from];
+        auto reverse_it = std::find(from_vec.begin(), from_vec.end(), std::make_pair(var, to));
+        if (reverse_it != from_vec.end()) {
+            from_vec.erase(reverse_it);
+        }
     }
 
     void performLvn(BlockT *block) {
