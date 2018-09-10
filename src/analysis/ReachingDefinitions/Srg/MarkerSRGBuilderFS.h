@@ -89,12 +89,10 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     std::vector<NodeT *> readVariable(const DefSite& var, BlockT *read, BlockT *start, const Intervals& covered);
     NodeT *readUnknown(BlockT *read, std::unordered_map<NodeT *, detail::DisjointIntervalSet>& found);
 
-    NodeT *addPhiOperands(const DefSite& var, std::unique_ptr<NodeT>&& phi, BlockT *block, BlockT *start, const Intervals& covered);
+    NodeT *addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, BlockT *start, const Intervals& covered);
 
     /**
      * If @phi is a trivial phi node, removes it.
-     * Returns either a phi or a replacement node.
-     * If the returned node is a pointer to a phi node, the caller is responsible for free'ing the pointer.
      */
     NodeT* tryRemoveTrivialPhi(NodeT *phi);
 

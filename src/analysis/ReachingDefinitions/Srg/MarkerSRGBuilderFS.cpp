@@ -54,7 +54,7 @@ std::vector<MarkerSRGBuilderFS::NodeT *> MarkerSRGBuilderFS::readVariable(const 
     return result;
 }
 
-MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::addPhiOperands(const DefSite& var, std::unique_ptr<MarkerSRGBuilderFS::NodeT>&& phi, BlockT *block, BlockT *start, const std::vector<detail::Interval>& covered) {
+MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::addPhiOperands(const DefSite& var, NodeT *phi, BlockT *block, BlockT *start, const std::vector<detail::Interval>& covered) {
 
     const auto interval = concretize(detail::Interval{var.offset, var.len}, var.target->getSize());
 
@@ -77,14 +77,10 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::addPhiOperands(const DefSite& var
         }
 
         for (auto& assignment : assignments)
-            insertSrgEdge(assignment, phi.get(), var);
+            insertSrgEdge(assignment, phi, var);
     }
 
-    auto *node = tryRemoveTrivialPhi(phi.release());
-    if (node->getType() == RDNodeType::PHI) {
-        phi_nodes.push_back(std::unique_ptr<NodeT>{node});
-    }
-    return node;
+    return tryRemoveTrivialPhi(phi);
 }
 
 MarkerSRGBuilderFS::NodeT* MarkerSRGBuilderFS::tryRemoveTrivialPhi(NodeT *phi) {
@@ -123,11 +119,7 @@ MarkerSRGBuilderFS::NodeT* MarkerSRGBuilderFS::tryRemoveTrivialPhi(NodeT *phi) {
     for (auto& edge : users) {
         NodeT* user = edge.second;
         if (user != phi && user->getType() == RDNodeType::PHI) {
-            NodeT *replacement = tryRemoveTrivialPhi(user);
-            assert(replacement);
-            if (replacement->getType() == RDNodeType::PHI) {
-                phi_nodes.push_back(std::unique_ptr<NodeT>{ replacement });
-            }
+            tryRemoveTrivialPhi(user);
         }
     }
 
@@ -176,7 +168,10 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
         insertSrgEdge(assignment, phi.get(), var);
 
     writeVariableStrong(var, phi.get(), block);
-    NodeT *val = addPhiOperands(var, std::move(phi), block, start, covered);
+    NodeT *val = addPhiOperands(var, phi.get(), block, start, covered);
+    writeVariableStrong(var, val, block);
+
+    phi_nodes.push_back(std::move(phi));
 
     return val;
 }
@@ -186,7 +181,7 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readVariableRecursive(const DefSi
   Only search until all variables are 'covered' or an allocation is found.
   Branching will be solved via phi nodes
 */
- MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readUnknown(BlockT *read, std::unordered_map<NodeT *, detail::DisjointIntervalSet>& found) {
+MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readUnknown(BlockT *read, std::unordered_map<NodeT *, detail::DisjointIntervalSet>& found) {
      std::vector<NodeT *> result;
 
     // try to find definitions of UNKNOWN_MEMORY in the current block.
