@@ -22,8 +22,13 @@ class PointerSubgraph
     // root of the pointer state subgraph
     PSNode *root;
 
-    unsigned int last_node_id = 0;
     std::vector<PSNode *> nodes;
+
+    // Take care of assigning ids to new nodes
+    unsigned int last_node_id = 0;
+    unsigned int getNewNodeId() {
+        return ++last_node_id;
+    }
 
 public:
     ~PointerSubgraph() {
@@ -81,32 +86,32 @@ public:
         switch (t) {
             case PSNodeType::ALLOC:
             case PSNodeType::DYN_ALLOC:
-                node = new PSNodeAlloc(++last_node_id, t);
+                node = new PSNodeAlloc(getNewNodeId(), t);
                 break;
             case PSNodeType::GEP:
-                node = new PSNodeGep(++last_node_id,
+                node = new PSNodeGep(getNewNodeId(),
                                      va_arg(args, PSNode *),
                                      va_arg(args, Offset::type));
                 break;
             case PSNodeType::MEMCPY:
-                node = new PSNodeMemcpy(++last_node_id,
+                node = new PSNodeMemcpy(getNewNodeId(),
                                         va_arg(args, PSNode *),
                                         va_arg(args, PSNode *),
                                         va_arg(args, Offset::type));
                 break;
             case PSNodeType::CONSTANT:
-                node = new PSNode(++last_node_id, PSNodeType::CONSTANT,
+                node = new PSNode(getNewNodeId(), PSNodeType::CONSTANT,
                                   va_arg(args, PSNode *),
                                   va_arg(args, Offset::type));
                 break;
             case PSNodeType::ENTRY:
-                node = new PSNodeEntry(++last_node_id);
+                node = new PSNodeEntry(getNewNodeId());
                 break;
             case PSNodeType::CALL:
-                node = new PSNodeCall(++last_node_id);
+                node = new PSNodeCall(getNewNodeId());
                 break;
             default:
-                node = new PSNode(++last_node_id, t, args);
+                node = new PSNode(getNewNodeId(), t, args);
                 break;
         }
         va_end(args);
