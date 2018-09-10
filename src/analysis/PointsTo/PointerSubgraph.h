@@ -71,6 +71,7 @@ public:
         assert(nd->successors.empty());
         assert(nd->predecessors.empty());
         assert(nd->getID() < size());
+        assert(nd->getID() > 0);
         assert(nodes[nd->getID()] == nd && "Inconsistency in nodes");
 
         // clear the nodes entry

@@ -311,6 +311,8 @@ public:
     }
 
     void replaceAllUsesWith(NodeT *nd, bool removeDupl = false) {
+        assert(nd != this && "Replacing uses of 'this' with 'this'");
+
         // Replace 'this' in every user with 'nd'.
         for (NodeT *user : users) {
             for (int i = 0, e = user->getOperandsNum(); i < e; ++i) {
