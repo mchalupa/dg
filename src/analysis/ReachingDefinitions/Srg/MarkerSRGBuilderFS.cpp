@@ -143,6 +143,16 @@ void MarkerSRGBuilderFS::replacePhi(NodeT *phi, NodeT *replacement) {
         return;
     }
 
+    auto defs_it = srg.find(phi);
+    if (defs_it != srg.end()) {
+        auto& defs = defs_it->second;
+        for (auto& def_edge : defs) {
+            DefSite& var = def_edge.first;
+            NodeT *dest = def_edge.second;
+            removeSrgEdge(phi, dest, var);
+        }
+    }
+
     auto& uses = uses_it->second;
 
     for (auto& use_edge : uses) {
