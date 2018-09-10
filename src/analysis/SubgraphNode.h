@@ -9,14 +9,19 @@
 namespace dg {
 namespace analysis {
 
-template <typename NodeT>
+namespace pta { class PSNode; }
+namespace rd { class RDNode; }
+
+template <typename NodeT,
+          typename = std::enable_if<std::is_same<NodeT, pta::PSNode>::value ||
+                                    std::is_same<NodeT, rd::RDNode>::value> >
 class SubgraphNode {
     // id of the node. Every node from a graph has a unique ID;
     unsigned int id = 0;
 
     // data that can an analysis store in node
     // for its own needs
-    void *data;
+    void *data{nullptr};
 
     // data that can user store in the node
     // NOTE: I considered if this way is better than
@@ -25,45 +30,41 @@ class SubgraphNode {
     // at this moment, I decided to do it this way since it
     // is more simple than dynamic_cast... Once we need more
     // than one pointer, we can change this design.
-    void *user_data;
+    void *user_data{nullptr};
+
+public:
+    using NodesVec = std::vector<NodeT *>;
+
 protected:
-    // XXX: make those private?
-    std::vector<NodeT *> successors;
-    std::vector<NodeT *> predecessors;
+    // XXX: make those private!
+    NodesVec successors;
+    NodesVec predecessors;
     // XXX: maybe we could use SmallPtrVector or something like that
-    std::vector<NodeT *> operands;
+    NodesVec operands;
     // nodes that use this node
-    std::vector<NodeT *> users;
+    NodesVec users;
 
     // size of the memory
-    size_t size;
+    size_t size{0};
+
 public:
-    // FIXME: make this private, this is just for debugging
-    /// for computing SCC
-    //XXX: we could do this more generic
-    // the dfs order
-    unsigned int dfs_id;
-    unsigned int lowpt;
+    // FIXME: get rid of these things
+    unsigned int dfs_id{0};
+    unsigned int lowpt{0};
 
     // id of scc component
-    unsigned int scc_id;
+    unsigned int scc_id{0};
     // true if the node is on stack
-    bool on_stack;
+    bool on_stack{false};
 
-    SubgraphNode<NodeT>(unsigned id)
-    : id(id), data(nullptr), user_data(nullptr), size(0),
-      dfs_id(0), lowpt(0), scc_id(0), on_stack(false)
-    {}
+    SubgraphNode(unsigned id)
+    : id(id) {}
 
     unsigned int getID() const { return id; }
 
     void setSize(size_t s) { size = s; }
     size_t getSize() const { return size; }
-
-    unsigned getSCCId() const
-    {
-        return scc_id;
-    }
+    unsigned getSCCId() const { return scc_id; }
 
     // getters & setters for analysis's data in the node
     template <typename T>
@@ -72,8 +73,7 @@ public:
     const T* getData() const { return static_cast<T *>(data); }
 
     template <typename T>
-    void *setData(T *newdata)
-    {
+    void *setData(T *newdata) {
         void *old = data;
         data = static_cast<void *>(newdata);
         return old;
@@ -86,41 +86,31 @@ public:
     const T* getUserData() const { return static_cast<T *>(user_data); }
 
     template <typename T>
-    void *setUserData(T *newdata)
-    {
+    void *setUserData(T *newdata) {
         void *old = user_data;
         user_data = static_cast<void *>(newdata);
         return old;
     }
 
-    NodeT *getOperand(int idx) const
-    {
+    NodeT *getOperand(int idx) const {
         assert(idx >= 0 && static_cast<size_t>(idx) < operands.size()
                && "Operand index out of range");
 
         return operands[idx];
     }
 
-    void setOperand(int idx, NodeT *nd)
-    {
+    void setOperand(int idx, NodeT *nd) {
         assert(idx >= 0 && static_cast<size_t>(idx) < operands.size()
                && "Operand index out of range");
 
         operands[idx] = nd;
     }
 
-
-    const std::vector<NodeT *>& getUsers() const {
-        return users;
-    }
-
-    size_t getOperandsNum() const
-    {
+    size_t getOperandsNum() const {
         return operands.size();
     }
 
-    size_t addOperand(NodeT *n)
-    {
+    size_t addOperand(NodeT *n) {
         assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         n->addUser(static_cast<NodeT *>(this));
@@ -129,8 +119,7 @@ public:
         return operands.size();
     }
 
-    bool hasOperand(NodeT *n) const
-    {
+    bool hasOperand(NodeT *n) const {
         for (NodeT *x : operands) {
             if (x == n) {
                 return true;
@@ -140,8 +129,7 @@ public:
         return false;
     }
 
-    void addSuccessor(NodeT *succ)
-    {
+    void addSuccessor(NodeT *succ) {
         assert(succ && "Passed nullptr as the successor");
         successors.push_back(succ);
         succ->predecessors.push_back(static_cast<NodeT *>(this));
@@ -149,23 +137,12 @@ public:
 
     // return const only, so that we cannot change them
     // other way then addSuccessor()
-    const std::vector<NodeT *>& getSuccessors() const
-    {
-        return successors;
-    }
+    const NodesVec& getSuccessors() const { return successors; }
+    const NodesVec& getPredecessors() const { return predecessors; }
+    const NodesVec& getOperands() const { return operands; }
+    const NodesVec& getUsers() const { return users; }
 
-    const std::vector<NodeT *>& getPredecessors() const
-    {
-        return predecessors;
-    }
-
-    const std::vector<NodeT *>& getOperands() const
-    {
-        return operands;
-    }
-
-    void replaceSingleSuccessor(NodeT *succ)
-    {
+    void replaceSingleSuccessor(NodeT *succ) {
         assert(succ && "Passed nullptr as the successor");
         assert(successors.size() == 1);
         NodeT *old = successors[0];
@@ -187,23 +164,20 @@ public:
     }
 
     // get successor when we know there's only one of them
-    NodeT *getSingleSuccessor() const
-    {
+    NodeT *getSingleSuccessor() const {
         assert(successors.size() == 1);
         return successors.front();
     }
 
     // get predecessor when we know there's only one of them
-    NodeT *getSinglePredecessor() const
-    {
+    NodeT *getSinglePredecessor() const {
         assert(predecessors.size() == 1);
         return predecessors.front();
     }
 
     // insert this node in PointerSubgraph after n
     // this node must not be in any PointerSubgraph
-    void insertAfter(NodeT *n)
-    {
+    void insertAfter(NodeT *n) {
         assert(n && "Passed nullptr as the node");
         assert(predecessorsNum() == 0);
         assert(successorsNum() == 0);
@@ -225,8 +199,7 @@ public:
 
     // insert this node in PointerSubgraph before n
     // this node must not be in any PointerSubgraph
-    void insertBefore(NodeT *n)
-    {
+    void insertBefore(NodeT *n) {
         assert(n && "Passed nullptr as the node");
         assert(predecessorsNum() == 0);
         assert(successorsNum() == 0);
@@ -247,8 +220,7 @@ public:
     }
 
     // insert a sequence before this node in PointerSubgraph
-    void insertSequenceBefore(std::pair<NodeT *, NodeT *>& seq)
-    {
+    void insertSequenceBefore(std::pair<NodeT *, NodeT *>& seq) {
         assert(seq.first && seq.second && "Passed nullptr in the sequence");
         // the sequence must not be inserted in any PointerSubgraph
         assert(seq.first->predecessorsNum() == 0);
@@ -330,13 +302,11 @@ public:
         users.clear();
     }
 
-    size_t predecessorsNum() const
-    {
+    size_t predecessorsNum() const {
         return predecessors.size();
     }
 
-    size_t successorsNum() const
-    {
+    size_t successorsNum() const {
         return successors.size();
     }
 
