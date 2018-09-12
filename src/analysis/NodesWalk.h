@@ -54,12 +54,18 @@ public:
         : options(opts) {}
 
     template <typename FuncT, typename DataT>
-    void walk(NodeT *entry, FuncT func, DataT data)
+    void walk(NodeT *entry, FuncT func, DataT data) {
+        walk<FuncT, DataT>(std::set<NodeT *>{entry}, func, data);
+    }
+
+    template <typename FuncT, typename DataT>
+    void walk(const std::set<NodeT *>& entry, FuncT func, DataT data)
     {
         run_id = ++NodesWalk<NodeT, QueueT>::walk_run_counter;
 
-        assert(entry && "Need entry node for traversing nodes");
-        enqueue(entry);
+        assert(!entry.empty() && "Need entry node for traversing nodes");
+        for (auto ent : entry)
+            enqueue(ent);
 
         while (!queue.empty()) {
             NodeT *n = queue.pop();

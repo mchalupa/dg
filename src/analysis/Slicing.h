@@ -23,24 +23,51 @@ template <typename NodeT>
 class WalkAndMark : public NodesWalk<NodeT, QueueFIFO<NodeT *>>
 {
 public:
-    WalkAndMark()
-        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(NODES_WALK_REV_CD |
-                                               NODES_WALK_REV_DD) {}
+    ///
+    // forward_slc makes searching the dependencies
+    // in forward direction instead of backward
+    WalkAndMark(bool forward_slc = false)
+        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(
+            forward_slc ?
+                (NODES_WALK_CD | NODES_WALK_DD) :
+                (NODES_WALK_REV_CD | NODES_WALK_REV_DD)
+          ),
+          forward_slice(forward_slc) {}
 
-    void mark(NodeT *start, uint32_t slice_id)
-    {
-        WalkData data(slice_id, this);
+    void mark(const std::set<NodeT *>& start, uint32_t slice_id) {
+        WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
         this->walk(start, markSlice, &data);
     }
 
+    void mark(NodeT *start, uint32_t slice_id) {
+        WalkData data(slice_id, this, forward_slice ? &markedBlocks : nullptr);
+        this->walk(start, markSlice, &data);
+    }
+
+    bool isForward() const { return forward_slice; }
+    // returns marked blocks, but only for forward slicing atm
+    const std::set<BBlock<NodeT> *>& getMarkedBlocks() { return markedBlocks; }
+
 private:
+    bool forward_slice{false};
+    std::set<BBlock<NodeT> *> markedBlocks;
+
+
     struct WalkData
     {
-        WalkData(uint32_t si, WalkAndMark *wm)
-            : slice_id(si), analysis(wm) {}
+        WalkData(uint32_t si, WalkAndMark *wm,
+                 std::set<BBlock<NodeT> *> *mb = nullptr)
+            : slice_id(si), analysis(wm)
+#ifdef ENABLE_CFG
+              , markedBlocks(mb)
+#endif
+             {}
 
         uint32_t slice_id;
         WalkAndMark *analysis;
+#ifdef ENABLE_CFG
+        std::set<BBlock<NodeT> *> *markedBlocks;
+#endif
     };
 
     static void markSlice(NodeT *n, WalkData *data)
@@ -51,21 +78,26 @@ private:
 #ifdef ENABLE_CFG
         // when we marked a node, we need to mark even
         // the basic block - if there are basic blocks
-        if (BBlock<NodeT> *B = n->getBBlock())
+        if (BBlock<NodeT> *B = n->getBBlock()) {
             B->setSlice(slice_id);
+            if (data->markedBlocks)
+                data->markedBlocks->insert(B);
+        }
 #endif
 
         // the same with dependence graph, if we keep a node from
         // a dependence graph, we need to keep the dependence graph
         if (DependenceGraph<NodeT> *dg = n->getDG()) {
             dg->setSlice(slice_id);
-            // and keep also all call-sites of this func (they are
-            // control dependent on the entry node)
-            // This is correct but not so precise - fix it later.
-            // Now I need the correctness...
-            NodeT *entry = dg->getEntry();
-            assert(entry && "No entry node in dg");
-            data->analysis->enqueue(entry);
+            if (!data->analysis->isForward()) {
+                // and keep also all call-sites of this func (they are
+                // control dependent on the entry node)
+                // This is correct but not so precise - fix it later.
+                // Now I need the correctness...
+                NodeT *entry = dg->getEntry();
+                assert(entry && "No entry node in dg");
+                data->analysis->enqueue(entry);
+            }
         }
     }
 };
@@ -129,13 +161,39 @@ public:
     SlicerStatistics& getStatistics() { return statistics; }
     const SlicerStatistics& getStatistics() const { return statistics; }
 
-    uint32_t mark(NodeT *start, uint32_t sl_id = 0)
+    ///
+    // Mark nodes dependent on 'start' with 'sl_id'.
+    // If 'forward_slice' is true, mark the nodes depending on 'start' instead.
+    uint32_t mark(NodeT *start, uint32_t sl_id = 0, bool forward_slice = false)
     {
         if (sl_id == 0)
             sl_id = ++slice_id;
 
-        WalkAndMark<NodeT> wm;
+        WalkAndMark<NodeT> wm(forward_slice);
         wm.mark(start, sl_id);
+
+        ///
+        // If we are performing forward slicing,
+        // we are missing the control dependencies now.
+        // So gather all control dependencies of the nodes that
+        // we want to have in the slice and perform normal backward
+        // slicing w.r.t these nodes.
+        if (forward_slice) {
+            std::set<NodeT *> branchings;
+            for (auto *BB : wm.getMarkedBlocks()) {
+#if ENABLE_CFG
+               for (auto cBB : BB->revControlDependence()) {
+                   assert(cBB->successorsNum() > 1);
+                   branchings.insert(cBB->getLastNode());
+               }
+#endif
+            }
+
+            if (!branchings.empty()) {
+                WalkAndMark<NodeT> wm2;
+                wm2.mark(branchings, sl_id);
+            }
+        }
 
         return sl_id;
     }
