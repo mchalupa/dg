@@ -1,7 +1,8 @@
 #ifndef _DG_MEMALLOCATIONFUNCS_H_
 #define _DG_MEMALLOCATIONFUNCS_H_
 
-#include <llvm/IR/Instructions.h>
+// forward declaration of llvm::Function class;
+namespace llvm { class Function; }
 
 namespace dg {
 
