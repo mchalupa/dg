@@ -42,6 +42,8 @@
 #include <llvm/Support/Signals.h>
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/IntrinsicInst.h>
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
@@ -84,6 +86,9 @@ enum RdaType {
     dense, ss
 };
 
+// mapping of AllocaInst to the names of C variables
+std::map<const llvm::Value *, std::string> valuesToVariables;
+
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
 
 llvm::cl::opt<std::string> output("o",
@@ -98,8 +103,11 @@ llvm::cl::opt<std::string> slicing_criteria("c", llvm::cl::Required,
     llvm::cl::desc("Slice with respect to the call-sites of a given function\n"
                    "i. e.: '-c foo' or '-c __assert_fail'. Special value is a 'ret'\n"
                    "in which case the slice is taken with respect to the return value\n"
-                   "of the main() function. You can use comma separated list of more\n"
-                   "function calls, e.g. -c foo,bar\n"), llvm::cl::value_desc("func"),
+                   "of the main function. Further, you can specify the criterion as\n"
+                   "l:v where l is the line in the original code and v is the variable.\n"
+                   "The variable v must be used on the line l.\n"
+                   "You can use comma-separated list of more slicing criteria,\n"
+                   "e.g. -c foo,bar,5:x\n"), llvm::cl::value_desc("crit"),
                    llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> remove_slicing_criteria("remove-slicing-criteria",
@@ -227,7 +235,7 @@ static bool createEmptyMain(llvm::Module *M)
     return true;
 }
 
-static std::vector<std::string> splitList(const std::string& opt)
+static std::vector<std::string> splitList(const std::string& opt, char sep = ',')
 {
     std::vector<std::string> ret;
     if (opt.empty())
@@ -238,7 +246,7 @@ static std::vector<std::string> splitList(const std::string& opt)
     while (true) {
         old_pos = pos;
 
-        pos = opt.find(',', pos);
+        pos = opt.find(sep, pos);
         ret.push_back(opt.substr(old_pos, pos - old_pos));
 
         if (pos == std::string::npos)
@@ -248,6 +256,174 @@ static std::vector<std::string> splitList(const std::string& opt)
     }
 
     return ret;
+}
+
+std::pair<std::vector<std::string>, std::vector<std::string>>
+splitStringVector(std::vector<std::string>& vec, std::function<bool(std::string&)> cmpFunc)
+{
+    std::vector<std::string> part1;
+    std::vector<std::string> part2;
+
+    for (auto& str : vec) {
+        if (cmpFunc(str)) {
+            part1.push_back(std::move(str));
+        } else {
+            part2.push_back(std::move(str));
+        }
+    }
+
+    return {part1, part2};
+}
+
+static bool usesTheVariable(LLVMDependenceGraph& dg, const llvm::Value *v, const std::string& var)
+{
+    auto ptrNode = dg.getPTA()->getPointsTo(v);
+    if (!ptrNode)
+        return true; // it may be a definition of the variable, we do not know
+
+    for (const auto& ptr : ptrNode->pointsTo) {
+        if (ptr.isUnknown())
+            return true; // it may be a definition of the variable, we do not know
+
+        auto alloca = ptr.target->getUserData<llvm::Value>();
+        if (!alloca)
+            continue;
+
+        if (const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(alloca)) {
+            auto name = valuesToVariables.find(AI);
+            if (name != valuesToVariables.end()) {
+                if (name->second == var)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+template <typename InstT>
+static bool useOfTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, const std::string& var)
+{
+    // check that we store to that variable
+    const InstT *tmp = llvm::dyn_cast<InstT>(&I);
+    if (!tmp)
+        return false;
+
+    return usesTheVariable(dg, tmp->getPointerOperand(), var);
+}
+
+static bool isStoreToTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, const std::string& var)
+{
+    return useOfTheVar<llvm::StoreInst>(dg, I, var);
+}
+
+static bool isLoadOfTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, const std::string& var)
+{
+    return useOfTheVar<llvm::LoadInst>(dg, I, var);
+}
+
+
+static bool instMatchesCrit(LLVMDependenceGraph& dg,
+                            const llvm::Instruction& I,
+                            std::vector<std::pair<unsigned, std::string>>& parsedCrit)
+{
+    for (auto& c : parsedCrit) {
+        auto& Loc = I.getDebugLoc();
+        if (!Loc)
+            continue;
+        if (Loc.getLine() != c.first)
+            continue;
+
+        if (isStoreToTheVar(dg, I, c.second) ||
+            isLoadOfTheVar(dg, I, c.second)) {
+            llvm::errs() << "Matched line " << c.first << " with variable "
+                         << c.second << " to:\n" << I << "\n";
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
+                                 std::vector<std::string>& criteria,
+                                 std::set<LLVMNode *>& nodes)
+{
+    assert(!criteria.empty() && "No criteria given");
+
+    std::vector<std::pair<unsigned, std::string>> parsedCrit;
+    for (auto& crit : criteria) {
+        auto parts = splitList(crit, ':');
+        assert(parts.size() == 2);
+        int line = atoi(parts[0].c_str());
+        if (line > 0)
+            parsedCrit.emplace_back(line, parts[1]);
+    }
+
+    assert(!parsedCrit.empty() && "Failed parsing criteria");
+
+    // create the mapping from LLVM values to C variable names
+    for (auto& it : getConstructedFunctions()) {
+        for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
+            if (const llvm::DbgDeclareInst *DD = llvm::dyn_cast<llvm::DbgDeclareInst>(&I)) {
+                auto val = DD->getAddress();
+                valuesToVariables[val] = DD->getVariable()->getName().str();
+            }
+        }
+    }
+
+    if (valuesToVariables.empty()) {
+        llvm::errs() << "No debugging information found in program,\n"
+                     << "slicing criteria with lines and variables will not work.\n"
+                     << "You can still use the criteria based on call sites ;)\n";
+        return;
+    }
+
+    for (auto& it : getConstructedFunctions()) {
+        for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
+            if (instMatchesCrit(dg, I, parsedCrit)) {
+                LLVMNode *nd = dg.getNode(&I);
+                assert(nd);
+                nodes.insert(nd);
+            }
+        }
+    }
+}
+
+static std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg)
+{
+    std::set<LLVMNode *> nodes;
+    std::vector<std::string> criteria = splitList(slicing_criteria);
+    assert(!criteria.empty() && "Did not get slicing criteria");
+
+    std::vector<std::string> line_criteria;
+    std::vector<std::string> node_criteria;
+    std::tie(line_criteria, node_criteria)
+        = splitStringVector(criteria, [](std::string& s) -> bool
+            { return s.find(':') != std::string::npos; }
+          );
+
+    // if user wants to slice with respect to the return of main,
+    // insert the ret instructions to the nodes.
+    for (const auto& c : node_criteria) {
+        if (c == "ret") {
+            LLVMNode *exit = dg.getExit();
+            // We could insert just the exit node, but this way we will
+            // get annotations to the functions.
+            for (auto it = exit->rev_control_begin(), et = exit->rev_control_end();
+                 it != et; ++it) {
+                nodes.insert(*it);
+            }
+        }
+    }
+
+    // map the criteria to nodes
+    if (!node_criteria.empty())
+        dg.getCallSites(node_criteria, &nodes);
+    if (!line_criteria.empty())
+        getLineCriteriaNodes(dg, line_criteria, nodes);
+
+    return nodes;
 }
 
 
@@ -314,31 +490,13 @@ public:
     bool mark()
     {
         debug::TimeMeasure tm;
-        std::set<LLVMNode *> callsites;
-
-        std::vector<std::string> criteria = splitList(slicing_criteria);
-        assert(!criteria.empty() && "Do not have the slicing criterion");
-
-        // if user wants to slice with respect to the return of main,
-        // insert the ret instructions to the callsites.
-        // We could insert just the exit node, but this way we will
-        // get annotations to the functions.
-        for (const auto& c : criteria) {
-            if (c == "ret") {
-                LLVMNode *exit = dg.getExit();
-                for (auto it = exit->rev_control_begin(), et = exit->rev_control_end();
-                     it != et; ++it) {
-                    callsites.insert(*it);
-                }
-            }
-        }
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
         // it during points-to analysis
-        bool ret = dg.getCallSites(criteria, &callsites);
+        std::set<LLVMNode *> criteria_nodes = getSlicingCriteriaNodes(dg);
         got_slicing_criteria = true;
-        if (!ret) {
+        if (criteria_nodes.empty()) {
             errs() << "Did not find slicing criterion: "
                    << slicing_criteria << "\n";
             got_slicing_criteria = false;
@@ -362,7 +520,7 @@ public:
         std::set<LLVMNode *> unmark;
 
         if (remove_slicing_criteria)
-            unmark = callsites;
+            unmark = criteria_nodes;
 
         // we also do not want to remove any assumptions
         // about the code
@@ -376,7 +534,7 @@ public:
             NULL // termination
         };
 
-        dg.getCallSites(sc, &callsites);
+        dg.getCallSites(sc, &criteria_nodes);
 
         // do not slice __VERIFIER_assume at all
         // FIXME: do this optional
@@ -385,7 +543,7 @@ public:
         slice_id = 0xdead;
 
         tm.start();
-        for (LLVMNode *start : callsites)
+        for (LLVMNode *start : criteria_nodes)
             slice_id = slicer.mark(start, slice_id);
 
         // if we have some nodes in the unmark set, unmark them
@@ -397,7 +555,7 @@ public:
 
         // print debugging llvm IR if user asked for it
         if (opts != 0)
-            annotate(M, opts, PTA.get(), RD.get(), &callsites);
+            annotate(M, opts, PTA.get(), RD.get(), &criteria_nodes);
 
         return true;
     }
