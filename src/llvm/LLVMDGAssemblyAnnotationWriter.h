@@ -60,6 +60,7 @@ private:
     AnnotationOptsT opts;
     LLVMPointerAnalysis *PTA;
     LLVMReachingDefinitions *RD;
+    const std::set<LLVMNode *> *criteria;
     std::string module_comment{};
 
     void printValue(const llvm::Value *val,
@@ -239,16 +240,20 @@ private:
             }
         }
 
-        if (opts & ANNOTATE_SLICE)
+        if (opts & ANNOTATE_SLICE) {
+            if (criteria && criteria->count(node) > 0)
+                os << "  ; SLICING CRITERION\n";
             if (node->getSlice() == 0)
                 os << "  ; x ";
+        }
     }
 
 public:
     LLVMDGAssemblyAnnotationWriter(AnnotationOptsT o = ANNOTATE_SLICE,
                                    LLVMPointerAnalysis *pta = nullptr,
-                                   LLVMReachingDefinitions *rd = nullptr)
-        : opts(o), PTA(pta), RD(rd)
+                                   LLVMReachingDefinitions *rd = nullptr,
+                                   const std::set<LLVMNode *>* criteria = nullptr)
+        : opts(o), PTA(pta), RD(rd), criteria(criteria)
     {
         assert(!(opts & ANNOTATE_PTR) || PTA);
         assert(!(opts & ANNOTATE_RD) || RD);

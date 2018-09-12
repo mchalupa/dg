@@ -162,7 +162,8 @@ llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
 
 static void annotate(llvm::Module *M, AnnotationOptsT opts,
                      LLVMPointerAnalysis *PTA,
-                     LLVMReachingDefinitions *RD)
+                     LLVMReachingDefinitions *RD,
+                     const std::set<LLVMNode *> *criteria)
 {
     // compose name
     std::string fl(llvmfile);
@@ -195,7 +196,7 @@ static void annotate(llvm::Module *M, AnnotationOptsT opts,
         module_comment += std::to_string(pta_field_sensitivie) + "\n\n";
 
     errs() << "INFO: Saving IR with annotations to " << fl << "\n";
-    auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(opts, PTA, RD);
+    auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(opts, PTA, RD, criteria);
     annot->emitModuleComment(std::move(module_comment));
     M->print(outputstream, annot);
 
@@ -318,10 +319,19 @@ public:
         std::vector<std::string> criteria = splitList(slicing_criteria);
         assert(!criteria.empty() && "Do not have the slicing criterion");
 
-        // if user wants to slice with respect to the retrn of main
-        for (const auto& c : criteria)
-            if (c == "ret")
-                callsites.insert(dg.getExit());
+        // if user wants to slice with respect to the return of main,
+        // insert the ret instructions to the callsites.
+        // We could insert just the exit node, but this way we will
+        // get annotations to the functions.
+        for (const auto& c : criteria) {
+            if (c == "ret") {
+                LLVMNode *exit = dg.getExit();
+                for (auto it = exit->rev_control_begin(), et = exit->rev_control_end();
+                     it != et; ++it) {
+                    callsites.insert(*it);
+                }
+            }
+        }
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
@@ -387,7 +397,7 @@ public:
 
         // print debugging llvm IR if user asked for it
         if (opts != 0)
-            annotate(M, opts, PTA.get(), RD.get());
+            annotate(M, opts, PTA.get(), RD.get(), &callsites);
 
         return true;
     }
