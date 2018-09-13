@@ -343,6 +343,7 @@ inline bool isRelevantIntrinsic(const llvm::Function *func)
         case Intrinsic::vastart:
         case Intrinsic::stacksave:
         case Intrinsic::stackrestore:
+        case Intrinsic::lifetime_end:
             return true;
         // case Intrinsic::memset:
         default:

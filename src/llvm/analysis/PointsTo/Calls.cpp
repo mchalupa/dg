@@ -228,6 +228,9 @@ LLVMPointerSubgraphBuilder::createIntrinsic(const llvm::Instruction *Inst)
         case Intrinsic::stackrestore:
             n = createLoad(Inst);
             return std::make_pair(n, n);
+        case Intrinsic::lifetime_end:
+            n = createLifetimeEnd(Inst);
+            return std::make_pair(n, n);
         default:
             errs() << *Inst << "\n";
             errs() << "Unhandled intrinsic ^^\n";

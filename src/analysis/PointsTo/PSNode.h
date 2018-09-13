@@ -93,6 +93,7 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
         ELEM(PSNodeType::NULL_ADDR)
         ELEM(PSNodeType::UNKNOWN_MEM)
         ELEM(PSNodeType::FREE)
+        ELEM(PSNodeType::INVALIDATE_OBJECT)
         ELEM(PSNodeType::INVALIDATE_LOCALS)
         ELEM(PSNodeType::INVALIDATED)
         default:
@@ -232,6 +233,7 @@ protected:
             case PSNodeType::CAST:
             case PSNodeType::LOAD:
             case PSNodeType::CALL_FUNCPTR:
+            case PSNodeType::INVALIDATE_OBJECT:
             case PSNodeType::INVALIDATE_LOCALS:
             case PSNodeType::FREE:
                 addOperand(va_arg(args, PSNode *));
