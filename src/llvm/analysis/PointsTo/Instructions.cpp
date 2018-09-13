@@ -18,6 +18,17 @@ PSNode *LLVMPointerSubgraphBuilder::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
+PSNode * LLVMPointerSubgraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst)
+{
+    PSNode *op1 = getOperand(Inst->getOperand(1));
+    PSNode *node = PS.create(PSNodeType::INVALIDATE_OBJECT, op1);
+
+    addNode(Inst, node);
+
+    assert(node);
+    return node;
+}
+
 PSNode *LLVMPointerSubgraphBuilder::createStore(const llvm::Instruction *Inst)
 {
     const llvm::Value *valOp = Inst->getOperand(0);
