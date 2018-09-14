@@ -127,7 +127,7 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
 {
     PSNode *op = tryGetOperand(val);
     if (!op) {
-        if (isInvalid(val))
+        if (isInvalid(val, invalidate_nodes))
             return UNKNOWN_MEMORY;
 
         llvm::errs() << "ERROR: missing value in graph: " << *val << "\n";
@@ -239,7 +239,7 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(const llvm::Function &F)
     }
 }
 
-static bool isRelevantCall(const llvm::Instruction *Inst)
+static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes)
 {
     using namespace llvm;
 
@@ -265,7 +265,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
             return true;
 
         if (func->isIntrinsic())
-            return isRelevantIntrinsic(func);
+            return isRelevantIntrinsic(func, invalidate_nodes);
 
         // it returns something? We want that!
         return !func->getReturnType()->isVoidTy();
@@ -382,7 +382,7 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
         case Instruction::Unreachable:
             return false;
         case Instruction::Call:
-            return isRelevantCall(&Inst);
+            return isRelevantCall(&Inst, invalidate_nodes);
         default:
             return true;
     }
