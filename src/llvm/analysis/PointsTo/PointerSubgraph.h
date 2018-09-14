@@ -348,7 +348,7 @@ inline bool isConstantZero(const llvm::Value *val)
     return false;
 }
 
-inline bool isRelevantIntrinsic(const llvm::Function *func)
+inline bool isRelevantIntrinsic(const llvm::Function *func, bool invalidate_nodes)
 {
     using namespace llvm;
 
@@ -358,15 +358,16 @@ inline bool isRelevantIntrinsic(const llvm::Function *func)
         case Intrinsic::vastart:
         case Intrinsic::stacksave:
         case Intrinsic::stackrestore:
-        case Intrinsic::lifetime_end:
             return true;
+        case Intrinsic::lifetime_end:
+            return invalidate_nodes;
         // case Intrinsic::memset:
         default:
             return false;
     }
 }
 
-inline bool isInvalid(const llvm::Value *val)
+inline bool isInvalid(const llvm::Value *val, bool invalidate_nodes)
 {
     using namespace llvm;
 
@@ -382,7 +383,7 @@ inline bool isInvalid(const llvm::Value *val)
         const CallInst *CI = dyn_cast<CallInst>(val);
         if (CI) {
             const Function *F = CI->getCalledFunction();
-            if (F && F->isIntrinsic() && !isRelevantIntrinsic(F))
+            if (F && F->isIntrinsic() && !isRelevantIntrinsic(F, invalidate_nodes))
                 return true;
         }
     }
