@@ -54,6 +54,7 @@ using llvm::errs;
 
 static bool verbose;
 static bool ids_only = false;
+static bool dump_graph_only = false;
 
 std::unique_ptr<PointerAnalysis> PA;
 
@@ -389,6 +390,8 @@ int main(int argc, char *argv[])
             todot = true;
         } else if (strcmp(argv[i], "-ids-only") == 0) {
             ids_only = true;
+        } else if (strcmp(argv[i], "-graph-only") == 0) {
+            dump_graph_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else {
@@ -435,6 +438,11 @@ int main(int argc, char *argv[])
         PA = std::unique_ptr<PointerAnalysis>(
             PTA.createPTA<analysis::pta::PointsToFlowSensitive>()
             );
+    }
+
+    if (dump_graph_only) {
+        dumpPointerSubgraph(&PTA, type, true);
+        return 0;
     }
 
     // run the analysis
