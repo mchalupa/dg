@@ -254,15 +254,32 @@ public:
             MemoryObject *mo = moptr.get();
             MemoryObject *pmo = I.second.get();
 
-            //remove references to invalidated memory from mo
+            // Remove references to invalidated memory from mo
+            // if the invalidated object is just one.
+            // Otherwise, add the invalidated pointer to the points-to sets
+            // (strong vs. weak update) as we do not know which
+            // object is actually being invalidated.
             for (auto& it : *mo) {
-                for (const auto& ptr : operand->pointsTo) {
-                    if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
+                if (operand->pointsTo.size() == 1) { // strong update
+                    const auto& ptr = *(operand->pointsTo.begin());
+                    if (ptr.isUnknown())
+                        changed |= it.second.add(INVALIDATED);
+                    else if (ptr.isNull() || ptr.isInvalidated())
                         continue;
-
-                    if (pointsToTarget(it.second, ptr.target)) {
+                    else {
                         replaceTargetWithInv(it.second, ptr.target);
                         changed = true;
+                    }
+                } else { // weak update
+                    for (const auto& ptr : operand->pointsTo) {
+                        if (ptr.isNull() || ptr.isInvalidated())
+                            continue;
+
+                        // invalidate on unknown memory yields invalidate for
+                        // each element
+                        if (ptr.isUnknown() || pointsToTarget(it.second, ptr.target)) {
+                            changed |= it.second.add(INVALIDATED);
+                        }
                     }
                 }
             }
