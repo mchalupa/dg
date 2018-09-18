@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <cctype>
 
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
@@ -105,9 +106,10 @@ llvm::cl::opt<std::string> slicing_criteria("c", llvm::cl::Required,
                    "in which case the slice is taken with respect to the return value\n"
                    "of the main function. Further, you can specify the criterion as\n"
                    "l:v where l is the line in the original code and v is the variable.\n"
-                   "The variable v must be used on the line l.\n"
+                   "l must be empty when v is a global variable. For local variables,\n"
+                   "the variable v must be used on the line l.\n"
                    "You can use comma-separated list of more slicing criteria,\n"
-                   "e.g. -c foo,bar,5:x\n"), llvm::cl::value_desc("crit"),
+                   "e.g. -c foo,5:x,:glob\n"), llvm::cl::value_desc("crit"),
                    llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> remove_slicing_criteria("remove-slicing-criteria",
@@ -347,13 +349,13 @@ static bool isLoadOfTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, 
 
 static bool instMatchesCrit(LLVMDependenceGraph& dg,
                             const llvm::Instruction& I,
-                            std::vector<std::pair<unsigned, std::string>>& parsedCrit)
+                            const std::vector<std::pair<int, std::string>>& parsedCrit)
 {
-    for (auto& c : parsedCrit) {
+    for (const auto& c : parsedCrit) {
         auto& Loc = I.getDebugLoc();
         if (!Loc)
             continue;
-        if (Loc.getLine() != c.first)
+        if (static_cast<int>(Loc.getLine()) != c.first)
             continue;
 
         if (isStoreToTheVar(dg, I, c.second) ||
@@ -367,19 +369,55 @@ static bool instMatchesCrit(LLVMDependenceGraph& dg,
     return false;
 }
 
+static bool globalMatchesCrit(const llvm::GlobalVariable& G,
+                              const std::vector<std::pair<int, std::string>>& parsedCrit)
+{
+    for (const auto& c : parsedCrit) {
+        if (c.first != -1)
+            continue;
+        if (c.second == G.getName().str()) {
+            llvm::errs() << "Matched global variable "
+                         << c.second << " to:\n" << G << "\n";
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static inline bool isNumber(const std::string& s) {
+    assert(!s.empty());
+
+    for (const auto c : s)
+        if (!isdigit(c))
+            return false;
+
+    return true;
+}
+
 static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
                                  std::vector<std::string>& criteria,
                                  std::set<LLVMNode *>& nodes)
 {
     assert(!criteria.empty() && "No criteria given");
 
-    std::vector<std::pair<unsigned, std::string>> parsedCrit;
+    std::vector<std::pair<int, std::string>> parsedCrit;
     for (auto& crit : criteria) {
         auto parts = splitList(crit, ':');
         assert(parts.size() == 2);
-        int line = atoi(parts[0].c_str());
-        if (line > 0)
-            parsedCrit.emplace_back(line, parts[1]);
+
+        // parse the line number
+        if (parts[0].empty()) {
+            // global variable
+            parsedCrit.emplace_back(-1, parts[1]);
+        } else if (isNumber(parts[0])) {
+            int line = atoi(parts[0].c_str());
+            if (line > 0)
+                parsedCrit.emplace_back(line, parts[1]);
+        } else {
+            llvm::errs() << "Invalid line: '" << parts[0] << "'. "
+                         << "Needs to be a number or empty for global variables.\n";
+        }
     }
 
     assert(!parsedCrit.empty() && "Failed parsing criteria");
@@ -401,6 +439,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
         return;
     }
 
+    // map line criteria to nodes
     for (auto& it : getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
             if (instMatchesCrit(dg, I, parsedCrit)) {
@@ -408,6 +447,14 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
                 assert(nd);
                 nodes.insert(nd);
             }
+        }
+    }
+
+    for (auto& G : dg.getModule()->globals()) {
+        if (globalMatchesCrit(G, parsedCrit)) {
+            LLVMNode *nd = dg.getGlobalNode(&G);
+            assert(nd);
+            nodes.insert(nd);
         }
     }
 }
