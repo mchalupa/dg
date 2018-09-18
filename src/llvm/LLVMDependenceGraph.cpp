@@ -187,6 +187,18 @@ bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
     entry->addControlDependence(fpin);
     entry->addControlDependence(fpout);
 
+    // if these are the formal parameters of the main
+    // function, add control dependence also between the
+    // global as the formal input parameter representing this global
+    if (llvm::Function *F
+            = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
+        if (F->getName().equals("main")) {
+            auto gnode = getGlobalNode(val);
+            assert(gnode);
+            gnode->addControlDependence(fpin);
+        }
+    }
+
     return true;
 }
 
