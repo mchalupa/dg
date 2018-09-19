@@ -242,11 +242,6 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readUnknown(BlockT *read, std::un
         }
     }
 
-    // continue the search for definitions in previous blocks
-    for (auto& pred : read->predecessors()) {
-        auto assignment = readUnknown(pred, found);
-        result.push_back(assignment);
-    }
 
     // if not phi node necessary
     if (result.size() == 1) {
@@ -256,10 +251,18 @@ MarkerSRGBuilderFS::NodeT *MarkerSRGBuilderFS::readUnknown(BlockT *read, std::un
     // make a phi node for unknown memory
     auto phi = std::unique_ptr<NodeT>(new NodeT(RDNodeType::PHI));
     phi->setBasicBlock(read);
+    writeVariableStrong(UNKNOWN_MEMORY, phi.get(), read);
+    // continue the search for definitions in previous blocks
+    for (auto& pred : read->predecessors()) {
+        if (pred == read)
+            continue;
+
+        auto assignment = readUnknown(pred, found);
+        result.push_back(assignment);
+    }
     for (auto& node : result) {
         insertSrgEdge(node, phi.get(), UNKNOWN_MEMORY);
     }
-    writeVariableStrong(UNKNOWN_MEMORY, phi.get(), read);
 
     NodeT *ptr = phi.get();
     phi_nodes.push_back(std::move(phi));
