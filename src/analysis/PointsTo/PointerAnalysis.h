@@ -115,46 +115,66 @@ public:
         changed.push_back(n);
     }
 
-    void run()
-    {
-        PSNode *root = PS->getRoot();
-        assert(root && "Do not have root of PS");
-
+    void preprocess() {
         // do some optimizations
         if (preprocess_geps)
             preprocessGEPs();
+    }
 
+    void initialize_queue() {
+        assert(to_process.empty());
+
+        PSNode *root = PS->getRoot();
+        assert(root && "Do not have root of PS");
         // rely on C++11 move semantics
         to_process = PS->getNodes(root);
+    }
+
+
+    bool iteration() {
+        assert(changed.empty());
+
+        for (PSNode *cur : to_process) {
+            bool enq = false;
+            enq |= beforeProcessed(cur);
+            enq |= processNode(cur);
+            enq |= afterProcessed(cur);
+
+            if (enq)
+                enqueue(cur);
+        }
+
+        return !changed.empty();
+    }
+
+    void queue_changed() {
+        unsigned last_processed_num = to_process.size();
+        to_process.clear();
+
+        if (!changed.empty()) {
+            // DONT std::move - it prevents compiler from copy ellision
+            to_process = PS->getNodes(nullptr /* starting node */,
+                                      &changed /* starting set */,
+                                      last_processed_num /* expected num */);
+
+            // since changed was not empty,
+            // the to_process must not be empty too
+            assert(!to_process.empty());
+            assert(to_process.size() >= changed.size());
+            changed.clear();
+        }
+    }
+
+    void run()
+    {
+        // do preprocessing and queue the nodes
+        preprocess();
+        initialize_queue();
 
         // do fixpoint
         do {
-            unsigned last_processed_num = to_process.size();
-            changed.clear();
-
-            for (PSNode *cur : to_process) {
-                bool enq = false;
-                enq |= beforeProcessed(cur);
-                enq |= processNode(cur);
-                enq |= afterProcessed(cur);
-
-                if (enq)
-                    enqueue(cur);
-            }
-
-            to_process.clear();
-
-            if (!changed.empty()) {
-                // DONT std::move - it prevents compiler from copy ellision
-                to_process = PS->getNodes(nullptr /* starting node */,
-                                          &changed /* starting set */,
-                                          last_processed_num /* expected num */);
-
-                // since changed was not empty,
-                // the to_process must not be empty too
-                assert(!to_process.empty());
-                assert(to_process.size() >= changed.size());
-            }
+            iteration();
+            queue_changed();
         } while (!to_process.empty());
 
         assert(to_process.empty());
