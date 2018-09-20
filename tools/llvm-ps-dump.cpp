@@ -157,7 +157,7 @@ static void dumpPointer(const Pointer& ptr, bool dot)
     printName(ptr.target, dot);
 
     if (ptr.offset.isUnknown())
-        puts(" + UNKNOWN");
+        printf(" + UNKNOWN");
     else
         printf(" + %lu", *ptr.offset);
 }
@@ -178,7 +178,7 @@ dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
             dumpPointer(ptr, dot);
 
             if (dot)
-                printf("\\n");
+                printf("\\l");
             else
                 putchar('\n');
         }
@@ -193,11 +193,12 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
         if (!dot)
             printf("%*s", ind, "");
 
-        putchar('[');
+        putchar('<');
         printName(it.first, dot);
+        putchar('>');
 
         if (dot)
-            printf("\\n");
+            printf("\\l");
         else
             putchar('\n');
 
@@ -230,7 +231,7 @@ dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
             return;
 
         if (dot)
-            printf("\\n    Memory map: [%p]\\n", static_cast<void*>(mm));
+            printf("\\n------\\n    --- Memory map [%p] ---\\n", static_cast<void*>(mm));
         else
             printf("    Memory map: [%p]\n", static_cast<void*>(mm));
 
@@ -256,7 +257,7 @@ dumpPSNode(PSNode *n, PTType type)
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
     if (n->pointsTo.empty()) {
-        puts(" -- no points-to");
+        puts("no points-to");
         return;
     } else
         putchar('\n');
@@ -305,6 +306,10 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
             printf("------\\n");
         }
 
+        if (verbose) {
+            printf("--- points-to set ---\\n");
+        }
+
         for (const Pointer& ptr : node->pointsTo) {
             printf("\\n    -> ");
             printName(ptr.target, true);
@@ -315,8 +320,9 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
                 printf("%lu", *ptr.offset);
         }
 
-        if (verbose)
+        if (verbose) {
             dumpPointerSubgraphData(node, type, true /* dot */);
+        }
 
         printf("\", shape=box");
         if (node->getType() != PSNodeType::STORE) {
