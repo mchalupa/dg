@@ -173,12 +173,16 @@ public:
                 // remove pointers to locals from the points-to set
                 if (containsLocal(node, it.second)) {
                     replaceLocalWithInv(node, it.second);
+                    assert(!containsLocal(node, it.second));
                     changed = true;
                 }
             }
 
             for (auto& it : *pmo) {
                 PointsToSetT& predS = it.second;
+                if (predS.empty())
+                    continue;
+
                 PointsToSetT& S = mo->pointsTo[it.first];
 
                 // merge pointers from the previous states
@@ -186,23 +190,20 @@ public:
                 // that may point to freed memory
                 for (const auto& ptr : predS) {
                     PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target);
-                    if (alloc && isLocal(alloc, node))
+                    if (alloc && isLocal(alloc, node)) {
                         changed |= S.add(INVALIDATED);
-                    else
+                    } else
                         changed |= S.add(ptr);
                 }
 
-                // keep the map clean
-                if (S.empty()) {
-                    mo->pointsTo.erase(it.first);
-                }
+                assert(!S.empty());
             }
         }
 
         return changed;
     }
 
-    static bool pointsToTarget(PointsToSetT& S, PSNode *target) {
+    static inline bool pointsToTarget(PointsToSetT& S, PSNode *target) {
         for (const auto& ptr : S) {
             if (ptr.target == target) {
                 return true;
@@ -266,8 +267,9 @@ public:
                         changed |= it.second.add(INVALIDATED);
                     else if (ptr.isNull() || ptr.isInvalidated())
                         continue;
-                    else {
+                    else if (pointsToTarget(it.second, ptr.target)) {
                         replaceTargetWithInv(it.second, ptr.target);
+                        assert(!pointsToTarget(it.second, ptr.target));
                         changed = true;
                     }
                 } else { // weak update
@@ -288,22 +290,25 @@ public:
             // the pointers that may point to the freed memory
             for (auto& it : *pmo) {
                 PointsToSetT& predS = it.second;
+                if (predS.empty()) // keep the map clean
+                    continue;
+
                 PointsToSetT& S = mo->pointsTo[it.first];
 
                 // merge pointers from the previous states
                 // but do not include the pointers
                 // that may point to freed memory
                 for (const auto& ptr : predS) {
-                    if (operand->pointsTo.count(ptr) == 0)
-                        changed |= S.add(ptr);
-                    else
+                    if (pointsToTarget(operand->pointsTo, ptr.target)) {
                         changed |= S.add(INVALIDATED);
+                    } else {
+                        // this pointer is to some memory that was not invalidated,
+                        // so merge it into the points-to set
+                        changed |= S.add(ptr);
+                    }
                 }
 
-                // keep the map clean
-                if (S.empty()) {
-                    mo->pointsTo.erase(it.first);
-                }
+                assert(!S.empty());
             }
         }
 
