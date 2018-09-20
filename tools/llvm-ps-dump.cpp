@@ -55,6 +55,7 @@ using llvm::errs;
 static bool verbose;
 static bool ids_only = false;
 static bool dump_graph_only = false;
+static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
 std::unique_ptr<PointerAnalysis> PA;
@@ -391,6 +392,8 @@ int main(int argc, char *argv[])
             todot = true;
         } else if (strcmp(argv[i], "-ids-only") == 0) {
             ids_only = true;
+        } else if (strcmp(argv[i], "-iteration") == 0) {
+            dump_iteration = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-graph-only") == 0) {
             dump_graph_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
@@ -449,7 +452,20 @@ int main(int argc, char *argv[])
     }
 
     // run the analysis
-    PA->run();
+    if (dump_iteration > 0) {
+        // do preprocessing and queue the nodes
+        PA->preprocess();
+        PA->initialize_queue();
+
+        // do fixpoint
+        for (unsigned i = 0; i < dump_iteration; ++i) {
+            if (PA->iteration() == false)
+                break;
+            PA->queue_changed();
+        }
+    } else {
+        PA->run();
+    }
 
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
