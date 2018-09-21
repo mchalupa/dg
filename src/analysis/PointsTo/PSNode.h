@@ -325,6 +325,17 @@ public:
         return doesPointsTo(Pointer(n, o));
     }
 
+    ///
+    // Strip all casts from the node as the
+    // casts do not transform the pointer in any way
+    PSNode *stripCasts() {
+        PSNode *node = this;
+        while (node->getType() == PSNodeType::CAST)
+            node = node->getOperand(0);
+
+        return node;
+    }
+
     // FIXME: maybe get rid of these friendships?
     friend class PointerAnalysis;
     friend class PointerSubgraph;

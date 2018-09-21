@@ -23,6 +23,15 @@ class PointsToWithInvalidate : public PointsToFlowSensitive
         return n->predecessorsNum() > 1 || canChangeMM(n);
     }
 
+    static MemoryObject *getOrCreateMO(MemoryMapT *mm, PSNode *target) {
+        std::unique_ptr<MemoryObject>& moptr = (*mm)[target];
+        if (!moptr)
+            moptr.reset(new MemoryObject(target));
+
+        assert(mm->find(target) != mm->end());
+        return moptr.get();
+    }
+
 public:
     using MemoryMapT = PointsToFlowSensitive::MemoryMapT;
 
@@ -162,11 +171,8 @@ public:
                 continue;
 
             // get or create a memory object for this target
-            std::unique_ptr<MemoryObject>& moptr = (*mm)[I.first];
-            if (!moptr)
-                moptr.reset(new MemoryObject(I.first));
 
-            MemoryObject *mo = moptr.get();
+            MemoryObject *mo = getOrCreateMO(mm, I.first);
             MemoryObject *pmo = I.second.get();
 
             for (auto& it : *mo) {
@@ -232,6 +238,61 @@ public:
         return changed;
     }
 
+    bool invStrongUpdate(PSNode * /*operand*/) {
+        // This is not right as we do not know to which instance
+        // of the object the pointer points to
+        // (the allocation may be in a loop)
+        //
+        // return operand->pointsTo.size() == 1;
+
+        // TODO: but we can do strong update on must-aliases
+        // of the invalidated pointer. That is, e.g. for
+        // free(p), we may do strong update for q if q is must-alias
+        // of p (no matter the size of p's and q's points-to sets)
+        return false;
+    }
+
+    bool overwriteInvalidatedVariable(MemoryMapT *mm, PSNode *operand) {
+        // Bail out if the operand has no pointers yet,
+        // otherwise we can add invalidated imprecisely
+        // (the rest of invalidateMemory would not perform strong update)
+        if (operand->pointsTo.empty())
+            return false;
+
+        // invalidate(p) translates to
+        //  1 = load x
+        //  ...
+        //  invalidate(1)
+        // Get objects where x may point to. If this object is only one,
+        // then we know that this object will point to invalid memory
+        // (no what is its state).
+        PSNode *strippedOp = operand->stripCasts();
+        if (strippedOp->getType() == PSNodeType::LOAD) {
+            // get the pointer to the memory that holds the pointers
+            // that are being freed
+            PSNode *loadOp = strippedOp->getOperand(0);
+            if (loadOp->pointsTo.size() == 1) {
+                // if we know exactly which memory object
+                // is being used for freeing the memory,
+                // we can set it to invalidated
+                const auto& ptr = *(loadOp->pointsTo.begin());
+                auto mo = getOrCreateMO(mm, ptr.target);
+                if (mo->pointsTo.size() == 1) {
+                    auto& S = mo->pointsTo[0];
+                    if (S.size() == 1 && (*S.begin()).target == INVALIDATED) {
+                        return false;
+                    }
+                }
+
+                mo->pointsTo.clear();
+                mo->pointsTo[0].add(INVALIDATED);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     bool invalidateMemory(PSNode *node, PSNode *pred)
     {
         bool changed = false;
@@ -242,17 +303,17 @@ public:
         assert(pmm && "Node does not have memory map");
 
         PSNode *operand = node->getOperand(0);
+        // if we call e.g. free(p), then p will point
+        // to invalidated memory no matter how many places
+        // it may have pointed before.
+        changed |= overwriteInvalidatedVariable(mm, operand);
 
         for (auto& I : *pmm) {
             if (isInvalidTarget(I.first))
                 continue;
 
             // get or create a memory object for this target
-            std::unique_ptr<MemoryObject>& moptr = (*mm)[I.first];
-            if (!moptr)
-                moptr.reset(new MemoryObject(I.first));
-
-            MemoryObject *mo = moptr.get();
+            MemoryObject *mo = getOrCreateMO(mm, I.first);
             MemoryObject *pmo = I.second.get();
 
             // Remove references to invalidated memory from mo
@@ -261,7 +322,7 @@ public:
             // (strong vs. weak update) as we do not know which
             // object is actually being invalidated.
             for (auto& it : *mo) {
-                if (operand->pointsTo.size() == 1) { // strong update
+                if (invStrongUpdate(operand)) { // strong update
                     const auto& ptr = *(operand->pointsTo.begin());
                     if (ptr.isUnknown())
                         changed |= it.second.add(INVALIDATED);
