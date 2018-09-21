@@ -428,6 +428,10 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
             if (const llvm::DbgDeclareInst *DD = llvm::dyn_cast<llvm::DbgDeclareInst>(&I)) {
                 auto val = DD->getAddress();
                 valuesToVariables[val] = DD->getVariable()->getName().str();
+            } else if (const llvm::DbgValueInst *DV
+                        = llvm::dyn_cast<llvm::DbgValueInst>(&I)) {
+                auto val = DV->getValue();
+                valuesToVariables[val] = DV->getVariable()->getName().str();
             }
         }
     }
