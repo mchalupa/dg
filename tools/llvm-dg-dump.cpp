@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
     const char *rda = "dense";
+    const char *entry_func = "main";
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
     using namespace debug;
@@ -101,6 +102,8 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-mark") == 0) {
             mark_only = true;
             slicing_criterion = argv[++i];
+        } else if (strcmp(argv[i], "-entry") == 0) {
+            entry_func = argv[++i];
         } else if (strcmp(argv[i], "-cd-alg") == 0) {
             const char *arg = argv[++i];
             if (strcmp(arg, "classic") == 0)
@@ -140,7 +143,7 @@ int main(int argc, char *argv[])
 
     // TODO refactor the code...
     LLVMDependenceGraph d;
-    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M);
+    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M, entry_func);
 
     if (strcmp(pts, "fs") == 0) {
         tm.start();
@@ -161,7 +164,7 @@ int main(int argc, char *argv[])
 
     tm.report("INFO: Points-to analysis took");
 
-    d.build(M, PTA);
+    d.build(M, PTA, M->getFunction(entry_func));
 
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
@@ -179,7 +182,7 @@ int main(int argc, char *argv[])
 
     assert(PTA && "BUG: Need points-to analysis");
     //use new analyses
-    analysis::rd::LLVMReachingDefinitions RDA(M, PTA);
+    analysis::rd::LLVMReachingDefinitions RDA(M, PTA, entry_func);
     tm.start();
 
     if (strcmp(rda, "dense") == 0) {

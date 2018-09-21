@@ -39,6 +39,7 @@ class LLVMReachingDefinitions
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
     RDNode *root;
     const llvm::Module *m;
+    const char *entryFunc;
     dg::LLVMPointerAnalysis *pta;
     bool strong_update_unknown;
     bool pure_funs;
@@ -47,10 +48,11 @@ class LLVMReachingDefinitions
 public:
     LLVMReachingDefinitions(const llvm::Module *m,
                             dg::LLVMPointerAnalysis *pta,
+                            const char *entry_func = "main",
                             bool strong_updt_unknown = false,
                             bool pure_funs = false,
                             Offset max_set_sz = Offset::UNKNOWN)
-        : m(m), pta(pta), strong_update_unknown(strong_updt_unknown),
+        : m(m), entryFunc(entry_func), pta(pta), strong_update_unknown(strong_updt_unknown),
         pure_funs(pure_funs), max_set_size(max_set_sz) {}
 
     /**
@@ -63,7 +65,7 @@ public:
         // this helps while guessing causes of template substitution errors
         static_assert(std::is_base_of<ReachingDefinitionsAnalysis, RdaType>::value, "RdaType has to be subclass of ReachingDefinitionsAnalysis");
         using BuilderT = typename detail::BuilderSelector<RdaType>::BuilderT;
-        builder = std::unique_ptr<LLVMRDBuilder>(new BuilderT(m, pta, pure_funs));
+        builder = std::unique_ptr<LLVMRDBuilder>(new BuilderT(m, pta, entryFunc, pure_funs));
         root = builder->build();
 
         RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(new RdaType(root));

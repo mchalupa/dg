@@ -55,6 +55,7 @@ using llvm::errs;
 static bool verbose;
 static bool ids_only = false;
 static bool dump_graph_only = false;
+static const char *entry_func = "main";
 
 std::unique_ptr<PointerAnalysis> PA;
 
@@ -394,6 +395,8 @@ int main(int argc, char *argv[])
             dump_graph_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-entry") == 0) {
+            entry_func = argv[i + 1];
         } else {
             module = argv[i];
         }
@@ -420,7 +423,7 @@ int main(int argc, char *argv[])
 
     TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M, field_senitivity);
+    LLVMPointerAnalysis PTA(M, entry_func, field_senitivity);
 
     tm.start();
 

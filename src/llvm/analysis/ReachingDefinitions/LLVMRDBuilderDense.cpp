@@ -860,9 +860,9 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
 RDNode *LLVMRDBuilderDense::build()
 {
     // get entry function
-    llvm::Function *F = M->getFunction("main");
+    llvm::Function *F = M->getFunction(entryFunc);
     if (!F) {
-        llvm::errs() << "Need main function in module\n";
+        llvm::errs() << "The function '" << entryFunc << "' was not found in the module\n";
         abort();
     }
 

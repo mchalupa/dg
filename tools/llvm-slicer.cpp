@@ -133,6 +133,10 @@ llvm::cl::opt<bool> undefined_are_pure("undefined-are-pure",
     llvm::cl::desc("Assume that undefined functions have no side-effects\n"),
                    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<std::string> entry_func("entry",
+    llvm::cl::desc("Entry function of the program\n"),
+                   llvm::cl::init("main"), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<PtaType> pta("pta",
     llvm::cl::desc("Choose pointer analysis to use:"),
     llvm::cl::values(
@@ -211,7 +215,11 @@ static void annotate(llvm::Module *M, AnnotationOptsT opts,
     delete annot;
 }
 
-static bool createEmptyMain(llvm::Module *M)
+///
+// Create new empty main. If 'call_entry' is set to true, then
+// call the entry function from the new main, otherwise the
+// main is going to be empty
+static bool createNewMain(llvm::Module *M, bool call_entry = false)
 {
     llvm::Function *main_func = M->getFunction("main");
     if (!main_func) {
@@ -226,6 +234,16 @@ static bool createEmptyMain(llvm::Module *M)
     // create new function body that just returns
     llvm::LLVMContext& ctx = M->getContext();
     llvm::BasicBlock* blk = llvm::BasicBlock::Create(ctx, "entry", main_func);
+
+    if (call_entry) {
+        assert(entry_func != "main" && "Calling main from main");
+        llvm::Function *entry = M->getFunction(entry_func);
+        assert(entry && "The entry function is not present in the module");
+
+        // TODO: we should set the arguments to undef
+        llvm::CallInst::Create(entry, "entry", blk);
+    }
+
     llvm::Type *Ty = main_func->getReturnType();
     llvm::Value *retval = nullptr;
     if (Ty->isIntegerTy())
@@ -478,8 +496,8 @@ protected:
 public:
     Slicer(llvm::Module *mod, AnnotationOptsT o)
     :M(mod), opts(o),
-     PTA(new LLVMPointerAnalysis(mod, pta_field_sensitivie)),
-      RD(new LLVMReachingDefinitions(mod, PTA.get(),
+     PTA(new LLVMPointerAnalysis(mod, entry_func.c_str(), pta_field_sensitivie)),
+      RD(new LLVMReachingDefinitions(mod, PTA.get(), entry_func.c_str(),
                                      rd_strong_update_unknown, undefined_are_pure)) {
         assert(mod && "Need module");
     }
@@ -513,7 +531,7 @@ public:
         // only empty main will stay there. Just delete the body
         // of main and keep the return value
         if (!got_slicing_criteria)
-            return createEmptyMain(M);
+            return createNewMain(M, entry_func != "main");
 
         // unmark this set of nodes after marking the relevant ones.
         // Used to mimic the Weissers algorithm
@@ -604,7 +622,9 @@ public:
         tm.stop();
         tm.report("INFO: Points-to analysis took");
 
-        dg.build(&*M, PTA.get());
+        // the entry function must exist in the module if the
+        // other analyses passed
+        dg.build(&*M, PTA.get(), M->getFunction(entry_func));
 
         // verify if the graph is built correctly
         // FIXME - do it optionally (command line argument)
@@ -664,7 +684,7 @@ static bool remove_unused_from_module(llvm::Module *M)
     // do not slice away these functions no matter what
     // FIXME do it a vector and fill it dynamically according
     // to what is the setup (like for sv-comp or general..)
-    const char *keep[] = {"main", "klee_assume", NULL};
+    const char *keep[] = {entry_func.c_str(), "klee_assume", NULL};
 
     // when erasing while iterating the slicer crashes
     // so set the to be erased values into container

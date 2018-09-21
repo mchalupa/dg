@@ -756,9 +756,9 @@ void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function
 PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
 {
     // get entry function
-    llvm::Function *F = M->getFunction("main");
+    llvm::Function *F = M->getFunction(entryFunc);
     if (!F) {
-        llvm::errs() << "Need main function in module\n";
+        llvm::errs() << "Did not find " << entryFunc << " function in module\n";
         abort();
     }
 

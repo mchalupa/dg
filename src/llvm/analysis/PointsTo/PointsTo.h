@@ -142,9 +142,9 @@ class LLVMPointerAnalysis
 
 public:
 
-    LLVMPointerAnalysis(const llvm::Module *m,
+    LLVMPointerAnalysis(const llvm::Module *m, const char *entry_func = "main",
                         uint64_t field_sensitivity = Offset::UNKNOWN)
-        : builder(new LLVMPointerSubgraphBuilder(m, field_sensitivity)) {}
+        : builder(new LLVMPointerSubgraphBuilder(m, entry_func, field_sensitivity)) {}
 
     ~LLVMPointerAnalysis()
     {

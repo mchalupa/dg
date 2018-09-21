@@ -54,6 +54,7 @@ using namespace dg::analysis::rd;
 using llvm::errs;
 
 static bool verbose = false;
+static const char *entryFunc = "main";
 
 static std::string
 getInstName(const llvm::Value *val)
@@ -332,6 +333,8 @@ int main(int argc, char *argv[])
             verbose = true;
         } else if (strcmp(argv[i], "-dump-rd") == 0) {
             dump_rd = true;
+        } else if (strcmp(argv[i], "-entry") == 0) {
+            entryFunc = argv[i+1];
         } else {
             module = argv[i];
         }
@@ -358,7 +361,7 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M, field_senitivity);
+    LLVMPointerAnalysis PTA(M, entryFunc, field_senitivity);
 
     tm.start();
 
@@ -371,7 +374,8 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Points-to analysis took");
 
-    LLVMReachingDefinitions RD(M, &PTA, rd_strong_update_unknown, max_set_size);
+    LLVMReachingDefinitions RD(M, &PTA, entryFunc,
+                               rd_strong_update_unknown, max_set_size);
     tm.start();
     if (rda == RdaType::SEMISPARSE) {
         RD.run<dg::analysis::rd::SemisparseRda>();
