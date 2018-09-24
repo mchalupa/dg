@@ -17,14 +17,16 @@ enum NodesWalkFlags {
     NODES_WALK_DD                       = 1 << 2,
     NODES_WALK_REV_CD                   = 1 << 3,
     NODES_WALK_REV_DD                   = 1 << 4,
+    NODES_WALK_USE                      = 1 << 5,
+    NODES_WALK_USER                     = 1 << 6,
     // Add to queue all first nodes of
     // node's BB successors
-    NODES_WALK_BB_CFG                   = 1 << 5,
+    NODES_WALK_BB_CFG                   = 1 << 7,
     // Add to queue all last nodes of
     // node's BB predecessors
-    NODES_WALK_BB_REV_CFG               = 1 << 6,
-    NODES_WALK_BB_POSTDOM               = 1 << 7,
-    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 8,
+    NODES_WALK_BB_REV_CFG               = 1 << 8,
+    NODES_WALK_BB_POSTDOM               = 1 << 9,
+    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 10,
 };
 
 // this is a base class for nodes walk, it contains
@@ -87,9 +89,6 @@ public:
 #endif // ENABLE_CFG
             }
 
-            if (options & NODES_WALK_DD)
-                processEdges(n->data_begin(), n->data_end());
-
             if (options & NODES_WALK_REV_CD) {
                 processEdges(n->rev_control_begin(), n->rev_control_end());
 
@@ -99,8 +98,17 @@ public:
 #endif // ENABLE_CFG
             }
 
+            if (options & NODES_WALK_DD)
+                processEdges(n->data_begin(), n->data_end());
+
             if (options & NODES_WALK_REV_DD)
                 processEdges(n->rev_data_begin(), n->rev_data_end());
+
+            if (options & NODES_WALK_USE)
+                processEdges(n->use_begin(), n->use_end());
+
+            if (options & NODES_WALK_USER)
+                processEdges(n->user_begin(), n->user_end());
 
 #ifdef ENABLE_CFG
             if (options & NODES_WALK_BB_CFG)

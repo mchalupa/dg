@@ -30,7 +30,7 @@ public:
         : NodesWalk<NodeT, QueueFIFO<NodeT *>>(
             forward_slc ?
                 (NODES_WALK_CD | NODES_WALK_DD) :
-                (NODES_WALK_REV_CD | NODES_WALK_REV_DD)
+                (NODES_WALK_REV_CD | NODES_WALK_REV_DD | NODES_WALK_USER)
           ),
           forward_slice(forward_slc) {}
 

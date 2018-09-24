@@ -17,15 +17,17 @@ enum DFSFlags {
     DFS_DD                      = 1 << 3,
     DFS_REV_CD                  = 1 << 4,
     DFS_REV_DD                  = 1 << 5,
+    DFS_USE                     = 1 << 6,
+    DFS_USER                    = 1 << 7,
     // go through CFG edges between
     // basic blocks (enqueue first
     // nodes of BB successors for _every_ node)
-    DFS_BB_CFG                  = 1 << 6,
-    DFS_BB_REV_CFG              = 1 << 7,
-    DFS_BB_POSTDOM              = 1 << 8,
-    DFS_BB_POSTDOM_FRONTIERS    = 1 << 9,
+    DFS_BB_CFG                  = 1 << 8,
+    DFS_BB_REV_CFG              = 1 << 9,
+    DFS_BB_POSTDOM              = 1 << 10,
+    DFS_BB_POSTDOM_FRONTIERS    = 1 << 11,
 
-    DFS_BB_NO_CALLSITES         = 1 << 10,
+    DFS_BB_NO_CALLSITES         = 1 << 12,
 };
 
 
@@ -44,6 +46,10 @@ uint32_t convertFlags(uint32_t opts)
         ret |= NODES_WALK_REV_CD;
     if (opts & DFS_REV_DD)
         ret |= NODES_WALK_REV_DD;
+    if (opts & DFS_USE)
+        ret |= NODES_WALK_USE;
+    if (opts & DFS_USER)
+        ret |= NODES_WALK_USER;
     if (opts & DFS_BB_CFG)
         ret |= NODES_WALK_BB_CFG;
     if (opts & DFS_BB_REV_CFG)

@@ -19,14 +19,16 @@ enum BFSFlags {
     BFS_DD                      = 1 << 5,
     BFS_REV_CD                  = 1 << 6,
     BFS_REV_DD                  = 1 << 7,
+    BFS_USE                     = 1 << 8,
+    BFS_USER                    = 1 << 9,
 
-    BFS_BB_CFG                  = 1 << 8,
-    BFS_BB_REV_CFG              = 1 << 9,
-    BFS_BB_POSTDOM              = 1 << 10,
-    BFS_BB_POSTDOM_FRONTIERS    = 1 << 11,
+    BFS_BB_CFG                  = 1 << 10,
+    BFS_BB_REV_CFG              = 1 << 11,
+    BFS_BB_POSTDOM              = 1 << 12,
+    BFS_BB_POSTDOM_FRONTIERS    = 1 << 13,
 
-    BFS_BB_NO_CALLSITES         = 1 << 12,
-    BFS_BB_DOM                  = 1 << 13,
+    BFS_BB_NO_CALLSITES         = 1 << 14,
+    BFS_BB_DOM                  = 1 << 15,
 };
 
 #ifdef ENABLE_CFG
