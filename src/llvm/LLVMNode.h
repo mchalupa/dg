@@ -57,8 +57,7 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>
 
 public:
     LLVMNode(llvm::Value *val, bool owns_value = false)
-        :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val),
-         operands(nullptr), operands_num(0)
+        :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val)
     {
         if (owns_value)
 #if LLVM_VERSION_MAJOR >= 5
@@ -68,33 +67,20 @@ public:
 #endif
     }
 
-    ~LLVMNode();
-
     llvm::Value *getValue() const { return getKey(); }
 
     // create new subgraph with actual parameters that are given
     // by call-site and add parameter edges between actual and
     // formal parameters. The argument is the graph of called function.
     // Must be called only when node is call-site.
-    // XXX create new class for parameters
     void addActualParameters(LLVMDependenceGraph *);
     void addActualParameters(LLVMDependenceGraph *, llvm::Function *);
-
-    LLVMNode **getOperands();
-    size_t getOperandsNum();
-    LLVMNode *getOperand(unsigned int idx);
-    LLVMNode *setOperand(LLVMNode *op, unsigned int idx);
 
     bool isVoidTy() const {
         return getKey()->getType()->isVoidTy();
     }
 
 private:
-    LLVMNode **findOperands();
-    // here we can store operands of instructions so that
-    // finding them will be asymptotically constant
-    LLVMNode **operands;
-    size_t operands_num;
 
     // the owned key will be deleted with this node
 #if LLVM_VERSION_MAJOR >= 5
