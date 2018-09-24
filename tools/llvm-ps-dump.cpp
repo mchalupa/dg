@@ -165,15 +165,33 @@ static void dumpPointer(const Pointer& ptr, bool dot)
 static void
 dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 {
+    bool printed_multi = false;
     for (auto& it : mo->pointsTo) {
+        int width = 0;
         for (const Pointer& ptr : it.second) {
             // print indentation
             printf("%*s", ind, "");
 
-            if (it.first.isUnknown())
-                printf("[UNKNOWN] -> ");
-            else
-                printf("[%lu] -> ", *it.first);
+            if (width > 0) {
+                    printf("%*s -> ", width, "");
+            } else {
+                if (it.first.isUnknown())
+                    width = printf("[??]");
+                else
+                    width = printf("[%lu]", *it.first);
+
+                // print a new line if there are multiple items
+                if (dot &&
+                    (it.second.size() > 1 ||
+                     (printed_multi && mo->pointsTo.size() > 1))) {
+                    printed_multi = true;
+                    printf("\\l%*s",ind + width, "");
+                }
+
+                printf(" -> ");
+
+                assert(width > 0);
+            }
 
             dumpPointer(ptr, dot);
 
