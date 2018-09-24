@@ -55,7 +55,7 @@ public:
     bool afterProcessed(PSNode *n) override
     {
         bool changed = false;
-        PointsToSetT *strong_update = nullptr;
+        PointsToSetT *overwritten = nullptr;
 
         MemoryMapT *mm = n->getData<MemoryMapT>();
         // we must have the memory map, we created it
@@ -65,7 +65,7 @@ public:
         // every store is a strong update
         // FIXME: memcpy can be strong update too
         if (n->getType() == PSNodeType::STORE)
-            strong_update = &n->getOperand(1)->pointsTo;
+            overwritten = &n->getOperand(1)->pointsTo;
 
         // merge information from predecessors if there's
         // more of them (if there's just one predecessor
@@ -76,7 +76,7 @@ public:
                 MemoryMapT *pm = p->getData<MemoryMapT>();
                 // merge pm to mm (but only if pm was already created)
                 if (pm) {
-                    changed |= mergeMaps(mm, pm, strong_update);
+                    changed |= mergeMaps(mm, pm, overwritten);
                 }
             }
         }
@@ -139,12 +139,12 @@ protected:
     static bool mergeObjects(PSNode *node,
                              MemoryObject *to,
                              MemoryObject *from,
-                             PointsToSetT *strong_update) {
+                             PointsToSetT *overwritten) {
         bool changed = false;
 
         for (auto& fromIt : from->pointsTo) {
-            if (strong_update &&
-                strong_update->count(Pointer(node, fromIt.first)))
+            if (overwritten &&
+                overwritten->count(Pointer(node, fromIt.first)))
                 continue;
 
             auto& S = to->pointsTo[fromIt.first];
@@ -158,7 +158,7 @@ protected:
     // Merge two Memory maps, return true if any new information was created,
     // otherwise return false
     static bool mergeMaps(MemoryMapT *mm, MemoryMapT *from,
-                          PointsToSetT *strong_update) {
+                          PointsToSetT *overwritten) {
         bool changed = false;
         for (auto& it : *from) {
             PSNode *fromTarget = it.first;
@@ -167,7 +167,7 @@ protected:
                 toMo.reset(new MemoryObject(fromTarget));
 
             changed |= mergeObjects(fromTarget, toMo.get(),
-                                    it.second.get(), strong_update);
+                                    it.second.get(), overwritten);
         }
 
         return changed;
