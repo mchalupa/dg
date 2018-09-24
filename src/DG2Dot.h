@@ -17,10 +17,12 @@ enum dg2dot_options {
     PRINT_REV_CFG   = 1 << 1,
     PRINT_DD        = 1 << 2,
     PRINT_REV_DD    = 1 << 3,
-    PRINT_CD        = 1 << 4,
-    PRINT_REV_CD    = 1 << 5,
-    PRINT_CALL      = 1 << 6,
-    PRINT_POSTDOM   = 1 << 7,
+    PRINT_USE       = 1 << 4,
+    PRINT_USER      = 1 << 5,
+    PRINT_CD        = 1 << 6,
+    PRINT_REV_CD    = 1 << 7,
+    PRINT_CALL      = 1 << 8,
+    PRINT_POSTDOM   = 1 << 9,
     PRINT_ALL       = 0xff
 };
 
@@ -49,7 +51,7 @@ public:
     using KeyT = typename NodeT::KeyType;
 
     DG2Dot<NodeT>(DependenceGraph<NodeT> *dg,
-                  uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD,
+                  uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE,
                   const char *file = NULL)
         : options(opts), dg(dg), file(file)
     {
@@ -148,6 +150,7 @@ public:
         out << "\tcompound=true label=\"Graph " << dg
             << " has " << dg->size() << " nodes\\n\n"
             << "\tdd color: " << dd_color << "\n"
+            << "\tuse color: " << use_color << "\n"
             << "\tcd color: " << cd_color << "\"\n\n";
     }
 
@@ -562,6 +565,23 @@ private:
                     << " [color=\"" << dd_color << "\" style=\"dashed\"  constraint=false]\n";
         }
 
+        if (options & PRINT_USE) {
+            out << Ind << "/* USE edges */\n";
+            for (auto II = n->use_begin(), EE = n->use_end();
+                 II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II
+                    << " [color=\"" << use_color << "\" rank=max style=\"dashed\"]\n";
+        }
+
+        if (options & PRINT_USER) {
+            out << Ind << "/* user edges */\n";
+            for (auto II = n->user_begin(), EE = n->user_end();
+                 II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II
+                    << " [color=\"" << use_color << "\" style=\"dashed\"  constraint=false]\n";
+        }
+
+
         if (options & PRINT_CD) {
             out << Ind << "/* CD edges */\n";
             for (auto II = n->control_begin(), EE = n->control_end();
@@ -579,7 +599,8 @@ private:
         }
     }
 
-    const char *dd_color = "black";
+    const char *dd_color = "cyan4";
+    const char *use_color = "black";
     const char *cd_color = "blue";
 
     DependenceGraph<NodeT> *dg;

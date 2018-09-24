@@ -72,19 +72,21 @@ int main(int argc, char *argv[])
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
     using namespace debug;
-    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD;
+    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-no-control") == 0) {
             opts &= ~PRINT_CD;
+        } else if (strcmp(argv[i], "-no-use") == 0) {
+            opts &= ~PRINT_USE;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
         } else if (strcmp(argv[i], "-rda") == 0) {
             rda = argv[++i];
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
-        } else if (strcmp(argv[i], "-nocfg") == 0) {
+        } else if (strcmp(argv[i], "-no-cfg") == 0) {
             opts &= ~PRINT_CFG;
         } else if (strcmp(argv[i], "-call") == 0) {
             opts |= PRINT_CALL;

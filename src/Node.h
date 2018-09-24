@@ -363,7 +363,7 @@ private:
 #ifndef NDEBUG
         bool ret1 =
 #endif
-        n_cont.insert(ths);
+                    n_cont.insert(ths);
         bool ret2 = ths_cont.insert(n);
 
         assert(ret1 == ret2

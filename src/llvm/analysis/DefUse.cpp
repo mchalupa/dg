@@ -48,14 +48,18 @@ using namespace llvm;
 /// --------------------------------------------------
 namespace dg {
 
+/// Add def-use edges between instruction and its operands
 static void handleInstruction(const Instruction *Inst, LLVMNode *node)
 {
     LLVMDependenceGraph *dg = node->getDG();
+    assert(Inst == node->getKey());
 
     for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
-        LLVMNode *op = dg->getNode(*I);
-        if (op)
-            op->addDataDependence(node);
+        if (LLVMNode *op = dg->getNode(*I)) {
+            // 'node' uses 'op', so we want to add edge 'op'-->'node',
+            // that is, 'op' is used in 'node' ('node' is a user of 'op')
+            op->addUseDependence(node);
+        }
     }
 }
 
@@ -428,10 +432,9 @@ void LLVMDefUseAnalysis::handleLoadInst(llvm::LoadInst *Inst, LLVMNode *node)
     addDataDependence(node, Inst, Inst->getPointerOperand(), size);
 }
 
-bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *prev)
+bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
 {
     Value *val = node->getKey();
-    (void) prev;
 
     if (LoadInst *Inst = dyn_cast<LoadInst>(val)) {
         handleLoadInst(Inst, node);

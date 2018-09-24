@@ -892,7 +892,7 @@ static int save_module(llvm::Module *M,
 }
 
 static void dump_dg_to_dot(LLVMDependenceGraph& dg, bool bb_only = false,
-                           uint32_t dump_opts = debug::PRINT_DD | debug::PRINT_CD,
+                           uint32_t dump_opts = debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE,
                            const char *suffix = nullptr)
 {
     // compose new name
