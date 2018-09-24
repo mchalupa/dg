@@ -55,6 +55,7 @@ using llvm::errs;
 static bool verbose;
 static bool ids_only = false;
 static bool dump_graph_only = false;
+static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
 std::unique_ptr<PointerAnalysis> PA;
@@ -156,7 +157,7 @@ static void dumpPointer(const Pointer& ptr, bool dot)
     printName(ptr.target, dot);
 
     if (ptr.offset.isUnknown())
-        puts(" + UNKNOWN");
+        printf(" + UNKNOWN");
     else
         printf(" + %lu", *ptr.offset);
 }
@@ -164,20 +165,38 @@ static void dumpPointer(const Pointer& ptr, bool dot)
 static void
 dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 {
+    bool printed_multi = false;
     for (auto& it : mo->pointsTo) {
+        int width = 0;
         for (const Pointer& ptr : it.second) {
             // print indentation
             printf("%*s", ind, "");
 
-            if (it.first.isUnknown())
-                printf("[UNKNOWN] -> ");
-            else
-                printf("[%lu] -> ", *it.first);
+            if (width > 0) {
+                    printf("%*s -> ", width, "");
+            } else {
+                if (it.first.isUnknown())
+                    width = printf("[??]");
+                else
+                    width = printf("[%lu]", *it.first);
+
+                // print a new line if there are multiple items
+                if (dot &&
+                    (it.second.size() > 1 ||
+                     (printed_multi && mo->pointsTo.size() > 1))) {
+                    printed_multi = true;
+                    printf("\\l%*s",ind + width, "");
+                }
+
+                printf(" -> ");
+
+                assert(width > 0);
+            }
 
             dumpPointer(ptr, dot);
 
             if (dot)
-                printf("\\n");
+                printf("\\l");
             else
                 putchar('\n');
         }
@@ -192,11 +211,12 @@ dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
         if (!dot)
             printf("%*s", ind, "");
 
-        putchar('[');
+        putchar('<');
         printName(it.first, dot);
+        putchar('>');
 
         if (dot)
-            printf("\\n");
+            printf("\\l");
         else
             putchar('\n');
 
@@ -229,7 +249,7 @@ dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
             return;
 
         if (dot)
-            printf("\\n    Memory map: [%p]\\n", static_cast<void*>(mm));
+            printf("\\n------\\n    --- Memory map [%p] ---\\n", static_cast<void*>(mm));
         else
             printf("    Memory map: [%p]\n", static_cast<void*>(mm));
 
@@ -255,7 +275,7 @@ dumpPSNode(PSNode *n, PTType type)
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
     if (n->pointsTo.empty()) {
-        puts(" -- no points-to");
+        puts("no points-to");
         return;
     } else
         putchar('\n');
@@ -304,6 +324,10 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
             printf("------\\n");
         }
 
+        if (verbose) {
+            printf("--- points-to set ---\\n");
+        }
+
         for (const Pointer& ptr : node->pointsTo) {
             printf("\\n    -> ");
             printName(ptr.target, true);
@@ -314,8 +338,9 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
                 printf("%lu", *ptr.offset);
         }
 
-        if (verbose)
+        if (verbose) {
             dumpPointerSubgraphData(node, type, true /* dot */);
+        }
 
         printf("\", shape=box");
         if (node->getType() != PSNodeType::STORE) {
@@ -391,6 +416,8 @@ int main(int argc, char *argv[])
             todot = true;
         } else if (strcmp(argv[i], "-ids-only") == 0) {
             ids_only = true;
+        } else if (strcmp(argv[i], "-iteration") == 0) {
+            dump_iteration = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-graph-only") == 0) {
             dump_graph_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
@@ -449,7 +476,20 @@ int main(int argc, char *argv[])
     }
 
     // run the analysis
-    PA->run();
+    if (dump_iteration > 0) {
+        // do preprocessing and queue the nodes
+        PA->preprocess();
+        PA->initialize_queue();
+
+        // do fixpoint
+        for (unsigned i = 0; i < dump_iteration; ++i) {
+            if (PA->iteration() == false)
+                break;
+            PA->queue_changed();
+        }
+    } else {
+        PA->run();
+    }
 
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
