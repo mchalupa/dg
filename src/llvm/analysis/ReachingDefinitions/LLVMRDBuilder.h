@@ -57,8 +57,8 @@ public:
                   const char *entryFunc = "main",
                   bool pure_funs = false)
         : M(m), DL(new llvm::DataLayout(m)),
-          assume_pure_functions(pure_funs), PTA(p),
-          entryFunc(entryFunc) {}
+          assume_pure_functions(pure_funs),
+          entryFunc(entryFunc), PTA(p) {}
 
     virtual ~LLVMRDBuilder() {
         // delete data layout
