@@ -214,6 +214,7 @@ if (LLVM_DG)
 	add_test(globalptr2 slicing-globalptr2.sh)
 	add_test(globalptr3 slicing-globalptr3.sh)
 	add_test(globalptr4 slicing-globalptr4.sh)
+	add_test(pta-inv-infinite-loop pta-inv-infinite-loop.sh)
 
 endif (LLVM_DG)
 
