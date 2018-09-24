@@ -357,6 +357,17 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
                         llvm::errs() << " in: " << *val;
                     llvm::errs() << " off: " << *ptr.offset << "\n";
                 }
+            } else {
+                // this is global variable and the last definition
+                // is the initialization
+
+                LLVMDependenceGraph *dg = node->getDG();
+                assert(dg);
+
+                LLVMNode *global_param_node = dg->getNode(GV);
+                assert(global_param_node);
+
+                global_param_node->addDataDependence(node);
             }
 
             continue;
