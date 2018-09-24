@@ -25,8 +25,10 @@ template <typename DependenceGraphT, typename KeyT, typename NodeT>
 class Node
 {
 public:
-    using ControlEdgesT = EdgesContainer<NodeT>;
-    using DependenceEdgesT = EdgesContainer<NodeT>;
+    using EdgesT = EdgesContainer<NodeT>;
+    using ControlEdgesT = EdgesT;
+    using DataEdgesT = EdgesT;
+    using UseEdgesT = EdgesT;
 
     // to be able to reference the KeyT and DG
     using KeyType = KeyT;
@@ -34,8 +36,10 @@ public:
 
     using control_iterator = typename ControlEdgesT::iterator;
     using const_control_iterator = typename ControlEdgesT::const_iterator;
-    using data_iterator = typename DependenceEdgesT::iterator;
-    using const_data_iterator = typename DependenceEdgesT::const_iterator;
+    using data_iterator = typename DataEdgesT::iterator;
+    using const_data_iterator = typename DataEdgesT::const_iterator;
+    using use_iterator = typename DataEdgesT::iterator;
+    using const_use_iterator = typename DataEdgesT::const_iterator;
 
     Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k,
                                         DependenceGraphT *dg = nullptr)
@@ -70,106 +74,46 @@ public:
 
     // add control dependence edge 'this'-->'n',
     // thus making 'n' control dependend on this node
-    bool addControlDependence(NodeT * n)
+    bool addControlDependence(NodeT *n)
     {
-#ifndef NDEBUG
-        bool ret1;
-#endif
-        bool ret2;
-
-#ifndef NDEBUG
-        ret1 =
-#endif
-        n->revControlDepEdges.insert(static_cast<NodeT *>(this));
-        ret2 = controlDepEdges.insert(n);
-
-        // we either have both edges or none
-        assert(ret1 == ret2);
-
-        return ret2;
+        return _addBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                     controlDepEdges, n->revControlDepEdges);
     }
 
     // add data dependence edge 'this'-->'n',
     // thus making 'n' data dependend on this node
-    bool addDataDependence(NodeT * n)
+    bool addDataDependence(NodeT *n)
     {
-#ifndef NDEBUG
-        bool ret1;
-#endif
-        bool ret2;
-
-
-#ifndef NDEBUG
-        ret1 =
-#endif
-        n->revDataDepEdges.insert(static_cast<NodeT *>(this));
-        ret2 = dataDepEdges.insert(n);
-
-        assert(ret1 == ret2);
-
-        return ret2;
+        return _addBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                     dataDepEdges, n->revDataDepEdges);
     }
 
-    // remove edge 'this'-->'n' from data dependencies
-    bool removeDataDependence(NodeT * n)
+    // this node uses (e.g. like an operand) the node 'n'
+    bool addUseDependence(NodeT *n)
     {
-        bool ret1;
-#ifndef NDEBUG
-        bool ret2;
-#endif
-        ret1 = n->revDataDepEdges.erase(static_cast<NodeT *>(this));
-#ifndef NDEBUG
-        ret2 =
-#endif
-        dataDepEdges.erase(n);
-
-        // must have both or none
-        assert(ret1 == ret2 && "Dep. edge without rev. or vice versa");
-
-        return ret1;
+        return _addBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                     useEdges, n->userEdges);
     }
 
     // remove edge 'this'-->'n' from control dependencies
-    bool removeControlDependence(NodeT * n)
+    bool removeControlDependence(NodeT *n)
     {
-        bool ret1;
-#ifndef NDEBUG
-        bool ret2;
-#endif
-
-        ret1 = n->revControlDepEdges.erase(static_cast<NodeT *>(this));
-#ifndef NDEBUG
-        ret2 =
-#endif
-        controlDepEdges.erase(n);
-
-        // must have both or none
-        assert(ret1 == ret2 && "Control edge without rev. or vice versa");
-
-        return ret1;
+        return _removeBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                        controlDepEdges, n->revControlDepEdges);
     }
 
-    void removeOutcomingDDs()
+    // remove edge 'this'-->'n' from data dependencies
+    bool removeDataDependence(NodeT *n)
     {
-        while (!dataDepEdges.empty())
-            removeDataDependence(*dataDepEdges.begin());
+        return _removeBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                        dataDepEdges, n->revDataDepEdges);
     }
 
-    void removeIncomingDDs()
-    {
-        while (!revDataDepEdges.empty()) {
-            NodeT *cd = *revDataDepEdges.begin();
-            // this will remove the reverse control dependence from
-            // this node
-            cd->removeDataDependence(static_cast<NodeT *>(this));
-        }
-    }
 
-    // remove all data dependencies going from/to this node
-    void removeDDs()
+    bool removeUseDependence(NodeT * n)
     {
-        removeOutcomingDDs();
-        removeIncomingDDs();
+        return _removeBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                        useEdges, n->userEdges);
     }
 
     // remove all control dependencies going from/to this node
@@ -195,11 +139,58 @@ public:
         removeIncomingCDs();
     }
 
+    void removeOutcomingDDs()
+    {
+        while (!dataDepEdges.empty())
+            removeDataDependence(*dataDepEdges.begin());
+    }
+
+    void removeIncomingDDs()
+    {
+        while (!revDataDepEdges.empty()) {
+            NodeT *cd = *revDataDepEdges.begin();
+            // this will remove the reverse control dependence from
+            // this node
+            cd->removeDataDependence(static_cast<NodeT *>(this));
+        }
+    }
+
+    // remove all data dependencies going from/to this node
+    void removeDDs()
+    {
+        removeOutcomingDDs();
+        removeIncomingDDs();
+    }
+
+    void removeOutcomingUses()
+    {
+        while (!useEdges.empty())
+            removeUseDependence(*useEdges.begin());
+    }
+
+    void removeIncomingUses()
+    {
+        while (!userEdges.empty()) {
+            NodeT *cd = *userEdges.begin();
+            // this will remove the reverse control dependence from
+            // this node
+            cd->removeUseDependence(static_cast<NodeT *>(this));
+        }
+    }
+
+    // remove all direct (top-level) data dependencies going from/to this node
+    void removeUses()
+    {
+        removeOutcomingUses();
+        removeIncomingUses();
+    }
+
     // remove all edges from/to this node
     void isolate()
     {
-        // remove CD and DD from this node
+        // remove CD and DD and uses from this node
         removeDDs();
+        removeUses();
         removeCDs();
 
 #ifdef ENABLE_CFG
@@ -241,22 +232,46 @@ public:
     control_iterator rev_control_end(void) { return revControlDepEdges.end(); }
     const_control_iterator rev_control_end(void) const { return revControlDepEdges.end(); }
 
-    // data dependency edges iterators
+    /// NOTE: we have two kinds of data dependencies.
+    // The first one is when a value is used as an argument
+    // in another instruction, that is direct (or top-level) dependency.
+    // The other case is when an instruction reads a value from memory
+    // which has been written by another instruction. This is
+    // "indirect" dependency.
+    // The user can choose whether to use both or just one of
+    // these dependencies.
+
+    // data dependency edges iterators (indirect dependency)
     data_iterator data_begin(void) { return dataDepEdges.begin(); }
     const_data_iterator data_begin(void) const { return dataDepEdges.begin(); }
     data_iterator data_end(void) { return dataDepEdges.end(); }
     const_data_iterator data_end(void) const { return dataDepEdges.end(); }
 
-    // reverse data dependency edges iterators
+    // reverse data dependency edges iterators (indirect dependency)
     data_iterator rev_data_begin(void) { return revDataDepEdges.begin(); }
     const_data_iterator rev_data_begin(void) const { return revDataDepEdges.begin(); }
     data_iterator rev_data_end(void) { return revDataDepEdges.end(); }
     const_data_iterator rev_data_end(void) const { return revDataDepEdges.end(); }
 
-    unsigned int getControlDependenciesNum() const { return controlDepEdges.size(); }
-    unsigned int getRevControlDependenciesNum() const { return revControlDepEdges.size(); }
-    unsigned int getDataDependenciesNum() const { return dataDepEdges.size(); }
-    unsigned int getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
+    // use dependency edges iterators (indirect data dependency
+    // -- uses of this node e.g. in operands)
+    use_iterator use_begin() { return useEdges.begin(); }
+    const_use_iterator use_begin() const { return useEdges.begin(); }
+    use_iterator use_end() { return useEdges.end(); }
+    const_use_iterator use_end() const { return useEdges.end(); }
+
+    // user dependency edges iterators (indirect data dependency)
+    use_iterator user_begin() { return userEdges.begin(); }
+    const_use_iterator user_begin() const { return userEdges.begin(); }
+    use_iterator user_end() { return userEdges.end(); }
+    const_use_iterator user_end() const { return userEdges.end(); }
+
+    size_t getControlDependenciesNum() const { return controlDepEdges.size(); }
+    size_t getRevControlDependenciesNum() const { return revControlDepEdges.size(); }
+    size_t getDataDependenciesNum() const { return dataDepEdges.size(); }
+    size_t getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
+    size_t getUseDependenciesNum() const { return useEdges.size(); }
+    size_t getUserDependenciesNum() const { return userEdges.size(); }
 
 #ifdef ENABLE_CFG
     BBlock<NodeT> *getBBlock() { return basicBlock; }
@@ -341,12 +356,45 @@ protected:
     DependenceGraphT *dg;
 
 private:
+
+    // add an edge 'ths' --> 'n' to containers of 'ths' and 'n'
+    static bool _addBidirectionalEdge(NodeT *ths, NodeT *n,
+                                      EdgesT& ths_cont, EdgesT& n_cont) {
+#ifndef NDEBUG
+        bool ret1 =
+#endif
+        n_cont.insert(ths);
+        bool ret2 = ths_cont.insert(n);
+
+        assert(ret1 == ret2
+               && "Already had one of the edges, but not the other");
+
+        return ret2;
+    }
+
+    // remove edge 'this'-->'n' from control dependencies
+    static bool _removeBidirectionalEdge(NodeT *ths, NodeT *n,
+                                         EdgesT& ths_cont, EdgesT& n_cont) {
+        bool ret1 = n_cont.erase(ths);
+#ifndef NDEBUG
+        bool ret2 =
+#endif
+        ths_cont.erase(n);
+
+        // must have both or none
+        assert(ret1 == ret2 && "An edge without rev. or vice versa");
+
+        return ret1;
+    }
+
     ControlEdgesT controlDepEdges;
-    DependenceEdgesT dataDepEdges;
+    DataEdgesT dataDepEdges;
+    UseEdgesT useEdges;
 
     // Nodes that have control/dep edge to this node
     ControlEdgesT revControlDepEdges;
-    DependenceEdgesT revDataDepEdges;
+    DataEdgesT revDataDepEdges;
+    UseEdgesT userEdges;
 
     // a node can have more subgraphs (i. e. function pointers)
     std::set<DependenceGraphT *> subgraphs;
