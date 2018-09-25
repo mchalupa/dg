@@ -552,10 +552,7 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call
     // when this function is recursive
     Subgraph subg(root, nullptr, vararg);
-#ifndef NDEBUG
-    auto it =
-#endif
-    subgraphs_map.emplace(&F, std::move(subg));
+    auto it = subgraphs_map.emplace(&F, std::move(subg));
     assert(it.second == true && "Already had this element");
 
     Subgraph& s = it.first->second;
