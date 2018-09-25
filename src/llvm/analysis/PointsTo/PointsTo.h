@@ -114,37 +114,6 @@ public:
 
         return true;
     }
-
-    /*
-    virtual bool error(PSNode *at, const char *msg)
-    {
-        llvm::Value *val = at->getUserData<llvm::Value>();
-        assert(val);
-
-        llvm::errs() << "PTA - error @ " << *val << " : " << msg << "\n";
-        return false;
-    }
-
-    virtual bool errorEmptyPointsTo(PSNode *from, PSNode *to)
-    {
-        // this is valid even in flow-insensitive points-to
-        // because we process the nodes in CFG order
-        llvm::Value *val = from->getUserData<llvm::Value>();
-        assert(val);
-        llvm::Value *val2 = to->getUserData<llvm::Value>();
-        assert(val2);
-
-        // due to int2ptr we may have spurious loads
-        // in PointerSubgraph. Don't do anything in this case
-        if (!val->getType()->isPointerTy())
-            return false;
-
-        llvm::errs() << "PTA - error @ " << *val << " : no points-to >>\n\t"
-                     << *val2 << "\n";
-
-        return false;
-    }
-    */
 };
 
 class LLVMPointerAnalysis
