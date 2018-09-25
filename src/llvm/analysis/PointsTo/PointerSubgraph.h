@@ -84,9 +84,10 @@ class LLVMPointerSubgraphBuilder
     Subgraph& buildFunction(const llvm::Function& F);
     PSNodesSeq buildInstruction(const llvm::Instruction&);
 
-    void buildPointerSubgraphBlock(const llvm::BasicBlock& block);
+    PSNodesSeq buildPointerSubgraphBlock(const llvm::BasicBlock& block);
 
-    PSNodesSeq buildArguments(const llvm::Function& F);
+    void buildArguments(const llvm::Function& F);
+    PSNodesSeq buildArgumentsStructure(const llvm::Function& F);
     PSNodesSeq buildGlobals();
 
     // add edges that are derived from CFG to the subgraph

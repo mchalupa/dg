@@ -67,25 +67,37 @@ public:
         }
 
         // create new instructions
-        std::pair<PSNode *, PSNode *> cf = builder->createFuncptrCall(CI, F);
-        assert(cf.first && cf.second);
+        auto cf = builder->createFuncptrCall(CI, F);
+        assert(cf.first && "Failed building the subgraph");
 
         // we got the return site for the call stored as the paired node
         PSNode *ret = callsite->getPairedNode();
-        // ret is a PHI node, so pass the values returned from the
-        // procedure call
-        ret->addOperand(cf.second);
+        if (cf.second) {
+            // If we have some returns from this function,
+            // pass the returned values to the return site.
+            ret->addOperand(cf.second);
+            cf.second->addSuccessor(ret);
+        }
 
-        // replace the edge from call->ret that we
-        // have due to connectivity of the graph until we
-        // insert the subgraph
+        // Connect the graph to the original graph --
+        // replace the edge call->ret that we have added
+        // due to the connectivity of the graph.
+        // Now we know what is to be called, so we can remove it.
+        // We can also replace the edge only when we know
+        // that the function will return.
+        // If the function does not return, we cannot trim the graph
+        // here as this called function may be due to an approximation
+        // and the real called function can be established in
+        // the following code (if this call is on a cycle).
         if (callsite->successorsNum() == 1 &&
-            callsite->getSingleSuccessor() == ret) {
+            callsite->getSingleSuccessor() == ret
+            && cf.second) {
             callsite->replaceSingleSuccessor(cf.first);
-        } else
+        } else {
+            // we already have some subgraph connected,
+            // so just add a new one
             callsite->addSuccessor(cf.first);
-
-        cf.second->addSuccessor(ret);
+        }
 
 #ifndef NDEBUG
         // check the graph after rebuilding

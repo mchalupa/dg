@@ -78,7 +78,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
+LLVMPointerSubgraphBuilder::buildArgumentsStructure(const llvm::Function& F)
 {
     PSNodesSeq seq;
     PSNode *last = nullptr;
@@ -118,7 +118,8 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildBlockStructure(const llvm::BasicBloc
     for (const llvm::Instruction& Inst : block) {
         auto it = nodes_map.find(&Inst);
         if (it == nodes_map.end()) {
-            assert(!isRelevantInstruction(Inst));
+            assert(!isRelevantInstruction(Inst)
+                    || (last && last->getType() == PSNodeType::CALL));
             continue;
         }
 
@@ -159,14 +160,13 @@ void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
                                                      Subgraph& subg)
 {
     assert(subg.root && "Subgraph has no root");
-    assert(subg.ret && "Subgraph has no ret");
 
     // with function pointer calls it may happen that we try
     // to add structure more times, so bail out in that case
     if (subg.has_structure)
         return;
 
-    PSNodesSeq args = buildArguments(*F);
+    PSNodesSeq args = buildArgumentsStructure(*F);
     PSNode *lastNode = nullptr;
 
     // make arguments the entry block of the subgraphs (if there

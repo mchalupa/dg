@@ -137,39 +137,37 @@ PSNode *LLVMPointerSubgraphBuilder::getOperand(const llvm::Value *val)
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst, const llvm::Function *F)
+LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
+                                                 const llvm::Function *F)
 {
-    PSNodeCall *callNode;
-    PSNode *returnNode;
-
-    // the operands to the return node (which works as a phi node)
-    // are going to be added when the subgraph is built
-    callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
-    returnNode = PS.create(PSNodeType::CALL_RETURN, nullptr);
-
-    returnNode->setPairedNode(callNode);
-    callNode->setPairedNode(returnNode);
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
 
     // reuse built subgraphs if available
     Subgraph& subg = createOrGetSubgraph(F);
+    // we took the subg by reference, so it should be filled now
+    assert(subg.root);
+
     if (ad_hoc_building) {
         // add operands to arguments
         addInterproceduralOperands(F, subg, CInst);
     }
 
-    // we took the subg by reference, so it should be filled now
-    assert(subg.root && subg.ret);
-
     // add an edge from last argument to root of the subgraph
     // and from the subprocedure return node (which is one - unified
     // for all return nodes) to return from the call
     callNode->addSuccessor(subg.root);
-    subg.ret->addSuccessor(returnNode);
 
-    // handle value returned from the function if it is a pointer
-    // DONT: if (CInst->getType()->isPointerTy()) {
-    // we need to handle the return values even when it is not
-    // a pointer as we have ptrtoint and inttoptr
+    // the operands to the return node (which works as a phi node)
+    // are going to be added when the subgraph is built
+    PSNode *returnNode = nullptr;
+    if (subg.ret) {
+        returnNode = PS.create(PSNodeType::CALL_RETURN, nullptr);
+        returnNode->setPairedNode(callNode);
+        callNode->setPairedNode(returnNode);
+        subg.ret->addSuccessor(returnNode);
+    } else {
+        callNode->setPairedNode(callNode);
+    }
 
     return std::make_pair(callNode, returnNode);
 }
@@ -435,8 +433,11 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
 }
 
 // return first and last nodes of the block
-void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block)
+PSNodesSeq
+LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block)
 {
+    PSNodesSeq blk{nullptr, nullptr};
+
     for (const llvm::Instruction& Inst : block) {
         if (!isRelevantInstruction(Inst)) {
             // check if it is a zeroing of memory,
@@ -449,14 +450,25 @@ void LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBloc
 
         assert(nodes_map.count(&Inst) == 0);
 
-#ifndef NDEBUG
-        PSNodesSeq seq =
-#endif
-        buildInstruction(Inst);
-
-        assert(seq.first && seq.second
+        PSNodesSeq seq = buildInstruction(Inst);
+        assert(seq.first &&
+               (seq.second || seq.first->getType() == PSNodeType::CALL)
                && "Didn't created the instruction properly");
+
+        if (!seq.second) {
+            // the call instruction does not return.
+            // Stop building the block here.
+            assert(seq.first->getType() == PSNodeType::CALL);
+            break;
+        }
+
+        // update the return value
+        if (blk.first == nullptr)
+            blk.first = seq.first;
+        blk.second = seq.second;
     }
+
+    return blk;
 }
 
 // Get llvm BasicBlock's in levels of Dominator Tree (BFS order through the dominator tree)
@@ -501,25 +513,31 @@ std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Funct
     return blocks;
 }
 
+void LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
+{
+    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
+#ifndef NDEBUG
+        PSNode *a = tryGetOperand(&*A);
+        // we must not have built this argument before
+        // (or it is a number or irelevant value)
+        assert(a == nullptr || a == UNKNOWN_MEMORY);
+#endif
+        createArgument(&*A);
+    }
+}
+
 LLVMPointerSubgraphBuilder::Subgraph&
 LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
 {
     assert(subgraphs_map.count(&F) == 0 && "We already built this function");
+    assert(!F.isDeclaration() && "Cannot build an undefined function");
 
-    // create root and (unified) return nodes of this subgraph. These are
-    // just for our convenience when building the graph, they can be
-    // optimized away later since they are noops
-    // XXX: do we need entry type?
+    // create root and later (an unified) return nodes of this subgraph.
+    // These are just for our convenience when building the graph,
+    // they can be optimized away later since they are noops
     PSNodeEntry *root = PSNodeEntry::get(PS.create(PSNodeType::ENTRY));
     assert(root);
     root->setFunctionName(F.getName().str());
-    PSNode *ret;
-
-    if (invalidate_nodes) {
-        ret = PS.create(PSNodeType::INVALIDATE_LOCALS, root);
-    } else {
-        ret = PS.create(PSNodeType::NOOP);
-    }
 
     // if the function has variable arguments,
     // then create the node for it
@@ -527,39 +545,56 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     if (F.isVarArg())
         vararg = PS.create(PSNodeType::PHI, nullptr);
 
-    // create the pointer arguments -- the other arguments will
-    // be created later if needed
-    for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
-#ifndef NDEBUG
-        PSNode *a = tryGetOperand(&*A);
-        assert(a == nullptr || a == UNKNOWN_MEMORY);
-#endif
-        createArgument(&*A);
-    }
+    // create the arguments
+    buildArguments(F);
 
     // add record to built graphs here, so that subsequent call of this function
-    // from buildPointerSubgraphBlock won't get stuck in infinite recursive call when
-    // this function is recursive
-    Subgraph subg(root, ret, vararg);
-    auto it = subgraphs_map.emplace(&F, std::move(subg));
+    // from buildPointerSubgraphBlock won't get stuck in infinite recursive call
+    // when this function is recursive
+    Subgraph subg(root, nullptr, vararg);
+#ifndef NDEBUG
+    auto it =
+#endif
+    subgraphs_map.emplace(&F, std::move(subg));
     assert(it.second == true && "Already had this element");
 
     Subgraph& s = it.first->second;
-    assert(s.root == root && s.ret == ret && s.vararg == vararg);
+    assert(s.root == root && s.ret == nullptr && s.vararg == vararg);
 
     s.llvmBlocks =
         getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F));
 
+    bool have_return = false;
     // build the instructions from blocks
     for (const llvm::BasicBlock *block : s.llvmBlocks) {
-        buildPointerSubgraphBlock(*block);
+        auto seq = buildPointerSubgraphBlock(*block);
+
+        // gather all return nodes
+        if (seq.second &&
+            (seq.second->getType() == PSNodeType::RETURN)) {
+            have_return = true;
+        }
+    }
+
+    // If we have some return, then create the unified return node.
+    // Otherwise this function does not return and the building
+    // process will terminate here.
+    if (have_return) {
+        PSNode *ret;
+        if (invalidate_nodes) {
+            ret = PS.create(PSNodeType::INVALIDATE_LOCALS, root);
+        } else {
+            ret = PS.create(PSNodeType::NOOP);
+        }
+
+        s.ret = ret;
     }
 
     // add operands to PHI nodes. It must be done after all blocks are
     // built, since the PHI gathers values from different blocks
     addPHIOperands(F);
 
-    assert(subgraphs_map[&F].root != nullptr);
+   assert(subgraphs_map[&F].root != nullptr);
     return s;
 }
 
@@ -572,26 +607,6 @@ void LLVMPointerSubgraphBuilder::addProgramStructure()
 
         // add the CFG edges
         addProgramStructure(F, subg);
-
-        // if the return node has no predecessors,
-        // then this function does not return.
-        // Remove the return node.
-        if (subg.ret->predecessorsNum() == 0) {
-            subg.ret->isolate();
-            PS.remove(subg.ret);
-            subg.ret = nullptr;
-
-            // remove also the CALL_RETURN node as it is
-            // useles now
-            for (PSNode *call : subg.root->getPredecessors()) {
-                assert(call->getType() == PSNodeType::CALL ||
-                       call->getType() == PSNodeType::CALL_FUNCPTR);
-                PSNode *call_ret = call->getPairedNode();
-                call->setPairedNode(nullptr);
-                call_ret->isolate();
-                PS.remove(call_ret);
-            }
-        }
 
         // add the missing operands (to arguments and return nodes)
         addInterproceduralOperands(F, subg);
