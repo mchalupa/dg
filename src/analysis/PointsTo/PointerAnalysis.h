@@ -93,23 +93,6 @@ public:
 
     PointerSubgraph *getPS() const { return PS; }
 
-    void preprocessGEPs()
-    {
-        // if a node is in a loop (a scc that has more than one node),
-        // then every GEP that is also stored to the same memory afterwards
-        // in the loop will end up with Offset::UNKNOWN after some
-        // number of iterations, so we can do that right now
-        // and save iterations
-        for (const auto& scc : SCCs) {
-            if (scc.size() > 1) {
-                for (PSNode *n : scc) {
-                    if (PSNodeGep *gep = PSNodeGep::get(n))
-                        gep->setOffset(Offset::UNKNOWN);
-                }
-            }
-        }
-    }
-
     virtual void enqueue(PSNode *n)
     {
         changed.push_back(n);
@@ -189,6 +172,8 @@ public:
         // can never get to that node in runtime, since that node is
         // unreachable from the point where the information is
         // generated, so this is OK.
+
+        sanityCheck();
     }
 
     // generic error
@@ -220,6 +205,38 @@ public:
     }
 
 private:
+
+    // check the results of pointer analysis
+    void sanityCheck() {
+        assert(NULLPTR->pointsTo.size() == 1
+               && "Null has been assigned a pointer");
+        assert(NULLPTR->doesPointsTo(NULLPTR)
+               && "Null points to a different location");
+        assert(UNKNOWN_MEMORY->pointsTo.size() == 1
+               && "Unknown memory has been assigned a pointer");
+        assert(UNKNOWN_MEMORY->doesPointsTo(UNKNOWN_MEMORY, Offset::UNKNOWN)
+               && "Unknown memory has been assigned a pointer");
+        assert(INVALIDATED->pointsTo.empty()
+               && "Unknown memory has been assigned a pointer");
+    }
+
+    void preprocessGEPs()
+    {
+        // if a node is in a loop (a scc that has more than one node),
+        // then every GEP that is also stored to the same memory afterwards
+        // in the loop will end up with Offset::UNKNOWN after some
+        // number of iterations, so we can do that right now
+        // and save iterations
+        for (const auto& scc : SCCs) {
+            if (scc.size() > 1) {
+                for (PSNode *n : scc) {
+                    if (PSNodeGep *gep = PSNodeGep::get(n))
+                        gep->setOffset(Offset::UNKNOWN);
+                }
+            }
+        }
+    }
+
     bool processNode(PSNode *);
     bool processLoad(PSNode *node);
     bool processGep(PSNode *node);
