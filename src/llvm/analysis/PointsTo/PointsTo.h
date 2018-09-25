@@ -119,28 +119,23 @@ public:
 class LLVMPointerAnalysis
 {
     PointerSubgraph *PS = nullptr;
-    LLVMPointerSubgraphBuilder *builder;
+    std::unique_ptr<LLVMPointerSubgraphBuilder> _builder;
 
 public:
 
     LLVMPointerAnalysis(const llvm::Module *m, const char *entry_func = "main",
                         uint64_t field_sensitivity = Offset::UNKNOWN)
-        : builder(new LLVMPointerSubgraphBuilder(m, entry_func, field_sensitivity)) {}
-
-    ~LLVMPointerAnalysis()
-    {
-        delete builder;
-    }
+        : _builder(new LLVMPointerSubgraphBuilder(m, entry_func, field_sensitivity)) {}
 
     PSNode *getPointsTo(const llvm::Value *val)
     {
-        return builder->getPointsTo(val);
+        return _builder->getPointsTo(val);
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
     getNodesMap() const
     {
-        return builder->getNodesMap();
+        return _builder->getNodesMap();
     }
 
     std::vector<PSNode *> getNodes()
@@ -154,9 +149,9 @@ public:
     void buildSubgraph()
     {
         // run the analysis itself
-        assert(builder && "Incorrectly constructed PTA, missing builder");
+        assert(_builder && "Incorrectly constructed PTA, missing builder");
 
-        PS = builder->buildLLVMPointerSubgraph();
+        PS = _builder->buildLLVMPointerSubgraph();
         if (!PS) {
             llvm::errs() << "Pointer Subgraph was not built, aborting\n";
             abort();
@@ -167,12 +162,12 @@ public:
         optimizer.run();
 
         if (optimizer.getNumOfRemovedNodes() > 0)
-            builder->composeMapping(std::move(optimizer.getMapping()));
+            _builder->composeMapping(std::move(optimizer.getMapping()));
 
         llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
 
 #ifndef NDEBUG
-        analysis::pta::debug::LLVMPointerSubgraphValidator validator(builder->getPS());
+        analysis::pta::debug::LLVMPointerSubgraphValidator validator(_builder->getPS());
         if (validator.validate()) {
             llvm::errs() << "Pointer Subgraph is broken!\n";
             llvm::errs() << "This happend after optimizing the graph.";
@@ -190,7 +185,7 @@ public:
     {
         buildSubgraph();
 
-        LLVMPointerAnalysisImpl<PTType> PTA(PS, builder);
+        LLVMPointerAnalysisImpl<PTType> PTA(PS, _builder.get());
         PTA.run();
     }
 
@@ -202,7 +197,7 @@ public:
     analysis::pta::PointerAnalysis *createPTA()
     {
         buildSubgraph();
-        return new LLVMPointerAnalysisImpl<PTType>(PS, builder);
+        return new LLVMPointerAnalysisImpl<PTType>(PS, _builder.get());
     }
 };
 
@@ -210,11 +205,11 @@ template <>
 inline void LLVMPointerAnalysis::run<analysis::pta::PointsToWithInvalidate>()
 {
     // build the subgraph
-    assert(builder && "Incorrectly constructed PTA, missing builder");
-    builder->setInvalidateNodesFlag(true);
+    assert(_builder && "Incorrectly constructed PTA, missing builder");
+    _builder->setInvalidateNodesFlag(true);
     buildSubgraph();
 
-    LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate> PTA(PS, builder);
+    LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate> PTA(PS, _builder.get());
     PTA.run();
 }
 
@@ -222,11 +217,11 @@ template <>
 inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::pta::PointsToWithInvalidate>()
 {
     // build the subgraph
-    assert(builder && "Incorrectly constructed PTA, missing builder");
-    builder->setInvalidateNodesFlag(true);
+    assert(_builder && "Incorrectly constructed PTA, missing builder");
+    _builder->setInvalidateNodesFlag(true);
     buildSubgraph();
 
-    return new LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate>(PS, builder);
+    return new LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate>(PS, _builder.get());
 }
 
 } // namespace dg
