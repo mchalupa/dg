@@ -110,6 +110,32 @@ PSNode *LLVMPointerSubgraphBuilder::createSelect(const llvm::Instruction *Inst)
     return node;
 }
 
+Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
+                           const llvm::DataLayout& DL) {
+    Offset off{0};
+    llvm::CompositeType *type
+        = llvm::dyn_cast<llvm::CompositeType>(EV->getAggregateOperand()->getType());
+    assert(type && "Don't have composite type in extractvalue");
+
+    for (unsigned idx : EV->indices()) {
+        assert(type->indexValid(idx) && "Invalid index");
+        if (llvm::StructType *STy = llvm::dyn_cast<llvm::StructType>(type)) {
+            const llvm::StructLayout *SL = DL.getStructLayout(STy);
+            off += SL->getElementOffset(idx);
+        } else {
+            // array or vector, so just move in the array
+            auto seqTy = llvm::cast<llvm::SequentialType>(type);
+            off += idx + DL.getTypeAllocSize(seqTy->getElementType());
+        }
+
+        type = llvm::dyn_cast<llvm::CompositeType>(type->getTypeAtIndex(idx));
+        if (!type)
+            break; // we're done
+    }
+
+    return off;
+}
+
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
 {
@@ -119,8 +145,7 @@ LLVMPointerSubgraphBuilder::createExtract(const llvm::Instruction *Inst)
 
     // extract <agg> <idx> {<idx>, ...}
     PSNode *op1 = getOperand(EI->getAggregateOperand());
-    // FIXME: get the correct offset
-    PSNode *G = PS.create(PSNodeType::GEP, op1, Offset::UNKNOWN);
+    PSNode *G = PS.create(PSNodeType::GEP, op1, accumulateEVOffsets(EI, *DL));
     PSNode *L = PS.create(PSNodeType::LOAD, G);
 
     G->addSuccessor(L);
@@ -283,6 +308,23 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     // DONT: if(retVal->getType()->isPointerTy())
     // we have ptrtoint which break the types...
     if (retVal) {
+        // A struct is being returned. In this case,
+        // return the address of the local variable
+        // that holds the return value, so that
+        // we can then do a load on this object
+        if (retVal->getType()->isAggregateType()) {
+            if (llvm::LoadInst *LI = llvm::dyn_cast<llvm::LoadInst>(retVal)) {
+                op1 = getOperand(LI->getPointerOperand());
+            }
+
+            if (!op1) {
+                llvm::errs() << "WARN: Unsupported return of an aggregate type\n";
+                llvm::errs() << *Inst << "\n";
+
+                op1 = UNKNOWN_MEMORY;
+            }
+        }
+
         if (llvm::isa<llvm::ConstantPointerNull>(retVal)
             || isConstantZero(retVal))
             op1 = NULLPTR;
@@ -293,7 +335,7 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     }
 
     assert((op1 || !retVal || !retVal->getType()->isPointerTy())
-           && "Don't have operand for ReturnInst with pointer");
+           && "Don't have an operand for ReturnInst with pointer");
 
     PSNode *node = PS.create(PSNodeType::RETURN, op1, nullptr);
     addNode(Inst, node);
