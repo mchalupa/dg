@@ -6,9 +6,9 @@
 #include <cassert>
 #include <cstring>
 
-#include "analysis/SubgraphNode.h"
-#include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/Offset.h"
+#include "analysis/SubgraphNode.h"
+#include "ReachingDefinitionsAnalysisOptions.h"
 
 #include "BBlock.h"
 #include "ADT/Queue.h"
@@ -241,22 +241,25 @@ public:
 class ReachingDefinitionsAnalysis
 {
 protected:
-    RDNode *root;
+    RDNode *root{nullptr};
     unsigned int dfsnum;
-    bool strong_update_unknown;
-    uint32_t max_set_size;
+
+    const ReachingDefinitionsAnalysisOptions options;
 
 public:
     ReachingDefinitionsAnalysis(RDNode *r,
-                                bool field_insens = false,
-                                Offset::type max_set_sz = Offset::UNKNOWN)
-    : root(r), dfsnum(0), strong_update_unknown(field_insens), max_set_size(max_set_sz)
+                                const ReachingDefinitionsAnalysisOptions& opts)
+    : root(r), dfsnum(0), options(opts)
     {
         assert(r && "Root cannot be null");
         // with max_set_size == 0 (everything is defined on unknown location)
         // we get unsound results with vararg functions and similar weird stuff
-        assert(max_set_size > 0 && "The set size must be at least 1");
+        assert(options.maxSetSize > 0 && "The set size must be at least 1");
     }
+
+    ReachingDefinitionsAnalysis(RDNode *r) : ReachingDefinitionsAnalysis(r, {}) {}
+    virtual ~ReachingDefinitionsAnalysis() = default;
+
 
     void getNodes(std::set<RDNode *>& cont)
     {
@@ -332,8 +335,6 @@ public:
 
     bool processNode(RDNode *n);
     virtual void run();
-
-    virtual ~ReachingDefinitionsAnalysis() = default;
 };
 
 } // namespace rd

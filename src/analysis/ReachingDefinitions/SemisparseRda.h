@@ -42,7 +42,9 @@ private:
     std::vector<std::unique_ptr<RDNode>> phi_nodes;
 
 public:
-    SemisparseRda(RDNode *root) : ReachingDefinitionsAnalysis(root) {}
+    SemisparseRda(RDNode *root, ReachingDefinitionsAnalysisOptions opts)
+        : ReachingDefinitionsAnalysis(root, opts.setSparse(true)) {}
+    SemisparseRda(RDNode *root) : SemisparseRda(root, {}) {}
 
     void run() override {
         std::unordered_set<RDNode *> to_process;
