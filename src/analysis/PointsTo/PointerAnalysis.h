@@ -7,6 +7,7 @@
 #include "Pointer.h"
 #include "MemoryObject.h"
 #include "PointerSubgraph.h"
+#include "PointerAnalysisOptions.h"
 #include "ADT/Queue.h"
 
 #include "analysis/SCC.h"
@@ -22,21 +23,21 @@ extern PSNode *UNKNOWN_MEMORY;
 class PointerAnalysis
 {
     // the pointer state subgraph
-    PointerSubgraph *PS;
+    PointerSubgraph *PS{nullptr};
+    const PointerAnalysisOptions options{};
 
     // strongly connected components of the PointerSubgraph
     std::vector<std::vector<PSNode *> > SCCs;
 
-    // Maximal offset that we want to keep
-    // within a pointer.
-    // Default is unconstrained (Offset::UNKNOWN)
-    uint64_t max_offset;
+    void initPointerAnalysis() {
+        assert(PS && "Need PointerSubgraph object");
 
-    // Flow sensitive flag (contol loop optimization execution)
-    bool preprocess_geps;
-
-    // Invalidate flag
-    bool invalidate_nodes;
+        // compute the strongly connected components
+        if (options.preprocessGeps) {
+            SCC<PSNode> scc_comp;
+            SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        }
+    }
 
 protected:
     // a set of changed nodes that are going to be
@@ -44,24 +45,16 @@ protected:
     std::vector<PSNode *> to_process;
     std::vector<PSNode *> changed;
 
-    // protected constructor for child classes
-    PointerAnalysis() : PS(nullptr), max_offset(Offset::UNKNOWN),
-                         preprocess_geps(true), invalidate_nodes(false) {}
-
 public:
-    PointerAnalysis(PointerSubgraph *ps,
-                    Offset::type max_off = Offset::UNKNOWN,
-                    bool prepro_geps = true, bool invalid_nodes = false)
-    : PS(ps), max_offset(max_off), preprocess_geps(prepro_geps), invalidate_nodes(invalid_nodes)
-    {
-        assert(PS && "Need valid PointerSubgraph object");
 
-        // compute the strongly connected components
-        if (prepro_geps) {
-            SCC<PSNode> scc_comp;
-            SCCs = std::move(scc_comp.compute(PS->getRoot()));
-        }
+    PointerAnalysis(PointerSubgraph *ps,
+                    const PointerAnalysisOptions& opts)
+    : PS(ps), options(opts) {
+        initPointerAnalysis();
     }
+
+    // default options
+    PointerAnalysis(PointerSubgraph *ps) : PointerAnalysis(ps, {}) {}
 
     virtual ~PointerAnalysis() {}
 
@@ -100,7 +93,7 @@ public:
 
     void preprocess() {
         // do some optimizations
-        if (preprocess_geps)
+        if (options.preprocessGeps)
             preprocessGEPs();
     }
 

@@ -19,11 +19,16 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PointerSubgraph *ps, bool invalidate = false)
-    : PointerAnalysis(ps, Offset::UNKNOWN, false, invalidate)
+    PointsToFlowSensitive(PointerSubgraph *ps,
+                          PointerAnalysisOptions opts)
+    : PointerAnalysis(ps, opts.setPreprocessGeps(false))
     {
+        assert(opts.preprocessGeps == false
+               && "Preprocessing GEPs does not work correctly for FS analysis");
         memoryMaps.reserve(ps->size() / 5);
     }
+
+    PointsToFlowSensitive(PointerSubgraph *ps) : PointsToFlowSensitive(ps, {}) {}
 
     bool beforeProcessed(PSNode *n) override
     {

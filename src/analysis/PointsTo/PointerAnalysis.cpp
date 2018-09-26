@@ -248,7 +248,7 @@ bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
 
                         Offset newOff = *src.first - *srcOffset + *destOffset;
                         if (newOff >= destO->node->getSize() ||
-                            newOff >= max_offset) {
+                            newOff >= options.fieldSensitivity) {
                             changed |= destO->addPointsTo(Offset::UNKNOWN, src.second);
                         } else {
                             changed |= destO->addPointsTo(newOff, src.second);
@@ -271,7 +271,7 @@ bool PointerAnalysis::processGep(PSNode *node) {
     assert(gep && "Non-GEP given");
 
     for (const Pointer& ptr : gep->getSource()->pointsTo) {
-        uint64_t new_offset;
+        Offset::type new_offset;
         if (ptr.offset.isUnknown() || gep->getOffset().isUnknown())
             // set it like this to avoid overflow when adding
             new_offset = Offset::UNKNOWN;
@@ -282,7 +282,7 @@ bool PointerAnalysis::processGep(PSNode *node) {
         // will have unknown offset with the exception that it points
         // to the begining of the memory - therefore make 0 exception
         if ((new_offset == 0 || new_offset < ptr.target->getSize())
-            && new_offset < max_offset)
+            && new_offset < *options.fieldSensitivity)
             changed |= node->addPointsTo(ptr.target, new_offset);
         else
             changed |= node->addPointsTo(ptr.target, Offset::UNKNOWN);
@@ -344,7 +344,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                    && "Constant should have exactly one pointer");
             break;
         case PSNodeType::CALL_RETURN:
-            if (invalidate_nodes) {
+            if (options.invalidateNodes) {
                 for (PSNode *op : node->operands) {
                     for (const Pointer& ptr : op->pointsTo) {
                         if (!canBeDereferenced(ptr))

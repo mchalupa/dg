@@ -37,8 +37,12 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToWithInvalidate(PointerSubgraph *ps)
-    : PointsToFlowSensitive(ps, true) {}
+    PointsToWithInvalidate(PointerSubgraph *ps,
+                           PointerAnalysisOptions opts)
+    : PointsToFlowSensitive(ps, opts.setInvalidateNodes(true)) {}
+
+    // default options
+    PointsToWithInvalidate(PointerSubgraph *ps) : PointsToWithInvalidate(ps, {}) {}
 
     bool beforeProcessed(PSNode *n) override
     {
