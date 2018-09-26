@@ -34,7 +34,6 @@
 #endif
 
 #include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
@@ -56,36 +55,23 @@
 #include <fstream>
 
 #include "llvm/LLVMDependenceGraph.h"
+#include "llvm/LLVMDependenceGraphBuilder.h"
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
 #include "llvm/Slicer.h"
 #include "llvm/LLVMDG2Dot.h"
 #include "TimeMeasure.h"
 
-#include "llvm/analysis/DefUse.h"
-#include "llvm/analysis/PointsTo/PointsTo.h"
-#include "analysis/ReachingDefinitions/SemisparseRda.h"
-#include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-
-#include "analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "analysis/PointsTo/PointsToFlowSensitive.h"
-#include "analysis/PointsTo/PointsToWithInvalidate.h"
-#include "analysis/PointsTo/Pointer.h"
-#include "analysis/Offset.h"
-
 #include "git-version.h"
 
-using llvm::errs;
 using namespace dg;
+
+using llvm::errs;
+using llvmdg::LLVMDependenceGraphBuilder;
+using dg::analysis::LLVMPointerAnalysisOptions;
+using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
+
 using AnnotationOptsT
         = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
-
-enum PtaType {
-    fs, fi, inv
-};
-
-enum RdaType {
-    dense, ss
-};
 
 // mapping of AllocaInst to the names of C variables
 std::map<const llvm::Value *, std::string> valuesToVariables;
@@ -143,30 +129,30 @@ llvm::cl::opt<bool> forward_slice("forward",
     llvm::cl::desc("Perform forward slicing\n"),
                    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<PtaType> pta("pta",
+llvm::cl::opt<LLVMPointerAnalysisOptions::AnalysisType> ptaType("pta",
     llvm::cl::desc("Choose pointer analysis to use:"),
     llvm::cl::values(
-        clEnumVal(fi, "Flow-insensitive PTA (default)"),
-        clEnumVal(fs, "Flow-sensitive PTA"),
-        clEnumVal(inv, "PTA with invalidate nodes")
+        clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::fi, "fi", "Flow-insensitive PTA (default)"),
+        clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::fs, "fs", "Flow-sensitive PTA"),
+        clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::inv, "inv", "PTA with invalidate nodes")
 #if LLVM_VERSION_MAJOR < 4
         , nullptr
 #endif
         ),
-    llvm::cl::init(fi), llvm::cl::cat(SlicingOpts));
+    llvm::cl::init(LLVMPointerAnalysisOptions::AnalysisType::fi), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<RdaType> rda("rda",
+llvm::cl::opt<LLVMReachingDefinitionsAnalysisOptions::AnalysisType> rdaType("rda",
     llvm::cl::desc("Choose reaching definitions analysis to use:"),
     llvm::cl::values(
-        clEnumVal(dense, "Dense RDA (default)"),
-        clEnumVal(ss, "Semi-sparse RDA")
+        clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense, "dense", "Dense RDA (default)"),
+        clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ss,    "ss",    "Semi-sparse RDA")
 #if LLVM_VERSION_MAJOR < 4
         , nullptr
 #endif
         ),
-    llvm::cl::init(dense), llvm::cl::cat(SlicingOpts));
+    llvm::cl::init(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<CD_ALG> CdAlgorithm("cd-alg",
+llvm::cl::opt<CD_ALG> cdAlgorithm("cd-alg",
     llvm::cl::desc("Choose control dependencies algorithm to use:"),
     llvm::cl::values(
         clEnumValN(CD_ALG::CLASSIC , "classic", "Ferrante's algorithm (default)"),
@@ -200,11 +186,11 @@ static void annotate(llvm::Module *M, AnnotationOptsT opts,
     ";   * undefined are pure: '"
          + std::to_string(undefined_are_pure) + "'\n" +
     ";   * pointer analysis: ";
-    if (pta == PtaType::fi)
+    if (ptaType == LLVMPointerAnalysisOptions::AnalysisType::fi)
         module_comment += "flow-insensitive\n";
-    else if (pta == PtaType::fs)
+    else if (ptaType == LLVMPointerAnalysisOptions::AnalysisType::fs)
         module_comment += "flow-sensitive\n";
-    else if (pta == PtaType::inv)
+    else if (ptaType == LLVMPointerAnalysisOptions::AnalysisType::inv)
         module_comment += "flow-sensitive with invalidate\n";
 
     module_comment+= ";   * PTA field sensitivity: ";
@@ -499,6 +485,14 @@ static std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg)
     return nodes;
 }
 
+struct SlicerOptions {
+    llvmdg::LLVMDependenceGraphOptions dgOptions{};
+
+    std::vector<std::string> untouchedFunctions;
+    // FIXME: get rid of this once we got the secondary SC
+    std::vector<std::string> additionalSlicingCriteria;
+};
+
 
 /// --------------------------------------------------------------------
 //   - Slicer class -
@@ -507,67 +501,40 @@ static std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg)
 //  functionality
 /// --------------------------------------------------------------------
 class Slicer {
-    uint32_t slice_id = 0;
-    bool got_slicing_criteria = true;
-protected:
-    llvm::Module *M;
-    AnnotationOptsT opts{};
-    std::unique_ptr<LLVMPointerAnalysis> PTA;
-    std::unique_ptr<LLVMReachingDefinitions> RD;
-    LLVMDependenceGraph dg;
+    llvm::Module *M{};
+    const SlicerOptions& _options;
+    AnnotationOptsT _annotationOptions{};
+
+    LLVMDependenceGraphBuilder _builder;
+    std::unique_ptr<LLVMDependenceGraph> _dg{};
+
     LLVMSlicer slicer;
 
-    virtual void computeEdges()
-    {
-        debug::TimeMeasure tm;
-        assert(PTA && "BUG: No PTA");
-        assert(RD && "BUG: No RD");
-
-        tm.start();
-        if (rda == dense) {
-            RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
-        } else if (rda == ss) {
-            RD->run<dg::analysis::rd::SemisparseRda>();
-        } else {
-            assert( false && "unknown RDA type" );
-        }
-        tm.stop();
-        tm.report("INFO: Reaching defs analysis took");
-
-        LLVMDefUseAnalysis DUA(&dg, RD.get(),
-                               PTA.get(), undefined_are_pure);
-        tm.start();
-        DUA.run(); // add def-use edges according that
-        tm.stop();
-        tm.report("INFO: Adding Def-Use edges took");
-
-        tm.start();
-        // add post-dominator frontiers
-        dg.computeControlDependencies(CdAlgorithm);
-        tm.stop();
-        tm.report("INFO: Computing control dependencies took");
-    }
+    uint32_t slice_id = 0;
+    bool got_slicing_criteria = true;
 
 public:
-    Slicer(llvm::Module *mod, AnnotationOptsT o)
-    :M(mod), opts(o),
-     PTA(new LLVMPointerAnalysis(mod, entry_func.c_str(), pta_field_sensitivie)),
-      RD(new LLVMReachingDefinitions(mod, PTA.get(), entry_func.c_str(),
-                                     rd_strong_update_unknown, undefined_are_pure)) {
-        assert(mod && "Need module");
-    }
-    const LLVMDependenceGraph& getDG() const { return dg; }
-    LLVMDependenceGraph& getDG() { return dg; }
+    Slicer(llvm::Module *mod,
+           const SlicerOptions& opts,
+           AnnotationOptsT ao)
+    : M(mod), _options(opts),
+      _annotationOptions(ao),
+      _builder(mod, _options.dgOptions) { assert(mod && "Need module"); }
+
+    const LLVMDependenceGraph& getDG() const { return *_dg.get(); }
+    LLVMDependenceGraph& getDG() { return *_dg.get(); }
 
     // shared by old and new analyses
     bool mark()
     {
+        assert(_dg && "mark() called without the dependence graph built");
+
         debug::TimeMeasure tm;
 
         // check for slicing criterion here, because
         // we might have built new subgraphs that contain
         // it during points-to analysis
-        std::set<LLVMNode *> criteria_nodes = getSlicingCriteriaNodes(dg);
+        std::set<LLVMNode *> criteria_nodes = getSlicingCriteriaNodes(getDG());
         got_slicing_criteria = true;
         if (criteria_nodes.empty()) {
             errs() << "Did not find slicing criterion: "
@@ -579,8 +546,8 @@ public:
         // of the graph. Otherwise just slice away the whole graph
         // Also compute the edges when the user wants to annotate
         // the file - due to debugging.
-        if (got_slicing_criteria || (opts != 0))
-            computeEdges();
+        if (got_slicing_criteria || (_annotationOptions != 0))
+            _dg = _builder.computeDependencies(std::move(_dg));
 
         // don't go through the graph when we know the result:
         // only empty main will stay there. Just delete the body
@@ -595,24 +562,13 @@ public:
         if (remove_slicing_criteria)
             unmark = criteria_nodes;
 
-        // we also do not want to remove any assumptions
-        // about the code
-        // FIXME: make it configurable and add control dependencies
-        // for these functions, so that we slice away the
-        // unneeded one
-        const char *sc[] = {
-            "__VERIFIER_assume",
-            "__VERIFIER_exit",
-            "klee_assume",
-            NULL // termination
-        };
-
-        dg.getCallSites(sc, &criteria_nodes);
+        _dg->getCallSites(_options.additionalSlicingCriteria, &criteria_nodes);
 
         // do not slice __VERIFIER_assume at all
         // FIXME: do this optional
-        slicer.keepFunctionUntouched("__VERIFIER_assume");
-        slicer.keepFunctionUntouched("__VERIFIER_exit");
+        for (auto& funcName : _options.untouchedFunctions)
+            slicer.keepFunctionUntouched(funcName.c_str());
+
         slice_id = 0xdead;
 
         tm.start();
@@ -627,8 +583,11 @@ public:
         tm.report("INFO: Finding dependent nodes took");
 
         // print debugging llvm IR if user asked for it
-        if (opts != 0)
-            annotate(M, opts, PTA.get(), RD.get(), &criteria_nodes);
+        if (_annotationOptions != 0)
+            annotate(M, _annotationOptions,
+                     _builder.getPTA(),
+                     _builder.getRDA(),
+                     &criteria_nodes);
 
         return true;
     }
@@ -647,7 +606,7 @@ public:
         debug::TimeMeasure tm;
 
         tm.start();
-        slicer.slice(&dg, nullptr, slice_id);
+        slicer.slice(_dg.get(), nullptr, slice_id);
 
         tm.stop();
         tm.report("INFO: Slicing dependence graph took");
@@ -659,32 +618,11 @@ public:
         return true;
     }
 
-    virtual bool buildDG()
-    {
-        debug::TimeMeasure tm;
+    bool buildDG() {
+        _dg = std::move(_builder.constructCFGOnly());
 
-        tm.start();
-
-        if (pta == PtaType::fs)
-            PTA->run<analysis::pta::PointsToFlowSensitive>();
-        else if (pta == PtaType::fi)
-            PTA->run<analysis::pta::PointsToFlowInsensitive>();
-        else if (pta == PtaType::inv)
-            PTA->run<analysis::pta::PointsToWithInvalidate>();
-        else
-            assert(0 && "Wrong pointer analysis");
-
-        tm.stop();
-        tm.report("INFO: Points-to analysis took");
-
-        // the entry function must exist in the module if the
-        // other analyses passed
-        dg.build(&*M, PTA.get(), M->getFunction(entry_func));
-
-        // verify if the graph is built correctly
-        // FIXME - do it optionally (command line argument)
-        if (!dg.verify()) {
-            errs() << "ERR: verifying failed\n";
+        if (!_dg) {
+            llvm::errs() << "Building the dependence graph failed!\n";
             return false;
         }
 
@@ -997,7 +935,7 @@ int main(int argc, char *argv[])
 #endif
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
-    AnnotationOptsT opts = parseAnnotationOpt(annot);
+    AnnotationOptsT annotationOpts = parseAnnotationOpt(annot);
     uint32_t dump_opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD;
     // dump_dg_only implies dumg_dg
     if (dump_dg_only)
@@ -1034,7 +972,36 @@ int main(int argc, char *argv[])
     /// ---------------
     // slice the code
     /// ---------------
-    Slicer slicer(M, opts);
+    SlicerOptions options;
+    // we do not want to slice away any assumptions
+    // about the code
+    // FIXME: do this optional only for SV-COMP
+    options.additionalSlicingCriteria = {
+        "__VERIFIER_assume",
+        "__VERIFIER_exit",
+        "klee_assume",
+    };
+
+    options.untouchedFunctions = {
+        "__VERIFIER_assume",
+        "__VERIFIER_exit"
+    };
+
+    options.dgOptions.PTAOptions.entryFunction = entry_func;
+    options.dgOptions.PTAOptions.fieldSensitivity
+                                    = analysis::Offset(pta_field_sensitivie);
+    options.dgOptions.PTAOptions.analysisType = ptaType;
+
+    options.dgOptions.RDAOptions.entryFunction = entry_func;
+    options.dgOptions.RDAOptions.strongUpdateUnknown = rd_strong_update_unknown;
+    options.dgOptions.RDAOptions.undefinedArePure = undefined_are_pure;
+    options.dgOptions.RDAOptions.analysisType = rdaType;
+
+    // FIXME: add classes for CD and DEF-USE settings
+    options.dgOptions.cdAlgorithm = cdAlgorithm;
+    options.dgOptions.DUUndefinedArePure = undefined_are_pure;
+
+    Slicer slicer(M, options, annotationOpts);
 
     // build the dependence graph, so that we can dump it if desired
     if (!slicer.buildDG()) {

@@ -813,7 +813,7 @@ RDNode *LLVMRDBuilderSemisparse::createUndefinedCall(const llvm::CallInst *CInst
             assert(target && "Don't have pointer target for call argument");
 
             // this call may define or use this memory
-            if (!assume_pure_functions)
+            if (!_options.undefinedArePure)
                 node->addDef(target, Offset::UNKNOWN, Offset::UNKNOWN);
             node->addUse(DefSite(target, Offset::UNKNOWN, Offset::UNKNOWN));
         }
@@ -1110,9 +1110,9 @@ LLVMRDBuilderSemisparse::createCall(const llvm::Instruction *Inst, RDBlock *rb)
 RDNode *LLVMRDBuilderSemisparse::build()
 {
     // get entry function
-    llvm::Function *F = M->getFunction(entryFunc);
+    llvm::Function *F = M->getFunction(_options.entryFunction);
     if (!F) {
-        llvm::errs() << "The function '" << entryFunc << "' was not found in the module\n";
+        llvm::errs() << "The function '" << _options.entryFunction << "' was not found in the module\n";
         abort();
     }
 

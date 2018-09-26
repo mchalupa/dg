@@ -597,7 +597,7 @@ RDNode *LLVMRDBuilderDense::createUndefinedCall(const llvm::CallInst *CInst)
 
     // if we assume that undefined functions are pure
     // (have no side effects), we can bail out here
-    if (assume_pure_functions)
+    if (_options.undefinedArePure)
         return node;
 
     // every pointer we pass into the undefined call may be defined
@@ -860,9 +860,9 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
 RDNode *LLVMRDBuilderDense::build()
 {
     // get entry function
-    llvm::Function *F = M->getFunction(entryFunc);
+    llvm::Function *F = M->getFunction(_options.entryFunction);
     if (!F) {
-        llvm::errs() << "The function '" << entryFunc << "' was not found in the module\n";
+        llvm::errs() << "The function '" << _options.entryFunction << "' was not found in the module\n";
         abort();
     }
 

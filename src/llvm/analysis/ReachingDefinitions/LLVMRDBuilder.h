@@ -10,6 +10,7 @@
 
 #include "llvm/MemAllocationFuncs.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 #include "llvm/analysis/PointsTo/PointsTo.h"
 
 namespace dg {
@@ -21,8 +22,7 @@ class LLVMRDBuilder
 protected:
     const llvm::Module *M;
     const llvm::DataLayout *DL;
-    bool assume_pure_functions;
-    const char *entryFunc{"main"};
+    const LLVMReachingDefinitionsAnalysisOptions& _options;
 
     struct Subgraph {
         Subgraph(RDNode *r1, RDNode *r2)
@@ -54,11 +54,8 @@ protected:
 public:
     LLVMRDBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
-                  const char *entryFunc = "main",
-                  bool pure_funs = false)
-        : M(m), DL(new llvm::DataLayout(m)),
-          assume_pure_functions(pure_funs),
-          entryFunc(entryFunc), PTA(p) {}
+                  const LLVMReachingDefinitionsAnalysisOptions& opts)
+        : M(m), DL(new llvm::DataLayout(m)), _options(opts), PTA(p) {}
 
     virtual ~LLVMRDBuilder() {
         // delete data layout

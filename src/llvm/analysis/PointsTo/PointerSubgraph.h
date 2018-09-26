@@ -25,6 +25,8 @@
 #endif
 
 #include "llvm/MemAllocationFuncs.h"
+#include "llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
+
 #include "analysis/PointsTo/PointerSubgraph.h"
 #include "analysis/PointsTo/PointsToMapping.h"
 #include "analysis/PointsTo/Pointer.h"
@@ -37,15 +39,15 @@ using PSNodesSeq = std::pair<PSNode *, PSNode *>;
 
 class LLVMPointerSubgraphBuilder
 {
-    PointerSubgraph PS;
+    PointerSubgraph PS{};
     // mapping from llvm values to PSNodes that contain
     // the points-to information
     PointsToMapping<const llvm::Value *> mapping;
 
     const llvm::Module *M;
     const llvm::DataLayout *DL;
-    const char *entryFunc = "main";
-    Offset::type field_sensitivity;
+    LLVMPointerAnalysisOptions _options;
+
     // flag that says whether we are building normally,
     // or the analysis is already running and we are building
     // some new parts of already built graph.
@@ -108,13 +110,8 @@ class LLVMPointerSubgraphBuilder
 public:
     const PointerSubgraph *getPS() const { return &PS; }
 
-    // \param field_sensitivity -- how much should be the PS field sensitive:
-    //        Offset::UNKNOWN means full field sensitivity, 0 means field insensivity
-    //        (every pointer with offset greater than 0 will have Offset::UNKNOWN)
-    LLVMPointerSubgraphBuilder(const llvm::Module *m, const char *entry_func = "main",
-                               Offset::type field_sensitivity = Offset::UNKNOWN)
-        : PS(), M(m), DL(new llvm::DataLayout(m)), entryFunc(entry_func),
-          field_sensitivity(field_sensitivity) {}
+    LLVMPointerSubgraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
+        : M(m), DL(new llvm::DataLayout(m)), _options(opts) {}
 
     ~LLVMPointerSubgraphBuilder();
 

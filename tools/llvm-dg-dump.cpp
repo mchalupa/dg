@@ -145,7 +145,9 @@ int main(int argc, char *argv[])
 
     // TODO refactor the code...
     LLVMDependenceGraph d;
-    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M, entry_func);
+    analysis::LLVMPointerAnalysisOptions ptaOpts;
+    ptaOpts.entryFunction = entry_func;
+    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M, ptaOpts);
 
     if (strcmp(pts, "fs") == 0) {
         tm.start();
@@ -184,7 +186,10 @@ int main(int argc, char *argv[])
 
     assert(PTA && "BUG: Need points-to analysis");
     //use new analyses
-    analysis::rd::LLVMReachingDefinitions RDA(M, PTA, entry_func);
+    analysis::LLVMReachingDefinitionsAnalysisOptions rdOpts;
+    rdOpts.entryFunction = entry_func;
+
+    analysis::rd::LLVMReachingDefinitions RDA(M, PTA, rdOpts);
     tm.start();
 
     if (strcmp(rda, "dense") == 0) {

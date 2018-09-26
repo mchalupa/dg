@@ -28,9 +28,8 @@ class LLVMRDBuilderSemisparse : public LLVMRDBuilder
 public:
     LLVMRDBuilderSemisparse(const llvm::Module *m,
                   LLVMPointerAnalysis *p,
-                  const char *entryFunc = "main",
-                  bool pure_funs = false)
-        : LLVMRDBuilder(m, p, entryFunc, pure_funs) {}
+                  const LLVMReachingDefinitionsAnalysisOptions& opts)
+        : LLVMRDBuilder(m, p, opts) {}
 
     virtual ~LLVMRDBuilderSemisparse() = default;
 

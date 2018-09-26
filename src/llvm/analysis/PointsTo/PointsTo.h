@@ -28,8 +28,11 @@
 #include "analysis/PointsTo/PointerSubgraphOptimizations.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"
 
+#include "llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
+
 namespace dg {
 
+using analysis::LLVMPointerAnalysisOptions;
 using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 using analysis::pta::LLVMPointerSubgraphBuilder;
@@ -121,11 +124,24 @@ class LLVMPointerAnalysis
     PointerSubgraph *PS = nullptr;
     std::unique_ptr<LLVMPointerSubgraphBuilder> _builder;
 
+    LLVMPointerAnalysisOptions createOptions(const char *entry_func,
+                                                   uint64_t field_sensitivity)
+    {
+        LLVMPointerAnalysisOptions opts;
+        opts.setFieldSensitivity(field_sensitivity);
+        opts.setEntryFunction(entry_func);
+        return opts;
+    }
+
 public:
 
-    LLVMPointerAnalysis(const llvm::Module *m, const char *entry_func = "main",
+    LLVMPointerAnalysis(const llvm::Module *m,
+                        const char *entry_func = "main",
                         uint64_t field_sensitivity = Offset::UNKNOWN)
-        : _builder(new LLVMPointerSubgraphBuilder(m, entry_func, field_sensitivity)) {}
+        : LLVMPointerAnalysis(m, createOptions(entry_func, field_sensitivity)) {}
+
+    LLVMPointerAnalysis(const llvm::Module *m, const LLVMPointerAnalysisOptions opts)
+        : _builder(new LLVMPointerSubgraphBuilder(m, opts)) {}
 
     PSNode *getPointsTo(const llvm::Value *val)
     {

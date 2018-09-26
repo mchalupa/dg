@@ -374,8 +374,12 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Points-to analysis took");
 
-    LLVMReachingDefinitions RD(M, &PTA, entryFunc,
-                               rd_strong_update_unknown, max_set_size);
+    LLVMReachingDefinitionsAnalysisOptions opts;
+    opts.entryFunction = entryFunc;
+    opts.strongUpdateUnknown = rd_strong_update_unknown;
+    opts.maxSetSize = max_set_size;
+
+    LLVMReachingDefinitions RD(M, &PTA, opts);
     tm.start();
     if (rda == RdaType::SEMISPARSE) {
         RD.run<dg::analysis::rd::SemisparseRda>();

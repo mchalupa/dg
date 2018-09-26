@@ -68,13 +68,13 @@ PSNode *LLVMPointerSubgraphBuilder::createGEP(const llvm::Instruction *Inst)
     PSNode *node = nullptr;
     PSNode *op = getOperand(ptrOp);
 
-    if (field_sensitivity > 0
+    if (*_options.fieldSensitivity > 0
         && GEP->accumulateConstantOffset(*DL, offset)) {
         // is offset in given bitwidth?
         if (offset.isIntN(bitwidth)) {
             // is 0 < offset < field_sensitivity ?
-            uint64_t off = offset.getLimitedValue(field_sensitivity);
-            if (off == 0 || off < field_sensitivity)
+            uint64_t off = offset.getLimitedValue(*_options.fieldSensitivity);
+            if (off == 0 || off < *_options.fieldSensitivity)
                 node = PS.create(PSNodeType::GEP, op, offset.getZExtValue());
         } else
             errs() << "WARN: GEP offset greater than " << bitwidth << "-bit";
