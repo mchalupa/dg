@@ -72,6 +72,7 @@ add_library(LLVMdg SHARED
 	llvm/LLVMNode.cpp
 	llvm/LLVMDependenceGraph.h
 	llvm/LLVMDependenceGraph.cpp
+	llvm/LLVMDependenceGraphBuilder.h
 	llvm/LLVMDGVerifier.h
 	llvm/LLVMDGVerifier.cpp
 	llvm/Slicer.h
@@ -119,6 +120,7 @@ install(FILES
 	llvm/MemAllocationFuncs.h
 	llvm/LLVMNode.h
 	llvm/LLVMDependenceGraph.h
+	llvm/LLVMDependenceGraphBuilder.h
 	llvm/LLVMDGAssemblyAnnotationWriter.h
 	llvm/LLVMDGVerifier.h
 	llvm/Slicer.h
