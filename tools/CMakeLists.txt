@@ -15,7 +15,8 @@ if (LLVM_DG)
 				PRIVATE ${llvm_bitwriter}
 				PRIVATE ${llvm_core})
 
-	add_executable(llvm-slicer llvm-slicer.cpp)
+	add_executable(llvm-slicer llvm-slicer.cpp
+				   llvm-slicer-opts.cpp llvm-slicer-opts.h)
 	target_link_libraries(llvm-slicer PRIVATE LLVMdg)
 	target_link_libraries(llvm-slicer
 				PRIVATE ${llvm_irreader}
