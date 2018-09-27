@@ -119,7 +119,7 @@ public:
         _runDefUseAnalysis();
 
         // build the graph itself
-        _dg->build(_M, _PTA.get(), _entryFunction);
+        _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
         // fill-in control dependencies
         _runControlDependenceAnalysis();
@@ -144,7 +144,7 @@ public:
         _runPointerAnalysis();
 
         // build the graph itself
-        _dg->build(_M, _PTA.get(), _entryFunction);
+        _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
         // verify if the graph is built correctly
         if (_options.verifyGraph && !_dg->verify()) {

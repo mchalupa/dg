@@ -668,9 +668,11 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
 bool LLVMDependenceGraph::build(llvm::Module *m,
                                 LLVMPointerAnalysis *pts,
+                                LLVMReachingDefinitions *rda,
                                 llvm::Function *entry)
 {
     this->PTA = pts;
+    this->RDA = rda;
     return build(m, entry);
 }
 

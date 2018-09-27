@@ -1,12 +1,28 @@
 #ifndef _LLVM_DEF_USE_ANALYSIS_H_
 #define _LLVM_DEF_USE_ANALYSIS_H_
 
+
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/DataLayout.h>
 
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
+
 #include "analysis/DataFlowAnalysis.h"
-#include "ReachingDefinitions/ReachingDefinitions.h"
+#include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
 

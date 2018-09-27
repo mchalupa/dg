@@ -39,6 +39,15 @@ enum class CD_ALG {
 // forward declaration
 class LLVMPointerAnalysis;
 
+// FIXME: why PTA is only in the namespace dg
+// and this is that nested? Make it consistent...
+namespace analysis {
+namespace rd {
+    class LLVMReachingDefinitions;
+}};
+
+using analysis::rd::LLVMReachingDefinitions;
+
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 
 /// ------------------------------------------------------------------
@@ -55,11 +64,15 @@ public:
     // free all allocated memory and unref subgraphs
     ~LLVMDependenceGraph();
 
-    // build a DependenceGraph from module. This method will
-    // build all subgraphs (called procedures). If entry is nullptr,
+    // build a nodes and CFG edges from module.
+    // This method will build also all subgraphs. If entry is nullptr,
     // then this methods looks for function named 'main'.
+    // NOTE: this methods does not compute the dependence edges.
+    // For that functionality check the LLVMDependenceGraphBuilder.
     bool build(llvm::Module *m, llvm::Function *entry = nullptr);
-    bool build(llvm::Module *m, LLVMPointerAnalysis *pts,
+    bool build(llvm::Module *m,
+               LLVMPointerAnalysis *pts = nullptr,
+               LLVMReachingDefinitions *rda = nullptr,
                llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
@@ -130,6 +143,7 @@ public:
     }
 
     LLVMPointerAnalysis *getPTA() const { return PTA; }
+    LLVMReachingDefinitions *getRDA() const { return RDA; }
 
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
@@ -165,6 +179,8 @@ private:
 
     // points-to information (if available)
     LLVMPointerAnalysis *PTA;
+    // reaching definitions information (if available)
+    LLVMReachingDefinitions *RDA;
 
     // control expression for this graph
     ControlExpression CE;

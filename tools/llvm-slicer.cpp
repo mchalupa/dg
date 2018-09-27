@@ -17,6 +17,8 @@
 #error "Unsupported version of LLVM"
 #endif
 
+#include "llvm-slicer.h"
+
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
 #pragma clang diagnostic push
@@ -54,24 +56,19 @@
 #include <iostream>
 #include <fstream>
 
-#include "llvm/LLVMDependenceGraph.h"
-#include "llvm/LLVMDependenceGraphBuilder.h"
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
-#include "llvm/Slicer.h"
 #include "llvm/LLVMDG2Dot.h"
-#include "TimeMeasure.h"
 
 #include "git-version.h"
 
 using namespace dg;
 
 using llvm::errs;
-using llvmdg::LLVMDependenceGraphBuilder;
 using dg::analysis::LLVMPointerAnalysisOptions;
 using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
 
 using AnnotationOptsT
-        = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+    = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
 
 // mapping of AllocaInst to the names of C variables
 std::map<const llvm::Value *, std::string> valuesToVariables;
@@ -164,9 +161,8 @@ llvm::cl::opt<CD_ALG> cdAlgorithm("cd-alg",
     llvm::cl::init(CD_ALG::CLASSIC), llvm::cl::cat(SlicingOpts));
 
 
-static void annotate(llvm::Module *M, AnnotationOptsT opts,
-                     LLVMPointerAnalysis *PTA,
-                     LLVMReachingDefinitions *RD,
+static void annotate(LLVMDependenceGraph *dg,
+                     AnnotationOptsT opts,
                      const std::set<LLVMNode *> *criteria)
 {
     // compose name
@@ -200,8 +196,11 @@ static void annotate(llvm::Module *M, AnnotationOptsT opts,
         module_comment += std::to_string(pta_field_sensitivie) + "\n\n";
 
     errs() << "INFO: Saving IR with annotations to " << fl << "\n";
-    auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(opts, PTA, RD, criteria);
+    auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(opts, dg->getPTA(),
+                                                               dg->getRDA(),
+                                                               criteria);
     annot->emitModuleComment(std::move(module_comment));
+    llvm::Module *M = dg->getModule();
     M->print(outputstream, annot);
 
     delete annot;
@@ -211,7 +210,7 @@ static void annotate(llvm::Module *M, AnnotationOptsT opts,
 // Create new empty main. If 'call_entry' is set to true, then
 // call the entry function from the new main, otherwise the
 // main is going to be empty
-static bool createNewMain(llvm::Module *M, bool call_entry = false)
+static bool createNewMain(llvm::Module *M, bool call_entry)
 {
     llvm::Function *main_func = M->getFunction("main");
     if (!main_func) {
@@ -484,151 +483,6 @@ static std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg)
 
     return nodes;
 }
-
-struct SlicerOptions {
-    llvmdg::LLVMDependenceGraphOptions dgOptions{};
-
-    std::vector<std::string> untouchedFunctions;
-    // FIXME: get rid of this once we got the secondary SC
-    std::vector<std::string> additionalSlicingCriteria;
-};
-
-
-/// --------------------------------------------------------------------
-//   - Slicer class -
-//
-//  The main class that represents slicer and covers the elementary
-//  functionality
-/// --------------------------------------------------------------------
-class Slicer {
-    llvm::Module *M{};
-    const SlicerOptions& _options;
-    AnnotationOptsT _annotationOptions{};
-
-    LLVMDependenceGraphBuilder _builder;
-    std::unique_ptr<LLVMDependenceGraph> _dg{};
-
-    LLVMSlicer slicer;
-
-    uint32_t slice_id = 0;
-    bool got_slicing_criteria = true;
-
-public:
-    Slicer(llvm::Module *mod,
-           const SlicerOptions& opts,
-           AnnotationOptsT ao)
-    : M(mod), _options(opts),
-      _annotationOptions(ao),
-      _builder(mod, _options.dgOptions) { assert(mod && "Need module"); }
-
-    const LLVMDependenceGraph& getDG() const { return *_dg.get(); }
-    LLVMDependenceGraph& getDG() { return *_dg.get(); }
-
-    // shared by old and new analyses
-    bool mark()
-    {
-        assert(_dg && "mark() called without the dependence graph built");
-
-        debug::TimeMeasure tm;
-
-        // check for slicing criterion here, because
-        // we might have built new subgraphs that contain
-        // it during points-to analysis
-        std::set<LLVMNode *> criteria_nodes = getSlicingCriteriaNodes(getDG());
-        got_slicing_criteria = true;
-        if (criteria_nodes.empty()) {
-            errs() << "Did not find slicing criterion: "
-                   << slicing_criteria << "\n";
-            got_slicing_criteria = false;
-        }
-
-        // if we found slicing criterion, compute the rest
-        // of the graph. Otherwise just slice away the whole graph
-        // Also compute the edges when the user wants to annotate
-        // the file - due to debugging.
-        if (got_slicing_criteria || (_annotationOptions != 0))
-            _dg = _builder.computeDependencies(std::move(_dg));
-
-        // don't go through the graph when we know the result:
-        // only empty main will stay there. Just delete the body
-        // of main and keep the return value
-        if (!got_slicing_criteria)
-            return createNewMain(M, entry_func != "main");
-
-        // unmark this set of nodes after marking the relevant ones.
-        // Used to mimic the Weissers algorithm
-        std::set<LLVMNode *> unmark;
-
-        if (remove_slicing_criteria)
-            unmark = criteria_nodes;
-
-        _dg->getCallSites(_options.additionalSlicingCriteria, &criteria_nodes);
-
-        // do not slice __VERIFIER_assume at all
-        // FIXME: do this optional
-        for (auto& funcName : _options.untouchedFunctions)
-            slicer.keepFunctionUntouched(funcName.c_str());
-
-        slice_id = 0xdead;
-
-        tm.start();
-        for (LLVMNode *start : criteria_nodes)
-            slice_id = slicer.mark(start, slice_id, forward_slice);
-
-        // if we have some nodes in the unmark set, unmark them
-        for (LLVMNode *nd : unmark)
-            nd->setSlice(0);
-
-        tm.stop();
-        tm.report("INFO: Finding dependent nodes took");
-
-        // print debugging llvm IR if user asked for it
-        if (_annotationOptions != 0)
-            annotate(M, _annotationOptions,
-                     _builder.getPTA(),
-                     _builder.getRDA(),
-                     &criteria_nodes);
-
-        return true;
-    }
-
-    bool slice()
-    {
-        // we created an empty main in this case
-        if (!got_slicing_criteria)
-            return true;
-
-        if (slice_id == 0) {
-            if (!mark())
-                return false;
-        }
-
-        debug::TimeMeasure tm;
-
-        tm.start();
-        slicer.slice(_dg.get(), nullptr, slice_id);
-
-        tm.stop();
-        tm.report("INFO: Slicing dependence graph took");
-
-        analysis::SlicerStatistics& st = slicer.getStatistics();
-        errs() << "INFO: Sliced away " << st.nodesRemoved
-               << " from " << st.nodesTotal << " nodes in DG\n";
-
-        return true;
-    }
-
-    bool buildDG() {
-        _dg = std::move(_builder.constructCFGOnly());
-
-        if (!_dg) {
-            llvm::errs() << "Building the dependence graph failed!\n";
-            return false;
-        }
-
-        return true;
-    }
-};
 
 static void print_statistics(llvm::Module *M, const char *prefix = nullptr)
 {
@@ -987,6 +841,9 @@ int main(int argc, char *argv[])
         "__VERIFIER_exit"
     };
 
+    options.removeSlicingCriteria = remove_slicing_criteria;
+    options.forwardSlicing = forward_slice;
+
     options.dgOptions.PTAOptions.entryFunction = entry_func;
     options.dgOptions.PTAOptions.fieldSensitivity
                                     = analysis::Offset(pta_field_sensitivie);
@@ -1002,15 +859,19 @@ int main(int argc, char *argv[])
     options.dgOptions.DUUndefinedArePure = undefined_are_pure;
 
     Slicer slicer(M, options, annotationOpts);
-
-    // build the dependence graph, so that we can dump it if desired
     if (!slicer.buildDG()) {
         errs() << "ERROR: Failed building DG\n";
         return 1;
     }
 
+    auto criteria_nodes = getSlicingCriteriaNodes(slicer.getDG());
+    if (criteria_nodes.empty()) {
+        llvm::errs() << "Did not find slicing criterion: "
+                     << slicing_criteria << "\n";
+    }
+
     // mark nodes that are going to be in the slice
-    slicer.mark();
+    slicer.mark(criteria_nodes);
 
     if (dump_dg) {
         dump_dg_to_dot(slicer.getDG(), bb_only, dump_opts);

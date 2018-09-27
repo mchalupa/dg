@@ -168,22 +168,6 @@ int main(int argc, char *argv[])
 
     tm.report("INFO: Points-to analysis took");
 
-    d.build(M, PTA, M->getFunction(entry_func));
-
-    std::set<LLVMNode *> callsites;
-    if (slicing_criterion) {
-        const char *sc[] = {
-            slicing_criterion,
-            "klee_assume",
-            NULL
-        };
-
-        tm.start();
-        d.getCallSites(sc, &callsites);
-        tm.stop();
-        tm.report("INFO: Finding slicing criterions took");
-    }
-
     assert(PTA && "BUG: Need points-to analysis");
     //use new analyses
     analysis::LLVMReachingDefinitionsAnalysisOptions rdOpts;
@@ -222,7 +206,21 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: computing control dependencies took");
 
+    d.build(M, PTA, &RDA, M->getFunction(entry_func));
+
+    std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
+        const char *sc[] = {
+            slicing_criterion,
+            "klee_assume",
+            NULL
+        };
+
+        tm.start();
+        d.getCallSites(sc, &callsites);
+        tm.stop();
+        tm.report("INFO: Finding slicing criterions took");
+
         LLVMSlicer slicer;
         tm.start();
 
