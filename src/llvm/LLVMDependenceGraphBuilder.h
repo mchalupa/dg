@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include <llvm/IR/Module.h>
+
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
@@ -37,7 +39,7 @@ struct LLVMDependenceGraphOptions {
 
     bool verifyGraph{true};
     bool DUUndefinedArePure{false};
-    const std::string entryFunction{"main"};
+    std::string entryFunction{"main"};
 };
 
 class LLVMDependenceGraphBuilder {

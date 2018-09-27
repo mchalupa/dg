@@ -1,22 +1,37 @@
 #ifndef _DG_TOOLS_LLVM_SLICER_OPTS_H_
 #define  _DG_TOOLS_LLVM_SLICER_OPTS_H_
 
+#include <vector>
+
 #include "llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
+// CommandLine Category for slicer options
 extern llvm::cl::OptionCategory SlicingOpts;
-extern std::string output;
-extern std::string llvmfile;
-extern std::string slicing_criteria;
-extern bool remove_slicing_criteria;
-extern uint64_t pta_field_sensitivie;
-extern bool rd_strong_update_unknown;
-extern bool undefined_are_pure;
-extern std::string entry_func;
-extern bool forward_slice;
-extern dg::analysis::LLVMPointerAnalysisOptions::AnalysisType ptaType;
-extern dg::analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType rdaType;
-extern dg::CD_ALG cdAlgorithm;
+
+// Object representing options for slicer
+struct SlicerOptions {
+    dg::llvmdg::LLVMDependenceGraphOptions dgOptions{};
+
+    std::vector<std::string> untouchedFunctions{};
+    // FIXME: get rid of this once we got the secondary SC
+    std::vector<std::string> additionalSlicingCriteria{};
+
+    // slice away also the slicing criteria nodes
+    // (if they are not dependent on themselves)
+    bool removeSlicingCriteria{false};
+
+    // do we perform forward slicing?
+    bool forwardSlicing{false};
+
+    std::string slicingCriteria{};
+    std::string inputFile{};
+    std::string outputFile{};
+};
+
+///
+// Return filled SlicerOptions structure.
+SlicerOptions parseSlicerOptions(int argc, char *argv[]);
 
 #endif  // _DG_TOOLS_LLVM_SLICER_OPTS_H_
 

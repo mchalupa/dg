@@ -9,30 +9,9 @@
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
 #include "llvm/Slicer.h"
 
+#include "llvm-slicer-opts.h"
+
 #include "TimeMeasure.h"
-
-
-static std::set<dg::LLVMNode *> getSlicingCriteriaNodes(dg::LLVMDependenceGraph& dg);
-static bool createNewMain(llvm::Module *M, bool call_entry = false);
-static void annotate(dg::LLVMDependenceGraph *dg,
-                     dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT opts,
-                     const std::set<dg::LLVMNode *> *criteria);
-
-struct SlicerOptions {
-    dg::llvmdg::LLVMDependenceGraphOptions dgOptions{};
-
-    std::vector<std::string> untouchedFunctions{};
-    // FIXME: get rid of this once we got the secondary SC
-    std::vector<std::string> additionalSlicingCriteria{};
-
-    // slice away also the slicing criteria nodes
-    // (if they are not dependent on themselves)
-    bool removeSlicingCriteria{false};
-
-    // do we perform forward slicing?
-    bool forwardSlicing{false};
-};
-
 
 /// --------------------------------------------------------------------
 //   - Slicer class -
@@ -41,26 +20,18 @@ struct SlicerOptions {
 //  and then slices it w.r.t given slicing criteria.
 /// --------------------------------------------------------------------
 class Slicer {
-    using AnnotationOptsT
-            = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
-
     llvm::Module *M{};
     const SlicerOptions& _options;
-    AnnotationOptsT _annotationOptions{};
 
     dg::llvmdg::LLVMDependenceGraphBuilder _builder;
     std::unique_ptr<dg::LLVMDependenceGraph> _dg{};
 
     dg::LLVMSlicer slicer;
-
     uint32_t slice_id = 0;
 
 public:
-    Slicer(llvm::Module *mod,
-           const SlicerOptions& opts,
-           AnnotationOptsT ao)
+    Slicer(llvm::Module *mod, const SlicerOptions& opts)
     : M(mod), _options(opts),
-      _annotationOptions(ao),
       _builder(mod, _options.dgOptions) { assert(mod && "Need module"); }
 
     const dg::LLVMDependenceGraph& getDG() const { return *_dg.get(); }
@@ -68,7 +39,8 @@ public:
 
 
     // mark the nodes from the slice
-    bool mark(std::set<dg::LLVMNode *>& criteria_nodes)
+    bool mark(std::set<dg::LLVMNode *>& criteria_nodes,
+              bool always_compute_deps = false)
     {
         assert(_dg && "mark() called without the dependence graph built");
 
@@ -76,16 +48,14 @@ public:
 
         // if we found slicing criterion, compute the rest
         // of the graph. Otherwise just slice away the whole graph
-        // Also compute the edges when the user wants to annotate
-        // the file - due to debugging.
-        if (!criteria_nodes.empty() || (_annotationOptions != 0))
+        if (!criteria_nodes.empty() || always_compute_deps)
             _dg = _builder.computeDependencies(std::move(_dg));
 
         // don't go through the graph when we know the result:
         // only empty main will stay there. Just delete the body
         // of main and keep the return value
         if (criteria_nodes.empty())
-            return createNewMain(M, _options.dgOptions.entryFunction != "main");
+            return createNewMain();
 
         // unmark this set of nodes after marking the relevant ones.
         // Used to mimic the Weissers algorithm
@@ -115,11 +85,6 @@ public:
 
         tm.stop();
         tm.report("INFO: Finding dependent nodes took");
-
-        // print debugging llvm IR if user asked for it
-        if (_annotationOptions != 0)
-            annotate(_dg.get(), _annotationOptions,
-                     &criteria_nodes);
 
         return true;
     }
@@ -151,6 +116,44 @@ public:
             return false;
         }
 
+        return true;
+    }
+private:
+
+    ///
+    // Create new empty main. If 'call_entry' is set to true, then
+    // call the entry function from the new main, otherwise the
+    // main is going to be empty
+    bool createNewMain()
+    {
+        llvm::Function *main_func = M->getFunction("main");
+        if (!main_func) {
+            llvm::errs() << "No main function found in module. This seems like bug since\n"
+                            "here we should have the graph build from main\n";
+            return false;
+        }
+    
+        // delete old function body
+        main_func->deleteBody();
+    
+        // create new function body that just returns
+        llvm::LLVMContext& ctx = M->getContext();
+        llvm::BasicBlock* blk = llvm::BasicBlock::Create(ctx, "entry", main_func);
+    
+        if (_options.dgOptions.entryFunction != "main") {
+            llvm::Function *entry = M->getFunction(_options.dgOptions.entryFunction);
+            assert(entry && "The entry function is not present in the module");
+    
+            // TODO: we should set the arguments to undef
+            llvm::CallInst::Create(entry, "entry", blk);
+        }
+    
+        llvm::Type *Ty = main_func->getReturnType();
+        llvm::Value *retval = nullptr;
+        if (Ty->isIntegerTy())
+            retval = llvm::ConstantInt::get(Ty, 0);
+        llvm::ReturnInst::Create(ctx, retval, blk);
+    
         return true;
     }
 };
