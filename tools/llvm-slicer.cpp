@@ -391,18 +391,23 @@ public:
         ";   * undefined are pure: '"
              + std::to_string(options.dgOptions.RDAOptions.undefinedArePure) + "'\n" +
         ";   * pointer analysis: ";
-        if (options.dgOptions.PTAOptions.analysisType == LLVMPointerAnalysisOptions::AnalysisType::fi)
+        if (options.dgOptions.PTAOptions.analysisType
+                == LLVMPointerAnalysisOptions::AnalysisType::fi)
             module_comment += "flow-insensitive\n";
-        else if (options.dgOptions.PTAOptions.analysisType == LLVMPointerAnalysisOptions::AnalysisType::fs)
+        else if (options.dgOptions.PTAOptions.analysisType
+                    == LLVMPointerAnalysisOptions::AnalysisType::fs)
             module_comment += "flow-sensitive\n";
-        else if (options.dgOptions.PTAOptions.analysisType == LLVMPointerAnalysisOptions::AnalysisType::inv)
+        else if (options.dgOptions.PTAOptions.analysisType
+                    == LLVMPointerAnalysisOptions::AnalysisType::inv)
             module_comment += "flow-sensitive with invalidate\n";
 
         module_comment+= ";   * PTA field sensitivity: ";
         if (options.dgOptions.PTAOptions.fieldSensitivity == Offset::UNKNOWN)
             module_comment += "full\n\n";
         else
-            module_comment += std::to_string(*options.dgOptions.PTAOptions.fieldSensitivity) + "\n\n";
+            module_comment
+                += std::to_string(*options.dgOptions.PTAOptions.fieldSensitivity)
+                   + "\n\n";
 
         errs() << "INFO: Saving IR with annotations to " << fl << "\n";
         auto annot
@@ -443,7 +448,8 @@ static std::vector<std::string> splitList(const std::string& opt, char sep = ','
 }
 
 std::pair<std::vector<std::string>, std::vector<std::string>>
-splitStringVector(std::vector<std::string>& vec, std::function<bool(std::string&)> cmpFunc)
+splitStringVector(std::vector<std::string>& vec,
+                  std::function<bool(std::string&)> cmpFunc)
 {
     std::vector<std::string> part1;
     std::vector<std::string> part2;
@@ -459,7 +465,9 @@ splitStringVector(std::vector<std::string>& vec, std::function<bool(std::string&
     return {part1, part2};
 }
 
-static bool usesTheVariable(LLVMDependenceGraph& dg, const llvm::Value *v, const std::string& var)
+static bool usesTheVariable(LLVMDependenceGraph& dg,
+                            const llvm::Value *v,
+                            const std::string& var)
 {
     auto ptrNode = dg.getPTA()->getPointsTo(v);
     if (!ptrNode)
@@ -486,7 +494,9 @@ static bool usesTheVariable(LLVMDependenceGraph& dg, const llvm::Value *v, const
 }
 
 template <typename InstT>
-static bool useOfTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, const std::string& var)
+static bool useOfTheVar(LLVMDependenceGraph& dg,
+                        const llvm::Instruction& I,
+                        const std::string& var)
 {
     // check that we store to that variable
     const InstT *tmp = llvm::dyn_cast<InstT>(&I);
@@ -496,12 +506,16 @@ static bool useOfTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, con
     return usesTheVariable(dg, tmp->getPointerOperand(), var);
 }
 
-static bool isStoreToTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, const std::string& var)
+static bool isStoreToTheVar(LLVMDependenceGraph& dg,
+                            const llvm::Instruction& I,
+                            const std::string& var)
 {
     return useOfTheVar<llvm::StoreInst>(dg, I, var);
 }
 
-static bool isLoadOfTheVar(LLVMDependenceGraph& dg, const llvm::Instruction& I, const std::string& var)
+static bool isLoadOfTheVar(LLVMDependenceGraph& dg,
+                           const llvm::Instruction& I,
+                           const std::string& var)
 {
     return useOfTheVar<llvm::LoadInst>(dg, I, var);
 }
