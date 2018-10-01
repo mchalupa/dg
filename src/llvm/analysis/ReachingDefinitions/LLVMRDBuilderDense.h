@@ -11,7 +11,6 @@
 #include "llvm/MemAllocationFuncs.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
-#include "llvm/analysis/PointsTo/PointsTo.h"
 
 namespace dg {
 namespace analysis {

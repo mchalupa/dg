@@ -46,7 +46,7 @@
 #include "TimeMeasure.h"
 
 #include "llvm/analysis/DefUse.h"
-#include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 #include "analysis/PointsTo/PointsToFlowSensitive.h"

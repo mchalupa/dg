@@ -39,7 +39,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "analysis/PointsTo/PointsToFlowInsensitive.h"
 #include "analysis/PointsTo/PointsToFlowSensitive.h"
 #include "analysis/PointsTo/PointsToWithInvalidate.h"

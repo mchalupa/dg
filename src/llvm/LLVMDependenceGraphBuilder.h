@@ -10,7 +10,7 @@
 #include "llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
 #include "llvm/analysis/DefUse.h"
-#include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 

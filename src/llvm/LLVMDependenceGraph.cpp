@@ -44,7 +44,7 @@
 #include "LLVMDependenceGraph.h"
 #include "LLVMNode.h"
 
-#include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/analysis/ControlExpression.h"
 #include "llvm-utils.h"
 

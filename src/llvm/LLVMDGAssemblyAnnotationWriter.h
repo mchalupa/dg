@@ -28,7 +28,7 @@
 #endif
 
 #include "LLVMDependenceGraph.h"
-#include "analysis/PointsTo/PointsTo.h"
+#include "analysis/PointsTo/PointerAnalysis.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {

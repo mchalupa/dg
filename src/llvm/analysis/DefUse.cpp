@@ -29,7 +29,7 @@
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/llvm-utils.h"
 
-#include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "ReachingDefinitions/ReachingDefinitions.h"
 #include "DefUse.h"
 

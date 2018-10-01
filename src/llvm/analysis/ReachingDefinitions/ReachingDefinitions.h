@@ -27,7 +27,7 @@
 #include "llvm/MemAllocationFuncs.h"
 #include "analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "analysis/ReachingDefinitions/SemisparseRda.h"
-#include "llvm/analysis/PointsTo/PointsTo.h"
+#include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h"
