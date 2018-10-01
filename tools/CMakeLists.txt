@@ -1,3 +1,7 @@
+include_directories(${CMAKE_SOURCE_DIR}/include)
+# these tools can access the private headers
+include_directories(${CMAKE_SOURCE_DIR}/lib)
+
 if (LLVM_DG)
 	# generate a git-version.h with a HEAD commit hash tag
 	# (if it changed)

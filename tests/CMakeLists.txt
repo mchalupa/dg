@@ -2,6 +2,8 @@
 string(REGEX REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 # add check target
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
@@ -38,7 +40,8 @@ target_link_libraries(reaching-definitions-test PRIVATE RD)
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
-add_executable(adt-test adt-test.cpp ../src/analysis/Offset.cpp)
+add_executable(adt-test adt-test.cpp)
+target_link_libraries(adt-test PRIVATE DGAnalysis)
 add_test(adt-test adt-test)
 add_dependencies(check adt-test)
 
@@ -59,7 +62,8 @@ add_dependencies(check numbers-set-test)
 # --------------------------------------------------
 # points-to-set-test
 # --------------------------------------------------
-add_executable(points-to-set-test points-to-set-test.cpp  ../src/analysis/Offset.cpp)
+add_executable(points-to-set-test points-to-set-test.cpp)
+target_link_libraries(points-to-set-test PRIVATE DGAnalysis)
 add_test(points-to-set-test points-to-set-test)
 add_dependencies(check points-to-set-test)
 
@@ -221,4 +225,6 @@ endif (LLVM_DG)
 add_executable(rdmap-benchmark rdmap-benchmark.cpp)
 target_link_libraries(rdmap-benchmark RD)
 
-add_executable(ptset-benchmark ptset-benchmark.cpp  ../src/analysis/Offset.cpp)
+add_executable(ptset-benchmark ptset-benchmark.cpp)
+target_link_libraries(ptset-benchmark PRIVATE DGAnalysis)
+

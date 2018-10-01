@@ -7,7 +7,7 @@
 #include "llvm/LLVMDependenceGraph.h"
 #include "llvm/LLVMDependenceGraphBuilder.h"
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
-#include "llvm/Slicer.h"
+#include "llvm/LLVMSlicer.h"
 
 #include "llvm-slicer-opts.h"
 

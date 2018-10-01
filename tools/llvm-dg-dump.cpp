@@ -41,11 +41,11 @@
 #endif
 
 #include "llvm/LLVMDependenceGraph.h"
-#include "llvm/Slicer.h"
+#include "llvm/LLVMSlicer.h"
 #include "llvm/LLVMDG2Dot.h"
 #include "TimeMeasure.h"
 
-#include "llvm/analysis/DefUse.h"
+#include "llvm/analysis/DefUse/DefUse.h"
 #include "llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 

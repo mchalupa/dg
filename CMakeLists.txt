@@ -3,8 +3,6 @@ project(dg)
 
 include(CTest)
 
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/src )
-
 # we need C++11 standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
@@ -116,6 +114,9 @@ include(GNUInstallDirs)
 message(STATUS "CMAKE_INSTALL_LIBDIR: \"${CMAKE_INSTALL_LIBDIR}\"")
 message(STATUS "CMAKE_INSTALL_INCLUDEDIR: \"${CMAKE_INSTALL_INCLUDEDIR}\"")
 
-add_subdirectory(src)
-add_subdirectory(tests EXCLUDE_FROM_ALL)
+add_subdirectory(lib)
 add_subdirectory(tools)
+add_subdirectory(tests EXCLUDE_FROM_ALL)
+
+install(DIRECTORY include/
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg)
