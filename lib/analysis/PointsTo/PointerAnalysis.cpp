@@ -371,6 +371,13 @@ bool PointerAnalysis::processNode(PSNode *node)
             // call and if something changes, let backend take some action
             // (for example build relevant subgraph)
             for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
+                // do not add pointers that do not point to functions
+                // (but do not do that when we are looking for invalidated
+                // memory as this may lead to undefined behavior)
+                if (!options.invalidateNodes
+                    && ptr.target->getType() != PSNodeType::FUNCTION)
+                    continue;
+
                 if (node->addPointsTo(ptr)) {
                     changed = true;
 
