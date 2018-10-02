@@ -359,16 +359,14 @@ public:
 
 class ModuleAnnotator {
     const SlicerOptions& options;
-    llvm::Module *M;
     LLVMDependenceGraph *dg;
     AnnotationOptsT annotationOptions;
 
 public:
     ModuleAnnotator(const SlicerOptions& o,
-                    llvm::Module *m,
                     LLVMDependenceGraph *dg,
                     AnnotationOptsT annotO)
-    : options(o), M(m), dg(dg), annotationOptions(annotO) {}
+    : options(o), dg(dg), annotationOptions(annotO) {}
 
     bool shouldAnnotate() const { return annotationOptions != 0; }
 
@@ -788,7 +786,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    ModuleAnnotator annotator(options, M.get(), &slicer.getDG(),
+    ModuleAnnotator annotator(options, &slicer.getDG(),
                               parseAnnotationOptions(annotationOpts));
 
     auto criteria_nodes = getSlicingCriteriaNodes(slicer.getDG(),
