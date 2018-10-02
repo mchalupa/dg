@@ -51,7 +51,7 @@ public:
     bool functionPointerCall(PSNode *callsite, PSNode *called) override
     {
         const llvm::Function *F
-            = llvm::dyn_cast<llvm::Function>(called->getUserData<llvm::Function>());
+            = llvm::dyn_cast<llvm::Function>(called->getUserData<llvm::Value>());
         // with vararg it may happen that we get pointer that
         // is not to function, so just bail out here in that case
         if (!F)
@@ -63,7 +63,7 @@ public:
             return callsite->getPairedNode()->addPointsTo(analysis::pta::PointerUnknown);
         }
 
-        if (!builder->callIsCompatible(callsite, called))
+        if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called))
             return false;
 
         builder->insertFunctionCall(callsite, called);

@@ -126,7 +126,7 @@ public:
     createFuncptrCall(const llvm::CallInst *CInst,
                       const llvm::Function *F);
 
-    bool callIsCompatible(PSNode *call, PSNode *func);
+    static bool callIsCompatible(PSNode *call, PSNode *func);
 
     // Insert a call of a function into an already existing graph.
     // The call will be inserted betwee the callsite and
