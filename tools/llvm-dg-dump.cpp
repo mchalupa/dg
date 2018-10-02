@@ -40,18 +40,17 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm/LLVMDependenceGraph.h"
-#include "llvm/LLVMSlicer.h"
-#include "llvm/LLVMDG2Dot.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMSlicer.h"
+#include "dg/llvm/LLVMDG2Dot.h"
+#include "dg/llvm/analysis/DefUse/DefUse.h"
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
+
 #include "TimeMeasure.h"
-
-#include "llvm/analysis/DefUse/DefUse.h"
-#include "llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-
-#include "analysis/PointsTo/PointsToFlowSensitive.h"
-#include "analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "analysis/PointsTo/PointsToWithInvalidate.h"
 
 using namespace dg;
 using llvm::errs;

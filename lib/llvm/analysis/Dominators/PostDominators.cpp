@@ -16,10 +16,10 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "analysis/BFS.h"
-#include "analysis/PostDominanceFrontiers.h"
+#include "dg/analysis/BFS.h"
+#include "dg/analysis/PostDominanceFrontiers.h"
 
-#include "llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
 
 namespace dg {
 

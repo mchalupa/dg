@@ -1,8 +1,8 @@
-#include "analysis/Offset.h"
-#include "llvm/LLVMDependenceGraph.h"
-#include "llvm/LLVMDependenceGraphBuilder.h"
-#include "llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
+#include "dg/analysis/Offset.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMDependenceGraphBuilder.h"
+#include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
+#include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
 #include <llvm/Support/CommandLine.h>
 

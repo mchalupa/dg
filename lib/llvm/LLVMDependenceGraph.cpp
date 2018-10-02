@@ -40,11 +40,11 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm/LLVMDGVerifier.h"
-#include "llvm/LLVMDependenceGraph.h"
-#include "llvm/LLVMNode.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMNode.h"
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
-#include "llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "llvm/LLVMDGVerifier.h"
 #include "llvm/analysis/ControlExpression.h"
 #include "llvm-utils.h"
 

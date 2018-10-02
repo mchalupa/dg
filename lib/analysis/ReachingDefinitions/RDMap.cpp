@@ -2,8 +2,8 @@
 #include <cassert>
 #include <cstdlib>
 
-#include "analysis/ReachingDefinitions/RDMap.h"
-#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
 namespace analysis {

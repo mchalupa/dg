@@ -25,15 +25,15 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "analysis/DFS.h"
+#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/DFS.h"
 
-#include "llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "llvm/analysis/DefUse/DefUse.h"
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/DefUse/DefUse.h"
 
-#include "llvm/LLVMNode.h"
-#include "llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMNode.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
 
 #include "llvm/llvm-utils.h"
 #include "llvm/MemAllocationFuncs.h"

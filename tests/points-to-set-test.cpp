@@ -1,9 +1,9 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "analysis/PointsTo/PSNode.h"
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "analysis/PointsTo/Pointer.h"
+#include "dg/analysis/PointsTo/PSNode.h"
+#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/Pointer.h"
 
 using dg::analysis::pta::PSNode;
 using dg::analysis::pta::PSNodeType;

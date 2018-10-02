@@ -34,11 +34,10 @@
 #endif
 
 
-#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h"
+#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
+#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h"
 #include "llvm/llvm-utils.h"
 #include "llvm/MemAllocationFuncs.h"
 

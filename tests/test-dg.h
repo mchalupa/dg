@@ -1,7 +1,7 @@
 #ifndef _TEST_DG_H_
 #define _TEST_DG_H_
 
-#include "DependenceGraph.h"
+#include "dg/DependenceGraph.h"
 
 namespace dg {
 namespace tests {

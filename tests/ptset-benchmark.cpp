@@ -2,7 +2,7 @@
 #include <string>
 #include <random>
 
-#include "analysis/PointsTo/PointsToSet.h"
+#include "dg/analysis/PointsTo/PointsToSet.h"
 #include "../tools/TimeMeasure.h"
 
 using namespace dg::analysis::pta;

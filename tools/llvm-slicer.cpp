@@ -57,8 +57,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "dg/llvm/LLVMDG2Dot.h"
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
-#include "llvm/LLVMDG2Dot.h"
 
 using namespace dg;
 

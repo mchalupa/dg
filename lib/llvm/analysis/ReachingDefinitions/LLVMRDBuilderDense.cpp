@@ -34,10 +34,9 @@
 #endif
 
 
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h"
+#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
 
+#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h"
 #include "llvm/llvm-utils.h"
 #include "llvm/MemAllocationFuncs.h"
 

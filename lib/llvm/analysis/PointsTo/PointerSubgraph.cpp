@@ -36,11 +36,11 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
-#include "analysis/PointsTo/PointerSubgraphOptimizations.h"
-#include "llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerSubgraphOptimizations.h"
+#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
 
+#include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "llvm/llvm-utils.h"
 #include "llvm/MemAllocationFuncs.h"
 
@@ -870,6 +870,19 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
 #endif // NDEBUG
 
     return &PS;
+}
+
+
+bool LLVMPointerSubgraphBuilder::validateSubgraph() const
+{
+    debug::LLVMPointerSubgraphValidator validator(getPS());
+    if (validator.validate()) {
+        assert(!validator.getErrors().empty());
+        llvm::errs() << validator.getErrors();
+        return false;
+    } else {
+        return true;
+    }
 }
 
 } // namespace pta

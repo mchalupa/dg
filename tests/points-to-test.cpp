@@ -6,9 +6,9 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
 
 namespace dg {
 namespace tests {

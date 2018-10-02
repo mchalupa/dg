@@ -1,7 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "ADT/NumberSet.h"
+#include "dg/ADT/NumberSet.h"
 
 using namespace dg::ADT;
 

@@ -1,5 +1,4 @@
-#include "llvm/analysis/PointsTo/PointerSubgraph.h"
-
+#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/MemAllocationFuncs.h"
 
 using dg::MemAllocationFuncs;

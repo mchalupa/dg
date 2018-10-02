@@ -29,8 +29,8 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm/LLVMNode.h"
-#include "llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMNode.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
 
 using llvm::errs;
 

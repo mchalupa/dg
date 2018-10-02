@@ -3,7 +3,7 @@
 
 #include <random>
 
-#include "ADT/Bitvector.h"
+#include "dg/ADT/Bitvector.h"
 
 using dg::ADT::SparseBitvector;
 

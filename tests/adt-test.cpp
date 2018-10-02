@@ -4,9 +4,9 @@
 
 #include "test-runner.h"
 
-#include "ADT/Queue.h"
-#include "ADT/Bitvector.h"
-#include "analysis/ReachingDefinitions/RDMap.h"
+#include "dg/ADT/Queue.h"
+#include "dg/ADT/Bitvector.h"
+#include "dg/analysis/ReachingDefinitions/RDMap.h"
 
 using namespace dg::ADT;
 using dg::analysis::Offset;

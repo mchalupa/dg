@@ -1,13 +1,12 @@
-#include <assert.h>
+#include <cassert>
 #include <cstdarg>
 #include <cstdio>
 
 #include "test-runner.h"
-
 #include "test-dg.h"
 
-#include "analysis/Slicing.h"
-#include "DG2Dot.h"
+#include "dg/analysis/Slicing.h"
+#include "dg/DG2Dot.h"
 
 namespace dg {
 namespace tests {

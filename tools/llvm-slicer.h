@@ -4,13 +4,12 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
 
-#include "llvm/LLVMDependenceGraph.h"
-#include "llvm/LLVMDependenceGraphBuilder.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMDependenceGraphBuilder.h"
+#include "dg/llvm/LLVMSlicer.h"
+
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
-#include "llvm/LLVMSlicer.h"
-
 #include "llvm-slicer-opts.h"
-
 #include "TimeMeasure.h"
 
 /// --------------------------------------------------------------------

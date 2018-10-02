@@ -125,4 +125,4 @@ add_subdirectory(tools)
 add_subdirectory(tests EXCLUDE_FROM_ALL)
 
 install(DIRECTORY include/
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg)
+	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

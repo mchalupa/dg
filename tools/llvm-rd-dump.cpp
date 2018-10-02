@@ -39,12 +39,12 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "analysis/PointsTo/PointsToFlowSensitive.h"
-#include "analysis/PointsTo/Pointer.h"
+#include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/Pointer.h"
 
-#include "llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 #include "TimeMeasure.h"
 

@@ -1,7 +1,7 @@
 #include <set>
 
-#include "analysis/ReachingDefinitions/RDMap.h"
-#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
 namespace analysis {
@@ -55,7 +55,6 @@ void ReachingDefinitionsAnalysis::run()
         }
     } while (!changed.empty());
 }
-
 
 } // namespace rd
 } // namespace analysis

@@ -1,7 +1,7 @@
 #include <string>
 
-#include "analysis/PointsTo/PointsToSet.h"
-#include "analysis/PointsTo/PointerSubgraphValidator.h"
+#include "dg/analysis/PointsTo/PointsToSet.h"
+#include "dg/analysis/PointsTo/PointerSubgraphValidator.h"
 
 namespace dg {
 namespace analysis {

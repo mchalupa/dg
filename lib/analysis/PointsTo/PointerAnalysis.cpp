@@ -1,7 +1,7 @@
-#include "analysis/PointsTo/Pointer.h"
-#include "analysis/PointsTo/PointsToSet.h"
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "analysis/PointsTo/PointerAnalysis.h"
+#include "dg/analysis/PointsTo/Pointer.h"
+#include "dg/analysis/PointsTo/PointsToSet.h"
+#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerAnalysis.h"
 
 namespace dg {
 namespace analysis {

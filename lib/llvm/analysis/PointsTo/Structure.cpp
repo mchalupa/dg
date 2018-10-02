@@ -34,8 +34,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
 
 namespace dg {
 namespace analysis {

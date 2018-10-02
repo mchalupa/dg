@@ -27,9 +27,9 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm/LLVMDependenceGraph.h"
-#include "analysis/PointsTo/PointerAnalysis.h"
-#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
 namespace debug {

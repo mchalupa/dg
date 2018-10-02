@@ -1,4 +1,4 @@
-#include "analysis/Offset.h"
+#include "dg/analysis/Offset.h"
 
 namespace dg {
 namespace analysis {

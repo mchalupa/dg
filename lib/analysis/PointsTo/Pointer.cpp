@@ -1,5 +1,5 @@
 #include <cassert>
-#include "analysis/PointsTo/Pointer.h"
+#include "dg/analysis/PointsTo/Pointer.h"
 
 namespace dg {
 namespace analysis {
