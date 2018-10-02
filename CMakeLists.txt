@@ -92,7 +92,13 @@ message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -Wall -Wextra")
 
 if (USE_CLANG_SANITIZERS)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined -fsanitize=address")
+	message(WARNING "USE_CLANG_SANITIZERS has been renamed to USE_SANITIZERS")
+	set(USE_SANITIZERS on)
+endif()
+
+if (USE_SANITIZERS)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address")
+	add_definitions(-DUSING_SANITIZERS)
 endif()
 
 # Debug Release RelWithDebInfo MinSizeRel.
