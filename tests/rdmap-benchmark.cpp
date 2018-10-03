@@ -1,8 +1,8 @@
 #include <vector>
 #include <string>
 
-#include "analysis/ReachingDefinitions/RDMap.h"
-#include "analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "../tools/TimeMeasure.h"
 
 // create two random rd maps of the
