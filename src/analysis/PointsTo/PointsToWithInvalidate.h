@@ -69,8 +69,6 @@ public:
 
     bool afterProcessed(PSNode *n) override
     {
-        bool changed = false;
-
         if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return handleInvalidateLocals(n);
         if (n->getType() == PSNodeType::INVALIDATE_OBJECT)
@@ -82,29 +80,7 @@ public:
                n->getType() != PSNodeType::INVALIDATE_OBJECT &&
                n->getType() != PSNodeType::INVALIDATE_LOCALS);
 
-        PointsToSetT *strong_update = nullptr;
-        // every store is a strong update
-        // FIXME: memcpy can be strong update too
-        if (n->getType() == PSNodeType::STORE)
-            strong_update = &n->getOperand(1)->pointsTo;
-
-        MemoryMapT *mm = n->getData<MemoryMapT>();
-        assert(mm && "Do not have memory map");
-
-        // merge information from predecessors if there's
-        // more of them (if there's just one predecessor
-        // and this is not a store, the memory map couldn't
-        // change, so we don't have to do that)
-        if (needsMerge(n)) {
-            for (PSNode *p : n->getPredecessors()) {
-                if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
-                    // merge pm to mm (but only if pm was already created)
-                    changed |= mergeMaps(mm, pm, strong_update);
-                }
-            }
-        }
-
-        return changed;
+        return PointsToFlowSensitive::afterProcessed(n);
     }
 
     static bool isLocal(PSNodeAlloc *alloc, PSNode *where) {

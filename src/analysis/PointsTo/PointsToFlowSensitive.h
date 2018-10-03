@@ -62,10 +62,13 @@ public:
         // in the beforeProcessed method
         assert(mm && "Do not have memory map");
 
-        // every store is a strong update
+        // every store that stores to a memory allocated
+        // not in a loop is a strong update
         // FIXME: memcpy can be strong update too
-        if (n->getType() == PSNodeType::STORE)
-            overwritten = &n->getOperand(1)->pointsTo;
+        if (n->getType() == PSNodeType::STORE) {
+            if (!pointsToAllocationInLoop(n->getOperand(1)))
+                overwritten = &n->getOperand(1)->pointsTo;
+        }
 
         // merge information from predecessors if there's
         // more of them (if there's just one predecessor
@@ -182,6 +185,22 @@ protected:
 private:
     static bool needsMerge(PSNode *n) {
         return n->predecessorsNum() > 1 || canChangeMM(n);
+    }
+
+    bool isInLoop(PSNode *n) const {
+        unsigned idx = n->getSCCId();
+        const auto& scc = getSCCs()[idx];
+
+        // if the scc's size > 1, the node is in loop
+        return scc.size() > 1;
+    }
+
+    bool pointsToAllocationInLoop(PSNode *n) {
+        for (const auto& ptr : n->pointsTo) {
+            if (isInLoop(ptr.target))
+                return true;
+        }
+        return false;
     }
 
     // keep all the maps in order to free the memory
