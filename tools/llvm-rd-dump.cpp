@@ -40,7 +40,7 @@
 #endif
 
 #include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
@@ -368,7 +368,7 @@ int main(int argc, char *argv[])
     if (type == FLOW_INSENSITIVE) {
         PTA.run<pta::PointsToFlowInsensitive>();
     } else {
-        PTA.run<pta::PointsToFlowSensitive>();
+        PTA.run<pta::PointerAnalysisFS>();
     }
 
     tm.stop();

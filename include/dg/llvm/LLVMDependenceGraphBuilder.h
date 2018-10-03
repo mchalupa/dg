@@ -15,7 +15,7 @@
 #include "dg/analysis/ReachingDefinitions/SemisparseRda.h"
 
 #include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/Offset.h"
@@ -54,7 +54,7 @@ class LLVMDependenceGraphBuilder {
         assert(_PTA && "BUG: No PTA");
 
         if (_options.PTAOptions.isFS())
-            _PTA->run<analysis::pta::PointsToFlowSensitive>();
+            _PTA->run<analysis::pta::PointerAnalysisFS>();
         else if (_options.PTAOptions.isFI())
             _PTA->run<analysis::pta::PointsToFlowInsensitive>();
         else if (_options.PTAOptions.isFSInv())

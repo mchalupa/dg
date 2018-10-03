@@ -19,7 +19,7 @@ add_library(PTA SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerSubgraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerAnalysis.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointsToFlowInsensitive.h
-	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointsToFlowSensitive.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerAnalysisFS.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerSubgraphValidator.h
 
 	analysis/PointsTo/Pointer.cpp

@@ -39,7 +39,7 @@
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 #include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
 #include "TimeMeasure.h"
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
         PTAfs = new LLVMPointerAnalysis(M);
 
         tm.start();
-        PTAfs->run<analysis::pta::PointsToFlowSensitive>();
+        PTAfs->run<analysis::pta::PointerAnalysisFS>();
         tm.stop();
         tm.report("INFO: Points-to flow-sensitive analysis took");
     }

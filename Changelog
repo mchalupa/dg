@@ -8,6 +8,7 @@
 * Renamed files:
 - llvm/Slicer.h -> dg/llvm/LLVMSlicer.h
 - llvm/analysis/PointsTo/PointsTo.h -> dg/llvm/analysis/PointsTo/PointerAnalysis.h
+- analysis/PointsTo/PointsToFlowSensitive.h -> dg/analysis/PointsTo/PointerAnalysisFS.h
 
 * A new library libDGAnalysis.so was added. You must link to this library
   when linking with any dg library.

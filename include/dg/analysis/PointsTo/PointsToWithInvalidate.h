@@ -2,13 +2,13 @@
 #define _DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
 
 #include <cassert>
-#include "PointsToFlowSensitive.h"
+#include "PointerAnalysisFS.h"
 
 namespace dg {
 namespace analysis {
 namespace pta {
 
-class PointsToWithInvalidate : public PointsToFlowSensitive
+class PointsToWithInvalidate : public PointerAnalysisFS
 {
     static bool canChangeMM(PSNode *n) {
         if (n->getType() == PSNodeType::FREE ||
@@ -16,7 +16,7 @@ class PointsToWithInvalidate : public PointsToFlowSensitive
             n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return true;
 
-        return PointsToFlowSensitive::canChangeMM(n);
+        return PointerAnalysisFS::canChangeMM(n);
     }
 
     static bool needsMerge(PSNode *n) {
@@ -33,13 +33,13 @@ class PointsToWithInvalidate : public PointsToFlowSensitive
     }
 
 public:
-    using MemoryMapT = PointsToFlowSensitive::MemoryMapT;
+    using MemoryMapT = PointerAnalysisFS::MemoryMapT;
 
     // this is an easy but not very efficient implementation,
     // works for testing
     PointsToWithInvalidate(PointerSubgraph *ps,
                            PointerAnalysisOptions opts)
-    : PointsToFlowSensitive(ps, opts.setInvalidateNodes(true)) {}
+    : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
 
     // default options
     PointsToWithInvalidate(PointerSubgraph *ps) : PointsToWithInvalidate(ps, {}) {}

@@ -41,7 +41,7 @@
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
@@ -204,7 +204,7 @@ dumpMemoryObject(MemoryObject *mo, int ind, bool dot)
 }
 
 static void
-dumpMemoryMap(PointsToFlowSensitive::MemoryMapT *mm, int ind, bool dot)
+dumpMemoryMap(PointerAnalysisFS::MemoryMapT *mm, int ind, bool dot)
 {
     for (const auto& it : *mm) {
         // print the key
@@ -243,8 +243,8 @@ dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
         if (!dot)
             printf("    -----------\n");
     } else {
-        PointsToFlowSensitive::MemoryMapT *mm
-            = n->getData<PointsToFlowSensitive::MemoryMapT>();
+        PointerAnalysisFS::MemoryMapT *mm
+            = n->getData<PointerAnalysisFS::MemoryMapT>();
         if (!mm)
             return;
 
@@ -466,7 +466,7 @@ int main(int argc, char *argv[])
             );
     } else {
         PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<analysis::pta::PointsToFlowSensitive>()
+            PTA.createPTA<analysis::pta::PointerAnalysisFS>()
             );
     }
 

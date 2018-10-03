@@ -11,7 +11,10 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-class PointsToFlowSensitive : public PointerAnalysis
+///
+// Flow-sensitive pointer analysis
+//
+class PointerAnalysisFS : public PointerAnalysis
 {
 public:
     //using MemoryObjectsSetT = std::set<MemoryObject *>;
@@ -19,8 +22,8 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToFlowSensitive(PointerSubgraph *ps,
-                          PointerAnalysisOptions opts)
+    PointerAnalysisFS(PointerSubgraph *ps,
+                      PointerAnalysisOptions opts)
     : PointerAnalysis(ps, opts.setPreprocessGeps(false))
     {
         assert(opts.preprocessGeps == false
@@ -28,7 +31,7 @@ public:
         memoryMaps.reserve(ps->size() / 5);
     }
 
-    PointsToFlowSensitive(PointerSubgraph *ps) : PointsToFlowSensitive(ps, {}) {}
+    PointerAnalysisFS(PointerSubgraph *ps) : PointerAnalysisFS(ps, {}) {}
 
     bool beforeProcessed(PSNode *n) override
     {
@@ -112,7 +115,7 @@ public:
 
 protected:
 
-    PointsToFlowSensitive() = default;
+    PointerAnalysisFS() = default;
 
     static bool canChangeMM(PSNode *n) {
         if (n->predecessorsNum() == 0) // root node

@@ -8,7 +8,7 @@
 
 #include "dg/analysis/PointsTo/PointerSubgraph.h"
 #include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
-#include "dg/analysis/PointsTo/PointsToFlowSensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 
 namespace dg {
 namespace tests {
@@ -948,11 +948,11 @@ public:
 };
 
 class FlowSensitivePointsToTest
-    : public PointsToTest<analysis::pta::PointsToFlowSensitive>
+    : public PointsToTest<analysis::pta::PointerAnalysisFS>
 {
 public:
     FlowSensitivePointsToTest()
-        : PointsToTest<analysis::pta::PointsToFlowSensitive>
+        : PointsToTest<analysis::pta::PointerAnalysisFS>
           ("flow-sensitive points-to test") {}
 };
 
