@@ -50,11 +50,14 @@ install:
   - cd ..
 
 script:
-  - cmake -DCMAKE_BUILD_TYPE=DEBUG .
+  # gcc in the versions that we use has problems with sanitizers
+  - if test "$CXX" = "clang++"; then export CXX_FLAGS="-fsanitize=undefined,address"; fi
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=$CXX_FLAGS .
   - make -j2
   - cd tests
   - make
-  - DG_TESTS_PTA="$PTA" DG_TESTS_RDA="$RDA" make test
+  # for now turn off the detection of leaks, we're working on it
+  - ASAN_OPTIONS=detect_leaks=0 DG_TESTS_PTA="$PTA" DG_TESTS_RDA="$RDA" make test
 
 notifications:
     email: false
