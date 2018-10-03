@@ -1,0 +1,13 @@
+-- 3. 10. 2018
+
+* The project was re-structured from src/ structure to lib/ and include/
+  structure. As a consequence, all public headers were moved to dg/
+  subdirectory, e.g. "llvm/LLVMDependenceGraph.h" is now
+  "dg/llvm/LLVMDependenceGraph.h"
+
+* Renamed files:
+- llvm/Slicer.h -> dg/llvm/LLVMSlicer.h
+- llvm/analysis/PointsTo/PointsTo.h -> dg/llvm/analysis/PointsTo/PointerAnalysis.h
+
+* A new library libDGAnalysis.so was added. You must link to this library
+  when linking with any dg library.
