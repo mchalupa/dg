@@ -2,7 +2,8 @@
 #define _DG_SEMISPARSERDA_H_
 
 #include <vector>
-#include <unordered_map>
+#include <queue>
+#include <unordered_set>
 
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
@@ -12,7 +13,6 @@ namespace rd {
 
 class SemisparseRda : public ReachingDefinitionsAnalysis
 {
-private:
     bool merge_maps(RDNode *source, RDNode *dest, DefSite& var) {
         bool changed = false;
 
@@ -23,7 +23,7 @@ private:
             const DefSite& ds = pair.first;
             auto& nodes = pair.second;
 
-            if (ds.target == var.target) {
+            if (ds.target == var.target || ds.target == UNKNOWN_MEMORY|| var.target == UNKNOWN_MEMORY) {
                 for (RDNode *node : nodes) {
                     if (node->getType() != RDNodeType::PHI)
                         changed |= dest->def_map.add(ds, node);

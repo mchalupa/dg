@@ -677,7 +677,8 @@ LLVMRDBuilderSemisparse::createCallToFunction(const llvm::Function *F, RDBlock *
     // for all return nodes) to return from the call
     makeEdge(callNode, root);
     makeEdge(ret, returnNode);
-    rb->addSuccessor(root->getBBlock());
+    if (root->getBBlock())
+        rb->addSuccessor(root->getBBlock());
 
     return std::make_pair(callNode, returnNode);
 }

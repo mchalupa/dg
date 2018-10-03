@@ -9,41 +9,50 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
+using SrgBuilder = dg::analysis::rd::srg::MarkerSRGBuilderFS;
+using SparseRDGraph = dg::analysis::rd::srg::SparseRDGraph;
+
+template< typename T >
+static void bfs(RDNode *from, SparseRDGraph& srg, T&& visitor) {
+    std::unordered_set<RDNode *> visited;
+    std::queue<RDNode *> q;
+    q.push(from);
+    visited.insert(from);
+
+    while (!q.empty()) {
+        RDNode *n = q.front();
+        q.pop();
+        auto edges_it = srg.find(n);
+        if (edges_it != srg.end()) {
+            auto& edges = edges_it->second;
+            for (auto& edge : edges) {
+                RDNode *src = edge.second;
+                if (visited.insert(src).second) {
+                    visitor(edge.first, edge.second);
+                    q.push(src);
+                }
+            }
+        }
+        visited.insert(n);
+    }
+}
+
 void SemisparseRda::run()
 {
-    using SrgBuilder = dg::analysis::rd::srg::MarkerSRGBuilderFS;
-    using SparseRDGraph = dg::analysis::rd::srg::SparseRDGraph;
     SrgBuilder srg_builder;
     SparseRDGraph srg;
 
     std::unordered_set<RDNode *> to_process;
     std::tie(srg, phi_nodes) = srg_builder.build(root);
 
-    // add all sources to @to_process
     for (auto& pair : srg) {
-        RDNode *source = pair.first;
-        to_process.insert(source);
-    }
-
-    // do fixpoint
-    while (!to_process.empty()) {
-        auto it = to_process.begin();
-
-        RDNode *source = *it;
-        to_process.erase(it);
-
-        for (auto& pair : srg[source]) {
-            // variable to propagate
-            DefSite var = pair.first;
-            // where to propagate
-            RDNode *dest = pair.second;
-
-            if (merge_maps(source, dest, var)) {
-                // if dest does not define this variable, it is unnecessary to process it again
-                if (dest->defines(var.target)) {
-                    to_process.insert(dest);
+        RDNode *dest = pair.first;
+        if (dest->getUses().size() > 0 && dest->getType() != RDNodeType::PHI) {
+            bfs(dest, srg, [&](DefSite& ds, RDNode *n){
+                if (n->getType() != RDNodeType::PHI) {
+                    merge_maps(n, dest, ds);
                 }
-            }
+            });
         }
     }
 }
