@@ -48,7 +48,7 @@
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
 
 #include "TimeMeasure.h"
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
         tm.stop();
     } else if (strcmp(pts, "inv") == 0) {
         tm.start();
-        PTA->run<analysis::pta::PointsToWithInvalidate>();
+        PTA->run<analysis::pta::PointerAnalysisFSInv>();
         tm.stop();
     } else {
         llvm::errs() << "Unknown points to analysis, try: fs, fi\n";

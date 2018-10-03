@@ -42,7 +42,7 @@
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
 #include "TimeMeasure.h"
@@ -462,7 +462,7 @@ int main(int argc, char *argv[])
             );
     } else if (type == WITH_INVALIDATE) {
         PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<analysis::pta::PointsToWithInvalidate>()
+            PTA.createPTA<analysis::pta::PointerAnalysisFSInv>()
             );
     } else {
         PA = std::unique_ptr<PointerAnalysis>(

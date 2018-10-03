@@ -16,7 +16,7 @@
 
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/Offset.h"
 
@@ -58,7 +58,7 @@ class LLVMDependenceGraphBuilder {
         else if (_options.PTAOptions.isFI())
             _PTA->run<analysis::pta::PointerAnalysisFI>();
         else if (_options.PTAOptions.isFSInv())
-            _PTA->run<analysis::pta::PointsToWithInvalidate>();
+            _PTA->run<analysis::pta::PointerAnalysisFSInv>();
         else {
             assert(0 && "Wrong pointer analysis");
             abort();

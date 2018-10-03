@@ -8,7 +8,7 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-class PointsToWithInvalidate : public PointerAnalysisFS
+class PointerAnalysisFSInv : public PointerAnalysisFS
 {
     static bool canChangeMM(PSNode *n) {
         if (n->getType() == PSNodeType::FREE ||
@@ -37,12 +37,12 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointsToWithInvalidate(PointerSubgraph *ps,
+    PointerAnalysisFSInv(PointerSubgraph *ps,
                            PointerAnalysisOptions opts)
     : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
 
     // default options
-    PointsToWithInvalidate(PointerSubgraph *ps) : PointsToWithInvalidate(ps, {}) {}
+    PointerAnalysisFSInv(PointerSubgraph *ps) : PointerAnalysisFSInv(ps, {}) {}
 
     bool beforeProcessed(PSNode *n) override
     {

@@ -23,7 +23,7 @@
 #include "dg/analysis/PointsTo/PointerSubgraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/analysis/PointsTo/PointerSubgraphOptimizations.h"
-#include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
@@ -181,26 +181,26 @@ public:
 };
 
 template <>
-inline void LLVMPointerAnalysis::run<analysis::pta::PointsToWithInvalidate>()
+inline void LLVMPointerAnalysis::run<analysis::pta::PointerAnalysisFSInv>()
 {
     // build the subgraph
     assert(_builder && "Incorrectly constructed PTA, missing builder");
     _builder->setInvalidateNodesFlag(true);
     buildSubgraph();
 
-    LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate> PTA(PS, _builder.get());
+    LLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
     PTA.run();
 }
 
 template <>
-inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::pta::PointsToWithInvalidate>()
+inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::pta::PointerAnalysisFSInv>()
 {
     // build the subgraph
     assert(_builder && "Incorrectly constructed PTA, missing builder");
     _builder->setInvalidateNodesFlag(true);
     buildSubgraph();
 
-    return new LLVMPointerAnalysisImpl<analysis::pta::PointsToWithInvalidate>(PS, _builder.get());
+    return new LLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv>(PS, _builder.get());
 }
 
 } // namespace dg
