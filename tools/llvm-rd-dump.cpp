@@ -39,7 +39,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
@@ -366,7 +366,7 @@ int main(int argc, char *argv[])
     tm.start();
 
     if (type == FLOW_INSENSITIVE) {
-        PTA.run<pta::PointsToFlowInsensitive>();
+        PTA.run<pta::PointerAnalysisFI>();
     } else {
         PTA.run<pta::PointerAnalysisFS>();
     }

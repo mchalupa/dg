@@ -47,7 +47,7 @@
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
 
 #include "TimeMeasure.h"
@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
         tm.stop();
     } else if (strcmp(pts, "fi") == 0) {
         tm.start();
-        PTA->run<analysis::pta::PointsToFlowInsensitive>();
+        PTA->run<analysis::pta::PointerAnalysisFI>();
         tm.stop();
     } else if (strcmp(pts, "inv") == 0) {
         tm.start();

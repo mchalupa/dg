@@ -14,7 +14,7 @@
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/ReachingDefinitions/SemisparseRda.h"
 
-#include "dg/analysis/PointsTo/PointsToFlowInsensitive.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointsToWithInvalidate.h"
 #include "dg/analysis/PointsTo/Pointer.h"
@@ -56,7 +56,7 @@ class LLVMDependenceGraphBuilder {
         if (_options.PTAOptions.isFS())
             _PTA->run<analysis::pta::PointerAnalysisFS>();
         else if (_options.PTAOptions.isFI())
-            _PTA->run<analysis::pta::PointsToFlowInsensitive>();
+            _PTA->run<analysis::pta::PointerAnalysisFI>();
         else if (_options.PTAOptions.isFSInv())
             _PTA->run<analysis::pta::PointsToWithInvalidate>();
         else {

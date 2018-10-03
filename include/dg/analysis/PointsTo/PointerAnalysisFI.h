@@ -11,15 +11,18 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-class PointsToFlowInsensitive : public PointerAnalysis
+///
+// Flow-insensitive inclusion-based pointer analysis
+//
+class PointerAnalysisFI : public PointerAnalysis
 {
     std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
 protected:
-    PointsToFlowInsensitive() = default;
+    PointerAnalysisFI() = default;
 
 public:
-    PointsToFlowInsensitive(PointerSubgraph *ps)
+    PointerAnalysisFI(PointerSubgraph *ps)
     : PointerAnalysis(ps) {
         memory_objects.reserve(std::max(ps->size() / 100, static_cast<size_t>(8)));
     }
