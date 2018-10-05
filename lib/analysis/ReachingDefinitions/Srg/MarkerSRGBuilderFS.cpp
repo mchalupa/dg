@@ -115,7 +115,7 @@ MarkerSRGBuilderFS::NodeT* MarkerSRGBuilderFS::tryRemoveTrivialPhi(NodeT *phi) {
         return phi;
     }
 
-    auto& users = users_it->second;
+    auto users = users_it->second;
     for (auto& edge : users) {
         NodeT* user = edge.second;
         if (user != phi && user->getType() == RDNodeType::PHI) {
