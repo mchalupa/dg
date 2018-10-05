@@ -110,13 +110,13 @@ class MarkerSRGBuilderFS : public SparseRDGraphBuilder
     }
 
     void removeSrgEdge(NodeT *from, NodeT *to, const DefSite& var) {
-        auto to_vec = srg[to];
+        auto& to_vec = srg[to];
         auto it = std::find(to_vec.begin(), to_vec.end(), std::make_pair(var, from));
         if (it != to_vec.end()) {
             to_vec.erase(it);
         }
 
-        auto from_vec = reverse_srg[from];
+        auto& from_vec = reverse_srg[from];
         auto reverse_it = std::find(from_vec.begin(), from_vec.end(), std::make_pair(var, to));
         if (reverse_it != from_vec.end()) {
             from_vec.erase(reverse_it);
