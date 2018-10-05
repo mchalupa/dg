@@ -32,10 +32,8 @@ class PointerAnalysis
         assert(PS && "Need PointerSubgraph object");
 
         // compute the strongly connected components
-        if (options.preprocessGeps) {
-            SCC<PSNode> scc_comp;
-            SCCs = std::move(scc_comp.compute(PS->getRoot()));
-        }
+        SCC<PSNode> scc_comp;
+        SCCs = std::move(scc_comp.compute(PS->getRoot()));
     }
 
 protected:
@@ -84,6 +82,8 @@ public:
     }
 
     PointerSubgraph *getPS() const { return PS; }
+
+    const std::vector<std::vector<PSNode *> > &getSCCs() const { return SCCs; }
 
     virtual void enqueue(PSNode *n)
     {
