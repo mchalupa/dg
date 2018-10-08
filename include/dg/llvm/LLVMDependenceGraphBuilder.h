@@ -115,15 +115,17 @@ public:
 
     // construct the whole graph with all edges
     std::unique_ptr<LLVMDependenceGraph>&& build() {
-        // data dependencies
+        // compute data dependencies
         _runPointerAnalysis();
         _runReachingDefinitionsAnalysis();
-        _runDefUseAnalysis();
 
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
-        // fill-in control dependencies
+        // insert the data dependencies edges
+        _runDefUseAnalysis();
+
+        // compute and fill-in control dependencies
         _runControlDependenceAnalysis();
 
         // verify if the graph is built correctly
