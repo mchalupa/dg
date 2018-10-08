@@ -189,9 +189,9 @@ public:
             // dump all nodes, to get it without BBlocks
             // (we may not have BBlocks or we just don't want
             // to print them
-            for (auto I = sub->begin(), E = sub->end(); I != E; ++I) {
-                dump_node(I->second, 2);
-                dump_node_edges(I->second, 2);
+            for (auto& I : *sub) {
+                dump_node(I.second, 2);
+                dump_node_edges(I.second, 2);
             }
 
             if (dumpedGlobals.insert(sub->getGlobalNodes().get()).second) {
@@ -432,11 +432,11 @@ private:
 
         // dump all nodes again, if there is any that is
         // not in any BB
-        for (auto I = sub->begin(), E = sub->end(); I != E; ++I)
-            dump_node(I->second, 2);
+        for (auto& I : *sub)
+            dump_node(I.second, 2);
         // dump edges between nodes
-        for (auto I = sub->begin(), E = sub->end(); I != E; ++I)
-            dump_node_edges(I->second, 2);
+        for (auto& I : *sub)
+            dump_node_edges(I.second, 2);
 
         dumpSubgraphEnd(sub);
     }
@@ -501,13 +501,12 @@ private:
         dump_parameters(node, ind);
         if (node->hasSubgraphs() && (options & PRINT_CALL)) {
             // add call-site to callee edges
-            for (auto I = node->getSubgraphs().begin(),
-                      E = node->getSubgraphs().end(); I != E; ++I) {
+            for (auto subgraph : node->getSubgraphs()) {
                 out << Ind
                     << "NODE" << node
-                    << " -> NODE" << (*I)->getEntry()
+                    << " -> NODE" << subgraph->getEntry()
                     << " [label=\"call\""
-                    << "  lhead=cluster_" << *I
+                    << "  lhead=cluster_" << subgraph
                     << " penwidth=3 style=dashed]\n";
             }
         }
@@ -516,14 +515,13 @@ private:
     void dump_nodes()
     {
         out << "\t/* nodes */\n";
-        for (auto I = dg->begin(), E = dg->end(); I != E; ++I) {
-            auto node = I->second;
+        for (auto& I : *dg) {
+            auto node = I.second;
 
             dump_node(node);
 
-            for (auto I = node->getSubgraphs().begin(),
-                      E = node->getSubgraphs().end(); I != E; ++I) {
-                subgraphs.insert(*I);
+            for (auto subgraph : node->getSubgraphs()) {
+                subgraphs.insert(subgraph);
             }
         }
 
@@ -534,8 +532,9 @@ private:
 
     void dump_edges()
     {
-        for (auto I = dg->begin(), E = dg->end(); I != E; ++I)
-            dump_node_edges(I->second);
+        for (auto& I : *dg) {
+            dump_node_edges(I.second);
+        }
 
         if (dumpedGlobals.insert(dg->getGlobalNodes().get()).second)
             for (auto& I : *dg->getGlobalNodes())
