@@ -41,6 +41,7 @@
 #endif
 
 #include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/analysis/DefUse/DefUse.h"
@@ -140,72 +141,38 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    debug::TimeMeasure tm;
+    llvmdg::LLVMDependenceGraphOptions options;
 
-    // TODO refactor the code...
-    LLVMDependenceGraph d;
-    analysis::LLVMPointerAnalysisOptions ptaOpts;
-    ptaOpts.entryFunction = entry_func;
-    LLVMPointerAnalysis *PTA = new LLVMPointerAnalysis(M, ptaOpts);
-
+    options.PTAOptions.entryFunction = entry_func;
+    options.RDAOptions.entryFunction = entry_func;
     if (strcmp(pts, "fs") == 0) {
-        tm.start();
-        PTA->run<analysis::pta::PointerAnalysisFS>();
-        tm.stop();
+        options.PTAOptions.analysisType
+            = LLVMPointerAnalysisOptions::AnalysisType::fs;
     } else if (strcmp(pts, "fi") == 0) {
-        tm.start();
-        PTA->run<analysis::pta::PointerAnalysisFI>();
-        tm.stop();
+        options.PTAOptions.analysisType
+            = LLVMPointerAnalysisOptions::AnalysisType::fi;
     } else if (strcmp(pts, "inv") == 0) {
-        tm.start();
-        PTA->run<analysis::pta::PointerAnalysisFSInv>();
-        tm.stop();
+        options.PTAOptions.analysisType
+            = LLVMPointerAnalysisOptions::AnalysisType::inv;
     } else {
-        llvm::errs() << "Unknown points to analysis, try: fs, fi\n";
+        llvm::errs() << "Unknown points to analysis, try: fs, fi, inv\n";
         abort();
     }
 
-    tm.report("INFO: Points-to analysis took");
-
-    assert(PTA && "BUG: Need points-to analysis");
-    //use new analyses
-    analysis::LLVMReachingDefinitionsAnalysisOptions rdOpts;
-    rdOpts.entryFunction = entry_func;
-
-    analysis::rd::LLVMReachingDefinitions RDA(M, PTA, rdOpts);
-    tm.start();
-
     if (strcmp(rda, "dense") == 0) {
-        tm.start();
-        RDA.run<analysis::rd::ReachingDefinitionsAnalysis>();
-        tm.stop();
+        options.RDAOptions.analysisType
+            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense;
     } else if (strcmp(rda, "ss") == 0) {
-        tm.start();
-        RDA.run<analysis::rd::SemisparseRda>();
-        tm.stop();
+        options.RDAOptions.analysisType
+            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ss;
     } else {
         llvm::errs() << "Unknown reaching definitions analysis, try: dense, ss\n";
         abort();
     }
-    tm.stop();
-    tm.report("INFO: Reaching defs analysis took");
 
-    LLVMDefUseAnalysis DUA(&d, &RDA, PTA);
-    tm.start();
-    DUA.run(); // add def-use edges according that
-    tm.stop();
-    tm.report("INFO: Adding Def-Use edges took");
+    llvmdg::LLVMDependenceGraphBuilder builder(M, options);
+    auto dg = builder.build();
 
-    // we won't need PTA anymore
-    delete PTA;
-
-    tm.start();
-    // add post-dominator frontiers
-    d.computeControlDependencies(cd_alg);
-    tm.stop();
-    tm.report("INFO: computing control dependencies took");
-
-    d.build(M, PTA, &RDA, M->getFunction(entry_func));
 
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
@@ -215,19 +182,15 @@ int main(int argc, char *argv[])
             NULL
         };
 
-        tm.start();
-        d.getCallSites(sc, &callsites);
-        tm.stop();
-        tm.report("INFO: Finding slicing criterions took");
+        dg->getCallSites(sc, &callsites);
 
         LLVMSlicer slicer;
-        tm.start();
 
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
-                slicer.mark(d.getExit());
+                slicer.mark(dg->getExit());
             else
-                slicer.slice(&d, d.getExit());
+                slicer.slice(dg.get(), dg->getExit());
         } else {
             if (callsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
@@ -240,12 +203,8 @@ int main(int argc, char *argv[])
                 slid = slicer.mark(start, slid);
 
             if (!mark_only)
-               slicer.slice(&d, nullptr, slid);
+               slicer.slice(dg.get(), nullptr, slid);
         }
-
-        // there's overhead but nevermind
-        tm.stop();
-        tm.report("INFO: Slicing took");
 
         if (!mark_only) {
             std::string fl(module);
@@ -266,10 +225,10 @@ int main(int argc, char *argv[])
     }
 
     if (bb_only) {
-        LLVMDGDumpBlocks dumper(&d, opts);
+        LLVMDGDumpBlocks dumper(dg.get(), opts);
         dumper.dump(nullptr, dump_func_only);
     } else {
-        LLVMDG2Dot dumper(&d, opts);
+        LLVMDG2Dot dumper(dg.get(), opts);
         dumper.dump(nullptr, dump_func_only);
     }
 

@@ -3,8 +3,7 @@
 
 #include <vector>
 
-#include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
+#include "dg/llvm/LLVMDependenceGraphBuilder.h"
 
 // CommandLine Category for slicer options
 extern llvm::cl::OptionCategory SlicingOpts;
