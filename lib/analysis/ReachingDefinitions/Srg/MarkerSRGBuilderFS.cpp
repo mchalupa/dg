@@ -145,7 +145,7 @@ void MarkerSRGBuilderFS::replacePhi(NodeT *phi, NodeT *replacement) {
         }
     }
 
-    auto& uses = uses_it->second;
+    auto uses = uses_it->second;
 
     for (auto& use_edge : uses) {
         DefSite var = use_edge.first;
