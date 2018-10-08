@@ -259,6 +259,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc)
         subgraph->setGlobalNodes(getGlobalNodes());
         subgraph->module = module;
         subgraph->PTA = PTA;
+        subgraph->RDA = RDA;
         // make subgraphs gather the call-sites too
         subgraph->gatherCallsites(gather_callsites, gatheredCallsites);
 
@@ -374,10 +375,9 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // if func is nullptr, then this is indirect call
         // via function pointer. If we have the points-to information,
         // create the subgraph
-        if (!func && !CInst->isInlineAsm() && PTA) {
+        if (!func && !CInst->isInlineAsm() && PTA && !intraprocedural) {
             using namespace analysis::pta;
-            PSNode *op = PTA->getPointsTo(strippedValue);
-            if (op) {
+            if (PSNode *op = PTA->getPointsTo(strippedValue)) {
                 for (const Pointer& ptr : op->pointsTo) {
                     if (!ptr.isValid() || ptr.isInvalidated())
                         continue;
@@ -405,7 +405,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
             gatheredCallsites->insert(node);
         }
 
-        if (is_func_defined(func)) {
+        if (is_func_defined(func) && !intraprocedural) {
             LLVMDependenceGraph *subg = buildSubgraph(node, func);
             node->addSubgraph(subg);
         }
@@ -669,10 +669,13 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 bool LLVMDependenceGraph::build(llvm::Module *m,
                                 LLVMPointerAnalysis *pts,
                                 LLVMReachingDefinitions *rda,
-                                llvm::Function *entry)
+                                llvm::Function *entry,
+                                bool intraprocedural)
 {
     this->PTA = pts;
     this->RDA = rda;
+    this->intraprocedural = intraprocedural;
+
     return build(m, entry);
 }
 

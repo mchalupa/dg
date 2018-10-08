@@ -56,6 +56,9 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
     // our artificial unified exit block
     std::unique_ptr<LLVMBBlock> unifiedExitBB;
+    // build only the entry function?
+    bool intraprocedural{false};
+
 public:
     LLVMDependenceGraph()
         : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}
@@ -72,7 +75,8 @@ public:
     bool build(llvm::Module *m,
                LLVMPointerAnalysis *pts = nullptr,
                LLVMReachingDefinitions *rda = nullptr,
-               llvm::Function *entry = nullptr);
+               llvm::Function *entry = nullptr,
+               bool intraprocedural = false);
 
     // build DependenceGraph for a function. This will automatically
     // build subgraphs of called functions

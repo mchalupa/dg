@@ -37,6 +37,7 @@ struct LLVMDependenceGraphOptions {
 
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
+    bool intraprocedural{false};
     bool verifyGraph{true};
     bool DUUndefinedArePure{false};
     std::string entryFunction{"main"};
@@ -91,6 +92,13 @@ class LLVMDependenceGraphBuilder {
         _dg->computeControlDependencies(_options.cdAlgorithm);
     }
 
+    void _buildDG() {
+        assert(_PTA);
+        assert(_RD);
+        _dg->build(_M, _PTA.get(), _RD.get(),
+                   _entryFunction, _options.intraprocedural);
+    }
+
     bool verify() const {
         return _dg->verify();
     }
@@ -120,8 +128,8 @@ public:
         _runReachingDefinitionsAnalysis();
         _runDefUseAnalysis();
 
-        // build the graph itself
-        _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
+        // build the LLVM graph itself
+        _buildDG();
 
         // fill-in control dependencies
         _runControlDependenceAnalysis();
@@ -144,9 +152,7 @@ public:
     std::unique_ptr<LLVMDependenceGraph>&& constructCFGOnly() {
         // data dependencies
         _runPointerAnalysis();
-
-        // build the graph itself
-        _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
+        _buildDG();
 
         // verify if the graph is built correctly
         if (_options.verifyGraph && !_dg->verify()) {

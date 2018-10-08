@@ -64,6 +64,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
         llvm::cl::desc("Entry function of the program\n"),
                        llvm::cl::init("main"), llvm::cl::cat(SlicingOpts));
     
+    llvm::cl::opt<bool> intraprocedural("intraprocedural",
+        llvm::cl::desc("Analyse only the entry function without considering calls\n"),
+                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<bool> forwardSlicing("forward",
         llvm::cl::desc("Perform forward slicing\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
@@ -119,7 +123,6 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
 #endif
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
-    /// Fill the structure
     SlicerOptions options;
 
     options.inputFile = inputFile;
@@ -128,20 +131,29 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
 
+    ///
+    // DG builder options
     options.dgOptions.entryFunction = entryFunction;
+    options.dgOptions.intraprocedural = intraprocedural;
+    // FIXME: add classes for CD and DEF-USE settings
+    options.dgOptions.cdAlgorithm = cdAlgorithm;
+    options.dgOptions.DUUndefinedArePure = undefinedArePure;
+
+    ///
+    // PTA options
+    options.dgOptions.PTAOptions.intraprocedural = intraprocedural;
     options.dgOptions.PTAOptions.entryFunction = entryFunction;
     options.dgOptions.PTAOptions.fieldSensitivity
                                     = dg::analysis::Offset(ptaFieldSensitivity);
     options.dgOptions.PTAOptions.analysisType = ptaType;
 
+    ///
+    // RDA options
+    options.dgOptions.RDAOptions.intraprocedural = intraprocedural;
     options.dgOptions.RDAOptions.entryFunction = entryFunction;
     options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
     options.dgOptions.RDAOptions.undefinedArePure = undefinedArePure;
     options.dgOptions.RDAOptions.analysisType = rdaType;
-
-    // FIXME: add classes for CD and DEF-USE settings
-    options.dgOptions.cdAlgorithm = cdAlgorithm;
-    options.dgOptions.DUUndefinedArePure = undefinedArePure;
 
     return options;
 }

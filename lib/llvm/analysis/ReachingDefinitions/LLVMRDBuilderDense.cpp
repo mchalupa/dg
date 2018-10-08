@@ -744,7 +744,7 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
 
     const Function *func = dyn_cast<Function>(calledVal);
     if (func) {
-        if (func->size() == 0) {
+        if (func->size() == 0 || _options.intraprocedural) {
             RDNode *n;
             if (func->isIntrinsic()) {
                 n = createIntrinsicCall(CInst);
@@ -776,6 +776,11 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
             llvm::errs() << "[RD] error: a call via a function pointer, "
                             "but the points-to is empty\n"
                          << *CInst << "\n";
+            RDNode *n = createUndefinedCall(CInst);
+            return std::make_pair(n, n);
+        }
+
+        if (_options.intraprocedural) {
             RDNode *n = createUndefinedCall(CInst);
             return std::make_pair(n, n);
         }

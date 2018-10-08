@@ -47,7 +47,7 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
     // is undefined and after that if it is memory allocation,
     // because some programs may define function named
     // 'malloc' etc.
-    if (func->size() == 0) {
+    if (func->size() == 0 || _options.intraprocedural) {
         /// memory allocation (malloc, calloc, etc.)
         MemAllocationFuncs type = getMemAllocationFunc(func);
         if (type != MemAllocationFuncs::NONEMEM) {

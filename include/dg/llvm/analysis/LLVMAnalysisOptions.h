@@ -11,8 +11,16 @@ struct LLVMAnalysisOptions {
     // Number of bytes in objects to track precisely
     std::string entryFunction{"main"};
 
+    // is the analysis intraprocedural (that is, only of the
+    // entry function?)
+    bool intraprocedural{false};
+
     LLVMAnalysisOptions& setEntryFunction(const std::string& e) {
         entryFunction = e; return *this;
+    }
+
+    LLVMAnalysisOptions& setIntraprocedural(bool b) {
+        intraprocedural = b; return *this;
     }
 };
 
