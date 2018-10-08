@@ -55,7 +55,8 @@ using LLVMBBlock = dg::BBlock<LLVMNode>;
 class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
 {
     // our artificial unified exit block
-    std::unique_ptr<LLVMBBlock> unifiedExitBB;
+    std::unique_ptr<LLVMBBlock> unifiedExitBB{};
+    llvm::Function *entryFunction{nullptr};
 public:
     LLVMDependenceGraph()
         : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}

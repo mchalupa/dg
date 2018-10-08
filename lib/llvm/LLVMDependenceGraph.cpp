@@ -131,10 +131,13 @@ bool LLVMDependenceGraph::verify() const
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
     // get entry function if not given
-    if (!entry)
-        entry = m->getFunction("main");
+    if (entry)
+        entryFunction = entry;
+    else
+        entryFunction = m->getFunction("main");
 
-    if (!entry) {
+
+    if (!entryFunction) {
         errs() << "No entry function found/given\n";
         return false;
     }
@@ -145,7 +148,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     addGlobals(m, this);
 
     // build recursively DG from entry point
-    build(entry);
+    build(entryFunction);
 
     return true;
 };
@@ -192,7 +195,7 @@ bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
     // global as the formal input parameter representing this global
     if (llvm::Function *F
             = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
-        if (F->getName().equals("main")) {
+        if (F == entryFunction) {
             auto gnode = getGlobalNode(val);
             assert(gnode);
             gnode->addControlDependence(fpin);
@@ -338,7 +341,8 @@ bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
     if (llvm::isa<llvm::GlobalVariable>(val)) {
         if (llvm::Function *F
                 = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
-            if (F->getName().equals("main")) {
+            if (F == entryFunction) {
+                llvm::errs() << *val << "\n";
                 auto gnode = getGlobalNode(val);
                 assert(gnode);
                 gnode->addControlDependence(fpin);
