@@ -149,9 +149,10 @@ public:
         out << "digraph \"DependenceGraph\" {\n";
         out << "\tcompound=true label=\"Graph " << dg
             << " has " << dg->size() << " nodes\\n\n"
-            << "\tdd color: " << dd_color << "\n"
-            << "\tuse color: " << use_color << "\n"
-            << "\tcd color: " << cd_color << "\"\n\n";
+            << "\tdd edges color: " << dd_color << "\n"
+            << "\tuse edges color: " << use_color << ", dashed\n"
+            << "\tcd edges color: " << cd_color << "\n"
+            << "\tcfg edges color: " << cfg_color << "\"\n\n";
     }
 
     void end()
@@ -284,7 +285,8 @@ private:
                     <<   "NODE" << firstNode
                     << " [penwidth=2 label=\"" << static_cast<int>(S.label) << "\""
                     << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S.target << "]\n";
+                    << "  lhead=cluster_bb_" << S.target
+                    << "  color=\"" << cfg_color << "\"" << "]\n";
             }
         }
 
@@ -296,7 +298,7 @@ private:
                 out << Ind
                     << "NODE" << firstNode << " -> "
                     <<   "NODE" << lastNode
-                    << " [penwidth=2 color=gray"
+                    << " [penwidth=2 color=\"" << cfg_color << "\" dashed"
                     << "  ltail=cluster_bb_" << BB
                     << "  lhead=cluster_bb_" << S << " constraint=false]\n";
             }
@@ -601,6 +603,7 @@ private:
     const char *dd_color = "cyan4";
     const char *use_color = "black";
     const char *cd_color = "blue";
+    const char *cfg_color = "gray";
 
     DependenceGraph<NodeT> *dg;
     const char *file;
