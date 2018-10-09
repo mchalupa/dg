@@ -75,31 +75,10 @@ add_library(LLVMrd SHARED
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
 )
 
-# Get proper shared-library behavior (where symbols are not necessarily
-# resolved when the shared library is linked) on OS X.
-if(APPLE)
-  set_target_properties(LLVMdg PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-
-  set_target_properties(LLVMpta PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-
-  set_target_properties(LLVMrd PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-endif(APPLE)
-
 
 target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
-			PUBLIC RD
-			PRIVATE ${llvm_support}
-			PRIVATE ${llvm_analysis}
-			PRIVATE ${llvm_irreader}
-			PRIVATE ${llvm_bitwriter}
-			PRIVATE ${llvm_core})
+			PUBLIC RD)
 
 add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h
@@ -121,9 +100,30 @@ add_library(LLVMdg SHARED
 	llvm/analysis/DefUse/DefUse.cpp
 )
 
+# Get proper shared-library behavior (where symbols are not necessarily
+# resolved when the shared library is linked) on OS X.
+if(APPLE)
+  set_target_properties(LLVMdg PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+
+  set_target_properties(LLVMpta PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+
+  set_target_properties(LLVMrd PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+endif(APPLE)
+
 target_link_libraries(LLVMdg
 			PUBLIC LLVMpta
-			PUBLIC LLVMrd)
+			PUBLIC LLVMrd
+			PRIVATE ${llvm_support}
+			PRIVATE ${llvm_analysis}
+			PRIVATE ${llvm_irreader}
+			PRIVATE ${llvm_bitwriter}
+			PRIVATE ${llvm_core})
 
 install(TARGETS LLVMdg LLVMpta LLVMrd PTA RD DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
