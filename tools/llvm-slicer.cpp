@@ -145,6 +145,16 @@ public:
                  llvm::Module *m)
     : options(o), M(m) {}
 
+    int cleanAndSaveModule(bool should_verify_module = true) {
+        // remove unneeded parts of the module
+        removeUnusedFromModule();
+
+        // fix linkage of declared functions (if needs to be fixed)
+        makeDeclarationsExternal();
+
+        return saveModule(should_verify_module);
+    }
+
     int saveModule(bool should_verify_module = true)
     {
         if (should_verify_module)
@@ -762,7 +772,6 @@ int main(int argc, char *argv[])
     if (remove_unused_only) {
         errs() << "INFO: removed unused parts of module, exiting...\n";
         maybe_print_statistics(M.get(), "Statistics after ");
-
         return writer.saveModule(should_verify_module);
     }
 
@@ -796,12 +805,25 @@ int main(int argc, char *argv[])
     auto criteria_nodes = getSlicingCriteriaNodes(slicer.getDG(),
                                                   options.slicingCriteria);
     if (criteria_nodes.empty()) {
-        llvm::errs() << "Did not find slicing criterioa: '"
+        llvm::errs() << "Did not find slicing criteria: '"
                      << options.slicingCriteria << "'\n";
+        if (annotator.shouldAnnotate()) {
+            slicer.computeDependencies();
+            annotator.annotate();
+        }
+
+        if (!slicer.createEmptyMain())
+            return 1;
+
+        maybe_print_statistics(M.get(), "Statistics after ");
+        return writer.cleanAndSaveModule(should_verify_module);
     }
 
     // mark nodes that are going to be in the slice
-    slicer.mark(criteria_nodes, annotator.shouldAnnotate());
+    if (!slicer.mark(criteria_nodes)) {
+        llvm::errs() << "Finding dependent nodes failed\n";
+        return 1;
+    }
 
     // print debugging llvm IR if user asked for it
     if (annotator.shouldAnnotate())
@@ -827,12 +849,6 @@ int main(int argc, char *argv[])
 
     // remove unused from module again, since slicing
     // could and probably did make some other parts unused
-    writer.removeUnusedFromModule();
-
-    // fix linkage of declared functions (if needs to be fixed)
-    writer.makeDeclarationsExternal();
-
     maybe_print_statistics(M.get(), "Statistics after ");
-
-    return writer.saveModule(should_verify_module);
+    return writer.cleanAndSaveModule(should_verify_module);
 }

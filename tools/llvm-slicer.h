@@ -32,6 +32,25 @@
 //
 //  The main class that takes the bitcode, constructs the dependence graph
 //  and then slices it w.r.t given slicing criteria.
+//  The usual workflow is as follows:
+//
+//  Slicer slicer(M, options);
+//  slicer.buildDG();
+//  slicer.mark(criteria);
+//  slicer.slice();
+//
+//  In the case that the slicer is not used for slicing,
+//  but just for building the graph, the user may do the following:
+//
+//  Slicer slicer(M, options);
+//  slicer.buildDG();
+//  slicer.computeDependencies();
+//
+//  or:
+//
+//  Slicer slicer(M, options);
+//  slicer.buildDG(true /* compute dependencies */);
+//
 /// --------------------------------------------------------------------
 class Slicer {
     llvm::Module *M{};
@@ -42,6 +61,7 @@ class Slicer {
 
     dg::LLVMSlicer slicer;
     uint32_t slice_id = 0;
+    bool _computed_deps{false};
 
 public:
     Slicer(llvm::Module *mod, const SlicerOptions& opts)
@@ -51,25 +71,50 @@ public:
     const dg::LLVMDependenceGraph& getDG() const { return *_dg.get(); }
     dg::LLVMDependenceGraph& getDG() { return *_dg.get(); }
 
+    // Mirror LLVM to nodes of dependence graph,
+    // No dependence edges are added here unless the
+    // 'compute_deps' parameter is set to true.
+    // Otherwise, dependencies must be computed later
+    // using computeDependencies().
+    bool buildDG(bool compute_deps = false) {
+        _dg = std::move(_builder.constructCFGOnly());
 
-    // mark the nodes from the slice
-    bool mark(std::set<dg::LLVMNode *>& criteria_nodes,
-              bool always_compute_deps = false)
+        if (!_dg) {
+            llvm::errs() << "Building the dependence graph failed!\n";
+            return false;
+        }
+
+        if (compute_deps)
+            computeDependencies();
+
+        return true;
+    }
+
+    // Explicitely compute dependencies after building the graph.
+    // This method can be used to compute dependencies without
+    // calling mark() afterwards (mark() calls this function).
+    // It must not be called before calling mark() in the future.
+    void computeDependencies() {
+        assert(!_computed_deps && "Already called computeDependencies()");
+        // must call buildDG() before this function
+        assert(_dg && "Must build dg before computing dependencies");
+
+        _dg = _builder.computeDependencies(std::move(_dg));
+        _computed_deps = true;
+    }
+
+    // Mark the nodes from the slice.
+    // This method calls computeDependencies(),
+    // but buildDG() must be called before.
+    bool mark(std::set<dg::LLVMNode *>& criteria_nodes)
     {
         assert(_dg && "mark() called without the dependence graph built");
+        assert(!criteria_nodes.empty() && "Do not have slicing criteria");
 
         dg::debug::TimeMeasure tm;
 
-        // if we found slicing criterion, compute the rest
-        // of the graph. Otherwise just slice away the whole graph
-        if (!criteria_nodes.empty() || always_compute_deps)
-            _dg = _builder.computeDependencies(std::move(_dg));
-
-        // don't go through the graph when we know the result:
-        // only empty main will stay there. Just delete the body
-        // of main and keep the return value
-        if (criteria_nodes.empty())
-            return createNewMain();
+        // compute dependece edges
+        computeDependencies();
 
         // unmark this set of nodes after marking the relevant ones.
         // Used to mimic the Weissers algorithm
@@ -105,6 +150,7 @@ public:
 
     bool slice()
     {
+        assert(_dg && "Must run buildDG() and computeDependencies()");
         assert(slice_id != 0 && "Must run mark() method before slice()");
 
         dg::debug::TimeMeasure tm;
@@ -122,39 +168,35 @@ public:
         return true;
     }
 
-    bool buildDG() {
-        _dg = std::move(_builder.constructCFGOnly());
-
-        if (!_dg) {
-            llvm::errs() << "Building the dependence graph failed!\n";
-            return false;
-        }
-
-        return true;
-    }
-private:
-
     ///
-    // Create new empty main. If 'call_entry' is set to true, then
-    // call the entry function from the new main, otherwise the
-    // main is going to be empty
-    bool createNewMain()
+    // Create new empty main in the module. If 'call_entry' is set to true,
+    // then call the entry function from the new main (if entry is not main),
+    // otherwise the main is going to be empty
+    bool createEmptyMain(bool call_entry = false)
     {
+        llvm::LLVMContext& ctx = M->getContext();
         llvm::Function *main_func = M->getFunction("main");
         if (!main_func) {
-            llvm::errs() << "No main function found in module. This seems like bug since\n"
-                            "here we should have the graph build from main\n";
-            return false;
+            main_func
+                = llvm::cast<llvm::Function>(
+                    M->getOrInsertFunction("main",
+                                           llvm::Type::getInt32Ty(ctx)));
+            if (!main_func) {
+                llvm::errs() << "Could not create new main function\n";
+                return false;
+            }
+        } else {
+            // delete old function body
+            main_func->deleteBody();
         }
+
+        assert(main_func && "Do not have the main func");
+        assert(main_func->size() == 0 && "The main func is not empty");
     
-        // delete old function body
-        main_func->deleteBody();
-    
-        // create new function body that just returns
-        llvm::LLVMContext& ctx = M->getContext();
+        // create new function body
         llvm::BasicBlock* blk = llvm::BasicBlock::Create(ctx, "entry", main_func);
     
-        if (_options.dgOptions.entryFunction != "main") {
+        if (call_entry && _options.dgOptions.entryFunction != "main") {
             llvm::Function *entry = M->getFunction(_options.dgOptions.entryFunction);
             assert(entry && "The entry function is not present in the module");
     
