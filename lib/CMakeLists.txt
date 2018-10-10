@@ -96,9 +96,36 @@ add_library(LLVMdg SHARED
 	llvm/analysis/DefUse/DefUse.cpp
 )
 
-target_link_libraries(LLVMdg
-			PUBLIC LLVMpta
-			PUBLIC LLVMrd)
+# Get proper shared-library behavior (where symbols are not necessarily
+# resolved when the shared library is linked) on OS X.
+if(APPLE)
+  set_target_properties(LLVMdg PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+
+  set_target_properties(LLVMpta PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+
+  set_target_properties(LLVMrd PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+endif(APPLE)
+
+if (APPLE)
+	target_link_libraries(LLVMdg
+				PUBLIC LLVMpta
+				PUBLIC LLVMrd
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_bitwriter}
+				PRIVATE ${llvm_core})
+else()
+	target_link_libraries(LLVMdg
+				PUBLIC LLVMpta
+				PUBLIC LLVMrd)
+endif(APPLE)
 
 install(TARGETS LLVMdg LLVMpta LLVMrd PTA RD DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
