@@ -53,6 +53,7 @@ using dg::debug::TimeMeasure;
 using llvm::errs;
 
 static bool verbose;
+static bool verbose_more;
 static bool ids_only = false;
 static bool dump_graph_only = false;
 static uint64_t dump_iteration = 0;
@@ -224,6 +225,22 @@ dumpMemoryMap(PointerAnalysisFS::MemoryMapT *mm, int ind, bool dot)
     }
 }
 
+static bool mmChanged(PSNode *n)
+{
+    if (n->predecessorsNum() == 0)
+        return true;
+
+    PointerAnalysisFS::MemoryMapT *mm
+        = n->getData<PointerAnalysisFS::MemoryMapT>();
+
+    for (PSNode *pred : n->getPredecessors()) {
+        if (pred->getData<PointerAnalysisFS::MemoryMapT>() != mm)
+            return true;
+    }
+
+    return false;
+}
+
 static void
 dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
 {
@@ -253,7 +270,8 @@ dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
         else
             printf("    Memory map: [%p]\n", static_cast<void*>(mm));
 
-        dumpMemoryMap(mm, 6, dot);
+        if (verbose_more || mmChanged(n))
+            dumpMemoryMap(mm, 6, dot);
 
         if (!dot)
             printf("    ----------------\n");
@@ -422,6 +440,9 @@ int main(int argc, char *argv[])
             dump_graph_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-vv") == 0) {
+            verbose = true;
+            verbose_more = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entry_func = argv[i + 1];
         } else {
