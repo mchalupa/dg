@@ -146,6 +146,9 @@ public:
         preprocess();
         initialize_queue();
 
+        // check that the current state of pointer analysis makes sense
+        sanityCheck();
+
         // do fixpoint
         do {
             iteration();
@@ -198,19 +201,8 @@ public:
 
 private:
 
-    // check the results of pointer analysis
-    void sanityCheck() {
-        assert(NULLPTR->pointsTo.size() == 1
-               && "Null has been assigned a pointer");
-        assert(NULLPTR->doesPointsTo(NULLPTR)
-               && "Null points to a different location");
-        assert(UNKNOWN_MEMORY->pointsTo.size() == 1
-               && "Unknown memory has been assigned a pointer");
-        assert(UNKNOWN_MEMORY->doesPointsTo(UNKNOWN_MEMORY, Offset::UNKNOWN)
-               && "Unknown memory has been assigned a pointer");
-        assert(INVALIDATED->pointsTo.empty()
-               && "Unknown memory has been assigned a pointer");
-    }
+    // check the sanity of results of pointer analysis
+    void sanityCheck();
 
     void preprocessGEPs()
     {

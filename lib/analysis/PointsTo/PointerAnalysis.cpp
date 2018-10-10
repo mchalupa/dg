@@ -420,6 +420,35 @@ bool PointerAnalysis::processNode(PSNode *node)
     return changed;
 }
 
+void PointerAnalysis::sanityCheck() {
+#ifndef NDEBUG
+    assert(NULLPTR->pointsTo.size() == 1
+           && "Null has been assigned a pointer");
+    assert(NULLPTR->doesPointsTo(NULLPTR)
+           && "Null points to a different location");
+    assert(UNKNOWN_MEMORY->pointsTo.size() == 1
+           && "Unknown memory has been assigned a pointer");
+    assert(UNKNOWN_MEMORY->doesPointsTo(UNKNOWN_MEMORY, Offset::UNKNOWN)
+           && "Unknown memory has been assigned a pointer");
+    assert(INVALIDATED->pointsTo.empty()
+           && "Unknown memory has been assigned a pointer");
+
+    auto nodes = PS->getNodes(PS->getRoot());
+    std::set<unsigned> ids;
+    for (auto nd : nodes) {
+        assert(ids.insert(nd->getID()).second && "Duplicated node ID");
+
+        if (nd->getType() == PSNodeType::ALLOC) {
+            assert(nd->pointsTo.size() == 1
+                   && "Alloc does not point only to itself");
+            assert(nd->doesPointsTo(nd, 0)
+                   && "Alloc does not point only to itself");
+        }
+    }
+#endif // not NDEBUG
+}
+
+
 } // namespace pta
 } // namespace analysis
 } // namespace dg
