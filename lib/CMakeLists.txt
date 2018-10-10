@@ -74,8 +74,6 @@ add_library(LLVMrd SHARED
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
 )
-
-
 target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
 			PUBLIC RD)
@@ -116,14 +114,20 @@ if(APPLE)
   )
 endif(APPLE)
 
-target_link_libraries(LLVMdg
-			PUBLIC LLVMpta
-			PUBLIC LLVMrd
-			PRIVATE ${llvm_support}
-			PRIVATE ${llvm_analysis}
-			PRIVATE ${llvm_irreader}
-			PRIVATE ${llvm_bitwriter}
-			PRIVATE ${llvm_core})
+if (APPLE)
+	target_link_libraries(LLVMdg
+				PUBLIC LLVMpta
+				PUBLIC LLVMrd
+				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_bitwriter}
+				PRIVATE ${llvm_core})
+else()
+	target_link_libraries(LLVMdg
+				PUBLIC LLVMpta
+				PUBLIC LLVMrd)
+endif(APPLE)
 
 install(TARGETS LLVMdg LLVMpta LLVMrd PTA RD DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
