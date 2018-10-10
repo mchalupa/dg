@@ -725,9 +725,9 @@ std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
     return M;
 }
 
+#ifndef USING_SANITIZERS
 void setupStackTraceOnError(int argc, char *argv[])
 {
-#ifndef USING_SANITIZERS
 
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
     llvm::sys::PrintStackTraceOnErrorSignal();
@@ -736,8 +736,10 @@ void setupStackTraceOnError(int argc, char *argv[])
 #endif
     llvm::PrettyStackTraceProgram X(argc, argv);
 
-#endif // USING_SANITIZERS
 }
+#else
+void setupStackTraceOnError(int, char **) {}
+#endif // not USING_SANITIZERS
 
 
 int main(int argc, char *argv[])
