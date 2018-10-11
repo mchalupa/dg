@@ -3,6 +3,10 @@
 
 #include <cstdint>
 
+#ifndef NDEBUG
+#include <iostream>
+#endif // not NDEBUG
+
 namespace dg {
 namespace analysis {
 
@@ -108,6 +112,16 @@ struct Offset
 
     type operator*() const { return offset; }
     const type *operator->() const { return &offset; }
+
+#ifndef NDEBUG
+    void dump() const {
+        if (isUnknown())
+            std::cout << "Offset::UNKNOWN";
+        else
+            std::cout << offset;
+    }
+#endif // not NDEBUG
+
 
     type offset;
 };

@@ -4,6 +4,10 @@
 // This file defines a basis for nodes from
 // PointerSubgraph and reaching definitions subgraph.
 
+#ifndef NDEBUG
+#include <iostream>
+#endif // not NDEBUG
+
 #include <vector>
 #include <algorithm>
 
@@ -335,6 +339,21 @@ public:
     size_t successorsNum() const {
         return successors.size();
     }
+
+#ifndef NDEBUG
+    virtual void dump() const {
+        std::cout << "SubgraphNode <" << getID();
+    }
+
+    virtual void print() const {
+        dump();
+        std::cout << "\n";
+    }
+
+    virtual void dumpv() const {
+        print();
+    }
+#endif
 
 private:
     bool removeDuplicitOperands() {

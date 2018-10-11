@@ -6,6 +6,11 @@
 #include <set>
 #include <cassert>
 
+#ifndef NDEBUG
+#include <iostream>
+#include "dg/analysis/PointsTo/PSNode.h"
+#endif // not NDEBUG
+
 #include "PointsToSet.h"
 
 namespace dg {
@@ -67,22 +72,32 @@ struct MemoryObject
         return changed;
     }
 
+#ifndef NDEBUG
+    void dump() const {
+        std::cout << "MO [" << this << "] for ";
+        node->dump(); 
+    }
 
-#if 0
-    // some analyses need to know if this is heap or stack
-    // allocated object
-    bool is_heap;
-    // if the object is allocated via malloc or
-    // similar, we can not infer the size from type,
-    // because it is recast to (usually) i8*. Store the
-    // size information here, if applicable and available
-    uint64_t size;
+    void dumpv() const {
+        dump();
+        for (const auto& it : pointsTo) {
+            std::cout << "[";
+            it.first.dump();
+            std::cout << "]";
+            for (const auto& ptr : it.second) {
+                std::cout << "  -> ";
+                ptr.dump();
+                std::cout << "\n";
+            }
+        }
+        std::cout << "\n";
+    }
 
-    bool isUnknown() const;
-    bool isNull() const;
-    bool isHeapAllocated() const { return is_heap; }
-    bool hasSize() const { return size != 0; }
-#endif
+    void print() const {
+        dump();
+        std::cout << "\n";
+    }
+#endif // not NDEBUG
 };
 
 } // namespace pta

@@ -5,6 +5,10 @@
 #include <cstdarg>
 #include <string>
 
+#ifndef NDEBUG
+#include <iostream>
+#endif // not NDEBUG
+
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/PointsToSet.h"
 #include "dg/analysis/SubgraphNode.h"
@@ -335,6 +339,31 @@ public:
 
         return node;
     }
+
+#ifndef NDEBUG
+    void dump() const override {
+        std::cout << "<"<< getID() << "> " << PSNodeTypeToCString(getType());
+    }
+
+    // verbose dump
+    void dumpv() const override {
+        dump();
+        std::cout << "(";
+        int n = 0;
+        for (const auto op : getOperands()) {
+            if (++n > 1)
+                std::cout << ", ";
+            op->dump();
+        }
+        std::cout << ")";
+
+        for (const auto& ptr : pointsTo) {
+            std::cout << "\n  -> ";
+            ptr.dump();
+        }
+        std::cout << "\n";
+    }
+#endif // not NDEBUG
 
     // FIXME: maybe get rid of these friendships?
     friend class PointerAnalysis;
