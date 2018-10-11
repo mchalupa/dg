@@ -69,6 +69,10 @@ public:
     RDNode(RDNodeType t = RDNodeType::NONE)
     : SubgraphNode<RDNode>(0), type(t), dfsid(0) {}
 
+#ifndef NDEBUG
+    virtual ~RDNode() = default;
+#endif
+
     // this is the gro of this node, so make it public
     DefSiteSetT defs;
     // this is a subset of defs that are strong update

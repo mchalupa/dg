@@ -41,6 +41,13 @@ struct Pointer
     bool isUnknown() const { return target == UNKNOWN_MEMORY; };
     bool isValid() const { return !isNull() && !isUnknown(); }
     bool isInvalidated() const { return target == INVALIDATED; }
+
+#ifndef NDEBUG
+    void dump() const;
+    void print() const;
+#endif // not NDEBUG
+
+
 };
 
 extern const Pointer PointerUnknown;
