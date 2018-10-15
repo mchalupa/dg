@@ -344,6 +344,12 @@ public:
                     if (ptr.isValid() && // if the ptr is null or unkown,
                                          // we want to copy it
                         pointsToTarget(operand->pointsTo, ptr.target)) {
+                        if (!invStrongUpdate(operand)) {
+                            // we still want to copy the original pointer
+                            // if we cannot perform strong update
+                            // on this invalidated memory
+                            changed |= S.add(ptr);
+                        }
                         changed |= S.add(INVALIDATED);
                     } else {
                         // this is a pointer to some memory that was not
