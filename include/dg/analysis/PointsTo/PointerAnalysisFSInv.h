@@ -218,18 +218,21 @@ public:
         return changed;
     }
 
-    bool invStrongUpdate(PSNode * /*operand*/) {
-        // This is not right as we do not know to which instance
-        // of the object the pointer points to
-        // (the allocation may be in a loop)
+    bool invStrongUpdate(PSNode *operand) {
+        // If we are freeing memory through node that
+        // points to precisely known valid memory that is not allocated
+        // on a loop, we can do strong update.
         //
-        // return operand->pointsTo.size() == 1;
-
-        // TODO: but we can do strong update on must-aliases
+        // TODO: we can do strong update also on must-aliases
         // of the invalidated pointer. That is, e.g. for
         // free(p), we may do strong update for q if q is must-alias
         // of p (no matter the size of p's and q's points-to sets)
-        return false;
+        if (operand->pointsTo.size() != 1)
+            return false;
+
+        const auto& ptr  = *(operand->pointsTo.begin());
+        return !ptr.offset.isUnknown()
+                && !isInvalidTarget(ptr.target) && !isOnLoop(ptr.target);
     }
 
     bool overwriteInvalidatedVariable(MemoryMapT *mm, PSNode *operand) {

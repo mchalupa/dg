@@ -190,12 +190,15 @@ protected:
         return mm;
     }
 
-private:
-    static bool needsMerge(PSNode *n) {
-        return n->predecessorsNum() > 1 || canChangeMM(n);
+    bool pointsToAllocationInLoop(PSNode *n) {
+        for (const auto& ptr : n->pointsTo) {
+            if (isOnLoop(ptr.target))
+                return true;
+        }
+        return false;
     }
 
-    bool isInLoop(PSNode *n) const {
+    bool isOnLoop(PSNode *n) const {
         unsigned idx = n->getSCCId();
         const auto& scc = getSCCs()[idx];
 
@@ -203,12 +206,10 @@ private:
         return scc.size() > 1;
     }
 
-    bool pointsToAllocationInLoop(PSNode *n) {
-        for (const auto& ptr : n->pointsTo) {
-            if (isInLoop(ptr.target))
-                return true;
-        }
-        return false;
+
+private:
+    static bool needsMerge(PSNode *n) {
+        return n->predecessorsNum() > 1 || canChangeMM(n);
     }
 
     // keep all the maps in order to free the memory
