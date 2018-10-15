@@ -93,7 +93,7 @@ void printPSNodeType(enum PSNodeType type) {
 static void dumpPointer(const Pointer& ptr, bool dot);
 
 static void
-printName(PSNode *node, bool dot)
+printName(PSNode *node, bool dot = false)
 {
     std::string nm;
     const char *name = nullptr;
@@ -113,18 +113,21 @@ printName(PSNode *node, bool dot)
         }
 
         if (!node->getUserData<llvm::Value>()) {
-            printf("<%u> (no name)\\n", node->getID());
-            if (node->getType() == PSNodeType::CONSTANT) {
-                dumpPointer(*(node->pointsTo.begin()), dot);
-            } else if (node->getType() == PSNodeType::CALL_RETURN) {
-                if (PSNode *paired = node->getPairedNode())
-                    printName(paired, dot);
-            } else if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
-                printf("%s\\n", entry->getFunctionName().c_str());
-            }
+            if (dot) {
+                printf("<%u> (no name)\\n", node->getID());
 
-            if (!dot)
-                printf(" <%u>\n", node->getID());
+                if (node->getType() == PSNodeType::CONSTANT) {
+                    dumpPointer(*(node->pointsTo.begin()), dot);
+                } else if (node->getType() == PSNodeType::CALL_RETURN) {
+                    if (PSNode *paired = node->getPairedNode())
+                        printName(paired, dot);
+                } else if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
+                    printf("%s\\n", entry->getFunctionName().c_str());
+                }
+            } else {
+                printf("<%u> ", node->getID());
+                printPSNodeType(node->getType());
+            }
 
             return;
         }
@@ -282,9 +285,7 @@ static void
 dumpPSNode(PSNode *n, PTType type)
 {
     printf("NODE %3u: ", n->getID());
-    printf("Ty: ");
-    printPSNodeType(n->getType());
-    printf("\\n");
+    printName(n);
 
     PSNodeAlloc *alloc = PSNodeAlloc::get(n);
     if (alloc &&
@@ -292,11 +293,7 @@ dumpPSNode(PSNode *n, PTType type)
         printf(" [size: %lu, heap: %u, zeroed: %u]",
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
-    if (n->pointsTo.empty()) {
-        puts("no points-to");
-        return;
-    } else
-        putchar('\n');
+    printf(" (points-to size: %lu)\n", n->pointsTo.size());
 
     for (const Pointer& ptr : n->pointsTo) {
         printf("    -> ");
