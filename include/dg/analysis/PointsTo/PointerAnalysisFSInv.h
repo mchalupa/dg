@@ -338,13 +338,16 @@ public:
 
                 // merge pointers from the previous states
                 // but do not include the pointers
-                // that may point to freed memory
+                // that may point to freed memory.
+                // These must be replaced with invalidated.
                 for (const auto& ptr : predS) {
-                    if (pointsToTarget(operand->pointsTo, ptr.target)) {
+                    if (ptr.isValid() && // if the ptr is null or unkown,
+                                         // we want to copy it
+                        pointsToTarget(operand->pointsTo, ptr.target)) {
                         changed |= S.add(INVALIDATED);
                     } else {
-                        // this pointer is to some memory that was not invalidated,
-                        // so merge it into the points-to set
+                        // this is a pointer to some memory that was not
+                        // invalidated, so merge it into the points-to set
                         changed |= S.add(ptr);
                     }
                 }
