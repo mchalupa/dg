@@ -178,6 +178,38 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     return std::make_pair(callNode, returnNode);
 }
 
+PSNodesSeq LLVMPointerSubgraphBuilder::createCallToPthread(const llvm::CallInst *CInst, const llvm::Function *F)
+{
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+
+    // reuse built subgraphs if available
+    Subgraph& subg = createOrGetSubgraph(F);
+    // we took the subg by reference, so it should be filled now
+    assert(subg.root);
+
+    // add operands to arguments
+    addInterproceduralPthreadOperands(F, CInst);
+
+    // add an edge from last argument to root of the subgraph
+    // and from the subprocedure return node (which is one - unified
+    // for all return nodes) to return from the call
+    callNode->addSuccessor(subg.root);
+
+    // the operands to the return node (which works as a phi node)
+    // are going to be added when the subgraph is built
+//    PSNode *returnNode = nullptr;
+//    if (subg.ret) {/*
+//        returnNode = PS.create(PSNodeType::CALL_RETURN, nullptr);
+//        returnNode->setPairedNode(callNode);
+//        callNode->setPairedNode(returnNode);
+//        subg.ret->addSuccessor(returnNode);
+//    } else {*/
+        callNode->setPairedNode(callNode);
+//    }
+
+    return std::make_pair(callNode, callNode);
+}
+
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
                                               const llvm::Function *F)
@@ -201,13 +233,27 @@ LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
     return ret;
 }
 
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadFuncptrCall(const llvm::CallInst *CInst, const llvm::Function *F)
+{
+    ad_hoc_building = true;
+
+    auto ret = createCallToPthread(CInst, F);
+#ifndef NDEBUG
+    Subgraph& subg = subgraphs_map[F];
+    assert(subg.root != nullptr);
+#endif
+
+    ad_hoc_building = false;
+
+    return ret;
+}
+
 bool
 LLVMPointerSubgraphBuilder::callIsCompatible(PSNode *call,
                                              PSNode *func)
 {
     const llvm::CallInst *CI = call->getUserData<llvm::CallInst>();
     const llvm::Function *F = func->getUserData<llvm::Function>();
-
     // incompatible prototypes, skip it...
     return llvmutils::callIsCompatible(F, CI);
 } 
@@ -249,6 +295,27 @@ LLVMPointerSubgraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called)
         // so just add a new one
         callsite->addSuccessor(cf.first);
     }
+}
+
+void LLVMPointerSubgraphBuilder::insertPthreadCreateCall(PSNode *callsite, PSNode *called)
+{
+    const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
+    const llvm::Function *F = called->getUserData<llvm::Function>();
+
+    // create new instructions
+    auto cf = createPthreadFuncptrCall(CI, F);
+    assert(cf.first && "Failed building the subgraph");
+
+    // we got the return site for the call stored as the paired node
+//    PSNode *ret = callsite->getPairedNode();
+//    if (cf.second) {
+//        // If we have some returns from this function,
+//        // pass the returned values to the return site.
+//        ret->addOperand(cf.second);
+//        cf.second->addSuccessor(ret);
+//    }
+
+    callsite->addSuccessor(cf.first);
 }
 
 
@@ -726,10 +793,9 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
 }
 
 void LLVMPointerSubgraphBuilder::addArgumentsOperands(const llvm::Function *F,
-                                                      const llvm::CallInst *CI)
+                                                      const llvm::CallInst *CI, int index)
 {
-    int idx = 0;
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++index) {
         auto it = nodes_map.find(&*A);
         assert(it != nodes_map.end());
 
@@ -739,10 +805,10 @@ void LLVMPointerSubgraphBuilder::addArgumentsOperands(const llvm::Function *F,
         if (CI)
             // with func ptr call we know from which
             // call we should take the values
-            addArgumentOperands(CI, cur.first, idx);
+            addArgumentOperands(CI, cur.first, index);
         else
             // with regular call just use all calls
-            addArgumentOperands(F, cur.first, idx);
+            addArgumentOperands(F, cur.first, index);
     }
 }
 
@@ -828,6 +894,12 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::Function *F, P
             addReturnNodeOperand(callNode, op);
         }
     }
+}
+
+void LLVMPointerSubgraphBuilder::addInterproceduralPthreadOperands(const llvm::Function *F, const llvm::CallInst *CI)
+{
+    // last argument (with index 3) is argument to function pthread_create will call
+    addArgumentsOperands(F, CI, 3);
 }
 
 void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function *F,

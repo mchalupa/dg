@@ -126,12 +126,17 @@ public:
     createFuncptrCall(const llvm::CallInst *CInst,
                       const llvm::Function *F);
 
+    PSNodesSeq
+    createPthreadFuncptrCall(const llvm::CallInst *CInst,
+                             const llvm::Function *F);
+
     static bool callIsCompatible(PSNode *call, PSNode *func);
 
     // Insert a call of a function into an already existing graph.
     // The call will be inserted betwee the callsite and
     // the return from the call nodes.
     void insertFunctionCall(PSNode *callsite, PSNode *called);
+    void insertPthreadCreateCall(PSNode *callsite, PSNode *called);
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
@@ -170,6 +175,9 @@ private:
     // is set to true
     PSNodesSeq
     createCallToFunction(const llvm::CallInst *, const llvm::Function *);
+
+    PSNodesSeq
+    createCallToPthread(const llvm::CallInst *, const llvm::Function *);
 
     PSNode *getMapping(const llvm::Value *val) {
         return mapping.get(val);
@@ -261,7 +269,8 @@ private:
     void addArgumentOperands(const llvm::Function *F, PSNode *arg, int idx);
     void addArgumentOperands(const llvm::CallInst *CI, PSNode *arg, int idx);
     void addArgumentsOperands(const llvm::Function *F,
-                              const llvm::CallInst *CI = nullptr);
+                              const llvm::CallInst *CI = nullptr,
+                              int index = 0);
     void addVariadicArgumentOperands(const llvm::Function *F, PSNode *arg);
     void addVariadicArgumentOperands(const llvm::Function *F,
                                      const llvm::CallInst *CI,
@@ -277,11 +286,15 @@ private:
                                     Subgraph& subg,
                                     const llvm::CallInst *CI = nullptr,
                                     PSNode *callNode = nullptr);
+    void addInterproceduralPthreadOperands(const llvm::Function *F,
+                                           const llvm::CallInst *CI = nullptr);
 
     PSNodesSeq createExtract(const llvm::Instruction *Inst);
     PSNodesSeq createCall(const llvm::Instruction *Inst);
+    PSNodesSeq createPthreadCall(const llvm::CallInst *, const llvm::Function *);
     PSNodesSeq createFunctionCall(const llvm::CallInst *, const llvm::Function *);
     PSNodesSeq createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
+    PSNodesSeq createPthreadCreateFuncptrCall(const llvm::CallInst *, const llvm::Value *);
     Subgraph& createOrGetSubgraph(const llvm::Function *);
 
 
