@@ -65,10 +65,17 @@ public:
             return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
         }
 
-        if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called))
-            return false;
+        if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called)) {
+            const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
+            if (CI->getCalledFunction()->getName() != "pthread_create") {
+                return false;
+            } else {
+                builder->insertPthreadCreateCall(callsite, called);
+            }
+        } else {
+            builder->insertFunctionCall(callsite, called);
+        }
 
-        builder->insertFunctionCall(callsite, called);
 
 #ifndef NDEBUG
         // check the graph after rebuilding, but do not check for connectivity,
