@@ -32,6 +32,8 @@ class PointerAnalysisFSInv : public PointerAnalysisFS
         return moptr.get();
     }
 
+    PSNode *strongUpdateVariable{nullptr};
+
 public:
     using MemoryMapT = PointerAnalysisFS::MemoryMapT;
 
@@ -255,6 +257,8 @@ public:
             // that are being freed
             PSNode *loadOp = strippedOp->getOperand(0);
             if (loadOp->pointsTo.size() == 1) {
+                strongUpdateVariable = (*(loadOp->pointsTo.begin())).target;
+
                 // if we know exactly which memory object
                 // is being used for freeing the memory,
                 // we can set it to invalidated
@@ -293,6 +297,10 @@ public:
 
         for (auto& I : *pmm) {
             if (isInvalidTarget(I.first))
+                continue;
+
+            // strong update on this variable?
+            if (strongUpdateVariable && strongUpdateVariable == I.first)
                 continue;
 
             // get or create a memory object for this target
@@ -365,6 +373,8 @@ public:
             }
         }
 
+        // reset strong update!
+        strongUpdateVariable = nullptr;
         return changed;
     }
 };
