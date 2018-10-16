@@ -23,11 +23,27 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
     }
 
     if (const Function *func = dyn_cast<Function>(calledVal)) {
+        if (func->getName() == "pthread_create") {
+            const Value *functionToBeCalledOperand = CInst->getOperand(2);
+            if (const Function *functionToBeCalled = dyn_cast<Function>(functionToBeCalledOperand)) {
+                return createPthreadCall(CInst, functionToBeCalled);
+            } else {
+                return createPthreadCreateFuncptrCall(CInst, functionToBeCalledOperand);
+            }
+        }
         return createFunctionCall(CInst, func);
     } else {
         // this is a function pointer call
         return createFuncptrCall(CInst, calledVal);
     }
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadCall(const llvm::CallInst *CInst, const llvm::Function *func)
+{
+    auto seq = createCallToPthread(CInst, func);
+    addNode(CInst, seq.first);
+
+    return seq;
 }
 
 
@@ -67,20 +83,30 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const llvm::Value *calledVal)
 {
-        // just the call_funcptr and call_return nodes are created and
-        // when the pointers are resolved during analysis, the graph
-        // will be dynamically created and it will replace these nodes
-        PSNode *op = getOperand(calledVal);
-        PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
-        PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
+    // just the call_funcptr and call_return nodes are created and
+    // when the pointers are resolved during analysis, the graph
+    // will be dynamically created and it will replace these nodes
+    PSNode *op = getOperand(calledVal);
+    PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
+    PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
 
-        ret_call->setPairedNode(call_funcptr);
-        call_funcptr->setPairedNode(ret_call);
+    ret_call->setPairedNode(call_funcptr);
+    call_funcptr->setPairedNode(ret_call);
 
-        call_funcptr->addSuccessor(ret_call);
-        addNode(CInst, call_funcptr);
+    call_funcptr->addSuccessor(ret_call);
+    addNode(CInst, call_funcptr);
 
-        return std::make_pair(call_funcptr, ret_call);
+    return std::make_pair(call_funcptr, ret_call);
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadCreateFuncptrCall(const llvm::CallInst *CInst, \
+                                                                      const llvm::Value *calledVal)
+{
+    PSNode *op = getOperand(calledVal);
+    PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
+    addNode(CInst, call_funcptr);
+
+    return std::make_pair(call_funcptr, call_funcptr);
 }
 
 PSNodesSeq
