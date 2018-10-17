@@ -180,7 +180,8 @@ public:
             main_func
                 = llvm::cast<llvm::Function>(
                     M->getOrInsertFunction("main",
-                                           llvm::Type::getInt32Ty(ctx)));
+                                           llvm::Type::getInt32Ty(ctx),
+                                           nullptr));
             if (!main_func) {
                 llvm::errs() << "Could not create new main function\n";
                 return false;
