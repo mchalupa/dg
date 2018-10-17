@@ -192,24 +192,24 @@ public:
 
         assert(main_func && "Do not have the main func");
         assert(main_func->size() == 0 && "The main func is not empty");
-    
+
         // create new function body
         llvm::BasicBlock* blk = llvm::BasicBlock::Create(ctx, "entry", main_func);
-    
+
         if (call_entry && _options.dgOptions.entryFunction != "main") {
             llvm::Function *entry = M->getFunction(_options.dgOptions.entryFunction);
             assert(entry && "The entry function is not present in the module");
-    
+
             // TODO: we should set the arguments to undef
             llvm::CallInst::Create(entry, "entry", blk);
         }
-    
+
         llvm::Type *Ty = main_func->getReturnType();
         llvm::Value *retval = nullptr;
         if (Ty->isIntegerTy())
             retval = llvm::ConstantInt::get(Ty, 0);
         llvm::ReturnInst::Create(ctx, retval, blk);
-    
+
         return true;
     }
 };
