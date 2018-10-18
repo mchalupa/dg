@@ -190,14 +190,6 @@ protected:
         return mm;
     }
 
-    bool pointsToAllocationInLoop(PSNode *n) {
-        for (const auto& ptr : n->pointsTo) {
-            if (isOnLoop(ptr.target))
-                return true;
-        }
-        return false;
-    }
-
     bool isOnLoop(const PSNode *n) const {
         unsigned idx = n->getSCCId();
         const auto& scc = getSCCs()[idx];
@@ -206,6 +198,18 @@ protected:
         return scc.size() > 1;
     }
 
+    bool pointsToAllocationInLoop(PSNode *n) const {
+        for (const auto& ptr : n->pointsTo) {
+            // skip invalidated, null and unknown memory
+            if (!ptr.isValid() || ptr.isInvalidated())
+                continue;
+
+            if (isOnLoop(ptr.target))
+                return true;
+        }
+        return false;
+
+    }
 
 private:
     static bool needsMerge(PSNode *n) {
