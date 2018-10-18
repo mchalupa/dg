@@ -382,7 +382,8 @@ bool PointerAnalysis::processNode(PSNode *node)
                     changed = true;
 
                     if (ptr.isValid() && !ptr.isInvalidated()) {
-                        functionPointerCall(node, ptr.target);
+                        if (functionPointerCall(node, ptr.target))
+                            recomputeSCCs();
                     } else {
                         error(node, "Calling invalid pointer as a function!");
                         continue;

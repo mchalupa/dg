@@ -19,14 +19,13 @@ public:
     using SCC_component_t = std::vector<NodeT *>;
     using SCC_t = std::vector<SCC_component_t>;
 
-    SCC<NodeT>() : index(0) {}
+    SCC<NodeT>(unsigned not_visit = 0)
+    : index(not_visit), NOT_VISITED(not_visit) {}
 
     // returns a vector of vectors - every inner vector
     // contains the nodes that for a SCC
     SCC_t& compute(NodeT *start)
     {
-        assert(start->dfs_id == 0);
-
         _compute(start);
         assert(stack.empty());
 
@@ -44,13 +43,21 @@ public:
         return scc[idx];
     }
 
+    unsigned getIndex() const { return index; }
 
 private:
     ADT::QueueLIFO<NodeT *> stack;
     unsigned index;
+    // it the dfsid is less or equal to this value,
+    // then it is considered not to be visited.
+    // it is due to the repeated execution of this algorithm
+    // on the same nodes
+    const unsigned NOT_VISITED;
 
     // container for the strongly connected components.
     SCC_t scc;
+
+    bool not_visited(NodeT *n) { return n->dfs_id <= NOT_VISITED; }
 
     void _compute(NodeT *n)
     {
@@ -62,7 +69,7 @@ private:
         n->on_stack = true;
 
         for (NodeT *succ : n->getSuccessors()) {
-            if (succ->dfs_id == 0) {
+            if (not_visited(succ)) {
                 assert(!succ->on_stack);
                 _compute(succ);
                 n->lowpt = std::min(n->lowpt, succ->lowpt);

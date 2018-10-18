@@ -27,6 +27,7 @@ class PointerAnalysis
 
     // strongly connected components of the PointerSubgraph
     std::vector<std::vector<PSNode *> > SCCs;
+    unsigned sccs_index{0};
 
     void initPointerAnalysis() {
         assert(PS && "Need PointerSubgraph object");
@@ -34,6 +35,7 @@ class PointerAnalysis
         // compute the strongly connected components
         SCC<PSNode> scc_comp;
         SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        sccs_index = scc_comp.getIndex();
     }
 
 protected:
@@ -237,6 +239,13 @@ private:
                        std::vector<MemoryObject *>& destObjects,
                        const Pointer& sptr, const Pointer& dptr,
                        Offset len);
+
+    void recomputeSCCs()
+    {
+        SCC<PSNode> scc_comp(sccs_index);
+        SCCs = std::move(scc_comp.compute(PS->getRoot()));
+        sccs_index = scc_comp.getIndex();
+    }
 };
 
 } // namespace pta
