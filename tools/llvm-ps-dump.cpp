@@ -316,16 +316,16 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 
     /* dump nodes */
     const auto& nodes = pta->getNodes();
-    for (PSNode *node : nodes) {
+    for (const auto& node : nodes) {
         if (!node)
             continue;
         printf("\tNODE%u [label=\"<%u> ", node->getID(), node->getID());
         printPSNodeType(node->getType());
         printf("\\n");
-        printName(node, true);
+        printName(node.get(), true);
         printf("\\nparent: %u\\n", node->getParent() ? node->getParent()->getID() : 0);
 
-        PSNodeAlloc *alloc = PSNodeAlloc::get(node);
+        PSNodeAlloc *alloc = PSNodeAlloc::get(node.get());
         if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
@@ -354,7 +354,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         }
 
         if (verbose) {
-            dumpPointerSubgraphData(node, type, true /* dot */);
+            dumpPointerSubgraphData(node.get(), type, true /* dot */);
         }
 
         printf("\", shape=box");
@@ -373,7 +373,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
     }
 
     /* dump edges */
-    for (PSNode *node : nodes) {
+    for (const auto& node : nodes) {
         if (!node) // node id 0 is nullptr
             continue;
 
@@ -400,9 +400,9 @@ dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
         dumpPointerSubgraphdot(pta, type);
     else {
         const auto& nodes = pta->getNodes();
-        for (PSNode *node : nodes) {
+        for (const auto& node : nodes) {
             if (node) // node id 0 is nullptr
-                dumpPSNode(node, type);
+                dumpPSNode(node.get(), type);
         }
     }
 }
