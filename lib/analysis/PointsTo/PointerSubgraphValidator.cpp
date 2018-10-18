@@ -94,18 +94,19 @@ bool PointerSubgraphValidator::checkOperands() {
     std::set<const PSNode *> known_nodes;
     const auto& nodes = PS->getNodes();
 
-    for (const PSNode *nd : nodes) {
+    for (const auto& nd : nodes) {
         if (!nd)
             continue;
 
-        if (!known_nodes.insert(nd).second)
-            invalid |= reportInvalNode(nd, "Node multiple times in the graph");
+        if (!known_nodes.insert(nd.get()).second)
+            invalid |= reportInvalNode(nd.get(), "Node multiple times in the graph");
     }
 
-    for (const PSNode *nd : nodes) {
-        if (!nd)
+    for (const auto& ndptr : nodes) {
+        if (!ndptr)
             continue;
 
+        PSNode *nd = ndptr.get();
         for (const PSNode *op : nd->getOperands()) {
             if (op != NULLPTR && op != UNKNOWN_MEMORY && op != INVALIDATED &&
                 known_nodes.count(op) == 0) {
@@ -209,29 +210,30 @@ bool PointerSubgraphValidator::checkEdges() {
     bool invalid = false;
 
     // check incoming/outcoming edges of all nodes
-    auto nodes = PS->getNodes();
-    for (const PSNode *nd : nodes) {
+    const auto& nodes = PS->getNodes();
+    for (const auto& nd : nodes) {
         if (!nd)
             continue;
 
-        if (nd->predecessorsNum() == 0 && nd != PS->getRoot() && !canBeOutsideGraph(nd)) {
-            invalid |= reportInvalEdges(nd, "Non-root node has no predecessors");
+        if (nd->predecessorsNum() == 0 && nd.get() != PS->getRoot()
+            && !canBeOutsideGraph(nd.get())) {
+            invalid |= reportInvalEdges(nd.get(), "Non-root node has no predecessors");
         }
 
         for (const PSNode *succ : nd->getSuccessors()) {
-            if (!isInPredecessors(nd, succ))
-                invalid |= reportInvalEdges(nd, "Node not set as a predecessor of some of its successors");
+            if (!isInPredecessors(nd.get(), succ))
+                invalid |= reportInvalEdges(nd.get(), "Node not set as a predecessor of some of its successors");
         }
     }
 
     // check that the edges form valid CFG (all nodes are reachable)
     auto reachable = reachableNodes(PS->getRoot());
-    for (const PSNode *nd : nodes) {
+    for (const auto &nd : nodes) {
         if (!nd)
             continue;
 
-        if (reachable.count(nd) < 1 && !canBeOutsideGraph(nd)) {
-                invalid |= reportUnreachableNode(nd);
+        if (reachable.count(nd.get()) < 1 && !canBeOutsideGraph(nd.get())) {
+                invalid |= reportUnreachableNode(nd.get());
         }
     }
 
