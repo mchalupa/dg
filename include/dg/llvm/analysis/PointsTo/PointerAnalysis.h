@@ -117,7 +117,7 @@ public:
         return _builder->getNodesMap();
     }
 
-    std::vector<PSNode *> getNodes()
+    const std::vector<std::unique_ptr<PSNode>>& getNodes()
     {
         return PS->getNodes();
     }

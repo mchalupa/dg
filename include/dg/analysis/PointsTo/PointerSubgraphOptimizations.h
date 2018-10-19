@@ -14,14 +14,14 @@ public:
 
     unsigned run() {
         unsigned removed = 0;
-        for (PSNode *nd : PS->getNodes()) {
+        for (const auto &nd : PS->getNodes()) {
             if (!nd)
                 continue;
 
             if (nd->getType() == PSNodeType::NOOP) {
                 nd->isolate();
                 // this should not break the iterator
-                PS->remove(nd);
+                PS->remove(nd.get());
                 ++removed;
             }
         }
@@ -72,7 +72,7 @@ class PSUnknownsReducer {
     unsigned removed = 0;
 
     void processAllocs() {
-        for (PSNode *nd : PS->getNodes()) {
+        for (const auto& nd : PS->getNodes()) {
             if (!nd)
                 continue;
 
@@ -80,7 +80,7 @@ class PSUnknownsReducer {
                 // this is an allocation that has only stores of unknown memory to it
                 // (and its address is not stored anywhere) and there are only loads
                 // from this memory (that must result to unknown)
-                if (usersImplyUnknown(nd)) {
+                if (usersImplyUnknown(nd.get())) {
                     for (PSNode *user : nd->getUsers()) {
                         if (user->getType() == PSNodeType::LOAD) {
                             // replace the uses of the load value by unknown
@@ -110,7 +110,8 @@ class PSUnknownsReducer {
                 }
 
                 nd->isolate();
-                PS->remove(nd);
+                PS->remove(nd.get());
+                assert(nd.get() == nullptr);
                 ++removed;
             }
         }
@@ -152,9 +153,11 @@ public:
 private:
     // get rid of all casts
     void mergeCasts() {
-        for (PSNode *node : PS->getNodes()) {
-            if (!node)
+        for (const auto& nodeptr : PS->getNodes()) {
+            if (!nodeptr)
                 continue;
+
+            PSNode *node = nodeptr.get();
 
             // cast is always 'a proxy' to the real value,
             // it does not change the pointers

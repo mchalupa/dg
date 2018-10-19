@@ -53,6 +53,7 @@ using dg::debug::TimeMeasure;
 using llvm::errs;
 
 static bool verbose;
+static bool verbose_more;
 static bool ids_only = false;
 static bool dump_graph_only = false;
 static uint64_t dump_iteration = 0;
@@ -92,7 +93,7 @@ void printPSNodeType(enum PSNodeType type) {
 static void dumpPointer(const Pointer& ptr, bool dot);
 
 static void
-printName(PSNode *node, bool dot)
+printName(PSNode *node, bool dot = false)
 {
     std::string nm;
     const char *name = nullptr;
@@ -112,18 +113,21 @@ printName(PSNode *node, bool dot)
         }
 
         if (!node->getUserData<llvm::Value>()) {
-            printf("<%u> (no name)\\n", node->getID());
-            if (node->getType() == PSNodeType::CONSTANT) {
-                dumpPointer(*(node->pointsTo.begin()), dot);
-            } else if (node->getType() == PSNodeType::CALL_RETURN) {
-                if (PSNode *paired = node->getPairedNode())
-                    printName(paired, dot);
-            } else if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
-                printf("%s\\n", entry->getFunctionName().c_str());
-            }
+            if (dot) {
+                printf("<%u> (no name)\\n", node->getID());
 
-            if (!dot)
-                printf(" <%u>\n", node->getID());
+                if (node->getType() == PSNodeType::CONSTANT) {
+                    dumpPointer(*(node->pointsTo.begin()), dot);
+                } else if (node->getType() == PSNodeType::CALL_RETURN) {
+                    if (PSNode *paired = node->getPairedNode())
+                        printName(paired, dot);
+                } else if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
+                    printf("%s\\n", entry->getFunctionName().c_str());
+                }
+            } else {
+                printf("<%u> ", node->getID());
+                printPSNodeType(node->getType());
+            }
 
             return;
         }
@@ -224,6 +228,22 @@ dumpMemoryMap(PointerAnalysisFS::MemoryMapT *mm, int ind, bool dot)
     }
 }
 
+static bool mmChanged(PSNode *n)
+{
+    if (n->predecessorsNum() == 0)
+        return true;
+
+    PointerAnalysisFS::MemoryMapT *mm
+        = n->getData<PointerAnalysisFS::MemoryMapT>();
+
+    for (PSNode *pred : n->getPredecessors()) {
+        if (pred->getData<PointerAnalysisFS::MemoryMapT>() != mm)
+            return true;
+    }
+
+    return false;
+}
+
 static void
 dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
 {
@@ -253,7 +273,8 @@ dumpPointerSubgraphData(PSNode *n, PTType type, bool dot = false)
         else
             printf("    Memory map: [%p]\n", static_cast<void*>(mm));
 
-        dumpMemoryMap(mm, 6, dot);
+        if (verbose_more || mmChanged(n))
+            dumpMemoryMap(mm, 6, dot);
 
         if (!dot)
             printf("    ----------------\n");
@@ -264,9 +285,7 @@ static void
 dumpPSNode(PSNode *n, PTType type)
 {
     printf("NODE %3u: ", n->getID());
-    printf("Ty: ");
-    printPSNodeType(n->getType());
-    printf("\\n");
+    printName(n);
 
     PSNodeAlloc *alloc = PSNodeAlloc::get(n);
     if (alloc &&
@@ -274,11 +293,7 @@ dumpPSNode(PSNode *n, PTType type)
         printf(" [size: %lu, heap: %u, zeroed: %u]",
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
-    if (n->pointsTo.empty()) {
-        puts("no points-to");
-        return;
-    } else
-        putchar('\n');
+    printf(" (points-to size: %lu)\n", n->pointsTo.size());
 
     for (const Pointer& ptr : n->pointsTo) {
         printf("    -> ");
@@ -301,16 +316,16 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 
     /* dump nodes */
     const auto& nodes = pta->getNodes();
-    for (PSNode *node : nodes) {
+    for (const auto& node : nodes) {
         if (!node)
             continue;
         printf("\tNODE%u [label=\"<%u> ", node->getID(), node->getID());
         printPSNodeType(node->getType());
         printf("\\n");
-        printName(node, true);
+        printName(node.get(), true);
         printf("\\nparent: %u\\n", node->getParent() ? node->getParent()->getID() : 0);
 
-        PSNodeAlloc *alloc = PSNodeAlloc::get(node);
+        PSNodeAlloc *alloc = PSNodeAlloc::get(node.get());
         if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
             printf("\\n[size: %lu, heap: %u, zeroed: %u]",
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
@@ -339,7 +354,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         }
 
         if (verbose) {
-            dumpPointerSubgraphData(node, type, true /* dot */);
+            dumpPointerSubgraphData(node.get(), type, true /* dot */);
         }
 
         printf("\", shape=box");
@@ -358,7 +373,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
     }
 
     /* dump edges */
-    for (PSNode *node : nodes) {
+    for (const auto& node : nodes) {
         if (!node) // node id 0 is nullptr
             continue;
 
@@ -385,9 +400,9 @@ dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
         dumpPointerSubgraphdot(pta, type);
     else {
         const auto& nodes = pta->getNodes();
-        for (PSNode *node : nodes) {
+        for (const auto& node : nodes) {
             if (node) // node id 0 is nullptr
-                dumpPSNode(node, type);
+                dumpPSNode(node.get(), type);
         }
     }
 }
@@ -422,6 +437,9 @@ int main(int argc, char *argv[])
             dump_graph_only = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-vv") == 0) {
+            verbose = true;
+            verbose_more = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entry_func = argv[i + 1];
         } else {

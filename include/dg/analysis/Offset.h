@@ -16,6 +16,14 @@ struct Offset
     // the value used for the unknown offset
     static const type UNKNOWN;
 
+    static Offset getUnknown() {
+        return Offset(Offset::UNKNOWN);
+    }
+
+    static Offset getZero() {
+        return Offset(0);
+    }
+
     // cast to type
     //operator type() { return offset; }
 

@@ -6,8 +6,9 @@
 #include "dg/analysis/PointsTo/PSNode.h"
 
 #include <cassert>
-#include <vector>
 #include <cstdarg>
+#include <vector>
+#include <memory>
 
 namespace dg {
 namespace analysis {
@@ -22,7 +23,8 @@ class PointerSubgraph
     // root of the pointer state subgraph
     PSNode *root;
 
-    std::vector<PSNode *> nodes;
+    using NodesT = std::vector<std::unique_ptr<PSNode>>;
+    NodesT nodes;
 
     // Take care of assigning ids to new nodes
     unsigned int last_node_id = 0;
@@ -31,18 +33,12 @@ class PointerSubgraph
     }
 
 public:
-    ~PointerSubgraph() {
-        for (PSNode *n : nodes)
-            delete n;
-    }
-
     PointerSubgraph() : dfsnum(0), root(nullptr) {
-        nodes.reserve(128);
-        // nodes[0] is nullptr (the node with id 0)
-        nodes.push_back(nullptr);
+        // nodes[0] represents invalid node (the node with id 0)
+        nodes.emplace_back(nullptr);
     }
 
-    const std::vector<PSNode *>& getNodes() const { return nodes; }
+    const NodesT& getNodes() const { return nodes; }
     size_t size() const { return nodes.size(); }
 
     PointerSubgraph(PointerSubgraph&&) = default;
@@ -54,8 +50,8 @@ public:
     void setRoot(PSNode *r) {
 #if DEBUG_ENABLED
         bool found = false;
-        for (PSNode *n : nodes) {
-            if (n == r) {
+        for (auto& n : nodes) {
+            if (n.get() == r) {
                 found = true;
                 break;
             }
@@ -77,11 +73,10 @@ public:
         // have a reference (an user edge to this node).
         // We do not want to create dangling references.
         assert(nd->operands.empty() && "This node uses other nodes");
-        assert(nodes[nd->getID()] == nd && "Inconsistency in nodes");
+        assert(nodes[nd->getID()].get() == nd && "Inconsistency in nodes");
 
         // clear the nodes entry
-        nodes[nd->getID()] = nullptr;
-        delete nd;
+        nodes[nd->getID()].reset();
     }
 
     PSNode *create(PSNodeType t, ...) {
@@ -123,7 +118,7 @@ public:
         va_end(args);
 
         assert(node && "Didn't created node");
-        nodes.push_back(node);
+        nodes.emplace_back(node);
         return node;
     }
 
