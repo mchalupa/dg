@@ -24,11 +24,16 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
         if (func->getName() == "pthread_create") {
             const Value *functionToBeCalledOperand = CInst->getOperand(2);
             if (const Function *functionToBeCalled = dyn_cast<Function>(functionToBeCalledOperand)) {
-                return createPthreadCall(CInst, functionToBeCalled);
+                return createPthreadCreateCall(CInst, functionToBeCalled);
             } else {
                 return createPthreadCreateFuncptrCall(CInst, functionToBeCalledOperand);
             }
+        } else if (func->getName() == "pthread_join") {
+            auto seq = createPthreadJoinCall(CInst, func);
+            matchJoinToRightCreate(seq.first);
+            return seq;
         }
+
         return createFunctionCall(CInst, func);
     } else {
         // this is a function pointer call
@@ -36,12 +41,24 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
     }
 }
 
-PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadCall(const llvm::CallInst *CInst, const llvm::Function *func)
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadCreateCall(const llvm::CallInst *CInst, const llvm::Function *func)
 {
-    auto seq = createCallToPthread(CInst, func);
+    auto seq = createCallToPthreadCreate(CInst, func);
+    addArgumentOperands(*CInst, *seq.first);
+    threadCreateCalls.push_back(seq.first);
     addNode(CInst, seq.first);
 
     return seq;
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadJoinCall(const llvm::CallInst *CInst, const llvm::Function *func)
+{
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+    addArgumentOperands(*CInst, *callNode);
+    callNode->setPairedNode(callNode);
+    threadJoinCalls.push_back(callNode);
+    addNode(CInst, callNode);
+    return std::make_pair(callNode, callNode);
 }
 
 
@@ -102,6 +119,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadCreateFuncptrCall(const llvm
 {
     PSNode *op = getOperand(calledVal);
     PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
+//    call_funcptr->setPairedNode(call_funcptr);
     addNode(CInst, call_funcptr);
 
     return std::make_pair(call_funcptr, call_funcptr);
@@ -228,6 +246,53 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     addNode(Inst, vastart);
 
     return PSNodesSeq(vastart, S2);
+}
+
+void LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *pthreadJoinCall)
+{
+    PSNode *loadNode = pthreadJoinCall->getOperand(0);
+    PSNode *threadHandlePtr = loadNode->getOperand(0);
+    for (PSNode *pthreadCreate : threadCreateCalls) {
+        PSNode *operand = pthreadCreate->getOperand(0);
+        PSNode *func = pthreadCreate->getOperand(2);
+
+        std::set<PSNode *> set;
+        for (const auto &createPointsTo : operand->pointsTo) {
+            for (const auto &joinPointsTo : threadHandlePtr->pointsTo) {
+                if (createPointsTo.target == joinPointsTo.target) {
+                    set.insert(createPointsTo.target);
+                }
+            }
+        }
+        if (!set.empty()) {
+            llvm::Function *F = func->getUserData<llvm::Function>();
+            Subgraph &subgraph = createOrGetSubgraph(F);
+            assert(subgraph.root);
+            subgraph.ret->addSuccessor(pthreadJoinCall);
+        }
+    }
+}
+
+void LLVMPointerSubgraphBuilder::matchCreateToRightJoin(PSNode *createThreadHandle, const llvm::Function *F)
+{
+    Subgraph &subgraph = createOrGetSubgraph(F);
+    assert(subgraph.root);
+    for (PSNode *pthreadJoin : threadJoinCalls) {
+        PSNode *loadNode = pthreadJoin->getOperand(0);
+        PSNode *threadHandlePtr = loadNode->getOperand(0);
+
+        std::set<PSNode *> set;
+        for (const auto &createPointsTo : createThreadHandle->pointsTo) {
+            for (const auto &joinPointsTo : threadHandlePtr->pointsTo) {
+                if (createPointsTo.target == joinPointsTo.target) {
+                    set.insert(createPointsTo.target);
+                }
+            }
+        }
+        if (!set.empty()) {
+            subgraph.ret->addSuccessor(pthreadJoin);
+        }
+    }
 }
 
 PSNodesSeq
