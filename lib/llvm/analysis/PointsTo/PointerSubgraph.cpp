@@ -175,7 +175,7 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     return std::make_pair(callNode, returnNode);
 }
 
-PSNodesSeq LLVMPointerSubgraphBuilder::createCallToPthread(const llvm::CallInst *CInst, const llvm::Function *F)
+PSNodesSeq LLVMPointerSubgraphBuilder::createCallToPthreadCreate(const llvm::CallInst *CInst, const llvm::Function *F)
 {
     PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
 
@@ -191,18 +191,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createCallToPthread(const llvm::CallInst 
     // and from the subprocedure return node (which is one - unified
     // for all return nodes) to return from the call
     callNode->addSuccessor(subg.root);
-
-    // the operands to the return node (which works as a phi node)
-    // are going to be added when the subgraph is built
-//    PSNode *returnNode = nullptr;
-//    if (subg.ret) {/*
-//        returnNode = PS.create(PSNodeType::CALL_RETURN, nullptr);
-//        returnNode->setPairedNode(callNode);
-//        callNode->setPairedNode(returnNode);
-//        subg.ret->addSuccessor(returnNode);
-//    } else {*/
-        callNode->setPairedNode(callNode);
-//    }
+    callNode->setPairedNode(callNode);
 
     return std::make_pair(callNode, callNode);
 }
@@ -234,12 +223,13 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadFuncptrCall(const llvm::Call
 {
     ad_hoc_building = true;
 
-    auto ret = createCallToPthread(CInst, F);
+    auto ret = createCallToPthreadCreate(CInst, F);
 #ifndef NDEBUG
     Subgraph& subg = subgraphs_map[F];
     assert(subg.root != nullptr);
 #endif
-
+    addArgumentOperands(*CInst, *ret.first);
+    threadCreateCalls.push_back(ret.first);
     ad_hoc_building = false;
 
     return ret;
@@ -303,17 +293,40 @@ void LLVMPointerSubgraphBuilder::insertPthreadCreateCall(PSNode *callsite, PSNod
     // create new instructions
     auto cf = createPthreadFuncptrCall(CI, F);
     assert(cf.first && "Failed building the subgraph");
-
-    // we got the return site for the call stored as the paired node
-//    PSNode *ret = callsite->getPairedNode();
-//    if (cf.second) {
-//        // If we have some returns from this function,
-//        // pass the returned values to the return site.
-//        ret->addOperand(cf.second);
-//        cf.second->addSuccessor(ret);
-//    }
+    matchCreateToRightJoin(cf.first->getOperand(0), F);
+    llvm::errs() << "number of operands:" << cf.first->getOperandsNum() << "\n";
 
     callsite->addSuccessor(cf.first);
+}
+
+void LLVMPointerSubgraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite, PSNode *called)
+{
+    const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
+
+    auto threadHandle = CI->getArgOperand(0);
+    auto funcToBeCalled = CI->getArgOperand(2);
+
+    auto threadHandleIt = nodes_map.find(threadHandle);
+    assert(threadHandleIt != nodes_map.end());
+    PSNode *threadHandleNode = threadHandleIt->second.first;
+
+    const llvm::Function *func
+        = llvm::dyn_cast<llvm::Function>(funcToBeCalled);
+    ad_hoc_building = true;
+    Subgraph &subgraph = createOrGetSubgraph(func);
+    assert(subgraph.root);
+    addInterproceduralOperands(func, subgraph, CI);
+    ad_hoc_building = false;
+    PSNode *nodeToRemove = callsite->getSingleSuccessor();
+//    nodeToRemove->isolate();
+    nodeToRemove->removeAllOperands();
+
+//    PS.remove(nodeToRemove);
+
+    llvm::errs() << "number of operands: " << nodeToRemove->getOperandsNum() << "\n";
+
+    callsite->addSuccessor(subgraph.root);
+    matchCreateToRightJoin(threadHandleNode, func);
 }
 
 
@@ -742,6 +755,17 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
         // (when a function is called multiple-times with
         // the same actual parameters)
         arg->addOperand(op);
+    }
+}
+
+void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst &CI, PSNode &node)
+{
+    auto sentinel = CI.getNumArgOperands();
+    for (unsigned i = 0; i < sentinel; ++i) {
+        PSNode *operand = tryGetOperand(CI.getArgOperand(i));
+        if (operand && !node.hasOperand(operand)) {
+            node.addOperand(operand);
+        }
     }
 }
 

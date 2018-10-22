@@ -60,6 +60,10 @@ public:
         if (F->isDeclaration()) {
             // calling declaration that returns a pointer?
             // That is unknown pointer
+            if (F->getName() == "pthread_create") {
+                builder->insertPthreadCreateByPtrCall(callsite, called);
+            }
+
             return callsite->getPairedNode()->addPointsTo(analysis::pta::PointerUnknown);
         }
 

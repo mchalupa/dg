@@ -5,6 +5,7 @@
 // PointerSubgraph and reaching definitions subgraph.
 
 #include <vector>
+#include <algorithm>
 
 namespace dg {
 namespace analysis {
@@ -108,6 +109,13 @@ public:
 
     size_t getOperandsNum() const {
         return operands.size();
+    }
+
+    void removeAllOperands() {
+        for (auto o : operands) {
+            o->removeUser(static_cast<NodeT *>(this));
+        }
+        operands.clear();
     }
 
     size_t addOperand(NodeT *n) {
@@ -339,6 +347,16 @@ private:
                 return;
 
         users.push_back(nd);
+    }
+
+    void removeUser(NodeT *node) {
+        using std::find;
+        NodesVec &u = users;
+
+        auto nodeToRemove = find(u.begin(), u.end(), node);
+        if (nodeToRemove != u.end()) {
+            u.erase(nodeToRemove);
+        }
     }
 };
 

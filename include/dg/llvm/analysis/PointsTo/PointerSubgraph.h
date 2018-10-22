@@ -106,6 +106,9 @@ class LLVMPointerSubgraphBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Function *, Subgraph> subgraphs_map;
 
+    std::vector<PSNode *> threadCreateCalls;
+    std::vector<PSNode *> threadJoinCalls;
+
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *, PSNodesSeq> built_blocks;
@@ -137,6 +140,7 @@ public:
     // the return from the call nodes.
     void insertFunctionCall(PSNode *callsite, PSNode *called);
     void insertPthreadCreateCall(PSNode *callsite, PSNode *called);
+    void insertPthreadCreateByPtrCall(PSNode *callsite, PSNode *called);
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
@@ -175,7 +179,7 @@ private:
     createCallToFunction(const llvm::CallInst *, const llvm::Function *);
 
     PSNodesSeq
-    createCallToPthread(const llvm::CallInst *, const llvm::Function *);
+    createCallToPthreadCreate(const llvm::CallInst *, const llvm::Function *);
 
     PSNode *getMapping(const llvm::Value *val) {
         return mapping.get(val);
@@ -266,6 +270,7 @@ private:
     void addPHIOperands(const llvm::Function& F);
     void addArgumentOperands(const llvm::Function *F, PSNode *arg, int idx);
     void addArgumentOperands(const llvm::CallInst *CI, PSNode *arg, int idx);
+    void addArgumentOperands(const llvm::CallInst &CI, PSNode &node);
     void addArgumentsOperands(const llvm::Function *F,
                               const llvm::CallInst *CI = nullptr,
                               int index = 0);
@@ -288,7 +293,8 @@ private:
 
     PSNodesSeq createExtract(const llvm::Instruction *Inst);
     PSNodesSeq createCall(const llvm::Instruction *Inst);
-    PSNodesSeq createPthreadCall(const llvm::CallInst *, const llvm::Function *);
+    PSNodesSeq createPthreadCreateCall(const llvm::CallInst *, const llvm::Function *);
+    PSNodesSeq createPthreadJoinCall(const llvm::CallInst *, const llvm::Function *);
     PSNodesSeq createFunctionCall(const llvm::CallInst *, const llvm::Function *);
     PSNodesSeq createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
     PSNodesSeq createPthreadCreateFuncptrCall(const llvm::CallInst *, const llvm::Value *);
@@ -309,6 +315,9 @@ private:
     PSNodesSeq createUnknownCall(const llvm::CallInst *CInst);
     PSNodesSeq createIntrinsic(const llvm::Instruction *Inst);
     PSNodesSeq createVarArg(const llvm::IntrinsicInst *Inst);
+
+    void matchJoinToRightCreate(PSNode *pthreadJoinCall);
+    void matchCreateToRightJoin(PSNode *createThreadHandle, const llvm::Function *F);
 };
 
 /// --------------------------------------------------------
