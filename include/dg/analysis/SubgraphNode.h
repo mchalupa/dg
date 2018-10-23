@@ -163,16 +163,34 @@ public:
         addSuccessor(succ);
     }
 
-    // get successor when we know there's only one of them
+    // get the successor when we know there's only one of them
     NodeT *getSingleSuccessor() const {
         assert(successors.size() == 1);
         return successors.front();
     }
 
-    // get predecessor when we know there's only one of them
+    // get the successor when there's only one of them,
+    // otherwise get null
+    NodeT *getSingleSuccessorOrNull() const {
+        if (successors.size() == 1)
+            return successors.front();
+
+        return nullptr;
+    }
+
+    // get the predecessor when we know there's only one of them
     NodeT *getSinglePredecessor() const {
         assert(predecessors.size() == 1);
         return predecessors.front();
+    }
+
+    // get the predecessor when there's only one of them,
+    // or get null
+    NodeT *getSinglePredecessorOrNull() const {
+        if (predecessors.size() == 1)
+            return predecessors.front();
+
+        return nullptr;
     }
 
     // insert this node in PointerSubgraph after n
