@@ -150,11 +150,6 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     // we took the subg by reference, so it should be filled now
     assert(subg.root);
 
-    if (ad_hoc_building) {
-        // add operands to arguments
-        addInterproceduralOperands(F, subg, CInst);
-    }
-
     // add an edge from last argument to root of the subgraph
     // and from the subprocedure return node (which is one - unified
     // for all return nodes) to return from the call
@@ -170,6 +165,12 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
         subg.ret->addSuccessor(returnNode);
     } else {
         callNode->setPairedNode(callNode);
+    }
+
+    // this must be after we created the CALL_RETURN node
+    if (ad_hoc_building) {
+        // add operands to arguments and return nodes
+        addInterproceduralOperands(F, subg, CInst, callNode);
     }
 
     return std::make_pair(callNode, returnNode);
@@ -770,7 +771,7 @@ void LLVMPointerSubgraphBuilder::addVariadicArgumentOperands(const llvm::Functio
 
 void LLVMPointerSubgraphBuilder::addReturnNodeOperands(const llvm::Function *F,
                                                        PSNode *ret,
-                                                       const llvm::CallInst *CI)
+                                                       PSNode *callNode)
 {
     using namespace llvm;
 
@@ -780,22 +781,17 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperands(const llvm::Function *F,
         // But we're interested only in the nodes that return some value
         // from subprocedure, not for all nodes that have no successor
         if (r->getType() == PSNodeType::RETURN) {
-            if (CI)
-                addReturnNodeOperand(CI, r);
-            else
+            if (callNode) {
+                addReturnNodeOperand(callNode, r);
+            } else {
                 addReturnNodeOperand(F, r);
+            }
         }
     }
 }
 
-void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::CallInst *CI, PSNode *op)
+void LLVMPointerSubgraphBuilder::addReturnNodeOperand(PSNode *callNode, PSNode *op)
 {
-    PSNode *callNode = getNode(CI);
-    // since we're building the graph from main and only where we can reach it,
-    // we may not have all call-sites of a function
-    if (!callNode)
-        return;
-
     PSNode *returnNode = callNode->getPairedNode();
     // the function must be defined, since we have the return node,
     // so there must be associated the return node
@@ -818,15 +814,25 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::Function *F, P
 #endif
         // get every call and its assocciated return and add the operand
         const CallInst *CI = dyn_cast<CallInst>(use);
-        if (CI && CI->getCalledFunction() == F)
-            addReturnNodeOperand(CI, op);
+        if (CI && CI->getCalledFunction() == F) {
+            PSNode *callNode = getNode(CI);
+            // since we're building the graph from entry only where we can reach it,
+            // we may not have all call-sites of a function
+            if (!callNode)
+                continue;
+
+            addReturnNodeOperand(callNode, op);
+        }
     }
 }
 
 void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function *F,
                                                             Subgraph& subg,
-                                                            const llvm::CallInst *CI)
+                                                            const llvm::CallInst *CI,
+                                                            PSNode *callNode)
 {
+    assert((!CI || callNode) && (!callNode || CI));
+
     // add operands to arguments' PHI nodes
     addArgumentsOperands(F, CI);
 
@@ -840,7 +846,7 @@ void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function
     }
 
     if (subg.ret) {
-        addReturnNodeOperands(F, subg.ret, CI);
+        addReturnNodeOperands(F, subg.ret, callNode);
     }
 }
 

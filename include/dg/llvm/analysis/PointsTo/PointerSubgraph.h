@@ -271,13 +271,14 @@ private:
 
     void addReturnNodeOperands(const llvm::Function *F,
                                PSNode *ret,
-                               const llvm::CallInst *CI = nullptr);
+                               PSNode *callNode = nullptr);
 
-    void addReturnNodeOperand(const llvm::CallInst *CI, PSNode *op);
+    void addReturnNodeOperand(PSNode *callNode, PSNode *op);
     void addReturnNodeOperand(const llvm::Function *F, PSNode *op);
     void addInterproceduralOperands(const llvm::Function *F,
                                     Subgraph& subg,
-                                    const llvm::CallInst *CI = nullptr);
+                                    const llvm::CallInst *CI = nullptr,
+                                    PSNode *callNode = nullptr);
 
     PSNodesSeq createExtract(const llvm::Instruction *Inst);
     PSNodesSeq createCall(const llvm::Instruction *Inst);
