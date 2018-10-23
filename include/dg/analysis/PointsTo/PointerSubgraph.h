@@ -14,8 +14,6 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned int dfsnum);
-
 class PointerSubgraph
 {
     unsigned int dfsnum;
@@ -169,36 +167,35 @@ public:
 
 };
 
-inline void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode *exit, unsigned int dfsnum)
+///
+// get nodes reachable from n (including n),
+// stop at node 'exit' (excluding) if not set to null
+inline std::set<PSNode *>
+getReachableNodes(PSNode *n,
+                  PSNode *exit = nullptr)
 {
-    // default behaviour is to enqueue all pending nodes
-    ++dfsnum;
     ADT::QueueFIFO<PSNode *> fifo;
+    std::set<PSNode *> cont;
 
     assert(n && "No starting node given.");
-
-    for (PSNode *succ : n->successors) {
-        succ->dfsid = dfsnum;
-        fifo.push(succ);
-    }
+    fifo.push(n);
 
     while (!fifo.empty()) {
         PSNode *cur = fifo.pop();
-#ifndef NDEBUG
-        bool ret = cont.insert(cur).second;
-        assert(ret && "BUG: Tried to insert something twice");
-#else
-        cont.insert(cur);
-#endif
+        if (!cont.insert(cur).second)
+            continue; // we already visited this node
 
-        for (PSNode *succ : cur->successors) {
-            if (succ == exit) continue;
-            if (succ->dfsid != dfsnum) {
-                succ->dfsid = dfsnum;
-                fifo.push(succ);
-            }
+        for (PSNode *succ : cur->getSuccessors()) {
+            assert(succ != nullptr);
+
+            if (succ == exit)
+                continue;
+
+            fifo.push(succ);
         }
     }
+
+    return cont;
 }
 
 } // namespace pta
