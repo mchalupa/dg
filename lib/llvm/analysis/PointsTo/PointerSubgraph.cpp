@@ -564,7 +564,8 @@ void LLVMPointerSubgraphBuilder::checkMemSet(const llvm::Instruction *Inst)
 
 // return first and last nodes of the block
 PSNodesSeq
-LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block)
+LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& block,
+                                                      PSNode *parent)
 {
     PSNodesSeq blk{nullptr, nullptr};
 
@@ -584,6 +585,24 @@ LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& bl
         assert(seq.first &&
                (seq.second || seq.first->getType() == PSNodeType::CALL)
                && "Didn't created the instruction properly");
+
+        // set parent to instructions if it is not a call,
+        // because then the seq represents the whole
+        // subgraph. In the case of CallInst, we just set
+        // the parent to the nodes for seq itself, as these
+        // are the call and call return nodes belonging
+        // to this graph
+        if (llvm::isa<llvm::CallInst>(&Inst)) {
+            seq.first->setParent(parent);
+            if (seq.second)
+                seq.second->setParent(parent);
+        } else {
+            PSNode *cur = seq.first;
+            while (cur) {
+                cur->setParent(parent);
+                cur = cur->getSingleSuccessorOrNull();
+            }
+        }
 
         if (!seq.second) {
             // the call instruction does not return.
@@ -643,7 +662,8 @@ std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Funct
     return blocks;
 }
 
-void LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
+void LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F,
+                                                PSNode *parent)
 {
     for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
 #ifndef NDEBUG
@@ -652,7 +672,8 @@ void LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F)
         // (or it is a number or irelevant value)
         assert(a == nullptr || a == UNKNOWN_MEMORY);
 #endif
-        createArgument(&*A);
+        auto arg = createArgument(&*A);
+        arg->setParent(parent);
     }
 }
 
@@ -668,15 +689,18 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     PSNodeEntry *root = PSNodeEntry::get(PS.create(PSNodeType::ENTRY));
     assert(root);
     root->setFunctionName(F.getName().str());
+    root->setParent(root);
 
     // if the function has variable arguments,
     // then create the node for it
     PSNode *vararg = nullptr;
-    if (F.isVarArg())
+    if (F.isVarArg()) {
         vararg = PS.create(PSNodeType::PHI, nullptr);
+        vararg->setParent(root);
+    }
 
     // create the arguments
-    buildArguments(F);
+    buildArguments(F, root);
 
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerSubgraphBlock won't get stuck in infinite recursive call
@@ -694,7 +718,7 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     bool have_return = false;
     // build the instructions from blocks
     for (const llvm::BasicBlock *block : s.llvmBlocks) {
-        auto seq = buildPointerSubgraphBlock(*block);
+        auto seq = buildPointerSubgraphBlock(*block, root);
 
         // gather all return nodes
         if (seq.second &&
@@ -713,6 +737,8 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
         } else {
             ret = PS.create(PSNodeType::NOOP);
         }
+
+        ret->setParent(root);
         s.ret = ret;
     }
 
