@@ -671,7 +671,7 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     // built, since the PHI gathers values from different blocks
     addPHIOperands(F);
 
-   assert(subgraphs_map[&F].root != nullptr);
+    assert(subgraphs_map[&F].root != nullptr);
     return s;
 }
 
