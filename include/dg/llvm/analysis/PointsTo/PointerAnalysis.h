@@ -122,6 +122,10 @@ public:
         return PS->getNodes();
     }
 
+    std::vector<PSNode *> getFunctionNodes(const llvm::Function *F) const {
+        return _builder->getFunctionNodes(F);
+    }
+
     PointerSubgraph *getPS() { return PS; }
     const PointerSubgraph *getPS() const { return PS; }
 
