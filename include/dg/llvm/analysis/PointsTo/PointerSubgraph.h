@@ -140,6 +140,8 @@ public:
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
                                 getNodesMap() const { return nodes_map; }
 
+    std::vector<PSNode *> getFunctionNodes(const llvm::Function *F) const;
+
     // this is the same as the getNode, but it
     // creates ConstantExpr
     PSNode *getPointsTo(const llvm::Value *val)
