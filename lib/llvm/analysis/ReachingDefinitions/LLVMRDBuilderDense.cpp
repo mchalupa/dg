@@ -253,23 +253,31 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
     addNode(Inst, node);
 
     pta::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
-    assert(pts && "Don't have the points-to information for store");
+    if (!pts) {
+        llvm::errs() << "[RD] Error: Don't have the points-to node "
+                        "for store's target\n";
+        llvm::errs() << *Inst << "\n";
+#ifdef NDEBUG
+        pts = pta::UNKNOWN_MEMORY;
+#else
+        abort();
+#endif
+    }
 
     if (pts->pointsTo.empty()) {
-#ifdef DEBUG_ENABLED
-        llvm::errs() << "[RD] error: empty STORE points-to: " << *Inst << "\n";
-#else
-        // this may happen on invalid reads and writes to memory,
+        llvm::errs() << "[RD] Error: empty points-to set for store's target\n"
+                     << *Inst << "\n";
+
+        // Don't abort in this case.
+        // This may happen on invalid reads and writes to memory,
         // like when you try for example this:
         //
         //   int p, q;
         //   memcpy(p, q, sizeof p);
         //
-        // (there should be &p and &q)
-        // NOTE: maybe this is a bit strong to say unknown memory,
-        // but better be sound then incorrect
+        // (there should be &p and &q). This is an error in program,
+        // but we still want to analyze it.
         node->addDef(UNKNOWN_MEMORY);
-#endif
         return node;
     }
 
@@ -685,7 +693,15 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
     addNode(CInst, ret);
 
     pta::PSNode *pts = PTA->getPointsTo(dest);
-    assert(pts && "No points-to information");
+    if (!pts) {
+        llvm::errs() << "[RD] Error: No points-to information for destination in\n";
+        llvm::errs() << *I << "\n";
+#ifdef NDEBUG
+        pts = pta::UNKNOWN_MEMORY;
+#else
+        abort();
+#endif
+    }
 
     uint64_t len = Offset::UNKNOWN;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
