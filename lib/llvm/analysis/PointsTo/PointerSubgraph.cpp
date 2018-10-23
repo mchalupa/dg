@@ -1001,6 +1001,26 @@ bool LLVMPointerSubgraphBuilder::validateSubgraph() const
     }
 }
 
+std::vector<PSNode *>
+LLVMPointerSubgraphBuilder::getFunctionNodes(const llvm::Function *F) const
+{
+    auto it = subgraphs_map.find(F);
+    if (it == subgraphs_map.end())
+        return {};
+
+    const Subgraph& subg = it->second;
+    auto nodes = getReachableNodes(subg.root, subg.ret);
+
+    // Filter the nodes just to those that are from the function.
+    // We cannot do it when getting the nodes as the procedures
+    // are fully inlined.
+    std::vector<PSNode *> ret;
+    std::copy_if(nodes.begin(), nodes.end(), std::back_inserter(ret),
+                 [&subg](PSNode *node){return node->getParent() == subg.root;} );
+
+    return ret;
+}
+
 } // namespace pta
 } // namespace analysis
 } // namespace dg
