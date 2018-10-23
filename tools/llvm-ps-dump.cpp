@@ -59,6 +59,9 @@ static bool dump_graph_only = false;
 static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
+static char *display_only = nullptr;
+static const llvm::Function *display_only_func = nullptr;
+
 std::unique_ptr<PointerAnalysis> PA;
 
 enum PTType {
@@ -309,83 +312,142 @@ dumpPSNode(PSNode *n, PTType type)
 }
 
 static void
-dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
+dumpNodeToDot(PSNode *node, PTType type)
 {
+    printf("\tNODE%u [label=\"<%u> ", node->getID(), node->getID());
+    printPSNodeType(node->getType());
+    printf("\\n");
+    printName(node, true);
+    printf("\\nparent: %u\\n", node->getParent() ? node->getParent()->getID() : 0);
 
-    printf("digraph \"Pointer State Subgraph\" {\n");
+    PSNodeAlloc *alloc = PSNodeAlloc::get(node);
+    if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
+        printf("\\n[size: %lu, heap: %u, zeroed: %u]",
+           alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
+    if (verbose && node->getOperandsNum() > 0) {
+        printf("\\n--- operands ---\\n");
+        for (PSNode *op : node->getOperands()) {
+            printName(op, true);
+            printf("\\n");
+        }
+        printf("------\\n");
+    }
+
+    if (verbose) {
+        printf("--- points-to set ---\\n");
+    }
+
+    for (const Pointer& ptr : node->pointsTo) {
+        printf("\\n    -> ");
+        printName(ptr.target, true);
+        printf(" + ");
+        if (ptr.offset.isUnknown())
+            printf("Offset::UNKNOWN");
+        else
+            printf("%lu", *ptr.offset);
+    }
+
+    if (verbose) {
+        dumpPointerSubgraphData(node, type, true /* dot */);
+    }
+
+    printf("\", shape=box");
+    if (node->getType() != PSNodeType::STORE) {
+        if (node->pointsTo.size() == 0
+            && (node->getType() == PSNodeType::LOAD ||
+                node->getType() == PSNodeType::GEP  ||
+                node->getType() == PSNodeType::CAST ||
+                node->getType() == PSNodeType::PHI))
+            printf(", style=filled, fillcolor=red");
+    } else {
+        printf(", style=filled, fillcolor=orange");
+    }
+
+    printf("]\n");
+}
+
+static void
+dumpNodeEdgesToDot(PSNode *node)
+{
+    for (PSNode *succ : node->getSuccessors()) {
+        printf("\tNODE%u -> NODE%u [penwidth=2]\n",
+               node->getID(), succ->getID());
+    }
+
+    for (PSNode *op : node->getOperands()) {
+        printf("\tNODE%u -> NODE%u [color=blue,style=dotted,constraint=false]\n",
+               op->getID(), node->getID());
+    }
+}
+
+PSNode *getNodePtr(PSNode *ptr) { return ptr; }
+PSNode *getNodePtr(const std::unique_ptr<PSNode>& ptr) { return ptr.get(); }
+
+
+template <typename ContT> static void
+dumpToDot(const ContT& nodes, PTType type)
+{
     /* dump nodes */
-    const auto& nodes = pta->getNodes();
     for (const auto& node : nodes) {
         if (!node)
             continue;
-        printf("\tNODE%u [label=\"<%u> ", node->getID(), node->getID());
-        printPSNodeType(node->getType());
-        printf("\\n");
-        printName(node.get(), true);
-        printf("\\nparent: %u\\n", node->getParent() ? node->getParent()->getID() : 0);
-
-        PSNodeAlloc *alloc = PSNodeAlloc::get(node.get());
-        if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
-            printf("\\n[size: %lu, heap: %u, zeroed: %u]",
-               alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
-
-        if (verbose && node->getOperandsNum() > 0) {
-            printf("\\n--- operands ---\\n");
-            for (PSNode *op : node->getOperands()) {
-                printName(op, true);
-                printf("\\n");
-            }
-            printf("------\\n");
-        }
-
-        if (verbose) {
-            printf("--- points-to set ---\\n");
-        }
-
-        for (const Pointer& ptr : node->pointsTo) {
-            printf("\\n    -> ");
-            printName(ptr.target, true);
-            printf(" + ");
-            if (ptr.offset.isUnknown())
-                printf("Offset::UNKNOWN");
-            else
-                printf("%lu", *ptr.offset);
-        }
-
-        if (verbose) {
-            dumpPointerSubgraphData(node.get(), type, true /* dot */);
-        }
-
-        printf("\", shape=box");
-        if (node->getType() != PSNodeType::STORE) {
-            if (node->pointsTo.size() == 0
-                && (node->getType() == PSNodeType::LOAD ||
-                    node->getType() == PSNodeType::GEP  ||
-                    node->getType() == PSNodeType::CAST ||
-                    node->getType() == PSNodeType::PHI))
-                printf(", style=filled, fillcolor=red");
-        } else {
-            printf(", style=filled, fillcolor=orange");
-        }
-
-        printf("]\n");
+        dumpNodeToDot(getNodePtr(node), type);
     }
 
     /* dump edges */
     for (const auto& node : nodes) {
         if (!node) // node id 0 is nullptr
             continue;
+        dumpNodeEdgesToDot(getNodePtr(node));
+    }
+}
 
-        for (PSNode *succ : node->getSuccessors()) {
-            printf("\tNODE%u -> NODE%u [penwidth=2]\n",
-                   node->getID(), succ->getID());
+static void
+dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
+{
+
+    printf("digraph \"Pointer State Subgraph\" {\n");
+
+    if (display_only_func) {
+        std::set<PSNode *> nodes;
+        auto func_nodes = pta->getFunctionNodes(display_only_func);
+        if (func_nodes.empty()) {
+            llvm::errs() << "ERROR: Did not find any nodes for function "
+                         << display_only << "\n";
+        } else {
+            llvm::errs() << "Found " << func_nodes.size() << " nodes for function "
+                         << display_only << "\n";
         }
 
-        for (PSNode *op : node->getOperands()) {
-            printf("\tNODE%u -> NODE%u [color=blue,style=dotted,constraint=false]\n",
-                   op->getID(), node->getID());
+        // add operands without any duplicates
+        for (auto nd : func_nodes) {
+            nodes.insert(nd);
+            // get also operands of the nodes,
+            // be it in any function
+            for (PSNode *ops : nd->getOperands()) {
+                nodes.insert(ops);
+            }
         }
+
+        dumpToDot(nodes, type);
+
+        // dump edges representing procedure calls, so that
+        // the graph is conntected
+        for (auto nd : func_nodes) {
+            if (nd->getType() == PSNodeType::CALL ||
+                nd->getType() == PSNodeType::CALL_FUNCPTR) {
+                auto ret = nd->getPairedNode();
+                if (ret == nullptr)
+                    continue;
+
+                printf("\tNODE%u -> NODE%u [penwidth=2 style=dashed]\n",
+                       nd->getID(), ret->getID());
+
+            }
+        }
+    } else {
+        dumpToDot(pta->getNodes(), type);
     }
 
     printf("}\n");
@@ -442,6 +504,8 @@ int main(int argc, char *argv[])
             verbose_more = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entry_func = argv[i + 1];
+        } else if (strcmp(argv[i], "-display-only") == 0) {
+            display_only = argv[i + 1];
         } else {
             module = argv[i];
         }
@@ -467,6 +531,14 @@ int main(int argc, char *argv[])
     }
 
     TimeMeasure tm;
+    if (display_only) {
+        display_only_func = M->getFunction(display_only);
+        if (!display_only_func) {
+            llvm::errs() << "Invalid function to display: " << display_only
+                         << ". Function not found in the module\n";
+            return 1;
+        }
+    }
 
     LLVMPointerAnalysis PTA(M, entry_func, field_senitivity);
 
