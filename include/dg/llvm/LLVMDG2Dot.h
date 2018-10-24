@@ -6,10 +6,25 @@
 #include "dg/DG2Dot.h"
 #include "dg/llvm/LLVMNode.h"
 
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
 #include "llvm/DebugInfo.h"     //DIScope
 #else
 #include "llvm/IR/DebugInfo.h"     //DIScope
+#endif
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
 #endif
 
 using namespace dg;
