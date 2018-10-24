@@ -309,8 +309,9 @@ PSNode *LLVMPointerSubgraphBuilder::createDynamicAlloc(const llvm::CallInst *CIn
         // if this is call to calloc, the size is given
         // in the first argument too
         size2 = getConstantSizeValue(CInst->getOperand(0));
-        if (size2 != 0)
-            size *= size2;
+        // if both ops are constants, multiply them to get
+        // the correct size, otherwise return 0 (unknown)
+        size = size2 != 0 ? size * size2 : 0;
     }
 
     node->setSize(size);
