@@ -67,7 +67,14 @@ target_link_libraries(points-to-set-test PRIVATE DGAnalysis)
 add_test(points-to-set-test points-to-set-test)
 add_dependencies(check points-to-set-test)
 
-
+# --------------------------------------------------
+# disjunctive-intervals-map-test
+# --------------------------------------------------
+add_executable(disjunctive-intervals-map-test disjunctive-intervals-map-test.cpp)
+target_link_libraries(disjunctive-intervals-map-test PRIVATE DGAnalysis)
+add_test(disjunctive-intervals-map-test disjunctive-intervals-map-test)
+add_dependencies(check disjunctive-intervals-map-test)
+target_include_directories(disjunctive-intervals-map-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 
 # --------------------------------------------------
 # llvm-dg-test
