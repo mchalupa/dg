@@ -297,7 +297,7 @@ private:
         for (auto& it : graph->getBlocks()) {
             const llvm::BasicBlock *llvmBB
                 = llvm::cast<llvm::BasicBlock>(it.first);
-            const llvm::TerminatorInst *tinst = llvmBB->getTerminator();
+            const auto tinst = llvmBB->getTerminator();
             LLVMBBlock *BB = it.second;
 
             // nothing to do
@@ -495,7 +495,7 @@ private:
     {
         using namespace llvm;
 
-        TerminatorInst *tinst = llvmBB->getTerminator();
+        auto tinst = llvmBB->getTerminator();
         assert((!tinst || BB->successorsNum() <= 2 || llvm::isa<llvm::SwitchInst>(tinst))
                 && "BB has more than two successors (and it's not a switch)");
 
