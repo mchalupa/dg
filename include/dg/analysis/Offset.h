@@ -52,6 +52,11 @@ struct Offset
         return *this;
     }
 
+    Offset& operator=(const Offset o)
+    {
+        offset = o.offset;
+        return *this;
+    }
 
     Offset operator-(const Offset& o) const
     {
