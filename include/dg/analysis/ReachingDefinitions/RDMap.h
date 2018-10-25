@@ -157,17 +157,17 @@ public:
 
 using DefSiteSetT = std::set<DefSite>;
 
-class RDMap
+class BasicRDMap
 {
 public:
     using MapT = std::map<DefSite, RDNodesSet>;
     using iterator = MapT::iterator;
     using const_iterator = MapT::const_iterator;
 
-    RDMap() {}
-    RDMap(const RDMap& o);
+    BasicRDMap() {}
+    BasicRDMap(const BasicRDMap& o);
 
-    bool merge(const RDMap *o,
+    bool merge(const BasicRDMap *o,
                DefSiteSetT *without = nullptr,
                bool strong_update_unknown = true,
                Offset::type max_set_size  = Offset::UNKNOWN,
@@ -178,10 +178,10 @@ public:
 
     // @return iterators for the range of pointers that has the same object
     // as the given def site
-    std::pair<RDMap::iterator, RDMap::iterator>
+    std::pair<BasicRDMap::iterator, BasicRDMap::iterator>
     getObjectRange(const DefSite&);
 
-    std::pair<RDMap::iterator, RDMap::iterator>
+    std::pair<BasicRDMap::iterator, BasicRDMap::iterator>
     getObjectRange(RDNode *);
 
     bool defines(const DefSite& ds) { return defs.count(ds) != 0; }
@@ -208,6 +208,8 @@ public:
 private:
      MapT defs;
 };
+
+using RDMap = BasicRDMap;
 
 } // rd
 } // analysis

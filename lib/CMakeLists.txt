@@ -35,7 +35,7 @@ add_library(RD SHARED
 	analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFI.h
 	analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFS.h
 
-	analysis/ReachingDefinitions/RDMap.cpp
+	analysis/ReachingDefinitions/BasicRDMap.cpp
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp
 	analysis/ReachingDefinitions/Srg/SemisparseRda.cpp
 	analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFI.cpp
