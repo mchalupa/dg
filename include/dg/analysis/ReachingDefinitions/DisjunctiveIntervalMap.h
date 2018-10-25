@@ -43,7 +43,8 @@ public:
     ///
     // Return true if the mapping is updated anyhow
     // (intervals split, value added).
-    bool add(const Offset start, const Offset end, const ValueT& val) {
+    bool add(const IntervalValueT start, const IntervalValueT end,
+             const ValueT& val) {
         return add(IntervalT(start, end), val);
     }
 
@@ -51,12 +52,68 @@ public:
         return _add(I, val, false);
     }
 
-    bool update(const Offset start, const Offset end, const ValueT& val) {
+    bool update(const IntervalValueT start, const IntervalValueT end,
+                const ValueT& val) {
         return update(IntervalT(start, end), val);
     }
 
     bool update(const IntervalT& I, const ValueT& val) {
         return _add(I, val, true);
+    }
+
+    // return true if some intervals from the map
+    // has a overlap with I
+    bool overlaps(const IntervalT& I) const {
+        if (_mapping.empty())
+            return false;
+
+        auto ge = _find_ge(I);
+        if (ge == _mapping.end()) {
+            auto last = _get_last();
+            return last->first.end >= I.start;
+        } else {
+            return ge->first.start <= I.end;
+        }
+    }
+
+    bool overlaps(IntervalValueT start, IntervalValueT end) const {
+        return overlaps(IntervalT(start, end));
+    }
+
+    // return true if the map has an entry for
+    // each single byte from the interval I
+    bool overlapsFull(const IntervalT& I) const {
+        auto ge = _find_ge(I);
+        if (ge == _mapping.end()) {
+            auto last = _get_last();
+            return last->first.end >= I.end;
+        } else {
+            if (ge->first.start > I.start) {
+                if (ge == _mapping.begin())
+                    return false;
+                auto prev = --ge;
+                if (prev->first.end != ge->first.start - 1)
+                    return false;
+            }
+
+            IntervalValueT last_end = ge->first.end;
+            while (ge->first.end < I.end) {
+                ++ge;
+                if (ge == _mapping.end())
+                    return false;
+
+                if (ge->first.start != last_end + 1)
+                    return false;
+
+                last_end = ge->first.end;
+            }
+
+            return true;
+        }
+    }
+
+    bool overlapsFull(IntervalValueT start, IntervalValueT end) const {
+        return overlapsFull(IntervalT(start, end));
     }
 
     bool empty() const { return _mapping.empty(); }
@@ -178,6 +235,7 @@ private:
         // we do not have any overlapping interval
         if (it == _mapping.end()
             || I.end < it->first.start) {
+            assert(!overlaps(I) && "Bug in add() or in overlaps()");
             _mapping.emplace(I, ValuesT{val});
             return true;
         }
@@ -224,7 +282,16 @@ private:
         return _mapping.lower_bound(I);
     }
 
+    typename MappingT::const_iterator _find_ge(const IntervalT& I) const {
+        return _mapping.lower_bound(I);
+    }
+
     typename MappingT::iterator _get_last() {
+        assert(!_mapping.empty());
+        return (--_mapping.end());
+    }
+
+    typename MappingT::const_iterator _get_last() const {
         assert(!_mapping.empty());
         return (--_mapping.end());
     }
