@@ -1,10 +1,11 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "dg/analysis/Offset.h"
 
 #undef NDEBUG
-#include "analysis/ReachingDefinitions/DisjunctiveIntervalMap.h"
+
+#include "dg/analysis/Offset.h"
+#include "dg/analysis/ReachingDefinitions/DisjunctiveIntervalMap.h"
 
 using namespace dg::analysis::rd;
 using dg::analysis::Offset;
