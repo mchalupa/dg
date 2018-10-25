@@ -161,8 +161,6 @@ class BasicRDMap
 {
 public:
     using MapT = std::map<DefSite, RDNodesSet>;
-    using iterator = MapT::iterator;
-    using const_iterator = MapT::const_iterator;
 
     BasicRDMap() {}
     BasicRDMap(const BasicRDMap& o);
@@ -172,29 +170,13 @@ public:
                bool strong_update_unknown = true,
                Offset::type max_set_size  = Offset::UNKNOWN,
                bool merge_unknown     = false);
+
     bool add(const DefSite&, RDNode *n);
     bool update(const DefSite&, RDNode *n);
-    bool empty() const { return defs.empty(); }
+    bool empty() const { return _defs.empty(); }
 
-    // @return iterators for the range of pointers that has the same object
-    // as the given def site
-    std::pair<BasicRDMap::iterator, BasicRDMap::iterator>
-    getObjectRange(const DefSite&);
-
-    std::pair<BasicRDMap::iterator, BasicRDMap::iterator>
-    getObjectRange(RDNode *);
-
-    bool defines(const DefSite& ds) { return defs.count(ds) != 0; }
+    bool defines(const DefSite& ds) { return _defs.count(ds) != 0; }
     bool definesWithAnyOffset(const DefSite& ds);
-
-    iterator begin() { return defs.begin(); }
-    iterator end() { return defs.end(); }
-    const_iterator begin() const { return defs.begin(); }
-    const_iterator end() const { return defs.end(); }
-
-    RDNodesSet& get(const DefSite& ds){ return defs[ds]; }
-    //const RDNodesSetT& get(const DefSite& ds) const { return defs[ds]; }
-    RDNodesSet& operator[](const DefSite& ds) { return defs[ds]; }
 
     //RDNodesSet& get(RDNode *, const Offset&);
     // gather reaching definitions of memory [n + off, n + off + len]
@@ -203,10 +185,41 @@ public:
                const Offset& len, std::set<RDNode *>& ret);
     size_t get(DefSite& ds, std::set<RDNode *>& ret);
 
-    const MapT& getDefs() const { return defs; }
+    template <typename IteratorT>
+    class _map_iterator {
+        IteratorT it;
+        _map_iterator(const IteratorT& I) : it(I) {}
+        friend class BasicRDMap;
+
+        public:
+        const std::pair<const DefSite&, const RDNodesSet&> operator*() const {
+            return std::make_pair(it->first, it->second);
+        };
+
+        _map_iterator& operator++() { ++it; return *this; }
+        _map_iterator operator++(int) { auto tmp = *this; ++it; return tmp; }
+        bool operator==(const _map_iterator& oth) const { return it == oth.it; }
+        bool operator!=(const _map_iterator& oth) const { return !operator==(oth); }
+    };
+
+    using map_iterator = _map_iterator<MapT::iterator>;
+    using const_map_iterator = _map_iterator<MapT::const_iterator>;
+
+    map_iterator begin() { return map_iterator(_defs.begin()); }
+    map_iterator end() { return map_iterator(_defs.end()); }
+    const_map_iterator begin() const { return const_map_iterator(_defs.begin()); }
+    const_map_iterator end() const { return const_map_iterator(_defs.end()); }
 
 private:
-     MapT defs;
+    // @return iterators for the range of pointers that has the same object
+    // as the given def site
+    std::pair<BasicRDMap::MapT::iterator, BasicRDMap::MapT::iterator>
+    getObjectRange(const DefSite&);
+
+    std::pair<BasicRDMap::MapT::const_iterator, BasicRDMap::MapT::const_iterator>
+    getObjectRange(const DefSite&) const;
+
+     MapT _defs;
 };
 
 using RDMap = BasicRDMap;

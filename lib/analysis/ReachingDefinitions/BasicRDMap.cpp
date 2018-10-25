@@ -65,7 +65,7 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
         return false;
 
     bool changed = false;
-    for (const auto& it : oth->defs) {
+    for (const auto& it : oth->_defs) {
         const DefSite& ds = it.first;
         bool is_unknown = ds.offset.isUnknown();
 
@@ -147,7 +147,7 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
             // this loop finds all concrete offsets and merges them into one
             // defsite with Offset::UNKNOWN. This defsite is set in 'our_vals'
             // after the loop exit
-            our_vals = &defs[DefSite(ds.target, Offset::UNKNOWN, Offset::UNKNOWN)];
+            our_vals = &_defs[DefSite(ds.target, Offset::UNKNOWN, Offset::UNKNOWN)];
 
             auto range = getObjectRange(ds);
             for (auto I = range.first; I != range.second;) {
@@ -166,13 +166,13 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
                     changed |= our_vals->insert(defnode);
 
                 // erase the def-site with concrete offset
-                defs.erase(cur);
+                _defs.erase(cur);
             }
 
             // fall-through to add the new definitions from the other map
         } else {
             // our values that we have for this definition-site
-            our_vals = &defs[ds];
+            our_vals = &_defs[ds];
         }
 
         assert(our_vals && "BUG");
@@ -193,13 +193,13 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
 
 bool BasicRDMap::add(const DefSite& p, RDNode *n)
 {
-    return defs[p].insert(n);
+    return _defs[p].insert(n);
 }
 
 bool BasicRDMap::update(const DefSite& p, RDNode *n)
 {
     bool ret;
-    RDNodesSet& dfs = defs[p];
+    RDNodesSet& dfs = _defs[p];
 
     ret = dfs.count(n) == 0 || dfs.size() > 1;
     dfs.clear();
@@ -253,11 +253,18 @@ static inline bool comp(const std::pair<const DefSite, RDNodesSet>& a,
     return a.first.target < b.first.target;
 }
 
-std::pair<BasicRDMap::iterator, BasicRDMap::iterator>
+std::pair<BasicRDMap::MapT::iterator, BasicRDMap::MapT::iterator>
 BasicRDMap::getObjectRange(const DefSite& ds)
 {
     std::pair<const DefSite, RDNodesSet> what(ds, RDNodesSet());
-    return std::equal_range(defs.begin(), defs.end(), what, comp);
+    return std::equal_range(_defs.begin(), _defs.end(), what, comp);
+}
+
+std::pair<BasicRDMap::MapT::const_iterator, BasicRDMap::MapT::const_iterator>
+BasicRDMap::getObjectRange(const DefSite& ds) const
+{
+    std::pair<const DefSite, RDNodesSet> what(ds, RDNodesSet());
+    return std::equal_range(_defs.begin(), _defs.end(), what, comp);
 }
 
 } // rd
