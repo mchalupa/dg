@@ -88,6 +88,10 @@ public:
     // return true if the map has an entry for
     // each single byte from the interval I
     bool overlapsFull(const IntervalT& I) const {
+        if (_mapping.empty()) {
+            return false;
+        }
+
         auto ge = _find_ge(I);
         if (ge == _mapping.end()) {
             auto last = _get_last();
