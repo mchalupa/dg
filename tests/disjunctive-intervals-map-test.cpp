@@ -332,3 +332,9 @@ TEST_CASE("OverlappsRandom", "DisjunctiveIntervalMap") {
         }
     }
 }
+
+TEST_CASE("OverlapsEmptyNonemptyinterval", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int, int> M;
+    REQUIRE_FALSE(M.overlapsFull(0, 10));
+    REQUIRE_FALSE(M.overlapsFull(10, 10));
+}
