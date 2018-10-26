@@ -192,9 +192,13 @@ public:
         friend class BasicRDMap;
 
         public:
-        const std::pair<const DefSite&, const RDNodesSet&> operator*() const {
-            return std::make_pair(it->first, it->second);
-        };
+        auto operator*() -> decltype(*it) {
+            return *it;
+        }
+
+        const auto operator*() const -> decltype(*it) {
+            return *it;
+        }
 
         _map_iterator& operator++() { ++it; return *this; }
         _map_iterator operator++(int) { auto tmp = *this; ++it; return tmp; }
