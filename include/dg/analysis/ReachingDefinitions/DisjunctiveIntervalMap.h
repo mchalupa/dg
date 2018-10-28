@@ -133,6 +133,23 @@ public:
     typename MappingT::iterator end() { return _mapping.end(); }
     typename MappingT::const_iterator end() const { return _mapping.end(); }
 
+#ifndef NDEBUG
+    friend std::ostream& operator<<(std::ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
+        os << "{";
+        for (const auto& pair : map) {
+            if (pair.second.empty())
+                continue;
+
+            os << "{ ";
+            os << pair.first.start << "-" << pair.first.end;
+            os << ": " << *pair.second.begin();
+            os << " }, ";
+        }
+        os << "}";
+        return os;
+    }
+#endif
+
 private:
 
     // Split interval [a,b] to two intervals [a, where] and [where + 1, b].
