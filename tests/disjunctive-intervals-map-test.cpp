@@ -3,6 +3,7 @@
 
 #include <random>
 #include <cassert>
+#include <vector>
 
 #undef NDEBUG
 
@@ -11,6 +12,63 @@
 
 using namespace dg::analysis::rd;
 using dg::analysis::Offset;
+
+template<typename ValueT, typename IntervalValueT>
+class DisjunctiveIntervalMapMatcher : public Catch::MatcherBase<DisjunctiveIntervalMap<ValueT, IntervalValueT>> {
+    std::vector<std::tuple<IntervalValueT, IntervalValueT, ValueT>> structure;
+public:
+    DisjunctiveIntervalMapMatcher(std::vector<std::tuple<IntervalValueT, IntervalValueT, ValueT>> s) : structure(std::move(s)) { }
+
+    virtual bool match(const DisjunctiveIntervalMap<ValueT, IntervalValueT>& M) const {
+        if (M.size() != structure.size()) {
+            return false;
+        }
+
+        size_t i = 0;
+        for (const auto& pair : M) {
+            const auto& interval = pair.first;
+            const auto& values = pair.second;
+
+            if(interval.start != std::get<0>(structure[i])) {
+                return false;
+            }
+
+            if(interval.end != std::get<1>(structure[i])) {
+                return false;
+            }
+
+            if(values.find(std::get<2>(structure[i])) == values.end()) {
+                return false;
+            }
+
+            ++i;
+        }
+        return true;
+    }
+
+    virtual std::string describe() const override {
+        std::ostringstream ss;
+        ss << "has the structure: " << structure;
+        return ss.str();
+    }
+};
+
+static std::ostream& operator<<(std::ostream& os, const std::vector<std::tuple<int,int,int>>& v) {
+    os << "{";
+    for (const auto& tup : v) {
+        os << "{ ";
+        os << std::get<0>(tup) << "-";
+        os << std::get<1>(tup) << ": ";
+        os << std::get<2>(tup);
+        os << " }, ";
+    }
+    os << "}";
+    return os;
+}
+
+static inline DisjunctiveIntervalMapMatcher<int, int> HasStructure(std::initializer_list<std::tuple<int, int, int>> structure) {
+    return DisjunctiveIntervalMapMatcher<int, int>(structure);
+}
 
 TEST_CASE("Querying empty set", "DisjunctiveIntervalMap") {
     DisjunctiveIntervalMap<int> M;
