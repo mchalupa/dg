@@ -94,13 +94,13 @@ public:
                 alloc->getParent() == where->getParent();
     }
 
-    static bool containsLocal(PSNode *where, PointsToSetT& S) {
+    bool containsRemovableLocals(PSNode *where, PointsToSetT& S) {
         for (const auto& ptr : S) {
             if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
                 continue;
 
             if (PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target)) {
-                if (isLocal(alloc, where))
+                if (isLocal(alloc, where) && knownInstance(alloc))
                     return true;
             }
         }
@@ -109,7 +109,7 @@ public:
     }
 
     // not very efficient
-    static void replaceLocalWithInv(PSNode *where, PointsToSetT& S1) {
+    void replaceLocalsWithInv(PSNode *where, PointsToSetT& S1) {
         PointsToSetT S;
 
         for (const auto& ptr : S1) {
@@ -117,7 +117,10 @@ public:
                 continue;
 
             if (PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target)) {
-                if (!isLocal(alloc, where))
+                // if this is not local pointer or it is,
+                // but we do not know which instance is being destroyed,
+                // then keep the pointer
+                if (!isLocal(alloc, where) || !knownInstance(alloc))
                     S.add(ptr);
             }
         }
@@ -163,9 +166,9 @@ public:
 
             for (auto& it : *mo) {
                 // remove pointers to locals from the points-to set
-                if (containsLocal(node, it.second)) {
-                    replaceLocalWithInv(node, it.second);
-                    assert(!containsLocal(node, it.second));
+                if (containsRemovableLocals(node, it.second)) {
+                    replaceLocalsWithInv(node, it.second);
+                    assert(!containsRemovableLocals(node, it.second));
                     changed = true;
                 }
             }
@@ -179,10 +182,10 @@ public:
 
                 // merge pointers from the previous states
                 // but do not include the pointers
-                // that may point to freed memory
+                // that _must_ point to destroyed memory
                 for (const auto& ptr : predS) {
                     PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target);
-                    if (alloc && isLocal(alloc, node)) {
+                    if (alloc && isLocal(alloc, node) && knownInstance(alloc)) {
                         changed |= S.add(INVALIDATED);
                     } else
                         changed |= S.add(ptr);
@@ -232,6 +235,13 @@ public:
         return changed;
     }
 
+    // return true if we know the instance of the object
+    // (allocations in loop or recursive calls may have
+    // multiple instances)
+    bool knownInstance(const PSNode *node) const {
+        return !isOnLoop(node);
+    }
+
     bool invStrongUpdate(const PSNode *operand) const {
         // If we are freeing memory through node that
         // points to precisely known valid memory that is not allocated
@@ -246,7 +256,7 @@ public:
 
         const auto& ptr  = *(operand->pointsTo.begin());
         return !ptr.offset.isUnknown()
-                && !isInvalidTarget(ptr.target) && !isOnLoop(ptr.target);
+                && !isInvalidTarget(ptr.target) && knownInstance(ptr.target);
     }
 
     bool overwriteVariableFromFree(MemoryMapT *mm, PSNode *operand) {
