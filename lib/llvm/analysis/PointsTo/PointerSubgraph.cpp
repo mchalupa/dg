@@ -240,8 +240,7 @@ LLVMPointerSubgraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called)
     // and the real called function can be established in
     // the following code (if this call is on a cycle).
     if (callsite->successorsNum() == 1 &&
-        callsite->getSingleSuccessor() == ret
-        && cf.second) {
+        callsite->getSingleSuccessor() == ret) {
         callsite->replaceSingleSuccessor(cf.first);
     } else {
         // we already have some subgraph connected,
