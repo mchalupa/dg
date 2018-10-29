@@ -904,9 +904,9 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
 }
 
 
-bool LLVMPointerSubgraphBuilder::validateSubgraph() const
+bool LLVMPointerSubgraphBuilder::validateSubgraph(bool no_connectivity) const
 {
-    debug::LLVMPointerSubgraphValidator validator(getPS());
+    debug::LLVMPointerSubgraphValidator validator(getPS(), no_connectivity);
     if (validator.validate()) {
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();

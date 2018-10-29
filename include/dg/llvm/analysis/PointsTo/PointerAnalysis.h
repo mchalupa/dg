@@ -69,8 +69,9 @@ public:
         builder->insertFunctionCall(callsite, called);
 
 #ifndef NDEBUG
-        // check the graph after rebuilding
-        if (!builder->validateSubgraph()) {
+        // check the graph after rebuilding, but do not check for connectivity,
+        // because we can call a function that will disconnect the graph
+        if (!builder->validateSubgraph(true)) {
             llvm::errs() << "Pointer Subgraph is broken!\n";
             llvm::errs() << "This happend after building this function called via pointer: "
                          <<  F->getName() << "\n";

@@ -22,6 +22,9 @@ class PointerSubgraphValidator {
     bool checkNodes();
     bool checkOperands();
 
+    // do not check for the connectivity of the graph
+    bool no_connectivity;
+
 protected:
     std::string errors{};
     std::string warnings{};
@@ -34,7 +37,8 @@ protected:
     virtual bool warn(const PSNode *n, const std::string& warning);
 
 public:
-    PointerSubgraphValidator(const PointerSubgraph *ps) : PS(ps) {}
+    PointerSubgraphValidator(const PointerSubgraph *ps, bool no_conn = false)
+    : PS(ps), no_connectivity(no_conn) {}
     virtual ~PointerSubgraphValidator() = default;
 
     bool validate();

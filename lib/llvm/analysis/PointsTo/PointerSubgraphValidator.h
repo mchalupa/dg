@@ -17,8 +17,9 @@ class LLVMPointerSubgraphValidator : public PointerSubgraphValidator {
     bool reportInvalOperands(const PSNode *n, const std::string& user_err) override;
 
 public:
-    LLVMPointerSubgraphValidator(const PointerSubgraph *ps)
-    : PointerSubgraphValidator(ps) {}
+    LLVMPointerSubgraphValidator(const PointerSubgraph *ps,
+                                 bool no_connectivity = false)
+    : PointerSubgraphValidator(ps, no_connectivity) {}
 
     ~LLVMPointerSubgraphValidator() = default;
 };

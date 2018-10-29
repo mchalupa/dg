@@ -215,9 +215,11 @@ bool PointerSubgraphValidator::checkEdges() {
         if (!nd)
             continue;
 
-        if (nd->predecessorsNum() == 0 && nd.get() != PS->getRoot()
-            && !canBeOutsideGraph(nd.get())) {
-            invalid |= reportInvalEdges(nd.get(), "Non-root node has no predecessors");
+        if (!no_connectivity) {
+            if (nd->predecessorsNum() == 0 && nd.get() != PS->getRoot()
+                && !canBeOutsideGraph(nd.get())) {
+                invalid |= reportInvalEdges(nd.get(), "Non-root node has no predecessors");
+            }
         }
 
         for (const PSNode *succ : nd->getSuccessors()) {
@@ -225,6 +227,9 @@ bool PointerSubgraphValidator::checkEdges() {
                 invalid |= reportInvalEdges(nd.get(), "Node not set as a predecessor of some of its successors");
         }
     }
+
+    if (no_connectivity)
+        return invalid;
 
     // check that all nodes are reachable from the root
     const auto reachable = getReachableNodes(PS->getRoot());
