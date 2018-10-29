@@ -226,14 +226,14 @@ bool PointerSubgraphValidator::checkEdges() {
         }
     }
 
-    // check that the edges form valid CFG (all nodes are reachable)
-    auto reachable = reachableNodes(PS->getRoot());
+    // check that all nodes are reachable from the root
+    const auto reachable = getReachableNodes(PS->getRoot());
     for (const auto &nd : nodes) {
         if (!nd)
             continue;
 
         if (reachable.count(nd.get()) < 1 && !canBeOutsideGraph(nd.get())) {
-                invalid |= reportUnreachableNode(nd.get());
+            invalid |= reportUnreachableNode(nd.get());
         }
     }
 
