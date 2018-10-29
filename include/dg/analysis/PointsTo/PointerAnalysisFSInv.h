@@ -241,7 +241,7 @@ public:
                 && !isInvalidTarget(ptr.target) && !isOnLoop(ptr.target);
     }
 
-    bool overwriteInvalidatedVariable(MemoryMapT *mm, PSNode *operand) {
+    bool overwriteVariableFromFree(MemoryMapT *mm, PSNode *operand) {
         // Bail out if the operand has no pointers yet,
         // otherwise we can add invalidated imprecisely
         // (the rest of invalidateMemory would not perform strong update)
@@ -260,7 +260,8 @@ public:
             // get the pointer to the memory that holds the pointers
             // that are being freed
             PSNode *loadOp = strippedOp->getOperand(0);
-            if (loadOp->pointsTo.size() == 1) {
+            if (invStrongUpdate(loadOp)) {
+                assert(!strongUpdateVariable && "strong update was not reset");
                 strongUpdateVariable = (*(loadOp->pointsTo.begin())).target;
 
                 // if we know exactly which memory object
@@ -284,7 +285,8 @@ public:
         return false;
     }
 
-    bool invalidateMemory(PSNode *node, PSNode *pred)
+    bool invalidateMemory(PSNode *node, PSNode *pred,
+                          bool is_free = false)
     {
         MemoryMapT *pmm = pred->getData<MemoryMapT>();
         if (!pmm) {
@@ -301,7 +303,8 @@ public:
         // if we call e.g. free(p), then p will point
         // to invalidated memory no matter how many places
         // it may have pointed before.
-        changed |= overwriteInvalidatedVariable(mm, operand);
+        if (is_free)
+            changed |= overwriteVariableFromFree(mm, operand);
 
         for (auto& I : *pmm) {
             if (isInvalidTarget(I.first))
