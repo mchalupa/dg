@@ -57,6 +57,7 @@ static bool verbose;
 static bool verbose_more;
 static bool ids_only = false;
 static bool dump_graph_only = false;
+static bool names_with_funs = false;
 static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
@@ -76,6 +77,12 @@ getInstName(const llvm::Value *val)
 {
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
+
+    if (names_with_funs) {
+        if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            ro << I->getParent()->getParent()->getName().data() << ":";
+        }
+    }
 
     assert(val);
     if (llvm::isa<llvm::Function>(val))
@@ -524,6 +531,8 @@ int main(int argc, char *argv[])
             dump_iteration = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-graph-only") == 0) {
             dump_graph_only = true;
+        } else if (strcmp(argv[i], "-names-with-funs") == 0) {
+            names_with_funs = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-vv") == 0) {
