@@ -63,7 +63,7 @@ add_dependencies(check numbers-set-test)
 # points-to-set-test
 # --------------------------------------------------
 add_executable(points-to-set-test points-to-set-test.cpp)
-target_link_libraries(points-to-set-test PRIVATE DGAnalysis)
+target_link_libraries(points-to-set-test PRIVATE DGAnalysis PTA)
 add_test(points-to-set-test points-to-set-test)
 add_dependencies(check points-to-set-test)
 
