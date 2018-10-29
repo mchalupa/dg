@@ -80,7 +80,7 @@ public:
         if (n->getType() == PSNodeType::INVALIDATE_OBJECT)
             return invalidateMemory(n);
         if (n->getType() == PSNodeType::FREE)
-            return invalidateMemory(n);
+            return handleFree(n);
 
         assert(n->getType() != PSNodeType::FREE &&
                n->getType() != PSNodeType::INVALIDATE_OBJECT &&
@@ -220,6 +220,14 @@ public:
         bool changed = false;
         for (PSNode *pred : node->getPredecessors()) {
             changed |= invalidateMemory(node, pred);
+        }
+        return changed;
+    }
+
+    bool handleFree(PSNode *node) {
+        bool changed = false;
+        for (PSNode *pred : node->getPredecessors()) {
+            changed |= invalidateMemory(node, pred, true /* is free */);
         }
         return changed;
     }
