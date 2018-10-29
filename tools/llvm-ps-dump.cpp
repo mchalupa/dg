@@ -3,6 +3,7 @@
 #endif
 
 #include <set>
+#include <vector>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -60,7 +61,7 @@ static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
 static char *display_only = nullptr;
-static const llvm::Function *display_only_func = nullptr;
+static std::vector<const llvm::Function *> display_only_func;
 
 std::unique_ptr<PointerAnalysis> PA;
 
@@ -403,30 +404,56 @@ dumpToDot(const ContT& nodes, PTType type)
     }
 }
 
+
+static std::vector<std::string> splitList(const std::string& opt, char sep = ',')
+{
+    std::vector<std::string> ret;
+    if (opt.empty())
+        return ret;
+
+    size_t old_pos = 0;
+    size_t pos = 0;
+    while (true) {
+        old_pos = pos;
+
+        pos = opt.find(sep, pos);
+        ret.push_back(opt.substr(old_pos, pos - old_pos));
+
+        if (pos == std::string::npos)
+            break;
+        else
+            ++pos;
+    }
+
+    return ret;
+}
+
 static void
 dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 {
 
     printf("digraph \"Pointer State Subgraph\" {\n");
 
-    if (display_only_func) {
+    if (!display_only_func.empty()) {
         std::set<PSNode *> nodes;
-        auto func_nodes = pta->getFunctionNodes(display_only_func);
-        if (func_nodes.empty()) {
-            llvm::errs() << "ERROR: Did not find any nodes for function "
-                         << display_only << "\n";
-        } else {
-            llvm::errs() << "Found " << func_nodes.size() << " nodes for function "
-                         << display_only << "\n";
-        }
+        for (auto llvmFunc : display_only_func) {
+            auto func_nodes = pta->getFunctionNodes(llvmFunc);
+            if (func_nodes.empty()) {
+                llvm::errs() << "ERROR: Did not find any nodes for function "
+                             << display_only << "\n";
+            } else {
+                llvm::errs() << "Found " << func_nodes.size() << " nodes for function "
+                             << display_only << "\n";
+            }
 
-        // add operands without any duplicates
-        for (auto nd : func_nodes) {
-            nodes.insert(nd);
-            // get also operands of the nodes,
-            // be it in any function
-            for (PSNode *ops : nd->getOperands()) {
-                nodes.insert(ops);
+            // use std::set to get rid of duplicates
+            for (auto nd : func_nodes) {
+                nodes.insert(nd);
+                // get also operands of the nodes,
+                // be it in any function
+                for (PSNode *ops : nd->getOperands()) {
+                    nodes.insert(ops);
+                }
             }
         }
 
@@ -434,7 +461,7 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
 
         // dump edges representing procedure calls, so that
         // the graph is conntected
-        for (auto nd : func_nodes) {
+        for (auto nd : nodes) {
             if (nd->getType() == PSNodeType::CALL ||
                 nd->getType() == PSNodeType::CALL_FUNCPTR) {
                 auto ret = nd->getPairedNode();
@@ -532,11 +559,14 @@ int main(int argc, char *argv[])
 
     TimeMeasure tm;
     if (display_only) {
-        display_only_func = M->getFunction(display_only);
-        if (!display_only_func) {
-            llvm::errs() << "Invalid function to display: " << display_only
-                         << ". Function not found in the module\n";
-            return 1;
+        for (const auto& func : splitList(display_only)) {
+            auto llvmFunc = M->getFunction(func);
+            if (!llvmFunc) {
+                llvm::errs() << "Invalid function to display: " << func
+                             << ". Function not found in the module\n";
+                return 1;
+            }
+            display_only_func.push_back(llvmFunc);
         }
     }
 
