@@ -77,7 +77,7 @@ public:
 
     bool empty() const { return pointers.empty(); }
 
-    size_t count(const Pointer& ptr) {
+    size_t count(const Pointer& ptr) const {
         auto it = pointers.find(ptr.target);
         if (it != pointers.end()) {
             return it->second.get(*ptr.offset);
@@ -86,11 +86,11 @@ public:
         return 0;
     }
 
-    bool has(const Pointer& ptr) {
+    bool has(const Pointer& ptr) const {
         return count(ptr) > 0;
     }
 
-    size_t size() {
+    size_t size() const {
         size_t num = 0;
         for (auto& it : pointers) {
             num += it.second.size();

@@ -224,7 +224,7 @@ public:
         return changed;
     }
 
-    bool invStrongUpdate(PSNode *operand) {
+    bool invStrongUpdate(const PSNode *operand) const {
         // If we are freeing memory through node that
         // points to precisely known valid memory that is not allocated
         // on a loop, we can do strong update.

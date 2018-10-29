@@ -198,7 +198,7 @@ protected:
         return false;
     }
 
-    bool isOnLoop(PSNode *n) const {
+    bool isOnLoop(const PSNode *n) const {
         unsigned idx = n->getSCCId();
         const auto& scc = getSCCs()[idx];
 
