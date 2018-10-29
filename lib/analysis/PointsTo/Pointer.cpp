@@ -18,10 +18,11 @@ void Pointer::print() const {
     dump();
     std::cout << "\n";
 }
-#endif // not NDEBUG
 
 
 } // namespace pta
 } // namespace analysis
 } // namespace dg
+
+#endif // not NDEBUG
 
