@@ -142,12 +142,16 @@ public:
 
     bool handleInvalidateLocals(PSNode *node, PSNode *pred)
     {
-        bool changed = false;
+        MemoryMapT *pmm = pred->getData<MemoryMapT>();
+        if (!pmm) {
+            // predecessor was not processed yet
+            return false;
+        }
+
         MemoryMapT *mm = node->getData<MemoryMapT>();
         assert(mm && "Node does not have a memory map");
-        MemoryMapT *pmm = pred->getData<MemoryMapT>();
-        assert(pmm && "Node's predecessor does not have a memory map");
 
+        bool changed = false;
         for (auto& I : *pmm) {
             if (isInvalidTarget(I.first))
                 continue;
@@ -282,12 +286,16 @@ public:
 
     bool invalidateMemory(PSNode *node, PSNode *pred)
     {
-        bool changed = false;
+        MemoryMapT *pmm = pred->getData<MemoryMapT>();
+        if (!pmm) {
+            // predecessor was not processed yet
+            return false;
+        }
 
         MemoryMapT *mm = node->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
-        MemoryMapT *pmm = pred->getData<MemoryMapT>();
-        assert(pmm && "Node does not have memory map");
+
+        bool changed = false;
 
         PSNode *operand = node->getOperand(0);
         // if we call e.g. free(p), then p will point
