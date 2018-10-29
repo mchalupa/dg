@@ -125,7 +125,7 @@ public:
 
     PointerSubgraph *buildLLVMPointerSubgraph();
 
-    bool validateSubgraph() const;
+    bool validateSubgraph(bool no_connectivity = false) const;
 
     PSNodesSeq
     createFuncptrCall(const llvm::CallInst *CInst,
