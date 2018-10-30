@@ -270,7 +270,18 @@ void LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *pthreadJoinCall)
             llvm::Function *F = func->getUserData<llvm::Function>();
             Subgraph &subgraph = createOrGetSubgraph(F);
             assert(subgraph.root);
-            subgraph.ret->addSuccessor(pthreadJoinCall);
+            if (!pthreadJoinCall->getOperand(1)->isNull()) {
+                PSNode *phi = PS.create(PSNodeType::PHI, nullptr);
+                PSNode *store = PS.create(PSNodeType::STORE, phi, pthreadJoinCall->getOperand(1));
+                phi->addSuccessor(store);
+                store->addSuccessor(pthreadJoinCall);
+                for (PSNode *ret : subgraph.ret->getPredecessors()) {
+                    phi->addOperand(ret);
+                }
+                subgraph.ret->addSuccessor(phi);
+            } else {
+                subgraph.ret->addSuccessor(pthreadJoinCall);
+            }
         }
     }
 }
@@ -291,8 +302,19 @@ void LLVMPointerSubgraphBuilder::matchCreateToRightJoin(PSNode *createThreadHand
                 }
             }
         }
-        if (!set.empty()) {
-            subgraph.ret->addSuccessor(pthreadJoin);
+        if (!set.empty()) {            
+            if (!pthreadJoin->getOperand(1)->isNull()) {
+                PSNode *phi = PS.create(PSNodeType::PHI, nullptr);
+                PSNode *store = PS.create(PSNodeType::STORE, phi, pthreadJoin->getOperand(1));
+                phi->addSuccessor(store);
+                store->addSuccessor(pthreadJoin);
+                for (PSNode *ret : subgraph.ret->getPredecessors()) {
+                    phi->addOperand(ret);
+                }
+                subgraph.ret->addSuccessor(phi);
+            } else {
+                subgraph.ret->addSuccessor(pthreadJoin);
+            }
         }
     }
 }

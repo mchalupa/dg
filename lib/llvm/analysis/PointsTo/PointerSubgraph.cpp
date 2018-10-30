@@ -181,10 +181,11 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createCallToPthreadCreate(const llvm::Cal
 
     // reuse built subgraphs if available
     Subgraph& subg = createOrGetSubgraph(F);
+
     // we took the subg by reference, so it should be filled now
     assert(subg.root);
 
-    // add operands to arguments
+    addProgramStructure(F, subg);
     addInterproceduralPthreadOperands(F, CInst);
 
     // add an edge from last argument to root of the subgraph
@@ -294,7 +295,6 @@ void LLVMPointerSubgraphBuilder::insertPthreadCreateCall(PSNode *callsite, PSNod
     auto cf = createPthreadFuncptrCall(CI, F);
     assert(cf.first && "Failed building the subgraph");
     matchCreateToRightJoin(cf.first->getOperand(0), F);
-    llvm::errs() << "number of operands:" << cf.first->getOperandsNum() << "\n";
 
     callsite->addSuccessor(cf.first);
 }
@@ -318,12 +318,7 @@ void LLVMPointerSubgraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite, 
     addInterproceduralOperands(func, subgraph, CI);
     ad_hoc_building = false;
     PSNode *nodeToRemove = callsite->getSingleSuccessor();
-//    nodeToRemove->isolate();
     nodeToRemove->removeAllOperands();
-
-//    PS.remove(nodeToRemove);
-
-    llvm::errs() << "number of operands: " << nodeToRemove->getOperandsNum() << "\n";
 
     callsite->addSuccessor(subgraph.root);
     matchCreateToRightJoin(threadHandleNode, func);
@@ -718,7 +713,6 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
         } else {
             ret = PS.create(PSNodeType::NOOP);
         }
-
         s.ret = ret;
     }
 
