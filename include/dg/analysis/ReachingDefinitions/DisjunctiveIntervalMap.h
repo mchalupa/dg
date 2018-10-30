@@ -100,7 +100,8 @@ public:
             if (ge->first.start > I.start) {
                 if (ge == _mapping.begin())
                     return false;
-                auto prev = --ge;
+                auto prev = ge;
+                --prev;
                 if (prev->first.end != ge->first.start - 1)
                     return false;
             }
@@ -203,11 +204,35 @@ private:
             // we found an interval starting at I.start
             // or later
             assert(ge->first.start >= I.start);
-            if (ge->first.start <= I.end
-                && ge->first.end > I.end) {
-                splitIntervalHint(ge, I.end, _mapping.end());
-                return true;
+            bool changed = false;
+            // FIXME: optimize this...
+            //  add _find_le to find the "closest" interval from the right
+            //  (maybe iterating like this is faster, though)
+            auto it = ge;
+            while (it->first.start <= I.end) {
+                if (it->first.end > I.end) {
+                    it = splitIntervalHint(it, I.end, _mapping.end());
+                    changed = true;
+                    break;
+                }
+                ++it;
+                if (it == _mapping.end())
+                    break;
             }
+
+            // we may have also overlap from the previous interval
+            if (changed)
+                ge = _mapping.lower_bound(I);
+            if (ge != _mapping.begin()) {
+                auto prev = ge;
+                --prev;
+                if (prev->first.end >= I.start) {
+                    splitIntervalHint(prev, I.start - 1, ge);
+                    changed = true;
+                }
+            }
+
+            return changed;
         }
 
         return false;
