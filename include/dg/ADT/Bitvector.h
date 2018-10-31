@@ -74,6 +74,22 @@ public:
         return prev;
     }
 
+    // returns the previous value of the i-th bit
+    bool unset(size_t i) {
+        auto sft = _shift(i);
+        auto it = _bits.find(sft);
+        if (it == _bits.end()) {
+            return false;
+        }
+
+        it->second &= ~(1UL << (i - sft));
+        if (it->second == 0) {
+            _bits.erase(it);
+        }
+
+        return true;
+    }
+
     // this is the union operation
     bool merge(const SparseBitvectorImpl& rhs) {
         bool changed = false;
