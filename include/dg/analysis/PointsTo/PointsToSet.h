@@ -63,6 +63,35 @@ public:
         return add(ptr.target, ptr.offset);
     }
 
+    bool remove(const Pointer& ptr) {
+        return remove(ptr.target, ptr.offset);
+    }
+
+    ///
+    // Remove pointer to this target with this offset.
+    // This is method really removes the pair
+    // (target, off) even when the off is unknown
+    bool remove(PSNode *target, Offset offset) {
+        auto it = pointers.find(target);
+        if (it == pointers.end()) {
+            return false;
+        }
+
+        return it->second.unset(*offset);
+    }
+
+    ///
+    // Remove pointers pointing to this target
+    bool removeAny(PSNode *target) {
+        auto it = pointers.find(target);
+        if (it == pointers.end()) {
+            return false;
+        }
+
+        pointers.erase(it);
+        return true;
+    }
+
     // make union of the two sets and store it
     // into 'this' set (i.e. merge rhs to this set)
     bool merge(const PointsToSet& rhs) {
@@ -73,6 +102,34 @@ public:
         }
 
         return changed;
+    }
+
+    bool pointsTo(const Pointer& ptr) const {
+        auto it = pointers.find(ptr.target);
+        if (it == pointers.end())
+            return false;
+        return it->second.get(*ptr.offset);
+    }
+
+    // points to the pointer or the the same target
+    // with unknown offset? Note: we do not count
+    // unknown memory here...
+    bool mayPointTo(const Pointer& ptr) const {
+        return pointsTo(ptr) ||
+                pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
+    }
+
+    bool mustPointTo(const Pointer& ptr) const {
+        assert(!ptr.offset.isUnknown() && "Makes no sense");
+        return pointsTo(ptr) && isSingleton();
+    }
+
+    bool pointsToTarget(PSNode *target) const {
+        return pointers.find(target) != pointers.end();
+    }
+
+    bool isSingleton() const {
+        return pointers.size() == 1;
     }
 
     bool empty() const { return pointers.empty(); }
@@ -193,6 +250,36 @@ public:
         return add(ptr.target, ptr.offset);
     }
 
+    bool remove(const Pointer& ptr) {
+        return pointers.erase(ptr) != 0;
+    }
+
+    ///
+    // Remove pointer to this target with this offset.
+    // This is method really removes the pair
+    // (target, off), even when the off is unknown
+    bool remove(PSNode *target, Offset offset) {
+        return remove(Pointer(target, offset));
+    }
+
+    ///
+    // Remove pointers pointing to this target
+    bool removeAny(PSNode *target) {
+        if (pointsToTarget(target)) {
+            SimplePointsToSet tmp;
+            for (const auto& ptr : pointers) {
+                if (ptr.target == target) {
+                    continue;
+                }
+                tmp.add(ptr);
+            }
+            assert(tmp.size() < size());
+            swap(tmp);
+            return true;
+        }
+        return false;
+    }
+
     // make union of the two sets and store it
     // into 'this' set (i.e. merge rhs to this set)
     bool merge(const SimplePointsToSet& rhs) {
@@ -202,6 +289,35 @@ public:
         }
 
         return changed;
+    }
+
+    bool pointsTo(const Pointer& ptr) const {
+        return pointers.count(ptr) > 0;
+    }
+
+    // points to the pointer or the the same target
+    // with unknown offset? Note: we do not count
+    // unknown memory here...
+    bool mayPointTo(const Pointer& ptr) const {
+        return pointsTo(ptr) ||
+                pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
+    }
+
+    bool mustPointTo(const Pointer& ptr) const {
+        assert(!ptr.offset.isUnknown() && "Makes no sense");
+        return pointsTo(ptr) && isSingleton();
+    }
+
+    bool pointsToTarget(PSNode *target) const {
+        for (const auto& ptr : pointers) {
+            if (ptr.target == target)
+                return true;
+        }
+        return false;
+    }
+
+    bool isSingleton() const {
+        return pointers.size() == 1;
     }
 
     size_t count(const Pointer& ptr) { return pointers.count(ptr); }
