@@ -62,6 +62,11 @@ if (LLVM_DG)
 
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
+
+	# copy also the wrapper scripts
+	configure_file(ps-show ps-show COPYONLY)
+	configure_file(rd-show rd-show COPYONLY)
+	configure_file(llvmdg-show llvmdg-show COPYONLY)
 endif (LLVM_DG)
 
 include_directories(../src)
