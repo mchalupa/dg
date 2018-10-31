@@ -32,8 +32,6 @@ class PointerAnalysisFSInv : public PointerAnalysisFS
         return moptr.get();
     }
 
-    PSNode *strongUpdateVariable{nullptr};
-
 public:
     using MemoryMapT = PointerAnalysisFS::MemoryMapT;
 
@@ -259,12 +257,16 @@ public:
                 && !isInvalidTarget(ptr.target) && knownInstance(ptr.target);
     }
 
-    bool overwriteVariableFromFree(MemoryMapT *mm, PSNode *operand) {
+    ///
+    // Check whether we can overwrite the memory object that was used to load
+    // the pointer into free().
+    // Return the PSNode that represents this memory object
+    PSNode *moFromFreeToOverwrite(PSNode *operand) {
         // Bail out if the operand has no pointers yet,
         // otherwise we can add invalidated imprecisely
         // (the rest of invalidateMemory would not perform strong update)
         if (operand->pointsTo.empty())
-            return false;
+            return nullptr;
 
         // invalidate(p) translates to
         //  1 = load x
@@ -279,28 +281,28 @@ public:
             // that are being freed
             PSNode *loadOp = strippedOp->getOperand(0);
             if (invStrongUpdate(loadOp)) {
-                assert(!strongUpdateVariable && "strong update was not reset");
-                strongUpdateVariable = (*(loadOp->pointsTo.begin())).target;
-
-                // if we know exactly which memory object
-                // is being used for freeing the memory,
-                // we can set it to invalidated
-                const auto& ptr = *(loadOp->pointsTo.begin());
-                auto mo = getOrCreateMO(mm, ptr.target);
-                if (mo->pointsTo.size() == 1) {
-                    auto& S = mo->pointsTo[0];
-                    if (S.size() == 1 && (*S.begin()).target == INVALIDATED) {
-                        return false;
-                    }
-                }
-
-                mo->pointsTo.clear();
-                mo->pointsTo[0].add(INVALIDATED);
-                return true;
+                return (*(loadOp->pointsTo.begin())).target;
             }
         }
 
-        return false;
+        return nullptr;
+    }
+
+    bool overwriteMOFromFree(MemoryMapT *mm, PSNode *target) {
+        // if we know exactly which memory object
+        // is being used for freeing the memory,
+        // we can set it to invalidated
+        auto mo = getOrCreateMO(mm, target);
+        if (mo->pointsTo.size() == 1) {
+            auto& S = mo->pointsTo[0];
+            if (S.size() == 1 && (*S.begin()).target == INVALIDATED) {
+                return false; // no update
+            }
+        }
+
+        mo->pointsTo.clear();
+        mo->pointsTo[0].add(INVALIDATED);
+        return true;
     }
 
     bool invalidateMemory(PSNode *node, PSNode *pred,
@@ -318,18 +320,25 @@ public:
         bool changed = false;
 
         PSNode *operand = node->getOperand(0);
-        // if we call e.g. free(p), then p will point
-        // to invalidated memory no matter how many places
-        // it may have pointed before.
-        if (is_free)
-            changed |= overwriteVariableFromFree(mm, operand);
+        PSNode *strong_update = nullptr;
+        // if we call e.g. free(load p), then the contents of
+        // the memory pointed by p will point
+        // to invalidated memory (we can do this when we
+        // know precisely what is the memory).
+        if (is_free) {
+            strong_update = moFromFreeToOverwrite(operand);
+            if (strong_update)
+                changed |= overwriteMOFromFree(mm, strong_update);
+        }
 
         for (auto& I : *pmm) {
+            assert(I.first && "nullptr as target");
+
             if (isInvalidTarget(I.first))
                 continue;
 
             // strong update on this variable?
-            if (strongUpdateVariable && strongUpdateVariable == I.first)
+            if (strong_update == I.first)
                 continue;
 
             // get or create a memory object for this target
@@ -402,8 +411,6 @@ public:
             }
         }
 
-        // reset strong update!
-        strongUpdateVariable = nullptr;
         return changed;
     }
 };
