@@ -196,7 +196,7 @@ public:
             return *it;
         }
 
-        const auto operator*() const -> decltype(*it) {
+        auto operator*() const -> decltype(*it) {
             return *it;
         }
 
