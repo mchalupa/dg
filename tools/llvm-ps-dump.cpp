@@ -503,12 +503,151 @@ dumpPointerSubgraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
     }
 }
 
+static void
+dumpStats(LLVMPointerAnalysis *pta)
+{
+    const auto& nodes = pta->getNodes();
+    printf("Pointer subgraph size: %lu\n", nodes.size()-1);
+
+    size_t nonempty_size = 0; // number of nodes with non-empty pt-set
+    size_t maximum = 0; // maximum pt-set size
+    size_t pointing_to_unknown = 0;
+    size_t pointing_only_to_unknown = 0;
+    size_t pointing_to_invalidated = 0;
+    size_t pointing_only_to_invalidated = 0;
+    size_t singleton_count = 0;
+    size_t singleton_nonconst_count = 0;
+    size_t pointing_to_heap = 0;
+    size_t pointing_to_global = 0;
+    size_t pointing_to_stack = 0;
+    size_t pointing_to_function = 0;
+    size_t has_known_size = 0;
+    size_t allocation_num = 0;
+    size_t points_to_only_known_size = 0;
+    size_t known_size_known_offset = 0;
+
+    for (auto& node : nodes) {
+        if (!node.get())
+            continue;
+
+        if (node->pointsTo.size() > 0)
+            ++nonempty_size;
+
+        if (node->pointsTo.size() == 1) {
+            ++singleton_count;
+            if (node->getType() == PSNodeType::CONSTANT ||
+                node->getType() == PSNodeType::FUNCTION)
+                ++singleton_nonconst_count;
+        }
+
+        if (node->pointsTo.size() > maximum)
+            maximum = node->pointsTo.size();
+
+        bool _points_to_only_known_size = true;
+        bool _known_offset_only = true;
+        for (const auto& ptr : node->pointsTo) {
+            if (ptr.offset.isUnknown()) {
+                _known_offset_only = false;
+            }
+
+            if (ptr.isUnknown()) {
+                ++pointing_to_unknown;
+                if (node->pointsTo.size() == 1)
+                    ++pointing_only_to_unknown;
+            }
+
+            if (ptr.isInvalidated()) {
+                ++pointing_to_invalidated;
+                if (node->pointsTo.size() == 1)
+                    ++pointing_only_to_invalidated;
+            }
+
+            auto alloc = PSNodeAlloc::get(ptr.target);
+            if (alloc) {
+                ++allocation_num;
+                if (node->getSize() != 0 &&
+                    node->getSize() != Offset::UNKNOWN) {
+                    ++has_known_size;
+                } else
+                    _points_to_only_known_size = false;
+
+                if (alloc->isHeap()) {
+                    ++pointing_to_heap;
+                } else if (alloc->isGlobal()) {
+                    ++pointing_to_global;
+                } else if (alloc->getType() == PSNodeType::ALLOC){
+                    assert(!alloc->isGlobal());
+                    ++pointing_to_stack;
+                }
+            } else {
+                _points_to_only_known_size = false;;
+
+                if (ptr.target->getType() == PSNodeType::FUNCTION) {
+                    ++pointing_to_function;
+                }
+            }
+        }
+
+        if (_points_to_only_known_size) {
+            ++points_to_only_known_size;
+            if (_known_offset_only)
+                ++known_size_known_offset;
+        }
+    }
+
+    printf("Allocations: %lu\n", allocation_num);
+    printf("Allocations with known size: %lu\n", has_known_size);
+    printf("Nodes with non-empty pt-set: %lu\n", nonempty_size);
+    printf("Pointers pointing only to known-size allocations: %lu\n",
+            points_to_only_known_size);
+    printf("Pointers pointing only to known-size allocations with known offset: %lu\n",
+           known_size_known_offset);
+
+    double avg_ptset_size = 0;
+    double avg_nonempty_ptset_size = 0; // avg over non-empty sets only
+    size_t accumulated_ptset_size = 0;
+
+    for (auto& node : nodes) {
+        if (!node.get())
+            continue;
+
+        if (accumulated_ptset_size > (~((size_t) 0)) - node->pointsTo.size()) {
+            printf("Accumulated points to sets size > 2^64 - 1");
+            avg_ptset_size += (accumulated_ptset_size /
+                                static_cast<double>(nodes.size()-1));
+            avg_nonempty_ptset_size += (accumulated_ptset_size /
+                                        static_cast<double>(nonempty_size));
+            accumulated_ptset_size = 0;
+        }
+        accumulated_ptset_size += node->pointsTo.size();
+    }
+
+    avg_ptset_size += (accumulated_ptset_size /
+                            static_cast<double>(nodes.size()-1));
+    avg_nonempty_ptset_size += (accumulated_ptset_size /
+                                    static_cast<double>(nonempty_size));
+    printf("Average pt-set size: %6.3f\n", avg_ptset_size);
+    printf("Average non-empty pt-set size: %6.3f\n", avg_nonempty_ptset_size);
+    printf("Pointing to singleton: %lu\n", singleton_count);
+    printf("Non-constant pointing to singleton: %lu\n", singleton_nonconst_count);
+    printf("Pointing to unknown: %lu\n", pointing_to_unknown);
+    printf("Pointing to unknown singleton: %lu\n", pointing_only_to_unknown );
+    printf("Pointing to invalidated: %lu\n", pointing_to_invalidated);
+    printf("Pointing to invalidated singleton: %lu\n", pointing_only_to_invalidated);
+    printf("Pointing to heap: %lu\n", pointing_to_heap);
+    printf("Pointing to global: %lu\n", pointing_to_global);
+    printf("Pointing to stack: %lu\n", pointing_to_stack);
+    printf("Pointing to function: %lu\n", pointing_to_function);
+    printf("Maximum pt-set size: %lu\n", maximum);
+}
+
 int main(int argc, char *argv[])
 {
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     bool todot = false;
+    bool stats = false;
     const char *module = nullptr;
     PTType type = FLOW_INSENSITIVE;
     uint64_t field_senitivity = Offset::UNKNOWN;
@@ -533,6 +672,8 @@ int main(int argc, char *argv[])
             dump_graph_only = true;
         } else if (strcmp(argv[i], "-names-with-funs") == 0) {
             names_with_funs = true;
+        } else if (strcmp(argv[i], "-stats") == 0) {
+            stats = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-vv") == 0) {
@@ -622,6 +763,12 @@ int main(int argc, char *argv[])
 
     tm.stop();
     tm.report("INFO: Points-to analysis [new] took");
+
+    if (stats) {
+        dumpStats(&PTA);
+        return 0;
+    }
+
     dumpPointerSubgraph(&PTA, type, todot);
 
     return 0;
