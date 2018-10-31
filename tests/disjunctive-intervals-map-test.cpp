@@ -417,9 +417,9 @@ TEST_CASE("Split", "DisjunctiveIntervalMap") {
      * [3,4] -> 5
      */
     REQUIRE_THAT(M, HasStructure({
-        {0,0, 2},
-        {1,1, 3},
-        {2,2, 4},
-        {3,4, 5}
+        std::make_tuple(0,0, 2),
+        std::make_tuple(1,1, 3),
+        std::make_tuple(2,2, 4),
+        std::make_tuple(3,4, 5)
     }));
 }
