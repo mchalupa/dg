@@ -13,6 +13,20 @@
 using namespace dg::analysis::rd;
 using dg::analysis::Offset;
 
+static std::ostream& operator<<(std::ostream& os, const std::vector<std::tuple<int,int,int>>& v) {
+    os << "{";
+    for (const auto& tup : v) {
+        os << "{ ";
+        os << std::get<0>(tup) << "-";
+        os << std::get<1>(tup) << ": ";
+        os << std::get<2>(tup);
+        os << " }, ";
+    }
+    os << "}";
+    return os;
+}
+
+
 template<typename ValueT, typename IntervalValueT>
 class DisjunctiveIntervalMapMatcher : public Catch::MatcherBase<DisjunctiveIntervalMap<ValueT, IntervalValueT>> {
     std::vector<std::tuple<IntervalValueT, IntervalValueT, ValueT>> structure;
@@ -52,19 +66,6 @@ public:
         return ss.str();
     }
 };
-
-static std::ostream& operator<<(std::ostream& os, const std::vector<std::tuple<int,int,int>>& v) {
-    os << "{";
-    for (const auto& tup : v) {
-        os << "{ ";
-        os << std::get<0>(tup) << "-";
-        os << std::get<1>(tup) << ": ";
-        os << std::get<2>(tup);
-        os << " }, ";
-    }
-    os << "}";
-    return os;
-}
 
 static inline DisjunctiveIntervalMapMatcher<int, int> HasStructure(std::initializer_list<std::tuple<int, int, int>> structure) {
     return DisjunctiveIntervalMapMatcher<int, int>(structure);
