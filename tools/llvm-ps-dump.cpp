@@ -337,13 +337,12 @@ dumpNodeToDot(PSNode *node, PTType type)
         printf("\\n--- operands ---\\n");
         for (PSNode *op : node->getOperands()) {
             printName(op, true);
-            printf("\\n");
         }
-        printf("------\\n");
+        printf("\\n------\\n");
     }
 
-    if (verbose) {
-        printf("--- points-to set ---\\n");
+    if (verbose && !node->pointsTo.empty()) {
+        printf("\\n--- points-to set ---\\n");
     }
 
     for (const Pointer& ptr : node->pointsTo) {
