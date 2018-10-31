@@ -407,7 +407,7 @@ TEST_CASE("Split", "DisjunctiveIntervalMap") {
     // now add intervals such that their union is 0-4
     M.update(0,1, 2);
     M.update(1,2, 3);
-    M.update(2,3, 4);
+    M.update(2,2, 4);
     M.update(3,4, 5);
 
     /*
@@ -422,5 +422,34 @@ TEST_CASE("Split", "DisjunctiveIntervalMap") {
         std::make_tuple(1,1, 3),
         std::make_tuple(2,2, 4),
         std::make_tuple(3,4, 5)
+    }));
+}
+
+TEST_CASE("Split2", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int, int> M;
+
+    // add 0-4
+    M.update(0,4, 1);
+
+    // now add intervals such that their union is 0-4
+    M.update(0,1, 2);
+    M.update(1,2, 3);
+    M.update(2,3, 4);
+    M.update(3,4, 5);
+
+    /*
+     * The map should now contain:
+     * [0,0] -> 2
+     * [1,1] -> 3
+     * [2,2] -> 4
+     * [3,3] -> 5
+     * [4,4] -> 5
+     */
+    REQUIRE_THAT(M, HasStructure({
+        std::make_tuple(0,0, 2),
+        std::make_tuple(1,1, 3),
+        std::make_tuple(2,2, 4),
+        std::make_tuple(3,3, 5),
+        std::make_tuple(4,4, 5)
     }));
 }
