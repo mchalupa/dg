@@ -196,16 +196,6 @@ public:
         return changed;
     }
 
-    static inline bool pointsToTarget(PointsToSetT& S, PSNode *target) {
-        for (const auto& ptr : S) {
-            if (ptr.target == target) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     static void replaceTargetWithInv(PointsToSetT& S1, PSNode *target) {
         PointsToSetT S;
         for (const auto& ptr : S1) {
@@ -357,9 +347,9 @@ public:
                         changed |= it.second.add(INVALIDATED);
                     else if (ptr.isNull() || ptr.isInvalidated())
                         continue;
-                    else if (pointsToTarget(it.second, ptr.target)) {
+                    else if (it.second.pointsToTarget(ptr.target)) {
                         replaceTargetWithInv(it.second, ptr.target);
-                        assert(!pointsToTarget(it.second, ptr.target));
+                        assert(!it.second.pointsToTarget(ptr.target));
                         changed = true;
                     }
                 } else { // weak update
@@ -369,7 +359,7 @@ public:
 
                         // invalidate on unknown memory yields invalidate for
                         // each element
-                        if (ptr.isUnknown() || pointsToTarget(it.second, ptr.target)) {
+                        if (ptr.isUnknown() || it.second.pointsToTarget(ptr.target)) {
                             changed |= it.second.add(INVALIDATED);
                         }
                     }
@@ -392,7 +382,7 @@ public:
                 for (const auto& ptr : predS) {
                     if (ptr.isValid() && // if the ptr is null or unkown,
                                          // we want to copy it
-                        pointsToTarget(operand->pointsTo, ptr.target)) {
+                        operand->pointsTo.pointsToTarget(ptr.target)) {
                         if (!invStrongUpdate(operand)) {
                             // we still want to copy the original pointer
                             // if we cannot perform strong update
