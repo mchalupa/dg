@@ -30,6 +30,15 @@ public:
     RDNode *createNode(const llvm::Instruction& Inst);
 
 private:
+    enum class CallType{CREATE_THREAD, JOIN_THREAD, PLAIN_CALL};
+
+    struct FunctionCall {
+        FunctionCall(RDNode *rootNode, RDNode *returnNode, CallType callType);
+        RDNode *rootNode;
+        RDNode *returnNode;
+        CallType callType;
+    };
+
     void addNode(const llvm::Value *val, RDNode *node)
     {
         auto it = nodes_map.find(val);
@@ -65,14 +74,45 @@ private:
 
     std::pair<RDNode *, RDNode *> buildGlobals();
 
-    std::pair<RDNode *, RDNode *>
+    FunctionCall
     createCallToFunction(const llvm::Function *F);
 
-    std::pair<RDNode *, RDNode *>
+    std::vector<FunctionCall>
     createCall(const llvm::Instruction *Inst);
+
+    std::vector<FunctionCall>
+    createCallsToZeroSizeFunctions(const llvm::Function *function,
+                                     const llvm::CallInst *CInst);
+
+    std::vector<FunctionCall>
+    createCallsToFunctions(const std::vector<const llvm::Function *> &functions,
+                           const llvm::CallInst *CInst);
+
+    std::vector<FunctionCall>
+    createPthreadCreateCalls(const llvm::CallInst *CInst);
+
+    FunctionCall createPthreadJoinCall(const llvm::CallInst *CInst);
 
     RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
     RDNode *createUndefinedCall(const llvm::CallInst *CInst);
+
+    std::vector<const llvm::Function *>
+    getPointsToFunctions(const llvm::Value *calledValue);
+
+    std::vector<const llvm::Function *>
+    getPotentialFunctions(const llvm::Instruction *instruction);
+
+    bool isInlineAsm(const llvm::Instruction *instruction);
+
+    const llvm::Function *
+    findFunctionAndRemoveFromVector(std::vector<const llvm::Function *> &functions,
+                                    const std::__cxx11::string &functionName);
+
+    void matchForksAndJoins();
+
+    void connectCallsToGraph(const llvm::Instruction *Inst,
+                             const std::vector<FunctionCall> &functionCalls,
+                             RDNode *&lastNode);
 };
 
 }
