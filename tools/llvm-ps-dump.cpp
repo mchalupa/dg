@@ -524,6 +524,8 @@ dumpStats(LLVMPointerAnalysis *pta)
     size_t allocation_num = 0;
     size_t points_to_only_known_size = 0;
     size_t known_size_known_offset = 0;
+    size_t only_valid_target = 0;
+    size_t only_valid_and_some_known = 0;
 
     for (auto& node : nodes) {
         if (!node.get())
@@ -544,21 +546,29 @@ dumpStats(LLVMPointerAnalysis *pta)
 
         bool _points_to_only_known_size = true;
         bool _known_offset_only = true;
+        bool _has_known_size_offset = false;
+        bool _has_only_valid_targets = true;
         for (const auto& ptr : node->pointsTo) {
             if (ptr.offset.isUnknown()) {
                 _known_offset_only = false;
             }
 
             if (ptr.isUnknown()) {
+                _has_only_valid_targets = false;
                 ++pointing_to_unknown;
                 if (node->pointsTo.size() == 1)
                     ++pointing_only_to_unknown;
             }
 
             if (ptr.isInvalidated()) {
+                _has_only_valid_targets = false;
                 ++pointing_to_invalidated;
                 if (node->pointsTo.size() == 1)
                     ++pointing_only_to_invalidated;
+            }
+
+            if (ptr.isNull()) {
+                _has_only_valid_targets = false;
             }
 
             auto alloc = PSNodeAlloc::get(ptr.target);
@@ -567,6 +577,8 @@ dumpStats(LLVMPointerAnalysis *pta)
                 if (node->getSize() != 0 &&
                     node->getSize() != Offset::UNKNOWN) {
                     ++has_known_size;
+                    if (!ptr.offset.isUnknown())
+                        _has_known_size_offset = true;
                 } else
                     _points_to_only_known_size = false;
 
@@ -592,6 +604,12 @@ dumpStats(LLVMPointerAnalysis *pta)
             if (_known_offset_only)
                 ++known_size_known_offset;
         }
+
+        if (_has_only_valid_targets) {
+            ++only_valid_target;
+            if (_has_known_size_offset)
+                ++only_valid_and_some_known;
+        }
     }
 
     printf("Allocations: %lu\n", allocation_num);
@@ -601,6 +619,8 @@ dumpStats(LLVMPointerAnalysis *pta)
             points_to_only_known_size);
     printf("Pointers pointing only to known-size allocations with known offset: %lu\n",
            known_size_known_offset);
+    printf("Pointers pointing only to valid targets: %lu\n", only_valid_target);
+    printf("Pointers pointing only to valid targets and some known size+offset: %lu\n", only_valid_and_some_known);
 
     double avg_ptset_size = 0;
     double avg_nonempty_ptset_size = 0; // avg over non-empty sets only
