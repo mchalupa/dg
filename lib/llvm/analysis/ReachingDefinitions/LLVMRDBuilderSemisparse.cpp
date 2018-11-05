@@ -45,45 +45,6 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-// FIXME: don't duplicate the code (with PSS.cpp)
-static uint64_t getConstantValue(const llvm::Value *op)
-{
-    using namespace llvm;
-
-    uint64_t size = 0;
-    if (const ConstantInt *C = dyn_cast<ConstantInt>(op)) {
-        size = C->getLimitedValue();
-        // if the size cannot be expressed as an uint64_t,
-        // just set it to 0 (that means unknown)
-        if (size == ~(static_cast<uint64_t>(0)))
-            size = 0;
-    }
-
-    return size;
-}
-
-static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
-{
-    // Type can be i8 *null or similar
-    if (!Ty->isSized())
-            return 0;
-
-    return DL->getTypeAllocSize(Ty);
-}
-
-static uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
-                                 const llvm::DataLayout *DL)
-{
-    llvm::Type *Ty = AI->getAllocatedType();
-    if (!Ty->isSized())
-            return 0;
-
-    if (AI->isArrayAllocation())
-        return getConstantValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
-    else
-        return DL->getTypeAllocSize(Ty);
-}
-
 RDNode *LLVMRDBuilderSemisparse::createAlloc(const llvm::Instruction *Inst, RDBlock *rb)
 {
     RDNode *node = new RDNode(RDNodeType::ALLOC);
