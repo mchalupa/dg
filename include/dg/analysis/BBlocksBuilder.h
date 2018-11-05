@@ -57,8 +57,8 @@ class BBlocksBuilder {
 
         // We are inside a block, set the block from
         // the predecessor
-        assert(cur->getSinglePredecessor()->getBBlock2());
-        addToBlock(cur, cur->getSinglePredecessor()->getBBlock2());
+        assert(cur->getSinglePredecessor()->getBBlock());
+        addToBlock(cur, cur->getSinglePredecessor()->getBBlock());
     }
 
 public:
@@ -67,7 +67,7 @@ public:
 
         while (!_queue.empty()) {
             NodeT *cur = _queue.pop();
-            assert(cur->getBBlock2() == nullptr);
+            assert(cur->getBBlock() == nullptr);
 
             setBlock(cur);
 
@@ -79,6 +79,12 @@ public:
     }
 
     std::vector<std::unique_ptr<BBlockT>>& getBlocks() { return _blocks; }
+
+    std::vector<std::unique_ptr<BBlockT>>&&
+    buildAndGetBlocks(NodeT *root) {
+        buildBlocks(root);
+        return _blocks;
+    }
 };
 
 
