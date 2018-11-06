@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include "PointerAnalysisFS.h"
+#include "InvalidatedAnalysis.h"
 
 namespace dg {
 namespace analysis {
@@ -10,6 +11,17 @@ namespace pta {
 
 class PointerAnalysisFSInv : public PointerAnalysisFS
 {
+public:
+    // this is an easy but not very efficient implementation,
+    // works for testing
+    PointerAnalysisFSInv(PointerSubgraph *ps,
+                         PointerAnalysisOptions opts)
+    : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
+
+    // default options
+    PointerAnalysisFSInv(PointerSubgraph *ps) : PointerAnalysisFSInv(ps, {}) {}
+
+#if 0
     static bool canChangeMM(PSNode *n) {
         if (n->getType() == PSNodeType::FREE ||
             n->getType() == PSNodeType::INVALIDATE_OBJECT ||
@@ -38,7 +50,7 @@ public:
     // this is an easy but not very efficient implementation,
     // works for testing
     PointerAnalysisFSInv(PointerSubgraph *ps,
-                           PointerAnalysisOptions opts)
+                         PointerAnalysisOptions opts)
     : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
 
     // default options
@@ -402,6 +414,12 @@ public:
         }
 
         return changed;
+    }
+#endif
+    void run() override {
+        PointerAnalysisFS::run();
+        InvalidatedAnalysis IA(getPS());
+        IA.run();
     }
 };
 

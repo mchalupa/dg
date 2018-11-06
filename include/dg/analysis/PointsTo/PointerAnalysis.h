@@ -142,7 +142,7 @@ public:
         }
     }
 
-    void run()
+    virtual void run()
     {
         // do preprocessing and queue the nodes
         preprocess();
