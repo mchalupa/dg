@@ -25,6 +25,12 @@ public:
             assert(s <= e && "Invalid interval");
         }
 
+        T length() const {
+            // +1 as the intervals are discrete
+            // (interval |0|1|2|3|  has length 4)
+            return end - start + 1;
+        }
+
         // total order on intervals so that we can insert them
         // to std containers. We want to compare them only
         // according to the start value.
@@ -39,11 +45,29 @@ public:
         bool operator!=(const Interval& I) const {
             return !operator==(I);
         }
+
+        bool overlaps(const Interval& I) const {
+            return (start <= I.start && end >= I.start) || I.end >= start;
+        }
+
+        bool covers(const Interval& I) const {
+            return (start <= I.start && end >= I.end);
+        }
+
+        bool overlaps(T rhs_start, T rhs_end) const {
+            return overlaps(IntervalT(rhs_start, rhs_end));
+        }
+
+        bool covers(T rhs_start, T rhs_end) const {
+            return covers(IntervalT(rhs_start, rhs_end));
+        }
     };
 
     using IntervalT = Interval<IntervalValueT>;
     using ValuesT = std::set<ValueT>;
     using MappingT = std::map<IntervalT, ValuesT>;
+    using iterator = typename MappingT::iterator;
+    using const_iterator = typename MappingT::const_iterator;
 
     ///
     // Return true if the mapping is updated anyhow
@@ -129,10 +153,29 @@ public:
     bool empty() const { return _mapping.empty(); }
     size_t size() const { return _mapping.size(); }
 
-    typename MappingT::iterator begin() { return _mapping.begin(); }
-    typename MappingT::const_iterator begin() const { return _mapping.begin(); }
-    typename MappingT::iterator end() { return _mapping.end(); }
-    typename MappingT::const_iterator end() const { return _mapping.end(); }
+    iterator begin() { return _mapping.begin(); }
+    const_iterator begin() const { return _mapping.begin(); }
+    iterator end() { return _mapping.end(); }
+    const_iterator end() const { return _mapping.end(); }
+
+    // return the iterator to an element that is the first
+    // that overlaps the interval I or end() if there is
+    // no such interval
+    iterator le(const IntervalT& I) {
+        return _shift_le(_find_ge(I), I);
+    }
+
+    const_iterator le(const IntervalT& I) const {
+        return _shift_le(_find_ge(I), I);
+    }
+
+    iterator le(const IntervalValueT start, const IntervalValueT end) {
+        return le(IntervalT(start, end));
+    }
+
+    const_iterator le(const IntervalValueT start, const IntervalValueT end) const {
+        return le(IntervalT(start, end));
+    }
 
 #ifndef NDEBUG
     friend std::ostream& operator<<(std::ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
@@ -152,6 +195,47 @@ public:
 #endif
 
 private:
+
+    // shift the iterator such that it will point to the
+    // first element that overlaps with I, or to end
+    // if there is no such interval
+    template <typename IteratorT>
+    IteratorT _shift_le(const IteratorT& startge, const IntervalT& I) const {
+        // find the element that starts at the same value
+        // as I or later (i.e. I.start >= it.start)
+        if (startge == end()) {
+            auto last = _get_last();
+            if (last->first.end >= I.start) {
+                assert(last->first.overlaps(I));
+                return last;
+            }
+
+            return end();
+        }
+
+        assert(startge->first.start >= I.start);
+
+        // check whether there's
+        // an previous interval with an overlap
+        if (startge != begin()) {
+            auto tmp = startge;
+            --tmp;
+            if (tmp->first.end >= I.start) {
+                assert(tmp->first.overlaps(I));
+                return tmp;
+            }
+            // fall-through
+        }
+
+        // starge is the first interval or the
+        // previous interval does not overlap.
+        // Just check whether this interval overlaps
+        if (startge->first.start > I.end)
+            return end();
+
+        assert(startge->first.overlaps(I));
+        return startge;
+    }
 
     // Split interval [a,b] to two intervals [a, where] and [where + 1, b].
     // Each of the new intervals has a copy of the original set associated
