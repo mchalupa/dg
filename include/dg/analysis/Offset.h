@@ -49,9 +49,9 @@ struct Offset
         if (offset == UNKNOWN || o.offset == UNKNOWN ||
             offset >= UNKNOWN - o.offset) {
             offset = UNKNOWN;
+        } else {
+            offset += o.offset;
         }
-
-        offset += o.offset;
 
         return *this;
     }
@@ -70,6 +70,17 @@ struct Offset
         }
 
         return Offset(offset - o.offset);
+    }
+
+    Offset& operator-(const Offset& o)
+    {
+        if (offset == UNKNOWN || o.offset == UNKNOWN ||
+            offset < o.offset) {
+            offset = UNKNOWN;
+        } else {
+            offset -= o.offset;
+        }
+        return *this;
     }
 
     bool operator<(const Offset& o) const
