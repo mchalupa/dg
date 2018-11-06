@@ -30,6 +30,16 @@ add_dependencies(check points-to-test)
 target_link_libraries(points-to-test PRIVATE PTA)
 
 # --------------------------------------------------
+# rdmap-test
+# --------------------------------------------------
+add_executable(rdmap-test rdmap-test.cpp)
+target_link_libraries(rdmap-test PRIVATE DGAnalysis)
+add_test(rdmap-test rdmap-test)
+add_dependencies(check rdmap-test)
+target_link_libraries(rdmap-test PRIVATE RD)
+target_include_directories(rdmap-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
+
+# --------------------------------------------------
 # reaching-definitions-test
 # --------------------------------------------------
 add_executable(reaching-definitions-test reaching-definitions-test.cpp)
