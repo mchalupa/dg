@@ -60,35 +60,39 @@ intervalsOverlap(uint64_t a1, uint64_t a2,
     return !intervalsDisjunctive(a1, a2, b1, b2);
 }
 
-struct DefSite
+template <typename NodeT>
+struct GenericDefSite
 {
-    DefSite(RDNode *t,
-            const Offset& o = Offset::UNKNOWN,
-            const Offset& l = Offset::UNKNOWN)
+    GenericDefSite(NodeT *t,
+                   const Offset& o = Offset::UNKNOWN,
+                   const Offset& l = Offset::UNKNOWN)
         : target(t), offset(o), len(l)
     {
         assert((o.isUnknown() || l.isUnknown() ||
                *o + *l > 0) && "Invalid offset and length given");
     }
 
-    bool operator<(const DefSite& oth) const
+    bool operator<(const GenericDefSite& oth) const
     {
         return target == oth.target ?
                 (offset == oth.offset ? len < oth.len : offset < oth.offset)
                 : target < oth.target;
     }
 
-    bool operator==(const DefSite& oth) const {
+    bool operator==(const GenericDefSite& oth) const {
         return target == oth.target && offset == oth.offset && len == oth.len;
     }
 
     // what memory this node defines
-    RDNode *target;
+    NodeT *target;
     // on what offset
     Offset offset;
     // how many bytes
     Offset len;
 };
+
+// for compatibility until we need to change it
+using DefSite = GenericDefSite<RDNode>;
 
 extern RDNode *UNKNOWN_MEMORY;
 
