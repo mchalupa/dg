@@ -23,6 +23,7 @@ TEST_CASE("Querying empty set", "DisjunctiveIntervalMap") {
     REQUIRE(M.empty());
 }
 
+/*
 TEST_CASE("Singleton set", "DisjunctiveIntervalMap") {
     RDMap M;
 
@@ -113,5 +114,6 @@ TEST_CASE("iterator", "DisjunctiveIntervalMap") {
     REQUIRE(it == M.end());
     REQUIRE(it != M.begin());
 }
+*/
 
 
