@@ -11,11 +11,6 @@ namespace rd {
 
 class RDNode;
 
-BasicRDMap::BasicRDMap(const RDMap& o)
-{
-    merge(&o);
-}
-
 static bool comp_ds(const DefSite& a, const DefSite& b)
 {
     return a.target < b.target;
