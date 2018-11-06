@@ -179,10 +179,6 @@ public:
     bool update(const DefSite&, RDNode *n);
     bool empty() const { return _defs.empty(); }
 
-    bool defines(const DefSite& ds) { return _defs.count(ds) != 0; }
-    bool definesWithAnyOffset(const DefSite& ds);
-
-    //RDNodesSet& get(RDNode *, const Offset&);
     // gather reaching definitions of memory [n + off, n + off + len]
     // and store them to the @ret
     size_t get(RDNode *n, const Offset& off,
