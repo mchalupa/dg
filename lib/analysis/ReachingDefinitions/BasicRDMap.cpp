@@ -208,14 +208,8 @@ bool BasicRDMap::update(const DefSite& p, RDNode *n)
     return ret;
 }
 
-bool BasicRDMap::definesWithAnyOffset(const DefSite& ds)
-{
-    auto range = getObjectRange(ds);
-    return range.first != range.second;
-}
-
 size_t BasicRDMap::get(RDNode *n, const Offset& off,
-                  const Offset& len, std::set<RDNode *>& ret)
+                       const Offset& len, std::set<RDNode *>& ret)
 {
     DefSite ds(n, off, len);
     return get(ds, ret);
