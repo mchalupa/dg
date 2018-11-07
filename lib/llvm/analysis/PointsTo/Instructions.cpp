@@ -330,7 +330,8 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
             op1 = NULLPTR;
         else if (typeCanBePointer(DL, retVal->getType()) &&
                   (!isInvalid(retVal->stripPointerCasts(), invalidate_nodes) ||
-                   llvm::isa<llvm::ConstantExpr>(retVal)))
+                   llvm::isa<llvm::ConstantExpr>(retVal) ||
+                   llvm::isa<llvm::UndefValue>(retVal)))
             op1 = getOperand(retVal);
     }
 
