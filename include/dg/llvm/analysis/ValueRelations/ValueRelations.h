@@ -512,8 +512,23 @@ struct VRLocation  {
         return E.add(LI, readVal);
     }
 
+    bool gepGen(const llvm::GetElementPtrInst *GEP,
+                EqualityMap<const llvm::Value*>& E,
+                ReadsMap& R,
+                VRLocation *source) {
+
+        if (GEP->hasAllZeroIndices()) {
+            return E.add(GEP, GEP->getPointerOperand());
+        }
+
+        // we can also add < > according to shift of offset
+
+        return false;
+    }
+
     bool instructionGen(const llvm::Instruction *I,
                         EqualityMap<const llvm::Value*>& E,
+                        RelationsSet& Rel,
                         ReadsMap& R, VRLocation *source) {
         using namespace llvm;
         if (auto SI = dyn_cast<StoreInst>(I)) {
@@ -521,6 +536,12 @@ struct VRLocation  {
             return R.add(writtenMem, SI->getOperand(0));
         } else if (auto LI = dyn_cast<LoadInst>(I)) {
             return loadGen(LI, E, R, source);
+        } else if (auto GEP = dyn_cast<GetElementPtrInst>(I)) {
+            return gepGen(GEP, E, R, source);
+        } else if (auto C = dyn_cast<CastInst>(I)) {
+            if (C->isLosslessCast() /* C->isNoopCast(DL) */) {
+                return E.add(C, C->getOperand(0));
+            }
         }
         return false;
     }
@@ -612,7 +633,7 @@ struct VRLocation  {
             // FIXME, may be equality too
         } else if (edge->op->isInstruction()) {
             auto I = VRInstruction::get(edge->op.get())->getInstruction();
-            changed |= instructionGen(I, E, R, source);
+            changed |= instructionGen(I, E, Rel, R, source);
 
             instructionKills(I, E, source, overwritesReads, overwritesAll);
         }
