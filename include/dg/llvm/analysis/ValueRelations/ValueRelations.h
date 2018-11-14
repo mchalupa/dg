@@ -550,6 +550,8 @@ struct VRLocation  {
             } else {
                 overwritesAll = true;
             }
+        } else if (I->mayWriteToMemory() || I->mayHaveSideEffects()) {
+            overwritesAll = true;
         }
     }
 
