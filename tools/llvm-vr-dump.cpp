@@ -108,8 +108,8 @@ int main(int /*argc*/, char *argv[])
                 std::cout << "[label=\"";
                 std::cout << "\\n";
                 loc->dump();
-                //std::cout << "\\n------ REL ------\\n";
-                //loc->relations.dump();
+                std::cout << "\\n------ REL ------\\n";
+                loc->relations.dump();
                 std::cout << "\\n------ EQ ------\\n";
                 loc->equalities.dump();
                 std::cout << "\\n----- READS -----\\n";
