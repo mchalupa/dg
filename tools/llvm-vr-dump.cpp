@@ -156,15 +156,15 @@ int main(int /*argc*/, char *argv[])
             for (const auto& loc : block.second->locations) {
                 std::cout << "  NODE" << loc->id;
                 std::cout << "[label=\"";
-                std::cout << loc->id;
-                if (loc->val)
-                    std::cout << getInstName(loc->val);
+                //std::cout << loc->id;
+                //if (loc->val)
+                //    std::cout << getInstName(loc->val);
                 std::cout << "\\n";
-                //loc->dump();
-                std::cout << "\\n------ REL ------\\n";
-                loc->relations.dump();
-                std::cout << "\\n------ EQ ------\\n";
-                loc->equalities.dump();
+                loc->dump();
+                //std::cout << "\\n------ REL ------\\n";
+                //loc->relations.dump();
+                //std::cout << "\\n------ EQ ------\\n";
+                //loc->equalities.dump();
                 std::cout << "\"];\n";
             }
         }
@@ -175,7 +175,7 @@ int main(int /*argc*/, char *argv[])
                     std::cout << "  NODE" << loc->id
                               << " -> NODE" << succ->target->id
                               << " [label=\"";
-                    succ->info.dump();
+                    succ->op->dump();
                     std::cout << "\"];\n";
                 }
             }
