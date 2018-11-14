@@ -57,36 +57,6 @@ static bool todot = true;
 /*
 static bool verbose = false;
 static const char *entryFunc = "main";
-
-*/
-static std::string
-getInstName(const llvm::Value *val)
-{
-    std::ostringstream ostr;
-    llvm::raw_os_ostream ro(ostr);
-
-    assert(val);
-    ro << *val;
-    ro.flush();
-
-    // break the string if it is too long
-    return ostr.str();
-}
-
-/*
-static void printVRNodeType(enum VRNodeType type)
-{
-#define ELEM(t) case(t): do {printf("%s", #t); }while(0); break;
-    switch(type) {
-        ELEM(VRNodeType::FORGET)
-        ELEM(VRNodeType::READ)
-        ELEM(VRNodeType::VALUE)
-        ELEM(VRNodeType::RELATION)
-        default:
-            printf("unknown type");
-    };
-#undef ELEM
-}
 */
 
 int main(int /*argc*/, char *argv[])
@@ -96,26 +66,6 @@ int main(int /*argc*/, char *argv[])
     llvm::SMDiagnostic SMD;
 
     const char *modulepath = nullptr;
-
-    // parse options
-    /*
-    for (int i = 1; i < argc; ++i) {
-        // run given points-to analysis
-        if (strcmp(argv[i], "-pta") == 0) {
-            if (strcmp(argv[i+1], "fs") == 0)
-                type = FLOW_SENSITIVE;
-        } else if (strcmp(argv[i], "-dot") == 0) {
-            todot = true;
-        } else if (strcmp(argv[i], "-v") == 0) {
-            verbose = true;
-        } else if (strcmp(argv[i], "-entry") == 0) {
-            entryFunc = argv[i+1];
-        } else {
-            modulepath = argv[i];
-        }
-        modulepath = argv[i];
-    }
-    */
     modulepath = argv[1];
 
     if (!modulepath) {
@@ -156,15 +106,14 @@ int main(int /*argc*/, char *argv[])
             for (const auto& loc : block.second->locations) {
                 std::cout << "  NODE" << loc->id;
                 std::cout << "[label=\"";
-                //std::cout << loc->id;
-                //if (loc->val)
-                //    std::cout << getInstName(loc->val);
                 std::cout << "\\n";
                 loc->dump();
                 //std::cout << "\\n------ REL ------\\n";
                 //loc->relations.dump();
-                //std::cout << "\\n------ EQ ------\\n";
-                //loc->equalities.dump();
+                std::cout << "\\n------ EQ ------\\n";
+                loc->equalities.dump();
+                std::cout << "\\n----- READS -----\\n";
+                loc->reads.dump();
                 std::cout << "\"];\n";
             }
         }
@@ -181,18 +130,11 @@ int main(int /*argc*/, char *argv[])
             }
         }
 
-
-
-        /*
-        for (const auto& nd : VR.getNodes()) {
-        }
-        */
         std::cout << "}\n";
     }
 
     //dumpVR(&VR, todot);
     //tm.report("INFO: Value Relations analysis took");
-
 
     return 0;
 }
