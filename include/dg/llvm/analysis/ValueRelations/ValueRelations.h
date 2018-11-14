@@ -102,6 +102,97 @@ struct VRAssume : public VROp {
 #endif
 };
 
+/// --------------------------------------------------- ///
+// Relation
+/// --------------------------------------------------- ///
+class VRRelation {
+    enum VRRelationType {
+        NONE = 0, EQ = 1, NEQ = 2, LE = 3, LT = 4, GE = 5, GT = 6
+    } _relation{VRRelationType::NONE};
+
+    const llvm::Value *_lhs{nullptr}, *_rhs{nullptr};
+
+    VRRelation(VRRelationType type,
+               const llvm::Value *lhs, const llvm::Value *rhs)
+    : _relation(type), _lhs(lhs), _rhs(rhs) {}
+
+public:
+
+	VRRelation() = default;
+
+#ifndef NDEBUG
+    void dump() const {
+        std::cout << "(" << detail::getValName(_lhs);
+
+        switch(_relation) {
+        case VRRelationType::EQ: std::cout << " = "; break;
+        case VRRelationType::NEQ: std::cout << " != "; break;
+        case VRRelationType::LT: std::cout << " < "; break;
+        case VRRelationType::LE: std::cout << " <= "; break;
+        case VRRelationType::GT: std::cout << " > "; break;
+        case VRRelationType::GE: std::cout << " >= "; break;
+        default: abort();
+        }
+        std::cout << detail::getValName(_rhs) << ")";
+    }
+#endif
+
+    bool operator<(const VRRelation& oth) const {
+        return _lhs == oth._lhs ?
+                _rhs < oth._rhs : _lhs < oth._lhs;
+    }
+
+    bool isEq() const { return _relation == VRRelationType::EQ; }
+    bool isNeq() const { return _relation == VRRelationType::NEQ; }
+    bool isLt() const { return _relation == VRRelationType::LE; }
+    bool isLe() const { return _relation == VRRelationType::LT; }
+    bool isGt() const { return _relation == VRRelationType::GT; }
+    bool isGe() const { return _relation == VRRelationType::GE; }
+
+    auto getLHS() const -> decltype(_lhs) { return _lhs; }
+    auto getRHS() const -> decltype(_rhs) { return _rhs; }
+
+	static VRRelation Eq(const llvm::Value *l, const llvm::Value *r) {
+		return VRRelation(VRRelationType::EQ, l, r);
+	}
+	static VRRelation Neq(const llvm::Value *l, const llvm::Value *r) {
+		return VRRelation(VRRelationType::NEQ, l, r);
+	}
+	static VRRelation Lt(const llvm::Value *l, const llvm::Value *r) {
+		return VRRelation(VRRelationType::LT, l, r);
+	}
+	static VRRelation Le(const llvm::Value *l, const llvm::Value *r) {
+		return VRRelation(VRRelationType::LE, l, r);
+	}
+	static VRRelation Gt(const llvm::Value *l, const llvm::Value *r) {
+		return VRRelation(VRRelationType::GT, l, r);
+	}
+	static VRRelation Ge(const llvm::Value *l, const llvm::Value *r) {
+		return VRRelation(VRRelationType::GE, l, r);
+	}
+
+	static VRRelation Not(const VRRelation& rel) {
+        switch(rel._relation) {
+        case VRRelationType::EQ:  return Neq(rel._lhs, rel._rhs);
+        case VRRelationType::NEQ: return Eq(rel._lhs, rel._rhs);
+        case VRRelationType::LT:  return Ge(rel._lhs, rel._rhs);
+        case VRRelationType::LE:  return Gt(rel._lhs, rel._rhs);
+        case VRRelationType::GT:  return Le(rel._lhs, rel._rhs);
+        case VRRelationType::GE:  return Lt(rel._lhs, rel._rhs);
+        default: abort();
+        }
+	}
+
+	friend VRRelation Eq(const llvm::Value *, const llvm::Value *);
+	friend VRRelation Neq(const llvm::Value *, const llvm::Value *);
+	friend VRRelation Lt(const llvm::Value *, const llvm::Value *);
+	friend VRRelation Le(const llvm::Value *, const llvm::Value *);
+	friend VRRelation Gt(const llvm::Value *, const llvm::Value *);
+	friend VRRelation Ge(const llvm::Value *, const llvm::Value *);
+	friend VRRelation Not(const VRRelation& r);
+};
+
+
 struct VRLocation;
 struct VREdge {
     VRLocation *source;
@@ -190,7 +281,7 @@ public:
         return true;
     }
 
-    bool merge(const EqualityMap& rhs) {
+    bool add(const EqualityMap& rhs) {
         bool changed = false;
         // FIXME: not very efficient
         for (auto& it : rhs._map) {
@@ -209,6 +300,27 @@ public:
         }
         return it->second.get();
     }
+
+    void intersect(const EqualityMap& rhs) {
+        EqualityMap tmp;
+        for (auto& it : rhs) {
+            auto ourS = get(it.first);
+            if (!ourS)
+                continue;
+
+            for (auto x : *ourS) {
+                if (it.second->count(x) > 0)
+                    tmp.add(it.first, x);
+            }
+        }
+
+        _map.swap(tmp._map);
+    }
+
+    auto begin() -> decltype(_map.begin()) { return _map.begin(); }
+    auto end() -> decltype(_map.end()) { return _map.end(); }
+    auto begin() const -> decltype(_map.begin()) { return _map.begin(); }
+    auto end() const -> decltype(_map.end()) { return _map.end(); }
 
 #ifndef NDEBUG
     void dump() const {
@@ -229,7 +341,7 @@ public:
                     std::cout << " = ";
                 std::cout << detail::getValName(val);
             }
-            std::cout << "} ";
+            std::cout << "}\n";
         }
         std::cout << std::endl;
     }
@@ -243,6 +355,8 @@ class ReadsMap {
 public:
     auto begin() -> decltype(_map.begin()) { return _map.begin(); }
     auto end() -> decltype(_map.end()) { return _map.end(); }
+    auto begin() const -> decltype(_map.begin()) { return _map.begin(); }
+    auto end() const -> decltype(_map.end()) { return _map.end(); }
 
     bool add(const llvm::Value *from, const llvm::Value *val) {
         assert(val != nullptr);
@@ -258,6 +372,15 @@ public:
         _map[from] = val;
         return true;
     }
+
+	bool add(const ReadsMap& rhs) {
+		bool changed = false;
+		for (const auto& it : rhs) {
+			assert(get(it.first) == nullptr || get(it.first) == it.second);
+			changed |= add(it.first, it.second);
+		}
+		return changed;
+	}
 
     const llvm::Value *get(const llvm::Value *from) const {
         auto it = _map.find(from);
@@ -275,6 +398,7 @@ public:
 
         _map.swap(tmp);
     }
+
 #ifndef NDEBUG
     void dump() const {
         for (auto& it : _map) {
@@ -285,12 +409,56 @@ public:
 #endif // NDEBUG
 };
 
+class RelationsSet {
+    std::set<VRRelation> relations;
+
+public:
+    bool add(const VRRelation& rel) {
+        return relations.insert(rel).second;
+    }
+
+	bool add(const RelationsSet& rhs) {
+		bool changed = false;
+		for (const auto& it : rhs) {
+			changed |= add(it);
+		}
+		return changed;
+	}
+
+	void intersect(const RelationsSet& rhs) {
+		decltype(relations) tmp;
+		for (const auto& r : rhs) {
+			if (relations.count(r) > 0)
+				tmp.insert(r);
+		}
+		relations.swap(tmp);
+	}
+
+    auto begin() -> decltype(relations.begin()) { return relations.begin(); }
+    auto end() -> decltype(relations.end()) { return relations.end(); }
+    auto begin() const -> decltype(relations.begin()) { return relations.begin(); }
+    auto end() const -> decltype(relations.end()) { return relations.end(); }
+
+#ifndef NDEBUG
+    void dump() const {
+        std::cout << "{";
+        for (const auto& it : relations) {
+            it.dump();
+        }
+        std::cout << "}";
+    }
+#endif // NDEBUG
+};
+
 struct VRLocation  {
     const unsigned id;
 
     // Valid equalities at this location
     EqualityMap<const llvm::Value *> equalities;
+    // pairs (a,b) such that if we meet "load a", we know
+    // the result is b
     ReadsMap reads;
+    RelationsSet relations;
 
     std::vector<VREdge *> predecessors{};
     std::vector<std::unique_ptr<VREdge>> successors{};
@@ -316,6 +484,7 @@ struct VRLocation  {
 
     bool loadGen(const llvm::LoadInst *LI,
                  EqualityMap<const llvm::Value*>& E,
+                 ReadsMap& R,
                  VRLocation *source) {
         auto readFrom = LI->getOperand(0);
         auto readVal = source->reads.get(readFrom);
@@ -324,15 +493,20 @@ struct VRLocation  {
             // (as we do not add all equivalent reads to the map of reads)
             // XXX: make an alias iterator
             auto equiv = source->equalities.get(LI->getOperand(0));
-            if (!equiv)
-                return false;
-            for (auto alias : *equiv) {
-                if ((readVal = source->reads.get(alias))) {
-                    break;
+            if (equiv) {
+                for (auto alias : *equiv) {
+                    if ((readVal = source->reads.get(alias))) {
+                        break;
+                    }
                 }
             }
-            if (!readVal)
-                return false;
+            // it is not a load from known value,
+            // so remember that the loaded value was read
+            // by this load -- in the future, we may be able
+            // to pair it with another same laod
+            if (!readVal) {
+                return R.add(LI->getOperand(0), LI);
+            }
         }
 
         return E.add(LI, readVal);
@@ -346,7 +520,7 @@ struct VRLocation  {
             auto writtenMem = SI->getOperand(1)->stripPointerCasts();
             return R.add(writtenMem, SI->getOperand(0));
         } else if (auto LI = dyn_cast<LoadInst>(I)) {
-            return loadGen(LI, E, source);
+            return loadGen(LI, E, R, source);
         }
         return false;
     }
@@ -379,10 +553,48 @@ struct VRLocation  {
         }
     }
 
+    bool assumeGen(VRAssume *assume,
+				   RelationsSet& Rel,
+                   EqualityMap<const llvm::Value*>& E,
+                   VRLocation *source) {
+		using namespace llvm;
+        auto CMP = dyn_cast<ICmpInst>(assume->getValue());
+        if (!CMP)
+            return false;
+
+        auto val1 = CMP->getOperand(0);
+        auto val2 = CMP->getOperand(1);
+		bool changed = false;
+		VRRelation rel;
+
+        switch (CMP->getSignedPredicate()) {
+            case ICmpInst::Predicate::ICMP_EQ:
+				if (assume->isTrue())
+                    changed |= E.add(val1, val2);
+                rel = VRRelation::Eq(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_ULE:
+            case ICmpInst::Predicate::ICMP_SLE:
+                rel = VRRelation::Le(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_UGE:
+            case ICmpInst::Predicate::ICMP_SGE:
+                rel = VRRelation::Ge(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_UGT:
+            case ICmpInst::Predicate::ICMP_SGT:
+                rel = VRRelation::Gt(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_ULT:
+            case ICmpInst::Predicate::ICMP_SLT:
+                rel = VRRelation::Lt(val1, val2); break;
+            default: abort();
+		}
+
+		changed |= Rel.add(assume->isTrue() ? rel : VRRelation::Not(rel));
+        return changed;
+    }
 
     // collect information via an edge from a single predecessor
     // and store it in E and R
     bool collect(EqualityMap<const llvm::Value*>& E,
+				 RelationsSet& Rel,
                  ReadsMap& R,
                  VREdge *edge) {
         auto source = edge->source;
@@ -393,8 +605,10 @@ struct VRLocation  {
         ///
         // -- gen
         if (edge->op->isAssume()) {
+            auto assume = VRAssume::get(edge->op.get());
+            changed |= assumeGen(assume, Rel, E, source);
             // FIXME, may be equality too
-        } else {
+        } else if (edge->op->isInstruction()) {
             auto I = VRInstruction::get(edge->op.get())->getInstruction();
             changed |= instructionGen(I, E, R, source);
 
@@ -403,7 +617,9 @@ struct VRLocation  {
 
         ///
         // -- merge && kill
-        changed |= equalities.merge(source->equalities);
+        changed |= equalities.add(source->equalities);
+        changed |= relations.add(source->relations);
+
         if (overwritesAll) { // no merge
             return changed;
         }
@@ -418,7 +634,7 @@ struct VRLocation  {
     }
 
     bool collect(VREdge *edge) {
-        return collect(equalities, reads, edge);
+        return collect(equalities, relations, reads, edge);
     }
 
     // merge information from predecessors
@@ -432,8 +648,43 @@ struct VRLocation  {
     }
 
     bool mergePredecessors() {
-        // do we want it?
+		assert(predecessors.size() > 1);
+
+        // it takes too much time
         return false;
+
+/*
+        ///
+        // gather data from predecessors
+		EqualityMap<const llvm::Value *> E;
+		ReadsMap R;
+		RelationsSet Rel;
+
+		auto it = predecessors.begin();
+		collect(E, Rel, R, *it);
+		++it;
+
+		while (it != predecessors.end()) {
+			EqualityMap<const llvm::Value *> tmpE;
+			ReadsMap tmpR;
+			RelationsSet tmpRel;
+			collect(tmpE, tmpRel, tmpR, *it);
+
+			E.intersect(tmpE);
+			R.intersect(tmpR);
+			Rel.intersect(tmpRel);
+            ++it;
+		}
+
+        ///
+        // update current state
+		bool changed = false;
+		changed |= equalities.add(E);
+		changed |= reads.add(R);
+		changed |= relations.add(Rel);
+
+        return changed;
+*/
     }
 
     VRLocation(unsigned _id) : id(_id) {}
