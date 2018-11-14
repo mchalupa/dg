@@ -63,7 +63,7 @@ struct VRInstruction : public VROp {
     VRInstruction(const llvm::Instruction *I)
     : VROp(VROpType::INSTRUCTION), instruction(I) {}
 
-    operator const llvm::Instruction&() { return *instruction; }
+    const llvm::Instruction* getInstruction() const { return instruction; }
 
     static VRInstruction *get(VROp *op) {
         return op->isInstruction() ? static_cast<VRInstruction *>(op) : nullptr;
@@ -85,7 +85,7 @@ struct VRAssume : public VROp {
 
     bool isTrue() const { return istrue; }
     bool isFalse() const { return !istrue; }
-    operator const llvm::Value&() { return *value; }
+    const llvm::Value *getValue() const { return value; }
 
     static VRAssume *get(VROp *op) {
         return op->isAssume() ? static_cast<VRAssume *>(op) : nullptr;
@@ -113,12 +113,12 @@ struct VREdge {
     : source(s), target(t), op(std::move(op)) {}
 };
 
-/*
 template <typename T>
 class EqualityMap {
     struct _Cmp {
         bool operator()(const llvm::Value *a, const llvm::Value *b) const {
-            return *a < *b;
+            // XXX: merge constants?
+            return a < b;
         }
     };
 
@@ -126,6 +126,7 @@ class EqualityMap {
     using ClassT = std::shared_ptr<SetT>;
     std::map<T, ClassT, _Cmp> _map;
 
+    // FIXME: use variadic templates
     ClassT newClass(const T& a, const T& b) {
         auto cls = ClassT(new SetT());
         cls->insert(a);
@@ -133,16 +134,28 @@ class EqualityMap {
         return cls;
     }
 
+    ClassT newClass(const T& a) {
+        auto cls = ClassT(new SetT());
+        cls->insert(a);
+        return cls;
+    }
+
 public:
-    void add(const T& a, const T& b) {
+    bool add(const T& a, const T& b) {
         auto itA = _map.find(a);
         auto itB = _map.find(b);
         if (itA == _map.end()) {
             if (itB == _map.end()) {
-                auto newcls = newClass(a, b);
-                _map[b] = newcls;
-                _map[a] = newcls;
-                assert(newcls.use_count() == 3);
+                if (a == b) {
+                    auto newcls = newClass(a);
+                    _map[a] = newcls;
+                    assert(newcls.use_count() == 2);
+                } else {
+                    auto newcls = newClass(a, b);
+                    _map[b] = newcls;
+                    _map[a] = newcls;
+                    assert(newcls.use_count() == 3);
+                }
             } else {
                 auto B = itB->second;
                 B->insert(a);
@@ -157,7 +170,7 @@ public:
                 // merge of classes
                 auto B = itB->second;
                 if (A == B)
-                    return;
+                    return false;
 
                 for (auto& val : *B.get()) {
                     A->insert(val);
@@ -168,6 +181,33 @@ public:
                 assert(_map[b] == A);
             }
         }
+
+        assert(!_map.empty());
+        assert(get(a) != nullptr);
+        assert(get(a) == get(b));
+        assert(get(a)->count(a) > 0);
+        assert(get(a)->count(b) > 0);
+        return true;
+    }
+
+    bool merge(const EqualityMap& rhs) {
+        bool changed = false;
+        // FIXME: not very efficient
+        for (auto& it : rhs._map) {
+            for (auto& eq : *it.second.get()) {
+                changed |= add(it.first, eq);
+            }
+        }
+
+        return changed;
+    }
+
+    SetT *get(const T& a) {
+        auto it = _map.find(a);
+        if (it == _map.end()) {
+            return nullptr;
+        }
+        return it->second.get();
     }
 
 #ifndef NDEBUG
@@ -177,8 +217,9 @@ public:
             classes.insert(it.second.get());
         }
 
-        if (classes.empty())
+        if (classes.empty()) {
             return;
+        }
 
         for (const auto cls : classes) {
             std::cout << "{";
@@ -186,7 +227,7 @@ public:
             for (const auto& val : *cls) {
                 if (++t > 1)
                     std::cout << " = ";
-                val->dump();
+                std::cout << detail::getValName(val);
             }
             std::cout << "} ";
         }
@@ -194,13 +235,62 @@ public:
     }
 #endif
 };
-*/
+
+class ReadsMap {
+    // pair (a,b) such that b = load a in the future
+    std::map<const llvm::Value *, const llvm::Value *> _map;
+
+public:
+    auto begin() -> decltype(_map.begin()) { return _map.begin(); }
+    auto end() -> decltype(_map.end()) { return _map.end(); }
+
+    bool add(const llvm::Value *from, const llvm::Value *val) {
+        assert(val != nullptr);
+        auto it = _map.find(from);
+        if (it == _map.end()) {
+            _map.emplace_hint(it, from, val);
+            return true;
+        } else if (it->second == val) {
+            return false;
+        }
+
+        // XXX: use the found iterator
+        _map[from] = val;
+        return true;
+    }
+
+    const llvm::Value *get(const llvm::Value *from) const {
+        auto it = _map.find(from);
+        if (it == _map.end())
+            return nullptr;
+        return it->second;
+    }
+
+    void intersect(const ReadsMap& rhs) {
+        decltype(_map) tmp;
+        for (auto& it : rhs._map) {
+            if (get(it.first) == it.second)
+                tmp.emplace(it.first, it.second);
+        }
+
+        _map.swap(tmp);
+    }
+#ifndef NDEBUG
+    void dump() const {
+        for (auto& it : _map) {
+            std::cout << "L(" << detail::getValName(it.first) << ") = "
+                      << detail::getValName(it.second) << "\n";
+        }
+    }
+#endif // NDEBUG
+};
 
 struct VRLocation  {
     const unsigned id;
 
     // Valid equalities at this location
-    //EqualityMap<VRValue *> equalities;
+    EqualityMap<const llvm::Value *> equalities;
+    ReadsMap reads;
 
     std::vector<VREdge *> predecessors{};
     std::vector<std::unique_ptr<VREdge>> successors{};
@@ -210,12 +300,147 @@ struct VRLocation  {
         successors.emplace_back(std::move(edge));
     }
 
+    static bool hasAlias(const llvm::Value *val,
+                         EqualityMap<const llvm::Value *>& E) {
+        auto equiv = E.get(val);
+        if (!equiv)
+            return false;
+        for (auto alias : *equiv) {
+            if (llvm::isa<llvm::AllocaInst>(alias)) {
+                //llvm::errs() << *val << " has alias " << *alias << "\n";
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool loadGen(const llvm::LoadInst *LI,
+                 EqualityMap<const llvm::Value*>& E,
+                 VRLocation *source) {
+        auto readFrom = LI->getOperand(0);
+        auto readVal = source->reads.get(readFrom);
+        if (!readVal) {
+            // try read from aliases, we may get lucky there
+            // (as we do not add all equivalent reads to the map of reads)
+            // XXX: make an alias iterator
+            auto equiv = source->equalities.get(LI->getOperand(0));
+            if (!equiv)
+                return false;
+            for (auto alias : *equiv) {
+                if ((readVal = source->reads.get(alias))) {
+                    break;
+                }
+            }
+            if (!readVal)
+                return false;
+        }
+
+        return E.add(LI, readVal);
+    }
+
+    bool instructionGen(const llvm::Instruction *I,
+                        EqualityMap<const llvm::Value*>& E,
+                        ReadsMap& R, VRLocation *source) {
+        using namespace llvm;
+        if (auto SI = dyn_cast<StoreInst>(I)) {
+            auto writtenMem = SI->getOperand(1)->stripPointerCasts();
+            return R.add(writtenMem, SI->getOperand(0));
+        } else if (auto LI = dyn_cast<LoadInst>(I)) {
+            return loadGen(LI, E, source);
+        }
+        return false;
+    }
+
+    void instructionKills(const llvm::Instruction *I,
+                        EqualityMap<const llvm::Value*>& E,
+                        VRLocation *source,
+                        std::set<const llvm::Value *>& overwritesReads,
+                        bool& overwritesAll) {
+        using namespace llvm;
+        if (auto SI = dyn_cast<StoreInst>(I)) {
+            auto writtenMem = SI->getOperand(1)->stripPointerCasts();
+            if (isa<AllocaInst>(writtenMem) || hasAlias(writtenMem, E)) {
+                overwritesReads.insert(writtenMem);
+                // overwrite aliases
+                if (auto equiv = source->equalities.get(writtenMem)) {
+                    overwritesReads.insert(equiv->begin(), equiv->end());
+                }
+                // overwrite also reads from memory that has no
+                // aliases to an alloca inst
+                // (we do not know whether it may be alias or not)
+                for (auto& r : source->reads) {
+                    if (!hasAlias(r.first, E)) {
+                        overwritesReads.insert(r.first);
+                    }
+                }
+            } else {
+                overwritesAll = true;
+            }
+        }
+    }
+
+
+    // collect information via an edge from a single predecessor
+    // and store it in E and R
+    bool collect(EqualityMap<const llvm::Value*>& E,
+                 ReadsMap& R,
+                 VREdge *edge) {
+        auto source = edge->source;
+        std::set<const llvm::Value *> overwritesReads;
+        bool overwritesAll = false;
+        bool changed = false;
+
+        ///
+        // -- gen
+        if (edge->op->isAssume()) {
+            // FIXME, may be equality too
+        } else {
+            auto I = VRInstruction::get(edge->op.get())->getInstruction();
+            changed |= instructionGen(I, E, R, source);
+
+            instructionKills(I, E, source, overwritesReads, overwritesAll);
+        }
+
+        ///
+        // -- merge && kill
+        changed |= equalities.merge(source->equalities);
+        if (overwritesAll) { // no merge
+            return changed;
+        }
+
+        for (auto& it : source->reads) {
+            if (overwritesReads.count(it.first) > 0)
+                continue;
+            changed |= R.add(it.first, it.second);
+        }
+
+        return changed;
+    }
+
+    bool collect(VREdge *edge) {
+        return collect(equalities, reads, edge);
+    }
+
+    // merge information from predecessors
+    bool collect() {
+        if (predecessors.size() > 1) {
+            return mergePredecessors();
+        } else if (predecessors.size() == 1 ){
+            return collect(*predecessors.begin());
+        }
+        return false;
+    }
+
+    bool mergePredecessors() {
+        // do we want it?
+        return false;
+    }
+
     VRLocation(unsigned _id) : id(_id) {}
 
 #ifndef NDEBUG
     void dump() const {
         std::cout << id << " ";
-        //relations.dump();
         std::cout << std::endl;
     }
 #endif
@@ -281,9 +506,10 @@ class LLVMValueRelations {
             auto loc = std::unique_ptr<VRLocation>(newLocation(&I));
 
             if (lastInst) {
-                auto edge = std::unique_ptr<VREdge>(
-                                new VREdge(block->last(), loc.get(),
-                                           std::unique_ptr<VROp>(new VRInstruction(&I))));
+                auto edge
+                    = std::unique_ptr<VREdge>(
+                            new VREdge(block->last(), loc.get(),
+                                       std::unique_ptr<VROp>(new VRInstruction(lastInst))));
 
                 block->last()->addEdge(std::move(edge));
             }
@@ -359,18 +585,18 @@ public:
     // FIXME: this should be for each node
     void compute() {
         // FIXME: only nodes reachable from changed nodes
-        bool changed = false;
-        /*
+        bool changed;
         unsigned n = 0;
         do {
-            llvm::errs() << "Iteration " << ++n << "\n";
+            ++n;
+            changed = false;
             for (const auto& B : _blocks) {
                 for (const auto& loc : B.second->locations) {
-                    changed |= loc->mergeIncoming();
+                    changed |= loc->collect();
                 }
             }
         } while (changed);
-        */
+        llvm::errs() << "Number of iterations: " << n << "\n";
     }
 
     decltype(_blocks) const& getBlocks() const {
