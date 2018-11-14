@@ -3,6 +3,11 @@
 
 #include <list>
 
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <string>
+
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
@@ -14,20 +19,105 @@
 namespace dg {
 namespace analysis {
 
+namespace detail {
+static inline std::string getValName(const llvm::Value *val) {
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
+    assert(val);
+    ro << *val;
+    ro.flush();
+
+    // break the string if it is too long
+    return ostr.str();
+}
+} // namespace detail
+
+class VROp {
+protected:
+    enum class VROpType { INSTRUCTION, ASSUME, NOOP } _type;
+    VROp(VROpType t) : _type(t) {}
+
+public:
+    bool isInstruction() const { return _type == VROpType::INSTRUCTION; }
+    bool isAssume() const { return _type == VROpType::ASSUME; }
+    bool isNoop() const { return _type == VROpType::NOOP; }
+
+#ifndef NDEBUG
+    virtual void dump() const = 0;
+#endif
+};
+
+struct VRNoop : public VROp {
+    VRNoop() : VROp(VROpType::NOOP) {}
+
+#ifndef NDEBUG
+    void dump() const override {
+        std::cout << "(noop)";
+    }
+#endif
+};
+
+struct VRInstruction : public VROp {
+    const llvm::Instruction *instruction;
+    VRInstruction(const llvm::Instruction *I)
+    : VROp(VROpType::INSTRUCTION), instruction(I) {}
+
+    operator const llvm::Instruction&() { return *instruction; }
+
+    static VRInstruction *get(VROp *op) {
+        return op->isInstruction() ? static_cast<VRInstruction *>(op) : nullptr;
+    }
+
+#ifndef NDEBUG
+    void dump() const override {
+        std::cout << detail::getValName(instruction);
+    }
+#endif
+};
+
+struct VRAssume : public VROp {
+    const llvm::Value *value;
+    bool istrue;
+
+    VRAssume(const llvm::Value *V, bool istrue)
+    : VROp(VROpType::ASSUME), value(V), istrue(istrue) {}
+
+    bool isTrue() const { return istrue; }
+    bool isFalse() const { return !istrue; }
+    operator const llvm::Value&() { return *value; }
+
+    static VRAssume *get(VROp *op) {
+        return op->isAssume() ? static_cast<VRAssume *>(op) : nullptr;
+    }
+
+#ifndef NDEBUG
+    void dump() const override {
+        if (isFalse())
+            std::cout << "!";
+        std::cout << "[";
+        std::cout << detail::getValName(value);
+        std::cout << "]";
+    }
+#endif
+};
+
 struct VRLocation;
 struct VREdge {
     VRLocation *source;
     VRLocation *target;
 
-    VRInfo info{};
+    std::unique_ptr<VROp> op;
 
-    VREdge(VRLocation *s, VRLocation *t) : source(s), target(t) {}
+    VREdge(VRLocation *s, VRLocation *t, std::unique_ptr<VROp>&& op)
+    : source(s), target(t), op(std::move(op)) {}
 };
 
+/*
 template <typename T>
 class EqualityMap {
     struct _Cmp {
-        bool operator()(const VRValue *a, const VRValue *b) const {
+        bool operator()(const llvm::Value *a, const llvm::Value *b) const {
             return *a < *b;
         }
     };
@@ -91,30 +181,26 @@ public:
             return;
 
         for (const auto cls : classes) {
-            std::cout << "{"; 
+            std::cout << "{";
             int t = 0;
             for (const auto& val : *cls) {
                 if (++t > 1)
                     std::cout << " = ";
                 val->dump();
             }
-            std::cout << "} "; 
+            std::cout << "} ";
         }
         std::cout << std::endl;
     }
 #endif
 };
+*/
 
 struct VRLocation  {
     const unsigned id;
-    // for debugging
-    const llvm::Value *val{nullptr};
 
     // Valid equalities at this location
-    EqualityMap<VRValue *> equalities;
-
-    // relations valid at this point
-    VRRelations relations;
+    //EqualityMap<VRValue *> equalities;
 
     std::vector<VREdge *> predecessors{};
     std::vector<std::unique_ptr<VREdge>> successors{};
@@ -124,55 +210,12 @@ struct VRLocation  {
         successors.emplace_back(std::move(edge));
     }
 
-    bool add(const VRRelations& rhs) {
-        bool changed;
-        for (const auto& rel : rhs.eqRelations) {
-            if (relations.add(rel)) {
-                equalities.add(rel.getLHS(), rel.getRHS());
-                changed = true;
-            }
-        }
-        for (const auto& rel : rhs.relations) {
-            changed |= relations.add(rel);
-        }
-        return changed;
-    }
-
-    VRLocation(unsigned _id,
-               const llvm::Value *v = nullptr)
-    : id(_id), val(v) {}
-
-    VRRelations collect(const VREdge *edge) {
-        VRLocation *source = edge->source;
-        VRRelations result = source->relations;
-        // XXX: forgets
-        // XXX: do it efficiently using iterators
-        result.add(edge->info.generates());
-        return result;
-    }
-
-    VRRelations collect() {
-        auto it = predecessors.begin();
-
-        VRRelations result = collect(*it);
-        while (it != predecessors.end()) {
-            result.intersect(collect(*it));
-        }
-
-        return result;
-    }
-
-    bool mergeIncoming() {
-        bool changed = false;
-        relations = collect();
-        return false;
-        //return changed;
-    }
+    VRLocation(unsigned _id) : id(_id) {}
 
 #ifndef NDEBUG
     void dump() const {
-        std::cout << id << " "; 
-        relations.dump();
+        std::cout << id << " ";
+        //relations.dump();
         std::cout << std::endl;
     }
 #endif
@@ -197,62 +240,22 @@ struct VRBBlock {
 
 class LLVMValueRelations {
     const llvm::Module *_M;
-    unsigned last_value_id{0};
-    using MappingT = std::map<const llvm::Value *, std::unique_ptr<VRValue>>;
-
-    MappingT _values; // created values
-    std::vector<std::unique_ptr<VRConstant>> _constants;
-    std::vector<std::unique_ptr<VRRead>> _reads;
 
     unsigned last_node_id{0};
     // mapping from LLVM Values to relevant CFG nodes
-    std::map<const llvm::Value *, VRLocation *> _llvm_mapping;
+    std::map<const llvm::Value *, VRLocation *> _loc_mapping;
     // list of our basic blocks with mapping from LLVM
     std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>> _blocks;
 
-    VRValue *newVariable(const llvm::Value *v) {
-        auto it = _values.emplace(std::piecewise_construct,
-                                  std::forward_as_tuple(v),
-                                  std::forward_as_tuple(new VRVariable(++last_value_id)));
-        return it.first->second.get();
-    }
-
-    VRValue *getVariable(const llvm::Value *val) {
-        auto it = _values.find(val);
-        if (it == _values.end())
-            return nullptr;
-
-        return it->second.get();
-    }
-
-    VRRead *newRead(VRValue *from) {
-        _reads.emplace_back(new VRRead(from));
-        return _reads.back().get();;
-    }
-
-    VRValue *getConstant(const llvm::Value *v) {
-        if (auto C = llvm::dyn_cast<llvm::ConstantInt>(v)) {
-            _constants.emplace_back(new VRConstant(C->getZExtValue()));
-            return _constants.back().get();;
-        }
-        return nullptr;
-    }
-
     VRLocation *getMapping(const llvm::Value *v) {
-        auto it = _llvm_mapping.find(v);
-        return it == _llvm_mapping.end() ? nullptr : it->second;
-    }
-
-    VRValue *getOperand(const llvm::Value *val) {
-        if (auto C = getConstant(val))
-            return C;
-        return getVariable(val);
+        auto it = _loc_mapping.find(v);
+        return it == _loc_mapping.end() ? nullptr : it->second;
     }
 
     VRLocation *newLocation(const llvm::Value *v = nullptr) {
-        auto loc = new VRLocation(++last_node_id,  v);
+        auto loc = new VRLocation(++last_node_id);
         if (v)
-            _llvm_mapping[v] = loc;
+            _loc_mapping[v] = loc;
         return loc;
     }
 
@@ -270,86 +273,6 @@ class LLVMValueRelations {
         return it == _blocks.end() ? nullptr : it->second.get();
     }
 
-
-    bool getRelations(const llvm::Instruction& I,
-                      VRInfo& result) {
-        using namespace llvm;
-
-        if (auto AI = dyn_cast<AllocaInst>(&I)) {
-            newVariable(AI);
-            return false;
-        } else if (auto SI = dyn_cast<StoreInst>(&I)) {
-            auto val = getOperand(SI->getOperand(0));
-            auto var = getOperand(SI->getOperand(1));
-            // we can duplicate reads here... but who cares?
-            if (!val || !var)
-                return {};
-            auto read = newRead(var);
-            result.addGen(VREq(val, newRead(var)));
-            result.addForget(read);
-            return true;
-        } else if (auto LI = dyn_cast<LoadInst>(&I)) {
-            if (auto var = getOperand(LI->getOperand(0))) {
-                result.addGen(VREq(newVariable(LI), newRead(var)));
-                return true;
-            }
-        } else if (isa<CallInst>(&I)) {
-                result.addForgetAll();
-                return true;
-        }
-
-        return false;
-    }
-
-    bool getBranches(const llvm::BranchInst *BI,
-                     VRRelation& trueRel, VRRelation& falseRel) {
-        using namespace llvm;
-
-        if (BI->isUnconditional())
-            return false;
-
-        auto Cond = BI->getCondition();
-        auto CMP = dyn_cast<ICmpInst>(Cond);
-        if (!CMP)
-            return false;
-
-        auto val1 = getOperand(CMP->getOperand(0));
-        auto val2 = getOperand(CMP->getOperand(1));
-        // we can duplicate reads here... but who cares?
-        if (!val1 || !val2)
-            return false;
-
-        switch (CMP->getSignedPredicate()) {
-            case ICmpInst::Predicate::ICMP_EQ:
-                trueRel = VREq(val1, val2);
-                falseRel = VRNeq(val1, val2);
-                return true;
-            case ICmpInst::Predicate::ICMP_ULE:
-            case ICmpInst::Predicate::ICMP_SLE:
-                trueRel = VRLe(val1, val2);
-                falseRel = VRGt(val1, val2);
-                return true;
-            case ICmpInst::Predicate::ICMP_UGE:
-            case ICmpInst::Predicate::ICMP_SGE:
-                trueRel = VRGe(val1, val2);
-                falseRel = VRLt(val1, val2);
-                return true;
-            case ICmpInst::Predicate::ICMP_UGT:
-            case ICmpInst::Predicate::ICMP_SGT:
-                trueRel = VRGt(val1, val2);
-                falseRel = VRLe(val1, val2);
-                return true;;
-            case ICmpInst::Predicate::ICMP_ULT:
-            case ICmpInst::Predicate::ICMP_SLT:
-                trueRel = VRLt(val1, val2);
-                falseRel = VRGe(val1, val2);
-                return true;
-            default: abort();
-        }
-
-        return false;
-    }
-
     void build(const llvm::BasicBlock& B) {
         auto block = newBBlock(&B);
         const llvm::Instruction *lastInst{nullptr};
@@ -359,13 +282,8 @@ class LLVMValueRelations {
 
             if (lastInst) {
                 auto edge = std::unique_ptr<VREdge>(
-                                new VREdge(block->last(), loc.get()));
-
-                // add edge from the immediate predecessor
-                VRInfo info;
-                if (getRelations(*lastInst, info)) {
-                    edge->info.add(info);
-                }
+                                new VREdge(block->last(), loc.get(),
+                                           std::unique_ptr<VROp>(new VRInstruction(&I))));
 
                 block->last()->addEdge(std::move(edge));
             }
@@ -389,32 +307,43 @@ class LLVMValueRelations {
             // add generated constrains
             auto term = B.getTerminator();
             auto br = llvm::dyn_cast<llvm::BranchInst>(term);
-            VRRelation trueRel, falseRel;
-            bool hasRelations = br && getBranches(br, trueRel, falseRel);
-            if (hasRelations) {
+            if (!br) {
+                if (llvm::succ_begin(&B) != llvm::succ_end(&B)) {
+                    llvm::errs() << "Unhandled terminator: " << *term << "\n";
+                    abort();
+                }
+                continue; // no successor
+            }
+
+            if (br->isConditional()) {
                 auto trueSucc = getBBlock(br->getSuccessor(0));
                 auto falseSucc = getBBlock(br->getSuccessor(1));
                 assert(trueSucc && falseSucc);
+                auto trueOp
+                    = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), true));
+                auto falseOp
+                    = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), false));
+
                 auto trueEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
-                                                                   trueSucc->first()));
+                                                                   trueSucc->first(),
+                                                                   std::move(trueOp)));
                 auto falseEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
-                                                                   falseSucc->first()));
-                trueEdge->info.addGen(trueRel);
-                falseEdge->info.addGen(falseRel);
+                                                                   falseSucc->first(),
+                                                                   std::move(falseOp)));
                 block->last()->addEdge(std::move(trueEdge));
                 block->last()->addEdge(std::move(falseEdge));
                 continue;
             } else {
-                for (auto it = llvm::succ_begin(&B), et = llvm::succ_end(&B);
-                     it != et; ++it) {
-                    auto succ = getBBlock(*it);
-                    assert(succ);
-                    block->last()->addEdge(std::unique_ptr<VREdge>(
-                                            new VREdge(block->last(),
-                                                       succ->first())));
-                }
+                auto llvmsucc = B.getSingleSuccessor();
+                assert(llvmsucc);
+                auto succ = getBBlock(llvmsucc);
+                assert(succ);
+                auto op = std::unique_ptr<VROp>(new VRNoop());
+                block->last()->addEdge(std::unique_ptr<VREdge>(
+                                        new VREdge(block->last(),
+                                                   succ->first(),
+                                                   std::move(op))));
             }
-
         }
     }
 
@@ -431,6 +360,7 @@ public:
     void compute() {
         // FIXME: only nodes reachable from changed nodes
         bool changed = false;
+        /*
         unsigned n = 0;
         do {
             llvm::errs() << "Iteration " << ++n << "\n";
@@ -440,6 +370,7 @@ public:
                 }
             }
         } while (changed);
+        */
     }
 
     decltype(_blocks) const& getBlocks() const {
