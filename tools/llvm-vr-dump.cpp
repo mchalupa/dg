@@ -40,6 +40,7 @@
 #pragma GCC diagnostic pop
 #endif
 
+#undef NDEBUG // we need dump methods
 #include "dg/llvm/analysis/ValueRelations/ValueRelations.h"
 
 #include "TimeMeasure.h"
