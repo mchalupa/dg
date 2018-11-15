@@ -57,6 +57,13 @@ struct LLVMDependenceGraphOptions {
 
     bool verifyGraph{true};
     std::string entryFunction{"main"};
+
+    void addAllocationFunction(const std::string& name,
+                               analysis::AllocationFunction F) {
+        PTAOptions.addAllocationFunction(name, F);
+        RDAOptions.addAllocationFunction(name, F);
+        DUOptions.addAllocationFunction(name, F);
+    }
 };
 
 class LLVMDependenceGraphBuilder {
