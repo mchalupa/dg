@@ -7,6 +7,7 @@ namespace dg {
 namespace analysis {
 
 struct DefUseAnalysisOptions : AnalysisOptions {
+    bool undefinedArePure{false};
 };
 
 } // namespace analysis

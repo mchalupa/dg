@@ -56,7 +56,6 @@ struct LLVMDependenceGraphOptions {
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
     bool verifyGraph{true};
-    bool DUUndefinedArePure{false};
     std::string entryFunction{"main"};
 };
 
@@ -100,7 +99,6 @@ class LLVMDependenceGraphBuilder {
         LLVMDefUseAnalysis DUA(_dg.get(),
                                _RD.get(),
                                _PTA.get(),
-                               // FIXME: DUOptions are empty now
                                _options.DUOptions);
         DUA.run(); // add def-use edges according that
     }

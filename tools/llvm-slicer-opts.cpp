@@ -141,9 +141,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.dgOptions.RDAOptions.undefinedArePure = undefinedArePure;
     options.dgOptions.RDAOptions.analysisType = rdaType;
 
-    // FIXME: add classes for CD and DEF-USE settings
+    options.dgOptions.DUOptions.undefinedArePure = undefinedArePure;
+
+    // FIXME: add options class for CD
     options.dgOptions.cdAlgorithm = cdAlgorithm;
-    options.dgOptions.DUUndefinedArePure = undefinedArePure;
 
     return options;
 }
