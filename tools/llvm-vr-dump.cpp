@@ -25,6 +25,7 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/CommandLine.h>
 
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -39,13 +40,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-/*
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/Pointer.h"
-
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-*/
 #include "dg/llvm/analysis/ValueRelations/ValueRelations.h"
 
 #include "TimeMeasure.h"
@@ -53,50 +47,56 @@
 using namespace dg::analysis;
 using llvm::errs;
 
-static bool todot = true;
 /*
 static bool verbose = false;
 static const char *entryFunc = "main";
 */
 
-int main(int /*argc*/, char *argv[])
+llvm::cl::opt<bool> todot("dot",
+    llvm::cl::desc("Dump graph in grahviz format"), llvm::cl::init(false));
+
+llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
+    llvm::cl::desc("<input file>"), llvm::cl::init(""));
+
+int main(int argc, char *argv[])
 {
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
 
-    const char *modulepath = nullptr;
-    modulepath = argv[1];
+    llvm::cl::ParseCommandLineOptions(argc, argv);
 
-    if (!modulepath) {
-        //errs() << "Usage: % IR_module [-pts fs|fi] [-dot] [-v] [output_file]\n";
+    if (inputFile.empty()) {
         errs() << "Usage: % IR_module\n";
         return 1;
     }
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    M = llvm::ParseIRFile(modulepath, SMD, context);
+    M = llvm::ParseIRFile(inputFile, SMD, context);
 #else
-    auto _M = llvm::parseIRFile(modulepath, SMD, context);
+    auto _M = llvm::parseIRFile(inputFile, SMD, context);
     // _M is unique pointer, we need to get Module *
     M = _M.get();
 #endif
 
     if (!M) {
-        llvm::errs() << "Failed parsing '" << modulepath << "' file:\n";
+        llvm::errs() << "Failed parsing '" << inputFile << "' file:\n";
         SMD.print(argv[0], errs());
         return 1;
     }
 
-    //debug::TimeMeasure tm;
+    dg::debug::TimeMeasure tm;
+
 
     LLVMValueRelations VR(M);
 
-    //tm.start();
+    tm.start();
 
     VR.build();
     VR.compute();
-    //R.dump();
+
+    tm.stop();
+    tm.report("INFO: Value Relations analysis took");
 
     std::cout << std::endl;
 
@@ -131,10 +131,29 @@ int main(int /*argc*/, char *argv[])
         }
 
         std::cout << "}\n";
+    } else {
+        for (auto& F : *M) {
+            for (auto& B : F) {
+                for (auto& I : B) {
+                    auto loc = VR.getMapping(&I);
+                    if (!loc)
+                        continue;
+
+                    std::cout << "==============================================\n";
+                    std::cout << debug::getValName(&I) << "\n";
+                    std::cout << "==============================================";
+                    std::cout << "\n------ REL ------\n";
+                    loc->relations.dump();
+                    std::cout << "\n------ EQ ------\n";
+                    loc->equalities.dump();
+                    std::cout << "\n----- READS -----\n";
+                    loc->reads.dump();
+                    std::cout << "\n";
+                }
+            }
+        }
     }
 
-    //dumpVR(&VR, todot);
-    //tm.report("INFO: Value Relations analysis took");
 
     return 0;
 }
