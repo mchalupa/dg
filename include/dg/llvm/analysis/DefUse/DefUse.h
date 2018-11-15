@@ -22,6 +22,7 @@
 #endif
 
 #include "dg/analysis/DataFlowAnalysis.h"
+#include "dg/llvm/analysis/DefUse/LLVMDefUseAnalysisOptions.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
@@ -43,11 +44,20 @@ class LLVMDefUseAnalysis : public analysis::DataFlowAnalysis<LLVMNode>
     LLVMPointerAnalysis *PTA;
     const llvm::DataLayout *DL;
     bool assume_pure_functions;
+
+    const analysis::LLVMDefUseAnalysisOptions _options;
+
 public:
     LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                        LLVMReachingDefinitions *rd,
                        LLVMPointerAnalysis *pta,
                        bool assume_pure_functions = false);
+
+    LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
+                       LLVMReachingDefinitions *rd,
+                       LLVMPointerAnalysis *pta,
+                       const analysis::LLVMDefUseAnalysisOptions& opts);
+
     ~LLVMDefUseAnalysis() { delete DL; }
 
     /* virtual */
