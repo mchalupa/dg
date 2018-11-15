@@ -77,19 +77,6 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
                                        LLVMPointerAnalysis *pta,
-                                       bool assume_pure_funs)
-    : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
-                                           analysis::DATAFLOW_INTERPROCEDURAL),
-      dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())),
-      assume_pure_functions(assume_pure_funs)
-{
-    assert(PTA && "Need points-to information");
-    assert(RD && "Need reaching definitions");
-}
-
-LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
-                                       LLVMReachingDefinitions *rd,
-                                       LLVMPointerAnalysis *pta,
                                        const analysis::LLVMDefUseAnalysisOptions& opts)
     : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
                                            analysis::DATAFLOW_INTERPROCEDURAL),
@@ -190,7 +177,7 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
 
 void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *callNode, CallInst *CI)
 {
-    if (assume_pure_functions)
+    if (_options.undefinedArePure)
         return;
 
     // the function is undefined - add the top-level dependencies and

@@ -43,16 +43,10 @@ class LLVMDefUseAnalysis : public analysis::DataFlowAnalysis<LLVMNode>
     LLVMReachingDefinitions *RD;
     LLVMPointerAnalysis *PTA;
     const llvm::DataLayout *DL;
-    bool assume_pure_functions;
 
     const analysis::LLVMDefUseAnalysisOptions _options;
 
 public:
-    LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
-                       LLVMReachingDefinitions *rd,
-                       LLVMPointerAnalysis *pta,
-                       bool assume_pure_functions = false);
-
     LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                        LLVMReachingDefinitions *rd,
                        LLVMPointerAnalysis *pta,
