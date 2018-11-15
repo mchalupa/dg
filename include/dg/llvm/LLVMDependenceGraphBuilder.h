@@ -21,6 +21,7 @@
 #endif
 
 #include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/analysis/DefUse/LLVMDefUseAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
@@ -43,12 +44,14 @@ namespace llvm {
 namespace dg {
 namespace llvmdg {
 
+using analysis::LLVMDefUseAnalysisOptions;
 using analysis::LLVMPointerAnalysisOptions;
 using analysis::LLVMReachingDefinitionsAnalysisOptions;
 
 struct LLVMDependenceGraphOptions {
     LLVMPointerAnalysisOptions PTAOptions{};
     LLVMReachingDefinitionsAnalysisOptions RDAOptions{};
+    LLVMDefUseAnalysisOptions DUOptions{};
 
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
@@ -97,8 +100,8 @@ class LLVMDependenceGraphBuilder {
         LLVMDefUseAnalysis DUA(_dg.get(),
                                _RD.get(),
                                _PTA.get(),
-                               // FIXME: this should go to DU Options
-                               _options.DUUndefinedArePure);
+                               // FIXME: DUOptions are empty now
+                               _options.DUOptions);
         DUA.run(); // add def-use edges according that
     }
 

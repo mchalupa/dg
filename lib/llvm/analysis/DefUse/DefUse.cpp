@@ -28,6 +28,7 @@
 #include "dg/analysis/PointsTo/PointerSubgraph.h"
 #include "dg/analysis/DFS.h"
 
+#include "dg/llvm/analysis/DefUse/LLVMDefUseAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/llvm/analysis/DefUse/DefUse.h"
@@ -82,6 +83,18 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                            analysis::DATAFLOW_INTERPROCEDURAL),
       dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())),
       assume_pure_functions(assume_pure_funs)
+{
+    assert(PTA && "Need points-to information");
+    assert(RD && "Need reaching definitions");
+}
+
+LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
+                                       LLVMReachingDefinitions *rd,
+                                       LLVMPointerAnalysis *pta,
+                                       const analysis::LLVMDefUseAnalysisOptions& opts)
+    : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
+                                           analysis::DATAFLOW_INTERPROCEDURAL),
+      dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())), _options(opts)
 {
     assert(PTA && "Need points-to information");
     assert(RD && "Need reaching definitions");
