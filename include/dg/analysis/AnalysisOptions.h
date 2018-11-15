@@ -38,7 +38,10 @@ struct AnalysisOptions {
     };
 
     void addAllocationFunction(const std::string& name, AllocationFunction F) {
-        auto ret = allocationFunctions.emplace(name, F);
+#ifndef NDEBUG
+        auto ret =
+#endif
+        allocationFunctions.emplace(name, F);
         assert(ret.second && "Already have this allocation function");
     }
 
