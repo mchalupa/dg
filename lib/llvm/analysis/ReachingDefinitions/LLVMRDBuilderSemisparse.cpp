@@ -39,7 +39,6 @@
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h"
 #include "llvm/llvm-utils.h"
-#include "llvm/MemAllocationFuncs.h"
 
 namespace dg {
 namespace analysis {
@@ -58,7 +57,8 @@ RDNode *LLVMRDBuilderSemisparse::createAlloc(const llvm::Instruction *Inst, RDBl
     return node;
 }
 
-RDNode *LLVMRDBuilderSemisparse::createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type, RDBlock *rb)
+RDNode *LLVMRDBuilderSemisparse::createDynAlloc(const llvm::Instruction *Inst,
+                                                AllocationFunction type, RDBlock *rb)
 {
     using namespace llvm;
 
@@ -71,11 +71,11 @@ RDNode *LLVMRDBuilderSemisparse::createDynAlloc(const llvm::Instruction *Inst, M
     uint64_t size = 0, size2 = 0;
 
     switch (type) {
-        case MemAllocationFuncs::MALLOC:
-        case MemAllocationFuncs::ALLOCA:
+        case AllocationFunction::MALLOC:
+        case AllocationFunction::ALLOCA:
             op = CInst->getOperand(0);
             break;
-        case MemAllocationFuncs::CALLOC:
+        case AllocationFunction::CALLOC:
             op = CInst->getOperand(1);
             break;
         default:
@@ -87,7 +87,7 @@ RDNode *LLVMRDBuilderSemisparse::createDynAlloc(const llvm::Instruction *Inst, M
 
     // infer allocated size
     size = getConstantValue(op);
-    if (size != 0 && type == MemAllocationFuncs::CALLOC) {
+    if (size != 0 && type == AllocationFunction::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
         size2 = getConstantValue(CInst->getOperand(0));
@@ -393,7 +393,9 @@ RDNode *LLVMRDBuilderSemisparse::createStore(const llvm::Instruction *Inst, RDBl
     return node;
 }
 
-static bool isRelevantCall(const llvm::Instruction *Inst)
+template <typename OptsT>
+static bool isRelevantCall(const llvm::Instruction *Inst,
+                           const OptsT& opts)
 {
     using namespace llvm;
 
@@ -410,7 +412,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
         return true;
 
     if (func->size() == 0) {
-        if (getMemAllocationFunc(func) != MemAllocationFuncs::NONEMEM)
+        if (opts.getAllocationFunction(func->getName())
+            != AllocationFunction::NONE)
             // we need memory allocations
             return true;
 
@@ -491,7 +494,7 @@ LLVMRDBuilderSemisparse::buildBlock(const llvm::BasicBlock& block)
                     node = createLoad(&Inst, rb);
                     break;
                 case Instruction::Call:
-                    if (!isRelevantCall(&Inst))
+                    if (!isRelevantCall(&Inst, _options))
                         break;
 
                     std::pair<RDNode *, RDNode *> subg = createCall(&Inst, rb);
@@ -960,9 +963,9 @@ LLVMRDBuilderSemisparse::createCall(const llvm::Instruction *Inst, RDBlock *rb)
             if (func->isIntrinsic()) {
                 n = createIntrinsicCall(CInst, rb);
             } else {
-                MemAllocationFuncs type = getMemAllocationFunc(func);
-                if (type != MemAllocationFuncs::NONEMEM) {
-                    if (type == MemAllocationFuncs::REALLOC)
+                auto type = _options.getAllocationFunction(func->getName());
+                if (type != AllocationFunction::NONE) {
+                    if (type == AllocationFunction::REALLOC)
                         n = createRealloc(CInst, rb);
                     else
                         n = createDynAlloc(CInst, type, rb);

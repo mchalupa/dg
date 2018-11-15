@@ -12,7 +12,7 @@
 
 namespace dg {
 
-enum class MemAllocationFuncs;
+enum class AllocationFunction;
 
 namespace analysis {
 namespace rd {
@@ -85,7 +85,7 @@ private:
     RDNode *createStore(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createAlloc(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createDynAlloc(const llvm::Instruction *Inst,
-                           MemAllocationFuncs type, RDBlock *rb);
+                           AllocationFunction type, RDBlock *rb);
     RDNode *createRealloc(const llvm::Instruction *Inst, RDBlock *rb);
     RDNode *createReturn(const llvm::Instruction *Inst, RDBlock *rb);
 
