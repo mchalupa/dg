@@ -19,7 +19,7 @@
 namespace dg {
 namespace analysis {
 
-namespace detail {
+namespace debug {
 static inline std::string getValName(const llvm::Value *val) {
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
@@ -31,7 +31,7 @@ static inline std::string getValName(const llvm::Value *val) {
     // break the string if it is too long
     return ostr.str();
 }
-} // namespace detail
+} // namespace debug
 
 class VROp {
 protected:
@@ -71,7 +71,7 @@ struct VRInstruction : public VROp {
 
 #ifndef NDEBUG
     void dump() const override {
-        std::cout << detail::getValName(instruction);
+        std::cout << debug::getValName(instruction);
     }
 #endif
 };
@@ -96,7 +96,7 @@ struct VRAssume : public VROp {
         if (isFalse())
             std::cout << "!";
         std::cout << "[";
-        std::cout << detail::getValName(value);
+        std::cout << debug::getValName(value);
         std::cout << "]";
     }
 #endif
@@ -122,7 +122,7 @@ public:
 
 #ifndef NDEBUG
     void dump() const {
-        std::cout << "(" << detail::getValName(_lhs);
+        std::cout << "(" << debug::getValName(_lhs);
 
         switch(_relation) {
         case VRRelationType::EQ: std::cout << " = "; break;
@@ -133,7 +133,7 @@ public:
         case VRRelationType::GE: std::cout << " >= "; break;
         default: abort();
         }
-        std::cout << detail::getValName(_rhs) << ")";
+        std::cout << debug::getValName(_rhs) << ")";
     }
 #endif
 
@@ -339,7 +339,7 @@ public:
             for (const auto& val : *cls) {
                 if (++t > 1)
                     std::cout << " = ";
-                std::cout << detail::getValName(val);
+                std::cout << debug::getValName(val);
             }
             std::cout << "}\n";
         }
@@ -402,8 +402,8 @@ public:
 #ifndef NDEBUG
     void dump() const {
         for (auto& it : _map) {
-            std::cout << "L(" << detail::getValName(it.first) << ") = "
-                      << detail::getValName(it.second) << "\n";
+            std::cout << "L(" << debug::getValName(it.first) << ") = "
+                      << debug::getValName(it.second) << "\n";
         }
     }
 #endif // NDEBUG
@@ -746,11 +746,6 @@ class LLVMValueRelations {
     // list of our basic blocks with mapping from LLVM
     std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>> _blocks;
 
-    VRLocation *getMapping(const llvm::Value *v) {
-        auto it = _loc_mapping.find(v);
-        return it == _loc_mapping.end() ? nullptr : it->second;
-    }
-
     VRLocation *newLocation(const llvm::Value *v = nullptr) {
         auto loc = new VRLocation(++last_node_id);
         if (v)
@@ -849,6 +844,11 @@ class LLVMValueRelations {
 
 public:
     LLVMValueRelations(const llvm::Module *M) : _M(M) {}
+
+    VRLocation *getMapping(const llvm::Value *v) {
+        auto it = _loc_mapping.find(v);
+        return it == _loc_mapping.end() ? nullptr : it->second;
+    }
 
     void build() {
         for (const auto& F : *_M) {
