@@ -42,13 +42,10 @@
 
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "llvm/llvm-utils.h"
-#include "llvm/MemAllocationFuncs.h"
 
 namespace dg {
 namespace analysis {
 namespace pta {
-
-using dg::MemAllocationFuncs;
 
 LLVMPointerSubgraphBuilder::~LLVMPointerSubgraphBuilder()
 {
@@ -292,7 +289,9 @@ void LLVMPointerSubgraphBuilder::addPHIOperands(const llvm::Function &F)
     }
 }
 
-static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes)
+template <typename OptsT>
+static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
+                           const OptsT& opts)
 {
     using namespace llvm;
 
@@ -309,7 +308,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes)
         return true;
 
     if (func->size() == 0) {
-        if (getMemAllocationFunc(func) != MemAllocationFuncs::NONEMEM)
+        if (opts.getAllocationFunction(func->getName())
+            != AllocationFunction::NONE)
             // we need memory allocations
             return true;
 
@@ -435,7 +435,7 @@ bool LLVMPointerSubgraphBuilder::isRelevantInstruction(const llvm::Instruction& 
         case Instruction::Unreachable:
             return false;
         case Instruction::Call:
-            return isRelevantCall(&Inst, invalidate_nodes);
+            return isRelevantCall(&Inst, invalidate_nodes, _options);
         default:
             return true;
     }

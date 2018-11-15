@@ -33,8 +33,6 @@
 
 namespace dg {
 
-enum class MemAllocationFuncs;
-
 namespace analysis {
 namespace pta {
 
@@ -222,7 +220,7 @@ private:
 
     PSNode *createAlloc(const llvm::Instruction *Inst);
     PSNode *createDynamicAlloc(const llvm::CallInst *CInst,
-                               MemAllocationFuncs type);
+                               AllocationFunction type);
     PSNode *createStore(const llvm::Instruction *Inst);
     PSNode *createLoad(const llvm::Instruction *Inst);
     PSNode *createGEP(const llvm::Instruction *Inst);
@@ -296,7 +294,7 @@ private:
 
     PSNodesSeq createMemSet(const llvm::Instruction *);
     PSNodesSeq createDynamicMemAlloc(const llvm::CallInst *CInst,
-                                     MemAllocationFuncs type);
+                                     AllocationFunction type);
     PSNodesSeq createRealloc(const llvm::CallInst *CInst);
     PSNodesSeq createUnknownCall(const llvm::CallInst *CInst);
     PSNodesSeq createIntrinsic(const llvm::Instruction *Inst);

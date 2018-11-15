@@ -1,7 +1,4 @@
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
-#include "llvm/MemAllocationFuncs.h"
-
-using dg::MemAllocationFuncs;
 
 namespace dg {
 namespace analysis {
@@ -49,8 +46,8 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
     // 'malloc' etc.
     if (func->size() == 0) {
         /// memory allocation (malloc, calloc, etc.)
-        MemAllocationFuncs type = getMemAllocationFunc(func);
-        if (type != MemAllocationFuncs::NONEMEM) {
+        auto type =_options.getAllocationFunction(func->getName());
+        if (type != AllocationFunction::NONE) {
             return createDynamicMemAlloc(CInst, type);
         } else if (func->isIntrinsic()) {
             return createIntrinsic(CInst);
@@ -276,7 +273,7 @@ PSNode * LLVMPointerSubgraphBuilder::createFree(const llvm::Instruction *Inst)
 }
 
 PSNode *LLVMPointerSubgraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
-                                                       MemAllocationFuncs type)
+                                                       AllocationFunction type)
 {
     using namespace llvm;
 
@@ -285,13 +282,13 @@ PSNode *LLVMPointerSubgraphBuilder::createDynamicAlloc(const llvm::CallInst *CIn
     PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
 
     switch (type) {
-        case MemAllocationFuncs::MALLOC:
+        case AllocationFunction::MALLOC:
             node->setIsHeap();
             /* fallthrough */
-        case MemAllocationFuncs::ALLOCA:
+        case AllocationFunction::ALLOCA:
             op = CInst->getOperand(0);
             break;
-        case MemAllocationFuncs::CALLOC:
+        case AllocationFunction::CALLOC:
             node->setIsHeap();
             node->setZeroInitialized();
             op = CInst->getOperand(1);
@@ -305,7 +302,7 @@ PSNode *LLVMPointerSubgraphBuilder::createDynamicAlloc(const llvm::CallInst *CIn
 
     // infer allocated size
     size = getConstantSizeValue(op);
-    if (size != 0 && type == MemAllocationFuncs::CALLOC) {
+    if (size != 0 && type == AllocationFunction::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
         size2 = getConstantSizeValue(CInst->getOperand(0));
@@ -347,12 +344,12 @@ LLVMPointerSubgraphBuilder::createRealloc(const llvm::CallInst *CInst)
 
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
-                                                  MemAllocationFuncs type)
+                                                  AllocationFunction type)
 {
-    assert(type != MemAllocationFuncs::NONEMEM
+    assert(type != AllocationFunction::NONE
             && "BUG: creating dyn. memory node for NONMEM");
 
-    if (type == MemAllocationFuncs::REALLOC) {
+    if (type == AllocationFunction::REALLOC) {
         return createRealloc(CInst);
     } else {
         PSNode *node = createDynamicAlloc(CInst, type);

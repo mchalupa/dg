@@ -51,7 +51,6 @@ add_library(LLVMpta SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/PointerSubgraph.h
 
-	llvm/MemAllocationFuncs.h
 	llvm/analysis/PointsTo/PointerSubgraphValidator.h
 	llvm/analysis/PointsTo/PointerSubgraph.cpp
 	llvm/analysis/PointsTo/PointerSubgraphValidator.cpp
@@ -64,7 +63,6 @@ add_library(LLVMpta SHARED
 target_link_libraries(LLVMpta PUBLIC PTA)
 
 add_library(LLVMrd SHARED
-	llvm/MemAllocationFuncs.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.cpp
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.cpp
 	llvm/analysis/ReachingDefinitions/LLVMReachingDefinitions.cpp

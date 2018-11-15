@@ -56,7 +56,7 @@ private:
 
     RDNode *createStore(const llvm::Instruction *Inst);
     RDNode *createAlloc(const llvm::Instruction *Inst);
-    RDNode *createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type);
+    RDNode *createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type);
     RDNode *createRealloc(const llvm::Instruction *Inst);
     RDNode *createReturn(const llvm::Instruction *Inst);
 

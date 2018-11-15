@@ -37,7 +37,6 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 
 #include "llvm/llvm-utils.h"
-#include "llvm/MemAllocationFuncs.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
 using dg::analysis::rd::RDNode;
@@ -226,12 +225,12 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         // for realloc, we need to make it data dependent on the
         // memory it reallocates, since that is the memory it copies
         if (func->size() == 0) {
-            using dg::MemAllocationFuncs;
-            MemAllocationFuncs type = getMemAllocationFunc(func);
+            using analysis::AllocationFunction;
+            auto type = _options.getAllocationFunction(func->getName());
 
-            if (type == MemAllocationFuncs::REALLOC) {
+            if (type == AllocationFunction::REALLOC) {
                 addDataDependence(node, CI, CI->getOperand(0), Offset::UNKNOWN /* FIXME */);
-            } else if (type == MemAllocationFuncs::NONEMEM) {
+            } else if (type == AllocationFunction::NONE) {
                 handleUndefinedCall(node, CI);
             }// else {
              // we do not want to do anything for the memory

@@ -38,7 +38,6 @@
 
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h"
 #include "llvm/llvm-utils.h"
-#include "llvm/MemAllocationFuncs.h"
 
 namespace dg {
 namespace analysis {
@@ -56,7 +55,7 @@ RDNode *LLVMRDBuilderDense::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
-RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, MemAllocationFuncs type)
+RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type)
 {
     using namespace llvm;
 
@@ -68,11 +67,11 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, MemAll
     uint64_t size = 0, size2 = 0;
 
     switch (type) {
-        case MemAllocationFuncs::MALLOC:
-        case MemAllocationFuncs::ALLOCA:
+        case AllocationFunction::MALLOC:
+        case AllocationFunction::ALLOCA:
             op = CInst->getOperand(0);
             break;
-        case MemAllocationFuncs::CALLOC:
+        case AllocationFunction::CALLOC:
             op = CInst->getOperand(1);
             break;
         default:
@@ -84,7 +83,7 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, MemAll
 
     // infer allocated size
     size = getConstantValue(op);
-    if (size != 0 && type == MemAllocationFuncs::CALLOC) {
+    if (size != 0 && type == AllocationFunction::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
         size2 = getConstantValue(CInst->getOperand(0));
@@ -311,7 +310,9 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
     return node;
 }
 
-static bool isRelevantCall(const llvm::Instruction *Inst)
+template <typename OptsT>
+static bool isRelevantCall(const llvm::Instruction *Inst,
+                           OptsT& opts)
 {
     using namespace llvm;
 
@@ -328,7 +329,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst)
         return true;
 
     if (func->size() == 0) {
-        if (getMemAllocationFunc(func) != MemAllocationFuncs::NONEMEM)
+        if (opts.getAllocationFunction(func->getName())
+            != AllocationFunction::NONE)
             // we need memory allocations
             return true;
 
@@ -397,7 +399,7 @@ LLVMRDBuilderDense::buildBlock(const llvm::BasicBlock& block)
                     node = createReturn(&Inst);
                     break;
                 case Instruction::Call:
-                    if (!isRelevantCall(&Inst))
+                    if (!isRelevantCall(&Inst, _options))
                         break;
 
                     std::pair<RDNode *, RDNode *> subg = createCall(&Inst);
@@ -726,9 +728,9 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
             if (func->isIntrinsic()) {
                 n = createIntrinsicCall(CInst);
             } else {
-                MemAllocationFuncs type = getMemAllocationFunc(func);
-                if (type != MemAllocationFuncs::NONEMEM) {
-                    if (type == MemAllocationFuncs::REALLOC)
+                auto type = _options.getAllocationFunction(func->getName());
+                if (type != AllocationFunction::NONE) {
+                    if (type == AllocationFunction::REALLOC)
                         n = createRealloc(CInst);
                     else
                         n = createDynAlloc(CInst, type);
