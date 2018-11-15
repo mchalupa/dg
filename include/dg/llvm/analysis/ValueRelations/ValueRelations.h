@@ -13,6 +13,7 @@
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 #include "dg/analysis/ValueRelations/ValueRelations.h"
 
