@@ -661,7 +661,7 @@ LLVMRDBuilderDense::getPointsToFunctions(const llvm::Value *calledValue)
                         "but the points-to is empty\n";
     }
 
-    for (const pta::Pointer &pointer : operand->pointsTo) {
+    for (const pta::Pointer pointer : operand->pointsTo) {
         if (pointer.isValid()
                 && !pointer.isInvalidated()
                 && isa<Function>(pointer.target->getUserData<Value>())) {
@@ -722,8 +722,8 @@ void LLVMRDBuilderDense::matchForksAndJoins()
         for (const CallInst * joinInstruction : threadJoinCalls) {
             std::set<PSNode *> set;
             PSNode *joinPoint = PTA->getPointsTo(joinInstruction->getArgOperand(0))->getOperand(0);
-            for (const auto &forkNode : forkPoint->pointsTo) {
-                for (const auto &joinNode : joinPoint->pointsTo) {
+            for (const auto forkNode : forkPoint->pointsTo) {
+                for (const auto joinNode : joinPoint->pointsTo) {
                     if (joinNode.target == forkNode.target) {
                         set.insert(joinNode.target);
                     }
