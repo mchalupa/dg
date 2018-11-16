@@ -469,6 +469,86 @@ struct VRLocation  {
         successors.emplace_back(std::move(edge));
     }
 
+    VRLocation(unsigned _id) : id(_id) {}
+
+#ifndef NDEBUG
+    void dump() const {
+        std::cout << id << " ";
+        std::cout << std::endl;
+    }
+#endif
+};
+
+struct VRBBlock {
+    std::list<std::unique_ptr<VRLocation>> locations;
+
+    void prepend(std::unique_ptr<VRLocation>&& loc) {
+        locations.push_front(std::move(loc));
+    }
+
+    void append(std::unique_ptr<VRLocation>&& loc) {
+        locations.push_back(std::move(loc));
+    }
+
+    VRLocation *last() { return locations.back().get(); }
+    VRLocation *first() { return locations.front().get(); }
+    const VRLocation *last() const { return locations.back().get(); }
+    const VRLocation *first() const { return locations.front().get(); }
+};
+
+class LLVMValueRelationsAnalysis {
+    // reads about which we know that always hold
+    // (e.g. if the underlying memory is defined only at one place
+    // or for global constants)
+    std::set<const llvm::Value *> fixedMemory;
+    const llvm::Module *_M;
+
+    bool isOnceDefinedAlloca(const llvm::Instruction *I) {
+        using namespace llvm;
+        if (auto AI = dyn_cast<AllocaInst>(I)) {
+            bool had_store = false;
+            for (auto it = AI->use_begin(), et = AI->use_end(); it != et; ++it) {
+            #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+                const Value *use = *it;
+            #else
+                const Value *use = it->getUser();
+            #endif
+
+                // we must have maximally one store
+                // and the rest of instructions must be loads
+                // (this is maybe too strict, but...
+                if (auto SI = dyn_cast<StoreInst>(use)) {
+                    if (had_store)
+                        return false;
+                    had_store = true;
+                    // the address is taken, it can be used via a pointer
+                    if (SI->getOperand(0) == AI)
+                        return false;
+                } else if (!isa<LoadInst>(use)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    void initializeFixedReads() {
+        using namespace llvm;
+
+        // FIXME: globals
+        for (auto &F : *_M) {
+            for (auto& B : F) {
+                for (auto& I : B) {
+                    if (isOnceDefinedAlloca(&I))
+                        fixedMemory.insert(&I);
+                }
+            }
+        }
+    }
+
     static bool hasAlias(const llvm::Value *val,
                          EqualityMap<const llvm::Value *>& E) {
         auto equiv = E.get(val);
@@ -540,7 +620,8 @@ struct VRLocation  {
         } else if (auto GEP = dyn_cast<GetElementPtrInst>(I)) {
             return gepGen(GEP, E, R, source);
         } else if (auto C = dyn_cast<CastInst>(I)) {
-            if (C->isLosslessCast() /* C->isNoopCast(DL) */) {
+            if (C->isLosslessCast() || isa<ZExtInst>(C) // ZExt does not change value
+                /* C->isNoopCast(DL) */) {
                 return E.add(C, C->getOperand(0));
             }
         }
@@ -617,7 +698,8 @@ struct VRLocation  {
 
     // collect information via an edge from a single predecessor
     // and store it in E and R
-    bool collect(EqualityMap<const llvm::Value*>& E,
+    bool collect(VRLocation *loc,
+                 EqualityMap<const llvm::Value*>& E,
 				 RelationsSet& Rel,
                  ReadsMap& R,
                  VREdge *edge) {
@@ -641,8 +723,8 @@ struct VRLocation  {
 
         ///
         // -- merge && kill
-        changed |= equalities.add(source->equalities);
-        changed |= relations.add(source->relations);
+        changed |= loc->equalities.add(source->equalities);
+        changed |= loc->relations.add(source->relations);
 
         if (overwritesAll) { // no merge
             return changed;
@@ -657,85 +739,48 @@ struct VRLocation  {
         return changed;
     }
 
-    bool collect(VREdge *edge) {
-        return collect(equalities, relations, reads, edge);
+    bool collect(VRLocation *loc, VREdge *edge) {
+        return collect(loc, loc->equalities, loc->relations, loc->reads, edge);
     }
 
     // merge information from predecessors
-    bool collect() {
-        if (predecessors.size() > 1) {
-            return mergePredecessors();
-        } else if (predecessors.size() == 1 ){
-            return collect(*predecessors.begin());
+    bool collect(VRLocation *loc) {
+        if (loc->predecessors.size() > 1) {
+            return mergePredecessors(loc);
+        } else if (loc->predecessors.size() == 1 ){
+            return collect(loc, *loc->predecessors.begin());
         }
         return false;
     }
 
-    bool mergePredecessors() {
-		assert(predecessors.size() > 1);
+    bool mergePredecessors(VRLocation *loc) {
+		assert(loc->predecessors.size() > 1);
 
         // it takes too much time
         return false;
-
-/*
-        ///
-        // gather data from predecessors
-		EqualityMap<const llvm::Value *> E;
-		ReadsMap R;
-		RelationsSet Rel;
-
-		auto it = predecessors.begin();
-		collect(E, Rel, R, *it);
-		++it;
-
-		while (it != predecessors.end()) {
-			EqualityMap<const llvm::Value *> tmpE;
-			ReadsMap tmpR;
-			RelationsSet tmpRel;
-			collect(tmpE, tmpRel, tmpR, *it);
-
-			E.intersect(tmpE);
-			R.intersect(tmpR);
-			Rel.intersect(tmpRel);
-            ++it;
-		}
-
-        ///
-        // update current state
-		bool changed = false;
-		changed |= equalities.add(E);
-		changed |= reads.add(R);
-		changed |= relations.add(Rel);
-
-        return changed;
-*/
     }
 
-    VRLocation(unsigned _id) : id(_id) {}
+public:
+    template <typename Blocks>
+    void run(Blocks& blocks) {
+        // FIXME: only nodes reachable from changed nodes
+        bool changed;
+        unsigned n = 0;
+        do {
+            ++n;
+            changed = false;
+            for (const auto& B : blocks) {
+                for (const auto& loc : B.second->locations) {
+                    changed |= collect(loc.get());
+                }
+            }
+        } while (changed);
 
-#ifndef NDEBUG
-    void dump() const {
-        std::cout << id << " ";
-        std::cout << std::endl;
-    }
-#endif
-};
-
-struct VRBBlock {
-    std::list<std::unique_ptr<VRLocation>> locations;
-
-    void prepend(std::unique_ptr<VRLocation>&& loc) {
-        locations.push_front(std::move(loc));
-    }
-
-    void append(std::unique_ptr<VRLocation>&& loc) {
-        locations.push_back(std::move(loc));
+        llvm::errs() << "Number of iterations: " << n << "\n";
     }
 
-    VRLocation *last() { return locations.back().get(); }
-    VRLocation *first() { return locations.front().get(); }
-    const VRLocation *last() const { return locations.back().get(); }
-    const VRLocation *first() const { return locations.front().get(); }
+    LLVMValueRelationsAnalysis(const llvm::Module *M) : _M(M) {}
+
 };
 
 class LLVMValueRelations {
@@ -859,19 +904,8 @@ public:
 
     // FIXME: this should be for each node
     void compute() {
-        // FIXME: only nodes reachable from changed nodes
-        bool changed;
-        unsigned n = 0;
-        do {
-            ++n;
-            changed = false;
-            for (const auto& B : _blocks) {
-                for (const auto& loc : B.second->locations) {
-                    changed |= loc->collect();
-                }
-            }
-        } while (changed);
-        llvm::errs() << "Number of iterations: " << n << "\n";
+        LLVMValueRelationsAnalysis VRA(_M);
+        VRA.run(_blocks);
     }
 
     decltype(_blocks) const& getBlocks() const {
