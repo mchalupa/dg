@@ -630,8 +630,8 @@ class LLVMValueRelationsAnalysis {
         } else if (auto GEP = dyn_cast<GetElementPtrInst>(I)) {
             return gepGen(GEP, E, R, source);
         } else if (auto C = dyn_cast<CastInst>(I)) {
-            if (C->isLosslessCast() || isa<ZExtInst>(C) // ZExt does not change value
-                /* C->isNoopCast(DL) */) {
+            if (C->isLosslessCast() || isa<ZExtInst>(C) || // (S)ZExt should not change value
+                isa<SExtInst>(C) || C->isNoopCast(_M->getDataLayout())) {
                 return E.add(C, C->getOperand(0));
             }
         }
