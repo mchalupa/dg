@@ -24,6 +24,7 @@
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/analysis/PointsTo/PointerSubgraphOptimizations.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
+#include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
@@ -129,8 +130,7 @@ public:
     ///
     // Get the node from pointer analysis that holds the points-to set.
     // See: getLLVMPointsTo()
-    PSNode *getPointsTo(const llvm::Value *val)
-    {
+    PSNode *getPointsTo(const llvm::Value *val) const {
         return _builder->getPointsTo(val);
     }
 
@@ -159,6 +159,31 @@ public:
             return {true, LLVMPointsToSet(node->pointsTo)};
         else
             return {false, LLVMPointsToSet(getUnknownPTSet())};
+    }
+
+    std::vector<const llvm::Function *>
+    getPointsToFunctions(const llvm::Value *calledValue) const
+    {
+        using namespace llvm;
+        std::vector<const Function *> functions;
+
+        if (isa<Function>(calledValue)) {
+            functions.push_back(dyn_cast<Function>(calledValue));
+            return functions;
+        }
+
+        PSNode *operand = getPointsTo(calledValue);
+        assert(operand && "Don't have points-to information");
+
+        for (const analysis::pta::Pointer pointer : operand->pointsTo) {
+            if (pointer.isValid()
+                    && !pointer.isInvalidated()
+                    && isa<Function>(pointer.target->getUserData<Value>())) {
+                const Function *function = pointer.target->getUserData<Function>();
+                functions.push_back(function);
+            }
+        }
+        return functions;
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
