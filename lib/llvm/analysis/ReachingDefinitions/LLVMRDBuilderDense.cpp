@@ -646,8 +646,8 @@ void LLVMRDBuilderDense::matchForksAndJoins()
         for (const CallInst * joinInstruction : threadJoinCalls) {
             std::set<PSNode *> set;
             PSNode *joinPoint = PTA->getPointsTo(joinInstruction->getArgOperand(0))->getOperand(0);
-            for (const auto &forkNode : forkPoint->pointsTo) {
-                for (const auto &joinNode : joinPoint->pointsTo) {
+            for (const auto forkNode : forkPoint->pointsTo) {
+                for (const auto joinNode : joinPoint->pointsTo) {
                     if (joinNode.target == forkNode.target) {
                         set.insert(joinNode.target);
                     }
