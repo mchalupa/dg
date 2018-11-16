@@ -294,6 +294,15 @@ public:
         return changed;
     }
 
+    bool add(const T& a, const SetT& S) {
+        bool changed = false;
+        for (auto eq : S) {
+            changed |= add(a, eq);
+        }
+
+        return changed;
+    }
+
     SetT *get(const T& a) {
         auto it = _map.find(a);
         if (it == _map.end()) {
@@ -542,8 +551,9 @@ class LLVMValueRelationsAnalysis {
         for (auto &F : *_M) {
             for (auto& B : F) {
                 for (auto& I : B) {
-                    if (isOnceDefinedAlloca(&I))
+                    if (isOnceDefinedAlloca(&I)) {
                         fixedMemory.insert(&I);
+                    }
                 }
             }
         }
@@ -756,8 +766,59 @@ class LLVMValueRelationsAnalysis {
     bool mergePredecessors(VRLocation *loc) {
 		assert(loc->predecessors.size() > 1);
 
-        // it takes too much time
-        return false;
+        using namespace llvm;
+
+        // merge equalities and relations that use only
+        // fixed memory as these cannot change in the future
+        // (constants, one-time-defined alloca's, and so on).
+        // The rest would be too much time-consuming.
+        bool changed = false;
+        for (auto pred : loc->predecessors) {
+            for (auto& it : pred->source->reads) {
+                if (fixedMemory.count(it.first) > 0) {
+                    auto LI = dyn_cast<LoadInst>(it.second);
+                    if (LI && !fixedMemory.count(LI->getOperand(0)))
+                        continue;
+                    changed |= loc->reads.add(it.first, it.second);
+                }
+            }
+
+            for (auto& it : pred->source->equalities) {
+                auto LI = dyn_cast<LoadInst>(it.first);
+                // XXX: we can do the same with constants
+                if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
+                    bool first = true;
+                    for (auto eq : *(it.second.get())) {
+                        auto LI2 = dyn_cast<LoadInst>(eq);
+                        if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
+                            continue;
+                        changed |= loc->equalities.add(it.first, eq);
+                        // add the first equality also into reads map,
+                        // so that we can pair the values with
+                        // further reads
+                        if (first) {
+                            if (!loc->reads.get(it.first)) {
+                                loc->reads.add(LI->getOperand(0), eq);
+                                first = false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (auto& it : pred->source->relations) {
+                auto LI = dyn_cast<LoadInst>(it.getLHS());
+                // XXX: we can do the same with constants
+                if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
+                    auto LI2 = dyn_cast<LoadInst>(it.getRHS());
+                    if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
+                        continue;
+                    changed |= loc->relations.add(it);
+                }
+            }
+        }
+
+        return changed;
     }
 
 public:
@@ -779,7 +840,9 @@ public:
         llvm::errs() << "Number of iterations: " << n << "\n";
     }
 
-    LLVMValueRelationsAnalysis(const llvm::Module *M) : _M(M) {}
+    LLVMValueRelationsAnalysis(const llvm::Module *M) : _M(M) {
+        initializeFixedReads();
+    }
 
 };
 
