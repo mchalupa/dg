@@ -615,20 +615,17 @@ class LLVMValueRelationsAnalysis {
                 auto LI = dyn_cast<LoadInst>(it.first);
                 // XXX: we can do the same with constants
                 if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
-                    bool first = true;
                     for (auto eq : *(it.second.get())) {
                         auto LI2 = dyn_cast<LoadInst>(eq);
                         if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
                             continue;
                         changed |= loc->equalities.add(it.first, eq);
                         // add the first equality also into reads map,
-                        // so that we can pair the values with
-                        // further reads
-                        if (first) {
-                            if (!loc->reads.get(it.first)) {
-                                loc->reads.add(LI->getOperand(0), eq);
-                                first = false;
-                            }
+                        // so that we can pair the values with further reads
+                        if (auto rr = loc->reads.get(LI->getOperand(0))) {
+                            loc->equalities.add(rr, eq);
+                        } else {
+                            loc->reads.add(LI->getOperand(0), eq);
                         }
                     }
                 }
@@ -662,8 +659,9 @@ public:
             ++n;
 
 #ifndef NDEBUG
-        if (n % 1000 == 0)
+        if (n % 1000 == 0) {
             llvm::errs() << "Iterations: " << n << "\n";
+        }
 #endif
             changed = false;
             for (const auto& B : blocks) {
