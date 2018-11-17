@@ -62,8 +62,14 @@ public:
     // true if the node is on stack
     bool on_stack{false};
 
-    SubgraphNode(unsigned id)
-    : id(id) {}
+    SubgraphNode(unsigned id) : id(id) {}
+#ifndef NDEBUG
+    // in debug mode, we have virtual dump methods
+    // and then we want virtual dtor. Otherwise,
+    // we never use polymorphism for childern classes,
+    // so we do not need the virtual dtor.
+    virtual ~SubgraphNode() = default;
+#endif
 
     unsigned int getID() const { return id; }
 
