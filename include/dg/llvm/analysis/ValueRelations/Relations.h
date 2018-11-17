@@ -18,16 +18,23 @@ namespace dg {
 // Relation
 /// --------------------------------------------------- ///
 class Relations;
+
+enum VRRelationType {
+    NONE = 0, EQ = 1, NEQ = 2, LE = 3, LT = 4, GE = 5, GT = 6
+};
+
 class VRRelation {
-    enum VRRelationType {
-        NONE = 0, EQ = 1, NEQ = 2, LE = 3, LT = 4, GE = 5, GT = 6
-    } _relation{VRRelationType::NONE};
+    VRRelationType _relation{VRRelationType::NONE};
 
     const llvm::Value *_lhs{nullptr}, *_rhs{nullptr};
 
     VRRelation(VRRelationType type,
                const llvm::Value *lhs, const llvm::Value *rhs)
-    : _relation(type), _lhs(lhs), _rhs(rhs) {}
+    : _relation(type), _lhs(lhs), _rhs(rhs) {
+        // this can of course happen when we add a spurious
+        // constraints, but now we have it to catch bugs
+        assert((!isLt() && !isGt()) || lhs != rhs);
+    }
 
     auto getRelation() const -> decltype(_relation) { return _relation; }
 
@@ -59,8 +66,8 @@ public:
 
     bool isEq() const { return _relation == VRRelationType::EQ; }
     bool isNeq() const { return _relation == VRRelationType::NEQ; }
-    bool isLt() const { return _relation == VRRelationType::LE; }
-    bool isLe() const { return _relation == VRRelationType::LT; }
+    bool isLt() const { return _relation == VRRelationType::LT; }
+    bool isLe() const { return _relation == VRRelationType::LE; }
     bool isGt() const { return _relation == VRRelationType::GT; }
     bool isGe() const { return _relation == VRRelationType::GE; }
 
@@ -101,7 +108,7 @@ public:
         }
 	}
 
-	static VRRelation revert(const VRRelation& rel) {
+	static VRRelation reverse(const VRRelation& rel) {
         switch(rel._relation) {
         case VRRelationType::EQ:  return Eq(rel._rhs, rel._lhs);
         case VRRelationType::NEQ: return Neq(rel._rhs, rel._lhs);
@@ -120,7 +127,7 @@ public:
 	friend VRRelation Gt(const llvm::Value *, const llvm::Value *);
 	friend VRRelation Ge(const llvm::Value *, const llvm::Value *);
 	friend VRRelation Not(const VRRelation& r);
-	friend VRRelation revert(const VRRelation&);
+	friend VRRelation reverse(const VRRelation&);
 	friend VRRelation sameOp(const VRRelation&, const llvm::Value *, const llvm::Value *);
     friend class Relations;
 };
@@ -136,7 +143,7 @@ public:
     Relations(const llvm::Value *v) : value(v) {}
 
     bool add(const VRRelation& rel) {
-        assert(rel.getRelation() != VRRelation::VRRelationType::NONE);
+        assert(rel.getRelation() != VRRelationType::NONE);
         assert(rel.getLHS() == value);
         return rhs[rel.getRelation()].insert(rel.getRHS()).second;
     }
@@ -149,6 +156,11 @@ public:
         }
 
         return changed;
+    }
+
+    bool has(VRRelationType t, const llvm::Value *x) const {
+        assert(t > 0 && t < 7);
+        return rhs[t].count(x) > 0;
     }
 
     struct const_iterator {
@@ -165,7 +177,7 @@ public:
         }
 
         VRRelation operator*() const {
-            return VRRelation(static_cast<VRRelation::VRRelationType>(idx),
+            return VRRelation(static_cast<VRRelationType>(idx),
                               relations.value, *it);
         }
 
@@ -206,8 +218,9 @@ public:
     void dump() const {
         for (int i = 1; i < 7; ++i) {
             for (const auto& r : rhs[i]) {
-                VRRelation(static_cast<VRRelation::VRRelationType>(i),
+                VRRelation(static_cast<VRRelationType>(i),
                            value, r).dump();
+                std::cout << "\n";
             }
         }
     }
@@ -216,39 +229,171 @@ public:
 };
 
 class RelationsMap {
+    // with each relation, add also all relations that follow from transitivity.
+    // NOTE: this may cause big overhead
+    bool _keep_transitively_closed{false};
     std::map<const llvm::Value *, Relations> relations;
 
-public:
-    RelationsMap() = default;
-    RelationsMap(const RelationsMap&) = default;
+    bool addTransitiveEq(const VRRelation& rel) {
+        bool changed = false;
+        if (auto B = get(rel.getRHS())) {
+            auto tmp = *B; // we would modify iterator when iterating over *B
+            for (const auto& it : tmp) {
+                assert(it.getLHS() == rel.getRHS());
+                changed |= add(VRRelation::sameOp(it, rel.getLHS(), it.getRHS()));
+            }
+        }
+        if (auto A = get(rel.getLHS())) {
+            auto tmp = *A; // we would modify iterator when iterating over *B
+            for (const auto& it : tmp) {
+                assert(it.getLHS() == rel.getLHS());
+                changed |= add(VRRelation::sameOp(it, rel.getRHS(), it.getRHS()));
+            }
+        }
+        return changed;
+    }
 
-    bool add(const VRRelation& rel) {
+    bool addTransitiveLt(const VRRelation& rel) {
+        bool changed = false;
+        if (auto B = get(rel.getRHS())) {
+            auto tmp = *B; // we would modify iterator when iterating over *B
+            for (const auto& it : tmp) {
+                assert(it.getLHS() == rel.getRHS());
+                if (it.isEq() || it.isLt() || it.isLe())
+                    changed |= add(VRRelation::sameOp(rel, rel.getLHS(), it.getRHS()));
+            }
+        }
+        if (auto A = get(rel.getLHS())) {
+            auto tmp = *A; // we would modify iterator when iterating over *B
+            for (const auto& it : tmp) {
+                assert(it.getLHS() == rel.getLHS());
+                if (it.isEq() || it.isGt() || it.isGe())
+                    changed |= add(VRRelation::sameOp(rel, it.getRHS(), rel.getRHS()));
+            }
+        }
+        return changed;
+    }
+
+    bool addTransitiveLe(const VRRelation& rel) {
+        bool changed = false;
+        if (auto B = get(rel.getRHS())) {
+            auto tmp = *B; // we would modify iterator when iterating over *B
+            for (const auto& it : tmp) {
+                assert(it.getLHS() == rel.getRHS());
+                if (it.isEq() || it.isLe())
+                    changed |= add(VRRelation::sameOp(rel, rel.getLHS(), it.getRHS()));
+                else if (it.isLt())
+                    changed |= add(VRRelation::sameOp(it, rel.getLHS(), it.getRHS()));
+            }
+        }
+        if (auto A = get(rel.getLHS())) {
+            auto tmp = *A; // we would modify iterator when iterating over *B
+            for (const auto& it : tmp) {
+                assert(it.getLHS() == rel.getLHS());
+                if (it.isEq() || it.isGe())
+                    changed |= add(VRRelation::sameOp(rel, it.getRHS(), rel.getRHS()));
+                else if (it.isGt())
+                    changed |= add(VRRelation::sameOp(it, it.getRHS(), rel.getRHS()));
+            }
+        }
+        return changed;
+    }
+
+    bool _addTransitive1(const VRRelation& rel) {
+        bool changed = false;
+        if (rel.isEq()) {
+            changed |= addTransitiveEq(rel);
+        } else if (rel.isLt()) {
+            changed |= addTransitiveLt(rel);
+        } else if (rel.isLe()) {
+            changed |= addTransitiveLe(rel);
+        } else if (rel.isGt()) {
+            changed |= addTransitiveLt(VRRelation::reverse(rel));
+        } else if (rel.isGe()) {
+            changed |= addTransitiveLe(VRRelation::reverse(rel));
+        }
+
+        return changed;
+    }
+
+    bool _addTransitive(const VRRelation& rel) {
+        bool changed, changed_any = false;
+        do {
+            changed = false;
+            changed |= _addTransitive1(rel);
+            if (!rel.isEq() && !rel.isNeq()) // these are symmetric, all work has been done
+                changed |= _addTransitive1(VRRelation::reverse(rel));
+            changed_any |= changed;
+        } while(changed);
+
+        return changed_any;
+    }
+
+    bool _add(const VRRelation& rel) {
         auto it = relations.find(rel.getLHS());
         if (it == relations.end()) {
             auto n = relations.emplace(std::piecewise_construct,
                                        std::forward_as_tuple(rel.getLHS()),
                                        std::forward_as_tuple(rel.getLHS()));
             return n.first->second.add(rel);
+        } else {
+            return it->second.add(rel);
         }
-
-        return it->second.add(rel);
     }
 
-	bool add(const RelationsMap& rhs) {
-		bool changed = false;
-		for (const auto& it : rhs) {
-            auto my = relations.find(it.first);
-            if (my == relations.end()) {
-                auto myNew = relations.emplace(std::piecewise_construct,
-                                               std::forward_as_tuple(it.first),
-                                               std::forward_as_tuple(it.first));
-                changed |= myNew.first->second.add(it.second);
-                continue;
+public:
+    RelationsMap(bool keep_trans = false) : _keep_transitively_closed(keep_trans), relations{} {}
+    RelationsMap(const RelationsMap&) = default;
+
+    bool add(const VRRelation& rel) {
+        bool ret = _add(rel);
+        if (_keep_transitively_closed) // we want also the reverse mapping here
+            ret |= _add(VRRelation::reverse(rel));
+
+        if (ret && _keep_transitively_closed)
+            _addTransitive(rel);
+
+        return ret;
+    }
+
+    bool add(const RelationsMap& rhs) {
+        bool changed = false;
+
+        for (const auto& it : rhs) {
+            for (const auto& rel : it.second) {
+                changed |= add(rel);
             }
-			changed |= my->second.add(it.second);
-		}
-		return changed;
-	}
+        }
+        return changed;
+    }
+
+    Relations *get(const llvm::Value *v) {
+        auto it = relations.find(v);
+        if (it == relations.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
+    void transitivelyClose() {
+        auto tmp = relations;
+        for (auto& it : tmp) {
+            for (const auto& r : it.second) {
+                // add mapping also for right-hand sides of relations
+                add(VRRelation::reverse(r));
+            }
+        }
+        bool changed;
+        do {
+            changed = false;
+            auto tmp = relations;
+            for (auto& it : tmp) {
+                for (const auto& r : it.second) {
+                    changed |= _addTransitive(r);
+                }
+            }
+        } while (changed);
+    }
 
     /*
 	void intersect(const RelationsMap& rhs) {
