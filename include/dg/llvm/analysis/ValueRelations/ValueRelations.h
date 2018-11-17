@@ -360,25 +360,102 @@ class LLVMValueRelationsAnalysis {
         return false;
     }
 
+    bool plusGen(const llvm::Instruction *I,
+                EqualityMap<const llvm::Value*>&,
+                RelationsMap& Rel) {
+        using namespace llvm;
+        auto val1 = I->getOperand(0);
+        auto val2 = I->getOperand(1);
+
+        auto C1 = dyn_cast<ConstantInt>(val1);
+        auto C2 = dyn_cast<ConstantInt>(val2);
+
+        if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+            return false;
+        if (C1 && !C2) {
+            auto tmp = C1;
+            C1 = C2;
+            C2 = tmp;
+            auto tmp1 = val1;
+            val1 = val2;
+            val2 = tmp1;
+        }
+
+        assert(!C1 && C2);
+
+        auto V = C2->getSExtValue();
+        if (V > 0)
+            return Rel.add(VRRelation::Gt(I, val1));
+        else if (V == 0)
+            return Rel.add(VRRelation::Eq(I, val1));
+        else
+            return Rel.add(VRRelation::Lt(I, val1));
+
+        abort();
+    }
+
+    // FIXME: do not duplicate the code
+    bool minusGen(const llvm::Instruction *I,
+                  EqualityMap<const llvm::Value*>&,
+                  RelationsMap& Rel) {
+        using namespace llvm;
+        auto val1 = I->getOperand(0);
+        auto val2 = I->getOperand(1);
+
+        auto C1 = dyn_cast<ConstantInt>(val1);
+        auto C2 = dyn_cast<ConstantInt>(val2);
+
+        if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+            return false;
+        if (C1 && !C2) {
+            auto tmp = C1;
+            C1 = C2;
+            C2 = tmp;
+            auto tmp1 = val1;
+            val1 = val2;
+            val2 = tmp1;
+        }
+
+        assert(!C1 && C2);
+
+        auto V = C2->getSExtValue();
+        if (V > 0)
+            return Rel.add(VRRelation::Lt(I, val1));
+        else if (V == 0)
+            return Rel.add(VRRelation::Eq(I, val1));
+        else
+            return Rel.add(VRRelation::Gt(I, val1));
+
+        abort();
+    }
+
     bool instructionGen(const llvm::Instruction *I,
                         EqualityMap<const llvm::Value*>& E,
                         RelationsMap& Rel,
                         ReadsMap& R, VRLocation *source) {
         using namespace llvm;
-        if (auto SI = dyn_cast<StoreInst>(I)) {
-            auto writtenMem = SI->getOperand(1)->stripPointerCasts();
-            return R.add(writtenMem, SI->getOperand(0));
-        } else if (auto LI = dyn_cast<LoadInst>(I)) {
-            return loadGen(LI, E, Rel, R, source);
-        } else if (auto GEP = dyn_cast<GetElementPtrInst>(I)) {
-            return gepGen(GEP, E, R, source);
-        } else if (auto C = dyn_cast<CastInst>(I)) {
-            if (C->isLosslessCast() || isa<ZExtInst>(C) || // (S)ZExt should not change value
-                isa<SExtInst>(C) || C->isNoopCast(_M->getDataLayout())) {
-                return E.add(C, C->getOperand(0));
-            }
+        switch(I->getOpcode()) {
+            case Instruction::Store:
+                return R.add(I->getOperand(1)->stripPointerCasts(), I->getOperand(0));
+            case Instruction::Load:
+                return loadGen(cast<LoadInst>(I), E, Rel, R, source);
+            case Instruction::GetElementPtr:
+                return gepGen(cast<GetElementPtrInst>(I), E, R, source);
+            case Instruction::ZExt:
+            case Instruction::SExt: // (S)ZExt should not change value
+                return E.add(I, I->getOperand(0));
+            case Instruction::Add:
+                return plusGen(I, E, Rel);
+            case Instruction::Sub:
+                return minusGen(I, E, Rel);
+            default:
+                if (auto C = dyn_cast<CastInst>(I)) {
+                    if (C->isLosslessCast() || C->isNoopCast(_M->getDataLayout())) {
+                        return E.add(C, C->getOperand(0));
+                    }
+                }
+                return false;
         }
-        return false;
     }
 
     void instructionKills(const llvm::Instruction *I,
