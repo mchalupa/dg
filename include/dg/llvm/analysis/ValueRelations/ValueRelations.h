@@ -507,6 +507,10 @@ class LLVMValueRelationsAnalysis {
 				if (assume->isTrue())
                     changed |= E.add(val1, val2);
                 rel = VRRelation::Eq(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_NE:
+				if (assume->isFalse())
+                    changed |= E.add(val1, val2);
+                rel = VRRelation::Neq(val1, val2); break;
             case ICmpInst::Predicate::ICMP_ULE:
             case ICmpInst::Predicate::ICMP_SLE:
                 rel = VRRelation::Le(val1, val2); break;
@@ -519,7 +523,11 @@ class LLVMValueRelationsAnalysis {
             case ICmpInst::Predicate::ICMP_ULT:
             case ICmpInst::Predicate::ICMP_SLT:
                 rel = VRRelation::Lt(val1, val2); break;
-            default: abort();
+            default:
+#ifndef NDEBUG
+                errs() << "Unhandled predicate in" << *CMP << "\n";
+#endif
+                abort();
 		}
 
 		changed |= Rel.add(assume->isTrue() ? rel : VRRelation::Not(rel));
