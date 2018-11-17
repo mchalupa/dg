@@ -227,7 +227,7 @@ class LLVMValueRelationsAnalysis {
 
     bool loadGen(const llvm::LoadInst *LI,
                  EqualityMap<const llvm::Value*>& E,
-                 RelationsMap& Rel,
+                 RelationsMap&,
                  ReadsMap& R,
                  VRLocation *source) {
         auto readFrom = LI->getOperand(0);
@@ -258,8 +258,8 @@ class LLVMValueRelationsAnalysis {
 
     bool gepGen(const llvm::GetElementPtrInst *GEP,
                 EqualityMap<const llvm::Value*>& E,
-                ReadsMap& R,
-                VRLocation *source) {
+                ReadsMap&,
+                VRLocation *) {
 
         if (GEP->hasAllZeroIndices()) {
             return E.add(GEP, GEP->getPointerOperand());
@@ -324,7 +324,7 @@ class LLVMValueRelationsAnalysis {
     bool assumeGen(VRAssume *assume,
 				   RelationsMap& Rel,
                    EqualityMap<const llvm::Value*>& E,
-                   VRLocation *source) {
+                   VRLocation *) {
 		using namespace llvm;
         auto CMP = dyn_cast<ICmpInst>(assume->getValue());
         if (!CMP)
