@@ -39,6 +39,9 @@ public:
                 x->_callers.push_back(this);
             return true;
         }
+
+        const std::vector<FuncNode *>& getCalls() const { return _calls; }
+        const std::vector<FuncNode *>& getCallers() const { return _callers; }
     };
 
     // a calls b
