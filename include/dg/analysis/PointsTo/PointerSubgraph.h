@@ -3,6 +3,7 @@
 
 #include "dg/ADT/Queue.h"
 #include "dg/analysis/SubgraphNode.h"
+#include "dg/analysis/CallGraph.h"
 #include "dg/analysis/PointsTo/PSNode.h"
 
 #include <cassert>
@@ -30,11 +31,19 @@ class PointerSubgraph
         return ++last_node_id;
     }
 
+    GenericCallGraph<PSNode *> callGraph;
+
 public:
     PointerSubgraph() : dfsnum(0), root(nullptr) {
         // nodes[0] represents invalid node (the node with id 0)
         nodes.emplace_back(nullptr);
     }
+
+    bool registerCall(PSNode *a, PSNode *b) {
+        return callGraph.addCall(a, b);
+    }
+
+    const GenericCallGraph<PSNode *>& getCallGraph() const { return callGraph; }
 
     const NodesT& getNodes() const { return nodes; }
     size_t size() const { return nodes.size(); }

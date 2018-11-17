@@ -152,6 +152,11 @@ LLVMPointerSubgraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     // for all return nodes) to return from the call
     callNode->addSuccessor(subg.root);
 
+    // update callgraph
+    auto parentEntry = subgraphs_map[CInst->getParent()->getParent()].root;
+    assert(parentEntry);
+    PS.registerCall(parentEntry, subg.root);
+
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
     PSNode *returnNode = nullptr;
