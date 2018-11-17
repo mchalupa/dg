@@ -120,21 +120,15 @@ struct VRLocation  {
         successors.emplace_back(std::move(edge));
     }
 
-    /*
-    bool _addTransitive() {
-        RelationsMap tmp = relations;
-        bool changed = false;
-        for (auto& r1 : relations) {
-            for (auto& r2 : relations) {
-                if (r1.isEq()) {
-                    if (r2.isLt() || r2.isLe())
-                    changed |= tmp.add(VRRelation::sameOp(r2, r1.getRHS()
-                }
-            }
+    void transitivelyClose() {
+        // add all equalities into relations
+        for (auto& it : equalities) {
+            for (auto& it2 : *(it.second.get()))
+                relations.add(VRRelation::Eq(it.first, it2));
         }
 
+        relations.transitivelyClose();
     }
-    */
 
     VRLocation(unsigned _id) : id(_id) {}
 
@@ -233,6 +227,7 @@ class LLVMValueRelationsAnalysis {
 
     bool loadGen(const llvm::LoadInst *LI,
                  EqualityMap<const llvm::Value*>& E,
+                 RelationsMap& Rel,
                  ReadsMap& R,
                  VRLocation *source) {
         auto readFrom = LI->getOperand(0);
@@ -284,7 +279,7 @@ class LLVMValueRelationsAnalysis {
             auto writtenMem = SI->getOperand(1)->stripPointerCasts();
             return R.add(writtenMem, SI->getOperand(0));
         } else if (auto LI = dyn_cast<LoadInst>(I)) {
-            return loadGen(LI, E, R, source);
+            return loadGen(LI, E, Rel, R, source);
         } else if (auto GEP = dyn_cast<GetElementPtrInst>(I)) {
             return gepGen(GEP, E, R, source);
         } else if (auto C = dyn_cast<CastInst>(I)) {
@@ -640,8 +635,13 @@ public:
         return _blocks;
     }
 
-    bool isLt(const llvm::Value *a, const llvm::Value *b) {
-        abort();
+    bool isLt(const llvm::Value *where, const llvm::Value *a, const llvm::Value *b) {
+        auto A = getMapping(where);
+        assert(A);
+        // FIXME: this is really not efficient
+        A->relations.transitivelyClose();
+        auto aRel = A->relations.get(a);
+        return aRel ? aRel->has(VRRelationType::LT, b) : false;
     }
 };
 
