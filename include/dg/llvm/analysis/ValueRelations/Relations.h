@@ -158,8 +158,10 @@ public:
 
         const_iterator(const Relations& r, unsigned idx)
         : idx(idx), relations(r) {
-            if (idx < 7)
+            if (idx < 7) {
                 it = relations.rhs[idx].begin();
+                _get_next();
+            }
         }
 
         VRRelation operator*() const {
@@ -169,10 +171,7 @@ public:
 
         const_iterator& operator++() {
             ++it;
-            if (it == relations.rhs[idx].end())
-                ++idx;
-            if (idx < 7)
-                it = relations.rhs[idx].begin();
+            _get_next();
             return *this;
         }
 
@@ -185,6 +184,18 @@ public:
         }
 
         bool operator!=(const const_iterator& rhs) const { return !operator==(rhs); }
+    private:
+        void _get_next() {
+            while (idx < 7) {
+                if (it == relations.rhs[idx].end())
+                    ++idx;
+                else
+                    break;
+                if (idx >= 7)
+                    break;
+                it = relations.rhs[idx].begin();
+            }
+        }
     };
 
     const_iterator begin() const { return const_iterator(*this, 1); }
