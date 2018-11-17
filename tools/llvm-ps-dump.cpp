@@ -58,6 +58,7 @@ static bool verbose_more;
 static bool ids_only = false;
 static bool dump_graph_only = false;
 static bool names_with_funs = false;
+static bool callgraph = false;
 static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
@@ -483,6 +484,21 @@ dumpPointerSubgraphdot(LLVMPointerAnalysis *pta, PTType type)
         dumpToDot(pta->getNodes(), type);
     }
 
+    if (callgraph) {
+        // dump call-graph
+        const auto& CG = pta->getPS()->getCallGraph();
+        for (auto& it : CG) {
+            printf("NODEcg%u [label=\"%s\"]\n",
+                    it.second.getID(),
+                    PSNodeEntry::get(it.first)->getFunctionName().c_str());
+        }
+        for (auto& it : CG) {
+            for (auto succ : it.second.getCalls()) {
+                printf("NODEcg%u -> NODEcg%u\n", it.second.getID(), succ->getID());
+            }
+        }
+    }
+
     printf("}\n");
 }
 
@@ -683,6 +699,8 @@ int main(int argc, char *argv[])
             field_senitivity = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
+        } else if (strcmp(argv[i], "-callgraph") == 0) {
+            callgraph = true;
         } else if (strcmp(argv[i], "-ids-only") == 0) {
             ids_only = true;
         } else if (strcmp(argv[i], "-iteration") == 0) {
