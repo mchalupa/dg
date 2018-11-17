@@ -8,6 +8,7 @@ template <typename ValueT>
 class GenericCallGraph {
 public:
     class FuncNode {
+        unsigned _id;
         std::vector<FuncNode *> _calls;
         std::vector<FuncNode *> _callers;
 
@@ -23,11 +24,12 @@ public:
     public:
         ValueT value;
 
-        FuncNode(ValueT& nd) : value(nd) {};
+        FuncNode(unsigned id, ValueT& nd) : _id(id), value(nd) {};
         FuncNode(FuncNode&&) = default;
 
         bool calls(FuncNode *x) const { return _contains(x, _calls); }
         bool isCalledBy(FuncNode *x) const { return _contains(x, _callers); }
+        unsigned getID() const { return _id; }
 
         bool addCall(FuncNode *x) {
             if (calls(x))
@@ -47,11 +49,12 @@ public:
     }
 
 private:
+    unsigned last_id{0};
 
     FuncNode *getOrCreate(ValueT& v) {
         auto it = _mapping.find(v);
         if (it == _mapping.end()) {
-            auto newIt = _mapping.emplace(v, FuncNode(v));
+            auto newIt = _mapping.emplace(v, FuncNode(++last_id, v));
             return &newIt.first->second;
         }
         return &it->second;
@@ -66,8 +69,6 @@ public:
     auto end() -> decltype(_mapping.end()) { return _mapping.end(); }
     auto begin() const -> decltype(_mapping.begin()) { return _mapping.begin(); }
     auto end() const -> decltype(_mapping.end()) { return _mapping.end(); }
-
-
 };
 
 #endif // _DG_GENERIC_CALLGRAPH_H_
