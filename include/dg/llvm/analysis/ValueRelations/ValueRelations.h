@@ -5,6 +5,7 @@
 
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/CFG.h>
@@ -164,33 +165,122 @@ class LLVMValueRelationsAnalysis {
     std::set<const llvm::Value *> fixedMemory;
     const llvm::Module *_M;
 
-    bool isOnceDefinedAlloca(const llvm::Instruction *I) {
+    size_t mayBeWritten(const llvm::Value *v) const {
         using namespace llvm;
-        if (auto AI = dyn_cast<AllocaInst>(I)) {
-            bool had_store = false;
-            for (auto it = AI->use_begin(), et = AI->use_end(); it != et; ++it) {
-            #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
-                const Value *use = *it;
-            #else
-                const Value *use = it->getUser();
-            #endif
+        for (auto it = v->use_begin(), et = v->use_end(); it != et; ++it) {
+        #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+            const Value *use = *it;
+        #else
+            const Value *use = it->getUser();
+        #endif
 
-                // we must have maximally one store
-                // and the rest of instructions must be loads
-                // (this is maybe too strict, but...
-                if (auto SI = dyn_cast<StoreInst>(use)) {
-                    if (had_store)
+            // we may write to this memory or store the pointer
+            // somewhere and therefore write later through it to memory
+            if (isa<StoreInst>(use)) {
+                return true;
+            } else if (auto CI = dyn_cast<CastInst>(use)) {
+                if (mayBeWritten(CI))
+                    return true;
+            } else if (!isa<LoadInst>(use) &&
+                       !isa<DbgDeclareInst>(use) &&
+                       !isa<DbgValueInst>(use)) { // Load and dbg are ok
+                if (auto II = dyn_cast<IntrinsicInst>(use)) {
+                    switch(II->getIntrinsicID()) {
+                        case Intrinsic::lifetime_start:
+                        case Intrinsic::lifetime_end:
+                            continue;
+                        default:
+                            if (II->mayWriteToMemory())
+                            return true;
+                    }
+                }
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    size_t writtenMaxOnce(const llvm::Value *v) const {
+        using namespace llvm;
+        bool had_store = false;
+        for (auto it = v->use_begin(), et = v->use_end(); it != et; ++it) {
+        #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+            const Value *use = *it;
+        #else
+            const Value *use = it->getUser();
+        #endif
+
+            if (auto SI = dyn_cast<StoreInst>(use)) {
+                if (SI->getPointerOperand()->stripPointerCasts() == v) {
+                    if (had_store) {
                         return false;
+                    }
                     had_store = true;
-                    // the address is taken, it can be used via a pointer
-                    if (SI->getOperand(0) == AI)
-                        return false;
-                } else if (!isa<LoadInst>(use)) {
+                }
+            } else if (auto CI = dyn_cast<CastInst>(use)) {
+                if (mayBeWritten(CI)) {
+                    return false;
+                }
+            } else if (auto I = dyn_cast<Instruction>(use)) {
+                if (I->mayWriteToMemory()) {
                     return false;
                 }
             }
+        }
 
+        return true;
+    }
+
+    bool cannotEscape(const llvm::Value *v) const {
+        using namespace llvm;
+
+        if (!v->getType()->isPointerTy())
             return true;
+
+        for (auto it = v->use_begin(), et = v->use_end(); it != et; ++it) {
+        #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+            const Value *use = *it;
+        #else
+            const Value *use = it->getUser();
+        #endif
+            // we must only store into it, not store this
+            // value somewhere
+            if (auto SI = dyn_cast<StoreInst>(use)) {
+                if (SI->getOperand(0) == v) {
+                    return false;
+                }
+            } else if (auto CI = dyn_cast<CastInst>(use)) {
+                if (!cannotEscape(CI)) {
+                    return false;
+                }
+            // otherwise, we can only load from this value
+            // or use it in debugging informations
+            } else if (!isa<LoadInst>(use) &&
+                       !isa<DbgDeclareInst>(use) &&
+                       !isa<DbgValueInst>(use)) {
+                if (auto II = dyn_cast<IntrinsicInst>(use)) {
+                    switch(II->getIntrinsicID()) {
+                        case Intrinsic::lifetime_start:
+                        case Intrinsic::lifetime_end:
+                            continue;
+                        default:
+                            if (!II->mayWriteToMemory())
+                                continue;
+                            return false;
+                    }
+                }
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool isOnceDefinedAlloca(const llvm::Instruction *I) {
+        using namespace llvm;
+        if (isa<AllocaInst>(I)) {
+            return cannotEscape(I) && writtenMaxOnce(I);
         }
 
         return false;
@@ -485,6 +575,11 @@ public:
         unsigned n = 0;
         do {
             ++n;
+
+#ifndef NDEBUG
+        if (n % 1000 == 0)
+            llvm::errs() << "Iterations: " << n << "\n";
+#endif
             changed = false;
             for (const auto& B : blocks) {
                 for (const auto& loc : B.second->locations) {
@@ -619,6 +714,12 @@ public:
         return it == _loc_mapping.end() ? nullptr : it->second;
     }
 
+    const VRLocation *getMapping(const llvm::Value *v) const {
+        auto it = _loc_mapping.find(v);
+        return it == _loc_mapping.end() ? nullptr : it->second;
+    }
+
+
     void build() {
         for (const auto& F : *_M) {
             build(F);
@@ -639,7 +740,7 @@ public:
         auto A = getMapping(where);
         assert(A);
         // FIXME: this is really not efficient
-        A->relations.transitivelyClose();
+        A->transitivelyClose();
         auto aRel = A->relations.get(a);
         return aRel ? aRel->has(VRRelationType::LT, b) : false;
     }
