@@ -42,6 +42,7 @@
 
 #undef NDEBUG // we need dump methods
 #include "dg/llvm/analysis/ValueRelations/ValueRelations.h"
+#include "dg/llvm/analysis/ValueRelations/getValName.h"
 
 #include "TimeMeasure.h"
 
@@ -141,7 +142,7 @@ int main(int argc, char *argv[])
                         continue;
 
                     std::cout << "==============================================\n";
-                    std::cout << debug::getValName(&I) << "\n";
+                    std::cout << dg::debug::getValName(&I) << "\n";
                     std::cout << "==============================================";
                     std::cout << "\n------ REL ------\n";
                     loc->relations.dump();
