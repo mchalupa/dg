@@ -733,6 +733,50 @@ class LLVMValueRelations {
         }
     }
 
+    void buildSwitch(const llvm::SwitchInst *swtch, VRBBlock *block) {
+        /*
+        for (auto& it : swtch->cases()) {
+            auto succ = getBBlock(it->getCaseSuccessor());
+            assert(succ);
+            VRRelation::Eq(swtch->getCondition(), it->getCaseValue());
+            auto op = std::unique_ptr<VROp>(new VRNoop());
+            block->last()->addEdge(std::unique_ptr<VREdge>(
+                                    new VREdge(block->last(),
+                                               succ->first(),
+                                               std::move(op))));
+        }
+        */
+    }
+
+    void buildBranch(const llvm::BranchInst *br, VRBBlock *block) {
+        if (br->isConditional()) {
+            auto trueSucc = getBBlock(br->getSuccessor(0));
+            auto falseSucc = getBBlock(br->getSuccessor(1));
+            assert(trueSucc && falseSucc);
+            auto trueOp
+                = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), true));
+            auto falseOp
+                = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), false));
+
+            auto trueEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
+                                                               trueSucc->first(),
+                                                               std::move(trueOp)));
+            auto falseEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
+                                                               falseSucc->first(),
+                                                               std::move(falseOp)));
+            block->last()->addEdge(std::move(trueEdge));
+            block->last()->addEdge(std::move(falseEdge));
+        } else {
+            auto succ = getBBlock(br->getSuccessor(0));
+            assert(succ);
+            auto op = std::unique_ptr<VROp>(new VRNoop());
+            block->last()->addEdge(std::unique_ptr<VREdge>(
+                                    new VREdge(block->last(),
+                                               succ->first(),
+                                               std::move(op))));
+        }
+    }
+
     void build(const llvm::Function& F) {
         for (const auto& B : F) {
             assert(B.size() != 0);
@@ -746,45 +790,15 @@ class LLVMValueRelations {
 
             // add generated constrains
             auto term = B.getTerminator();
-            auto br = llvm::dyn_cast<llvm::BranchInst>(term);
-            if (!br) {
-                if (llvm::succ_begin(&B) != llvm::succ_end(&B)) {
+            if (llvm::isa<llvm::BranchInst>(term)) {
+                buildBranch(llvm::cast<llvm::BranchInst>(term), block);
+            } else if (llvm::isa<llvm::SwitchInst>(term)) {
+                buildSwitch(llvm::cast<llvm::SwitchInst>(term), block);
+            } else if (llvm::succ_begin(&B) != llvm::succ_end(&B)) {
 #ifndef NDEBUG
-                    llvm::errs() << "Unhandled terminator: " << *term << "\n";
+                llvm::errs() << "Unhandled terminator: " << *term << "\n";
 #endif
-                    abort();
-                }
-                continue; // no successor
-            }
-
-            if (br->isConditional()) {
-                auto trueSucc = getBBlock(br->getSuccessor(0));
-                auto falseSucc = getBBlock(br->getSuccessor(1));
-                assert(trueSucc && falseSucc);
-                auto trueOp
-                    = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), true));
-                auto falseOp
-                    = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), false));
-
-                auto trueEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
-                                                                   trueSucc->first(),
-                                                                   std::move(trueOp)));
-                auto falseEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
-                                                                   falseSucc->first(),
-                                                                   std::move(falseOp)));
-                block->last()->addEdge(std::move(trueEdge));
-                block->last()->addEdge(std::move(falseEdge));
-                continue;
-            } else {
-                auto llvmsucc = B.getSingleSuccessor();
-                assert(llvmsucc);
-                auto succ = getBBlock(llvmsucc);
-                assert(succ);
-                auto op = std::unique_ptr<VROp>(new VRNoop());
-                block->last()->addEdge(std::unique_ptr<VREdge>(
-                                        new VREdge(block->last(),
-                                                   succ->first(),
-                                                   std::move(op))));
+                abort();
             }
         }
     }
