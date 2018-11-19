@@ -67,12 +67,17 @@ struct VRInstruction : public VROp {
 };
 
 struct VRAssume : public VROp {
-    VRRelation relation;
+    RelationsMap relations{};
+
+    VRAssume() : VROp(VROpType::ASSUME) {}
 
     VRAssume(const VRRelation& rel)
-    : VROp(VROpType::ASSUME), relation(rel) {}
+    : VROp(VROpType::ASSUME) {
+        relations.add(rel);
+    }
 
-    const VRRelation& getRelation() const { return relation; }
+    void addRelation(const VRRelation& rel) { relations.add(rel); }
+    const RelationsMap& getRelations() const { return relations; }
 
     static VRAssume *get(VROp *op) {
         return op->isAssume() ? static_cast<VRAssume *>(op) : nullptr;
@@ -81,7 +86,7 @@ struct VRAssume : public VROp {
 #ifndef NDEBUG
     void dump() const override {
         std::cout << "[";
-        relation.dump();
+        relations.dump();
         std::cout << "]";
     }
 #endif
@@ -489,7 +494,7 @@ class LLVMValueRelationsAnalysis {
                    VRLocation *) {
         // XXX: should we add also equivalent relations? I guess not,
         // these are handled when searched...
-		return Rel.add(assume->getRelation());
+		return Rel.add(assume->getRelations());
     }
 
     // collect information via an edge from a single predecessor
