@@ -57,6 +57,9 @@ static const char *entryFunc = "main";
 llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Dump graph in grahviz format"), llvm::cl::init(false));
 
+llvm::cl::opt<unsigned> max_iter("max-iter",
+    llvm::cl::desc("Maximal number of iterations"), llvm::cl::init(0));
+
 llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
     llvm::cl::desc("<input file>"), llvm::cl::init(""));
 
@@ -95,7 +98,7 @@ int main(int argc, char *argv[])
     tm.start();
 
     VR.build();
-    VR.compute();
+    VR.compute(max_iter);
 
     tm.stop();
     tm.report("INFO: Value Relations analysis took");
