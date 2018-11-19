@@ -843,7 +843,6 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
 
 RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
     RDNode *node = new RDNode(RDNodeType::CALL);
-
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
         auto defines = model->defines(i);
         if (!defines)
@@ -875,9 +874,9 @@ RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm
             assert(target && "Don't have pointer target for call argument");
 
             auto from = defines->from.isOperand()
-                ? getConstantValue(CInst->getOperand(defines->from.getOperand())) : defines->from.getOffset();
+                ? getConstantValue(CInst->getArgOperand(defines->from.getOperand())) : defines->from.getOffset();
             auto to = defines->to.isOperand()
-                ? getConstantValue(CInst->getOperand(defines->to.getOperand())) : defines->to.getOffset();
+                ? getConstantValue(CInst->getArgOperand(defines->to.getOperand())) : defines->to.getOffset();
 
             // this call may define this memory
             node->addDef(target, from, to);
