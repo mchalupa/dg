@@ -60,6 +60,8 @@ private:
     RDNode *createRealloc(const llvm::Instruction *Inst);
     RDNode *createReturn(const llvm::Instruction *Inst);
 
+
+    RDNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
     std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);
     std::pair<RDNode *, RDNode *> buildFunction(const llvm::Function& F);
 
