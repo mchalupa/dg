@@ -494,10 +494,20 @@ class LLVMValueRelationsAnalysis {
         return changed;
     }
 
-    bool mergeRelations(VRLocation *loc, VREdge *pred) {
+    bool mergeRelations(VRLocation *, VREdge *) {
         using namespace llvm;
         bool changed = false;
 
+        /* NOTE: This is not sound. If we have contradictory
+         * relations, we would add just one of them.
+         * This is not monotonic as newly discovered relations
+         * can remove old relations and we must propagate it
+         * into reachable nodes. Therefore, do not merge any relation.
+         * Note that for equalities we don't care as there
+         * the fixed memory cannot change and if we gather some
+         * contradictory constraints, then it must be because
+         * the code is unreachable, not because we took different branches
+         * and then joined the assumptions.
         for (auto& it : pred->source->relations) {
             if (mightBeChanged(it.first))
                 continue;
@@ -505,9 +515,12 @@ class LLVMValueRelationsAnalysis {
                 assert(R.getLHS() == it.first);
                 if (mightBeChanged(R.getRHS()))
                     continue;
+                if (loc->relations.has(VRRelation::Not(R)))
+                    continue;
                 changed |= loc->relations.add(R);
             }
         }
+        */
 
         return changed;
     }
