@@ -329,9 +329,12 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
         return true;
 
     if (func->size() == 0) {
+        // we have a model for this function
+        if (opts.getFunctionModel(func->getName()))
+            return true;
+        // memory allocation
         if (opts.getAllocationFunction(func->getName())
             != AllocationFunction::NONE)
-            // we need memory allocations
             return true;
 
         if (func->isIntrinsic()) {
@@ -836,6 +839,54 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
     return ret;
 }
 
+
+
+RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
+    RDNode *node = new RDNode(RDNodeType::CALL);
+
+    for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
+        auto defines = model->defines(i);
+        if (!defines)
+            continue;
+        const auto llvmOp = CInst->getArgOperand(i);
+        pta::PSNode *pts = PTA->getPointsTo(llvmOp);
+        // if we do not have a pts, this is not pointer
+        // relevant instruction. We must do it this way
+        // instead of type checking, due to the inttoptr.
+        if (!pts) {
+            llvm::errs() << "[Warning]: did not find pt-set for modeled function\n";
+            llvm::errs() << "           Func: " << model->name << ", operand " << i << "\n";
+            continue;
+        }
+
+        for (const pta::Pointer& ptr : pts->pointsTo) {
+            if (!ptr.isValid())
+                continue;
+
+            if (ptr.isInvalidated())
+                continue;
+
+            const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+            if (llvm::isa<llvm::Function>(ptrVal))
+                // function may not be redefined
+                continue;
+
+            RDNode *target = getOperand(ptrVal);
+            assert(target && "Don't have pointer target for call argument");
+
+            auto from = defines->from.isOperand()
+                ? getConstantValue(CInst->getOperand(defines->from.getOperand())) : defines->from.getOffset();
+            auto to = defines->to.isOperand()
+                ? getConstantValue(CInst->getOperand(defines->to.getOperand())) : defines->to.getOffset();
+
+            // this call may define this memory
+            node->addDef(target, from, to);
+        }
+    }
+
+    return node;
+}
+
 std::vector<LLVMRDBuilderDense::FunctionCall>
 LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
 {
@@ -864,6 +915,7 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
     }
     return createCallsToFunctions(functions, CInst);
 }
+
 
 std::vector<LLVMRDBuilderDense::FunctionCall>
 LLVMRDBuilderDense::createCallsToZeroSizeFunctions(const llvm::Function *function,
@@ -901,7 +953,11 @@ LLVMRDBuilderDense::createCallsToFunctions(const std::vector<const llvm::Functio
     vector<FunctionCall> callFunctions;
 
     for(const llvm::Function *function : functions) {
-        if (function->size() == 0) {
+        if (auto model = _options.getFunctionModel(function->getName())) {
+            auto node = funcFromModel(model, CInst);
+            addNode(CInst, node);
+            callFunctions.emplace_back(node, node, CallType::PLAIN_CALL);
+        } else if (function->size() == 0) {
             auto zeroSizeCallFunctions = createCallsToZeroSizeFunctions(function, CInst);
             callFunctions.insert(callFunctions.end(),
                                  zeroSizeCallFunctions.begin(),
