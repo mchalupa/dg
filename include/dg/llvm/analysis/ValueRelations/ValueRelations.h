@@ -554,9 +554,70 @@ class LLVMValueRelationsAnalysis {
         return false;
     }
 
+    bool mergeReads(VRLocation *loc, VREdge *pred) {
+        using namespace llvm;
+        bool changed = false;
+        for (auto& it : pred->source->reads) {
+            if (fixedMemory.count(it.first) > 0) {
+                auto LI = dyn_cast<LoadInst>(it.second);
+                if (LI && !fixedMemory.count(LI->getOperand(0)))
+                    continue;
+                changed |= loc->reads.add(it.first, it.second);
+            }
+        }
+        return changed;
+    }
+
+    bool mergeEqualities(VRLocation *loc, VREdge *pred) {
+        using namespace llvm;
+        bool changed = false;
+
+        for (auto& it : pred->source->equalities) {
+            auto LI = dyn_cast<LoadInst>(it.first);
+            // XXX: we can do the same with constants
+            if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
+                for (auto eq : *(it.second.get())) {
+                    auto LI2 = dyn_cast<LoadInst>(eq);
+                    if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
+                        continue;
+                    changed |= loc->equalities.add(it.first, eq);
+                    // add the first equality also into reads map,
+                    // so that we can pair the values with further reads
+                    if (auto rr = loc->reads.get(LI->getOperand(0))) {
+                        loc->equalities.add(rr, eq);
+                    } else {
+                        loc->reads.add(LI->getOperand(0), eq);
+                    }
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    bool mergeRelations(VRLocation *loc, VREdge *pred) {
+        using namespace llvm;
+        bool changed = false;
+
+        for (auto& it : pred->source->relations) {
+            auto LI = dyn_cast<LoadInst>(it.first);
+            // XXX: we can do the same with constants
+            if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
+                for (const auto& R : it.second) {
+                    assert(R.getLHS() == it.first);
+                    auto LI2 = dyn_cast<LoadInst>(R.getRHS());
+                    if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
+                        continue;
+                    changed |= loc->relations.add(R);
+                }
+            }
+        }
+
+        return changed;
+    }
+
     bool mergePredecessors(VRLocation *loc) {
 		assert(loc->predecessors.size() > 1);
-
         using namespace llvm;
 
         // merge equalities and relations that use only
@@ -565,50 +626,10 @@ class LLVMValueRelationsAnalysis {
         // The rest would be too much time-consuming.
         bool changed = false;
         for (auto pred : loc->predecessors) {
-            for (auto& it : pred->source->reads) {
-                if (fixedMemory.count(it.first) > 0) {
-                    auto LI = dyn_cast<LoadInst>(it.second);
-                    if (LI && !fixedMemory.count(LI->getOperand(0)))
-                        continue;
-                    changed |= loc->reads.add(it.first, it.second);
-                }
-            }
-
-            for (auto& it : pred->source->equalities) {
-                auto LI = dyn_cast<LoadInst>(it.first);
-                // XXX: we can do the same with constants
-                if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
-                    for (auto eq : *(it.second.get())) {
-                        auto LI2 = dyn_cast<LoadInst>(eq);
-                        if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
-                            continue;
-                        changed |= loc->equalities.add(it.first, eq);
-                        // add the first equality also into reads map,
-                        // so that we can pair the values with further reads
-                        if (auto rr = loc->reads.get(LI->getOperand(0))) {
-                            loc->equalities.add(rr, eq);
-                        } else {
-                            loc->reads.add(LI->getOperand(0), eq);
-                        }
-                    }
-                }
-            }
-
-            for (auto& it : pred->source->relations) {
-                auto LI = dyn_cast<LoadInst>(it.first);
-                // XXX: we can do the same with constants
-                if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
-                    for (const auto& R : it.second) {
-                        assert(R.getLHS() == it.first);
-                        auto LI2 = dyn_cast<LoadInst>(R.getRHS());
-                        if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
-                            continue;
-                        changed |= loc->relations.add(R);
-                    }
-                }
-            }
+            changed |= mergeReads(loc, pred);
+            changed |= mergeEqualities(loc, pred);
+            changed |= mergeRelations(loc, pred);
         }
-
         return changed;
     }
 
