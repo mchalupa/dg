@@ -697,18 +697,33 @@ class LLVMValueRelations {
     }
 
     void buildSwitch(const llvm::SwitchInst *swtch, VRBBlock *block) {
-        /*
         for (auto& it : swtch->cases()) {
-            auto succ = getBBlock(it->getCaseSuccessor());
+            auto succ = getBBlock(it.getCaseSuccessor());
             assert(succ);
-            VRRelation::Eq(swtch->getCondition(), it->getCaseValue());
-            auto op = std::unique_ptr<VROp>(new VRNoop());
+            auto op = std::unique_ptr<VROp>(new VRAssume(
+                VRRelation::Eq(swtch->getCondition(), it.getCaseValue())));
+
             block->last()->addEdge(std::unique_ptr<VREdge>(
                                     new VREdge(block->last(),
                                                succ->first(),
                                                std::move(op))));
         }
-        */
+
+        // add 'default' branch
+        auto succ = getBBlock(swtch->getDefaultDest());
+        assert(succ);
+        auto assume = new VRAssume();
+
+        for (auto& it : swtch->cases()) {
+            assume->addRelation(VRRelation::Neq(swtch->getCondition(),
+                                                it.getCaseValue()));
+        }
+        // we could gather at least some conditions.
+        auto op = std::unique_ptr<VROp>(assume);
+        block->last()->addEdge(std::unique_ptr<VREdge>(
+                                new VREdge(block->last(),
+                                           succ->first(),
+                                           std::move(op))));
     }
 
     VRRelation getICmpRelation(const llvm::Value *val) const {
