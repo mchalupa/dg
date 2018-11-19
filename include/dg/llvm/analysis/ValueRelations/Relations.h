@@ -37,6 +37,7 @@ class VRRelation {
     }
 
     auto getRelation() const -> decltype(_relation) { return _relation; }
+    bool isNone() const { return _relation == VRRelationType::NONE; }
 
 public:
 
@@ -58,6 +59,10 @@ public:
         std::cout << debug::getValName(_rhs) << ")";
     }
 #endif
+
+    // check whether the relation is properly initialized
+    // (it was not created by the default constructor)
+    operator bool() const { return !isNone(); }
 
     bool operator<(const VRRelation& oth) const {
         return _lhs == oth._lhs ?
