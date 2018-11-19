@@ -168,6 +168,11 @@ public:
         return rhs[t].count(x) > 0;
     }
 
+    bool has(const VRRelation& rel) const {
+        assert(rel.getLHS() == value);
+        return has(rel.getRelation(), rel.getRHS());
+    }
+
     struct const_iterator {
         unsigned idx;
         const Relations& relations;
@@ -370,6 +375,13 @@ public:
             }
         }
         return changed;
+    }
+
+    bool has(const VRRelation& rel) const {
+        auto it = relations.find(rel.getLHS());
+        if (it == relations.end())
+            return false;
+        return it->second.has(rel);
     }
 
     Relations *get(const llvm::Value *v) {
