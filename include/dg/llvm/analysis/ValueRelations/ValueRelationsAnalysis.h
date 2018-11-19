@@ -357,7 +357,7 @@ class LLVMValueRelationsAnalysis {
 
     bool assumeGen(VRAssume *assume,
 				   RelationsMap& Rel,
-                   EqualityMap<const llvm::Value*>& E,
+                   EqualityMap<const llvm::Value*>&,
                    VRLocation *) {
         // XXX: should we add also equivalent relations? I guess not,
         // these are handled when searched...
