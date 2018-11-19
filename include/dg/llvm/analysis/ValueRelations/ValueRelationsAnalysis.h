@@ -452,7 +452,12 @@ class LLVMValueRelationsAnalysis {
                 // we don't want it
                 if (mightBeChanged(it.second))
                     continue;
-                changed |= loc->reads.add(it.first, it.second);
+                if (auto r = loc->reads.get(it.first)) {
+                    // we already have read, so add just equality
+                    changed |= loc->equalities.add(r, it.second);
+                } else {
+                    changed |= loc->reads.add(it.first, it.second);
+                }
             }
         }
         return changed;
