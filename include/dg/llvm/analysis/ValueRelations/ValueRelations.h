@@ -67,15 +67,12 @@ struct VRInstruction : public VROp {
 };
 
 struct VRAssume : public VROp {
-    const llvm::Value *value;
-    bool istrue;
+    VRRelation relation;
 
-    VRAssume(const llvm::Value *V, bool istrue)
-    : VROp(VROpType::ASSUME), value(V), istrue(istrue) {}
+    VRAssume(const VRRelation& rel)
+    : VROp(VROpType::ASSUME), relation(rel) {}
 
-    bool isTrue() const { return istrue; }
-    bool isFalse() const { return !istrue; }
-    const llvm::Value *getValue() const { return value; }
+    const VRRelation& getRelation() const { return relation; }
 
     static VRAssume *get(VROp *op) {
         return op->isAssume() ? static_cast<VRAssume *>(op) : nullptr;
@@ -83,10 +80,8 @@ struct VRAssume : public VROp {
 
 #ifndef NDEBUG
     void dump() const override {
-        if (isFalse())
-            std::cout << "!";
         std::cout << "[";
-        std::cout << debug::getValName(value);
+        relation.dump();
         std::cout << "]";
     }
 #endif
@@ -492,46 +487,9 @@ class LLVMValueRelationsAnalysis {
 				   RelationsMap& Rel,
                    EqualityMap<const llvm::Value*>& E,
                    VRLocation *) {
-		using namespace llvm;
-        auto CMP = dyn_cast<ICmpInst>(assume->getValue());
-        if (!CMP)
-            return false;
-
-        auto val1 = CMP->getOperand(0);
-        auto val2 = CMP->getOperand(1);
-		bool changed = false;
-		VRRelation rel;
-
-        switch (CMP->getSignedPredicate()) {
-            case ICmpInst::Predicate::ICMP_EQ:
-				if (assume->isTrue())
-                    changed |= E.add(val1, val2);
-                rel = VRRelation::Eq(val1, val2); break;
-            case ICmpInst::Predicate::ICMP_NE:
-				if (assume->isFalse())
-                    changed |= E.add(val1, val2);
-                rel = VRRelation::Neq(val1, val2); break;
-            case ICmpInst::Predicate::ICMP_ULE:
-            case ICmpInst::Predicate::ICMP_SLE:
-                rel = VRRelation::Le(val1, val2); break;
-            case ICmpInst::Predicate::ICMP_UGE:
-            case ICmpInst::Predicate::ICMP_SGE:
-                rel = VRRelation::Ge(val1, val2); break;
-            case ICmpInst::Predicate::ICMP_UGT:
-            case ICmpInst::Predicate::ICMP_SGT:
-                rel = VRRelation::Gt(val1, val2); break;
-            case ICmpInst::Predicate::ICMP_ULT:
-            case ICmpInst::Predicate::ICMP_SLT:
-                rel = VRRelation::Lt(val1, val2); break;
-            default:
-#ifndef NDEBUG
-                errs() << "Unhandled predicate in" << *CMP << "\n";
-#endif
-                abort();
-		}
-
-		changed |= Rel.add(assume->isTrue() ? rel : VRRelation::Not(rel));
-        return changed;
+        // XXX: should we add also equivalent relations? I guess not,
+        // these are handled when searched...
+		return Rel.add(assume->getRelation());
     }
 
     // collect information via an edge from a single predecessor
@@ -748,15 +706,58 @@ class LLVMValueRelations {
         */
     }
 
+    VRRelation getICmpRelation(const llvm::Value *val) const {
+		using namespace llvm;
+		VRRelation rel;
+        auto CMP = dyn_cast<ICmpInst>(val);
+        if (!CMP)
+            return rel;
+
+        auto val1 = CMP->getOperand(0);
+        auto val2 = CMP->getOperand(1);
+
+        switch (CMP->getSignedPredicate()) {
+            case ICmpInst::Predicate::ICMP_EQ:
+                rel = VRRelation::Eq(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_NE:
+                rel = VRRelation::Neq(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_ULE:
+            case ICmpInst::Predicate::ICMP_SLE:
+                rel = VRRelation::Le(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_UGE:
+            case ICmpInst::Predicate::ICMP_SGE:
+                rel = VRRelation::Ge(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_UGT:
+            case ICmpInst::Predicate::ICMP_SGT:
+                rel = VRRelation::Gt(val1, val2); break;
+            case ICmpInst::Predicate::ICMP_ULT:
+            case ICmpInst::Predicate::ICMP_SLT:
+                rel = VRRelation::Lt(val1, val2); break;
+            default:
+#ifndef NDEBUG
+                errs() << "Unhandled predicate in" << *CMP << "\n";
+#endif
+                abort();
+		}
+
+        return rel;
+    }
+
     void buildBranch(const llvm::BranchInst *br, VRBBlock *block) {
         if (br->isConditional()) {
             auto trueSucc = getBBlock(br->getSuccessor(0));
             auto falseSucc = getBBlock(br->getSuccessor(1));
             assert(trueSucc && falseSucc);
-            auto trueOp
-                = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), true));
-            auto falseOp
-                = std::unique_ptr<VROp>(new VRAssume(br->getCondition(), false));
+            std::unique_ptr<VROp> trueOp{}, falseOp{};
+
+            auto relation = getICmpRelation(br->getCondition());
+            if (relation) {
+                trueOp.reset(new VRAssume(relation));
+                falseOp.reset(new VRAssume(VRRelation::Not(relation)));
+            } else {
+                trueOp.reset(new VRNoop());
+                falseOp.reset(new VRNoop());
+            }
 
             auto trueEdge = std::unique_ptr<VREdge>(new VREdge(block->last(),
                                                                trueSucc->first(),
