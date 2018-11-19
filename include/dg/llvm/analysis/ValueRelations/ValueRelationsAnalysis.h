@@ -30,6 +30,7 @@ class LLVMValueRelationsAnalysis {
     // or for global constants)
     std::set<const llvm::Value *> fixedMemory;
     const llvm::Module *_M;
+    unsigned _max_iterations = 0;
 
     size_t mayBeWritten(const llvm::Value *v) const {
         using namespace llvm;
@@ -552,10 +553,14 @@ public:
             ++n;
 
 #ifndef NDEBUG
-        if (n % 1000 == 0) {
-            llvm::errs() << "Iterations: " << n << "\n";
-        }
+            if (n % 1000 == 0) {
+                llvm::errs() << "Iterations: " << n << "\n";
+            }
 #endif
+
+            if (_max_iterations && (n > _max_iterations))
+                break;
+
             changed = false;
             for (const auto& B : blocks) {
                 for (const auto& loc : B.second->locations) {
@@ -569,7 +574,9 @@ public:
 #endif
     }
 
-    LLVMValueRelationsAnalysis(const llvm::Module *M) : _M(M) {
+    LLVMValueRelationsAnalysis(const llvm::Module *M,
+                               unsigned max_iterations = 0)
+    : _M(M), _max_iterations(max_iterations) {
         initializeFixedReads();
     }
 };

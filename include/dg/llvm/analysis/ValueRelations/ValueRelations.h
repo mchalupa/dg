@@ -221,8 +221,8 @@ public:
     }
 
     // FIXME: this should be for each node
-    void compute() {
-        LLVMValueRelationsAnalysis VRA(_M);
+    void compute(unsigned max_iter = 0) {
+        LLVMValueRelationsAnalysis VRA(_M, max_iter);
         VRA.run(_blocks);
     }
 
