@@ -48,6 +48,61 @@ RDNode *LLVMReachingDefinitions::getMapping(const llvm::Value *val) {
     return builder->getMapping(val);
 }
 
+const RDNode *LLVMReachingDefinitions::getMapping(const llvm::Value *val) const {
+    return builder->getMapping(val);
+}
+
+
+std::set<llvm::Value *>
+LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *where, llvm::Value *what,
+                                                    const Offset offset, const Offset len) {
+
+    std::set<RDNode *> rdDefs;
+    std::set<llvm::Value *> defs;
+
+    auto loc = getMapping(where);
+    if (!loc) {
+        llvm::errs() << "[RD] error: no mapping for: " << *where << "\n";
+        return defs;
+    }
+
+    auto val = getMapping(what);
+    if (!val) {
+        llvm::errs() << "[RD] error: no mapping for: " << *what << "\n";
+        return defs;
+    }
+
+    loc->getReachingDefinitions(val, offset, len, rdDefs);
+    if (rdDefs.empty()) {
+        llvm::GlobalVariable *GV = llvm::dyn_cast<llvm::GlobalVariable>(what);
+        if (!GV || !GV->hasInitializer()) {
+            static std::set<const llvm::Value *> reported;
+            if (reported.insert(what).second) {
+                llvm::errs() << "[RD] error: no reaching definition for: " << *what;
+                llvm::errs() << " in: " << *where;
+                llvm::errs() << " off: " << *offset << ", len: " << *len << "\n";
+            }
+        } else {
+            // this is global variable and the last definition
+            // is the initialization
+            defs.insert(GV);
+        }
+    }
+
+    // Get reaching definitions for UNKNOWN_MEMORY, those can be our definitions.
+    loc->getReachingDefinitions(rd::UNKNOWN_MEMORY, Offset::UNKNOWN,
+                                Offset::UNKNOWN, rdDefs);
+
+    //map the values
+    for (RDNode *nd : rdDefs) {
+        auto llvmvalue = nd->getUserData<llvm::Value>();
+        assert(llvmvalue);
+        defs.insert(llvmvalue);
+    }
+
+    return defs;
+}
+
 
 
 } // namespace rd

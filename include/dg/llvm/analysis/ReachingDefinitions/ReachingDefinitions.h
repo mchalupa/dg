@@ -90,6 +90,7 @@ public:
     const std::unordered_map<const llvm::Value *, RDNode *>& getMapping() const;
 
     RDNode *getMapping(const llvm::Value *val);
+    const RDNode *getMapping(const llvm::Value *val) const;
 
     void getNodes(std::set<RDNode *>& cont)
     {
@@ -107,6 +108,10 @@ public:
                                   const Offset& len, std::set<RDNode *>& ret) {
         return n->getReachingDefinitions(n, off, len, ret);
     }
+
+    std::set<llvm::Value *>
+    getLLVMReachingDefinitions(llvm::Value *where, llvm::Value *what,
+                               const Offset offset, const Offset len);
 };
 
 
