@@ -160,6 +160,7 @@ class LLVMValueRelationsAnalysis {
             for (auto& B : F) {
                 for (auto& I : B) {
                     if (isOnceDefinedAlloca(&I)) {
+                        //llvm::errs() << "Fixed memory: " << I << "\n";
                         fixedMemory.insert(&I);
                     }
                 }
@@ -420,13 +421,35 @@ class LLVMValueRelationsAnalysis {
         return false;
     }
 
+    // the only values that might not be changed after join are
+    // loads from fixed memory and constants and fixed-memory allocation
+    // addresses
+    bool mightBeChanged(const llvm::Value *v) {
+        auto LI = llvm::dyn_cast<llvm::LoadInst>(v);
+        if (LI) {
+            return fixedMemory.count(LI->getOperand(0)) == 0;
+        }
+
+        if (auto CI = llvm::dyn_cast<llvm::CastInst>(v))
+            return mightBeChanged(CI->getOperand(0));
+
+        if (auto BI = llvm::dyn_cast<llvm::BinaryOperator>(v))
+            return mightBeChanged(BI->getOperand(0)) || mightBeChanged(BI->getOperand(1));
+
+        bool ret = !llvm::isa<llvm::Constant>(v) && fixedMemory.count(v) == 0;
+        //if (ret)
+        // llvm::errs() << "Might be changed: " << *v << "\n";
+        return ret;
+    }
+
     bool mergeReads(VRLocation *loc, VREdge *pred) {
         using namespace llvm;
         bool changed = false;
         for (auto& it : pred->source->reads) {
             if (fixedMemory.count(it.first) > 0) {
-                auto LI = dyn_cast<LoadInst>(it.second);
-                if (LI && !fixedMemory.count(LI->getOperand(0)))
+                // if it is load but not from fixed memory,
+                // we don't want it
+                if (mightBeChanged(it.second))
                     continue;
                 changed |= loc->reads.add(it.first, it.second);
             }
@@ -434,27 +457,37 @@ class LLVMValueRelationsAnalysis {
         return changed;
     }
 
+    bool addLoadFromEq(VRLocation *loc,const llvm::Value *v1, const llvm::Value *v2) {
+        auto LI = llvm::dyn_cast<llvm::LoadInst>(v1);
+        if (!LI)
+            return false;
+
+        // I know that L(v1) == rr && L(v1) == v2, therefore rr == v2
+        if (auto rr = loc->reads.get(LI->getOperand(0))) {
+            return loc->equalities.add(rr, v2);
+        } else {
+            // just add it as a read
+            return loc->reads.add(LI->getOperand(0), v2);
+        }
+    }
+
     bool mergeEqualities(VRLocation *loc, VREdge *pred) {
         using namespace llvm;
         bool changed = false;
 
         for (auto& it : pred->source->equalities) {
-            auto LI = dyn_cast<LoadInst>(it.first);
-            // XXX: we can do the same with constants
-            if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
-                for (auto eq : *(it.second.get())) {
-                    auto LI2 = dyn_cast<LoadInst>(eq);
-                    if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
-                        continue;
-                    changed |= loc->equalities.add(it.first, eq);
-                    // add the first equality also into reads map,
-                    // so that we can pair the values with further reads
-                    if (auto rr = loc->reads.get(LI->getOperand(0))) {
-                        loc->equalities.add(rr, eq);
-                    } else {
-                        loc->reads.add(LI->getOperand(0), eq);
-                    }
-                }
+            if (mightBeChanged(it.first))
+                continue;
+            for (auto eq : *(it.second.get())) {
+                if (mightBeChanged(eq))
+                    continue;
+
+                changed |= loc->equalities.add(it.first, eq);
+                // add the equality also into reads map if we do not
+                // have any read yet, so that we can pair the values
+                // with further reads
+                changed |= addLoadFromEq(loc, it.first, eq);
+                changed |= addLoadFromEq(loc, eq, it.first);
             }
         }
 
@@ -466,16 +499,13 @@ class LLVMValueRelationsAnalysis {
         bool changed = false;
 
         for (auto& it : pred->source->relations) {
-            auto LI = dyn_cast<LoadInst>(it.first);
-            // XXX: we can do the same with constants
-            if (LI && fixedMemory.count(LI->getOperand(0)) > 0) {
-                for (const auto& R : it.second) {
-                    assert(R.getLHS() == it.first);
-                    auto LI2 = dyn_cast<LoadInst>(R.getRHS());
-                    if (LI2 && !fixedMemory.count(LI2->getOperand(0)))
-                        continue;
-                    changed |= loc->relations.add(R);
-                }
+            if (mightBeChanged(it.first))
+                continue;
+            for (const auto& R : it.second) {
+                assert(R.getLHS() == it.first);
+                if (mightBeChanged(R.getRHS()))
+                    continue;
+                changed |= loc->relations.add(R);
             }
         }
 
