@@ -1,10 +1,8 @@
-/// XXX add licence
-//
-
 #ifndef _DG_PARAMETERS_H_
 #define _DG_PARAMETERS_H_
 
 #include <map>
+#include <memory>
 #include <utility>
 
 #include "BBlock.h"
@@ -60,7 +58,7 @@ public:
     using const_iterator = typename ContainerType::const_iterator;
 
     DGParameters<NodeT>(NodeT *cs = nullptr)
-    : vararg(nullptr), BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs){}
+    : BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs){}
 
     ~DGParameters<NodeT>()
     {
@@ -81,9 +79,6 @@ public:
         delete BBIn;
         delete BBOut;
 #endif
-
-        // delete vararg argument
-        delete vararg;
     }
 
     DGParameter<NodeT> *operator[](KeyT k) { return find(k); }
@@ -176,13 +171,13 @@ public:
     BBlock<NodeT> *getBBIn() { return BBIn; }
     BBlock<NodeT> *getBBOut() { return BBOut; }
 
-    DGParameter<NodeT>* getVarArg() { return vararg; }
-    const DGParameter<NodeT>* getVarArg() const { return vararg; }
+    DGParameter<NodeT>* getVarArg() { return vararg.get(); }
+    const DGParameter<NodeT>* getVarArg() const { return vararg.get(); }
     bool setVarArg(NodeT *in, NodeT *out)
     {
         assert(!vararg && "Already has a vararg parameter");
 
-        vararg = new DGParameter<NodeT>(in, out);
+        vararg.reset(new DGParameter<NodeT>(in, out));
         return true;
     }
 
@@ -199,7 +194,7 @@ private:
     // this is parameter that represents
     // formal vararg parameters. It is only one, because without
     // any further analysis, we cannot tell apart the formal varargs
-    DGParameter<NodeT> *vararg;
+    std::unique_ptr<DGParameter<NodeT>> vararg{};
 
     BBlock<NodeT> *BBIn;
     BBlock<NodeT> *BBOut;
