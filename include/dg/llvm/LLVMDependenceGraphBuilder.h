@@ -53,6 +53,7 @@ struct LLVMDependenceGraphOptions {
     LLVMReachingDefinitionsAnalysisOptions RDAOptions{};
     LLVMDefUseAnalysisOptions DUOptions{};
 
+    bool terminationSensitive{true};
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
     bool verifyGraph{true};
@@ -111,7 +112,8 @@ class LLVMDependenceGraphBuilder {
     }
 
     void _runControlDependenceAnalysis() {
-        _dg->computeControlDependencies(_options.cdAlgorithm);
+        _dg->computeControlDependencies(_options.cdAlgorithm,
+                                        _options.terminationSensitive);
     }
 
     bool verify() const {

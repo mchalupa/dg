@@ -181,6 +181,16 @@ public:
         return true;
     }
 
+    NodeT* getNoReturn() { return noret.get(); }
+    const NodeT* getNoReturn() const { return noret.get(); }
+    bool addNoReturn(NodeT *n)
+    {
+        assert(!noret && "Already has the noret parameter");
+
+        noret.reset(n);
+        return true;
+    }
+
     const NodeT *getCallSite() const { return callSite; }
     NodeT *getCallSite() { return callSite; }
     void setCallSite(NodeT *n) { return callSite = n; }
@@ -195,6 +205,9 @@ private:
     // formal vararg parameters. It is only one, because without
     // any further analysis, we cannot tell apart the formal varargs
     std::unique_ptr<DGParameter<NodeT>> vararg{};
+    // node representing that the function may not return
+    // -- we can add control dependencies to this node
+    std::unique_ptr<NodeT> noret{};
 
     BBlock<NodeT> *BBIn;
     BBlock<NodeT> *BBOut;

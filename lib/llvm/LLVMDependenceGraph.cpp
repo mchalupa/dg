@@ -48,6 +48,8 @@
 #include "llvm/analysis/ControlExpression.h"
 #include "llvm-utils.h"
 
+#include "dg/ADT/Queue.h"
+
 using llvm::errs;
 using std::make_pair;
 
@@ -299,6 +301,12 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc)
     addSubgraphGlobalParameters(subgraph);
     node->addActualParameters(subgraph, callFunc);
 
+    if (auto noret = subgraph->getNoReturn()) {
+        assert(node->getParameters()); // we created them a while ago
+        auto actnoret = getOrCreateNoReturn(node);
+        noret->addControlDependence(actnoret);
+    }
+
     return subgraph;
 }
 
@@ -311,14 +319,52 @@ is_func_defined(const llvm::Function *func)
     return true;
 }
 
-bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
-{
+
+LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn() {
     // add the same formal parameters
+    LLVMDGParameters *params = getOrCreateParameters();
+    LLVMNode *noret = params->getNoReturn();
+    if (!noret) {
+        auto UI = new llvm::UnreachableInst(getModule()->getContext());
+        noret = new LLVMNode(UI, true);
+        params->addNoReturn(noret);
+        auto entry = getEntry();
+        assert(entry);
+        entry->addControlDependence(noret);
+    }
+    return noret;
+}
+
+LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn(LLVMNode *call) {
+    LLVMDGParameters *params = call->getParameters();
+    assert(params);
+
+    LLVMNode *noret = params->getNoReturn();
+    if (!noret) {
+        auto UI = new llvm::UnreachableInst(getModule()->getContext());
+        noret = new LLVMNode(UI, true);
+        params->addNoReturn(noret);
+        // this edge is redundant...
+        call->addControlDependence(noret);
+    }
+    return noret;
+}
+
+LLVMDGParameters *LLVMDependenceGraph::getOrCreateParameters() {
     LLVMDGParameters *params = getParameters();
     if (!params) {
         params = new LLVMDGParameters();
         setParameters(params);
     }
+
+    return params;
+}
+
+bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
+{
+
+    // add the same formal parameters
+    LLVMDGParameters *params = getOrCreateParameters();
 
     // if we have this value, just return
     if (params->find(val))
@@ -342,7 +388,6 @@ bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
         if (llvm::Function *F
                 = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
             if (F == entryFunction) {
-                llvm::errs() << *val << "\n";
                 auto gnode = getGlobalNode(val);
                 assert(gnode);
                 gnode->addControlDependence(fpin);
@@ -368,7 +413,8 @@ static bool isMemAllocationFunc(const llvm::Function *func)
 }
 
 void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
-                                            LLVMNode *node)
+                                            LLVMNode *node,
+                                            LLVMNode *prevNode)
 {
     using namespace llvm;
 
@@ -425,6 +471,14 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // no matter what is the function, this is a CallInst,
         // so create call-graph
         addCallNode(node);
+    } else if (isa<UnreachableInst>(val)) {
+        auto noret = getOrCreateNoReturn();
+        node->addControlDependence(noret);
+        // unreachable is being inserted because of the previous instr
+        // aborts the program. This means that whether it is executed
+        // depends on the previous instr
+        if (prevNode)
+            prevNode->addControlDependence(noret);
     } else if (Instruction *Inst = dyn_cast<Instruction>(val)) {
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
             Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
@@ -448,11 +502,14 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
 
     LLVMBBlock *BB = new LLVMBBlock();
     LLVMNode *node = nullptr;
+    LLVMNode *prevNode = nullptr;
 
     BB->setKey(&llvmBB);
 
     // iterate over the instruction and create node for every single one of them
     for (Instruction& Inst : llvmBB) {
+        prevNode = node;
+
         Value *val = &Inst;
         node = new LLVMNode(val);
 
@@ -463,7 +520,7 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
         BB->append(node);
 
         // take instruction specific actions
-        handleInstruction(val, node);
+        handleInstruction(val, node, prevNode);
     }
 
     // did we created at least one node?
@@ -693,11 +750,7 @@ void LLVMDependenceGraph::addFormalParameters()
     if (func->arg_size() == 0)
         return;
 
-    LLVMDGParameters *params = getParameters();
-    if (!params) {
-        params = new LLVMDGParameters();
-        setParameters(params);
-    }
+    LLVMDGParameters *params = getOrCreateParameters();
 
     LLVMNode *in, *out;
     for (auto I = func->arg_begin(), E = func->arg_end(); I != E; ++I) {
@@ -914,6 +967,58 @@ void LLVMDependenceGraph::makeSelfLoopsControlDependent()
             if (B->successorsNum() > 1 && B->hasSelfLoop())
                 // add self-loop control dependence
                 B->addControlDependence(B);
+        }
+    }
+}
+
+void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from) {
+    std::set<LLVMBBlock *> visited;
+    ADT::QueueLIFO<LLVMBBlock *> queue;
+
+    for (auto& succ : from->successors()) {
+        if (visited.insert(succ.target).second)
+            queue.push(succ.target);
+    }
+            
+    while (!queue.empty()) {
+        auto cur = queue.pop();
+
+        // do the stuff
+        for (auto node : cur->getNodes())
+            noret->addControlDependence(node);
+
+        // queue successors
+        for (auto& succ : cur->successors()) {
+            if (visited.insert(succ.target).second)
+                queue.push(succ.target);
+        }
+    }
+}
+
+void LLVMDependenceGraph::addNoreturnDependencies()
+{
+    for (auto& F : getConstructedFunctions()) {
+        auto& blocks = F.second->getBlocks();
+
+        for (auto& it : blocks) {
+            LLVMBBlock *B = it.second;
+            std::set<LLVMNode *> noreturns;
+            for (auto node : B->getNodes()) {
+                // add dependencies for the found no returns
+                for (auto nrt : noreturns) {
+                    nrt->addControlDependence(node);
+                }
+
+                if (auto params = node->getParameters()) {
+                    if (auto noret = params->getNoReturn()) {
+                        // process the rest of the block
+                        noreturns.insert(noret);
+
+                        // process reachable nodes
+                        addNoreturnDependencies(noret, B);
+                    }
+                }
+            }
         }
     }
 }

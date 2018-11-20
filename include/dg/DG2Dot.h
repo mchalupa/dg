@@ -421,6 +421,11 @@ private:
             } else
                 out << "NO OUT ARG";
         }
+
+        if (auto noret = params->getNoReturn()) {
+            dump_node(noret, ind, "[noret]");
+            dump_node_edges(noret, ind);
+        }
     }
 
     void dump_subgraph(DependenceGraph<NodeT> *sub)
