@@ -44,7 +44,14 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "in the sliced program. This switch makes slicer to remove\n"
                        "also the calls (i.e. behave like Weisser's algorithm)"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
-    
+
+    llvm::cl::opt<bool> terminationSensitive("termination-sensitive",
+        llvm::cl::desc("Do not slice away parts of programs that might make\n"
+                       "the slicing criteria unreachable (e.g. calls to exit() or potentially infinite loops).\n"
+                       "NOTE: at this moment we do not handle potentially infinite loops.\n"
+                       "Default: on\n"),
+                       llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<uint64_t> ptaFieldSensitivity("pta-field-sensitive",
         llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
                        "is cropped to Offset::UNKNOWN when it is greater than N bytes.\n"
@@ -145,6 +152,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
 
     // FIXME: add options class for CD
     options.dgOptions.cdAlgorithm = cdAlgorithm;
+    options.dgOptions.terminationSensitive = terminationSensitive;
 
     return options;
 }

@@ -1,6 +1,3 @@
-/// XXX add licence
-//
-
 #ifndef _LLVM_DEPENDENCE_GRAPH_H_
 #define _LLVM_DEPENDENCE_GRAPH_H_
 
@@ -79,6 +76,14 @@ public:
     // build subgraphs of called functions
     bool build(llvm::Function *func);
 
+    LLVMDGParameters *getOrCreateParameters();
+    LLVMNode *getOrCreateNoReturn();
+    LLVMNode *getOrCreateNoReturn(LLVMNode *call);
+    LLVMNode *getNoReturn() {
+        auto params = getParameters();
+        return params ? params->getNoReturn() : nullptr;
+    }
+
     bool addFormalParameter(llvm::Value *val);
     bool addFormalGlobal(llvm::Value *val);
 
@@ -116,12 +121,16 @@ public:
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void makeSelfLoopsControlDependent();
+    void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
+    void addNoreturnDependencies();
 
-    void computeControlDependencies(CD_ALG alg_type)
+    void computeControlDependencies(CD_ALG alg_type, bool terminSensitive = true)
     {
         if (alg_type == CD_ALG::CLASSIC) {
             computePostDominators(true);
             //makeSelfLoopsControlDependent();
+            if (terminSensitive)
+                addNoreturnDependencies();
         } else if (alg_type == CD_ALG::CONTROL_EXPRESSION) {
             computeControlExpression(true);
         } else
@@ -156,7 +165,7 @@ private:
     // take action specific to given instruction (while building
     // the graph). This is like if the value is a call-site,
     // then build subgraph or similar
-    void handleInstruction(llvm::Value *val, LLVMNode *node);
+    void handleInstruction(llvm::Value *val, LLVMNode *node, LLVMNode *prevNode);
 
     // convert llvm basic block to our basic block
     // That includes creating all the nodes and adding them
