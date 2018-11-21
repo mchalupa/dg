@@ -461,9 +461,13 @@ class LLVMValueRelationsAnalysis {
     }
 
     bool mergeReads(VRLocation *loc, VREdge *pred) {
+        return mergeReads(loc, pred->source);
+    }
+
+    bool mergeReads(VRLocation *loc, VRLocation *source) {
         using namespace llvm;
         bool changed = false;
-        for (auto& it : pred->source->reads) {
+        for (auto& it : source->reads) {
             if (fixedMemory.count(it.first) > 0) {
                 // if it is load but not from fixed memory,
                 // we don't want it
@@ -495,10 +499,14 @@ class LLVMValueRelationsAnalysis {
     }
 
     bool mergeEqualities(VRLocation *loc, VREdge *pred) {
+        return mergeEqualities(loc, pred->source);
+    }
+
+    bool mergeEqualities(VRLocation *loc, VRLocation *source) {
         using namespace llvm;
         bool changed = false;
 
-        for (auto& it : pred->source->equalities) {
+        for (auto& it : source->equalities) {
             if (mightBeChanged(it.first))
                 continue;
             for (auto eq : *(it.second.get())) {
@@ -560,14 +568,24 @@ class LLVMValueRelationsAnalysis {
         for (auto pred : loc->predecessors) {
             changed |= mergeReads(loc, pred);
             changed |= mergeEqualities(loc, pred);
-            changed |= mergeRelations(loc, pred);
+            //changed |= mergeRelations(loc, pred);
         }
         return changed;
     }
 
 public:
+    template <typename Locs>
+    bool mergeStates(VRLocation *dest, Locs& locs) {
+        bool changed = false;
+        for (auto loc : locs) {
+            changed |= mergeReads(dest, loc);
+            changed |= mergeEqualities(dest, loc);
+        }
+        return changed;
+    }
+
     template <typename Blocks>
-    void run(Blocks& blocks) {
+    bool run(Blocks& blocks) {
         // FIXME: only nodes reachable from changed nodes
         bool changed;
         unsigned n = 0;
@@ -594,6 +612,7 @@ public:
 #ifndef NDEBUG
         llvm::errs() << "Number of iterations: " << n << "\n";
 #endif
+        return changed;
     }
 
     LLVMValueRelationsAnalysis(const llvm::Module *M,

@@ -23,6 +23,7 @@ namespace analysis {
 
 class LLVMValueRelations {
     const llvm::Module *_M;
+    unsigned _max_interprocedural_iterations = 0;
 
     unsigned last_node_id{0};
     // mapping from LLVM Values to relevant CFG nodes
@@ -200,6 +201,41 @@ class LLVMValueRelations {
         }
     }
 
+    void passCallSiteRelations(LLVMValueRelationsAnalysis& analysis) {
+        using namespace llvm;
+        for (auto& F : *_M) {
+            if (F.isDeclaration())
+                continue;
+            F.getEntryBlock();
+            auto& ourBlk = _blocks[&F.getEntryBlock()];
+            assert(ourBlk);
+
+            std::vector<VRLocation *> calls;
+            for (auto it = F.use_begin(), et = F.use_end(); it != et; ++it) {
+            #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+                const Value *use = *it;
+            #else
+                const Value *use = it->getUser();
+            #endif
+                if (isa<CallInst>(use)) {
+                    llvm::errs() << "pass from " << *use << "to " << F.getName() << "\n";
+                    auto loc = getMapping(use);
+                    assert(loc);
+                    calls.push_back(loc);
+                }
+            }
+
+
+            // take callers of this function and pass relation
+            // from them to the entry instruction
+            analysis.mergeStates(ourBlk->first(), calls);
+            // bind arguments
+            for (auto& arg : F.args()) {
+                // FIXME!
+            }
+        }
+    }
+
 public:
     LLVMValueRelations(const llvm::Module *M) : _M(M) {}
 
@@ -221,9 +257,18 @@ public:
     }
 
     // FIXME: this should be for each node
-    void compute(unsigned max_iter = 0) {
+    void compute(unsigned max_iter = 0, unsigned max_interproc_iter = 3) {
         LLVMValueRelationsAnalysis VRA(_M, max_iter);
         VRA.run(_blocks);
+
+        while (--max_interproc_iter > 0) {
+            // take computed relations and pass them into
+            // called functions
+            passCallSiteRelations(VRA);
+
+            if (!VRA.run(_blocks))
+                break; // fixpoint
+        }
     }
 
     decltype(_blocks) const& getBlocks() const {
