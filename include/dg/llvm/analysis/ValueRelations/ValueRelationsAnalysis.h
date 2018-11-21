@@ -55,6 +55,8 @@ class LLVMValueRelationsAnalysis {
                     switch(II->getIntrinsicID()) {
                         case Intrinsic::lifetime_start:
                         case Intrinsic::lifetime_end:
+                        case Intrinsic::stacksave:
+                        case Intrinsic::stackrestore:
                             continue;
                         default:
                             if (II->mayWriteToMemory())
@@ -130,6 +132,8 @@ class LLVMValueRelationsAnalysis {
                     switch(II->getIntrinsicID()) {
                         case Intrinsic::lifetime_start:
                         case Intrinsic::lifetime_end:
+                        case Intrinsic::stacksave:
+                        case Intrinsic::stackrestore:
                             continue;
                         default:
                             if (!II->mayWriteToMemory())
@@ -351,7 +355,20 @@ class LLVMValueRelationsAnalysis {
             } else {
                 overwritesAll = true;
             }
-        } else if (I->mayWriteToMemory() || I->mayHaveSideEffects()) {
+            return;
+        } else if (auto CI = dyn_cast<CallInst>(I)) {
+            if (auto II = dyn_cast<IntrinsicInst>(I)) {
+                switch(II->getIntrinsicID()) {
+                    case Intrinsic::stacksave:
+                    case Intrinsic::stackrestore:
+                        return;
+                    default: break; // fall-through
+                }
+            }
+            // fall-through
+        }
+
+        if (I->mayWriteToMemory() || I->mayHaveSideEffects()) {
             overwritesAll = true;
         }
     }
