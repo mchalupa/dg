@@ -448,16 +448,16 @@ class LLVMValueRelationsAnalysis {
             return fixedMemory.count(LI->getOperand(0)) == 0;
         }
 
+        if (llvm::isa<llvm::Argument>(v) || llvm::isa<llvm::Constant>(v))
+            return false;
         if (auto CI = llvm::dyn_cast<llvm::CastInst>(v))
             return mightBeChanged(CI->getOperand(0));
 
         if (auto BI = llvm::dyn_cast<llvm::BinaryOperator>(v))
             return mightBeChanged(BI->getOperand(0)) || mightBeChanged(BI->getOperand(1));
 
-        bool ret = !llvm::isa<llvm::Constant>(v) && fixedMemory.count(v) == 0;
-        //if (ret)
-        // llvm::errs() << "Might be changed: " << *v << "\n";
-        return ret;
+        // is it alloca that is in fixedMemory?
+        return fixedMemory.count(v) == 0;
     }
 
     bool mergeReads(VRLocation *loc, VREdge *pred) {
