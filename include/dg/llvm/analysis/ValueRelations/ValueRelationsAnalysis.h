@@ -344,11 +344,11 @@ class LLVMValueRelationsAnalysis {
                 if (auto equiv = source->equalities.get(writtenMem)) {
                     overwritesReads.insert(equiv->begin(), equiv->end());
                 }
-                // overwrite also reads from memory that has no
-                // aliases to an alloca inst
+                // overwrite also reads from memory that is not alloc
+                // and has no aliases to an alloca inst
                 // (we do not know whether it may be alias or not)
                 for (auto& r : source->reads) {
-                    if (!hasAlias(r.first, E)) {
+                    if (!isa<AllocaInst>(r.first) && !hasAlias(r.first, E)) {
                         overwritesReads.insert(r.first);
                     }
                 }
