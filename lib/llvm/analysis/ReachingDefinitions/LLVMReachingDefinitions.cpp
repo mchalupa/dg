@@ -1,3 +1,5 @@
+#include <llvm/IR/GlobalVariable.h>
+
 #include "dg/analysis/ReachingDefinitions/SemisparseRda.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
