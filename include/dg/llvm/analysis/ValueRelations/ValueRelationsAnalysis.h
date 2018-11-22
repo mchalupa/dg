@@ -318,6 +318,37 @@ class LLVMValueRelationsAnalysis {
         abort();
     }
 
+    // FIXME: do not duplicate the code
+    bool mulGen(const llvm::Instruction *I,
+                EqualityMap<const llvm::Value*>& E,
+                RelationsMap& Rel) {
+        using namespace llvm;
+        auto val1 = I->getOperand(0);
+        auto val2 = I->getOperand(1);
+
+        auto C1 = dyn_cast<ConstantInt>(val1);
+        auto C2 = dyn_cast<ConstantInt>(val2);
+
+        if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+            return false;
+        if (C1 && !C2) {
+            auto tmp = C1;
+            C1 = C2;
+            C2 = tmp;
+            auto tmp1 = val1;
+            val1 = val2;
+            val2 = tmp1;
+        }
+
+        assert(!C1 && C2);
+
+        auto V = C2->getSExtValue();
+        if (V == 1)
+            return E.add(I, val1);
+        return false;
+    }
+
+
     bool instructionGen(const llvm::Instruction *I,
                         EqualityMap<const llvm::Value*>& E,
                         RelationsMap& Rel,
@@ -337,6 +368,8 @@ class LLVMValueRelationsAnalysis {
                 return plusGen(I, E, Rel);
             case Instruction::Sub:
                 return minusGen(I, E, Rel);
+            case Instruction::Mul:
+                return mulGen(I, E, Rel);
             default:
                 if (auto C = dyn_cast<CastInst>(I)) {
                     if (C->isLosslessCast() || C->isNoopCast(_M->getDataLayout())) {
