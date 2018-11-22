@@ -217,11 +217,26 @@ class LLVMValueRelations {
             #else
                 const Value *use = it->getUser();
             #endif
-                if (isa<CallInst>(use)) {
-                    llvm::errs() << "pass from " << *use << "to " << F.getName() << "\n";
-                    auto loc = getMapping(use);
-                    assert(loc);
-                    calls.push_back(loc);
+                auto CI = dyn_cast<CallInst>(use);
+                if (!CI)
+                    continue;
+
+                llvm::errs() << "pass from " << *use << "to " << F.getName() << "\n";
+                auto loc = getMapping(use);
+                assert(loc);
+                calls.push_back(loc);
+
+                // bind arguments
+                int n = 0;
+                for (auto& arg : F.args()) {
+                    auto op = CI->getArgOperand(n);
+                    ourBlk->first()->equalities.add(&arg, op);
+
+                    if (auto EQ = loc->equalities.get(op)) {
+                        for (auto eq : *EQ)
+                            ourBlk->first()->equalities.add(&arg, eq);
+                    }
+                    ++n;
                 }
             }
 
@@ -229,10 +244,6 @@ class LLVMValueRelations {
             // take callers of this function and pass relation
             // from them to the entry instruction
             analysis.mergeStates(ourBlk->first(), calls);
-            // bind arguments
-            for (auto& arg : F.args()) {
-                // FIXME!
-            }
         }
     }
 
