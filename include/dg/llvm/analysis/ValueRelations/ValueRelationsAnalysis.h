@@ -29,6 +29,8 @@ class LLVMValueRelationsAnalysis {
     // (e.g. if the underlying memory is defined only at one place
     // or for global constants)
     std::set<const llvm::Value *> fixedMemory;
+    // values that might never change
+    std::set<const llvm::Value *> fixedValues;
     const llvm::Module *_M;
     unsigned _max_iterations = 0;
 
@@ -157,7 +159,7 @@ class LLVMValueRelationsAnalysis {
         return false;
     }
 
-    void initializeFixedReads() {
+    void initializeFixed() {
         using namespace llvm;
 
         // FIXME: globals
@@ -168,6 +170,21 @@ class LLVMValueRelationsAnalysis {
                         //llvm::errs() << "Fixed memory: " << I << "\n";
                         fixedMemory.insert(&I);
                     }
+                }
+            }
+
+            // FIXME: this is correct only for non-recursive functions
+            // TODO: we can do this search also after branching,
+            // we just must stop at the first join on each path
+            if (!F.isDeclaration()) {
+                std::set<const BasicBlock *> visited;
+                auto B = &F.getEntryBlock();
+                while (B) {
+                    if (!visited.insert(B).second)
+                        break;
+                    for (auto& I : *B)
+                        fixedValues.insert(&I);
+                    B = B->getUniqueSuccessor();
                 }
             }
         }
@@ -457,7 +474,7 @@ class LLVMValueRelationsAnalysis {
             return mightBeChanged(BI->getOperand(0)) || mightBeChanged(BI->getOperand(1));
 
         // is it alloca that is in fixedMemory?
-        return fixedMemory.count(v) == 0;
+        return fixedMemory.count(v) == 0 && fixedValues.count(v) == 0;
     }
 
     bool mergeReads(VRLocation *loc, VREdge *pred) {
@@ -618,7 +635,7 @@ public:
     LLVMValueRelationsAnalysis(const llvm::Module *M,
                                unsigned max_iterations = 0)
     : _M(M), _max_iterations(max_iterations) {
-        initializeFixedReads();
+        initializeFixed();
     }
 };
 
