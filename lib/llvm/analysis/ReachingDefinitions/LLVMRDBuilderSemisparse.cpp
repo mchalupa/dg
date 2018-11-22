@@ -711,7 +711,7 @@ LLVMRDBuilderSemisparse::buildFunction(const llvm::Function& F)
         size_t succ_num = blockAddSuccessors(built_blocks, last_subblock, block);
         // if we have not added any successor, then the last node
         // of this block is a return node
-        if (succ_num == 0)
+        if (succ_num == 0 && last_subblock->getLastNode()->getType() == RDNodeType::RETURN)
             rets.push_back(last_subblock->getLastNode());
         last_llvm_block = &block;
     }
