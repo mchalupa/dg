@@ -221,7 +221,6 @@ class LLVMValueRelations {
                 if (!CI)
                     continue;
 
-                llvm::errs() << "pass from " << *use << "to " << F.getName() << "\n";
                 auto loc = getMapping(use);
                 assert(loc);
                 calls.push_back(loc);
