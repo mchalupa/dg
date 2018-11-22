@@ -293,6 +293,12 @@ public:
         auto aRel = A->relations.get(a);
         return aRel ? aRel->has(VRRelationType::LT, b) : false;
     }
+
+    auto getEquals(const llvm::Value *where, const llvm::Value *v) -> decltype(VRLocation::equalities.get(v)) {
+        auto A = getMapping(where);
+        assert(A);
+        return A->equalities.get(v);
+    }
 };
 
 } // namespace analysis
