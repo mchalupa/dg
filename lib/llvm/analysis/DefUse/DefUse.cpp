@@ -78,8 +78,8 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
                                        LLVMPointerAnalysis *pta,
                                        const analysis::LLVMDefUseAnalysisOptions& opts)
-    : analysis::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
-                                           analysis::DATAFLOW_INTERPROCEDURAL),
+    : analysis::legacy::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
+                                                   analysis::legacy::DATAFLOW_INTERPROCEDURAL),
       dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())), _options(opts)
 {
     assert(PTA && "Need points-to information");

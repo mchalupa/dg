@@ -9,6 +9,7 @@ using dg::ADT::QueueLIFO;
 
 namespace dg {
 namespace analysis {
+namespace legacy {
 
 enum DFSFlags {
     DFS_INTERPROCEDURAL         = 1 << 0,
@@ -157,6 +158,7 @@ private:
 };
 #endif // ENABLE_CFG
 
+} // namespace legacy
 } // namespace analysis
 } // namespace dg
 

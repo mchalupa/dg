@@ -66,7 +66,7 @@ public:
     void compute(BBlock<NodeT> *root, bool add_cd = false)
     {
         std::vector<BBlock<NodeT> *> blocks;
-        BBlockBFS<NodeT> bfs(BFS_BB_POSTDOM);
+        legacy::BBlockBFS<NodeT> bfs(legacy::BFS_BB_POSTDOM);
 
         // get BBs in the order of post-dom tree edges (BFS),
         // so that we process it bottom-up

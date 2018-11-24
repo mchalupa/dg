@@ -9,6 +9,7 @@ using dg::ADT::QueueFIFO;
 
 namespace dg {
 namespace analysis {
+namespace legacy {
 
 enum BFSFlags {
     BFS_INTERPROCEDURAL         = 1 << 0,
@@ -92,6 +93,7 @@ private:
 };
 #endif // ENABLE_CFG
 
+} // namespace legacy
 } // namespace analysis
 } // namespace dg
 
