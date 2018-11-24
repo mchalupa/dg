@@ -37,7 +37,7 @@ namespace dg {
 class LLVMDependenceGraph;
 class LLVMNode;
 
-class LLVMDefUseAnalysis : public analysis::DataFlowAnalysis<LLVMNode>
+class LLVMDefUseAnalysis : public analysis::legacy::DataFlowAnalysis<LLVMNode>
 {
     LLVMDependenceGraph *dg;
     LLVMReachingDefinitions *RD;

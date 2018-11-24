@@ -74,7 +74,7 @@ public:
 
         current_def.clear();
 
-        BBlockBFS<NodeT> bfs(BFS_BB_CFG | BFS_INTERPROCEDURAL);
+        legacy::BBlockBFS<NodeT> bfs(legacy::BFS_BB_CFG | legacy::BFS_INTERPROCEDURAL);
 
         AssignmentFinder af;
         af.populateUnknownMemory(root);

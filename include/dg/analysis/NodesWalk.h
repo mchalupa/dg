@@ -6,6 +6,7 @@
 
 namespace dg {
 namespace analysis {
+namespace legacy {
 
 enum NodesWalkFlags {
     // do not walk any edges, user will
@@ -384,6 +385,7 @@ private:
 
 #endif
 
+} // legacy
 } // namespace analysis
 } // namespace dg
 

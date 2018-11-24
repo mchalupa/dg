@@ -13,6 +13,7 @@
 
 namespace dg {
 namespace analysis {
+namespace legacy {
 
 struct DataFlowStatistics : public AnalysisStatistics {
     DataFlowStatistics()
@@ -168,6 +169,7 @@ public:
 private:
 };
 
+} // namespace legacy
 } // namespace analysis
 } // namespace dg
 
