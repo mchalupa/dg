@@ -45,8 +45,7 @@ void ReachingDefinitionsAnalysis::run()
 
         if (!changed.empty()) {
             to_process.clear();
-            to_process = getNodes(nullptr /* starting node */,
-                                  &changed /* starting set */,
+            to_process = getNodes(changed /* starting set */,
                                   last_processed_num /* expected num */);
 
             // since changed was not empty,
