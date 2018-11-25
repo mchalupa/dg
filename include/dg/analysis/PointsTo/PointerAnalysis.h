@@ -130,8 +130,7 @@ public:
 
         if (!changed.empty()) {
             // DONT std::move - it prevents compiler from copy ellision
-            to_process = PS->getNodes(nullptr /* starting node */,
-                                      &changed /* starting set */,
+            to_process = PS->getNodes(changed /* starting set */,
                                       last_processed_num /* expected num */);
 
             // since changed was not empty,

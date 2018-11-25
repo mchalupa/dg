@@ -5,6 +5,7 @@
 #include "dg/analysis/SubgraphNode.h"
 #include "dg/analysis/CallGraph.h"
 #include "dg/analysis/PointsTo/PSNode.h"
+#include "dg/analysis/BFS.h"
 
 #include <cassert>
 #include <cstdarg>
@@ -131,45 +132,28 @@ public:
 
     // get nodes in BFS order and store them into
     // the container
-    std::vector<PSNode *> getNodes(PSNode *start_node,
-                                   std::vector<PSNode *> *start_set = nullptr,
+    template <typename ContainerOrNode>
+    std::vector<PSNode *> getNodes(const ContainerOrNode& start,
                                    unsigned expected_num = 0)
     {
-        assert(root && "Do not have root");
-        assert(!(start_set && start_node)
-               && "Need either starting set or starting node, not both");
-
         ++dfsnum;
-        ADT::QueueFIFO<PSNode *> fifo;
-
-        if (start_set) {
-            for (PSNode *s : *start_set) {
-                fifo.push(s);
-                s->dfsid = dfsnum;
-            }
-        } else {
-            if (!start_node)
-                start_node = root;
-
-            fifo.push(start_node);
-            start_node->dfsid = dfsnum;
-        }
 
         std::vector<PSNode *> cont;
         if (expected_num != 0)
             cont.reserve(expected_num);
 
-        while (!fifo.empty()) {
-            PSNode *cur = fifo.pop();
-            cont.push_back(cur);
+        struct DfsIdTracker {
+            const unsigned dfsnum;
+            DfsIdTracker(unsigned dnum) : dfsnum(dnum) {}
 
-            for (PSNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    fifo.push(succ);
-                }
-            }
-        }
+            void visit(PSNode *n) { n->dfsid = dfsnum; }
+            bool visited(PSNode *n) const { return n->dfsid == dfsnum; }
+        };
+
+        DfsIdTracker visitTracker(dfsnum);
+        BFS<PSNode, DfsIdTracker> bfs(visitTracker);
+
+        bfs.run(start, [&cont](PSNode *n) { cont.push_back(n); });
 
         return cont;
     }
