@@ -264,30 +264,6 @@ public:
     ReachingDefinitionsAnalysis(RDNode *r) : ReachingDefinitionsAnalysis(r, {}) {}
     virtual ~ReachingDefinitionsAnalysis() = default;
 
-
-    void getNodes(std::set<RDNode *>& cont)
-    {
-        assert(root && "Do not have root");
-
-        ++dfsnum;
-
-        ADT::QueueLIFO<RDNode *> lifo;
-        lifo.push(root);
-        root->dfsid = dfsnum;
-
-        while (!lifo.empty()) {
-            RDNode *cur = lifo.pop();
-            cont.insert(cur);
-
-            for (RDNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    lifo.push(succ);
-                }
-            }
-        }
-    }
-
     // get nodes in BFS order and store them into
     // the container
     std::vector<RDNode *> getNodes(RDNode *start_node = nullptr,
