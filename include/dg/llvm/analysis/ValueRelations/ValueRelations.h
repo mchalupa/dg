@@ -226,8 +226,10 @@ class LLVMValueRelations {
                 calls.push_back(loc);
 
                 // bind arguments
-                int n = 0;
+                unsigned n = 0;
                 for (auto& arg : F.args()) {
+                    if (n >= CI->getNumArgOperands())
+                        break;
                     auto op = CI->getArgOperand(n);
                     ourBlk->first()->equalities.add(&arg, op);
 
