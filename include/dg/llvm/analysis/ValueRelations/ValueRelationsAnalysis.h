@@ -388,6 +388,14 @@ class LLVMValueRelationsAnalysis {
         using namespace llvm;
         if (auto SI = dyn_cast<StoreInst>(I)) {
             auto writtenMem = SI->getOperand(1)->stripPointerCasts();
+            // if we know into which memory we write through some offset,
+            // we do not need to kill everything
+            if (auto GEP = dyn_cast<GetElementPtrInst>(writtenMem)) {
+                if (isa<AllocaInst>(GEP->getPointerOperand()) ||
+                    hasAlias(GEP->getPointerOperand(), E))
+                    writtenMem = GEP->getPointerOperand();
+            }
+
             if (isa<AllocaInst>(writtenMem) || hasAlias(writtenMem, E)) {
                 overwritesReads.insert(writtenMem);
                 // overwrite aliases
