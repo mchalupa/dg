@@ -24,6 +24,32 @@
 namespace dg {
 namespace analysis {
 
+static inline std::pair<const llvm::Value *, int64_t>
+getOperationWithConst(const llvm::Instruction *I) {
+    using namespace llvm;
+    auto val1 = I->getOperand(0);
+    auto val2 = I->getOperand(1);
+
+    auto C1 = dyn_cast<ConstantInt>(val1);
+    auto C2 = dyn_cast<ConstantInt>(val2);
+
+    if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+        return {nullptr, 0};
+    if (C1 && !C2) {
+        auto tmp = C1;
+        C1 = C2;
+        C2 = tmp;
+        auto tmp1 = val1;
+        val1 = val2;
+        val2 = tmp1;
+    }
+
+    assert(!C1 && C2);
+
+    auto V = C2->getSExtValue();
+    return {val1, V};
+}
+
 class LLVMValueRelationsAnalysis {
     // reads about which we know that always hold
     // (e.g. if the underlying memory is defined only at one place
@@ -250,29 +276,31 @@ class LLVMValueRelationsAnalysis {
     }
 
     bool plusGen(const llvm::Instruction *I,
-                EqualityMap<const llvm::Value*>&,
+                 // known equalities
+                 EqualityMap<const llvm::Value*>& curE,
+                 // new equalities
+                 EqualityMap<const llvm::Value*>& E,
                 RelationsMap& Rel) {
         using namespace llvm;
-        auto val1 = I->getOperand(0);
-        auto val2 = I->getOperand(1);
-
-        auto C1 = dyn_cast<ConstantInt>(val1);
-        auto C2 = dyn_cast<ConstantInt>(val2);
-
-        if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+        const Value *val1;
+        int64_t V;
+        std::tie(val1, V) = getOperationWithConst(I);
+        if (!val1)
             return false;
-        if (C1 && !C2) {
-            auto tmp = C1;
-            C1 = C2;
-            C2 = tmp;
-            auto tmp1 = val1;
-            val1 = val2;
-            val2 = tmp1;
+
+        // check casses (x - k) + k
+        if (auto equiv = curE.get(val1)) {
+            for (auto eq : *equiv) {
+                if (auto BI = dyn_cast<BinaryOperator>(eq)) {
+                    if (BI->getOpcode() == Instruction::Sub) {
+                        auto vals = getOperationWithConst(BI);
+                        if (vals.first && vals.second == V)
+                            E.add(vals.first, I);
+                    }
+                }
+            }
         }
 
-        assert(!C1 && C2);
-
-        auto V = C2->getSExtValue();
         if (V > 0)
             return Rel.add(VRRelation::Gt(I, val1));
         else if (V == 0)
@@ -283,31 +311,32 @@ class LLVMValueRelationsAnalysis {
         abort();
     }
 
-    // FIXME: do not duplicate the code
     bool minusGen(const llvm::Instruction *I,
-                  EqualityMap<const llvm::Value*>&,
+                  // known equalities
+                  EqualityMap<const llvm::Value*>& curE,
+                  // new equalities
+                  EqualityMap<const llvm::Value*>& E,
                   RelationsMap& Rel) {
         using namespace llvm;
-        auto val1 = I->getOperand(0);
-        auto val2 = I->getOperand(1);
-
-        auto C1 = dyn_cast<ConstantInt>(val1);
-        auto C2 = dyn_cast<ConstantInt>(val2);
-
-        if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+        const Value *val1;
+        int64_t V;
+        std::tie(val1, V) = getOperationWithConst(I);
+        if (!val1)
             return false;
-        if (C1 && !C2) {
-            auto tmp = C1;
-            C1 = C2;
-            C2 = tmp;
-            auto tmp1 = val1;
-            val1 = val2;
-            val2 = tmp1;
+
+        // check casses (x + k) - k
+        if (auto equiv = curE.get(val1)) {
+            for (auto eq : *equiv) {
+                if (auto BI = dyn_cast<BinaryOperator>(eq)) {
+                    if (BI->getOpcode() == Instruction::Add) {
+                        auto vals = getOperationWithConst(BI);
+                        if (vals.first && vals.second == V)
+                            E.add(vals.first, I);
+                    }
+                }
+            }
         }
 
-        assert(!C1 && C2);
-
-        auto V = C2->getSExtValue();
         if (V > 0)
             return Rel.add(VRRelation::Lt(I, val1));
         else if (V == 0)
@@ -318,31 +347,16 @@ class LLVMValueRelationsAnalysis {
         abort();
     }
 
-    // FIXME: do not duplicate the code
     bool mulGen(const llvm::Instruction *I,
                 EqualityMap<const llvm::Value*>& E,
                 RelationsMap& Rel) {
-        using namespace llvm;
-        auto val1 = I->getOperand(0);
-        auto val2 = I->getOperand(1);
-
-        auto C1 = dyn_cast<ConstantInt>(val1);
-        auto C2 = dyn_cast<ConstantInt>(val2);
-
-        if ((!C1 && !C2) || (C1 && C2) /* FIXME! */)
+        const llvm::Value *val1;
+        int64_t V;
+        std::tie(val1, V) = getOperationWithConst(I);
+        if (!val1)
             return false;
-        if (C1 && !C2) {
-            auto tmp = C1;
-            C1 = C2;
-            C2 = tmp;
-            auto tmp1 = val1;
-            val1 = val2;
-            val2 = tmp1;
-        }
 
-        assert(!C1 && C2);
 
-        auto V = C2->getSExtValue();
         if (V == 1)
             return E.add(I, val1);
         return false;
@@ -365,9 +379,9 @@ class LLVMValueRelationsAnalysis {
             case Instruction::SExt: // (S)ZExt should not change value
                 return E.add(I, I->getOperand(0));
             case Instruction::Add:
-                return plusGen(I, E, Rel);
+                return plusGen(I, source->equalities, E, Rel);
             case Instruction::Sub:
-                return minusGen(I, E, Rel);
+                return minusGen(I, source->equalities, E, Rel);
             case Instruction::Mul:
                 return mulGen(I, E, Rel);
             default:
