@@ -3,12 +3,27 @@
 
 #include <list>
 
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/CFG.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include "dg/analysis/ValueRelations/ValueRelations.h"
 
@@ -349,13 +364,12 @@ class LLVMValueRelationsAnalysis {
 
     bool mulGen(const llvm::Instruction *I,
                 EqualityMap<const llvm::Value*>& E,
-                RelationsMap& Rel) {
+                RelationsMap&) {
         const llvm::Value *val1;
         int64_t V;
         std::tie(val1, V) = getOperationWithConst(I);
         if (!val1)
             return false;
-
 
         if (V == 1)
             return E.add(I, val1);
@@ -428,7 +442,7 @@ class LLVMValueRelationsAnalysis {
                 overwritesAll = true;
             }
             return;
-        } else if (auto CI = dyn_cast<CallInst>(I)) {
+        } else if (isa<CallInst>(I)) {
             if (auto II = dyn_cast<IntrinsicInst>(I)) {
                 switch(II->getIntrinsicID()) {
                     case Intrinsic::stacksave:
