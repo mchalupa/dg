@@ -120,6 +120,14 @@ public:
         return it->second.get();
     }
 
+    SetT *get(const T& a) const {
+        auto it = _map.find(a);
+        if (it == _map.end()) {
+            return nullptr;
+        }
+        return it->second.get();
+    }
+
     void intersect(const EqualityMap& rhs) {
         EqualityMap tmp;
         for (auto& it : rhs) {

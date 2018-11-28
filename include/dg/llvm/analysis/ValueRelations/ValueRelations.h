@@ -296,10 +296,54 @@ public:
         return aRel ? aRel->has(VRRelationType::LT, b) : false;
     }
 
-    auto getEquals(const llvm::Value *where, const llvm::Value *v) -> decltype(VRLocation::equalities.get(v)) {
+    auto getEquals(const llvm::Value *where, const llvm::Value *v)
+        -> decltype(VRLocation::equalities.get(v)) {
         auto A = getMapping(where);
         assert(A);
         return A->equalities.get(v);
+    }
+
+    auto getEquals(const llvm::Value *where, const llvm::Value *v) const
+        -> decltype(VRLocation::equalities.get(v)) {
+        auto A = getMapping(where);
+        assert(A);
+        return A->equalities.get(v);
+    }
+
+    template <typename T>
+    const T *
+    getEqualValue(const llvm::Value *where, const llvm::Value *v) const {
+        auto equals = getEquals(where, v);
+        if (!equals)
+            return nullptr;
+        for (auto eq : *equals) {
+            if (llvm::isa<T>(eq))
+                return llvm::cast<T>(eq);
+        }
+
+        return nullptr;
+    }
+
+    std::vector<std::pair<const llvm::Value *, const llvm::Value *>>
+    getReadsFromAlloca(const llvm::Value *where, const llvm::Value *v) const {
+        auto A = getMapping(where);
+        assert(A);
+
+        auto equals = A->equalities.get(v);
+
+        std::vector<std::pair<const llvm::Value *, const llvm::Value *>> ret;
+        for (auto& it : A->reads) {
+            if (it.first == v ||
+                (equals && equals->count(v) > 0))
+                ret.push_back(it);
+            else if (auto GEP = llvm::dyn_cast<llvm::GetElementPtrInst>(it.first)) {
+                if (GEP->getPointerOperand() == v ||
+                    (equals && equals->count(GEP->getPointerOperand()) > 0))
+                    ret.push_back(it);
+            }
+        }
+
+        return ret;
     }
 };
 
