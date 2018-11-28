@@ -310,6 +310,21 @@ public:
         return A->equalities.get(v);
     }
 
+    bool areEqual(const llvm::Value *where, const llvm::Value *v1, const llvm::Value *v2) const {
+        if (v1 == v2)
+            return true;
+
+        auto A = getMapping(where);
+        assert(A);
+        if (auto E = A->equalities.get(v1))
+            return E->count(v2) > 0;
+        return false;
+    }
+
+    bool areEqual(const llvm::Value *v1, const llvm::Value *v2) const {
+        return areEqual(v1, v1, v2) || areEqual(v2, v1, v2);
+    }
+
     template <typename T>
     const T *
     getEqualValue(const llvm::Value *where, const llvm::Value *v) const {
