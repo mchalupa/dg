@@ -100,6 +100,8 @@ class LLVMValueRelationsAnalysis {
                         case Intrinsic::lifetime_end:
                         case Intrinsic::stacksave:
                         case Intrinsic::stackrestore:
+                        case Intrinsic::dbg_declare:
+                        case Intrinsic::dbg_value:
                             continue;
                         default:
                             if (II->mayWriteToMemory())
@@ -177,6 +179,8 @@ class LLVMValueRelationsAnalysis {
                         case Intrinsic::lifetime_end:
                         case Intrinsic::stacksave:
                         case Intrinsic::stackrestore:
+                        case Intrinsic::dbg_declare:
+                        case Intrinsic::dbg_value:
                             continue;
                         default:
                             if (!II->mayWriteToMemory())
@@ -431,10 +435,17 @@ class LLVMValueRelationsAnalysis {
                     overwritesReads.insert(equiv->begin(), equiv->end());
                 }
                 // overwrite also reads from memory that is not alloc
-                // and has no aliases to an alloca inst
+                // and has no aliases to an alloca inst (or that are not
+                // GEP to an alloca).
                 // (we do not know whether it may be alias or not)
                 for (auto& r : source->reads) {
                     if (!isa<AllocaInst>(r.first) && !hasAlias(r.first, E)) {
+                        if (auto GEP = dyn_cast<GetElementPtrInst>(r.first)) {
+                            if (isa<AllocaInst>(GEP->getPointerOperand()) ||
+                                hasAlias(GEP->getPointerOperand(), E))
+                                // we know what this overwrites, we're fine
+                                continue;
+                        }
                         overwritesReads.insert(r.first);
                     }
                 }
@@ -445,8 +456,12 @@ class LLVMValueRelationsAnalysis {
         } else if (isa<CallInst>(I)) {
             if (auto II = dyn_cast<IntrinsicInst>(I)) {
                 switch(II->getIntrinsicID()) {
+                    case Intrinsic::lifetime_start:
+                    case Intrinsic::lifetime_end:
                     case Intrinsic::stacksave:
                     case Intrinsic::stackrestore:
+                    case Intrinsic::dbg_declare:
+                    case Intrinsic::dbg_value:
                         return;
                     default: break; // fall-through
                 }
