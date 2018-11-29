@@ -92,6 +92,8 @@ public:
         return true;
     }
 
+    void clear() { pointers.clear(); }
+
     // make union of the two sets and store it
     // into 'this' set (i.e. merge rhs to this set)
     bool merge(const PointsToSet& rhs) {
@@ -279,6 +281,8 @@ public:
         }
         return false;
     }
+
+    void clear() { pointers.clear(); }
 
     // make union of the two sets and store it
     // into 'this' set (i.e. merge rhs to this set)
