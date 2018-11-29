@@ -166,7 +166,8 @@ public:
 
         current_def.clear();
 
-        BBlockBFS<NodeT> bfs(BFS_BB_CFG | BFS_INTERPROCEDURAL);
+        legacy::BBlockBFS<NodeT> bfs(legacy::BFS_BB_CFG |
+                                     legacy::BFS_INTERPROCEDURAL);
 
         std::vector<BlockT *> cfg;
         BlockT *block = root->getBBlock();

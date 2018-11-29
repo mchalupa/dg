@@ -87,6 +87,13 @@ add_dependencies(check disjunctive-intervals-map-test)
 target_include_directories(disjunctive-intervals-map-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 
 # --------------------------------------------------
+# nodes-walk-test
+# --------------------------------------------------
+add_executable(nodes-walk-test nodes-walk-test.cpp)
+add_test(nodes-walk-test nodes-walk-test)
+add_dependencies(check nodes-walk-test)
+
+# --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 if (LLVM_DG)

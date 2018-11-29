@@ -20,17 +20,18 @@ namespace analysis {
 // this class will go through the nodes
 // and will mark the ones that should be in the slice
 template <typename NodeT>
-class WalkAndMark : public NodesWalk<NodeT, QueueFIFO<NodeT *>>
+class WalkAndMark : public legacy::NodesWalk<NodeT, QueueFIFO<NodeT *>>
 {
 public:
     ///
     // forward_slc makes searching the dependencies
     // in forward direction instead of backward
     WalkAndMark(bool forward_slc = false)
-        : NodesWalk<NodeT, QueueFIFO<NodeT *>>(
+        : legacy::NodesWalk<NodeT, QueueFIFO<NodeT *>>(
             forward_slc ?
-                (NODES_WALK_CD | NODES_WALK_DD) :
-                (NODES_WALK_REV_CD | NODES_WALK_REV_DD | NODES_WALK_USER)
+                (legacy::NODES_WALK_CD | legacy::NODES_WALK_DD) :
+                (legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
+                 legacy::NODES_WALK_USER)
           ),
           forward_slice(forward_slc) {}
 
@@ -242,7 +243,7 @@ public:
     void sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
     {
         // we must queue the blocks ourselves before we potentially remove them
-        BBlockBFS<NodeT> bfs(BFS_BB_CFG);
+        legacy::BBlockBFS<NodeT> bfs(legacy::BFS_BB_CFG);
         std::set<BBlock<NodeT> *> blocks;
 
         RemoveBlockData data = { sl_id, blocks };

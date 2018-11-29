@@ -8,6 +8,7 @@
 
 #include "dg/analysis/Offset.h"
 #include "dg/analysis/SubgraphNode.h"
+#include "dg/analysis/BFS.h"
 #include "dg/BBlock.h"
 #include "dg/ADT/Queue.h"
 #include "dg/DGParameters.h"
@@ -264,75 +265,33 @@ public:
     ReachingDefinitionsAnalysis(RDNode *r) : ReachingDefinitionsAnalysis(r, {}) {}
     virtual ~ReachingDefinitionsAnalysis() = default;
 
-
-    void getNodes(std::set<RDNode *>& cont)
-    {
-        assert(root && "Do not have root");
-
-        ++dfsnum;
-
-        ADT::QueueLIFO<RDNode *> lifo;
-        lifo.push(root);
-        root->dfsid = dfsnum;
-
-        while (!lifo.empty()) {
-            RDNode *cur = lifo.pop();
-            cont.insert(cur);
-
-            for (RDNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    lifo.push(succ);
-                }
-            }
-        }
-    }
-
     // get nodes in BFS order and store them into
     // the container
-    std::vector<RDNode *> getNodes(RDNode *start_node = nullptr,
-                                   std::vector<RDNode *> *start_set = nullptr,
+    template <typename ContainerOrNode>
+    std::vector<RDNode *> getNodes(const ContainerOrNode& start,
                                    unsigned expected_num = 0)
     {
-        assert(root && "Do not have root");
-        assert(!(start_set && start_node)
-               && "Need either starting set or starting node, not both");
-
         ++dfsnum;
-        ADT::QueueFIFO<RDNode *> fifo;
-
-        if (start_set) {
-            for (RDNode *s : *start_set) {
-                fifo.push(s);
-                s->dfsid = dfsnum;
-            }
-        } else {
-            if (!start_node)
-                start_node = root;
-
-            fifo.push(start_node);
-            start_node->dfsid = dfsnum;
-        }
 
         std::vector<RDNode *> cont;
         if (expected_num != 0)
             cont.reserve(expected_num);
 
-        while (!fifo.empty()) {
-            RDNode *cur = fifo.pop();
-            cont.push_back(cur);
+        struct DfsIdTracker {
+            const unsigned dfsnum;
+            DfsIdTracker(unsigned dnum) : dfsnum(dnum) {}
 
-            for (RDNode *succ : cur->successors) {
-                if (succ->dfsid != dfsnum) {
-                    succ->dfsid = dfsnum;
-                    fifo.push(succ);
-                }
-            }
-        }
+            void visit(RDNode *n) { n->dfsid = dfsnum; }
+            bool visited(RDNode *n) const { return n->dfsid == dfsnum; }
+        };
+
+        DfsIdTracker visitTracker(dfsnum);
+        BFS<RDNode, DfsIdTracker> bfs(visitTracker);
+
+        bfs.run(start, [&cont](RDNode *n) { cont.push_back(n); });
 
         return cont;
     }
-
 
     RDNode *getRoot() const { return root; }
     void setRoot(RDNode *r) { root = r; }
