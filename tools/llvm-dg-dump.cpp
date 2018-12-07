@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
     using namespace debug;
-    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE;
+    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
 
     // parse options
     for (int i = 1; i < argc; ++i) {

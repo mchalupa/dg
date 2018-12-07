@@ -47,12 +47,12 @@ if (LLVM_DG)
 	  message(STATUS "Looking for headers in: ${LLVM_INCLUDE_DIRS}")
 	endif()
 
-	# if we were provided a path to custom build directory
-	# use that
+       # if we were provided a path to custom build directory
+       # use that
 	if (LLVM_BUILD_PATH)
 	  link_directories(${LLVM_BUILD_PATH}/lib)
 
-	  # llvm-config.h
+         # llvm-config.h
 	  include_directories("${LLVM_BUILD_PATH}/include")
 	  message(STATUS "Looking for libraries in given: ${LLVM_BUILD_PATH}/lib")
 	else()
@@ -76,6 +76,7 @@ if (LLVM_DG)
 		llvm_map_components_to_libraries(llvm_analysis analysis)
 		llvm_map_components_to_libraries(llvm_support support)
 	endif()
+link_libraries(LLVM)
 endif(LLVM_DG)
 
 if (ENABLE_CFG)
