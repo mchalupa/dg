@@ -338,13 +338,13 @@ class DGDumper {
     const SlicerOptions& options;
     LLVMDependenceGraph *dg;
     bool bb_only{false};
-    uint32_t dump_opts{debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE};
+    uint32_t dump_opts{debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID};
 
 public:
     DGDumper(const SlicerOptions& opts,
              LLVMDependenceGraph *dg,
              bool bb_only = false,
-             uint32_t dump_opts = debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE)
+             uint32_t dump_opts = debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID)
     : options(opts), dg(dg), bb_only(bb_only), dump_opts(dump_opts) {}
 
     void dumpToDot(const char *suffix = nullptr) {

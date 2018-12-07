@@ -60,6 +60,12 @@ if (LLVM_DG)
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_support})
 
+        add_executable(llvm-thread-regions-dump llvm-thread-regions-dump.cpp)
+        target_link_libraries(llvm-thread-regions-dump PRIVATE ThreadRegions)
+        set_target_properties(llvm-thread-regions-dump
+                PROPERTIES
+                CXX_STANDARD 14)
+
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
 endif (LLVM_DG)

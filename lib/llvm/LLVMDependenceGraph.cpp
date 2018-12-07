@@ -48,6 +48,9 @@
 #include "llvm/analysis/ControlExpression.h"
 #include "llvm-utils.h"
 
+#include "ControlFlowGraph.h"
+#include "MayHappenInParallel.h"
+
 using llvm::errs;
 using std::make_pair;
 
@@ -128,6 +131,15 @@ bool LLVMDependenceGraph::verify() const
     return verifier.verify();
 }
 
+LLVMNode *LLVMDependenceGraph::findNode(llvm::Value * value) const {
+    auto iterator = nodes.find(value);
+    if (iterator != nodes.end()) {
+        return iterator->second;
+    } else {
+        return nullptr;
+    }
+}
+
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 {
     // get entry function if not given
@@ -149,7 +161,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 
     // build recursively DG from entry point
     build(entryFunction);
-
+    computeInterferenceDependentEdges();
     return true;
 };
 
@@ -244,7 +256,7 @@ void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgr
 }
 
 LLVMDependenceGraph *
-LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc)
+LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc, bool fork)
 {
     using namespace llvm;
 
@@ -297,7 +309,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc)
     // it is necessary if this subgraph was creating due to function
     // pointer call
     addSubgraphGlobalParameters(subgraph);
-    node->addActualParameters(subgraph, callFunc);
+    node->addActualParameters(subgraph, callFunc, fork);
 
     return subgraph;
 }
@@ -392,6 +404,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                         continue;
 
                     Function *F = ptr.target->getUserData<Function>();
+                    func = F;
                     if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst))
                         // incompatible prototypes or the function
                         // is only declaration
@@ -420,7 +433,15 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // we can add def-use edges from parent, through the parameter
         // to the definition
         if (isMemAllocationFunc(CInst->getCalledFunction()))
-                addFormalParameter(val);
+            addFormalParameter(val);
+
+        if (func && func->getName() == "pthread_create") {
+            auto possibleFunctions = PTA->getPointsToFunctions(CInst->getArgOperand(2));
+            for (auto &function : possibleFunctions) {
+                LLVMDependenceGraph *subg = buildSubgraph(node, const_cast<llvm::Function *>(function), true /*this is fork*/);
+                node->addSubgraph(subg);
+            }
+        }
 
         // no matter what is the function, this is a CallInst,
         // so create call-graph
@@ -893,6 +914,94 @@ void LLVMDependenceGraph::computeControlExpression(bool addCDs)
             }
         }
     }
+}
+
+void LLVMDependenceGraph::computeInterferenceDependentEdges()
+{
+    ControlFlowGraph controlFlowGraph(module, PTA);
+    controlFlowGraph.build();
+    controlFlowGraph.traverse();
+    auto regions = controlFlowGraph.threadRegions();
+    MayHappenInParallel mayHappenInParallel(regions);
+
+    for (const auto &currentRegion : regions) {
+        auto llvmValuesForCurrentRegion     = currentRegion->llvmValues();
+        auto currentRegionLoads             = getLoadInstructions(llvmValuesForCurrentRegion);
+        auto currentRegionStores            = getStoreInstructions(llvmValuesForCurrentRegion);
+        auto parallelRegions                = mayHappenInParallel.parallelRegions(currentRegion);
+        for (const auto &parallelRegion : parallelRegions) {
+            auto llvmValuesForParallelRegion    = parallelRegion->llvmValues();
+            auto parallelRegionLoads            = getLoadInstructions(llvmValuesForParallelRegion);
+            auto parallelRegionStores           = getStoreInstructions(llvmValuesForParallelRegion);
+                computeInterferenceDependentEdges(currentRegionLoads, parallelRegionStores);
+                computeInterferenceDependentEdges(parallelRegionLoads, currentRegionStores);
+        }
+    }
+    // make pthread_join dependent on pthread_create
+    // TODO this needs to be refactored into single method and should not be called from this method, but separatelly
+    auto joins = controlFlowGraph.getJoins();
+    for (const auto &join : joins) {
+        auto joinNode = constructedFunctions.find(const_cast<llvm::Function *>(join->getFunction()))->second->findNode(const_cast<llvm::CallInst *>(join));
+        for (const auto &fork : controlFlowGraph.getCorrespondingForks(join)) {
+            auto forkNode = constructedFunctions.find(const_cast<llvm::Function *>(fork->getFunction()))->second->findNode(const_cast<llvm::CallInst *>(fork));
+            joinNode->addControlDependence(forkNode);
+        }
+    }
+}
+
+void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
+                                                            const std::set<const llvm::Instruction *> &stores) {
+    for (const auto &load :loads) {
+        for (const auto &store : stores) {
+            auto loadOperand = PTA->getPointsTo(load->getOperand(0));
+            auto storeOperand = PTA->getPointsTo(store->getOperand(1));
+            for (const auto pointerLoad : loadOperand->pointsTo) {
+                for (const auto pointerStore : storeOperand->pointsTo) {
+                    if (pointerLoad.target == pointerStore.target &&
+                        (pointerLoad.offset.isUnknown()  ||
+                         pointerStore.offset.isUnknown() ||
+                         pointerLoad.offset == pointerStore.offset)) {
+                        llvm::Instruction *loadInst = const_cast<llvm::Instruction *>(load);
+                        llvm::Instruction *storeInst = const_cast<llvm::Instruction *>(store);
+                        auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getFunction()));
+                        auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getFunction()));
+                        if (loadFunction != constructedFunctions.end() && storeFunction != constructedFunctions.end()) {
+                            auto loadNode = loadFunction->second->findNode(loadInst);
+                            auto storeNode = storeFunction->second->findNode(storeInst);
+                            if (loadNode && storeNode) {
+                                storeNode->addInterferenceDependence(loadNode);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+std::set<const llvm::Instruction *>
+LLVMDependenceGraph::getLoadInstructions(const std::set<const llvm::Value *> &llvmValues) const {
+    return getInstructionsOfType(llvm::Instruction::Load, llvmValues);
+}
+
+std::set<const llvm::Instruction *>
+LLVMDependenceGraph::getStoreInstructions(const std::set<const llvm::Value *> &llvmValues) const {
+    return getInstructionsOfType(llvm::Instruction::Store, llvmValues);
+}
+
+std::set<const llvm::Instruction *>
+LLVMDependenceGraph::getInstructionsOfType(const unsigned opCode,
+                                           const std::set<const llvm::Value *> &llvmValues) const {
+    std::set<const llvm::Instruction *> instructions;
+    for (const auto &llvmValue : llvmValues) {
+        if (llvm::isa<llvm::Instruction>(llvmValue)) {
+            const llvm::Instruction *instruction = static_cast<const llvm::Instruction *>(llvmValue);
+            if (instruction->getOpcode() == opCode) {
+                instructions.insert(instruction);
+            }
+        }
+    }
+    return instructions;
 }
 
 // the original algorithm from Ferrante & Ottenstein

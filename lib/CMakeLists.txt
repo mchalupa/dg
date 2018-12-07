@@ -78,6 +78,14 @@ target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
 			PUBLIC RD)
 
+add_library(ThreadRegions SHARED "")
+include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ThreadRegions/CMakeLists.txt)
+target_include_directories(ThreadRegions
+        PUBLIC
+            ${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ThreadRegions)
+target_link_libraries(ThreadRegions
+    PUBLIC LLVM LLVMpta)
+
 add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h
 	${CMAKE_SOURCE_DIR}/include/dg/Node.h
@@ -100,9 +108,12 @@ add_library(LLVMdg SHARED
 
 target_link_libraries(LLVMdg
 			PUBLIC LLVMpta
-			PUBLIC LLVMrd)
+                        PUBLIC LLVMrd
+                        PUBLIC ThreadRegions)
 
-install(TARGETS LLVMdg LLVMpta LLVMrd PTA RD DGAnalysis
+
+
+install(TARGETS LLVMdg ThreadRegions LLVMpta LLVMrd PTA RD DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)

@@ -29,8 +29,8 @@ public:
     WalkAndMark(bool forward_slc = false)
         : NodesWalk<NodeT, QueueFIFO<NodeT *>>(
             forward_slc ?
-                (NODES_WALK_CD | NODES_WALK_DD) :
-                (NODES_WALK_REV_CD | NODES_WALK_REV_DD | NODES_WALK_USER)
+                (NODES_WALK_CD | NODES_WALK_DD | NODES_WALK_ID) :
+                (NODES_WALK_REV_CD | NODES_WALK_REV_DD | NODES_WALK_USER | NODES_WALK_REV_ID)
           ),
           forward_slice(forward_slc) {}
 

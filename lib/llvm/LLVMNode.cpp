@@ -112,7 +112,8 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
 static void addOperandsParams(LLVMDGParameters *params,
                               LLVMDGParameters *formal,
                               LLVMNode *callNode,
-                              llvm::Function *func)
+                              llvm::Function *func,
+                              bool fork = false)
 {
 
     llvm::CallInst *CInst
@@ -120,7 +121,12 @@ static void addOperandsParams(LLVMDGParameters *params,
     assert(CInst && "addActualParameters called on non-CallInst");
 
     LLVMNode *in, *out;
-    int idx = 0;
+    int idx;
+    if (fork) {
+        idx = 3;
+    } else {
+        idx = 0;
+    }
     for (auto A = func->arg_begin(), E = func->arg_end();
          A != E; ++A, ++idx) {
         llvm::Value *opval = CInst->getArgOperand(idx);
@@ -171,7 +177,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph)
 }
 
 void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
-                                   llvm::Function *func)
+                                   llvm::Function *func, bool fork)
 {
     using namespace llvm;
 
@@ -193,7 +199,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     }
 
     if (func->arg_size() != 0)
-        addOperandsParams(params, formal, this, func);
+        addOperandsParams(params, formal, this, func, fork);
 
     // hopefully we matched all the operands, so let's
     // add the global variables the function uses
