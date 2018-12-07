@@ -117,7 +117,7 @@ public:
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
-    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *);
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *, bool fork = false);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void makeSelfLoopsControlDependent();
@@ -154,9 +154,21 @@ public:
     LLVMPointerAnalysis *getPTA() const { return PTA; }
     LLVMReachingDefinitions *getRDA() const { return RDA; }
 
+    LLVMNode *findNode(llvm::Value *value) const;
+
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeControlExpression(bool addCDs = false);
+
+    void computeInterferenceDependentEdges();
+    void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
+                                           const std::set<const llvm::Instruction *> &stores);
+
+    std::set<const llvm::Instruction *> getLoadInstructions(const std::set<const llvm::Value *> &llvmValues) const;
+    std::set<const llvm::Instruction *> getStoreInstructions(const std::set<const llvm::Value *> &llvmValues) const;
+
+    std::set<const llvm::Instruction *> getInstructionsOfType(const unsigned opCode,
+                                                              const std::set<const llvm::Value *> &llvmValues) const;
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)

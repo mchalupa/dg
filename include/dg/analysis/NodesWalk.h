@@ -7,6 +7,7 @@
 namespace dg {
 namespace analysis {
 
+
 // universal but not very efficient visits tracker
 template <typename Node>
 struct SetVisitTracker {
