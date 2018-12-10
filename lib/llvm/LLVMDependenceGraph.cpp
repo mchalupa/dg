@@ -172,21 +172,17 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
 bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
 {
     // add the same formal parameters
-    LLVMDGParameters *params = getParameters();
-    if (!params) {
-        params = new LLVMDGParameters();
-        setParameters(params);
-    }
+    LLVMDGParameters *params = getOrCreateParameters();
+    assert(params);
 
     // if we have this value, just return
     if (params->find(val))
         return false;
 
-    LLVMNode *fpin = new LLVMNode(val);
-    LLVMNode *fpout = new LLVMNode(val);
-    fpin->setDG(this);
-    fpout->setDG(this);
-    params->addGlobal(val, fpin, fpout);
+    LLVMNode *fpin, *fpout;
+    std::tie(fpin, fpout) = params->constructGlobal(val, val, this);
+    assert(fpin && fpout);
+    assert(fpin->getDG() == this && fpout->getDG() == this);
 
     LLVMNode *entry = getEntry();
     entry->addControlDependence(fpin);
@@ -370,11 +366,10 @@ bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
     if (params->find(val))
         return false;
 
-    LLVMNode *fpin = new LLVMNode(val);
-    LLVMNode *fpout = new LLVMNode(val);
-    fpin->setDG(this);
-    fpout->setDG(this);
-    params->add(val, fpin, fpout);
+    LLVMNode *fpin, *fpout;
+    std::tie(fpin, fpout) = params->construct(val, val, this);
+    assert(fpin && fpout);
+    assert(fpin->getDG() == this && fpout->getDG() == this);
 
     LLVMNode *entry = getEntry();
     entry->addControlDependence(fpin);
@@ -756,11 +751,8 @@ void LLVMDependenceGraph::addFormalParameters()
     for (auto I = func->arg_begin(), E = func->arg_end(); I != E; ++I) {
         Value *val = (&*I);
 
-        in = new LLVMNode(val);
-        out = new LLVMNode(val);
-        in->setDG(this);
-        out->setDG(this);
-        params->add(val, in, out);
+        std::tie(in, out) = params->construct(val, val, this);
+        assert(in && out);
 
         // add control edges
         entryNode->addControlDependence(in);

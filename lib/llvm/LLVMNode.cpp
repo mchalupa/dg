@@ -49,15 +49,13 @@ static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMD
         LLVMDGParameter *act = params->findGlobal(val);
         // reuse or create the parameter
         if (!act) {
-            pin = new LLVMNode(val);
-            pout = new LLVMNode(val);
-            pin->setDG(callNode->getDG());
-            pout->setDG(callNode->getDG());
-            params->addGlobal(val, pin, pout);
+            std::tie(pin, pout)
+                = params->constructGlobal(val, val, callNode->getDG());
         } else {
             pin = act->in;
             pout = act->out;
         }
+        assert(pin && pout);
 
         // connect the globals with edges
         pin->addDataDependence(p.in);
@@ -87,15 +85,12 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
 
         // reuse or create the parameter
         if (!act) {
-            pin = new LLVMNode(val);
-            pout = new LLVMNode(val);
-            pin->setDG(callNode->getDG());
-            pout->setDG(callNode->getDG());
-            params->add(val, pin, pout);
+            std::tie(pin, pout) = params->construct(val, val, callNode->getDG());
         } else {
             pin = act->in;
             pout = act->out;
         }
+        assert(pin && pout);
 
         // connect the params with edges
         pin->addDataDependence(p.in);
@@ -132,15 +127,13 @@ static void addOperandsParams(LLVMDGParameters *params,
 
         LLVMDGParameter *ap = params->find(opval);
         if (!ap) {
-            in = new LLVMNode(opval);
-            out = new LLVMNode(opval);
-            in->setDG(callNode->getDG());
-            out->setDG(callNode->getDG());
-            params->add(opval, in, out);
+            std::tie(in, out)
+                = params->construct(opval, opval, callNode->getDG());
         } else {
             in = ap->in;
             out = ap->out;
         }
+        assert(in && out);
 
         // add control edges from the call-site node
         // to the parameters

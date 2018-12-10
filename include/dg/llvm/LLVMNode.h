@@ -67,6 +67,11 @@ public:
 #endif
     }
 
+    LLVMNode(llvm::Value *val, LLVMDependenceGraph *dg)
+        : LLVMNode(val) {
+        setDG(dg);
+    }
+
     llvm::Value *getValue() const { return getKey(); }
 
     // create new subgraph with actual parameters that are given
