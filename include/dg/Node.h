@@ -43,13 +43,6 @@ public:
 
     Node(const KeyT& k) : key(k) {}
 
-    // remove this node from dg (from the container - the memory is still valid
-    // and must be freed later)
-    void removeFromDG()
-    {
-        dg->removeNode(key);
-    }
-
     DependenceGraphT *setDG(DependenceGraphT *dg)
     {
         DependenceGraphT *old = this->dg;

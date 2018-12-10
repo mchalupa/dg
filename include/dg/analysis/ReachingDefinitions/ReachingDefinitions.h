@@ -224,9 +224,6 @@ public:
     void removeDDs() {
     }
 
-    void removeFromDG() {
-    }
-
     bool hasSubgraphs() const {
         return false;
     }

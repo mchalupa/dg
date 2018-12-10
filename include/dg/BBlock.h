@@ -235,7 +235,8 @@ public:
                 n->removeCDs();
                 n->removeDDs();
                 // remove the node from dg
-                n->removeFromDG();
+                assert(n->getDG());
+                n->getDG()->removeNode(n);
 
                 delete n;
             }
