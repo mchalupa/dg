@@ -70,14 +70,8 @@ public:
 
         // add some parameters
         DGParameters<TestNode> *params = new DGParameters<TestNode>();
-
-        TestNode *ni = new TestNode(nodes_num + 1);
-        TestNode *no = new TestNode(nodes_num + 1);
-        params->add(nodes_num + 1, ni, no);
-
-        ni = new TestNode(nodes_num + 2);
-        no = new TestNode(nodes_num + 2);
-        params->add(nodes_num + 2, ni, no);
+        params->construct(nodes_num + 1, nodes_num + 1);
+        params->construct(nodes_num + 2, nodes_num + 2);
 
         d->getEntry()->setParameters(params);
 
