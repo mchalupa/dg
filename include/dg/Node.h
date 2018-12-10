@@ -41,12 +41,7 @@ public:
     using use_iterator = typename DataEdgesT::iterator;
     using const_use_iterator = typename DataEdgesT::const_iterator;
 
-    Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k,
-                                        DependenceGraphT *dg = nullptr)
-        : key(k), dg(dg) {
-        if (dg)
-            dg->addNode(static_cast<NodeT *>(this));
-    }
+    Node(const KeyT& k) : key(k) {}
 
     // remove this node from dg (from the container - the memory is still valid
     // and must be freed later)
@@ -346,10 +341,10 @@ public:
 protected:
 
     // key uniquely identifying this node in a graph
-    KeyT key;
+    KeyT key{};
 
     // each node has a reference to the DependenceGraph
-    DependenceGraphT *dg;
+    DependenceGraphT *dg{nullptr};
 
 private:
 
