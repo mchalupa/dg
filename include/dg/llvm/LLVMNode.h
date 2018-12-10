@@ -39,7 +39,7 @@ class LLVMDependenceGraph;
 class LLVMNode;
 
 using LLVMBBlock = dg::BBlock<LLVMNode>;
-using LLVMDGParameter = dg::DGParameter<LLVMNode>;
+using LLVMDGParameter = dg::DGParameterPair<LLVMNode>;
 using LLVMDGParameters = dg::DGParameters<LLVMNode>;
 
 /// ------------------------------------------------------------------
