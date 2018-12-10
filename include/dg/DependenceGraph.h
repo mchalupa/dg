@@ -15,6 +15,54 @@
 
 namespace dg {
 
+// non-template class representing a generic dependence graph
+class DependenceGraphBase {
+    // how many nodes keeps pointer to this graph?
+    int refcount{1};
+
+    // is the graph in some slice?
+    uint64_t slice_id{0};
+
+public:
+    virtual ~DependenceGraphBase() = default;
+    // dependence graph can be shared between more call-sites that
+    // has references to this graph. When destroying graph, we
+    // must be sure do delete it just once, so count references
+    // This is up to concrete DG implementation if it uses
+    // ref()/unref() methods or handle these stuff some other way
+    int ref()
+    {
+        ++refcount;
+        return refcount;
+    }
+
+    // unref graph and delete if refrences drop to 0
+    // destructor calls this on subgraphs
+    int unref(bool deleteOnZero = true)
+    {
+        --refcount;
+
+        if (deleteOnZero && refcount == 0) {
+            delete this;
+            return 0;
+        }
+
+        assert(refcount >= 0 && "Negative refcount");
+        return refcount;
+    }
+
+    // set that this graph (if it is subgraph)
+    // will be left in a slice. It is virtual, because the graph
+    // may want to override the function and take some action,
+    // if it is in a graph
+    // XXX: could we get rid of the virtual??
+    virtual void setSlice(uint64_t sid) {
+        slice_id = sid;
+    }
+
+    uint64_t getSlice() const { return slice_id; }
+};
+
 // -------------------------------------------------------------------
 //  -- DependenceGraph
 //
@@ -29,8 +77,7 @@ namespace dg {
 //  global nodes and thus share them between all graphs)
 // -------------------------------------------------------------------
 template <typename NodeT>
-class DependenceGraph
-{
+class DependenceGraph : public DependenceGraphBase {
 public:
     // type of key that is used in nodes
     using KeyT = typename NodeT::KeyType;
@@ -61,12 +108,6 @@ private:
     // call-sites (nodes) that are calling this graph
     DGContainer<NodeT *> callers;
 
-    // how many nodes keeps pointer to this graph?
-    int refcount;
-
-    // is the graph in some slice?
-    uint64_t slice_id;
-
 #ifdef ENABLE_CFG
     // blocks contained in this graph
     BBlocksMapT _blocks;
@@ -90,15 +131,14 @@ protected:
 
 public:
     DependenceGraph<NodeT>()
-        : entryNode(nullptr), exitNode(nullptr), formalParameters(nullptr),
-          refcount(1), slice_id(0)
+        : entryNode(nullptr), exitNode(nullptr), formalParameters(nullptr)
 #ifdef ENABLE_CFG
         , entryBB(nullptr), exitBB(nullptr), PDTreeRoot(nullptr)
 #endif
     {
     }
 
-    virtual ~DependenceGraph<NodeT>() {
+    ~DependenceGraph<NodeT>() {
 #ifdef ENABLE_CFG
 #ifdef ENABLE_DEBUG
         bool deleted_entry = false;
@@ -216,32 +256,6 @@ public:
 
     NodeT *getEntry(void) const { return entryNode; }
     NodeT *getExit(void) const { return exitNode; }
-
-    // dependence graph can be shared between more call-sites that
-    // has references to this graph. When destroying graph, we
-    // must be sure do delete it just once, so count references
-    // This is up to concrete DG implementation if it uses
-    // ref()/unref() methods or handle these stuff some other way
-    int ref()
-    {
-        ++refcount;
-        return refcount;
-    }
-
-    // unref graph and delete if refrences drop to 0
-    // destructor calls this on subgraphs
-    int unref(bool deleteOnZero = true)
-    {
-        --refcount;
-
-        if (deleteOnZero && refcount == 0) {
-            delete this;
-            return 0;
-        }
-
-        assert(refcount >= 0 && "Negative refcount");
-        return refcount;
-    }
 
     void setGlobalNodes(const std::shared_ptr<ContainerType>& ngn)
     {
@@ -394,17 +408,6 @@ public:
     DGContainer<NodeT *>& getCallers() { return callers; }
     const DGContainer<NodeT *>& getCallers() const { return callers; }
     bool addCaller(NodeT *sg) { return callers.insert(sg); }
-
-    // set that this graph (if it is subgraph)
-    // will be left in a slice. It is virtual, because the graph
-    // may want to override the function and take some action,
-    // if it is in a graph
-    virtual void setSlice(uint64_t sid)
-    {
-        slice_id = sid;
-    }
-
-    uint64_t getSlice() const { return slice_id; }
 
 #ifdef ENABLE_CFG
     // get blocks contained in this graph
