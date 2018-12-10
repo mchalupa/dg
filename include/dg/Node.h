@@ -43,11 +43,7 @@ public:
 
     Node<DependenceGraphT, KeyT, NodeT>(const KeyT& k,
                                         DependenceGraphT *dg = nullptr)
-        : key(k), dg(dg), parameters(nullptr), slice_id(0)
-#ifdef ENABLE_CFG
-         , basicBlock(nullptr)
-#endif
-    {
+        : key(k), dg(dg) {
         if (dg)
             dg->addNode(static_cast<NodeT *>(this));
     }
@@ -400,15 +396,15 @@ private:
     std::set<DependenceGraphT *> subgraphs;
 
     // actual parameters if this is a callsite
-    DGParameters<NodeT> *parameters;
+    DGParameters<NodeT> *parameters{nullptr};
 
     // id of the slice this nodes is in. If it is 0, it is in no slice
-    uint32_t slice_id;
+    uint32_t slice_id{0};
 
 #ifdef ENABLE_CFG
     // some analyses need classical CFG edges
     // and it is better to have even basic blocks
-    BBlock<NodeT> *basicBlock;
+    BBlock<NodeT> *basicBlock{nullptr};
 #endif /* ENABLE_CFG */
 
     // auxiliary data for different analyses
