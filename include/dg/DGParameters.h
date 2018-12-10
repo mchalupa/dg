@@ -9,10 +9,11 @@
 
 namespace dg {
 
+
 template <typename NodeT>
-struct DGParameter
+struct DGParameterPair
 {
-    DGParameter<NodeT>(NodeT *v1, NodeT *v2)
+    DGParameterPair<NodeT>(NodeT *v1, NodeT *v2)
         : in(v1), out(v2) {}
 
     // input value of parameter
@@ -53,7 +54,7 @@ class DGParameters
 {
 public:
     using KeyT = typename NodeT::KeyType;
-    using ContainerType = std::map<KeyT, DGParameter<NodeT>>;
+    using ContainerType = std::map<KeyT, DGParameterPair<NodeT>>;
     using iterator = typename ContainerType::iterator;
     using const_iterator = typename ContainerType::const_iterator;
 
@@ -81,8 +82,8 @@ public:
 #endif
     }
 
-    DGParameter<NodeT> *operator[](KeyT k) { return find(k); }
-    const DGParameter<NodeT> *operator[](KeyT k) const { return find(k); }
+    DGParameterPair<NodeT> *operator[](KeyT k) { return find(k); }
+    const DGParameterPair<NodeT> *operator[](KeyT k) const { return find(k); }
 
     bool add(KeyT k, NodeT *val_in, NodeT *val_out)
     {
@@ -94,32 +95,32 @@ public:
         return add(k, val_in, val_out, &globals);
     }
 
-    DGParameter<NodeT> *findGlobal(KeyT k)
+    DGParameterPair<NodeT> *findGlobal(KeyT k)
     {
         return find(k, &globals);
     }
 
-    DGParameter<NodeT> *findParameter(KeyT k)
+    DGParameterPair<NodeT> *findParameter(KeyT k)
     {
         return find(k, &params);
     }
 
-    DGParameter<NodeT> *find(KeyT k)
+    DGParameterPair<NodeT> *find(KeyT k)
     {
-        DGParameter<NodeT> *ret = findParameter(k);
+        auto ret = findParameter(k);
         if (!ret)
             return findGlobal(k);
 
         return ret;
     }
 
-    const DGParameter<NodeT> *findParameter(KeyT k) const
+    const DGParameterPair<NodeT> *findParameter(KeyT k) const
     {
         return findParameter(k);
     }
 
-    const DGParameter<NodeT> *findGlobal(KeyT k) const { return findGlobal(k); }
-    const DGParameter<NodeT> *find(KeyT k) const { return find(k); }
+    const DGParameterPair<NodeT> *findGlobal(KeyT k) const { return findGlobal(k); }
+    const DGParameterPair<NodeT> *find(KeyT k) const { return find(k); }
 
     void remove(KeyT k)
     {
@@ -128,7 +129,7 @@ public:
 
     void removeIn(KeyT k)
     {
-        DGParameter<NodeT> *p = find(k);
+        auto p = find(k);
         if (!p)
             return;
 
@@ -141,7 +142,7 @@ public:
 
     void removeOut(KeyT k)
     {
-        DGParameter<NodeT> *p = find(k);
+        auto p = find(k);
         if (!p)
             return;
 
@@ -171,13 +172,13 @@ public:
     BBlock<NodeT> *getBBIn() { return BBIn; }
     BBlock<NodeT> *getBBOut() { return BBOut; }
 
-    DGParameter<NodeT>* getVarArg() { return vararg.get(); }
-    const DGParameter<NodeT>* getVarArg() const { return vararg.get(); }
+    DGParameterPair<NodeT>* getVarArg() { return vararg.get(); }
+    const DGParameterPair<NodeT>* getVarArg() const { return vararg.get(); }
     bool setVarArg(NodeT *in, NodeT *out)
     {
         assert(!vararg && "Already has a vararg parameter");
 
-        vararg.reset(new DGParameter<NodeT>(in, out));
+        vararg.reset(new DGParameterPair<NodeT>(in, out));
         return true;
     }
 
@@ -204,7 +205,7 @@ private:
     // this is parameter that represents
     // formal vararg parameters. It is only one, because without
     // any further analysis, we cannot tell apart the formal varargs
-    std::unique_ptr<DGParameter<NodeT>> vararg{};
+    std::unique_ptr<DGParameterPair<NodeT>> vararg{};
     // node representing that the function may not return
     // -- we can add control dependencies to this node
     std::unique_ptr<NodeT> noret{};
@@ -213,7 +214,7 @@ private:
     BBlock<NodeT> *BBOut;
     NodeT *callSite;
 
-    DGParameter<NodeT> *find(KeyT k, ContainerType *C)
+    DGParameterPair<NodeT> *find(KeyT k, ContainerType *C)
     {
         iterator it = C->find(k);
         if (it == C->end())
@@ -224,7 +225,7 @@ private:
 
     bool add(KeyT k, NodeT *val_in, NodeT *val_out, ContainerType *C)
     {
-        auto v = std::make_pair(k, DGParameter<NodeT>(val_in, val_out));
+        auto v = std::make_pair(k, DGParameterPair<NodeT>(val_in, val_out));
         if (!C->insert(v).second)
             // we already has param with this key
             return false;

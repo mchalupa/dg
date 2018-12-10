@@ -377,7 +377,7 @@ private:
 
         // dump all the nodes again to get the names
         for (auto it : *params) {
-            DGParameter<NodeT>& p = it.second;
+            auto& p = it.second;
             if (p.in) {
                 dump_node(p.in, ind, formal ? "[f] IN ARG" : "IN ARG");
                 dump_node_edges(p.in, ind);
@@ -393,7 +393,7 @@ private:
 
         for (auto I = params->global_begin(), E = params->global_end();
              I != E; ++I) {
-            DGParameter<NodeT>& p = I->second;
+            auto& p = I->second;
             if (p.in) {
                 dump_node(p.in, ind, formal ? "[f] GLOB IN" : "GLOB IN");
                 dump_node_edges(p.in, ind);
@@ -407,7 +407,7 @@ private:
                 out << "NO GLOB OUT ARG";
         }
 
-        DGParameter<NodeT> *p = params->getVarArg();
+        auto p = params->getVarArg();
         if (p) {
             if (p->in) {
                 dump_node(p->in, ind, "[va] IN ARG");
