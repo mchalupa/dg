@@ -63,6 +63,15 @@ public:
         return add(ptr.target, ptr.offset);
     }
 
+    // union (unite S into this set)
+    bool add(const PointsToSet& S) {
+        bool changed = false;
+        for (auto& it : S.pointers) {
+            changed |= pointers[it.first].set(it.second);
+        }
+        return changed;
+    }
+
     bool remove(const Pointer& ptr) {
         return remove(ptr.target, ptr.offset);
     }
@@ -93,18 +102,6 @@ public:
     }
 
     void clear() { pointers.clear(); }
-
-    // make union of the two sets and store it
-    // into 'this' set (i.e. merge rhs to this set)
-    bool merge(const PointsToSet& rhs) {
-        bool changed = false;
-        for (auto& it : rhs.pointers) {
-            auto &ourS = pointers[it.first];
-            changed |= ourS.merge(it.second);
-        }
-
-        return changed;
-    }
 
     bool pointsTo(const Pointer& ptr) const {
         auto it = pointers.find(ptr.target);
@@ -252,6 +249,17 @@ public:
         return add(ptr.target, ptr.offset);
     }
 
+    // make union of the two sets and store it
+    // into 'this' set (i.e. merge rhs to this set)
+    bool add(const SimplePointsToSet& rhs) {
+        bool changed = false;
+        for (const auto& ptr : rhs.pointers) {
+            changed |= pointers.insert(ptr).second;
+        }
+
+        return changed;
+    }
+
     bool remove(const Pointer& ptr) {
         return pointers.erase(ptr) != 0;
     }
@@ -283,17 +291,6 @@ public:
     }
 
     void clear() { pointers.clear(); }
-
-    // make union of the two sets and store it
-    // into 'this' set (i.e. merge rhs to this set)
-    bool merge(const SimplePointsToSet& rhs) {
-        bool changed = false;
-        for (const auto& ptr : rhs.pointers) {
-            changed |= pointers.insert(ptr).second;
-        }
-
-        return changed;
-    }
 
     bool pointsTo(const Pointer& ptr) const {
         return pointers.count(ptr) > 0;
