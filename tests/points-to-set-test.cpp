@@ -76,7 +76,8 @@ TEST_CASE("Merge points-to sets", "PointsToSet") {
     REQUIRE(S1.add({A, 0}));
     REQUIRE(S2.add({B, 0}));
 
-    REQUIRE(S1.merge(S2));
+    // union (merge) operation
+    REQUIRE(S1.add(S2));
     REQUIRE(S1.has({A, 0}));
     REQUIRE(S1.has({B, 0}));
     REQUIRE(S1.size() == 2);

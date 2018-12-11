@@ -316,7 +316,7 @@ public:
 
     bool addPointsTo(const PointsToSetT& ptrs)
     {
-        return pointsTo.merge(ptrs);
+        return pointsTo.add(ptrs);
     }
 
     bool doesPointsTo(const Pointer& p)
