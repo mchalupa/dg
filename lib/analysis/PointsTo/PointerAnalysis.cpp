@@ -91,9 +91,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
                 // we have some pointers - copy them all,
                 // since the offset is unknown
                 for (auto& it : o->pointsTo) {
-                    for (const Pointer &p : it.second) {
-                        changed |= node->addPointsTo(p);
-                    }
+                    changed |= node->addPointsTo(it.second);
                 }
 
                 // this is all that we can do here...
@@ -102,7 +100,8 @@ bool PointerAnalysis::processLoad(PSNode *node)
 
             // load from empty points-to set
             // - that is load from unknown memory
-            if (!o->pointsTo.count(ptr.offset)) {
+            auto it = o->pointsTo.find(ptr.offset);
+            if (it == o->pointsTo.end()) {
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
                 if (target->isZeroInitialized())
@@ -115,16 +114,14 @@ bool PointerAnalysis::processLoad(PSNode *node)
             } else {
                 // we have pointers on that memory, so we can
                 // do the work
-                for (const Pointer& memptr : o->pointsTo[ptr.offset])
-                    changed |= node->addPointsTo(memptr);
+                changed |= node->addPointsTo(it->second);
             }
 
             // plus always add the pointers at unknown offset,
             // since these can be what we need too
-            if (o->pointsTo.count(Offset::UNKNOWN)) {
-                for (const Pointer& memptr : o->pointsTo[Offset::UNKNOWN]) {
-                    changed |= node->addPointsTo(memptr);
-                }
+            it = o->pointsTo.find(Offset::UNKNOWN);
+            if (it != o->pointsTo.end()) {
+                changed |= node->addPointsTo(it->second);
             }
         }
     }
@@ -314,9 +311,8 @@ bool PointerAnalysis::processNode(PSNode *node)
                 objects.clear();
                 getMemoryObjects(node, ptr, objects);
                 for (MemoryObject *o : objects) {
-                    for (const Pointer& to : node->getOperand(0)->pointsTo) {
-                        changed |= o->addPointsTo(ptr.offset, to);
-                    }
+                    changed |= o->addPointsTo(ptr.offset,
+                                              node->getOperand(0)->pointsTo);
                 }
             }
             break;
@@ -333,8 +329,7 @@ bool PointerAnalysis::processNode(PSNode *node)
             break;
         case PSNodeType::CAST:
             // cast only copies the pointers
-            for (const Pointer& ptr : node->getOperand(0)->pointsTo)
-                changed |= node->addPointsTo(ptr);
+            changed |= node->addPointsTo(node->getOperand(0)->pointsTo);
             break;
         case PSNodeType::CONSTANT:
             // maybe warn? It has no sense to insert the constants into the graph.
