@@ -44,6 +44,17 @@ struct MemoryObject
     PointsToMapT::const_iterator begin() const { return pointsTo.begin(); }
     PointsToMapT::const_iterator end() const { return pointsTo.end(); }
 
+    bool merge(const MemoryObject& rhs) {
+        bool changed = false;
+        for (auto& rit : rhs.pointsTo) {
+            if (rit.second.empty())
+                continue;
+            changed |= pointsTo[rit.first].add(rit.second);
+        }
+
+        return changed;
+    }
+
     bool addPointsTo(const Offset& off, const Pointer& ptr)
     {
         assert(ptr.target != nullptr
