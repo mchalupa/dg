@@ -23,6 +23,8 @@ class cow_shared_ptr : public std::shared_ptr<T> {
     }
 
     const T *get() const { return std::shared_ptr<T>::get(); }
+    const T *operator->() const { return get(); }
+    const T *operator*() const { return get(); }
 
     T *getWritable() {
         if (owner)
