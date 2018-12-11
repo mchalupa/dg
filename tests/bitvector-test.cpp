@@ -194,7 +194,7 @@ TEST_CASE("Merge random bitvectors (union)", "SparseBitvector") {
     }
 
     auto B1_old = B1;
-    B1.merge(B2);
+    B1.set(B2);
     for (auto x : B1_old) {
         REQUIRE(B1.get(x));
     }

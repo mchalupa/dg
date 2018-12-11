@@ -74,6 +74,19 @@ public:
         return prev;
     }
 
+    // union operation
+    bool set(const SparseBitvectorImpl& rhs) {
+        bool changed = false;
+        for (auto& pair : rhs._bits) {
+            auto& B = _bits[pair.first];
+            auto old = B;
+            B |= pair.second;
+            changed |= (old != B);
+        }
+
+        return changed;
+    }
+
     // returns the previous value of the i-th bit
     bool unset(size_t i) {
         auto sft = _shift(i);
@@ -90,19 +103,8 @@ public:
         return true;
     }
 
-    // this is the union operation
-    bool merge(const SparseBitvectorImpl& rhs) {
-        bool changed = false;
-        // FIXME: this is inefficient
-        for (size_t i : rhs) {
-            // if we changed a bit from false to true,
-            // we changed the bitvector
-            changed |= (set(i) == false);
-        }
-
-        return changed;
-    }
-
+    // FIXME: track the number of elements
+    // in a variable, to avoid this search...
     size_t size() const {
         size_t num = 0;
         for (auto& it : _bits)
