@@ -46,11 +46,6 @@ struct MemoryObject
 
     bool addPointsTo(const Offset& off, const Pointer& ptr)
     {
-        /*
-        if (isUnknown())
-            return false;
-            */
-
         assert(ptr.target != nullptr
                && "Cannot have NULL target, use unknown instead");
 
@@ -59,17 +54,9 @@ struct MemoryObject
 
     bool addPointsTo(const Offset& off, const PointsToSetT& pointers)
     {
-        /*
-        if (isUnknown())
+        if (pointers.empty())
             return false;
-            */
-
-        bool changed = false;
-
-        for (const Pointer& ptr : pointers)
-            changed |= addPointsTo(off, ptr);
-
-        return changed;
+        return pointsTo[off].add(pointers);
     }
 
 #ifndef NDEBUG
