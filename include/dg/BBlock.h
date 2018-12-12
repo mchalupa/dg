@@ -10,10 +10,6 @@
 #include "ADT/DGContainer.h"
 #include "analysis/Analysis.h"
 
-#ifndef ENABLE_CFG
-#error "BBlock.h needs be included with ENABLE_CFG"
-#endif // ENABLE_CFG
-
 namespace dg {
 
 /// ------------------------------------------------------------------
