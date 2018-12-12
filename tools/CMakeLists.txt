@@ -77,7 +77,10 @@ if (LLVM_DG)
 				PRIVATE ${llvm_support})
 
         add_executable(llvm-thread-regions-dump llvm-thread-regions-dump.cpp)
-        target_link_libraries(llvm-thread-regions-dump PRIVATE ThreadRegions)
+        target_link_libraries(llvm-thread-regions-dump PRIVATE ThreadRegions
+                                                       PRIVATE ${llvm_core}
+                                                       PRIVATE ${llvm_irreader}
+                                                       PRIVATE ${llvm_support})
         set_target_properties(llvm-thread-regions-dump
                 PROPERTIES
                 CXX_STANDARD 14)
