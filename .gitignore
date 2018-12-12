@@ -29,7 +29,6 @@
 
 # cmake
 *.cmake
-*CMake*
 *Makefile*
 
 # swp files
