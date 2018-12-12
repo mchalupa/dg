@@ -1,0 +1,11 @@
+target_sources(ThreadRegions
+		PRIVATE
+			${CMAKE_CURRENT_LIST_DIR}/Node.cpp
+			${CMAKE_CURRENT_LIST_DIR}/ArtificialNode.cpp
+			${CMAKE_CURRENT_LIST_DIR}/ForkNode.cpp
+			${CMAKE_CURRENT_LIST_DIR}/JoinNode.cpp
+			${CMAKE_CURRENT_LIST_DIR}/EntryNode.cpp
+			${CMAKE_CURRENT_LIST_DIR}/ExitNode.cpp
+			${CMAKE_CURRENT_LIST_DIR}/EndifNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/ReturnNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/LlvmNode.cpp)
