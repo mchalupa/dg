@@ -82,7 +82,7 @@ target_include_directories(ThreadRegions
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ThreadRegions)
 target_link_libraries(ThreadRegions
-    PUBLIC LLVM LLVMpta)
+    INTERFACE LLVMpta)
 
 add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h
