@@ -2,13 +2,6 @@
 #define _DG_ANALYSIS_H_
 
 namespace dg {
-
-// forward declaration of BBlock
-#ifdef ENABLE_CFG
-template <typename NodeT>
-class BBlock;
-#endif // ENABLE_CFG
-
 namespace analysis {
 
 // data for analyses, stored in nodes
@@ -61,8 +54,16 @@ protected:
     AnalysisStatistics statistics;
 };
 
+} // namespace analysis
+} // namespace dg
 
-#ifdef ENABLE_CFG
+namespace dg {
+
+// forward declaration of BBlock
+template <typename NodeT> class BBlock;
+
+namespace analysis {
+
 /// --------------------------------------------------------
 //  - BBlocks analysis
 /// --------------------------------------------------------
@@ -78,8 +79,8 @@ public:
     }
 };
 
-#endif // ENABLE_CFG
 
 } // namespace analysis
 } // namespace dg
+
 #endif //  _DG_ANALYSIS_H_
