@@ -1,4 +1,5 @@
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/llvm-utils.h"
 
 namespace dg {
 namespace analysis {

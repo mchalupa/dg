@@ -427,15 +427,6 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     addDataDependence(node, pts, mem, size);
 }
 
-static uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
-{
-    // Type can be i8 *null or similar
-    if (!Ty->isSized())
-            return Offset::UNKNOWN;
-
-    return DL->getTypeAllocSize(Ty);
-}
-
 void LLVMDefUseAnalysis::handleLoadInst(llvm::LoadInst *Inst, LLVMNode *node)
 {
     using namespace dg::analysis;
