@@ -1,10 +1,9 @@
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "llvm/llvm-utils.h"
 
 namespace dg {
 namespace analysis {
 namespace pta {
-
-
 
 PSNode *LLVMPointerSubgraphBuilder::createAlloc(const llvm::Instruction *Inst)
 {
