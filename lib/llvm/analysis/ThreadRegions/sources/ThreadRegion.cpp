@@ -2,6 +2,7 @@
 #include "ControlFlowGraph.h"
 #include "Node.h"
 #include "LlvmNode.h"
+#include "DfsState.h"
 
 int ThreadRegion::lastId = 0;
 
