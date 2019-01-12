@@ -76,7 +76,6 @@ if (LLVM_DG)
                 llvm_map_components_to_libraries(llvm_analysis analysis)
                 llvm_map_components_to_libraries(llvm_support support)
         endif()
-link_libraries(LLVM)
 endif(LLVM_DG)
 
 if (ENABLE_CFG)
