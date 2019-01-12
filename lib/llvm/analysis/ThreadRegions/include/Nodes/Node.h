@@ -5,8 +5,8 @@
 #include <set>
 #include <ostream>
 
-#include "DfsState.h"
-#include "ThreadRegion.h"
+#include "dg/llvm/analysis/ThreadRegions/DfsState.h"
+#include "dg/llvm/analysis/ThreadRegions/ThreadRegion.h"
 
 class ControlFlowGraph;
 
