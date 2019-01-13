@@ -24,6 +24,7 @@ struct SlicerOptions {
     bool forwardSlicing{false};
 
     std::string slicingCriteria{};
+    std::string secondarySlicingCriteria{};
     std::string inputFile{};
     std::string outputFile{};
 };

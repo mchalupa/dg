@@ -38,7 +38,17 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "You can use comma-separated list of more slicing criteria,\n"
                        "e.g. -c foo,5:x,:glob\n"), llvm::cl::value_desc("crit"),
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
-    
+
+    llvm::cl::opt<std::string> secondarySlicingCriteria("2c",
+        llvm::cl::desc("Set secondary slicing criterion. The criterion is a call\n"
+                       "to a given function. If just a name of the function is\n"
+                       "given, it is a 'control' slicing criterion. If there is ()\n"
+                       "appended, it is 'data' slicing criterion. E.g. foo means\n"
+                       "control secondary slicing criterion, foo() means data\n"
+                       "data secondary slicing criterion.\n"),
+                       llvm::cl::value_desc("crit"),
+                       llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<bool> removeSlicingCriteria("remove-slicing-criteria",
         llvm::cl::desc("By default, slicer keeps also calls to the slicing criteria\n"
                        "in the sliced program. This switch makes slicer to remove\n"
@@ -134,6 +144,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.inputFile = inputFile;
     options.outputFile = outputFile;
     options.slicingCriteria = slicingCriteria;
+    options.secondarySlicingCriteria = secondarySlicingCriteria;
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
 
