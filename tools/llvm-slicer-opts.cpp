@@ -23,10 +23,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
         llvm::cl::desc("Save the output to given file. If not specified,\n"
                        "a .sliced suffix is used with the original module name."),
         llvm::cl::value_desc("filename"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
         llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<std::string> slicingCriteria("c", llvm::cl::Required,
         llvm::cl::desc("Slice with respect to the call-sites of a given function\n"
                        "i. e.: '-c foo' or '-c __assert_fail'. Special value is a 'ret'\n"
@@ -58,25 +58,25 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "Default is full field-sensitivity (N = Offset::UNKNOWN).\n"),
                        llvm::cl::value_desc("N"), llvm::cl::init(dg::analysis::Offset::UNKNOWN),
                        llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<bool> rdaStrongUpdateUnknown("rd-strong-update-unknown",
         llvm::cl::desc("Let reaching defintions analysis do strong updates on memory defined\n"
                        "with uknown offset in the case, that new definition overwrites\n"
                        "the whole memory. May be unsound for out-of-bound access\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<bool> undefinedArePure("undefined-are-pure",
         llvm::cl::desc("Assume that undefined functions have no side-effects\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<std::string> entryFunction("entry",
         llvm::cl::desc("Entry function of the program\n"),
                        llvm::cl::init("main"), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<bool> forwardSlicing("forward",
         llvm::cl::desc("Perform forward slicing\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<LLVMPointerAnalysisOptions::AnalysisType> ptaType("pta",
         llvm::cl::desc("Choose pointer analysis to use:"),
         llvm::cl::values(
@@ -88,7 +88,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     #endif
             ),
         llvm::cl::init(LLVMPointerAnalysisOptions::AnalysisType::fi), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<LLVMReachingDefinitionsAnalysisOptions::AnalysisType> rdaType("rda",
         llvm::cl::desc("Choose reaching definitions analysis to use:"),
         llvm::cl::values(
@@ -99,7 +99,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     #endif
             ),
         llvm::cl::init(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense), llvm::cl::cat(SlicingOpts));
-    
+
     llvm::cl::opt<dg::CD_ALG> cdAlgorithm("cd-alg",
         llvm::cl::desc("Choose control dependencies algorithm to use:"),
         llvm::cl::values(
@@ -110,7 +110,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     #endif
              ),
         llvm::cl::init(dg::CD_ALG::CLASSIC), llvm::cl::cat(SlicingOpts));
-    
+
     ////////////////////////////////////
     // ===-- End of the options --=== //
     ////////////////////////////////////
