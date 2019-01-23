@@ -146,7 +146,6 @@ public:
     LLVMReachingDefinitions *getRDA() const { return RDA; }
 
     LLVMNode *findNode(llvm::Value *value) const;
-
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeControlExpression(bool addCDs = false);
@@ -204,6 +203,11 @@ private:
 const std::map<llvm::Value *,
                LLVMDependenceGraph *>& getConstructedFunctions();
 
+LLVMNode *
+findInstruction(llvm::Instruction * instruction, 
+                const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions);
+
+llvm::Instruction * castToLLVMInstruction(const llvm::Value * value);
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_

@@ -104,75 +104,26 @@ void BlockGraph::buildCallInstruction(const CallInst *callInstruction, Node *&la
     Node *callNode = nullptr;
     Node *returnNode = nullptr;
 
-    const Value *calledValue = callInstruction->getCalledValue()->stripPointerCasts();
+    const Value *calledValue = callInstruction->getCalledValue();
     auto pointsToFunctions = controlFlowGraph->pointsToAnalysis_->getPointsToFunctions(calledValue);
 
-    const Function *pthreadCreate = nullptr;
-    const Function *pthreadJoin = nullptr;
-    for (auto iterator = pointsToFunctions.begin(); iterator != pointsToFunctions.end(); ++iterator) {
-        if ((*iterator)->getName() == "pthread_create") {
-            pthreadCreate = *iterator;
-            iterator = pointsToFunctions.erase(iterator);
-            if (iterator == pointsToFunctions.end()) {
-                break;
-            }
-        }
-        if ((*iterator)->getName() == "pthread_join") {
-            pthreadJoin = *iterator;
-            iterator = pointsToFunctions.erase(iterator);
-            if (iterator == pointsToFunctions.end()) {
-                break;
-            }
-        }
-    }
-
+    const Function *pthreadCreate = didContainFunction(pointsToFunctions, "pthread_create"); 
+    const Function *pthreadJoin = didContainFunction(pointsToFunctions, "pthread_join");
+    const Function *pthreadLock = didContainFunction(pointsToFunctions, "pthread_mutex_lock");
+    const Function *pthreadUnlock = didContainFunction(pointsToFunctions, "pthread_mutex_unlock");
+    
     if (pthreadCreate) {
-        controlFlowGraph->threadForks.insert(callInstruction);
-        ForkNode *forkNode = new ForkNode(controlFlowGraph, callInstruction);
-        callNode = forkNode;
-        addNode(forkNode);
-        const Value *possibleFunction = callInstruction->getArgOperand(2);
-        auto functionsToBeForked = controlFlowGraph->pointsToAnalysis_->getPointsToFunctions(possibleFunction);
-        FunctionGraph * functionGraph;
-        for (auto function : functionsToBeForked) {
-            auto iterator = controlFlowGraph->llvmToFunctionGraphMap.find(function);
-            if (iterator == controlFlowGraph->llvmToFunctionGraphMap.end()) {
-                auto iteratorAndBool = controlFlowGraph->llvmToFunctionGraphMap.emplace(function,
-                                                                                        new FunctionGraph(function, controlFlowGraph));
-                functionGraph = iteratorAndBool.first->second;
-                functionGraph->build();
-            } else {
-                functionGraph = iterator->second;
-            }
-            forkNode->addForkSuccessor(functionGraph->entryNode());
-        }
+        callNode = buildPthreadCreate(callInstruction); 
     } else if (pthreadJoin) {
-        controlFlowGraph->threadJoins.insert(callInstruction);
-        JoinNode *joinNode = new JoinNode(controlFlowGraph, callInstruction);
-        callNode = joinNode;
-        addNode(joinNode);
+        callNode = buildPthreadJoin(callInstruction);
+    } else if (pthreadLock) {
+        callNode = buildPthreadLock(callInstruction);
+    } else if (pthreadUnlock) {
+        callNode = buildPthreadUnlock(callInstruction);
     }
     if (!pointsToFunctions.empty()) {
-        callNode = new LlvmNode(controlFlowGraph, callInstruction);
-        returnNode = new ReturnNode(controlFlowGraph);
-        addNode(static_cast<LlvmNode *>(callNode));
-        addNode(static_cast<ReturnNode *>(returnNode));
-    }
-
-    for (const Function *function : pointsToFunctions) {
-        FunctionGraph *functionGraph;
-        auto iterator = controlFlowGraph->llvmToFunctionGraphMap.find(function);
-        if (iterator == controlFlowGraph->llvmToFunctionGraphMap.end()) {
-            auto iteratorAndBool = controlFlowGraph->llvmToFunctionGraphMap.emplace(function,
-                                                                                    new FunctionGraph(function, controlFlowGraph));
-            functionGraph = iteratorAndBool.first->second;
-            functionGraph->build();
-        } else {
-            functionGraph = iterator->second;
-        }
-        callNode->addSuccessor(functionGraph->entryNode());
-        functionGraph->exitNode()->addSuccessor(returnNode);
-    }
+        std::tie(callNode, returnNode) = buildFunctions(callInstruction, pointsToFunctions);
+    }    
 
     if (!firstNode_) {
         firstNode_ = lastConnectedNode = callNode;
@@ -185,6 +136,62 @@ void BlockGraph::buildCallInstruction(const CallInst *callInstruction, Node *&la
     } else {
         lastConnectedNode = callNode;
     }
+}
+
+Node *BlockGraph::buildPthreadCreate(const llvm::CallInst * callInstruction) {
+    using namespace llvm;
+    controlFlowGraph->threadForks.insert(callInstruction);
+    ForkNode *forkNode = new ForkNode(controlFlowGraph, callInstruction);
+    addNode(forkNode);
+    const Value *possibleFunction = callInstruction->getArgOperand(2);
+    auto functionsToBeForked = controlFlowGraph->pointsToAnalysis_->getPointsToFunctions(possibleFunction);
+    
+    for (auto function : functionsToBeForked) {
+        auto functionGraph = controlFlowGraph->createOrGetFunctionGraph(function);
+        forkNode->addForkSuccessor(functionGraph->entryNode());
+    }
+    return forkNode;
+}
+
+Node *BlockGraph::buildPthreadJoin(const llvm::CallInst * callInstruction) {
+    controlFlowGraph->threadJoins.insert(callInstruction);
+    JoinNode *joinNode = new JoinNode(controlFlowGraph, callInstruction);
+    addNode(joinNode);
+    return joinNode;
+}
+
+Node *BlockGraph::buildPthreadLock(const llvm::CallInst * callInstruction) {
+    controlFlowGraph->locks.insert(callInstruction);
+    LockNode * lockNode = new LockNode(controlFlowGraph, callInstruction);
+    addNode(lockNode);
+    return lockNode;
+}
+
+Node *BlockGraph::buildPthreadUnlock(const llvm::CallInst * callInstruction) {
+    controlFlowGraph->unlocks.insert(callInstruction);
+    UnlockNode * unlockNode = new UnlockNode(controlFlowGraph, callInstruction);
+    addNode(unlockNode);
+    return unlockNode;
+}
+
+std::pair<Node *, Node *> 
+BlockGraph::buildFunctions(const llvm::CallInst * callInstruction, 
+                           const std::vector<const llvm::Function *> & functions) {
+    Node * callNode   = findNode(callInstruction);
+    if (!callNode) {
+        callNode = new LlvmNode(controlFlowGraph, callInstruction);
+        addNode(static_cast<LlvmNode *>(callNode));
+    }
+    Node * returnNode = new ReturnNode(controlFlowGraph);
+    addNode(static_cast<ReturnNode *>(returnNode));
+
+    for (auto function : functions) {
+        FunctionGraph * functionGraph = controlFlowGraph->createOrGetFunctionGraph(function);
+        callNode->addSuccessor(functionGraph->entryNode());
+        functionGraph->exitNode()->addSuccessor(returnNode);
+    }
+
+    return {callNode, returnNode};
 }
 
 bool BlockGraph::containsReturn() const {
@@ -200,3 +207,24 @@ Node *BlockGraph::findNode(const Value *value) const {
     }
 }
 
+void BlockGraph::clearDfsState() {
+    for (auto node : allNodes) {
+        node->setDfsState(DfsState::UNDISCOVERED);
+    }
+}
+
+const llvm::Function * didContainFunction(std::vector<const llvm::Function *> &functions, 
+                        const std::string &function) 
+{    
+    auto iterator = std::find_if(functions.begin(), 
+                                 functions.end(), 
+                                 [function] (const llvm::Function * f) { 
+                                    return f->getName() == function; 
+                                 });
+    const llvm::Function * func = nullptr;
+    if (iterator != functions.end()) {
+        func = *iterator;
+        functions.erase(iterator);
+    }
+    return func;
+}
