@@ -1,7 +1,7 @@
 #ifndef FORKNODE_H
 #define FORKNODE_H
 
-#include "LlvmNode.h"
+#include "Node.h"
 
 class EntryNode;
 class JoinNode;
@@ -27,7 +27,9 @@ public:
 
     bool isFork() const override;
 
-    void dfsVisit() override;
+    void dfsComputeThreadRegions() override;
+
+    void dfsComputeCriticalSections(LockNode * lock) override;
 
     friend class EntryNode;
     friend class JoinNode;

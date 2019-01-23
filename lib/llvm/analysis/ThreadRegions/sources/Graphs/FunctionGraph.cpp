@@ -39,6 +39,19 @@ BlockGraph *FunctionGraph::findBlock(const BasicBlock *llvmBlock) const {
     }
 }
 
+Node * FunctionGraph::findNode (const llvm::Value * value) const {
+    const llvm::Instruction *inst = dyn_cast<llvm::Instruction>(value);
+    auto block = findBlock(inst->getParent());
+    auto node = block->findNode(value);
+    return node;
+}
+
+void FunctionGraph::clearDfsState() {
+    for (auto keyValue : llvmToBlockGraphMap) {
+        keyValue.second->clearDfsState();
+    }
+}
+
 void FunctionGraph::build() {
     if (llvmFunction_->size() == 0) {
         entryNode_->addSuccessor(exitNode_.get());

@@ -45,6 +45,8 @@ public:
 
     Node * findNode(const llvm::Value * value) const;
 
+    void clearDfsState();
+
     void build();
 
     void printNodes(std::ostream & ostream) const;
@@ -60,7 +62,22 @@ private:
 
     void buildCallInstruction(const llvm::CallInst * callInstruction,
                               Node *& lastConnectedNode);
+    
+    Node *buildPthreadCreate(const llvm::CallInst * callInstruction);
 
+    Node *buildPthreadJoin(const llvm::CallInst * callInstruction);
+
+    Node *buildPthreadLock(const llvm::CallInst * callInstruction);
+
+    Node *buildPthreadUnlock(const llvm::CallInst * callInstruction);
+    
+    std::pair<Node *, Node *> 
+    buildFunctions(const llvm::CallInst * callInstruction, 
+                   const std::vector<const llvm::Function *> & functions);
 };
+
+const llvm::Function *
+didContainFunction(std::vector<const llvm::Function *> &functions, 
+                    const std::string &function);
 
 #endif // BLOCKGRAPH_H

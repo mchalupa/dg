@@ -1,5 +1,6 @@
 #include "ControlFlowGraph.h"
 #include "FunctionGraph.h"
+#include "Node.h"
 #include "EntryNode.h"
 #include "ExitNode.h"
 #include "JoinNode.h"
@@ -7,6 +8,15 @@
 
 using namespace std;
 using namespace llvm;
+
+CriticalSection::CriticalSection():lock(nullptr) 
+{}
+
+CriticalSection::CriticalSection(const llvm::Value * lock,
+                                 std::set<const llvm::Value *> &&joins,
+                                 std::set<const llvm::Value *> &&nodes):lock(lock),
+                                                                        unlocks(joins),
+                                                                        nodes(nodes){}
 
 ControlFlowGraph::ControlFlowGraph(const llvm::Module *module,
                                    const dg::LLVMPointerAnalysis *pointsToAnalysis,
@@ -39,16 +49,26 @@ void ControlFlowGraph::build() {
     connectForksWithJoins();
 }
 
-void ControlFlowGraph::traverse() { //TODO rename this method
-
+void ControlFlowGraph::computeThreadRegions() { 
     if (entryFunctionGraph) {
         ThreadRegion * region = new ThreadRegion(this);
 
         entryFunctionGraph->entryNode()->setThreadRegion(region);
         entryFunctionGraph->entryNode()->setDfsState(DfsState::DISCOVERED);
-        entryFunctionGraph->entryNode()->dfsVisit();
+        entryFunctionGraph->entryNode()->dfsComputeThreadRegions();
         entryFunctionGraph->entryNode()->setDfsState(DfsState::EXAMINED);
         region->setDfsState(DfsState::EXAMINED);
+    }
+    clearDfsState();
+}
+
+void ControlFlowGraph::computeCriticalSections() {
+    matchLocksWithUnlocks();
+    for (auto callInstLock : locks) {
+        LockNode * lock = static_cast<LockNode *>(findNode(callInstLock));
+        lock->setDfsState(DfsState::DISCOVERED);
+        lock->dfsComputeCriticalSections(lock);
+        clearDfsState();
     }
 }
 
@@ -94,6 +114,15 @@ std::set<const CallInst *> ControlFlowGraph::getCorrespondingJoins(const CallIns
         }
     }
     return llvmJoins;
+}
+
+std::set<CriticalSection> ControlFlowGraph::getCriticalSections() {
+    std::set<CriticalSection> critSections;
+    for (auto lock : locks) {
+        auto lockNode = static_cast<LockNode *>(findNode(lock));
+        critSections.emplace(lock, lockNode->llvmUnlocks(), lockNode->llvmCriticalSectioon());
+    }
+    return critSections;
 }
 
 ostream &operator<<(ostream &ostream, ControlFlowGraph &controlFlowGraph) {
@@ -148,5 +177,67 @@ void ControlFlowGraph::connectForksWithJoins() {
     }
 }
 
+void ControlFlowGraph::matchLocksWithUnlocks() {
+    using namespace dg::analysis::pta;
+
+    for (const CallInst *lock : locks) {
+        auto lockMutexPtr = pointsToAnalysis_->getPointsTo(lock->getArgOperand(0));
+        for (const CallInst *unlock : unlocks) {
+            auto unlockMutexPtr = pointsToAnalysis_->getPointsTo(unlock->getArgOperand(0));
+            
+            std::set<PSNode *> mutexPointerIntersection;
+            for (const auto lockPointsTo : lockMutexPtr->pointsTo) {
+                for (const auto unlockPointsTo : unlockMutexPtr->pointsTo) {
+                    if (lockPointsTo.target == unlockPointsTo.target) {
+                        mutexPointerIntersection.insert(lockPointsTo.target);
+                    }
+                }
+            }
+            if (!mutexPointerIntersection.empty()) {
+                LockNode *lockNode = static_cast<LockNode *>(findNode(lock));
+                UnlockNode *unlockNode = static_cast<UnlockNode *>(findNode(unlock));
+                lockNode->addCorrespondingUnlock(unlockNode);
+            }
+        }
+    }
+}
+
+FunctionGraph * ControlFlowGraph::createOrGetFunctionGraph(const llvm::Function * function) {
+    FunctionGraph *functionGraph;
+    auto iterator = llvmToFunctionGraphMap.find(function);
+    if (iterator == llvmToFunctionGraphMap.end()) {
+        auto iteratorAndBool = llvmToFunctionGraphMap.emplace(function, new FunctionGraph(function, this));
+        functionGraph = iteratorAndBool.first->second;
+        functionGraph->build();
+    } else {
+        functionGraph = iterator->second;
+    }
+    return functionGraph;
+}
+
+FunctionGraph * ControlFlowGraph::findFunction(const llvm::Function * function) {
+    auto iterator = llvmToFunctionGraphMap.find(function);
+    if (iterator == llvmToFunctionGraphMap.end()) {
+        return nullptr;
+    } else {
+        return iterator->second;
+    }
+}
+
+Node * ControlFlowGraph::findNode(const llvm::Value * value) {
+    Node * node = nullptr;
+    const llvm::Instruction *inst = dyn_cast<llvm::Instruction>(value);
+    auto function = findFunction(inst->getFunction());
+    if (function) {
+        node = function->findNode(value);
+    }
+    return node;
+}
+
+void ControlFlowGraph::clearDfsState() {
+    for (auto keyValue : llvmToFunctionGraphMap) {
+        keyValue.second->clearDfsState();
+    }
+}
 
 

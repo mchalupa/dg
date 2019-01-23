@@ -9,6 +9,8 @@
 #include "dg/llvm/analysis/ThreadRegions/ThreadRegion.h"
 
 class ControlFlowGraph;
+class LockNode;
+class UnlockNode;
 
 class Node
 {
@@ -58,6 +60,10 @@ public:
 
     virtual bool isExit() const;
 
+    virtual bool isLock() const;
+
+    virtual bool isUnlock() const;
+
     virtual std::string dump() const = 0;
 
     virtual void printOutcomingEdges(std::ostream & ostream) const;
@@ -68,18 +74,82 @@ public:
 
     ControlFlowGraph * controlFlowGraph();
 
-    virtual void dfsVisit();
+    virtual void dfsComputeThreadRegions();
+
+    virtual void dfsComputeCriticalSections(LockNode * lock);
 
     void setDfsState(DfsState state);
 
     DfsState dfsState();
 };
 
+namespace llvm {
+    class Value;
+}
+
+class LlvmNode : public Node
+{
+    const llvm::Value * llvmValue_ = nullptr;
+public:
+    LlvmNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
+
+    std::string dump() const override;
+
+    const llvm::Value * llvmValue() const;
+};
+
+class LockNode : public LlvmNode
+{
+    std::set<UnlockNode *> correspondingUnlocks_;
+    std::set<Node *>       criticalSection_;
+
+public:
+    LockNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
+
+    void addCorrespondingUnlock(UnlockNode * unlockNode);
+
+    std::set<UnlockNode *> correspondingUnlocks() const;
+
+    std::set<const llvm::Value *> llvmUnlocks() const;
+
+    bool isLock() const override;
+
+    bool isUnlock() const override;
+
+    bool addToCriticalSection(Node * node);
+
+    std::set<Node *> criticalSection();
+
+    std::set<const llvm::Value *> llvmCriticalSectioon();
+
+    friend class UnlockNode;
+};
+
+class UnlockNode : public LlvmNode
+{
+    std::set<LockNode *> correspondingLocks_;
+
+public:
+    UnlockNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
+
+    void addCorrespondingLock(LockNode * lockNode);
+
+    std::set<LockNode *> correspondingLocks() const;
+
+    bool isLock() const override;
+
+    bool isUnlock() const override;
+
+    friend class LockNode;
+};
+
 bool shouldCreateNewRegion(const Node * caller,
                            const Node * successor);
 
+bool shouldFinish(LockNode * lock, Node * successor);
+
 template<typename T>
-void visitSuccessorsFromNode(const std::set<T*> &successors, Node *caller) {
+void computeThreadRegionsOnSuccessorsFromNode(const std::set<T*> &successors, Node *caller) {
     for (const auto successor : successors) {
         if (successor->dfsState() == DfsState::DISCOVERED) {
             continue;
@@ -98,7 +168,7 @@ void visitSuccessorsFromNode(const std::set<T*> &successors, Node *caller) {
             } else {
                 successor->setThreadRegion(caller->threadRegion());
             }
-            successor->dfsVisit();
+            successor->dfsComputeThreadRegions();
             successor->setDfsState(DfsState::EXAMINED);
             if (createdNewRegion) {
                 successor->threadRegion()->setDfsState(DfsState::EXAMINED);
@@ -106,5 +176,22 @@ void visitSuccessorsFromNode(const std::set<T*> &successors, Node *caller) {
         }
     }
 }
+
+template<typename T>
+void computeCriticalSectionsDependentOnLock(const std::set<T*> & successors, LockNode * lock) {
+    for (const auto successor : successors) {
+        if (successor->dfsState() != DfsState::UNDISCOVERED) {
+            continue;
+        } else {
+            successor->setDfsState(DfsState::DISCOVERED);
+            if (!shouldFinish(lock, successor)) {
+                lock->addToCriticalSection(successor);
+                successor->dfsComputeCriticalSections(lock);
+            }
+            successor->setDfsState(DfsState::EXAMINED);
+        }
+    }
+}
+
 
 #endif // NODE_H
