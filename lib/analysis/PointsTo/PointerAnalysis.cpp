@@ -386,6 +386,12 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
+        case PSNodeType::FORK:
+            changed |= handleFork(node);
+            break;
+        case PSNodeType::JOIN:
+            changed |= handleJoin(node);
+            break;
         case PSNodeType::MEMCPY:
             changed |= processMemcpy(node);
             break;
