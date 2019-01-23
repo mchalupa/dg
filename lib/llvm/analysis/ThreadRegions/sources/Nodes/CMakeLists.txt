@@ -8,4 +8,6 @@ target_sources(ThreadRegions
 			${CMAKE_CURRENT_LIST_DIR}/ExitNode.cpp
 			${CMAKE_CURRENT_LIST_DIR}/EndifNode.cpp
             ${CMAKE_CURRENT_LIST_DIR}/ReturnNode.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/LlvmNode.cpp)
+            ${CMAKE_CURRENT_LIST_DIR}/LlvmNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/LockNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/UnlockNode.cpp)

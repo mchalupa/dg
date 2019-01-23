@@ -70,15 +70,14 @@ int main(int argc, const char *argv[])
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
     ControlFlowGraph graph(M.get(), &pointsToAnalysis);
     graph.build();
-    graph.traverse();
-
+    graph.computeThreadRegions();
+    graph.computeCriticalSections();
     if (graphvizFileName == "") {
         std::cout << graph << std::endl;
     } else {
         std::ofstream graphvizFile(graphvizFileName);
         graphvizFile << graph << std::endl;
     }
-
 
     return 0;
 }

@@ -42,6 +42,10 @@ public:
 
     BlockGraph * findBlock(const llvm::BasicBlock * llvmBlock) const;
 
+    Node * findNode (const llvm::Value * value) const;
+
+    void clearDfsState();
+
     void build();
 
     void printNodes(std::ostream & ostream) const;

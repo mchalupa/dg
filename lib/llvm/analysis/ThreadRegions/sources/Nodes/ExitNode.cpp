@@ -29,11 +29,15 @@ void ExitNode::printOutcomingEdges(std::ostream &ostream) const {
 }
 
 
-void ExitNode::dfsVisit() {
-    visitSuccessorsFromNode(joinSuccessors(), this);
-    visitSuccessorsFromNode(successors(), this);
+void ExitNode::dfsComputeThreadRegions() {
+    computeThreadRegionsOnSuccessorsFromNode(joinSuccessors(), this);
+    computeThreadRegionsOnSuccessorsFromNode(successors(), this);
 }
 
+void ExitNode::dfsComputeCriticalSections(LockNode *lock) {
+    computeCriticalSectionsDependentOnLock(joinSuccessors(), lock);
+    computeCriticalSectionsDependentOnLock(successors(), lock);
+}
 
 bool ExitNode::isExit() const {
     return true;

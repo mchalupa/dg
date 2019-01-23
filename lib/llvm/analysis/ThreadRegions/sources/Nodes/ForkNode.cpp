@@ -41,9 +41,14 @@ void ForkNode::printOutcomingEdges(ostream &ostream) const {
 }
 
 
-void ForkNode::dfsVisit(){
-    visitSuccessorsFromNode(forkSuccessors(), this);
-    visitSuccessorsFromNode(successors(), this);
+void ForkNode::dfsComputeThreadRegions(){
+    computeThreadRegionsOnSuccessorsFromNode(forkSuccessors(), this);
+    computeThreadRegionsOnSuccessorsFromNode(successors(), this);
+}
+
+void ForkNode::dfsComputeCriticalSections(LockNode *lock) {
+    computeCriticalSectionsDependentOnLock(forkSuccessors(), lock);
+    computeCriticalSectionsDependentOnLock(successors(), lock);
 }
 
 
