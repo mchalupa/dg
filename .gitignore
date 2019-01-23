@@ -65,3 +65,13 @@ tools/llvm-to-source
 tools/llvm-slicer
 
 git-version.h
+
+#build directory
+build
+
+#sourcetrail files
+dg.srctrl*
+
+compile_commands.json
+
+CMakeLists.txt.user*
