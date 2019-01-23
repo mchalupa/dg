@@ -23,7 +23,9 @@ public:
 
     bool isExit() const override;
 
-    void dfsVisit() override;
+    void dfsComputeThreadRegions() override;
+
+    void dfsComputeCriticalSections(LockNode * lock) override;
 
     friend class JoinNode;
 };

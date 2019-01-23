@@ -12,6 +12,23 @@
 
 #include "ThreadRegion.h"
 
+struct CriticalSection {
+    
+    CriticalSection();
+
+    CriticalSection(const llvm::Value * lock,
+                    std::set<const llvm::Value *> &&joins,
+                    std::set<const llvm::Value *> &&nodes);
+
+    const llvm::Value *             lock;
+    std::set<const llvm::Value *>   unlocks;
+    std::set<const llvm::Value *>   nodes;
+};
+
+inline bool operator<(const CriticalSection &lhs, const CriticalSection &rhs) {
+    return lhs.lock < rhs.lock;
+}
+
 class FunctionGraph;
 
 namespace dg {
@@ -26,6 +43,9 @@ private:
 
     std::set<const llvm::CallInst *>    threadForks;
     std::set<const llvm::CallInst *>    threadJoins;
+
+    std::set<const llvm::CallInst *>    locks;
+    std::set<const llvm::CallInst *>    unlocks;
 
     std::set<ThreadRegion *>            threadRegions_;
 
@@ -44,7 +64,9 @@ public:
 
     void build();
 
-    void traverse();
+    void computeThreadRegions();
+
+    void computeCriticalSections();
 
     std::set<ThreadRegion *> threadRegions() const;
 
@@ -60,10 +82,22 @@ public:
     std::set<const llvm::CallInst *>
     getCorrespondingJoins(const llvm::CallInst * fork);
 
+    std::set<CriticalSection> getCriticalSections();
+
     friend std::ostream & operator<<(std::ostream & ostream, ControlFlowGraph & controlFlowGraph);
 
 private:
     void connectForksWithJoins();
+
+    void matchLocksWithUnlocks();
+
+    FunctionGraph * createOrGetFunctionGraph(const llvm::Function * function);
+    
+    FunctionGraph * findFunction(const llvm::Function * function);
+    
+    Node * findNode(const llvm::Value * value);
+
+    void clearDfsState();
 
     friend class FunctionGraph;
     friend class BlockGraph;

@@ -80,6 +80,14 @@ bool Node::isExit() const {
     return false;
 }
 
+bool Node::isLock() const {
+    return false;
+}
+
+bool Node::isUnlock() const {
+    return false;
+}
+
 void Node::printOutcomingEdges(ostream &ostream) const {
     for (const auto &successor : successors_) {
         ostream << this->dotName() << " -> " << successor->dotName() << "\n";
@@ -99,8 +107,12 @@ ControlFlowGraph *Node::controlFlowGraph() {
     return controlFlowGraph_;
 }
 
-void Node::dfsVisit() {
-    visitSuccessorsFromNode(successors(), this);
+void Node::dfsComputeThreadRegions() {
+    computeThreadRegionsOnSuccessorsFromNode(successors(), this);
+}
+
+void Node::dfsComputeCriticalSections(LockNode * lock) {
+    computeCriticalSectionsDependentOnLock(successors(), lock);
 }
 
 void Node::setDfsState(DfsState state) {
@@ -115,4 +127,15 @@ bool shouldCreateNewRegion(const Node *caller, const Node *successor) {
            successor->isEntry() ||
            successor->isEndIf() ||
            successor->isJoin();
+}
+
+bool shouldFinish(LockNode * lock, Node * successor) {
+    if (successor->isUnlock()) {
+        UnlockNode * unlock = static_cast<UnlockNode *>(successor);
+        auto iterator = lock->correspondingUnlocks().find(unlock);
+        if (iterator != lock->correspondingUnlocks().end()) {
+            return true;
+        }
+    }
+    return false;
 }

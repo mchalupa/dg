@@ -1,7 +1,7 @@
 #ifndef JOINNODE_H
 #define JOINNODE_H
 
-#include "LlvmNode.h"
+#include "Node.h"
 
 #include <set>
 

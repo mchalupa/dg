@@ -964,7 +964,8 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges()
 {
     ControlFlowGraph controlFlowGraph(module, PTA);
     controlFlowGraph.build();
-    controlFlowGraph.traverse();
+    controlFlowGraph.computeThreadRegions();
+    controlFlowGraph.computeCriticalSections();
     auto regions = controlFlowGraph.threadRegions();
     MayHappenInParallel mayHappenInParallel(regions);
 
@@ -985,10 +986,35 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges()
     // TODO this needs to be refactored into single method and should not be called from this method, but separatelly
     auto joins = controlFlowGraph.getJoins();
     for (const auto &join : joins) {
-        auto joinNode = constructedFunctions.find(const_cast<llvm::Function *>(join->getFunction()))->second->findNode(const_cast<llvm::CallInst *>(join));
+        auto joinNode = findInstruction(castToLLVMInstruction(join), constructedFunctions);
         for (const auto &fork : controlFlowGraph.getCorrespondingForks(join)) {
-            auto forkNode = constructedFunctions.find(const_cast<llvm::Function *>(fork->getFunction()))->second->findNode(const_cast<llvm::CallInst *>(fork));
+            auto forkNode = findInstruction(castToLLVMInstruction(fork), constructedFunctions);
             joinNode->addControlDependence(forkNode);
+        }
+    }
+    auto critSections = controlFlowGraph.getCriticalSections();
+
+    for (const auto &section : critSections) {
+        auto callLockInst = castToLLVMInstruction(section.lock);
+        auto lockNode = findInstruction(callLockInst, constructedFunctions);
+        for (auto node : section.nodes) {
+            auto callNode = castToLLVMInstruction(node);
+            auto dependentNode = findInstruction(callNode, constructedFunctions);
+            if (dependentNode) {
+                lockNode->addControlDependence(dependentNode);
+            } else {
+                llvm::errs() << "Instruction " 
+                             << *dependentNode->getValue() 
+                             << " was not found, cannot setup" 
+                             << " control depency on lock\n";
+            }
+        }
+
+        for (auto node : section.unlocks) {
+            auto callNode = castToLLVMInstruction(node);
+            auto unlockNode = findInstruction(callNode, constructedFunctions);
+            unlockNode->addControlDependence(lockNode);
+            lockNode->addControlDependence(unlockNode);
         }
     }
 }
@@ -1121,6 +1147,18 @@ void LLVMDependenceGraph::addNoreturnDependencies()
             }
         }
     }
+}
+
+LLVMNode *findInstruction(llvm::Instruction * instruction, const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions) {
+    auto valueKey = constructedFunctions.find(instruction->getFunction());
+    if (valueKey != constructedFunctions.end()) {
+        return valueKey->second->findNode(instruction);
+    }
+    return nullptr;
+}
+
+llvm::Instruction * castToLLVMInstruction(const llvm::Value * value) {
+    return const_cast<llvm::Instruction *>(static_cast<const llvm::Instruction *> (value));
 }
 
 } // namespace dg

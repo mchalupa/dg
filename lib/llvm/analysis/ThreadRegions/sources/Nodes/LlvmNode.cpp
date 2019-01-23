@@ -4,7 +4,7 @@
 
 #include <sstream>
 
-#include "LlvmNode.h"
+#include "Node.h"
 
 using namespace std;
 using namespace llvm;
