@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdarg>
 #include <string>
+#include <iostream>
 
 #ifndef NDEBUG
 #include <iostream>
@@ -47,6 +48,10 @@ enum class PSNodeType {
         // this is the exit node of a subprocedure
         // that returns a value - works as phi node
         RETURN,
+        // nodes which should represent creating
+        // and joining of threads
+        FORK,
+        JOIN,
         // node that invalidates allocated memory
         // after returning from a function
         INVALIDATE_LOCALS,
@@ -89,6 +94,8 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
         ELEM(PSNodeType::CALL)
         ELEM(PSNodeType::CALL_FUNCPTR)
         ELEM(PSNodeType::CALL_RETURN)
+        ELEM(PSNodeType::FORK)
+        ELEM(PSNodeType::JOIN)
         ELEM(PSNodeType::ENTRY)
         ELEM(PSNodeType::RETURN)
         ELEM(PSNodeType::CONSTANT)
@@ -231,6 +238,8 @@ protected:
             case PSNodeType::NOOP:
             case PSNodeType::ENTRY:
             case PSNodeType::FUNCTION:
+            case PSNodeType::FORK:
+            case PSNodeType::JOIN:
                 // no operands (and FUNCTION has been set up
                 // in the super ctor)
                 break;
@@ -499,6 +508,75 @@ public:
 
         returns.push_back(r);
         return true;
+    }
+};
+
+class PSNodeFork;
+class PSNodeJoin;
+
+class PSNodeFork : public PSNode {
+    PSNode *callInstruction = nullptr;
+    std::set<PSNodeJoin *> joins;
+    std::set<PSNode *> functions_;
+
+public:
+    PSNodeFork(unsigned id)
+        :PSNode(id, PSNodeType::FORK) {}
+
+    static PSNodeFork *get(PSNode *n) {
+        return isa<PSNodeType::FORK>(n) ?
+            static_cast<PSNodeFork *>(n) : nullptr;
+    }
+
+    std::set<PSNodeJoin *> getJoins() const { return joins; }
+
+    bool addJoin(PSNodeJoin * join) {
+        return joins.insert(join).second;
+    }
+
+    bool addFunction(PSNode * function) {
+        return functions_.insert(function).second;
+    }
+
+    std::set<PSNode *> functions() const {
+        return functions_;
+    }
+
+    void setCallInst(PSNode * callInst) {
+        callInstruction = callInst;
+    }
+
+    PSNode * callInst() const {
+        return callInstruction;
+    }
+};
+
+class PSNodeJoin : public PSNode {
+    PSNode *callInstruction = nullptr;
+    std::set<PSNode *> functions_;
+public:
+    PSNodeJoin(unsigned id)
+    :PSNode(id, PSNodeType::JOIN) {}
+
+    static PSNodeJoin *get(PSNode *n) {
+        return isa<PSNodeType::JOIN>(n) ?
+            static_cast<PSNodeJoin *>(n) : nullptr;
+    }
+
+    void setCallInst(PSNode *callInst) {
+        callInstruction = callInst;
+    }
+
+    PSNode * callInst() const {
+        return callInstruction;
+    }
+
+    bool addFunction(PSNode * function) {
+        return functions_.insert(function).second;
+    }
+
+    std::set<PSNode *> functions() const {
+        return functions_;
     }
 };
 
