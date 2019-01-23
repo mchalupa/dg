@@ -199,6 +199,16 @@ public:
         return false;
     }
 
+    virtual bool handleFork(PSNode *)
+    {
+        return false;
+    }
+
+    virtual bool handleJoin(PSNode *)
+    {
+        return false;
+    }
+
 private:
 
     // check the sanity of results of pointer analysis
