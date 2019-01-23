@@ -119,6 +119,12 @@ public:
             case PSNodeType::CALL:
                 node = new PSNodeCall(getNewNodeId());
                 break;
+            case PSNodeType::FORK:
+                node = new PSNodeFork(getNewNodeId());
+                break;
+            case PSNodeType::JOIN:
+                node = new PSNodeJoin(getNewNodeId());
+                break;
             default:
                 node = new PSNode(getNewNodeId(), t, args);
                 break;
