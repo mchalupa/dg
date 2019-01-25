@@ -41,6 +41,9 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
     } else if (func->getName().equals("pthread_join")) {
         auto seq = createJoin(CInst);
         return seq;
+    } else if (func->getName().equals("pthread_exit")) {
+        auto seq = createPthreadExit(CInst);
+        return seq;
     }
 
     // is function undefined? If so it can be
@@ -177,6 +180,22 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createJoin(const llvm::CallInst *CInst)
     addArgumentOperands(*CInst, *callNode);
     threadJoinCalls.push_back(callNode);
     return {callNode, joinNode};
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadExit(const llvm::CallInst *CInst) {
+    using namespace llvm;
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        addNode(CInst, callNode);
+    }
+    addArgumentOperands(*CInst, *callNode);
+    auto pthread_exit_operand = callNode->getOperand(0);
+    PSNodeRet *returnNode = PSNodeRet::get(PS.create(PSNodeType::RETURN, pthread_exit_operand, nullptr));
+    callNode->setPairedNode(returnNode);
+    returnNode->setPairedNode(callNode);
+    callNode->addSuccessor(returnNode);
+    return {callNode, returnNode};
 }
 
 PSNodesSeq
@@ -335,7 +354,6 @@ bool LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
             auto oldFunctions = join->functions();
             std::set<PSNode *> newFunctions;
             std::sort(pointsToFunctions.begin(), pointsToFunctions.end());
-            //TODO this needs to be set difference, fix this bug
             std::set_difference(pointsToFunctions.begin(), pointsToFunctions.end(), 
                                   oldFunctions.begin(),      oldFunctions.end(), 
                                   std::inserter(newFunctions, newFunctions.begin()));
