@@ -143,6 +143,7 @@ public:
 
     PSNodesSeq createFork(const llvm::CallInst *CInst);
     PSNodesSeq createJoin(const llvm::CallInst *CInst);
+    PSNodesSeq createPthreadExit(const llvm::CallInst *CInst);
 
     bool addFunctionToFork(PSNode * function,
                            PSNodeFork *forkNode);
