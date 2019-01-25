@@ -367,6 +367,9 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes)
             // we need calls of free
             return true;
 
+        if (func->getName().equals("pthread_exit"))
+            return true;
+
         if (func->isIntrinsic())
             return isRelevantIntrinsic(func, invalidate_nodes);
 
