@@ -499,6 +499,8 @@ LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F)
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::buildFunction(const llvm::Function& F)
 {
+    assert(!F.isDeclaration() && "Trying to build a declaration");
+
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *, std::pair<RDNode *, RDNode *>> built_blocks;
@@ -811,21 +813,24 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
                     continue;
 
                 const Function *F = ptr.target->getUserData<Function>();
-                if (F->size() == 0) {
-                    // the function is a declaration only,
-                    // there's nothing better we can do
-                    RDNode *n = createUndefinedCall(CInst);
-                    return std::make_pair(n, n);
-                }
-
-                // FIXME: these checks are repeated here, in PSSBuilder
-                // and in LLVMDependenceGraph, we should factor them
-                // out into a function...
                 if (!llvmutils::callIsCompatible(F, CInst))
                     continue;
 
-                std::pair<RDNode *, RDNode *> cf
-                    = createCallToFunction(F);
+                std::pair<RDNode *, RDNode *> cf;
+                if (F->isDeclaration()) {
+                    RDNode *n;
+                    auto type = _options.getAllocationFunction(F->getName());
+                    if (type != AllocationFunction::NONE) {
+                        n = createDynAlloc(CInst, type);
+                    } else {
+                        n = createUndefinedCall(CInst);
+                    }
+
+                    cf = std::make_pair(n, n);
+                } else {
+                    cf = createCallToFunction(F);
+                }
+
                 addNode(cf.first);
 
                 // connect the graphs
@@ -835,6 +840,13 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
                     // create the new nodes lazily
                     call_funcptr = new RDNode(RDNodeType::CALL);
                     ret_call = new RDNode(RDNodeType::CALL_RETURN);
+                    if (F->isDeclaration()) {
+                        // we want the mapping on the call_funcptr,
+                        // not on the node created by createDynAlloc
+                        // or createUndefinedCall
+                        nodes_map.erase(CInst);
+                    }
+
                     addNode(CInst, call_funcptr);
                     addNode(ret_call);
                 }
