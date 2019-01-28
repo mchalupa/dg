@@ -43,10 +43,27 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
+static inline void makeEdge(RDNode *src, RDNode *dst)
+{
+    assert(src != dst && "Tried creating self-loop");
+    assert(src != nullptr);
+    // This is checked by addSuccessor():
+    // assert(dst != nullptr);
+
+    src->addSuccessor(dst);
+}
+
 RDNode *LLVMRDBuilderDense::createAlloc(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode(RDNodeType::ALLOC);
-    addNode(Inst, node);
+    auto iterator = nodes_map.find(Inst);
+    if (iterator == nodes_map.end()) {
+        addNode(Inst, node);
+    } else {
+        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+        addNode(node);
+        makeEdge(iterator->second, node);
+    }
 
     if (const llvm::AllocaInst *AI
             = llvm::dyn_cast<llvm::AllocaInst>(Inst))
@@ -60,7 +77,13 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
     using namespace llvm;
 
     RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
-    addNode(Inst, node);
+    auto iterator = nodes_map.find(Inst);
+    if (iterator == nodes_map.end()) {
+        addNode(Inst, node);
+    } else {
+        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+        addNode(node);
+    }
 
     const CallInst *CInst = cast<CallInst>(Inst);
     const Value *op;
@@ -98,7 +121,13 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
 RDNode *LLVMRDBuilderDense::createRealloc(const llvm::Instruction *Inst)
 {
     RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
-    addNode(Inst, node);
+    auto iterator = nodes_map.find(Inst);
+    if (iterator == nodes_map.end()) {
+        addNode(Inst, node);
+    } else {
+        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+        addNode(node);
+    }
 
     uint64_t size = getConstantValue(Inst->getOperand(1));
     if (size == 0)
@@ -197,7 +226,7 @@ RDNode *LLVMRDBuilderDense::createNode(const llvm::Instruction &Inst)
             node = createAlloc(&Inst);
             break;
         case Instruction::Call:
-            node = createCall(&Inst)[0].returnNode;
+            node = createCall(&Inst).second;
             break;
         default:
             llvm::errs() << "BUG: " << Inst << "\n";
@@ -315,16 +344,6 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
     assert(0 && "We should not reach this");
 }
 
-static inline void makeEdge(RDNode *src, RDNode *dst)
-{
-    assert(src != dst && "Tried creating self-loop");
-    assert(src != nullptr);
-    // This is checked by addSuccessor():
-    // assert(dst != nullptr);
-
-    src->addSuccessor(dst);
-}
-
 // return first and last nodes of the block
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::buildBlock(const llvm::BasicBlock& block)
@@ -364,11 +383,9 @@ LLVMRDBuilderDense::buildBlock(const llvm::BasicBlock& block)
                 case Instruction::Call:
                     if (!isRelevantCall(&Inst, _options))
                         break;
-
-                    connectCallsToGraph(&Inst,
-                                        createCall(&Inst),
-                                        last_node);
-                    node = last_node;
+                auto call = createCall(&Inst);
+                makeEdge(last_node, call.first);
+                node = last_node = call.second;
             }
         }
 
@@ -422,17 +439,33 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
     return num;
 }
 
-LLVMRDBuilderDense::FunctionCall LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F)
+std::pair<RDNode *, RDNode *>
+LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F,
+                                         const llvm::CallInst * CInst)
 {
-    RDNode *callNode, *returnNode;
+    if (auto model = _options.getFunctionModel(F->getName())) {
+        auto node = funcFromModel(model, CInst);
+        addNode(CInst, node);
+        return {node, node};
+    } else if (F->size() == 0) {
+        return createCallToZeroSizeFunction(F, CInst);
+    } else if (!llvmutils::callIsCompatible(F, CInst)) {
+        auto node = createUndefinedCall(CInst);
+        return {node, node};
+    }
 
-    // dummy nodes for easy generation
-    callNode = new RDNode(RDNodeType::CALL);
-    returnNode = new RDNode(RDNodeType::CALL_RETURN);
+    RDNode *callNode = nullptr;
+    RDNode *returnNode = nullptr;
 
-    // do not leak the memory of returnNode (the callNode
-    // will be added to nodes_map)
-    addNode(returnNode);
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        callNode = new RDNode(RDNodeType::CALL);
+        returnNode = new RDNode(RDNodeType::RETURN);
+        addNode(CInst, callNode);
+        addNode(returnNode);
+    } else {
+        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+    }
 
     // FIXME: if this is an inline assembly call
     // we need to make conservative assumptions
@@ -454,13 +487,13 @@ LLVMRDBuilderDense::FunctionCall LLVMRDBuilderDense::createCallToFunction(const 
 
     assert(root && ret && "Incomplete subgraph");
 
-    // add an edge from last argument to root of the subgraph
-    // and from the subprocedure return node (which is one - unified
-    // for all return nodes) to return from the call
-    makeEdge(callNode, root);
-    makeEdge(ret, returnNode);
+    if (callNode) {
+        makeEdge(callNode, root);
+        makeEdge(ret, returnNode);
+        return {callNode, returnNode};
+    }
 
-    return {callNode, returnNode, CallType::PLAIN_CALL};
+    return {root, ret};
 }
 
 std::pair<RDNode *, RDNode *>
@@ -525,7 +558,13 @@ RDNode *LLVMRDBuilderDense::createUndefinedCall(const llvm::CallInst *CInst)
     using namespace llvm;
 
     RDNode *node = new RDNode(RDNodeType::CALL);
-    addNode(CInst, node);
+    auto iterator = nodes_map.find((CInst));
+    if (iterator == nodes_map.end()) {
+        addNode(CInst, node);
+    } else {
+        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+        addNode(node);
+    }
 
     // if we assume that undefined functions are pure
     // (have no side effects), we can bail out here
@@ -675,39 +714,6 @@ void LLVMRDBuilderDense::matchForksAndJoins()
     }
 }
 
-void LLVMRDBuilderDense::connectCallsToGraph(const llvm::Instruction *Inst,
-                                             const std::vector<LLVMRDBuilderDense::FunctionCall> &functionCalls,
-                                             RDNode *&lastNode)
-{
-    std::vector<FunctionCall> plainCalls;
-
-    for (const auto& call : functionCalls) {
-        if (call.callType == CallType::CREATE_THREAD) {
-            makeEdge(lastNode, call.rootNode);
-        } else {
-            plainCalls.push_back(call);
-        }
-    }
-
-    RDNode *rootNode = nullptr;
-    RDNode *returnNode = nullptr;
-    if (plainCalls.size() > 1) {
-        rootNode =  new RDNode(RDNodeType::CALL);
-        returnNode = new RDNode(RDNodeType::CALL_RETURN);
-        addNode(Inst, rootNode);
-        addNode(returnNode);
-        makeEdge(lastNode, rootNode);
-        lastNode = returnNode;
-        for (const auto& call : plainCalls) {
-            makeEdge(rootNode, call.rootNode);
-            makeEdge(call.returnNode, returnNode);
-        }
-    } else if (!plainCalls.empty()) {
-        makeEdge(lastNode, plainCalls[0].rootNode);
-        lastNode = plainCalls[0].returnNode;
-    }
-}
-
 RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
@@ -822,7 +828,7 @@ RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm
     return node;
 }
 
-std::vector<LLVMRDBuilderDense::FunctionCall>
+std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
 {
     using namespace llvm;
@@ -835,34 +841,30 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
             llvm::errs() << "WARNING: RD: Inline assembler found\n";
             warned_inline_assembly = true;
         }
-        std::vector<FunctionCall> functionCalls;
         RDNode *node = createUndefinedCall(CInst);
-        functionCalls.emplace_back(node, node, CallType::PLAIN_CALL);
-        return functionCalls;
+        return {node, node};
     }
 
-    std::vector<const Function *> functions;
     const Function *function = dyn_cast<Function>(calledVal);
     if (function != nullptr) {
-        functions.push_back(function);
-    } else {
-        functions = getPointsToFunctions(calledVal);
+        return createCallToFunction(function, CInst);
     }
-    return createCallsToFunctions(functions, CInst);
+
+    auto functions = getPointsToFunctions(calledVal);
+    return createCallToFunctions(functions, CInst);
 }
 
-std::vector<LLVMRDBuilderDense::FunctionCall>
-LLVMRDBuilderDense::createCallsToZeroSizeFunctions(const llvm::Function *function,
+std::pair<RDNode *, RDNode *>
+LLVMRDBuilderDense::createCallToZeroSizeFunction(const llvm::Function *function,
                                                  const llvm::CallInst *CInst)
 {
-    std::vector<FunctionCall> functionCalls;
     if (function->isIntrinsic()) {
         RDNode *node = createIntrinsicCall(CInst);
-        functionCalls.emplace_back(node, node, CallType::PLAIN_CALL);
+        return {node, node};
     } else if (function->getName() == "pthread_create") {
-        functionCalls = createPthreadCreateCalls(CInst);
+        return createPthreadCreateCalls(CInst);
     } else if (function->getName() == "pthread_join") {
-        functionCalls.push_back(createPthreadJoinCall(CInst));
+        return createPthreadJoinCall(CInst);
     } else {
         auto type = _options.getAllocationFunction(function->getName());
         RDNode *node = nullptr;
@@ -874,62 +876,58 @@ LLVMRDBuilderDense::createCallsToZeroSizeFunctions(const llvm::Function *functio
         } else {
             node = createUndefinedCall(CInst);
         }
-        functionCalls.emplace_back(node, node, CallType::PLAIN_CALL);
+        return {node, node};
     }
-    return functionCalls;
 }
 
-std::vector<LLVMRDBuilderDense::FunctionCall>
-LLVMRDBuilderDense::createCallsToFunctions(const std::vector<const llvm::Function *> &functions,
+std::pair<RDNode *, RDNode *>
+LLVMRDBuilderDense::createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                                            const llvm::CallInst *CInst)
 {
     using namespace std;
-    vector<FunctionCall> callFunctions;
 
+    RDNode *callNode = new RDNode(RDNodeType::CALL_FUNCPTR);
+    RDNode *returnNode = new RDNode(RDNodeType::RETURN);
+    addNode(CInst, callNode);
+    addNode(returnNode);
+
+    bool hasFunction = false;
     for(const llvm::Function *function : functions) {
-        if (auto model = _options.getFunctionModel(function->getName())) {
-            auto node = funcFromModel(model, CInst);
-            addNode(CInst, node);
-            callFunctions.emplace_back(node, node, CallType::PLAIN_CALL);
-        } else if (function->size() == 0) {
-            auto zeroSizeCallFunctions = createCallsToZeroSizeFunctions(function, CInst);
-            callFunctions.insert(callFunctions.end(),
-                                 zeroSizeCallFunctions.begin(),
-                                 zeroSizeCallFunctions.end());
-        } else if (!llvmutils::callIsCompatible(function, CInst)) {
-            RDNode *node = createUndefinedCall(CInst);
-            callFunctions.emplace_back(node, node, CallType::PLAIN_CALL);
-        } else {
-            callFunctions.push_back(createCallToFunction(function));
-        }
+        auto func = createCallToFunction(function, CInst);
+        makeEdge(callNode, func.first);
+        makeEdge(func.second, returnNode);
+        hasFunction |= true;
     }
 
-    if (callFunctions.empty()) {
+    if (!hasFunction) {
         RDNode *node = createUndefinedCall(CInst);
-        callFunctions.emplace_back(node, node, CallType::PLAIN_CALL);
+        makeEdge(callNode, node);
+        makeEdge(node, returnNode);
     }
 
-    return callFunctions;
+    return {callNode, returnNode};
 }
 
-std::vector<LLVMRDBuilderDense::FunctionCall>
+std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
 {
     using namespace llvm;
-    RDNode *root = nullptr;
-    RDNode *ret = nullptr;
     threadCreateCalls.push_back(CInst);
 
-    Value *calledValue = CInst->getArgOperand(2);
-    std::vector<const Function *> functions;
-    if (isa<Function>(calledValue)) {
-        functions.push_back(dyn_cast<Function>(calledValue));
+    RDNode *rootNode = new RDNode(RDNodeType::CALL);
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        addNode(CInst, rootNode);
     } else {
-        functions = getPointsToFunctions(calledValue);
+        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+        addNode(rootNode);
     }
 
-    std::vector<FunctionCall> functionCalls;
+    Value *calledValue = CInst->getArgOperand(2);
+    auto functions = PTA->getPointsToFunctions(calledValue);
 
+    RDNode *root = nullptr;
+    RDNode *ret = nullptr;
     for (const Function *function : functions) {
         auto it = subgraphs_map.find(function);
         if (it == subgraphs_map.end()) {
@@ -939,13 +937,12 @@ LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
             ret = it->second.ret;
         }
         assert(root && ret && "Incomplete subgraph");
-        functionCalls.emplace_back(root, ret, CallType::CREATE_THREAD);
+        makeEdge(rootNode, root);
     }
-
-    return functionCalls;
+    return {rootNode, rootNode};
 }
 
-LLVMRDBuilderDense::FunctionCall
+std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::createPthreadJoinCall(const llvm::CallInst *CInst)
 {
     threadJoinCalls.push_back(CInst);
@@ -953,7 +950,7 @@ LLVMRDBuilderDense::createPthreadJoinCall(const llvm::CallInst *CInst)
     // we need just to create one node;
     // undefined call is overapproximation, so its ok
     RDNode *node = createUndefinedCall(CInst);
-    return {node, node, CallType::JOIN_THREAD};
+    return {node, node};
 }
 
 ReachingDefinitionsGraph LLVMRDBuilderDense::build()
@@ -1084,12 +1081,6 @@ std::vector<DefSite> LLVMRDBuilderDense::mapPointers(const llvm::Value *where,
 
     return result;
 }
-
-LLVMRDBuilderDense::FunctionCall::FunctionCall(RDNode *rootNode,
-                                               RDNode *returnNode,
-                                               LLVMRDBuilderDense::CallType callType):rootNode(rootNode),
-                                                                                      returnNode(returnNode),
-                                                                                      callType(callType) {}
 
 } // namespace rd
 } // namespace analysis
