@@ -980,6 +980,9 @@ LLVMRDBuilderDense::FunctionCall
 LLVMRDBuilderDense::createPthreadJoinCall(const llvm::CallInst *CInst)
 {
     threadJoinCalls.push_back(CInst);
+    // TODO later change this to create join node and set data correctly
+    // we need just to create one node;
+    // undefined call is overapproximation, so its ok
     RDNode *node = createUndefinedCall(CInst);
     return {node, node, CallType::JOIN_THREAD};
 }
