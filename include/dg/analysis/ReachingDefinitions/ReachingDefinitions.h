@@ -52,6 +52,8 @@ enum class RDNodeType {
         CALL_FUNCPTR,
         // return from the call (in caller)
         CALL_RETURN,
+        FORK,
+        JOIN,
         // dummy nodes
         NOOP,
         // nodes that use the memory
