@@ -95,24 +95,19 @@ private:
 
     std::pair<RDNode *, RDNode *> buildGlobals();
 
-    FunctionCall
-    createCallToFunction(const llvm::Function *F);
+    std::pair<RDNode *, RDNode *> createCallToFunction(const llvm::Function *F, const llvm::CallInst *CInst);
 
-    std::vector<FunctionCall>
-    createCall(const llvm::Instruction *Inst);
+    std::pair<RDNode *, RDNode *> createCall(const llvm::Instruction *Inst);
 
-    std::vector<FunctionCall>
-    createCallsToZeroSizeFunctions(const llvm::Function *function,
+    std::pair<RDNode *, RDNode *> createCallToZeroSizeFunction(const llvm::Function *function,
                                      const llvm::CallInst *CInst);
 
-    std::vector<FunctionCall>
-    createCallsToFunctions(const std::vector<const llvm::Function *> &functions,
+    std::pair<RDNode *, RDNode *> createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                            const llvm::CallInst *CInst);
 
-    std::vector<FunctionCall>
-    createPthreadCreateCalls(const llvm::CallInst *CInst);
+    std::pair<RDNode *, RDNode *> createPthreadCreateCalls(const llvm::CallInst *CInst);
 
-    FunctionCall createPthreadJoinCall(const llvm::CallInst *CInst);
+    std::pair<RDNode *, RDNode *> createPthreadJoinCall(const llvm::CallInst *CInst);
 
     RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
     RDNode *createUndefinedCall(const llvm::CallInst *CInst);
@@ -131,10 +126,8 @@ private:
 
     void matchForksAndJoins();
 
-    void connectCallsToGraph(const llvm::Instruction *Inst,
-                             const std::vector<FunctionCall> &functionCalls,
-                             RDNode *&lastNode);
     bool buildUses{false};
+
 };
 
 }
