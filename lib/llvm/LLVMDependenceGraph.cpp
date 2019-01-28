@@ -446,10 +446,12 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
 
                     Function *F = ptr.target->getUserData<Function>();
                     func = F;
-                    if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst))
+                    if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst)) {
                         // incompatible prototypes or the function
                         // is only declaration
+                        func = nullptr;
                         continue;
+                    }
 
                     LLVMDependenceGraph *subg = buildSubgraph(node, F);
                     node->addSubgraph(subg);
