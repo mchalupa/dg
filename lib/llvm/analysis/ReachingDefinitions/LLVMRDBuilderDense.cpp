@@ -72,6 +72,7 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
             op = CInst->getOperand(0);
             break;
         case AllocationFunction::CALLOC:
+        case AllocationFunction::REALLOC:
             op = CInst->getOperand(1);
             break;
         default:
@@ -92,23 +93,12 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
     }
 
     node->setSize(size);
-    return node;
-}
 
-RDNode *LLVMRDBuilderDense::createRealloc(const llvm::Instruction *Inst)
-{
-    RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
-    addNode(Inst, node);
-
-    uint64_t size = getConstantValue(Inst->getOperand(1));
-    if (size == 0)
-        size = Offset::UNKNOWN;
-    else
-        node->setSize(size);
-
-    // realloc defines itself, since it copies the values
-    // from previous memory
-    node->addDef(node, 0, size, false /* strong update */);
+    if (type == AllocationFunction::REALLOC) {
+        // realloc defines itself, since it copies the values
+        // from previous memory
+        node->addDef(node, 0, size, false /* strong update */);
+    }
 
     return node;
 }
@@ -782,10 +772,7 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
             } else {
                 auto type = _options.getAllocationFunction(func->getName());
                 if (type != AllocationFunction::NONE) {
-                    if (type == AllocationFunction::REALLOC)
-                        n = createRealloc(CInst);
-                    else
-                        n = createDynAlloc(CInst, type);
+                    n = createDynAlloc(CInst, type);
                 } else {
                     n = createUndefinedCall(CInst);
                 }
