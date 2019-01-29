@@ -1027,21 +1027,23 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const
         for (const auto &store : stores) {
             auto loadOperand = PTA->getPointsTo(load->getOperand(0));
             auto storeOperand = PTA->getPointsTo(store->getOperand(1));
-            for (const auto pointerLoad : loadOperand->pointsTo) {
-                for (const auto pointerStore : storeOperand->pointsTo) {
-                    if (pointerLoad.target == pointerStore.target &&
-                        (pointerLoad.offset.isUnknown()  ||
-                         pointerStore.offset.isUnknown() ||
-                         pointerLoad.offset == pointerStore.offset)) {
-                        llvm::Instruction *loadInst = const_cast<llvm::Instruction *>(load);
-                        llvm::Instruction *storeInst = const_cast<llvm::Instruction *>(store);
-                        auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getFunction()));
-                        auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getFunction()));
-                        if (loadFunction != constructedFunctions.end() && storeFunction != constructedFunctions.end()) {
-                            auto loadNode = loadFunction->second->findNode(loadInst);
-                            auto storeNode = storeFunction->second->findNode(storeInst);
-                            if (loadNode && storeNode) {
-                                storeNode->addInterferenceDependence(loadNode);
+            if (loadOperand && storeOperand) { // if storeOperand does not have pointsTo, expect it can write anywhere??
+                for (const auto pointerLoad : loadOperand->pointsTo) {
+                    for (const auto pointerStore : storeOperand->pointsTo) {
+                        if (pointerLoad.target == pointerStore.target &&
+                            (pointerLoad.offset.isUnknown()  ||
+                             pointerStore.offset.isUnknown() ||
+                             pointerLoad.offset == pointerStore.offset)) {
+                            llvm::Instruction *loadInst = const_cast<llvm::Instruction *>(load);
+                            llvm::Instruction *storeInst = const_cast<llvm::Instruction *>(store);
+                            auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getFunction()));
+                            auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getFunction()));
+                            if (loadFunction != constructedFunctions.end() && storeFunction != constructedFunctions.end()) {
+                                auto loadNode = loadFunction->second->findNode(loadInst);
+                                auto storeNode = storeFunction->second->findNode(storeInst);
+                                if (loadNode && storeNode) {
+                                    storeNode->addInterferenceDependence(loadNode);
+                                }
                             }
                         }
                     }
