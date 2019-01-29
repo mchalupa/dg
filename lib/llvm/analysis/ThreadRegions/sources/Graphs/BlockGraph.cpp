@@ -57,14 +57,7 @@ void BlockGraph::build() {
             break;
         }
         default:
-            LlvmNode *currentNode = new LlvmNode(controlFlowGraph, &instruction);
-            addNode(currentNode);
-            if (!firstNode_) {
-                firstNode_ = lastConnectedNode = currentNode;
-            } else {
-                lastConnectedNode->addSuccessor(currentNode);
-                lastConnectedNode = currentNode;
-            }
+            buildGeneralNode(&instruction, lastConnectedNode);
             break;
         }
     }
@@ -101,11 +94,22 @@ void BlockGraph::addNode(LlvmNode *llvmNode) {
 }
 
 void BlockGraph::buildCallInstruction(const CallInst *callInstruction, Node *&lastConnectedNode) {
-    Node *callNode = nullptr;
-    Node *returnNode = nullptr;
+    if (callInstruction->isInlineAsm()) {
+        buildGeneralNode(callInstruction, lastConnectedNode);
+        return;
+    }
 
     const Value *calledValue = callInstruction->getCalledValue();
+
     auto pointsToFunctions = controlFlowGraph->pointsToAnalysis_->getPointsToFunctions(calledValue);
+
+    if (pointsToFunctions.empty()) {
+        buildGeneralNode(callInstruction, lastConnectedNode);
+        return;
+    }
+
+    Node *callNode = nullptr;
+    Node *returnNode = nullptr;
 
     const Function *pthreadCreate = didContainFunction(pointsToFunctions, "pthread_create"); 
     const Function *pthreadJoin = didContainFunction(pointsToFunctions, "pthread_join");
@@ -135,6 +139,18 @@ void BlockGraph::buildCallInstruction(const CallInst *callInstruction, Node *&la
         lastConnectedNode = returnNode;
     } else {
         lastConnectedNode = callNode;
+    }
+}
+
+void BlockGraph::buildGeneralNode(const Instruction *instruction, Node *&lastConnectedNode)
+{
+    LlvmNode *currentNode = new LlvmNode(controlFlowGraph, instruction);
+    addNode(currentNode);
+    if (!firstNode_) {
+        firstNode_ = lastConnectedNode = currentNode;
+    } else {
+        lastConnectedNode->addSuccessor(currentNode);
+        lastConnectedNode = currentNode;
     }
 }
 
