@@ -80,6 +80,7 @@ private:
 
     std::pair<RDNode *, RDNode *> createPthreadJoinCall(const llvm::CallInst *CInst);
 
+    std::pair<RDNode *, RDNode *> createPthreadExitCall(const llvm::CallInst *CInst);
     RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
     RDNode *createUndefinedCall(const llvm::CallInst *CInst);
 

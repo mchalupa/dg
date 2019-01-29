@@ -753,37 +753,20 @@ void LLVMRDBuilderDense::matchForksAndJoins()
 {
     using namespace llvm;
     using namespace pta;
-    for (const CallInst *forkInstruction : threadCreateCalls) {
-        PSNode *forkPoint = PTA->getPointsTo(forkInstruction->getArgOperand(0));
-        for (const CallInst * joinInstruction : threadJoinCalls) {
-            std::set<PSNode *> set;
-            PSNode *joinPoint = PTA->getPointsTo(joinInstruction->getArgOperand(0))->getOperand(0);
-            for (const auto forkNode : forkPoint->pointsTo) {
-                for (const auto joinNode : joinPoint->pointsTo) {
-                    if (joinNode.target == forkNode.target) {
-                        set.insert(joinNode.target);
-                    }
-                }
+    auto joinsMap = PTA->getJoins();
+
+    for (auto & joinInstAndJoinNode : joinsMap) {
+        auto callInst = joinInstAndJoinNode.first->getUserData<llvm::CallInst>();
+        auto PSJoinNode = joinInstAndJoinNode.second;
+        auto iterator = threadJoinCalls.find(callInst);
+        if (iterator != threadJoinCalls.end()) {
+            for (auto & function : PSJoinNode->functions()) {
+                auto llvmFunction = function->getUserData<llvm::Function>();
+                auto graphIterator = subgraphs_map.find(llvmFunction);
+                RDNode *returnNode = graphIterator->second.ret;
+                makeEdge(returnNode, iterator->second);
             }
-            if (!set.empty()) {
-                auto nodeIterator= nodes_map.find(joinInstruction);
-                assert(nodeIterator != nodes_map.end() && "Missing join node in the map");
-                RDNode *joinNode = nodeIterator->second;
-                std::vector<const Function *> functions;
-                auto potentialFunction = forkInstruction->getArgOperand(2);
-                if (isa<Function>(potentialFunction)) {
-                    functions.push_back(dyn_cast<Function>(potentialFunction));
-                } else {
-                    functions = getPointsToFunctions(potentialFunction);
-                }
-                for (const auto &function : functions) {
-                    auto graphIterator = subgraphs_map.find(function);
-                    assert(graphIterator != subgraphs_map.end() && "Missing function subgraph");
-                    RDNode *returnNode = graphIterator->second.ret;
-                    makeEdge(returnNode, joinNode);
-                }
-            }
-        }
+        } 
     }
 }
 
@@ -897,6 +880,8 @@ LLVMRDBuilderDense::createCallToZeroSizeFunction(const llvm::Function *function,
         return createPthreadCreateCalls(CInst);
     } else if (function->getName() == "pthread_join") {
         return createPthreadJoinCall(CInst);
+    } else if (function->getName() == "pthread_exit") {
+        return createPthreadExitCall(CInst);
     } else {
         MemAllocationFuncs type = getMemAllocationFunc(function);
         RDNode *node = nullptr;
@@ -944,9 +929,8 @@ std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
 {
     using namespace llvm;
-    threadCreateCalls.push_back(CInst);
 
-    RDNode *rootNode = new RDNode(RDNodeType::CALL);
+    RDNode *rootNode = new RDNode(RDNodeType::FORK);
     auto iterator = nodes_map.find(CInst);
     if (iterator == nodes_map.end()) {
         addNode(CInst, rootNode);
@@ -954,6 +938,7 @@ LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
         assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
         addNode(rootNode);
     }
+    threadCreateCalls.emplace(CInst, rootNode);
 
     Value *calledValue = CInst->getArgOperand(2);
     auto functions = PTA->getPointsToFunctions(calledValue);
@@ -977,11 +962,18 @@ LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::createPthreadJoinCall(const llvm::CallInst *CInst)
 {
-    threadJoinCalls.push_back(CInst);
     // TODO later change this to create join node and set data correctly
     // we need just to create one node;
     // undefined call is overapproximation, so its ok
     RDNode *node = createUndefinedCall(CInst);
+    threadJoinCalls.emplace(CInst, node);
+    return {node, node};
+}
+
+std::pair<RDNode *, RDNode *> 
+LLVMRDBuilderDense::createPthreadExitCall(const llvm::CallInst *CInst)
+{
+    auto node = createReturn(CInst);
     return {node, node};
 }
 

@@ -38,8 +38,8 @@ protected:
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, RDNode *> nodes_map;
 
-    std::vector<const llvm::CallInst *> threadCreateCalls;
-    std::vector<const llvm::CallInst *> threadJoinCalls;
+    std::map<const llvm::CallInst *, RDNode *> threadCreateCalls;
+    std::map<const llvm::CallInst *, RDNode *> threadJoinCalls;
 
     // mapping of llvm nodes to relevant reaching definitions nodes
     // (this is a super-set of nodes_map)
