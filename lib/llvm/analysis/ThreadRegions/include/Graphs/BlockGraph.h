@@ -62,6 +62,9 @@ private:
 
     void buildCallInstruction(const llvm::CallInst * callInstruction,
                               Node *& lastConnectedNode);
+
+    void buildGeneralNode(const llvm::Instruction * instruction,
+                          Node *& lastConnectedNode);
     
     Node *buildPthreadCreate(const llvm::CallInst * callInstruction);
 
