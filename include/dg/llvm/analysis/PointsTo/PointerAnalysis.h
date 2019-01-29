@@ -188,6 +188,11 @@ public:
             return {false, LLVMPointsToSet(getUnknownPTSet())};
     }
 
+    std::map<PSNode *, analysis::pta::PSNodeJoin *> getJoins() const
+    {
+        return _builder->getJoins();
+    }
+
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
     getNodesMap() const
     {
