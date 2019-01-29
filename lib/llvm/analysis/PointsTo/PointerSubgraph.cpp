@@ -301,6 +301,11 @@ LLVMPointerSubgraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
     return functions;
 }
 
+std::map<PSNode *, PSNodeJoin *>
+LLVMPointerSubgraphBuilder::getJoins() const 
+{
+    return threadJoinCalls;
+}
 
 LLVMPointerSubgraphBuilder::Subgraph&
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::Function *F)

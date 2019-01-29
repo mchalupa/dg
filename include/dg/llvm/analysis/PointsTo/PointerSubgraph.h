@@ -107,8 +107,8 @@ class LLVMPointerSubgraphBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Function *, Subgraph> subgraphs_map;
 
-    std::vector<PSNode *> threadCreateCalls;
-    std::vector<PSNode *> threadJoinCalls;
+    std::map<PSNode *, PSNodeFork *> threadCreateCalls;
+    std::map<PSNode *, PSNodeJoin *> threadJoinCalls;
 
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
@@ -171,7 +171,8 @@ public:
 
     std::vector<PSNode *>
     getPointsToFunctions(const llvm::Value *calledValue);
-
+    std::map<PSNode *, PSNodeJoin *>
+    getJoins() const;
     void setInvalidateNodesFlag(bool value) 
     {
         assert(PS.getRoot() == nullptr &&
