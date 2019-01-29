@@ -287,7 +287,9 @@ LLVMPointerSubgraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
     }
 
     PSNode *operand = getPointsTo(calledValue);
-    assert(operand && "Don't have points-to information");
+    if (operand == nullptr) {
+        return functions;
+    }
 
     for (const analysis::pta::Pointer pointer : operand->pointsTo) {
         if (pointer.isValid()
