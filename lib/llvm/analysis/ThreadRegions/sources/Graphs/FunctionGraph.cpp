@@ -47,6 +47,8 @@ Node * FunctionGraph::findNode (const llvm::Value * value) const {
 }
 
 void FunctionGraph::clearDfsState() {
+    entryNode_->setDfsState(DfsState::UNDISCOVERED);
+    exitNode_->setDfsState(DfsState::UNDISCOVERED);
     for (auto keyValue : llvmToBlockGraphMap) {
         keyValue.second->clearDfsState();
     }
