@@ -32,18 +32,18 @@ public:
 
     int id() const;
 
-    void setName(std::string &name);
+    void setName(const std::string &name);
 
     const std::string & name() const;
           std::string   name();
 
     std::string dotName() const;
 
-    void addPredecessor(Node *);
-    void addSuccessor(Node *);
+    bool addPredecessor(Node *);
+    bool addSuccessor(Node *);
 
-    void removePredecessor(Node *);
-    void removeSuccessor(Node *);
+    bool removePredecessor(Node *);
+    bool removeSuccessor(Node *);
 
     const std::set<Node *> & predecessors() const;
     const std::set<Node *> & successors() const;

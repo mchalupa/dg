@@ -19,7 +19,7 @@ int Node::id() const {
     return id_;
 }
 
-void Node::setName(string &name) { name_ = name; }
+void Node::setName(const string &name) { name_ = name; }
 
 const string & Node::name() const { return name_; }
 string   Node::name()       { return name_; }
@@ -28,24 +28,36 @@ string Node::dotName() const {
     return "NODE" + to_string(id_);
 }
 
-void Node::addPredecessor(Node *node) {
+bool Node::addPredecessor(Node *node) {
+    if (!node) {
+        return false;
+    }
     predecessors_.insert(node);
-    node->successors_.insert(this);
+    return node->successors_.insert(this).second;
 }
 
-void Node::addSuccessor(Node *node) {
+bool Node::addSuccessor(Node *node) {
+    if (!node) {
+        return false;
+    }
     successors_.insert(node);
-    node->predecessors_.insert(this);
+    return node->predecessors_.insert(this).second;
 }
 
-void Node::removePredecessor(Node *node) {
+bool Node::removePredecessor(Node *node) {
+    if (!node) {
+        return false;
+    }
     predecessors_.erase(node);
-    node->successors_.erase(this);
+    return node->successors_.erase(this);
 }
 
-void Node::removeSuccessor(Node *node) {
+bool Node::removeSuccessor(Node *node) {
+    if (!node) {
+        return false;
+    }
     successors_.erase(node);
-    node->predecessors_.erase(this);
+    return node->predecessors_.erase(this);
 }
 
 const set<Node *> &Node::predecessors() const {
@@ -95,6 +107,9 @@ void Node::printOutcomingEdges(ostream &ostream) const {
 }
 
 void Node::setThreadRegion(ThreadRegion *threadRegion) {
+    if (threadRegion == nullptr) {
+        return;
+    }
     threadRegion_ = threadRegion;
     threadRegion_->insertNode(this);
 }
