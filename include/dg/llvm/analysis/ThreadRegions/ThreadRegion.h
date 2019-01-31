@@ -26,15 +26,25 @@ public:
     ThreadRegion(ControlFlowGraph * controlFlowGraph);
 
     ControlFlowGraph * controlFlowGraph();
+    int id() const;
 
-    void addPredecessor(ThreadRegion * predecessor);
-    void addSuccessor(ThreadRegion * successor);
+    bool addPredecessor(ThreadRegion * predecessor);
+    bool addSuccessor(ThreadRegion * successor);
 
-    void removePredecessor(ThreadRegion * predecessor);
-    void removeSuccessor(ThreadRegion * successor);
+    bool removePredecessor(ThreadRegion * predecessor);
+    bool removeSuccessor(ThreadRegion * successor);
 
-    void insertNode(Node * node);
-    void removeNode(Node * node);
+    const std::set<ThreadRegion *> &predecessors() const;
+          std::set<ThreadRegion *>  predecessors();
+
+    const std::set<ThreadRegion *> &successors() const;
+          std::set<ThreadRegion *>  successors();
+
+    bool insertNode(Node * node);
+    bool removeNode(Node * node);
+
+    const std::set<Node *> &nodes() const;
+          std::set<Node *>  nodes();
 
     void printNodes(std::ostream & ostream);
     void printEdges(std::ostream & ostream);

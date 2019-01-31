@@ -14,32 +14,68 @@ ControlFlowGraph *ThreadRegion::controlFlowGraph() {
     return controlFlowGraph_;
 }
 
-void ThreadRegion::addPredecessor(ThreadRegion *predecessor) {
+int ThreadRegion::id() const {
+    return id_;
+}
+
+bool ThreadRegion::addPredecessor(ThreadRegion *predecessor) {
     predecessors_.insert(predecessor);
-    predecessor->successors_.insert(this);
+    return predecessor->successors_.insert(this).second;
 }
 
-void ThreadRegion::addSuccessor(ThreadRegion *threadRegion) {
+bool ThreadRegion::addSuccessor(ThreadRegion *threadRegion) {
     successors_.insert(threadRegion);
-    threadRegion->predecessors_.insert(this);
+    return threadRegion->predecessors_.insert(this).second;
 }
 
-void ThreadRegion::removePredecessor(ThreadRegion *predecessor) {
-    predecessors_.equal_range(predecessor);
-    predecessor->successors_.erase(this);
+bool ThreadRegion::removePredecessor(ThreadRegion *predecessor) {
+    if (!predecessor) {
+        return false;
+    }
+    predecessors_.erase(predecessor);
+    return predecessor->successors_.erase(this);
 }
 
-void ThreadRegion::removeSuccessor(ThreadRegion *successor) {
+bool ThreadRegion::removeSuccessor(ThreadRegion *successor) {
+    if (!successor) {
+        return false;
+    }
     successors_.erase(successor);
-    successor->predecessors_.erase(this);
+    return successor->predecessors_.erase(this);
 }
 
-void ThreadRegion::insertNode(Node *node) {
+const std::set<ThreadRegion *> &ThreadRegion::predecessors() const {
+    return predecessors_;
+}
+
+std::set<ThreadRegion *> ThreadRegion::predecessors() {
+    return predecessors_;
+}
+
+const std::set<ThreadRegion *> &ThreadRegion::successors() const {
+    return successors_;
+}
+
+std::set<ThreadRegion *> ThreadRegion::successors() {
+    return successors_;
+}
+
+bool ThreadRegion::insertNode(Node *node) {
     nodes_.insert(node);
+    return false;
 }
 
-void ThreadRegion::removeNode(Node *node) {
+bool ThreadRegion::removeNode(Node *node) {
     nodes_.erase(node);
+    return false;
+}
+
+const std::set<Node *> &ThreadRegion::nodes() const {
+    return nodes_;
+}
+
+std::set<Node *> ThreadRegion::nodes() {
+    return nodes_;
 }
 
 void ThreadRegion::printNodes(std::ostream &ostream) {
