@@ -67,7 +67,17 @@ target_link_libraries(points-to-set-test PRIVATE DGAnalysis)
 add_test(points-to-set-test points-to-set-test)
 add_dependencies(check points-to-set-test)
 
-
+# --------------------------------------------------
+# ThreadRegions test
+# --------------------------------------------------
+add_executable(thread-regions-test ${CMAKE_CURRENT_LIST_DIR}/catch-main.cpp
+                                  ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test.cpp)
+target_link_libraries(thread-regions-test PRIVATE ThreadRegions
+                                          PRIVATE ${llvm_core}
+                                          PRIVATE ${llvm_irreader}
+                                          PRIVATE ${llvm_support})
+add_test(thread-regions-test thread-regions-test)
+add_dependencies(check thread-regions-test)
 
 # --------------------------------------------------
 # llvm-dg-test
