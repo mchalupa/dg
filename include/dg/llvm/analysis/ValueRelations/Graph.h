@@ -28,6 +28,8 @@ public:
     bool isAssume() const { return _type == VROpType::ASSUME; }
     bool isNoop() const { return _type == VROpType::NOOP; }
 
+    virtual ~VROp() {}
+
 #ifndef NDEBUG
     virtual void dump() const = 0;
 #endif
