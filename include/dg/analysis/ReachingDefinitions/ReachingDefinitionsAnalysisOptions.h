@@ -43,7 +43,6 @@ struct FunctionModel {
         unsigned operand;
         OperandValue from, to;
 
-        Defines() = default;
         Defines(unsigned operand, OperandValue from, OperandValue to)
         : operand(operand), from(from), to(to) {}
         Defines(Defines&&) = default;
