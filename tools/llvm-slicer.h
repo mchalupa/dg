@@ -177,15 +177,19 @@ public:
         llvm::LLVMContext& ctx = M->getContext();
         llvm::Function *main_func = M->getFunction("main");
         if (!main_func) {
-            main_func
-                = llvm::cast<llvm::Function>(
-                    M->getOrInsertFunction("main",
-                                           llvm::Type::getInt32Ty(ctx),
-                                           nullptr));
-            if (!main_func) {
+            auto C = M->getOrInsertFunction("main",
+                                            llvm::Type::getInt32Ty(ctx),
+                                            nullptr);
+#if LLVM_VERSION_MAJOR < 9
+            if (!C) {
                 llvm::errs() << "Could not create new main function\n";
                 return false;
             }
+
+            main_func = llvm::cast<llvm::Function>(C);
+#else
+            main_func = llvm::cast<llvm::Function>(C.getCallee());
+#endif
         } else {
             // delete old function body
             main_func->deleteBody();
