@@ -166,12 +166,12 @@ public:
     VRValue *getLHS() const { return _lhs; }
     VRValue *getRHS() const { return _rhs; }
 
-    friend class VREq;
-    friend class VRNeq;
-    friend class VRLt;
-    friend class VRLe;
-    friend class VRGt;
-    friend class VRGe;
+    friend struct VREq;
+    friend struct VRNeq;
+    friend struct VRLt;
+    friend struct VRLe;
+    friend struct VRGt;
+    friend struct VRGe;
 };
 
 struct VREq : public VRRelation {
