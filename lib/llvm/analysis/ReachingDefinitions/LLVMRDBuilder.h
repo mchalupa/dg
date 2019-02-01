@@ -4,9 +4,24 @@
 #include <unordered_map>
 #include <memory>
 
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
