@@ -146,6 +146,10 @@ public:
         return count(ptr) > 0;
     }
 
+    bool hasUnknown() const { return pointsToTarget(UNKNOWN_MEMORY); }
+    bool hasNull() const { return pointsToTarget(NULLPTR); }
+    bool hasInvalidated() const { return pointsToTarget(INVALIDATED); }
+
     size_t size() const {
         size_t num = 0;
         for (auto& it : pointers) {
@@ -325,6 +329,9 @@ public:
     size_t size() { return pointers.size(); }
     bool empty() const { return pointers.empty(); }
     bool has(const Pointer& ptr) { return count(ptr) > 0; }
+    bool hasUnknown() const { return pointsToTarget(UNKNOWN_MEMORY); }
+    bool hasNull() const { return pointsToTarget(NULLPTR); }
+    bool hasInvalidated() const { return pointsToTarget(INVALIDATED); }
 
     void swap(SimplePointsToSet& rhs) { pointers.swap(rhs.pointers); }
 
