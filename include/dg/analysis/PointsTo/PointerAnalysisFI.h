@@ -18,9 +18,6 @@ class PointerAnalysisFI : public PointerAnalysis
 {
     std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
-protected:
-    PointerAnalysisFI() = default;
-
 public:
     PointerAnalysisFI(PointerSubgraph *ps)
     : PointerAnalysis(ps) {

@@ -118,8 +118,6 @@ public:
 
 protected:
 
-    PointerAnalysisFS() = default;
-
     static bool canChangeMM(PSNode *n) {
         if (n->predecessorsNum() == 0) // root node
             return true;
