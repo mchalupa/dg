@@ -54,15 +54,10 @@ getOperationWithConst(const llvm::Instruction *I) {
         auto tmp = C1;
         C1 = C2;
         C2 = tmp;
-        auto tmp1 = val1;
-        val1 = val2;
-        val2 = tmp1;
     }
 
     assert(!C1 && C2);
-
-    auto V = C2->getSExtValue();
-    return {val1, V};
+    return {C1, C2->getSExtValue()};
 }
 
 class LLVMValueRelationsAnalysis {

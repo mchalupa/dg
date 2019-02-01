@@ -22,10 +22,10 @@ namespace dg {
 namespace analysis {
 
 class LLVMValueRelations {
-    const llvm::Module *_M;
-    unsigned _max_interprocedural_iterations = 0;
 
+    const llvm::Module *_M;
     unsigned last_node_id{0};
+
     // mapping from LLVM Values to relevant CFG nodes
     std::map<const llvm::Value *, VRLocation *> _loc_mapping;
     // list of our basic blocks with mapping from LLVM
