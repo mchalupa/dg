@@ -50,8 +50,8 @@ struct Pointer
 
 };
 
-extern const Pointer PointerUnknown;
-extern const Pointer PointerNull;
+extern const Pointer UnknownPointer;
+extern const Pointer NullPointer;
 
 } // namespace pta
 } // namespace analysis

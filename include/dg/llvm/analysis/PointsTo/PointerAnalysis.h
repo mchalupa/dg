@@ -65,7 +65,7 @@ public:
                 builder->insertPthreadCreateByPtrCall(callsite, called);
             }
 
-            return callsite->getPairedNode()->addPointsTo(analysis::pta::PointerUnknown);
+            return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
         }
 
         if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called)) {

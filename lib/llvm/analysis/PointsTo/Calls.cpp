@@ -137,7 +137,7 @@ LLVMPointerSubgraphBuilder::createUnknownCall(const llvm::CallInst *CInst)
     call->setPairedNode(call);
 
     // the only thing that the node will point at
-    call->addPointsTo(PointerUnknown);
+    call->addPointsTo(UnknownPointer);
 
     addNode(CInst, call);
 
