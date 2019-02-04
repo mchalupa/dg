@@ -60,7 +60,7 @@ public:
         if (F->isDeclaration()) {
             // calling declaration that returns a pointer?
             // That is unknown pointer
-            return callsite->getPairedNode()->addPointsTo(analysis::pta::PointerUnknown);
+            return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
         }
 
         if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called))
