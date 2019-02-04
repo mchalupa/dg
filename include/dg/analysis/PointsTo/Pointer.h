@@ -17,7 +17,7 @@ extern PSNode *INVALIDATED;
 
 struct Pointer
 {
-    Pointer(PSNode *n, Offset off = 0) : target(n), offset(off)
+    Pointer(PSNode *n, Offset off) : target(n), offset(off)
     {
         assert(n && "Cannot have a pointer with nullptr as target");
     }

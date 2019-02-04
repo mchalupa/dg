@@ -347,7 +347,7 @@ bool PointerAnalysis::processNode(PSNode *node)
                         PSNodeAlloc *target = PSNodeAlloc::get(ptr.target);
                         assert(target && "Target is not memory allocation");
                         if (!target->isHeap() && !target->isGlobal()) {
-                            changed |= node->addPointsTo(INVALIDATED);
+                            changed |= node->addPointsTo(INVALIDATED, 0);
                         }
                     }
                 }
