@@ -212,8 +212,8 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
     RDNode *node = new RDNode(RDNodeType::STORE);
     addNode(Inst, node);
 
-    pta::PSNode *pts = PTA->getPointsTo(Inst->getOperand(1));
-    if (!pts) {
+    auto pts = PTA->getLLVMPointsToChecked(Inst->getOperand(1));
+    if (!pts.first) {
         llvm::errs() << "[RD] Error: Don't have the points-to node "
                         "for store's target\n";
         llvm::errs() << *Inst << "\n";
@@ -224,7 +224,7 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
 #endif
     }
 
-    if (pts->pointsTo.empty()) {
+    if (pts.second.empty()) {
         llvm::errs() << "[RD] Error: empty points-to set for store's target\n"
                      << *Inst << "\n";
 
@@ -241,34 +241,23 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
         return node;
     }
 
-    for (const pta::Pointer& ptr: pts->pointsTo) {
-        // XXX we should at least warn?
-        if (ptr.isNull())
-            continue;
+    if (pts.second.hasUnknown()) {
+        node->addDef(UNKNOWN_MEMORY);
+    }
 
-        if (ptr.isUnknown()) {
-            node->addDef(UNKNOWN_MEMORY);
-            continue;
-        }
-
-        // XXX: we should do something, shouldn't we?
-        // Or we just slice only well-defined programs?
-        if (ptr.isInvalidated())
-            continue;
-
-        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
+    for (const auto& ptr: pts.second) {
         // this may emerge with vararg function
-        if (llvm::isa<llvm::Function>(ptrVal))
+        if (llvm::isa<llvm::Function>(ptr.value))
             continue;
 
-        RDNode *ptrNode = getOperand(ptrVal);
+        RDNode *ptrNode = getOperand(ptr.value);
         //assert(ptrNode && "Don't have created node for pointer's target");
         if (!ptrNode) {
             // keeping such set is faster then printing it all to terminal
             // ... and we don't flood the terminal that way
             static std::set<const llvm::Value *> warned;
-            if (warned.insert(ptrVal).second) {
-                llvm::errs() << *ptrVal << "\n";
+            if (warned.insert(ptr.value).second) {
+                llvm::errs() << *ptr.value << "\n";
                 llvm::errs() << "Don't have created node for pointer's target\n";
             }
 
@@ -300,9 +289,10 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
         //  If we would do strong update on line 2 (which we would, since
         //  there we have must alias for the malloc), we would loose the
         //  definitions for line 1 and we would get incorrect results
-        pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(ptr.target);
+        pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(PTA->getPointsTo(ptr.value));
         assert(target && "Target of pointer is not an allocation");
-        bool strong_update = pts->pointsTo.size() == 1 && !target->isHeap();
+        // FIXME: what recursive procedures and allocations outside a loop?
+        bool strong_update = pts.second.isSingleton() == 1 && !target->isHeap();
         node->addDef(ptrNode, ptr.offset, size, strong_update);
     }
 
@@ -588,26 +578,19 @@ RDNode *LLVMRDBuilderDense::createUndefinedCall(const llvm::CallInst *CInst)
                 continue;
         }
 
-        pta::PSNode *pts = PTA->getPointsTo(llvmOp);
+        auto pts = PTA->getLLVMPointsToChecked(llvmOp);
         // if we do not have a pts, this is not pointer
         // relevant instruction. We must do it this way
         // instead of type checking, due to the inttoptr.
-        if (!pts)
+        if (!pts.first)
             continue;
 
-        for (const pta::Pointer& ptr : pts->pointsTo) {
-            if (!ptr.isValid())
-                continue;
-
-            if (ptr.isInvalidated())
-                continue;
-
-            const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-            if (llvm::isa<llvm::Function>(ptrVal))
+        for (const auto& ptr : pts.second) {
+            if (llvm::isa<llvm::Function>(ptr.value))
                 // function may not be redefined
                 continue;
 
-            RDNode *target = getOperand(ptrVal);
+            RDNode *target = getOperand(ptr.value);
             assert(target && "Don't have pointer target for call argument");
 
             // this call may define this memory
@@ -791,27 +774,22 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
     ret = new RDNode(RDNodeType::CALL);
     addNode(CInst, ret);
 
-    pta::PSNode *pts = PTA->getPointsTo(dest);
-    if (!pts) {
+    auto pts = PTA->getLLVMPointsToChecked(dest);
+    if (!pts.first) {
         llvm::errs() << "[RD] Error: No points-to information for destination in\n";
         llvm::errs() << *I << "\n";
-#ifdef NDEBUG
-        pts = pta::UNKNOWN_MEMORY;
-#else
+#ifndef NDEBUG
         abort();
 #endif
+        // continue, the points-to set is {unknown}
     }
 
     uint64_t len = Offset::UNKNOWN;
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
         len = C->getLimitedValue();
 
-    for (const pta::Pointer& ptr : pts->pointsTo) {
-        if (!ptr.isValid() || ptr.isInvalidated())
-            continue;
-
-        const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-        if (llvm::isa<llvm::Function>(ptrVal))
+    for (const auto& ptr : pts.second) {
+        if (llvm::isa<llvm::Function>(ptr.value))
             continue;
 
         uint64_t from, to;
@@ -829,7 +807,7 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
         else
             to = Offset::UNKNOWN;
 
-        RDNode *target = getOperand(ptrVal);
+        RDNode *target = getOperand(ptr.value);
         assert(target && "Don't have pointer target for intrinsic call");
 
         // add the definition
@@ -848,29 +826,22 @@ RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm
         if (!defines)
             continue;
         const auto llvmOp = CInst->getArgOperand(i);
-        pta::PSNode *pts = PTA->getPointsTo(llvmOp);
+        auto pts = PTA->getLLVMPointsToChecked(llvmOp);
         // if we do not have a pts, this is not pointer
         // relevant instruction. We must do it this way
         // instead of type checking, due to the inttoptr.
-        if (!pts) {
+        if (!pts.first) {
             llvm::errs() << "[Warning]: did not find pt-set for modeled function\n";
             llvm::errs() << "           Func: " << model->name << ", operand " << i << "\n";
             continue;
         }
 
-        for (const pta::Pointer& ptr : pts->pointsTo) {
-            if (!ptr.isValid())
-                continue;
-
-            if (ptr.isInvalidated())
-                continue;
-
-            const llvm::Value *ptrVal = ptr.target->getUserData<llvm::Value>();
-            if (llvm::isa<llvm::Function>(ptrVal))
+        for (const auto& ptr : pts.second) {
+            if (llvm::isa<llvm::Function>(ptr.value))
                 // function may not be redefined
                 continue;
 
-            RDNode *target = getOperand(ptrVal);
+            RDNode *target = getOperand(ptr.value);
             assert(target && "Don't have pointer target for call argument");
 
             auto from = defines->from.isOperand()
@@ -929,13 +900,16 @@ LLVMRDBuilderDense::createCallsToZeroSizeFunctions(const llvm::Function *functio
     } else if (function->getName() == "pthread_join") {
         functionCalls.push_back(createPthreadJoinCall(CInst));
     } else {
-        MemAllocationFuncs type = getMemAllocationFunc(function);
+        auto type = _options.getAllocationFunction(function->getName());
+        //MemAllocationFuncs type = getMemAllocationFunc(function);
         RDNode *node = nullptr;
-        if (type != MemAllocationFuncs::NONEMEM) {
-            if (type == MemAllocationFuncs::REALLOC)
+
+        if (type != AllocationFunction::NONE) {
+            if (type == AllocationFunction::REALLOC) {
                 node = createRealloc(CInst);
-            else
+            } else {
                 node = createDynAlloc(CInst, type);
+            }
         } else {
             node = createUndefinedCall(CInst);
         }
