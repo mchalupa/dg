@@ -39,6 +39,9 @@ class PointsToSet {
     }
 
 public:
+    PointsToSet() = default;
+    PointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+
     bool add(PSNode *target, Offset off) {
         if (off.isUnknown())
             return addWithUnknownOffset(target);
@@ -68,6 +71,14 @@ public:
         bool changed = false;
         for (auto& it : S.pointers) {
             changed |= pointers[it.first].set(it.second);
+        }
+        return changed;
+    }
+
+    bool add(std::initializer_list<Pointer> elems) {
+        bool changed = false;
+        for (const auto& e : elems) {
+            changed |= add(e);
         }
         return changed;
     }
@@ -237,6 +248,9 @@ class SimplePointsToSet {
     }
 
 public:
+    SimplePointsToSet() = default;
+    SimplePointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+
     bool add(PSNode *target, Offset off) {
         if (off.isUnknown())
             return addWithUnknownOffset(target);
@@ -261,6 +275,14 @@ public:
             changed |= pointers.insert(ptr).second;
         }
 
+        return changed;
+    }
+
+    bool add(std::initializer_list<Pointer> elems) {
+        bool changed = false;
+        for (const auto& e : elems) {
+            changed |= add(e);
+        }
         return changed;
     }
 

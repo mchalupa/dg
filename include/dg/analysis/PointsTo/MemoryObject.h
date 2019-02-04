@@ -70,6 +70,14 @@ struct MemoryObject
         return pointsTo[off].add(pointers);
     }
 
+    bool addPointsTo(const Offset& off,
+                     std::initializer_list<Pointer> pointers)
+    {
+        if (pointers.size() == 0)
+            return false;
+        return pointsTo[off].add(pointers);
+    }
+
 #ifndef NDEBUG
     void dump() const {
         std::cout << "MO [" << this << "] for ";
