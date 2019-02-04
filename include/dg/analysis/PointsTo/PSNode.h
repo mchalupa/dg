@@ -304,20 +304,10 @@ public:
     PointsToSetT pointsTo;
 
     // convenient helper
-    bool addPointsTo(PSNode *n, Offset o)
-    {
-        return pointsTo.add(Pointer(n, o));
-    }
-
-    bool addPointsTo(const Pointer& ptr)
-    {
-        return addPointsTo(ptr.target, ptr.offset);
-    }
-
-    bool addPointsTo(const PointsToSetT& ptrs)
-    {
-        return pointsTo.add(ptrs);
-    }
+    bool addPointsTo(PSNode *n, Offset o) { return pointsTo.add(Pointer(n, o)); }
+    bool addPointsTo(const Pointer& ptr) { return pointsTo.add(ptr); }
+    bool addPointsTo(const PointsToSetT& ptrs) { return pointsTo.add(ptrs); }
+    bool addPointsTo(std::initializer_list<Pointer> ptrs) { return pointsTo.add(ptrs); }
 
     bool doesPointsTo(const Pointer& p)
     {

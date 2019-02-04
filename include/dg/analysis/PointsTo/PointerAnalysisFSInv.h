@@ -123,7 +123,7 @@ public:
             }
         }
 
-        S.add(INVALIDATED);
+        S.add(INVALIDATED, 0);
         S1.swap(S);
     }
 
@@ -184,7 +184,7 @@ public:
                 for (const auto& ptr : predS) {
                     PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target);
                     if (alloc && isLocal(alloc, node) && knownInstance(alloc)) {
-                        changed |= S.add(INVALIDATED);
+                        changed |= S.add(INVALIDATED, 0);
                     } else
                         changed |= S.add(ptr);
                 }
@@ -203,7 +203,7 @@ public:
                 S.add(ptr);
         }
 
-        S.add(INVALIDATED);
+        S.add(INVALIDATED, 0);
         S1.swap(S);
     }
 
@@ -291,7 +291,7 @@ public:
         }
 
         mo->pointsTo.clear();
-        mo->pointsTo[0].add(INVALIDATED);
+        mo->pointsTo[0].add(INVALIDATED, 0);
         return true;
     }
 
@@ -344,7 +344,7 @@ public:
                 if (invStrongUpdate(operand)) { // strong update
                     const auto& ptr = *(operand->pointsTo.begin());
                     if (ptr.isUnknown())
-                        changed |= it.second.add(INVALIDATED);
+                        changed |= it.second.add(INVALIDATED, 0);
                     else if (ptr.isNull() || ptr.isInvalidated())
                         continue;
                     else if (it.second.pointsToTarget(ptr.target)) {
@@ -360,7 +360,7 @@ public:
                         // invalidate on unknown memory yields invalidate for
                         // each element
                         if (ptr.isUnknown() || it.second.pointsToTarget(ptr.target)) {
-                            changed |= it.second.add(INVALIDATED);
+                            changed |= it.second.add(INVALIDATED, 0);
                         }
                     }
                 }
@@ -389,7 +389,7 @@ public:
                             // on this invalidated memory
                             changed |= S.add(ptr);
                         }
-                        changed |= S.add(INVALIDATED);
+                        changed |= S.add(INVALIDATED, 0);
                     } else {
                         // this is a pointer to some memory that was not
                         // invalidated, so merge it into the points-to set
