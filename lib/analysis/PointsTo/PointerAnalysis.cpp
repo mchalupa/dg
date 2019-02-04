@@ -17,8 +17,8 @@ PSNode INVALIDATED_LOC(PSNodeType::INVALIDATED);
 PSNode *INVALIDATED = &INVALIDATED_LOC;
 
 // pointers to those memory
-const Pointer PointerUnknown(UNKNOWN_MEMORY, Offset::UNKNOWN);
-const Pointer PointerNull(NULLPTR, 0);
+const Pointer UnknownPointer(UNKNOWN_MEMORY, Offset::UNKNOWN);
+const Pointer NullPointer(NULLPTR, 0);
 
 // Return true if it makes sense to dereference this pointer.
 // PTA is over-approximation, so this is a filter.
@@ -45,7 +45,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
     for (const Pointer& ptr : operand->pointsTo) {
         if (ptr.isUnknown()) {
             // load from unknown pointer yields unknown pointer
-            changed |= node->addPointsTo(UNKNOWN_MEMORY);
+            changed |= node->addPointsTo(UnknownPointer);
             continue;
         }
 
@@ -66,7 +66,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
             if (target->isZeroInitialized())
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
-                changed |= node->addPointsTo(NULLPTR);
+                changed |= node->addPointsTo(NullPointer);
             else
                 changed |= errorEmptyPointsTo(node, target);
 
@@ -83,7 +83,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
                 // FIXME: don't duplicate the code
                 if (o->pointsTo.empty()) {
                     if (target->isZeroInitialized())
-                        changed |= node->addPointsTo(NULLPTR);
+                        changed |= node->addPointsTo(NullPointer);
                     else if (objects.size() == 1)
                         changed |= errorEmptyPointsTo(node, target);
                 }
@@ -105,7 +105,7 @@ bool PointerAnalysis::processLoad(PSNode *node)
                 // if the memory is zero initialized, then everything
                 // is fine, we add nullptr
                 if (target->isZeroInitialized())
-                    changed |= node->addPointsTo(NULLPTR);
+                    changed |= node->addPointsTo(NullPointer);
                 // if we don't have a definition even with unknown offset
                 // it is an error
                 // FIXME: don't triplicate the code!
@@ -216,7 +216,7 @@ bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
 
     for (MemoryObject *destO : destObjects) {
         if (contains_null_somewhere)
-            changed |= destO->addPointsTo(Offset::UNKNOWN, NULLPTR);
+            changed |= destO->addPointsTo(Offset::UNKNOWN, NullPointer);
 
         // copy every pointer from srcObjects that is in
         // the range to destination's objects
