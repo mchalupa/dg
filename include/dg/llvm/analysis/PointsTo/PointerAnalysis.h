@@ -27,6 +27,7 @@
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/llvm/analysis/PointsTo/LLVMPointsToSet.h"
 
 
 namespace dg {
@@ -36,6 +37,7 @@ using analysis::pta::PointerSubgraph;
 using analysis::pta::PSNode;
 using analysis::pta::LLVMPointerSubgraphBuilder;
 using analysis::pta::PSNodesSeq;
+using analysis::pta::Pointer;
 using analysis::Offset;
 
 template <typename PTType>
@@ -97,6 +99,12 @@ class LLVMPointerAnalysis
         return opts;
     }
 
+    const PointsToSetT& getUnknownPTSet() const {
+        static const PointsToSetT _unknownPTSet
+            = PointsToSetT({Pointer{analysis::pta::UNKNOWN_MEMORY, 0}});
+        return _unknownPTSet;
+    }
+
 public:
 
     LLVMPointerAnalysis(const llvm::Module *m,
@@ -107,9 +115,39 @@ public:
     LLVMPointerAnalysis(const llvm::Module *m, const LLVMPointerAnalysisOptions opts)
         : _builder(new LLVMPointerSubgraphBuilder(m, opts)) {}
 
+    ///
+    // Get the node from pointer analysis that holds the points-to set.
+    // See: getLLVMPointsTo()
     PSNode *getPointsTo(const llvm::Value *val)
     {
         return _builder->getPointsTo(val);
+    }
+
+    ///
+    // Get the points-to information for the given LLVM value.
+    // The return object has methods begin(), end() that can be used
+    // for iteration over (llvm::Value *, Offset) pairs of the
+    // points-to set. Moreover, the object has methods hasUnknown()
+    // and hasNull() that reflect whether the points-to set of the
+    // LLVM value contains unknown element of null.
+    LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) {
+        if (auto node = getPointsTo(val))
+            return LLVMPointsToSet(node->pointsTo);
+        else
+            return LLVMPointsToSet(getUnknownPTSet());
+    }
+
+    ///
+    // This method is the same as getLLVMPointsTo, but it returns
+    // also the information whether the node of pointer analysis exists
+    // (opposed to the getLLVMPointsTo, which returns a set with
+    // unknown element when the node does not exists)
+    std::pair<bool, LLVMPointsToSet>
+    getLLVMPointsToChecked(const llvm::Value *val) {
+        if (auto node = getPointsTo(val))
+            return {true, LLVMPointsToSet(node->pointsTo)};
+        else
+            return {false, LLVMPointsToSet(getUnknownPTSet())};
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
