@@ -33,7 +33,7 @@ class DisjunctiveIntervalMapMatcher : public Catch::MatcherBase<DisjunctiveInter
 public:
     DisjunctiveIntervalMapMatcher(std::vector<std::tuple<IntervalValueT, IntervalValueT, ValueT>> s) : structure(std::move(s)) { }
 
-    virtual bool match(const DisjunctiveIntervalMap<ValueT, IntervalValueT>& M) const {
+    bool match(const DisjunctiveIntervalMap<ValueT, IntervalValueT>& M) const override {
         if (M.size() != structure.size()) {
             return false;
         }
