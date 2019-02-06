@@ -94,7 +94,7 @@ add_test(nodes-walk-test nodes-walk-test)
 add_dependencies(check nodes-walk-test)
 
 # --------------------------------------------------
-# numbers-set-test-fuzzing
+# fuzzing tests
 # --------------------------------------------------
 if (TESTING_ENABLE_FUZZING)
 	add_subdirectory(fuzzing)
@@ -105,6 +105,7 @@ endif(TESTING_ENABLE_FUZZING)
 # --------------------------------------------------
 add_executable(numbers-set1-regressions
 	       numbers-set1-regressions.cpp fuzzing/numbers-set1.cpp)
+add_dependencies(check numbers-set1-regressions)
 add_test(numbers-set1-regressions numbers-set1-regressions)
 
 # --------------------------------------------------
