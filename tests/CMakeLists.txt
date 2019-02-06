@@ -246,6 +246,23 @@ if (LLVM_DG)
 
 endif (LLVM_DG)
 
+# --------------------------------------------------
+# numbers-set-test-fuzzing
+# --------------------------------------------------
+if (TESTS_ENABLE_FUZZING)
+	add_subdirectory(fuzzing)
+endif(TESTS_ENABLE_FUZZING)
+
+# --------------------------------------------------
+# fuzzing regressions
+# --------------------------------------------------
+add_executable(numbers-set1-regressions
+	       numbers-set1-regressions.cpp fuzzing/numbers-set1.cpp)
+add_test(numbers-set1-regressions numbers-set1-regressions)
+
+# --------------------------------------------------
+# benchmarking
+# --------------------------------------------------
 add_executable(rdmap-benchmark rdmap-benchmark.cpp)
 target_link_libraries(rdmap-benchmark RD)
 
