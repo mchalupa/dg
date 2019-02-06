@@ -94,6 +94,20 @@ add_test(nodes-walk-test nodes-walk-test)
 add_dependencies(check nodes-walk-test)
 
 # --------------------------------------------------
+# numbers-set-test-fuzzing
+# --------------------------------------------------
+if (TESTING_ENABLE_FUZZING)
+	add_subdirectory(fuzzing)
+endif(TESTING_ENABLE_FUZZING)
+
+# --------------------------------------------------
+# fuzzing regressions
+# --------------------------------------------------
+add_executable(numbers-set1-regressions
+	       numbers-set1-regressions.cpp fuzzing/numbers-set1.cpp)
+add_test(numbers-set1-regressions numbers-set1-regressions)
+
+# --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 if (LLVM_DG)
@@ -245,20 +259,6 @@ if (LLVM_DG)
 	add_test(pta-inv-infinite-loop pta-inv-infinite-loop.sh)
 
 endif (LLVM_DG)
-
-# --------------------------------------------------
-# numbers-set-test-fuzzing
-# --------------------------------------------------
-if (TESTS_ENABLE_FUZZING)
-	add_subdirectory(fuzzing)
-endif(TESTS_ENABLE_FUZZING)
-
-# --------------------------------------------------
-# fuzzing regressions
-# --------------------------------------------------
-add_executable(numbers-set1-regressions
-	       numbers-set1-regressions.cpp fuzzing/numbers-set1.cpp)
-add_test(numbers-set1-regressions numbers-set1-regressions)
 
 # --------------------------------------------------
 # benchmarking
