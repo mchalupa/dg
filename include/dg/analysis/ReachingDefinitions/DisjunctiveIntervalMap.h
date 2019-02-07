@@ -310,8 +310,22 @@ private:
             if (ge != _mapping.begin()) {
                 auto prev = ge;
                 --prev;
-                if (prev->first.end >= I.start) {
-                    splitIntervalHint(prev, I.start - 1, ge);
+                auto prev_end = prev->first.end;
+                if (prev_end >= I.start) {
+                    ge = splitIntervalHint(prev, I.start - 1, ge);
+                    changed = true;
+                }
+                // is the new interval entirely covered by the previous?
+                if (prev_end > I.end) {
+                    // get the higher of the new intervals
+                    ++ge;
+                    assert(ge != _mapping.end());
+                    assert(ge->first.end == prev_end);
+#ifndef NDEBUG
+                    auto check =
+#endif
+                    splitIntervalHint(ge, I.end, _mapping.end());
+                    assert(check->first == I);
                     changed = true;
                 }
             }
