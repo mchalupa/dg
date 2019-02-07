@@ -110,6 +110,7 @@ add_test(numbers-set1-regressions numbers-set1-regressions)
 
 add_executable(disjunctive-interval-map-regressions
 	       disjunctive-interval-map-regressions.cpp fuzzing/disjunctive-map1.cpp)
+target_compile_definitions(disjunctive-interval-map-regressions PRIVATE "-DDUMP")
 add_dependencies(check disjunctive-interval-map-regressions)
 add_test(disjunctive-interval-map-regressions disjunctive-interval-map-regressions)
 

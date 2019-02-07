@@ -2,6 +2,10 @@
 #include <cassert>
 #include <cstdint>
 
+#ifdef DUMP
+#include <cstdio>
+#endif
+
 #include "dg/analysis/ReachingDefinitions/DisjunctiveIntervalMap.h"
 
 extern "C"
@@ -18,6 +22,10 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
         if (a > b)
             std::swap(a, b);
         assert(a <= b);
+#ifdef DUMP
+        printf("Adding [%d, %d]\n", a, b);
+        fflush(stdout);
+#endif
         M.add(a, b, 0);
     }
 
