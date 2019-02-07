@@ -85,14 +85,19 @@ endif()
 message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 
 
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+# Our CI does not work with fuzzing tests yet, make it optional by hand
+option(TESTING_ENABLE_FUZZING "Enable fuzzing tests" off)
+if (TESING_ENABLE_FUZZING)
+	message(STATUS "Going to build fuzzing tests")
+endif()
+#if (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
 	# FIXME: we should check for the version of clang
 	# or rather just whether -fsanitize=fuzzer works
-	option(TESTING_ENABLE_FUZZING "Enable fuzzing tests" on)
-	message(STATUS "Will build fuzzing tests")
-else()
-	message(STATUS "Will NOT build fuzzing tests")
-endif()
+	#option(TESTING_ENABLE_FUZZING "Enable fuzzing tests" on)
+	#message(STATUS "Will build fuzzing tests")
+#else()
+#	message(STATUS "Will NOT build fuzzing tests")
+#endif()
 
 # explicitly add -std=c++11 and -fno-rtti
 # we have CMAKE_CXX_STANDARD, but for some reason it does not
