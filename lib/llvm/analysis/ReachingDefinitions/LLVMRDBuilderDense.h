@@ -44,6 +44,10 @@ public:
     RDNode *createNode(const llvm::Instruction& Inst);
 
 private:
+    std::vector<DefSite> mapPointers(const llvm::Value *where,
+                                     const llvm::Value *val,
+                                     Offset size);
+
     void addNode(const llvm::Value *val, RDNode *node)
     {
         auto it = nodes_map.find(val);

@@ -163,6 +163,10 @@ public:
             overwrites.insert(ds);
     }
 
+    ///
+    // register that the node defines the memory 'target'
+    // at offset 'off' of length 'len', i.e. it writes
+    // to memory 'target' to bytes [off, off + len].
     void addDef(RDNode *target,
                 const Offset& off = Offset::UNKNOWN,
                 const Offset& len = Offset::UNKNOWN,

@@ -212,88 +212,37 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
     RDNode *node = new RDNode(RDNodeType::STORE);
     addNode(Inst, node);
 
-    auto pts = PTA->getLLVMPointsToChecked(Inst->getOperand(1));
-    if (!pts.first) {
-        llvm::errs() << "[RD] Error: Don't have the points-to node "
-                        "for store's target\n";
-        llvm::errs() << *Inst << "\n";
-#ifdef NDEBUG
-        pts = pta::UNKNOWN_MEMORY;
-#else
-        abort();
-#endif
+    uint64_t size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
+    if (size == 0)
+        size = Offset::UNKNOWN;
+
+    auto defSites = mapPointers(Inst, Inst->getOperand(1), size);
+
+    // strong update is possible only with must aliases. Also we can not
+    // be pointing to heap, because then we don't know which object it
+    // is in run-time, like:
+    //  void *foo(int a)
+    //  {
+    //      void *mem = malloc(...)
+    //      mem->n = a;
+    //  }
+    //
+    //  1. mem1 = foo(3);
+    //  2. mem2 = foo(4);
+    //  3. assert(mem1->n == 3);
+    //
+    //  If we would do strong update on line 2 (which we would, since
+    //  there we have must alias for the malloc), we would loose the
+    //  definitions for line 1 and we would get incorrect results
+    bool strong_update = false;
+    if (defSites.size() == 1) {
+        const auto& ds = *(defSites.begin());
+        strong_update = !ds.offset.isUnknown() && !ds.len.isUnknown() &&
+                         ds.target->getType() != RDNodeType::DYN_ALLOC;
     }
 
-    if (pts.second.empty()) {
-        llvm::errs() << "[RD] Error: empty points-to set for store's target\n"
-                     << *Inst << "\n";
-
-        // Don't abort in this case.
-        // This may happen on invalid reads and writes to memory,
-        // like when you try for example this:
-        //
-        //   int p, q;
-        //   memcpy(p, q, sizeof p);
-        //
-        // (there should be &p and &q). This is an error in program,
-        // but we still want to analyze it.
-        node->addDef(UNKNOWN_MEMORY);
-        return node;
-    }
-
-    if (pts.second.hasUnknown()) {
-        node->addDef(UNKNOWN_MEMORY);
-    }
-
-    for (const auto& ptr: pts.second) {
-        // this may emerge with vararg function
-        if (llvm::isa<llvm::Function>(ptr.value))
-            continue;
-
-        RDNode *ptrNode = getOperand(ptr.value);
-        //assert(ptrNode && "Don't have created node for pointer's target");
-        if (!ptrNode) {
-            // keeping such set is faster then printing it all to terminal
-            // ... and we don't flood the terminal that way
-            static std::set<const llvm::Value *> warned;
-            if (warned.insert(ptr.value).second) {
-                llvm::errs() << *ptr.value << "\n";
-                llvm::errs() << "Don't have created node for pointer's target\n";
-            }
-
-            continue;
-        }
-
-        uint64_t size;
-        if (ptr.offset.isUnknown()) {
-            size = Offset::UNKNOWN;
-        } else {
-            size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
-            if (size == 0)
-                size = Offset::UNKNOWN;
-        }
-
-        // strong update is possible only with must aliases. Also we can not
-        // be pointing to heap, because then we don't know which object it
-        // is in run-time, like:
-        //  void *foo(int a)
-        //  {
-        //      void *mem = malloc(...)
-        //      mem->n = a;
-        //  }
-        //
-        //  1. mem1 = foo(3);
-        //  2. mem2 = foo(4);
-        //  3. assert(mem1->n == 3);
-        //
-        //  If we would do strong update on line 2 (which we would, since
-        //  there we have must alias for the malloc), we would loose the
-        //  definitions for line 1 and we would get incorrect results
-        pta::PSNodeAlloc *target = pta::PSNodeAlloc::get(PTA->getPointsTo(ptr.value));
-        assert(target && "Target of pointer is not an allocation");
-        // FIXME: what recursive procedures and allocations outside a loop?
-        bool strong_update = pts.second.isSingleton() == 1 && !target->isHeap();
-        node->addDef(ptrNode, ptr.offset, size, strong_update);
+    for (const auto& ds : defSites) {
+        node->addDef(ds, strong_update);
     }
 
     assert(node);
@@ -907,6 +856,77 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()
 
     assert((!first && !cur) || (first && cur));
     return std::pair<RDNode *, RDNode *>(first, cur);
+}
+
+///
+// Map pointers of 'val' to def-sites.
+// \param where  location in the program, for debugging
+// \param size is the number of bytes used from the memory
+std::vector<DefSite> LLVMRDBuilderDense::mapPointers(const llvm::Value *where,
+                                                     const llvm::Value *val,
+                                                     Offset size)
+{
+    std::vector<DefSite> result;
+
+    auto psn = PTA->getLLVMPointsToChecked(val);
+    if (!psn.first) {
+        result.push_back(DefSite(UNKNOWN_MEMORY));
+#ifndef NDEBUG
+        llvm::errs() << "[RD] warning at: " << *where << "\n";
+        llvm::errs() << "No points-to set for: " << *val << "\n";
+#endif
+        // don't have points-to information for used pointer
+        return result;
+    }
+
+    if (psn.second.empty()) {
+#ifndef NDEBUG
+        llvm::errs() << "[RD] warning at: " << *where << "\n";
+        llvm::errs() << "Empty points-to set for: " << *val << "\n";
+#endif
+        // this may happen on invalid reads and writes to memory,
+        // like when you try for example this:
+        //
+        //   int p, q;
+        //   memcpy(p, q, sizeof p);
+        //
+        // (there should be &p and &q)
+        // NOTE: maybe this is a bit strong to say unknown memory,
+        // but better be sound then incorrect
+        result.push_back(DefSite(UNKNOWN_MEMORY));
+        return result;
+    }
+
+    result.reserve(psn.second.size());
+
+    if (psn.second.hasUnknown()) {
+        result.push_back(DefSite(UNKNOWN_MEMORY));
+    }
+
+    for (const auto& ptr: psn.second) {
+        if (llvm::isa<llvm::Function>(ptr.value))
+            continue;
+
+        RDNode *ptrNode = getOperand(ptr.value);
+        if (!ptrNode) {
+            // keeping such set is faster then printing it all to terminal
+            // ... and we don't flood the terminal that way
+            static std::set<const llvm::Value *> warned;
+            if (warned.insert(ptr.value).second) {
+                llvm::errs() << "[RD] error for " << *val << "\n";
+                llvm::errs() << "[RD] error: Haven't created the node for the pointer to:\n";
+                llvm::errs() << *ptr.value << "\n";
+            }
+            continue;
+        }
+
+        // FIXME: we should pass just size to the DefSite ctor, but the old code relies
+        // on the behavior that when offset is unknown, the length is also unknown.
+        // So for now, mimic the old code. Remove it once we fix the old code.
+        result.push_back(DefSite(ptrNode, ptr.offset, ptr.offset.isUnknown() ? Offset::UNKNOWN : size));
+    }
+
+    return result;
 }
 
 } // namespace rd
