@@ -120,8 +120,6 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *where, llvm::Va
     return defs;
 }
 
-
-
 } // namespace rd
 } // namespace dg
 } // namespace analysis

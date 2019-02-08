@@ -52,6 +52,9 @@ private:
         RDNode *returnNode;
         CallType callType;
     };
+    std::vector<DefSite> mapPointers(const llvm::Value *where,
+                                     const llvm::Value *val,
+                                     Offset size);
 
     void addNode(const llvm::Value *val, RDNode *node)
     {
