@@ -51,6 +51,10 @@ struct AnalysisOptions {
             return AllocationFunction::NONE;
         return it->second;
     }
+
+    bool isAllocationFunction(const std::string& name) const {
+        return getAllocationFunction(name) != AllocationFunction::NONE;
+    }
 };
 
 } // namespace analysis
