@@ -33,9 +33,10 @@ namespace rd {
 class LLVMRDBuilderDense : public LLVMRDBuilder {
 public:
     LLVMRDBuilderDense(const llvm::Module *m,
-                  dg::LLVMPointerAnalysis *p,
-                  const LLVMReachingDefinitionsAnalysisOptions& opts)
-        : LLVMRDBuilder(m, p, opts) {}
+                       dg::LLVMPointerAnalysis *p,
+                       const LLVMReachingDefinitionsAnalysisOptions& opts,
+                       bool buildUses = false)
+        : LLVMRDBuilder(m, p, opts), buildUses(buildUses) {}
     virtual ~LLVMRDBuilderDense() = default;
 
     RDNode *build() override;
@@ -81,6 +82,7 @@ private:
     }
 
     RDNode *createStore(const llvm::Instruction *Inst);
+    RDNode *createLoad(const llvm::Instruction *Inst);
     RDNode *createAlloc(const llvm::Instruction *Inst);
     RDNode *createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type);
     RDNode *createRealloc(const llvm::Instruction *Inst);
@@ -132,6 +134,7 @@ private:
     void connectCallsToGraph(const llvm::Instruction *Inst,
                              const std::vector<FunctionCall> &functionCalls,
                              RDNode *&lastNode);
+    bool buildUses{false};
 };
 
 }
