@@ -3,8 +3,9 @@
 
 #include <set>
 
-#include "dg/analysis/NodesWalk.h"
-#include "dg/analysis/BFS.h"
+#include "dg/analysis/legacy/Analysis.h"
+#include "dg/analysis/legacy/NodesWalk.h"
+#include "dg/analysis/legacy/BFS.h"
 #include "dg/ADT/Queue.h"
 #include "dg/DependenceGraph.h"
 
@@ -12,22 +13,22 @@
 #include "dg/BBlock.h"
 #endif
 
-using dg::ADT::QueueFIFO;
-
 namespace dg {
 namespace analysis {
 
 // this class will go through the nodes
 // and will mark the ones that should be in the slice
 template <typename NodeT>
-class WalkAndMark : public legacy::NodesWalk<NodeT, QueueFIFO<NodeT *>>
+class WalkAndMark : public legacy::NodesWalk<NodeT, dg::ADT::QueueFIFO<NodeT *>>
 {
+    using Queue = dg::ADT::QueueFIFO<NodeT *>;
+
 public:
     ///
     // forward_slc makes searching the dependencies
     // in forward direction instead of backward
     WalkAndMark(bool forward_slc = false)
-        : legacy::NodesWalk<NodeT, QueueFIFO<NodeT *>>(
+        : legacy::NodesWalk<NodeT, Queue>(
             forward_slc ?
                 (legacy::NODES_WALK_CD | legacy::NODES_WALK_DD) :
                 (legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
@@ -118,7 +119,7 @@ struct SlicerStatistics
 };
 
 template <typename NodeT>
-class Slicer : Analysis<NodeT>
+class Slicer : legacy::Analysis<NodeT>
 {
     uint32_t options;
     uint32_t slice_id;

@@ -4,8 +4,8 @@
 #include <utility>
 #include <set>
 
-#include "Analysis.h"
-#include "DFS.h"
+#include "dg/analysis/legacy/Analysis.h"
+#include "dg/analysis/legacy/DFS.h"
 
 #ifndef ENABLE_CFG
 #error "Need CFG enabled for data flow analysis"

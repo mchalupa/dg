@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "dg/BBlock.h"
-#include "dg/analysis/BFS.h"
+#include "dg/analysis/legacy/BFS.h"
 
 namespace dg {
 namespace analysis {

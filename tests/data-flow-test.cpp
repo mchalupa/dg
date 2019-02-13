@@ -4,7 +4,7 @@
 
 #include "test-runner.h"
 #include "test-dg.h"
-#include "dg/analysis/DataFlowAnalysis.h"
+#include "dg/analysis/legacy/DataFlowAnalysis.h"
 
 namespace dg {
 namespace tests {
