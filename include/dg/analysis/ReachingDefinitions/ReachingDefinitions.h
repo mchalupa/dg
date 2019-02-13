@@ -36,14 +36,18 @@ class ReachingDefinitionsAnalysis;
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations
 enum class RDNodeType {
-        // for backward compatibility
+        // invalid type of node
         NONE,
         // these are nodes that just represent memory allocation sites
         // we need to have them even in reaching definitions analysis,
         // so that we can use them as targets in DefSites
         ALLOC,
-        STORE,
         DYN_ALLOC,
+        // nodes that write the memory
+        STORE,
+        // nodes that use the memory
+        LOAD,
+        // merging information from several locations
         PHI,
         // return from the subprocedure
         RETURN,
@@ -52,9 +56,7 @@ enum class RDNodeType {
         // return from the call (in caller)
         CALL_RETURN,
         // dummy nodes
-        NOOP,
-        // nodes that use the memory
-        LOAD
+        NOOP
 };
 
 extern RDNode *UNKNOWN_MEMORY;
