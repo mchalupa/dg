@@ -6,7 +6,7 @@
 
 #include "DGParameters.h"
 #include "ADT/DGContainer.h"
-#include "analysis/Analysis.h"
+#include "analysis/legacy/Analysis.h"
 
 namespace dg {
 
@@ -396,8 +396,8 @@ private:
 #endif /* ENABLE_CFG */
 
     // auxiliary data for different analyses
-    analysis::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::Analysis<NodeT>;
+    analysis::legacy::AnalysesAuxiliaryData analysisAuxData;
+    friend class analysis::legacy::Analysis<NodeT>;
 };
 
 } // namespace dg

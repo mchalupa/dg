@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <map>
 
-#include "dg/analysis/BFS.h"
+#include "dg/analysis/legacy/BFS.h"
 
 #include "analysis/ReachingDefinitions/Srg/SparseRDGraphBuilder.h"
 #include "analysis/ReachingDefinitions/Srg/IntervalMap.h"

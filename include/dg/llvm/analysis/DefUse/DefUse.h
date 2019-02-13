@@ -21,7 +21,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/DataFlowAnalysis.h"
+#include "dg/analysis/legacy/DataFlowAnalysis.h"
 #include "dg/llvm/analysis/DefUse/LLVMDefUseAnalysisOptions.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 

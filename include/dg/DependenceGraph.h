@@ -11,8 +11,6 @@
 #include "ADT/DGContainer.h"
 #include "Node.h"
 
-#include "analysis/Analysis.h"
-
 namespace dg {
 
 // non-template class representing a generic dependence graph

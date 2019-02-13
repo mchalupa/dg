@@ -8,7 +8,7 @@
 #include <list>
 
 #include "ADT/DGContainer.h"
-#include "analysis/Analysis.h"
+#include "analysis/legacy/Analysis.h"
 
 namespace dg {
 
@@ -486,8 +486,8 @@ private:
     std::set<NodeT *> callSites;
 
     // auxiliary data for different analyses
-    analysis::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::BBlockAnalysis<NodeT>;
+    analysis::legacy::AnalysesAuxiliaryData analysisAuxData;
+    friend class analysis::legacy::BBlockAnalysis<NodeT>;
 };
 
 } // namespace dg
