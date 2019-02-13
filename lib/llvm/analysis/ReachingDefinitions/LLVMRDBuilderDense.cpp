@@ -249,6 +249,24 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
     return node;
 }
 
+RDNode *LLVMRDBuilderDense::createLoad(const llvm::Instruction *Inst)
+{
+    RDNode *node = new RDNode(RDNodeType::LOAD);
+    addNode(Inst, node);
+
+    uint64_t size = getAllocatedSize(Inst->getType(), DL);
+    if (size == 0)
+        size = Offset::UNKNOWN;
+
+    auto defSites = mapPointers(Inst, Inst->getOperand(0), size);
+    for (const auto& ds : defSites) {
+        node->addUse(ds);
+    }
+
+    assert(node);
+    return node;
+}
+
 template <typename OptsT>
 static bool isRelevantCall(const llvm::Instruction *Inst,
                            OptsT& opts)
@@ -331,6 +349,10 @@ LLVMRDBuilderDense::buildBlock(const llvm::BasicBlock& block)
                     break;
                 case Instruction::Store:
                     node = createStore(&Inst);
+                    break;
+                case Instruction::Load:
+                    if (buildUses)
+                        node = createLoad(&Inst);
                     break;
                 case Instruction::Ret:
                     // we need create returns, since
