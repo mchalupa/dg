@@ -291,7 +291,10 @@ public:
         DfsIdTracker visitTracker(dfsnum);
         BFS<RDNode, DfsIdTracker> bfs(visitTracker);
 
-        bfs.run(start, [&cont](RDNode *n) { cont.push_back(n); });
+        bfs.run(start,
+                [&cont](RDNode *n) {
+                    cont.push_back(n);
+                });
 
         return cont;
     }

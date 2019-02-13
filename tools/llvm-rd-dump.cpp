@@ -220,8 +220,7 @@ dumpRDNode(RDNode *n)
 static void
 dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
 {
-    std::set<RDNode *> nodes;
-    RD->getNodes(nodes);
+    auto nodes = RD->getNodes();
 
     printf("digraph \"Reaching Definitions Subgraph\" {\n");
 
@@ -278,10 +277,7 @@ dumpRD(LLVMReachingDefinitions *RD, bool todot, bool dump_rd)
     if (todot)
         dumpRDdot(RD, dump_rd);
     else {
-        std::set<RDNode *> nodes;
-        RD->getNodes(nodes);
-
-        for (RDNode *node : nodes)
+        for (RDNode *node : RD->getNodes())
             dumpRDNode(node);
     }
 }
