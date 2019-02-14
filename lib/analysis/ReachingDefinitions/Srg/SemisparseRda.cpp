@@ -43,7 +43,7 @@ void SemisparseRda::run()
     SparseRDGraph srg;
 
     std::unordered_set<RDNode *> to_process;
-    std::tie(srg, phi_nodes) = srg_builder.build(root);
+    std::tie(srg, phi_nodes) = srg_builder.build(getRoot());
 
     for (auto& pair : srg) {
         RDNode *dest = pair.first;

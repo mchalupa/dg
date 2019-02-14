@@ -97,7 +97,7 @@ public:
             delete nd;
     }
 
-    virtual RDNode *build() = 0;
+    virtual ReachingDefinitionsGraph build() = 0;
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes

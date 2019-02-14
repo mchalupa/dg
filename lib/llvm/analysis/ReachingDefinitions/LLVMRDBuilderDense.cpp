@@ -962,7 +962,7 @@ LLVMRDBuilderDense::createPthreadJoinCall(const llvm::CallInst *CInst)
     return {node, node, CallType::JOIN_THREAD};
 }
 
-RDNode *LLVMRDBuilderDense::build()
+ReachingDefinitionsGraph LLVMRDBuilderDense::build()
 {
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
@@ -991,8 +991,13 @@ RDNode *LLVMRDBuilderDense::build()
         assert(root->successorsNum() > 0);
         root = glob.first;
     }
+
     matchForksAndJoins();
-    return root;
+
+    ReachingDefinitionsGraph graph;
+    graph.setRoot(root);
+
+    return graph;
 }
 
 std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()

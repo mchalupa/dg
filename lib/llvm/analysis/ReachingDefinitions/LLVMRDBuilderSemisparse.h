@@ -49,7 +49,7 @@ public:
 
     virtual ~LLVMRDBuilderSemisparse() = default;
 
-    RDNode *build() override;
+    ReachingDefinitionsGraph build() override;
 
     RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
     RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);

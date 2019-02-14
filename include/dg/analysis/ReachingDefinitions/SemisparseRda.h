@@ -36,9 +36,9 @@ class SemisparseRda : public ReachingDefinitionsAnalysis
     std::vector<std::unique_ptr<RDNode>> phi_nodes;
 
 public:
-    SemisparseRda(RDNode *root, ReachingDefinitionsAnalysisOptions opts)
-        : ReachingDefinitionsAnalysis(root, opts.setSparse(true)) {}
-    SemisparseRda(RDNode *root) : SemisparseRda(root, {}) {}
+    SemisparseRda(ReachingDefinitionsGraph&& graph, ReachingDefinitionsAnalysisOptions opts)
+        : ReachingDefinitionsAnalysis(std::move(graph), opts.setSparse(true)) {}
+    SemisparseRda(ReachingDefinitionsGraph&& graph) : SemisparseRda(std::move(graph), {}) {}
 
     void run() override;
 };
