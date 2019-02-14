@@ -171,8 +171,12 @@ public:
 
     std::vector<PSNode *>
     getPointsToFunctions(const llvm::Value *calledValue);
+
     std::map<PSNode *, PSNodeJoin *>
     getJoins() const;
+
+    std::map<PSNode *, PSNodeFork *>
+    getForks() const;
     void setInvalidateNodesFlag(bool value) 
     {
         assert(PS.getRoot() == nullptr &&

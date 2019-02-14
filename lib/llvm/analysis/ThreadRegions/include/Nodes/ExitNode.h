@@ -1,31 +1,27 @@
 #ifndef EXITNODE_H
 #define EXITNODE_H
 
-#include "ArtificialNode.h"
+#include "Node.h"
 
 #include <set>
 
 class JoinNode;
 
-class ExitNode : public ArtificialNode
+class ExitNode : public Node
 {
 private:
     std::set<JoinNode *> joinSuccessors_;
 public:
-    ExitNode(ControlFlowGraph * controlFlowGraph);
+    ExitNode();
 
-    void addJoinSuccessor(JoinNode *joinNode);
-    void removeJoinSuccessor(JoinNode *joinNode);
+    bool addJoinSuccessor(JoinNode *joinNode);
+
+    bool removeJoinSuccessor(JoinNode *joinNode);
 
     const std::set<JoinNode *> & joinSuccessors() const;
+          std::set<JoinNode *>   joinSuccessors();
 
     void printOutcomingEdges(std::ostream &ostream) const override;
-
-    bool isExit() const override;
-
-    void dfsComputeThreadRegions() override;
-
-    void dfsComputeCriticalSections(LockNode * lock) override;
 
     friend class JoinNode;
 };

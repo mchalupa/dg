@@ -1,26 +1,25 @@
 #ifndef ENTRYNODE_H
 #define ENTRYNODE_H
 
-#include "ArtificialNode.h"
+#include "Node.h"
 
 #include <set>
 
 class ForkNode;
 
-class EntryNode : public ArtificialNode
+class EntryNode : public Node
 {
 private:
     std::set<ForkNode *> forkPredecessors_;
 public:
-    EntryNode(ControlFlowGraph* controlFlowGraph);
+    EntryNode();
 
-    void addForkPredecessor(ForkNode *forkNode);
+    bool addForkPredecessor(ForkNode *forkNode);
 
-    void removeForkPredecessor(ForkNode *forkNode);
+    bool removeForkPredecessor(ForkNode *forkNode);
 
     const std::set<ForkNode *> & forkPredecessors() const;
-
-    bool isEntry() const override;
+          std::set<ForkNode *>   forkPredecessors();
 
     friend class ForkNode;
 };

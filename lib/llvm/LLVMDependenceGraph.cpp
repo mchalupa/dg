@@ -964,22 +964,21 @@ void LLVMDependenceGraph::computeControlExpression(bool addCDs)
 
 void LLVMDependenceGraph::computeInterferenceDependentEdges()
 {
-    ControlFlowGraph controlFlowGraph(module, PTA);
-    controlFlowGraph.build();
-    controlFlowGraph.computeThreadRegions();
-    controlFlowGraph.computeCriticalSections();
+    ControlFlowGraph controlFlowGraph(PTA);
+    controlFlowGraph.buildFunction(module->getFunction("main"));
+
     auto regions = controlFlowGraph.threadRegions();
     MayHappenInParallel mayHappenInParallel(regions);
 
     for (const auto &currentRegion : regions) {
-        auto llvmValuesForCurrentRegion     = currentRegion->llvmValues();
+        auto llvmValuesForCurrentRegion     = currentRegion->llvmInstructions();
         auto currentRegionLoads             = getLoadInstructions(llvmValuesForCurrentRegion);
         auto currentRegionStores            = getStoreInstructions(llvmValuesForCurrentRegion);
         auto parallelRegions                = mayHappenInParallel.parallelRegions(currentRegion);
         for (const auto &parallelRegion : parallelRegions) {
-            auto llvmValuesForParallelRegion    = parallelRegion->llvmValues();
-            auto parallelRegionLoads            = getLoadInstructions(llvmValuesForParallelRegion);
-            auto parallelRegionStores           = getStoreInstructions(llvmValuesForParallelRegion);
+            auto llvmInstructionsForParallelRegion      = parallelRegion->llvmInstructions();
+            auto parallelRegionLoads                    = getLoadInstructions(llvmInstructionsForParallelRegion);
+            auto parallelRegionStores                   = getStoreInstructions(llvmInstructionsForParallelRegion);
                 computeInterferenceDependentEdges(currentRegionLoads, parallelRegionStores);
                 computeInterferenceDependentEdges(parallelRegionLoads, currentRegionStores);
         }
@@ -994,29 +993,33 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges()
             joinNode->addControlDependence(forkNode);
         }
     }
-    auto critSections = controlFlowGraph.getCriticalSections();
 
-    for (const auto &section : critSections) {
-        auto callLockInst = castToLLVMInstruction(section.lock);
+    // criticalSections
+    auto locks = controlFlowGraph.getLocks();
+    for (auto lock : locks) {
+        auto callLockInst = castToLLVMInstruction(lock);
         auto lockNode = findInstruction(callLockInst, constructedFunctions);
-        for (auto node : section.nodes) {
-            auto callNode = castToLLVMInstruction(node);
-            auto dependentNode = findInstruction(callNode, constructedFunctions);
+        auto correspondingNodes = controlFlowGraph.getCorrespondingCriticalSection(lock);
+        for (auto correspondingNode : correspondingNodes) {
+            auto node = castToLLVMInstruction(correspondingNode);
+            auto dependentNode = findInstruction(node, constructedFunctions);
             if (dependentNode) {
                 lockNode->addControlDependence(dependentNode);
             } else {
-                llvm::errs() << "Instruction " 
-                             << *dependentNode->getValue() 
-                             << " was not found, cannot setup" 
+                llvm::errs() << "Instruction "
+                             << *dependentNode->getValue()
+                             << " was not found, cannot setup"
                              << " control depency on lock\n";
             }
         }
 
-        for (auto node : section.unlocks) {
-            auto callNode = castToLLVMInstruction(node);
-            auto unlockNode = findInstruction(callNode, constructedFunctions);
-            unlockNode->addControlDependence(lockNode);
-            lockNode->addControlDependence(unlockNode);
+        auto correspondingUnlocks = controlFlowGraph.getCorrespongingUnlocks(lock);
+        for (auto unlock : correspondingUnlocks) {
+            auto node = castToLLVMInstruction(unlock);
+            auto unlockNode = findInstruction(node, constructedFunctions);
+            if (unlockNode) {
+                unlockNode->addControlDependence(lockNode);
+            }
         }
     }
 }
@@ -1054,20 +1057,20 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const
 }
 
 std::set<const llvm::Instruction *>
-LLVMDependenceGraph::getLoadInstructions(const std::set<const llvm::Value *> &llvmValues) const {
-    return getInstructionsOfType(llvm::Instruction::Load, llvmValues);
+LLVMDependenceGraph::getLoadInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const {
+    return getInstructionsOfType(llvm::Instruction::Load, llvmInstructions);
 }
 
 std::set<const llvm::Instruction *>
-LLVMDependenceGraph::getStoreInstructions(const std::set<const llvm::Value *> &llvmValues) const {
-    return getInstructionsOfType(llvm::Instruction::Store, llvmValues);
+LLVMDependenceGraph::getStoreInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const {
+    return getInstructionsOfType(llvm::Instruction::Store, llvmInstructions);
 }
 
 std::set<const llvm::Instruction *>
 LLVMDependenceGraph::getInstructionsOfType(const unsigned opCode,
-                                           const std::set<const llvm::Value *> &llvmValues) const {
+                                           const std::set<const llvm::Instruction *> &llvmInstructions) const {
     std::set<const llvm::Instruction *> instructions;
-    for (const auto &llvmValue : llvmValues) {
+    for (const auto &llvmValue : llvmInstructions) {
         if (llvm::isa<llvm::Instruction>(llvmValue)) {
             const llvm::Instruction *instruction = static_cast<const llvm::Instruction *>(llvmValue);
             if (instruction->getOpcode() == opCode) {

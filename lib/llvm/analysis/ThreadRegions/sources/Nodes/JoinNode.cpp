@@ -2,33 +2,46 @@
 #include "ExitNode.h"
 #include "ForkNode.h"
 
-JoinNode::JoinNode(ControlFlowGraph *controlFlowGraph,
-                   const llvm::Value *value):LlvmNode(controlFlowGraph, value){}
+#include "llvm/IR/Instructions.h"
 
-void JoinNode::addCorrespondingFork(ForkNode *forkNode) {
+JoinNode::JoinNode(const llvm::Instruction *value):Node(NodeType::JOIN, value){}
+
+bool JoinNode::addCorrespondingFork(ForkNode *forkNode) {
+    if (!forkNode) {
+        return false;
+    }
     correspondingForks_.insert(forkNode);
-    forkNode->correspondingJoins_.insert(this);
+    return forkNode->correspondingJoins_.insert(this).second;
 }
 
-void JoinNode::addJoinPredecessor(ExitNode *exitNode) {
+bool JoinNode::addJoinPredecessor(ExitNode *exitNode) {
+    if (!exitNode) {
+        return false;
+    }
     joinPredecessors_.insert(exitNode);
-    exitNode->joinSuccessors_.insert(this);
+    return exitNode->joinSuccessors_.insert(this).second;
 }
 
-void JoinNode::removeJoinPredecessor(ExitNode *exitNode) {
+bool JoinNode::removeJoinPredecessor(ExitNode *exitNode) {
+    if (!exitNode) {
+        return false;
+    }
     joinPredecessors_.erase(exitNode);
-    exitNode->joinSuccessors_.erase(this);
+    return exitNode->joinSuccessors_.erase(this);
 }
 
 const std::set<const ExitNode *> &JoinNode::joinPredecessors() const {
     return joinPredecessors_;
 }
 
-std::set<ForkNode *> JoinNode::correspondingForks() const {
+std::set<const ExitNode *> JoinNode::joinPredecessors() {
+    return joinPredecessors_;
+}
+
+const std::set<ForkNode *> &JoinNode::correspondingForks() const {
     return correspondingForks_;
 }
 
-
-bool JoinNode::isJoin() const {
-    return true;
+std::set<ForkNode *> JoinNode::correspondingForks() {
+    return correspondingForks_;
 }

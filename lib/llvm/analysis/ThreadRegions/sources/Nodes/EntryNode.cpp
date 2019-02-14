@@ -3,23 +3,28 @@
 
 using namespace std;
 
-EntryNode::EntryNode(ControlFlowGraph *controlFlowGraph):ArtificialNode(controlFlowGraph){}
+EntryNode::EntryNode():Node(NodeType::ENTRY){}
 
-void EntryNode::addForkPredecessor(ForkNode *forkNode) {
+bool EntryNode::addForkPredecessor(ForkNode *forkNode) {
+    if (!forkNode) {
+        return false;
+    }
     forkPredecessors_.insert(forkNode);
-    forkNode->forkSuccessors_.insert(this);
+    return forkNode->forkSuccessors_.insert(this).second;
 }
 
-void EntryNode::removeForkPredecessor(ForkNode *forkNode) {
+bool EntryNode::removeForkPredecessor(ForkNode *forkNode) {
+    if (!forkNode) {
+        return false;
+    }
     forkPredecessors_.erase(forkNode);
-    forkNode->forkSuccessors_.erase(this);
+    return forkNode->forkSuccessors_.erase(this);
 }
 
 const set<ForkNode *> & EntryNode::forkPredecessors() const {
     return forkPredecessors_;
 }
 
-
-bool EntryNode::isEntry() const {
-    return true;
+std::set<ForkNode *> EntryNode::forkPredecessors() {
+    return forkPredecessors_;
 }

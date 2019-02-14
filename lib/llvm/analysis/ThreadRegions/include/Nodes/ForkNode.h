@@ -6,30 +6,26 @@
 class EntryNode;
 class JoinNode;
 
-class ForkNode : public LlvmNode
+class ForkNode : public Node
 {
-    std::set<EntryNode *> forkSuccessors_;
-    std::set<JoinNode *> correspondingJoins_;
+    std::set<EntryNode *>   forkSuccessors_;
+    std::set<JoinNode *>    correspondingJoins_;
 public:
-    ForkNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
+    ForkNode(const llvm::Instruction * instruction = nullptr);
 
-    void addCorrespondingJoin(JoinNode * joinNode);
+    bool addCorrespondingJoin(JoinNode * joinNode);
 
-    void addForkSuccessor(EntryNode * entryNode);
+    bool addForkSuccessor(EntryNode * entryNode);
 
-    void removeForkSuccessor(EntryNode * entryNode);
+    bool removeForkSuccessor(EntryNode * entryNode);
 
-    const std::set<EntryNode *> forkSuccessors() const;
+    const std::set<EntryNode *> & forkSuccessors() const;
+          std::set<EntryNode *>   forkSuccessors();
 
-    std::set<JoinNode *> correspondingJoins() const;
+    const std::set<JoinNode *> & correspondingJoins() const;
+          std::set<JoinNode *>   correspondingJoins();
 
     void printOutcomingEdges(std::ostream &ostream) const override;
-
-    bool isFork() const override;
-
-    void dfsComputeThreadRegions() override;
-
-    void dfsComputeCriticalSections(LockNode * lock) override;
 
     friend class EntryNode;
     friend class JoinNode;
