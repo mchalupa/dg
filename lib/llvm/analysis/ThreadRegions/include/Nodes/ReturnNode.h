@@ -1,12 +1,12 @@
 #ifndef RETURNNODE_H
 #define RETURNNODE_H
 
-#include "ArtificialNode.h"
+#include "Node.h"
 
-class ReturnNode : public ArtificialNode
+class ReturnNode : public Node
 {
 public:
-    ReturnNode(ControlFlowGraph * controlFlowGraph);
+    ReturnNode(const llvm::Instruction * instruction = nullptr);
 };
 
 #endif // RETURNNODE_H

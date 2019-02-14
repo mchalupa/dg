@@ -72,6 +72,11 @@ add_dependencies(check points-to-set-test)
 # --------------------------------------------------
 add_executable(thread-regions-test ${CMAKE_CURRENT_LIST_DIR}/catch-main.cpp
                                   ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test.cpp)
+target_compile_definitions(thread-regions-test
+    PRIVATE
+        SIMPLE_FILE="${CMAKE_CURRENT_LIST_DIR}/thread-regions-llvm-files/simple.ll"
+        PTHREAD_EXIT_FILE="${CMAKE_CURRENT_LIST_DIR}/thread-regions-llvm-files/pthread_exit.ll")
+
 target_link_libraries(thread-regions-test PRIVATE ThreadRegions
                                           PRIVATE ${llvm_core}
                                           PRIVATE ${llvm_irreader}

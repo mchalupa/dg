@@ -1,3 +1,5 @@
+#include <llvm/IR/Instructions.h>
+
 #include "ForkNode.h"
 #include "EntryNode.h"
 #include "JoinNode.h"
@@ -7,28 +9,45 @@
 
 using namespace std;
 
-ForkNode::ForkNode(ControlFlowGraph *controlFlowGraph, const llvm::Value *value):LlvmNode(controlFlowGraph, value) {}
+ForkNode::ForkNode(const llvm::Instruction *instruction):Node(NodeType::FORK, instruction) {}
 
-void ForkNode::addCorrespondingJoin(JoinNode *joinNode){
+bool ForkNode::addCorrespondingJoin(JoinNode *joinNode){
+    if (!joinNode) {
+        return false;
+    }
     correspondingJoins_.insert(joinNode);
-    joinNode->correspondingForks_.insert(this);
+    return joinNode->correspondingForks_.insert(this).second;
 }
 
-void ForkNode::addForkSuccessor(EntryNode *entryNode) {
+bool ForkNode::addForkSuccessor(EntryNode *entryNode) {
+    if (!entryNode) {
+        return false;
+    }
     forkSuccessors_.insert(entryNode);
-    entryNode->forkPredecessors_.insert(this);
+    return entryNode->forkPredecessors_.insert(this).second;
 }
 
-void ForkNode::removeForkSuccessor(EntryNode *entryNode) {
+bool ForkNode::removeForkSuccessor(EntryNode *entryNode) {
+    if (!entryNode) {
+        return false;
+    }
     forkSuccessors_.erase(entryNode);
-    entryNode->forkPredecessors_.erase(this);
+    return entryNode->forkPredecessors_.erase(this);
 }
 
-const std::set<EntryNode *> ForkNode::forkSuccessors() const {
+const std::set<EntryNode *> &ForkNode::forkSuccessors() const {
     return forkSuccessors_;
 }
 
-std::set<JoinNode *> ForkNode::correspondingJoins() const {
+std::set<EntryNode *> ForkNode::forkSuccessors() {
+    return forkSuccessors_;
+}
+
+const std::set<JoinNode *> &ForkNode::correspondingJoins() const {
+    return correspondingJoins_;
+}
+
+std::set<JoinNode *> ForkNode::correspondingJoins() {
     return correspondingJoins_;
 }
 
@@ -38,20 +57,4 @@ void ForkNode::printOutcomingEdges(ostream &ostream) const {
     for (const auto &forkSuccessor : forkSuccessors_) {
         ostream << this->dotName() << " -> " << forkSuccessor->dotName() << " [style=dashed]\n";
     }
-}
-
-
-void ForkNode::dfsComputeThreadRegions(){
-    computeThreadRegionsOnSuccessorsFromNode(forkSuccessors(), this);
-    computeThreadRegionsOnSuccessorsFromNode(successors(), this);
-}
-
-void ForkNode::dfsComputeCriticalSections(LockNode *lock) {
-    computeCriticalSectionsDependentOnLock(forkSuccessors(), lock);
-    computeCriticalSectionsDependentOnLock(successors(), lock);
-}
-
-
-bool ForkNode::isFork() const {
-    return true;
 }

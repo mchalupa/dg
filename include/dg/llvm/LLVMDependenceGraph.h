@@ -154,11 +154,11 @@ private:
     void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
                                            const std::set<const llvm::Instruction *> &stores);
 
-    std::set<const llvm::Instruction *> getLoadInstructions(const std::set<const llvm::Value *> &llvmValues) const;
-    std::set<const llvm::Instruction *> getStoreInstructions(const std::set<const llvm::Value *> &llvmValues) const;
+    std::set<const llvm::Instruction *> getLoadInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    std::set<const llvm::Instruction *> getStoreInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
     std::set<const llvm::Instruction *> getInstructionsOfType(const unsigned opCode,
-                                                              const std::set<const llvm::Value *> &llvmValues) const;
+                                                              const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)

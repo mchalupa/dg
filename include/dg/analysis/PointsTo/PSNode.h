@@ -511,10 +511,6 @@ public:
 
     std::set<PSNodeJoin *> getJoins() const { return joins; }
 
-    bool addJoin(PSNodeJoin * join) {
-        return joins.insert(join).second;
-    }
-
     bool addFunction(PSNode * function) {
         return functions_.insert(function).second;
     }
@@ -530,10 +526,13 @@ public:
     PSNode * callInst() const {
         return callInstruction;
     }
+
+    friend class PSNodeJoin;
 };
 
 class PSNodeJoin : public PSNode {
     PSNode *callInstruction = nullptr;
+    std::set<PSNodeFork *> forks_;
     std::set<PSNode *> functions_;
 public:
     PSNodeJoin(unsigned id)
@@ -556,9 +555,20 @@ public:
         return functions_.insert(function).second;
     }
 
+    bool addFork(PSNodeFork * fork) {
+        forks_.insert(fork);
+        return fork->joins.insert(this).second;
+    }
+
+    std::set<PSNodeFork *> forks() {
+        return forks_;
+    }
+
     std::set<PSNode *> functions() const {
         return functions_;
     }
+
+    friend class PSNodeFork;
 };
 
 } // namespace pta

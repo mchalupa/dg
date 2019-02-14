@@ -307,6 +307,11 @@ LLVMPointerSubgraphBuilder::getJoins() const
     return threadJoinCalls;
 }
 
+std::map<PSNode *, PSNodeFork *> LLVMPointerSubgraphBuilder::getForks() const
+{
+    return threadCreateCalls;
+}
+
 LLVMPointerSubgraphBuilder::Subgraph&
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::Function *F)
 {

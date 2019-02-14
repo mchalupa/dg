@@ -1,22 +1,4 @@
-#include "Node.h"
+#include "UnlockNode.h"
 
-UnlockNode::UnlockNode(ControlFlowGraph * controlFlowGraph,
-                       const llvm::Value * value):LlvmNode(controlFlowGraph, value)
+UnlockNode::UnlockNode(const llvm::Instruction *instruction):Node(NodeType::UNLOCK, instruction)
 {}
-
-void UnlockNode::addCorrespondingLock(LockNode *lockNode) {
-    correspondingLocks_.insert(lockNode);
-    lockNode->correspondingUnlocks_.insert(this);
-}
-
-std::set<LockNode *> UnlockNode::correspondingLocks() const {
-    return correspondingLocks_;
-}
-
-bool UnlockNode::isLock() const {
-    return false;
-}
-
-bool UnlockNode::isUnlock() const {
-    return true;
-}
