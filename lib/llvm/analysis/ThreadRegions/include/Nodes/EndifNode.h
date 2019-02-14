@@ -1,14 +1,12 @@
 #ifndef ENDIFNODE_H
 #define ENDIFNODE_H
 
-#include "ArtificialNode.h"
+#include "Node.h"
 
-class EndifNode : public ArtificialNode
+class EndifNode : public Node
 {
 public:
-    EndifNode(ControlFlowGraph * controlFlowGraph);
-
-    bool isEndIf() const override;
+    EndifNode();
 };
 
 #endif // ENDIFNODE_H

@@ -1,6 +1,8 @@
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/IR/Instruction.h>
 
 #include <iostream>
+#include <sstream>
 
 #include "Node.h"
 #include "JoinNode.h"
@@ -12,17 +14,28 @@ using namespace llvm;
 
 int Node::lastId = 0;
 
-Node::Node(ControlFlowGraph *controlFlowGraph):id_(lastId++),
-                                               controlFlowGraph_(controlFlowGraph) {}
+
+
+Node::Node(NodeType type, const Instruction *value):id_(lastId++),
+                                                    nodeType_(type),
+                                                    llvmInstruction_(value)
+{}
+
+NodeIterator Node::begin() const {
+    return NodeIterator(this, true);
+}
+
+NodeIterator Node::end() const {
+    return NodeIterator(this, false);
+}
 
 int Node::id() const {
     return id_;
 }
 
-void Node::setName(const string &name) { name_ = name; }
-
-const string & Node::name() const { return name_; }
-string   Node::name()       { return name_; }
+NodeType Node::getType() const {
+    return nodeType_;
+}
 
 string Node::dotName() const {
     return "NODE" + to_string(id_);
@@ -69,88 +82,46 @@ const set<Node *> &Node::successors() const {
 }
 
 bool Node::isArtificial() const {
-    return false;
+    return llvmInstruction_ == nullptr;
 }
 
-bool Node::isJoin() const {
-    return false;
+const Instruction * Node::llvmInstruction() const {
+    return llvmInstruction_;
 }
 
-bool Node::isEntry() const {
-    return false;
+const CallInst *Node::callInstruction() const {
+    using namespace llvm;
+    if (!isArtificial()) {
+        llvmInstruction();
+        return dyn_cast<CallInst>(llvmInstruction());
+    } else if (!predecessors().empty()) {
+        auto iterator = predecessors().begin();
+        auto value = (*iterator)->llvmInstruction();
+        if (value) {
+            return dyn_cast<CallInst>(value);
+        }
+    }
+    return nullptr;
 }
 
-bool Node::isEndIf() const {
-    return false;
+string Node::dump() const {
+    return this->dotName() + " " + this->label() + "\n";
 }
 
-bool Node::isFork() const {
-    return false;
-}
-
-bool Node::isExit() const {
-    return false;
-}
-
-bool Node::isLock() const {
-    return false;
-}
-
-bool Node::isUnlock() const {
-    return false;
+string Node::label() const {
+    std::string label_ = "[label=\"<" + std::to_string(this->id()) + "> " + nodeTypeToString(this->getType());
+    if (!isArtificial()) {
+        string llvmTemporaryString;
+        raw_string_ostream llvmStream(llvmTemporaryString);
+        llvmInstruction_->print(llvmStream);
+        label_ += "\n" + llvmTemporaryString;
+    }
+    label_ += " \"]";
+    return label_;
 }
 
 void Node::printOutcomingEdges(ostream &ostream) const {
     for (const auto &successor : successors_) {
         ostream << this->dotName() << " -> " << successor->dotName() << "\n";
     }
-}
-
-void Node::setThreadRegion(ThreadRegion *threadRegion) {
-    if (threadRegion == nullptr) {
-        return;
-    }
-    threadRegion_ = threadRegion;
-    threadRegion_->insertNode(this);
-}
-
-ThreadRegion *Node::threadRegion() const {
-    return threadRegion_;
-}
-
-ControlFlowGraph *Node::controlFlowGraph() {
-    return controlFlowGraph_;
-}
-
-void Node::dfsComputeThreadRegions() {
-    computeThreadRegionsOnSuccessorsFromNode(successors(), this);
-}
-
-void Node::dfsComputeCriticalSections(LockNode * lock) {
-    computeCriticalSectionsDependentOnLock(successors(), lock);
-}
-
-void Node::setDfsState(DfsState state) {
-    dfsState_ = state;
-}
-
-DfsState Node::dfsState() { return dfsState_; }
-
-bool shouldCreateNewRegion(const Node *caller, const Node *successor) {
-    return caller->isExit()     ||
-           caller->isFork()     ||
-           successor->isEntry() ||
-           successor->isEndIf() ||
-           successor->isJoin();
-}
-
-bool shouldFinish(LockNode * lock, Node * successor) {
-    if (successor->isUnlock()) {
-        UnlockNode * unlock = static_cast<UnlockNode *>(successor);
-        auto iterator = lock->correspondingUnlocks().find(unlock);
-        if (iterator != lock->correspondingUnlocks().end()) {
-            return true;
-        }
-    }
-    return false;
 }

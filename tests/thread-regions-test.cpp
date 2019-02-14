@@ -1,31 +1,98 @@
 #include "catch.hpp"
-#include "../include/dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/ArtificialNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/ForkNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/JoinNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/ExitNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/EntryNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/ForkNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/ReturnNode.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/EndifNode.h"
 
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
+
+#include "../include/dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
+#include "../include/dg/llvm/analysis/ThreadRegions/ThreadRegion.h"
+#include "../lib/llvm/analysis/ThreadRegions/include/Graphs/GraphBuilder.h"
+
+#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/Nodes.h"
+
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_os_ostream.h>
+#include <llvm/IRReader/IRReader.h>
+
+#include <queue>
 #include <string>
 
 TEST_CASE("Test of node class methods", "[node]") {
-    Node * node0 = new ArtificialNode(nullptr);
-    Node * node1 = new ArtificialNode(nullptr);
+    Node * node0 = createNode<NodeType::GENERAL>();
+    Node * node1 = createNode<NodeType::CALL>();
+
+    REQUIRE(node0->isArtificial());
+    REQUIRE(node0->getType() == NodeType::GENERAL);
+
 
 
     SECTION("Incrementing Ids") {
         REQUIRE(node0->id() < node1->id());
     }
 
-    SECTION("Name of node is set properly") {
-        node0->setName("nodeA");
-        REQUIRE(node0->name() == "nodeA");
-        std::string dotname = "NODE" + std::to_string(node0->id());
-        REQUIRE(node0->dotName() == dotname);
+    SECTION("createNode creates the rightNode") {
+        auto General = createNode<NodeType::GENERAL>();
+        auto Fork = createNode<NodeType::FORK>();
+        auto Join = createNode<NodeType::JOIN>();
+        auto Lock = createNode<NodeType::LOCK>();
+        auto Unlock = createNode<NodeType::UNLOCK>();
+        auto Entry = createNode<NodeType::ENTRY>();
+        auto Exit = createNode<NodeType::EXIT>();
+        auto Call = createNode<NodeType::CALL>();
+        auto CallReturn = createNode<NodeType::CALL_RETURN>();
+        auto CallFuncPtr = createNode<NodeType::CALL_FUNCPTR>(nullptr);
+        auto Return = createNode<NodeType::RETURN>();
+        auto Endif = createNode<NodeType::ENDIF>();
 
+        REQUIRE(General->getType() == NodeType::GENERAL);
+        REQUIRE(Fork->getType() == NodeType::FORK);
+        REQUIRE(Join->getType() == NodeType::JOIN);
+        REQUIRE(Lock->getType() == NodeType::LOCK);
+        REQUIRE(Unlock->getType() == NodeType::UNLOCK);
+        REQUIRE(Entry->getType() == NodeType::ENTRY);
+        REQUIRE(Exit->getType() == NodeType::EXIT);
+        REQUIRE(Call->getType() == NodeType::CALL);
+        REQUIRE(CallReturn->getType() == NodeType::CALL_RETURN);
+        REQUIRE(CallFuncPtr->getType() == NodeType::CALL_FUNCPTR);
+        REQUIRE(Return->getType() == NodeType::RETURN);
+        REQUIRE(Endif->getType() == NodeType::ENDIF);
+    }
+
+    SECTION("nodeTypeToString works correctly") {
+        std::string General = "NodeType::GENERAL";
+        std::string Fork = "NodeType::FORK";
+        std::string Join = "NodeType::JOIN";
+        std::string Lock = "NodeType::LOCK";
+        std::string Unlock = "NodeType::UNLOCK";
+        std::string Entry = "NodeType::ENTRY";
+        std::string Exit = "NodeType::EXIT";
+        std::string Call = "NodeType::CALL";
+        std::string CallReturn = "NodeType::CALL_RETURN";
+        std::string CallFuncPtr = "NodeType::CALL_FUNCPTR";
+        std::string Return = "NodeType::RETURN";
+        std::string Endif = "NodeType::ENDIF";
+
+        REQUIRE(nodeTypeToString(NodeType::GENERAL) == General);
+        REQUIRE(nodeTypeToString(NodeType::FORK) == Fork);
+        REQUIRE(nodeTypeToString(NodeType::JOIN) == Join);
+        REQUIRE(nodeTypeToString(NodeType::LOCK) == Lock);
+        REQUIRE(nodeTypeToString(NodeType::UNLOCK) == Unlock);
+        REQUIRE(nodeTypeToString(NodeType::ENTRY) == Entry);
+        REQUIRE(nodeTypeToString(NodeType::EXIT) == Exit);
+        REQUIRE(nodeTypeToString(NodeType::CALL) == Call);
+        REQUIRE(nodeTypeToString(NodeType::CALL_RETURN) == CallReturn);
+        REQUIRE(nodeTypeToString(NodeType::CALL_FUNCPTR) == CallFuncPtr);
+        REQUIRE(nodeTypeToString(NodeType::RETURN) == Return);
+        REQUIRE(nodeTypeToString(NodeType::ENDIF) == Endif);
+    }
+
+    SECTION("Node can correctly output its type in dot format") {
+        auto nodeString = node1->dump();
+        auto pos = nodeString.find(nodeTypeToString(NodeType::CALL));
+        REQUIRE(pos != std::string::npos);
     }
 
     SECTION("add new successor increases size of successors"
@@ -57,7 +124,7 @@ TEST_CASE("Test of node class methods", "[node]") {
         REQUIRE(node0->successors().empty());
         REQUIRE_FALSE(node0->removeSuccessor(node1));
         REQUIRE(node0->successors().empty());
-        Node * node2 = new ArtificialNode(nullptr);
+        Node * node2 = createNode<NodeType::GENERAL>();
         REQUIRE(node0->addSuccessor(node1));
         REQUIRE(node0->successors().size() == 1);
         REQUIRE_FALSE(node0->removeSuccessor(node2));
@@ -93,7 +160,7 @@ TEST_CASE("Test of node class methods", "[node]") {
         REQUIRE(node0->predecessors().empty());
         REQUIRE_FALSE(node0->removePredecessor(node1));
         REQUIRE(node0->successors().empty());
-        Node * node2 = new ArtificialNode(nullptr);
+        Node * node2 = createNode<NodeType::GENERAL>();
         REQUIRE(node0->addPredecessor(node1));
         REQUIRE(node0->predecessors().size() == 1);
         REQUIRE_FALSE(node0->removePredecessor(node2));
@@ -123,20 +190,13 @@ TEST_CASE("Test of node class methods", "[node]") {
         REQUIRE_FALSE(node0->removePredecessor(nullptr));
         REQUIRE(node0->predecessors().empty());
     }
-
-    SECTION("Setting DfsState") {
-        REQUIRE(node0->dfsState() == DfsState::UNDISCOVERED);
-        node0->setDfsState(DfsState::DISCOVERED);
-        REQUIRE(node0->dfsState() == DfsState::DISCOVERED);
-        node0->setDfsState(DfsState::EXAMINED);
-        REQUIRE(node0->dfsState() == DfsState::EXAMINED);
-    }
 }
 
 TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
-    ControlFlowGraph * controlFlowGraph = new ControlFlowGraph(nullptr, nullptr, "");
-    ThreadRegion * threadRegion0 = new ThreadRegion(controlFlowGraph);
-    ThreadRegion * threadRegion1 = new ThreadRegion(controlFlowGraph);
+    auto node0 = createNode<NodeType::GENERAL>();
+    auto node1 = createNode<NodeType::GENERAL>();
+    ThreadRegion * threadRegion0 = new ThreadRegion(node0);
+    ThreadRegion * threadRegion1 = new ThreadRegion(node1);
 
     REQUIRE(threadRegion0->successors().empty());
     REQUIRE(threadRegion1->successors().empty());
@@ -191,35 +251,331 @@ TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
     SECTION("Remove nullptr from predecessor") {
         REQUIRE_FALSE(threadRegion0->removePredecessor(nullptr));
     }
+}
 
-    SECTION("DfsState") {
-        REQUIRE(threadRegion0->dfsState() == DfsState::DISCOVERED); // when we create thread region, we already discovered it
-        REQUIRE(threadRegion1->dfsState() == DfsState::DISCOVERED);
-        threadRegion0->setDfsState(DfsState::UNDISCOVERED);
-        threadRegion1->setDfsState(DfsState::EXAMINED);
-        REQUIRE(threadRegion0->dfsState() == DfsState::UNDISCOVERED);
-        REQUIRE(threadRegion1->dfsState() == DfsState::EXAMINED);
+TEST_CASE("Test of EntryNode class methods", "[EntryNode]") {
+    ForkNode * forkNode = createNode<NodeType::FORK>();
+    EntryNode * entryNode = createNode<NodeType::ENTRY>();
+
+    SECTION("Add fork predecessor") {
+        REQUIRE(entryNode->addForkPredecessor(forkNode));
+        REQUIRE(entryNode->forkPredecessors().size() == 1);
+        REQUIRE_FALSE(entryNode->addForkPredecessor(forkNode));
+        REQUIRE(entryNode->forkPredecessors().size() == 1);
+        REQUIRE_FALSE(entryNode->addForkPredecessor(nullptr));
+        REQUIRE(entryNode->forkPredecessors().size() == 1);
+    }
+
+    SECTION("Remove fork predecessor") {
+        entryNode->addForkPredecessor(forkNode);
+        REQUIRE(entryNode->forkPredecessors().size() == 1);
+        REQUIRE(entryNode->removeForkPredecessor(forkNode));
+        REQUIRE(entryNode->forkPredecessors().size() == 0);
+        REQUIRE_FALSE(entryNode->removeForkPredecessor(forkNode));
+        REQUIRE(entryNode->forkPredecessors().size() == 0);
     }
 }
 
-TEST_CASE("Test of interaction of ThreadRegion and Node", "[ThreadRegion-Node]") {
-    ControlFlowGraph * controlFlowGraph = new ControlFlowGraph(nullptr, nullptr, "");
-    ThreadRegion * threadRegion0 = new ThreadRegion(controlFlowGraph);
-    Node * node0 = new ArtificialNode(controlFlowGraph);
+TEST_CASE("Test of ExitNode class methods", "[ExitNode]") {
+    auto joinNode = createNode<NodeType::JOIN>();
+    auto exitNode = createNode<NodeType::EXIT>();
 
-    SECTION("Set existing thread region to node") {
-        auto before = threadRegion0->nodes().size();
-        node0->setThreadRegion(threadRegion0);
-        REQUIRE(node0->threadRegion() == threadRegion0);
-        auto after = threadRegion0->nodes().size();
-        REQUIRE(before < after);
+    SECTION("Add join successor") {
+        REQUIRE(exitNode->addJoinSuccessor(joinNode));
+        REQUIRE(exitNode->joinSuccessors().size() == 1);
+        REQUIRE_FALSE(exitNode->addJoinSuccessor(joinNode));
+        REQUIRE(exitNode->joinSuccessors().size() == 1);
+        REQUIRE_FALSE(exitNode->addJoinSuccessor(nullptr));
+        REQUIRE(exitNode->joinSuccessors().size() == 1);
     }
 
-    node0->setThreadRegion(threadRegion0);
+    SECTION("Remove join successor") {
+        exitNode->addJoinSuccessor(joinNode);
+        REQUIRE(exitNode->joinSuccessors().size() == 1);
+        REQUIRE(exitNode->removeJoinSuccessor(joinNode));
+        REQUIRE(exitNode->joinSuccessors().size() == 0);
+        REQUIRE_FALSE(exitNode->removeJoinSuccessor(joinNode));
+        REQUIRE(exitNode->joinSuccessors().size() == 0);
+        REQUIRE_FALSE(exitNode->removeJoinSuccessor(nullptr));
+        REQUIRE(exitNode->joinSuccessors().size() == 0);
+    }
+}
 
-    SECTION("Set nullptr as thread region") {
-        auto before = node0->threadRegion();
-        node0->setThreadRegion(nullptr);
-        REQUIRE(node0->threadRegion() == before);
+TEST_CASE("Test of ForkNode class methods", "[ForkNode]") {
+    auto forkNode = createNode<NodeType::FORK>();
+    auto joinNode = createNode<NodeType::JOIN>();
+    auto entryNode = createNode<NodeType::ENTRY>();
+
+    SECTION("Add corresponding join") {
+        REQUIRE(forkNode->addCorrespondingJoin(joinNode));
+        REQUIRE(forkNode->correspondingJoins().size() == 1);
+        REQUIRE_FALSE(forkNode->addCorrespondingJoin(joinNode));
+        REQUIRE(forkNode->correspondingJoins().size() == 1);
+        REQUIRE_FALSE(forkNode->addCorrespondingJoin(nullptr));
+        REQUIRE(forkNode->correspondingJoins().size() == 1);
+    }
+
+    SECTION("Add fork successor") {
+        REQUIRE(forkNode->addForkSuccessor(entryNode));
+        REQUIRE(forkNode->forkSuccessors().size() == 1);
+        REQUIRE_FALSE(forkNode->addForkSuccessor(entryNode));
+        REQUIRE(forkNode->forkSuccessors().size() == 1);
+        REQUIRE_FALSE(forkNode->addForkSuccessor(nullptr));
+        REQUIRE(forkNode->forkSuccessors().size() == 1);
+    }
+
+    SECTION("Remove fork successor") {
+        forkNode->addForkSuccessor(entryNode);
+        REQUIRE(forkNode->forkSuccessors().size() == 1);
+        REQUIRE(forkNode->removeForkSuccessor(entryNode));
+        REQUIRE(forkNode->forkSuccessors().size() == 0);
+        REQUIRE_FALSE(forkNode->removeForkSuccessor(entryNode));
+        REQUIRE(forkNode->forkSuccessors().size() == 0);
+        REQUIRE_FALSE(forkNode->removeForkSuccessor(nullptr));
+        REQUIRE(forkNode->forkSuccessors().size() == 0);
+    }
+}
+
+TEST_CASE("Test of JoinNode class methods", "[JoinNode]") {
+    auto joinNode = createNode<NodeType::JOIN>();
+    auto forkNode = createNode<NodeType::FORK>();
+    auto exitNode = createNode<NodeType::EXIT>();
+
+
+    SECTION("Add corresponding fork") {
+        REQUIRE(joinNode->addCorrespondingFork(forkNode));
+        REQUIRE(joinNode->correspondingForks().size() == 1);
+        REQUIRE_FALSE(joinNode->addCorrespondingFork(forkNode));
+        REQUIRE(joinNode->correspondingForks().size() == 1);
+        REQUIRE_FALSE(joinNode->addCorrespondingFork(nullptr));
+        REQUIRE(joinNode->correspondingForks().size() == 1);
+    }
+
+    SECTION("Add join predecessor") {
+        REQUIRE(joinNode->addJoinPredecessor(exitNode));
+        REQUIRE(joinNode->joinPredecessors().size() == 1);
+        REQUIRE_FALSE(joinNode->addJoinPredecessor(exitNode));
+        REQUIRE(joinNode->joinPredecessors().size() == 1);
+        REQUIRE_FALSE(joinNode->addJoinPredecessor(nullptr));
+        REQUIRE(joinNode->joinPredecessors().size() == 1);
+    }
+
+    SECTION("Remove join predecessor") {
+        joinNode->addJoinPredecessor(exitNode);
+        REQUIRE(joinNode->joinPredecessors().size() == 1);
+        REQUIRE(joinNode->removeJoinPredecessor(exitNode));
+        REQUIRE(joinNode->joinPredecessors().size() == 0);
+        REQUIRE_FALSE(joinNode->removeJoinPredecessor(exitNode));
+        REQUIRE(joinNode->joinPredecessors().size() == 0);
+        REQUIRE_FALSE(joinNode->removeJoinPredecessor(nullptr));
+        REQUIRE(joinNode->joinPredecessors().size() == 0);
+    }
+}
+
+TEST_CASE("Test of LockNode class methods", "[LockNode]") {
+    auto lockNode = createNode<NodeType::LOCK>();
+    auto unlockNode = createNode<NodeType::UNLOCK>();
+
+    SECTION("Add corresponding unlock") {
+        REQUIRE(lockNode->addCorrespondingUnlock(unlockNode));
+        REQUIRE(lockNode->correspondingUnlocks().size() == 1);
+        REQUIRE_FALSE(lockNode->addCorrespondingUnlock(unlockNode));
+        REQUIRE(lockNode->correspondingUnlocks().size() == 1);
+        REQUIRE_FALSE(lockNode->addCorrespondingUnlock(nullptr));
+        REQUIRE(lockNode->correspondingUnlocks().size() == 1);
+    }
+}
+
+TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
+    using namespace llvm;
+    LLVMContext context;
+    SMDiagnostic SMD;
+    std::unique_ptr<Module> M = parseIRFile(SIMPLE_FILE, SMD, context);
+    const Function * function = M->getFunction("foo");
+    dg::LLVMPointerAnalysis pointsToAnalysis(M.get());
+    pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
+    std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
+
+    SECTION("Test of buildInstruction and findInstruction") {
+        auto inst = graphBuilder->buildInstruction(nullptr);
+        REQUIRE(inst.first == nullptr);
+        REQUIRE(inst.second == nullptr);
+        REQUIRE_FALSE(graphBuilder->findInstruction(nullptr));
+        for (auto & block : *function) {
+            for (auto & instruction : block) {
+                inst = graphBuilder->buildInstruction(&instruction);
+                REQUIRE_FALSE(inst.first == nullptr);
+                REQUIRE_FALSE(inst.second == nullptr);
+                auto instructionNode = graphBuilder->findInstruction(&instruction);
+                REQUIRE_FALSE(instructionNode == nullptr);
+                inst = graphBuilder->buildInstruction(&instruction);
+                REQUIRE(inst.first == nullptr);
+                REQUIRE(inst.second == nullptr);
+            }
+        }
+    }
+
+    SECTION("Test of buildBlock and findBlock") {
+        auto nodeSeq = graphBuilder->buildBlock(nullptr);
+        REQUIRE_FALSE(graphBuilder->findBlock(nullptr));
+        REQUIRE(nodeSeq.first == nullptr);
+        REQUIRE(nodeSeq.second == nullptr);
+        for (auto & block : *function) {
+            nodeSeq = graphBuilder->buildBlock(&block);
+            REQUIRE_FALSE(nodeSeq.first == nullptr);
+            REQUIRE_FALSE(nodeSeq.second == nullptr);
+            auto blockGraph = graphBuilder->findBlock(&block);
+            REQUIRE_FALSE(blockGraph == nullptr);
+            nodeSeq = graphBuilder->buildBlock(&block);
+            REQUIRE(nodeSeq.first == nullptr);
+            REQUIRE(nodeSeq.second == nullptr);
+        }
+    }
+
+    SECTION("Test of buildFunction and findFunction") {
+        auto nodeSeq = graphBuilder->buildFunction(nullptr);
+        REQUIRE(nodeSeq.first == nullptr);
+        REQUIRE(nodeSeq.second == nullptr);
+        REQUIRE_FALSE(graphBuilder->findFunction(nullptr));
+
+        for (auto & function : M->getFunctionList()) {
+            nodeSeq = graphBuilder->buildFunction(&function);
+            REQUIRE_FALSE(nodeSeq.first == nullptr);
+            REQUIRE_FALSE(nodeSeq.second == nullptr);
+            auto functionGraph = graphBuilder->findFunction(&function);
+            REQUIRE_FALSE(functionGraph == nullptr);
+            nodeSeq = graphBuilder->buildFunction(&function);
+            REQUIRE(nodeSeq.first == nullptr);
+            REQUIRE(nodeSeq.second == nullptr);
+        }
+    }
+}
+
+TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
+    using namespace llvm;
+    LLVMContext context;
+    SMDiagnostic SMD;
+    std::unique_ptr<Module> M = parseIRFile(PTHREAD_EXIT_FILE, SMD, context); 
+    dg::LLVMPointerAnalysis pointsToAnalysis(M.get());
+    pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
+    std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
+
+    SECTION("Undefined function which is not really important for us") {
+        auto function = M->getFunction("free");
+        auto nodeSeq = graphBuilder->buildFunction(function);
+        REQUIRE(nodeSeq.first == nodeSeq.second);
+    }
+
+    SECTION("Pthread exit") {
+        auto function = M->getFunction("func");
+        std::set<const llvm::Instruction *> callInstruction;
+
+        const llvm::CallInst * pthreadExitCall = nullptr;
+        for (auto & block : *function) {
+            for (auto & instruction : block) {
+                if (isa<llvm::CallInst>(instruction)) {
+                    auto callInst = dyn_cast<llvm::CallInst>(&instruction);
+                    auto calledValue = callInst->getCalledValue();
+                    if (isa<llvm::Function>(calledValue)) {
+                        auto function = dyn_cast<llvm::Function>(calledValue);
+                        if (function->getName().equals("pthread_exit")) {
+                            pthreadExitCall = callInst;
+                        }
+                    }
+                }
+            }
+        } 
+
+        REQUIRE(pthreadExitCall != nullptr);
+        auto nodeSeq = graphBuilder->buildInstruction(pthreadExitCall);
+        REQUIRE(nodeSeq.first != nodeSeq.second);
+        REQUIRE(nodeSeq.second->getType() == NodeType::RETURN);
+        REQUIRE_FALSE(nodeSeq.first->isArtificial());
+        REQUIRE(nodeSeq.second->isArtificial());
+        REQUIRE(nodeSeq.first->successors().size() == 1);
+        REQUIRE(nodeSeq.second->predecessors().size() == 1);
+        REQUIRE(nodeSeq.first->successors().find(nodeSeq.second) != nodeSeq.first->successors().end());
+    }
+
+    SECTION("Func pointer call") {
+        auto function = M->getFunction("main");
+        std::set<const llvm::Instruction *> callInstruction;
+
+        for (auto & block : *function) {
+            for (auto & instruction : block) {
+                if (isa<llvm::CallInst>(instruction)) {
+                    instruction.getFunction();
+                    callInstruction.insert(&instruction);
+                }
+            }
+        }
+        
+        const llvm::CallInst * funcPtrCall = nullptr;
+
+        for (auto instruction : callInstruction) {
+            auto callInst = dyn_cast<llvm::CallInst>(instruction);
+            auto calledValue = callInst->getCalledValue();
+            if (!isa<llvm::Function>(calledValue)) {
+                funcPtrCall = callInst;
+            }
+        }
+        
+        REQUIRE(funcPtrCall != nullptr);
+
+        auto nodeSeq = graphBuilder->buildInstruction(funcPtrCall);
+        REQUIRE(nodeSeq.first != nullptr);
+        REQUIRE(nodeSeq.second != nullptr);
+        REQUIRE_FALSE(nodeSeq.first->isArtificial());
+        REQUIRE(nodeSeq.first->successors().size() == 1);
+        auto successor = nodeSeq.first->successors();
+        for (auto node : nodeSeq.first->successors()) {
+            REQUIRE(node->isArtificial());
+        }
+        std::queue<Node *> queue;
+        std::set<Node *> visited;
+
+        REQUIRE(nodeSeq.first->getType() == NodeType::CALL_FUNCPTR);
+        REQUIRE(nodeSeq.second->getType() == NodeType::FORK);
+        auto fork = castNode<NodeType::FORK>(nodeSeq.second);
+        REQUIRE(fork->forkSuccessors().size() == 1);
+        visited.insert(*fork->forkSuccessors().begin());
+        queue.push(*fork->forkSuccessors().begin());
+        while (!queue.empty()) {
+            Node * currentNode = queue.front();
+            queue.pop();
+            for (auto successor : currentNode->successors()) {
+                if (visited.find(successor) == visited.end()) {
+                    visited.insert(successor);
+                    queue.push(successor);
+                }
+            }
+        }
+        std::set<Node *> realNodes;
+        for (auto node : visited) {
+            if (!node->isArtificial()) {
+                realNodes.insert(node);
+            }
+        }
+        REQUIRE(realNodes.size() == 42);
+    }
+
+    SECTION("ForkNode iterator test") {
+        auto forkNode = createNode<NodeType::FORK>();
+
+        auto entryNode0 = createNode<NodeType::ENTRY>();
+
+        forkNode->addForkSuccessor(entryNode0);
+
+        auto node0 = createNode<NodeType::GENERAL>();
+
+        forkNode->addSuccessor(node0);
+
+        int i = 0;
+
+        for (auto successor : *forkNode) {
+            ++i;
+        }
+
+        REQUIRE(i == 2);
     }
 }

@@ -8,25 +8,25 @@
 class ExitNode;
 class ForkNode;
 
-class JoinNode : public LlvmNode
+class JoinNode : public Node
 {
 private:
-    std::set<const ExitNode *> joinPredecessors_;
-    std::set<ForkNode *> correspondingForks_;
+    std::set<const ExitNode *>  joinPredecessors_;
+    std::set<ForkNode *>        correspondingForks_;
 public:
-    JoinNode(ControlFlowGraph * controlFlowGraph, const llvm::Value *value);
+    JoinNode(const llvm::Instruction *value = nullptr);
 
-    void addCorrespondingFork(ForkNode * forkNode);
+    bool addCorrespondingFork(ForkNode * forkNode);
 
-    void addJoinPredecessor(ExitNode *exitNode);
+    bool addJoinPredecessor(ExitNode *exitNode);
 
-    void removeJoinPredecessor(ExitNode *exitNode);
+    bool removeJoinPredecessor(ExitNode *exitNode);
 
     const std::set<const ExitNode *> & joinPredecessors() const;
+          std::set<const ExitNode *>   joinPredecessors();
 
-    std::set<ForkNode *> correspondingForks() const;
-
-    bool isJoin() const override;
+    const std::set<ForkNode *> & correspondingForks() const;
+          std::set<ForkNode *>   correspondingForks();
 
     friend class ExitNode;
     friend class ForkNode;
