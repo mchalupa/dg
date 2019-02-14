@@ -1070,7 +1070,7 @@ LLVMRDBuilderSemisparse::createCall(const llvm::Instruction *Inst, RDBlock *rb)
     }
 }
 
-RDNode *LLVMRDBuilderSemisparse::build()
+ReachingDefinitionsGraph LLVMRDBuilderSemisparse::build()
 {
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
@@ -1105,7 +1105,10 @@ RDNode *LLVMRDBuilderSemisparse::build()
         delete glob;
     }
 
-    return root;
+    ReachingDefinitionsGraph graph;
+    graph.setRoot(root);
+
+    return graph;
 }
 
 static uint64_t getGlobalVariableSize(const llvm::GlobalVariable *var, const llvm::DataLayout *DL)

@@ -246,26 +246,40 @@ public:
     friend class dg::analysis::rd::srg::AssignmentFinder;
 };
 
+class ReachingDefinitionsGraph {
+    RDNode *root{nullptr};
+
+public:
+    ReachingDefinitionsGraph() = default;
+    ReachingDefinitionsGraph(RDNode *r) : root(r) {};
+    ReachingDefinitionsGraph(ReachingDefinitionsGraph&&) = default;
+    ReachingDefinitionsGraph& operator=(ReachingDefinitionsGraph&&) = default;
+
+    RDNode *getRoot() const { return root; }
+    void setRoot(RDNode *r) { root = r; }
+};
+
 class ReachingDefinitionsAnalysis
 {
 protected:
-    RDNode *root{nullptr};
+    ReachingDefinitionsGraph graph;
     unsigned int dfsnum;
 
     const ReachingDefinitionsAnalysisOptions options;
 
 public:
-    ReachingDefinitionsAnalysis(RDNode *r,
+    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
                                 const ReachingDefinitionsAnalysisOptions& opts)
-    : root(r), dfsnum(0), options(opts)
+    : graph(std::move(graph)), dfsnum(0), options(opts)
     {
-        assert(r && "Root cannot be null");
+        assert(graph.getRoot() && "Root cannot be null");
         // with max_set_size == 0 (everything is defined on unknown location)
         // we get unsound results with vararg functions and similar weird stuff
         assert(options.maxSetSize > 0 && "The set size must be at least 1");
     }
 
-    ReachingDefinitionsAnalysis(RDNode *r) : ReachingDefinitionsAnalysis(r, {}) {}
+    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
+    : ReachingDefinitionsAnalysis(std::move(graph), {}) {}
     virtual ~ReachingDefinitionsAnalysis() = default;
 
     // get nodes in BFS order and store them into
@@ -299,8 +313,7 @@ public:
         return cont;
     }
 
-    RDNode *getRoot() const { return root; }
-    void setRoot(RDNode *r) { root = r; }
+    RDNode *getRoot() const { return graph.getRoot(); }
 
     bool processNode(RDNode *n);
     virtual void run();

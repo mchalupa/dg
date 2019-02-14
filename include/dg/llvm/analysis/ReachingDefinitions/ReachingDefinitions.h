@@ -40,7 +40,6 @@ class LLVMReachingDefinitions
 {
     LLVMRDBuilder *builder{nullptr};
     std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
-    RDNode *root{nullptr};
     const llvm::Module *m;
     dg::LLVMPointerAnalysis *pta;
     const LLVMReachingDefinitionsAnalysisOptions _options;
@@ -76,12 +75,12 @@ public:
 
         assert(builder);
         assert(RDA);
-        assert(root);
+        assert(getRoot());
 
         RDA->run();
     }
 
-    RDNode *getRoot() { return root; }
+    RDNode *getRoot() { return RDA->getRoot(); }
     RDNode *getNode(const llvm::Value *val);
 
     // let the user get the nodes map, so that we can

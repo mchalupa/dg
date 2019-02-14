@@ -39,7 +39,7 @@ public:
         : LLVMRDBuilder(m, p, opts), buildUses(buildUses) {}
     virtual ~LLVMRDBuilderDense() = default;
 
-    RDNode *build() override;
+    ReachingDefinitionsGraph build() override;
 
     RDNode *getOperand(const llvm::Value *val);
     RDNode *createNode(const llvm::Instruction& Inst);

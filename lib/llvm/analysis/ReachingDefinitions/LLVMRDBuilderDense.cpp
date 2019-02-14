@@ -827,7 +827,7 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
     }
 }
 
-RDNode *LLVMRDBuilderDense::build()
+ReachingDefinitionsGraph LLVMRDBuilderDense::build()
 {
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
@@ -857,7 +857,10 @@ RDNode *LLVMRDBuilderDense::build()
         root = glob.first;
     }
 
-    return root;
+    ReachingDefinitionsGraph graph;
+    graph.setRoot(root);
+
+    return graph;
 }
 
 std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()

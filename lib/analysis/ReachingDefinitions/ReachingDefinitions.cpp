@@ -28,9 +28,9 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
 
 void ReachingDefinitionsAnalysis::run()
 {
-    assert(root && "Do not have root");
+    assert(getRoot() && "Do not have root");
 
-    std::vector<RDNode *> to_process = getNodes(root);
+    std::vector<RDNode *> to_process = getNodes(getRoot());
     std::vector<RDNode *> changed;
 
     // do fixpoint

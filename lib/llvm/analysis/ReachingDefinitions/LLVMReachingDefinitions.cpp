@@ -32,17 +32,19 @@ LLVMReachingDefinitions::~LLVMReachingDefinitions() {
 
 void LLVMReachingDefinitions::initializeSparseRDA() {
     builder = new LLVMRDBuilderSemisparse(m, pta, _options);
-    root = builder->build();
+    // let the compiler do copy-ellision
+    auto graph = builder->build();
 
-    RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(new SemisparseRda(root));
+    RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
+                    new SemisparseRda(std::move(graph)));
 }
 
 void LLVMReachingDefinitions::initializeDenseRDA() {
     builder = new LLVMRDBuilderDense(m, pta, _options);
-    root = builder->build();
+    auto graph = builder->build();
 
     RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-                    new ReachingDefinitionsAnalysis(root));
+                    new ReachingDefinitionsAnalysis(std::move(graph)));
 }
 
 RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
