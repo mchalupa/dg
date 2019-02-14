@@ -363,6 +363,9 @@ bool LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
                 changed |= addFunctionToJoin(function, 
                                              join); 
             }
+            if (changed) {
+                join->addFork(instNodeAndForkNode.second);
+            }
         }
     }
     return changed;

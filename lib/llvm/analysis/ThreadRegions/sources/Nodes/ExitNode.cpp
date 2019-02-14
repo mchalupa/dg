@@ -3,20 +3,31 @@
 #include "ThreadRegion.h"
 
 #include <iostream>
+#include <string>
 
-ExitNode::ExitNode(ControlFlowGraph *controlFlowGraph):ArtificialNode(controlFlowGraph) {}
+ExitNode::ExitNode():Node(NodeType::EXIT) {}
 
-void ExitNode::addJoinSuccessor(JoinNode *joinNode) {
+bool ExitNode::addJoinSuccessor(JoinNode *joinNode) {
+    if (!joinNode) {
+        return false;
+    }
     joinSuccessors_.insert(joinNode);
-    joinNode->joinPredecessors_.insert(this);
+    return joinNode->joinPredecessors_.insert(this).second;
 }
 
-void ExitNode::removeJoinSuccessor(JoinNode *joinNode) {
+bool ExitNode::removeJoinSuccessor(JoinNode *joinNode) {
+    if (!joinNode) {
+        return false;
+    }
     joinSuccessors_.erase(joinNode);
-    joinNode->joinPredecessors_.erase(this);
+    return joinNode->joinPredecessors_.erase(this);
 }
 
 const std::set<JoinNode *> &ExitNode::joinSuccessors() const {
+    return joinSuccessors_;
+}
+
+std::set<JoinNode *> ExitNode::joinSuccessors() {
     return joinSuccessors_;
 }
 
@@ -26,19 +37,4 @@ void ExitNode::printOutcomingEdges(std::ostream &ostream) const {
     for (const auto &joinSuccessor : joinSuccessors_) {
         ostream << this->dotName() << " -> " << joinSuccessor->dotName() << " [style=dashed]\n";
     }
-}
-
-
-void ExitNode::dfsComputeThreadRegions() {
-    computeThreadRegionsOnSuccessorsFromNode(joinSuccessors(), this);
-    computeThreadRegionsOnSuccessorsFromNode(successors(), this);
-}
-
-void ExitNode::dfsComputeCriticalSections(LockNode *lock) {
-    computeCriticalSectionsDependentOnLock(joinSuccessors(), lock);
-    computeCriticalSectionsDependentOnLock(successors(), lock);
-}
-
-bool ExitNode::isExit() const {
-    return true;
 }

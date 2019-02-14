@@ -1,3 +1,4 @@
 #include "ReturnNode.h"
 
-ReturnNode::ReturnNode(ControlFlowGraph *controlFlowGraph):ArtificialNode(controlFlowGraph){}
+ReturnNode::ReturnNode(const llvm::Instruction *instruction):Node(NodeType::RETURN, instruction)
+{}

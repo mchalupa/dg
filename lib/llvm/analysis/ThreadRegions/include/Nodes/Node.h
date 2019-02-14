@@ -1,41 +1,63 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include <string>
 #include <set>
-#include <ostream>
+#include <iosfwd>
+#include <string>
 
-#include "dg/llvm/analysis/ThreadRegions/DfsState.h"
-#include "dg/llvm/analysis/ThreadRegions/ThreadRegion.h"
+#include "NodeIterator.h"
 
-class ControlFlowGraph;
-class LockNode;
-class UnlockNode;
+namespace llvm {
+    class CallInst;
+    class Instruction;
+}
+
+enum class NodeType { GENERAL, FORK, JOIN, LOCK, UNLOCK, ENTRY, EXIT, CALL, CALL_FUNCPTR, CALL_RETURN, RETURN, ENDIF };
+
+inline std::string nodeTypeToString(enum NodeType type)
+{
+#define ELEM(t) case t: do {return (#t); }while(0); break;
+    switch(type) {
+        ELEM(NodeType::GENERAL)
+        ELEM(NodeType::FORK)
+        ELEM(NodeType::JOIN)
+        ELEM(NodeType::LOCK)
+        ELEM(NodeType::UNLOCK)
+        ELEM(NodeType::ENTRY)
+        ELEM(NodeType::EXIT)
+        ELEM(NodeType::CALL)
+        ELEM(NodeType::CALL_RETURN)
+        ELEM(NodeType::CALL_FUNCPTR)
+        ELEM(NodeType::RETURN)
+        ELEM(NodeType::ENDIF)
+    };
+#undef ELEM
+    return "undefined";
+}
 
 class Node
 {
 private:
-    int                     id_;
-    std::string             name_ = "";
-    std::set<Node *>        predecessors_;
-    std::set<Node *>        successors_;
-    ControlFlowGraph *      controlFlowGraph_ = nullptr;
-    ThreadRegion *          threadRegion_ = nullptr;
-    DfsState                dfsState_ = DfsState::UNDISCOVERED;
+    const int                   id_;
+    const NodeType              nodeType_;
+    const llvm::Instruction *   llvmInstruction_;
+    std::set<Node *>            predecessors_;
+    std::set<Node *>            successors_;
 
     static int lastId;
 
 public:
-    Node(ControlFlowGraph * controlFlowGraph);
+    Node(NodeType type, const llvm::Instruction * value = nullptr);
 
     virtual ~Node() = default;
 
+    NodeIterator begin() const;
+
+    NodeIterator end() const;
+
     int id() const;
 
-    void setName(const std::string &name);
-
-    const std::string & name() const;
-          std::string   name();
+    NodeType getType() const;
 
     std::string dotName() const;
 
@@ -48,150 +70,20 @@ public:
     const std::set<Node *> & predecessors() const;
     const std::set<Node *> & successors() const;
 
-    virtual bool isArtificial() const;
+    bool isArtificial() const;
 
-    virtual bool isJoin() const;
+    const llvm::Instruction *llvmInstruction() const;
 
-    virtual bool isEntry() const;
+    const llvm::CallInst * callInstruction() const;
 
-    virtual bool isEndIf() const;
+    std::string dump() const;
 
-    virtual bool isFork() const;
-
-    virtual bool isExit() const;
-
-    virtual bool isLock() const;
-
-    virtual bool isUnlock() const;
-
-    virtual std::string dump() const = 0;
+    std::string label() const;
 
     virtual void printOutcomingEdges(std::ostream & ostream) const;
-
-    void setThreadRegion(ThreadRegion *threadRegion);
-
-    ThreadRegion * threadRegion() const;
-
-    ControlFlowGraph * controlFlowGraph();
-
-    virtual void dfsComputeThreadRegions();
-
-    virtual void dfsComputeCriticalSections(LockNode * lock);
-
-    void setDfsState(DfsState state);
-
-    DfsState dfsState();
 };
 
-namespace llvm {
-    class Value;
-}
 
-class LlvmNode : public Node
-{
-    const llvm::Value * llvmValue_ = nullptr;
-public:
-    LlvmNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
-
-    std::string dump() const override;
-
-    const llvm::Value * llvmValue() const;
-};
-
-class LockNode : public LlvmNode
-{
-    std::set<UnlockNode *> correspondingUnlocks_;
-    std::set<Node *>       criticalSection_;
-
-public:
-    LockNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
-
-    void addCorrespondingUnlock(UnlockNode * unlockNode);
-
-    std::set<UnlockNode *> correspondingUnlocks() const;
-
-    std::set<const llvm::Value *> llvmUnlocks() const;
-
-    bool isLock() const override;
-
-    bool isUnlock() const override;
-
-    bool addToCriticalSection(Node * node);
-
-    std::set<Node *> criticalSection();
-
-    std::set<const llvm::Value *> llvmCriticalSectioon();
-
-    friend class UnlockNode;
-};
-
-class UnlockNode : public LlvmNode
-{
-    std::set<LockNode *> correspondingLocks_;
-
-public:
-    UnlockNode(ControlFlowGraph * controlFlowGraph, const llvm::Value * value);
-
-    void addCorrespondingLock(LockNode * lockNode);
-
-    std::set<LockNode *> correspondingLocks() const;
-
-    bool isLock() const override;
-
-    bool isUnlock() const override;
-
-    friend class LockNode;
-};
-
-bool shouldCreateNewRegion(const Node * caller,
-                           const Node * successor);
-
-bool shouldFinish(LockNode * lock, Node * successor);
-
-template<typename T>
-void computeThreadRegionsOnSuccessorsFromNode(const std::set<T*> &successors, Node *caller) {
-    for (const auto successor : successors) {
-        if (successor->dfsState() == DfsState::DISCOVERED) {
-            continue;
-        } else if (successor->dfsState() == DfsState::EXAMINED) {
-            if (successor->threadRegion()->dfsState() == DfsState::EXAMINED) {
-                caller->threadRegion()->addSuccessor(successor->threadRegion());
-            }
-        } else {
-            bool createdNewRegion = false;
-            successor->setDfsState(DfsState::DISCOVERED);
-            if (shouldCreateNewRegion(caller, successor)) {
-                createdNewRegion = true;
-                ThreadRegion * region = new ThreadRegion(caller->threadRegion()->controlFlowGraph());
-                successor->setThreadRegion(region);
-                caller->threadRegion()->addSuccessor(region);
-            } else {
-                successor->setThreadRegion(caller->threadRegion());
-            }
-            successor->dfsComputeThreadRegions();
-            successor->setDfsState(DfsState::EXAMINED);
-            if (createdNewRegion) {
-                successor->threadRegion()->setDfsState(DfsState::EXAMINED);
-            }
-        }
-    }
-}
-
-template<typename T>
-void computeCriticalSectionsDependentOnLock(const std::set<T*> & successors, LockNode * lock) {
-    for (const auto successor : successors) {
-        if (successor->dfsState() != DfsState::UNDISCOVERED) {
-            continue;
-        } else {
-            successor->setDfsState(DfsState::DISCOVERED);
-            if (!shouldFinish(lock, successor)) {
-                lock->addToCriticalSection(successor);
-                successor->dfsComputeCriticalSections(lock);
-            }
-            successor->setDfsState(DfsState::EXAMINED);
-        }
-    }
-}
 
 
 #endif // NODE_H

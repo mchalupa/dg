@@ -1,18 +1,11 @@
 #include "ThreadRegion.h"
-#include "ControlFlowGraph.h"
 #include "Node.h"
-#include "DfsState.h"
 
 int ThreadRegion::lastId = 0;
 
-ThreadRegion::ThreadRegion(ControlFlowGraph *controlFlowGraph):id_(lastId++),
-                                                               controlFlowGraph_(controlFlowGraph) {
-    controlFlowGraph_->threadRegions_.insert(this);
-}
-
-ControlFlowGraph *ThreadRegion::controlFlowGraph() {
-    return controlFlowGraph_;
-}
+ThreadRegion::ThreadRegion(Node *node):id_(lastId++),
+                                       foundingNode_(node)
+{}
 
 int ThreadRegion::id() const {
     return id_;
@@ -70,6 +63,10 @@ bool ThreadRegion::removeNode(Node *node) {
     return false;
 }
 
+Node *ThreadRegion::foundingNode() const {
+    return foundingNode_;
+}
+
 const std::set<Node *> &ThreadRegion::nodes() const {
     return nodes_;
 }
@@ -98,24 +95,15 @@ void ThreadRegion::printEdges(std::ostream &ostream) {
     }
 }
 
-DfsState ThreadRegion::dfsState() const {
-    return dfsState_;
-}
-
-void ThreadRegion::setDfsState(DfsState dfsState) {
-    dfsState_ = dfsState;
-}
-
 std::string ThreadRegion::dotName() {
     return "cluster" + std::to_string(id_);
 }
 
-std::set<const llvm::Value *> ThreadRegion::llvmValues() const {
-    std::set<const llvm::Value *> llvmValues;
+std::set<const llvm::Instruction *> ThreadRegion::llvmInstructions() const {
+    std::set<const llvm::Instruction *> llvmValues;
     for (const auto &node : nodes_) {
         if (!node->isArtificial()) {
-            const LlvmNode *llvmNode = static_cast<const LlvmNode *>(node);
-            llvmValues.insert(llvmNode->llvmValue());
+            llvmValues.insert(node->llvmInstruction());
         }
     }
     return llvmValues;

@@ -29,7 +29,10 @@
 #include <fstream>
 
 #include "args.h"
-#include "ControlFlowGraph.h"
+//#include "ControlFlowGraph.h"
+#include "../lib/llvm/analysis/ThreadRegions/include/Graphs/ThreadRegionsBuilder.h"
+#include "../lib/llvm/analysis/ThreadRegions/include/Graphs/GraphBuilder.h"
+#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
@@ -68,15 +71,15 @@ int main(int argc, const char *argv[])
 
     dg::LLVMPointerAnalysis pointsToAnalysis(M.get());
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
-    ControlFlowGraph graph(M.get(), &pointsToAnalysis);
-    graph.build();
-    graph.computeThreadRegions();
-    graph.computeCriticalSections();
+
+    ControlFlowGraph controlFlowGraph(&pointsToAnalysis);
+    controlFlowGraph.buildFunction(M->getFunction("main"));
+
     if (graphvizFileName == "") {
-        std::cout << graph << std::endl;
+        controlFlowGraph.printWithRegions(std::cout);
     } else {
         std::ofstream graphvizFile(graphvizFileName);
-        graphvizFile << graph << std::endl;
+        controlFlowGraph.printWithRegions(graphvizFile);
     }
 
     return 0;

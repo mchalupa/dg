@@ -195,6 +195,11 @@ public:
         return _builder->getJoins();
     }
 
+    std::map<PSNode *, analysis::pta::PSNodeFork *> getForks() const
+    {
+        return _builder->getForks();
+    }
+
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
     getNodesMap() const
     {
