@@ -12,7 +12,7 @@ namespace llvm {
     class Instruction;
 }
 
-enum class NodeType { GENERAL, FORK, JOIN, LOCK, UNLOCK, ENTRY, EXIT, CALL, CALL_FUNCPTR, CALL_RETURN, RETURN, ENDIF };
+enum class NodeType { GENERAL, FORK, JOIN, LOCK, UNLOCK, ENTRY, EXIT, CALL, CALL_FUNCPTR, CALL_RETURN, RETURN };
 
 inline std::string nodeTypeToString(enum NodeType type)
 {
@@ -29,7 +29,6 @@ inline std::string nodeTypeToString(enum NodeType type)
         ELEM(NodeType::CALL_RETURN)
         ELEM(NodeType::CALL_FUNCPTR)
         ELEM(NodeType::RETURN)
-        ELEM(NodeType::ENDIF)
     };
 #undef ELEM
     return "undefined";
@@ -69,6 +68,9 @@ public:
 
     const std::set<Node *> & predecessors() const;
     const std::set<Node *> & successors() const;
+
+    virtual std::size_t predecessorsNumber() const;
+    virtual std::size_t successorsNumber() const;
 
     bool isArtificial() const;
 

@@ -43,6 +43,10 @@ std::set<EntryNode *> ForkNode::forkSuccessors() {
     return forkSuccessors_;
 }
 
+size_t ForkNode::successorsNumber() const {
+    return successors().size() + forkSuccessors_.size();
+}
+
 const std::set<JoinNode *> &ForkNode::correspondingJoins() const {
     return correspondingJoins_;
 }

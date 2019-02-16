@@ -21,6 +21,8 @@ public:
     const std::set<ForkNode *> & forkPredecessors() const;
           std::set<ForkNode *>   forkPredecessors();
 
+    std::size_t predecessorsNumber() const override;
+
     friend class ForkNode;
 };
 
