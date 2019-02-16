@@ -48,7 +48,6 @@
 #include "llvm/analysis/ControlExpression.h"
 #include "llvm-utils.h"
 
-#include "ControlFlowGraph.h"
 #include "MayHappenInParallel.h"
 
 using llvm::errs;
@@ -161,7 +160,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
 
     // build recursively DG from entry point
     build(entryFunction);
-    computeInterferenceDependentEdges();
+//    computeInterferenceDependentEdges();
     return true;
 };
 
@@ -918,12 +917,9 @@ void LLVMDependenceGraph::computeControlExpression(bool addCDs)
     }
 }
 
-void LLVMDependenceGraph::computeInterferenceDependentEdges()
+void LLVMDependenceGraph::computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph)
 {
-    ControlFlowGraph controlFlowGraph(PTA);
-    controlFlowGraph.buildFunction(module->getFunction("main"));
-
-    auto regions = controlFlowGraph.threadRegions();
+    auto regions = controlFlowGraph->threadRegions();
     MayHappenInParallel mayHappenInParallel(regions);
 
     for (const auto &currentRegion : regions) {
@@ -939,23 +935,25 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges()
                 computeInterferenceDependentEdges(parallelRegionLoads, currentRegionStores);
         }
     }
-    // make pthread_join dependent on pthread_create
-    // TODO this needs to be refactored into single method and should not be called from this method, but separatelly
-    auto joins = controlFlowGraph.getJoins();
+}
+
+void LLVMDependenceGraph::computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph) {
+    auto joins = controlFlowGraph->getJoins();
     for (const auto &join : joins) {
         auto joinNode = findInstruction(castToLLVMInstruction(join), constructedFunctions);
-        for (const auto &fork : controlFlowGraph.getCorrespondingForks(join)) {
+        for (const auto &fork : controlFlowGraph->getCorrespondingForks(join)) {
             auto forkNode = findInstruction(castToLLVMInstruction(fork), constructedFunctions);
             joinNode->addControlDependence(forkNode);
         }
     }
+}
 
-    // criticalSections
-    auto locks = controlFlowGraph.getLocks();
+void LLVMDependenceGraph::computeCriticalSections(ControlFlowGraph *controlFlowGraph) {
+    auto locks = controlFlowGraph->getLocks();
     for (auto lock : locks) {
         auto callLockInst = castToLLVMInstruction(lock);
         auto lockNode = findInstruction(callLockInst, constructedFunctions);
-        auto correspondingNodes = controlFlowGraph.getCorrespondingCriticalSection(lock);
+        auto correspondingNodes = controlFlowGraph->getCorrespondingCriticalSection(lock);
         for (auto correspondingNode : correspondingNodes) {
             auto node = castToLLVMInstruction(correspondingNode);
             auto dependentNode = findInstruction(node, constructedFunctions);
@@ -969,7 +967,7 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges()
             }
         }
 
-        auto correspondingUnlocks = controlFlowGraph.getCorrespongingUnlocks(lock);
+        auto correspondingUnlocks = controlFlowGraph->getCorrespongingUnlocks(lock);
         for (auto unlock : correspondingUnlocks) {
             auto node = castToLLVMInstruction(unlock);
             auto unlockNode = findInstruction(node, constructedFunctions);

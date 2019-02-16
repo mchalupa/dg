@@ -35,6 +35,8 @@
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/Offset.h"
 
+#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
+
 namespace llvm {
     class Module;
     class Function;
@@ -63,6 +65,7 @@ class LLVMDependenceGraphBuilder {
     std::unique_ptr<LLVMPointerAnalysis> _PTA{};
     std::unique_ptr<LLVMReachingDefinitions> _RD{};
     std::unique_ptr<LLVMDependenceGraph> _dg{};
+    std::unique_ptr<ControlFlowGraph> _controlFlowGraph{};
     llvm::Function *_entryFunction{nullptr};
 
     void _runPointerAnalysis() {
@@ -106,6 +109,18 @@ class LLVMDependenceGraphBuilder {
         _dg->computeControlDependencies(_options.cdAlgorithm);
     }
 
+    void _runInterferenceDependenceAnalysis() {
+        _dg->computeInterferenceDependentEdges(_controlFlowGraph.get());
+    }
+
+    void _runForkJoinAnalysis() {
+        _dg->computeForkJoinDependencies(_controlFlowGraph.get());
+    }
+
+    void _runCriticalSectionAnalysis() {
+        _dg->computeCriticalSections(_controlFlowGraph.get());
+    }
+
     bool verify() const {
         return _dg->verify();
     }
@@ -121,6 +136,7 @@ public:
       _RD(new LLVMReachingDefinitions(M, _PTA.get(),
                                       _options.RDAOptions)),
       _dg(new LLVMDependenceGraph()),
+      _controlFlowGraph(new ControlFlowGraph(_PTA.get())),
       _entryFunction(M->getFunction(_options.entryFunction)) {
         assert(_entryFunction && "The entry function not found");
     }
@@ -143,6 +159,14 @@ public:
         // compute and fill-in control dependencies
         _runControlDependenceAnalysis();
 
+        _controlFlowGraph->buildFunction(_entryFunction);
+
+        _runInterferenceDependenceAnalysis();
+
+        _runForkJoinAnalysis();
+
+        _runCriticalSectionAnalysis();
+
         // verify if the graph is built correctly
         if (_options.verifyGraph && !_dg->verify()) {
             _dg.reset();
@@ -164,6 +188,8 @@ public:
 
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
+
+        _controlFlowGraph->buildFunction(_entryFunction);
 
         // verify if the graph is built correctly
         if (_options.verifyGraph && !_dg->verify()) {
@@ -190,6 +216,12 @@ public:
 
         // fill-in control dependencies
         _runControlDependenceAnalysis();
+
+        _runInterferenceDependenceAnalysis();
+
+        _runForkJoinAnalysis();
+
+        _runCriticalSectionAnalysis();
 
         return std::move(_dg);
     }
