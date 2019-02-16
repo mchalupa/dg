@@ -25,6 +25,8 @@ public:
     const std::set<const ExitNode *> & joinPredecessors() const;
           std::set<const ExitNode *>   joinPredecessors();
 
+    std::size_t predecessorsNumber() const override;
+
     const std::set<ForkNode *> & correspondingForks() const;
           std::set<ForkNode *>   correspondingForks();
 

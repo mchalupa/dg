@@ -12,5 +12,4 @@ target_sources(ThreadRegions
             ${CMAKE_CURRENT_LIST_DIR}/CallFuncPtrNode.cpp
             ${CMAKE_CURRENT_LIST_DIR}/CallReturnNode.cpp
             ${CMAKE_CURRENT_LIST_DIR}/ReturnNode.cpp
-            ${CMAKE_CURRENT_LIST_DIR}/EndifNode.cpp
             ${CMAKE_CURRENT_LIST_DIR}/NodeIterator.cpp)

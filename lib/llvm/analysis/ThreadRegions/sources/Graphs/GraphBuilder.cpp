@@ -148,17 +148,8 @@ GraphBuilder::NodeSequence GraphBuilder::buildBlock(const llvm::BasicBlock *basi
         }
     }
 
-    Node * firstNode = nullptr;
-    Node * lastNode = nullptr;
-
-    if (predecessorsNumber(basicBlock) > 1) {
-        auto endifNode = addNode(createNode<NodeType::ENDIF>());
-        firstNode = endifNode;
-        endifNode->addSuccessor(builtInstructions.front().first);
-    } else {
-        firstNode = builtInstructions.front().first;
-    }
-    lastNode = builtInstructions.back().second;
+    Node * firstNode = builtInstructions.front().first;
+    Node * lastNode = builtInstructions.back().second;
 
     auto blockGraph = new BlockGraph(basicBlock, firstNode, lastNode);
     this->llvmToBlockMap_.emplace(basicBlock, blockGraph);

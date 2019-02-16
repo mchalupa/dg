@@ -38,6 +38,10 @@ std::set<const ExitNode *> JoinNode::joinPredecessors() {
     return joinPredecessors_;
 }
 
+std::size_t JoinNode::predecessorsNumber() const {
+    return predecessors().size() + joinPredecessors_.size();
+}
+
 const std::set<ForkNode *> &JoinNode::correspondingForks() const {
     return correspondingForks_;
 }

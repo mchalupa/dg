@@ -12,7 +12,6 @@
 #include "CallFuncPtrNode.h"
 #include "CallReturnNode.h"
 #include "ReturnNode.h"
-#include "EndifNode.h"
 
 template <NodeType> struct Map;
 
@@ -69,11 +68,6 @@ template <> struct Map<NodeType::CALL_RETURN> {
 template <> struct Map<NodeType::RETURN> {
     using type = ReturnNode;
     using const_type = const ReturnNode;
-};
-
-template <> struct Map<NodeType::ENDIF> {
-    using type = EndifNode;
-    using const_type = const EndifNode;
 };
 
 template <NodeType nodeType, typename... Args>
