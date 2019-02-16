@@ -22,6 +22,8 @@ public:
     const std::set<EntryNode *> & forkSuccessors() const;
           std::set<EntryNode *>   forkSuccessors();
 
+    std::size_t successorsNumber() const override;
+
     const std::set<JoinNode *> & correspondingJoins() const;
           std::set<JoinNode *>   correspondingJoins();
 

@@ -1,20 +1,15 @@
 #include <llvm/Support/raw_ostream.h>
-#include <llvm/IR/Instruction.h>
+#include <llvm/IR/Instructions.h>
 
 #include <iostream>
 #include <sstream>
 
 #include "Node.h"
-#include "JoinNode.h"
-#include "ExitNode.h"
-#include "ControlFlowGraph.h"
 
 using namespace std;
 using namespace llvm;
 
 int Node::lastId = 0;
-
-
 
 Node::Node(NodeType type, const Instruction *value):id_(lastId++),
                                                     nodeType_(type),
@@ -79,6 +74,14 @@ const set<Node *> &Node::predecessors() const {
 
 const set<Node *> &Node::successors() const {
     return successors_;
+}
+
+size_t Node::predecessorsNumber() const {
+    return predecessors_.size();
+}
+
+size_t Node::successorsNumber() const {
+    return predecessors_.size();
 }
 
 bool Node::isArtificial() const {

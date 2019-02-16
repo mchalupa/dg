@@ -28,3 +28,7 @@ const set<ForkNode *> & EntryNode::forkPredecessors() const {
 std::set<ForkNode *> EntryNode::forkPredecessors() {
     return forkPredecessors_;
 }
+
+size_t EntryNode::predecessorsNumber() const {
+    return predecessors().size() + forkPredecessors_.size();
+}
