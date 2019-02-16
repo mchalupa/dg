@@ -45,7 +45,6 @@ TEST_CASE("Test of node class methods", "[node]") {
         auto CallReturn = createNode<NodeType::CALL_RETURN>();
         auto CallFuncPtr = createNode<NodeType::CALL_FUNCPTR>(nullptr);
         auto Return = createNode<NodeType::RETURN>();
-        auto Endif = createNode<NodeType::ENDIF>();
 
         REQUIRE(General->getType() == NodeType::GENERAL);
         REQUIRE(Fork->getType() == NodeType::FORK);
@@ -58,7 +57,6 @@ TEST_CASE("Test of node class methods", "[node]") {
         REQUIRE(CallReturn->getType() == NodeType::CALL_RETURN);
         REQUIRE(CallFuncPtr->getType() == NodeType::CALL_FUNCPTR);
         REQUIRE(Return->getType() == NodeType::RETURN);
-        REQUIRE(Endif->getType() == NodeType::ENDIF);
     }
 
     SECTION("nodeTypeToString works correctly") {
@@ -73,7 +71,6 @@ TEST_CASE("Test of node class methods", "[node]") {
         std::string CallReturn = "NodeType::CALL_RETURN";
         std::string CallFuncPtr = "NodeType::CALL_FUNCPTR";
         std::string Return = "NodeType::RETURN";
-        std::string Endif = "NodeType::ENDIF";
 
         REQUIRE(nodeTypeToString(NodeType::GENERAL) == General);
         REQUIRE(nodeTypeToString(NodeType::FORK) == Fork);
@@ -86,7 +83,6 @@ TEST_CASE("Test of node class methods", "[node]") {
         REQUIRE(nodeTypeToString(NodeType::CALL_RETURN) == CallReturn);
         REQUIRE(nodeTypeToString(NodeType::CALL_FUNCPTR) == CallFuncPtr);
         REQUIRE(nodeTypeToString(NodeType::RETURN) == Return);
-        REQUIRE(nodeTypeToString(NodeType::ENDIF) == Endif);
     }
 
     SECTION("Node can correctly output its type in dot format") {

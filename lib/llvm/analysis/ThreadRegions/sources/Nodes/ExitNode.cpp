@@ -31,6 +31,10 @@ std::set<JoinNode *> ExitNode::joinSuccessors() {
     return joinSuccessors_;
 }
 
+std::size_t ExitNode::successorsNumber() const {
+    return successors().size() + joinSuccessors_.size();
+}
+
 
 void ExitNode::printOutcomingEdges(std::ostream &ostream) const {
     Node::printOutcomingEdges(ostream);

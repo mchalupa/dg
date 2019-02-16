@@ -142,6 +142,6 @@ bool ThreadRegionsBuilder::shouldCreateNewRegion(Node *caller, Node *successor) 
     return caller->getType() == NodeType::EXIT      ||
            caller->getType() == NodeType::FORK      ||
            successor->getType() == NodeType::ENTRY  ||
-           successor->getType() == NodeType::ENDIF  ||
-           successor->getType() == NodeType::JOIN;
+           successor->getType() == NodeType::JOIN   ||
+           successor->predecessorsNumber() > 1;
 }

@@ -21,6 +21,8 @@ public:
     const std::set<JoinNode *> & joinSuccessors() const;
           std::set<JoinNode *>   joinSuccessors();
 
+    std::size_t successorsNumber() const override;
+
     void printOutcomingEdges(std::ostream &ostream) const override;
 
     friend class JoinNode;
