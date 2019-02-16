@@ -12,6 +12,9 @@
 #include <map>
 #include <unordered_map>
 
+#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
+
+
 // forward declaration of llvm classes
 namespace llvm {
     class Module;
@@ -34,6 +37,7 @@ enum class CD_ALG {
 
 // forward declaration
 class LLVMPointerAnalysis;
+
 
 // FIXME: why PTA is only in the namespace dg
 // and this is that nested? Make it consistent...
@@ -155,11 +159,13 @@ public:
     LLVMReachingDefinitions *getRDA() const { return RDA; }
 
     LLVMNode *findNode(llvm::Value *value) const;
+    void computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph);
+    void computeForkJoinDependencies(ControlFlowGraph * controlFlowGraph);
+    void computeCriticalSections(ControlFlowGraph * controlFlowGraph);
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeControlExpression(bool addCDs = false);
 
-    void computeInterferenceDependentEdges();
     void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
                                            const std::set<const llvm::Instruction *> &stores);
 
