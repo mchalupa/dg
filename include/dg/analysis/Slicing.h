@@ -148,7 +148,20 @@ class Slicer : legacy::Analysis<NodeT>
             }
         }
 
-        // FIXME if graph own global nodes, slice the global nodes
+        // slice the global nodes
+        const auto& global_nodes = dg->getGlobalNodes();
+        if (!global_nodes)
+            return;
+
+        for (auto& it : *global_nodes.get()) {
+            NodeT *n = it.second;
+
+            if (n->getSlice() != slice_id) {
+                if (removeNode(n)) // do backend's specific logic
+                    dg->deleteGlobalNode(n);
+                continue;
+            }
+        }
     }
 
 protected:
