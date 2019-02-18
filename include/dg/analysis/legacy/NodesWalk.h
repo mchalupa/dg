@@ -113,6 +113,12 @@ public:
             if (options & NODES_WALK_USER)
                 processEdges(n->user_begin(), n->user_end());
 
+            if (options & NODES_WALK_ID)
+                processEdges(n->interference_begin(), n->interference_end());
+
+            if (options & NODES_WALK_REV_ID)
+                processEdges(n->rev_interference_begin(), n->rev_interference_end());
+
 #ifdef ENABLE_CFG
             if (options & NODES_WALK_BB_CFG)
                 processBBlockCFG(n);
