@@ -38,7 +38,7 @@ struct Pointer
     }
 
     bool isNull() const { return target == NULLPTR; }
-    bool isUnknown() const { return target == UNKNOWN_MEMORY; };
+    bool isUnknown() const { return target == UNKNOWN_MEMORY; }
     bool isValid() const { return !isNull() && !isUnknown(); }
     bool isInvalidated() const { return target == INVALIDATED; }
 

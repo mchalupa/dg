@@ -87,16 +87,40 @@ private:
 
     std::pair<RDNode *, RDNode *> buildGlobals();
 
-    std::pair<RDNode *, RDNode *>
-    createCallToFunction(const llvm::Function *F);
+    std::pair<RDNode *, RDNode *> createCallToFunction(const llvm::Function *F, const llvm::CallInst *CInst);
 
-    std::pair<RDNode *, RDNode *>
-    createCall(const llvm::Instruction *Inst);
+    std::pair<RDNode *, RDNode *> createCall(const llvm::Instruction *Inst);
 
+    std::pair<RDNode *, RDNode *> createCallToZeroSizeFunction(const llvm::Function *function,
+                                     const llvm::CallInst *CInst);
+
+    std::pair<RDNode *, RDNode *> createCallToFunctions(const std::vector<const llvm::Function *> &functions,
+                           const llvm::CallInst *CInst);
+
+    std::pair<RDNode *, RDNode *> createPthreadCreateCalls(const llvm::CallInst *CInst);
+
+    std::pair<RDNode *, RDNode *> createPthreadJoinCall(const llvm::CallInst *CInst);
+
+    std::pair<RDNode *, RDNode *> createPthreadExitCall(const llvm::CallInst *CInst);
     RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
     RDNode *createUndefinedCall(const llvm::CallInst *CInst);
 
+
     bool buildUses{false};
+
+    std::vector<const llvm::Function *>
+    getPointsToFunctions(const llvm::Value *calledValue);
+
+    std::vector<const llvm::Function *>
+    getPotentialFunctions(const llvm::Instruction *instruction);
+
+    bool isInlineAsm(const llvm::Instruction *instruction);
+
+    const llvm::Function *
+    findFunctionAndRemoveFromVector(std::vector<const llvm::Function *> &functions,
+                                    const std::__cxx11::string &functionName);
+
+    void matchForksAndJoins();
 };
 
 }

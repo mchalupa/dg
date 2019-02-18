@@ -12,6 +12,9 @@
 #include <map>
 #include <unordered_map>
 
+#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
+
+
 // forward declaration of llvm classes
 namespace llvm {
     class Module;
@@ -34,6 +37,7 @@ enum class CD_ALG {
 
 // forward declaration
 class LLVMPointerAnalysis;
+
 
 // FIXME: why PTA is only in the namespace dg
 // and this is that nested? Make it consistent...
@@ -117,7 +121,7 @@ public:
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
-    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *);
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *, bool fork = false);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void makeSelfLoopsControlDependent();
@@ -154,9 +158,22 @@ public:
     LLVMPointerAnalysis *getPTA() const { return PTA; }
     LLVMReachingDefinitions *getRDA() const { return RDA; }
 
+    LLVMNode *findNode(llvm::Value *value) const;
+    void computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph);
+    void computeForkJoinDependencies(ControlFlowGraph * controlFlowGraph);
+    void computeCriticalSections(ControlFlowGraph * controlFlowGraph);
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeControlExpression(bool addCDs = false);
+
+    void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
+                                           const std::set<const llvm::Instruction *> &stores);
+
+    std::set<const llvm::Instruction *> getLoadInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    std::set<const llvm::Instruction *> getStoreInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const;
+
+    std::set<const llvm::Instruction *> getInstructionsOfType(const unsigned opCode,
+                                                              const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
@@ -201,6 +218,11 @@ private:
 const std::map<llvm::Value *,
                LLVMDependenceGraph *>& getConstructedFunctions();
 
+LLVMNode *
+findInstruction(llvm::Instruction * instruction, 
+                const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions);
+
+llvm::Instruction * castToLLVMInstruction(const llvm::Value * value);
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_

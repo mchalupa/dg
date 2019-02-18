@@ -207,7 +207,6 @@ LLVMPointerSubgraphBuilder::callIsCompatible(PSNode *call,
 {
     const llvm::CallInst *CI = call->getUserData<llvm::CallInst>();
     const llvm::Function *F = func->getUserData<llvm::Function>();
-
     // incompatible prototypes, skip it...
     return llvmutils::callIsCompatible(F, CI);
 } 
@@ -251,6 +250,69 @@ LLVMPointerSubgraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called)
     }
 }
 
+void LLVMPointerSubgraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite)
+{
+    ad_hoc_building = true;
+    auto seq = createFork(callsite->getUserData<llvm::CallInst>());
+    seq.second->addSuccessor(callsite->getSingleSuccessor());
+    callsite->replaceSingleSuccessor(seq.first);
+    PSNodeFork::get(seq.second)->setCallInst(callsite);
+    ad_hoc_building = false;
+}
+
+void LLVMPointerSubgraphBuilder::insertPthreadJoinByPtrCall(PSNode *callsite)
+{
+    ad_hoc_building = true;
+    auto seq = createJoin(callsite->getUserData<llvm::CallInst>());
+    seq.second->addSuccessor(callsite->getSingleSuccessor());
+    callsite->replaceSingleSuccessor(seq.first);
+    PSNodeJoin::get(seq.second)->setCallInst(callsite);
+    ad_hoc_building = false;
+}
+
+std::vector<PSNode *>
+LLVMPointerSubgraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
+{
+    using namespace llvm;
+    std::vector<PSNode *> functions;
+    if (isa<Function>(calledValue)) {
+        PSNode *node;
+        auto iterator = nodes_map.find(calledValue);
+        if (iterator == nodes_map.end()) {
+            node = PS.create(PSNodeType::FUNCTION);
+            addNode(calledValue, node);
+            functions.push_back(node);
+        } else {
+            functions.push_back(iterator->second.first);
+        }
+        return functions;
+    }
+
+    PSNode *operand = getPointsTo(calledValue);
+    if (operand == nullptr) {
+        return functions;
+    }
+
+    for (const analysis::pta::Pointer pointer : operand->pointsTo) {
+        if (pointer.isValid()
+                && !pointer.isInvalidated()
+                && isa<Function>(pointer.target->getUserData<Value>())) {
+            functions.push_back(pointer.target);
+        }
+    }
+    return functions;
+}
+
+std::map<PSNode *, PSNodeJoin *>
+LLVMPointerSubgraphBuilder::getJoins() const 
+{
+    return threadJoinCalls;
+}
+
+std::map<PSNode *, PSNodeFork *> LLVMPointerSubgraphBuilder::getForks() const
+{
+    return threadCreateCalls;
+}
 
 LLVMPointerSubgraphBuilder::Subgraph&
 LLVMPointerSubgraphBuilder::createOrGetSubgraph(const llvm::Function *F)
@@ -320,6 +382,9 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
 
         if (func->getName().equals("free"))
             // we need calls of free
+            return true;
+
+        if (func->getName().equals("pthread_exit"))
             return true;
 
         if (func->isIntrinsic())
@@ -498,7 +563,6 @@ LLVMPointerSubgraphBuilder::buildPointerSubgraphBlock(const llvm::BasicBlock& bl
                                                       PSNode *parent)
 {
     PSNodesSeq blk{nullptr, nullptr};
-
     for (const llvm::Instruction& Inst : block) {
         if (!isRelevantInstruction(Inst)) {
             // check if it is a zeroing of memory,
@@ -645,7 +709,6 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     s.llvmBlocks =
         getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F));
 
-    bool have_return = false;
     // build the instructions from blocks
     for (const llvm::BasicBlock *block : s.llvmBlocks) {
         auto seq = buildPointerSubgraphBlock(*block, root);
@@ -653,14 +716,14 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
         // gather all return nodes
         if (seq.second &&
             (seq.second->getType() == PSNodeType::RETURN)) {
-            have_return = true;
+            s.returnNodes.insert(seq.second);
         }
     }
 
     // If we have some return, then create the unified return node.
     // Otherwise this function does not return and the building
     // process will terminate here.
-    if (have_return) {
+    if (s.returnNodes.size() > 0) {
         PSNode *ret;
         if (invalidate_nodes) {
             ret = PS.create(PSNodeType::INVALIDATE_LOCALS, root);
@@ -708,6 +771,17 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
     }
 }
 
+void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::CallInst &CI, PSNode &node)
+{
+    auto sentinel = CI.getNumArgOperands();
+    for (unsigned i = 0; i < sentinel; ++i) {
+        PSNode *operand = tryGetOperand(CI.getArgOperand(i));
+        if (operand && !node.hasOperand(operand)) {
+            node.addOperand(operand);
+        }
+    }
+}
+
 void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
                                                      PSNode *arg, int idx)
 {
@@ -726,23 +800,23 @@ void LLVMPointerSubgraphBuilder::addArgumentOperands(const llvm::Function *F,
 }
 
 void LLVMPointerSubgraphBuilder::addArgumentsOperands(const llvm::Function *F,
-                                                      const llvm::CallInst *CI)
+                                                      const llvm::CallInst *CI, int index)
 {
-    int idx = 0;
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++index) {
         auto it = nodes_map.find(&*A);
         assert(it != nodes_map.end());
 
         PSNodesSeq& cur = it->second;
         assert(cur.first == cur.second);
 
-        if (CI)
+        if (CI) {
             // with func ptr call we know from which
             // call we should take the values
-            addArgumentOperands(CI, cur.first, idx);
-        else
-            // with regular call just use all calls
-            addArgumentOperands(F, cur.first, idx);
+            addArgumentOperands(CI, cur.first, index);
+        } else {
+             // with regular call just use all calls
+            addArgumentOperands(F, cur.first, index);
+        }
     }
 }
 
@@ -830,6 +904,12 @@ void LLVMPointerSubgraphBuilder::addReturnNodeOperand(const llvm::Function *F, P
     }
 }
 
+void LLVMPointerSubgraphBuilder::addInterproceduralPthreadOperands(const llvm::Function *F, const llvm::CallInst *CI)
+{
+    // last argument (with index 3) is argument to function pthread_create will call
+    addArgumentsOperands(F, CI, 3);
+}
+
 void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function *F,
                                                             Subgraph& subg,
                                                             const llvm::CallInst *CI,
@@ -871,7 +951,6 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
     Subgraph& subg = buildFunction(*F);
     PSNode *root = subg.root;
     assert(root != nullptr);
-
     // fill in the CFG edges
     addProgramStructure();
 

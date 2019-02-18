@@ -24,6 +24,7 @@
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/analysis/PointsTo/PointerSubgraphOptimizations.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
+#include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
@@ -52,6 +53,7 @@ public:
     // build new subgraphs on calls via pointer
     bool functionPointerCall(PSNode *callsite, PSNode *called) override
     {
+        using namespace analysis::pta;
         const llvm::Function *F
             = llvm::dyn_cast<llvm::Function>(called->getUserData<llvm::Value>());
         // with vararg it may happen that we get pointer that
@@ -60,15 +62,22 @@ public:
             return false;
 
         if (F->isDeclaration()) {
-            // calling declaration that returns a pointer?
-            // That is unknown pointer
+            if (F->getName() == "pthread_create") {
+                builder->insertPthreadCreateByPtrCall(callsite);
+                return true;
+            } else if (F->getName() == "pthread_join") {
+                builder->insertPthreadJoinByPtrCall(callsite);
+                return true;
+            }
             return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
         }
 
-        if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called))
+        if (!LLVMPointerSubgraphBuilder::callIsCompatible(callsite, called)) {
             return false;
+        } else {
+            builder->insertFunctionCall(callsite, called);
+        }
 
-        builder->insertFunctionCall(callsite, called);
 
 #ifndef NDEBUG
         // check the graph after rebuilding, but do not check for connectivity,
@@ -82,6 +91,28 @@ public:
 #endif // NDEBUG
 
         return true; // we changed the graph
+    }
+
+    bool handleFork(PSNode *forkNode) override
+    {
+        using namespace llvm;
+        using namespace dg::analysis::pta;
+        PSNodeFork *fork = PSNodeFork::get(forkNode);
+        const CallInst *CInst = fork->callInst()->getUserData<CallInst>();
+        const Value *funcValue = CInst->getArgOperand(2);
+        auto functions = builder->getPointsToFunctions(funcValue);
+        bool changed = false;
+        for(const auto & function : functions) {
+            builder->setAdHocBuilding(true);
+            changed |= builder->addFunctionToFork(function, fork);
+            builder->setAdHocBuilding(false);
+        }
+        return changed;
+    }
+
+    bool handleJoin(PSNode *joinNode) override
+    {
+        return builder->matchJoinToRightCreate(joinNode);
     }
 };
 
@@ -118,7 +149,7 @@ public:
     ///
     // Get the node from pointer analysis that holds the points-to set.
     // See: getLLVMPointsTo()
-    PSNode *getPointsTo(const llvm::Value *val)
+    PSNode *getPointsTo(const llvm::Value *val) const
     {
         return _builder->getPointsTo(val);
     }
@@ -148,6 +179,26 @@ public:
             return {true, LLVMPointsToSet(node->pointsTo)};
         else
             return {false, LLVMPointsToSet(getUnknownPTSet())};
+    }
+
+    std::vector<const llvm::Function *>
+    getPointsToFunctions(const llvm::Value *calledValue) const
+    {
+        std::vector<const llvm::Function *> functions;
+        for (auto node : _builder->getPointsToFunctions(calledValue)) {
+            functions.push_back(node->getUserData<llvm::Function>());
+        }
+        return functions;
+    }
+
+    std::map<PSNode *, analysis::pta::PSNodeJoin *> getJoins() const
+    {
+        return _builder->getJoins();
+    }
+
+    std::map<PSNode *, analysis::pta::PSNodeFork *> getForks() const
+    {
+        return _builder->getForks();
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&

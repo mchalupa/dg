@@ -21,9 +21,11 @@ enum dg2dot_options {
     PRINT_USER      = 1 << 5,
     PRINT_CD        = 1 << 6,
     PRINT_REV_CD    = 1 << 7,
-    PRINT_CALL      = 1 << 8,
-    PRINT_POSTDOM   = 1 << 9,
-    PRINT_ALL       = 0xff
+    PRINT_ID        = 1 << 8,
+    PRINT_REV_ID    = 1 << 9,
+    PRINT_CALL      = 1 << 10,
+    PRINT_POSTDOM   = 1 << 11,
+    PRINT_ALL       = 0xfff
 };
 
 struct Indent
@@ -602,6 +604,22 @@ private:
                  II != EE; ++II)
                 out << Ind << "NODE" << n << " -> NODE" << *II
                     << " [color=\"" << cd_color << "\" style=\"dashed\" constraint=false]\n";
+        }
+
+        if (options & PRINT_ID) {
+            out << Ind << "/* ID edges */\n";
+            for (auto II = n->interference_begin(), EE = n->interference_end();
+                 II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II
+                    << " [color=\"red\" constraint=false]\n";
+        }
+
+        if (options & PRINT_REV_ID) {
+            out << Ind << "/* reverse ID edges */\n";
+            for (auto II = n->rev_interference_begin(), EE = n->rev_interference_end();
+                 II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II
+                    << " [color=\"orange\" constraint=false]\n";
         }
     }
 

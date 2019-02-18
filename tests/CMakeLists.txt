@@ -115,6 +115,23 @@ add_dependencies(check disjunctive-interval-map-regressions)
 add_test(disjunctive-interval-map-regressions disjunctive-interval-map-regressions)
 
 # --------------------------------------------------
+# ThreadRegions test
+# --------------------------------------------------
+add_executable(thread-regions-test ${CMAKE_CURRENT_LIST_DIR}/catch-main.cpp
+                                  ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test.cpp)
+target_compile_definitions(thread-regions-test
+    PRIVATE
+        SIMPLE_FILE="${CMAKE_CURRENT_LIST_DIR}/thread-regions-llvm-files/simple.ll"
+        PTHREAD_EXIT_FILE="${CMAKE_CURRENT_LIST_DIR}/thread-regions-llvm-files/pthread_exit.ll")
+
+target_link_libraries(thread-regions-test PRIVATE ThreadRegions
+                                          PRIVATE ${llvm_core}
+                                          PRIVATE ${llvm_irreader}
+                                          PRIVATE ${llvm_support})
+add_test(thread-regions-test thread-regions-test)
+add_dependencies(check thread-regions-test)
+
+# --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 if (LLVM_DG)

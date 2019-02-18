@@ -74,6 +74,7 @@ class LLVMPointerSubgraphBuilder
         PSNode *root{nullptr};
         PSNode *ret{nullptr};
 
+        std::set<PSNode *> returnNodes;
         // this is the node where we gather the variadic-length arguments
         PSNode *vararg{nullptr};
 
@@ -106,6 +107,9 @@ class LLVMPointerSubgraphBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Function *, Subgraph> subgraphs_map;
 
+    std::map<PSNode *, PSNodeFork *> threadCreateCalls;
+    std::map<PSNode *, PSNodeJoin *> threadJoinCalls;
+
     // here we'll keep first and last nodes of every built block and
     // connected together according to successors
     std::map<const llvm::BasicBlock *, PSNodesSeq> built_blocks;
@@ -122,6 +126,8 @@ public:
 
     bool validateSubgraph(bool no_connectivity = false) const;
 
+    void setAdHocBuilding(bool adHoc) { ad_hoc_building = adHoc; }
+
     PSNodesSeq
     createFuncptrCall(const llvm::CallInst *CInst,
                       const llvm::Function *F);
@@ -132,7 +138,19 @@ public:
     // The call will be inserted betwee the callsite and
     // the return from the call nodes.
     void insertFunctionCall(PSNode *callsite, PSNode *called);
+    void insertPthreadCreateByPtrCall(PSNode *callsite);
+    void insertPthreadJoinByPtrCall(PSNode *callsite);
 
+    PSNodesSeq createFork(const llvm::CallInst *CInst);
+    PSNodesSeq createJoin(const llvm::CallInst *CInst);
+    PSNodesSeq createPthreadExit(const llvm::CallInst *CInst);
+
+    bool addFunctionToFork(PSNode * function,
+                           PSNodeFork *forkNode);
+    bool addFunctionToJoin(PSNode *function,
+                           PSNodeJoin * joinNode);
+
+    bool matchJoinToRightCreate(PSNode *pthreadJoinCall);
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&
@@ -151,6 +169,14 @@ public:
         return n;
     }
 
+    std::vector<PSNode *>
+    getPointsToFunctions(const llvm::Value *calledValue);
+
+    std::map<PSNode *, PSNodeJoin *>
+    getJoins() const;
+
+    std::map<PSNode *, PSNodeFork *>
+    getForks() const;
     void setInvalidateNodesFlag(bool value) 
     {
         assert(PS.getRoot() == nullptr &&
@@ -260,8 +286,10 @@ private:
     void addPHIOperands(const llvm::Function& F);
     void addArgumentOperands(const llvm::Function *F, PSNode *arg, int idx);
     void addArgumentOperands(const llvm::CallInst *CI, PSNode *arg, int idx);
+    void addArgumentOperands(const llvm::CallInst &CI, PSNode &node);
     void addArgumentsOperands(const llvm::Function *F,
-                              const llvm::CallInst *CI = nullptr);
+                              const llvm::CallInst *CI = nullptr,
+                              int index = 0);
     void addVariadicArgumentOperands(const llvm::Function *F, PSNode *arg);
     void addVariadicArgumentOperands(const llvm::Function *F,
                                      const llvm::CallInst *CI,
@@ -278,10 +306,14 @@ private:
                                     const llvm::CallInst *CI = nullptr,
                                     PSNode *callNode = nullptr);
 
+    void addInterproceduralPthreadOperands(const llvm::Function *F,
+                                           const llvm::CallInst *CI = nullptr);
+
     PSNodesSeq createExtract(const llvm::Instruction *Inst);
     PSNodesSeq createCall(const llvm::Instruction *Inst);
     PSNodesSeq createFunctionCall(const llvm::CallInst *, const llvm::Function *);
     PSNodesSeq createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
+
     Subgraph& createOrGetSubgraph(const llvm::Function *);
 
 

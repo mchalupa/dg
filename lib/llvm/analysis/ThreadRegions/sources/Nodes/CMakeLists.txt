@@ -1,0 +1,15 @@
+target_sources(ThreadRegions
+		PRIVATE
+            ${CMAKE_CURRENT_LIST_DIR}/Node.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/GeneralNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/ForkNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/JoinNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/LockNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/UnlockNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/EntryNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/ExitNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/CallNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/CallFuncPtrNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/CallReturnNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/ReturnNode.cpp
+            ${CMAKE_CURRENT_LIST_DIR}/NodeIterator.cpp)

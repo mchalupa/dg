@@ -28,7 +28,6 @@ LLVMPointerSubgraphBuilder::createCall(const llvm::Instruction *Inst)
     }
 }
 
-
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const llvm::Function *func)
 {
@@ -36,8 +35,17 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
     if(invalidate_nodes && func->getName().equals("free")) {
         PSNode *n = createFree(CInst);
         return std::make_pair(n, n);
+    } else if (func->getName().equals("pthread_create")) {
+        auto seq = createFork(CInst);
+        return seq;
+    } else if (func->getName().equals("pthread_join")) {
+        auto seq = createJoin(CInst);
+        return seq;
+    } else if (func->getName().equals("pthread_exit")) {
+        auto seq = createPthreadExit(CInst);
+        return seq;
     }
-    
+
     // is function undefined? If so it can be
     // intrinsic, memory allocation (malloc, calloc,...)
     // or just undefined function
@@ -65,20 +73,131 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
 PSNodesSeq
 LLVMPointerSubgraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const llvm::Value *calledVal)
 {
-        // just the call_funcptr and call_return nodes are created and
-        // when the pointers are resolved during analysis, the graph
-        // will be dynamically created and it will replace these nodes
-        PSNode *op = getOperand(calledVal);
-        PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
-        PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
+    // just the call_funcptr and call_return nodes are created and
+    // when the pointers are resolved during analysis, the graph
+    // will be dynamically created and it will replace these nodes
+    PSNode *op = getOperand(calledVal);
+    PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
+    PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
 
-        ret_call->setPairedNode(call_funcptr);
-        call_funcptr->setPairedNode(ret_call);
+    ret_call->setPairedNode(call_funcptr);
+    call_funcptr->setPairedNode(ret_call);
 
-        call_funcptr->addSuccessor(ret_call);
-        addNode(CInst, call_funcptr);
+    call_funcptr->addSuccessor(ret_call);
+    addNode(CInst, call_funcptr);
 
-        return std::make_pair(call_funcptr, ret_call);
+    return std::make_pair(call_funcptr, ret_call);
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createFork(const llvm::CallInst *CInst)
+{
+    using namespace llvm;
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+    PSNodeFork *forkNode = PSNodeFork::get(PS.create(PSNodeType::FORK));
+    callNode->setPairedNode(forkNode);
+    forkNode->setPairedNode(callNode);
+    callNode->addSuccessor(forkNode);
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        addNode(CInst, callNode);
+        forkNode->setCallInst(callNode);
+    } else { // CInst is already in nodes_map - probably function pointer call
+        forkNode->setCallInst(iterator->second.first);
+    }
+    
+    threadCreateCalls.emplace(callNode, forkNode);
+    addArgumentOperands(*CInst, *callNode);
+
+    const Value * functionToBeCalledOperand = CInst->getArgOperand(2);
+    if (const Function *func = dyn_cast<Function>(functionToBeCalledOperand)) {
+        addFunctionToFork(nodes_map[func].first, forkNode);
+    }
+    return {callNode, forkNode};    
+}
+
+bool LLVMPointerSubgraphBuilder::addFunctionToFork(PSNode *function, 
+                                                   PSNodeFork * forkNode)
+{
+    const llvm::CallInst *CInst = forkNode->callInst()->getUserData<llvm::CallInst>();
+    bool changed = false; 
+    auto functions = forkNode->functions();
+    if (std::find(functions.cbegin(), 
+                  functions.cend(), 
+                  function) == functions.cend()) {
+        changed = true;
+        const llvm::Function *F = function->getUserData<llvm::Function>(); 
+        Subgraph& subgraph = createOrGetSubgraph(F);
+        addInterproceduralPthreadOperands(F, CInst);
+        forkNode->addSuccessor(subgraph.root);
+        forkNode->addFunction(function);
+    }
+    return changed;
+}
+
+bool LLVMPointerSubgraphBuilder::addFunctionToJoin(PSNode *function, 
+                                                   PSNodeJoin * joinNode) 
+{
+    PSNode * CInst = joinNode->callInst();
+    if (CInst->getOperandsNum() == 1) { // CInst is function pointer call, argument is PSNode pointer
+        CInst = CInst->getSingleSuccessor(); // now CInst is pthread_join call
+    }
+    joinNode->addFunction(function);
+    const llvm::Function *F = function->getUserData<llvm::Function>();
+    if (F->size() != 0) {
+        Subgraph& subgraph = createOrGetSubgraph(F);
+        if (!CInst->getOperand(1)->isNull()) {
+            PSNode *phi = PS.create(PSNodeType::PHI, nullptr);
+            PSNode *store = PS.create(PSNodeType::STORE, 
+                                      phi, 
+                                      CInst->getOperand(1));
+            phi->addSuccessor(store);
+            store->addSuccessor(joinNode);
+            for (PSNode *ret : subgraph.returnNodes) {
+                phi->addOperand(ret);
+            }
+            subgraph.ret->addSuccessor(phi);
+        } else {
+            subgraph.ret->addSuccessor(joinNode);
+        }
+    }
+    return true;
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createJoin(const llvm::CallInst *CInst) 
+{
+    using namespace llvm;
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+    PSNodeJoin *joinNode = PSNodeJoin::get(PS.create(PSNodeType::JOIN));
+    callNode->setPairedNode(joinNode);
+    joinNode->setPairedNode(callNode);
+    callNode->addSuccessor(joinNode);
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        addNode(CInst, callNode);
+        joinNode->setCallInst(callNode);
+    } else { // CInst is already in nodes_map - probably function pointer call
+        joinNode->setCallInst(iterator->second.first);
+    }
+    
+    threadJoinCalls.emplace(callNode, joinNode);
+    addArgumentOperands(*CInst, *callNode);
+    return {callNode, joinNode};
+}
+
+PSNodesSeq LLVMPointerSubgraphBuilder::createPthreadExit(const llvm::CallInst *CInst) {
+    using namespace llvm;
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        addNode(CInst, callNode);
+    }
+    addArgumentOperands(*CInst, *callNode);
+    auto pthread_exit_operand = callNode->getOperand(0);
+    PSNodeRet *returnNode = PSNodeRet::get(PS.create(PSNodeType::RETURN, pthread_exit_operand, nullptr));
+    callNode->setPairedNode(returnNode);
+    returnNode->setPairedNode(callNode);
+    callNode->addSuccessor(returnNode);
+    return {callNode, returnNode};
 }
 
 PSNodesSeq
@@ -202,6 +321,54 @@ LLVMPointerSubgraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     addNode(Inst, vastart);
 
     return PSNodesSeq(vastart, S2);
+}
+
+bool LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
+{
+    using namespace llvm;
+    using namespace dg::analysis::pta;
+    PSNodeJoin *join = PSNodeJoin::get(joinNode);
+    PSNode *pthreadJoinCall = join->callInst();
+    if (pthreadJoinCall->getType() == PSNodeType::CALL_FUNCPTR) { // pthreadJoinCall is function pointer call
+        pthreadJoinCall = pthreadJoinCall->getSingleSuccessor(); // now its pthread_join call with proper arguments
+    }
+    
+    PSNode *loadNode = pthreadJoinCall->getOperand(0);
+    PSNode *joinThreadHandlePtr = loadNode->getOperand(0);
+    bool changed = false;
+    for (auto & instNodeAndForkNode : threadCreateCalls) {
+        PSNode *createThreadHandlePtr = instNodeAndForkNode.first->getOperand(0);
+ 
+        std::set<PSNode *> threadHandleIntersection;
+        for (const auto createPointsTo : createThreadHandlePtr->pointsTo) {
+            for (const auto joinPointsTo : joinThreadHandlePtr->pointsTo) {
+                if (createPointsTo.target == joinPointsTo.target) {
+                    threadHandleIntersection.insert(createPointsTo.target);
+                }
+            }
+        }
+
+        
+        if (!threadHandleIntersection.empty()) {//TODO refactor this into method for finding new functions
+            PSNode *func = instNodeAndForkNode.first->getOperand(2);
+            const llvm::Value *V = func->getUserData<llvm::Value>();
+            auto pointsToFunctions = getPointsToFunctions(V); 
+            auto oldFunctions = join->functions();
+            std::set<PSNode *> newFunctions;
+            std::sort(pointsToFunctions.begin(), pointsToFunctions.end());
+            std::set_difference(pointsToFunctions.begin(), pointsToFunctions.end(), 
+                                  oldFunctions.begin(),      oldFunctions.end(), 
+                                  std::inserter(newFunctions, newFunctions.begin()));
+            for (const auto &function : newFunctions) {
+                changed |= addFunctionToJoin(function, 
+                                             join); 
+            }
+            if (changed) {
+                join->addFork(instNodeAndForkNode.second);
+            }
+        }
+    }
+    return changed;
 }
 
 PSNodesSeq

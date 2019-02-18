@@ -29,6 +29,7 @@ public:
     using ControlEdgesT = EdgesT;
     using DataEdgesT = EdgesT;
     using UseEdgesT = EdgesT;
+    using InterferenceEdges = EdgesT;
 
     // to be able to reference the KeyT and DG
     using KeyType = KeyT;
@@ -40,6 +41,8 @@ public:
     using const_data_iterator = typename DataEdgesT::const_iterator;
     using use_iterator = typename DataEdgesT::iterator;
     using const_use_iterator = typename DataEdgesT::const_iterator;
+    using interference_iterator = typename InterferenceEdges::iterator;
+    using const_interference_iterator = typename InterferenceEdges::const_iterator;
 
     Node(const KeyT& k) : key(k) {}
 
@@ -79,6 +82,12 @@ public:
                                      useEdges, n->userEdges);
     }
 
+    bool addInterferenceDependence(NodeT *n)
+    {
+        return  _addBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                      interferenceDepEdges, n->revInterferenceDepEdges);
+    }
+
     // remove edge 'this'-->'n' from control dependencies
     bool removeControlDependence(NodeT *n)
     {
@@ -98,6 +107,12 @@ public:
     {
         return _removeBidirectionalEdge(static_cast<NodeT *>(this), n,
                                         useEdges, n->userEdges);
+    }
+
+    bool removeInterferenceDependence(NodeT *n)
+    {
+        return _removeBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                        interferenceDepEdges, n->revInterferenceDepEdges);
     }
 
     // remove all control dependencies going from/to this node
@@ -215,6 +230,18 @@ public:
     const_control_iterator rev_control_begin(void) const { return revControlDepEdges.begin(); }
     control_iterator rev_control_end(void) { return revControlDepEdges.end(); }
     const_control_iterator rev_control_end(void) const { return revControlDepEdges.end(); }
+
+    // interference dependency edges iteraotrs
+    const_interference_iterator interference_begin(void) const { return interferenceDepEdges.begin(); }
+    interference_iterator       interference_begin(void)       { return interferenceDepEdges.begin(); }
+    const_interference_iterator interference_end(void) const { return interferenceDepEdges.end(); }
+    interference_iterator       interference_end(void)       { return interferenceDepEdges.end(); }
+
+    // reverse interference dependency edges iterators
+    const_interference_iterator rev_interference_begin(void) const { return revInterferenceDepEdges.begin(); }
+    interference_iterator       rev_interference_begin(void)       { return revInterferenceDepEdges.begin(); }
+    const_interference_iterator rev_interference_end(void) const { return revInterferenceDepEdges.end(); }
+    interference_iterator       rev_interference_end(void)       { return revInterferenceDepEdges.end(); }
 
     /// NOTE: we have two kinds of data dependencies.
     // The first one is when a value is used as an argument
@@ -374,11 +401,13 @@ private:
     ControlEdgesT controlDepEdges;
     DataEdgesT dataDepEdges;
     UseEdgesT useEdges;
+    InterferenceEdges interferenceDepEdges;
 
     // Nodes that have control/dep edge to this node
     ControlEdgesT revControlDepEdges;
     DataEdgesT revDataDepEdges;
     UseEdgesT userEdges;
+    InterferenceEdges revInterferenceDepEdges;
 
     // a node can have more subgraphs (i. e. function pointers)
     std::set<DependenceGraphT *> subgraphs;

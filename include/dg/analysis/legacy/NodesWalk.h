@@ -20,14 +20,16 @@ enum NodesWalkFlags {
     NODES_WALK_REV_DD                   = 1 << 4,
     NODES_WALK_USE                      = 1 << 5,
     NODES_WALK_USER                     = 1 << 6,
+    NODES_WALK_ID                       = 1 << 7,
+    NODES_WALK_REV_ID                   = 1 << 8,
     // Add to queue all first nodes of
     // node's BB successors
-    NODES_WALK_BB_CFG                   = 1 << 7,
+    NODES_WALK_BB_CFG                   = 1 << 9,
     // Add to queue all last nodes of
     // node's BB predecessors
-    NODES_WALK_BB_REV_CFG               = 1 << 8,
-    NODES_WALK_BB_POSTDOM               = 1 << 9,
-    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 10,
+    NODES_WALK_BB_REV_CFG               = 1 << 10,
+    NODES_WALK_BB_POSTDOM               = 1 << 11,
+    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 12,
 };
 
 // this is a base class for nodes walk, it contains
