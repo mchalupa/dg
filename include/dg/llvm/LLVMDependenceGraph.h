@@ -143,6 +143,8 @@ public:
 
     bool verify() const;
 
+    void setThreads(bool threads) { this->threads = threads; }
+
     /* virtual */
     void setSlice(uint64_t sid)
     {
@@ -194,6 +196,8 @@ private:
     // when building the graph
     std::set<LLVMNode *> *gatheredCallsites;
     const char *gather_callsites;
+
+    bool threads{false};
 
     // all callnodes in this graph - forming call graph
     std::set<LLVMNode *> callNodes;

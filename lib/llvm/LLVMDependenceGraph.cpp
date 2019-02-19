@@ -443,12 +443,21 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                         continue;
 
                     Function *F = ptr.target->getUserData<Function>();
-                    func = F;
+
                     if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst)) {
-                        // incompatible prototypes or the function
-                        // is only declaration
-                        func = nullptr;
-                        continue;
+                        if (threads && F && F->getName() == "pthread_create") {
+                            auto possibleFunctions = PTA->getPointsToFunctions(CInst->getArgOperand(2));
+                            for (auto &function : possibleFunctions) {
+                                if (function->size() > 0) {
+                                    LLVMDependenceGraph *subg = buildSubgraph(node, const_cast<llvm::Function *>(function), true /*this is fork*/);
+                                    node->addSubgraph(subg);
+                                }
+                            }
+                        } else {
+                            // incompatible prototypes or the function
+                            // is only declaration
+                            continue;
+                        }
                     }
 
                     LLVMDependenceGraph *subg = buildSubgraph(node, F);
@@ -476,7 +485,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         if (isMemAllocationFunc(CInst->getCalledFunction()))
             addFormalParameter(val);
 
-        if (func && func->getName() == "pthread_create") {
+        if (threads && func && func->getName() == "pthread_create") {
             auto possibleFunctions = PTA->getPointsToFunctions(CInst->getArgOperand(2));
             for (auto &function : possibleFunctions) {
                 LLVMDependenceGraph *subg = buildSubgraph(node, const_cast<llvm::Function *>(function), true /*this is fork*/);
