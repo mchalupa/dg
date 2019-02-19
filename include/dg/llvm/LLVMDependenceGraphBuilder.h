@@ -59,6 +59,9 @@ struct LLVMDependenceGraphOptions {
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
     bool verifyGraph{true};
+
+    bool threads{false};
+
     std::string entryFunction{"main"};
 
     void addAllocationFunction(const std::string& name,
@@ -160,6 +163,7 @@ public:
         _runPointerAnalysis();
         _runReachingDefinitionsAnalysis();
 
+        _dg->setThreads(_options.threads);
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
@@ -169,13 +173,12 @@ public:
         // compute and fill-in control dependencies
         _runControlDependenceAnalysis();
 
-        _controlFlowGraph->buildFunction(_entryFunction);
-
-        _runInterferenceDependenceAnalysis();
-
-        _runForkJoinAnalysis();
-
-        _runCriticalSectionAnalysis();
+        if (_options.threads) {
+            _controlFlowGraph->buildFunction(_entryFunction);
+            _runInterferenceDependenceAnalysis();
+            _runForkJoinAnalysis();
+            _runCriticalSectionAnalysis();
+        }
 
         // verify if the graph is built correctly
         if (_options.verifyGraph && !_dg->verify()) {
@@ -196,10 +199,13 @@ public:
         // data dependencies
         _runPointerAnalysis();
 
+        _dg->setThreads(_options.threads);
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
-        _controlFlowGraph->buildFunction(_entryFunction);
+        if (_options.threads) {
+            _controlFlowGraph->buildFunction(_entryFunction);
+        }
 
         // verify if the graph is built correctly
         if (_options.verifyGraph && !_dg->verify()) {
@@ -227,11 +233,11 @@ public:
         // fill-in control dependencies
         _runControlDependenceAnalysis();
 
-        _runInterferenceDependenceAnalysis();
-
-        _runForkJoinAnalysis();
-
-        _runCriticalSectionAnalysis();
+        if (_options.threads) {
+            _runInterferenceDependenceAnalysis();
+            _runForkJoinAnalysis();
+            _runCriticalSectionAnalysis();
+        }
 
         return std::move(_dg);
     }

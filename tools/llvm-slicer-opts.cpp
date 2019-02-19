@@ -96,6 +96,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
         llvm::cl::desc("Perform forward slicing\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> threads("threads",
+        llvm::cl::desc("Consider threads are in input file (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<LLVMPointerAnalysisOptions::AnalysisType> ptaType("pta",
         llvm::cl::desc("Choose pointer analysis to use:"),
         llvm::cl::values(
@@ -163,6 +167,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.dgOptions.PTAOptions.fieldSensitivity
                                     = dg::analysis::Offset(ptaFieldSensitivity);
     options.dgOptions.PTAOptions.analysisType = ptaType;
+
+    options.dgOptions.threads = threads;
 
     options.dgOptions.RDAOptions.entryFunction = entryFunction;
     options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
