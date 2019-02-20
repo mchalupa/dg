@@ -63,6 +63,7 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     bool mark_only = false;
     bool bb_only = false;
+    bool threads = false;
     const char *module = nullptr;
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
@@ -104,6 +105,8 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-mark") == 0) {
             mark_only = true;
             slicing_criterion = argv[++i];
+        } else if (strcmp(argv[i], "-threads") == 0) {
+            threads = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entry_func = argv[++i];
         } else if (strcmp(argv[i], "-cd-alg") == 0) {
@@ -143,6 +146,8 @@ int main(int argc, char *argv[])
 
     llvmdg::LLVMDependenceGraphOptions options;
 
+    options.threads = threads;
+    options.PTAOptions.threads = threads;
     options.PTAOptions.entryFunction = entry_func;
     options.RDAOptions.entryFunction = entry_func;
     if (strcmp(pts, "fs") == 0) {

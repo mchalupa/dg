@@ -58,6 +58,8 @@ class LLVMPointerSubgraphBuilder
     // should be created
     bool invalidate_nodes = false;
 
+    bool threads_ = false;
+
     struct Subgraph {
         Subgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
             : root(r1), ret(r2), vararg(va) {}
@@ -117,8 +119,10 @@ class LLVMPointerSubgraphBuilder
 public:
     const PointerSubgraph *getPS() const { return &PS; }
 
+    inline bool threads() { return threads_; }
+
     LLVMPointerSubgraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
-        : M(m), DL(new llvm::DataLayout(m)), _options(opts) {}
+        : M(m), DL(new llvm::DataLayout(m)), _options(opts), threads_(opts.threads) {}
 
     ~LLVMPointerSubgraphBuilder();
 

@@ -56,6 +56,7 @@ using llvm::errs;
 static bool verbose;
 static bool verbose_more;
 static bool ids_only = false;
+static bool threads = false;
 static bool dump_graph_only = false;
 static bool names_with_funs = false;
 static bool callgraph = false;
@@ -699,6 +700,8 @@ int main(int argc, char *argv[])
             field_senitivity = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
+        } else if (strcmp(argv[i], "-threads") == 0) {
+            threads = true;
         } else if (strcmp(argv[i], "-callgraph") == 0) {
             callgraph = true;
         } else if (strcmp(argv[i], "-ids-only") == 0) {
@@ -757,7 +760,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    LLVMPointerAnalysis PTA(M, entry_func, field_senitivity);
+    LLVMPointerAnalysis PTA(M, entry_func, field_senitivity, threads);
 
     tm.start();
 

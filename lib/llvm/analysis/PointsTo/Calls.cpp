@@ -34,16 +34,18 @@ LLVMPointerSubgraphBuilder::createFunctionCall(const llvm::CallInst *CInst, cons
     // is it a call to free? If so, create invalidate node instead.
     if(invalidate_nodes && func->getName().equals("free")) {
         PSNode *n = createFree(CInst);
-        return std::make_pair(n, n);
-    } else if (func->getName().equals("pthread_create")) {
-        auto seq = createFork(CInst);
-        return seq;
-    } else if (func->getName().equals("pthread_join")) {
-        auto seq = createJoin(CInst);
-        return seq;
-    } else if (func->getName().equals("pthread_exit")) {
-        auto seq = createPthreadExit(CInst);
-        return seq;
+        return std::make_pair(n, n); 
+    } else if (threads_) {
+        if (func->getName().equals("pthread_create")) {
+           auto seq = createFork(CInst);
+           return seq;
+        } else if (func->getName().equals("pthread_join")) {
+           auto seq = createJoin(CInst);
+           return seq;
+        } else if (func->getName().equals("pthread_exit")) {
+           auto seq = createPthreadExit(CInst);
+           return seq;
+        }
     }
 
     // is function undefined? If so it can be

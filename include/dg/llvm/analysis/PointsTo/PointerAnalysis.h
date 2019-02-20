@@ -62,12 +62,14 @@ public:
             return false;
 
         if (F->isDeclaration()) {
-            if (F->getName() == "pthread_create") {
-                builder->insertPthreadCreateByPtrCall(callsite);
-                return true;
-            } else if (F->getName() == "pthread_join") {
-                builder->insertPthreadJoinByPtrCall(callsite);
-                return true;
+            if (builder->threads()) {
+                if (F->getName() == "pthread_create") {
+                    builder->insertPthreadCreateByPtrCall(callsite);
+                    return true;
+                } else if (F->getName() == "pthread_join") {
+                    builder->insertPthreadJoinByPtrCall(callsite);
+                    return true;
+                }
             }
 
             return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
@@ -123,9 +125,11 @@ class LLVMPointerAnalysis
     std::unique_ptr<LLVMPointerSubgraphBuilder> _builder;
 
     LLVMPointerAnalysisOptions createOptions(const char *entry_func,
-                                             uint64_t field_sensitivity)
+                                             uint64_t field_sensitivity,
+                                             bool threads = false)
     {
         LLVMPointerAnalysisOptions opts;
+        opts.threads = threads;
         opts.setFieldSensitivity(field_sensitivity);
         opts.setEntryFunction(entry_func);
         return opts;
@@ -141,8 +145,9 @@ public:
 
     LLVMPointerAnalysis(const llvm::Module *m,
                         const char *entry_func = "main",
-                        uint64_t field_sensitivity = Offset::UNKNOWN)
-        : LLVMPointerAnalysis(m, createOptions(entry_func, field_sensitivity)) {}
+                        uint64_t field_sensitivity = Offset::UNKNOWN,
+                        bool threads = false)
+        : LLVMPointerAnalysis(m, createOptions(entry_func, field_sensitivity, threads)) {}
 
     LLVMPointerAnalysis(const llvm::Module *m, const LLVMPointerAnalysisOptions opts)
         : _builder(new LLVMPointerSubgraphBuilder(m, opts)) {}
