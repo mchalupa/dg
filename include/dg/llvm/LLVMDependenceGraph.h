@@ -59,8 +59,8 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
     std::unique_ptr<LLVMBBlock> unifiedExitBB{};
     llvm::Function *entryFunction{nullptr};
 public:
-    LLVMDependenceGraph()
-        : gather_callsites(nullptr), module(nullptr), PTA(nullptr) {}
+    LLVMDependenceGraph(bool threads = false)
+        : gather_callsites(nullptr), threads(threads), module(nullptr), PTA(nullptr) {}
 
     // free all allocated memory and unref subgraphs
     ~LLVMDependenceGraph();
@@ -143,7 +143,7 @@ public:
 
     bool verify() const;
 
-    void setThreads(bool threads) { this->threads = threads; }
+    void setThreads(bool threads);
 
     /* virtual */
     void setSlice(uint64_t sid)
