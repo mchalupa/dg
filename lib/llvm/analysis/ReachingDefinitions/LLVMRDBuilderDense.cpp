@@ -844,25 +844,27 @@ LLVMRDBuilderDense::createCallToZeroSizeFunction(const llvm::Function *function,
     if (function->isIntrinsic()) {
         RDNode *node = createIntrinsicCall(CInst);
         return {node, node};
-    } else if (function->getName() == "pthread_create") {
-        return createPthreadCreateCalls(CInst);
-    } else if (function->getName() == "pthread_join") {
-        return createPthreadJoinCall(CInst);
-    } else if (function->getName() == "pthread_exit") {
-        return createPthreadExitCall(CInst);
-    } else {
-        auto type = _options.getAllocationFunction(function->getName());
-        RDNode *node = nullptr;
-        if (type != AllocationFunction::NONE) {
-            if (type == AllocationFunction::REALLOC)
-                node = createRealloc(CInst);
-            else
-                node = createDynAlloc(CInst, type);
-        } else {
-            node = createUndefinedCall(CInst);
-        }
-        return {node, node};
     }
+    if (_options.threads) {
+        if (function->getName() == "pthread_create") {
+            return createPthreadCreateCalls(CInst);
+        } else if (function->getName() == "pthread_join") {
+            return createPthreadJoinCall(CInst);
+        } else if (function->getName() == "pthread_exit") {
+            return createPthreadExitCall(CInst);
+        }
+    }
+    auto type = _options.getAllocationFunction(function->getName());
+    RDNode *node = nullptr;
+    if (type != AllocationFunction::NONE) {
+        if (type == AllocationFunction::REALLOC)
+            node = createRealloc(CInst);
+        else
+            node = createDynAlloc(CInst, type);
+    } else {
+        node = createUndefinedCall(CInst);
+    }
+    return {node, node};
 }
 
 std::pair<RDNode *, RDNode *>
@@ -978,7 +980,9 @@ ReachingDefinitionsGraph LLVMRDBuilderDense::build()
     ReachingDefinitionsGraph graph;
     graph.setRoot(root);
 
-    matchForksAndJoins();
+    if (_options.threads) {
+        matchForksAndJoins();
+    }
 
     return graph;
 }

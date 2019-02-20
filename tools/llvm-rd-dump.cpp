@@ -291,6 +291,7 @@ int main(int argc, char *argv[])
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
     bool todot = false;
+    bool threads = false;
     bool dump_rd = false;
     const char *module = nullptr;
     Offset::type field_senitivity = Offset::UNKNOWN;
@@ -328,6 +329,8 @@ int main(int argc, char *argv[])
             rd_strong_update_unknown = true;
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
+        } else if (strcmp(argv[i], "-threads") == 0) {
+            threads = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-dump-rd") == 0) {
@@ -360,7 +363,7 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M, entryFunc, field_senitivity);
+    LLVMPointerAnalysis PTA(M, entryFunc, field_senitivity, threads);
 
     tm.start();
 
@@ -374,6 +377,7 @@ int main(int argc, char *argv[])
     tm.report("INFO: Points-to analysis took");
 
     LLVMReachingDefinitionsAnalysisOptions opts;
+    opts.threads = threads;
     opts.entryFunction = entryFunc;
     opts.strongUpdateUnknown = rd_strong_update_unknown;
     opts.maxSetSize = max_set_size;
