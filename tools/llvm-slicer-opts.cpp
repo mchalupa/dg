@@ -170,6 +170,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
 
     options.dgOptions.threads = threads;
     options.dgOptions.PTAOptions.threads = threads;
+    options.dgOptions.RDAOptions.threads = threads;
 
     options.dgOptions.RDAOptions.entryFunction = entryFunction;
     options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
