@@ -131,6 +131,10 @@ bool LLVMDependenceGraph::verify() const
     return verifier.verify();
 }
 
+void LLVMDependenceGraph::setThreads(bool threads) {
+    this->threads = threads;
+}
+
 LLVMNode *LLVMDependenceGraph::findNode(llvm::Value * value) const {
     auto iterator = nodes.find(value);
     if (iterator != nodes.end()) {
