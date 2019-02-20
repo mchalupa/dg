@@ -11,6 +11,7 @@ struct LLVMPointerAnalysisOptions : public LLVMAnalysisOptions, PointerAnalysisO
 {
     enum class AnalysisType { fi, fs, inv } analysisType{AnalysisType::fi};
 
+    bool threads;
     bool isFS() const { return analysisType == AnalysisType::fs; }
     bool isFSInv() const { return analysisType == AnalysisType::inv; }
     bool isFI() const { return analysisType == AnalysisType::fi; }
