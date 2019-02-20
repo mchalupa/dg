@@ -484,9 +484,9 @@ LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F,
                                          const llvm::CallInst * CInst)
 {
     if (auto model = _options.getFunctionModel(F->getName())) {
-                auto node = funcFromModel(model, CInst);
-                addNode(CInst, node);
-    return std::make_pair(node, node);
+        auto node = funcFromModel(model, CInst);
+        addNode(CInst, node);
+        return std::make_pair(node, node);
     }
     if (F->size() == 0) {
         return createCallToZeroSizeFunction(F, CInst);
@@ -888,25 +888,27 @@ LLVMRDBuilderDense::createCallToZeroSizeFunction(const llvm::Function *function,
     if (function->isIntrinsic()) {
         RDNode *node = createIntrinsicCall(CInst);
         return {node, node};
-    } else if (function->getName() == "pthread_create") {
-        return createPthreadCreateCalls(CInst);
-    } else if (function->getName() == "pthread_join") {
-        return createPthreadJoinCall(CInst);
-    } else if (function->getName() == "pthread_exit") {
-        return createPthreadExitCall(CInst);
-    } else {
-        auto type = _options.getAllocationFunction(function->getName());
-        RDNode *node = nullptr;
-        if (type != AllocationFunction::NONE) {
-            if (type == AllocationFunction::REALLOC)
-                node = createRealloc(CInst);
-            else
-                node = createDynAlloc(CInst, type);
-        } else {
-            node = createUndefinedCall(CInst);
-        }
-        return {node, node};
     }
+    if (_options.threads) {
+        if (function->getName() == "pthread_create") {
+            return createPthreadCreateCalls(CInst);
+        } else if (function->getName() == "pthread_join") {
+            return createPthreadJoinCall(CInst);
+        } else if (function->getName() == "pthread_exit") {
+            return createPthreadExitCall(CInst);
+        }
+    }
+    auto type = _options.getAllocationFunction(function->getName());
+    RDNode *node = nullptr;
+    if (type != AllocationFunction::NONE) {
+        if (type == AllocationFunction::REALLOC)
+            node = createRealloc(CInst);
+        else
+            node = createDynAlloc(CInst, type);
+    } else {
+        node = createUndefinedCall(CInst);
+    }
+    return {node, node};
 }
 
 std::pair<RDNode *, RDNode *>
@@ -1018,8 +1020,9 @@ ReachingDefinitionsGraph LLVMRDBuilderDense::build()
         assert(root->successorsNum() > 0);
         root = glob.first;
     }
-
-    matchForksAndJoins();
+    if (_options.threads) {
+        matchForksAndJoins();
+    }
     ReachingDefinitionsGraph graph;
     graph.setRoot(root);
 

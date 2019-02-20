@@ -13,6 +13,7 @@ struct LLVMReachingDefinitionsAnalysisOptions :
     // FIXME: rename ss to sparse
     enum class AnalysisType { dense, ss } analysisType{AnalysisType::dense};
 
+    bool threads;
     bool isDense() const { return analysisType == AnalysisType::dense; }
     bool isSparse() const { return analysisType == AnalysisType::ss; }
 };
