@@ -169,6 +169,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.dgOptions.PTAOptions.analysisType = ptaType;
 
     options.dgOptions.threads = threads;
+    options.dgOptions.PTAOptions.threads = threads;
 
     options.dgOptions.RDAOptions.entryFunction = entryFunction;
     options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
