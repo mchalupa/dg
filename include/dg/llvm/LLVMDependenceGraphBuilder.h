@@ -148,7 +148,7 @@ public:
       _PTA(new LLVMPointerAnalysis(M, _options.PTAOptions)),
       _RD(new LLVMReachingDefinitions(M, _PTA.get(),
                                       _options.RDAOptions)),
-      _dg(new LLVMDependenceGraph()),
+      _dg(new LLVMDependenceGraph(opts.threads)),
       _controlFlowGraph(new ControlFlowGraph(_PTA.get())),
       _entryFunction(M->getFunction(_options.entryFunction)) {
         assert(_entryFunction && "The entry function not found");
@@ -163,7 +163,10 @@ public:
         _runPointerAnalysis();
         _runReachingDefinitionsAnalysis();
 
-        _dg->setThreads(_options.threads);
+        if (_PTA->getForks().empty()) {
+            _dg->setThreads(false);
+        }
+
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
@@ -199,7 +202,10 @@ public:
         // data dependencies
         _runPointerAnalysis();
 
-        _dg->setThreads(_options.threads);
+        if (_PTA->getForks().empty()) {
+            _dg->setThreads(false);
+        }
+
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
