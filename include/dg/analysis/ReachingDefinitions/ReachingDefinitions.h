@@ -63,10 +63,12 @@ enum class RDNodeType {
 
 extern RDNode *UNKNOWN_MEMORY;
 
+class RDBBlock;
+
 class RDNode : public SubgraphNode<RDNode> {
     RDNodeType type;
 
-    BBlock<RDNode> *bblock = nullptr;
+    RDBBlock *bblock = nullptr;
     // marks for DFS/BFS
     unsigned int dfsid;
 public:
@@ -218,13 +220,8 @@ public:
         return nullptr;
     }
 
-    BBlock<RDNode> *getBBlock() {
-        return bblock;
-    }
-
-    void setBasicBlock(BBlock<RDNode> *bb) {
-        bblock = bb;
-    }
+    RDBBlock *getBBlock() { return bblock; }
+    void setBBlock(RDBBlock *bb) { bblock = bb; }
 
     void removeCDs() {
     }
@@ -248,8 +245,20 @@ public:
     friend class dg::analysis::rd::srg::AssignmentFinder;
 };
 
+
+class RDBBlock {
+public:
+    using NodeT = RDNode;
+
+    void append(RDNode *n) { _nodes.push_back(n); }
+private:
+    std::vector<NodeT *> _nodes;
+};
+
+
 class ReachingDefinitionsGraph {
     RDNode *root{nullptr};
+    std::vector<std::unique_ptr<RDBBlock>> _bblocks;
 
 public:
     ReachingDefinitionsGraph() = default;
@@ -259,6 +268,8 @@ public:
 
     RDNode *getRoot() const { return root; }
     void setRoot(RDNode *r) { root = r; }
+
+    void buildBBlocks();
 };
 
 class ReachingDefinitionsAnalysis

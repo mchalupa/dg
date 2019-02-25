@@ -33,12 +33,8 @@ add_library(RD SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/ReachingDefinitions.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/RDMap.h
 
-	analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFS.h
-
 	analysis/ReachingDefinitions/BasicRDMap.cpp
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp
-	analysis/ReachingDefinitions/Srg/SemisparseRda.cpp
-	analysis/ReachingDefinitions/Srg/MarkerSRGBuilderFS.cpp
 )
 target_link_libraries(RD PUBLIC DGAnalysis)
 
@@ -62,13 +58,11 @@ add_library(LLVMpta SHARED
 target_link_libraries(LLVMpta PUBLIC PTA)
 
 add_library(LLVMrd SHARED
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.cpp
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.cpp
 	llvm/analysis/ReachingDefinitions/LLVMReachingDefinitions.cpp
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderSemisparse.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
 )
 target_link_libraries(LLVMrd

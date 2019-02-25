@@ -83,7 +83,7 @@ public:
     std::vector<std::unique_ptr<BBlockT>>&&
     buildAndGetBlocks(NodeT *root) {
         buildBlocks(root);
-        return _blocks;
+        return std::move(_blocks);
     }
 };
 
