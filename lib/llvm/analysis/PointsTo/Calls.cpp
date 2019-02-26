@@ -107,7 +107,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createFork(const llvm::CallInst *CInst)
         forkNode->setCallInst(iterator->second.first);
     }
     
-    threadCreateCalls.emplace(callNode, forkNode);
+    threadCreateCalls.emplace(CInst, forkNode);
     addArgumentOperands(*CInst, *callNode);
 
     const Value * functionToBeCalledOperand = CInst->getArgOperand(2);
@@ -181,7 +181,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::createJoin(const llvm::CallInst *CInst)
         joinNode->setCallInst(iterator->second.first);
     }
     
-    threadJoinCalls.emplace(callNode, joinNode);
+    threadJoinCalls.emplace(CInst, joinNode);
     addArgumentOperands(*CInst, *callNode);
     return {callNode, joinNode};
 }
@@ -330,16 +330,14 @@ bool LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
     using namespace llvm;
     using namespace dg::analysis::pta;
     PSNodeJoin *join = PSNodeJoin::get(joinNode);
-    PSNode *pthreadJoinCall = join->callInst();
-    if (pthreadJoinCall->getType() == PSNodeType::CALL_FUNCPTR) { // pthreadJoinCall is function pointer call
-        pthreadJoinCall = pthreadJoinCall->getSingleSuccessor(); // now its pthread_join call with proper arguments
-    }
+    PSNode *pthreadJoinCall = join->getPairedNode();
     
     PSNode *loadNode = pthreadJoinCall->getOperand(0);
     PSNode *joinThreadHandlePtr = loadNode->getOperand(0);
     bool changed = false;
     for (auto & instNodeAndForkNode : threadCreateCalls) {
-        PSNode *createThreadHandlePtr = instNodeAndForkNode.first->getOperand(0);
+        auto pthreadCreateCall = instNodeAndForkNode.second->getPairedNode();
+        auto createThreadHandlePtr = pthreadCreateCall->getOperand(0);
  
         std::set<PSNode *> threadHandleIntersection;
         for (const auto createPointsTo : createThreadHandlePtr->pointsTo) {
@@ -352,7 +350,7 @@ bool LLVMPointerSubgraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
 
         
         if (!threadHandleIntersection.empty()) {//TODO refactor this into method for finding new functions
-            PSNode *func = instNodeAndForkNode.first->getOperand(2);
+            PSNode *func = pthreadCreateCall->getOperand(2);
             const llvm::Value *V = func->getUserData<llvm::Value>();
             auto pointsToFunctions = getPointsToFunctions(V); 
             auto oldFunctions = join->functions();

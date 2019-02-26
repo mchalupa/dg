@@ -84,6 +84,11 @@ target_include_directories(ThreadRegions
 target_link_libraries(ThreadRegions
     INTERFACE LLVMpta)
 
+add_library(ControlDependence SHARED "")
+include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ControlDependence/CMakeLists.txt)
+target_link_libraries(ControlDependence
+    INTERFACE LLVMpta)
+
 add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h
 	${CMAKE_SOURCE_DIR}/include/dg/Node.h

@@ -303,15 +303,24 @@ LLVMPointerSubgraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
     return functions;
 }
 
-std::map<PSNode *, PSNodeJoin *>
+std::map<const llvm::CallInst *, PSNodeJoin *>
 LLVMPointerSubgraphBuilder::getJoins() const 
 {
     return threadJoinCalls;
 }
 
-std::map<PSNode *, PSNodeFork *> LLVMPointerSubgraphBuilder::getForks() const
+std::map<const llvm::CallInst *, PSNodeFork *> LLVMPointerSubgraphBuilder::getForks() const
 {
     return threadCreateCalls;
+}
+
+PSNodeJoin *LLVMPointerSubgraphBuilder::findJoin(const llvm::CallInst *callInst) const
+{
+    auto iterator = threadJoinCalls.find(callInst);
+    if (iterator != threadJoinCalls.end()) {
+        return iterator->second;
+    }
+    return nullptr;
 }
 
 LLVMPointerSubgraphBuilder::Subgraph&
