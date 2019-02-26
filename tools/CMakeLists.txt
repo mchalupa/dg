@@ -82,6 +82,15 @@ if (LLVM_DG)
                                                        PRIVATE ${llvm_irreader}
                                                        PRIVATE ${llvm_support})
 
+        add_executable(llvm-blocks-dump llvm-blocks-dump.cpp)
+        set_target_properties(llvm-blocks-dump
+                PROPERTIES
+                CXX_STANDARD 14)
+        target_link_libraries(llvm-blocks-dump PRIVATE ControlDependence
+                                               PRIVATE ${llvm_core}
+                                               PRIVATE ${llvm_irreader}
+                                               PRIVATE ${llvm_support})
+
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
 

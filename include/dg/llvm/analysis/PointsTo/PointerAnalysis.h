@@ -195,14 +195,18 @@ public:
         return functions;
     }
 
-    std::map<PSNode *, analysis::pta::PSNodeJoin *> getJoins() const
+    std::map<const llvm::CallInst *, analysis::pta::PSNodeJoin *> getJoins() const
     {
         return _builder->getJoins();
     }
 
-    std::map<PSNode *, analysis::pta::PSNodeFork *> getForks() const
+    std::map<const llvm::CallInst *, analysis::pta::PSNodeFork *> getForks() const
     {
         return _builder->getForks();
+    }
+
+    analysis::pta::PSNodeJoin * findJoin(const llvm::CallInst * callInst) const {
+        return _builder->findJoin(callInst);
     }
 
     const std::unordered_map<const llvm::Value *, PSNodesSeq>&

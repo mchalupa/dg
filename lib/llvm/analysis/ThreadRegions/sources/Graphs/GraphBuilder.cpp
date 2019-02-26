@@ -263,7 +263,7 @@ bool GraphBuilder::matchForksAndJoins() {
     bool changed = false;
     for (auto &joinInstAndJoinNode : joinsMap) {
         auto PSJoinNode = joinInstAndJoinNode.second;
-        auto callInst = getCallInst(PSJoinNode);
+        auto callInst = joinInstAndJoinNode.first;
         auto iterator = llvmToJoins_.find(callInst);
         if (iterator != llvmToJoins_.end()) {
             auto joinNode = iterator->second;
