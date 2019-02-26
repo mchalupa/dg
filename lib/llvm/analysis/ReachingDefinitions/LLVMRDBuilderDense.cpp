@@ -614,43 +614,6 @@ RDNode *LLVMRDBuilderDense::createUndefinedCall(const llvm::CallInst *CInst)
     return node;
 }
 
-std::vector<const llvm::Function *>
-LLVMRDBuilderDense::getPointsToFunctions(const llvm::Value *calledValue)
-{
-    using namespace llvm;
-    std::vector<const Function *> functions;
-
-    auto pts = PTA->getLLVMPointsToChecked(calledValue);
-    if (pts.second.empty()) {
-        llvm::errs() << "[RD] error: function pointer with empty points-to set:\n";
-        llvm::errs() << *calledValue << "\n";
-        return functions;
-    }
-
-    for (const auto &pointer : pts.second) {
-        if (const auto function = dyn_cast<Function>(pointer.value)) {
-            functions.push_back(function);
-        }
-    }
-    return functions;
-}
-
-std::vector<const llvm::Function *>
-LLVMRDBuilderDense::getPotentialFunctions(const llvm::Instruction *instruction)
-{
-    using namespace llvm;
-    std::vector<const Function *> functions;
-    const CallInst *callInstruction = cast<CallInst>(instruction);
-    const Value *calledValue = callInstruction->getCalledValue();
-    if (isa<Function>(calledValue)) {
-        const Function *function = dyn_cast<Function>(calledValue);
-        functions.push_back(function);
-    } else {
-        functions = getPointsToFunctions(calledValue);
-    }
-    return functions;
-}
-
 bool LLVMRDBuilderDense::isInlineAsm(const llvm::Instruction *instruction)
 {
     const llvm::CallInst *callInstruction = llvm::cast<llvm::CallInst>(instruction);
@@ -833,7 +796,7 @@ LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
         return createCallToFunction(function, CInst);
     }
 
-    auto functions = getPointsToFunctions(calledVal);
+    auto functions = PTA->getPointsToFunctions(calledVal);
     return createCallToFunctions(functions, CInst);
 }
 
