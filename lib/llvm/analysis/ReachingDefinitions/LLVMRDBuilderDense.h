@@ -108,12 +108,6 @@ private:
 
     bool buildUses{false};
 
-    std::vector<const llvm::Function *>
-    getPointsToFunctions(const llvm::Value *calledValue);
-
-    std::vector<const llvm::Function *>
-    getPotentialFunctions(const llvm::Instruction *instruction);
-
     bool isInlineAsm(const llvm::Instruction *instruction);
 
     const llvm::Function *
