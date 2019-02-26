@@ -887,6 +887,9 @@ LLVMRDBuilderDense::createCallToFunctions(const std::vector<const llvm::Function
     }
 
     if (!hasFunction) {
+        llvm::errs() << "[RD] error: a call via a function pointer, "
+                        "but the points-to is empty\n"
+                     << *CInst << "\n";
         RDNode *node = createUndefinedCall(CInst);
         makeEdge(callNode, node);
         makeEdge(node, returnNode);
