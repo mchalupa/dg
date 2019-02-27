@@ -388,7 +388,7 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(SIMPLE_FILE, SMD, context);
     const Function * function = M->getFunction("foo");
-    dg::LLVMPointerAnalysis pointsToAnalysis(M.get());
+    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
 
@@ -452,7 +452,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
     LLVMContext context;
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(PTHREAD_EXIT_FILE, SMD, context); 
-    dg::LLVMPointerAnalysis pointsToAnalysis(M.get());
+    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
 
