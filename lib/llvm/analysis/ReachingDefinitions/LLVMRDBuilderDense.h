@@ -109,10 +109,6 @@ private:
 
     bool isInlineAsm(const llvm::Instruction *instruction);
 
-    const llvm::Function *
-    findFunctionAndRemoveFromVector(std::vector<const llvm::Function *> &functions,
-                                    const std::__cxx11::string &functionName);
-
     void matchForksAndJoins();
 };
 
