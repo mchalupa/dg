@@ -545,11 +545,13 @@ bool GraphBuilder::connectJoins(JoinNode *join, dg::analysis::pta::PSNodeJoin *P
 }
 
 int predecessorsNumber(const BasicBlock *basicBlock) {
-    return static_cast<int>(pred_size(basicBlock));
+    auto number = std::distance(pred_begin(basicBlock), pred_end(basicBlock));
+    return static_cast<int>(number);
 }
 
 int successorsNumber(const BasicBlock *basicBlock) {
-    return static_cast<int>(succ_size(basicBlock));
+    auto number = std::distance(succ_begin(basicBlock), succ_end(basicBlock));
+    return static_cast<int>(number);
 }
 
 bool isReachable(const BasicBlock *basicBlock) {
