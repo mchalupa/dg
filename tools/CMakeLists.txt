@@ -81,9 +81,6 @@ if (LLVM_DG)
                                                        PRIVATE ${llvm_core}
                                                        PRIVATE ${llvm_irreader}
                                                        PRIVATE ${llvm_support})
-        set_target_properties(llvm-thread-regions-dump
-                PROPERTIES
-                CXX_STANDARD 14)
 
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
