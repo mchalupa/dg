@@ -117,12 +117,22 @@ add_test(disjunctive-interval-map-regressions disjunctive-interval-map-regressio
 # --------------------------------------------------
 # ThreadRegions test
 # --------------------------------------------------
+
+add_custom_command(OUTPUT simple.ll pthread_exit.ll
+                   COMMAND clang -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c
+                   COMMAND clang -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c
+                   DEPENDS ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c )
+
+add_custom_target(thread-regions-test-file DEPENDS simple.ll)
+
 add_executable(thread-regions-test ${CMAKE_CURRENT_LIST_DIR}/catch-main.cpp
                                   ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test.cpp)
+add_dependencies(thread-regions-test thread-regions-test-file)
+
 target_compile_definitions(thread-regions-test
     PRIVATE
-        SIMPLE_FILE="${CMAKE_CURRENT_LIST_DIR}/thread-regions-llvm-files/simple.ll"
-        PTHREAD_EXIT_FILE="${CMAKE_CURRENT_LIST_DIR}/thread-regions-llvm-files/pthread_exit.ll")
+        SIMPLE_FILE="${CMAKE_CURRENT_BINARY_DIR}/simple.ll"
+        PTHREAD_EXIT_FILE="${CMAKE_CURRENT_BINARY_DIR}/pthread_exit.ll")
 
 target_link_libraries(thread-regions-test PRIVATE ThreadRegions
                                           PRIVATE ${llvm_core}

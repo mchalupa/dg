@@ -387,7 +387,7 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
     LLVMContext context;
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(SIMPLE_FILE, SMD, context);
-    const Function * function = M->getFunction("foo");
+    const Function * function = M->getFunction("sum");
     dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
@@ -552,7 +552,8 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
                 realNodes.insert(node);
             }
         }
-        REQUIRE(realNodes.size() == 42);
+        REQUIRE(realNodes.size() > 30);
+        REQUIRE(realNodes.size() < 60);
     }
 
     SECTION("ForkNode iterator test") {
@@ -568,7 +569,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
 
         int i = 0;
 
-        for (auto successor : *forkNode) {
+        for (auto it = forkNode->begin(), end = forkNode->end(); it != end; ++it) {
             ++i;
         }
 
