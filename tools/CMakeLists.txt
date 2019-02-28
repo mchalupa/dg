@@ -38,8 +38,13 @@ if (LLVM_DG)
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support})
 
-	add_executable(llvm-pta-eval llvm-pta-eval.cpp)
-	target_link_libraries(llvm-pta-eval LLVMdg)
+	add_executable(llvm-pta-ben llvm-pta-ben.cpp)
+	target_link_libraries(llvm-pta-ben LLVMpta)
+	target_link_libraries(llvm-pta-ben
+				PRIVATE ${llvm_core}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_support})
 
 	add_executable(llvm-pta-compare llvm-pta-compare.cpp)
 	target_link_libraries(llvm-pta-compare PRIVATE LLVMpta)
