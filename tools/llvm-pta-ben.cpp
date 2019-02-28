@@ -124,47 +124,6 @@ printName(PSNode *node, bool dot)
   }
 }
 
-typedef int AliasResult;
-#define NoAlias 1
-#define MayAlias 2
-#define MustAlias 3
-#define PartialAlias 4
-
-static int compare_pointer(const Pointer& ptr1, 
-			  const Pointer& ptr2)
-{
-  //  if (ptr1.target == &NullMemoryObject) return MayAlias;
-  //  if (ptr2.target == &NullMemoryObject) return MayAlias;
-  printf("target1=");
-  printName(ptr1.target, 0);
-  printf("\n");
-  printf("target2=");
-  printName(ptr2.target, 0);
-  printf("\n");
-  if (ptr1.target->isUnknownMemory()) return MayAlias;
-  if (ptr2.target->isUnknownMemory()) return MayAlias;
-  if (ptr1.offset == Offset::UNKNOWN) return MayAlias;
-  if (ptr2.offset == Offset::UNKNOWN) return MayAlias;
-  if (ptr1.target == ptr2.target
-      && ptr1.offset == ptr2.offset) return MustAlias;
-  return NoAlias;
-}
-
-static int check_pointer(const Pointer& ptr, const char *name)
-{
-  printf("target %s=", name);
-  printName(ptr.target, 0);
-  if (ptr.target->isUnknownMemory()) {
-    printf("Unknown Ptr\n");
-    return MayAlias;
-  }
-  if (ptr.target->isNull()) {
-    printf("Null Ptr\n");
-    return MayAlias;
-  }
-  printf("\n");
-  return NoAlias;
-}
 static int dump_pointer(const Pointer& ptr, const char *name)
 {
   printf("target %s=", name);
@@ -172,8 +131,54 @@ static int dump_pointer(const Pointer& ptr, const char *name)
   printf("\n");
   return 0;
 }
-static AliasResult doAlias(LLVMPointerAnalysis *pta, 
-			   llvm::Value *V1, llvm::Value*V2)
+
+
+using AliasResult = int;
+const AliasResult NoAlias      = 1;
+const AliasResult MayAlias     = 2;
+const AliasResult MustAlias    = 3;
+const AliasResult PartialAlias = 4;
+
+static int compare_pointer(const Pointer& ptr1,
+			               const Pointer& ptr2)
+{
+  dump_pointer(ptr1, "1");
+  dump_pointer(ptr2, "2");
+
+  if (ptr1.isUnknown() || ptr2.isUnknown())
+      return MayAlias;
+
+  if (ptr1.target == ptr2.target) {
+    if (ptr1.offset.isUnknown() ||
+        ptr2.offset.isUnknown()) {
+      return MayAlias;
+    } else if (ptr1.offset == ptr2.offset) {
+      return MustAlias;
+    }
+    // fall-through to NoAlias
+  }
+
+  return NoAlias;
+}
+
+static int check_pointer(const Pointer& ptr, const char *name)
+{
+  printf("target %s=", name);
+  printName(ptr.target, 0);
+  if (ptr.isUnknown()) {
+    printf("Unknown Ptr\n");
+    return MayAlias;
+  }
+  if (ptr.isNull()) {
+    printf("Null Ptr\n");
+    return MayAlias;
+  }
+  printf("\n");
+  return NoAlias;
+}
+
+static AliasResult doAlias(LLVMPointerAnalysis *pta,
+			               llvm::Value *V1, llvm::Value*V2)
 {
   PSNode *p1 = pta->getPointsTo(V1);
   PSNode *p2 = pta->getPointsTo(V2);
@@ -239,59 +244,60 @@ static AliasResult doAlias(LLVMPointerAnalysis *pta,
 }
 
 
-static llvm::StringRef NOALIAS("NOALIAS"), 
-  MAYALIAS("MAYALIAS"), 
+static llvm::StringRef
+  NOALIAS("NOALIAS"),
+  MAYALIAS("MAYALIAS"),
   MUSTALIAS("MUSTALIAS"),
   PARTIALALIAS("PARTIALALIAS"),
   EXPECTEDFAIL_MAYALIAS = ("EXPECTEDFAIL_MAYALIAS"),
   EXPECTEDFAIL_NOALIAS("EXPECTEDFAIL_NOALIAS");
 
-
 static int test_checkfunc(const llvm::StringRef &fun)
 {
   if (fun.equals(NOALIAS)) {
-    return 1;
+    return true;
   } else if (fun.equals(MAYALIAS)) {
-    return 1;
+    return true;
   } else if (fun.equals(MUSTALIAS)) {
-    return 1;
+    return true;
   } else if (fun.equals(PARTIALALIAS)) {
-    return 1;
+    return true;
   } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-    return 1;
+    return true;
   } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
-    return 1;
+    return true;
   }
-  return 0;
+  return false;
 }
 
 static void
 evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
 {
-  //  printf("EvalPSNode\n");
   enum PSNodeType nodetype = node->getType();
   if (nodetype != PSNodeType::CALL) {
     return;
   }
-  if (node->isNull()) {
-    return;
-  } else if (node->isUnknownMemory()) {
+  if (node->isNull() || node->isUnknownMemory()) {
     return;
   }
-  if (!node->getUserData<llvm::Value>()) {
-    return;
-  }
+
   const llvm::Value *val = node->getUserData<llvm::Value>();
-  const llvm::CallInst *call = llvm::dyn_cast<llvm::CallInst>(val);
-  if (!call) {
+  if (!val)
     return;
-  }
+  const llvm::CallInst *call = llvm::dyn_cast<llvm::CallInst>(val);
+  if (!call)
+    return;
+
   const llvm::Value *v = call->getCalledFunction();
-  if (v == NULL) return;
+  if (v == nullptr)
+      return;
+
   const llvm::Function *called = llvm::dyn_cast<llvm::Function>(v);
   const llvm::StringRef &fun = called->getName();
-  if (call->getNumArgOperands() != 2) return ;
-  if (!test_checkfunc(fun)) return;
+  if (call->getNumArgOperands() != 2)
+      return ;
+  if (!test_checkfunc(fun))
+      return;
 
   llvm::Value* V1 = call->getArgOperand(0);
   llvm::Value* V2 = call->getArgOperand(1);
@@ -300,7 +306,9 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
   bool r = false;
 
   if (fun.equals(NOALIAS)) {
-    r = (aares == NoAlias); ex = "NO";
+    r = (aares == NoAlias);
+    ex = "NO";
+
     if (aares == NoAlias)
       score = "true";
     else if (aares == MayAlias)
@@ -312,7 +320,9 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
     else
       score = "unknown";
   } else if (fun.equals(MAYALIAS)) {
-    r = (aares == MayAlias || aares == MustAlias); ex = "MAY";
+    r = (aares == MayAlias || aares == MustAlias);
+    ex = "MAY";
+
     if (aares == NoAlias)
       score = "false";
     else if (aares == MayAlias)
@@ -324,7 +334,9 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
     else
       score = "unknown";
   } else if (fun.equals(MUSTALIAS)) {
-    r = (aares == MustAlias); ex = "MUST";
+    r = (aares == MustAlias);
+    ex = "MUST";
+
     if (aares == NoAlias)
       score = "false";
     else if (aares == MayAlias)
@@ -334,7 +346,9 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
     else
       score = "unknown";
   } else if (fun.equals(PARTIALALIAS)) {
-    r = (aares == MayAlias || aares == MustAlias); ex = "MAY";
+    r = (aares == MayAlias || aares == MustAlias);
+    ex = "MAY";
+
     if (aares == NoAlias)
       score = "false";
     else if (aares == MayAlias)
@@ -346,7 +360,9 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
     else
       score = "unknown";
   } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-    r = (aares != MayAlias && r != MustAlias); ex = "EXPECTEDFAIL_MAY";
+    r = (aares != MayAlias && aares != MustAlias);
+    ex = "EXPECTEDFAIL_MAY";
+
     if (aares == NoAlias)
       score = "true";
     else if (aares == MayAlias)
@@ -358,7 +374,9 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
     else
       score = "unknown";
   } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
-    r = (aares != NoAlias); ex = "EXPECTEDFAIL_NO";
+    r = (aares != NoAlias);
+    ex = "EXPECTEDFAIL_NO";
+
     if (aares == NoAlias)
       score = "false";
     else if (aares == MayAlias)
@@ -373,9 +391,12 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
     return;
   }
 
-  if (aares == NoAlias) s = "NO";
-  else if (aares == MayAlias) s = "MAY";
-  else if (aares == MustAlias) s = "MUST";
+  if (aares == NoAlias)
+      s = "NO";
+  else if (aares == MayAlias)
+      s = "MAY";
+  else if (aares == MustAlias)
+      s = "MUST";
   else s = "UNKNOWN";
   if (r)
     printf("  pta %s %s ex %s ", score, s, ex);
@@ -389,6 +410,8 @@ static void
 evalPTA(LLVMPointerAnalysis *pta)
 {
   for (auto& node : pta->getNodes()) {
+    if (!node)
+        continue;
     evalPSNode(pta, node.get());
   }
 }
@@ -421,7 +444,7 @@ int main(int argc, char *argv[])
     }
 
     if (!module) {
-        errs() << "Usage: % IR_module [output_file]\n";
+        errs() << "Usage: % IR_module\n";
         return 1;
     }
 
