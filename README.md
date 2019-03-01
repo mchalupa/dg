@@ -7,15 +7,14 @@ It contains a set of generic templates that can be specialized to user's needs.
 Dg can be used for different analyses, optimizations or program slicing
 (we currently use it for the last one in our tool called Symbiotic:
 https://github.com/staticafi/symbiotic). As a part of dg, you can find
-pointer analyses, reaching definitions analysis and a static slicer
-for LLVM.
+pointer analyses, reaching definitions analysis and a static (backward and forward) slicer for LLVM bitcode.
 
 Whole project is under developement and lacks documentation for now,
 so in the case of need, contact us by an e-mail (below).
 
 ## LLVM DependenceGraph && llvm-slicer
 
-We have implemented a dependence graph for LLVM and a static slicer for LLVM.
+We have implemented a dependence graph for LLVM and a static slicer for LLVM bitcode.
 
 ### Requirements & Compilation
 
@@ -48,8 +47,8 @@ cmake .
 
 If there is any collision (i.e. there are more versions of LLVM installed),
 you may need to define the LLVM\_DIR variable to point to the directory where
-are the config files of the desired version ($PREFIX/share/llvm/cmake
-or $PREFIX/lib/cmake/llvm/ for newer versions).
+are the config files of the desired version (`$PREFIX/share/llvm/cmake`
+or `$PREFIX/lib/cmake/llvm/` for newer versions).
 If you have LLVM compiled from sources, but not installed anywhere,
 you may need to use LLVM\_SRC\_PATH and LLVM\_BUILD\_PATH variables too.
 For the last case, suppose you have LLVM built in /home/user/llvm-build from
@@ -68,7 +67,7 @@ make -j4
 ### Testing
 
 You can run tests with `make check` or `make test`. To change the pointer analysis used while testing,
-you can export `DG_TESTS_PTA` variable before running tests and set it to one of `fi`, `fs` or `old`.
+you can export `DG_TESTS_PTA` variable before running tests and set it to one of `fi` or `fs`.
 
 ### Using the slicer
 
@@ -93,8 +92,8 @@ Now you're ready to slice the program:
 ```
 
 The `slicing_criterion` is a call-site of some function or `ret` to slice
-with respect to the return value of the main function. You can provide a comma-separated list of
-slicing criterions, e.g.: `-c crit1,crit2,crit3`
+with respect to the return value of the main function. Alternatively, if the program was compiled with `-g` option,
+you can also use `line:variable` as slicing criterion. Slicer then will try finding a use of the variable on the provided line and marks this use as slicing criterion (if found). If no line is provided (e.g. `:x`), then the variable is considered to be global variable. You can provide a comma-separated list of slicing criterions, e.g.: `-c crit1,crit2,crit3`.
 
 To export the dependence graph to .dot file, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool
 `llvm-dg-dump`:
@@ -121,6 +120,7 @@ to display the results (the first that is available on the system, in this order
 ./llvm-slicer -c crit code.bc
 ./slicer-diff.sh code.bc
 ```
+If the program was compiled with `-g`, you can use `llvm-to-source sliced-bitcode.bc source.c` to see the original lines of the source that stayed in the sliced program.
 
 Another script is a wrapper around the `llvm-dg-dump`. It uses `xdot` or `evince` or `okular` (or `xdg-open`).
 It takes exactly the same arguments as the `llvm-dg-dump`:
