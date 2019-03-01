@@ -248,7 +248,6 @@ and playing with the llvm bitcode. Except for the `llvm-slicer` you can find the
 * `llvm-rd-dump`      - display reaching definitions in llvm-bitcode
 * `rd-show`           - wrapper for llvm-rd-dump
 * `llvm-to-source`    - find lines from the source code that are in given file
-* `llvm-to-source.py` - wrapper around llvm-to-source that gives an HTML output
 
 All these programs take as an input llvm bitcode, for example:
 
@@ -262,4 +261,4 @@ and flow-insensitive points-to analysis within all these programs that use point
 ------------------------------------------------
 
 You can find more information about dg in http://is.muni.cz/th/396236/fi_m/thesis.pdf
-or you can write e-mails to: <statica@fi.muni.cz> <mchqwerty@gmail.com>
+or you can write e-mails to: <mchqwerty@gmail.com> or to <statica@fi.muni.cz>
