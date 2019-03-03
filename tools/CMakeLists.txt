@@ -89,6 +89,7 @@ if (LLVM_DG)
         target_link_libraries(llvm-blocks-dump PRIVATE ControlDependence
                                                PRIVATE ${llvm_core}
                                                PRIVATE ${llvm_irreader}
+                                               PRIVATE ${llvm_analysis}
                                                PRIVATE ${llvm_support})
 
 	install(TARGETS llvm-dg-dump llvm-slicer

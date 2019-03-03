@@ -158,6 +158,8 @@ public:
         return _builder->getPointsTo(val);
     }
 
+    inline bool threads() const { return _builder->threads(); }
+
     ///
     // Get the points-to information for the given LLVM value.
     // The return object has methods begin(), end() that can be used

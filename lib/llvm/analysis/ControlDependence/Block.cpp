@@ -14,15 +14,7 @@ const std::set<Block *> &Block::predecessors() const{
     return predecessors_;
 }
 
-std::set<Block *> Block::predecessors() {
-    return predecessors_;
-}
-
 const std::set<Block *> &Block::successors() const {
-    return successors_;
-}
-
-std::set<Block *> Block::successors() {
     return successors_;
 }
 
@@ -123,6 +115,10 @@ bool Block::isCallReturn() const {
     return isArtificial()           &&
            !predecessors_.empty()   &&
             (*predecessors_.begin())->isCall();
+}
+
+bool Block::isExit() const {
+    return isArtificial() && !isCallReturn();
 }
 
 const llvm::BasicBlock *Block::llvmBlock() const {

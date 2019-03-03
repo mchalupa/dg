@@ -21,6 +21,7 @@ public:
 
     bool addBlock(Block * block);
 
+    std::set<Block *> nodes() const;
     std::set<Block *> condNodes() const;
 
     void dumpBlocks(std::ostream & ostream);

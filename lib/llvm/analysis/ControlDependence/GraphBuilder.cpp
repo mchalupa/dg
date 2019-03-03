@@ -1,9 +1,12 @@
 #include "GraphBuilder.h"
 #include "Function.h"
 #include "Block.h"
+#include "TarjanAnalysis.h"
 
 #include "llvm/IR/Function.h"
-#include <llvm/IR/CFG.h>
+#include "llvm/IR/CFG.h"
+#include "llvm/Analysis/LoopInfo.h"
+#include "llvm/Pass.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
@@ -11,7 +14,13 @@ namespace dg {
 namespace cd {
 
 GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis)
-    :pointsToAnalysis_(pointsToAnalysis) {}
+    :pointsToAnalysis_(pointsToAnalysis), threads(pointsToAnalysis->threads()) {}
+
+GraphBuilder::~GraphBuilder() {
+    for (auto function : functions_) {
+        delete function.second;
+    }
+}
 
 Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunction) {
     if (!llvmFunction) {
@@ -43,7 +52,7 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
                 }
                 bool createCallReturn = false;
                 if (llvmInst.getOpcode() == llvm::Instruction::Call) {
-                    handleInstruction(&llvmInst, lastBlock, createBlock, createCallReturn);
+                    handleCallInstruction(&llvmInst, lastBlock, createBlock, createCallReturn);
                 }
                 lastBlock->addInstruction(&llvmInst);
                 instToBlockMap.emplace(&llvmInst, lastBlock);
@@ -71,6 +80,19 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
             }
         }
     }
+
+    TarjanAnalysis<Block> tarjan(function->nodes().size());
+    tarjan.compute(function->entry());
+    tarjan.computeCondensation();
+    auto components = tarjan.computeBackWardReachability(function->exit());
+
+    for (auto component : components) {
+        if (component->nodes().size() > 1 ||
+            component->successors().find(component) != component->successors().end()) {
+            component->nodes().back()->addSuccessor(function->exit());
+        }
+    }
+
     return function;
 }
 
@@ -96,6 +118,10 @@ Function *GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) 
     return  function;
 }
 
+std::map<const llvm::Function *, Function *> GraphBuilder::functions() const {
+    return functions_;
+}
+
 void GraphBuilder::dumpNodes(std::ostream &ostream) const {
     for (auto function : functions_) {
         function.second->dumpBlocks(ostream);
@@ -116,43 +142,21 @@ void GraphBuilder::dump(std::ostream &ostream) const {
     ostream << "}\n";
 }
 
-void GraphBuilder::handleInstruction(const llvm::Instruction *instruction, Block *lastBlock, bool &createBlock, bool &createCallReturn) {
+void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, Block *lastBlock, bool &createBlock, bool &createCallReturn) {
     auto * callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
     auto llvmFunctions = pointsToAnalysis_->getPointsToFunctions(callInst->getCalledValue());
-    const llvm::Function * pthreadCreate = nullptr;
-    const llvm::Function * pthreadJoin = nullptr;
-
-    //TODO create method, which will return struct of 3 vectors - call functions, fork functions, join functions
-    for (auto iterator = llvmFunctions.begin(); iterator != llvmFunctions.end();) {
-        if ((*iterator)->getName() == "pthread_create") {
-            pthreadCreate = *iterator;
-            iterator = llvmFunctions.erase(iterator);
-            continue;
-        } else if ((*iterator)->getName() == "pthread_join") {
-            pthreadJoin = *iterator;
-            iterator = llvmFunctions.erase(iterator);
-            continue;
-        } else if ((*iterator)->size() == 0) {
-            iterator = llvmFunctions.erase(iterator);
-            continue;
-        } else {
-            ++iterator;
-        }
-    }
-
-    createCallReturn |= llvmFunctions.size();
 
     for (auto llvmFunction : llvmFunctions) {
-        auto function = createOrGetFunction(llvmFunction);
-        lastBlock->addCallee(llvmFunction, function);
-    }
-
-    if (pthreadCreate) {
-        createBlock = createPthreadCreate(callInst, lastBlock);
-    }
-
-    if (pthreadJoin) {
-        createCallReturn = createPthreadJoin(callInst, lastBlock);
+        if (llvmFunction->size() > 0) {
+            auto function = createOrGetFunction(llvmFunction);
+            lastBlock->addCallee(llvmFunction, function);
+        } else if (threads) {
+            if (llvmFunction->getName() == "pthread_create") {
+                createBlock |= createPthreadCreate(callInst, lastBlock);
+            } else if (llvmFunction->getName() == "pthread_join") {
+                createCallReturn |= createPthreadJoin(callInst, lastBlock);
+            }
+        }
     }
 }
 
@@ -160,13 +164,14 @@ bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst, Block *la
     bool createBlock = false;
     llvm::Value * calledValue = callInst->getArgOperand(2);
     auto forkFunctions = pointsToAnalysis_->getPointsToFunctions(calledValue);
-    for (auto iterator = forkFunctions.begin(); iterator != forkFunctions.end(); ++iterator) {
-        if ((*iterator)->size() == 0) {
-            iterator = forkFunctions.erase(iterator);
+    std::vector <const llvm::Function *> forkFunctionsWithBlock;
+    for (auto forkFunction : forkFunctions) {
+        if (forkFunction->size() > 0) {
+            forkFunctionsWithBlock.push_back(forkFunction);
         }
     }
-    createBlock |= forkFunctions.size();
-    for (auto forkFunction : forkFunctions) {
+    createBlock |= forkFunctionsWithBlock.size();
+    for (auto forkFunction : forkFunctionsWithBlock) {
         auto function = createOrGetFunction(forkFunction);
         lastBlock->addFork(forkFunction, function);
     }
@@ -178,11 +183,13 @@ bool GraphBuilder::createPthreadJoin(const llvm::CallInst *callInst, Block *last
     auto PSJoin = pointsToAnalysis_->findJoin(callInst);
     if (PSJoin) {
         auto joinFunctions = PSJoin->functions();
-        createCallReturn |= joinFunctions.size();
         for (auto joinFunction : joinFunctions) {
             auto llvmFunction = joinFunction->getUserData<llvm::Function>();
-            auto func = createOrGetFunction(llvmFunction);
-            lastBlock->addJoin(llvmFunction, func);
+            if (llvmFunction->size() > 0) {
+                auto func = createOrGetFunction(llvmFunction);
+                lastBlock->addJoin(llvmFunction, func);
+                createCallReturn |= true;
+            }
         }
     }
     return createCallReturn;

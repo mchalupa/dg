@@ -24,10 +24,8 @@ public:
     Block() = default;
 
     const std::set<Block *> & predecessors() const;
-          std::set<Block *>   predecessors();
 
     const std::set<Block *> & successors() const;
-          std::set<Block *>   successors();
 
     bool addPredecessor(Block * predecessor);
     bool removePredecessor(Block * predecessor);
@@ -53,6 +51,7 @@ public:
     bool isCall() const;
     bool isArtificial() const;
     bool isCallReturn() const;
+    bool isExit() const;
 
     const llvm::BasicBlock * llvmBlock() const;
 

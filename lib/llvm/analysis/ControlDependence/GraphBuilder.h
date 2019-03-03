@@ -28,11 +28,15 @@ public:
 
     GraphBuilder(LLVMPointerAnalysis * pointsToAnalysis);
 
+    ~GraphBuilder();
+
     Function * buildFunctionRecursively(const llvm::Function * llvmFunction);
 
     Function * findFunction(const llvm::Function * llvmFunction);
 
     Function * createOrGetFunction(const llvm::Function * llvmFunction);
+
+    std::map<const llvm::Function *, Function *> functions() const;
 
     void dumpNodes(std::ostream & ostream) const;
 
@@ -42,11 +46,11 @@ public:
 
 private:
 
-    LLVMPointerAnalysis * pointsToAnalysis_ = nullptr;
+    LLVMPointerAnalysis *                           pointsToAnalysis_   = nullptr;
+    bool                                            threads             = false;
+    std::map<const llvm::Function *, Function *>    functions_;
 
-    std::map<const llvm::Function *, Function *> functions_;
-
-    void handleInstruction(const llvm::Instruction * instruction, Block * lastBlock, bool & createBlock, bool & createCallReturn);
+    void handleCallInstruction(const llvm::Instruction * instruction, Block * lastBlock, bool & createBlock, bool & createCallReturn);
 
     bool createPthreadCreate(const llvm::CallInst * callInst, Block * lastBlock);
 

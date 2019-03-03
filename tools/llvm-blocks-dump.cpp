@@ -4,6 +4,7 @@
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 #include "../lib/llvm/analysis/ControlDependence/GraphBuilder.h"
+#include "../lib/llvm/analysis/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
 
 #include <llvm/IR/Module.h>
 #include <llvm/Support/SourceMgr.h>
@@ -19,11 +20,13 @@ int main(int argc, const char *argv[]) {
     string graphVizFileName;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
+    bool threads = false;
 
     try {
         Arguments arguments;
         arguments.add('p', "path", "Path to llvm bitcode file", true);
         arguments.add('o', "output-file", "Path to dot graphviz output file", true);
+        arguments.add('t', "threads", "Turn on analysis with threads", false);
         arguments.parse(argc, argv);
         if (arguments("path")) {
             module = arguments("path").getString();
@@ -31,6 +34,7 @@ int main(int argc, const char *argv[]) {
         if (arguments("output-file")) {
             graphVizFileName = arguments("output-file").getString();
         }
+        threads = bool(arguments("threads"));
     } catch (std::exception & e) {
         cerr << "\nException: " << e.what() << endl;
     }
@@ -43,17 +47,19 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
+    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, threads);
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
 
-    dg::cd::GraphBuilder graphBuilder(&pointsToAnalysis);
-    graphBuilder.buildFunctionRecursively(M->getFunction("main"));
+    dg::cd::NonTerminationSensitiveControlDependencyAnalysis controlDependencyAnalysis(M.get(),&pointsToAnalysis);
+    controlDependencyAnalysis.computeDependencies();
+//    dg::cd::GraphBuilder graphBuilder(&pointsToAnalysis);
+//    graphBuilder.buildFunctionRecursively(M->getFunction("main"));
 
     if (graphVizFileName == "") {
-        graphBuilder.dump(std::cout);
+        controlDependencyAnalysis.dump(std::cout);
     } else {
         std::ofstream graphvizFile(graphVizFileName);
-        graphBuilder.dump(graphvizFile);
+        controlDependencyAnalysis.dump(graphvizFile);
     }
     return 0;
 }
