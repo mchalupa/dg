@@ -119,7 +119,7 @@ class LLVMPointerSubgraphBuilder
 public:
     const PointerSubgraph *getPS() const { return &PS; }
 
-    inline bool threads() { return threads_; }
+    inline bool threads() const { return threads_; }
 
     LLVMPointerSubgraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
         : M(m), DL(new llvm::DataLayout(m)), _options(opts), threads_(opts.threads) {}

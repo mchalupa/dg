@@ -139,10 +139,7 @@ bool LLVMPointerSubgraphBuilder::addFunctionToFork(PSNode *function,
 bool LLVMPointerSubgraphBuilder::addFunctionToJoin(PSNode *function, 
                                                    PSNodeJoin * joinNode) 
 {
-    PSNode * CInst = joinNode->callInst();
-    if (CInst->getOperandsNum() == 1) { // CInst is function pointer call, argument is PSNode pointer
-        CInst = CInst->getSingleSuccessor(); // now CInst is pthread_join call
-    }
+    PSNode * CInst = joinNode->getPairedNode();
     joinNode->addFunction(function);
     const llvm::Function *F = function->getUserData<llvm::Function>();
     if (F->size() != 0) {

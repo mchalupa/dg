@@ -33,6 +33,10 @@ bool Function::addBlock(Block *block) {
     return blocks.insert(block).second;
 }
 
+std::set<Block *> Function::nodes() const {
+    return blocks;
+}
+
 std::set<Block *> Function::condNodes() const {
     std::set<Block *> condNodes_;
     for (auto block : blocks) {
