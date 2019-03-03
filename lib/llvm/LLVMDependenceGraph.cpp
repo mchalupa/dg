@@ -462,10 +462,10 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
                             // is only declaration
                             continue;
                         }
+                    } else {
+                        LLVMDependenceGraph *subg = buildSubgraph(node, F);
+                        node->addSubgraph(subg);
                     }
-
-                    LLVMDependenceGraph *subg = buildSubgraph(node, F);
-                    node->addSubgraph(subg);
                 }
             } else
                 llvmutils::printerr("Had no PTA node", strippedValue);
