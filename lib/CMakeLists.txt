@@ -88,6 +88,19 @@ target_link_libraries(LLVMrd
 			PUBLIC RD
 			PUBLIC LLVMForkJoin)
 
+add_library(dgllvmsdg SHARED
+	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
+
+	#${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
+)
+target_link_libraries(dgllvmsdg
+		      PUBLIC LLVMpta
+		      PUBLIC LLVMrd
+		      PUBLIC LLVMForkJoin)
+
 add_library(dgThreadRegions SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ThreadRegions/CMakeLists.txt)
 target_include_directories(dgThreadRegions
