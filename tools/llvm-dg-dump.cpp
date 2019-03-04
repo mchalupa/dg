@@ -115,6 +115,8 @@ int main(int argc, char *argv[])
                 cd_alg = CD_ALG::CLASSIC;
             else if (strcmp(arg, "ce") == 0)
                 cd_alg = CD_ALG::CONTROL_EXPRESSION;
+            else if (strcmp(arg, "ntscd") == 0)
+                cd_alg = CD_ALG::NTSCD;
             else {
                 errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
                 abort();
@@ -146,6 +148,7 @@ int main(int argc, char *argv[])
 
     llvmdg::LLVMDependenceGraphOptions options;
 
+    options.cdAlgorithm = cd_alg;
     options.threads = threads;
     options.PTAOptions.threads = threads;
     options.RDAOptions.threads = threads;

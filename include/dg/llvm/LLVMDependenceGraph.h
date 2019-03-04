@@ -33,6 +33,8 @@ enum class CD_ALG {
     CLASSIC,
     // our algorithm
     CONTROL_EXPRESSION,
+    // non-termination sensitive control dependencies
+    NTSCD
 };
 
 // forward declaration
@@ -137,6 +139,8 @@ public:
                 addNoreturnDependencies();
         } else if (alg_type == CD_ALG::CONTROL_EXPRESSION) {
             computeControlExpression(true);
+        } else if (alg_type == CD_ALG::NTSCD) {
+            computeNonTerminationControlDependencies();
         } else
             abort();
     }
@@ -167,6 +171,7 @@ public:
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeControlExpression(bool addCDs = false);
+    void computeNonTerminationControlDependencies();
 
     void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
                                            const std::set<const llvm::Instruction *> &stores);

@@ -50,10 +50,8 @@ int main(int argc, const char *argv[]) {
     dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, threads);
     pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
 
-    dg::cd::NonTerminationSensitiveControlDependencyAnalysis controlDependencyAnalysis(M.get(),&pointsToAnalysis);
+    dg::cd::NonTerminationSensitiveControlDependencyAnalysis controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
     controlDependencyAnalysis.computeDependencies();
-//    dg::cd::GraphBuilder graphBuilder(&pointsToAnalysis);
-//    graphBuilder.buildFunctionRecursively(M->getFunction("main"));
 
     if (graphVizFileName == "") {
         controlDependencyAnalysis.dump(std::cout);

@@ -150,6 +150,7 @@ void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, B
         if (llvmFunction->size() > 0) {
             auto function = createOrGetFunction(llvmFunction);
             lastBlock->addCallee(llvmFunction, function);
+            createCallReturn |= true;
         } else if (threads) {
             if (llvmFunction->getName() == "pthread_create") {
                 createBlock |= createPthreadCreate(callInst, lastBlock);

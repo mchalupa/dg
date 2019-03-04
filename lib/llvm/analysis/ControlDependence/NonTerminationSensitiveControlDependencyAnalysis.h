@@ -6,20 +6,20 @@
 #include <set>
 #include <map>
 
+#include "Block.h"
+
 namespace llvm {
-class Module;
+class Function;
 }
 
 namespace dg {
 namespace cd {
 
-class Block;
-
 class NonTerminationSensitiveControlDependencyAnalysis
 {
 public:
 
-    NonTerminationSensitiveControlDependencyAnalysis(const llvm::Module * module,LLVMPointerAnalysis * pointsToAnalysis);
+    NonTerminationSensitiveControlDependencyAnalysis(const llvm::Function *function, LLVMPointerAnalysis * pointsToAnalysis);
 
     void computeDependencies();
 
@@ -27,9 +27,11 @@ public:
 
     void dumpDependencies(std::ostream & ostream) const;
 
+    const std::map<Block *, std::set<Block *>> & controlDependencies() const { return controlDependency; }
+
 
 private:
-    const llvm::Module * module;
+    const llvm::Function * entryFunction;
     GraphBuilder graphBuilder;
     std::map<Block *, std::set<Block *>> controlDependency;
 };
