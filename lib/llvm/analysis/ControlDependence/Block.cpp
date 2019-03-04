@@ -50,11 +50,18 @@ bool Block::removeSuccessor(Block *successor) {
     return successor->predecessors_.erase(this);
 }
 
+const llvm::Instruction *Block::lastInstruction() const {
+    if (!llvmInstructions_.empty()) {
+        return llvmInstructions_.back();
+    }
+    return nullptr;
+}
+
 bool Block::addInstruction(const llvm::Instruction *instruction) {
     if (!instruction) {
         return false;
     }
-    llvmInstructions.push_back(instruction);
+    llvmInstructions_.push_back(instruction);
     return true;
 }
 
@@ -104,11 +111,11 @@ std::map<const llvm::Function *, Function *> Block::joins() {
 }
 
 bool Block::isCall() const {
-    return !llvmInstructions.empty() && llvmInstructions.back()->getOpcode() == llvm::Instruction::Call;
+    return !llvmInstructions_.empty() && llvmInstructions_.back()->getOpcode() == llvm::Instruction::Call;
 }
 
 bool Block::isArtificial() const {
-    return llvmInstructions.empty();
+    return llvmInstructions_.empty();
 }
 
 bool Block::isCallReturn() const {
@@ -122,12 +129,12 @@ bool Block::isExit() const {
 }
 
 const llvm::BasicBlock *Block::llvmBlock() const {
-    if (!llvmInstructions.empty()) {
-        return llvmInstructions.back()->getParent();
+    if (!llvmInstructions_.empty()) {
+        return llvmInstructions_.back()->getParent();
     } else if (!predecessors_.empty()) {
         auto pred = *predecessors_.begin();
-        if (!pred->llvmInstructions.empty()) {
-            return  pred->llvmInstructions.back()->getParent();
+        if (!pred->llvmInstructions_.empty()) {
+            return  pred->llvmInstructions_.back()->getParent();
         }
     }
     return nullptr;
@@ -152,7 +159,7 @@ std::string Block::label() const {
         label_ += "Block\\n\\n";
         std::string llvmTemporaryString;
         llvm::raw_string_ostream llvmStream(llvmTemporaryString);
-        for (auto instruction : llvmInstructions) {
+        for (auto instruction : llvmInstructions_) {
             instruction->print(llvmStream);
             label_ += llvmTemporaryString + "\\n";
             llvmTemporaryString.clear();

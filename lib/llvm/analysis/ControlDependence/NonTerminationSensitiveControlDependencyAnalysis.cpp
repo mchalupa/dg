@@ -5,18 +5,24 @@
 #include <llvm/IR/Module.h>
 
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
 namespace dg {
 namespace cd {
 
-NonTerminationSensitiveControlDependencyAnalysis::NonTerminationSensitiveControlDependencyAnalysis(const llvm::Module *module, dg::LLVMPointerAnalysis *pointsToAnalysis)
-    :module(module), graphBuilder(pointsToAnalysis)
+NonTerminationSensitiveControlDependencyAnalysis::NonTerminationSensitiveControlDependencyAnalysis(const llvm::Function *function, dg::LLVMPointerAnalysis *pointsToAnalysis)
+    :entryFunction(function), graphBuilder(pointsToAnalysis)
 {}
 
 void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
-    graphBuilder.buildFunctionRecursively(module->getFunction("main"));
+    if (!entryFunction) {
+        std::cerr << "Missing entry function!\n";
+        return;
+    }
+
+    graphBuilder.buildFunctionRecursively(entryFunction);
     auto functions = graphBuilder.functions();
 
     for (auto function : functions) {

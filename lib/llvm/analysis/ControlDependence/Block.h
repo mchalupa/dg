@@ -33,6 +33,10 @@ public:
     bool addSuccessor(Block * successor);
     bool removeSuccessor(Block * successor);
 
+    const std::vector<const llvm::Instruction *> & llvmInstructions() const { return llvmInstructions_; }
+
+    const llvm::Instruction * lastInstruction() const;
+
     bool addInstruction(const llvm::Instruction * instruction);
 
     bool addCallee(const llvm::Function * llvmFunction, Function * function);
@@ -65,7 +69,7 @@ public:
 
 private:
 
-    std::vector<const llvm::Instruction *> llvmInstructions;
+    std::vector<const llvm::Instruction *> llvmInstructions_;
 
     std::set<Block *> predecessors_;
     std::set<Block *> successors_;
