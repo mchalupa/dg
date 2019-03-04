@@ -155,9 +155,22 @@ else()
 				PUBLIC dgllvmcda)
 endif(APPLE)
 
+add_library(dgllvmsdg SHARED
+	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
+
+	#${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
+)
+target_link_libraries(dgllvmsdg
+		      PUBLIC dgllvmpta
+		      PUBLIC dgllvmdda
+		      PUBLIC dgllvmcda)
+
 install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
                 dgllvmpta dgllvmdda dgpta dgdda dganalysis
-		dgllvmforkjoin
+		dgllvmforkjoin dgllvmsdg
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)
