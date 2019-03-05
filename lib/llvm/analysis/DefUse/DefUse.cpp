@@ -300,12 +300,6 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
 void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, RDNode *rd)
 {
     llvm::Value *rdval = rd->getUserData<llvm::Value>();
-    if (!rdval) {
-        auto predecessor = rd->getSinglePredecessor();
-        if (predecessor->getType() == RDNodeType::CALL_FUNCPTR) {
-            rdval = predecessor->getUserData<llvm::Value>();
-        }
-    }
     assert(rdval && "RDNode has not set the coresponding value");
     addDataDependence(node, rdval);
 }
