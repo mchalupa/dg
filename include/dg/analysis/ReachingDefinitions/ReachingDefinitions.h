@@ -53,8 +53,6 @@ enum class RDNodeType {
         RETURN,
         // call node
         CALL,
-        // function pointer call
-        CALL_FUNCPTR,
         // return from the call (in caller)
         CALL_RETURN,
         FORK,
