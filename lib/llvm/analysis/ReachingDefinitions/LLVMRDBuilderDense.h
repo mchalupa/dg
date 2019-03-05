@@ -65,6 +65,12 @@ private:
         dummy_nodes.push_back(node);
     }
 
+    void addArtificialNode(const llvm::Value *val, RDNode *node)
+    {
+        node->setUserData(const_cast<llvm::Value *>(val));
+        dummy_nodes.push_back(node);
+    }
+
     void addMapping(const llvm::Value *val, RDNode *node)
     {
         auto it = mapping.find(val);

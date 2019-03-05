@@ -100,8 +100,8 @@ RDNode *LLVMRDBuilderDense::createAlloc(const llvm::Instruction *Inst)
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
     } else {
-        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
-        addNode(node);
+        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
+        addArtificialNode(Inst, node);
         makeEdge(iterator->second, node);
     }
 
@@ -121,8 +121,8 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
     } else {
-        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
-        addNode(node);
+        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
+        addArtificialNode(Inst, node);
     }
 
     const CallInst *CInst = cast<CallInst>(Inst);
@@ -165,8 +165,8 @@ RDNode *LLVMRDBuilderDense::createRealloc(const llvm::Instruction *Inst)
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
     } else {
-        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
-        addNode(node);
+        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
+        addArtificialNode(Inst, node);
     }
 
     uint64_t size = getConstantValue(Inst->getOperand(1));
@@ -505,7 +505,7 @@ LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F,
         addNode(CInst, callNode);
         addNode(returnNode);
     } else {
-        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
+        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
     }
 
     // FIXME: if this is an inline assembly call
@@ -603,8 +603,8 @@ RDNode *LLVMRDBuilderDense::createUndefinedCall(const llvm::CallInst *CInst)
     if (iterator == nodes_map.end()) {
         addNode(CInst, node);
     } else {
-        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
-        addNode(node);
+        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
+        addArtificialNode(CInst, node);
     }
 
     // if we assume that undefined functions are pure
@@ -858,7 +858,7 @@ LLVMRDBuilderDense::createCallToFunctions(const std::vector<const llvm::Function
 {
     using namespace std;
 
-    RDNode *callNode = new RDNode(RDNodeType::CALL_FUNCPTR);
+    RDNode *callNode = new RDNode(RDNodeType::CALL);
     RDNode *returnNode = new RDNode(RDNodeType::RETURN);
     addNode(CInst, callNode);
     addNode(returnNode);
@@ -893,8 +893,8 @@ LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
     if (iterator == nodes_map.end()) {
         addNode(CInst, rootNode);
     } else {
-        assert(iterator->second->getType() == RDNodeType::CALL_FUNCPTR && "Adding node we already have");
-        addNode(rootNode);
+        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
+        addArtificialNode(CInst, rootNode);
     }
     threadCreateCalls.emplace(CInst, rootNode);
 
