@@ -22,6 +22,14 @@ GraphBuilder::~GraphBuilder() {
     }
 }
 
+bool isExit(const TarjanAnalysis<Block>::StronglyConnectedComponent * component, const Function * function) {
+    bool ret = component->nodes().size() == 1;
+    if (!ret) {
+        return false;
+    }
+    return component->nodes().back() == function->exit();
+}
+
 Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunction) {
     if (!llvmFunction) {
         return nullptr;
@@ -58,7 +66,7 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
                 instToBlockMap.emplace(&llvmInst, lastBlock);
 
                 if (createCallReturn) {
-                    auto tmpBlock = new Block();
+                    auto tmpBlock = new Block(createCallReturn);
                     function->addBlock(tmpBlock);
                     lastBlock->addSuccessor(tmpBlock);
                     lastBlock = tmpBlock;
@@ -84,14 +92,21 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
     TarjanAnalysis<Block> tarjan(function->nodes().size());
     tarjan.compute(function->entry());
     tarjan.computeCondensation();
-    auto components = tarjan.computeBackWardReachability(function->exit());
-
-    for (auto component : components) {
-        if (component->nodes().size() > 1 ||
-            component->successors().find(component) != component->successors().end()) {
+    const auto & componentss = tarjan.components();
+    for (const auto component : componentss) {
+        if (!isExit(component, function) && component->successors().size() == 0) {
             component->nodes().back()->addSuccessor(function->exit());
         }
     }
+
+//    auto components = tarjan.computeBackWardReachability(function->exit());
+
+//    for (auto component : components) {
+//        if (component->nodes().size() > 1 ||
+//            component->successors().find(component) != component->successors().end()) {
+//            component->nodes().back()->addSuccessor(function->exit());
+//        }
+//    }
 
     return function;
 }

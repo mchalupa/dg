@@ -66,7 +66,7 @@ public:
     TarjanAnalysis(std::size_t size = 0):nodeInfo(size) {}
 
     ~TarjanAnalysis() {
-        for (auto component : components) {
+        for (auto component : components_) {
             delete component;
         }
     }
@@ -92,7 +92,7 @@ public:
 
         if (nodeInfo[currentNode].lowLink == nodeInfo[currentNode].dfsId) {
             auto component = new StronglyConnectedComponent();
-            components.insert(component);
+            components_.insert(component);
 
             T * node;
             while (nodeInfo[stack.top()].dfsId >= nodeInfo[currentNode].dfsId) {
@@ -110,7 +110,7 @@ public:
     }
 
     void computeCondensation() {
-        for (auto component : components) {
+        for (auto component : components_) {
             for (auto node : component->nodes()) {
                 for (auto successor : node->successors()) {
                     if (nodeInfo[node].component != nodeInfo[successor].component) {
@@ -124,8 +124,12 @@ public:
     std::set<StronglyConnectedComponent *> computeBackWardReachability(T * node) {
         std::set<StronglyConnectedComponent *> visitedComponents;
         std::queue<StronglyConnectedComponent *> queue;
-        auto initialComponent = nodeInfo[node].component;
 
+        auto iterator = nodeInfo.find(node);
+        if (iterator == nodeInfo.end()) {
+            return visitedComponents;
+        }
+        auto initialComponent = iterator.second;
         visitedComponents.insert(initialComponent);
         queue.push(initialComponent);
 
@@ -139,13 +143,10 @@ public:
                 }
             }
         }
-        std::set<StronglyConnectedComponent *> unvisitedComponents;
-        std::set_difference(components.begin(),         components.end(),
-                            visitedComponents.begin(),  visitedComponents.end(),
-                            std::inserter(unvisitedComponents, unvisitedComponents.begin()));
-
-        return unvisitedComponents;
+        return visitedComponents;
     }
+
+    const std::set<StronglyConnectedComponent *> & components() const { return components_; }
 
     private:
 
@@ -155,7 +156,7 @@ public:
 
     std::unordered_map<T *, Node> nodeInfo;
 
-    std::set<StronglyConnectedComponent *> components;
+    std::set<StronglyConnectedComponent *> components_;
 
     private:
 

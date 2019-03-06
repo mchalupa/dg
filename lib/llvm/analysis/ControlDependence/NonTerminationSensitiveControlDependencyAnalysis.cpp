@@ -62,6 +62,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
             //(2.2) Multiple successors case
             if (node->successors().size() > 1) {
                 for (auto m : nodes) {
+                    auto val = matrix[{m,node}].size();
                     if (matrix[{m,node}].size() == node->successors().size()) {
                         for (auto condNode : condNodes) {
                             if (node != condNode) {
@@ -93,11 +94,20 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
 
         // add interprocedural dependencies
         for (auto node : nodes) {
-            for (auto callee : node->callees()) {
-                controlDependency[callee.second->exit()].insert(*node->successors().begin());
-            }
-            for (auto join : node->joins()) {
-                controlDependency[join.second->exit()].insert(*node->successors().begin());
+            if (!node->callees().empty() || !node->joins().empty()) {
+                auto iterator = std::find_if(node->successors().begin(),
+                                             node->successors().end(),
+                                             [](const Block *block){
+                                                    return block->isCallReturn();
+                                             });
+                if (iterator != node->successors().end()) {
+                    for (auto callee : node->callees()) {
+                        controlDependency[callee.second->exit()].insert(*node->successors().begin());
+                    }
+                    for (auto join : node->joins()) {
+                        controlDependency[join.second->exit()].insert(*node->successors().begin());
+                    }
+                }
             }
         }
     }
