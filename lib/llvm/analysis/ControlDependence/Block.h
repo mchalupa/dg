@@ -21,7 +21,7 @@ struct Block
 {
 public:
 
-    Block() = default;
+    Block(bool callReturn = false):callReturn(callReturn) {}
 
     const std::set<Block *> & predecessors() const;
 
@@ -73,6 +73,8 @@ private:
 
     std::set<Block *> predecessors_;
     std::set<Block *> successors_;
+
+    bool callReturn = false;
 
     std::map<const llvm::Function *, Function *> callees_;
     std::map<const llvm::Function *, Function *> forks_;

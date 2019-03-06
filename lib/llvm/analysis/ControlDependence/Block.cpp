@@ -120,8 +120,7 @@ bool Block::isArtificial() const {
 
 bool Block::isCallReturn() const {
     return isArtificial()           &&
-           !predecessors_.empty()   &&
-            (*predecessors_.begin())->isCall();
+           callReturn;
 }
 
 bool Block::isExit() const {
@@ -132,9 +131,10 @@ const llvm::BasicBlock *Block::llvmBlock() const {
     if (!llvmInstructions_.empty()) {
         return llvmInstructions_.back()->getParent();
     } else if (!predecessors_.empty()) {
-        auto pred = *predecessors_.begin();
-        if (!pred->llvmInstructions_.empty()) {
-            return  pred->llvmInstructions_.back()->getParent();
+        for (auto predecessor : predecessors_) {
+            if (predecessor->llvmInstructions_.size() > 0) {
+                return predecessor->llvmInstructions_.back()->getParent();
+            }
         }
     }
     return nullptr;
