@@ -19,6 +19,7 @@
 
 #include "llvm-slicer.h"
 #include "llvm-slicer-opts.h"
+#include "llvm-slicer-utils.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -109,44 +110,6 @@ llvm::cl::opt<std::string> annotationOpts("annotate",
 
 // mapping of AllocaInst to the names of C variables
 std::map<const llvm::Value *, std::string> valuesToVariables;
-
-static bool array_match(llvm::StringRef name, const char *names[])
-{
-    unsigned idx = 0;
-    while(names[idx]) {
-        if (name.equals(names[idx]))
-            return true;
-        ++idx;
-    }
-
-    return false;
-}
-
-template <typename T>
-bool array_match(llvm::StringRef name, const T& names)
-{
-    for (auto& n : names) {
-        if (name.equals(n))
-            return true;
-    }
-
-    return false;
-}
-
-static void replace_suffix(std::string& fl, const std::string& with)
-{
-    if (fl.size() > 2) {
-        if (fl.compare(fl.size() - 2, 2, ".o") == 0)
-            fl.replace(fl.end() - 2, fl.end(), with);
-        else if (fl.compare(fl.size() - 3, 3, ".bc") == 0)
-            fl.replace(fl.end() - 3, fl.end(), with);
-        else
-            fl += with;
-    } else {
-        fl += with;
-    }
-}
-
 
 class ModuleWriter {
     const SlicerOptions& options;
@@ -444,47 +407,6 @@ public:
     }
 };
 
-
-static std::vector<std::string> splitList(const std::string& opt, char sep = ',')
-{
-    std::vector<std::string> ret;
-    if (opt.empty())
-        return ret;
-
-    size_t old_pos = 0;
-    size_t pos = 0;
-    while (true) {
-        old_pos = pos;
-
-        pos = opt.find(sep, pos);
-        ret.push_back(opt.substr(old_pos, pos - old_pos));
-
-        if (pos == std::string::npos)
-            break;
-        else
-            ++pos;
-    }
-
-    return ret;
-}
-
-std::pair<std::vector<std::string>, std::vector<std::string>>
-splitStringVector(std::vector<std::string>& vec,
-                  std::function<bool(std::string&)> cmpFunc)
-{
-    std::vector<std::string> part1;
-    std::vector<std::string> part2;
-
-    for (auto& str : vec) {
-        if (cmpFunc(str)) {
-            part1.push_back(std::move(str));
-        } else {
-            part2.push_back(std::move(str));
-        }
-    }
-
-    return {part1, part2};
-}
 
 static bool usesTheVariable(LLVMDependenceGraph& dg,
                             const llvm::Value *v,

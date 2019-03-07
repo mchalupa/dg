@@ -8,33 +8,13 @@
 #include <llvm/Support/CommandLine.h>
 
 #include "llvm-slicer.h"
+#include "llvm-slicer-utils.h"
+
 #include "git-version.h"
 
 using dg::analysis::LLVMDefUseAnalysisOptions;
 using dg::analysis::LLVMPointerAnalysisOptions;
 using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
-
-static std::vector<std::string> splitList(const std::string& opt, char sep = ',') {
-    std::vector<std::string> ret;
-    if (opt.empty())
-        return ret;
-
-    size_t old_pos = 0;
-    size_t pos = 0;
-    while (true) {
-        old_pos = pos;
-
-        pos = opt.find(sep, pos);
-        ret.push_back(opt.substr(old_pos, pos - old_pos));
-
-        if (pos == std::string::npos)
-            break;
-        else
-            ++pos;
-    }
-
-    return ret;
-}
 
 
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
