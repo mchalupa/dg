@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <functional>
 
 using namespace std;
 
@@ -29,7 +30,15 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
         auto nodes = function.second->nodes();
         auto condNodes = function.second->condNodes();
         map<pair<Block *, Block *>, set<pair<Block *, Block *>>> matrix;
-        set<Block *> workBag;
+
+        auto compare = [] (const Block * lhs, const Block * rhs) {
+                                if (lhs->successors().size() < rhs->successors().size())
+                                    return true;
+                                else
+                                    return lhs < rhs;
+                            };
+
+        set<Block *, decltype (compare)> workBag(compare);
 
         //(1) Initialize
         for (auto condNode : condNodes) {
@@ -62,7 +71,6 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
             //(2.2) Multiple successors case
             if (node->successors().size() > 1) {
                 for (auto m : nodes) {
-                    auto val = matrix[{m,node}].size();
                     if (matrix[{m,node}].size() == node->successors().size()) {
                         for (auto condNode : condNodes) {
                             if (node != condNode) {
