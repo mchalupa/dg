@@ -12,9 +12,11 @@ extern llvm::cl::OptionCategory SlicingOpts;
 struct SlicerOptions {
     dg::llvmdg::LLVMDependenceGraphOptions dgOptions{};
 
-    std::vector<std::string> untouchedFunctions{};
     // FIXME: get rid of this once we got the secondary SC
     std::vector<std::string> additionalSlicingCriteria{};
+
+    // bodies of these functions will not be sliced
+    std::vector<std::string> preservedFunctions{};
 
     // slice away also the slicing criteria nodes
     // (if they are not dependent on themselves)
