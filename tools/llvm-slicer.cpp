@@ -910,11 +910,6 @@ int main(int argc, char *argv[])
         "klee_assume",
     };
 
-    options.untouchedFunctions = {
-        "__VERIFIER_assume",
-        "__VERIFIER_exit"
-    };
-
     Slicer slicer(M.get(), options);
     if (!slicer.buildDG()) {
         errs() << "ERROR: Failed building DG\n";
