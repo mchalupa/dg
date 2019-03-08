@@ -66,6 +66,8 @@ public:
 
     std::string label() const;
 
+    void visit();
+
     void dumpNode(std::ostream & ostream) const;
     void dumpEdges(std::ostream & ostream) const;
 

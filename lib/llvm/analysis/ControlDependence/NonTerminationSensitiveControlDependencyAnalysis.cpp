@@ -27,20 +27,22 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
     graphBuilder.buildFunctionRecursively(entryFunction);
     auto entryFunc = graphBuilder.findFunction(entryFunction);
 
-    queue<Block *> bfsQueue;
-    bfsQueue.push(entryFunc->entry());
-    entryFunc->entry()->setBfsId();
+//    queue<Block *> bfsQueue;
+//    bfsQueue.push(entryFunc->entry());
+//    entryFunc->entry()->setBfsId();
 
-    while (!bfsQueue.empty()) {
-        auto node = bfsQueue.front();
-        bfsQueue.pop();
-        for (auto successor : node->successors()) {
-            if (successor->bfsId() == 0) {
-                bfsQueue.push(successor);
-                successor->setBfsId();
-            }
-        }
-    }
+//    while (!bfsQueue.empty()) {
+//        auto node = bfsQueue.front();
+//        bfsQueue.pop();
+//        for (auto successor : node->successors()) {
+//            if (successor->bfsId() == 0) {
+//                bfsQueue.push(successor);
+//                successor->setBfsId();
+//            }
+//        }
+//    }
+
+    entryFunc->entry()->visit();
 
     auto functions = graphBuilder.functions();
 
