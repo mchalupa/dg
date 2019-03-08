@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <iostream>
 #include <functional>
+#include <queue>
 
 using namespace std;
 
@@ -24,6 +25,23 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
     }
 
     graphBuilder.buildFunctionRecursively(entryFunction);
+    auto entryFunc = graphBuilder.findFunction(entryFunction);
+
+    queue<Block *> bfsQueue;
+    bfsQueue.push(entryFunc->entry());
+    entryFunc->entry()->setBfsId();
+
+    while (!bfsQueue.empty()) {
+        auto node = bfsQueue.front();
+        bfsQueue.pop();
+        for (auto successor : node->successors()) {
+            if (successor->bfsId() == 0) {
+                bfsQueue.push(successor);
+                successor->setBfsId();
+            }
+        }
+    }
+
     auto functions = graphBuilder.functions();
 
     for (auto function : functions) {
@@ -32,10 +50,10 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
         map<pair<Block *, Block *>, set<pair<Block *, Block *>>> matrix;
 
         auto compare = [] (const Block * lhs, const Block * rhs) {
-                                if (lhs->successors().size() < rhs->successors().size())
+                                if (lhs->bfsId() > rhs->bfsId())
                                     return true;
                                 else
-                                    return lhs < rhs;
+                                    return lhs > rhs;
                             };
 
         set<Block *, decltype (compare)> workBag(compare);
