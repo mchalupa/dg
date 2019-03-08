@@ -172,6 +172,16 @@ std::string Block::label() const {
     return label_;
 }
 
+void Block::visit() {
+    this->setBfsId();
+    for (auto successor : successors_) {
+        if (successor->bfsId() == 0) {
+            successor->visit();
+        }
+    }
+    this->setBfsId();
+}
+
 void Block::dumpNode(std::ostream &ostream) const {
     ostream << dotName() << " " << label();
 }
