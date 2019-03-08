@@ -57,6 +57,9 @@ public:
     bool isCallReturn() const;
     bool isExit() const;
 
+    void setBfsId() { bfsId_ = ++bfsCounter; }
+    int bfsId() const { return bfsId_; }
+
     const llvm::BasicBlock * llvmBlock() const;
 
     std::string dotName() const;
@@ -68,6 +71,7 @@ public:
 
 
 private:
+    static int bfsCounter;
 
     std::vector<const llvm::Instruction *> llvmInstructions_;
 
@@ -75,6 +79,7 @@ private:
     std::set<Block *> successors_;
 
     bool callReturn = false;
+    int bfsId_       = 0;
 
     std::map<const llvm::Function *, Function *> callees_;
     std::map<const llvm::Function *, Function *> forks_;

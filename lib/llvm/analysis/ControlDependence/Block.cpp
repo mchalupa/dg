@@ -10,6 +10,8 @@
 namespace dg {
 namespace cd {
 
+int Block::bfsCounter = 0;
+
 const std::set<Block *> &Block::predecessors() const{
     return predecessors_;
 }
@@ -150,13 +152,14 @@ std::string Block::label() const {
     std::string label_ = "[label=\"";
     label_ += "Function: ";
     label_ += llvmBlock()->getParent()->getName();
-    label_ += "\\n\\n";
+    label_ += "\\n\\nid:";
+    label_ += std::to_string(bfsId_);
     if (isCallReturn()) {
-        label_ += "Call Return Block\\n\\n";
+        label_ += " Call Return Block\\n\\n";
     } else if (isArtificial()) {
-        label_ += "Unified Exit Block\\n\\n";
+        label_ += " Unified Exit Block\\n\\n";
     } else {
-        label_ += "Block\\n\\n";
+        label_ += " Block\\n\\n";
         std::string llvmTemporaryString;
         llvm::raw_string_ostream llvmStream(llvmTemporaryString);
         for (auto instruction : llvmInstructions_) {
