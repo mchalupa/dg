@@ -34,74 +34,23 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
     for (auto function : functions) {
         auto nodes = function.second->nodes();
         auto condNodes = function.second->condNodes();
-        map<pair<Block *, Block *>, set<pair<Block *, Block *>>> matrix;
 
-        auto compare = [] (const Block * lhs, const Block * rhs) {
-                                return lhs->bfsId() < rhs->bfsId();
-                            };
-
-        set<Block *, decltype (compare)> workBag(compare);
-
-        //(1) Initialize
-        for (auto condNode : condNodes) {
-            for (auto successor : condNode->successors()) {
-                matrix[{successor, condNode}].insert({condNode, successor});
-                workBag.insert(successor);
-            }
-        }
-
-        //(2) Calculate all-path reachability
-        while (!workBag.empty()) {
-            auto node = *workBag.begin();
-            workBag.erase(workBag.begin());
-            std::cerr << "Processing node with id: " << node->bfsId() << "\n";
-            //(2.1) One successor case
-            if (node->successors().size() == 1 && node->successors().find(node) == node->successors().end()) {
-                auto successor = *node->successors().begin();
-                for (auto condNode : condNodes) {
-                    auto &s1 = matrix[{node, condNode}];
-                    auto &s2 = matrix[{successor, condNode}];
-                    set<pair<Block *, Block *>> difference;
-                    set_difference(s1.begin(), s1.end(),
-                                   s2.begin(), s2.end(),
-                                   inserter(difference, difference.begin()));
-                    if (!difference.empty()) {
-                        s2.insert(difference.begin(), difference.end());
-                        workBag.insert(successor);
-                    }
-                }
-            }
-            //(2.2) Multiple successors case
-            if (node->successors().size() > 1) {
-                for (auto m : nodes) {
-                    if (matrix[{m,node}].size() == node->successors().size()) {
-                        std::cerr << "Inside complicated if, size " << node->successors().size() << " successors\n";
-                        for (auto condNode : condNodes) {
-                            if (node != condNode) {
-                                auto &s1 = matrix[{node, condNode}];
-                                auto &s2 = matrix[{m, condNode}];
-                                set<pair<Block *, Block *>> difference;
-                                set_difference(s1.begin(), s1.end(),
-                                               s2.begin(), s2.end(),
-                                               inserter(difference, difference.begin()));
-                                if (!difference.empty()) {
-                                    s2.insert(difference.begin(), difference.end());
-                                    workBag.insert(m);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        //(3) Calculate non-termination sensitive control dependence
         for (auto node : nodes) {
-            for (auto condNode : condNodes) {
-                auto size = matrix[{node, condNode}].size();
-                if (size > 0 && size < condNode->successors().size()) {
-                    controlDependency[condNode].insert(node);
+            // (1) initialize
+            nodeInfo.clear();
+            nodeInfo.reserve(nodes.size());
+            for (auto node1 : nodes) {
+                nodeInfo[node1].outDegreeCounter = node1->successors().size();
+            }
+            // (2) traverse
+            visitInitialNode(node);
+            // (3)
+            for (auto node1 : nodes) {
+                if (hasRedAndNonRedSuccessor(node1)) {
+                    controlDependency[node1].insert(node);
                 }
             }
+
         }
 
         // add interprocedural dependencies
@@ -140,6 +89,36 @@ void NonTerminationSensitiveControlDependencyAnalysis::dumpDependencies(ostream 
                     << " [color=blue, constraint=false]\n";
         }
     }
+}
+
+void NonTerminationSensitiveControlDependencyAnalysis::visitInitialNode(Block *node) {
+    nodeInfo[node].red = true;
+    for (auto predecessor : node->predecessors()) {
+        visit(predecessor);
+    }
+}
+
+void NonTerminationSensitiveControlDependencyAnalysis::visit(Block *node) {
+    if (nodeInfo[node].outDegreeCounter == 0) {
+        return;
+    }
+    nodeInfo[node].outDegreeCounter--;
+    if (nodeInfo[node].outDegreeCounter == 0) {
+        nodeInfo[node].red = true;
+        for (auto predecessor : node->predecessors()) {
+            visit(predecessor);
+        }
+    }
+}
+
+bool NonTerminationSensitiveControlDependencyAnalysis::hasRedAndNonRedSuccessor(Block *node) {
+    size_t redCounter = 0;
+    for (auto successor : node->successors()) {
+        if (nodeInfo[successor].red) {
+            ++redCounter;
+        }
+    }
+    return redCounter > 0 && node->successors().size() > redCounter;
 }
 
 
