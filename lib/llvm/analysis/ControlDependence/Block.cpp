@@ -10,7 +10,7 @@
 namespace dg {
 namespace cd {
 
-int Block::bfsCounter = 0;
+int Block::traversalCounter = 0;
 
 const std::set<Block *> &Block::predecessors() const{
     return predecessors_;
@@ -153,7 +153,7 @@ std::string Block::label() const {
     label_ += "Function: ";
     label_ += llvmBlock()->getParent()->getName();
     label_ += "\\n\\nid:";
-    label_ += std::to_string(bfsId_);
+    label_ += std::to_string(traversalId_);
     if (isCallReturn()) {
         label_ += " Call Return Block\\n\\n";
     } else if (isArtificial()) {
@@ -173,13 +173,13 @@ std::string Block::label() const {
 }
 
 void Block::visit() {
-    this->setBfsId();
+    this->traversalId();
     for (auto successor : successors_) {
         if (successor->bfsId() == 0) {
             successor->visit();
         }
     }
-    this->setBfsId();
+    this->traversalId();
 }
 
 void Block::dumpNode(std::ostream &ostream) const {

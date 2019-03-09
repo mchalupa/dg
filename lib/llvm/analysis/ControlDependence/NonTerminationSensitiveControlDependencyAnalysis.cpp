@@ -27,21 +27,6 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
     graphBuilder.buildFunctionRecursively(entryFunction);
     auto entryFunc = graphBuilder.findFunction(entryFunction);
 
-//    queue<Block *> bfsQueue;
-//    bfsQueue.push(entryFunc->entry());
-//    entryFunc->entry()->setBfsId();
-
-//    while (!bfsQueue.empty()) {
-//        auto node = bfsQueue.front();
-//        bfsQueue.pop();
-//        for (auto successor : node->successors()) {
-//            if (successor->bfsId() == 0) {
-//                bfsQueue.push(successor);
-//                successor->setBfsId();
-//            }
-//        }
-//    }
-
     entryFunc->entry()->visit();
 
     auto functions = graphBuilder.functions();
@@ -52,10 +37,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
         map<pair<Block *, Block *>, set<pair<Block *, Block *>>> matrix;
 
         auto compare = [] (const Block * lhs, const Block * rhs) {
-                                if (lhs->bfsId() > rhs->bfsId())
-                                    return true;
-                                else
-                                    return lhs > rhs;
+                                return lhs->bfsId() < rhs->bfsId();
                             };
 
         set<Block *, decltype (compare)> workBag(compare);
@@ -72,6 +54,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
         while (!workBag.empty()) {
             auto node = *workBag.begin();
             workBag.erase(workBag.begin());
+            std::cerr << "Processing node with id: " << node->bfsId() << "\n";
             //(2.1) One successor case
             if (node->successors().size() == 1 && node->successors().find(node) == node->successors().end()) {
                 auto successor = *node->successors().begin();
@@ -92,6 +75,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
             if (node->successors().size() > 1) {
                 for (auto m : nodes) {
                     if (matrix[{m,node}].size() == node->successors().size()) {
+                        std::cerr << "Inside complicated if, size " << node->successors().size() << " successors\n";
                         for (auto condNode : condNodes) {
                             if (node != condNode) {
                                 auto &s1 = matrix[{node, condNode}];

@@ -57,8 +57,8 @@ public:
     bool isCallReturn() const;
     bool isExit() const;
 
-    void setBfsId() { bfsId_ = ++bfsCounter; }
-    int bfsId() const { return bfsId_; }
+    void traversalId() { traversalId_ = ++traversalCounter; }
+    int bfsId() const { return traversalId_; }
 
     const llvm::BasicBlock * llvmBlock() const;
 
@@ -73,7 +73,7 @@ public:
 
 
 private:
-    static int bfsCounter;
+    static int traversalCounter;
 
     std::vector<const llvm::Instruction *> llvmInstructions_;
 
@@ -81,7 +81,7 @@ private:
     std::set<Block *> successors_;
 
     bool callReturn = false;
-    int bfsId_       = 0;
+    int traversalId_       = 0;
 
     std::map<const llvm::Function *, Function *> callees_;
     std::map<const llvm::Function *, Function *> forks_;
