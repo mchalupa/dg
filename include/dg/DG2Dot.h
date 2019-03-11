@@ -472,8 +472,8 @@ private:
         Indent Ind(ind);
 
         out << Ind
-            << "NODE" << node << " [label=\""
-            << "id: <" << node->id() << ">\\n";
+            << "NODE" << node << " [label=\"";
+
         if (prefix)
             out << prefix << " ";
 
