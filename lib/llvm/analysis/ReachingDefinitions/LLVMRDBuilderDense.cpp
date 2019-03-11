@@ -491,8 +491,7 @@ LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F,
     if (F->size() == 0) {
         return createCallToZeroSizeFunction(F, CInst);
     } else if (!llvmutils::callIsCompatible(F, CInst)) {
-        auto node = createUndefinedCall(CInst);
-        return {node, node};
+        return {nullptr, nullptr};
     }
 
     RDNode *callNode = nullptr;
@@ -866,9 +865,11 @@ LLVMRDBuilderDense::createCallToFunctions(const std::vector<const llvm::Function
     bool hasFunction = false;
     for(const llvm::Function *function : functions) {
         auto func = createCallToFunction(function, CInst);
-        makeEdge(callNode, func.first);
-        makeEdge(func.second, returnNode);
-        hasFunction |= true;
+        if (func.first && func.second) {
+            makeEdge(callNode, func.first);
+            makeEdge(func.second, returnNode);
+            hasFunction |= true;
+        }
     }
 
     if (!hasFunction) {
