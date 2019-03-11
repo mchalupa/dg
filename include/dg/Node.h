@@ -44,7 +44,9 @@ public:
     using interference_iterator = typename InterferenceEdges::iterator;
     using const_interference_iterator = typename InterferenceEdges::const_iterator;
 
-    Node(const KeyT& k) : key(k) {}
+    Node(const KeyT& k) : key(k), id_(idCounter++) {}
+
+    int id() const { return id_; }
 
     DependenceGraphT *setDG(DependenceGraphT *dg)
     {
@@ -367,6 +369,9 @@ protected:
     DependenceGraphT *dg{nullptr};
 
 private:
+
+    static int idCounter;
+    int id_ = 0;
 
     // add an edge 'ths' --> 'n' to containers of 'ths' and 'n'
     static bool _addBidirectionalEdge(NodeT *ths, NodeT *n,
