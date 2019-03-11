@@ -36,6 +36,9 @@ using llvm::errs;
 
 namespace dg {
 
+template <typename DependenceGraphT, typename KeyT, typename NodeT>
+int Node<DependenceGraphT, KeyT, NodeT>::idCounter = 0;
+
 static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMDependenceGraph *funcGraph)
 {
     LLVMDGParameters *formal = funcGraph->getParameters();
