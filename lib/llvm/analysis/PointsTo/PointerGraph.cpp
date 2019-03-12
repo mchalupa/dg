@@ -155,7 +155,9 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     callNode->addSuccessor(subg.root);
 
     // update callgraph
-    auto parentEntry = subgraphs_map[CInst->getParent()->getParent()].root;
+    auto cinstg = subgraphs_map[CInst->getParent()->getParent()];
+    assert(cinstg);
+    auto parentEntry = cinstg->root;
     assert(parentEntry);
     PS.registerCall(parentEntry, subg.root);
 
@@ -194,8 +196,9 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
 
     auto ret = createCallToFunction(CInst, F);
 #ifndef NDEBUG
-    PointerSubgraph& subg = subgraphs_map[F];
-    assert(subg.root != nullptr);
+    PointerSubgraph *subg = subgraphs_map[F];
+    assert(subg != nullptr);
+    assert(subg->root != nullptr);
 #endif
 
     ad_hoc_building = false;
@@ -341,7 +344,8 @@ LLVMPointerGraphBuilder::createOrGetSubgraph(const llvm::Function *F)
         return subg;
     }
 
-    return it->second;
+    assert(it->second != nullptr && "Subgraph is nullptr");
+    return *it->second;
 }
 
 void LLVMPointerGraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
@@ -720,12 +724,11 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerGraphBlock won't get stuck in infinite recursive call
     // when this function is recursive
-    PointerSubgraph subg(root, nullptr, vararg);
-    auto it = subgraphs_map.emplace(&F, std::move(subg));
-    assert(it.second == true && "Already had this element");
+    PointerSubgraph *subg = PS.createSubgraph(root, nullptr, vararg);
+    assert((subgraphs_map.find(&F) == subgraphs_map.end()) && "Already had this element");
+    subgraphs_map[&F] = subg;
 
-    PointerSubgraph& s = it.first->second;
-    assert(s.root == root && s.ret == nullptr && s.vararg == vararg);
+    assert(subg->root == root && subg->ret == nullptr && subg->vararg == vararg);
 
     assert(_funcInfo.find(&F) == _funcInfo.end());
     auto& finfo = _funcInfo[&F];
@@ -739,14 +742,14 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
         // gather all return nodes
         if (seq.second &&
             (seq.second->getType() == PSNodeType::RETURN)) {
-            s.returnNodes.insert(seq.second);
+            subg->returnNodes.insert(seq.second);
         }
     }
 
     // If we have some return, then create the unified return node.
     // Otherwise this function does not return and the building
     // process will terminate here.
-    if (s.returnNodes.size() > 0) {
+    if (subg->returnNodes.size() > 0) {
         PSNode *ret;
         if (invalidate_nodes) {
             ret = PS.create(PSNodeType::INVALIDATE_LOCALS, root);
@@ -755,17 +758,16 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
         }
 
         ret->setParent(root);
-        s.ret = ret;
+        subg->ret = ret;
     }
 
     // add operands to PHI nodes. It must be done after all blocks are
     // built, since the PHI gathers values from different blocks
     addPHIOperands(F);
 
-    assert(subgraphs_map[&F].root != nullptr);
-
+    assert(subgraphs_map[&F]->root != nullptr);
     DBG_SECTION_END(pta, "building function '" << F.getName().str() << "' done");
-    return s;
+    return *subg;
 }
 
 void LLVMPointerGraphBuilder::addProgramStructure()
@@ -773,13 +775,14 @@ void LLVMPointerGraphBuilder::addProgramStructure()
     // form intraprocedural program structure (CFG edges)
     for (auto& it : subgraphs_map) {
         const llvm::Function *F = it.first;
-        PointerSubgraph& subg = it.second;
+        PointerSubgraph *subg = it.second;
+        assert(subg && "Subgraph was nullptr");
 
         // add the CFG edges
-        addProgramStructure(F, subg);
+        addProgramStructure(F, *subg);
 
         // add the missing operands (to arguments and return nodes)
-        addInterproceduralOperands(F, subg);
+        addInterproceduralOperands(F, *subg);
     }
 }
 
@@ -1035,15 +1038,15 @@ LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
     if (it == subgraphs_map.end())
         return {};
 
-    const PointerSubgraph& subg = it->second;
-    auto nodes = getReachableNodes(subg.root, subg.ret);
+    const PointerSubgraph *subg = it->second;
+    auto nodes = getReachableNodes(subg->root, subg->ret);
 
     // Filter the nodes just to those that are from the function.
     // We cannot do it when getting the nodes as the procedures
     // are fully inlined.
     std::vector<PSNode *> ret;
     std::copy_if(nodes.begin(), nodes.end(), std::back_inserter(ret),
-                 [&subg](PSNode *node){return node->getParent() == subg.root;} );
+                 [&subg](PSNode *node){return node->getParent() == subg->root;} );
 
     return ret;
 }

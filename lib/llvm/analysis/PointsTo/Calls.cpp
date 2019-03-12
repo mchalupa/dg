@@ -278,8 +278,9 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
 
     // first we need to get the vararg argument phi
     const llvm::Function *F = Inst->getParent()->getParent();
-    PointerSubgraph& subg = subgraphs_map[F];
-    PSNode *arg = subg.vararg;
+    PointerSubgraph *subg = subgraphs_map[F];
+    assert(subg);
+    PSNode *arg = subg->vararg;
     assert(F->isVarArg() && "vastart in a non-variadic function");
     assert(arg && "Don't have variadic argument in a variadic function");
 

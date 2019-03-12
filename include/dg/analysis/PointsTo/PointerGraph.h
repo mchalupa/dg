@@ -22,18 +22,25 @@ extern PSNode *UNKNOWN_MEMORY;
 extern const Pointer NullPointer;
 extern const Pointer UnknownPointer;
 
+class PointerGraph;
+
 // A single procedure in Pointer Graph
-struct PointerSubgraph {
-    PointerSubgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
-        : root(r1), ret(r2), vararg(va) {}
-    /*
-    PointerSubgraph(PSNode *r1, PSNode *r2, PSNode *va,
-             std::vector<const llvm::BasicBlock *>&& blcks)
-        : root(r1), ret(r2), vararg(va), llvmBlocks(blcks) {}
-        */
+class PointerSubgraph {
+    friend class PointerGraph;
+
+    unsigned _id{0};
+
+    PointerSubgraph(unsigned id, PSNode *r1,
+                    PSNode *r2 = nullptr, PSNode *va = nullptr)
+        : _id(id), root(r1), ret(r2), vararg(va) {}
+
     PointerSubgraph() = default;
-    PointerSubgraph(PointerSubgraph&&) = default;
     PointerSubgraph(const PointerSubgraph&) = delete;
+
+public:
+    PointerSubgraph(PointerSubgraph&&) = default;
+
+    unsigned getID() const { return _id; }
 
     // first and last nodes of the subgraph
     PSNode *root{nullptr};
@@ -55,7 +62,10 @@ class PointerGraph
     PSNode *root;
 
     using NodesT = std::vector<std::unique_ptr<PSNode>>;
+    using SubgraphsT = std::vector<std::unique_ptr<PointerSubgraph>>;
+
     NodesT nodes;
+    SubgraphsT _subgraphs;
 
     // Take care of assigning ids to new nodes
     unsigned int last_node_id = 0;
@@ -124,6 +134,14 @@ public:
 
         // clear the nodes entry
         nodes[nd->getID()].reset();
+    }
+
+    PointerSubgraph *createSubgraph(PSNode *root, PSNode *ret = nullptr,
+                                    PSNode *vararg = nullptr) {
+        // NOTE: id of the subgraph is always index in _subgraphs + 1
+        _subgraphs.emplace_back(new PointerSubgraph(_subgraphs.size() + 1,
+                                                    root, ret, vararg));
+        return _subgraphs.back().get();
     }
 
     PSNode *create(PSNodeType t, ...) {
