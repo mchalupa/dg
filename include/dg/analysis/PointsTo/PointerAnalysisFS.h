@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "MemoryObject.h"
-#include "PointerSubgraph.h"
+#include "PointerGraph.h"
 
 namespace dg {
 namespace analysis {
@@ -22,7 +22,7 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointerAnalysisFS(PointerSubgraph *ps,
+    PointerAnalysisFS(PointerGraph *ps,
                       PointerAnalysisOptions opts)
     : PointerAnalysis(ps, opts.setPreprocessGeps(false))
     {
@@ -31,7 +31,7 @@ public:
         memoryMaps.reserve(ps->size() / 5);
     }
 
-    PointerAnalysisFS(PointerSubgraph *ps) : PointerAnalysisFS(ps, {}) {}
+    PointerAnalysisFS(PointerGraph *ps) : PointerAnalysisFS(ps, {}) {}
 
     bool beforeProcessed(PSNode *n) override
     {

@@ -34,14 +34,14 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
 namespace analysis {
 namespace pta {
 
 PSNode *
-LLVMPointerSubgraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
+LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
                                                             PSNodeAlloc *node,
                                                             PSNode *last,
                                                             uint64_t offset)
@@ -105,10 +105,10 @@ static uint64_t getAllocatedSize(const llvm::GlobalVariable *GV,
     return DL->getTypeAllocSize(Ty);
 }
 
-PSNodesSeq LLVMPointerSubgraphBuilder::buildGlobals()
+PSNodesSeq LLVMPointerGraphBuilder::buildGlobals()
 {
     PSNode *cur = nullptr, *prev, *first = nullptr;
-    // create PointerSubgraph nodes
+    // create PointerGraph nodes
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         prev = cur;
 

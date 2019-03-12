@@ -16,15 +16,15 @@ add_library(PTA SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/Pointer.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointsToSet.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/MemoryObject.h
-	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerSubgraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerAnalysis.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerAnalysisFI.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerAnalysisFS.h
-	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerSubgraphValidator.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointerGraphValidator.h
 
 	analysis/PointsTo/Pointer.cpp
 	analysis/PointsTo/PointerAnalysis.cpp
-	analysis/PointsTo/PointerSubgraphValidator.cpp
+	analysis/PointsTo/PointerGraphValidator.cpp
 	analysis/PointsTo/PointsToSet.cpp
 )
 target_link_libraries(PTA PUBLIC DGAnalysis)
@@ -45,11 +45,11 @@ if (LLVM_DG)
 add_library(LLVMpta SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/PointerAnalysis.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h
-	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/PointerSubgraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/PointerGraph.h
 
-	llvm/analysis/PointsTo/PointerSubgraphValidator.h
-	llvm/analysis/PointsTo/PointerSubgraph.cpp
-	llvm/analysis/PointsTo/PointerSubgraphValidator.cpp
+	llvm/analysis/PointsTo/PointerGraphValidator.h
+	llvm/analysis/PointsTo/PointerGraph.cpp
+	llvm/analysis/PointsTo/PointerGraphValidator.cpp
 	llvm/analysis/PointsTo/Structure.cpp
 	llvm/analysis/PointsTo/Globals.cpp
 	llvm/analysis/PointsTo/Constants.cpp

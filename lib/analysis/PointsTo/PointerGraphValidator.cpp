@@ -1,7 +1,7 @@
 #include <string>
 
 #include "dg/analysis/PointsTo/PointsToSet.h"
-#include "dg/analysis/PointsTo/PointerSubgraphValidator.h"
+#include "dg/analysis/PointsTo/PointerGraphValidator.h"
 
 namespace dg {
 namespace analysis {
@@ -21,14 +21,14 @@ static void dumpNode(const PSNode *nd, std::string& errors) {
     errors += "]\n";
 }
 
-bool PointerSubgraphValidator::warn(const PSNode *nd, const std::string& warning) {
+bool PointerGraphValidator::warn(const PSNode *nd, const std::string& warning) {
     warnings += "Warning: " + warning + "\n";
     dumpNode(nd, warnings);
 
     return true;
 }
 
-bool PointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
+bool PointerGraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
     errors += "Invalid operands:\n";
     dumpNode(nd, errors);
 
@@ -38,7 +38,7 @@ bool PointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const std::
     return true;
 }
 
-bool PointerSubgraphValidator::reportInvalEdges(const PSNode *nd, const std::string& user_err) {
+bool PointerGraphValidator::reportInvalEdges(const PSNode *nd, const std::string& user_err) {
     errors += "Invalid number of edges:\n";
     dumpNode(nd, errors);
 
@@ -47,7 +47,7 @@ bool PointerSubgraphValidator::reportInvalEdges(const PSNode *nd, const std::str
     return true;
 }
 
-bool PointerSubgraphValidator::reportInvalNode(const PSNode *nd, const std::string& user_err) {
+bool PointerGraphValidator::reportInvalNode(const PSNode *nd, const std::string& user_err) {
     errors += "Invalid node:\n";
     dumpNode(nd, errors);
     if (!user_err.empty())
@@ -55,7 +55,7 @@ bool PointerSubgraphValidator::reportInvalNode(const PSNode *nd, const std::stri
     return true;
 }
 
-bool PointerSubgraphValidator::reportUnreachableNode(const PSNode *nd) {
+bool PointerGraphValidator::reportUnreachableNode(const PSNode *nd) {
     errors += "Unreachable node:\n";
     dumpNode(nd, errors);
     return true;
@@ -88,7 +88,7 @@ static bool hasNonpointerOperand(const PSNode *nd)
     return false;
 }
 
-bool PointerSubgraphValidator::checkOperands() {
+bool PointerGraphValidator::checkOperands() {
     bool invalid = false;
 
     std::set<const PSNode *> known_nodes;
@@ -206,7 +206,7 @@ std::set<const PSNode *> reachableNodes(const PSNode *nd) {
     return reachable;
 }
 
-bool PointerSubgraphValidator::checkEdges() {
+bool PointerGraphValidator::checkEdges() {
     bool invalid = false;
 
     // check incoming/outcoming edges of all nodes
@@ -245,7 +245,7 @@ bool PointerSubgraphValidator::checkEdges() {
     return invalid;
 }
 
-bool PointerSubgraphValidator::validate() {
+bool PointerGraphValidator::validate() {
     bool invalid = false;
 
     invalid |= checkOperands();

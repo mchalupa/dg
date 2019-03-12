@@ -19,7 +19,7 @@ class PointerAnalysisFI : public PointerAnalysis
     std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
 public:
-    PointerAnalysisFI(PointerSubgraph *ps)
+    PointerAnalysisFI(PointerGraph *ps)
     : PointerAnalysis(ps) {
         memory_objects.reserve(std::max(ps->size() / 100, static_cast<size_t>(8)));
     }

@@ -1,8 +1,8 @@
 #ifndef _LLVM_DG_POINTER_SUBGRAPH_VALIDATOR_H_
 #define _LLVM_DG_POINTER_SUBGRAPH_VALIDATOR_H_
 
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
-#include "dg/analysis/PointsTo/PointerSubgraphValidator.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
+#include "dg/analysis/PointsTo/PointerGraphValidator.h"
 
 namespace dg {
 namespace analysis {
@@ -10,18 +10,18 @@ namespace pta {
 namespace debug {
 
 /**
- * Take PointerSubgraph instance and check
+ * Take PointerGraph instance and check
  * whether it is not broken
  */
-class LLVMPointerSubgraphValidator : public PointerSubgraphValidator {
+class LLVMPointerGraphValidator : public PointerGraphValidator {
     bool reportInvalOperands(const PSNode *n, const std::string& user_err) override;
 
 public:
-    LLVMPointerSubgraphValidator(const PointerSubgraph *ps,
+    LLVMPointerGraphValidator(const PointerGraph *ps,
                                  bool no_connectivity = false)
-    : PointerSubgraphValidator(ps, no_connectivity) {}
+    : PointerGraphValidator(ps, no_connectivity) {}
 
-    ~LLVMPointerSubgraphValidator() = default;
+    ~LLVMPointerGraphValidator() = default;
 };
 
 } // namespace debug

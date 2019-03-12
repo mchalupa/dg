@@ -8,9 +8,9 @@ namespace analysis {
 namespace pta {
 
 class PSNoopRemover {
-    PointerSubgraph *PS;
+    PointerGraph *PS;
 public:
-    PSNoopRemover(PointerSubgraph *PS) : PS(PS) {}
+    PSNoopRemover(PointerGraph *PS) : PS(PS) {}
 
     unsigned run() {
         unsigned removed = 0;
@@ -66,7 +66,7 @@ static inline bool allOperandsAreSame(PSNode *nd) {
 class PSUnknownsReducer {
     using MappingT = PointsToMapping<PSNode *>;
 
-    PointerSubgraph *PS;
+    PointerGraph *PS;
     MappingT mapping;
 
     unsigned removed = 0;
@@ -118,7 +118,7 @@ class PSUnknownsReducer {
     }
 
 public:
-    PSUnknownsReducer(PointerSubgraph *PS) : PS(PS) {}
+    PSUnknownsReducer(PointerGraph *PS) : PS(PS) {}
 
     MappingT& getMapping() { return mapping; }
     const MappingT& getMapping() const { return mapping; }
@@ -133,7 +133,7 @@ class PSEquivalentNodesMerger {
 public:
     using MappingT = PointsToMapping<PSNode *>;
 
-    PSEquivalentNodesMerger(PointerSubgraph *S)
+    PSEquivalentNodesMerger(PointerGraph *S)
     : PS(S), merged_nodes_num(0) {
         mapping.reserve(32);
     }
@@ -188,22 +188,22 @@ private:
         ++merged_nodes_num;
     }
 
-    PointerSubgraph *PS;
+    PointerGraph *PS;
     // map nodes to its equivalent representant
     MappingT mapping;
 
     unsigned merged_nodes_num;
 };
 
-class PointerSubgraphOptimizer {
+class PointerGraphOptimizer {
     using MappingT = PointsToMapping<PSNode *>;
 
-    PointerSubgraph *PS;
+    PointerGraph *PS;
     MappingT mapping;
 
     unsigned removed = 0;
 public:
-    PointerSubgraphOptimizer(PointerSubgraph *PS) : PS(PS) {}
+    PointerGraphOptimizer(PointerGraph *PS) : PS(PS) {}
 
     void removeNoops() {
         PSNoopRemover remover(PS);

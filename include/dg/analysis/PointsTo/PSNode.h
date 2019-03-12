@@ -65,7 +65,7 @@ enum class PSNodeType {
         // that never changes
         CONSTANT,
         // no operation node - this nodes can be used as a branch or join
-        // node for convenient PointerSubgraph generation. For example as an
+        // node for convenient PointerGraph generation. For example as an
         // unified entry to the function or unified return from the function.
         // These nodes can be optimized away later. No points-to computation
         // is performed on them
@@ -108,13 +108,13 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
         ELEM(PSNodeType::INVALIDATE_LOCALS)
         ELEM(PSNodeType::INVALIDATED)
         default:
-            assert(0 && "unknown PointerSubgraph type");
+            assert(0 && "unknown PointerGraph type");
             return "Unknown type";
     };
 #undef ELEM
 }
 
-class PointerSubgraph;
+class PointerGraph;
 
 class PSNode : public SubgraphNode<PSNode>
 {
@@ -122,7 +122,7 @@ class PSNode : public SubgraphNode<PSNode>
 
     // in some cases some nodes are kind of paired - like formal and actual
     // parameters or call and return node. Here the analasis can store
-    // such a node - if it needs for generating the PointerSubgraph
+    // such a node - if it needs for generating the PointerGraph
     // - it is not used anyhow by the base analysis itself
     // XXX: maybe we cold store this somewhere in a map instead of in every
     // node (if the map is sparse, it would be much more memory efficient)
@@ -171,7 +171,7 @@ protected:
     //               use arbitrarily - they are not used by the analysis itself.
     //               The arguments can be used e. g. when mapping call arguments
     //               back to original CFG. Actually, the CALL node is not needed
-    //               in most cases (just 'inline' the subprocedure into the PointerSubgraph
+    //               in most cases (just 'inline' the subprocedure into the PointerGraph
     //               when building it)
     // CALL_FUNCPTR: call via function pointer. The argument is the node that
     //               bears the pointers.
@@ -307,7 +307,7 @@ public:
     bool isInvalidated() const { return type == PSNodeType::INVALIDATED; }
 
     // make this public, that's basically the only
-    // reason the PointerSubgraph node exists, so don't hide it
+    // reason the PointerGraph node exists, so don't hide it
     PointsToSetT pointsTo;
 
     // convenient helper
@@ -364,7 +364,7 @@ public:
 
     // FIXME: maybe get rid of these friendships?
     friend class PointerAnalysis;
-    friend class PointerSubgraph;
+    friend class PointerGraph;
 
     friend void getNodes(std::set<PSNode *>& cont, PSNode *n, PSNode* exit, unsigned int dfsnum);
 };
@@ -475,7 +475,7 @@ public:
 };
 
 class PSNodeCall : public PSNode {
-    std::vector<PointerSubgraph *> callees;
+    std::vector<PointerGraph *> callees;
 
 public:
     PSNodeCall(unsigned id)
@@ -486,12 +486,12 @@ public:
             static_cast<PSNodeCall *>(n) : nullptr;
     }
 
-    const std::vector<PointerSubgraph *>& getCallees() const { return callees; }
+    const std::vector<PointerGraph *>& getCallees() const { return callees; }
 
-    bool addCalee(PointerSubgraph *ps) {
+    bool addCalee(PointerGraph *ps) {
         // we suppose there are just few callees,
         // so this should be faster than std::set
-        for (PointerSubgraph *p : callees) {
+        for (PointerGraph *p : callees) {
             if (p == ps)
                 return false;
         }

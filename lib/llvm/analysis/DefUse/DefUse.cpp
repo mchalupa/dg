@@ -25,7 +25,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/DFS.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"

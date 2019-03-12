@@ -2,7 +2,7 @@
 #define _DG_POINTER_SUBGRAPH_VALIDATOR_H_
 
 #include <string>
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
 namespace analysis {
@@ -11,11 +11,11 @@ namespace debug {
 
 
 /**
- * Take PointerSubgraph instance and check
+ * Take PointerGraph instance and check
  * whether it is not broken
  */
-class PointerSubgraphValidator {
-    const PointerSubgraph *PS;
+class PointerGraphValidator {
+    const PointerGraph *PS;
 
     /* These methods return true if the graph is invalid */
     bool checkEdges();
@@ -37,9 +37,9 @@ protected:
     virtual bool warn(const PSNode *n, const std::string& warning);
 
 public:
-    PointerSubgraphValidator(const PointerSubgraph *ps, bool no_conn = false)
+    PointerGraphValidator(const PointerGraph *ps, bool no_conn = false)
     : PS(ps), no_connectivity(no_conn) {}
-    virtual ~PointerSubgraphValidator() = default;
+    virtual ~PointerGraphValidator() = default;
 
     bool validate();
 

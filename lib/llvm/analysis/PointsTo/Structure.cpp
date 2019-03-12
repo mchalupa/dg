@@ -34,7 +34,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
 namespace analysis {
@@ -77,7 +77,7 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::buildArgumentsStructure(const llvm::Function& F)
+LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F)
 {
     PSNodesSeq seq;
     PSNode *last = nullptr;
@@ -109,7 +109,7 @@ LLVMPointerSubgraphBuilder::buildArgumentsStructure(const llvm::Function& F)
     return seq;
 }
 
-PSNodesSeq LLVMPointerSubgraphBuilder::buildBlockStructure(const llvm::BasicBlock& block)
+PSNodesSeq LLVMPointerGraphBuilder::buildBlockStructure(const llvm::BasicBlock& block)
 {
     PSNodesSeq seq = PSNodesSeq(nullptr, nullptr);
 
@@ -158,7 +158,7 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildBlockStructure(const llvm::BasicBloc
     return seq;
 }
 
-void LLVMPointerSubgraphBuilder::addProgramStructure(const llvm::Function *F,
+void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
                                                      Subgraph& subg)
 {
     assert(subg.root && "Subgraph has no root");

@@ -6,7 +6,7 @@
 
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/MemoryObject.h"
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysisOptions.h"
 #include "dg/ADT/Queue.h"
 #include "dg/analysis/SCC.h"
@@ -26,16 +26,17 @@ extern const Pointer UnknownPointer;
 class PointerAnalysis
 {
     // the pointer state subgraph
-    PointerSubgraph *PS{nullptr};
+    PointerGraph *PS{nullptr};
     const PointerAnalysisOptions options{};
 
-    // strongly connected components of the PointerSubgraph
+    // strongly connected components of the PointerGraph
     std::vector<std::vector<PSNode *> > SCCs;
     unsigned sccs_index{0};
 
     void initPointerAnalysis() {
-        assert(PS && "Need PointerSubgraph object");
+        assert(PS && "Need PointerGraph object");
         DBG_SECTION_BEGIN(pta, "Computing SCCs");
+
         // compute the strongly connected components
         // FIXME: do that optional
         SCC<PSNode> scc_comp;
@@ -53,21 +54,21 @@ protected:
 
 public:
 
-    PointerAnalysis(PointerSubgraph *ps,
+    PointerAnalysis(PointerGraph *ps,
                     const PointerAnalysisOptions& opts)
     : PS(ps), options(opts) {
         initPointerAnalysis();
     }
 
     // default options
-    PointerAnalysis(PointerSubgraph *ps) : PointerAnalysis(ps, {}) {}
+    PointerAnalysis(PointerGraph *ps) : PointerAnalysis(ps, {}) {}
 
     virtual ~PointerAnalysis() {}
 
     // takes a PSNode 'where' and 'what' and reference to a vector
     // and fills into the vector the objects that are relevant
     // for the PSNode 'what' (valid memory states for of this PSNode)
-    // on location 'where' in PointerSubgraph
+    // on location 'where' in PointerGraph
     virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
                                   std::vector<MemoryObject *>& objects) = 0;
 
@@ -90,7 +91,7 @@ public:
         return false;
     }
 
-    PointerSubgraph *getPS() const { return PS; }
+    PointerGraph *getPS() const { return PS; }
 
     const std::vector<std::vector<PSNode *> > &getSCCs() const { return SCCs; }
 
@@ -214,7 +215,7 @@ public:
         return false;
     }
 
-    // adjust the PointerSubgraph on function pointer call
+    // adjust the PointerGraph on function pointer call
     // @ where is the callsite
     // @ what is the function that is being called
     virtual bool functionPointerCall(PSNode * /*where*/, PSNode * /*what*/)

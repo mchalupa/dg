@@ -16,7 +16,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
+#include "llvm/analysis/PointsTo/PointerGraphValidator.h"
 
 namespace dg {
 namespace analysis {
@@ -27,7 +27,7 @@ static const llvm::Value *getValue(const PSNode *nd) {
     return nd->getUserData<llvm::Value>();
 }
 
-bool LLVMPointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
+bool LLVMPointerGraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
     // just check whether the PHI is a pointer type. If it is a number,
     // we do not know whether it is an error.
     if (nd->getType() == PSNodeType::PHI) {
@@ -40,12 +40,12 @@ bool LLVMPointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const s
                 nd->getParent()->getParent() == nullptr)
                 return false;
 
-            return PointerSubgraphValidator::reportInvalOperands(nd, user_err);
+            return PointerGraphValidator::reportInvalOperands(nd, user_err);
         } else // else issue a warning?
             return false;
     }
 
-    return PointerSubgraphValidator::reportInvalOperands(nd, user_err);
+    return PointerGraphValidator::reportInvalOperands(nd, user_err);
 }
 
 

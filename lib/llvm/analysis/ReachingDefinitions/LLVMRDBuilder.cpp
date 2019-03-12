@@ -35,8 +35,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-
-#include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 #include "dg/ADT/Queue.h"
 
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"

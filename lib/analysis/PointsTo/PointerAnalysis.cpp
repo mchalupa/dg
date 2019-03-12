@@ -1,6 +1,6 @@
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/PointsToSet.h"
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
 
 namespace dg {

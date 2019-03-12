@@ -2,13 +2,13 @@
 #include "catch.hpp"
 
 #include "dg/analysis/PointsTo/PSNode.h"
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
 using dg::analysis::pta::PSNode;
 using dg::analysis::pta::PSNodeType;
 using dg::analysis::pta::Pointer;
-using dg::analysis::pta::PointerSubgraph;
+using dg::analysis::pta::PointerGraph;
 
 using dg::analysis::pta::OffsetsSetPointsToSet;
 using dg::analysis::pta::SimplePointsToSet;
@@ -28,7 +28,7 @@ void queryingEmptySet() {
 template<typename PTSetT>
 void addAnElement() {
     PTSetT B;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     B.add(Pointer(A, 0));
     REQUIRE(*(B.begin()) == Pointer(A, 0));
@@ -37,7 +37,7 @@ void addAnElement() {
 template<typename PTSetT>
 void addFewElements() {
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.add(Pointer(A, 20)) == true);
@@ -50,11 +50,10 @@ void addFewElements() {
     REQUIRE(S.size() == 6);
 }
 
-
 template<typename PTSetT>
 void addFewElements2() {
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
     REQUIRE(S.add(Pointer(A, 0)) == true);
@@ -82,7 +81,7 @@ template<typename PTSetT>
 void mergePointsToSets() {
     PTSetT S1;
     PTSetT S2;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
 
@@ -99,7 +98,7 @@ void mergePointsToSets() {
 template<typename PTSetT>
 void removeElement() {
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
 
     REQUIRE(S.add({A, 0}) == true);
@@ -112,7 +111,7 @@ void removeElement() {
 template<typename PTSetT>
 void removeFewElements() {
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
 
@@ -131,7 +130,7 @@ void removeFewElements() {
 template<typename PTSetT>
 void removeAnyTest() {
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
 
@@ -152,7 +151,7 @@ void removeAnyTest() {
 template<typename PTSetT>
 void pointsToTest() {
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
     S.add(Pointer(A, 0));
@@ -183,7 +182,7 @@ void pointsToTest() {
 template<typename PTSetT>
 void testAlignedOverflowBehavior() { //only works for aligned PTSets using overflow Set
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
     REQUIRE(S.getMultiplier() > 1);
@@ -222,7 +221,7 @@ void testAlignedOverflowBehavior() { //only works for aligned PTSets using overf
 template<typename PTSetT>
 void testSmallOverflowBehavior() { //only works for SmallOffsetsPTSet
     PTSetT S;
-    PointerSubgraph PS;
+    PointerGraph PS;
     PSNode* A = PS.create(PSNodeType::ALLOC);
     PSNode* B = PS.create(PSNodeType::ALLOC);
     REQUIRE(S.add(Pointer(A, 0)) == true);

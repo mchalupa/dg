@@ -6,7 +6,7 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 
@@ -26,7 +26,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNode *S = PS.create(PSNodeType::STORE, A, B);
@@ -47,7 +47,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNode *C = PS.create(PSNodeType::ALLOC);
@@ -93,7 +93,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNode *C = PS.create(PSNodeType::ALLOC);
@@ -121,7 +121,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(8);
         PSNode *B = PS.create(PSNodeType::ALLOC);
@@ -152,7 +152,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(8);
         PSNode *B = PS.create(PSNodeType::ALLOC);
@@ -188,7 +188,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         // we must set size, so that GEP won't
         // make the offset UNKNOWN
@@ -218,7 +218,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(16);
         PSNode *B = PS.create(PSNodeType::ALLOC);
@@ -250,7 +250,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNode *ARRAY = PS.create(PSNodeType::ALLOC);
@@ -287,7 +287,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNodeAlloc *ARRAY = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -328,7 +328,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNode *ARRAY = PS.create(PSNodeType::ALLOC);
@@ -377,7 +377,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *B = PS.create(PSNodeType::ALLOC);
         PSNode *S = PS.create(PSNodeType::STORE, pta::NULLPTR, B);
         PSNode *L = PS.create(PSNodeType::LOAD, B);
@@ -396,7 +396,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         B->setSize(16);
@@ -421,7 +421,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNodeAlloc *B = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         B->setZeroInitialized();
         PSNode *L = PS.create(PSNodeType::LOAD, B);
@@ -439,7 +439,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         B->setSize(20);
@@ -467,7 +467,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         B->setSize(20);
@@ -495,7 +495,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         PSNode *B = PS.create(PSNodeType::ALLOC);
         B->setSize(20);
@@ -521,7 +521,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(20);
         PSNode *SRC = PS.create(PSNodeType::ALLOC);
@@ -577,7 +577,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(20);
         PSNode *SRC = PS.create(PSNodeType::ALLOC);
@@ -633,7 +633,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(20);
         PSNode *SRC = PS.create(PSNodeType::ALLOC);
@@ -689,7 +689,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         A->setSize(20);
         PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -737,7 +737,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(20);
         PSNode *SRC = PS.create(PSNodeType::ALLOC);
@@ -781,7 +781,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
         A->setSize(20);
         PSNode *SRC = PS.create(PSNodeType::ALLOC);
@@ -821,7 +821,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         PSNode *DEST = PS.create(PSNodeType::ALLOC);
@@ -865,7 +865,7 @@ public:
     {
         using namespace analysis;
 
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
         A->setSize(20);
         PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -966,7 +966,7 @@ public:
     void unknown_offset1()
     {
         using namespace dg::analysis::pta;
-        PointerSubgraph PS;
+        PointerGraph PS;
         PSNode *N1 = PS.create(PSNodeType::ALLOC);
         PSNode *N2 = PS.create(PSNodeType::LOAD, N1);
 

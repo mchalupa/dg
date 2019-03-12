@@ -37,12 +37,12 @@ public:
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointerAnalysisFSInv(PointerSubgraph *ps,
+    PointerAnalysisFSInv(PointerGraph *ps,
                            PointerAnalysisOptions opts)
     : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
 
     // default options
-    PointerAnalysisFSInv(PointerSubgraph *ps) : PointerAnalysisFSInv(ps, {}) {}
+    PointerAnalysisFSInv(PointerGraph *ps) : PointerAnalysisFSInv(ps, {}) {}
 
     bool beforeProcessed(PSNode *n) override
     {

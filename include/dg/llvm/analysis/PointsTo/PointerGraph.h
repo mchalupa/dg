@@ -26,7 +26,7 @@
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 
-#include "dg/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointsToMapping.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
@@ -38,9 +38,9 @@ namespace pta {
 
 using PSNodesSeq = std::pair<PSNode *, PSNode *>;
 
-class LLVMPointerSubgraphBuilder
+class LLVMPointerGraphBuilder
 {
-    PointerSubgraph PS{};
+    PointerGraph PS{};
     // mapping from llvm values to PSNodes that contain
     // the points-to information
     PointsToMapping<const llvm::Value *> mapping;
@@ -90,7 +90,7 @@ class LLVMPointerSubgraphBuilder
     Subgraph& buildFunction(const llvm::Function& F);
     PSNodesSeq buildInstruction(const llvm::Instruction&);
 
-    PSNodesSeq buildPointerSubgraphBlock(const llvm::BasicBlock& block,
+    PSNodesSeq buildPointerGraphBlock(const llvm::BasicBlock& block,
                                          PSNode *parent);
 
     void buildArguments(const llvm::Function& F,
@@ -117,16 +117,16 @@ class LLVMPointerSubgraphBuilder
     std::map<const llvm::BasicBlock *, PSNodesSeq> built_blocks;
 
 public:
-    const PointerSubgraph *getPS() const { return &PS; }
+    const PointerGraph *getPS() const { return &PS; }
 
     inline bool threads() const { return threads_; }
 
-    LLVMPointerSubgraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
+    LLVMPointerGraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
         : M(m), DL(new llvm::DataLayout(m)), _options(opts), threads_(opts.threads) {}
 
-    ~LLVMPointerSubgraphBuilder();
+    ~LLVMPointerGraphBuilder();
 
-    PointerSubgraph *buildLLVMPointerSubgraph();
+    PointerGraph *buildLLVMPointerGraph();
 
     bool validateSubgraph(bool no_connectivity = false) const;
 
