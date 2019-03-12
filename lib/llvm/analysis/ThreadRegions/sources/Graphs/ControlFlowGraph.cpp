@@ -4,10 +4,10 @@
 #include "ThreadRegionsBuilder.h"
 #include "CriticalSectionsBuilder.h"
 
-ControlFlowGraph::ControlFlowGraph(dg::LLVMPointerAnalysis *pointsToAnalysis):pointsToAnalysis_(pointsToAnalysis),
-    graphBuilder(new GraphBuilder(pointsToAnalysis)),
-    threadRegionsBuilder(new ThreadRegionsBuilder()),
-    criticalSectionsBuilder(new CriticalSectionsBuilder()){}
+ControlFlowGraph::ControlFlowGraph(dg::LLVMPointerAnalysis *pointsToAnalysis)
+    :graphBuilder(new GraphBuilder(pointsToAnalysis)),
+     threadRegionsBuilder(new ThreadRegionsBuilder()),
+     criticalSectionsBuilder(new CriticalSectionsBuilder()){}
 
 std::set<const llvm::CallInst *> ControlFlowGraph::getJoins() const {
     return graphBuilder->getJoins();

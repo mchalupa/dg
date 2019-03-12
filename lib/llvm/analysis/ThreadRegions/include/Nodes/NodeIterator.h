@@ -12,7 +12,6 @@ class ExitNode;
 class NodeIterator {
 
 private:
-    const Node * node                   = nullptr;
     const ForkNode * forkNode           = nullptr;
     const ExitNode * exitNode           = nullptr;
     std::set<Node *>::iterator          successorsIterator;
