@@ -21,8 +21,6 @@ class CriticalSectionsBuilder;
 class ControlFlowGraph
 {
 private:
-    dg::LLVMPointerAnalysis *                   pointsToAnalysis_ = nullptr;
-
     std::unique_ptr<GraphBuilder>               graphBuilder;
     std::unique_ptr<ThreadRegionsBuilder>       threadRegionsBuilder;
     std::unique_ptr<CriticalSectionsBuilder>    criticalSectionsBuilder;
