@@ -182,6 +182,9 @@ public:
             case PSNodeType::JOIN:
                 node = new PSNodeJoin(getNewNodeId());
                 break;
+            case PSNodeType::RETURN:
+                node = new PSNodeRet(getNewNodeId(), args);
+                break;
             default:
                 node = new PSNode(getNewNodeId(), t, args);
                 break;

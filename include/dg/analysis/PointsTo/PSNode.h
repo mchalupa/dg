@@ -506,8 +506,8 @@ class PSNodeRet : public PSNode {
     std::vector<PSNode *> returns;
 
 public:
-    PSNodeRet(unsigned id)
-    :PSNode(id, PSNodeType::RETURN) {}
+    PSNodeRet(unsigned id, va_list args)
+    :PSNode(id, PSNodeType::RETURN, args) {}
 
     static PSNodeRet *get(PSNode *n) {
         return isa<PSNodeType::RETURN>(n) ?
