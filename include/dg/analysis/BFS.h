@@ -16,8 +16,8 @@ struct BFS : public NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser
     BFS() = default;
     BFS(EdgeChooser chooser) : NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser>(std::move(chooser)) {}
     BFS(VisitTracker tracker) : NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser>(std::move(tracker)) {}
-    BFS(EdgeChooser chooser, VisitTracker tracker)
-    : NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser>(std::move(chooser), std::move(tracker)) {}
+    BFS(VisitTracker tracker, EdgeChooser chooser)
+    : NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser>(std::move(tracker), std::move(chooser)) {}
 };
 
 } // namespace analysis

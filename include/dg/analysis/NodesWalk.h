@@ -73,12 +73,31 @@ class NodesWalk {
         }
     }
 
+	// edge chooser yields nodes using foreach()
+    template <typename Func,
+              typename std::enable_if<has_foreach<EdgeChooser>::value, Func>::type* = nullptr>
+    void _run(Func F) {
+        while (!_queue.empty()) {
+            Node *current = _queue.pop();
+
+            F(current);
+
+            _chooser.foreach(current,
+                             [&](Node *n) {
+                                if (!_visits.visited(n)) {
+                                    _enqueue(n);
+                                }
+                             });
+        }
+    }
+
+
 public:
     NodesWalk() = default;
 
     NodesWalk(EdgeChooser&& chooser) : _chooser(std::move(chooser)) {}
     NodesWalk(VisitTracker&& tracker) : _visits(std::move(tracker)) {}
-    NodesWalk(EdgeChooser&& chooser, VisitTracker tracker)
+    NodesWalk(VisitTracker&& tracker, EdgeChooser&& chooser)
     : _chooser(std::move(chooser)), _visits(std::move(tracker)) {}
 
     template <typename Func>

@@ -16,8 +16,8 @@ struct DFS : public NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser
     DFS() = default;
     DFS(EdgeChooser chooser) : NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser>(std::move(chooser)) {}
     DFS(VisitTracker tracker) : NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser>(std::move(tracker)) {}
-    DFS(EdgeChooser chooser, VisitTracker tracker)
-    : NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser>(std::move(chooser), std::move(tracker)) {}
+    DFS(VisitTracker tracker, EdgeChooser chooser)
+    : NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser>(std::move(tracker), std::move(chooser)) {}
 };
 
 } // namespace analysis
