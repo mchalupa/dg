@@ -45,6 +45,12 @@ struct SuccessorsEdgeChooser {
 };
 
 
+
+// SFINAE check
+template<typename T, typename = void> struct has_foreach : std::false_type {};
+template<typename T>
+struct has_foreach<T, std::void_t<decltype(&T::foreach)>> : std::true_type {};
+
 template <typename Node, typename Queue,
           typename VisitTracker = SetVisitTracker<Node>,
           typename EdgeChooser = SuccessorsEdgeChooser<Node> >
@@ -58,7 +64,9 @@ class NodesWalk {
         _visits.visit(n);
     }
 
-    template <typename Func>
+	// edge chooser uses operator()
+    template <typename Func,
+              typename std::enable_if<!has_foreach<EdgeChooser>::value, Func>::type* = nullptr>
     void _run(Func F) {
         while (!_queue.empty()) {
             Node *current = _queue.pop();
