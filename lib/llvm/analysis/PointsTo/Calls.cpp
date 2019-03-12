@@ -128,7 +128,7 @@ bool LLVMPointerGraphBuilder::addFunctionToFork(PSNode *function,
                   function) == functions.cend()) {
         changed = true;
         const llvm::Function *F = function->getUserData<llvm::Function>(); 
-        Subgraph& subgraph = createOrGetSubgraph(F);
+        PointerSubgraph& subgraph = createOrGetSubgraph(F);
         addInterproceduralPthreadOperands(F, CInst);
         forkNode->addSuccessor(subgraph.root);
         forkNode->addFunction(function);
@@ -143,7 +143,7 @@ bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function,
     joinNode->addFunction(function);
     const llvm::Function *F = function->getUserData<llvm::Function>();
     if (F->size() != 0) {
-        Subgraph& subgraph = createOrGetSubgraph(F);
+        PointerSubgraph& subgraph = createOrGetSubgraph(F);
         if (!CInst->getOperand(1)->isNull()) {
             PSNode *phi = PS.create(PSNodeType::PHI, nullptr);
             PSNode *store = PS.create(PSNodeType::STORE, 
@@ -278,7 +278,7 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
 
     // first we need to get the vararg argument phi
     const llvm::Function *F = Inst->getParent()->getParent();
-    Subgraph& subg = subgraphs_map[F];
+    PointerSubgraph& subg = subgraphs_map[F];
     PSNode *arg = subg.vararg;
     assert(F->isVarArg() && "vastart in a non-variadic function");
     assert(arg && "Don't have variadic argument in a variadic function");

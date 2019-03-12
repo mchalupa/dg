@@ -159,13 +159,16 @@ PSNodesSeq LLVMPointerGraphBuilder::buildBlockStructure(const llvm::BasicBlock& 
 }
 
 void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
-                                                     Subgraph& subg)
+                                                  PointerSubgraph& subg)
 {
     assert(subg.root && "Subgraph has no root");
 
+    assert(_funcInfo.find(F) != _funcInfo.end());
+    auto& finfo = _funcInfo[F];
+
     // with function pointer calls it may happen that we try
     // to add structure more times, so bail out in that case
-    if (subg.has_structure)
+    if (finfo.has_structure)
         return;
 
     PSNodesSeq args = buildArgumentsStructure(*F);
@@ -198,7 +201,7 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
     assert(lastNode);
 
     // add successors in one basic block
-    for (const llvm::BasicBlock* block : subg.llvmBlocks)
+    for (const llvm::BasicBlock* block : finfo.llvmBlocks)
         buildBlockStructure(*block);
 
     // check whether we create the entry block. If not, we would
@@ -251,7 +254,7 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
         r->addSuccessor(subg.ret);
     }
 
-    subg.has_structure = true;
+    finfo.has_structure = true;
 }
 
 } // namespace pta

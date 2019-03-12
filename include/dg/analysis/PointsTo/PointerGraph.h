@@ -1,5 +1,5 @@
-#ifndef _DG_POINTER_SUBGRAPH_H_
-#define _DG_POINTER_SUBGRAPH_H_
+#ifndef _DG_POINTER_GRAPH_H_
+#define _DG_POINTER_GRAPH_H_
 
 #include "dg/ADT/Queue.h"
 #include "dg/analysis/SubgraphNode.h"
@@ -22,6 +22,31 @@ extern PSNode *UNKNOWN_MEMORY;
 extern const Pointer NullPointer;
 extern const Pointer UnknownPointer;
 
+// A single procedure in Pointer Graph
+struct PointerSubgraph {
+    PointerSubgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
+        : root(r1), ret(r2), vararg(va) {}
+    /*
+    PointerSubgraph(PSNode *r1, PSNode *r2, PSNode *va,
+             std::vector<const llvm::BasicBlock *>&& blcks)
+        : root(r1), ret(r2), vararg(va), llvmBlocks(blcks) {}
+        */
+    PointerSubgraph() = default;
+    PointerSubgraph(PointerSubgraph&&) = default;
+    PointerSubgraph(const PointerSubgraph&) = delete;
+
+    // first and last nodes of the subgraph
+    PSNode *root{nullptr};
+    PSNode *ret{nullptr};
+
+    std::set<PSNode *> returnNodes;
+    // this is the node where we gather the variadic-length arguments
+    PSNode *vararg{nullptr};
+};
+
+
+///
+// Basic graph for pointer analysis - contains CFG graphs for all procedures of the program.
 class PointerGraph
 {
     unsigned int dfsnum;

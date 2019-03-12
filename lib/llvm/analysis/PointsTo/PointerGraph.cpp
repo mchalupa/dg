@@ -145,7 +145,7 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
 
     // reuse built subgraphs if available
-    Subgraph& subg = createOrGetSubgraph(F);
+    PointerSubgraph& subg = createOrGetSubgraph(F);
     // we took the subg by reference, so it should be filled now
     assert(subg.root);
 
@@ -194,7 +194,7 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
 
     auto ret = createCallToFunction(CInst, F);
 #ifndef NDEBUG
-    Subgraph& subg = subgraphs_map[F];
+    PointerSubgraph& subg = subgraphs_map[F];
     assert(subg.root != nullptr);
 #endif
 
@@ -325,13 +325,13 @@ PSNodeJoin *LLVMPointerGraphBuilder::findJoin(const llvm::CallInst *callInst) co
     return nullptr;
 }
 
-LLVMPointerGraphBuilder::Subgraph&
+PointerSubgraph&
 LLVMPointerGraphBuilder::createOrGetSubgraph(const llvm::Function *F)
 {
     auto it = subgraphs_map.find(F);
     if (it == subgraphs_map.end()) {
         // create a new subgraph
-        Subgraph& subg = buildFunction(*F);
+        PointerSubgraph& subg = buildFunction(*F);
         assert(subg.root != nullptr);
 
         if (ad_hoc_building) {
@@ -690,7 +690,7 @@ void LLVMPointerGraphBuilder::buildArguments(const llvm::Function& F,
     }
 }
 
-LLVMPointerGraphBuilder::Subgraph&
+PointerSubgraph&
 LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
 {
     DBG_SECTION_BEGIN(pta, "building function '" << F.getName().str() << "'");
@@ -720,18 +720,20 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
     // add record to built graphs here, so that subsequent call of this function
     // from buildPointerGraphBlock won't get stuck in infinite recursive call
     // when this function is recursive
-    Subgraph subg(root, nullptr, vararg);
+    PointerSubgraph subg(root, nullptr, vararg);
     auto it = subgraphs_map.emplace(&F, std::move(subg));
     assert(it.second == true && "Already had this element");
 
-    Subgraph& s = it.first->second;
+    PointerSubgraph& s = it.first->second;
     assert(s.root == root && s.ret == nullptr && s.vararg == vararg);
 
-    s.llvmBlocks =
+    assert(_funcInfo.find(&F) == _funcInfo.end());
+    auto& finfo = _funcInfo[&F];
+    finfo.llvmBlocks =
         getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F));
 
     // build the instructions from blocks
-    for (const llvm::BasicBlock *block : s.llvmBlocks) {
+    for (const llvm::BasicBlock *block : finfo.llvmBlocks) {
         auto seq = buildPointerGraphBlock(*block, root);
 
         // gather all return nodes
@@ -771,7 +773,7 @@ void LLVMPointerGraphBuilder::addProgramStructure()
     // form intraprocedural program structure (CFG edges)
     for (auto& it : subgraphs_map) {
         const llvm::Function *F = it.first;
-        Subgraph& subg = it.second;
+        PointerSubgraph& subg = it.second;
 
         // add the CFG edges
         addProgramStructure(F, subg);
@@ -934,7 +936,7 @@ void LLVMPointerGraphBuilder::addInterproceduralPthreadOperands(const llvm::Func
 }
 
 void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F,
-                                                            Subgraph& subg,
+                                                            PointerSubgraph& subg,
                                                             const llvm::CallInst *CI,
                                                             PSNode *callNode)
 {
@@ -973,7 +975,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     PSNodesSeq glob = buildGlobals();
 
     // now we can build rest of the graph
-    Subgraph& subg = buildFunction(*F);
+    PointerSubgraph& subg = buildFunction(*F);
     PSNode *root = subg.root;
     assert(root != nullptr);
     // fill in the CFG edges
@@ -1033,7 +1035,7 @@ LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
     if (it == subgraphs_map.end())
         return {};
 
-    const Subgraph& subg = it->second;
+    const PointerSubgraph& subg = it->second;
     auto nodes = getReachableNodes(subg.root, subg.ret);
 
     // Filter the nodes just to those that are from the function.

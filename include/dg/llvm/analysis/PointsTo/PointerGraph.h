@@ -60,34 +60,20 @@ class LLVMPointerGraphBuilder
 
     bool threads_ = false;
 
-    struct Subgraph {
-        Subgraph(PSNode *r1, PSNode *r2, PSNode *va = nullptr)
-            : root(r1), ret(r2), vararg(va) {}
-        /*
-        Subgraph(PSNode *r1, PSNode *r2, PSNode *va,
-                 std::vector<const llvm::BasicBlock *>&& blcks)
-            : root(r1), ret(r2), vararg(va), llvmBlocks(blcks) {}
-            */
-        Subgraph() = default;
-        Subgraph(Subgraph&&) = default;
-        Subgraph(const Subgraph&) = delete;
-
-        // first and last nodes of the subgraph
-        PSNode *root{nullptr};
-        PSNode *ret{nullptr};
-
-        std::set<PSNode *> returnNodes;
-        // this is the node where we gather the variadic-length arguments
-        PSNode *vararg{nullptr};
-
+    struct FuncGraph {
         // reachable LLVM block (those block for which we built the instructions)
-        std::vector<const llvm::BasicBlock *> llvmBlocks;
-        bool has_structure = false;
+        std::vector<const llvm::BasicBlock *> llvmBlocks{};
+        bool has_structure{false};
+
+        FuncGraph() = default;
+        FuncGraph(const FuncGraph&) = delete;
     };
+
+    std::unordered_map<const llvm::Function *, FuncGraph> _funcInfo;
 
     // build pointer state subgraph for given graph
     // \return   root node of the graph
-    Subgraph& buildFunction(const llvm::Function& F);
+    PointerSubgraph& buildFunction(const llvm::Function& F);
     PSNodesSeq buildInstruction(const llvm::Instruction&);
 
     PSNodesSeq buildPointerGraphBlock(const llvm::BasicBlock& block,
@@ -100,14 +86,14 @@ class LLVMPointerGraphBuilder
 
     // add edges that are derived from CFG to the subgraph
     void addProgramStructure();
-    void addProgramStructure(const llvm::Function *F, Subgraph& subg);
+    void addProgramStructure(const llvm::Function *F, PointerSubgraph& subg);
     PSNodesSeq buildBlockStructure(const llvm::BasicBlock& block);
     void blockAddCalls(const llvm::BasicBlock& block);
 
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, PSNodesSeq > nodes_map;
     // map of all built subgraphs - the value type is a pair (root, return)
-    std::unordered_map<const llvm::Function *, Subgraph> subgraphs_map;
+    std::unordered_map<const llvm::Function *, PointerSubgraph> subgraphs_map;
 
     std::map<const llvm::CallInst *, PSNodeFork *> threadCreateCalls;
     std::map<const llvm::CallInst *, PSNodeJoin *> threadJoinCalls;
@@ -308,7 +294,7 @@ private:
     void addReturnNodeOperand(PSNode *callNode, PSNode *op);
     void addReturnNodeOperand(const llvm::Function *F, PSNode *op);
     void addInterproceduralOperands(const llvm::Function *F,
-                                    Subgraph& subg,
+                                    PointerSubgraph& subg,
                                     const llvm::CallInst *CI = nullptr,
                                     PSNode *callNode = nullptr);
     void addInterproceduralPthreadOperands(const llvm::Function *F,
@@ -319,7 +305,7 @@ private:
     PSNodesSeq createFunctionCall(const llvm::CallInst *, const llvm::Function *);
     PSNodesSeq createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
 
-    Subgraph& createOrGetSubgraph(const llvm::Function *);
+    PointerSubgraph& createOrGetSubgraph(const llvm::Function *);
 
 
     PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
