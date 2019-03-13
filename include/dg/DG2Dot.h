@@ -615,7 +615,11 @@ private:
         }
 
         if (options & PRINT_REV_ID) {
-            // TODO print revid
+            out << Ind << "/* reverse ID edges */\n";
+            for (auto II = n->rev_interference_begin(), EE = n->rev_interference_end();
+                 II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II
+                    << " [color=\"orange\" constraint=false]\n";
         }
     }
 
