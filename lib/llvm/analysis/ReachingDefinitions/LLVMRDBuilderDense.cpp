@@ -925,12 +925,12 @@ ReachingDefinitionsGraph LLVMRDBuilderDense::build()
         root = glob.first;
     }
 
-    ReachingDefinitionsGraph graph;
-    graph.setRoot(root);
-
     if (_options.threads) {
         matchForksAndJoins();
     }
+
+    ReachingDefinitionsGraph graph;
+    graph.setRoot(root);
 
     return graph;
 }
