@@ -856,7 +856,9 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
 
             const Function *func
                 = cast<Function>(entry->getValue()->stripPointerCasts());
-            return array_match(func->getName(), names);
+            if (array_match(func->getName(), names)) {
+                return true;
+            }
         }
     }
 
@@ -887,7 +889,9 @@ static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::strin
 
             const Function *func
                 = cast<Function>(entry->getValue()->stripPointerCasts());
-            return array_match(func->getName(), names);
+            if (array_match(func->getName(), names)) {
+                return true;
+            }
         }
     }
 
