@@ -124,6 +124,7 @@ if (APPLE)
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
 				PUBLIC LLVMrd
+				PUBLIC ThreadRegions
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_irreader}
@@ -132,13 +133,9 @@ if (APPLE)
 else()
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
-				PUBLIC LLVMrd)
+				PUBLIC LLVMrd
+				PUBLIC ThreadRegions)
 endif(APPLE)
-
-target_link_libraries(LLVMdg
-			PUBLIC LLVMpta
-                        PUBLIC LLVMrd
-                        PUBLIC ThreadRegions)
 
 install(TARGETS LLVMdg ThreadRegions LLVMpta LLVMrd PTA RD DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
