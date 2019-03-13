@@ -661,25 +661,6 @@ bool LLVMRDBuilderDense::isInlineAsm(const llvm::Instruction *instruction)
     return callInstruction->isInlineAsm();
 }
 
-const llvm::Function *
-LLVMRDBuilderDense::findFunctionAndRemoveFromVector(std::vector<const llvm::Function *> &functions,
-                                                    const std::string& functionName)
-{
-    using namespace llvm;
-    auto it = std::find_if(functions.begin(),
-                           functions.end(),
-                           [functionName](const Function *function) {
-                                return function->getName().str() == functionName;
-                           });
-    if (it == functions.end()) {
-        return nullptr;
-    } else {
-        const Function *function = *it;
-        functions.erase(it);
-        return function;
-    }
-}
-
 void LLVMRDBuilderDense::matchForksAndJoins()
 {
     using namespace llvm;
