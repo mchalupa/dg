@@ -971,9 +971,6 @@ ReachingDefinitionsGraph LLVMRDBuilderDense::build()
     ReachingDefinitionsGraph graph;
     graph.setRoot(root);
 
-    ReachingDefinitionsGraph graph;
-    graph.setRoot(root);
-
     return graph;
 }
 
