@@ -45,14 +45,6 @@ public:
     RDNode *createNode(const llvm::Instruction& Inst);
 
 private:
-    enum class CallType{CREATE_THREAD, JOIN_THREAD, PLAIN_CALL};
-
-    struct FunctionCall {
-        FunctionCall(RDNode *rootNode, RDNode *returnNode, CallType callType);
-        RDNode *rootNode;
-        RDNode *returnNode;
-        CallType callType;
-    };
     std::vector<DefSite> mapPointers(const llvm::Value *where,
                                      const llvm::Value *val,
                                      Offset size);

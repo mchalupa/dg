@@ -995,11 +995,6 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()
     return std::pair<RDNode *, RDNode *>(first, cur);
 }
 
-LLVMRDBuilderDense::FunctionCall::FunctionCall(RDNode *rootNode,
-                                               RDNode *returnNode,
-                                               LLVMRDBuilderDense::CallType callType):rootNode(rootNode),
-                                                                                      returnNode(returnNode),
-                                                                                      callType(callType) {}
 ///
 // Map pointers of 'val' to def-sites.
 // \param where  location in the program, for debugging
