@@ -20,7 +20,8 @@ if (LLVM_DG)
 				PRIVATE ${llvm_core})
 
 	add_executable(llvm-slicer llvm-slicer.cpp
-				   llvm-slicer-opts.cpp llvm-slicer-opts.h)
+				   llvm-slicer-opts.cpp llvm-slicer-opts.h
+				   llvm-slicer-utils.cpp llvm-slicer-utils.h)
 	target_link_libraries(llvm-slicer PRIVATE LLVMdg)
 	target_link_libraries(llvm-slicer
 				PRIVATE ${llvm_irreader}
@@ -33,6 +34,14 @@ if (LLVM_DG)
 	add_executable(llvm-ps-dump llvm-ps-dump.cpp)
 	target_link_libraries(llvm-ps-dump PRIVATE LLVMpta)
 	target_link_libraries(llvm-ps-dump
+				PRIVATE ${llvm_core}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_support})
+
+	add_executable(llvm-pta-ben llvm-pta-ben.cpp)
+	target_link_libraries(llvm-pta-ben LLVMpta)
+	target_link_libraries(llvm-pta-ben
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}

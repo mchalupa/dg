@@ -7,7 +7,6 @@
 namespace dg {
 namespace analysis {
 
-
 // universal but not very efficient visits tracker
 template <typename Node>
 struct SetVisitTracker {
@@ -44,7 +43,6 @@ struct SuccessorsEdgeChooser {
 
     range operator()(Node *n) const { return range(n); }
 };
-
 
 template <typename Node, typename Queue,
           typename VisitTracker = SetVisitTracker<Node>,

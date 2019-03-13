@@ -8,11 +8,14 @@
 #include <llvm/Support/CommandLine.h>
 
 #include "llvm-slicer.h"
+#include "llvm-slicer-utils.h"
+
 #include "git-version.h"
 
 using dg::analysis::LLVMDefUseAnalysisOptions;
 using dg::analysis::LLVMPointerAnalysisOptions;
 using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
+
 
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
 
@@ -54,6 +57,13 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "in the sliced program. This switch makes slicer to remove\n"
                        "also the calls (i.e. behave like Weisser's algorithm)"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+
+    llvm::cl::opt<std::string> preservedFuns("preserved-functions",
+        llvm::cl::desc("Do not slice bodies of the given functions\n."
+                       "The argument is a comma-separated list of functions.\n"),
+                       llvm::cl::value_desc("funs"),
+                       llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<bool> terminationSensitive("termination-sensitive",
         llvm::cl::desc("Do not slice away parts of programs that might make\n"
@@ -149,6 +159,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.outputFile = outputFile;
     options.slicingCriteria = slicingCriteria;
     options.secondarySlicingCriteria = secondarySlicingCriteria;
+
+    options.preservedFunctions = splitList(preservedFuns);
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
 

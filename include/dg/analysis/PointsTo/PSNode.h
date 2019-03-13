@@ -10,6 +10,10 @@
 #include <iostream>
 #endif // not NDEBUG
 
+#ifndef NDEBUG
+#include <iostream>
+#endif // not NDEBUG
+
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/PointsToSet.h"
 #include "dg/analysis/SubgraphNode.h"

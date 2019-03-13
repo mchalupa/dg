@@ -318,6 +318,12 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc, boo
         noret->addControlDependence(actnoret);
     }
 
+    if (auto noret = subgraph->getNoReturn()) {
+        assert(node->getParameters()); // we created them a while ago
+        auto actnoret = getOrCreateNoReturn(node);
+        noret->addControlDependence(actnoret);
+    }
+
     return subgraph;
 }
 

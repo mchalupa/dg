@@ -132,6 +132,7 @@ public:
 
     void setAdHocBuilding(bool adHoc) { ad_hoc_building = adHoc; }
 
+
     PSNodesSeq
     createFuncptrCall(const llvm::CallInst *CInst,
                       const llvm::Function *F);
@@ -309,7 +310,7 @@ private:
                                     Subgraph& subg,
                                     const llvm::CallInst *CI = nullptr,
                                     PSNode *callNode = nullptr);
-
+  
     void addInterproceduralPthreadOperands(const llvm::Function *F,
                                            const llvm::CallInst *CI = nullptr);
 

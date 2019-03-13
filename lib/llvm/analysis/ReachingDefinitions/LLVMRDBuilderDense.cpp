@@ -795,7 +795,6 @@ RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm
     return node;
 }
 
-
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilderDense::createCall(const llvm::Instruction *Inst)
 {
@@ -969,6 +968,9 @@ ReachingDefinitionsGraph LLVMRDBuilderDense::build()
     if (_options.threads) {
         matchForksAndJoins();
     }
+    ReachingDefinitionsGraph graph;
+    graph.setRoot(root);
+
     ReachingDefinitionsGraph graph;
     graph.setRoot(root);
 

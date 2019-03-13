@@ -71,7 +71,7 @@ public:
                     return true;
                 }
             }
-
+            
             return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
         }
 
@@ -166,6 +166,7 @@ public:
         }
         return functions;
     }
+  
     ///
     // Get the points-to information for the given LLVM value.
     // The return object has methods begin(), end() that can be used

@@ -125,9 +125,7 @@ public:
 
         _dg->getCallSites(_options.additionalSlicingCriteria, &criteria_nodes);
 
-        // do not slice __VERIFIER_assume at all
-        // FIXME: do this optional
-        for (auto& funcName : _options.untouchedFunctions)
+        for (auto& funcName : _options.preservedFunctions)
             slicer.keepFunctionUntouched(funcName.c_str());
 
         slice_id = 0xdead;

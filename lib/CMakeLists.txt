@@ -124,7 +124,7 @@ if (APPLE)
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
 				PUBLIC LLVMrd
-                                PUBLIC ThreadRegions
+        PUBLIC ThreadRegions
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_irreader}
@@ -133,8 +133,8 @@ if (APPLE)
 else()
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
-                                PUBLIC LLVMrd
-                                PUBLIC ThreadRegions)
+        PUBLIC LLVMrd
+        PUBLIC ThreadRegions)
 endif(APPLE)
 
 install(TARGETS LLVMdg ThreadRegions LLVMpta LLVMrd PTA RD DGAnalysis
