@@ -572,6 +572,23 @@ public:
         returns.push_back(r);
         return true;
     }
+
+#ifndef NDEBUG
+    // verbose dump
+    void dumpv() const override {
+        PSNode::dumpv();
+        std::cout << "Returns from: [";
+        int n = 0;
+        for (const auto op : returns) {
+            if (++n > 1)
+                std::cout << ", ";
+            op->dump();
+        }
+        std::cout << "]";
+        std::cout << "\n";
+    }
+#endif // not NDEBUG
+
 };
 
 class PSNodeFork;
