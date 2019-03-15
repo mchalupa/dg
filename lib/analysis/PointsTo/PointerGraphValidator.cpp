@@ -94,6 +94,11 @@ bool PointerGraphValidator::checkOperands() {
     std::set<const PSNode *> known_nodes;
     const auto& nodes = PS->getNodes();
 
+    for (const auto& nd :PS->getGlobals()) {
+        if (!known_nodes.insert(nd.get()).second)
+            invalid |= reportInvalNode(nd.get(), "Node multiple times in the graph");
+    }
+
     for (const auto& nd : nodes) {
         if (!nd)
             continue;
@@ -219,7 +224,7 @@ bool PointerGraphValidator::checkEdges() {
             continue;
 
         if (!no_connectivity) {
-            if (nd->predecessorsNum() == 0 && nd.get() && nd.get() != PS->firstGlobal()
+            if (nd->predecessorsNum() == 0 && nd.get()
                 && nd->getType() != PSNodeType::ENTRY && !canBeOutsideGraph(nd.get())) {
                 invalid |= reportInvalEdges(nd.get(), "Non-entry node has no predecessors");
             }

@@ -84,75 +84,11 @@ class PointerGraph
         UNKNOWN_MEMORY->pointsTo.add(Pointer(UNKNOWN_MEMORY, Offset::UNKNOWN));
     }
 
-    PSNode * _globalNodes;
+    NodesT _globals;
 
-public:
-    PointerGraph() : dfsnum(0), root(nullptr) {
-        // nodes[0] represents invalid node (the node with id 0)
-        nodes.emplace_back(nullptr);
-        initStaticNodes();
-    }
-
-    bool registerCall(PSNode *a, PSNode *b) {
-        return callGraph.addCall(a, b);
-    }
-
-    const GenericCallGraph<PSNode *>& getCallGraph() const { return callGraph; }
-
-    const NodesT& getNodes() const { return nodes; }
-    size_t size() const { return nodes.size(); }
-
-    PointerGraph(PointerGraph&&) = default;
-    PointerGraph& operator=(PointerGraph&&) = default;
-    PointerGraph(const PointerGraph&) = delete;
-    PointerGraph operator=(const PointerGraph&) = delete;
-
-    PSNode *getRoot() const { return root; }
-    void setRoot(PSNode *r) {
-#if DEBUG_ENABLED
-        bool found = false;
-        for (auto& n : nodes) {
-            if (n.get() == r) {
-                found = true;
-                break;
-            }
-        }
-        assert(found && "The root lies outside of the graph");
-#endif
-        root = r;
-    }
-
-    void remove(PSNode *nd) {
-        assert(nd && "nullptr passed as nd");
-        // the node must be isolated
-        assert(nd->successors.empty() && "The node is still in graph");
-        assert(nd->predecessors.empty() && "The node is still in graph");
-        assert(nd->getID() < size() && "Invalid ID");
-        assert(nd->getID() > 0 && "Invalid ID");
-        assert(nd->users.empty() && "This node is used by other nodes");
-        // if the node has operands, it means that the operands
-        // have a reference (an user edge to this node).
-        // We do not want to create dangling references.
-        assert(nd->operands.empty() && "This node uses other nodes");
-        assert(nodes[nd->getID()].get() == nd && "Inconsistency in nodes");
-
-        // clear the nodes entry
-        nodes[nd->getID()].reset();
-    }
-
-    PointerSubgraph *createSubgraph(PSNode *root,
-                                    PSNode *vararg = nullptr) {
-        // NOTE: id of the subgraph is always index in _subgraphs + 1
-        _subgraphs.emplace_back(new PointerSubgraph(_subgraphs.size() + 1,
-                                                    root, vararg));
-        return _subgraphs.back().get();
-    }
-
-    PSNode *create(PSNodeType t, ...) {
-        va_list args;
+    PSNode *_create(PSNodeType t, va_list args) {
         PSNode *node = nullptr;
 
-        va_start(args, t);
         switch (t) {
             case PSNodeType::ALLOC:
                 node = new PSNodeAlloc(getNewNodeId());
@@ -195,23 +131,100 @@ public:
                 node = new PSNode(getNewNodeId(), t, args);
                 break;
         }
-        va_end(args);
 
         assert(node && "Didn't created node");
-        nodes.emplace_back(node);
         return node;
     }
 
-    // set the first global. It is assumed that the globals are
-    // connected by successors edges in the order in which they
-    // should be processed
-    void setGlobals(PSNode *n) {
-        _globalNodes = n;
+public:
+    PointerGraph() : dfsnum(0), root(nullptr) {
+        // nodes[0] represents invalid node (the node with id 0)
+        nodes.emplace_back(nullptr);
+        initStaticNodes();
     }
 
-    PSNode *firstGlobal() { return _globalNodes; }
-    const PSNode *firstGlobal() const { return _globalNodes; }
+    PointerSubgraph *createSubgraph(PSNode *root,
+                                    PSNode *vararg = nullptr) {
+        // NOTE: id of the subgraph is always index in _subgraphs + 1
+        _subgraphs.emplace_back(new PointerSubgraph(_subgraphs.size() + 1,
+                                                    root, vararg));
+        return _subgraphs.back().get();
+    }
 
+    PSNode *create(PSNodeType t, ...) {
+        va_list args;
+
+        va_start(args, t);
+        PSNode *n = _create(t, args);
+        va_end(args);
+
+        nodes.emplace_back(n);
+        return n;
+    }
+
+    // create a global node. Global nodes will be processed
+    // in the same order in which they are created.
+    // The global nodes are processed only once before the
+    // analysis starts.
+    PSNode *createGlobal(PSNodeType t, ...) {
+        va_list args;
+
+        va_start(args, t);
+        PSNode *n = _create(t, args);
+        va_end(args);
+
+        _globals.emplace_back(n);
+        return n;
+    }
+
+    bool registerCall(PSNode *a, PSNode *b) {
+        return callGraph.addCall(a, b);
+    }
+
+    const GenericCallGraph<PSNode *>& getCallGraph() const { return callGraph; }
+
+    const NodesT& getNodes() const { return nodes; }
+    const NodesT& getGlobals() const { return _globals; }
+
+    size_t size() const { return nodes.size() + _globals.size(); }
+
+    PointerGraph(PointerGraph&&) = default;
+    PointerGraph& operator=(PointerGraph&&) = default;
+    PointerGraph(const PointerGraph&) = delete;
+    PointerGraph operator=(const PointerGraph&) = delete;
+
+    PSNode *getRoot() const { return root; }
+    void setRoot(PSNode *r) {
+#if DEBUG_ENABLED
+        bool found = false;
+        for (auto& n : nodes) {
+            if (n.get() == r) {
+                found = true;
+                break;
+            }
+        }
+        assert(found && "The root lies outside of the graph");
+#endif
+        root = r;
+    }
+
+    void remove(PSNode *nd) {
+        assert(nd && "nullptr passed as nd");
+        // the node must be isolated
+        assert(nd->successors.empty() && "The node is still in graph");
+        assert(nd->predecessors.empty() && "The node is still in graph");
+        assert(nd->getID() < size() && "Invalid ID");
+        assert(nd->getID() > 0 && "Invalid ID");
+        assert(nd->users.empty() && "This node is used by other nodes");
+        // if the node has operands, it means that the operands
+        // have a reference (an user edge to this node).
+        // We do not want to create dangling references.
+        assert(nd->operands.empty() && "This node uses other nodes");
+        assert(nodes[nd->getID()].get() == nd && "Inconsistency in nodes");
+
+        // clear the nodes entry
+        nodes[nd->getID()].reset();
+    }
 
     // get nodes in BFS order and store them into
     // the container

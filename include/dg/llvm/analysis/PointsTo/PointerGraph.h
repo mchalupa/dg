@@ -82,7 +82,7 @@ class LLVMPointerGraphBuilder
     void buildArguments(const llvm::Function& F,
                         PSNode *parent);
     PSNodesSeq buildArgumentsStructure(const llvm::Function& F);
-    PSNodesSeq buildGlobals();
+    void buildGlobals();
 
     // add edges that are derived from CFG to the subgraph
     void addProgramStructure();
@@ -308,10 +308,9 @@ private:
     PointerSubgraph& createOrGetSubgraph(const llvm::Function *);
 
 
-    PSNode *handleGlobalVariableInitializer(const llvm::Constant *C,
-                                            PSNodeAlloc *node,
-                                            PSNode *last = nullptr,
-                                            uint64_t offset = 0);
+    void handleGlobalVariableInitializer(const llvm::Constant *C,
+                                         PSNodeAlloc *node,
+                                         uint64_t offset = 0);
 
     PSNode *createMemTransfer(const llvm::IntrinsicInst *Inst);
 

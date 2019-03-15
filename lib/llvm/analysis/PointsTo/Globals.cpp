@@ -40,16 +40,12 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-PSNode *
+void
 LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
-                                                            PSNodeAlloc *node,
-                                                            PSNode *last,
-                                                            uint64_t offset)
+                                                         PSNodeAlloc *node,
+                                                         uint64_t offset)
 {
     using namespace llvm;
-
-    if (!last)
-        last = node;
 
     // if the global is zero initialized, just set the zeroInitialized flag
     if (C->isNullValue()) {
@@ -60,39 +56,30 @@ LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C
             const Constant *op = cast<Constant>(*I);
             Type *Ty = op->getType();
             // recursively dive into the aggregate type
-            last = handleGlobalVariableInitializer(op, node, last, offset + off);
+            handleGlobalVariableInitializer(op, node, offset + off);
             off += DL->getTypeAllocSize(Ty);
         }
     } else if (C->getType()->isPointerTy()) {
         PSNode *op = getOperand(C);
-        PSNode *target = PS.create(PSNodeType::CONSTANT, node, offset);
-        PSNode *store = PS.create(PSNodeType::STORE, op, target);
-        store->insertAfter(last);
-        last = store;
+        PSNode *target = PS.createGlobal(PSNodeType::CONSTANT, node, offset);
+        PS.createGlobal(PSNodeType::STORE, op, target);
     } else if (isa<ConstantExpr>(C)
                 || isa<Function>(C)
                 || C->getType()->isPointerTy()) {
        if (C->getType()->isPointerTy()) {
            PSNode *value = getOperand(C);
            assert(value->pointsTo.size() == 1 && "BUG: We should have constant");
-           // FIXME: we're leaking the target
-           PSNode *store = PS.create(PSNodeType::STORE, value, node);
-           store->insertAfter(last);
-           last = store;
+           PS.createGlobal(PSNodeType::STORE, value, node);
        }
     } else if (isa<UndefValue>(C)) {
         // undef value means unknown memory
-        PSNode *target = PS.create(PSNodeType::CONSTANT, node, offset);
-        PSNode *store = PS.create(PSNodeType::STORE, UNKNOWN_MEMORY, target);
-        store->insertAfter(last);
-        last = store;
+        PSNode *target = PS.createGlobal(PSNodeType::CONSTANT, node, offset);
+        PS.createGlobal(PSNodeType::STORE, UNKNOWN_MEMORY, target);
     } else if (!isa<ConstantInt>(C) && !isa<ConstantFP>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
         abort();
     }
-
-    return last;
 }
 
 static uint64_t getAllocatedSize(const llvm::GlobalVariable *GV,
@@ -105,24 +92,14 @@ static uint64_t getAllocatedSize(const llvm::GlobalVariable *GV,
     return DL->getTypeAllocSize(Ty);
 }
 
-PSNodesSeq LLVMPointerGraphBuilder::buildGlobals()
+void LLVMPointerGraphBuilder::buildGlobals()
 {
-    PSNode *cur = nullptr, *prev, *first = nullptr;
     // create PointerGraph nodes
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
-        prev = cur;
-
         // every global node is like memory allocation
-        PSNodeAlloc *nd = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNodeAlloc *nd = PSNodeAlloc::get(PS.createGlobal(PSNodeType::ALLOC));
         nd->setIsGlobal();
-        cur = nd;
-
-        addNode(&*I, cur);
-
-        if (prev)
-            prev->addSuccessor(cur);
-        else
-            first = cur;
+        addNode(&*I, nd);
     }
 
     // only now handle the initializers - we need to have then
@@ -133,25 +110,19 @@ PSNodesSeq LLVMPointerGraphBuilder::buildGlobals()
                        " or it is not an allocation");
 
         // handle globals initialization
-        const llvm::GlobalVariable *GV
-                            = llvm::dyn_cast<llvm::GlobalVariable>(&*I);
-        if (GV) {
+        if (const auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
             node->setSize(getAllocatedSize(GV, DL));
 
             if (GV->hasInitializer() && !GV->isExternallyInitialized()) {
                 const llvm::Constant *C = GV->getInitializer();
-                cur = handleGlobalVariableInitializer(C, node);
+                handleGlobalVariableInitializer(C, node);
             }
         } else {
             // without initializer we can not do anything else than
             // assume that it can point everywhere
-            cur = PS.create(PSNodeType::STORE, UNKNOWN_MEMORY, node);
-            cur->insertAfter(node);
+            PS.createGlobal(PSNodeType::STORE, UNKNOWN_MEMORY, node);
         }
     }
-
-    assert((!first && !cur) || (first && cur));
-    return std::make_pair(first, cur);
 }
 
 } // namespace pta

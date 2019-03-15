@@ -496,6 +496,7 @@ dumpPointerGraphdot(LLVMPointerAnalysis *pta, PTType type)
             }
         }
     } else {
+        dumpToDot(pta->getPS()->getGlobals(), type);
         dumpToDot(pta->getNodes(), type);
     }
 

@@ -967,8 +967,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     }
 
     // first we must build globals, because nodes can use them as operands
-    PSNodesSeq glob = buildGlobals();
-    PS.setGlobals(glob.first);
+    buildGlobals();
 
     // now we can build rest of the graph
     PointerSubgraph& subg = buildFunction(*F);
