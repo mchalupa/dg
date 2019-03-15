@@ -216,9 +216,9 @@ bool PointerGraphValidator::checkEdges() {
             continue;
 
         if (!no_connectivity) {
-            if (nd->predecessorsNum() == 0 && nd.get() != PS->getRoot()
-                && !canBeOutsideGraph(nd.get())) {
-                invalid |= reportInvalEdges(nd.get(), "Non-root node has no predecessors");
+            if (nd->predecessorsNum() == 0 && nd.get()
+                && nd->getType() != PSNodeType::ENTRY && !canBeOutsideGraph(nd.get())) {
+                invalid |= reportInvalEdges(nd.get(), "Non-entry node has no predecessors");
             }
         }
 

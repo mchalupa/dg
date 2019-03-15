@@ -140,19 +140,21 @@ PSNode *LLVMPointerGraphBuilder::getOperand(const llvm::Value *val)
 
 PSNodesSeq
 LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
-                                                 const llvm::Function *F)
+                                              const llvm::Function *F)
 {
     PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
 
-    // reuse built subgraphs if available
+    // find or build the subgraph for the function F
     PointerSubgraph& subg = createOrGetSubgraph(F);
-    // we took the subg by reference, so it should be filled now
-    assert(subg.root);
+    assert(subg.root); // we took the subg by reference, so it should be filled now
 
-    // add an edge from last argument to root of the subgraph
-    // and from the subprocedure return node (which is one - unified
-    // for all return nodes) to return from the call
-    callNode->addSuccessor(subg.root);
+    // setup call edges
+    callNode->addCallee(&subg);
+    if (PSNodeEntry *ent = PSNodeEntry::get(subg.root)) {
+        ent->addCaller(callNode);
+    } else {
+        assert(false && "Root is not an entry node");
+    }
 
     // update callgraph
     auto cinstg = subgraphs_map[CInst->getParent()->getParent()];
@@ -1029,7 +1031,7 @@ LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
         return {};
 
     const PointerSubgraph *subg = it->second;
-    auto nodes = getReachableNodes(subg->root, subg->ret);
+    auto nodes = getReachableNodes(subg->root, nullptr, false /*interproc */);
 
     // Filter the nodes just to those that are from the function.
     // We cannot do it when getting the nodes as the procedures

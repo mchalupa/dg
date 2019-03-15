@@ -388,6 +388,20 @@ dumpNodeEdgesToDot(PSNode *node)
         printf("\tNODE%u -> NODE%u [color=blue,style=dotted,constraint=false]\n",
                op->getID(), node->getID());
     }
+
+    if (auto C = PSNodeCall::get(node)) {
+        for (const auto subg : C->getCallees()) {
+            printf("\tNODE%u -> NODE%u [penwidth=4,style=dashed,constraint=false]\n",
+                   node->getID(), subg->root->getID());
+        }
+    }
+
+    if (auto R = PSNodeRet::get(node)) {
+        for (const auto succ : R->getReturnSites()) {
+            printf("\tNODE%u -> NODE%u [penwidth=4,style=dashed,constraint=false]\n",
+                   node->getID(), succ->getID());
+        }
+    }
 }
 
 PSNode *getNodePtr(PSNode *ptr) { return ptr; }

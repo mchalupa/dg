@@ -11,6 +11,7 @@
 #include <cstdarg>
 #include <vector>
 #include <memory>
+#include <functional>
 
 namespace dg {
 namespace analysis {
@@ -204,6 +205,7 @@ public:
     // the container
     template <typename ContainerOrNode>
     std::vector<PSNode *> getNodes(const ContainerOrNode& start,
+                                   bool interprocedural = true,
                                    unsigned expected_num = 0)
     {
         ++dfsnum;
@@ -220,8 +222,32 @@ public:
             bool visited(PSNode *n) const { return n->dfsid == dfsnum; }
         };
 
+         // iterate over successors and call (return) edges
+        struct EdgeChooser {
+            const bool interproc;
+            EdgeChooser(bool inter = true) : interproc(inter) {}
+
+            void foreach(PSNode *cur, std::function<void(PSNode *)> Dispatch) {
+                if (interproc) {
+                    if (PSNodeCall *C = PSNodeCall::get(cur)) {
+                        for (auto subg : C->getCallees()) {
+                            Dispatch(subg->root);
+                        }
+                    } else if (PSNodeRet *R = PSNodeRet::get(cur)) {
+                        for (auto ret : R->getReturnSites()) {
+                            Dispatch(ret);
+                        }
+                    }
+                } else {
+                    for (auto s : cur->getSuccessors())
+                        Dispatch(s);
+                }
+            }
+        };
+
         DfsIdTracker visitTracker(dfsnum);
-        BFS<PSNode, DfsIdTracker> bfs(visitTracker);
+        EdgeChooser chooser(interprocedural);
+        BFS<PSNode, DfsIdTracker, EdgeChooser> bfs(visitTracker, chooser);
 
         bfs.run(start, [&cont](PSNode *n) { cont.push_back(n); });
 
@@ -235,7 +261,8 @@ public:
 // stop at node 'exit' (excluding) if not set to null
 inline std::set<PSNode *>
 getReachableNodes(PSNode *n,
-                  PSNode *exit = nullptr)
+                  PSNode *exit = nullptr,
+				  bool interproc = true)
 {
     ADT::QueueFIFO<PSNode *> fifo;
     std::set<PSNode *> cont;
@@ -255,6 +282,22 @@ getReachableNodes(PSNode *n,
                 continue;
 
             fifo.push(succ);
+        }
+
+        if (interproc) {
+            if (PSNodeCall *C = PSNodeCall::get(cur)) {
+                for (auto subg : C->getCallees()) {
+                    if (subg->root == exit)
+                        continue;
+                    fifo.push(subg->root);
+                }
+            } else if (PSNodeRet *R = PSNodeRet::get(cur)) {
+                for (auto ret : R->getReturnSites()) {
+                    if (ret == exit)
+                        continue;
+                    fifo.push(ret);
+                }
+            }
         }
     }
 
