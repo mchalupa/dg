@@ -84,10 +84,20 @@ public:
         // change, so we don't have to do that)
         if (needsMerge(n)) {
             for (PSNode *p : n->getPredecessors()) {
-                MemoryMapT *pm = p->getData<MemoryMapT>();
-                // merge pm to mm (but only if pm was already created)
-                if (pm) {
+                if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
+                    // merge pm to mm (but only if pm was already created)
                     changed |= mergeMaps(mm, pm, overwritten);
+                }
+            }
+
+            // interprocedural stuff - merge information from
+            // calls
+            if (auto CR = PSNodeCallRet::get(n)) {
+                for (auto p : CR->getReturns()) {
+                    if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
+                        // merge pm to mm (but only if pm was already created)
+                        changed |= mergeMaps(mm, pm, overwritten);
+                    }
                 }
             }
         }
@@ -119,9 +129,6 @@ public:
 protected:
 
     static bool canChangeMM(PSNode *n) {
-        if (n->predecessorsNum() == 0) // root node
-            return true;
-
         switch (n->getType()) {
             case PSNodeType::STORE:
             case PSNodeType::MEMCPY:
@@ -210,8 +217,11 @@ protected:
     }
 
 private:
-    static bool needsMerge(PSNode *n) {
-        return n->predecessorsNum() > 1 || canChangeMM(n);
+    static inline bool needsMerge(PSNode *n) {
+        return n->predecessorsNum() > 1 ||
+               n->predecessorsNum() == 0 || // root node
+               n->getType() == PSNodeType::CALL_RETURN || // call return is join
+               canChangeMM(n);
     }
 
     // keep all the maps in order to free the memory
