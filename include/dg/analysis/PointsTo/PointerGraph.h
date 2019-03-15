@@ -233,15 +233,17 @@ public:
                         for (auto subg : C->getCallees()) {
                             Dispatch(subg->root);
                         }
+                        return; // we do not need to iterate over succesors now
                     } else if (PSNodeRet *R = PSNodeRet::get(cur)) {
                         for (auto ret : R->getReturnSites()) {
                             Dispatch(ret);
                         }
+                        return; // we do not need to iterate over succesors now
                     }
-                } else {
-                    for (auto s : cur->getSuccessors())
-                        Dispatch(s);
                 }
+
+                for (auto s : cur->getSuccessors())
+                    Dispatch(s);
             }
         };
 
