@@ -40,13 +40,14 @@ private:
     const int                   id_;
     const NodeType              nodeType_;
     const llvm::Instruction *   llvmInstruction_;
+    const llvm::CallInst *      callInstruction_;
     std::set<Node *>            predecessors_;
     std::set<Node *>            successors_;
 
     static int lastId;
 
 public:
-    Node(NodeType type, const llvm::Instruction * value = nullptr);
+    Node(NodeType type, const llvm::Instruction * instruction = nullptr, const llvm::CallInst * callInst = nullptr);
 
     virtual ~Node() = default;
 

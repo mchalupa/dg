@@ -4,7 +4,8 @@
 
 #include "llvm/IR/Instructions.h"
 
-JoinNode::JoinNode(const llvm::Instruction *value):Node(NodeType::JOIN, value){}
+JoinNode::JoinNode(const llvm::Instruction *value, const llvm::CallInst *callInst)
+    :Node(NodeType::JOIN, value, callInst){}
 
 bool JoinNode::addCorrespondingFork(ForkNode *forkNode) {
     if (!forkNode) {

@@ -11,7 +11,7 @@ class ForkNode : public Node
     std::set<EntryNode *>   forkSuccessors_;
     std::set<JoinNode *>    correspondingJoins_;
 public:
-    ForkNode(const llvm::Instruction * instruction = nullptr);
+    ForkNode(const llvm::Instruction * instruction = nullptr, const llvm::CallInst * callInst = nullptr);
 
     bool addCorrespondingJoin(JoinNode * joinNode);
 

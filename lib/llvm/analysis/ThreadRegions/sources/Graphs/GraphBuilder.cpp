@@ -362,7 +362,7 @@ GraphBuilder::NodeSequence GraphBuilder::buildGeneralCallInstruction(const CallI
     if (callInstruction->getCalledFunction()) {
         callNode = addNode(createNode<NodeType::CALL>(callInstruction));
     } else {
-        callNode = addNode(createNode<NodeType::CALL>());
+        callNode = addNode(createNode<NodeType::CALL>(nullptr, callInstruction));
     }
     return {callNode, callNode};
 }
@@ -390,7 +390,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertPthreadCreate(const CallInst *cal
     if (callInstruction->getCalledFunction()) {
         forkNode = addNode(createNode<NodeType::FORK>(callInstruction));
     } else {
-        forkNode = addNode(createNode<NodeType::FORK>());
+        forkNode = addNode(createNode<NodeType::FORK>(nullptr, callInstruction));
     }
     auto possibleFunction = callInstruction->getArgOperand(2);
     auto functionsToBeForked = pointsToAnalysis_->getPointsToFunctions(possibleFunction);
@@ -408,7 +408,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertPthreadMutexLock(const CallInst *
     if (callInstruction->getCalledFunction()) {
         lockNode = addNode(createNode<NodeType::LOCK>(callInstruction));
     } else {
-        lockNode = addNode(createNode<NodeType::LOCK>());
+        lockNode = addNode(createNode<NodeType::LOCK>(nullptr, callInstruction));
     }
 
     return {lockNode, lockNode};
@@ -419,7 +419,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertPthreadMutexUnlock(const CallInst
     if (callInstruction->getCalledFunction()) {
         unlockNode = addNode(createNode<NodeType::UNLOCK>(callInstruction));
     } else {
-        unlockNode = addNode(createNode<NodeType::UNLOCK>());
+        unlockNode = addNode(createNode<NodeType::UNLOCK>(nullptr, callInstruction));
     }
 
     return {unlockNode, unlockNode};
@@ -430,7 +430,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertPthreadJoin(const CallInst *callI
     if (callInstruction->getCalledFunction()) {
         joinNode = addNode(createNode<NodeType::JOIN>(callInstruction));
     } else {
-        joinNode = addNode(createNode<NodeType::JOIN>());
+        joinNode = addNode(createNode<NodeType::JOIN>(nullptr, callInstruction));
     }
     return  {joinNode, joinNode};
 }
@@ -440,7 +440,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertPthreadExit(const CallInst *callI
     if (callInstruction->getCalledFunction()) {
         callNode = addNode(createNode<NodeType::CALL>(callInstruction));
     } else {
-        callNode = addNode(createNode<NodeType::CALL>());
+        callNode = addNode(createNode<NodeType::CALL>(nullptr, callInstruction));
     }
     auto returnNode = addNode(createNode<NodeType::RETURN>());
     callNode->addSuccessor(returnNode);
@@ -455,7 +455,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertFunction(const Function *function
         if (callInstruction->getCalledFunction()) {
             callNode = createNode<NodeType::CALL>(callInstruction);
         } else {
-            callNode = createNode<NodeType::CALL>();
+            callNode = createNode<NodeType::CALL>(nullptr, callInstruction);
         }
         addNode(callNode);
         auto nodeSeq = createOrGetFunction(function);

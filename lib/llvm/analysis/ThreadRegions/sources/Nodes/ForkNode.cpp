@@ -9,7 +9,8 @@
 
 using namespace std;
 
-ForkNode::ForkNode(const llvm::Instruction *instruction):Node(NodeType::FORK, instruction) {}
+ForkNode::ForkNode(const llvm::Instruction *instruction, const llvm::CallInst *callInst)
+    :Node(NodeType::FORK, instruction, callInst) {}
 
 bool ForkNode::addCorrespondingJoin(JoinNode *joinNode){
     if (!joinNode) {

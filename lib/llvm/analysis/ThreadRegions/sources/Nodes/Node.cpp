@@ -11,9 +11,10 @@ using namespace llvm;
 
 int Node::lastId = 0;
 
-Node::Node(NodeType type, const Instruction *value):id_(lastId++),
+Node::Node(NodeType type, const Instruction *instruction, const CallInst *callInst):id_(lastId++),
                                                     nodeType_(type),
-                                                    llvmInstruction_(value)
+                                                    llvmInstruction_(instruction),
+                                                    callInstruction_(callInst)
 {}
 
 NodeIterator Node::begin() const {
@@ -93,16 +94,11 @@ const Instruction * Node::llvmInstruction() const {
 }
 
 const CallInst *Node::callInstruction() const {
-    using namespace llvm;
-    if (!isArtificial()) {
-        llvmInstruction();
-        return dyn_cast<CallInst>(llvmInstruction());
-    } else if (!predecessors().empty()) {
-        auto iterator = predecessors().begin();
-        auto value = (*iterator)->llvmInstruction();
-        if (value) {
-            return dyn_cast<CallInst>(value);
-        }
+    if (callInstruction_) {
+        return callInstruction_;
+    }
+    if (llvmInstruction_) {
+        return llvm::dyn_cast<llvm::CallInst>(llvmInstruction_);
     }
     return nullptr;
 }
