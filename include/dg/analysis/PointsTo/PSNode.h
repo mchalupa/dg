@@ -371,7 +371,7 @@ public:
 
 
 // check type of node
-template <PSNodeType T> bool isa(PSNode *n) {
+template <PSNodeType T> bool isa(const PSNode *n) {
     return n->getType() == T;
 }
 
@@ -394,6 +394,11 @@ public:
     static PSNodeAlloc *get(PSNode *n) {
         return isa<PSNodeType::ALLOC>(n) || isa<PSNodeType::DYN_ALLOC>(n) ?
             static_cast<PSNodeAlloc *>(n) : nullptr;
+    }
+
+    static const PSNodeAlloc *get(const PSNode *n) {
+        return isa<PSNodeType::ALLOC>(n) || isa<PSNodeType::DYN_ALLOC>(n) ?
+            static_cast<const PSNodeAlloc *>(n) : nullptr;
     }
 
     void setZeroInitialized() { zeroInitialized = true; }

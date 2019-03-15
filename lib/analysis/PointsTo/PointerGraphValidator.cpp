@@ -175,6 +175,9 @@ static inline bool isInPredecessors(const PSNode *nd, const PSNode *of) {
 }
 
 static inline bool canBeOutsideGraph(const PSNode *nd) {
+    if (const PSNodeAlloc *A = PSNodeAlloc::get(nd))
+        return A->isGlobal();
+
     return (nd->getType() == PSNodeType::FUNCTION ||
             nd->getType() == PSNodeType::CONSTANT ||
             nd->getType() == PSNodeType::UNKNOWN_MEM ||
@@ -216,7 +219,7 @@ bool PointerGraphValidator::checkEdges() {
             continue;
 
         if (!no_connectivity) {
-            if (nd->predecessorsNum() == 0 && nd.get()
+            if (nd->predecessorsNum() == 0 && nd.get() && nd.get() != PS->firstGlobal()
                 && nd->getType() != PSNodeType::ENTRY && !canBeOutsideGraph(nd.get())) {
                 invalid |= reportInvalEdges(nd.get(), "Non-entry node has no predecessors");
             }

@@ -115,6 +115,12 @@ public:
         to_process = PS->getNodes(root);
     }
 
+    void queue_globals() {
+        assert(to_process.empty());
+        if (PS->firstGlobal()) {
+            to_process = PS->getNodes(PS->firstGlobal());
+        }
+    }
 
     bool iteration() {
         assert(changed.empty());
@@ -154,17 +160,24 @@ public:
     {
         DBG_SECTION_BEGIN(pta, "Running pointer analysis");
 
-        // do preprocessing and queue the nodes
         preprocess();
-        initialize_queue();
 
         // check that the current state of pointer analysis makes sense
         sanityCheck();
 
+        // process global nodes, these must reach fixpoint after one iteration
+        DBG(pta, "Processing global nodes");
+        queue_globals();
+        iteration();
+        assert((queue_changed(), queue_globals(), !iteration()) && "Globals did not reach fixpoint");
+        to_process.clear();
+        changed.clear();
+
+        initialize_queue();
+
 #if DEBUG_ENABLED
         int n = 0;
 #endif
-
         // do fixpoint
         do {
 #if DEBUG_ENABLED
