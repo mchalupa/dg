@@ -460,6 +460,7 @@ public:
 
 class PSNodeEntry : public PSNode {
     std::string functionName;
+    std::vector<PSNode *> callers;
 
 public:
     PSNodeEntry(unsigned id, const std::string& name = "not-known")
@@ -472,6 +473,20 @@ public:
 
     void setFunctionName(const std::string& name) { functionName = name; }
     const std::string& getFunctionName() const { return functionName; }
+
+    const std::vector<PSNode *>& getCallers() const { return callers; }
+
+    bool addCaller(PSNode *n) {
+        // we suppose there are just few callees,
+        // so this should be faster than std::set
+        for (auto p : callers) {
+            if (p == n)
+                return false;
+        }
+
+        callers.push_back(n);
+        return true;
+    }
 };
 
 class PSNodeCall : public PSNode {
