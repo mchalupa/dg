@@ -518,6 +518,34 @@ public:
     }
 };
 
+class PSNodeCallRet : public PSNode {
+    // return nodes that go to this call-return node
+    std::vector<PSNode *> returns;
+
+public:
+    PSNodeCallRet(unsigned id, va_list args)
+    :PSNode(id, PSNodeType::CALL_RETURN, args) {}
+
+    static PSNodeCallRet *get(PSNode *n) {
+        return isa<PSNodeType::CALL_RETURN>(n) ?
+            static_cast<PSNodeCallRet *>(n) : nullptr;
+    }
+
+    const std::vector<PSNode *>& getReturns() const { return returns; }
+
+    bool addReturn(PSNode *p) {
+        // we suppose there are just few callees,
+        // so this should be faster than std::set
+        for (auto r : returns) {
+            if (p == r)
+                return false;
+        }
+
+        returns.push_back(p);
+        return true;
+    }
+};
+
 class PSNodeRet : public PSNode {
     // this node returns control to...
     std::vector<PSNode *> returns;
