@@ -375,7 +375,15 @@ template <PSNodeType T> bool isa(const PSNode *n) {
     return n->getType() == T;
 }
 
+template <typename T>
+struct PSNodeGetter {
+    static T *get(PSNode *n) { return static_cast<T *>(n); }
+    static const T *get(const PSNode *n) { return static_cast<const T *>(n); }
+
+};
+
 class PSNodeAlloc : public PSNode {
+
     // was memory zeroed at initialization or right after allocating?
     bool zeroInitialized = false;
     // is memory allocated on heap?
@@ -391,14 +399,10 @@ public:
         assert(t == PSNodeType::ALLOC || t == PSNodeType::DYN_ALLOC);
     }
 
-    static PSNodeAlloc *get(PSNode *n) {
+    template <typename T>
+    static auto get(T *n) -> decltype (PSNodeGetter<PSNodeAlloc>::get(n)) {
         return isa<PSNodeType::ALLOC>(n) || isa<PSNodeType::DYN_ALLOC>(n) ?
-            static_cast<PSNodeAlloc *>(n) : nullptr;
-    }
-
-    static const PSNodeAlloc *get(const PSNode *n) {
-        return isa<PSNodeType::ALLOC>(n) || isa<PSNodeType::DYN_ALLOC>(n) ?
-            static_cast<const PSNodeAlloc *>(n) : nullptr;
+                PSNodeGetter<PSNodeAlloc>::get(n) : nullptr;
     }
 
     void setZeroInitialized() { zeroInitialized = true; }
