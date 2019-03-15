@@ -185,6 +185,9 @@ public:
             case PSNodeType::RETURN:
                 node = new PSNodeRet(getNewNodeId(), args);
                 break;
+            case PSNodeType::CALL_RETURN:
+                node = new PSNodeCallRet(getNewNodeId(), args);
+                break;
             default:
                 node = new PSNode(getNewNodeId(), t, args);
                 break;
