@@ -246,14 +246,6 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
         assert(ptan.first && ptan.second);
     }
 
-    // add successors edges from every real return to our artificial ret node
-    // NOTE: if the function has infinite loop we won't have any return nodes,
-    // so this assertion must not hold
-    //assert(!rets.empty() && "BUG: Did not find any return node in function");
-    for (PSNode *r : rets) {
-        r->addSuccessor(subg.ret);
-    }
-
     finfo.has_structure = true;
 }
 

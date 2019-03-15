@@ -30,9 +30,8 @@ class PointerSubgraph {
 
     unsigned _id{0};
 
-    PointerSubgraph(unsigned id, PSNode *r1,
-                    PSNode *r2 = nullptr, PSNode *va = nullptr)
-        : _id(id), root(r1), ret(r2), vararg(va) {}
+    PointerSubgraph(unsigned id, PSNode *r1, PSNode *va = nullptr)
+        : _id(id), root(r1), vararg(va) {}
 
     PointerSubgraph() = default;
     PointerSubgraph(const PointerSubgraph&) = delete;
@@ -42,11 +41,13 @@ public:
 
     unsigned getID() const { return _id; }
 
-    // first and last nodes of the subgraph
+    // first nodes of the subgraph
+	// FIXME: rename to 'entry'
     PSNode *root{nullptr};
-    PSNode *ret{nullptr};
 
-    std::set<PSNode *> returnNodes;
+	// return nodes of this graph
+    std::set<PSNode *> returnNodes{};
+
     // this is the node where we gather the variadic-length arguments
     PSNode *vararg{nullptr};
 };
@@ -136,11 +137,11 @@ public:
         nodes[nd->getID()].reset();
     }
 
-    PointerSubgraph *createSubgraph(PSNode *root, PSNode *ret = nullptr,
+    PointerSubgraph *createSubgraph(PSNode *root,
                                     PSNode *vararg = nullptr) {
         // NOTE: id of the subgraph is always index in _subgraphs + 1
         _subgraphs.emplace_back(new PointerSubgraph(_subgraphs.size() + 1,
-                                                    root, ret, vararg));
+                                                    root, vararg));
         return _subgraphs.back().get();
     }
 

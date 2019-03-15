@@ -154,9 +154,6 @@ bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function,
             for (PSNode *ret : subgraph.returnNodes) {
                 phi->addOperand(ret);
             }
-            subgraph.ret->addSuccessor(phi);
-        } else {
-            subgraph.ret->addSuccessor(joinNode);
         }
     }
     return true;

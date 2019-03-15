@@ -287,9 +287,9 @@ private:
                                      const llvm::CallInst *CI,
                                      PSNode *arg);
 
-    void addReturnNodeOperands(const llvm::Function *F,
-                               PSNode *ret,
-                               PSNode *callNode = nullptr);
+    void addReturnNodesOperands(const llvm::Function *F,
+                                PointerSubgraph& subg,
+                                PSNode *callNode = nullptr);
 
     void addReturnNodeOperand(PSNode *callNode, PSNode *op);
     void addReturnNodeOperand(const llvm::Function *F, PSNode *op);
