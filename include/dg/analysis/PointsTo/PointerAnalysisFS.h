@@ -216,13 +216,14 @@ protected:
 
     }
 
-private:
     static inline bool needsMerge(PSNode *n) {
         return n->predecessorsNum() > 1 ||
                n->predecessorsNum() == 0 || // root node
                n->getType() == PSNodeType::CALL_RETURN || // call return is join
                canChangeMM(n);
     }
+
+private:
 
     // keep all the maps in order to free the memory
     std::vector<std::unique_ptr<MemoryMapT>> memoryMaps;

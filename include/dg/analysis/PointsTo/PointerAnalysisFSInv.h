@@ -10,17 +10,14 @@ namespace pta {
 
 class PointerAnalysisFSInv : public PointerAnalysisFS
 {
-    static bool canChangeMM(PSNode *n) {
-        if (n->getType() == PSNodeType::FREE ||
-            n->getType() == PSNodeType::INVALIDATE_OBJECT ||
-            n->getType() == PSNodeType::INVALIDATE_LOCALS)
-            return true;
-
-        return PointerAnalysisFS::canChangeMM(n);
+    static bool canInvalidateMM(PSNode *n) {
+        return isa<PSNodeType::FREE>(n) ||
+               isa<PSNodeType::INVALIDATE_OBJECT>(n) ||
+               isa<PSNodeType::INVALIDATE_LOCALS>(n);
     }
 
     static bool needsMerge(PSNode *n) {
-        return n->predecessorsNum() > 1 || canChangeMM(n);
+        return canInvalidateMM(n) || PointerAnalysisFS::needsMerge(n);
     }
 
     static MemoryObject *getOrCreateMO(MemoryMapT *mm, PSNode *target) {
@@ -44,6 +41,7 @@ public:
     // default options
     PointerAnalysisFSInv(PointerGraph *ps) : PointerAnalysisFSInv(ps, {}) {}
 
+    // NOTE: we must override this method as it is using our "needsMerge"
     bool beforeProcessed(PSNode *n) override
     {
         MemoryMapT *mm = n->getData<MemoryMapT>();
