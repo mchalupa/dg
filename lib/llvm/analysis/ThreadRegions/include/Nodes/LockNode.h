@@ -9,7 +9,7 @@ class LockNode : public Node
 {
     std::set<UnlockNode *>      correspondingUnlocks_;
 public:
-    LockNode(const llvm::Instruction * instruction = nullptr);
+    LockNode(const llvm::Instruction * instruction = nullptr, const llvm::CallInst * callInst = nullptr);
 
     bool addCorrespondingUnlock(UnlockNode * unlockNode);
 

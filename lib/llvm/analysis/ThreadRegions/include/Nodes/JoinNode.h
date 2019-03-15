@@ -14,7 +14,7 @@ private:
     std::set<const ExitNode *>  joinPredecessors_;
     std::set<ForkNode *>        correspondingForks_;
 public:
-    JoinNode(const llvm::Instruction *value = nullptr);
+    JoinNode(const llvm::Instruction *value = nullptr, const llvm::CallInst * callInst = nullptr);
 
     bool addCorrespondingFork(ForkNode * forkNode);
 

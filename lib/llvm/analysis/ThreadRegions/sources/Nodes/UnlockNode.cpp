@@ -1,4 +1,5 @@
 #include "UnlockNode.h"
 
-UnlockNode::UnlockNode(const llvm::Instruction *instruction):Node(NodeType::UNLOCK, instruction)
+UnlockNode::UnlockNode(const llvm::Instruction *instruction, const llvm::CallInst *callInst)
+    :Node(NodeType::UNLOCK, instruction, callInst)
 {}
