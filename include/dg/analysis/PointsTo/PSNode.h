@@ -21,7 +21,6 @@ namespace pta {
 enum class PSNodeType {
         // these are nodes that just represent memory allocation sites
         ALLOC = 1,
-        DYN_ALLOC,
         LOAD,
         STORE,
         GEP,
@@ -84,7 +83,6 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
 #define ELEM(t) case t: do {return (#t); }while(0); break;
     switch(type) {
         ELEM(PSNodeType::ALLOC)
-        ELEM(PSNodeType::DYN_ALLOC)
         ELEM(PSNodeType::LOAD)
         ELEM(PSNodeType::STORE)
         ELEM(PSNodeType::GEP)
@@ -141,7 +139,6 @@ protected:
     // Different types take different arguments:
     //
     // ALLOC:        no argument
-    // DYN_ALLOC:    no argument
     // FUNCTION:     no argument
     // NOOP:         no argument
     // ENTRY:        no argument
@@ -189,7 +186,6 @@ protected:
     : SubgraphNode<PSNode>(id), type(t) {
         switch(type) {
             case PSNodeType::ALLOC:
-            case PSNodeType::DYN_ALLOC:
             case PSNodeType::FUNCTION:
                 // these always points-to itself
                 // (they points to the node where the memory was allocated)
@@ -394,14 +390,13 @@ class PSNodeAlloc : public PSNode {
     bool is_temporary = false;
 
 public:
-    PSNodeAlloc(unsigned id, PSNodeType t, bool isTemp = false)
-    : PSNode(id, t), is_temporary(isTemp) {
-        assert(t == PSNodeType::ALLOC || t == PSNodeType::DYN_ALLOC);
+    PSNodeAlloc(unsigned id, bool isTemp = false)
+    : PSNode(id, PSNodeType::ALLOC), is_temporary(isTemp) {
     }
 
     template <typename T>
     static auto get(T *n) -> decltype (PSNodeGetter<PSNodeAlloc>::get(n)) {
-        return isa<PSNodeType::ALLOC>(n) || isa<PSNodeType::DYN_ALLOC>(n) ?
+        return isa<PSNodeType::ALLOC>(n)  ?
                 PSNodeGetter<PSNodeAlloc>::get(n) : nullptr;
     }
 

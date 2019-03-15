@@ -442,7 +442,8 @@ PSNode *LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
 
     const Value *op;
     uint64_t size = 0, size2 = 0;
-    PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
+    PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+    node->setIsHeap();
 
     switch (type) {
         case AllocationFunction::MALLOC:
@@ -485,7 +486,9 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst)
 
     // we create new allocation node and memcpy old pointers there
     PSNode *orig_mem = getOperand(CInst->getOperand(0));
-    PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::DYN_ALLOC));
+    PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+    reall->setIsHeap();
+
     // copy everything that is in orig_mem to reall
     PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, Offset::UNKNOWN);
     // we need the pointer in the last node that we return

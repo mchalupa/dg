@@ -43,7 +43,6 @@ public:
             return;
 
         assert(n->getType() == PSNodeType::ALLOC
-               || n->getType() == PSNodeType::DYN_ALLOC
                || n->getType() == PSNodeType::UNKNOWN_MEM);
 
         MemoryObject *mo = n->getData<MemoryObject>();

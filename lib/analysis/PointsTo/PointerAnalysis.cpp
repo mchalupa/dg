@@ -396,7 +396,6 @@ bool PointerAnalysis::processNode(PSNode *node)
             changed |= processMemcpy(node);
             break;
         case PSNodeType::ALLOC:
-        case PSNodeType::DYN_ALLOC:
         case PSNodeType::FUNCTION:
             // these two always points to itself
             assert(node->doesPointsTo(node, 0));

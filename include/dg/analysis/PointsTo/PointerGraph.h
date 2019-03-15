@@ -155,8 +155,7 @@ public:
         va_start(args, t);
         switch (t) {
             case PSNodeType::ALLOC:
-            case PSNodeType::DYN_ALLOC:
-                node = new PSNodeAlloc(getNewNodeId(), t);
+                node = new PSNodeAlloc(getNewNodeId());
                 break;
             case PSNodeType::GEP:
                 node = new PSNodeGep(getNewNodeId(),
