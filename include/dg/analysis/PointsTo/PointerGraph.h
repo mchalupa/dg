@@ -258,12 +258,19 @@ public:
                         for (auto subg : C->getCallees()) {
                             Dispatch(subg->root);
                         }
-                        return; // we do not need to iterate over succesors now
+                        // we do not need to iterate over succesors
+                        // if we dive into the procedure (as we will
+                        // return via call return)
+                        // NOTE: we must iterate over successors if the
+                        // function is undefined
+                        if (!C->getCallees().empty())
+                            return;
                     } else if (PSNodeRet *R = PSNodeRet::get(cur)) {
                         for (auto ret : R->getReturnSites()) {
                             Dispatch(ret);
                         }
-                        return; // we do not need to iterate over succesors now
+                        if (!R->getReturnSites().empty())
+                            return;
                     }
                 }
 
