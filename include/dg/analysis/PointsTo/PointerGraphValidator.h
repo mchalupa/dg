@@ -15,8 +15,6 @@ namespace debug {
  * whether it is not broken
  */
 class PointerGraphValidator {
-    const PointerGraph *PS;
-
     /* These methods return true if the graph is invalid */
     bool checkEdges();
     bool checkNodes();
@@ -26,6 +24,8 @@ class PointerGraphValidator {
     bool no_connectivity;
 
 protected:
+    const PointerGraph *PS;
+
     std::string errors{};
     std::string warnings{};
 
@@ -38,7 +38,7 @@ protected:
 
 public:
     PointerGraphValidator(const PointerGraph *ps, bool no_conn = false)
-    : PS(ps), no_connectivity(no_conn) {}
+    : no_connectivity(no_conn), PS(ps) {}
     virtual ~PointerGraphValidator() = default;
 
     bool validate();
