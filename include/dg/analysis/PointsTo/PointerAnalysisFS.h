@@ -196,11 +196,9 @@ protected:
     }
 
     bool isOnLoop(const PSNode *n) const {
-        unsigned idx = n->getSCCId();
-        const auto& scc = getSCCs()[idx];
-
         // if the scc's size > 1, the node is in loop
-        return scc.size() > 1;
+        return n->getParent() ?
+                (n->getParent()->getLoop(n) != nullptr) : false;
     }
 
     bool pointsToAllocationInLoop(PSNode *n) const {

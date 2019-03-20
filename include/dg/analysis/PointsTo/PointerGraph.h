@@ -6,12 +6,15 @@
 #include "dg/analysis/CallGraph.h"
 #include "dg/analysis/PointsTo/PSNode.h"
 #include "dg/analysis/BFS.h"
+#include "dg/analysis/SCC.h"
+#include "dg/util/debug.h"
 
 #include <cassert>
 #include <cstdarg>
 #include <vector>
 #include <memory>
 #include <functional>
+#include <unordered_map>
 
 namespace dg {
 namespace analysis {
@@ -37,6 +40,30 @@ class PointerSubgraph {
     PointerSubgraph() = default;
     PointerSubgraph(const PointerSubgraph&) = delete;
 
+    // non-trivial strongly connected components
+    std::vector<std::vector<PSNode *>> _loops;
+    std::unordered_map<const PSNode *, size_t> _node_to_loop;
+
+    void _computeLoops() {
+        DBG(pta, "Computing information about loops");
+
+        assert(root);
+        // compute the strongly connected components
+        auto SCCs = SCC<PSNode>().compute(root);
+        for (auto& scc : SCCs) {
+            if (scc.size() <= 1)
+                continue;
+
+            _loops.push_back(std::move(scc));
+            assert(scc.empty() && "We wanted to move the scc");
+
+            for (auto nd : _loops.back()) {
+                assert(_node_to_loop.find(nd) == _node_to_loop.end());
+                _node_to_loop[nd] = _loops.size() - 1;
+            }
+        }
+    }
+
 public:
     PointerSubgraph(PointerSubgraph&&) = default;
 
@@ -51,6 +78,14 @@ public:
 
     // this is the node where we gather the variadic-length arguments
     PSNode *vararg{nullptr};
+
+    const std::vector<PSNode *> *getLoop(const PSNode *nd) const {
+        auto it = _node_to_loop.find(nd);
+        assert(it == _node_to_loop.end() || it->second < _loops.size());
+        return it == _node_to_loop.end() ? nullptr : &_loops[it->second];
+    }
+
+    const std::vector<std::vector<PSNode *>>& getLoops() const { return _loops; }
 };
 
 
@@ -182,11 +217,13 @@ public:
     }
 
     const GenericCallGraph<PSNode *>& getCallGraph() const { return callGraph; }
+    const SubgraphsT& getSubgraphs() const { return _subgraphs; }
 
     const NodesT& getNodes() const { return nodes; }
     const NodesT& getGlobals() const { return _globals; }
-
     size_t size() const { return nodes.size() + _globals.size(); }
+
+
 
     PointerGraph(PointerGraph&&) = default;
     PointerGraph& operator=(PointerGraph&&) = default;

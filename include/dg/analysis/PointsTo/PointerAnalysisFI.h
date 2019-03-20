@@ -18,10 +18,35 @@ class PointerAnalysisFI : public PointerAnalysis
 {
     std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
+    void preprocessGEPs()
+    {
+        // if a node is in a loop (a scc that has more than one node),
+        // then every GEP that is also stored to the same memory afterwards
+        // in the loop will end up with Offset::UNKNOWN after some
+        // number of iterations (in FI analysis), so we can do that right now
+        // and save iterations
+
+        assert(getPS() && "Must have PG");
+        for (const auto& sg : getPS()->getSubgraphs()) {
+            for (const auto& loop : sg->getLoops()) {
+                for (PSNode *n : loop) {
+                    if (PSNodeGep *gep = PSNodeGep::get(n))
+                        gep->setOffset(Offset::UNKNOWN);
+                }
+            }
+        }
+    }
+
+
 public:
     PointerAnalysisFI(PointerGraph *ps)
     : PointerAnalysis(ps) {
         memory_objects.reserve(std::max(ps->size() / 100, static_cast<size_t>(8)));
+    }
+
+    void preprocess() override {
+        if (options.preprocessGeps)
+            preprocessGEPs();
     }
 
     void getMemoryObjects(PSNode *where, const Pointer& pointer,

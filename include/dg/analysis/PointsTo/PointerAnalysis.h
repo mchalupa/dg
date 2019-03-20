@@ -9,7 +9,6 @@
 #include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysisOptions.h"
 #include "dg/ADT/Queue.h"
-#include "dg/analysis/SCC.h"
 
 #include "dg/util/debug.h"
 
@@ -25,25 +24,8 @@ extern const Pointer UnknownPointer;
 
 class PointerAnalysis
 {
-    // the pointer state subgraph
-    PointerGraph *PS{nullptr};
-    const PointerAnalysisOptions options{};
-
-    // strongly connected components of the PointerGraph
-    std::vector<std::vector<PSNode *> > SCCs;
-    unsigned sccs_index{0};
-
     void initPointerAnalysis() {
         assert(PS && "Need PointerGraph object");
-        DBG_SECTION_BEGIN(pta, "Computing SCCs");
-
-        // compute the strongly connected components
-        // FIXME: do that optional
-        SCC<PSNode> scc_comp;
-        SCCs = std::move(scc_comp.compute(PS->getRoot()));
-        sccs_index = scc_comp.getIndex();
-
-        DBG_SECTION_END(pta, "Computing SCCs done");
     }
 
 protected:
@@ -51,6 +33,11 @@ protected:
     // processed by the analysis
     std::vector<PSNode *> to_process;
     std::vector<PSNode *> changed;
+
+    // the pointer state subgraph
+    PointerGraph *PS{nullptr};
+
+    const PointerAnalysisOptions options{};
 
 public:
 
@@ -93,18 +80,13 @@ public:
 
     PointerGraph *getPS() const { return PS; }
 
-    const std::vector<std::vector<PSNode *> > &getSCCs() const { return SCCs; }
 
     virtual void enqueue(PSNode *n)
     {
         changed.push_back(n);
     }
 
-    void preprocess() {
-        // do some optimizations
-        if (options.preprocessGeps)
-            preprocessGEPs();
-    }
+    virtual void preprocess() { }
 
     void initialize_queue() {
         assert(to_process.empty());
@@ -252,23 +234,6 @@ private:
     // check the sanity of results of pointer analysis
     void sanityCheck();
 
-    void preprocessGEPs()
-    {
-        // if a node is in a loop (a scc that has more than one node),
-        // then every GEP that is also stored to the same memory afterwards
-        // in the loop will end up with Offset::UNKNOWN after some
-        // number of iterations, so we can do that right now
-        // and save iterations
-        for (const auto& scc : SCCs) {
-            if (scc.size() > 1) {
-                for (PSNode *n : scc) {
-                    if (PSNodeGep *gep = PSNodeGep::get(n))
-                        gep->setOffset(Offset::UNKNOWN);
-                }
-            }
-        }
-    }
-
     bool processNode(PSNode *);
     bool processLoad(PSNode *node);
     bool processGep(PSNode *node);
@@ -278,12 +243,6 @@ private:
                        const Pointer& sptr, const Pointer& dptr,
                        Offset len);
 
-    void recomputeSCCs()
-    {
-        SCC<PSNode> scc_comp(sccs_index);
-        SCCs = std::move(scc_comp.compute(PS->getRoot()));
-        sccs_index = scc_comp.getIndex();
-    }
 };
 
 } // namespace pta
