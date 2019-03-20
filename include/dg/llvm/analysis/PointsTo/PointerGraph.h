@@ -77,10 +77,10 @@ class LLVMPointerGraphBuilder
     PSNodesSeq buildInstruction(const llvm::Instruction&);
 
     PSNodesSeq buildPointerGraphBlock(const llvm::BasicBlock& block,
-                                         PSNode *parent);
+                                      PointerSubgraph *parent);
 
     void buildArguments(const llvm::Function& F,
-                        PSNode *parent);
+                        PointerSubgraph *parent);
     PSNodesSeq buildArgumentsStructure(const llvm::Function& F);
     void buildGlobals();
 

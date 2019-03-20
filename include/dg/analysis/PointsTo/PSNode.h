@@ -113,6 +113,7 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
 }
 
 class PointerGraph;
+class PointerSubgraph;
 
 class PSNode : public SubgraphNode<PSNode>
 {
@@ -127,8 +128,7 @@ class PSNode : public SubgraphNode<PSNode>
     PSNode *pairedNode = nullptr;
 
     // in some cases we need to know from which function the node is
-    // so we need to remember the entry node 
-    PSNode *parent = nullptr;
+    PointerSubgraph *_parent = nullptr;
 
     unsigned int dfsid = 0;
 
@@ -291,9 +291,9 @@ public:
 
     PSNodeType getType() const { return type; }
 
-    void setParent(PSNode *p) { parent = p; }
-    PSNode *getParent() { return parent; }
-    const PSNode *getParent() const { return parent; }
+    void setParent(PointerSubgraph *p) { _parent = p; }
+    PointerSubgraph *getParent() { return _parent; }
+    const PointerSubgraph *getParent() const { return _parent; }
 
     PSNode *getPairedNode() const { return pairedNode; }
     void setPairedNode(PSNode *n) { pairedNode = n; }
@@ -492,8 +492,6 @@ public:
         return true;
     }
 };
-
-class PointerSubgraph;
 
 class PSNodeCall : public PSNode {
     std::vector<PointerSubgraph *> callees;

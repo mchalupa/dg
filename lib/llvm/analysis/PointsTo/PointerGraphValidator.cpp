@@ -37,7 +37,7 @@ bool LLVMPointerGraphValidator::reportInvalOperands(const PSNode *nd, const std:
         if (val->getType()->isPointerTy()) {
             // this is the PHI node that corresponds to argv, we're fine here
             if (isa<llvm::Argument>(val) && nd->getParent() &&
-                nd->getParent()->getParent() == nullptr)
+                nd->getParent()->root->getParent() == nullptr)
                 return false;
 
             return PointerGraphValidator::reportInvalOperands(nd, user_err);
