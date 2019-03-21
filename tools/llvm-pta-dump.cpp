@@ -334,6 +334,26 @@ dumpNodeToDot(PSNode *node, PTType type)
     if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
         printf("\\n[size: %lu, heap: %u, zeroed: %u]",
            alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
+    if (verbose) {
+       if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
+           printf("called from: [");
+           for (auto r : entry->getCallers())
+               printf("%u ", r->getID());
+           printf("]\\n");
+       }
+       if (PSNodeCallRet *CR = PSNodeCallRet::get(node)) {
+           printf("returns from: [");
+           for (auto r : CR->getReturns())
+               printf("%u ", r->getID());
+           printf("]\\n");
+       }
+       if (PSNodeRet *R = PSNodeRet::get(node)) {
+           printf("returns to: [");
+           for (auto r : R->getReturnSites())
+               printf("%u ", r->getID());
+           printf("]\\n");
+       }
+     }
 
     if (verbose && node->getOperandsNum() > 0) {
         printf("\\n--- operands ---\\n");
