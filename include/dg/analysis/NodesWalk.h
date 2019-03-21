@@ -46,10 +46,16 @@ struct SuccessorsEdgeChooser {
 
 
 
+namespace sfinae {
+  // std::void_t is from C++17...
+  template<typename... Ts> struct make_void { typedef void type;};
+  template<typename... Ts> using void_t = typename make_void<Ts...>::type;
+}
+
 // SFINAE check
 template<typename T, typename = void> struct has_foreach : std::false_type {};
 template<typename T>
-struct has_foreach<T, std::void_t<decltype(&T::foreach)>> : std::true_type {};
+struct has_foreach<T, sfinae::void_t<decltype(&T::foreach)>> : std::true_type {};
 
 template <typename Node, typename Queue,
           typename VisitTracker = SetVisitTracker<Node>,
