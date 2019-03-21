@@ -177,6 +177,7 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
         for (auto ret : subg.returnNodes) {
             assert(PSNodeRet::get(ret));
             PSNodeRet::get(ret)->addReturnSite(returnNode);
+            returnNode->addReturn(ret);
         }
     } else {
         callNode->setPairedNode(callNode);
