@@ -18,9 +18,12 @@ addons:
       - libz-dev
 
 env:
-    - LLVM=3.8
-    - LLVM=4.0
-    - LLVM=5.0
+    - LLVM=3.8 BUILD_TYPE=Release
+    - LLVM=3.8 BUILD_TYPE=Debug
+    - LLVM=4.0 BUILD_TYPE=Release
+    - LLVM=4.0 BUILD_TYPE=Debug
+    - LLVM=5.0 BUILD_TYPE=Release
+    - LLVM=5.0 BUILD_TYPE=Debug
 
 compiler:
     - 'clang++'
@@ -37,7 +40,7 @@ install:
 script:
   # gcc in the versions that we use has problems with sanitizers
   - if test "$CXX" = "clang++"; then export CXX_FLAGS="-fsanitize=undefined,address"; fi
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=$CXX_FLAGS .
+  - cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DCMAKE_CXX_FLAGS=$CXX_FLAGS .
   - make -j2
   - cd tests
   - make
