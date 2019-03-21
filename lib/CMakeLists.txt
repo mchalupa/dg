@@ -89,7 +89,6 @@ add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMDependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMDependenceGraphBuilder.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMSlicer.h
-	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/DefUse/DefUse.h
 
 	llvm/LLVMDGVerifier.h
 	llvm/llvm-utils.h
@@ -99,6 +98,7 @@ add_library(LLVMdg SHARED
 	llvm/LLVMDGVerifier.cpp
 	llvm/analysis/Dominators/PostDominators.cpp
 	llvm/analysis/DefUse/DefUse.cpp
+	llvm/analysis/DefUse/DefUse.h
 )
 
 # Get proper shared-library behavior (where symbols are not necessarily
