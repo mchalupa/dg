@@ -41,28 +41,9 @@ class PointerSubgraph {
     PointerSubgraph(const PointerSubgraph&) = delete;
 
     // non-trivial strongly connected components
+    bool _computed_loops{false};
     std::vector<std::vector<PSNode *>> _loops;
     std::unordered_map<const PSNode *, size_t> _node_to_loop;
-
-    void _computeLoops() {
-        DBG(pta, "Computing information about loops");
-
-        assert(root);
-        // compute the strongly connected components
-        auto SCCs = SCC<PSNode>().compute(root);
-        for (auto& scc : SCCs) {
-            if (scc.size() <= 1)
-                continue;
-
-            _loops.push_back(std::move(scc));
-            assert(scc.empty() && "We wanted to move the scc");
-
-            for (auto nd : _loops.back()) {
-                assert(_node_to_loop.find(nd) == _node_to_loop.end());
-                _node_to_loop[nd] = _loops.size() - 1;
-            }
-        }
-    }
 
 public:
     PointerSubgraph(PointerSubgraph&&) = default;
@@ -79,13 +60,52 @@ public:
     // this is the node where we gather the variadic-length arguments
     PSNode *vararg{nullptr};
 
+    // information about loops in this subgraph
     const std::vector<PSNode *> *getLoop(const PSNode *nd) const {
+        assert(_computed_loops && "Call computeLoops() first");
+
         auto it = _node_to_loop.find(nd);
         assert(it == _node_to_loop.end() || it->second < _loops.size());
         return it == _node_to_loop.end() ? nullptr : &_loops[it->second];
     }
 
-    const std::vector<std::vector<PSNode *>>& getLoops() const { return _loops; }
+    const std::vector<std::vector<PSNode *>>& getLoops() const {
+        assert(_computed_loops && "Call computeLoops() first");
+        return _loops;
+    }
+
+    const std::vector<std::vector<PSNode *>>& getLoops() {
+        if (!_computed_loops)
+            computeLoops();
+        return _loops;
+    }
+
+    void computeLoops() {
+        assert(root);
+        assert(!_computed_loops && "computedLoops() called repeatedly");
+        _computed_loops = true;
+
+        DBG(pta, "Computing information about loops");
+
+        // compute the strongly connected components
+        auto SCCs = SCC<PSNode>().compute(root);
+        for (auto& scc : SCCs) {
+            if (scc.size() < 1)
+                continue;
+            // self-loop is also loop
+            if (scc.size() == 1 &&
+                scc[0]->getSingleSuccessorOrNull() != scc[0])
+                continue;
+
+            _loops.push_back(std::move(scc));
+            assert(scc.empty() && "We wanted to move the scc");
+
+            for (auto nd : _loops.back()) {
+                assert(_node_to_loop.find(nd) == _node_to_loop.end());
+                _node_to_loop[nd] = _loops.size() - 1;
+            }
+        }
+    }
 };
 
 
@@ -223,7 +243,13 @@ public:
     const NodesT& getGlobals() const { return _globals; }
     size_t size() const { return nodes.size() + _globals.size(); }
 
+    void computeLoops() {
+        DBG(pta, "Computing information about loops for the whole graph");
 
+        for (auto& it : _subgraphs) {
+            it->computeLoops();
+        }
+    }
 
     PointerGraph(PointerGraph&&) = default;
     PointerGraph& operator=(PointerGraph&&) = default;

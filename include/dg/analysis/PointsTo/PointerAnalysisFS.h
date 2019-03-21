@@ -29,6 +29,7 @@ public:
         assert(opts.preprocessGeps == false
                && "Preprocessing GEPs does not work correctly for FS analysis");
         memoryMaps.reserve(ps->size() / 5);
+        ps->computeLoops();
     }
 
     PointerAnalysisFS(PointerGraph *ps) : PointerAnalysisFS(ps, {}) {}

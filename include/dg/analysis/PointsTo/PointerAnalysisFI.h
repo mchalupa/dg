@@ -27,8 +27,8 @@ class PointerAnalysisFI : public PointerAnalysis
         // and save iterations
 
         assert(getPS() && "Must have PG");
-        for (const auto& sg : getPS()->getSubgraphs()) {
-            for (const auto& loop : sg->getLoops()) {
+        for (auto& sg : getPS()->getSubgraphs()) {
+            for (auto& loop : sg->getLoops()) {
                 for (PSNode *n : loop) {
                     if (PSNodeGep *gep = PSNodeGep::get(n))
                         gep->setOffset(Offset::UNKNOWN);
@@ -36,7 +36,6 @@ class PointerAnalysisFI : public PointerAnalysis
             }
         }
     }
-
 
 public:
     PointerAnalysisFI(PointerGraph *ps)
