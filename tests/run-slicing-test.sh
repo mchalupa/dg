@@ -21,3 +21,4 @@ DG_TESTS_PTA=fs DG_TESTS_RDA=ssa DG_TESTS_CDA=ntscd ./$TEST
 
 echo "Test with PTA FS & RDA ssa & CD ntscd"
 DG_TESTS_PTA=fs DG_TESTS_RDA=ssa DG_TESTS_CDA=ntscd ./$TEST
+
