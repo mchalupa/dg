@@ -18,24 +18,9 @@ addons:
       - libz-dev
 
 env:
-    - LLVM=3.8 PTA=fs RDA=dataflow
-    - LLVM=3.8 PTA=fi RDA=dataflow
-    - LLVM=3.8 PTA=inv RDA=dataflow
-    - LLVM=4.0 PTA=fs RDA=dataflow
-    - LLVM=4.0 PTA=fi RDA=dataflow
-    - LLVM=4.0 PTA=inv RDA=dataflow
-    - LLVM=5.0 PTA=fs RDA=dataflow
-    - LLVM=5.0 PTA=fi RDA=dataflow
-    - LLVM=5.0 PTA=inv RDA=dataflow
-    - LLVM=3.8 PTA=fs RDA=ssa
-    - LLVM=3.8 PTA=fi RDA=ssa
-    - LLVM=3.8 PTA=inv RDA=ssa
-    - LLVM=4.0 PTA=fs RDA=ssa
-    - LLVM=4.0 PTA=fi RDA=ssa
-    - LLVM=4.0 PTA=inv RDA=ssa
-    - LLVM=5.0 PTA=fs RDA=ssa
-    - LLVM=5.0 PTA=fi RDA=ssa
-    - LLVM=5.0 PTA=inv RDA=ssa
+    - LLVM=3.8
+    - LLVM=4.0
+    - LLVM=5.0
 
 compiler:
     - 'clang++'
@@ -57,7 +42,7 @@ script:
   - cd tests
   - make
   # for now turn off the detection of leaks, we're working on it
-  - ASAN_OPTIONS=detect_leaks=0 DG_TESTS_PTA="$PTA" DG_TESTS_RDA="$RDA" make test
+  - ASAN_OPTIONS=detect_leaks=0 make check
 
 notifications:
     email: false
