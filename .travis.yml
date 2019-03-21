@@ -18,12 +18,9 @@ addons:
       - libz-dev
 
 env:
-    - LLVM=3.8 BUILD_TYPE=Release
-    - LLVM=3.8 BUILD_TYPE=Debug
-    - LLVM=4.0 BUILD_TYPE=Release
-    - LLVM=4.0 BUILD_TYPE=Debug
-    - LLVM=5.0 BUILD_TYPE=Release
-    - LLVM=5.0 BUILD_TYPE=Debug
+    - LLVM=3.8
+    - LLVM=4.0
+    - LLVM=5.0
 
 compiler:
     - 'clang++'
