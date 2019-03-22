@@ -165,6 +165,8 @@ public:
         // XXX maybe we could do it by some flag in DefSite?
         // instead of strong new copy... but it should not
         // be big overhead this way... we'll see in the future
+        // Or have two containers: weak_defs, strong_defs and
+        // add iterators that iterate over both (defs()).
         if (strong_update)
             overwrites.insert(ds);
     }
@@ -223,28 +225,9 @@ public:
     RDBBlock *getBBlock() { return bblock; }
     void setBBlock(RDBBlock *bb) { bblock = bb; }
 
-    void removeCDs() {
-    }
-
-    void removeDDs() {
-    }
-
-    bool hasSubgraphs() const {
-        return false;
-    }
-
-    dg::DGParameters<RDNode> *getParameters() const {
-        return nullptr;
-    }
-
-    std::vector<DependenceGraphType *> getSubgraphs() const {
-        return {};
-    }
-
     friend class ReachingDefinitionsAnalysis;
     friend class dg::analysis::rd::srg::AssignmentFinder;
 };
-
 
 class RDBBlock {
 public:
