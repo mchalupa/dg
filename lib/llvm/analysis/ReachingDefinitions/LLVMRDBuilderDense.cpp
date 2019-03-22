@@ -139,6 +139,14 @@ RDNode *LLVMRDBuilderDense::createRealloc(const llvm::Instruction *Inst)
     // from previous memory
     node->addDef(node, 0, size, false /* strong update */);
 
+    if (buildUses) {
+        // realloc copies the memory
+        auto defSites = mapPointers(Inst, Inst->getOperand(0), size);
+        for (const auto& ds : defSites) {
+            node->addUse(ds);
+        }
+    }
+
     return node;
 }
 
