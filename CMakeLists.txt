@@ -78,6 +78,27 @@ if (LLVM_DG)
 	endif()
 endif(LLVM_DG)
 
+if (SVF_DIR)
+	add_definitions(-DHAVE_SVF)
+	set(SVF_LIBDIR ${SVF_DIR}/lib)
+
+	if (SVF_INCLUDE)
+	else()
+		# suppose out-of-source build
+		set(SVF_INCLUDE ${SVF_DIR}/../include)
+	endif()
+
+	set(SVF_LIBS LLVMSvf)
+
+	include_directories(${SVF_INCLUDE})
+	link_directories(${SVF_LIBDIR})
+
+	message(STATUS "SVF dir: ${SVF_DIR}")
+	message(STATUS "SVF libraries dir: ${SVF_LIBDIR}")
+	message(STATUS "SVF include dir: ${SVF_INCLUDE}")
+	message(STATUS "SVF libs: ${SVF_LIBS}")
+endif(SVF_DIR)
+
 if (ENABLE_CFG)
 	add_definitions(-DENABLE_CFG)
 endif()
