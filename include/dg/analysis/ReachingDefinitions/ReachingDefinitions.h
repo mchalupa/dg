@@ -84,10 +84,9 @@ public:
     virtual ~RDNode() = default;
 #endif
 
-    // this is the gro of this node, so make it public
+    // weak update
     DefSiteSetT defs;
-    // this is a subset of defs that are strong update
-    // on this node
+    // strong update
     DefSiteSetT overwrites;
 
     // this is set of variables used in this node
@@ -100,6 +99,7 @@ public:
     DefSiteSetT& getOverwrites() { return overwrites; }
     DefSiteSetT& getUses() { return uses; }
     const DefSiteSetT& getDefines() const { return defs; }
+    const DefSiteSetT& getOverwrites() const { return defs; }
     const DefSiteSetT& getUses() const { return uses; }
 
     bool defines(RDNode *target, const Offset& off = Offset::UNKNOWN) const
@@ -113,6 +113,11 @@ public:
                     return true;
         } else {
             for (const DefSite& ds : defs)
+                if (ds.target == target
+                    && off.inRange(*ds.offset, *ds.offset + *ds.len))
+                    return true;
+
+            for (const DefSite& ds : overwrites)
                 if (ds.target == target
                     && off.inRange(*ds.offset, *ds.offset + *ds.len))
                     return true;
@@ -163,16 +168,13 @@ public:
 
     void addDef(const DefSite& ds, bool strong_update = false)
     {
-        defs.insert(ds);
-        def_map.update(ds, this);
-
-        // XXX maybe we could do it by some flag in DefSite?
-        // instead of strong new copy... but it should not
-        // be big overhead this way... we'll see in the future
-        // Or have two containers: weak_defs, strong_defs and
-        // add iterators that iterate over both (defs()).
         if (strong_update)
             overwrites.insert(ds);
+        else
+            defs.insert(ds);
+
+        // TODO: Get rid of this!
+        def_map.update(ds, this);
     }
 
     ///

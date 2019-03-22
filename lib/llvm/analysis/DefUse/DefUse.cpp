@@ -267,6 +267,18 @@ void LLVMDefUseAnalysis::addUnknownDataDependence(LLVMNode *node, PSNode *pts)
                     addDataDependence(node, rdVal);
             }
         }
+        for (const analysis::rd::DefSite& ds : rdnode->getOverwrites()) {
+            llvm::Value *llvmVal = ds.target->getUserData<llvm::Value>();
+            // is this an artificial node?
+            if (!llvmVal)
+                continue;
+
+            // if these two sets have an over-lap, we must add the data dependence
+            for (const auto& ptr : pts->pointsTo)
+                if (ptr.target->getUserData<llvm::Value>() == llvmVal) {
+                    addDataDependence(node, rdVal);
+            }
+        }
     }
 }
 
