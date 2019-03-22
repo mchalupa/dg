@@ -20,6 +20,9 @@ class BBlocksBuilder {
     ADT::QueueFIFO<NodeT *> _queue;
 
     bool enqueue(NodeT *n) {
+        //the id 0 is reserved for invalid nodes
+        assert(n->getID() != 0 && "Queued invalid node");
+
         if (_processed.insert(n->getID()).second == false)
             return false; // we already queued this node
 
