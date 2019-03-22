@@ -219,35 +219,71 @@ dumpRDNode(RDNode *n)
     printf("---\n");
 }
 
+static void nodeToDot(RDNode *node) {
+    printf("\tNODE%p [label=\"", static_cast<void*>(node));
+    printName(node, true);
+    if (node->getSize() > 0)
+        printf("\\n[size: %lu]\\n", node->getSize());
+    printf("\\n-------------\\n");
+    if (verbose) {
+        dumpDefines(node, true);
+        printf("-------------\\n");
+        dumpOverwrites(node, true);
+        printf("-------------\\n");
+        dumpUses(node, true);
+    }
+        dumpMap(node, true /* dot */);
+
+    printf("\" shape=box]\n");
+
+}
+
+static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD, bool dump_rd)
+{
+    auto nodes = RD->getNodes();
+    /* dump nodes */
+    for(RDNode *node : nodes) {
+        nodeToDot(node);
+    }
+}
+
+static void dumpDotWithBlocks(LLVMReachingDefinitions *RD, bool dump_rd) {
+
+    for (auto I = RD->getGraph()->blocks_begin(),
+              E = RD->getGraph()->blocks_end(); I != E; ++I) {
+        printf("subgraph cluster_%p {\n", *I);
+        /* dump nodes */
+        for(RDNode *node : I->getNodes()) {
+            nodeToDot(node);
+        }
+        printf("}\n");
+    }
+
+    /* dump block edges
+    for (auto I = RD->getGraph()->blocks_begin(),
+              E = RD->getGraph()->blocks_end(); I != E; ++I) {
+        for (auto succ : I->getSuccessors())
+            printf("\tNODE%p -> NODE%p [penwidth=2]\n",
+                   static_cast<void*>(*I),
+                   static_cast<void*>(succ));
+    }
+    */
+}
+
 static void
 dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
 {
-    auto nodes = RD->getNodes();
 
     printf("digraph \"Reaching Definitions Subgraph\" {\n");
 
-    /* dump nodes */
-    for(RDNode *node : nodes) {
-        printf("\tNODE%p [label=\"", static_cast<void*>(node));
-        printName(node, true);
-        if (node->getSize() > 0)
-            printf("\\n[size: %lu]\\n", node->getSize());
-        printf("\\n-------------\\n");
-        if (verbose) {
-            dumpDefines(node, true);
-            printf("-------------\\n");
-            dumpOverwrites(node, true);
-            printf("-------------\\n");
-            dumpUses(node, true);
-        }
-            dumpMap(node, true /* dot */);
-
-        printf("\" shape=box]\n");
-    }
+    if (RD->getGraph()->getBBlocks().empty())
+        dumpDotOnlyNodes(RD, dump_rd);
+    else
+        dumpDotWithBlocks(RD, dump_rd);
 
     /* dump edges */
     std::unordered_map<RDNode*, unsigned> colors;
-    for (RDNode *node : nodes) {
+    for (RDNode *node : RD->getNodes()) {
         for (RDNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n",
                    static_cast<void*>(node),
@@ -267,6 +303,7 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
             }
         }
     }
+
 
     printf("}\n");
 }
