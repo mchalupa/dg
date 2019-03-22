@@ -245,7 +245,25 @@ private:
 
 class ReachingDefinitionsGraph {
     RDNode *root{nullptr};
-    std::vector<std::unique_ptr<RDBBlock>> _bblocks;
+    using BBlocksVecT = std::vector<std::unique_ptr<RDBBlock>>;
+
+    // iterator over the bblocks that returns the bblock,
+    // not the unique_ptr to the bblock
+    struct block_iterator : public BBlocksVecT::iterator {
+        using ContainedType
+            = std::remove_reference<decltype(*(std::declval<BBlocksVecT::iterator>()->get()))>::type;
+
+        block_iterator(const BBlocksVecT::iterator& it) : BBlocksVecT::iterator(it) {}
+
+        ContainedType *operator*() {
+            return (BBlocksVecT::iterator::operator*()).get();
+        };
+        ContainedType *operator->() {
+            return ((BBlocksVecT::iterator::operator*()).get());
+        };
+    };
+
+    BBlocksVecT _bblocks;
 
 public:
     ReachingDefinitionsGraph() = default;
@@ -255,6 +273,11 @@ public:
 
     RDNode *getRoot() const { return root; }
     void setRoot(RDNode *r) { root = r; }
+
+    const std::vector<std::unique_ptr<RDBBlock>>& getBBlocks() const { return _bblocks; }
+
+    block_iterator blocks_begin() { return block_iterator(_bblocks.begin()); }
+    block_iterator blocks_end() { return block_iterator(_bblocks.end()); }
 
     void buildBBlocks();
 };
