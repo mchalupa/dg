@@ -33,6 +33,7 @@ namespace rd {
 
 class LLVMRDBuilder
 {
+    size_t lastNodeID{0};
 protected:
     const llvm::Module *M;
     const llvm::DataLayout *DL;
@@ -67,6 +68,10 @@ protected:
     // list of dummy nodes (used just to keep the track of memory,
     // so that we can delete it later)
     std::vector<RDNode *> dummy_nodes;
+
+    RDNode *create(RDNodeType t) {
+        return new RDNode(++lastNodeID, t);
+    }
 
 public:
     LLVMRDBuilder(const llvm::Module *m,

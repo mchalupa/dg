@@ -55,7 +55,7 @@ static inline void makeEdge(RDNode *src, RDNode *dst)
 
 RDNode *LLVMRDBuilderDense::createAlloc(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(RDNodeType::ALLOC);
+    RDNode *node = create(RDNodeType::ALLOC);
     auto iterator = nodes_map.find(Inst);
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
@@ -76,7 +76,7 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
 {
     using namespace llvm;
 
-    RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
+    RDNode *node = create(RDNodeType::DYN_ALLOC);
     auto iterator = nodes_map.find(Inst);
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
@@ -120,7 +120,7 @@ RDNode *LLVMRDBuilderDense::createDynAlloc(const llvm::Instruction *Inst, Alloca
 
 RDNode *LLVMRDBuilderDense::createRealloc(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(RDNodeType::DYN_ALLOC);
+    RDNode *node = create(RDNodeType::DYN_ALLOC);
     auto iterator = nodes_map.find(Inst);
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
@@ -187,7 +187,7 @@ static void getLocalVariables(const llvm::Function *F,
 
 RDNode *LLVMRDBuilderDense::createReturn(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(RDNodeType::RETURN);
+    RDNode *node = create(RDNodeType::RETURN);
     addNode(Inst, node);
 
     // FIXME: don't do that for every return instruction,
@@ -246,7 +246,7 @@ RDNode *LLVMRDBuilderDense::createNode(const llvm::Instruction &Inst)
 
 RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(RDNodeType::STORE);
+    RDNode *node = create(RDNodeType::STORE);
     addNode(Inst, node);
 
     uint64_t size = getAllocatedSize(Inst->getOperand(0)->getType(), DL);
@@ -288,7 +288,7 @@ RDNode *LLVMRDBuilderDense::createStore(const llvm::Instruction *Inst)
 
 RDNode *LLVMRDBuilderDense::createLoad(const llvm::Instruction *Inst)
 {
-    RDNode *node = new RDNode(RDNodeType::LOAD);
+    RDNode *node = create(RDNodeType::LOAD);
     addNode(Inst, node);
 
     uint64_t size = getAllocatedSize(Inst->getType(), DL);
@@ -360,7 +360,7 @@ LLVMRDBuilderDense::buildBlock(const llvm::BasicBlock& block)
 
     // the first node is dummy and serves as a phi from previous
     // blocks so that we can have proper mapping
-    RDNode *node = new RDNode(RDNodeType::PHI);
+    RDNode *node = create(RDNodeType::PHI);
     RDNode *last_node = node;
 
     addNode(node);
@@ -466,8 +466,8 @@ LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F,
 
     auto iterator = nodes_map.find(CInst);
     if (iterator == nodes_map.end()) {
-        callNode = new RDNode(RDNodeType::CALL);
-        returnNode = new RDNode(RDNodeType::RETURN);
+        callNode = create(RDNodeType::CALL);
+        returnNode = create(RDNodeType::RETURN);
         addNode(CInst, callNode);
         addNode(returnNode);
     } else {
@@ -513,8 +513,8 @@ LLVMRDBuilderDense::buildFunction(const llvm::Function& F)
     // create root and (unified) return nodes of this subgraph. These are
     // just for our convenience when building the graph, they can be
     // optimized away later since they are noops
-    RDNode *root = new RDNode(RDNodeType::NOOP);
-    RDNode *ret = new RDNode(RDNodeType::NOOP);
+    RDNode *root = create(RDNodeType::NOOP);
+    RDNode *ret = create(RDNodeType::NOOP);
 
     // emplace new subgraph to avoid looping with recursive functions
     subgraphs_map.emplace(&F, Subgraph(root, ret));
@@ -564,7 +564,7 @@ RDNode *LLVMRDBuilderDense::createUndefinedCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
-    RDNode *node = new RDNode(RDNodeType::CALL);
+    RDNode *node = create(RDNodeType::CALL);
     auto iterator = nodes_map.find((CInst));
     if (iterator == nodes_map.end()) {
         addNode(CInst, node);
@@ -670,7 +670,7 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
             // we create this node because this nodes works
             // as ALLOC in points-to, so we can have
             // reaching definitions to that
-            ret = new RDNode(RDNodeType::CALL);
+            ret = create(RDNodeType::CALL);
             ret->addDef(ret, 0, Offset::UNKNOWN);
             addNode(CInst, ret);
             return ret;
@@ -678,7 +678,7 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
             return createUndefinedCall(CInst);
     }
 
-    ret = new RDNode(RDNodeType::CALL);
+    ret = create(RDNodeType::CALL);
     addNode(CInst, ret);
 
     auto pts = PTA->getLLVMPointsToChecked(dest);
@@ -725,7 +725,7 @@ RDNode *LLVMRDBuilderDense::createIntrinsicCall(const llvm::CallInst *CInst)
 }
 
 RDNode *LLVMRDBuilderDense::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
-    RDNode *node = new RDNode(RDNodeType::CALL);
+    RDNode *node = create(RDNodeType::CALL);
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
         auto defines = model->defines(i);
         if (!defines)
@@ -824,8 +824,8 @@ LLVMRDBuilderDense::createCallToFunctions(const std::vector<const llvm::Function
 {
     using namespace std;
 
-    RDNode *callNode = new RDNode(RDNodeType::CALL);
-    RDNode *returnNode = new RDNode(RDNodeType::RETURN);
+    RDNode *callNode = create(RDNodeType::CALL);
+    RDNode *returnNode = create(RDNodeType::RETURN);
     addNode(CInst, callNode);
     addNode(returnNode);
 
@@ -856,7 +856,7 @@ LLVMRDBuilderDense::createPthreadCreateCalls(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
-    RDNode *rootNode = new RDNode(RDNodeType::FORK);
+    RDNode *rootNode = create(RDNodeType::FORK);
     auto iterator = nodes_map.find(CInst);
     if (iterator == nodes_map.end()) {
         addNode(CInst, rootNode);
@@ -950,7 +950,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()
         prev = cur;
 
         // every global node is like memory allocation
-        cur = new RDNode(RDNodeType::ALLOC);
+        cur = create(RDNodeType::ALLOC);
         addNode(&*I, cur);
 
         if (prev)

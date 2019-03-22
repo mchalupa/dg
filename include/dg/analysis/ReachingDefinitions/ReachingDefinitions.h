@@ -73,8 +73,12 @@ class RDNode : public SubgraphNode<RDNode> {
     unsigned int dfsid;
 public:
 
+    // for invalid nodes like UNKNOWN_MEMLOC
     RDNode(RDNodeType t = RDNodeType::NONE)
     : SubgraphNode<RDNode>(0), type(t), dfsid(0) {}
+
+    RDNode(unsigned id, RDNodeType t = RDNodeType::NONE)
+    : SubgraphNode<RDNode>(id), type(t), dfsid(0) {}
 
 #ifndef NDEBUG
     virtual ~RDNode() = default;
