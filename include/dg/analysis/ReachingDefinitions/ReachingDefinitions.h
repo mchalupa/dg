@@ -337,6 +337,8 @@ public:
     }
 
     RDNode *getRoot() const { return graph.getRoot(); }
+    ReachingDefinitionsGraph *getGraph() { return &graph; }
+    const ReachingDefinitionsGraph *getGraph() const { return &graph; }
 
     bool processNode(RDNode *n);
     virtual void run();

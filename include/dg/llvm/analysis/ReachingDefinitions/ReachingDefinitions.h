@@ -81,6 +81,7 @@ public:
     }
 
     RDNode *getRoot() { return RDA->getRoot(); }
+    ReachingDefinitionsGraph *getGraph() { return RDA->getGraph(); }
     RDNode *getNode(const llvm::Value *val);
 
     // let the user get the nodes map, so that we can
