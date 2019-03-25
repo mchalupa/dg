@@ -176,8 +176,11 @@ public:
         llvm::Function *main_func = M->getFunction("main");
         if (!main_func) {
             auto C = M->getOrInsertFunction("main",
-                                            llvm::Type::getInt32Ty(ctx),
-                                            nullptr);
+                                            llvm::Type::getInt32Ty(ctx)
+#if LLVM_VERSION_MAJOR < 5
+                                            , nullptr
+#endif // LLVM < 5
+                                            );
 #if LLVM_VERSION_MAJOR < 9
             if (!C) {
                 llvm::errs() << "Could not create new main function\n";
