@@ -2,6 +2,7 @@
 #define _DG_REACHING_DEFINITIONS_ANALYSIS_H_
 
 #include <vector>
+#include <list>
 #include <set>
 #include <cassert>
 #include <cstring>
@@ -238,6 +239,36 @@ public:
 class RDBBlock {
 public:
     using NodeT = RDNode;
+    using NodesT = std::list<NodeT *>;
+
+    void append(NodeT *n) { _nodes.push_back(n); }
+    void prepend(NodeT *n) { _nodes.push_front(n); }
+    // FIXME: get rid of this method in favor of either append/prepend
+    // (so these method would update CFG edges) or keeping CFG
+    // only in blocks
+    void prependAndUpdateCFG(NodeT *n) {
+        // update CFG edges
+        n->insertBefore(_nodes.front());
+        // add the node to the block
+        _nodes.push_front(n);
+    }
+
+    const NodesT& getNodes() const { return _nodes; }
+
+    /*
+     * For now, we use the successors from nodes
+    using EdgesT = std::vector<RDBBlock *>;
+
+    void addSuccessor(RDBBlock *n) {
+        _successors.push_back(n);
+        n->_predecessors.push_back(this);
+    }
+
+    const EdgesT& getSuccessors() const { return _successors; }
+    const EdgesT& getPredecessors() const { return _predecessors; }
+    */
+
+    DefinitionsMap<RDNode> definitions;
 
     void append(RDNode *n) { _nodes.push_back(n); }
 private:
