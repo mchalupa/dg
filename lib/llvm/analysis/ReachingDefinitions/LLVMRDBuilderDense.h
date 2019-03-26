@@ -39,7 +39,7 @@ public:
         : LLVMRDBuilder(m, p, opts), buildUses(buildUses) {}
     virtual ~LLVMRDBuilderDense() = default;
 
-    ReachingDefinitionsGraph build() override;
+    ReachingDefinitionsGraph&& build() override;
 
     RDNode *getOperand(const llvm::Value *val);
     RDNode *createNode(const llvm::Instruction& Inst);
@@ -58,17 +58,10 @@ private:
         node->setUserData(const_cast<llvm::Value *>(val));
     }
 
-    ///
-    // Add a dummy node for which there's no real LLVM node
-    void addNode(RDNode *node)
-    {
-        dummy_nodes.push_back(node);
-    }
-
+    // FIXME: rename this method
     void addArtificialNode(const llvm::Value *val, RDNode *node)
     {
         node->setUserData(const_cast<llvm::Value *>(val));
-        dummy_nodes.push_back(node);
     }
 
     void addMapping(const llvm::Value *val, RDNode *node)

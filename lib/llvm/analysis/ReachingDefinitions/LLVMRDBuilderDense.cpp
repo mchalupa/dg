@@ -363,7 +363,6 @@ LLVMRDBuilderDense::buildBlock(const llvm::BasicBlock& block)
     RDNode *node = create(RDNodeType::PHI);
     RDNode *last_node = node;
 
-    addNode(node);
     std::pair<RDNode *, RDNode *> ret(node, nullptr);
 
     for (const Instruction& Inst : block) {
@@ -469,7 +468,6 @@ LLVMRDBuilderDense::createCallToFunction(const llvm::Function *F,
         callNode = create(RDNodeType::CALL);
         returnNode = create(RDNodeType::RETURN);
         addNode(CInst, callNode);
-        addNode(returnNode);
     } else {
         assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
     }
@@ -827,7 +825,6 @@ LLVMRDBuilderDense::createCallToFunctions(const std::vector<const llvm::Function
     RDNode *callNode = create(RDNodeType::CALL);
     RDNode *returnNode = create(RDNodeType::RETURN);
     addNode(CInst, callNode);
-    addNode(returnNode);
 
     bool hasFunction = false;
     for(const llvm::Function *function : functions) {
@@ -903,7 +900,7 @@ LLVMRDBuilderDense::createPthreadExitCall(const llvm::CallInst *CInst)
     return {node, node};
 }
 
-ReachingDefinitionsGraph LLVMRDBuilderDense::build()
+ReachingDefinitionsGraph&& LLVMRDBuilderDense::build()
 {
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
@@ -937,10 +934,9 @@ ReachingDefinitionsGraph LLVMRDBuilderDense::build()
         matchForksAndJoins();
     }
 
-    ReachingDefinitionsGraph graph;
     graph.setRoot(root);
 
-    return graph;
+    return std::move(graph);
 }
 
 std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()

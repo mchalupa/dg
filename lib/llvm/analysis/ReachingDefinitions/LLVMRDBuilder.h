@@ -33,11 +33,12 @@ namespace rd {
 
 class LLVMRDBuilder
 {
-    size_t lastNodeID{0};
 protected:
     const llvm::Module *M;
     const llvm::DataLayout *DL;
     const LLVMReachingDefinitionsAnalysisOptions& _options;
+
+    ReachingDefinitionsGraph graph;
 
     struct Subgraph {
         Subgraph(RDNode *r1, RDNode *r2)
@@ -65,13 +66,8 @@ protected:
 
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
-    // list of dummy nodes (used just to keep the track of memory,
-    // so that we can delete it later)
-    std::vector<RDNode *> dummy_nodes;
 
-    RDNode *create(RDNodeType t) {
-        return new RDNode(++lastNodeID, t);
-    }
+    RDNode *create(RDNodeType t) { return graph.create(t); }
 
 public:
     LLVMRDBuilder(const llvm::Module *m,
@@ -82,27 +78,9 @@ public:
     virtual ~LLVMRDBuilder() {
         // delete data layout
         delete DL;
-
-        // delete artificial nodes from subgraphs
-        for (auto& it : subgraphs_map) {
-            assert((it.second.root && it.second.ret) ||
-                   (!it.second.root && !it.second.ret));
-            delete it.second.root;
-            delete it.second.ret;
-        }
-
-        // delete nodes
-        for (auto& it : nodes_map) {
-            assert(it.first && "Have a nullptr node mapping");
-            delete it.second;
-        }
-
-        // delete dummy nodes
-        for (RDNode *nd : dummy_nodes)
-            delete nd;
     }
 
-    virtual ReachingDefinitionsGraph build() = 0;
+    virtual ReachingDefinitionsGraph&& build() = 0;
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes

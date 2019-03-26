@@ -246,8 +246,10 @@ private:
 
 
 class ReachingDefinitionsGraph {
+    size_t lastNodeID{0};
     RDNode *root{nullptr};
     using BBlocksVecT = std::vector<std::unique_ptr<RDBBlock>>;
+    using NodesT = std::vector<std::unique_ptr<RDNode>>;
 
     // iterator over the bblocks that returns the bblock,
     // not the unique_ptr to the bblock
@@ -267,6 +269,16 @@ class ReachingDefinitionsGraph {
 
     BBlocksVecT _bblocks;
 
+    struct blocks_range {
+        BBlocksVecT& blocks;
+        blocks_range(BBlocksVecT& b) : blocks(b) {}
+
+        block_iterator begin() { return block_iterator(blocks.begin()); }
+        block_iterator end() { return block_iterator(blocks.end()); }
+    };
+
+    NodesT _nodes;
+
 public:
     ReachingDefinitionsGraph() = default;
     ReachingDefinitionsGraph(RDNode *r) : root(r) {};
@@ -280,6 +292,13 @@ public:
 
     block_iterator blocks_begin() { return block_iterator(_bblocks.begin()); }
     block_iterator blocks_end() { return block_iterator(_bblocks.end()); }
+
+    blocks_range blocks() { return blocks_range(_bblocks); }
+
+    RDNode *create(RDNodeType t) {
+      _nodes.emplace_back(new RDNode(++lastNodeID, t));
+      return _nodes.back().get();
+    }
 
     void buildBBlocks();
 };

@@ -49,7 +49,7 @@ public:
 
     virtual ~LLVMRDBuilderSemisparse() = default;
 
-    ReachingDefinitionsGraph build() override;
+    ReachingDefinitionsGraph&& build() override;
 
     RDNode *getOperand(const llvm::Value *val, RDBlock *rb);
     RDNode *createNode(const llvm::Instruction& Inst, RDBlock *rb);
@@ -75,13 +75,6 @@ private:
     void addBlock(const llvm::Value *val, RDBlock *block) {
         block->setKey(const_cast<llvm::Value *>(val));
         blocks[val].push_back(std::unique_ptr<RDBlock>(block));
-    }
-
-    ///
-    // Add a dummy node for which there's no real LLVM node
-    void addNode(RDNode *node)
-    {
-        dummy_nodes.push_back(node);
     }
 
     void addMapping(const llvm::Value *val, RDNode *node)
