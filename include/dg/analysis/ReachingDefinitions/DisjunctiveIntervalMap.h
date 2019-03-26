@@ -146,6 +146,8 @@ public:
                 last_end = ge->first.end;
             }
 
+            // full overlap means that there are not uncovered bytes
+            assert(uncovered(I) == decltype(uncovered(I)){});
             return true;
         }
     }
