@@ -10,60 +10,61 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
+template <typename T = int64_t>
+struct DiscreteInterval {
+    T start;
+    T end;
+
+    DiscreteInterval(T s, T e) : start(s), end(e) {
+        assert(s <= e && "Invalid interval");
+    }
+
+    T length() const {
+        // +1 as the intervals are discrete
+        // (interval |0|1|2|3|  has length 4)
+        return end - start + 1;
+    }
+
+    // total order on intervals so that we can insert them
+    // to std containers. We want to compare them only
+    // according to the start value.
+    bool operator<(const DiscreteInterval& I) const {
+        return start < I.start;
+    }
+
+    bool operator==(const DiscreteInterval& I) const {
+        return start == I.start && end == I.end;
+    }
+
+    bool operator!=(const DiscreteInterval& I) const {
+        return !operator==(I);
+    }
+
+    bool overlaps(const DiscreteInterval& I) const {
+        return (start <= I.start && end >= I.start) || I.end >= start;
+    }
+
+    bool covers(const DiscreteInterval& I) const {
+        return (start <= I.start && end >= I.end);
+    }
+
+    bool overlaps(T rhs_start, T rhs_end) const {
+        return overlaps(DiscreteInterval(rhs_start, rhs_end));
+    }
+
+    bool covers(T rhs_start, T rhs_end) const {
+        return covers(DiscreteInterval(rhs_start, rhs_end));
+    }
+};
+
+
 ///
 // Mapping of disjunctive discrete intervals of values
 // to sets of ValueT.
 template <typename ValueT, typename IntervalValueT = Offset>
 class DisjunctiveIntervalMap {
 public:
-    template <typename T = int64_t>
-    struct Interval {
-        T start;
-        T end;
-
-        Interval(T s, T e) : start(s), end(e) {
-            assert(s <= e && "Invalid interval");
-        }
-
-        T length() const {
-            // +1 as the intervals are discrete
-            // (interval |0|1|2|3|  has length 4)
-            return end - start + 1;
-        }
-
-        // total order on intervals so that we can insert them
-        // to std containers. We want to compare them only
-        // according to the start value.
-        bool operator<(const Interval& I) const {
-            return start < I.start;
-        }
-
-        bool operator==(const Interval& I) const {
-            return start == I.start && end == I.end;
-        }
-
-        bool operator!=(const Interval& I) const {
-            return !operator==(I);
-        }
-
-        bool overlaps(const Interval& I) const {
-            return (start <= I.start && end >= I.start) || I.end >= start;
-        }
-
-        bool covers(const Interval& I) const {
-            return (start <= I.start && end >= I.end);
-        }
-
-        bool overlaps(T rhs_start, T rhs_end) const {
-            return overlaps(IntervalT(rhs_start, rhs_end));
-        }
-
-        bool covers(T rhs_start, T rhs_end) const {
-            return covers(IntervalT(rhs_start, rhs_end));
-        }
-    };
-
-    using IntervalT = Interval<IntervalValueT>;
+    using IntervalT = DiscreteInterval<IntervalValueT>;
     using ValuesT = std::set<ValueT>;
     using MappingT = std::map<IntervalT, ValuesT>;
     using iterator = typename MappingT::iterator;
