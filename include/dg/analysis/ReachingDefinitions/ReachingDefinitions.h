@@ -257,8 +257,8 @@ public:
     using NodeT = RDNode;
     using NodesT = std::list<NodeT *>;
 
-    void append(NodeT *n) { _nodes.push_back(n); }
-    void prepend(NodeT *n) { _nodes.push_front(n); }
+    void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); }
+    void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(this); }
     // FIXME: get rid of this method in favor of either append/prepend
     // (so these method would update CFG edges) or keeping CFG
     // only in blocks
@@ -267,6 +267,7 @@ public:
         n->insertBefore(_nodes.front());
         // add the node to the block
         _nodes.push_front(n);
+        n->setBBlock(this);
     }
 
     const NodesT& getNodes() const { return _nodes; }
@@ -285,6 +286,26 @@ public:
     */
 
     DefinitionsMap<RDNode> definitions;
+
+    struct edge_iterator {
+        // iterator for node edges
+        using ItT = decltype(NodeT().getSuccessors().begin());
+        ItT it;
+
+        edge_iterator(const ItT& I) : it(I) {}
+
+        bool operator==(const edge_iterator& rhs) const { return it == rhs.it; }
+        bool operator!=(const edge_iterator& rhs) const { return it != rhs.it; }
+        edge_iterator& operator++() { ++it; return *this; }
+        edge_iterator operator++(int) { auto tmp = *this; ++it; return tmp; }
+        RDBBlock *operator*() { return (*it)->getBBlock(); }
+        RDBBlock *operator->() { return (*it)->getBBlock(); }
+    };
+
+    edge_iterator pred_begin() { return edge_iterator(_nodes.front()->getPredecessors().begin()); }
+    edge_iterator pred_end() { return edge_iterator(_nodes.front()->getPredecessors().end()); }
+    edge_iterator succ_begin() { return edge_iterator(_nodes.back()->getSuccessors().begin()); }
+    edge_iterator succ_end() { return edge_iterator(_nodes.back()->getSuccessors().end()); }
 
 private:
     NodesT _nodes;
@@ -416,8 +437,8 @@ public:
 };
 
 class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
-    void performLvn();
-    void performGvn();
+    std::set<RDNode *> performLvn();
+    void performGvn(std::set<RDNode*>&);
 
     // find definitions of the def site and add def-use edges.
     // For the uncovered bytes create phi nodes and return them.
@@ -437,8 +458,8 @@ public:
         if (graph.getBBlocks().empty())
             graph.buildBBlocks();
 
-        performLvn();
-        performGvn();
+        auto phis = performLvn();
+        performGvn(phis);
     }
 };
 

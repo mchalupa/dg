@@ -93,7 +93,10 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
 }
 
 
-void SSAReachingDefinitionsAnalysis::performLvn() {
+std::set<RDNode *>
+SSAReachingDefinitionsAnalysis::performLvn() {
+    std::set<RDNode *> allphis;
+
     for (RDBBlock *block : graph.blocks()) {
         // new phi nodes
         std::vector<RDNode *> phis;
@@ -132,11 +135,32 @@ void SSAReachingDefinitionsAnalysis::performLvn() {
         // add all the new phi nodes to the current block
         for (auto phi : phis) {
             block->prependAndUpdateCFG(phi);
+            allphis.insert(phi);
         }
     }
+
+    return allphis;
 }
 
-void SSAReachingDefinitionsAnalysis::performGvn() {
+void SSAReachingDefinitionsAnalysis::performGvn(std::set<RDNode *>& phis) {
+    while(!phis.empty()) {
+        RDNode *phi = *(phis.begin());
+        phis.erase(phis.begin());
+
+        auto block = phi->getBBlock();
+        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
+            assert(phi->overwrites.size() == 1);
+            const auto& ds = *(phi->overwrites.begin());
+            auto newphis = readValue(*I, phi, ds);
+
+            for (auto phi : newphis) {
+                I->prependAndUpdateCFG(phi);
+                // queue the new phi for processing
+                phis.insert(phi);
+            }
+        }
+
+    }
 }
 
 } // namespace rd
