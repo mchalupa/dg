@@ -129,14 +129,9 @@ void SSAReachingDefinitionsAnalysis::performLvn() {
             }
         }
 
-        // add all the new phi nodes
+        // add all the new phi nodes to the current block
         for (auto phi : phis) {
             block->prependAndUpdateCFG(phi);
-            // block->prepend(phi);
-            // FIXME get rid of this method (keep the CFG
-            // structure in bblocks only?). Or make also append
-            // to add successor edges and check that the edge goes to
-            // the beginning of a different block
         }
     }
 }

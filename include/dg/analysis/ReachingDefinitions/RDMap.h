@@ -248,9 +248,9 @@ public:
     }
 
     bool update(const DefSite& ds, NodeT *node) {
-        return _definitions[ds.target].add(ds.offset,
-                                           ds.offset + (ds.len - 1),
-                                           node);
+        return _definitions[ds.target].update(ds.offset,
+                                              ds.offset + (ds.len - 1),
+                                              node);
     }
 
     bool add(const DefSite& ds, const std::vector<NodeT *>& nodes) {
