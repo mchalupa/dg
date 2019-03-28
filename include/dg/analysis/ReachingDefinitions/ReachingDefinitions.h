@@ -272,19 +272,6 @@ public:
 
     const NodesT& getNodes() const { return _nodes; }
 
-    /*
-     * For now, we use the successors from nodes
-    using EdgesT = std::vector<RDBBlock *>;
-
-    void addSuccessor(RDBBlock *n) {
-        _successors.push_back(n);
-        n->_predecessors.push_back(this);
-    }
-
-    const EdgesT& getSuccessors() const { return _successors; }
-    const EdgesT& getPredecessors() const { return _predecessors; }
-    */
-
     DefinitionsMap<RDNode> definitions;
 
     struct edge_iterator {
@@ -307,12 +294,18 @@ public:
     edge_iterator succ_begin() { return edge_iterator(_nodes.back()->getSuccessors().begin()); }
     edge_iterator succ_end() { return edge_iterator(_nodes.back()->getSuccessors().end()); }
 
+    RDBBlock *getSinglePredecessor() {
+        auto& preds = _nodes.front()->getPredecessors();
+        return preds.size() == 1 ? (*preds.begin())->getBBlock() : nullptr;
+    }
+
+    RDBBlock *getSingleSuccessor() {
+        auto& succs = _nodes.back()->getSuccessors();
+        return succs.size() == 1 ? (*succs.begin())->getBBlock() : nullptr;
+    }
+
 private:
     NodesT _nodes;
-    /*
-    EdgesT _successors;
-    EdgesT _predecessors;
-    */
 };
 
 

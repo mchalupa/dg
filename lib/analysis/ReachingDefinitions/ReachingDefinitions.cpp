@@ -81,12 +81,21 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
     // and add phi nodes for these intervals
     auto uncovered = block->definitions.undefinedIntervals(ds);
     for (auto& interval : uncovered) {
-        phis.emplace_back(graph.create(RDNodeType::PHI));
-        phis.back()->addOverwrites(ds.target,
-                                   interval.start,
-                                   interval.length());
-        if (addDefuse)
-            node->defuse.push_back(phis.back());
+        if (auto pred = block->getSinglePredecessor()) {
+            // if we have a unique predecessor, try finding definitions
+            // and creating the new PHI nodes there.
+            return readValue(pred, node,
+                             DefSite(ds.target, interval.start,
+                                     interval.length()),
+                             addDefuse);
+        } else {
+            phis.emplace_back(graph.create(RDNodeType::PHI));
+            phis.back()->addOverwrites(ds.target,
+                                       interval.start,
+                                       interval.length());
+            if (addDefuse)
+                node->defuse.push_back(phis.back());
+        }
     }
 
     return phis;

@@ -193,6 +193,7 @@ dumpDDIMap(RDBBlock *block, bool dot = false)
 static void
 dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
 {
+    printf("-------------\\n");
     for (const DefSite& def : defs) {
         printf("%s: ", kind);
         printName(def.target, dot);
@@ -212,20 +213,23 @@ dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
 static void
 dumpDefines(RDNode *node, bool dot = false)
 {
-    dumpDefSites(node->getDefines(), "DEF", dot);
+    if (!node->getDefines().empty())
+        dumpDefSites(node->getDefines(), "DEF", dot);
 }
 
 
 static void
 dumpOverwrites(RDNode *node, bool dot = false)
 {
-    dumpDefSites(node->getOverwrites(), "DEF strong", dot);
+    if (!node->getOverwrites().empty())
+        dumpDefSites(node->getOverwrites(), "DEF strong", dot);
 }
 
 static void
 dumpUses(RDNode *node, bool dot = false)
 {
-    dumpDefSites(node->getUses(), "USE", dot);
+    if (!node->getUses().empty())
+        dumpDefSites(node->getUses(), "USE", dot);
 }
 
 static void
@@ -243,17 +247,22 @@ dumpRDNode(RDNode *n)
 static void nodeToDot(RDNode *node) {
     printf("\tNODE%p [label=\"", static_cast<void*>(node));
     printName(node, true);
-    if (node->getSize() > 0)
+    if (node->getSize() > 0) {
         printf("\\n[size: %lu]\\n", node->getSize());
-    printf("\\n-------------\\n");
-    if (verbose) {
-        dumpDefines(node, true);
-        printf("-------------\\n");
-        dumpOverwrites(node, true);
-        printf("-------------\\n");
-        dumpUses(node, true);
+        printf("\\n-------------\\n");
     }
-        dumpMap(node, true /* dot */);
+
+    if (verbose) {
+        printf("block: %p\\n", node->getBBlock());
+        printf("\\n-------------\\n");
+
+        dumpDefines(node, true);
+        dumpOverwrites(node, true);
+        dumpUses(node, true);
+        printf("\\n-------------\\n");
+    }
+
+    dumpMap(node, true /* dot */);
 
     printf("\" shape=box]\n");
 
@@ -285,7 +294,7 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD, bool dump_rd) {
                        static_cast<void*>(def), static_cast<void*>(node));
             }
         }
-        printf("label=\"");
+        printf("label=\"block: %p\\n", *I);
         dumpDDIMap(*I, true);
         printf("\"\nlabelloc=b\n");
         printf("}\n");
