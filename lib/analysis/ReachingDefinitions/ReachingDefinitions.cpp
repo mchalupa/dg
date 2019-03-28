@@ -73,7 +73,8 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
     // add def-use edges to known definitions
     if (addDefuse) {
         auto defs = block->definitions.get(ds);
-        node->defuse = decltype(node->defuse)(defs.begin(), defs.end());
+        for (auto d : defs)
+            node->defuse.push_back(d);
     }
 
     std::vector<RDNode *> phis;
@@ -84,10 +85,12 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
         if (auto pred = block->getSinglePredecessor()) {
             // if we have a unique predecessor, try finding definitions
             // and creating the new PHI nodes there.
-            return readValue(pred, node,
-                             DefSite(ds.target, interval.start,
-                                     interval.length()),
-                             addDefuse);
+            auto P = readValue(pred, node,
+                               DefSite(ds.target, interval.start,
+                                       interval.length()),
+                               addDefuse);
+            for (auto p : P)
+                phis.push_back(p);
         } else {
             phis.emplace_back(graph.create(RDNodeType::PHI));
             phis.back()->addOverwrites(ds.target,

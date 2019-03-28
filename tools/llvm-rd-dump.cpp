@@ -245,7 +245,7 @@ dumpRDNode(RDNode *n)
 }
 
 static void nodeToDot(RDNode *node) {
-    printf("\tNODE%p [label=\"", static_cast<void*>(node));
+    printf("\tNODE%p [label=\"%lu ", static_cast<void*>(node), node->getID());
     printName(node, true);
     if (node->getSize() > 0) {
         printf("\\n[size: %lu]\\n", node->getSize());
@@ -253,7 +253,7 @@ static void nodeToDot(RDNode *node) {
     }
 
     if (verbose) {
-        printf("block: %p\\n", node->getBBlock());
+        printf("\\nblock: %p\\n", node->getBBlock());
         printf("\\n-------------\\n");
 
         dumpDefines(node, true);
@@ -294,7 +294,7 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD, bool dump_rd) {
                        static_cast<void*>(def), static_cast<void*>(node));
             }
         }
-        printf("label=\"block: %p\\n", *I);
+        printf("label=\"\\nblock: %p\\n", *I);
         dumpDDIMap(*I, true);
         printf("\"\nlabelloc=b\n");
         printf("}\n");
