@@ -152,9 +152,13 @@ void SSAReachingDefinitionsAnalysis::performGvn(std::set<RDNode *>& phis) {
             assert(phi->overwrites.size() == 1);
             const auto& ds = *(phi->overwrites.begin());
             auto newphis = readValue(*I, phi, ds);
+            assert(newphis.size() <= 1);
 
+            // update phi nodes and block definitions
             for (auto phi : newphis) {
                 I->prependAndUpdateCFG(phi);
+                assert(I->definitions.get(ds).empty());
+                I->definitions.update(ds, phi);
                 // queue the new phi for processing
                 phis.insert(phi);
             }
