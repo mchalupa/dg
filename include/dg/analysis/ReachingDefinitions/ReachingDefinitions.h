@@ -223,15 +223,6 @@ public:
         return this == UNKNOWN_MEMORY;
     }
 
-    using KeyType = llvm::Value*;
-
-    // this node is not part of any DependenceGraph
-    using DependenceGraphType = DependenceGraph<RDNode>;
-
-    DependenceGraphType *getDG() {
-        return nullptr;
-    }
-
     RDBBlock *getBBlock() { return bblock; }
     void setBBlock(RDBBlock *bb) { bblock = bb; }
 
