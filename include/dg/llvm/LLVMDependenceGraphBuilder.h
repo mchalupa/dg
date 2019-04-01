@@ -28,7 +28,6 @@
 #include "dg/llvm/analysis/DefUse/DefUse.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/ReachingDefinitions/SemisparseRda.h"
 
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
@@ -102,7 +101,7 @@ class LLVMDependenceGraphBuilder {
         if (_options.RDAOptions.isDense()) {
             _RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
         } else if (_options.RDAOptions.isSparse()) {
-            _RD->run<dg::analysis::rd::SemisparseRda>();
+            _RD->run<dg::analysis::rd::SSAReachingDefinitionsAnalysis>();
         } else {
             assert( false && "unknown RDA type" );
             abort();

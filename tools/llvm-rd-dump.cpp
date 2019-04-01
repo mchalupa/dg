@@ -449,7 +449,7 @@ int main(int argc, char *argv[])
     LLVMReachingDefinitions RD(M, &PTA, opts);
     tm.start();
     if (rda == RdaType::SEMISPARSE) {
-        RD.run<dg::analysis::rd::SemisparseRda>();
+        RD.run<dg::analysis::rd::SSAReachingDefinitionsAnalysis>();
     } else
         RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
     tm.stop();

@@ -25,7 +25,6 @@
 #endif
 
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/ReachingDefinitions/SemisparseRda.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
@@ -33,7 +32,6 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-class SemisparseRda;
 class LLVMRDBuilder;
 
 class LLVMReachingDefinitions
@@ -67,7 +65,7 @@ public:
         static_assert(std::is_base_of<ReachingDefinitionsAnalysis, RdaType>::value,
                       "RdaType has to be subclass of ReachingDefinitionsAnalysis");
 
-        if (std::is_same<RdaType, SemisparseRda>::value) {
+        if (std::is_same<RdaType, SSAReachingDefinitionsAnalysis>::value) {
             initializeSparseRDA();
         } else {
             initializeDenseRDA();
