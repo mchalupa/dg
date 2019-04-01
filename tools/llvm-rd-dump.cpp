@@ -140,6 +140,7 @@ printName(RDNode *node, bool dot)
     }
 }
 
+/*
 static void
 dumpMap(RDNode *node, bool dot = false)
 {
@@ -168,6 +169,7 @@ dumpMap(RDNode *node, bool dot = false)
         }
     }
 }
+*/
 static void
 dumpDDIMap(RDBBlock *block, bool dot = false)
 {
@@ -240,7 +242,7 @@ dumpRDNode(RDNode *n)
     if (n->getSize() > 0)
         printf(" [size: %lu]", n->getSize());
     putchar('\n');
-    dumpMap(n);
+    //dumpMap(n);
     printf("---\n");
 }
 
@@ -262,7 +264,7 @@ static void nodeToDot(RDNode *node) {
         printf("\\n-------------\\n");
     }
 
-    dumpMap(node, true /* dot */);
+    //dumpMap(node, true /* dot */);
 
     printf("\" shape=box]\n");
 
@@ -329,22 +331,7 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
             printf("\tNODE%p -> NODE%p [penwidth=2]\n",
                    static_cast<void*>(node),
                    static_cast<void*>(succ));
-        if (dump_rd) {
-            // dump Reaching Definitions
-            auto rds = node->getReachingDefinitions();
-            for (const auto& pair : rds) {
-                DefSite var = pair.first;
-                if (colors.find(var.target) == colors.end())
-                    colors[var.target] = rand();
-                for (auto& dest: pair.second) {
-                    printf("\tNODE%p -> NODE%p [color=\"#%X\" style=\"dotted\"]",
-                           static_cast<void*>(node), static_cast<void*>(dest),
-                           colors[var.target]);
-                }
-            }
-        }
     }
-
 
     printf("}\n");
 }

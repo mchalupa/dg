@@ -147,6 +147,7 @@ private:
             if (!rd) {
                 os << "  ; RD: no mapping\n";
             } else {
+                /*
                 auto& defs = rd->getReachingDefinitions();
                 for (auto& it : defs) {
                     for (auto& nd : it.second) {
@@ -158,6 +159,7 @@ private:
                             printValue(nd->getUserData<llvm::Value>(), os, true);
                     }
                 }
+                */
             }
 
             LLVMDGParameters *params = node->getParameters();

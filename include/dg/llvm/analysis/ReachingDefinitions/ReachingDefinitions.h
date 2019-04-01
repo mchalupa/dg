@@ -99,10 +99,6 @@ public:
         return RDA->getNodes(getRoot());
     }
 
-    const RDMap& getReachingDefinitions(RDNode *n) const {
-        return n->getReachingDefinitions();
-    }
-    RDMap& getReachingDefinitions(RDNode *n) { return n->getReachingDefinitions(); }
     size_t getReachingDefinitions(RDNode *n, const Offset& off,
                                   const Offset& len, std::set<RDNode *>& ret) {
         return n->getReachingDefinitions(n, off, len, ret);
