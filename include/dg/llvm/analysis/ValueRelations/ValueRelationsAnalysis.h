@@ -60,6 +60,28 @@ getOperationWithConst(const llvm::Instruction *I) {
     return {C1, C2->getSExtValue()};
 }
 
+namespace {
+// adjusted from LLVM sources
+static inline
+const llvm::BasicBlock *getBasicBlockUniqueSuccessor(const llvm::BasicBlock *B) {
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+    auto SI = succ_begin(B), E = succ_end(B);
+    if (SI == E)
+        return nullptr; // No successors
+    auto SuccBB = *SI;
+    ++SI;
+    for (;SI != E; ++SI) {
+        if (*SI != SuccBB)
+            return nullptr;
+    }
+
+    return SuccBB;
+#else
+    return B->getUniqueSuccessor();
+#endif // LLVM 3.6
+}
+}
+
 class LLVMValueRelationsAnalysis {
     // reads about which we know that always hold
     // (e.g. if the underlying memory is defined only at one place
@@ -224,7 +246,7 @@ class LLVMValueRelationsAnalysis {
                         break;
                     for (auto& I : *B)
                         fixedValues.insert(&I);
-                    B = B->getUniqueSuccessor();
+                    B = getBasicBlockUniqueSuccessor(B);
                 }
             }
         }
