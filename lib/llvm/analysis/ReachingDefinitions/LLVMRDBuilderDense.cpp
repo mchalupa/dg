@@ -952,6 +952,15 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilderDense::buildGlobals()
         cur = create(RDNodeType::ALLOC);
         addNode(&*I, cur);
 
+        // add the initial global definitions
+        if (auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
+            auto size = getAllocatedSize(GV->getType()->getContainedType(0), DL);
+            if (size == 0)
+                size = Offset::UNKNOWN;
+
+            cur->addOverwrites(cur, 0, size);
+        }
+
         if (prev)
             makeEdge(prev, cur);
         else
