@@ -58,12 +58,11 @@ add_library(LLVMpta SHARED
 target_link_libraries(LLVMpta PUBLIC PTA)
 
 add_library(LLVMrd SHARED
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.cpp
+	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.cpp
 	llvm/analysis/ReachingDefinitions/LLVMReachingDefinitions.cpp
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilderDense.h
 )
 target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
