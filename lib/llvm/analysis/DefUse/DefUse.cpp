@@ -169,10 +169,12 @@ void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
     assert(dest);
 
     // these functions touch the memory of the pointers
-    addDataDependence(callNode, CI, dest, Offset::UNKNOWN /* FIXME */);
+    //addDataDependence(callNode, CI, dest, Offset::UNKNOWN /* FIXME */);
+    assert(false && "Not implemented");
+    abort();
 
-    if (src)
-        addDataDependence(callNode, CI, src, Offset::UNKNOWN /* FIXME */);
+    //if (src)
+     //   addDataDependence(callNode, CI, src, Offset::UNKNOWN /* FIXME */);
 }
 
 void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *callNode, CallInst *CI)
@@ -184,10 +186,13 @@ void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *callNode, CallInst *CI)
     // also assume that this function use all the memory that is passed
     // via the pointers
     for (int e = CI->getNumArgOperands(), i = 0; i < e; ++i) {
+        assert(false && "Use getLLVMPointsTo");
         if (auto pts = PTA->getPointsTo(CI->getArgOperand(i))) {
             // the passed memory may be used in the undefined
             // function on the unknown offset
-            addDataDependence(callNode, CI, pts, Offset::UNKNOWN);
+            assert(false && "Not implemented");
+            abort();
+            //addDataDependence(callNode, CI, pts, Offset::UNKNOWN);
         }
     }
 }
@@ -216,7 +221,7 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
             auto type = _options.getAllocationFunction(func->getName());
 
             if (type == AllocationFunction::REALLOC) {
-                addDataDependence(node, CI, CI->getOperand(0), Offset::UNKNOWN /* FIXME */);
+                addDataDependence(node, RD->getLLVMReachingDefinitions(CI));
             } else if (type == AllocationFunction::NONE) {
                 handleUndefinedCall(node, CI);
             }// else {
@@ -238,6 +243,7 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 
 // Add data dependence edges from all memory location that may write
 // to memory pointed by 'pts' to 'node'
+/*
 void LLVMDefUseAnalysis::addUnknownDataDependence(LLVMNode *node, PSNode *pts)
 {
     // iterate over all nodes from ReachingDefinitions Subgraph. It is faster than
@@ -281,6 +287,7 @@ void LLVMDefUseAnalysis::addUnknownDataDependence(LLVMNode *node, PSNode *pts)
         }
     }
 }
+*/
 
 void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
 {
@@ -308,143 +315,29 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
     rdnode->addDataDependence(node);
 }
 
-
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, RDNode *rd)
-{
-    llvm::Value *rdval = rd->getUserData<llvm::Value>();
-    assert(rdval && "RDNode has not set the coresponding value");
-    addDataDependence(node, rdval);
-}
-
-// \param mem   current reaching definitions point
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, PSNode *pts,
-                                           RDNode *mem, uint64_t size)
+void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
+                                           const std::vector<llvm::Value *>& defs)
 {
     using namespace dg::analysis;
     static std::set<const llvm::Value *> reported_mappings;
 
-    for (const pta::Pointer& ptr : pts->pointsTo) {
-        if (!ptr.isValid())
-            continue;
-
-        if (ptr.isInvalidated())
-            continue;
-
-        llvm::Value *llvmVal = ptr.target->getUserData<llvm::Value>();
-        assert(llvmVal && "Don't have Value in PSNode");
-
-        RDNode *val = RD->getNode(llvmVal);
-        if(!val) {
-            if (reported_mappings.insert(llvmVal).second)
-                llvmutils::printerr("DEF-USE: no information for: ", llvmVal);
-
-            // XXX: shouldn't we set val to unknown location now?
-            continue;
+    if (defs.empty()) {
+        static std::set<const llvm::Value *> reported;
+        if (reported.insert(node->getValue()).second) {
+            llvm::errs() << "[DU] error: no reaching definition for: " << *node->getValue();
         }
-
-        std::set<RDNode *> defs;
-        // Get even reaching definitions for UNKNOWN_MEMORY.
-        // Since those can be ours definitions, we must add them always
-        mem->getReachingDefinitions(rd::UNKNOWN_MEMORY, Offset::UNKNOWN,
-                                    Offset::UNKNOWN, defs);
-        if (!defs.empty()) {
-            for (RDNode *rd : defs) {
-                assert(!rd->isUnknown() && "Unknown memory defined at unknown location?");
-                if (rd->getType() != RDNodeType::PHI)
-                    addDataDependence(node, rd);
-            }
-
-            defs.clear();
-        }
-
-        mem->getReachingDefinitions(val, ptr.offset, size, defs);
-        if (defs.empty()) {
-            llvm::GlobalVariable *GV
-                = llvm::dyn_cast<llvm::GlobalVariable>(llvmVal);
-            if (!GV || !GV->hasInitializer()) {
-                static std::set<const llvm::Value *> reported;
-                if (reported.insert(llvmVal).second) {
-                    llvm::errs() << "No reaching definition for: " << *llvmVal;
-                    const llvm::Value *val = mem->getUserData<llvm::Value>();
-                    if (val)
-                        llvm::errs() << " in: " << *val;
-                    llvm::errs() << " off: " << *ptr.offset << "\n";
-                }
-            } else {
-                // this is global variable and the last definition
-                // is the initialization
-
-                LLVMDependenceGraph *dg = node->getDG();
-                assert(dg);
-
-                LLVMNode *global_param_node = dg->getNode(GV);
-                assert(global_param_node);
-
-                global_param_node->addDataDependence(node);
-            }
-
-            continue;
-        }
-
-        // add data dependence
-        for (RDNode *rd : defs) {
-            if (rd->isUnknown()) {
-                // we don't know what definitions reach this node,
-                // se we must add data dependence to all possible
-                // write to this memory
-                addUnknownDataDependence(node, pts);
-
-                // we can bail out, since we have added all
-                break;
-            }
-
-            if (rd->getType() != RDNodeType::PHI)
-                addDataDependence(node, rd);
-        }
-    }
-}
-
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
-                                           const llvm::Value *where, /* in CFG */
-                                           const llvm::Value *ptrOp,
-                                           uint64_t size)
-{
-    // get points-to information for the operand
-    PSNode *pts = PTA->getPointsTo(ptrOp);
-    if (!pts) {
-        llvmutils::printerr("[DU] error: no points-to: ", ptrOp);
         return;
     }
 
-    addDataDependence(node, where, pts, size);
-}
-
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
-                                           const llvm::Value *where, /* in CFG */
-                                           PSNode *pts, /* what memory */
-                                           uint64_t size)
-{
-    using namespace dg::analysis;
-
-    // get the node from reaching definition where we have
-    // all the reaching definitions
-    RDNode *mem = RD->getMapping(where);
-    if(!mem) {
-        llvmutils::printerr("[DU] error: don't have mapping: ", where);
-        return;
+    // add data dependence
+    for (auto def : defs) {
+        addDataDependence(node, def);
     }
-
-    // take every memory the load inst can use and get the
-    // reaching definition
-    addDataDependence(node, pts, mem, size);
 }
 
 void LLVMDefUseAnalysis::handleLoadInst(llvm::LoadInst *Inst, LLVMNode *node)
 {
-    using namespace dg::analysis;
-
-    uint64_t size = getAllocatedSize(Inst->getType(), DL);
-    addDataDependence(node, Inst, Inst->getPointerOperand(), size);
+    addDataDependence(node, RD->getLLVMReachingDefinitions(Inst));
 }
 
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)

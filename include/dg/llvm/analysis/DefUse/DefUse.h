@@ -1,6 +1,7 @@
 #ifndef _LLVM_DEF_USE_ANALYSIS_H_
 #define _LLVM_DEF_USE_ANALYSIS_H_
 
+#include <vector>
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -58,24 +59,9 @@ public:
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 private:
     void addDataDependence(LLVMNode *node,
-                           analysis::pta::PSNode *pts,
-                           analysis::rd::RDNode *mem,
-                           uint64_t size);
+                           const std::vector<llvm::Value *>& defs);
 
-    void addDataDependence(LLVMNode *node,
-                           const llvm::Value *where, /* in CFG */
-                           const llvm::Value *ptrOp,
-                           uint64_t size);
-
-    void addDataDependence(LLVMNode *node,
-                           const llvm::Value *where, /* in CFG */
-                           PSNode *pts, /* what memory */
-                           uint64_t size);
-
-    void addDataDependence(LLVMNode *node, analysis::rd::RDNode *rd);
     void addDataDependence(LLVMNode *node, llvm::Value *val);
-
-    void addUnknownDataDependence(LLVMNode *node, PSNode *pts);
 
     void handleLoadInst(llvm::LoadInst *, LLVMNode *);
     void handleCallInst(LLVMNode *);

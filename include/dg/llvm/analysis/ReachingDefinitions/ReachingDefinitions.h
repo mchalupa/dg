@@ -97,14 +97,26 @@ public:
         return RDA->getNodes(getRoot());
     }
 
-    size_t getReachingDefinitions(RDNode *n, const Offset& off,
-                                  const Offset& len, std::set<RDNode *>& ret) {
-        return n->getReachingDefinitions(n, off, len, ret);
+    /*
+    std::vector<RDNode *> getReachingDefinitions(RDNode *where, RDNode *mem,
+                                                 const Offset& off, const Offset& len) {
+        return RDA->getReachingDefinitions(where, n, off, len, ret);
+    }
+    */
+
+    std::vector<RDNode *> getReachingDefinitions(RDNode *use) {
+        return RDA->getReachingDefinitions(use);
     }
 
-    std::set<llvm::Value *>
-    getLLVMReachingDefinitions(llvm::Value *where, llvm::Value *what,
-                               const Offset offset, const Offset len);
+    std::vector<RDNode *> getReachingDefinitions(llvm::Value *use) {
+        auto node = getNode(use);
+        assert(node);
+        return getReachingDefinitions(node);
+    }
+
+    // return instructions that define the given value
+    // (the value must read from memory, e.g. LoadInst)
+    std::vector<llvm::Value *> getLLVMReachingDefinitions(llvm::Value *use);
 };
 
 

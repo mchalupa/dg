@@ -1,4 +1,5 @@
 #include <set>
+#include <vector>
 
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
@@ -63,6 +64,35 @@ void ReachingDefinitionsAnalysis::run()
             assert(!to_process.empty());
         }
     } while (!changed.empty());
+}
+
+// return the reaching definitions of ('mem', 'off', 'len')
+// at the location 'where'
+std::vector<RDNode *>
+ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *where, RDNode *mem,
+                                                    const Offset& off,
+                                                    const Offset& len)
+{
+    std::set<RDNode *> ret;
+    // gather all possible definitions of the memory
+    where->def_map.get(UNKNOWN_MEMORY, Offset::UNKNOWN, Offset::UNKNOWN, ret);
+    where->def_map.get(mem, off, len, ret);
+
+    return std::vector<RDNode *>(ret.begin(), ret.end());
+}
+
+std::vector<RDNode *>
+ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
+    std::set<RDNode *> ret;
+
+    // gather all possible definitions of the memory including the unknown mem
+    for (auto& ds : use->uses) {
+        use->def_map.get(ds.target, ds.offset, ds.len, ret);
+    }
+
+    use->def_map.get(UNKNOWN_MEMORY, Offset::UNKNOWN, Offset::UNKNOWN, ret);
+
+    return std::vector<RDNode *>(ret.begin(), ret.end());
 }
 
 std::vector<RDNode *>
@@ -177,6 +207,41 @@ void SSAReachingDefinitionsAnalysis::performGvn(std::set<RDNode *>& phis) {
         }
 
     }
+}
+
+static void recGatherNonPhisDefs(RDNode *phi, std::set<RDNode *>& phis, std::set<RDNode *>& ret) {
+    assert(phi->getType() == RDNodeType::PHI);
+    if (!phis.insert(phi).second)
+        return; // we already visited this phi
+
+    for (auto n : phi->defuse) {
+        if (n->getType() != RDNodeType::PHI) {
+            ret.insert(n);
+        } else {
+            recGatherNonPhisDefs(n, phis, ret);
+        }
+    }
+}
+
+// recursivelu replace all phi values with its non-phi definitions
+static std::vector<RDNode *> gatherNonPhisDefs(RDNode *use) {
+    std::set<RDNode *> ret; // use set to get rid of duplicates
+    std::set<RDNode *> phis; // set of visited phi nodes - to check the fixpoint
+
+    for (auto n : use->defuse) {
+        if (n->getType() != RDNodeType::PHI) {
+            ret.insert(n);
+        } else {
+            recGatherNonPhisDefs(n, phis, ret);
+        }
+    }
+
+    return std::vector<RDNode *>(ret.begin(), ret.end());
+}
+
+std::vector<RDNode *>
+SSAReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
+    return gatherNonPhisDefs(use);
 }
 
 } // namespace rd

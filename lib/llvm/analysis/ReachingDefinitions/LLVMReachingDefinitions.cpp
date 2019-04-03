@@ -29,7 +29,7 @@ LLVMReachingDefinitions::~LLVMReachingDefinitions() {
 }
 
 void LLVMReachingDefinitions::initializeSparseRDA() {
-    builder = new LLVMRDBuilderDense(m, pta, _options, true /* build uses */);
+    builder = new LLVMRDBuilderDense(m, pta, _options);
     // let the compiler do copy-ellision
     auto graph = builder->build();
 
@@ -39,7 +39,6 @@ void LLVMReachingDefinitions::initializeSparseRDA() {
 
 void LLVMReachingDefinitions::initializeDenseRDA() {
     builder = new LLVMRDBuilderDense(m, pta, _options,
-                                     false /* build uses */,
                                      true /* forget locals at return */);
     auto graph = builder->build();
 
@@ -71,7 +70,57 @@ const RDNode *LLVMReachingDefinitions::getMapping(const llvm::Value *val) const 
     return builder->getMapping(val);
 }
 
+// the value 'use' must be an instruction that reads from memory
+std::vector<llvm::Value *>
+LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
 
+    std::vector<llvm::Value *> defs;
+
+    auto loc = getMapping(use);
+    if (!loc) {
+        llvm::errs() << "[RD] error: no mapping for: " << *use << "\n";
+        return defs;
+    }
+
+    if (loc->getUses().empty()) {
+        llvm::errs() << "[RD] error: the queried value has empty uses: " << *use << "\n";
+        return defs;
+    }
+
+    if (!llvm::isa<llvm::LoadInst>(use) && !llvm::isa<llvm::CallInst>(use)) {
+        llvm::errs() << "[RD] error: the queried value is not a use: " << *use << "\n";
+    }
+
+    auto rdDefs = getReachingDefinitions(loc);
+    if (rdDefs.empty()) {
+        static std::set<const llvm::Value *> reported;
+        if (reported.insert(use).second) {
+            llvm::errs() << "[RD] error: no reaching definition for: " << *use;
+        }
+        /*
+        llvm::GlobalVariable *GV = llvm::dyn_cast<llvm::GlobalVariable>(use);
+        if (!GV || !GV->hasInitializer()) {
+        } else {
+            // this is global variable and the last definition
+            // is the initialization
+            defs.insert(GV);
+        }
+        */
+    }
+
+    //map the values
+    for (RDNode *nd : rdDefs) {
+        assert(nd->getType() != rd::RDNodeType::PHI);
+        auto llvmvalue = nd->getUserData<llvm::Value>();
+        assert(llvmvalue && "RD node has no value");
+        defs.push_back(llvmvalue);
+    }
+
+    return defs;
+}
+
+
+/*
 std::set<llvm::Value *>
 LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *where, llvm::Value *what,
                                                     const Offset offset, const Offset len) {
@@ -121,6 +170,7 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *where, llvm::Va
 
     return defs;
 }
+*/
 
 } // namespace rd
 } // namespace dg

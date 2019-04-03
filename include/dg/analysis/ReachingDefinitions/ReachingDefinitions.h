@@ -98,6 +98,7 @@ public:
     // (so this node has non-empty uses)
     std::vector<RDNode *> defuse;
 
+    // state of the data-flow analysis
     RDMap def_map;
 
     RDNodeType getType() const { return type; }
@@ -210,12 +211,6 @@ public:
     bool isOverwritten(const DefSite& ds)
     {
         return overwrites.find(ds) != overwrites.end();
-    }
-
-    virtual size_t getReachingDefinitions(RDNode *n, const Offset& off,
-                                          const Offset& len, std::set<RDNode *>& ret)
-    {
-        return def_map.get(n, off, len, ret);
     }
 
     bool isUnknown() const
@@ -416,6 +411,17 @@ public:
 
     bool processNode(RDNode *n);
     virtual void run();
+
+    // return the reaching definitions of ('mem', 'off', 'len')
+    // at the location 'where'
+    virtual std::vector<RDNode *>
+    getReachingDefinitions(RDNode *where, RDNode *mem,
+                           const Offset& off,
+                           const Offset& len);
+
+    // return reaching definitions of a node that represents
+    // the given use
+    virtual std::vector<RDNode *> getReachingDefinitions(RDNode *use);
 };
 
 class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
@@ -443,6 +449,18 @@ public:
         auto phis = performLvn();
         performGvn(phis);
     }
+
+    // return the reaching definitions of ('mem', 'off', 'len')
+    // at the location 'where'
+    std::vector<RDNode *>
+    getReachingDefinitions(RDNode *, RDNode *,
+                           const Offset&,
+                           const Offset&) override {
+        assert(false && "This method is not implemented for this analysis");
+        abort();
+    }
+
+    std::vector<RDNode *> getReachingDefinitions(RDNode *use) override;
 };
 
 } // namespace rd
