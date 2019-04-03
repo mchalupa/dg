@@ -116,7 +116,7 @@ Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
         = llvm::dyn_cast<llvm::CompositeType>(EV->getAggregateOperand()->getType());
     assert(type && "Don't have composite type in extractvalue");
 
-    for (unsigned idx : EV->indices()) {
+    for (unsigned idx : EV->getIndices()) {
         assert(type->indexValid(idx) && "Invalid index");
         if (llvm::StructType *STy = llvm::dyn_cast<llvm::StructType>(type)) {
             const llvm::StructLayout *SL = DL.getStructLayout(STy);
