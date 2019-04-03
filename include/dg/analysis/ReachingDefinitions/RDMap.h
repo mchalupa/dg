@@ -242,12 +242,17 @@ class DefinitionsMap {
 
 public:
     bool add(const DefSite& ds, NodeT *node) {
-        return _definitions[ds.target].add(ds.offset,
+        // if the offset is unknown, make it 0, so that the
+        // definition get stretched over all possible offsets
+        return _definitions[ds.target].add(ds.offset.isUnknown() ?  0 : ds.offset,
                                            ds.offset + (ds.len - 1),
                                            node);
     }
 
     bool update(const DefSite& ds, NodeT *node) {
+        // maybe this could make sense, but not now.
+        // Now it is designed that this should be an error...
+        assert(!ds.offset.isUnknown() && "Unknown offset in update");
         return _definitions[ds.target].update(ds.offset,
                                               ds.offset + (ds.len - 1),
                                               node);
