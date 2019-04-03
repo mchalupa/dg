@@ -325,7 +325,6 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
         dumpDotWithBlocks(RD, dump_rd);
 
     /* dump edges */
-    std::unordered_map<RDNode*, unsigned> colors;
     for (RDNode *node : RD->getNodes()) {
         for (RDNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n",
