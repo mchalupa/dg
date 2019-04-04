@@ -1,5 +1,3 @@
-#include "args.h"
-
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
@@ -16,28 +14,27 @@ int main(int argc, const char *argv[]) {
     using namespace std;
     using namespace llvm;
 
-    string module;
-    string graphVizFileName;
+
+    cl::opt<string> OutputFilename("o",
+                                   cl::desc("Specify output filename"),
+                                   cl::value_desc("filename"),
+                                   cl::init(""));
+
+    cl::opt<std::string> inputFile(cl::Positional,
+                                   cl::Required,
+                                   cl::desc("<input file>"),
+                                   cl::init(""));
+    llvm::cl::opt<bool> threads("threads",
+                                llvm::cl::desc("Consider threads are in input file (default=false)."),
+                                llvm::cl::init(false));
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    bool threads = false;
 
-    try {
-        Arguments arguments;
-        arguments.add('p', "path", "Path to llvm bitcode file", true);
-        arguments.add('o', "output-file", "Path to dot graphviz output file", true);
-        arguments.add('t', "threads", "Turn on analysis with threads", false);
-        arguments.parse(argc, argv);
-        if (arguments("path")) {
-            module = arguments("path").getString();
-        }
-        if (arguments("output-file")) {
-            graphVizFileName = arguments("output-file").getString();
-        }
-        threads = bool(arguments("threads"));
-    } catch (std::exception & e) {
-        cerr << "\nException: " << e.what() << endl;
-    }
+    cl::ParseCommandLineOptions(argc, argv);
+
+    string module = inputFile;
+    string graphVizFileName = OutputFilename;
+
 
     std::unique_ptr<Module> M = llvm::parseIRFile(module.c_str(), SMD, context);
 
