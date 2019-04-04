@@ -240,22 +240,31 @@ class DefinitionsMap {
 
     std::map<NodeT *, OffsetsT> _definitions;
 
+    // transform (offset, lenght) from a DefSite into the interval
+    static std::pair<Offset, Offset> getInterval(const DefSite& ds) {
+        // if the offset is unknown, stretch the interval over all possible bytes
+        if (ds.offset.isUnknown())
+            return {0, Offset::UNKNOWN};
+
+        return {ds.offset, ds.offset + (ds.len - 1)};
+    }
+
 public:
     bool add(const DefSite& ds, NodeT *node) {
         // if the offset is unknown, make it 0, so that the
         // definition get stretched over all possible offsets
-        return _definitions[ds.target].add(ds.offset.isUnknown() ?  0 : ds.offset,
-                                           ds.offset + (ds.len - 1),
-                                           node);
+        Offset start, end;
+        std::tie(start, end) = getInterval(ds);
+        return _definitions[ds.target].add(start, end, node);
     }
 
     bool update(const DefSite& ds, NodeT *node) {
         // maybe this could make sense, but not now.
         // Now it is designed that this should be an error...
         assert(!ds.offset.isUnknown() && "Unknown offset in update");
-        return _definitions[ds.target].update(ds.offset,
-                                              ds.offset + (ds.len - 1),
-                                              node);
+        Offset start, end;
+        std::tie(start, end) = getInterval(ds);
+        return _definitions[ds.target].update(start, end, node);
     }
 
     bool add(const DefSite& ds, const std::vector<NodeT *>& nodes) {
@@ -279,7 +288,9 @@ public:
         if (it == _definitions.end())
             return {};
 
-        return it->second.gather(ds.offset, ds.offset + (ds.len - 1));
+        Offset start, end;
+        std::tie(start, end) = getInterval(ds);
+        return it->second.gather(start, end);
     }
 
     ///
