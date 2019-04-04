@@ -212,11 +212,13 @@ bool GraphBuilder::createPthreadJoin(const llvm::CallInst *callInst, Block *last
 }
 
 int predecessorsNumber(const llvm::BasicBlock *basicBlock) {
-    return static_cast<int>(pred_size(basicBlock));
+    auto number = std::distance(pred_begin(basicBlock), pred_end(basicBlock));
+    return static_cast<int>(number);
 }
 
 int successorsNumber(const llvm::BasicBlock *basicBlock) {
-    return static_cast<int>(succ_size(basicBlock));
+    auto number = std::distance(succ_begin(basicBlock), succ_end(basicBlock));
+    return static_cast<int>(number);
 }
 
 bool isReachable(const llvm::BasicBlock *basicBlock) {
