@@ -103,8 +103,7 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
     // add def-use edges to known definitions
     if (addDefuse) {
         auto defs = block->definitions.get(ds);
-        for (auto d : defs)
-            node->defuse.push_back(d);
+        node->defuse.add(defs);
     }
 
     std::vector<RDNode *> phis;
@@ -114,8 +113,7 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
     for (auto& interval : uncovered) {
         // add definitions to unknown memory
         auto unknown = block->definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
-        for (auto d : unknown)
-            node->defuse.push_back(d);
+        node->defuse.add(unknown);
 
         // if we have a unique predecessor, try finding definitions
         // and creating the new PHI nodes there.
@@ -138,7 +136,7 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
 
             // update def-use edges (if desired)
             if (addDefuse)
-                node->defuse.push_back(phis.back());
+                node->defuse.add(phis.back());
         }
     }
 

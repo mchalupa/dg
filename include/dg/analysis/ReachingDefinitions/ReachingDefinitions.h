@@ -73,6 +73,37 @@ class RDNode : public SubgraphNode<RDNode> {
     RDBBlock *bblock = nullptr;
     // marks for DFS/BFS
     unsigned int dfsid;
+
+    class DefUses {
+        using T = std::vector<RDNode *>;
+        T defuse;
+    public:
+        bool add(RDNode *d) {
+            for (auto x : defuse) {
+                if (x == d) {
+                    return false;
+                }
+            }
+            defuse.push_back(d);
+            return true;
+        }
+
+        template <typename Cont>
+        bool add(Cont& C) {
+            bool changed = false;
+            for (RDNode *n : C)
+                changed |= add(n);
+            return changed;
+        }
+
+        operator std::vector<RDNode *>() { return defuse; }
+
+        T::iterator begin() { return defuse.begin(); }
+        T::iterator end() { return defuse.end(); }
+        T::const_iterator begin() const { return defuse.begin(); }
+        T::const_iterator end() const { return defuse.end(); }
+    };
+
 public:
 
     // for invalid nodes like UNKNOWN_MEMLOC
@@ -96,7 +127,7 @@ public:
 
     // places where this node is defined
     // (so this node has non-empty uses)
-    std::vector<RDNode *> defuse;
+    DefUses defuse;
 
     // state of the data-flow analysis
     RDMap def_map;
