@@ -170,25 +170,46 @@ dumpMap(RDNode *node, bool dot = false)
     }
 }
 */
+
+template <typename T>
+static void printInterval(T& I, const char *pref = nullptr,
+                          const char *suff = nullptr) {
+    if (pref)
+        printf("%s", pref);
+
+    if (I.start.isUnknown())
+        printf("[? - ");
+    else
+        printf("[%lu - ", *I.start);
+
+    if (I.end.isUnknown())
+        printf("?]");
+    else
+        printf("%lu]", *I.end);
+
+    if (suff)
+        printf("%s", suff);
+}
+
 static void
 dumpDDIMap(RDBBlock *block, bool dot = false)
 {
     auto& map = block->definitions;
     for (const auto& it : map) {
+       printf("\\l----  ");
        printName(it.first, dot);
+       printf("  ----\\l");
        for (auto& it2 : it.second) {
-           printf("  [%lu - %lu] => \n",
-                  *it2.first.start, *it2.first.end);
+           printInterval(it2.first, "  ", " => \\l");
            for (auto where : it2.second) {
-               printf("    ");
+               printf("      ");
                printName(where, dot);
+               if (dot)
+                   printf("\\n");
+               else
+                   putchar('\n');
            }
        }
-
-       if (dot)
-           printf("\\n");
-       else
-           putchar('\n');
     }
 }
 
@@ -200,10 +221,14 @@ dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
         printf("%s: ", kind);
         printName(def.target, dot);
             if (def.offset.isUnknown())
-                printf(" [ UNKNOWN ]");
+                printf(" [? - ");
             else
-                printf(" [ %lu - %lu ]", *def.offset,
-                       *def.offset + *def.len - 1);
+                printf(" [%lu - ", *def.offset);
+
+            if (def.len.isUnknown())
+                printf("?]");
+            else
+                printf("%lu]", *def.offset + (*def.len - 1));
 
             if (dot)
                 printf("\\n");
@@ -247,7 +272,7 @@ dumpRDNode(RDNode *n)
 }
 
 static void nodeToDot(RDNode *node) {
-    printf("\tNODE%p [label=\"%lu ", static_cast<void*>(node), node->getID());
+    printf("\tNODE%p [label=\"%u ", static_cast<void*>(node), node->getID());
     printName(node, true);
     if (node->getSize() > 0) {
         printf("\\n[size: %lu]\\n", node->getSize());
@@ -270,7 +295,7 @@ static void nodeToDot(RDNode *node) {
 
 }
 
-static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD, bool dump_rd)
+static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD)
 {
     auto nodes = RD->getNodes();
     /* dump nodes */
@@ -279,7 +304,7 @@ static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD, bool dump_rd)
     }
 }
 
-static void dumpDotWithBlocks(LLVMReachingDefinitions *RD, bool dump_rd) {
+static void dumpDotWithBlocks(LLVMReachingDefinitions *RD) {
 
     for (auto I = RD->getGraph()->blocks_begin(),
               E = RD->getGraph()->blocks_end(); I != E; ++I) {
@@ -314,15 +339,15 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD, bool dump_rd) {
 }
 
 static void
-dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
+dumpRDdot(LLVMReachingDefinitions *RD)
 {
 
     printf("digraph \"Reaching Definitions Subgraph\" {\n");
 
     if (RD->getGraph()->getBBlocks().empty())
-        dumpDotOnlyNodes(RD, dump_rd);
+        dumpDotOnlyNodes(RD);
     else
-        dumpDotWithBlocks(RD, dump_rd);
+        dumpDotWithBlocks(RD);
 
     /* dump edges */
     for (RDNode *node : RD->getNodes()) {
@@ -336,12 +361,12 @@ dumpRDdot(LLVMReachingDefinitions *RD, bool dump_rd)
 }
 
 static void
-dumpRD(LLVMReachingDefinitions *RD, bool todot, bool dump_rd)
+dumpRD(LLVMReachingDefinitions *RD, bool todot)
 {
     assert(RD);
 
     if (todot)
-        dumpRDdot(RD, dump_rd);
+        dumpRDdot(RD);
     else {
         for (RDNode *node : RD->getNodes())
             dumpRDNode(node);
@@ -355,7 +380,6 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     bool todot = false;
     bool threads = false;
-    bool dump_rd = false;
     const char *module = nullptr;
     Offset::type field_senitivity = Offset::UNKNOWN;
     bool rd_strong_update_unknown = false;
@@ -396,8 +420,6 @@ int main(int argc, char *argv[])
             threads = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
-        } else if (strcmp(argv[i], "-dump-rd") == 0) {
-            dump_rd = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entryFunc = argv[i+1];
         } else {
@@ -454,7 +476,7 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
-    dumpRD(&RD, todot, dump_rd);
+    dumpRD(&RD, todot);
 
     return 0;
 }
