@@ -25,6 +25,7 @@ add_library(PTA SHARED
 	analysis/PointsTo/Pointer.cpp
 	analysis/PointsTo/PointerAnalysis.cpp
 	analysis/PointsTo/PointerSubgraphValidator.cpp
+	analysis/PointsTo/PointsToSet.cpp
 )
 target_link_libraries(PTA PUBLIC DGAnalysis)
 
