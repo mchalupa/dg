@@ -300,7 +300,9 @@ public:
         if (it == _definitions.end())
             return {IntervalT(ds.offset, ds.offset + (ds.len - 1))};
 
-        return it->second.uncovered(ds.offset, ds.offset + (ds.len - 1));
+        Offset start, end;
+        std::tie(start, end) = getInterval(ds);
+        return it->second.uncovered(start, end);
     }
 
     auto begin() const -> decltype(_definitions.begin()) {
