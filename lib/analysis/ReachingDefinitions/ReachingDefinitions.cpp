@@ -126,6 +126,12 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
             phis.back()->addOverwrites(ds.target,
                                        interval.start,
                                        interval.length());
+            // update definitions in the block -- this
+            // phi node defines previously uncovered memory
+            block->definitions.update({ds.target, interval.start, interval.length()},
+                                      phis.back());
+
+            // update def-use edges (if desired)
             if (addDefuse)
                 node->defuse.push_back(phis.back());
         }
@@ -158,9 +164,7 @@ SSAReachingDefinitionsAnalysis::performLvn() {
                 auto newphis = readValue(block, node, ds,
                                          false /* do not add def-def edges */);
                 phis.insert(phis.end(), newphis.begin(), newphis.end());
-
                 block->definitions.add(ds, node);
-                block->definitions.add(ds, newphis);
             }
 
             // is this node a use? If so then update def-use edges
@@ -205,7 +209,6 @@ void SSAReachingDefinitionsAnalysis::performGvn(std::set<RDNode *>& phis) {
                 phis.insert(phi);
             }
         }
-
     }
 }
 
