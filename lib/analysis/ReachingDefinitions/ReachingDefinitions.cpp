@@ -112,9 +112,14 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
     // and add phi nodes for these intervals
     auto uncovered = block->definitions.undefinedIntervals(ds);
     for (auto& interval : uncovered) {
+        // add definitions to unknown memory
+        auto unknown = block->definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
+        for (auto d : unknown)
+            node->defuse.push_back(d);
+
+        // if we have a unique predecessor, try finding definitions
+        // and creating the new PHI nodes there.
         if (auto pred = block->getSinglePredecessor()) {
-            // if we have a unique predecessor, try finding definitions
-            // and creating the new PHI nodes there.
             auto P = readValue(pred, node,
                                DefSite(ds.target, interval.start,
                                        interval.length()),
@@ -149,14 +154,25 @@ SSAReachingDefinitionsAnalysis::performLvn(RDBBlock *block) {
     for (RDNode *node : block->getNodes()) {
         // strong update
         for (auto& ds : node->overwrites) {
-            assert((!ds.offset.isUnknown() || ds.target->isUnknown())
-                    && "Update on unknown offset");
+            assert(!ds.offset.isUnknown() && "Update on unknown offset");
+            assert(!ds.target->isUnknown() && "Update on unknown memory");
 
             block->definitions.update(ds, node);
         }
 
         // weak update
         for (auto& ds : node->defs) {
+            if (ds.target->isUnknown()) {
+                // special handling for unknown memory
+                // -- this node may define any memory that
+                // we know
+                block->definitions.addAll(node);
+                // also add the definition as a proper
+                // target for Gvn
+                block->definitions.add({ds.target, 0, Offset::UNKNOWN}, node);
+                continue;
+            }
+
             // since this is just weak update,
             // look for the previous definitions of 'ds'
             // and if there are none, add a PHI node

@@ -258,6 +258,16 @@ public:
         return _definitions[ds.target].add(start, end, node);
     }
 
+    bool addAll(NodeT *node) {
+        // if the offset is unknown, make it 0, so that the
+        // definition get stretched over all possible offsets
+        bool changed = false;
+        for (auto& it : _definitions) {
+            changed |= it.second.add(0, Offset::UNKNOWN, node);
+        }
+        return changed;
+    }
+
     bool update(const DefSite& ds, NodeT *node) {
         Offset start, end;
         std::tie(start, end) = getInterval(ds);
