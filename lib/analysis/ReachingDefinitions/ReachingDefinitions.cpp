@@ -140,43 +140,52 @@ SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
     return phis;
 }
 
+std::vector<RDNode *>
+SSAReachingDefinitionsAnalysis::performLvn(RDBBlock *block) {
+    // new phi nodes
+    std::vector<RDNode *> phis;
+
+    // perform Lvn for one block
+    for (RDNode *node : block->getNodes()) {
+        // strong update
+        for (auto& ds : node->overwrites) {
+            assert((!ds.offset.isUnknown() || ds.target->isUnknown())
+                    && "Update on unknown offset");
+
+            block->definitions.update(ds, node);
+        }
+
+        // weak update
+        for (auto& ds : node->defs) {
+            // since this is just weak update,
+            // look for the previous definitions of 'ds'
+            // and if there are none, add a PHI node
+            auto newphis = readValue(block, node, ds,
+                                     false /* do not add def-def edges */);
+            phis.insert(phis.end(), newphis.begin(), newphis.end());
+            block->definitions.add(ds, node);
+        }
+
+        // is this node a use? If so then update def-use edges
+        for (auto& ds : node->uses) {
+            auto newphis = readValue(block, node, ds);
+            phis.insert(phis.end(), newphis.begin(), newphis.end());
+
+            // we added new phi nodes and those act as definitions,
+            // so register new definitions
+            block->definitions.add(ds, newphis);
+        }
+    }
+
+    return phis;
+}
 
 std::set<RDNode *>
 SSAReachingDefinitionsAnalysis::performLvn() {
     std::set<RDNode *> allphis;
 
     for (RDBBlock *block : graph.blocks()) {
-        // new phi nodes
-        std::vector<RDNode *> phis;
-
-        // perform Lvn for one block
-        for (RDNode *node : block->getNodes()) {
-            // strong update
-            for (auto& ds : node->overwrites) {
-                block->definitions.update(ds, node);
-            }
-
-            // weak update
-            for (auto& ds : node->defs) {
-                // since this is just weak update,
-                // look for the previous definitions of 'ds'
-                // and if there are none, add a PHI node
-                auto newphis = readValue(block, node, ds,
-                                         false /* do not add def-def edges */);
-                phis.insert(phis.end(), newphis.begin(), newphis.end());
-                block->definitions.add(ds, node);
-            }
-
-            // is this node a use? If so then update def-use edges
-            for (auto& ds : node->uses) {
-                auto newphis = readValue(block, node, ds);
-                phis.insert(phis.end(), newphis.begin(), newphis.end());
-
-                // we added new phi nodes and those act as definitions,
-                // so register new definitions
-                block->definitions.add(ds, newphis);
-            }
-        }
+        auto phis = performLvn(block);
 
         // add all the new phi nodes to the current block
         for (auto phi : phis) {

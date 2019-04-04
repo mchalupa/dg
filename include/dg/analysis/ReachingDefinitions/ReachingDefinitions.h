@@ -426,6 +426,7 @@ public:
 
 class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
     std::set<RDNode *> performLvn();
+    std::vector<RDNode *> performLvn(RDBBlock *block);
     void performGvn(std::set<RDNode*>&);
 
     // find definitions of the def site and add def-use edges.

@@ -259,9 +259,6 @@ public:
     }
 
     bool update(const DefSite& ds, NodeT *node) {
-        // maybe this could make sense, but not now.
-        // Now it is designed that this should be an error...
-        assert(!ds.offset.isUnknown() && "Unknown offset in update");
         Offset start, end;
         std::tie(start, end) = getInterval(ds);
         return _definitions[ds.target].update(start, end, node);
