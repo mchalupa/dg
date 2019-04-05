@@ -82,12 +82,12 @@ if (LLVM_DG)
                                                        PRIVATE ${llvm_irreader}
                                                        PRIVATE ${llvm_support})
 
-        add_executable(llvm-blocks-dump llvm-blocks-dump.cpp)
-        target_link_libraries(llvm-blocks-dump PRIVATE ControlDependence
-                                               PRIVATE ${llvm_core}
-                                               PRIVATE ${llvm_irreader}
-                                               PRIVATE ${llvm_analysis}
-                                               PRIVATE ${llvm_support})
+        add_executable(llvm-ntscd-dump llvm-ntscd-dump.cpp)
+        target_link_libraries(llvm-ntscd-dump PRIVATE ControlDependence
+                                              PRIVATE ${llvm_core}
+                                              PRIVATE ${llvm_irreader}
+                                              PRIVATE ${llvm_analysis}
+                                              PRIVATE ${llvm_support})
 
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
