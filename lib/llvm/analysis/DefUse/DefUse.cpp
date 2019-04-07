@@ -51,13 +51,12 @@ using namespace llvm;
 namespace dg {
 
 /// Add def-use edges between instruction and its operands
-static void handleInstruction(const Instruction *Inst, LLVMNode *node)
-{
+static void handleOperands(const Instruction *Inst, LLVMNode *node) {
     LLVMDependenceGraph *dg = node->getDG();
     assert(Inst == node->getKey());
 
     for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
-        if (LLVMNode *op = dg->getNode(*I)) {
+        if (auto op = dg->getNode(*I)) {
             // 'node' uses 'op', so we want to add edge 'op'-->'node',
             // that is, 'op' is used in 'node' ('node' is a user of 'op')
             op->addUseDependence(node);
@@ -86,208 +85,14 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
     assert(RD && "Need reaching definitions");
 }
 
-void LLVMDefUseAnalysis::handleInlineAsm(LLVMNode *callNode)
-{
-    CallInst *CI = cast<CallInst>(callNode->getValue());
-    LLVMDependenceGraph *dg = callNode->getDG();
-
-    // the last operand is the asm itself, so iterate only to e - 1
-    for (unsigned i = 0, e = CI->getNumOperands(); i < e - 1; ++i) {
-        Value *opVal = CI->getOperand(i);
-        if (!opVal->getType()->isPointerTy())
-            continue;
-
-        LLVMNode *opNode = dg->getNode(opVal->stripInBoundsOffsets());
-        if (!opNode) {
-            // FIXME: ConstantExpr
-            llvmutils::printerr("WARN: unhandled inline asm operand: ", opVal);
-            continue;
-        }
-
-        assert(opNode && "Do not have an operand for inline asm");
-
-        // if nothing else, this call at least uses the operands
-        opNode->addDataDependence(callNode);
-    }
-}
-
-void LLVMDefUseAnalysis::handleIntrinsicCall(LLVMNode *callNode,
-                                             CallInst *CI)
-{
-    static std::set<Instruction *> warnings;
-    IntrinsicInst *I = cast<IntrinsicInst>(CI);
-    Value *dest, *src = nullptr;
-
-    switch (I->getIntrinsicID())
-    {
-        case Intrinsic::memmove:
-        case Intrinsic::memcpy:
-            src = I->getOperand(1);
-            // fall-through
-        case Intrinsic::memset:
-        case Intrinsic::vastart:
-            dest = I->getOperand(0);
-            break;
-        case Intrinsic::vaend:
-        case Intrinsic::lifetime_start:
-        case Intrinsic::lifetime_end:
-        case Intrinsic::trap:
-            // nothing to be done here
-            return;
-        case Intrinsic::bswap:
-        case Intrinsic::prefetch:
-        case Intrinsic::objectsize:
-        case Intrinsic::sadd_with_overflow:
-        case Intrinsic::uadd_with_overflow:
-        case Intrinsic::ssub_with_overflow:
-        case Intrinsic::usub_with_overflow:
-        case Intrinsic::smul_with_overflow:
-        case Intrinsic::umul_with_overflow:
-            // nothing to be done, direct def-use edges
-            // will be added later
-            assert(I->getCalledFunction()->doesNotAccessMemory());
-            return;
-        case Intrinsic::stacksave:
-        case Intrinsic::stackrestore:
-            if (warnings.insert(CI).second)
-                llvmutils::printerr("WARN: stack save/restore not implemented", CI);
-            return;
-        default:
-            llvmutils::printerr("WARNING: unhandled intrinsic call", I);
-            // if it does not access memory, we can just add
-            // direct def-use edges
-            if (I->getCalledFunction()->doesNotAccessMemory())
-                return;
-
-            assert (0 && "Unhandled intrinsic that accesses memory");
-            // for release builds, do the best we can here
-            handleUndefinedCall(callNode, CI);
-            return;
-    }
-
-    // we must have dest set
-    assert(dest);
-
-    // these functions touch the memory of the pointers
-    //addDataDependence(callNode, CI, dest, Offset::UNKNOWN /* FIXME */);
-    assert(false && "Not implemented");
-    abort();
-
-    //if (src)
-     //   addDataDependence(callNode, CI, src, Offset::UNKNOWN /* FIXME */);
-}
-
-void LLVMDefUseAnalysis::handleUndefinedCall(LLVMNode *callNode, CallInst *CI)
-{
-    if (_options.undefinedArePure)
-        return;
-
-    // the function is undefined - add the top-level dependencies and
-    // also assume that this function use all the memory that is passed
-    // via the pointers
-    for (int e = CI->getNumArgOperands(), i = 0; i < e; ++i) {
-        assert(false && "Use getLLVMPointsTo");
-        if (auto pts = PTA->getPointsTo(CI->getArgOperand(i))) {
-            // the passed memory may be used in the undefined
-            // function on the unknown offset
-            assert(false && "Not implemented");
-            abort();
-            //addDataDependence(callNode, CI, pts, Offset::UNKNOWN);
-        }
-    }
-}
 
 void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
 {
-    CallInst *CI = cast<CallInst>(node->getKey());
-
-    if (CI->isInlineAsm()) {
-        handleInlineAsm(node);
-        return;
-    }
-
-    Function *func
-        = dyn_cast<Function>(CI->getCalledValue()->stripPointerCasts());
-    if (func) {
-        if (func->isIntrinsic() && !isa<DbgInfoIntrinsic>(CI)) {
-            handleIntrinsicCall(node, CI);
-            return;
-        }
-
-        // for realloc, we need to make it data dependent on the
-        // memory it reallocates, since that is the memory it copies
-        if (func->size() == 0) {
-            using analysis::AllocationFunction;
-            auto type = _options.getAllocationFunction(func->getName());
-
-            if (type == AllocationFunction::REALLOC) {
-                addDataDependence(node, RD->getLLVMReachingDefinitions(CI));
-            } else if (type == AllocationFunction::NONE) {
-                handleUndefinedCall(node, CI);
-            }// else {
-             // we do not want to do anything for the memory
-             // allocation functions
-             // }
-
-            // the function is undefined, so do not even try to
-            // add the edges from return statements
-            return;
-        }
-    }
-
     // add edges from the return nodes of subprocedure
     // to the call (if the call returns something)
     for (LLVMDependenceGraph *subgraph : node->getSubgraphs())
         addReturnEdge(node, subgraph);
 }
-
-// Add data dependence edges from all memory location that may write
-// to memory pointed by 'pts' to 'node'
-/*
-void LLVMDefUseAnalysis::addUnknownDataDependence(LLVMNode *node, PSNode *pts)
-{
-    // iterate over all nodes from ReachingDefinitions Subgraph. It is faster than
-    // going over all llvm nodes and querying the pointer to analysis
-    for (auto& it : RD->getNodesMap()) {
-        RDNode *rdnode = it.second;
-
-        // only STORE may be a definition site
-        if (rdnode->getType() != analysis::rd::RDNodeType::STORE)
-            continue;
-
-        llvm::Value *rdVal = rdnode->getUserData<llvm::Value>();
-        // artificial node?
-        if (!rdVal)
-            continue;
-
-        // does this store define some value that is in pts?
-        for (const analysis::rd::DefSite& ds : rdnode->getDefines()) {
-            llvm::Value *llvmVal = ds.target->getUserData<llvm::Value>();
-            // is this an artificial node?
-            if (!llvmVal)
-                continue;
-
-            // if these two sets have an over-lap, we must add the data dependence
-            for (const auto& ptr : pts->pointsTo)
-                if (ptr.target->getUserData<llvm::Value>() == llvmVal) {
-                    addDataDependence(node, rdVal);
-            }
-        }
-        for (const analysis::rd::DefSite& ds : rdnode->getOverwrites()) {
-            llvm::Value *llvmVal = ds.target->getUserData<llvm::Value>();
-            // is this an artificial node?
-            if (!llvmVal)
-                continue;
-
-            // if these two sets have an over-lap, we must add the data dependence
-            for (const auto& ptr : pts->pointsTo)
-                if (ptr.target->getUserData<llvm::Value>() == llvmVal) {
-                    addDataDependence(node, rdVal);
-            }
-        }
-    }
-}
-*/
 
 void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
 {
@@ -324,7 +129,8 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     if (defs.empty()) {
         static std::set<const llvm::Value *> reported;
         if (reported.insert(node->getValue()).second) {
-            llvm::errs() << "[DU] error: no reaching definition for: " << *node->getValue();
+            llvm::errs() << "[DU] error: no reaching definition for: "
+                         << *node->getValue() << "\n";
         }
         return;
     }
@@ -335,24 +141,21 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     }
 }
 
-void LLVMDefUseAnalysis::handleLoadInst(llvm::LoadInst *Inst, LLVMNode *node)
-{
-    addDataDependence(node, RD->getLLVMReachingDefinitions(Inst));
-}
-
 bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
 {
     Value *val = node->getKey();
 
-    if (LoadInst *Inst = dyn_cast<LoadInst>(val)) {
-        handleLoadInst(Inst, node);
-    } else if (isa<CallInst>(val)) {
-        handleCallInst(node);
+    // just add direct def-use edges to every instruction
+    if (auto I = dyn_cast<Instruction>(val))
+        handleOperands(I, node);
+
+    if (isa<CallInst>(val)) {
+        handleCallInst(node); // return edges and so...
     }
 
-    /* just add direct def-use edges to every instruction */
-    if (Instruction *Inst = dyn_cast<Instruction>(val))
-        handleInstruction(Inst, node);
+    if (RD->isUse(val)) {
+        addDataDependence(node, RD->getLLVMReachingDefinitions(val));
+    }
 
     // we will run only once
     return false;

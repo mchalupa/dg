@@ -81,6 +81,7 @@ public:
     RDNode *getRoot() { return RDA->getRoot(); }
     ReachingDefinitionsGraph *getGraph() { return RDA->getGraph(); }
     RDNode *getNode(const llvm::Value *val);
+    const RDNode *getNode(const llvm::Value *val) const;
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
@@ -89,6 +90,16 @@ public:
 
     RDNode *getMapping(const llvm::Value *val);
     const RDNode *getMapping(const llvm::Value *val) const;
+
+    bool isUse(const llvm::Value *val) const {
+        auto nd = getNode(val);
+        return nd && !nd->getUses().empty();
+    }
+
+    bool isDef(const llvm::Value *val) const {
+        auto nd = getNode(val);
+        return nd && (!nd->getDefines().empty() || !nd->getOverwrites().empty());
+    }
 
     std::vector<RDNode *> getNodes() {
         assert(RDA);

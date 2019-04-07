@@ -49,6 +49,10 @@ RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
     return builder->getNode(val);
 }
 
+const RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) const {
+    return builder->getNode(val);
+}
+
 // let the user get the nodes map, so that we can
 // map the points-to informatio back to LLVM nodes
 const std::unordered_map<const llvm::Value *, RDNode *>&
