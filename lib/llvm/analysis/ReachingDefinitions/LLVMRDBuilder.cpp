@@ -725,12 +725,25 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     return ret;
 }
 
+static template <typename T>
+std::pair<Offset, Offset> getFromTo(const T& what) {
+    auto from = what->from.isOperand()
+                ? getConstantValue(CInst->getArgOperand(what->from.getOperand()))
+                  : what->from.getOffset();
+    auto to = what->to.isOperand()
+                ? getConstantValue(CInst->getArgOperand(what->to.getOperand()))
+                  : what->to.getOffset();
+
+    return {from, to};
+}
+
 RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
     RDNode *node = create(RDNodeType::CALL);
+
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
-        auto defines = model->defines(i);
-        if (!defines)
+        if (!model->handles(i))
             continue;
+
         const auto llvmOp = CInst->getArgOperand(i);
         auto pts = PTA->getLLVMPointsToChecked(llvmOp);
         // if we do not have a pts, this is not pointer
@@ -743,20 +756,28 @@ RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::Cal
         }
 
         for (const auto& ptr : pts.second) {
-            if (llvm::isa<llvm::Function>(ptr.value))
-                // function may not be redefined
+            if (llvm::isa<llvm::Function>(ptr.value) ||
+                llvm::isa<llvm::Constant>(ptr.value))
+                // functions and constants may not be redefined
                 continue;
 
             RDNode *target = getOperand(ptr.value);
             assert(target && "Don't have pointer target for call argument");
 
-            auto from = defines->from.isOperand()
-                ? getConstantValue(CInst->getArgOperand(defines->from.getOperand())) : defines->from.getOffset();
-            auto to = defines->to.isOperand()
-                ? getConstantValue(CInst->getArgOperand(defines->to.getOperand())) : defines->to.getOffset();
-
-            // this call may define this memory
-            node->addDef(target, from, to);
+            Offset from, to;
+            if (auto defines = model->defines(i)) {
+                std::tie(from, to) = getFromTo(defines);
+                // this call may define this memory
+                node->addDef(target, from, to);
+            } else if (auto defines = model->overwrites(i)) {
+                std::tie(from, to) = getFromTo(defines);
+                // this call overwrites this memory
+                node->addOverwrites(target, from, to);
+            } else if (auto uses = model->uses(i)) {
+                std::tie(from, to) = getFromTo(uses);
+                // this call uses this memory
+                node->addUse(target, from, to);
+            }
         }
     }
 

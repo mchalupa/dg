@@ -10,6 +10,8 @@ namespace dg {
 namespace analysis {
 
 struct FunctionModel {
+    std::string name;
+
     struct OperandValue {
         enum class Type {
             OFFSET, OPERAND
@@ -39,15 +41,15 @@ struct FunctionModel {
         }
     };
 
-    struct Defines {
+    struct Operand {
         unsigned operand;
         OperandValue from, to;
 
-        Defines(unsigned operand, OperandValue from, OperandValue to)
+        Operand(unsigned operand, OperandValue from, OperandValue to)
         : operand(operand), from(from), to(to) {}
-        Defines(Defines&&) = default;
-        Defines(const Defines&) = default;
-        Defines& operator=(const Defines& rhs) {
+        Operand(Operand&&) = default;
+        Operand(const Operand&) = default;
+        Operand& operator=(const Operand& rhs) {
             operand = rhs.operand;
             from = rhs.from;
             to = rhs.to;
@@ -55,26 +57,34 @@ struct FunctionModel {
         }
     };
 
-    std::string name;
-
-    void add(unsigned operand, OperandValue from, OperandValue to) {
-        _defines.emplace(operand, Defines{operand, from, to});
-    }
-    void set(unsigned operand, OperandValue from, OperandValue to) {
-        _defines.emplace(operand, Defines{operand, from, to});
+    void addDef(unsigned operand, OperandValue from, OperandValue to) {
+        _defines.emplace(operand, Operand{operand, from, to});
     }
 
-    void set(const Defines& def) {
-        _defines.emplace(def.operand, def);
+    void addUse(unsigned operand, OperandValue from, OperandValue to) {
+        _uses.emplace(operand, Operand{operand, from, to});
     }
 
-    const Defines *defines(unsigned operand) const {
+    void addDef(const Operand& op) { _defines.emplace(op.operand, op); }
+    void addUse(const Operand& op) { _uses.emplace(op.operand, op); }
+
+    const Operand *defines(unsigned operand) const {
         auto it = _defines.find(operand);
         return it == _defines.end() ? nullptr : &it->second;
     }
 
+    const Operand *uses(unsigned operand) const {
+        auto it = _uses.find(operand);
+        return it == _uses.end() ? nullptr : &it->second;
+    }
+
+    bool handles(unsigned i) const {
+        return defines(i) || uses(i);
+    }
+
 private:
-    std::map<unsigned, Defines> _defines;
+    std::map<unsigned, Operand> _defines;
+    std::map<unsigned, Operand> _uses;
 };
 
 struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
@@ -124,11 +134,18 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
         return it == functionModels.end() ? nullptr : &it->second;
     }
 
-    void functionModelSet(const std::string& name, const FunctionModel::Defines& def) {
+    void functionModelAddDef(const std::string& name, const FunctionModel::Operand& def) {
         auto& M = functionModels[name];
         if (M.name == "")
             M.name = name;
-        M.set(def);
+        M.addDef(def);
+    }
+
+    void functionModelAddUse(const std::string& name, const FunctionModel::Operand& def) {
+        auto& M = functionModels[name];
+        if (M.name == "")
+            M.name = name;
+        M.addUse(def);
     }
 };
 
