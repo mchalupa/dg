@@ -2,6 +2,7 @@
 #define  _DG_TOOLS_LLVM_SLICER_OPTS_H_
 
 #include <vector>
+#include <llvm/Support/CommandLine.h>
 
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 

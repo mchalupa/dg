@@ -1057,8 +1057,8 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const
                              pointerLoad.offset == pointerStore.offset)) {
                             llvm::Instruction *loadInst = const_cast<llvm::Instruction *>(load);
                             llvm::Instruction *storeInst = const_cast<llvm::Instruction *>(store);
-                            auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getFunction()));
-                            auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getFunction()));
+                            auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getParent()->getParent()));
+                            auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getParent()->getParent()));
                             if (loadFunction != constructedFunctions.end() && storeFunction != constructedFunctions.end()) {
                                 auto loadNode = loadFunction->second->findNode(loadInst);
                                 auto storeNode = storeFunction->second->findNode(storeInst);
@@ -1175,7 +1175,7 @@ void LLVMDependenceGraph::addNoreturnDependencies()
 }
 
 LLVMNode *findInstruction(llvm::Instruction * instruction, const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions) {
-    auto valueKey = constructedFunctions.find(instruction->getFunction());
+    auto valueKey = constructedFunctions.find(instruction->getParent()->getParent());
     if (valueKey != constructedFunctions.end()) {
         return valueKey->second->findNode(instruction);
     }

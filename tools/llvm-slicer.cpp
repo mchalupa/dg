@@ -470,8 +470,14 @@ static bool instMatchesCrit(LLVMDependenceGraph& dg,
 {
     for (const auto& c : parsedCrit) {
         auto& Loc = I.getDebugLoc();
-        if (!Loc)
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+        if (Loc.getLine() <= 0) {
+#else
+        if (!Loc) {
+#endif
             continue;
+        }
+
         if (static_cast<int>(Loc.getLine()) != c.first)
             continue;
 
@@ -539,6 +545,10 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
 
     assert(!parsedCrit.empty() && "Failed parsing criteria");
 
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+    llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
+    llvm::errs() << "WARNING: The slicing criteria with variables names will not work\n";
+#else
     // create the mapping from LLVM values to C variable names
     for (auto& it : getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
@@ -578,6 +588,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
             nodes.insert(nd);
         }
     }
+#endif // LLVM > 3.6
 }
 
 static std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
