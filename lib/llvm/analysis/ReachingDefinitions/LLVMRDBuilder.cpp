@@ -725,8 +725,8 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     return ret;
 }
 
-static template <typename T>
-std::pair<Offset, Offset> getFromTo(const T& what) {
+template <typename T>
+std::pair<Offset, Offset> getFromTo(const llvm::CallInst *CInst, T what) {
     auto from = what->from.isOperand()
                 ? getConstantValue(CInst->getArgOperand(what->from.getOperand()))
                   : what->from.getOffset();
@@ -756,9 +756,8 @@ RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::Cal
         }
 
         for (const auto& ptr : pts.second) {
-            if (llvm::isa<llvm::Function>(ptr.value) ||
-                llvm::isa<llvm::Constant>(ptr.value))
-                // functions and constants may not be redefined
+            if (llvm::isa<llvm::Function>(ptr.value))
+                // functions may not be redefined
                 continue;
 
             RDNode *target = getOperand(ptr.value);
@@ -766,15 +765,21 @@ RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::Cal
 
             Offset from, to;
             if (auto defines = model->defines(i)) {
-                std::tie(from, to) = getFromTo(defines);
+                if (llvm::isa<llvm::Constant>(ptr.value)) // constant cannot be redefined
+                    continue;
+
+                std::tie(from, to) = getFromTo(CInst, defines);
                 // this call may define this memory
-                node->addDef(target, from, to);
-            } else if (auto defines = model->overwrites(i)) {
-                std::tie(from, to) = getFromTo(defines);
-                // this call overwrites this memory
-                node->addOverwrites(target, from, to);
-            } else if (auto uses = model->uses(i)) {
-                std::tie(from, to) = getFromTo(uses);
+                if (pts.second.size() == 1 && !ptr.offset.isUnknown()
+                    && !llvm::isa<llvm::CallInst>(ptr.value)
+                    /* && FIXME: what about vars in recursive functions? */) {
+                    node->addOverwrites(target, from, to);
+                } else {
+                    node->addDef(target, from, to);
+                }
+            }
+            if (auto uses = model->uses(i)) {
+                std::tie(from, to) = getFromTo(CInst, uses);
                 // this call uses this memory
                 node->addUse(target, from, to);
             }
