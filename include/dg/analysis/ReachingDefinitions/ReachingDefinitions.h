@@ -459,14 +459,29 @@ public:
 };
 
 class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
-    std::set<RDNode *> performLvn();
-    std::vector<RDNode *> performLvn(RDBBlock *block);
-    void performGvn(std::set<RDNode*>&);
+    void performLvn();
+    void performLvn(RDBBlock *block);
+    void performGvn();
 
-    // find definitions of the def site and add def-use edges.
-    // For the uncovered bytes create phi nodes and return them.
-    std::vector<RDNode *> readValue(RDBBlock *, RDNode *,
-                                    const DefSite&, bool addDefUse = true);
+    ////
+    // LVN
+    ///
+
+    // Find definitions of the def site and return def-use edges.
+    // For the (possibly) uncovered bytes create phi nodes (which are also returned
+    // as the definitions) in _this very block_. It is important for LVN.
+    std::vector<RDNode *> findDefinitionsInBlock(RDBBlock *, const DefSite&);
+
+    ////
+    // GVN
+    ///
+    // Find definitions of the def site and return def-use edges.
+    // For the uncovered bytes create phi nodes (which are also returned
+    // as the definitions).
+    std::vector<RDNode *> findDefinitions(RDBBlock *, const DefSite&);
+
+    // all phi nodes added during transformation to SSA
+    std::vector<RDNode *> _phis;
 
 public:
     SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
@@ -481,8 +496,8 @@ public:
         if (graph.getBBlocks().empty())
             graph.buildBBlocks();
 
-        auto phis = performLvn();
-        performGvn(phis);
+        performLvn();
+        performGvn();
     }
 
     // return the reaching definitions of ('mem', 'off', 'len')
