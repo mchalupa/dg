@@ -297,10 +297,20 @@ static void nodeToDot(RDNode *node) {
 
 static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD)
 {
-    auto nodes = RD->getNodes();
-    /* dump nodes */
+    const auto& nodes = RD->getNodes();
+    // dump nodes
     for(RDNode *node : nodes) {
         nodeToDot(node);
+    }
+
+    // dump def-use edges
+    for(RDNode *node : nodes) {
+        if (node->isUse()) {
+            for (RDNode *def : RD->getReachingDefinitions(node)) {
+                printf("\tNODE%p->NODE%p [style=dotted]",
+                       static_cast<void*>(def), static_cast<void*>(node));
+            }
+        }
     }
 }
 
