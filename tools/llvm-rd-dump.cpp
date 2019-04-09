@@ -140,11 +140,10 @@ printName(RDNode *node, bool dot)
     }
 }
 
-/*
 static void
 dumpMap(RDNode *node, bool dot = false)
 {
-    RDMap& map = node->getReachingDefinitions();
+    RDMap& map = node->def_map;
     for (const auto& it : map) {
         for (RDNode *site : it.second) {
             printName(it.first.target, dot);
@@ -169,7 +168,6 @@ dumpMap(RDNode *node, bool dot = false)
         }
     }
 }
-*/
 
 template <typename T>
 static void printInterval(T& I, const char *pref = nullptr,
@@ -267,7 +265,7 @@ dumpRDNode(RDNode *n)
     if (n->getSize() > 0)
         printf(" [size: %lu]", n->getSize());
     putchar('\n');
-    //dumpMap(n);
+    dumpMap(n);
     printf("---\n");
 }
 
@@ -289,7 +287,7 @@ static void nodeToDot(RDNode *node) {
         printf("\\n-------------\\n");
     }
 
-    //dumpMap(node, true /* dot */);
+    dumpMap(node, true /* dot */);
 
     printf("\" shape=box]\n");
 

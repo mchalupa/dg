@@ -130,6 +130,7 @@ public:
     DefUses defuse;
 
     // state of the data-flow analysis
+    // FIXME: get rid of this in a general node
     RDMap def_map;
 
     RDNodeType getType() const { return type; }
