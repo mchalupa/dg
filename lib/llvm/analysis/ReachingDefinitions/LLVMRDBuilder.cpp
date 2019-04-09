@@ -211,6 +211,9 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
         // We actually don't override them, therefore they are dropped
         // and that is what we want (we don't want to propagade
         // local definitions from functions into callees)
+        // TODO: this is a feature of the data-flow analysis,
+        // it is not working with the SSA analysis. We should really
+        // have some strict line between them.
         node->addOverwrites(ptrNode, 0, Offset::UNKNOWN);
     }
 
@@ -770,13 +773,10 @@ RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::Cal
 
                 std::tie(from, to) = getFromTo(CInst, defines);
                 // this call may define this memory
-                if (pts.second.size() == 1 && !ptr.offset.isUnknown()
-                    && !llvm::isa<llvm::CallInst>(ptr.value)
-                    /* && FIXME: what about vars in recursive functions? */) {
-                    node->addOverwrites(target, from, to);
-                } else {
-                    node->addDef(target, from, to);
-                }
+                bool strong_updt = pts.second.size() == 1 && !ptr.offset.isUnknown()
+                                   && !llvm::isa<llvm::CallInst>(ptr.value);
+                // FIXME: what about vars in recursive functions?
+                node->addDef(target, from, to, strong_updt);
             }
             if (auto uses = model->uses(i)) {
                 std::tie(from, to) = getFromTo(CInst, uses);
@@ -984,7 +984,7 @@ std::pair<RDNode *, RDNode *> LLVMRDBuilder::buildGlobals()
             if (size == 0)
                 size = Offset::UNKNOWN;
 
-            cur->addOverwrites(cur, 0, size);
+            cur->addDef(cur, 0, size, true /* strong update */);
         }
 
         if (prev)
