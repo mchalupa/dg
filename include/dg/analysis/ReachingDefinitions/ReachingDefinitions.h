@@ -249,6 +249,8 @@ public:
         return this == UNKNOWN_MEMORY;
     }
 
+    bool isUse() const { return !uses.empty(); }
+
     RDBBlock *getBBlock() { return bblock; }
     void setBBlock(RDBBlock *bb) { bblock = bb; }
 
