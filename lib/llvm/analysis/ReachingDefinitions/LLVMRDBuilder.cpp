@@ -613,8 +613,9 @@ RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
             RDNode *target = getOperand(ptr.value);
             assert(target && "Don't have pointer target for call argument");
 
-            // this call may define this memory
+            // this call may use and define this memory
             node->addDef(target, Offset::UNKNOWN, Offset::UNKNOWN);
+            node->addUse(target, Offset::UNKNOWN, Offset::UNKNOWN);
         }
     }
 
