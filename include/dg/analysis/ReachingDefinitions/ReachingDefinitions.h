@@ -89,7 +89,7 @@ class RDNode : public SubgraphNode<RDNode> {
         }
 
         template <typename Cont>
-        bool add(Cont& C) {
+        bool add(const Cont& C) {
             bool changed = false;
             for (RDNode *n : C)
                 changed |= add(n);
