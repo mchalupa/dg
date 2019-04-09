@@ -35,6 +35,8 @@ struct LLVMReachingDefinitionsAnalysisOptions :
         functionModelAddDef("memmove", {0, Offset(0), 2});
         functionModelAddUse("memmove", {1, Offset(0), 2});
 
+        functionModelAddDef("memset", {0, Offset(0), 2});
+
         functionModelAddUse("memcmp", {0, Offset(0), 2});
         functionModelAddUse("memcmp", {1, Offset(0), 2});
 
