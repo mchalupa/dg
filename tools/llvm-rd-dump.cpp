@@ -399,9 +399,9 @@ int main(int argc, char *argv[])
     } type = FLOW_INSENSITIVE;
 
     enum class RdaType {
-        DENSE,
-        SEMISPARSE
-    } rda = RdaType::DENSE;
+        DATAFLOW,
+        SSA
+    } rda = RdaType::DATAFLOW;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -410,8 +410,8 @@ int main(int argc, char *argv[])
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
         } else if (strcmp(argv[i], "-rda") == 0) {
-            if (strcmp(argv[i+1], "ss") == 0)
-                rda = RdaType::SEMISPARSE;
+            if (strcmp(argv[i+1], "ssa") == 0)
+                rda = RdaType::SSA;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_senitivity = static_cast<Offset::type>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
@@ -477,7 +477,7 @@ int main(int argc, char *argv[])
 
     LLVMReachingDefinitions RD(M, &PTA, opts);
     tm.start();
-    if (rda == RdaType::SEMISPARSE) {
+    if (rda == RdaType::SSA) {
         RD.run<dg::analysis::rd::SSAReachingDefinitionsAnalysis>();
     } else
         RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
