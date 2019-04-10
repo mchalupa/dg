@@ -1,3 +1,5 @@
+#undef NDEBUG
+
 #include <set>
 #include <cassert>
 #include <cstdint>
