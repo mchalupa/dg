@@ -94,7 +94,7 @@ if (LLVM_DG)
 
 	# copy also the wrapper scripts
 	configure_file(ps-show ps-show COPYONLY)
-	configure_file(rd-show rd-show COPYONLY)
+	configure_file(llvmrd-dump llvmrd-dump COPYONLY)
 	configure_file(llvmdg-show llvmdg-show COPYONLY)
 endif (LLVM_DG)
 
