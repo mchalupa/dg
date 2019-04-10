@@ -561,7 +561,8 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
         }
     }
 
-    if (valuesToVariables.empty()) {
+    bool no_dbg = valuesToVariables.empty();
+    if (no_dbg) {
         llvm::errs() << "No debugging information found in program,\n"
                      << "slicing criteria with lines and variables will work\n"
                      << "only for global variables.\n"
@@ -572,6 +573,20 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
         valuesToVariables[&GV] = GV.getName().str();
     }
 
+    // try match globals
+    for (auto& G : dg.getModule()->globals()) {
+        if (globalMatchesCrit(G, parsedCrit)) {
+            LLVMNode *nd = dg.getGlobalNode(&G);
+            assert(nd);
+            nodes.insert(nd);
+        }
+    }
+
+    // we do not have any mapping, we will not match anything
+    if (no_dbg) {
+        return;
+    }
+
     // map line criteria to nodes
     for (auto& it : getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
@@ -580,14 +595,6 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
                 assert(nd);
                 nodes.insert(nd);
             }
-        }
-    }
-
-    for (auto& G : dg.getModule()->globals()) {
-        if (globalMatchesCrit(G, parsedCrit)) {
-            LLVMNode *nd = dg.getGlobalNode(&G);
-            assert(nd);
-            nodes.insert(nd);
         }
     }
 #endif // LLVM > 3.6
