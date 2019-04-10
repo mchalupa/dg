@@ -563,3 +563,17 @@ TEST_CASE("Uncovered 4", "DisjunctiveIntervalMap") {
     REQUIRE(ret[3] == IntT{6,6});
     REQUIRE(ret[4] == IntT{8,80});
 }
+
+TEST_CASE("Uncovered - regression 1", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int> M;
+    using IntT = decltype(M)::IntervalT;
+
+    M.update(0,3, 0);
+
+    auto ret = M.uncovered(1,100000);
+    REQUIRE(ret.size() == 1);
+    REQUIRE(ret[0] == IntT{4,100000});
+
+    ret = M.uncovered(0,3);
+    REQUIRE(ret.size() == 0);
+}
