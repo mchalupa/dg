@@ -453,3 +453,113 @@ TEST_CASE("Split2", "DisjunctiveIntervalMap") {
         std::make_tuple(4,4, 5)
     }));
 }
+
+TEST_CASE("Uncovered 1", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int> M;
+    using IntT = decltype(M)::IntervalT;
+
+    auto ret = M.uncovered(2,5);
+    REQUIRE(ret.size() == 1);
+    REQUIRE(ret[0] == IntT{2,5});
+
+    M.update(0,5, 0);
+
+    ret = M.uncovered(2,5);
+    REQUIRE(ret.size() == 0);
+
+    ret = M.uncovered(0,5);
+    REQUIRE(ret.size() == 0);
+
+    ret = M.uncovered(3,4);
+    REQUIRE(ret.size() == 0);
+
+    ret = M.uncovered(5,5);
+    REQUIRE(ret.size() == 0);
+
+    ret = M.uncovered(1,1);
+    REQUIRE(ret.size() == 0);
+
+    ret = M.uncovered(0,0);
+    REQUIRE(ret.size() == 0);
+
+    ret = M.uncovered(6,6);
+    REQUIRE(ret.size() == 1);
+    REQUIRE(ret[0] == IntT{6,6});
+
+    ret = M.uncovered(6,10);
+    REQUIRE(ret.size() == 1);
+    REQUIRE(ret[0] == IntT{6,10});
+}
+
+TEST_CASE("Uncovered 2", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int> M;
+    using IntT = decltype(M)::IntervalT;
+
+    M.update(2,5, 0);
+
+    auto ret = M.uncovered(0,5);
+    REQUIRE(ret.size() == 1);
+    REQUIRE(ret[0] == IntT{0,1});
+
+    ret = M.uncovered(0,10);
+    REQUIRE(ret.size() == 2);
+    REQUIRE(ret[0] == IntT{0,1});
+    REQUIRE(ret[1] == IntT{6,10});
+}
+
+TEST_CASE("Uncovered 3", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int> M;
+    using IntT = decltype(M)::IntervalT;
+
+    M.update(0,0, 0);
+    M.update(2,2, 0);
+    M.update(4,4, 0);
+    M.update(6,6, 0);
+
+    auto ret = M.uncovered(0,7);
+    REQUIRE(ret.size() == 4);
+    REQUIRE(ret[0] == IntT{1,1});
+    REQUIRE(ret[1] == IntT{3,3});
+    REQUIRE(ret[2] == IntT{5,5});
+    REQUIRE(ret[3] == IntT{7,7});
+
+    ret = M.uncovered(0,10);
+    REQUIRE(ret.size() == 4);
+    REQUIRE(ret[0] == IntT{1,1});
+    REQUIRE(ret[1] == IntT{3,3});
+    REQUIRE(ret[2] == IntT{5,5});
+    REQUIRE(ret[3] == IntT{7,10});
+}
+
+TEST_CASE("Uncovered 4", "DisjunctiveIntervalMap") {
+    DisjunctiveIntervalMap<int> M;
+    using IntT = decltype(M)::IntervalT;
+
+    M.update(1,1, 0);
+    M.update(3,3, 0);
+    M.update(5,5, 0);
+    M.update(7,7, 0);
+
+    auto ret = M.uncovered(0,7);
+    REQUIRE(ret.size() == 4);
+    REQUIRE(ret[0] == IntT{0,0});
+    REQUIRE(ret[1] == IntT{2,2});
+    REQUIRE(ret[2] == IntT{4,4});
+    REQUIRE(ret[3] == IntT{6,6});
+
+    ret = M.uncovered(0,8);
+    REQUIRE(ret.size() == 5);
+    REQUIRE(ret[0] == IntT{0,0});
+    REQUIRE(ret[1] == IntT{2,2});
+    REQUIRE(ret[2] == IntT{4,4});
+    REQUIRE(ret[3] == IntT{6,6});
+    REQUIRE(ret[4] == IntT{8,8});
+
+    ret = M.uncovered(0,80);
+    REQUIRE(ret.size() == 5);
+    REQUIRE(ret[0] == IntT{0,0});
+    REQUIRE(ret[1] == IntT{2,2});
+    REQUIRE(ret[2] == IntT{4,4});
+    REQUIRE(ret[3] == IntT{6,6});
+    REQUIRE(ret[4] == IntT{8,80});
+}

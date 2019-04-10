@@ -5,6 +5,7 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <vector>
 
 namespace dg {
 namespace analysis {
@@ -12,6 +13,8 @@ namespace rd {
 
 template <typename T = int64_t>
 struct DiscreteInterval {
+    using ValueT = T;
+
     T start;
     T end;
 
@@ -151,6 +154,85 @@ public:
         return overlapsFull(IntervalT(start, end));
     }
 
+    ///
+    // Gather all values that are covered by the interval I
+    std::set<ValueT> gather(IntervalValueT start, IntervalValueT end) const {
+        return gather(IntervalT(start, end));
+    }
+
+    std::set<ValueT> gather(const IntervalT& I) const {
+        std::set<ValueT> ret;
+
+        auto it = le(I);
+        if (it == end())
+            return ret;
+
+        assert(it->first.overlaps(I) && "The found interval should overlap");
+        while (it != end() && it->first.overlaps(I)) {
+            ret.insert(it->second.begin(), it->second.end());
+            ++it;
+        }
+
+        return ret;
+    }
+
+    std::vector<IntervalT> uncovered(IntervalValueT start, IntervalValueT end) const {
+        return uncovered(IntervalT(start, end));
+    }
+
+    std::vector<IntervalT> uncovered(const IntervalT& I) const {
+        if (_mapping.empty())
+            return {I};
+
+        auto it = le(I);
+        if (it == end())
+            return {I};
+
+        std::vector<IntervalT> ret;
+        IntervalT cur = I;
+
+        if (cur.start > it->first.start) {
+            // the first interval covers the whole I?
+            if (it->first.end >= I.end) {
+                return {};
+            }
+
+            assert(cur == I);
+            cur.start = it->first.end + 1;
+            assert(cur.end == I.end);
+            assert(I.end > it->first.end);
+            // we handled this interval, move further
+            ++it;
+        }
+
+        while (true) {
+            assert(cur.start <= it->first.start);
+            if (cur.start != it->first.start &&
+                cur.start < it->first.start) {
+                assert(it->first.start != 0 && "Underflow");
+                ret.push_back(IntervalT{cur.start, it->first.start - 1});
+            }
+            // does the rest of the interval covers all?
+            if (it->first.end >= I.end)
+                break;
+
+            assert(it->first.end != (~static_cast<IntervalValueT>(0))
+                    && "Overflow");
+            cur.start = it->first.end + 1;
+            assert(cur.end == I.end);
+
+            ++it;
+            if (it == end()) {
+                if (cur.start <= cur.end)
+                    ret.push_back(cur);
+                // we're done here
+                break;
+            }
+        }
+
+        return ret;
+    }
+
     bool empty() const { return _mapping.empty(); }
     size_t size() const { return _mapping.size(); }
 
@@ -178,6 +260,7 @@ public:
         return le(IntervalT(start, end));
     }
 
+#if 0
 #ifndef NDEBUG
     friend std::ostream& operator<<(std::ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
         os << "{";
@@ -193,6 +276,21 @@ public:
         os << "}";
         return os;
     }
+    friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
+        os << "{";
+        for (const auto& pair : map) {
+            if (pair.second.empty())
+                continue;
+
+            os << "{ ";
+            os << *pair.first.start << "-" << *pair.first.end;
+            os << ": " << *pair.second.begin();
+            os << " }, ";
+        }
+        os << "}";
+        return os;
+    }
+#endif
 #endif
 
 private:
