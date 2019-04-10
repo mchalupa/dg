@@ -83,6 +83,22 @@ struct Offset
         return *this;
     }
 
+    Offset& operator~()
+    {
+        if (offset != UNKNOWN) {
+            offset = ~offset;
+        }
+        return *this;
+    }
+
+    Offset operator~() const
+    {
+        if (offset != UNKNOWN) {
+            return Offset(~offset);
+        }
+        return Offset::UNKNOWN;
+    }
+
     bool operator<(const Offset& o) const
     {
         return offset < o.offset;
