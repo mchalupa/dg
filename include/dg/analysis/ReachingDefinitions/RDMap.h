@@ -1,5 +1,5 @@
-#ifndef _DG_DEF_MAP_H_
-#define _DG_DEF_MAP_H_
+#ifndef DG_RD_MAP_H_
+#define DG_RD_MAP_H_
 
 #include <set>
 #include <vector>
@@ -7,7 +7,6 @@
 #include <cassert>
 
 #include "dg/analysis/Offset.h"
-#include "DisjunctiveIntervalMap.h"
 
 namespace dg {
 namespace analysis {
@@ -231,95 +230,6 @@ private:
 };
 
 using RDMap = BasicRDMap;
-
-template <typename NodeT = RDNode>
-class DefinitionsMap {
-
-    using OffsetsT = DisjunctiveIntervalMap<NodeT *>;
-    using IntervalT = typename OffsetsT::IntervalT;
-
-    std::map<NodeT *, OffsetsT> _definitions;
-
-    // transform (offset, lenght) from a DefSite into the interval
-    static std::pair<Offset, Offset> getInterval(const DefSite& ds) {
-        // if the offset is unknown, stretch the interval over all possible bytes
-        if (ds.offset.isUnknown())
-            return {0, Offset::UNKNOWN};
-
-        return {ds.offset, ds.offset + (ds.len - 1)};
-    }
-
-public:
-    bool add(const DefSite& ds, NodeT *node) {
-        // if the offset is unknown, make it 0, so that the
-        // definition get stretched over all possible offsets
-        Offset start, end;
-        std::tie(start, end) = getInterval(ds);
-        return _definitions[ds.target].add(start, end, node);
-    }
-
-    bool addAll(NodeT *node) {
-        // if the offset is unknown, make it 0, so that the
-        // definition get stretched over all possible offsets
-        bool changed = false;
-        for (auto& it : _definitions) {
-            changed |= it.second.add(0, Offset::UNKNOWN, node);
-        }
-        return changed;
-    }
-
-    bool update(const DefSite& ds, NodeT *node) {
-        Offset start, end;
-        std::tie(start, end) = getInterval(ds);
-        return _definitions[ds.target].update(start, end, node);
-    }
-
-    bool add(const DefSite& ds, const std::vector<NodeT *>& nodes) {
-        bool changed = false;
-        for (auto n : nodes)
-            changed |= add(ds, n);
-        return changed;
-    }
-
-    bool update(const DefSite& ds, const std::vector<NodeT *>& nodes) {
-        bool changed = false;
-        for (auto n : nodes)
-            changed |= update(ds, n);
-        return changed;
-    }
-
-    ///
-    // Get definitions of the memory described by 'ds'
-    std::set<NodeT *> get(const DefSite& ds) {
-        auto it = _definitions.find(ds.target);
-        if (it == _definitions.end())
-            return {};
-
-        Offset start, end;
-        std::tie(start, end) = getInterval(ds);
-        return it->second.gather(start, end);
-    }
-
-    ///
-    // Return intervals of bytes from 'ds' that are not defined by this map
-    std::vector<IntervalT> undefinedIntervals(const DefSite& ds) {
-        auto it = _definitions.find(ds.target);
-        if (it == _definitions.end())
-            return {IntervalT(ds.offset, ds.offset + (ds.len - 1))};
-
-        Offset start, end;
-        std::tie(start, end) = getInterval(ds);
-        return it->second.uncovered(start, end);
-    }
-
-    auto begin() const -> decltype(_definitions.begin()) {
-        return _definitions.begin();
-    }
-
-    auto end() const -> decltype(_definitions.end()) {
-        return _definitions.end();
-    }
-};
 
 } // rd
 } // analysis

@@ -18,6 +18,7 @@
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitionsAnalysisOptions.h"
 #include "dg/analysis/ReachingDefinitions/DisjunctiveIntervalMap.h"
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/analysis/ReachingDefinitions/DefinitionsMap.h"
 
 // forward declaration
 namespace llvm {
