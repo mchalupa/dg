@@ -28,15 +28,15 @@
 #include "dg/analysis/PointsTo/PointerSubgraph.h"
 #include "dg/analysis/DFS.h"
 
-#include "dg/llvm/analysis/DefUse/LLVMDefUseAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/llvm/analysis/DefUse/DefUse.h"
 
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 
 #include "llvm/llvm-utils.h"
+
+#include "DefUse.h"
 
 using dg::analysis::rd::LLVMReachingDefinitions;
 using dg::analysis::rd::RDNode;
@@ -75,12 +75,10 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMReachingDefinitions *rd,
-                                       LLVMPointerAnalysis *pta,
-                                       const analysis::LLVMDefUseAnalysisOptions& opts)
+                                       LLVMPointerAnalysis *pta)
     : analysis::legacy::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
                                                    analysis::legacy::DATAFLOW_INTERPROCEDURAL),
-      dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())), _options(opts)
-{
+      dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())) {
     assert(PTA && "Need points-to information");
     assert(RD && "Need reaching definitions");
 }

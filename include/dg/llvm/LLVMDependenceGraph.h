@@ -165,6 +165,8 @@ public:
     LLVMReachingDefinitions *getRDA() const { return RDA; }
 
     LLVMNode *findNode(llvm::Value *value) const;
+
+    void addDefUseEdges();
     void computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph);
     void computeForkJoinDependencies(ControlFlowGraph * controlFlowGraph);
     void computeCriticalSections(ControlFlowGraph * controlFlowGraph);

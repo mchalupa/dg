@@ -21,11 +21,9 @@
 #endif
 
 #include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/llvm/analysis/DefUse/LLVMDefUseAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
-#include "dg/llvm/analysis/DefUse/DefUse.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
@@ -45,14 +43,12 @@ namespace llvm {
 namespace dg {
 namespace llvmdg {
 
-using analysis::LLVMDefUseAnalysisOptions;
 using analysis::LLVMPointerAnalysisOptions;
 using analysis::LLVMReachingDefinitionsAnalysisOptions;
 
 struct LLVMDependenceGraphOptions {
     LLVMPointerAnalysisOptions PTAOptions{};
     LLVMReachingDefinitionsAnalysisOptions RDAOptions{};
-    LLVMDefUseAnalysisOptions DUOptions{};
 
     bool terminationSensitive{true};
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
@@ -67,7 +63,6 @@ struct LLVMDependenceGraphOptions {
                                analysis::AllocationFunction F) {
         PTAOptions.addAllocationFunction(name, F);
         RDAOptions.addAllocationFunction(name, F);
-        DUOptions.addAllocationFunction(name, F);
     }
 };
 
@@ -106,14 +101,6 @@ class LLVMDependenceGraphBuilder {
             assert( false && "unknown RDA type" );
             abort();
         }
-    }
-
-    void _runDefUseAnalysis() {
-        LLVMDefUseAnalysis DUA(_dg.get(),
-                               _RD.get(),
-                               _PTA.get(),
-                               _options.DUOptions);
-        DUA.run(); // add def-use edges according that
     }
 
     void _runControlDependenceAnalysis() {
@@ -166,11 +153,11 @@ public:
             _dg->setThreads(false);
         }
 
-        // build the graph itself
+        // build the graph itself (the nodes, but without edges)
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
         // insert the data dependencies edges
-        _runDefUseAnalysis();
+        _dg->addDefUseEdges();
 
         // compute and fill-in control dependencies
         _runControlDependenceAnalysis();
@@ -233,7 +220,7 @@ public:
 
         // data-dependence edges
         _runReachingDefinitionsAnalysis();
-        _runDefUseAnalysis();
+        _dg->addDefUseEdges();
 
         // fill-in control dependencies
         _runControlDependenceAnalysis();

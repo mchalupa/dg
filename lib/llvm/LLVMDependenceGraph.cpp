@@ -51,6 +51,8 @@
 
 #include "dg/ADT/Queue.h"
 
+#include "analysis/DefUse/DefUse.h"
+
 #include "ControlFlowGraph.h"
 #include "MayHappenInParallel.h"
 
@@ -1200,6 +1202,11 @@ void LLVMDependenceGraph::addNoreturnDependencies()
             }
         }
     }
+}
+
+void LLVMDependenceGraph::addDefUseEdges() {
+    LLVMDefUseAnalysis DUA(this, RDA, PTA);
+    DUA.run();
 }
 
 LLVMNode *findInstruction(llvm::Instruction * instruction, const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions) {

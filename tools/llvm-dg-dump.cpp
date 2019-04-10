@@ -44,7 +44,6 @@
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/LLVMDG2Dot.h"
-#include "dg/llvm/analysis/DefUse/DefUse.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
