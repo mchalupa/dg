@@ -31,16 +31,18 @@ LLVMReachingDefinitions::~LLVMReachingDefinitions() {
 }
 
 void LLVMReachingDefinitions::initializeSparseRDA() {
-    builder = new LLVMRDBuilderSemisparse(m, pta, _options);
+    builder = new LLVMRDBuilderDense(m, pta, _options, true /* build uses */);
     // let the compiler do copy-ellision
     auto graph = builder->build();
 
     RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-                    new SemisparseRda(std::move(graph)));
+                    new SSAReachingDefinitionsAnalysis(std::move(graph)));
 }
 
 void LLVMReachingDefinitions::initializeDenseRDA() {
-    builder = new LLVMRDBuilderDense(m, pta, _options);
+    builder = new LLVMRDBuilderDense(m, pta, _options,
+                                     false /* build uses */,
+                                     true /* forget locals at return */);
     auto graph = builder->build();
 
     RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(

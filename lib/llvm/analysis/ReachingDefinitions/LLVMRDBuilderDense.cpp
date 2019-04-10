@@ -190,6 +190,9 @@ RDNode *LLVMRDBuilderDense::createReturn(const llvm::Instruction *Inst)
     RDNode *node = create(RDNodeType::RETURN);
     addNode(Inst, node);
 
+    if (!forgetLocalsAtReturn)
+        return node;
+
     // FIXME: don't do that for every return instruction,
     // compute it only once for a function
     std::set<const llvm::Value *> locals;

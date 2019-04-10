@@ -35,8 +35,10 @@ public:
     LLVMRDBuilderDense(const llvm::Module *m,
                        dg::LLVMPointerAnalysis *p,
                        const LLVMReachingDefinitionsAnalysisOptions& opts,
-                       bool buildUses = false)
-        : LLVMRDBuilder(m, p, opts), buildUses(buildUses) {}
+                       bool buildUses = false,
+                       bool forget_locals = false)
+        : LLVMRDBuilder(m, p, opts),
+          buildUses(buildUses), forgetLocalsAtReturn(forget_locals) {}
     virtual ~LLVMRDBuilderDense() = default;
 
     ReachingDefinitionsGraph&& build() override;
@@ -105,6 +107,7 @@ private:
     RDNode *createUndefinedCall(const llvm::CallInst *CInst);
 
     bool buildUses{false};
+    bool forgetLocalsAtReturn{false};
 
     bool isInlineAsm(const llvm::Instruction *instruction);
 
