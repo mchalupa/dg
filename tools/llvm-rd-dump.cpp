@@ -168,6 +168,27 @@ dumpMap(RDNode *node, bool dot = false)
         }
     }
 }
+static void
+dumpDDIMap(RDBBlock *block, bool dot = false)
+{
+    auto& map = block->definitions;
+    for (const auto& it : map) {
+       printName(it.first, dot);
+       for (auto& it2 : it.second) {
+           printf("  [%lu - %lu] => \n",
+                  *it2.first.start, *it2.first.end);
+           for (auto where : it2.second) {
+               printf("    ");
+               printName(where, dot);
+           }
+       }
+
+       if (dot)
+           printf("\\n");
+       else
+           putchar('\n');
+    }
+}
 
 static void
 dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
@@ -256,6 +277,17 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD, bool dump_rd) {
         for(RDNode *node : I->getNodes()) {
             nodeToDot(node);
         }
+
+        // dump def-use edges
+        for(RDNode *node : I->getNodes()) {
+            for (RDNode *def : node->defuse) {
+                printf("\tNODE%p->NODE%p [style=dotted]",
+                       static_cast<void*>(def), static_cast<void*>(node));
+            }
+        }
+        printf("label=\"");
+        dumpDDIMap(*I, true);
+        printf("\"\nlabelloc=b\n");
         printf("}\n");
     }
 
