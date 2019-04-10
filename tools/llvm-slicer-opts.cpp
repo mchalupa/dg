@@ -113,13 +113,16 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     llvm::cl::opt<LLVMReachingDefinitionsAnalysisOptions::AnalysisType> rdaType("rda",
         llvm::cl::desc("Choose reaching definitions analysis to use:"),
         llvm::cl::values(
-            clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense, "dense", "Dense RDA (default)"),
-            clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ss,    "ss",    "Semi-sparse RDA")
+            clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow,
+                       "dataflow", "Classical data-flow RDA (default)"),
+            clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ssa,
+                       "ssa", "MemorySSA-based RDA")
     #if LLVM_VERSION_MAJOR < 4
             , nullptr
     #endif
             ),
-        llvm::cl::init(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense), llvm::cl::cat(SlicingOpts));
+        llvm::cl::init(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow),
+                       llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<dg::CD_ALG> cdAlgorithm("cd-alg",
         llvm::cl::desc("Choose control dependencies algorithm to use:"),

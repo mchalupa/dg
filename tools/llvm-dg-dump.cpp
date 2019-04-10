@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
-    const char *rda = "dense";
+    const char *rda = "dataflow";
     const char *entry_func = "main";
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
@@ -167,14 +167,14 @@ int main(int argc, char *argv[])
         abort();
     }
 
-    if (strcmp(rda, "dense") == 0) {
+    if (strcmp(rda, "dataflow") == 0) {
         options.RDAOptions.analysisType
-            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dense;
-    } else if (strcmp(rda, "ss") == 0) {
+            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
+    } else if (strcmp(rda, "ssa") == 0) {
         options.RDAOptions.analysisType
-            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ss;
+            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ssa;
     } else {
-        llvm::errs() << "Unknown reaching definitions analysis, try: dense, ss\n";
+        llvm::errs() << "Unknown reaching definitions analysis, try: dataflow, ssa\n";
         abort();
     }
 

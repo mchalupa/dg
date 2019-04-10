@@ -93,9 +93,9 @@ class LLVMDependenceGraphBuilder {
     void _runReachingDefinitionsAnalysis() {
         assert(_RD && "BUG: No RD");
 
-        if (_options.RDAOptions.isDense()) {
+        if (_options.RDAOptions.isDataFlow()) {
             _RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
-        } else if (_options.RDAOptions.isSparse()) {
+        } else if (_options.RDAOptions.isSSA()) {
             _RD->run<dg::analysis::rd::SSAReachingDefinitionsAnalysis>();
         } else {
             assert( false && "unknown RDA type" );

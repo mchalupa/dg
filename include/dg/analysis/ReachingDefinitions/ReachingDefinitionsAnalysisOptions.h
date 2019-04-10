@@ -99,13 +99,9 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
     // If this size is exceeded, the set is cropped to unknown.
     Offset maxSetSize{Offset::UNKNOWN};
 
-    // Should we perform sparse or dense analysis?
-    bool sparse{false};
-
     // Does the analysis track concrete bytes
     // or just objects?
     bool fieldInsensitive{false};
-
 
     ReachingDefinitionsAnalysisOptions& setStrongUpdateUnknown(bool b) {
         strongUpdateUnknown = b; return *this;
@@ -117,10 +113,6 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
 
     ReachingDefinitionsAnalysisOptions& setMaxSetSize(Offset s) {
         maxSetSize = s; return *this;
-    }
-
-    ReachingDefinitionsAnalysisOptions& setSparse(bool b) {
-        sparse = b; return *this;
     }
 
     ReachingDefinitionsAnalysisOptions& setFieldInsensitive(bool b) {

@@ -18,24 +18,24 @@ addons:
       - libz-dev
 
 env:
-    - LLVM=3.8 PTA=fs RDA=dense
-    - LLVM=3.8 PTA=fi RDA=dense
-    - LLVM=3.8 PTA=inv RDA=dense
-    - LLVM=4.0 PTA=fs RDA=dense
-    - LLVM=4.0 PTA=fi RDA=dense
-    - LLVM=4.0 PTA=inv RDA=dense
-    - LLVM=5.0 PTA=fs RDA=dense
-    - LLVM=5.0 PTA=fi RDA=dense
-    - LLVM=5.0 PTA=inv RDA=dense
-    - LLVM=3.8 PTA=fs RDA=ss
-    - LLVM=3.8 PTA=fi RDA=ss
-    - LLVM=3.8 PTA=inv RDA=ss
-    - LLVM=4.0 PTA=fs RDA=ss
-    - LLVM=4.0 PTA=fi RDA=ss
-    - LLVM=4.0 PTA=inv RDA=ss
-    - LLVM=5.0 PTA=fs RDA=ss
-    - LLVM=5.0 PTA=fi RDA=ss
-    - LLVM=5.0 PTA=inv RDA=ss
+    - LLVM=3.8 PTA=fs RDA=dataflow
+    - LLVM=3.8 PTA=fi RDA=dataflow
+    - LLVM=3.8 PTA=inv RDA=dataflow
+    - LLVM=4.0 PTA=fs RDA=dataflow
+    - LLVM=4.0 PTA=fi RDA=dataflow
+    - LLVM=4.0 PTA=inv RDA=dataflow
+    - LLVM=5.0 PTA=fs RDA=dataflow
+    - LLVM=5.0 PTA=fi RDA=dataflow
+    - LLVM=5.0 PTA=inv RDA=dataflow
+    - LLVM=3.8 PTA=fs RDA=ssa
+    - LLVM=3.8 PTA=fi RDA=ssa
+    - LLVM=3.8 PTA=inv RDA=ssa
+    - LLVM=4.0 PTA=fs RDA=ssa
+    - LLVM=4.0 PTA=fi RDA=ssa
+    - LLVM=4.0 PTA=inv RDA=ssa
+    - LLVM=5.0 PTA=fs RDA=ssa
+    - LLVM=5.0 PTA=fi RDA=ssa
+    - LLVM=5.0 PTA=inv RDA=ssa
 
 compiler:
     - 'clang++'

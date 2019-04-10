@@ -10,12 +10,11 @@ namespace analysis {
 struct LLVMReachingDefinitionsAnalysisOptions :
     public LLVMAnalysisOptions, ReachingDefinitionsAnalysisOptions
 {
-    // FIXME: rename ss to sparse
-    enum class AnalysisType { dense, ss } analysisType{AnalysisType::dense};
+    enum class AnalysisType { dataflow, ssa } analysisType{AnalysisType::dataflow};
 
-    bool threads;
-    bool isDense() const { return analysisType == AnalysisType::dense; }
-    bool isSparse() const { return analysisType == AnalysisType::ss; }
+    bool threads{false};
+    bool isDataFlow() const { return analysisType == AnalysisType::dataflow; }
+    bool isSSA() const { return analysisType == AnalysisType::ssa; }
 
     LLVMReachingDefinitionsAnalysisOptions() {
         // setup models for standard functions
