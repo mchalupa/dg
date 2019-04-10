@@ -205,6 +205,12 @@ public:
             assert(I.end > it->first.end);
             // we handled this interval, move further
             ++it;
+
+            // nothing else to handle...
+            if (it == _mapping.end()) {
+                if (cur.start <= cur.end)
+                    return {cur};
+            }
         }
 
         while (true) {
