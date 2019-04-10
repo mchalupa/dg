@@ -29,10 +29,6 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
-namespace srg {
-    class AssignmentFinder;
-}
-
 class RDNode;
 class ReachingDefinitionsAnalysis;
 
@@ -166,43 +162,19 @@ public:
         return false;
     }
 
-    /**
-     * return true if this node uses UNKNOWN_MEMORY
-     */
-    bool usesUnknown() const
-    {
-        bool result = false;
-        for (const DefSite& use : uses)
-        {
-            result |= use.target->isUnknown();
-        }
-        return result;
-    }
-
-    void addUse(RDNode *target, const Offset& off = Offset::UNKNOWN, const Offset& len = Offset::UNKNOWN)
-    {
+    void addUse(RDNode *target,
+                const Offset& off = Offset::UNKNOWN,
+                const Offset& len = Offset::UNKNOWN) {
         addUse(DefSite(target, off, len));
     }
 
-    template <typename T>
-    void addUse(T&& ds)
-    {
-        uses.insert(std::forward<T>(ds));
-    }
+    void addUse(const DefSite& ds) { uses.insert(ds); }
 
     template <typename T>
     void addUses(T&& u)
     {
         for (auto& ds : u) {
             uses.insert(ds);
-        }
-    }
-
-    template <typename T>
-    void addDefs(T&& defs)
-    {
-        for (auto& ds : defs) {
-            addDef(ds);
         }
     }
 
@@ -227,6 +199,14 @@ public:
                 bool strong_update = false)
     {
         addDef(DefSite(target, off, len), strong_update);
+    }
+
+    template <typename T>
+    void addDefs(T&& defs)
+    {
+        for (auto& ds : defs) {
+            addDef(ds);
+        }
     }
 
     void addOverwrites(RDNode *target,
@@ -258,18 +238,6 @@ public:
 
     friend class ReachingDefinitionsAnalysis;
 };
-
-/*
-class RDNodeUse : public RDNode {
-    // definitions for this use
-    std::vector<RDNode *> definitions;
-
-    static RDNodeUse *get(RDNode *n) {
-        return n->getType() == RDNodeType::LOAD ?
-                static_cast<RDNodeUse *>(n) : nullptr;
-    }
-};
-*/
 
 class RDBBlock {
 public:

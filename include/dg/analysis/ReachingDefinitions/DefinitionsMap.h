@@ -20,7 +20,7 @@ class DefinitionsMap {
     using OffsetsT = DisjunctiveIntervalMap<NodeT *>;
     using IntervalT = typename OffsetsT::IntervalT;
 
-    std::map<NodeT *, OffsetsT> _definitions;
+    std::map<NodeT *, OffsetsT> _definitions{};
 
     // transform (offset, lenght) from a DefSite into the interval
     static std::pair<Offset, Offset> getInterval(const DefSite& ds) {

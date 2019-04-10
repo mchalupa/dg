@@ -226,7 +226,7 @@ private:
     std::pair<BasicRDMap::MapT::const_iterator, BasicRDMap::MapT::const_iterator>
     getObjectRange(const DefSite&) const;
 
-    MapT _defs;
+    MapT _defs{};
 };
 
 using RDMap = BasicRDMap;
