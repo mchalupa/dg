@@ -2,10 +2,12 @@
 #define _DG_DEF_MAP_H_
 
 #include <set>
+#include <vector>
 #include <map>
 #include <cassert>
 
 #include "dg/analysis/Offset.h"
+#include "DisjunctiveIntervalMap.h"
 
 namespace dg {
 namespace analysis {
@@ -229,6 +231,70 @@ private:
 };
 
 using RDMap = BasicRDMap;
+
+template <typename NodeT = RDNode>
+class DefinitionsMap {
+
+    using OffsetsT = DisjunctiveIntervalMap<NodeT *>;
+    using IntervalT = typename OffsetsT::IntervalT;
+
+    std::map<NodeT *, OffsetsT> _definitions;
+
+public:
+    bool add(const DefSite& ds, NodeT *node) {
+        return _definitions[ds.target].add(ds.offset,
+                                           ds.offset + (ds.len - 1),
+                                           node);
+    }
+
+    bool update(const DefSite& ds, NodeT *node) {
+        return _definitions[ds.target].add(ds.offset,
+                                           ds.offset + (ds.len - 1),
+                                           node);
+    }
+
+    bool add(const DefSite& ds, const std::vector<NodeT *>& nodes) {
+        bool changed = false;
+        for (auto n : nodes)
+            changed |= add(ds, n);
+        return changed;
+    }
+
+    bool update(const DefSite& ds, const std::vector<NodeT *>& nodes) {
+        bool changed = false;
+        for (auto n : nodes)
+            changed |= update(ds, n);
+        return changed;
+    }
+
+    ///
+    // Get definitions of the memory described by 'ds'
+    std::set<NodeT *> get(const DefSite& ds) {
+        auto it = _definitions.find(ds.target);
+        if (it == _definitions.end())
+            return {};
+
+        return it->second.gather(ds.offset, ds.offset + (ds.len - 1));
+    }
+
+    ///
+    // Return intervals of bytes from 'ds' that are not defined by this map
+    std::vector<IntervalT> undefinedIntervals(const DefSite& ds) {
+        auto it = _definitions.find(ds.target);
+        if (it == _definitions.end())
+            return {IntervalT(ds.offset, ds.offset + (ds.len - 1))};
+
+        return it->second.uncovered(ds.offset, ds.offset + (ds.len - 1));
+    }
+
+    auto begin() const -> decltype(_definitions.begin()) {
+        return _definitions.begin();
+    }
+
+    auto end() const -> decltype(_definitions.end()) {
+        return _definitions.end();
+    }
+};
 
 } // rd
 } // analysis
