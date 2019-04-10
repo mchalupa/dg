@@ -16,6 +16,7 @@
 #include "dg/DependenceGraph.h"
 
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitionsAnalysisOptions.h"
+#include "dg/analysis/ReachingDefinitions/DisjunctiveIntervalMap.h"
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 
 // forward declaration
@@ -92,6 +93,10 @@ public:
 
     // this is set of variables used in this node
     DefSiteSetT uses;
+
+    // places where this node is defined
+    // (so this node has non-empty uses)
+    std::vector<RDNode *> defuse;
 
     RDMap def_map;
 
@@ -233,8 +238,19 @@ public:
     void setBBlock(RDBBlock *bb) { bblock = bb; }
 
     friend class ReachingDefinitionsAnalysis;
-    friend class dg::analysis::rd::srg::AssignmentFinder;
 };
+
+/*
+class RDNodeUse : public RDNode {
+    // definitions for this use
+    std::vector<RDNode *> definitions;
+
+    static RDNodeUse *get(RDNode *n) {
+        return n->getType() == RDNodeType::LOAD ?
+                static_cast<RDNodeUse *>(n) : nullptr;
+    }
+};
+*/
 
 class RDBBlock {
 public:
@@ -270,9 +286,12 @@ public:
 
     DefinitionsMap<RDNode> definitions;
 
-    void append(RDNode *n) { _nodes.push_back(n); }
 private:
-    std::vector<NodeT *> _nodes;
+    NodesT _nodes;
+    /*
+    EdgesT _successors;
+    EdgesT _predecessors;
+    */
 };
 
 
@@ -394,6 +413,33 @@ public:
 
     bool processNode(RDNode *n);
     virtual void run();
+};
+
+class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
+    void performLvn();
+    void performGvn();
+
+    // find definitions of the def site and add def-use edges.
+    // For the uncovered bytes create phi nodes and return them.
+    std::vector<RDNode *> readValue(RDBBlock *, RDNode *,
+                                    const DefSite&, bool addDefUse = true);
+
+public:
+    SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
+                                   const ReachingDefinitionsAnalysisOptions& opts)
+    : ReachingDefinitionsAnalysis(std::move(graph), opts) {}
+
+    SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
+    : ReachingDefinitionsAnalysis(std::move(graph)) {}
+
+    void run() override {
+        // transform the graph to SSA
+        if (graph.getBBlocks().empty())
+            graph.buildBBlocks();
+
+        performLvn();
+        performGvn();
+    }
 };
 
 } // namespace rd

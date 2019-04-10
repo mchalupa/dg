@@ -65,6 +65,85 @@ void ReachingDefinitionsAnalysis::run()
     } while (!changed.empty());
 }
 
+std::vector<RDNode *>
+SSAReachingDefinitionsAnalysis::readValue(RDBBlock *block,
+                                          RDNode *node,
+                                          const DefSite& ds,
+                                          bool addDefuse) {
+    // add def-use edges to known definitions
+    if (addDefuse) {
+        auto defs = block->definitions.get(ds);
+        node->defuse = decltype(node->defuse)(defs.begin(), defs.end());
+    }
+
+    std::vector<RDNode *> phis;
+    // find out which bytes are not covered yet
+    // and add phi nodes for these intervals
+    auto uncovered = block->definitions.undefinedIntervals(ds);
+    for (auto& interval : uncovered) {
+        phis.emplace_back(graph.create(RDNodeType::PHI));
+        phis.back()->addOverwrites(ds.target,
+                                   interval.start,
+                                   interval.length());
+        if (addDefuse)
+            node->defuse.push_back(phis.back());
+    }
+
+    return phis;
+}
+
+
+void SSAReachingDefinitionsAnalysis::performLvn() {
+    for (RDBBlock *block : graph.blocks()) {
+        // new phi nodes
+        std::vector<RDNode *> phis;
+
+        // perform Lvn for one block
+        for (RDNode *node : block->getNodes()) {
+            // strong update
+            for (auto& ds : node->overwrites) {
+                block->definitions.update(ds, node);
+            }
+
+            // weak update
+            for (auto& ds : node->defs) {
+                // since this is just weak update,
+                // look for the previous definitions of 'ds'
+                // and if there are none, add a PHI node
+                auto newphis = readValue(block, node, ds,
+                                         false /* do not add def-def edges */);
+                phis.insert(phis.end(), newphis.begin(), newphis.end());
+
+                block->definitions.add(ds, node);
+                block->definitions.add(ds, newphis);
+            }
+
+            // is this node a use? If so then update def-use edges
+            for (auto& ds : node->uses) {
+                auto newphis = readValue(block, node, ds);
+                phis.insert(phis.end(), newphis.begin(), newphis.end());
+
+                // we added new phi nodes and those act as definitions,
+                // so register new definitions
+                block->definitions.add(ds, newphis);
+            }
+        }
+
+        // add all the new phi nodes
+        for (auto phi : phis) {
+            block->prependAndUpdateCFG(phi);
+            // block->prepend(phi);
+            // FIXME get rid of this method (keep the CFG
+            // structure in bblocks only?). Or make also append
+            // to add successor edges and check that the edge goes to
+            // the beginning of a different block
+        }
+    }
+}
+
+void SSAReachingDefinitionsAnalysis::performGvn() {
+}
+
 } // namespace rd
 } // namespace analysis
 } // namespace dg
