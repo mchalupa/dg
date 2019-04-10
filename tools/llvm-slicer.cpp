@@ -696,6 +696,12 @@ bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
     ADT::QueueLIFO<LLVMBBlock *> queue;
     auto tmp = criteria_nodes;
     for (auto&c : tmp) {
+        // the criteria may be a global variable and in that
+        // case it has no basic block (but also no predecessors,
+        // so we can skip it)
+        if (!c->getBBlock())
+            continue;
+
         queue.push(c->getBBlock());
         visited.insert(c->getBBlock());
 
