@@ -1,6 +1,8 @@
 #include "ThreadRegion.h"
 #include "Node.h"
 
+#include <iostream>
+
 int ThreadRegion::lastId = 0;
 
 ThreadRegion::ThreadRegion(Node *node):id_(lastId++),

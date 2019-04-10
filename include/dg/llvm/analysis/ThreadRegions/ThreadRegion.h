@@ -1,13 +1,15 @@
 #ifndef THREADREGION_H
 #define THREADREGION_H
 
-#include <llvm/IR/Value.h>
-
 #include <set>
 #include <iosfwd>
 
 class Node;
 class ControlFlowGraph;
+
+namespace llvm {
+    class Instruction;
+}
 
 class ThreadRegion
 {
