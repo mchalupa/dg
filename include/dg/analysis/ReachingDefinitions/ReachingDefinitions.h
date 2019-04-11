@@ -26,6 +26,7 @@ namespace rd {
 class RDBBlock {
 public:
     using NodeT = RDNode;
+    using NodeSuccIterator = decltype(NodeT().getSuccessors().begin());
     using NodesT = std::list<NodeT *>;
 
     void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); }
@@ -45,19 +46,13 @@ public:
 
     DefinitionsMap<RDNode> definitions;
 
-    struct edge_iterator {
-        // iterator for node edges
-        using ItT = decltype(NodeT().getSuccessors().begin());
-        ItT it;
+    // override the operator* method in the successor/predecessor iterator of the node
+    struct edge_iterator : public NodeSuccIterator {
+        edge_iterator() = default;
+        edge_iterator(const NodeSuccIterator& I) : NodeSuccIterator(I) {}
 
-        edge_iterator(const ItT& I) : it(I) {}
-
-        bool operator==(const edge_iterator& rhs) const { return it == rhs.it; }
-        bool operator!=(const edge_iterator& rhs) const { return it != rhs.it; }
-        edge_iterator& operator++() { ++it; return *this; }
-        edge_iterator operator++(int) { auto tmp = *this; ++it; return tmp; }
-        RDBBlock *operator*() { return (*it)->getBBlock(); }
-        RDBBlock *operator->() { return (*it)->getBBlock(); }
+        RDBBlock *operator*() { return NodeSuccIterator::operator*()->getBBlock(); }
+        RDBBlock *operator->() { return NodeSuccIterator::operator*()->getBBlock(); }
     };
 
     edge_iterator pred_begin() { return edge_iterator(_nodes.front()->getPredecessors().begin()); }
