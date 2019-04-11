@@ -40,13 +40,21 @@ protected:
 
     ReachingDefinitionsGraph graph;
 
-    struct Subgraph {
-        Subgraph(RDNode *r1, RDNode *r2)
-            : root(r1), ret(r2) {}
-        Subgraph(): root(nullptr), ret(nullptr) {}
+    struct Block {
+        std::vector<RDNode *> nodes;
+    };
 
-        RDNode *root;
-        RDNode *ret;
+    struct Subgraph {
+        std::map<const llvm::BasicBlock *, Block> blocks;
+
+        Block& createBlock(const llvm::BasicBlock *b) {
+            auto it = blocks.emplace(b, Block());
+            assert(it.second && "Already had this block");
+
+            return it.first->second;
+        }
+        Block *entry{nullptr};
+        std::vector<RDNode *> returns;
     };
 
     // points-to information
@@ -57,12 +65,6 @@ protected:
 
     std::map<const llvm::CallInst *, RDNode *> threadCreateCalls;
     std::map<const llvm::CallInst *, RDNode *> threadJoinCalls;
-
-    // mapping of llvm nodes to relevant reaching definitions nodes
-    // (this is a super-set of nodes_map)
-    // we could keep just one map of these two and don't duplicate
-    // the information, but this way it is more bug-proof
-    std::unordered_map<const llvm::Value *, RDNode *> mapping;
 
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
@@ -86,20 +88,8 @@ public:
     // map the points-to informatio back to LLVM nodes
     const std::unordered_map<const llvm::Value *, RDNode *>&
                                 getNodesMap() const { return nodes_map; }
-    const std::unordered_map<const llvm::Value *, RDNode *>&
-                                getMapping() const { return mapping; }
 
-    RDNode *getMapping(const llvm::Value *val)
-    {
-        auto it = mapping.find(val);
-        if (it == mapping.end())
-            return nullptr;
-
-        return it->second;
-    }
-
-    RDNode *getNode(const llvm::Value *val)
-    {
+    RDNode *getNode(const llvm::Value *val) {
         auto it = nodes_map.find(val);
         if (it == nodes_map.end())
             return nullptr;
@@ -121,9 +111,12 @@ public:
     ReachingDefinitionsGraph&& build() override;
 
     RDNode *getOperand(const llvm::Value *val);
-    RDNode *createNode(const llvm::Instruction& Inst);
 
 private:
+
+    static void blockAddSuccessors(Subgraph& subg, Block& block,
+                                   const llvm::BasicBlock *llvmBlock);
+
     std::vector<DefSite> mapPointers(const llvm::Value *where,
                                      const llvm::Value *val,
                                      Offset size);
@@ -143,14 +136,6 @@ private:
         node->setUserData(const_cast<llvm::Value *>(val));
     }
 
-    void addMapping(const llvm::Value *val, RDNode *node)
-    {
-        auto it = mapping.find(val);
-        assert(it == mapping.end() && "Adding mapping that we already have");
-
-        mapping.emplace_hint(it, val, node);
-    }
-
     RDNode *createStore(const llvm::Instruction *Inst);
     RDNode *createLoad(const llvm::Instruction *Inst);
     RDNode *createAlloc(const llvm::Instruction *Inst);
@@ -160,8 +145,10 @@ private:
 
 
     RDNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
-    std::pair<RDNode *, RDNode *> buildBlock(const llvm::BasicBlock& block);
-    std::pair<RDNode *, RDNode *> buildFunction(const llvm::Function& F);
+    Block& buildBlock(Subgraph& subg, const llvm::BasicBlock& block);
+    Block& buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& block);
+    Subgraph& buildFunction(const llvm::Function& F);
+    Subgraph *getOrCreateSubgraph(const llvm::Function *F);
 
     std::pair<RDNode *, RDNode *> buildGlobals();
 
@@ -169,17 +156,16 @@ private:
 
     std::pair<RDNode *, RDNode *> createCall(const llvm::Instruction *Inst);
 
-    std::pair<RDNode *, RDNode *> createCallToZeroSizeFunction(const llvm::Function *function,
-                                     const llvm::CallInst *CInst);
+    RDNode * createCallToZeroSizeFunction(const llvm::Function *function,
+                                         const llvm::CallInst *CInst);
 
     std::pair<RDNode *, RDNode *> createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                            const llvm::CallInst *CInst);
 
-    std::pair<RDNode *, RDNode *> createPthreadCreateCalls(const llvm::CallInst *CInst);
+    RDNode * createPthreadCreateCalls(const llvm::CallInst *CInst);
+    RDNode * createPthreadJoinCall(const llvm::CallInst *CInst);
+    RDNode * createPthreadExitCall(const llvm::CallInst *CInst);
 
-    std::pair<RDNode *, RDNode *> createPthreadJoinCall(const llvm::CallInst *CInst);
-
-    std::pair<RDNode *, RDNode *> createPthreadExitCall(const llvm::CallInst *CInst);
     RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
     RDNode *createUndefinedCall(const llvm::CallInst *CInst);
 

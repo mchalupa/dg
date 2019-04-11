@@ -27,6 +27,8 @@
 #include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
+#include <llvm/IR/Dominators.h>
+
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
 #else
@@ -35,6 +37,7 @@
 
 
 #include "dg/llvm/analysis/PointsTo/PointerSubgraph.h"
+#include "dg/ADT/Queue.h"
 
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
 #include "llvm/llvm-utils.h"
@@ -47,9 +50,6 @@ static inline void makeEdge(RDNode *src, RDNode *dst)
 {
     assert(src != dst && "Tried creating self-loop");
     assert(src != nullptr);
-    // This is checked by addSuccessor():
-    // assert(dst != nullptr);
-
     src->addSuccessor(dst);
 }
 
@@ -223,31 +223,8 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
 RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
 {
     RDNode *op = getNode(val);
-    if (!op)
-        return createNode(*llvm::cast<llvm::Instruction>(val));
-
+    assert(op && "Operand was not created");
     return op;
-}
-
-RDNode *LLVMRDBuilder::createNode(const llvm::Instruction &Inst)
-{
-    using namespace llvm;
-
-    RDNode *node = nullptr;
-    switch(Inst.getOpcode()) {
-        case Instruction::Alloca:
-            // we need alloca's as target to DefSites
-            node = createAlloc(&Inst);
-            break;
-        case Instruction::Call:
-            node = createCall(&Inst).second;
-            break;
-        default:
-            llvm::errs() << "BUG: " << Inst << "\n";
-            abort();
-    }
-
-    return node;
 }
 
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
@@ -358,21 +335,15 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
     assert(0 && "We should not reach this");
 }
 
-// return first and last nodes of the block
-std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
-{
+LLVMRDBuilder::Block&
+LLVMRDBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& llvmBlock) {
     using namespace llvm;
 
-    // the first node is dummy and serves as a phi from previous
-    // blocks so that we can have proper mapping
-    RDNode *node = create(RDNodeType::PHI);
-    RDNode *last_node = node;
+    Block& block = subg.createBlock(&llvmBlock);
 
-    std::pair<RDNode *, RDNode *> ret(node, nullptr);
-
-    for (const Instruction& Inst : block) {
-        node = getNode(&Inst);
+    for (const Instruction& Inst : llvmBlock) {
+        // we may created this node when searching for an operand
+        auto node = getNode(&Inst);
         if (!node) {
            switch(Inst.getOpcode()) {
                 case Instruction::Alloca:
@@ -396,186 +367,307 @@ LLVMRDBuilder::buildBlock(const llvm::BasicBlock& block)
                 case Instruction::Call:
                     if (!isRelevantCall(&Inst, _options))
                         break;
-                auto call = createCall(&Inst);
-                makeEdge(last_node, call.first);
-                node = last_node = call.second;
+
+                    auto call = createCall(&Inst);
+                    assert(call.first != nullptr);
+
+                    // the call does not return, bail out
+                    if (!call.second)
+                        return block;
+
+                    if (call.first != call.second) {
+                        // this call does return something
+                        block.nodes.push_back(call.first);
+                        block.nodes.push_back(call.second);
+                        node = nullptr;
+                    } else {
+                        node = call.first;
+                    }
+                    break;
             }
         }
 
-        // last_node should never be null
-        assert(last_node != nullptr && "BUG: Last node is null");
-
-        // we either created a new node or reused some old node,
-        // or node is nullptr (if we haven't created or found anything)
-        // if we created a new node, add successor
-        if (node && last_node != node) {
-            makeEdge(last_node, node);
-            last_node = node;
+        if (node) {
+            block.nodes.push_back(node);
         }
-
-        // reaching definitions for this Inst are contained
-        // in the last created node
-        addMapping(&Inst, last_node);
     }
 
-    // last node
-    ret.second = last_node;
-
-    return ret;
+    return block;
 }
 
-static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
-                                          std::pair<RDNode *, RDNode *>>& built_blocks,
-                                 std::pair<RDNode *, RDNode *>& ptan,
-                                 const llvm::BasicBlock& block)
+// return first and last nodes of the block
+LLVMRDBuilder::Block&
+LLVMRDBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& llvmBlock)
 {
-    size_t num = 0;
+    auto& block = buildBlockNodes(subg, llvmBlock);
 
-    for (llvm::succ_const_iterator
-         S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
-        std::pair<RDNode *, RDNode *>& succ = built_blocks[*S];
-        assert((succ.first && succ.second) || (!succ.first && !succ.second));
-        if (!succ.first) {
-            // if we don't have this block built (there was no points-to
-            // relevant instruction), we must pretend to be there for
-            // control flow information. Thus instead of adding it as
-            // successor, add its successors as successors
-            num += blockAddSuccessors(built_blocks, ptan, *(*S));
-        } else {
-            // add successor to the last nodes
-            if (ptan.second != succ.first)
-                makeEdge(ptan.second, succ.first);
-            ++num;
+    // add successors between nodes except for call instructions
+    // that will have as successors the entry nodes of subgraphs
+    RDNode *last = nullptr;
+    for (auto nd : block.nodes) {
+        assert(nd == block.nodes.back() || nd->getType() != RDNodeType::RETURN);
+
+        if (last) {
+            if (!(last->getType() == RDNodeType::CALL
+                   && nd->getType() == RDNodeType::CALL_RETURN)) {
+                last->addSuccessor(nd);
+            }
         }
+
+        last = nd;
     }
 
-    return num;
+    return block;
+}
+
+void LLVMRDBuilder::blockAddSuccessors(LLVMRDBuilder::Subgraph& subg,
+                                       LLVMRDBuilder::Block& block,
+                                       const llvm::BasicBlock *llvmBlock)
+{
+    assert(!block.nodes.empty() && "Block is empty");
+
+    for (auto S = llvm::succ_begin(llvmBlock),
+              SE = llvm::succ_end(llvmBlock); S != SE; ++S) {
+        auto succIt = subg.blocks.find(*S);
+        if ((succIt == subg.blocks.end() ||
+            succIt->second.nodes.empty()) &&
+            *S != llvmBlock) {
+            // if we don't have this block built (there was no
+            // relevant instruction), we must pretend to be there for
+            // control flow information. Thus instead of adding it as
+            // the successor, add its successors as successors
+            blockAddSuccessors(subg, block, *S);
+        } else {
+            // add an edge to the first node of the successor block
+            assert(!succIt->second.nodes.empty());
+            makeEdge(block.nodes.back(), succIt->second.nodes.front());
+        }
+    }
+}
+
+LLVMRDBuilder::Subgraph *
+LLVMRDBuilder::getOrCreateSubgraph(const llvm::Function *F) {
+    // reuse built subgraphs if available, so that we won't get
+    // stuck in infinite loop with recursive functions
+    Subgraph *subg = nullptr;
+    auto it = subgraphs_map.find(F);
+    if (it == subgraphs_map.end()) {
+        // create a new subgraph
+        subg = &buildFunction(*F);
+    } else {
+        subg = &it->second;
+    }
+
+    assert(subg && "No subgraph");
+    assert(subg->entry && "No entry in the subgraph");
+    assert(subg->entry->nodes.front() && "No first node in the subgraph");
+
+    return subg;
 }
 
 std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::createCallToFunction(const llvm::Function *F,
                                     const llvm::CallInst * CInst)
 {
+    assert(nodes_map.find(CInst) == nodes_map.end()
+            && "Already created this function");
+
     if (auto model = _options.getFunctionModel(F->getName())) {
         auto node = funcFromModel(model, CInst);
         addNode(CInst, node);
         return {node, node};
     } else if (F->size() == 0) {
-        return createCallToZeroSizeFunction(F, CInst);
+        auto node = createCallToZeroSizeFunction(F, CInst);
+        return {node, node};
     } else if (!llvmutils::callIsCompatible(F, CInst)) {
-        return {nullptr, nullptr};
+        llvm::errs() << "[RD] error: call of incompatible function: " << *CInst << "\n";
+        llvm::errs() << "            Calling : " << F->getName() << " of type " << *F->getType() << "\n";
+        auto node = createUndefinedCall(CInst);
+        return {node, node};
     }
 
-    RDNode *callNode = nullptr;
+
+    RDNode *callNode = create(RDNodeType::CALL);
+    addNode(CInst, callNode);
+
     RDNode *returnNode = nullptr;
 
-    auto iterator = nodes_map.find(CInst);
-    if (iterator == nodes_map.end()) {
-        callNode = create(RDNodeType::CALL);
-        returnNode = create(RDNodeType::RETURN);
-        addNode(CInst, callNode);
-    } else {
-        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
+    Subgraph *subg = getOrCreateSubgraph(F);
+    makeEdge(callNode, subg->entry->nodes.front());
+
+    if (!subg->returns.empty()) {
+        returnNode = create(RDNodeType::CALL_RETURN);
+        for (auto ret : subg->returns) {
+            makeEdge(ret, returnNode);
+        }
     }
 
-    // FIXME: if this is an inline assembly call
-    // we need to make conservative assumptions
-    // about that - assume that every pointer
-    // passed to the subprocesdure may be defined on
-    // UNKNOWN OFFSET, etc.
-
-    // reuse built subgraphs if available, so that we won't get
-    // stuck in infinite loop with recursive functions
-    RDNode *root, *ret;
-    auto it = subgraphs_map.find(F);
-    if (it == subgraphs_map.end()) {
-        // create a new subgraph
-        std::tie(root, ret) = buildFunction(*F);
-    } else {
-        root = it->second.root;
-        ret = it->second.ret;
-    }
-
-    assert(root && ret && "Incomplete subgraph");
-
-    if (callNode) {
-        makeEdge(callNode, root);
-        makeEdge(ret, returnNode);
-        return {callNode, returnNode};
-    }
-
-    return {root, ret};
+    return {callNode, returnNode};
 }
 
 std::pair<RDNode *, RDNode *>
+LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &functions,
+                                     const llvm::CallInst *CInst) {
+
+    assert(nodes_map.find(CInst) == nodes_map.end()
+            && "Already created this function");
+
+    RDNode *callNode = create(RDNodeType::CALL);
+    RDNode *returnNode = nullptr;
+
+    for (auto F : functions) {
+        if (!llvmutils::callIsCompatible(F, CInst)) {
+            llvm::errs() << "[RD] warn: incompatible function pointer call: " << *CInst << "\n";
+            llvm::errs() << "           Calling : " << F->getName() << " of type " << *F->getType() << "\n";
+            continue;
+        }
+
+        RDNode *onenode = nullptr;
+        if (auto model = _options.getFunctionModel(F->getName())) {
+            onenode = funcFromModel(model, CInst);
+            addNode(CInst, onenode);
+        } else if (F->size() == 0) {
+            onenode = createCallToZeroSizeFunction(F, CInst);
+        }
+
+        if (onenode) {
+            if (!returnNode) {
+                returnNode = create(RDNodeType::CALL_RETURN);
+            }
+            makeEdge(callNode, onenode);
+            makeEdge(onenode, returnNode);
+
+            continue;
+        }
+
+        // proper function... finally
+        Subgraph *subg = getOrCreateSubgraph(F);
+
+        makeEdge(callNode, subg->entry->nodes.front());
+
+        if (!subg->returns.empty()) {
+            if (!returnNode) {
+                returnNode = create(RDNodeType::CALL_RETURN);
+            }
+
+            for (auto ret : subg->returns) {
+                makeEdge(ret, returnNode);
+            }
+        }
+    }
+
+    return {callNode, returnNode};
+}
+
+// Get llvm BasicBlock's in levels of Dominator Tree (BFS order through the dominator tree)
+// FIXME: Copied from PointerSubgraph.cpp
+static std::vector<const llvm::BasicBlock *>
+getBasicBlocksInDominatorOrder(llvm::Function& F)
+{
+    std::vector<const llvm::BasicBlock *> blocks;
+    blocks.reserve(F.size());
+
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
+        llvm::DominatorTree DTree;
+        DTree.recalculate(F);
+#else
+        llvm::DominatorTreeWrapperPass wrapper;
+        wrapper.runOnFunction(F);
+        auto& DTree = wrapper.getDomTree();
+#ifndef NDEBUG
+        wrapper.verifyAnalysis();
+#endif
+#endif
+
+    auto root_node = DTree.getRootNode();
+    blocks.push_back(root_node->getBlock());
+
+    std::vector<llvm::DomTreeNode *> to_process;
+    to_process.reserve(4);
+    to_process.push_back(root_node);
+
+    while (!to_process.empty()) {
+        std::vector<llvm::DomTreeNode *> new_to_process;
+        new_to_process.reserve(to_process.size());
+
+        for (auto cur_node : to_process) {
+            for (auto child : *cur_node) {
+                new_to_process.push_back(child);
+                blocks.push_back(child->getBlock());
+            }
+        }
+
+        to_process.swap(new_to_process);
+    }
+
+    return blocks;
+}
+
+LLVMRDBuilder::Subgraph&
 LLVMRDBuilder::buildFunction(const llvm::Function& F)
 {
-    // here we'll keep first and last nodes of every built block and
-    // connected together according to successors
-    std::map<const llvm::BasicBlock *, std::pair<RDNode *, RDNode *>> built_blocks;
-
-    // create root and (unified) return nodes of this subgraph. These are
-    // just for our convenience when building the graph, they can be
-    // optimized away later since they are noops
-    RDNode *root = create(RDNodeType::NOOP);
-    RDNode *ret = create(RDNodeType::NOOP);
-
     // emplace new subgraph to avoid looping with recursive functions
-    subgraphs_map.emplace(&F, Subgraph(root, ret));
+    auto si = subgraphs_map.emplace(&F, Subgraph());
+    Subgraph& subg = si.first->second;
 
-    RDNode *first = nullptr;
-    for (const llvm::BasicBlock& block : F) {
-        std::pair<RDNode *, RDNode *> nds = buildBlock(block);
-        assert(nds.first && nds.second);
+    ///
+    // Create blocks
+    //
 
-        built_blocks[&block] = nds;
-        if (!first)
-            first = nds.first;
+    // iterate over the blocks in dominator-tree order
+    // so that all operands are created before their uses
+    for (const auto llvmBlock :
+              getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F))) {
+
+        auto& block = buildBlock(subg, *llvmBlock);
+
+        // save the entry block and ensure that it has
+        // at least one node (so that we have something to start from)
+        if (subg.entry == nullptr) {
+            subg.entry = &block;
+            if (block.nodes.empty()) {
+                block.nodes.push_back(create(RDNodeType::PHI));
+            }
+        } else {
+            // do not keep empty blocks
+            if (block.nodes.empty()) {
+                subg.blocks.erase(llvmBlock);
+            }
+        }
     }
 
-    assert(first);
-    makeEdge(root, first);
+    ///
+    // Set successors of blocks
+    //
+    for (auto& it : subg.blocks) {
+        auto llvmBlock = it.first;
+        auto& block = it.second;
 
-    std::vector<RDNode *> rets;
-    for (const llvm::BasicBlock& block : F) {
-        auto it = built_blocks.find(&block);
-        if (it == built_blocks.end())
-            continue;
-
-        std::pair<RDNode *, RDNode *>& ptan = it->second;
-        assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
-        if (!ptan.first)
-            continue;
+        // we remove the empty blocks
+        assert(!block.nodes.empty());
 
         // add successors to this block (skipping the empty blocks)
-        // FIXME: this function is shared with PSS, factor it out
-        size_t succ_num = blockAddSuccessors(built_blocks, ptan, block);
+        blockAddSuccessors(subg, block, llvmBlock);
 
-        // if we have not added any successor, then the last node
-        // of this block is a return node
-        if (succ_num == 0 && ptan.second->getType() == RDNodeType::RETURN)
-            rets.push_back(ptan.second);
+        // collect the return nodes (move it to append() method of block?)
+        if (!block.nodes.empty() &&
+            block.nodes.back()->getType() == RDNodeType::RETURN) {
+            subg.returns.push_back(block.nodes.back());
+        }
     }
 
-    // add successors edges from every real return to our artificial ret node
-    for (RDNode *r : rets)
-        makeEdge(r, ret);
-
-    return {root, ret};
+    return subg;
 }
 
 RDNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
+    assert((nodes_map.find(CInst) == nodes_map.end())
+           && "Adding node we already have");
+
     RDNode *node = create(RDNodeType::CALL);
-    auto iterator = nodes_map.find((CInst));
-    if (iterator == nodes_map.end()) {
-        addNode(CInst, node);
-    } else {
-        assert(iterator->second->getType() == RDNodeType::CALL && "Adding node we already have");
-        addArtificialNode(CInst, node);
-    }
+    addNode(CInst, node);
 
     // if we assume that undefined functions are pure
     // (have no side effects), we can bail out here
@@ -646,8 +738,9 @@ void LLVMRDBuilder::matchForksAndJoins()
             for (auto & function : PSJoinNode->functions()) {
                 auto llvmFunction = function->getUserData<llvm::Function>();
                 auto graphIterator = subgraphs_map.find(llvmFunction);
-                RDNode *returnNode = graphIterator->second.ret;
-                makeEdge(returnNode, iterator->second);
+                for (auto returnNode : graphIterator->second.returns) {
+                    makeEdge(returnNode, iterator->second);
+                }
             }
         } 
     }
@@ -807,22 +900,27 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         return {node, node};
     }
 
-    const Function *function = dyn_cast<Function>(calledVal);
-    if (function != nullptr) {
+    if (const Function *function = dyn_cast<Function>(calledVal)) {
         return createCallToFunction(function, CInst);
     }
 
     auto functions = PTA->getPointsToFunctions(calledVal);
+    if (functions.empty()) {
+        llvm::errs() << "[RD] error: could not determine the called function "
+                        "in a call via pointer: \n"
+                     << *CInst << "\n";
+        RDNode *node = createUndefinedCall(CInst);
+        return {node, node};
+    }
     return createCallToFunctions(functions, CInst);
 }
 
-std::pair<RDNode *, RDNode *>
+RDNode *
 LLVMRDBuilder::createCallToZeroSizeFunction(const llvm::Function *function,
                                             const llvm::CallInst *CInst)
 {
     if (function->isIntrinsic()) {
-        RDNode *node = createIntrinsicCall(CInst);
-        return {node, node};
+        return createIntrinsicCall(CInst);
     }
     if (_options.threads) {
         if (function->getName() == "pthread_create") {
@@ -833,53 +931,22 @@ LLVMRDBuilder::createCallToZeroSizeFunction(const llvm::Function *function,
             return createPthreadExitCall(CInst);
         }
     }
+
     auto type = _options.getAllocationFunction(function->getName());
-    RDNode *node = nullptr;
     if (type != AllocationFunction::NONE) {
         if (type == AllocationFunction::REALLOC)
-            node = createRealloc(CInst);
+            return createRealloc(CInst);
         else
-            node = createDynAlloc(CInst, type);
+            return createDynAlloc(CInst, type);
     } else {
-        node = createUndefinedCall(CInst);
+        return createUndefinedCall(CInst);
     }
-    return {node, node};
+
+    assert(false && "Unreachable");
+    abort();
 }
 
-std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &functions,
-                                      const llvm::CallInst *CInst)
-{
-    using namespace std;
-
-    RDNode *callNode = create(RDNodeType::CALL);
-    RDNode *returnNode = create(RDNodeType::RETURN);
-    addNode(CInst, callNode);
-
-    bool hasFunction = false;
-    for(const llvm::Function *function : functions) {
-        auto func = createCallToFunction(function, CInst);
-        if (func.first && func.second) {
-            makeEdge(callNode, func.first);
-            makeEdge(func.second, returnNode);
-            hasFunction |= true;
-        }
-    }
-
-    if (!hasFunction) {
-        llvm::errs() << "[RD] error: a call via a function pointer, "
-                        "but the points-to is empty\n"
-                     << *CInst << "\n";
-        RDNode *node = createUndefinedCall(CInst);
-        makeEdge(callNode, node);
-        makeEdge(node, returnNode);
-    }
-
-    return {callNode, returnNode};
-}
-
-std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
+RDNode *LLVMRDBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
@@ -896,38 +963,31 @@ LLVMRDBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
     Value *calledValue = CInst->getArgOperand(2);
     auto functions = PTA->getPointsToFunctions(calledValue);
 
-    RDNode *root = nullptr;
-    RDNode *ret = nullptr;
     for (const Function *function : functions) {
-        auto it = subgraphs_map.find(function);
-        if (it == subgraphs_map.end()) {
-            std::tie(root, ret) = buildFunction(*function);
-        } else {
-            root = it->second.root;
-            ret = it->second.ret;
+        if (function->isDeclaration()) {
+            llvm::errs() << "[RD] error: phtread_create spawns undefined function: "
+                         << function->getName() << "\n";
+            continue;
         }
-        assert(root && ret && "Incomplete subgraph");
-        makeEdge(rootNode, root);
+        auto subg = getOrCreateSubgraph(function);
+        makeEdge(rootNode, subg->entry->nodes.front());
     }
-    return {rootNode, rootNode};
+    return rootNode;
 }
 
-std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createPthreadJoinCall(const llvm::CallInst *CInst)
+RDNode *LLVMRDBuilder::createPthreadJoinCall(const llvm::CallInst *CInst)
 {
     // TODO later change this to create join node and set data correctly
     // we need just to create one node;
     // undefined call is overapproximation, so its ok
     RDNode *node = createUndefinedCall(CInst);
     threadJoinCalls.emplace(CInst, node);
-    return {node, node};
+    return node;
 }
 
-std::pair<RDNode *, RDNode *>
-LLVMRDBuilder::createPthreadExitCall(const llvm::CallInst *CInst)
+RDNode *LLVMRDBuilder::createPthreadExitCall(const llvm::CallInst *CInst)
 {
-    auto node = createReturn(CInst);
-    return {node, node};
+    return createReturn(CInst);
 }
 
 ReachingDefinitionsGraph&& LLVMRDBuilder::build()
@@ -940,23 +1000,22 @@ ReachingDefinitionsGraph&& LLVMRDBuilder::build()
     }
 
     // first we must build globals, because nodes can use them as operands
-    std::pair<RDNode *, RDNode *> glob = buildGlobals();
+    auto glob = buildGlobals();
 
     // now we can build rest of the graph
-    RDNode *root, *ret;
-    std::tie(root, ret) = buildFunction(*F);
-    assert(root && "Do not have a root node of a function");
-    assert(ret && "Do not have a ret node of a function");
+    auto& subg = buildFunction(*F);
+    assert(subg.entry && "Do not have an entry block of the entry function");
+    assert(!subg.entry->nodes.empty() && "The entry block is empty");
 
-    // do we have any globals at all? If so, insert them at the begining
-    // of the graph
+    RDNode *root = subg.entry->nodes.front();
+
+    // Do we have any globals at all?
+    // If so, insert them at the begining of the graph.
     if (glob.first) {
         assert(glob.second && "Have the start but not the end");
-
-        // this is a sequence of global nodes, make it the root of the graph
+        // this is a sequence of global nodes,
+        // make it the root of the graph
         makeEdge(glob.second, root);
-
-        assert(root->successorsNum() > 0);
         root = glob.first;
     }
 

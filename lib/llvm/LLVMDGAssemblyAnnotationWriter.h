@@ -143,29 +143,14 @@ private:
     {
         if (opts & ANNOTATE_RD) {
             assert(RD && "No reaching definitions analysis");
-            analysis::rd::RDNode *rd = RD->getMapping(node->getKey());
-            if (!rd) {
-                os << "  ; RD: no mapping\n";
-            } else {
-                /*
-                auto& defs = rd->getReachingDefinitions();
-                for (auto& it : defs) {
-                    for (auto& nd : it.second) {
-                        printDefSite(it.first, os, "RD: ");
-                        os << " @ ";
-                        if (nd->isUnknown())
-                            os << " UNKNOWN\n";
-                        else
-                            printValue(nd->getUserData<llvm::Value>(), os, true);
-                    }
-                }
-                */
-            }
+            /*
+
+            // FIXME
 
             LLVMDGParameters *params = node->getParameters();
             // don't dump params when we use new analyses (RD is not null)
             // because there we don't add definitions with new analyses
-            if (params && !RD) {
+            if (params) {
                 for (auto& it : *params) {
                     os << "  ; PARAMS: in " << it.second.in
                        << ", out " << it.second.out << "\n";
@@ -191,6 +176,7 @@ private:
                     os << "\n";
                 }
             }
+            */
         }
 
         if (opts & ANNOTATE_DD) {
