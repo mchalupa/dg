@@ -101,6 +101,9 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
 std::vector<RDNode *>
 SSAReachingDefinitionsAnalysis::findDefinitions(RDBBlock *block,
                                                 const DefSite& ds) {
+    assert(block && "Block is null");
+    assert(ds.target && "Target is null");
+
     // Find known definitions.
     auto defSet = block->definitions.get(ds);
     std::vector<RDNode *> defs(defSet.begin(), defSet.end());
