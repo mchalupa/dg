@@ -120,7 +120,15 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
 std::vector<RDNode *>
 SSAReachingDefinitionsAnalysis::findDefinitions(RDBBlock *block,
                                                 const DefSite& ds) {
-    assert(block && "Block is null");
+    // FIXME: the graph may contain dead code for which no blocks
+    // are set (as the blocks are created only for the reachable code).
+    // Removing the dead code is easy, but then we must somehow
+    // adjust the mapping in the builder, which is not that straightforward.
+    // Once we have that, uncomment this assertion.
+    //assert(block && "Block is null");
+    if (!block)
+        return {};
+
     assert(ds.target && "Target is null");
 
     // Find known definitions.
