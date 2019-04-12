@@ -220,7 +220,7 @@ public:
     RDBBlock *getBBlock() { return bblock; }
     void setBBlock(RDBBlock *bb) { bblock = bb; }
 
-    friend class ReachingDefinitionsAnalysis;
+    friend class ReachingDefinitionsGraph;
 };
 
 } // namespace rd

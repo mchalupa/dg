@@ -13,11 +13,30 @@ RDNode UNKNOWN_MEMLOC;
 RDNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 
-void ReachingDefinitionsGraph::buildBBlocks() {
+void ReachingDefinitionsGraph::buildBBlocks(bool dce) {
     assert(getRoot() && "No root node");
 
     BBlocksBuilder<RDBBlock> builder;
     _bblocks = std::move(builder.buildAndGetBlocks(getRoot()));
+
+    assert(getRoot()->getBBlock() && "Root node has no BBlock");
+
+    // should we eliminate dead code?
+    // The dead code are the nodes that have no basic block assigned
+    // (follows from the DFS nature of the block builder algorithm)
+    if (!dce)
+        return;
+
+    for (auto& nd : _nodes) {
+        if (nd->getBBlock() == nullptr) {
+            nd->isolate();
+            nd.reset();
+        }
+    }
+}
+
+
+void ReachingDefinitionsGraph::removeUselessNodes() {
 }
 
 
@@ -26,7 +45,7 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
     bool changed = false;
 
     // merge maps from predecessors
-    for (RDNode *n : node->predecessors)
+    for (RDNode *n : node->getPredecessors())
         changed |= node->def_map.merge(&n->def_map,
                                        &node->overwrites /* strong update */,
                                        options.strongUpdateUnknown,

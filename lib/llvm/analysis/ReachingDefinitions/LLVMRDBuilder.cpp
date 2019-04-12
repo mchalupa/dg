@@ -486,21 +486,16 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F,
         return {node, node};
     }
 
-
     RDNode *callNode = create(RDNodeType::CALL);
+    RDNode *returnNode = create(RDNodeType::CALL_RETURN);
+
     addNode(CInst, callNode);
 
-    RDNode *returnNode = nullptr;
-
-    Subgraph *subg = getOrCreateSubgraph(F);
-    makeEdge(callNode, subg->entry->nodes.front());
-
-    if (!subg->returns.empty()) {
-        returnNode = create(RDNodeType::CALL_RETURN);
-        for (auto ret : subg->returns) {
-            makeEdge(ret, returnNode);
-        }
-    }
+    // just create the subgraph, we'll add the edges later
+    // once we have created all the graphs -- this is due
+    // to recursive procedures
+    Subgraph *s = getOrCreateSubgraph(F);
+    calls[{callNode, returnNode}].insert(s);
 
     return {callNode, returnNode};
 }
@@ -513,7 +508,9 @@ LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &
             && "Already created this function");
 
     RDNode *callNode = create(RDNodeType::CALL);
-    RDNode *returnNode = nullptr;
+    RDNode *returnNode = create(RDNodeType::CALL_RETURN);
+
+    auto& callsSet = calls[{callNode, returnNode}];
 
     for (auto F : functions) {
         if (!llvmutils::callIsCompatible(F, CInst)) {
@@ -531,29 +528,16 @@ LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &
         }
 
         if (onenode) {
-            if (!returnNode) {
-                returnNode = create(RDNodeType::CALL_RETURN);
-            }
             makeEdge(callNode, onenode);
             makeEdge(onenode, returnNode);
 
             continue;
         }
 
-        // proper function... finally
-        Subgraph *subg = getOrCreateSubgraph(F);
-
-        makeEdge(callNode, subg->entry->nodes.front());
-
-        if (!subg->returns.empty()) {
-            if (!returnNode) {
-                returnNode = create(RDNodeType::CALL_RETURN);
-            }
-
-            for (auto ret : subg->returns) {
-                makeEdge(ret, returnNode);
-            }
-        }
+        // proper function... finally. Create the subgraph
+        // if not created yet.
+        Subgraph *s = getOrCreateSubgraph(F);
+        callsSet.insert(s);
     }
 
     return {callNode, returnNode};
@@ -1019,11 +1003,35 @@ ReachingDefinitionsGraph&& LLVMRDBuilder::build()
         root = glob.first;
     }
 
+    // Add interprocedural edges. We do that here after all functions
+    // are build to avoid problems with recursive procedures and such.
+    for (auto& it : calls) {
+        auto callNode = it.first.first;
+        auto returnNode = it.first.second;
+        assert(returnNode && "Do not have return node for a call");
+        assert(returnNode->getType() == RDNodeType::CALL_RETURN && "Do not have return node for a call");
+
+        for (auto subg : it.second) {
+            makeEdge(callNode, subg->entry->nodes.front());
+            if (!subg->returns.empty()) {
+                for (auto ret : subg->returns) {
+                    makeEdge(ret, returnNode);
+                }
+            }
+
+        }
+    }
+
     if (_options.threads) {
         matchForksAndJoins();
     }
 
     graph.setRoot(root);
+
+    // we must perform this because the sparse algorithm assumes
+    // that every node has a block and that is the case
+    // only when we have no dead code
+    //graph.eliminateDeadCode();
 
     return std::move(graph);
 }

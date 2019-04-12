@@ -76,6 +76,9 @@ private:
 
 
 class ReachingDefinitionsGraph {
+    // FIXME: get rid of this
+    unsigned int dfsnum{1};
+
     size_t lastNodeID{0};
     RDNode *root{nullptr};
     using BBlocksVecT = std::vector<std::unique_ptr<RDBBlock>>;
@@ -125,36 +128,20 @@ public:
 
     blocks_range blocks() { return blocks_range(_bblocks); }
 
+    void removeUselessNodes();
+
+    void optimize() {
+        removeUselessNodes();
+    }
+
     RDNode *create(RDNodeType t) {
       _nodes.emplace_back(new RDNode(++lastNodeID, t));
       return _nodes.back().get();
     }
 
-    void buildBBlocks();
-};
-
-class ReachingDefinitionsAnalysis
-{
-protected:
-    ReachingDefinitionsGraph graph;
-    unsigned int dfsnum;
-
-    const ReachingDefinitionsAnalysisOptions options;
-
-public:
-    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
-                                const ReachingDefinitionsAnalysisOptions& opts)
-    : graph(std::move(graph)), dfsnum(0), options(opts)
-    {
-        assert(graph.getRoot() && "Root cannot be null");
-        // with max_set_size == 0 (everything is defined on unknown location)
-        // we get unsound results with vararg functions and similar weird stuff
-        assert(options.maxSetSize > 0 && "The set size must be at least 1");
-    }
-
-    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
-    : ReachingDefinitionsAnalysis(std::move(graph), {}) {}
-    virtual ~ReachingDefinitionsAnalysis() = default;
+    // Build blocks for the nodes. If 'dce' is set to true,
+    // the dead code is eliminated after building the blocks.
+    void buildBBlocks(bool dce = false);
 
     // get nodes in BFS order and store them into
     // the container
@@ -185,6 +172,37 @@ public:
                 });
 
         return cont;
+    }
+};
+
+class ReachingDefinitionsAnalysis
+{
+protected:
+    ReachingDefinitionsGraph graph;
+
+    const ReachingDefinitionsAnalysisOptions options;
+
+public:
+    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
+                                const ReachingDefinitionsAnalysisOptions& opts)
+    : graph(std::move(graph)), options(opts)
+    {
+        assert(graph.getRoot() && "Root cannot be null");
+        // with max_set_size == 0 (everything is defined on unknown location)
+        // we get unsound results with vararg functions and similar weird stuff
+        assert(options.maxSetSize > 0 && "The set size must be at least 1");
+    }
+
+    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
+    : ReachingDefinitionsAnalysis(std::move(graph), {}) {}
+    virtual ~ReachingDefinitionsAnalysis() = default;
+
+    // get nodes in BFS order and store them into
+    // the container
+    template <typename ContainerOrNode>
+    std::vector<RDNode *> getNodes(const ContainerOrNode& start,
+                                   unsigned expected_num = 0) {
+        return graph.getNodes(start, expected_num);
     }
 
     RDNode *getRoot() const { return graph.getRoot(); }

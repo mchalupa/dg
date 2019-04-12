@@ -66,6 +66,9 @@ protected:
     std::map<const llvm::CallInst *, RDNode *> threadCreateCalls;
     std::map<const llvm::CallInst *, RDNode *> threadJoinCalls;
 
+    // mapping of call nodes to called subgraphs
+    std::map<std::pair<RDNode *, RDNode *>, std::set<Subgraph *>> calls;
+
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
