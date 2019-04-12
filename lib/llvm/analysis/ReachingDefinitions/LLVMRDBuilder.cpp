@@ -422,21 +422,27 @@ LLVMRDBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& llvmBlock)
 
 void LLVMRDBuilder::blockAddSuccessors(LLVMRDBuilder::Subgraph& subg,
                                        LLVMRDBuilder::Block& block,
-                                       const llvm::BasicBlock *llvmBlock)
+                                       const llvm::BasicBlock *llvmBlock,
+                                       std::set<const llvm::BasicBlock *>& visited)
 {
     assert(!block.nodes.empty() && "Block is empty");
 
     for (auto S = llvm::succ_begin(llvmBlock),
               SE = llvm::succ_end(llvmBlock); S != SE; ++S) {
+
+        // we already processed this block? Then don't try to add the edges again
+        // FIXME: get rid of this... we can check whether we saw the RDBBlock...
+        if (!visited.insert(*S).second)
+           continue;
+
         auto succIt = subg.blocks.find(*S);
         if ((succIt == subg.blocks.end() ||
-            succIt->second.nodes.empty()) &&
-            *S != llvmBlock) {
+            succIt->second.nodes.empty())) {
             // if we don't have this block built (there was no
             // relevant instruction), we must pretend to be there for
             // control flow information. Thus instead of adding it as
             // the successor, add its successors as successors
-            blockAddSuccessors(subg, block, *S);
+            blockAddSuccessors(subg, block, *S, visited);
         } else {
             // add an edge to the first node of the successor block
             assert(!succIt->second.nodes.empty());
@@ -631,7 +637,8 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
         assert(!block.nodes.empty());
 
         // add successors to this block (skipping the empty blocks)
-        blockAddSuccessors(subg, block, llvmBlock);
+        std::set<const llvm::BasicBlock*> visited;
+        blockAddSuccessors(subg, block, llvmBlock, visited);
 
         // collect the return nodes (move it to append() method of block?)
         if (!block.nodes.empty() &&

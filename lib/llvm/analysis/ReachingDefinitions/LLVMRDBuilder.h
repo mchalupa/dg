@@ -118,7 +118,8 @@ public:
 private:
 
     static void blockAddSuccessors(Subgraph& subg, Block& block,
-                                   const llvm::BasicBlock *llvmBlock);
+                                   const llvm::BasicBlock *llvmBlock,
+                                   std::set<const llvm::BasicBlock *>& visited);
 
     std::vector<DefSite> mapPointers(const llvm::Value *where,
                                      const llvm::Value *val,
