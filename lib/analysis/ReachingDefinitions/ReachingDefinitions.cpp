@@ -228,6 +228,8 @@ void SSAReachingDefinitionsAnalysis::performLvn(RDBBlock *block) {
             if (ds.target->isUnknown()) {
                 // special handling for unknown memory
                 // -- this node may define any memory that we know
+                // about at this moment, so just add it to every
+                // element of the definition map
                 block->definitions.addAll(node);
                 // also add the definition as a proper target for Gvn
                 block->definitions.add({ds.target, 0, Offset::UNKNOWN}, node);

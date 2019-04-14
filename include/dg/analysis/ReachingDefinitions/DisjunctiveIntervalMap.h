@@ -94,6 +94,15 @@ public:
         return _add(I, val, true);
     }
 
+    // add the value 'val' to all intervals
+    bool addAll(const ValueT& val) {
+        bool changed = false;
+        for (auto& it : _mapping) {
+            changed |= it.second.insert(val).second;
+        }
+        return changed;
+    }
+
     // return true if some intervals from the map
     // has a overlap with I
     bool overlaps(const IntervalT& I) const {
