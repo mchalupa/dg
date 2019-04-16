@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 TESTS_DIR=`dirname $0`
 source "$TESTS_DIR/test-runner.sh"
 
@@ -12,26 +14,21 @@ LIBBCFILE="$NAME.bc"
 CODE="$TESTS_DIR/sources/unknownptr4.c"
 NAME=${CODE%.*}
 BCFILE="$NAME.bc"
-SLICEDFILE="$NAME-withdefs.sliced"
+SLICEDFILE="$NAME.sliced"
 LINKEDFILE="$SLICEDFILE.linked"
 
 # compile in.c out.bc
 compile "$CODE" "$BCFILE"
 
-# compile additional definitions
+slice "$BCFILE" "$SLICEDFILE" || exit 1
+
+# compile and link additional definitions
 clang -emit-llvm -c -Wall -Wextra "$LIB" -o "$LIBBCFILE"
-
-llvm-link "$BCFILE" "$LIBBCFILE" -o "$NAME-withdefs.bc"
-
-if [ ! -z "$DG_TESTS_PTA" ]; then
-	export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
-fi
-
-# slice the code
-llvm-slicer $DG_TESTS_PTA -c test_assert "$NAME-withdefs.bc" || exit 1
+llvm-link "$SLICEDFILE" "$LIBBCFILE" -o "$SLICEDFILE-withdefs.bc"
 
 # link assert to the code
-link_with_assert "$SLICEDFILE" "$LINKEDFILE"
+link_with_assert "$SLICEDFILE-withdefs.bc" "$LINKEDFILE"
 
 # run the code and check result
-get_result "$LINKEDFILE"
+get_result "$LINKEDFILE" || exit 1
+

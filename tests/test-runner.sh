@@ -85,6 +85,29 @@ get_result()
 	echo "$OUTPUT"
 }
 
+slice()
+{
+	BCFILE="$1"
+	OUTPUT="$2"
+
+	# slice the code
+	if [ ! -z "$DG_TESTS_PTA" ]; then
+		export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
+	fi
+
+	if [ ! -z "$DG_TESTS_RDA" ]; then
+		export DG_TESTS_RDA="-rda $DG_TESTS_RDA"
+	fi
+
+	if [ ! -z "$DG_TESTS_CDA" ]; then
+		export DG_TESTS_CDA="-cd-alg $DG_TESTS_CDA"
+	fi
+
+	llvm-slicer $DG_TESTS_PARAMS $DG_TESTS_CDA\
+	            $DG_TESTS_RDA $DG_TESTS_PTA\
+		     -c test_assert "$BCFILE" -o "$OUTPUT"
+}
+
 run_test()
 {
 	TESTS_DIR=`dirname $0`
@@ -103,20 +126,7 @@ run_test()
 	# compile in.c out.bc
 	compile "$CODE" "$BCFILE"
 
-	# slice the code
-	if [ ! -z "$DG_TESTS_PTA" ]; then
-		export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
-	fi
-
-	if [ ! -z "$DG_TESTS_RDA" ]; then
-		export DG_TESTS_RDA="-rda $DG_TESTS_RDA"
-	fi
-
-	if [ ! -z "$DG_TESTS_CDA" ]; then
-		export DG_TESTS_CDA="-cd-alg $DG_TESTS_CDA"
-	fi
-
-	llvm-slicer $DG_TESTS_CDA $DG_TESTS_RDA $DG_TESTS_PTA -c test_assert "$BCFILE"
+	slice "$BCFILE" "$SLICEDFILE"
 
 	# link assert to the code
 	link_with_assert "$SLICEDFILE" "$LINKEDFILE"
