@@ -93,9 +93,16 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *where, RDNode *mem,
                                                     const Offset& len)
 {
     std::set<RDNode *> ret;
-    // gather all possible definitions of the memory
-    where->def_map.get(UNKNOWN_MEMORY, Offset::UNKNOWN, Offset::UNKNOWN, ret);
-    where->def_map.get(mem, off, len, ret);
+    if (mem->isUnknown()) {
+        // gather all definitions of memory
+        for (auto& it : where->def_map) {
+            ret.insert(it.second.begin(), it.second.end());
+        }
+    } else {
+        // gather all possible definitions of the memory
+        where->def_map.get(UNKNOWN_MEMORY, Offset::UNKNOWN, Offset::UNKNOWN, ret);
+        where->def_map.get(mem, off, len, ret);
+    }
 
     return std::vector<RDNode *>(ret.begin(), ret.end());
 }
@@ -106,6 +113,14 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
 
     // gather all possible definitions of the memory including the unknown mem
     for (auto& ds : use->uses) {
+        if (ds.target->isUnknown()) {
+            // gather all definitions of memory
+            for (auto& it : use->def_map) {
+                ret.insert(it.second.begin(), it.second.end());
+            }
+            break; // we may bail out as we added everything
+        }
+
         use->def_map.get(ds.target, ds.offset, ds.len, ret);
     }
 
