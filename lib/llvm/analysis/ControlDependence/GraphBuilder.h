@@ -1,5 +1,5 @@
-#ifndef GRAPHBUILDER_H
-#define GRAPHBUILDER_H
+#ifndef DG_LLVM_GRAPHBUILDER_H
+#define DG_LLVM_GRAPHBUILDER_H
 
 #include <map>
 #include <iosfwd>
@@ -66,4 +66,4 @@ bool isReachable(const llvm::BasicBlock * basicBlock);
 }
 }
 
-#endif // GRAPHBUILDER_H
+#endif // DG_LLVM_GRAPHBUILDER_H

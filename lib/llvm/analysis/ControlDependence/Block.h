@@ -1,5 +1,5 @@
-#ifndef BLOCK_H
-#define BLOCK_H
+#ifndef DG_LLVM_BLOCK_H
+#define DG_LLVM_BLOCK_H
 
 #include <vector>
 #include <set>
@@ -91,4 +91,4 @@ private:
 }
 }
 
-#endif // BLOCK_H
+#endif // DG_LLVM_BLOCK_H
