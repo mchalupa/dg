@@ -1,5 +1,5 @@
-#ifndef TARJANANALYSIS_H
-#define TARJANANALYSIS_H
+#ifndef DG_LLVM_TARJANANALYSIS_H
+#define DG_LLVM_TARJANANALYSIS_H
 
 #include <vector>
 #include <set>
@@ -169,4 +169,4 @@ int TarjanAnalysis<T>::StronglyConnectedComponent::idCounter = 0;
 }
 }
 
-#endif // TARJANANALYSIS_H
+#endif // DG_LLVM_TARJANANALYSIS_H
