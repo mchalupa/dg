@@ -319,11 +319,12 @@ static void recGatherNonPhisDefs(RDNode *phi, std::set<RDNode *>& phis, std::set
 }
 
 // recursivelu replace all phi values with its non-phi definitions
-static std::vector<RDNode *> gatherNonPhisDefs(RDNode *use) {
+template <typename ContT>
+std::vector<RDNode *> gatherNonPhisDefs(const ContT& nodes) {
     std::set<RDNode *> ret; // use set to get rid of duplicates
     std::set<RDNode *> phis; // set of visited phi nodes - to check the fixpoint
 
-    for (auto n : use->defuse) {
+    for (auto n : nodes) {
         if (n->getType() != RDNodeType::PHI) {
             ret.insert(n);
         } else {
@@ -336,8 +337,103 @@ static std::vector<RDNode *> gatherNonPhisDefs(RDNode *use) {
 
 std::vector<RDNode *>
 SSAReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
-    return gatherNonPhisDefs(use);
+    if (use->usesUnknown())
+        return findAllReachingDefinitions(use);
+
+    return gatherNonPhisDefs(use->defuse);
 }
+
+std::vector<RDNode *>
+SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
+    assert(from->getBBlock() && "The node has no BBlock");
+
+    DefinitionsMap<RDNode> defs;
+
+    ///
+    // get the definitions from this block
+    ///
+    auto block = from->getBBlock();
+    for (auto node : block->getNodes()) {
+        // run only from the beginning of the block up to the node
+        if (node == from)
+            break;
+
+        // this is basically the LVN
+        for (auto& ds : node->overwrites) {
+            defs.update(ds, node);
+        }
+
+        // weak update
+        for (auto& ds : node->defs) {
+            if (ds.target->isUnknown()) {
+                defs.addAll(node);
+                // also add the definition as a proper target for Gvn
+                defs.add({ds.target, 0, Offset::UNKNOWN}, node);
+                continue;
+            }
+
+            defs.add(ds, node);
+        }
+    }
+
+    ///
+    // get the definitions from predecessors
+    ///
+    std::set<RDBBlock *> visitedBlocks; // for terminating the search
+    // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
+    // in which case we want to process it
+    for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
+        findAllReachingDefinitions(defs, *I, visitedBlocks);
+    }
+
+    ///
+    // Gather all the defintions
+    ///
+    std::set<RDNode *> ret;
+    for (auto& it : defs) {
+        for (auto& it2 : it.second) {
+            ret.insert(it2.second.begin(), it2.second.end());
+        }
+    }
+
+    return gatherNonPhisDefs(ret);
+}
+
+void
+SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RDNode>& defs,
+                                                           RDBBlock *from,
+                                                           std::set<RDBBlock *>& visitedBlocks) {
+    if (!from)
+        return;
+
+    if (!visitedBlocks.insert(from).second)
+        return;
+
+    // get the definitions from this block
+    for (auto& it : from->definitions) {
+        if (!defs.definesTarget(it.first)) {
+            // just copy the definitions
+            defs.add(it.first, it.second);
+            continue;
+        }
+
+        for (auto& it2 : it.second) {
+            auto& interv = it2.first;
+            auto uncovered
+                = defs.undefinedIntervals({it.first, interv.start, interv.length()});
+            for (auto& undefInterv : uncovered) {
+                // we still do not have definitions for these bytes, add it
+                defs.add({it.first, undefInterv.start, undefInterv.length()}, it2.second);
+            }
+        }
+    }
+
+    // recurs into predecessors
+    for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
+        findAllReachingDefinitions(defs, *I, visitedBlocks);
+    }
+}
+
 
 } // namespace rd
 } // namespace analysis

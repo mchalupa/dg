@@ -85,6 +85,15 @@ public:
         return _add(I, val, false);
     }
 
+    template <typename ContT>
+    bool add(const IntervalT& I, const ContT& vals) {
+        bool changed = false;
+        for (const ValueT& val : vals) {
+            changed |= _add(I, val, false);
+        }
+        return changed;
+    }
+
     bool update(const IntervalValueT start, const IntervalValueT end,
                 const ValueT& val) {
         return update(IntervalT(start, end), val);
@@ -92,6 +101,15 @@ public:
 
     bool update(const IntervalT& I, const ValueT& val) {
         return _add(I, val, true);
+    }
+
+    template <typename ContT>
+    bool update(const IntervalT& I, const ContT& vals) {
+        bool changed = false;
+        for (const ValueT& val : vals) {
+            changed |= _add(I, val, true);
+        }
+        return changed;
     }
 
     // add the value 'val' to all intervals

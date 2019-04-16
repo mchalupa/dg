@@ -54,7 +54,15 @@ public:
         return _definitions[ds.target].update(start, end, node);
     }
 
-    bool add(const DefSite& ds, const std::vector<NodeT *>& nodes) {
+    bool add(NodeT *target, const OffsetsT& elems) {
+        bool changed = false;
+        for (auto& it : elems)
+            changed |= _definitions[target].add(it.first, it.second);
+        return changed;
+    }
+
+    template <typename ContainerT>
+    bool add(const DefSite& ds, const ContainerT& nodes) {
         bool changed = false;
         for (auto n : nodes)
             changed |= add(ds, n);
@@ -90,6 +98,10 @@ public:
         Offset start, end;
         std::tie(start, end) = getInterval(ds);
         return it->second.uncovered(start, end);
+    }
+
+    bool definesTarget(NodeT *target) const {
+        return _definitions.find(target) != _definitions.end();
     }
 
     auto begin() const -> decltype(_definitions.begin()) {

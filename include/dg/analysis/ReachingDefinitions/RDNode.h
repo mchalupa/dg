@@ -146,6 +146,14 @@ public:
         return false;
     }
 
+    bool usesUnknown() const {
+        for (auto& ds : uses) {
+            if (ds.target->isUnknown())
+                return true;
+        }
+        return false;
+    }
+
     void addUse(RDNode *target,
                 const Offset& off = Offset::UNKNOWN,
                 const Offset& len = Offset::UNKNOWN) {
