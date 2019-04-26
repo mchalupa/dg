@@ -869,6 +869,7 @@ std::pair<Offset, Offset> getFromTo(const llvm::CallInst *CInst, T what) {
 }
 
 RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
+
     RDNode *node = create(RDNodeType::CALL);
 
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
@@ -896,20 +897,20 @@ RDNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::Cal
 
             Offset from, to;
             if (auto defines = model->defines(i)) {
-                if (llvm::isa<llvm::Constant>(ptr.value)) // constant cannot be redefined
-                    continue;
-
                 std::tie(from, to) = getFromTo(CInst, defines);
                 // this call may define this memory
-                bool strong_updt = pts.second.size() == 1 && !ptr.offset.isUnknown()
-                                   && !llvm::isa<llvm::CallInst>(ptr.value);
+                bool strong_updt = pts.second.size() == 1 &&
+                                   !ptr.offset.isUnknown() &&
+                                   !(ptr.offset + from).isUnknown() &&
+                                   !(ptr.offset + to).isUnknown() &&
+                                   !llvm::isa<llvm::CallInst>(ptr.value);
                 // FIXME: what about vars in recursive functions?
-                node->addDef(target, from, to, strong_updt);
+                node->addDef(target, ptr.offset + from, ptr.offset + to, strong_updt);
             }
             if (auto uses = model->uses(i)) {
                 std::tie(from, to) = getFromTo(CInst, uses);
                 // this call uses this memory
-                node->addUse(target, from, to);
+                node->addUse(target, ptr.offset + from, ptr.offset + to);
             }
         }
     }

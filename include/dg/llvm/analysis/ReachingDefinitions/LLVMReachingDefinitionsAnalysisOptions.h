@@ -26,10 +26,10 @@ struct LLVMReachingDefinitionsAnalysisOptions :
         // to the offset given by the operand 2
         functionModelAddDef("memcpy", {0, Offset(0), 2});
         functionModelAddUse("memcpy", {1, Offset(0), 2});
-        functionModelAddDef("llvm.memcpy.p0i8.p0i8.i64", {0, Offset(0), 1});
-        functionModelAddUse("llvm.memcpy.p0i8.p0i8.i64", {1, Offset(0), 1});
-        functionModelAddDef("llvm.memcpy.p0i8.p0i8.i32", {0, Offset(0), 1});
-        functionModelAddUse("llvm.memcpy.p0i8.p0i8.i32", {1, Offset(0), 1});
+        functionModelAddDef("llvm.memcpy.p0i8.p0i8.i64", {0, Offset(0), 2});
+        functionModelAddUse("llvm.memcpy.p0i8.p0i8.i64", {1, Offset(0), 2});
+        functionModelAddDef("llvm.memcpy.p0i8.p0i8.i32", {0, Offset(0), 2});
+        functionModelAddUse("llvm.memcpy.p0i8.p0i8.i32", {1, Offset(0), 2});
 
         functionModelAddDef("memmove", {0, Offset(0), 2});
         functionModelAddUse("memmove", {1, Offset(0), 2});
