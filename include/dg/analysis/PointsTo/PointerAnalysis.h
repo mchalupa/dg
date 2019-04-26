@@ -30,7 +30,7 @@ class PointerAnalysis
     // strongly connected components of the PointerSubgraph
     std::vector<std::vector<PSNode *> > SCCs;
     unsigned sccs_index{0};
-
+   
     void initPointerAnalysis() {
         assert(PS && "Need PointerSubgraph object");
 
@@ -38,6 +38,10 @@ class PointerAnalysis
         SCC<PSNode> scc_comp;
         SCCs = std::move(scc_comp.compute(PS->getRoot()));
         sccs_index = scc_comp.getIndex();
+        NULLPTR->pointsTo.clear();
+        UNKNOWN_MEMORY->pointsTo.clear();
+        NULLPTR->pointsTo.add(Pointer(NULLPTR, 0));
+        UNKNOWN_MEMORY->pointsTo.add(Pointer(UNKNOWN_MEMORY, Offset::UNKNOWN));
     }
 
 protected:

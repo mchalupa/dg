@@ -280,11 +280,9 @@ public:
             case PSNodeType::INVALIDATED:
                 break;
             case PSNodeType::NULL_ADDR:
-                pointsTo.add(Pointer(this, 0));
                 break;
             case PSNodeType::UNKNOWN_MEM:
                 // UNKNOWN_MEMLOC points to itself
-                pointsTo.add(Pointer(this, Offset::UNKNOWN));
                 break;
             default:
                 // this constructor is for the above mentioned types only
