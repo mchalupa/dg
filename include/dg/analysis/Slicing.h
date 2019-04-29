@@ -30,7 +30,8 @@ public:
     WalkAndMark(bool forward_slc = false)
         : legacy::NodesWalk<NodeT, Queue>(
             forward_slc ?
-                (legacy::NODES_WALK_CD | legacy::NODES_WALK_DD | legacy::NODES_WALK_ID) :
+                (legacy::NODES_WALK_CD | legacy::NODES_WALK_DD |
+                 legacy::NODES_WALK_USE | legacy::NODES_WALK_ID) :
                 (legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
                  legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
                  legacy::NODES_WALK_REV_ID)
