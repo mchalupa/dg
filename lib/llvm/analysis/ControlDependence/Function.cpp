@@ -2,6 +2,7 @@
 #include "Block.h"
 
 #include <ostream>
+#include <algorithm>
 namespace dg {
 namespace cd {
 
@@ -39,13 +40,26 @@ std::set<Block *> Function::nodes() const {
 
 std::set<Block *> Function::condNodes() const {
     std::set<Block *> condNodes_;
-    for (auto block : blocks) {
-        const Block * b = block;
-        if (b->successors().size() > 1) {
-            condNodes_.insert(block);
-        }
-    }
+
+    std::copy_if(blocks.begin(), blocks.end(),
+                 std::inserter(condNodes_, condNodes_.end()),
+                 [] (const Block * block) {
+                        return block->successors().size() > 1;
+                    });
+
     return condNodes_;
+}
+
+std::set<Block *> Function::callReturnNodes() const {
+    std::set<Block *> callReturnNodes_;
+
+    std::copy_if(blocks.begin(), blocks.end(),
+                 std::inserter(callReturnNodes_, callReturnNodes_.end()),
+                 [] (const Block * block) {
+                        return block->isCallReturn();
+                    });
+
+    return callReturnNodes_;
 }
 
 void Function::dumpBlocks(std::ostream &ostream) {

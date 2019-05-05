@@ -23,6 +23,7 @@ public:
 
     std::set<Block *> nodes() const;
     std::set<Block *> condNodes() const;
+    std::set<Block *> callReturnNodes() const;
 
     void dumpBlocks(std::ostream & ostream);
     void dumpEdges(std::ostream & ostream);
