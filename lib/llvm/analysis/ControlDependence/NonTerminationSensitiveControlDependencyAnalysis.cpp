@@ -34,6 +34,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
     for (auto function : functions) {
         auto nodes = function.second->nodes();
         auto condNodes = function.second->condNodes();
+        auto callReturnNodes = function.second->callReturnNodes();
 
         for (auto node : nodes) {
             // (1) initialize
@@ -63,12 +64,26 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
                                              });
                 if (iterator != node->successors().end()) {
                     for (auto callee : node->callees()) {
-                        controlDependency[callee.second->exit()].insert(*node->successors().begin());
+                        controlDependency[callee.second->exit()].insert(*iterator);
                     }
                     for (auto join : node->joins()) {
-                        controlDependency[join.second->exit()].insert(*node->successors().begin());
+                        controlDependency[join.second->exit()].insert(*iterator);
                     }
                 }
+            }
+        }
+
+        for (auto node : callReturnNodes) {
+            std::queue<Block *> q;
+            for(auto successor : node->successors()) {
+                q.push(successor);
+            }
+            while (!q.empty()) {
+                controlDependency[node].insert(q.front());
+                for(auto successor : q.front()->successors()) {
+                    q.push(successor);
+                }
+                q.pop();
             }
         }
     }
