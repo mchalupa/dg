@@ -114,7 +114,9 @@ public:
 
     bool handleJoin(PSNode *joinNode) override
     {
+        builder->setAdHocBuilding(true);
         return builder->matchJoinToRightCreate(joinNode);
+        builder->setAdHocBuilding(false);
     }
 };
 
