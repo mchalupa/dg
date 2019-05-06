@@ -8,6 +8,7 @@
 #include <iostream>
 #include <functional>
 #include <queue>
+#include <unordered_set>
 
 using namespace std;
 
@@ -75,13 +76,21 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
 
         for (auto node : callReturnNodes) {
             std::queue<Block *> q;
+            std::unordered_set<Block *> visited(nodes.size());
+            visited.insert(node);
             for(auto successor : node->successors()) {
-                q.push(successor);
+                if (visited.find(successor) == visited.end()) {
+                    q.push(successor);
+                    visited.insert(successor);
+                }
             }
             while (!q.empty()) {
                 controlDependency[node].insert(q.front());
                 for(auto successor : q.front()->successors()) {
-                    q.push(successor);
+                    if (visited.find(successor) == visited.end()) {
+                        q.push(successor);
+                        visited.insert(successor);
+                    }
                 }
                 q.pop();
             }
