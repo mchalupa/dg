@@ -29,6 +29,37 @@
 using dg::analysis::LLVMPointerAnalysisOptions;
 using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
 
+static void
+addAllocationFuns(dg::llvmdg::LLVMDependenceGraphOptions& dgOptions,
+                  const std::string& allocationFuns) {
+    using dg::analysis::AllocationFunction;
+
+    auto items = splitList(allocationFuns);
+    for (auto& item : items) {
+        auto subitms = splitList(item, ':');
+        if (subitms.size() != 2) {
+            llvm::errs() << "ERROR: Invalid allocation function: " << item << "\n";
+            continue;
+        }
+
+        AllocationFunction type;
+        if (subitms[1] == "malloc")
+            type = AllocationFunction::MALLOC;
+        else if (subitms[1] == "calloc")
+            type = AllocationFunction::CALLOC;
+        else if (subitms[1] == "realloc")
+            type = AllocationFunction::REALLOC;
+        else {
+            llvm::errs() << "ERROR: Invalid type of allocation function: "
+                         << item << "\n";
+            continue;
+        }
+
+        dgOptions.PTAOptions.addAllocationFunction(subitms[0], type);
+        dgOptions.RDAOptions.addAllocationFunction(subitms[0], type);
+    }
+}
+
 
 llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
 
@@ -113,6 +144,14 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
         llvm::cl::desc("Consider threads are in input file (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<std::string> allocationFuns("allocation-funs",
+        llvm::cl::desc("Treat these functions as allocation functions\n"
+                       "The argument is a comma-separated list of func:type,\n"
+                       "where func is the function and type is one of\n"
+                       "malloc, calloc, or realloc.\n"
+                       "E.g., myAlloc:malloc will treat myAlloc as malloc.\n"),
+                       llvm::cl::init("main"), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<LLVMPointerAnalysisOptions::AnalysisType> ptaType("pta",
         llvm::cl::desc("Choose pointer analysis to use:"),
         llvm::cl::values(
@@ -193,6 +232,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
     options.dgOptions.RDAOptions.undefinedArePure = undefinedArePure;
     options.dgOptions.RDAOptions.analysisType = rdaType;
+
+    addAllocationFuns(options.dgOptions, allocationFuns);
 
     // FIXME: add options class for CD
     options.dgOptions.cdAlgorithm = cdAlgorithm;
