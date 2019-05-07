@@ -1000,7 +1000,7 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
                         std::cerr << "Control dependency could not be set up, one of two instructions was not found.\n";
                     }
                 }
-                if (dependant->isExit()) {
+                if (dependant->isExit() && lastInstruction) {
                     auto noreturn = lastInstruction->getDG()->getOrCreateNoReturn();
                     lastInstruction->addControlDependence(noreturn);
                 }
