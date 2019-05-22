@@ -139,6 +139,7 @@ public:
         const_iterator& operator++() {
             // shift to the next bit in the current bits
             assert(pos < (sizeof(BitsT)*8));
+            assert(container_it != container_end && "operator++ called on end");
             if (++pos != 64)
                 _findClosestBit();
 

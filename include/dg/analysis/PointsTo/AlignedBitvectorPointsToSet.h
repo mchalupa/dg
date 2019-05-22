@@ -84,24 +84,29 @@ public:
     }
 
     bool removeAny(PSNode *target) {
-        bool changed = false;
-        for(const auto& ptrID : pointers) {
+        std::vector<size_t> toRemove;
+        for (const auto& ptrID : pointers) {
             if(idVector[ptrID - 1].target == target) {
-                changed = true;
-                pointers.unset(ptrID);
+                toRemove.push_back(ptrID);
             }
         }
+
+        for (auto ptrID : toRemove)  {
+            pointers.unset(ptrID);
+        }
+
+        bool changed = false;
         auto it = overflowSet.begin();
         while(it != overflowSet.end()) {
             if(it->target == target) {
                 it = overflowSet.erase(it);
+                // Note: the iterator to the next element is now in it
                 changed = true;
-            }
-            else {
+            } else {
                 it++;
             }
         }
-        return changed;
+        return changed || !toRemove.empty();
     }
 
     void clear() {
