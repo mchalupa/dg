@@ -576,7 +576,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
     for (auto& it : getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
             if (instMatchesCrit(dg, I, parsedCrit)) {
-                LLVMNode *nd = dg.getNode(&I);
+                LLVMNode *nd = it.second->getNode(&I);
                 assert(nd);
                 nodes.insert(nd);
             }
