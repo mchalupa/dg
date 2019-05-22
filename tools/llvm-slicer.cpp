@@ -420,16 +420,14 @@ static bool usesTheVariable(LLVMDependenceGraph& dg,
         if (ptr.isUnknown())
             return true; // it may be a definition of the variable, we do not know
 
-        auto alloca = ptr.target->getUserData<llvm::Value>();
-        if (!alloca)
+        auto value = ptr.target->getUserData<llvm::Value>();
+        if (!value)
             continue;
 
-        if (const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(alloca)) {
-            auto name = valuesToVariables.find(AI);
-            if (name != valuesToVariables.end()) {
-                if (name->second == var)
-                    return true;
-            }
+        auto name = valuesToVariables.find(value);
+        if (name != valuesToVariables.end()) {
+            if (name->second == var)
+                return true;
         }
     }
 
@@ -565,9 +563,13 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
 
     if (valuesToVariables.empty()) {
         llvm::errs() << "No debugging information found in program,\n"
-                     << "slicing criteria with lines and variables will not work.\n"
+                     << "slicing criteria with lines and variables will work\n"
+                     << "only for global variables.\n"
                      << "You can still use the criteria based on call sites ;)\n";
-        return;
+    }
+
+    for (const auto& GV : dg.getModule()->globals()) {
+        valuesToVariables[&GV] = GV.getName().str();
     }
 
     // map line criteria to nodes
