@@ -16,6 +16,12 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
+// special nodes and pointers to them
+extern PSNode *NULLPTR;
+extern PSNode *UNKNOWN_MEMORY;
+extern const Pointer NullPointer;
+extern const Pointer UnknownPointer;
+
 class PointerSubgraph
 {
     unsigned int dfsnum;
@@ -34,10 +40,18 @@ class PointerSubgraph
 
     GenericCallGraph<PSNode *> callGraph;
 
+    void initStaticNodes() {
+        NULLPTR->pointsTo.clear();
+        UNKNOWN_MEMORY->pointsTo.clear();
+        NULLPTR->pointsTo.add(Pointer(NULLPTR, 0));
+        UNKNOWN_MEMORY->pointsTo.add(Pointer(UNKNOWN_MEMORY, Offset::UNKNOWN));
+    }
+
 public:
     PointerSubgraph() : dfsnum(0), root(nullptr) {
         // nodes[0] represents invalid node (the node with id 0)
         nodes.emplace_back(nullptr);
+        initStaticNodes();
     }
 
     bool registerCall(PSNode *a, PSNode *b) {
