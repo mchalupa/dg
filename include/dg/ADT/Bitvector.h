@@ -134,6 +134,63 @@ public:
             }
         }
 
+        /*
+         * This implementation seems less efficient,
+         * but let's keep it commented here for
+         * further experiments
+        void _findClosestBit() {
+            assert(pos < (sizeof(BitsT)*8));
+            BitsT tmp = container_it->second;
+
+            // shift tmp to start at position pos
+            tmp >>= pos;
+
+            if (tmp == 0) {
+                pos = sizeof(BitsT)*8;
+                assert(pos <= (sizeof(BitsT)*8));
+                return;
+            }
+
+            int i = 0;
+            while (tmp) {
+                // pos bit set
+                if (tmp & 0x1) {
+                    pos += i;
+                    assert(pos < (sizeof(BitsT)*8));
+                    assert(container_it->second & (1UL << pos));
+                    return;
+                }
+
+                if (tmp & 0xff) {
+                    if (tmp & 0xf) {
+                        // we tested this condition
+                        // before entering this code
+                        assert(!(tmp & 0x1));
+                        if (tmp & 0x2) {
+                            pos += i + 1;
+                            assert(pos < (sizeof(BitsT)*8));
+                            assert(container_it->second & (1UL << pos));
+                            return;
+                        } else {
+                            assert(!(tmp & 0x3));
+                            tmp >>= 2;
+                            i += 2;
+                        }
+                    } else {
+                        tmp >>= 4;
+                        i += 4;
+                    }
+                } else {
+                    tmp >>= 8;
+                    i += 8;
+                }
+            }
+
+            // not found
+            pos = sizeof(BitsT)*8;
+        }
+        */
+
     public:
         const_iterator() = default;
         const_iterator& operator++() {
@@ -147,6 +204,7 @@ public:
                 ++container_it;
                 pos = 0;
                 if (container_it != container_end) {
+                    assert(container_it->second != 0 && "Empty bucket in a bitvector");
                     _findClosestBit();
                 }
             }
