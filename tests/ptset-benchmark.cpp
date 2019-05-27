@@ -15,7 +15,7 @@ std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0
     dg::debug::TimeMeasure tm; \
     tm.start(); \
     for (int i = 0; i < times; ++i) \
-        func<PointsToSet>(); \
+        func<PointsToSetT>(); \
     tm.stop(); \
     tm.report(" -- PointsToSet bitvector took"); \
     tm.start(); \
