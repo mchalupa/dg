@@ -31,13 +31,16 @@ target_link_libraries(points-to-test PRIVATE PTA)
 
 # --------------------------------------------------
 # rdmap-test
+# DISABLED for now: it contains just a one that case
+# that does nothing and even though it behaved weirdly
+# on some machines for no reason.
 # --------------------------------------------------
-add_executable(rdmap-test rdmap-test.cpp)
-target_link_libraries(rdmap-test PRIVATE DGAnalysis)
-add_test(rdmap-test rdmap-test)
-add_dependencies(check rdmap-test)
-target_link_libraries(rdmap-test PRIVATE RD)
-target_include_directories(rdmap-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
+# add_executable(rdmap-test rdmap-test.cpp)
+# target_link_libraries(rdmap-test PRIVATE DGAnalysis)
+# add_test(rdmap-test rdmap-test)
+# add_dependencies(check rdmap-test)
+# target_link_libraries(rdmap-test PRIVATE RD)
+# target_include_directories(rdmap-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 
 # --------------------------------------------------
 # reaching-definitions-test
