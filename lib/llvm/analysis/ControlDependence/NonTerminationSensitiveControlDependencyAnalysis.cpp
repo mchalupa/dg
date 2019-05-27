@@ -2,7 +2,9 @@
 #include "Function.h"
 #include "Block.h"
 
-#include <llvm/IR/Module.h>
+namespace llvm {
+    class Function;
+}
 
 #include <algorithm>
 #include <iostream>
