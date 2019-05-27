@@ -515,7 +515,6 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
         for (auto & block : *function) {
             for (auto & instruction : block) {
                 if (isa<llvm::CallInst>(instruction)) {
-                    instruction.getFunction();
                     callInstruction.insert(&instruction);
                 }
             }
