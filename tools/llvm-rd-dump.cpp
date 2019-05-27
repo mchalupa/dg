@@ -328,6 +328,12 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD) {
                 printf("\tNODE%p->NODE%p [style=dotted]",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
+            if (node->isUse()) {
+                for (RDNode *def : RD->getReachingDefinitions(node)) {
+                    printf("\tNODE%p->NODE%p [style=dotted color=blue]",
+                           static_cast<void*>(def), static_cast<void*>(node));
+                }
+            }
         }
         printf("label=\"\\nblock: %p\\n", *I);
         dumpDDIMap(*I, true);
@@ -478,9 +484,12 @@ int main(int argc, char *argv[])
     LLVMReachingDefinitions RD(M, &PTA, opts);
     tm.start();
     if (rda == RdaType::SSA) {
+        llvm::errs() << "INFO: Running SSA RD analysis\n";
         RD.run<dg::analysis::rd::SSAReachingDefinitionsAnalysis>();
-    } else
+    } else {
+        llvm::errs() << "INFO: Running data-flow RD analysis\n";
         RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
+    }
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");
 
