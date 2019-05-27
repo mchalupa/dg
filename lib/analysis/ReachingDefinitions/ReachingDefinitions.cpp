@@ -347,10 +347,12 @@ std::vector<RDNode *>
 SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
     assert(from->getBBlock() && "The node has no BBlock");
 
-    DefinitionsMap<RDNode> defs;
+    DefinitionsMap<RDNode> defs; // auxiliary map for finding defintions
+    std::set<RDNode *> foundDefs; // definitions that we found
 
     ///
     // get the definitions from this block
+    // (this is basically the LVN)
     ///
     auto block = from->getBBlock();
     for (auto node : block->getNodes()) {
@@ -358,7 +360,6 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
         if (node == from)
             break;
 
-        // this is basically the LVN
         for (auto& ds : node->overwrites) {
             defs.update(ds, node);
         }
@@ -367,12 +368,17 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
         for (auto& ds : node->defs) {
             if (ds.target->isUnknown()) {
                 defs.addAll(node);
-                // also add the definition as a proper target for Gvn
                 defs.add({ds.target, 0, Offset::UNKNOWN}, node);
                 continue;
             }
 
             defs.add(ds, node);
+        }
+    }
+
+    for (auto& it : defs) {
+        for (auto& nds : it.second) {
+            foundDefs.insert(nds.second.begin(), nds.second.end());
         }
     }
 
@@ -382,26 +388,27 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
     std::set<RDBBlock *> visitedBlocks; // for terminating the search
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it
-    for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-        findAllReachingDefinitions(defs, *I, visitedBlocks);
+    if (auto singlePred = block->getSinglePredecessor()) {
+        findAllReachingDefinitions(defs, singlePred, foundDefs, visitedBlocks);
+    } else {
+        // for multiple predecessors, we must create a copy of the
+        // definitions that we have not found yet
+        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
+            auto tmpDefs = defs;
+            findAllReachingDefinitions(tmpDefs, *I, foundDefs, visitedBlocks);
+        }
     }
 
     ///
     // Gather all the defintions
     ///
-    std::set<RDNode *> ret;
-    for (auto& it : defs) {
-        for (auto& it2 : it.second) {
-            ret.insert(it2.second.begin(), it2.second.end());
-        }
-    }
-
-    return gatherNonPhisDefs(ret);
+    return gatherNonPhisDefs(foundDefs);
 }
 
 void
 SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RDNode>& defs,
                                                            RDBBlock *from,
+                                                           std::set<RDNode *>& foundDefs,
                                                            std::set<RDBBlock *>& visitedBlocks) {
     if (!from)
         return;
@@ -414,6 +421,9 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RDNode
         if (!defs.definesTarget(it.first)) {
             // just copy the definitions
             defs.add(it.first, it.second);
+            for (auto& nds : it.second) {
+                foundDefs.insert(nds.second.begin(), nds.second.end());
+            }
             continue;
         }
 
@@ -429,8 +439,13 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RDNode
     }
 
     // recurs into predecessors
-    for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
-        findAllReachingDefinitions(defs, *I, visitedBlocks);
+    if (auto singlePred = from->getSinglePredecessor()) {
+        findAllReachingDefinitions(defs, singlePred, foundDefs, visitedBlocks);
+    } else {
+        for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
+            auto tmpDefs = defs;
+            findAllReachingDefinitions(tmpDefs, *I, foundDefs, visitedBlocks);
+        }
     }
 }
 

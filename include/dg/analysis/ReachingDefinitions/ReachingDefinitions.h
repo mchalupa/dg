@@ -284,6 +284,7 @@ class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RDNode *> findAllReachingDefinitions(RDNode *from);
     void findAllReachingDefinitions(DefinitionsMap<RDNode>& defs, RDBBlock *from,
+                                    std::set<RDNode *>& nodes,
                                     std::set<RDBBlock *>& visitedBlocks);
 
     // all phi nodes added during transformation to SSA
