@@ -402,7 +402,7 @@ public:
     bool isHeap() const { return is_heap; }
 
     void setIsGlobal() { is_global = true; }
-    bool isGlobal() { return is_global; }
+    bool isGlobal() const { return is_global; }
 };
 
 class PSNodeMemcpy : public PSNode {
