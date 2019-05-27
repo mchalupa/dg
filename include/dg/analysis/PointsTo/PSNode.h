@@ -382,11 +382,12 @@ class PSNodeAlloc : public PSNode {
     bool is_heap = false;
     // is it a global value?
     bool is_global = false;
+    // is it a temporary value? (its address cannot be taken)
+    bool is_temporary = false;
 
 public:
-    PSNodeAlloc(unsigned id, PSNodeType t)
-    :PSNode(id, t)
-    {
+    PSNodeAlloc(unsigned id, PSNodeType t, bool isTemp = false)
+    : PSNode(id, t), is_temporary(isTemp) {
         assert(t == PSNodeType::ALLOC || t == PSNodeType::DYN_ALLOC);
     }
 
@@ -403,6 +404,22 @@ public:
 
     void setIsGlobal() { is_global = true; }
     bool isGlobal() const { return is_global; }
+
+    bool isTemporary() const { return is_temporary; }
+};
+
+class PSNodeTemporaryAlloc : public PSNodeAlloc {
+    PSNodeTemporaryAlloc(unsigned id)
+    : PSNodeAlloc(id, PSNodeType::ALLOC, /* isTemp */ true) {}
+
+    static PSNodeTemporaryAlloc *get(PSNode *n) {
+        if (auto alloc = PSNodeAlloc::get(n)) {
+            return alloc->isTemporary() ?
+                    static_cast<PSNodeTemporaryAlloc *>(n) : nullptr;
+        }
+
+        return nullptr;
+    }
 };
 
 class PSNodeMemcpy : public PSNode {
