@@ -15,10 +15,9 @@ namespace llvm {
 namespace dg {
 namespace cd {
 
-struct Function;
+class Function;
 
-struct Block
-{
+class Block {
 public:
 
     Block(bool callReturn = false):callReturn(callReturn) {}

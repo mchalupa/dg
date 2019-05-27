@@ -9,8 +9,7 @@ namespace cd {
 
 class Block;
 
-struct Function
-{
+class Function {
 public:
 
     Function();
