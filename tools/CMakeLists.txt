@@ -77,13 +77,13 @@ if (LLVM_DG)
 				PRIVATE ${llvm_support})
 
         add_executable(llvm-thread-regions-dump llvm-thread-regions-dump.cpp)
-        target_link_libraries(llvm-thread-regions-dump PRIVATE ThreadRegions
+        target_link_libraries(llvm-thread-regions-dump PRIVATE dgThreadRegions
                                                        PRIVATE ${llvm_core}
                                                        PRIVATE ${llvm_irreader}
                                                        PRIVATE ${llvm_support})
 
         add_executable(llvm-ntscd-dump llvm-ntscd-dump.cpp)
-        target_link_libraries(llvm-ntscd-dump PRIVATE ControlDependence
+        target_link_libraries(llvm-ntscd-dump PRIVATE dgControlDependence
                                               PRIVATE ${llvm_core}
                                               PRIVATE ${llvm_irreader}
                                               PRIVATE ${llvm_analysis}

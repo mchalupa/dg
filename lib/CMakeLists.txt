@@ -69,18 +69,16 @@ target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
 			PUBLIC RD)
 
-add_library(ThreadRegions SHARED "")
+add_library(dgThreadRegions SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ThreadRegions/CMakeLists.txt)
-target_include_directories(ThreadRegions
+target_include_directories(dgThreadRegions
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ThreadRegions)
-target_link_libraries(ThreadRegions
-    INTERFACE LLVMpta)
+target_link_libraries(dgThreadRegions INTERFACE LLVMpta)
 
-add_library(ControlDependence SHARED "")
+add_library(dgControlDependence SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ControlDependence/CMakeLists.txt)
-target_link_libraries(ControlDependence
-    INTERFACE LLVMpta)
+target_link_libraries(dgControlDependence INTERFACE LLVMpta)
 
 add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h
@@ -122,8 +120,8 @@ if (APPLE)
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
 				PUBLIC LLVMrd
-				PUBLIC ThreadRegions
-				PUBLIC ControlDependence
+				PUBLIC dgThreadRegions
+				PUBLIC dgControlDependence
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_irreader}
@@ -133,11 +131,11 @@ else()
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
 				PUBLIC LLVMrd
-				PUBLIC ThreadRegions
-				PUBLIC ControlDependence)
+				PUBLIC dgThreadRegions
+				PUBLIC dgControlDependence)
 endif(APPLE)
 
-install(TARGETS LLVMdg ThreadRegions LLVMpta LLVMrd PTA RD DGAnalysis
+install(TARGETS LLVMdg dgThreadRegions dgControlDependence LLVMpta LLVMrd PTA RD DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)

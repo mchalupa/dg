@@ -1,4 +1,4 @@
-target_sources(ThreadRegions
+target_sources(dgThreadRegions
 		PRIVATE
             ${CMAKE_CURRENT_LIST_DIR}/Node.cpp
             ${CMAKE_CURRENT_LIST_DIR}/GeneralNode.cpp

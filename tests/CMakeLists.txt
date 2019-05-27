@@ -134,7 +134,7 @@ target_compile_definitions(thread-regions-test
         SIMPLE_FILE="${CMAKE_CURRENT_BINARY_DIR}/simple.ll"
         PTHREAD_EXIT_FILE="${CMAKE_CURRENT_BINARY_DIR}/pthread_exit.ll")
 
-target_link_libraries(thread-regions-test PRIVATE ThreadRegions
+target_link_libraries(thread-regions-test PRIVATE dgThreadRegions
                                           PRIVATE ${llvm_core}
                                           PRIVATE ${llvm_irreader}
                                           PRIVATE ${llvm_support})

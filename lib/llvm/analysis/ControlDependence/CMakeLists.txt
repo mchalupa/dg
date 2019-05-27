@@ -1,7 +1,7 @@
-target_include_directories(ControlDependence
+target_include_directories(dgControlDependence
     PUBLIC ${CMAKE_CURRENT_LIST_DIR})
 
-target_sources(ControlDependence
+target_sources(dgControlDependence
     PRIVATE ${CMAKE_CURRENT_LIST_DIR}/Block.cpp
             ${CMAKE_CURRENT_LIST_DIR}/Function.cpp
             ${CMAKE_CURRENT_LIST_DIR}/GraphBuilder.cpp
