@@ -14,7 +14,7 @@ namespace pta {
 
 class PSNode;
 
-class SingleBitvectorPointsToSet {
+class PointerIdPointsToSet {
 
     ADT::SparseBitvector pointers;
     static std::map<Pointer, size_t> ids; //pointers are numbered 1, 2, ...
@@ -36,8 +36,8 @@ class SingleBitvectorPointsToSet {
     }
 
 public:
-    SingleBitvectorPointsToSet() = default;
-    SingleBitvectorPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+    PointerIdPointsToSet() = default;
+    PointerIdPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
 
     bool add(PSNode *target, Offset off) {
         return add(Pointer(target,off));
@@ -53,7 +53,7 @@ public:
         return !pointers.set(getPointerID(ptr));
     }
 
-    bool add(const SingleBitvectorPointsToSet& S) {
+    bool add(const PointerIdPointsToSet& S) {
         return pointers.set(S.pointers);
     }
 
@@ -139,7 +139,7 @@ public:
         return pointers.size();
     }
 
-    void swap(SingleBitvectorPointsToSet& rhs) {
+    void swap(PointerIdPointsToSet& rhs) {
         pointers.swap(rhs.pointers);
     }
 
@@ -174,7 +174,7 @@ public:
             return !operator==(rhs);
         }
 
-        friend class SingleBitvectorPointsToSet;
+        friend class PointerIdPointsToSet;
     };
 
     const_iterator begin() const { return const_iterator(pointers); }

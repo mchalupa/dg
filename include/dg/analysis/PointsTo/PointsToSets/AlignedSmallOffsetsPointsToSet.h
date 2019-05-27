@@ -15,7 +15,7 @@ namespace pta {
 
 class PSNode;
 
-class AlignedOffsetsPointsToSet {
+class AlignedSmallOffsetsPointsToSet {
 
     static const unsigned int multiplier = 4; //offsets that are divisible by this value are stored in bitvector up to 62 * multiplier
 
@@ -56,8 +56,8 @@ class AlignedOffsetsPointsToSet {
     }
 
 public:
-    AlignedOffsetsPointsToSet() = default;
-    AlignedOffsetsPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+    AlignedSmallOffsetsPointsToSet() = default;
+    AlignedSmallOffsetsPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
 
     bool add(PSNode *target, Offset off) {
         if(has({target, Offset::UNKNOWN})) {
@@ -76,7 +76,7 @@ public:
         return add(ptr.target, ptr.offset);
     }
 
-    bool add(const AlignedOffsetsPointsToSet& S) {
+    bool add(const AlignedSmallOffsetsPointsToSet& S) {
         bool changed = pointers.set(S.pointers);
         for (const auto& ptr : S.oddPointers) {
             changed |= oddPointers.insert(ptr).second;
@@ -183,7 +183,7 @@ public:
         return pointers.size() + oddPointers.size();
     }
 
-    void swap(AlignedOffsetsPointsToSet& rhs) {
+    void swap(AlignedSmallOffsetsPointsToSet& rhs) {
         pointers.swap(rhs.pointers);
         oddPointers.swap(rhs.oddPointers);
     }
@@ -251,7 +251,7 @@ public:
             return !operator==(rhs);
         }
 
-        friend class AlignedOffsetsPointsToSet;
+        friend class AlignedSmallOffsetsPointsToSet;
     };
 
     const_iterator begin() const { return const_iterator(pointers, oddPointers); }

@@ -14,7 +14,7 @@ namespace pta {
 // declare PSNode
 class PSNode;
 
-class PointsToSet {
+class OffsetsSetPointsToSet {
     // each pointer is a pair (PSNode *, {offsets}),
     // so we represent them coinciesly this way
     using ContainerT = std::map<PSNode *, ADT::SparseBitvector>;
@@ -38,8 +38,8 @@ class PointsToSet {
     }
 
 public:
-    PointsToSet() = default;
-    PointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+    OffsetsSetPointsToSet() = default;
+    OffsetsSetPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
 
     bool add(PSNode *target, Offset off) {
         if (off.isUnknown())
@@ -66,7 +66,7 @@ public:
     }
 
     // union (unite S into this set)
-    bool add(const PointsToSet& S) {
+    bool add(const OffsetsSetPointsToSet& S) {
         bool changed = false;
         for (auto& it : S.pointers) {
             changed |= pointers[it.first].set(it.second);
@@ -169,7 +169,7 @@ public:
         return num;
     }
 
-    void swap(PointsToSet& rhs) { pointers.swap(rhs.pointers); }
+    void swap(OffsetsSetPointsToSet& rhs) { pointers.swap(rhs.pointers); }
 
     class const_iterator {
         typename ContainerT::const_iterator container_it;
@@ -213,7 +213,7 @@ public:
             return !operator==(rhs);
         }
 
-        friend class PointsToSet;
+        friend class OffsetsSetPointsToSet;
     };
 
     const_iterator begin() const { return const_iterator(pointers); }

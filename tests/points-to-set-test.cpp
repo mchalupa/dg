@@ -9,13 +9,14 @@ using dg::analysis::pta::PSNode;
 using dg::analysis::pta::PSNodeType;
 using dg::analysis::pta::Pointer;
 using dg::analysis::pta::PointerSubgraph;
-using dg::analysis::pta::PointsToSet;
+
+using dg::analysis::pta::OffsetsSetPointsToSet;
 using dg::analysis::pta::SimplePointsToSet;
 using dg::analysis::pta::SeparateOffsetsPointsToSet;
-using dg::analysis::pta::SingleBitvectorPointsToSet;
 using dg::analysis::pta::SmallOffsetsPointsToSet;
-using dg::analysis::pta::AlignedOffsetsPointsToSet;
-using dg::analysis::pta::AlignedBitvectorPointsToSet;
+using dg::analysis::pta::AlignedSmallOffsetsPointsToSet;
+using dg::analysis::pta::PointerIdPointsToSet;
+using dg::analysis::pta::AlignedPointerIdPointsToSet;
 
 template<typename PTSetT>
 void queryingEmptySet() {
@@ -257,90 +258,90 @@ void testSmallOverflowBehavior() { //only works for SmallOffsetsPTSet
 }
 
 TEST_CASE("Querying empty set", "PointsToSet") {
-    queryingEmptySet<PointsToSet>();
+    queryingEmptySet<OffsetsSetPointsToSet>();
     queryingEmptySet<SimplePointsToSet>();
     queryingEmptySet<SeparateOffsetsPointsToSet>();
-    queryingEmptySet<SingleBitvectorPointsToSet>();
+    queryingEmptySet<PointerIdPointsToSet>();
     queryingEmptySet<SmallOffsetsPointsToSet>();
-    queryingEmptySet<AlignedOffsetsPointsToSet>();
-    queryingEmptySet<AlignedBitvectorPointsToSet>();
+    queryingEmptySet<AlignedSmallOffsetsPointsToSet>();
+    queryingEmptySet<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Add an element", "PointsToSet") {
-    addAnElement<PointsToSet>();
+    addAnElement<OffsetsSetPointsToSet>();
     addAnElement<SimplePointsToSet>();
     addAnElement<SeparateOffsetsPointsToSet>();
-    addAnElement<SingleBitvectorPointsToSet>();
+    addAnElement<PointerIdPointsToSet>();
     addAnElement<SmallOffsetsPointsToSet>();
-    addAnElement<AlignedOffsetsPointsToSet>();
-    addAnElement<AlignedBitvectorPointsToSet>();
+    addAnElement<AlignedSmallOffsetsPointsToSet>();
+    addAnElement<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Add few elements", "PointsToSet") {
-    addFewElements<PointsToSet>();
+    addFewElements<OffsetsSetPointsToSet>();
     addFewElements<SimplePointsToSet>();
     addFewElements<SeparateOffsetsPointsToSet>();
-    addFewElements<SingleBitvectorPointsToSet>();
+    addFewElements<PointerIdPointsToSet>();
     addFewElements<SmallOffsetsPointsToSet>();
-    addFewElements<AlignedOffsetsPointsToSet>();
-    addFewElements<AlignedBitvectorPointsToSet>();
+    addFewElements<AlignedSmallOffsetsPointsToSet>();
+    addFewElements<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Add few elements 2", "PointsToSet") {
-    addFewElements2<PointsToSet>();
+    addFewElements2<OffsetsSetPointsToSet>();
     addFewElements2<SimplePointsToSet>();
     addFewElements2<SeparateOffsetsPointsToSet>();
-    addFewElements2<SingleBitvectorPointsToSet>();
+    addFewElements2<PointerIdPointsToSet>();
     addFewElements2<SmallOffsetsPointsToSet>();
-    addFewElements2<AlignedOffsetsPointsToSet>();
-    addFewElements2<AlignedBitvectorPointsToSet>();
+    addFewElements2<AlignedSmallOffsetsPointsToSet>();
+    addFewElements2<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Merge points-to sets", "PointsToSet") {
-    mergePointsToSets<PointsToSet>();
+    mergePointsToSets<OffsetsSetPointsToSet>();
     mergePointsToSets<SimplePointsToSet>();
     mergePointsToSets<SeparateOffsetsPointsToSet>();
-    mergePointsToSets<SingleBitvectorPointsToSet>();
+    mergePointsToSets<PointerIdPointsToSet>();
     mergePointsToSets<SmallOffsetsPointsToSet>();
-    mergePointsToSets<AlignedOffsetsPointsToSet>();
-    mergePointsToSets<AlignedBitvectorPointsToSet>();
+    mergePointsToSets<AlignedSmallOffsetsPointsToSet>();
+    mergePointsToSets<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Remove element", "PointsToSet") { //SeparateOffsetsPointsToSet has different remove behavior, it isn't tested here
-    removeElement<PointsToSet>();
+    removeElement<OffsetsSetPointsToSet>();
     removeElement<SimplePointsToSet>();
-    removeElement<SingleBitvectorPointsToSet>();
+    removeElement<PointerIdPointsToSet>();
     removeElement<SmallOffsetsPointsToSet>();
-    removeElement<AlignedOffsetsPointsToSet>();
-    removeElement<AlignedBitvectorPointsToSet>();   
+    removeElement<AlignedSmallOffsetsPointsToSet>();
+    removeElement<AlignedPointerIdPointsToSet>();   
 }
 
 TEST_CASE("Remove few elements", "PointsToSet") { //SeparateOffsetsPointsToSet has different remove behavior, it isn't tested here
-    removeFewElements<PointsToSet>();
+    removeFewElements<OffsetsSetPointsToSet>();
     removeFewElements<SimplePointsToSet>();
-    removeFewElements<SingleBitvectorPointsToSet>();
+    removeFewElements<PointerIdPointsToSet>();
     removeFewElements<SmallOffsetsPointsToSet>();
-    removeFewElements<AlignedOffsetsPointsToSet>();
-    removeFewElements<AlignedBitvectorPointsToSet>();
+    removeFewElements<AlignedSmallOffsetsPointsToSet>();
+    removeFewElements<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Remove all elements pointing to a target", "PointsToSet") { //SeparateOffsetsPointsToSet has different behavior, it isn't tested here
-    removeAnyTest<PointsToSet>();
+    removeAnyTest<OffsetsSetPointsToSet>();
     removeAnyTest<SimplePointsToSet>();
-    removeAnyTest<SingleBitvectorPointsToSet>();
+    removeAnyTest<PointerIdPointsToSet>();
     removeAnyTest<SmallOffsetsPointsToSet>();
-    removeAnyTest<AlignedOffsetsPointsToSet>();
-    removeAnyTest<AlignedBitvectorPointsToSet>();
+    removeAnyTest<AlignedSmallOffsetsPointsToSet>();
+    removeAnyTest<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Test various points-to functions", "PointsToSet") {
-    pointsToTest<PointsToSet>();
+    pointsToTest<OffsetsSetPointsToSet>();
     pointsToTest<SimplePointsToSet>();
     pointsToTest<SeparateOffsetsPointsToSet>();
-    pointsToTest<SingleBitvectorPointsToSet>();
+    pointsToTest<PointerIdPointsToSet>();
     pointsToTest<SmallOffsetsPointsToSet>();
-    pointsToTest<AlignedOffsetsPointsToSet>();
-    pointsToTest<AlignedBitvectorPointsToSet>();
+    pointsToTest<AlignedSmallOffsetsPointsToSet>();
+    pointsToTest<AlignedPointerIdPointsToSet>();
 }
 
 TEST_CASE("Test small overflow set behavior", "PointsToSet") {
@@ -348,6 +349,6 @@ TEST_CASE("Test small overflow set behavior", "PointsToSet") {
 }
 
 TEST_CASE("Test aligned overflow set behavior", "PointsToSet") {
-    testAlignedOverflowBehavior<AlignedOffsetsPointsToSet>();
-    testAlignedOverflowBehavior<AlignedBitvectorPointsToSet>();
+    testAlignedOverflowBehavior<AlignedSmallOffsetsPointsToSet>();
+    testAlignedOverflowBehavior<AlignedPointerIdPointsToSet>();
 }

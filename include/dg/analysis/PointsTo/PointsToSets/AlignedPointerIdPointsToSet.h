@@ -15,7 +15,7 @@ namespace pta {
 
 class PSNode;
 
-class AlignedBitvectorPointsToSet {
+class AlignedPointerIdPointsToSet {
 
     static const unsigned int multiplier = 4;
 
@@ -44,8 +44,8 @@ class AlignedBitvectorPointsToSet {
     }
 
 public:
-    AlignedBitvectorPointsToSet() = default;
-    AlignedBitvectorPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+    AlignedPointerIdPointsToSet() = default;
+    AlignedPointerIdPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
 
     bool add(PSNode *target, Offset off) {
         return add(Pointer(target,off));
@@ -64,7 +64,7 @@ public:
         return overflowSet.insert(ptr).second;
     }
 
-    bool add(const AlignedBitvectorPointsToSet& S) {
+    bool add(const AlignedPointerIdPointsToSet& S) {
         bool changed = pointers.set(S.pointers);
         for (const auto& ptr : S.overflowSet) {
             changed |= overflowSet.insert(ptr).second;
@@ -178,7 +178,7 @@ public:
         return pointers.size() + overflowSet.size();
     }
 
-    void swap(AlignedBitvectorPointsToSet& rhs) {
+    void swap(AlignedPointerIdPointsToSet& rhs) {
         pointers.swap(rhs.pointers);
         overflowSet.swap(rhs.overflowSet);
     }
@@ -243,7 +243,7 @@ public:
             return !operator==(rhs);
         }
 
-        friend class AlignedBitvectorPointsToSet;
+        friend class AlignedPointerIdPointsToSet;
     };
 
     const_iterator begin() const { return const_iterator(pointers, overflowSet); }
