@@ -29,6 +29,7 @@ public:
     using ControlEdgesT = EdgesT;
     using DataEdgesT = EdgesT;
     using UseEdgesT = EdgesT;
+    using SummaryEdgesT = EdgesT;
     using InterferenceEdges = EdgesT;
 
     // to be able to reference the KeyT and DG
@@ -41,6 +42,8 @@ public:
     using const_data_iterator = typename DataEdgesT::const_iterator;
     using use_iterator = typename DataEdgesT::iterator;
     using const_use_iterator = typename DataEdgesT::const_iterator;
+    using summary_iterator = typename SummaryEdgesT::iterator;
+    using const_summary_iterator = typename SummaryEdgesT::const_iterator;
     using interference_iterator = typename InterferenceEdges::iterator;
     using const_interference_iterator = typename InterferenceEdges::const_iterator;
 
@@ -80,6 +83,11 @@ public:
     {
         return _addBidirectionalEdge(static_cast<NodeT *>(this), n,
                                      useEdges, n->userEdges);
+    }
+    bool addSummaryEdge(NodeT *n)
+    {
+        return _addBidirectionalEdge(static_cast<NodeT *>(this), n,
+                                     summaryEdges, n->revSummaryEdges);
     }
 
     bool addInterferenceDependence(NodeT *n)
@@ -277,12 +285,26 @@ public:
     use_iterator user_end() { return userEdges.end(); }
     const_use_iterator user_end() const { return userEdges.end(); }
 
+    // summary edges iterators
+    summary_iterator summary_begin(void) { return summaryEdges.begin(); }
+    const_summary_iterator summary_begin(void) const { return summaryEdges.begin(); }
+    summary_iterator summary_end(void) { return summaryEdges.end(); }
+    const_summary_iterator summary_end(void) const { return summaryEdges.end(); }
+
+    // reverse summary dependency edges iterators
+    summary_iterator rev_summary_begin(void) { return revSummaryEdges.begin(); }
+    const_summary_iterator rev_summary_begin(void) const { return revSummaryEdges.begin(); }
+    summary_iterator rev_summary_end(void) { return revSummaryEdges.end(); }
+    const_summary_iterator rev_summary_end(void) const { return revSummaryEdges.end(); }
+
     size_t getControlDependenciesNum() const { return controlDepEdges.size(); }
     size_t getRevControlDependenciesNum() const { return revControlDepEdges.size(); }
     size_t getDataDependenciesNum() const { return dataDepEdges.size(); }
     size_t getRevDataDependenciesNum() const { return revDataDepEdges.size(); }
     size_t getUseDependenciesNum() const { return useEdges.size(); }
     size_t getUserDependenciesNum() const { return userEdges.size(); }
+    size_t getSummaryEdgesNum() const { return summaryEdges.size(); }
+    size_t getRevSummaryEdgesNum() const { return revSummaryEdges.size(); }
 
 #ifdef ENABLE_CFG
     BBlock<NodeT> *getBBlock() { return basicBlock; }
@@ -401,12 +423,14 @@ private:
     ControlEdgesT controlDepEdges;
     DataEdgesT dataDepEdges;
     UseEdgesT useEdges;
+    SummaryEdgesT summaryEdges;
     InterferenceEdges interferenceDepEdges;
 
     // Nodes that have control/dep edge to this node
     ControlEdgesT revControlDepEdges;
     DataEdgesT revDataDepEdges;
     UseEdgesT userEdges;
+    SummaryEdgesT revSummaryEdges;
     InterferenceEdges revInterferenceDepEdges;
 
     // a node can have more subgraphs (i. e. function pointers)
