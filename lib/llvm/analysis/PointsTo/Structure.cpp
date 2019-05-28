@@ -141,6 +141,9 @@ PSNodesSeq LLVMPointerSubgraphBuilder::buildBlockStructure(const llvm::BasicBloc
             // undeclared funcs do not have paired nodes
             cur.first->getPairedNode()) {
             last = cur.first->getPairedNode();
+        } else if (llvm::isa<llvm::InsertElementInst>(&Inst)) {
+            assert(cur.first->getPairedNode() && "No paired node");
+            last = cur.first->getPairedNode();
         } else
             last = cur.second;
     }

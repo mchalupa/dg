@@ -261,6 +261,8 @@ private:
     PSNode *createPtrToInt(const llvm::Instruction *Inst);
     PSNode *createIntToPtr(const llvm::Instruction *Inst);
     PSNode *createAsm(const llvm::Instruction *Inst);
+    PSNodesSeq createInsertElement(const llvm::Instruction *Inst);
+    PSNodesSeq createExtractElement(const llvm::Instruction *Inst);
 
     PSNode *createIrrelevantInst(const llvm::Value *,
                                   bool build_uses = false);

@@ -492,6 +492,10 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             else
                 node = createUnknown(&Inst);
             break;
+        case Instruction::InsertElement:
+            return createInsertElement(&Inst);
+        case Instruction::ExtractElement:
+            return createExtractElement(&Inst);
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");

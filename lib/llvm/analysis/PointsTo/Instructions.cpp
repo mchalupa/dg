@@ -304,8 +304,6 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     // points-to information though)
     // XXX is that needed?
 
-    // DONT: if(retVal->getType()->isPointerTy())
-    // we have ptrtoint which break the types...
     if (retVal) {
         // A struct is being returned. In this case,
         // return the address of the local variable
@@ -319,7 +317,15 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
             if (!op1) {
                 llvm::errs() << "WARN: Unsupported return of an aggregate type\n";
                 llvm::errs() << *Inst << "\n";
-
+                op1 = UNKNOWN_MEMORY;
+            }
+        } else if (retVal->getType()->isVectorTy()) {
+            op1 = getOperand(retVal);
+            if (auto alloc = PSNodeAlloc::get(op1)) {
+                assert(alloc->isTemporary());
+            } else {
+                llvm::errs() << "WARN: Unsupported return of a vector\n";
+                llvm::errs() << *Inst << "\n";
                 op1 = UNKNOWN_MEMORY;
             }
         }
@@ -341,6 +347,81 @@ PSNode *LLVMPointerSubgraphBuilder::createReturn(const llvm::Instruction *Inst)
     addNode(Inst, node);
 
     return node;
+}
+
+PSNodesSeq
+LLVMPointerSubgraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
+    PSNodeAlloc *tempAlloc = nullptr;
+    PSNode *lastNode = nullptr;
+    if (llvm::isa<llvm::UndefValue>(Inst->getOperand(0))) {
+        tempAlloc = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        tempAlloc->setIsTemporary();
+        addNode(Inst, tempAlloc);
+        lastNode = tempAlloc;
+    } else {
+        auto fromTempAlloc = PSNodeAlloc::get(getOperand(Inst->getOperand(0)));
+        assert(fromTempAlloc);
+        assert(fromTempAlloc->isTemporary());
+
+        tempAlloc = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        tempAlloc->setIsTemporary();
+        assert(tempAlloc);
+        addNode(Inst, tempAlloc);
+
+        // copy old temporary allocation to the new temp allocation
+        // (this is how insertelem works)
+        auto cpy = PS.create(PSNodeType::MEMCPY, fromTempAlloc,
+                             tempAlloc, Offset::UNKNOWN);
+        tempAlloc->addSuccessor(cpy);
+        lastNode = cpy;
+    }
+
+    assert(tempAlloc && "Do not have the operand 0");
+    assert(lastNode);
+
+    // write the pointers to the temporary allocation representing
+    // the operand of insertelement
+    auto ptr = getOperand(Inst->getOperand(1));
+    auto idx = getConstantValue(Inst->getOperand(2));
+    assert(idx != ~((uint64_t) 0) && "Invalid index");
+
+    auto Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
+    auto elemSize = getAllocatedSize(Ty->getContainedType(0), DL);
+    // also, set the size of the temporary allocation
+    tempAlloc->setSize(getAllocatedSize(Ty, DL));
+
+    auto GEP = PS.create(PSNodeType::GEP, tempAlloc, elemSize*idx);
+    auto S = PS.create(PSNodeType::STORE, ptr, GEP);
+
+    lastNode->addSuccessor(GEP);
+    GEP->addSuccessor(S);
+
+    // this is a hack same as for call-inst.
+    // We should really change the design here...
+    tempAlloc->setPairedNode(S);
+
+    return {tempAlloc, S};
+}
+
+PSNodesSeq
+LLVMPointerSubgraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
+    auto op = getOperand(Inst->getOperand(0));
+    assert(op && "Do not have the operand 0");
+
+    auto idx = getConstantValue(Inst->getOperand(1));
+    assert(idx != ~((uint64_t) 0) && "Invalid index");
+
+    auto Ty = llvm::cast<llvm::ExtractElementInst>(Inst)->getVectorOperandType();
+    auto elemSize = getAllocatedSize(Ty->getContainedType(0), DL);
+
+    auto GEP = PS.create(PSNodeType::GEP, op, elemSize*idx);
+    auto L = PS.create(PSNodeType::LOAD, GEP);
+
+    GEP->addSuccessor(L);
+
+    addNode(Inst, {GEP, L});
+
+    return {GEP, L};
 }
 
 } // namespace pta

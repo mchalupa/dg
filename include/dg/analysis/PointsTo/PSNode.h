@@ -405,9 +405,11 @@ public:
     void setIsGlobal() { is_global = true; }
     bool isGlobal() const { return is_global; }
 
+    void setIsTemporary() { is_temporary = true; }
     bool isTemporary() const { return is_temporary; }
 };
 
+#if 0
 class PSNodeTemporaryAlloc : public PSNodeAlloc {
     PSNodeTemporaryAlloc(unsigned id)
     : PSNodeAlloc(id, PSNodeType::ALLOC, /* isTemp */ true) {}
@@ -421,6 +423,7 @@ class PSNodeTemporaryAlloc : public PSNodeAlloc {
         return nullptr;
     }
 };
+#endif
 
 class PSNodeMemcpy : public PSNode {
     Offset len;
