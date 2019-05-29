@@ -55,8 +55,12 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 
     if (llvm::isa<llvm::Function>(val)) {
         ro << "FUNC " << val->getName();
-    } else if (llvm::isa<llvm::BasicBlock>(val)) {
+    } else if (auto B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
+        ro << B->getParent()->getName() << "::\n";
         ro << "label " << val->getName();
+    } else if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
+        ro << I->getParent()->getParent()->getName() << "::\n";
+        ro << *val;
     } else {
         ro << *val;
     }
