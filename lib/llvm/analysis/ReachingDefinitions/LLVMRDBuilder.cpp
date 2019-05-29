@@ -245,7 +245,18 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
 
 RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
 {
-    return getNode(val);
+    auto op = getNode(val);
+    if (!op) {
+        // Allocations are targets of pointers. When we are creating
+        // stores/loads, we iterate over points-to set and get the allocations.
+        // But we may have not the function with allocation created yet,
+        // so create it now if such a case occurs.
+        if (auto I = llvm::dyn_cast<llvm::AllocaInst>(val)) {
+            op = createAlloc(I);
+        }
+    }
+    assert(op && "Do not have an operand");
+    return op;
 }
 
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
