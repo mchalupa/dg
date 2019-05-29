@@ -267,7 +267,7 @@ private:
         for (NodeT *n : BB->getNodes()) {
             // print nodes in BB, edges will be printed later
             out << Ind << "\tNODE" << n
-                << " [label=\"" << n->getKey() << "\"]\n";
+                << " [shape=rect label=\"" << n->getKey() << "\"]\n";
         }
 
         out << Ind << "} /* cluster_bb_" << BB << " */\n\n";
