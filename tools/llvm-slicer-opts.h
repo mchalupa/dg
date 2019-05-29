@@ -25,6 +25,8 @@ struct SlicerOptions {
 
     // do we perform forward slicing?
     bool forwardSlicing{false};
+    // do we perform two-pahse slicing?
+    bool twoPhaseSlicing{false};
 
     std::string slicingCriteria{};
     std::string secondarySlicingCriteria{};

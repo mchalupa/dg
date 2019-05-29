@@ -53,6 +53,7 @@ struct LLVMDependenceGraphOptions {
     bool terminationSensitive{true};
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
+    bool summaryEdges{true};
     bool verifyGraph{true};
 
     bool threads{false};
@@ -167,6 +168,10 @@ public:
             _runInterferenceDependenceAnalysis();
             _runForkJoinAnalysis();
             _runCriticalSectionAnalysis();
+        }
+
+        if (_options.summaryEdges) {
+            _dg->computeSummaryEdges();
         }
 
         // verify if the graph is built correctly

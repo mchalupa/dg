@@ -38,7 +38,7 @@ namespace dg {
 
 static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMDependenceGraph *funcGraph)
 {
-    LLVMDGParameters *formal = funcGraph->getParameters();
+    LLVMDGFormalParameters *formal = LLVMDGFormalParameters::get(funcGraph->getParameters());
     if (!formal)
         return;
 
@@ -57,6 +57,9 @@ static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMD
         }
         assert(pin && pout);
 
+        formal->formalToActual[p.in][callNode] = act->in;
+        formal->formalToActual[p.out][callNode] = act->out;
+
         // connect the globals with edges
         pin->addDataDependence(p.in);
         p.out->addDataDependence(pout);
@@ -69,7 +72,7 @@ static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMD
 
 static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMDependenceGraph *funcGraph)
 {
-    LLVMDGParameters *formal = funcGraph->getParameters();
+    LLVMDGFormalParameters *formal = LLVMDGFormalParameters::get(funcGraph->getParameters());
     if (!formal)
         return;
 
@@ -92,6 +95,9 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
         }
         assert(pin && pout);
 
+        formal->formalToActual[p.in][callNode] = act->in;
+        formal->formalToActual[p.out][callNode] = act->out;
+
         // connect the params with edges
         pin->addDataDependence(p.in);
         p.out->addDataDependence(pout);
@@ -101,8 +107,6 @@ static void addDynMemoryParams(LLVMDGParameters *params, LLVMNode *callNode, LLV
         callNode->addControlDependence(pout);
     }
 }
-
-
 
 static void addOperandsParams(LLVMDGParameters *params,
                               LLVMDGParameters *formal,
@@ -114,6 +118,9 @@ static void addOperandsParams(LLVMDGParameters *params,
     llvm::CallInst *CInst
         = llvm::dyn_cast<llvm::CallInst>(callNode->getValue());
     assert(CInst && "addActualParameters called on non-CallInst");
+
+    auto formalParams = LLVMDGFormalParameters::get(formal);
+    assert(formalParams);
 
     LLVMNode *in, *out;
     int idx;
@@ -140,6 +147,9 @@ static void addOperandsParams(LLVMDGParameters *params,
             out = ap->out;
         }
         assert(in && out);
+
+        formalParams->formalToActual[fp->in][callNode] = in;
+        formalParams->formalToActual[fp->out][callNode] = out;
 
         // add control edges from the call-site node
         // to the parameters
@@ -174,7 +184,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
 {
     using namespace llvm;
 
-    LLVMDGParameters *formal = funcGraph->getParameters();
+    LLVMDGFormalParameters *formal = LLVMDGFormalParameters::get(funcGraph->getParameters());
     if (!formal)
         return;
 
@@ -183,7 +193,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     // have more destinations if it is via function pointer)
     LLVMDGParameters *params = getParameters();
     if (!params) {
-        params = new LLVMDGParameters(this);
+        params = new LLVMDGActualParameters(this);
 #ifndef NDEBUG
         LLVMDGParameters *old =
 #endif

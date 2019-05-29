@@ -312,7 +312,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc, boo
     node->addControlDependence(subgraph->getEntry());
 
     // add globals that are used in subgraphs
-    // it is necessary if this subgraph was creating due to function
+    // it is necessary if this subgraph was created due to function
     // pointer call
     addSubgraphGlobalParameters(subgraph);
     node->addActualParameters(subgraph, callFunc, fork);
@@ -367,9 +367,9 @@ LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn(LLVMNode *call) {
 }
 
 LLVMDGParameters *LLVMDependenceGraph::getOrCreateParameters() {
-    LLVMDGParameters *params = getParameters();
+    auto params = getParameters();
     if (!params) {
-        params = new LLVMDGParameters();
+        params = new LLVMDGFormalParameters(this);
         setParameters(params);
     }
 
@@ -378,7 +378,6 @@ LLVMDGParameters *LLVMDependenceGraph::getOrCreateParameters() {
 
 bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
 {
-
     // add the same formal parameters
     LLVMDGParameters *params = getOrCreateParameters();
 

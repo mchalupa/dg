@@ -9,17 +9,26 @@
 
 namespace dg {
 
+enum class DGParametersType {
+    ACTUAL,
+    FORMAL
+};
+
+template <typename NodeT> class DGParameters;
 
 template <typename NodeT>
 struct DGParameterPair
 {
-    DGParameterPair<NodeT>(NodeT *v1, NodeT *v2)
-        : in(v1), out(v2) {}
+    DGParameterPair<NodeT>(NodeT *v1, NodeT *v2,
+                           DGParameters<NodeT> *p)
+        : in(v1), out(v2), parent(p) {}
 
     // input value of parameter
     NodeT *in;
     // output value of parameter
     NodeT *out;
+
+    DGParameters<NodeT> *parent;
 
     void removeIn()
     {
@@ -38,6 +47,9 @@ struct DGParameterPair
             out = nullptr;
         }
     }
+
+    DGParameters<NodeT> *getParent() { return parent; }
+    const DGParameters<NodeT> *getParent() const { return parent; }
 };
 
 // --------------------------------------------------------
@@ -52,14 +64,18 @@ struct DGParameterPair
 template <typename NodeT>
 class DGParameters
 {
+    DGParametersType type;
+
+protected:
+
+    DGParameters<NodeT>(DGParametersType t)
+    : type(t), BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>) {}
+
 public:
     using KeyT = typename NodeT::KeyType;
     using ContainerType = std::map<KeyT, DGParameterPair<NodeT>>;
     using iterator = typename ContainerType::iterator;
     using const_iterator = typename ContainerType::const_iterator;
-
-    DGParameters<NodeT>(NodeT *cs = nullptr)
-    : BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs){}
 
     ~DGParameters<NodeT>()
     {
@@ -186,7 +202,7 @@ public:
     {
         assert(!vararg && "Already has a vararg parameter");
 
-        vararg.reset(new DGParameterPair<NodeT>(in, out));
+        vararg.reset(new DGParameterPair<NodeT>(in, out, this));
         return true;
     }
 
@@ -200,9 +216,7 @@ public:
         return true;
     }
 
-    const NodeT *getCallSite() const { return callSite; }
-    NodeT *getCallSite() { return callSite; }
-    void setCallSite(NodeT *n) { return callSite = n; }
+    DGParametersType getParametersType() const { return type; }
 
 private:
     // globals represented as a parameter
@@ -233,7 +247,7 @@ private:
 
     bool add(KeyT k, NodeT *val_in, NodeT *val_out, ContainerType *C)
     {
-        auto v = std::make_pair(k, DGParameterPair<NodeT>(val_in, val_out));
+        auto v = std::make_pair(k, DGParameterPair<NodeT>(val_in, val_out, this));
         if (!C->insert(v).second)
             // we already has param with this key
             return false;
@@ -242,6 +256,47 @@ private:
         BBOut->append(val_out);
 
         return true;
+    }
+};
+
+template <typename NodeT>
+class ActualDGParameters : public DGParameters<NodeT> {
+    NodeT *callSite{nullptr};
+
+public:
+    ActualDGParameters(NodeT *cs)
+    : DGParameters<NodeT>(DGParametersType::ACTUAL), callSite(cs) {}
+
+    const NodeT *getCallSite() const { return callSite; }
+    NodeT *getCallSite() { return callSite; }
+    //void setCallSite(NodeT *n) { return callSite = n; }
+
+    static ActualDGParameters *get(DGParameters<NodeT> *p) {
+        return p->getParametersType() == DGParametersType::ACTUAL ?
+                static_cast<ActualDGParameters *>(p) : nullptr;
+    }
+};
+
+template <typename NodeT>
+class FormalDGParameters : public DGParameters<NodeT> {
+    using DependenceGraphT = typename NodeT::DependenceGraphType;
+
+
+    DependenceGraphT *dg{nullptr};
+public:
+
+    // mapping of formal parameters to (callSite, actual parameter)
+    std::map<NodeT *, std::map<NodeT*, NodeT*>> formalToActual;
+
+    FormalDGParameters(DependenceGraphT *g)
+    : DGParameters<NodeT>(DGParametersType::FORMAL), dg(g) {}
+
+    const DependenceGraphT *getDG() const { return dg; }
+    DependenceGraphT *getDG() { return dg; }
+
+    static FormalDGParameters *get(DGParameters<NodeT> *p) {
+        return p->getParametersType() == DGParametersType::FORMAL ?
+                static_cast<FormalDGParameters *>(p) : nullptr;
     }
 };
 

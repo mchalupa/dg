@@ -621,6 +621,13 @@ private:
                 out << Ind << "NODE" << n << " -> NODE" << *II
                     << " [color=\"orange\" constraint=false]\n";
         }
+
+        out << Ind << "/* summary edges */\n";
+        for (auto II = n->summary_begin(), EE = n->summary_end();
+             II != EE; ++II)
+            out << Ind << "NODE" << n << " -> NODE" << *II
+                << " [color=\"purple\" penwidth=2]\n";
+
     }
 
     const char *dd_color = "cyan4";

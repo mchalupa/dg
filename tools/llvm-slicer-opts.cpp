@@ -109,6 +109,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
         llvm::cl::desc("Perform forward slicing\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> twoPhaseSlicing("two-phase-slicing",
+        llvm::cl::desc("Still experimental: perform two-phase slicing (default=false)\n"),
+                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<bool> threads("threads",
         llvm::cl::desc("Consider threads are in input file (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
@@ -178,6 +182,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.preservedFunctions = splitList(preservedFuns);
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
+    options.twoPhaseSlicing = twoPhaseSlicing;
+
+    // compute summary edges when two-phase is on
+    options.dgOptions.summaryEdges = twoPhaseSlicing;
 
     options.dgOptions.entryFunction = entryFunction;
     options.dgOptions.PTAOptions.entryFunction = entryFunction;

@@ -145,6 +145,8 @@ public:
             abort();
     }
 
+    void computeSummaryEdges();
+
     bool verify() const;
 
     void setThreads(bool threads);

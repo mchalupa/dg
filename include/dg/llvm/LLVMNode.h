@@ -41,6 +41,8 @@ class LLVMNode;
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 using LLVMDGParameter = dg::DGParameterPair<LLVMNode>;
 using LLVMDGParameters = dg::DGParameters<LLVMNode>;
+using LLVMDGActualParameters = dg::ActualDGParameters<LLVMNode>;
+using LLVMDGFormalParameters = dg::FormalDGParameters<LLVMNode>;
 
 /// ------------------------------------------------------------------
 //  -- LLVMNode

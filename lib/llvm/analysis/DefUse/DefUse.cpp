@@ -60,6 +60,17 @@ static void handleOperands(const Instruction *Inst, LLVMNode *node) {
             // 'node' uses 'op', so we want to add edge 'op'-->'node',
             // that is, 'op' is used in 'node' ('node' is a user of 'op')
             op->addUseDependence(node);
+
+            if (isa<CallInst>(node->getValue())) {
+                // add uses also to parameters
+                auto params = node->getParameters();
+                if (!params)
+                    continue;
+
+                if (auto p = params->find(*I)) {
+                    op->addUseDependence(p->in);
+                }
+            }
         }
     }
 }
