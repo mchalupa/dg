@@ -1,6 +1,8 @@
 #ifndef _DG_TOOL_LLVM_SLICER_H_
 #define _DG_TOOL_LLVM_SLICER_H_
 
+#include <ctime>
+
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
 #pragma clang diagnostic push
@@ -101,6 +103,11 @@ public:
 
         _dg = _builder.computeDependencies(std::move(_dg));
         _computed_deps = true;
+
+        const auto& stats = _builder.getStatistics();
+        llvm::errs() << "INFO: CPU time of pointer analysis: " << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
+        llvm::errs() << "INFO: CPU time of reaching definitions analysis: " << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
+        llvm::errs() << "INFO: CPU time of control dependence analysis: " << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
     }
 
     // Mark the nodes from the slice.

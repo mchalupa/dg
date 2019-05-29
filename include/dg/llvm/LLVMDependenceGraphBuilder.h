@@ -2,6 +2,7 @@
 #define _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
 
 #include <string>
+#include <ctime> // std::clock
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -75,8 +76,23 @@ class LLVMDependenceGraphBuilder {
     std::unique_ptr<ControlFlowGraph> _controlFlowGraph{};
     llvm::Function *_entryFunction{nullptr};
 
+    struct Statistics {
+        uint64_t cdTime{0};
+        uint64_t ptaTime{0};
+        uint64_t rdaTime{0};
+        uint64_t inferaTime{0};
+        uint64_t joinsTime{0};
+        uint64_t critsecTime{0};
+    } _statistics;
+
+    std::clock_t _time_start;
+    void _timerStart() { _time_start = std::clock(); }
+    uint64_t _timerEnd() { return (std::clock() - _time_start); }
+
     void _runPointerAnalysis() {
         assert(_PTA && "BUG: No PTA");
+
+        _timerStart();
 
         if (_options.PTAOptions.isFS())
             _PTA->run<analysis::pta::PointerAnalysisFS>();
@@ -88,10 +104,14 @@ class LLVMDependenceGraphBuilder {
             assert(0 && "Wrong pointer analysis");
             abort();
         }
+
+        _statistics.ptaTime = _timerEnd();
     }
 
     void _runReachingDefinitionsAnalysis() {
         assert(_RD && "BUG: No RD");
+
+        _timerStart();
 
         if (_options.RDAOptions.isDataFlow()) {
             _RD->run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
@@ -101,23 +121,33 @@ class LLVMDependenceGraphBuilder {
             assert( false && "unknown RDA type" );
             abort();
         }
+
+        _statistics.rdaTime = _timerEnd();
     }
 
     void _runControlDependenceAnalysis() {
+        _timerStart();
         _dg->computeControlDependencies(_options.cdAlgorithm,
                                         _options.terminationSensitive);
+        _statistics.cdTime = _timerEnd();
     }
 
     void _runInterferenceDependenceAnalysis() {
+        _timerStart();
         _dg->computeInterferenceDependentEdges(_controlFlowGraph.get());
+        _statistics.inferaTime = _timerEnd();
     }
 
     void _runForkJoinAnalysis() {
+        _timerStart();
         _dg->computeForkJoinDependencies(_controlFlowGraph.get());
+        _statistics.joinsTime = _timerEnd();
     }
 
     void _runCriticalSectionAnalysis() {
+        _timerStart();
         _dg->computeCriticalSections(_controlFlowGraph.get());
+        _statistics.critsecTime = _timerEnd();
     }
 
     bool verify() const {
@@ -142,6 +172,8 @@ public:
 
     LLVMPointerAnalysis *getPTA() { return _PTA.get(); }
     LLVMReachingDefinitions *getRDA() { return _RD.get(); }
+
+    const Statistics& getStatistics() const { return _statistics; }
 
     // construct the whole graph with all edges
     std::unique_ptr<LLVMDependenceGraph>&& build() {
