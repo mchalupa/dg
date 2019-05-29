@@ -820,7 +820,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
         if (llvm::isa<llvm::Function>(ptr.value))
             continue;
 
-        uint64_t from, to;
+        Offset from, to;
         if (ptr.offset.isUnknown()) {
             // if the offset is UNKNOWN, use whole memory
             from = Offset::UNKNOWN;
@@ -830,7 +830,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
         }
 
         // do not allow overflow
-        if (Offset::UNKNOWN - from > len)
+        if (Offset::UNKNOWN - *from > len)
             to = from + len;
         else
             to = Offset::UNKNOWN;
@@ -850,7 +850,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
         }
 
         // add the definition
-        ret->addDef(target, from, to, true /* strong update */);
+        ret->addDef(target, from, to, !from.isUnknown() && !to.isUnknown() /* strong update */);
     }
 
     return ret;
