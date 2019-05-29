@@ -999,7 +999,18 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
                     if (lastInstruction && dgInstruction) {
                         lastInstruction->addControlDependence(dgInstruction);
                     } else {
-                        std::cerr << "Control dependency could not be set up, one of two instructions was not found.\n";
+                        static std::set<std::pair<LLVMNode *, LLVMNode *>> reported;
+                        if (reported.insert({lastInstruction, dgInstruction}).second) {
+                            llvm::errs() << "[CD] error: CD could not be set up, some instruction was not found:\n";
+                            if (lastInstruction)
+                                llvm::errs() << "[CD] last instruction: " << *lastInstruction->getValue() << "\n";
+                            else
+                                llvm::errs() << "[CD] No last instruction\n";
+                            if (dgInstruction)
+                                llvm::errs() << "[CD] current instruction: " << *dgInstruction->getValue() << "\n";
+                            else
+                                llvm::errs() << "[CD] No current instruction\n";
+                        }
                     }
                 }
                 if (dependant->isExit() && lastInstruction) {
