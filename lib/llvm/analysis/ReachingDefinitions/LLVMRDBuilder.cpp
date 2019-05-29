@@ -46,6 +46,29 @@ namespace dg {
 namespace analysis {
 namespace rd {
 
+struct ValInfo {
+    const llvm::Value *v;
+    ValInfo(const llvm::Value *val) : v(val) {}
+};
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi) {
+    using namespace llvm;
+
+    if (auto I = dyn_cast<Instruction>(vi.v)) {
+        os << I->getParent()->getParent()->getName()
+               << ":: " << *I;
+    } else if (isa<Argument>(vi.v)) {
+        os << I->getParent()->getParent()->getName()
+               << ":: (arg) " << *I;
+    } else if (auto F = dyn_cast<Function>(vi.v)) {
+        os << "(func) " << F->getName();
+    } else {
+        os << *vi.v;
+    }
+
+    return os;
+}
+
 static inline void makeEdge(RDNode *src, RDNode *dst)
 {
     assert(src != dst && "Tried creating self-loop");
@@ -202,7 +225,7 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
     for (const llvm::Value *ptrVal : locals) {
         RDNode *ptrNode = getOperand(ptrVal);
         if (!ptrNode) {
-            llvm::errs() << *ptrVal << "\n";
+            llvm::errs() << ValInfo(ptrVal) << "\n";
             llvm::errs() << "Don't have created node for local variable\n";
             abort();
         }
@@ -222,9 +245,7 @@ RDNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
 
 RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
 {
-    RDNode *op = getNode(val);
-    assert(op && "Operand was not created");
-    return op;
+    return getNode(val);
 }
 
 RDNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
@@ -486,7 +507,7 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F,
         auto node = createCallToZeroSizeFunction(F, CInst);
         return {node, node};
     } else if (!llvmutils::callIsCompatible(F, CInst)) {
-        llvm::errs() << "[RD] error: call of incompatible function: " << *CInst << "\n";
+        llvm::errs() << "[RD] error: call of incompatible function: " << ValInfo(CInst) << "\n";
         llvm::errs() << "            Calling : " << F->getName() << " of type " << *F->getType() << "\n";
         auto node = createUndefinedCall(CInst);
         return {node, node};
@@ -520,7 +541,7 @@ LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &
 
     for (auto F : functions) {
         if (!llvmutils::callIsCompatible(F, CInst)) {
-            llvm::errs() << "[RD] warn: incompatible function pointer call: " << *CInst << "\n";
+            llvm::errs() << "[RD] warn: incompatible function pointer call: " << ValInfo(CInst) << "\n";
             llvm::errs() << "           Calling : " << F->getName() << " of type " << *F->getType() << "\n";
             continue;
         }
@@ -773,7 +794,7 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
     auto pts = PTA->getLLVMPointsToChecked(dest);
     if (!pts.first) {
         llvm::errs() << "[RD] Error: No points-to information for destination in\n";
-        llvm::errs() << *I << "\n";
+        llvm::errs() << ValInfo(I) << "\n";
 #ifndef NDEBUG
         abort();
 #endif
@@ -804,7 +825,18 @@ RDNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
             to = Offset::UNKNOWN;
 
         RDNode *target = getOperand(ptr.value);
-        assert(target && "Don't have pointer target for intrinsic call");
+        //assert(target && "Don't have pointer target for intrinsic call");
+        if (!target) {
+            // keeping such set is faster then printing it all to terminal
+            // ... and we don't flood the terminal that way
+            static std::set<const llvm::Value *> warned;
+            if (warned.insert(ptr.value).second) {
+                llvm::errs() << "[RD] error at " << ValInfo(CInst) << "\n"
+                             << "[RD] error: Haven't created node for: "
+                             << ValInfo(ptr.value) << "\n";
+            }
+            target = UNKNOWN_MEMORY;
+        }
 
         // add the definition
         ret->addDef(target, from, to, true /* strong update */);
@@ -899,7 +931,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
     if (functions.empty()) {
         llvm::errs() << "[RD] error: could not determine the called function "
                         "in a call via pointer: \n"
-                     << *CInst << "\n";
+                     << ValInfo(CInst) << "\n";
         RDNode *node = createUndefinedCall(CInst);
         return {node, node};
     }
@@ -1086,8 +1118,8 @@ std::vector<DefSite> LLVMRDBuilder::mapPointers(const llvm::Value *where,
     if (!psn.first) {
         result.push_back(DefSite(UNKNOWN_MEMORY));
 #ifndef NDEBUG
-        llvm::errs() << "[RD] warning at: " << *where << "\n";
-        llvm::errs() << "No points-to set for: " << *val << "\n";
+        llvm::errs() << "[RD] warning at: " << ValInfo(where) << "\n";
+        llvm::errs() << "No points-to set for: " << ValInfo(val) << "\n";
 #endif
         // don't have points-to information for used pointer
         return result;
@@ -1095,8 +1127,8 @@ std::vector<DefSite> LLVMRDBuilder::mapPointers(const llvm::Value *where,
 
     if (psn.second.empty()) {
 #ifndef NDEBUG
-        llvm::errs() << "[RD] warning at: " << *where << "\n";
-        llvm::errs() << "Empty points-to set for: " << *val << "\n";
+        llvm::errs() << "[RD] warning at: " << ValInfo(where) << "\n";
+        llvm::errs() << "Empty points-to set for: " << ValInfo(val) << "\n";
 #endif
         // this may happen on invalid reads and writes to memory,
         // like when you try for example this:
@@ -1127,9 +1159,10 @@ std::vector<DefSite> LLVMRDBuilder::mapPointers(const llvm::Value *where,
             // ... and we don't flood the terminal that way
             static std::set<const llvm::Value *> warned;
             if (warned.insert(ptr.value).second) {
-                llvm::errs() << "[RD] error for " << *val << "\n";
-                llvm::errs() << "[RD] error: Haven't created the node for the pointer to:\n";
-                llvm::errs() << *ptr.value << "\n";
+                llvm::errs() << "[RD] error at "  << ValInfo(where) << "\n";
+                llvm::errs() << "[RD] error for " << ValInfo(val) << "\n";
+                llvm::errs() << "[RD] error: Cannot find node for "
+                             << ValInfo(ptr.value) << "\n";
             }
             continue;
         }
