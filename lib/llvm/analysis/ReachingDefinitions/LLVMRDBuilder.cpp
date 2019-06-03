@@ -253,6 +253,18 @@ RDNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
         // so create it now if such a case occurs.
         if (auto I = llvm::dyn_cast<llvm::AllocaInst>(val)) {
             op = createAlloc(I);
+        } else if (auto CI = llvm::dyn_cast<llvm::CallInst>(val)) {
+            const auto calledVal = CI->getCalledValue()->stripPointerCasts();
+            const auto func = llvm::dyn_cast<llvm::Function>(calledVal);
+            if (_options.isAllocationFunction(func->getName())) {
+                auto call = createCall(CI);
+                assert(call.first == call.second);
+                assert(call.first->getType() == RDNodeType::DYN_ALLOC);
+                op = call.first;
+            }
+        }
+        if (!op) {
+            llvm::errs() << "[RD] error: cannot find an operand: " << *val << "\n";
         }
     }
     assert(op && "Do not have an operand");
