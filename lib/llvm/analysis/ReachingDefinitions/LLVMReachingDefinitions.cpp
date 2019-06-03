@@ -85,7 +85,7 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
     if (rdDefs.empty()) {
         static std::set<const llvm::Value *> reported;
         if (reported.insert(use).second) {
-            llvm::errs() << "[RD] error: no reaching definition for: " << *use;
+            llvm::errs() << "[RD] error: no reaching definition for: " << *use << "\n";
         }
     }
 
