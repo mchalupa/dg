@@ -232,7 +232,7 @@ private:
         // FIXME do it a vector and fill it dynamically according
         // to what is the setup (like for sv-comp or general..)
         const char *keep[] = {options.dgOptions.entryFunction.c_str(),
-                              "klee_assume", nullptr};
+                              nullptr};
 
         // when erasing while iterating the slicer crashes
         // so set the to be erased values into container
@@ -848,15 +848,6 @@ int main(int argc, char *argv[])
     /// ---------------
     // slice the code
     /// ---------------
-
-    // we do not want to slice away any assumptions
-    // about the code
-    // FIXME: do this optional only for SV-COMP
-    options.additionalSlicingCriteria = {
-        "__VERIFIER_assume",
-        "__VERIFIER_exit",
-        "klee_assume",
-    };
 
     Slicer slicer(M.get(), options);
     if (!slicer.buildDG()) {
