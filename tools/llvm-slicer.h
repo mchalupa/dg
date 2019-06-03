@@ -105,9 +105,9 @@ public:
         _computed_deps = true;
 
         const auto& stats = _builder.getStatistics();
-        llvm::errs() << "INFO: CPU time of pointer analysis: " << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
-        llvm::errs() << "INFO: CPU time of reaching definitions analysis: " << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
-        llvm::errs() << "INFO: CPU time of control dependence analysis: " << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
+        llvm::errs() << "[llvm-slicer] CPU time of pointer analysis: " << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
+        llvm::errs() << "[llvm-slicer] CPU time of reaching definitions analysis: " << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
+        llvm::errs() << "[llvm-slicer] CPU time of control dependence analysis: " << double(stats.cdTime) / CLOCKS_PER_SEC << " s\n";
     }
 
     // Mark the nodes from the slice.
@@ -148,7 +148,7 @@ public:
             nd->setSlice(0);
 
         tm.stop();
-        tm.report("INFO: Finding dependent nodes took");
+        tm.report("[llvm-slicer] Finding dependent nodes took");
 
         return true;
     }
@@ -164,10 +164,10 @@ public:
         slicer.slice(_dg.get(), nullptr, slice_id);
 
         tm.stop();
-        tm.report("INFO: Slicing dependence graph took");
+        tm.report("[llvm-slicer] Slicing dependence graph took");
 
         dg::analysis::SlicerStatistics& st = slicer.getStatistics();
-        llvm::errs() << "INFO: Sliced away " << st.nodesRemoved
+        llvm::errs() << "[llvm-slicer] Sliced away " << st.nodesRemoved
                      << " from " << st.nodesTotal << " nodes in DG\n";
 
         return true;

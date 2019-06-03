@@ -184,7 +184,7 @@ private:
         llvm::raw_os_ostream ostream(ofs);
 
         // write the module
-        errs() << "INFO: saving sliced module to: " << fl.c_str() << "\n";
+        errs() << "[llvm-slicer] saving sliced module to: " << fl.c_str() << "\n";
 
     #if (LLVM_VERSION_MAJOR > 6)
         llvm::WriteBitcodeToFile(*M, ostream);
@@ -211,8 +211,8 @@ private:
     int verifyAndWriteModule()
     {
         if (!verifyModule()) {
-            errs() << "ERR: Verifying module failed, the IR is not valid\n";
-            errs() << "INFO: Saving anyway so that you can check it\n";
+            errs() << "[llvm-slicer] ERROR: Verifying module failed, the IR is not valid\n";
+            errs() << "[llvm-slicer] Saving anyway so that you can check it\n";
             return 1;
         }
 
@@ -330,7 +330,7 @@ public:
         else
             replace_suffix(fl, ".dot");
 
-        errs() << "INFO: Dumping DG to to " << fl << "\n";
+        errs() << "[llvm-slicer] Dumping DG to to " << fl << "\n";
 
         if (bb_only) {
             debug::LLVMDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
@@ -393,7 +393,7 @@ public:
                 += std::to_string(*options.dgOptions.PTAOptions.fieldSensitivity)
                    + "\n\n";
 
-        errs() << "INFO: Saving IR with annotations to " << fl << "\n";
+        errs() << "[llvm-slicer] Saving IR with annotations to " << fl << "\n";
         auto annot
             = new dg::debug::LLVMDGAssemblyAnnotationWriter(annotationOptions,
                                                             dg->getPTA(),
@@ -840,7 +840,7 @@ int main(int argc, char *argv[])
     writer.removeUnusedFromModule();
 
     if (remove_unused_only) {
-        errs() << "INFO: removed unused parts of module, exiting...\n";
+        errs() << "[llvm-slicer] removed unused parts of module, exiting...\n";
         maybe_print_statistics(M.get(), "Statistics after ");
         return writer.saveModule(should_verify_module);
     }
