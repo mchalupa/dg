@@ -150,7 +150,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "where func is the function and type is one of\n"
                        "malloc, calloc, or realloc.\n"
                        "E.g., myAlloc:malloc will treat myAlloc as malloc.\n"),
-                       llvm::cl::init("main"), llvm::cl::cat(SlicingOpts));
+                       llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<LLVMPointerAnalysisOptions::AnalysisType> ptaType("pta",
         llvm::cl::desc("Choose pointer analysis to use:"),
