@@ -554,6 +554,7 @@ std::pair<RDNode *, RDNode *>
 LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                                      const llvm::CallInst *CInst) {
 
+    assert(!functions.empty() && "No functions to call");
     assert(nodes_map.find(CInst) == nodes_map.end()
             && "Already created this function");
 
@@ -562,10 +563,10 @@ LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &
 
     auto& callsSet = calls[{callNode, returnNode}];
 
+    std::set <const llvm::Function *> incompatibleCalls;
     for (auto F : functions) {
         if (!llvmutils::callIsCompatible(F, CInst)) {
-            llvm::errs() << "[RD] warn: incompatible function pointer call: " << ValInfo(CInst) << "\n";
-            llvm::errs() << "           Calling : " << F->getName() << " of type " << *F->getType() << "\n";
+            incompatibleCalls.insert(F);
             continue;
         }
 
@@ -588,6 +589,26 @@ LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &
         // if not created yet.
         Subgraph *s = getOrCreateSubgraph(F);
         callsSet.insert(s);
+    }
+
+    if (!incompatibleCalls.empty()) {
+#ifndef NDEBUG
+        llvm::errs() << "[RD] warning: incompatible function pointers for " << ValInfo(CInst) << "\n";
+        for (auto F : incompatibleCalls) {
+            llvm::errs() << "   Tried call: " << F->getName() << " of type " << *F->getType() << "\n";
+        }
+        if (incompatibleCalls.size() == functions.size()) {
+            llvm::errs() << "[RD] error: did not find any compatible pointer for this call.\n";
+        }
+#else
+        if (incompatibleCalls.size() == functions.size()) {
+            llvm::errs() << "[RD] error: did not find any compatible function pointer for "
+                         << ValInfo(CInst) << "\n";
+            for (auto F : incompatibleCalls) {
+                llvm::errs() << "   Tried call: " << F->getName() << " of type " << *F->getType() << "\n";
+            }
+        }
+#endif // not NDEBUG
     }
 
     return {callNode, returnNode};
