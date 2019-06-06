@@ -310,3 +310,5 @@ target_link_libraries(rdmap-benchmark RD)
 add_executable(ptset-benchmark ptset-benchmark.cpp)
 target_link_libraries(ptset-benchmark PRIVATE DGAnalysis)
 
+add_executable(bitvector-benchmark bitvector-benchmark.cpp)
+
