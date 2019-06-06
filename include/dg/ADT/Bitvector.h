@@ -75,83 +75,18 @@ public:
     }
 
     // union operation
+    // NOTE: we tried several different implementations
+    // (one with using last iterators as hints for emplace,
+    // one that used "merge sort" to combine the bitvectors),
+    // but this simple implementation performs the best in practice
+    // (at least for the current use-cases).
     bool set(const SparseBitvectorImpl& rhs) {
-        return _mergeSet(rhs);
-    }
-
-    bool _lookupSet(const SparseBitvectorImpl& rhs) {
         bool changed = false;
         for (auto& pair : rhs._bits) {
             auto& B = _bits[pair.first];
             auto old = B;
             B |= pair.second;
             changed |= (old != B);
-        }
-
-        return changed;
-    }
-
-    bool _lookupSet2(const SparseBitvectorImpl& rhs) {
-        bool changed = false;
-        auto lastIt = _bits.end();
-        for (auto& pair : rhs._bits) {
-            auto lhsIt = _bits.find(pair.first);
-            if (lhsIt == _bits.end()) {
-                lastIt = _bits.emplace_hint(lastIt, pair.first, pair.second);
-            } else {
-                auto old = lhsIt->second;
-                lhsIt->second |= pair.second;
-                changed |= (old != lhsIt->second);
-
-                lastIt = lhsIt;
-            }
-        }
-
-        return changed;
-    }
-
-
-    bool _mergeSet(const SparseBitvectorImpl& rhs) {
-        if (rhs.empty())
-            return false;
-
-        bool changed = false;
-        auto rhsIt = rhs._bits.begin();
-        auto thisIt = _bits.find(rhsIt->first);
-        if (thisIt == _bits.end()) {
-            thisIt = _bits.emplace(rhsIt->first, rhsIt->second).first;
-            changed = true;
-        } else {
-            assert(thisIt->first == rhsIt->first);
-            auto old = thisIt->second;
-            thisIt->second |= rhsIt->second;
-            changed |= (old != thisIt->second);
-        }
-
-        assert(thisIt != _bits.end());
-        assert(thisIt->first == rhsIt->first);
-
-        ++rhsIt;
-        while (rhsIt != rhs._bits.end()) {
-            assert(thisIt != _bits.end());
-
-            // find corresponding thisIt
-            while (thisIt->first < rhsIt->first) {
-                ++thisIt;
-                // we do not have a corresponding element in _bits
-                if (thisIt == _bits.end() ||
-                    thisIt->first > rhsIt->first) {
-                    thisIt = _bits.emplace(rhsIt->first, rhsIt->second).first;
-                    changed = true;
-                } else if (thisIt->first == rhsIt->first) {
-                    auto old = thisIt->second;
-                    thisIt->second |= rhsIt->second;
-                    changed |= (old != thisIt->second);
-                }
-            }
-
-            assert(thisIt->first == rhsIt->first);
-            ++rhsIt;
         }
 
         return changed;
