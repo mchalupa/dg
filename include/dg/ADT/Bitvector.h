@@ -75,18 +75,43 @@ public:
     }
 
     // union operation
-   //bool set(const SparseBitvectorImpl& rhs) {
-   //    bool changed = false;
-   //    for (auto& pair : rhs._bits) {
-   //        auto& B = _bits[pair.first];
-   //        auto old = B;
-   //        B |= pair.second;
-   //        changed |= (old != B);
-   //    }
-
-   //    return changed;
-   //}
     bool set(const SparseBitvectorImpl& rhs) {
+        return _mergeSet(rhs);
+    }
+
+    bool _lookupSet(const SparseBitvectorImpl& rhs) {
+        bool changed = false;
+        for (auto& pair : rhs._bits) {
+            auto& B = _bits[pair.first];
+            auto old = B;
+            B |= pair.second;
+            changed |= (old != B);
+        }
+
+        return changed;
+    }
+
+    bool _lookupSet2(const SparseBitvectorImpl& rhs) {
+        bool changed = false;
+        auto lastIt = _bits.end();
+        for (auto& pair : rhs._bits) {
+            auto lhsIt = _bits.find(pair.first);
+            if (lhsIt == _bits.end()) {
+                lastIt = _bits.emplace_hint(lastIt, pair.first, pair.second);
+            } else {
+                auto old = lhsIt->second;
+                lhsIt->second |= pair.second;
+                changed |= (old != lhsIt->second);
+
+                lastIt = lhsIt;
+            }
+        }
+
+        return changed;
+    }
+
+
+    bool _mergeSet(const SparseBitvectorImpl& rhs) {
         if (rhs.empty())
             return false;
 
@@ -150,12 +175,21 @@ public:
 
     // FIXME: track the number of elements
     // in a variable, to avoid this search...
+    // XXX: but it is hard to track in union operations,
+    // we should probably do two implementations
+    // - one that tracks the number and the other
+    // that does not (this one).
     size_t size() const {
         size_t num = 0;
         for (auto& it : _bits)
             num += _countBits(it.second);
 
         return num;
+    }
+
+    // get the number of buckets
+    size_t bucketsNum() const {
+        return _bits.size();
     }
 
     class const_iterator {
