@@ -115,6 +115,12 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "Default: on\n"),
                        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> keepDc("keep-unreachable-code",
+        llvm::cl::desc("Do not slice away parts of programs that are not\n"
+                       "reachable from the entry function.\n"
+                       "Default: off\n"),
+                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<uint64_t> ptaFieldSensitivity("pta-field-sensitive",
         llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
                        "is cropped to Offset::UNKNOWN when it is greater than N bytes.\n"
@@ -217,6 +223,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.preservedFunctions = splitList(preservedFuns);
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
+    options.keepDc = keepDc;
 
     options.dgOptions.entryFunction = entryFunction;
     options.dgOptions.PTAOptions.entryFunction = entryFunction;

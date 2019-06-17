@@ -151,6 +151,7 @@ int main(int argc, char *argv[])
     options.threads = threads;
     options.PTAOptions.threads = threads;
     options.RDAOptions.threads = threads;
+    options.entryFunction = entry_func;
     options.PTAOptions.entryFunction = entry_func;
     options.RDAOptions.entryFunction = entry_func;
     if (strcmp(pts, "fs") == 0) {

@@ -57,7 +57,7 @@ static void dropAllUses(Val *V)
 class LLVMSlicer : public analysis::Slicer<LLVMNode>
 {
 public:
-    LLVMSlicer(){}
+    LLVMSlicer(bool keep_dead_code = false) : keep_dc(keep_dead_code) {}
 
     void keepFunctionUntouched(const char *n)
     {
@@ -124,16 +124,14 @@ public:
     }
 
     // override slice method
-    uint32_t slice(LLVMNode *start, uint32_t sl_id = 0)
+    uint32_t slice(LLVMNode *, uint32_t)
     {
-        (void) sl_id;
-        (void) start;
-
         assert(0 && "Do not use this method with LLVM dg");
+        abort();
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *,
+    uint32_t slice(LLVMDependenceGraph *dg,
                    LLVMNode *start, uint32_t sl_id = 0)
     {
         // mark nodes for slicing
@@ -145,18 +143,63 @@ public:
         // this includes the main graph
         extern std::map<const llvm::Value *,
                         LLVMDependenceGraph *> constructedFunctions;
-        for (auto& it : constructedFunctions) {
-            if (dontTouch(it.first->getName()))
-                continue;
+        if (keep_dc) {
+            // iterate only through constructed functions
+            for (auto& it : constructedFunctions) {
+                if (dontTouch(it.first->getName()))
+                    continue;
 
-            LLVMDependenceGraph *subdg = it.second;
-            sliceGraph(subdg, sl_id);
+                LLVMDependenceGraph *subdg = it.second;
+                sliceGraph(subdg, sl_id);
+            }
+        } else {
+            auto M = dg->getModule();
+            assert(M && "No module in a dg");
+            auto Fit = M->begin();
+            while (Fit != M->end()) {
+                auto &F = *Fit;
+                ++Fit;
+
+                if (dontTouch(F.getName().str().c_str())
+                    || F.isDeclaration())
+                    continue;
+
+                auto it = constructedFunctions.find(&F);
+                if (it == constructedFunctions.end()) {
+                    // this function is dead code
+                    F.replaceAllUsesWith(llvm::UndefValue::get(F.getType()));
+                    F.eraseFromParent();
+                    continue;
+                } else {
+                    LLVMDependenceGraph *subdg = it->second;
+                    sliceGraph(subdg, sl_id);
+                }
+            }
         }
+
+        sliceGlobals(dg, sl_id);
 
         return sl_id;
     }
 
 private:
+
+    void sliceGlobals(LLVMDependenceGraph *dg, uint32_t sl_id) {
+        auto globs = dg->getGlobalNodes();
+        if (!globs)
+            return;
+
+        for (auto& it : *(globs.get())) {
+            ++statistics.nodesTotal;
+
+            if (it.second->getSlice() != sl_id) {
+                removeNode(it.second);
+                dg->deleteGlobalNode(it.second);
+                ++statistics.nodesRemoved;
+            }
+        }
+    }
+
         /*
     void sliceCallNode(LLVMNode *callNode,
                        LLVMDependenceGraph *graph, uint32_t slice_id)
@@ -609,6 +652,8 @@ private:
 
     // do not slice these functions at all
     std::set<const char *> dont_touch;
+    // keep dead code
+    bool keep_dc{false};
 };
 } // namespace dg
 

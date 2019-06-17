@@ -345,7 +345,7 @@ public:
         if (!global_nodes)
             return nullptr;
 
-        return _removeNode(k, global_nodes);
+        return _removeNode(k, global_nodes.get());
     }
 
     NodeT *removeGlobalNode(NodeT *n)
@@ -358,7 +358,7 @@ public:
         if (!global_nodes)
             return nullptr;
 
-        return _removeNode(it, global_nodes);
+        return _removeNode(it, global_nodes.get());
     }
 
     bool deleteNode(NodeT *n)

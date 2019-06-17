@@ -26,6 +26,11 @@ struct SlicerOptions {
     // do we perform forward slicing?
     bool forwardSlicing{false};
 
+    // keep dead code (functions and globals that are not in
+    // the dependence graph because cannot be reached from
+    // the entry function)
+    bool keepDc{false};
+
     std::string slicingCriteria{};
     std::string secondarySlicingCriteria{};
     std::string inputFile{};

@@ -68,7 +68,8 @@ class Slicer {
 public:
     Slicer(llvm::Module *mod, const SlicerOptions& opts)
     : M(mod), _options(opts),
-      _builder(mod, _options.dgOptions) { assert(mod && "Need module"); }
+      _builder(mod, _options.dgOptions),
+      slicer(_options.keepDc) { assert(mod && "Need module"); }
 
     const dg::LLVMDependenceGraph& getDG() const { return *_dg.get(); }
     dg::LLVMDependenceGraph& getDG() { return *_dg.get(); }
