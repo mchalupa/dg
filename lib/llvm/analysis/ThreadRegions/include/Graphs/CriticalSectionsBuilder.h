@@ -1,6 +1,7 @@
 #ifndef CRITICALSECTIONSBUILDER_H
 #define CRITICALSECTIONSBUILDER_H
 
+#include <memory>
 #include <vector>
 #include <map>
 #include <set>
@@ -43,11 +44,9 @@ class CriticalSectionsBuilder
     std::set<Node *>                visited_;
     std::set<Node *>                examined_;
 
-    std::map<const llvm::CallInst *,CriticalSection *>     criticalSections_;
+    std::map<const llvm::CallInst *, std::unique_ptr<CriticalSection>>     criticalSections_;
 public:
     CriticalSectionsBuilder();
-
-    ~CriticalSectionsBuilder();
 
     bool buildCriticalSection(LockNode * lock);
 
