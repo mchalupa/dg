@@ -1,4 +1,4 @@
-#include <string>
+#include <sstream>
 
 #include "dg/analysis/PointsTo/PointsToSet.h"
 #include "dg/analysis/PointsTo/PointerSubgraphValidator.h"
@@ -8,55 +8,55 @@ namespace analysis {
 namespace pta {
 namespace debug {
 
-static void dumpNode(const PSNode *nd, std::string& errors) {
-  errors +=  std::string(PSNodeTypeToCString(nd->getType())) + " with ID " +
-             std::to_string(nd->getID()) + "\n  - operands: [";
+static void dumpNode(const PSNode *nd, std::ostream& errors) {
+  errors <<  std::string(PSNodeTypeToCString(nd->getType())) << " with ID " <<
+             std::to_string(nd->getID()) << "\n  - operands: [";
     for (unsigned i = 0, e =  nd->getOperandsNum(); i < e; ++i) {
         const PSNode *op = nd->getOperand(i);
-        errors += std::to_string(op->getID()) += " ";
-        errors += std::string(PSNodeTypeToCString(op->getType()));
+        errors << std::to_string(op->getID()) << " ";
+        errors << std::string(PSNodeTypeToCString(op->getType()));
         if (i != e - 1)
-            errors += ", ";
+            errors << ", ";
     }
-    errors += "]\n";
+    errors << "]\n";
 }
 
 bool PointerSubgraphValidator::warn(const PSNode *nd, const std::string& warning) {
-    warnings += "Warning: " + warning + "\n";
+    warnings << "Warning: " << warning << "\n";
     dumpNode(nd, warnings);
 
     return true;
 }
 
 bool PointerSubgraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
-    errors += "Invalid operands:\n";
+    errors << "Invalid operands:\n";
     dumpNode(nd, errors);
 
     if (!user_err.empty())
-        errors += "(" + user_err + ")\n";
+        errors << "(" << user_err << ")\n";
 
     return true;
 }
 
 bool PointerSubgraphValidator::reportInvalEdges(const PSNode *nd, const std::string& user_err) {
-    errors += "Invalid number of edges:\n";
+    errors << "Invalid number of edges:\n";
     dumpNode(nd, errors);
 
     if (!user_err.empty())
-        errors += "(" + user_err + ")\n";
+        errors << "(" << user_err << ")\n";
     return true;
 }
 
 bool PointerSubgraphValidator::reportInvalNode(const PSNode *nd, const std::string& user_err) {
-    errors += "Invalid node:\n";
+    errors << "Invalid node:\n";
     dumpNode(nd, errors);
     if (!user_err.empty())
-        errors += "(" + user_err + ")\n";
+        errors << "(" << user_err << ")\n";
     return true;
 }
 
 bool PointerSubgraphValidator::reportUnreachableNode(const PSNode *nd) {
-    errors += "Unreachable node:\n";
+    errors << "Unreachable node:\n";
     dumpNode(nd, errors);
     return true;
 }

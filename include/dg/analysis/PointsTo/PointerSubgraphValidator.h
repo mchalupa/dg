@@ -2,6 +2,7 @@
 #define _DG_POINTER_SUBGRAPH_VALIDATOR_H_
 
 #include <string>
+#include <sstream>
 #include "dg/analysis/PointsTo/PointerSubgraph.h"
 
 namespace dg {
@@ -26,8 +27,8 @@ class PointerSubgraphValidator {
     bool no_connectivity;
 
 protected:
-    std::string errors{};
-    std::string warnings{};
+    std::stringstream errors;
+    std::stringstream warnings;
 
     virtual bool reportInvalOperands(const PSNode *n, const std::string& user_err = "");
     virtual bool reportInvalEdges(const PSNode *n, const std::string& user_err = "");
@@ -43,8 +44,8 @@ public:
 
     bool validate();
 
-    const std::string& getErrors() const { return errors; }
-    const std::string& getWarnings() const { return warnings; }
+    std::string getErrors() const { return errors.str(); }
+    std::string getWarnings() const { return warnings.str(); }
 };
 
 } // namespace debug
