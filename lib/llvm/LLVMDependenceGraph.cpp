@@ -207,17 +207,24 @@ bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
     entry->addControlDependence(fpin);
     entry->addControlDependence(fpout);
 
-    // if these are the formal parameters of the main
+    // if these are the formal parameters of the entry
     // function, add control dependence also between the
     // global as the formal input parameter representing this global
-    if (llvm::Function *F
-            = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
-        if (F == entryFunction) {
-            auto gnode = getGlobalNode(val);
-            assert(gnode);
-            gnode->addControlDependence(fpin);
-        }
-    }
+    // XXX: do this always, since we use interprocedural dependence edges.
+    // We do not have to create any hierarchy of parameters....
+    // This is a hack until we have a proper SDG.
+    ///if (llvm::Function *F
+    ///        = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
+    ///    if (F == entryFunction) {
+    ///        auto gnode = getGlobalNode(val);
+    ///        assert(gnode);
+    ///        gnode->addControlDependence(fpin);
+    ///    }
+    ///}
+    //
+    auto gnode = getGlobalNode(val);
+    assert(gnode);
+    gnode->addControlDependence(fpin);
 
     return true;
 }
