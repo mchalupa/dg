@@ -23,6 +23,12 @@
 CriticalSectionsBuilder::CriticalSectionsBuilder()
 {}
 
+CriticalSectionsBuilder::~CriticalSectionsBuilder() {
+    for (auto iterator : criticalSections_) {
+        delete iterator.second;
+    }
+}
+
 bool CriticalSectionsBuilder::buildCriticalSection(LockNode *lock) {
     auto iterator = criticalSections_.find(lock->callInstruction());
     if (iterator != criticalSections_.end()) {
@@ -53,7 +59,7 @@ void CriticalSectionsBuilder::visitNode(Node *node) {
 std::set<const llvm::CallInst *> CriticalSectionsBuilder::locks() const {
     std::set<const llvm::CallInst *> llvmLocks;
 
-    for (auto& lock : criticalSections_) {
+    for (auto lock : criticalSections_) {
         llvmLocks.insert(lock.first);
     }
     return llvmLocks;
