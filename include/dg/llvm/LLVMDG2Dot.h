@@ -146,10 +146,10 @@ public:
                     if (tmpLoc->getCol() != 0)
                         ross << ':' << tmpLoc->getCol();
 
-                    llvm::MDNode * inlineMN =  tmpLoc->getInlinedAt(I->getParent()->getContext());
+                    llvm::MDNode *inlineMN =  tmpLoc->getInlinedAt(I->getParent()->getContext());
                     if (inlineMN) {
                         llvm::DebugLoc InlinedAtDL = llvm::DebugLoc::getFromDILocation(inlineMN);
-                        if (! InlinedAtDL.isUnknown()) {
+                        if (!InlinedAtDL.isUnknown()) {
                             ross << " @[ ";
                             tmpLoc = &InlinedAtDL;
                             nclosingBrack++;
@@ -157,6 +157,8 @@ public:
                         else {
                             tmpLoc = nullptr;
                         }
+                    } else {
+                        tmpLoc = nullptr;
                     }
                 }
                 while (nclosingBrack > 0) {
