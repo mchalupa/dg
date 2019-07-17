@@ -350,7 +350,7 @@ PSNode *LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst)
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
+LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     PSNodeAlloc *tempAlloc = nullptr;
     PSNode *lastNode = nullptr;
     if (llvm::isa<llvm::UndefValue>(Inst->getOperand(0))) {
@@ -404,7 +404,7 @@ LLVMPointerSubgraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
 }
 
 PSNodesSeq
-LLVMPointerSubgraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
+LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     auto op = getOperand(Inst->getOperand(0));
     assert(op && "Do not have the operand 0");
 
