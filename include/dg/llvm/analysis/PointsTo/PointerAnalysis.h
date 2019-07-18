@@ -76,10 +76,12 @@ public:
 
         if (!LLVMPointerGraphBuilder::callIsCompatible(callsite, called)) {
             return false;
-        } else {
-            builder->insertFunctionCall(callsite, called);
         }
 
+        builder->insertFunctionCall(callsite, called);
+
+        // call the original handler that works on generic graphs
+        PTType::functionPointerCall(callsite, called);
 
 #ifndef NDEBUG
         // check the graph after rebuilding, but do not check for connectivity,

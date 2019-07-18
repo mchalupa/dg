@@ -113,6 +113,11 @@ public:
         return changed;
     }
 
+    bool functionPointerCall(PSNode *, PSNode *) override {
+        PS->computeLoops();
+        return false;
+    }
+
     void getMemoryObjects(PSNode *where, const Pointer& pointer,
                           std::vector<MemoryObject *>& objects) override
     {
