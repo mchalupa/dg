@@ -17,6 +17,7 @@
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Module.h>
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
@@ -46,7 +47,6 @@ class LLVMPointerGraphBuilder
     PointsToMapping<const llvm::Value *> mapping;
 
     const llvm::Module *M;
-    const llvm::DataLayout *DL;
     LLVMPointerAnalysisOptions _options;
 
     // flag that says whether we are building normally,
@@ -108,9 +108,7 @@ public:
     inline bool threads() const { return threads_; }
 
     LLVMPointerGraphBuilder(const llvm::Module *m, const LLVMPointerAnalysisOptions& opts)
-        : M(m), DL(new llvm::DataLayout(m)), _options(opts), threads_(opts.threads) {}
-
-    ~LLVMPointerGraphBuilder();
+        : M(m), _options(opts), threads_(opts.threads) {}
 
     PointerGraph *buildLLVMPointerGraph();
 

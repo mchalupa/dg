@@ -137,11 +137,11 @@ Pointer LLVMPointerGraphBuilder::handleConstantGep(const llvm::GetElementPtrInst
            && "Constant node has more that 1 pointer");
     pointer = *(opNode->pointsTo.begin());
 
-    unsigned bitwidth = getPointerBitwidth(DL, op);
+    unsigned bitwidth = getPointerBitwidth(&M->getDataLayout(), op);
     APInt offset(bitwidth, 0);
 
     // get offset of this GEP
-    if (GEP->accumulateConstantOffset(*DL, offset)) {
+    if (GEP->accumulateConstantOffset(M->getDataLayout(), offset)) {
         if (offset.isIntN(bitwidth) && !pointer.offset.isUnknown())
             pointer.offset = offset.getZExtValue();
         else

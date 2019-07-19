@@ -49,11 +49,6 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-LLVMPointerGraphBuilder::~LLVMPointerGraphBuilder()
-{
-    delete DL;
-}
-
 void dump(const llvm::BasicBlock& b) {
     llvm::errs() << b << "\n";
 }
@@ -516,7 +511,7 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             break;
         case Instruction::FPToUI:
         case Instruction::FPToSI:
-            if (typeCanBePointer(DL, Inst.getType()))
+            if (typeCanBePointer(&M->getDataLayout(), Inst.getType()))
                 node = createCast(&Inst);
             else
                 node = createUnknown(&Inst);

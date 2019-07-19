@@ -57,7 +57,7 @@ LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C
             Type *Ty = op->getType();
             // recursively dive into the aggregate type
             handleGlobalVariableInitializer(op, node, offset + off);
-            off += DL->getTypeAllocSize(Ty);
+            off += M->getDataLayout().getTypeAllocSize(Ty);
         }
     } else if (C->getType()->isPointerTy()) {
         PSNode *op = getOperand(C);
@@ -111,7 +111,7 @@ void LLVMPointerGraphBuilder::buildGlobals()
 
         // handle globals initialization
         if (const auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
-            node->setSize(getAllocatedSize(GV, DL));
+            node->setSize(getAllocatedSize(GV, &M->getDataLayout()));
 
             if (GV->hasInitializer() && !GV->isExternallyInitialized()) {
                 const llvm::Constant *C = GV->getInitializer();

@@ -12,7 +12,7 @@ PSNode *LLVMPointerGraphBuilder::createAlloc(const llvm::Instruction *Inst)
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
     if (AI)
-        node->setSize(getAllocatedSize(AI, DL));
+        node->setSize(getAllocatedSize(AI, &M->getDataLayout()));
 
     return node;
 }
@@ -61,14 +61,14 @@ PSNode *LLVMPointerGraphBuilder::createGEP(const llvm::Instruction *Inst)
 
     const GetElementPtrInst *GEP = cast<GetElementPtrInst>(Inst);
     const Value *ptrOp = GEP->getPointerOperand();
-    unsigned bitwidth = getPointerBitwidth(DL, ptrOp);
+    unsigned bitwidth = getPointerBitwidth(&M->getDataLayout(), ptrOp);
     APInt offset(bitwidth, 0);
 
     PSNode *node = nullptr;
     PSNode *op = getOperand(ptrOp);
 
     if (*_options.fieldSensitivity > 0
-        && GEP->accumulateConstantOffset(*DL, offset)) {
+        && GEP->accumulateConstantOffset(M->getDataLayout(), offset)) {
         // is offset in given bitwidth?
         if (offset.isIntN(bitwidth)) {
             // is 0 < offset < field_sensitivity ?
@@ -144,7 +144,8 @@ LLVMPointerGraphBuilder::createExtract(const llvm::Instruction *Inst)
 
     // extract <agg> <idx> {<idx>, ...}
     PSNode *op1 = getOperand(EI->getAggregateOperand());
-    PSNode *G = PS.create(PSNodeType::GEP, op1, accumulateEVOffsets(EI, *DL));
+    PSNode *G = PS.create(PSNodeType::GEP, op1,
+                          accumulateEVOffsets(EI, M->getDataLayout()));
     PSNode *L = PS.create(PSNodeType::LOAD, G);
 
     G->addSuccessor(L);
@@ -333,7 +334,7 @@ PSNode *LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst)
         if (llvm::isa<llvm::ConstantPointerNull>(retVal)
             || isConstantZero(retVal))
             op1 = NULLPTR;
-        else if (typeCanBePointer(DL, retVal->getType()) &&
+        else if (typeCanBePointer(&M->getDataLayout(), retVal->getType()) &&
                   (!isInvalid(retVal->stripPointerCasts(), invalidate_nodes) ||
                    llvm::isa<llvm::ConstantExpr>(retVal) ||
                    llvm::isa<llvm::UndefValue>(retVal)))
@@ -386,9 +387,9 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
     auto Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
-    auto elemSize = getAllocatedSize(Ty->getContainedType(0), DL);
+    auto elemSize = getAllocatedSize(Ty->getContainedType(0), &M->getDataLayout());
     // also, set the size of the temporary allocation
-    tempAlloc->setSize(getAllocatedSize(Ty, DL));
+    tempAlloc->setSize(getAllocatedSize(Ty, &M->getDataLayout()));
 
     auto GEP = PS.create(PSNodeType::GEP, tempAlloc, elemSize*idx);
     auto S = PS.create(PSNodeType::STORE, ptr, GEP);
@@ -412,7 +413,7 @@ LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
     auto Ty = llvm::cast<llvm::ExtractElementInst>(Inst)->getVectorOperandType();
-    auto elemSize = getAllocatedSize(Ty->getContainedType(0), DL);
+    auto elemSize = getAllocatedSize(Ty->getContainedType(0), &M->getDataLayout());
 
     auto GEP = PS.create(PSNodeType::GEP, op, elemSize*idx);
     auto L = PS.create(PSNodeType::LOAD, GEP);
