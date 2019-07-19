@@ -178,6 +178,8 @@ public:
         mapping.compose(std::move(rhs));
     }
 
+    PointerSubgraph *getSubgraph(const llvm::Function *);
+
 private:
 
     // create subgraph of function @F (the nodes)
@@ -306,7 +308,6 @@ private:
     PSNodesSeq createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
 
     PointerSubgraph& createOrGetSubgraph(const llvm::Function *);
-
 
     void handleGlobalVariableInitializer(const llvm::Constant *C,
                                          PSNodeAlloc *node,
