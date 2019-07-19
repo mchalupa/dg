@@ -51,6 +51,13 @@ public:
         // on these nodes the memory map can change
         if (needsMerge(n)) { // root node
             mm = createMM();
+
+            // if this is the root of the entry procedure,
+            // we must propagate the points-to information
+            // from the globals initialization
+            if (n == PS->getRoot()) {
+                mergeGlobalsState(mm, PS->getGlobals());
+            }
         } else {
             // this node can not change the memory map,
             // so just add a pointer from the predecessor
