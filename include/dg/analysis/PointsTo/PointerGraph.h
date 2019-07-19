@@ -50,8 +50,7 @@ public:
 
     unsigned getID() const { return _id; }
 
-    // first nodes of the subgraph
-	// FIXME: rename to 'entry'
+    // the first node of the subgraph
     PSNode *root{nullptr};
 
 	// return nodes of this graph
@@ -113,12 +112,14 @@ public:
 
 
 ///
-// Basic graph for pointer analysis - contains CFG graphs for all procedures of the program.
+// Basic graph for pointer analysis
+// -- contains CFG graphs for all procedures of the program.
 class PointerGraph
 {
     unsigned int dfsnum;
 
     // root of the pointer state subgraph
+    // FIXME: this should be PointerSubgraph, not PSNode...
     PSNode *root;
 
     using NodesT = std::vector<std::unique_ptr<PSNode>>;
@@ -204,8 +205,9 @@ public:
     PointerSubgraph *createSubgraph(PSNode *root,
                                     PSNode *vararg = nullptr) {
         // NOTE: id of the subgraph is always index in _subgraphs + 1
-        _subgraphs.emplace_back(new PointerSubgraph(_subgraphs.size() + 1,
-                                                    root, vararg));
+        _subgraphs.emplace_back(
+            new PointerSubgraph(static_cast<unsigned>(_subgraphs.size()) + 1,
+                                                      root, vararg));
         return _subgraphs.back().get();
     }
 

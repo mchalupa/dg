@@ -41,7 +41,7 @@ public:
             return false;
 
         // on these nodes the memory map can change
-        if (needsMerge(n)) { // root node
+        if (needsMerge(n)) {
             mm = createMM();
         } else {
             // this node can not change the memory map,
