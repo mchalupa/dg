@@ -378,6 +378,11 @@ struct PSNodeGetter {
 
 };
 
+template <typename T> T *_cast(PSNode *n) {
+    assert(T::get(n) && "Invalid cast");
+    return T::get(n);
+}
+
 class PSNodeAlloc : public PSNode {
 
     // was memory zeroed at initialization or right after allocating?
@@ -399,6 +404,8 @@ public:
         return isa<PSNodeType::ALLOC>(n)  ?
                 PSNodeGetter<PSNodeAlloc>::get(n) : nullptr;
     }
+
+    static PSNodeAlloc *cast(PSNode *n) { return _cast<PSNodeAlloc>(n); }
 
     void setZeroInitialized() { zeroInitialized = true; }
     bool isZeroInitialized() const { return zeroInitialized; }
@@ -440,6 +447,8 @@ public:
         return isa<PSNodeType::MEMCPY>(n) ? static_cast<PSNodeMemcpy *>(n) : nullptr;
     }
 
+    static PSNodeMemcpy *cast(PSNode *n) { return _cast<PSNodeMemcpy>(n); }
+
     PSNode *getSource() const { return getOperand(0); }
     PSNode *getDestination() const { return getOperand(1); }
     Offset getLength() const { return len; }
@@ -455,6 +464,9 @@ public:
     static PSNodeGep *get(PSNode *n) {
         return isa<PSNodeType::GEP>(n) ? static_cast<PSNodeGep *>(n) : nullptr;
     }
+
+    // get() with a check
+    static PSNodeGep *cast(PSNode *n) { return _cast<PSNodeGep>(n); }
 
     PSNode *getSource() const { return getOperand(0); }
 
@@ -474,6 +486,7 @@ public:
         return isa<PSNodeType::ENTRY>(n) ?
             static_cast<PSNodeEntry *>(n) : nullptr;
     }
+    static PSNodeEntry *cast(PSNode *n) { return _cast<PSNodeEntry>(n); }
 
     void setFunctionName(const std::string& name) { functionName = name; }
     const std::string& getFunctionName() const { return functionName; }
@@ -532,6 +545,8 @@ public:
         return isa<PSNodeType::CALL_RETURN>(n) ?
             static_cast<PSNodeCallRet *>(n) : nullptr;
     }
+
+    static PSNodeCallRet *cast(PSNode *n) { return _cast<PSNodeCallRet>(n); }
 
     const std::vector<PSNode *>& getReturns() const { return returns; }
 
@@ -609,6 +624,7 @@ public:
         return isa<PSNodeType::FORK>(n) ?
             static_cast<PSNodeFork *>(n) : nullptr;
     }
+    static PSNodeFork *cast(PSNode *n) { return _cast<PSNodeFork>(n); }
 
     std::set<PSNodeJoin *> getJoins() const { return joins; }
 
@@ -643,6 +659,7 @@ public:
         return isa<PSNodeType::JOIN>(n) ?
             static_cast<PSNodeJoin *>(n) : nullptr;
     }
+    static PSNodeJoin *cast(PSNode *n) { return _cast<PSNodeJoin>(n); }
 
     void setCallInst(PSNode *callInst) {
         callInstruction = callInst;

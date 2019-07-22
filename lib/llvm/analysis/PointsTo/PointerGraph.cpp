@@ -266,7 +266,7 @@ void LLVMPointerGraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite)
     auto seq = createFork(callsite->getUserData<llvm::CallInst>());
     seq.second->addSuccessor(callsite->getSingleSuccessor());
     callsite->replaceSingleSuccessor(seq.first);
-    PSNodeFork::get(seq.second)->setCallInst(callsite);
+    PSNodeFork::cast(seq.second)->setCallInst(callsite);
     ad_hoc_building = false;
 }
 
@@ -276,7 +276,7 @@ void LLVMPointerGraphBuilder::insertPthreadJoinByPtrCall(PSNode *callsite)
     auto seq = createJoin(callsite->getUserData<llvm::CallInst>());
     seq.second->addSuccessor(callsite->getSingleSuccessor());
     callsite->replaceSingleSuccessor(seq.first);
-    PSNodeJoin::get(seq.second)->setCallInst(callsite);
+    PSNodeJoin::cast(seq.second)->setCallInst(callsite);
     ad_hoc_building = false;
 }
 
@@ -587,7 +587,7 @@ void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
         // void *ptr = (void *) mem;
         // void *p = *ptr;
         if (tyContainsPointer(AI->getAllocatedType()))
-            PSNodeAlloc::get(op)->setZeroInitialized();
+            PSNodeAlloc::cast(op)->setZeroInitialized();
     } else {
         // fallback: create a store that represents memset
         // the store will save null to ptr + Offset::UNKNOWN,
