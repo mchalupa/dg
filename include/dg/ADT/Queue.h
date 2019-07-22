@@ -14,6 +14,8 @@ class QueueLIFO
     using ContainerT = std::stack<ValueT>;
 
 public:
+    using ValueType = ValueT;
+
     ValueT pop()
     {
         ValueT ret = Container.top();
@@ -55,7 +57,9 @@ template <typename ValueT>
 class QueueFIFO
 {
     using ContainerT = std::queue<ValueT>;
+
 public:
+    using ValueType = ValueT;
 
     ValueT pop()
     {
@@ -99,6 +103,8 @@ class PrioritySet
 {
     using ContainerT = std::set<ValueT, Comp>;
 public:
+    using ValueType = ValueT;
+
     ValueT pop()
     {
         ValueT ret = *(Container.begin());
