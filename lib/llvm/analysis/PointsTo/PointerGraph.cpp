@@ -975,9 +975,16 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     // fill in the CFG edges
     addProgramStructure();
 
-    PS.setRoot(root);
+    // FIXME: set entry procedure, not an entry node
+    auto mainsg = getSubgraph(F);
+    assert(mainsg);
+    PS.setEntry(mainsg);
 
 #ifndef NDEBUG
+    for (const auto& subg : PS.getSubgraphs()) {
+        assert(subg->root && "No root in a subgraph");
+    }
+
     debug::LLVMPointerGraphValidator validator(&PS);
     if (validator.validate()) {
         llvm::errs() << validator.getWarnings();

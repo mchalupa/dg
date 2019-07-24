@@ -51,6 +51,7 @@ public:
     unsigned getID() const { return _id; }
 
     // the first node of the subgraph
+    // FIXME: make the attrs private
     PSNode *root{nullptr};
 
 	// return nodes of this graph
@@ -58,6 +59,9 @@ public:
 
     // this is the node where we gather the variadic-length arguments
     PSNode *vararg{nullptr};
+
+    PSNode *getRoot() { return root; }
+    const PSNode *getRoot() const { return root; }
 
     bool computedLoops() const { return _computed_loops; }
 
@@ -116,11 +120,11 @@ public:
 // -- contains CFG graphs for all procedures of the program.
 class PointerGraph
 {
-    unsigned int dfsnum;
+    unsigned int dfsnum{0};
 
     // root of the pointer state subgraph
     // FIXME: this should be PointerSubgraph, not PSNode...
-    PSNode *root;
+    PointerSubgraph *_entry{nullptr};
 
     using NodesT = std::vector<std::unique_ptr<PSNode>>;
     using SubgraphsT = std::vector<std::unique_ptr<PointerSubgraph>>;
@@ -196,7 +200,7 @@ class PointerGraph
     }
 
 public:
-    PointerGraph() : dfsnum(0), root(nullptr) {
+    PointerGraph() {
         // nodes[0] represents invalid node (the node with id 0)
         nodes.emplace_back(nullptr);
         initStaticNodes();
@@ -262,19 +266,19 @@ public:
     PointerGraph(const PointerGraph&) = delete;
     PointerGraph operator=(const PointerGraph&) = delete;
 
-    PSNode *getRoot() const { return root; }
-    void setRoot(PSNode *r) {
+    PointerSubgraph *getEntry() const { return _entry; }
+    void setEntry(PointerSubgraph *e) {
 #if DEBUG_ENABLED
         bool found = false;
-        for (auto& n : nodes) {
-            if (n.get() == r) {
+        for (auto& n : _subgraphs) {
+            if (n.get() == e) {
                 found = true;
                 break;
             }
         }
-        assert(found && "The root lies outside of the graph");
+        assert(found && "The entry is not a subgraph of the graph");
 #endif
-        root = r;
+        _entry = e;
     }
 
     void remove(PSNode *nd) {

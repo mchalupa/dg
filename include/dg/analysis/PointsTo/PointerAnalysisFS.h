@@ -47,7 +47,7 @@ public:
             // if this is the root of the entry procedure,
             // we must propagate the points-to information
             // from the globals initialization
-            if (n == PS->getRoot()) {
+            if (n == PS->getEntry()->getRoot()) {
                 mergeGlobalsState(mm, PS->getGlobals());
             }
         } else {

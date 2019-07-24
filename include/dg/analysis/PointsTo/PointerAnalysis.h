@@ -91,7 +91,7 @@ public:
     void initialize_queue() {
         assert(to_process.empty());
 
-        PSNode *root = PS->getRoot();
+        PSNode *root = PS->getEntry()->getRoot();
         assert(root && "Do not have root of PS");
         // rely on C++11 move semantics
         to_process = PS->getNodes(root);

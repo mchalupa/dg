@@ -433,7 +433,7 @@ void PointerAnalysis::sanityCheck() {
     assert(INVALIDATED->pointsTo.empty()
            && "Unknown memory has been assigned a pointer");
 
-    auto nodes = PS->getNodes(PS->getRoot());
+    auto nodes = PS->getNodes(PS->getEntry()->getRoot());
     std::set<unsigned> ids;
     for (auto nd : nodes) {
         assert(ids.insert(nd->getID()).second && "Duplicated node ID");

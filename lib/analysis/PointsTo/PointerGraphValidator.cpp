@@ -240,7 +240,7 @@ bool PointerGraphValidator::checkEdges() {
         return invalid;
 
     // check that all nodes are reachable from the root
-    const auto reachable = getReachableNodes(PS->getRoot());
+    const auto reachable = getReachableNodes(PS->getEntry()->getRoot());
     for (const auto &nd : nodes) {
         if (!nd)
             continue;

@@ -167,7 +167,7 @@ public:
     PSNodeJoin * findJoin(const llvm::CallInst * callInst) const;
     void setInvalidateNodesFlag(bool value) 
     {
-        assert(PS.getRoot() == nullptr &&
+        assert(PS.getEntry() == nullptr &&
                 "This function must be called before building PS");
         this->invalidate_nodes = value;
     }

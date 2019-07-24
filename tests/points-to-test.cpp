@@ -36,7 +36,8 @@ public:
         B->addSuccessor(S);
         S->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -79,7 +80,8 @@ public:
         L1->addSuccessor(L3);
         L2->addSuccessor(L3);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -109,7 +111,8 @@ public:
         L1->addSuccessor(S2);
         S2->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -140,7 +143,8 @@ public:
         L1->addSuccessor(S2);
         S2->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -176,7 +180,8 @@ public:
         L1->addSuccessor(S2);
         S2->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -205,7 +210,8 @@ public:
         S->addSuccessor(GEP2);
         GEP2->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -235,7 +241,8 @@ public:
         S->addSuccessor(GEP3);
         GEP3->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -275,7 +282,8 @@ public:
         GEP4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -316,7 +324,8 @@ public:
         GEP4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -363,7 +372,8 @@ public:
         GEP4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -385,7 +395,8 @@ public:
         B->addSuccessor(S);
         S->addSuccessor(L);
 
-        PS.setRoot(B);
+        auto subg = PS.createSubgraph(B);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -410,7 +421,8 @@ public:
         S->addSuccessor(GEP);
         GEP->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -428,7 +440,8 @@ public:
 
         B->addSuccessor(L);
 
-        PS.setRoot(B);
+        auto subg = PS.createSubgraph(B);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -454,7 +467,8 @@ public:
         S->addSuccessor(GEP2);
         GEP2->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -482,7 +496,8 @@ public:
         S->addSuccessor(GEP2);
         GEP2->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -510,7 +525,8 @@ public:
         S->addSuccessor(GEP2);
         GEP2->addSuccessor(L);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -565,7 +581,8 @@ public:
         G4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -621,7 +638,8 @@ public:
         G4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -677,7 +695,8 @@ public:
         G4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -725,7 +744,8 @@ public:
         G4->addSuccessor(L1);
         L1->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -769,7 +789,8 @@ public:
         L1->addSuccessor(G4);
         G4->addSuccessor(L2);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -810,7 +831,8 @@ public:
         G4->addSuccessor(CPY);
         CPY->addSuccessor(L1);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -852,7 +874,8 @@ public:
         L1->addSuccessor(L2);
         L2->addSuccessor(L3);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
@@ -900,7 +923,8 @@ public:
         L1->addSuccessor(L2);
         L2->addSuccessor(L3);
 
-        PS.setRoot(A);
+        auto subg = PS.createSubgraph(A);
+        PS.setEntry(subg);
         PTStoT PA(&PS);
         PA.run();
 
