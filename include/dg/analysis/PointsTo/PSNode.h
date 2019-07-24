@@ -507,7 +507,10 @@ public:
 };
 
 class PSNodeCall : public PSNode {
+    // what this call calls?
     std::vector<PointerSubgraph *> callees;
+    // where it returns?
+    PSNode *callReturn{nullptr};
 
 public:
     PSNodeCall(unsigned id)
@@ -517,6 +520,11 @@ public:
         return isa<PSNodeType::CALL>(n) ?
             static_cast<PSNodeCall *>(n) : nullptr;
     }
+    static PSNodeCall *cast(PSNode *n) { return _cast<PSNodeCall>(n); }
+
+    void setCallReturn(PSNode *callRet) { callReturn = callRet; }
+    PSNode *getCallReturn() { return callReturn; }
+    const PSNode *getCallReturn() const { return callReturn; }
 
     const std::vector<PointerSubgraph *>& getCallees() const { return callees; }
 
@@ -531,11 +539,33 @@ public:
         callees.push_back(ps);
         return true;
     }
+
+#ifndef NDEBUG
+    // verbose dump
+    void dumpv() const override {
+        PSNode::dumpv();
+        if (callReturn)
+            std::cout << "returns to " << callReturn->getID();
+        else
+            std::cout << "does not return ";
+
+        std::cout << " calls: [";
+        int n = 0;
+        for (const auto op : callees) {
+            if (++n > 1)
+                std::cout << ", ";
+            std::cout << op;
+        }
+        std::cout << "]";
+        std::cout << "\n";
+    }
+#endif // not NDEBUG
 };
 
 class PSNodeCallRet : public PSNode {
     // return nodes that go to this call-return node
     std::vector<PSNode *> returns;
+    PSNode *call;
 
 public:
     PSNodeCallRet(unsigned id, va_list args)
@@ -547,6 +577,10 @@ public:
     }
 
     static PSNodeCallRet *cast(PSNode *n) { return _cast<PSNodeCallRet>(n); }
+
+    void setCall(PSNode* c) { call = c; }
+    PSNode* getCall() { return call; }
+    const PSNode* getCall() const { return call; }
 
     const std::vector<PSNode *>& getReturns() const { return returns; }
 
@@ -561,6 +595,22 @@ public:
         returns.push_back(p);
         return true;
     }
+
+#ifndef NDEBUG
+    // verbose dump
+    void dumpv() const override {
+        PSNode::dumpv();
+        std::cout << "Return-site of call " << call->getID() << " rets: [";
+        int n = 0;
+        for (const auto op : returns) {
+            if (++n > 1)
+                std::cout << ", ";
+            op->dump();
+        }
+        std::cout << "]";
+        std::cout << "\n";
+    }
+#endif // not NDEBUG
 };
 
 class PSNodeRet : public PSNode {
