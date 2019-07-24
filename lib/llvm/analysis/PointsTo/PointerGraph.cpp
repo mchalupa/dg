@@ -49,18 +49,6 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-void dump(const llvm::BasicBlock& b) {
-    llvm::errs() << b << "\n";
-}
-
-void dump(const llvm::Instruction& I) {
-    llvm::errs() << I << "\n";
-}
-
-void dump(const llvm::Value& V) {
-    llvm::errs() << V << "\n";
-}
-
 PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val)
 {
     if (llvm::isa<llvm::ConstantPointerNull>(val)
