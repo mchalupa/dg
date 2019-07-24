@@ -291,6 +291,11 @@ public:
 
     PSNodeType getType() const { return type; }
 
+    // an auxiliary method to determine whether a node is a call
+    bool isCall() const {
+        return type == PSNodeType::CALL || type == PSNodeType::CALL_FUNCPTR;
+    }
+
     void setParent(PointerSubgraph *p) { _parent = p; }
     PointerSubgraph *getParent() { return _parent; }
     const PointerSubgraph *getParent() const { return _parent; }

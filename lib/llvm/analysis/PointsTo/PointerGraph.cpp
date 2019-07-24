@@ -100,8 +100,7 @@ PSNode *LLVMPointerGraphBuilder::tryGetOperand(const llvm::Value *val)
 
     // if the operand is a call, use the return node of the call instead
     // - that is the one that contains returned pointers
-    if (op->getType() == PSNodeType::CALL
-        || op->getType() == PSNodeType::CALL_FUNCPTR) {
+    if (op->isCall()) {
         op = op->getPairedNode();
     }
 
