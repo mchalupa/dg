@@ -17,9 +17,7 @@ namespace analysis {
 namespace pta { class PSNode; }
 namespace rd { class RDNode; }
 
-template <typename NodeT,
-          typename = std::enable_if<std::is_same<NodeT, pta::PSNode>::value ||
-                                    std::is_same<NodeT, rd::RDNode>::value> >
+template <typename NodeT>
 class SubgraphNode {
     // id of the node. Every node from a graph has a unique ID;
     unsigned int id = 0;
