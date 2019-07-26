@@ -733,6 +733,16 @@ bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
             if (nd == c)
                 break;
 
+            if (nd->hasSubgraphs()) {
+                // we search interprocedurally
+                for (auto dg : nd->getSubgraphs()) {
+                    auto exit = dg->getExitBB();
+                    assert(exit && "No exit BB in a graph");
+                    if (visited.insert(exit).second)
+                        queue.push(exit);
+                }
+            }
+
             checkSecondarySlicingCrit(criteria_nodes,
                                       secondaryControlCriteria,
                                       secondaryDataCriteria, nd);
@@ -744,6 +754,16 @@ bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
         auto cur = queue.pop();
         for (auto pred : cur->predecessors()) {
             for (auto nd : pred->getNodes()) {
+                if (nd->hasSubgraphs()) {
+                    // we search interprocedurally
+                    for (auto dg : nd->getSubgraphs()) {
+                        auto exit = dg->getExitBB();
+                        assert(exit && "No exit BB in a graph");
+                        if (visited.insert(exit).second)
+                            queue.push(exit);
+                    }
+                }
+
                 checkSecondarySlicingCrit(criteria_nodes,
                                           secondaryControlCriteria,
                                           secondaryDataCriteria, nd);
