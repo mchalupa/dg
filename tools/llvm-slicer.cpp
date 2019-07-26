@@ -694,6 +694,21 @@ static bool isCallTo(LLVMNode *callNode, const std::set<std::string>& names)
     return false;
 }
 
+static inline
+void checkSecondarySlicingCrit(std::set<LLVMNode *>& criteria_nodes,
+                               const std::set<std::string>& secondaryControlCriteria,
+                               const std::set<std::string>& secondaryDataCriteria,
+                               LLVMNode *nd) {
+    if (isCallTo(nd, secondaryControlCriteria))
+        criteria_nodes.insert(nd);
+    if (isCallTo(nd, secondaryDataCriteria)) {
+        llvm::errs() << "WARNING: Found possible data secondary slicing criterion: "
+                    << *nd->getValue() << "\n";
+        llvm::errs() << "This is not fully supported, so adding to be sound\n";
+        criteria_nodes.insert(nd);
+    }
+}
+
 // mark nodes that are going to be in the slice
 static
 bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
@@ -717,14 +732,10 @@ bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
         for (auto nd : c->getBBlock()->getNodes()) {
             if (nd == c)
                 break;
-            if (isCallTo(nd, secondaryControlCriteria))
-                criteria_nodes.insert(nd);
-            if (isCallTo(nd, secondaryDataCriteria)) {
-                llvm::errs() << "WARNING: Found possible data secondary slicing criterion: "
-                            << *nd->getValue() << "\n";
-                llvm::errs() << "This is not fully supported, so adding to be sound\n";
-                criteria_nodes.insert(nd);
-            }
+
+            checkSecondarySlicingCrit(criteria_nodes,
+                                      secondaryControlCriteria,
+                                      secondaryDataCriteria, nd);
         }
     }
 
@@ -733,14 +744,9 @@ bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
         auto cur = queue.pop();
         for (auto pred : cur->predecessors()) {
             for (auto nd : pred->getNodes()) {
-                if (isCallTo(nd, secondaryControlCriteria))
-                    criteria_nodes.insert(nd);
-                if (isCallTo(nd, secondaryDataCriteria)) {
-                    llvm::errs() << "WARNING: Found possible data secondary slicing criterion: "
-                                << *nd->getValue() << "\n";
-                    llvm::errs() << "This is not fully supported, so adding to be sound\n";
-                    criteria_nodes.insert(nd);
-                }
+                checkSecondarySlicingCrit(criteria_nodes,
+                                          secondaryControlCriteria,
+                                          secondaryDataCriteria, nd);
             }
             if (visited.insert(pred).second)
                 queue.push(pred);
