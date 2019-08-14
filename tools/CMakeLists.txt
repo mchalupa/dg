@@ -31,9 +31,9 @@ if (LLVM_DG)
 				PRIVATE ${llvm_core})
 	add_dependencies(llvm-slicer gitversion)
 
-	add_executable(llvm-ps-dump llvm-ps-dump.cpp)
-	target_link_libraries(llvm-ps-dump PRIVATE LLVMpta)
-	target_link_libraries(llvm-ps-dump
+	add_executable(llvm-pta-dump llvm-pta-dump.cpp)
+	target_link_libraries(llvm-pta-dump PRIVATE LLVMpta)
+	target_link_libraries(llvm-pta-dump
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}
