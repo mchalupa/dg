@@ -104,10 +104,8 @@ if (LLVM_DG)
 		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
 
 	# copy also the wrapper scripts
-	configure_file(pta-show pta-show COPYONLY)
-	configure_file(llvmrd-dump llvmrd-dump COPYONLY)
-	configure_file(llvmdg-show llvmdg-show COPYONLY)
-	configure_file(llvm-slicer-c llvm-slicer-c COPYONLY)
+	install(FILES pta-show llvmrd-dump llvmdg-show llvm-slicer-c
+		DESTINATION bin)
 endif (LLVM_DG)
 
 include_directories(../src)
