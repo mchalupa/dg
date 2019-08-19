@@ -44,17 +44,6 @@ splitStringVector(std::vector<std::string>& vec,
     return {part1, part2};
 }
 
-bool array_match(llvm::StringRef name, const char *names[]) {
-    unsigned idx = 0;
-    while(names[idx]) {
-        if (name.equals(names[idx]))
-            return true;
-        ++idx;
-    }
-
-    return false;
-}
-
 void replace_suffix(std::string& fl, const std::string& with) {
     if (fl.size() > 2) {
         if (fl.compare(fl.size() - 2, 2, ".o") == 0)

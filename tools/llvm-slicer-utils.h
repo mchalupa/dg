@@ -27,8 +27,6 @@ splitStringVector(std::vector<std::string>& vec,
 
 void replace_suffix(std::string& fl, const std::string& with);
 
-bool array_match(llvm::StringRef name, const char *names[]);
-
 template <typename T>
 bool array_match(llvm::StringRef name, const T& names) {
     for (auto& n : names) {
