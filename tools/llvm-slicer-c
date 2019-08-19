@@ -1,10 +1,12 @@
 #!/usr/bin/python
 
 from subprocess import call
-from sys import argv, stderr, exit
-from os.path import isfile, join, dirname
+from sys import argv, stderr, stdout, exit
+from os.path import isfile, join, dirname, basename
 
 def err(msg):
+    stdout.flush()
+    stderr.flush()
     stderr.write('[llvm-slicer-c]: ' + msg + '\n')
     exit(1)
 
@@ -38,13 +40,14 @@ for x in argv[1:]:
         next_is_clang = False
     elif x == '-Xclang':
         next_is_clang = True
-    elif x.endswith('.c') or x.endswith('.cpp'):
+    elif x.endswith('.c') or x.endswith('.cpp') or x.endswith('.i'):
         files.append(x)
     else:
         slicercmd.append(x)
 
-def repl_suffix(f):
-    if f.endswith('.c'):
+def repl_suffix(fl):
+    f = basename(fl)
+    if f.endswith('.c') or f.endswith('.i'):
         return '{0}.bc'.format(f[:-2])
     elif f.endswith('.cpp'):
         return '{0}.bc'.format(f[:-4])
