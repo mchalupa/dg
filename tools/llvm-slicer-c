@@ -1,0 +1,73 @@
+#!/usr/bin/python
+
+from subprocess import call
+from sys import argv, stderr, exit
+from os.path import isfile, join, dirname
+
+def err(msg):
+    stderr.write('[llvm-slicer-c]: ' + msg + '\n')
+    exit(1)
+
+def printcmd(cmd):
+    print('> {0}'.format(' '.join(cmd)))
+
+slicer='llvm-slicer'
+clang='clang'
+link='llvm-link'
+
+# try to find the right path to the slicer
+if isfile(slicer):
+    slicer='./{0}'.format(slicer)
+else:
+    d = dirname(argv[0])
+    p = join(d, slicer)
+    if isfile(p):
+        slicer = p
+
+clangcmd=[clang, '-emit-llvm', '-c', '-g']
+slicercmd=[slicer]
+files=[]
+
+for x in argv[1:]:
+    if x.endswith('.c') or x.endswith('.cpp'):
+        files.append(x)
+    else:
+        slicercmd.append(x)
+
+def repl_suffix(f):
+    if f.endswith('.c'):
+        return '{0}.bc'.format(f[:-2])
+    elif f.endswith('.cpp'):
+        return '{0}.bc'.format(f[:-4])
+
+if len(files) < 1:
+    err('No input files given')
+
+# issue clang
+clangcmd += files
+bitcodes = list(map(repl_suffix, files))
+bitcode = None
+
+printcmd(clangcmd)
+r = call(clangcmd)
+if r != 0:
+    err('clang command return non-zero status')
+
+if len(files) > 1:
+    bitcode='bitcode.bc'
+    linkcmd=[link, '-o', bitcode] + bitcodes
+
+    printcmd(linkcmd)
+    r = call(linkcmd)
+    if r != 0:
+        err('llvm-link command return non-zero status')
+
+else:
+    bitcode = bitcodes[0]
+
+slicercmd.append(bitcode)
+printcmd(slicercmd)
+
+r = call(slicercmd)
+if r != 0:
+    err('slicer command return non-zero status')
