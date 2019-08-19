@@ -19,10 +19,15 @@ if (LLVM_DG)
 				PRIVATE ${llvm_bitwriter}
 				PRIVATE ${llvm_core})
 
-	add_executable(llvm-slicer llvm-slicer.cpp
-				   llvm-slicer-opts.cpp llvm-slicer-opts.h
-				   llvm-slicer-utils.cpp llvm-slicer-utils.h)
-	target_link_libraries(llvm-slicer PRIVATE LLVMdg)
+	add_library(dgllvmslicer SHARED
+		    llvm-slicer-opts.cpp llvm-slicer-opts.h
+		    llvm-slicer-utils.cpp llvm-slicer-utils.h
+		    llvm-slicer.h)
+	#target_link_libraries(dgllvmslicer PUBLIC LLVMdg)
+
+	add_executable(llvm-slicer llvm-slicer.cpp)
+	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
+					  PRIVATE LLVMdg)
 	target_link_libraries(llvm-slicer
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_bitwriter}
@@ -91,6 +96,12 @@ if (LLVM_DG)
 
 	install(TARGETS llvm-dg-dump llvm-slicer
 		RUNTIME DESTINATION bin)
+
+	install(TARGETS dgllvmslicer
+		RUNTIME DESTINATION lib)
+
+	install(FILES llvm-slicer.h llvm-slicer-opts.h llvm-slicer-utils.h
+		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
 
 	# copy also the wrapper scripts
 	configure_file(pta-show pta-show COPYONLY)
