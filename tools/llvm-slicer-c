@@ -15,7 +15,8 @@ slicer='llvm-slicer'
 clang='clang'
 link='llvm-link'
 
-# try to find the right path to the slicer
+###
+# Try to find the right path to the slicer
 if isfile(slicer):
     slicer='./{0}'.format(slicer)
 else:
@@ -28,8 +29,16 @@ clangcmd=[clang, '-emit-llvm', '-c', '-g']
 slicercmd=[slicer]
 files=[]
 
+###
+# Build the commands
+next_is_clang=False
 for x in argv[1:]:
-    if x.endswith('.c') or x.endswith('.cpp'):
+    if next_is_clang:
+        clangcmd.append(x)
+        next_is_clang = False
+    elif x == '-Xclang':
+        next_is_clang = True
+    elif x.endswith('.c') or x.endswith('.cpp'):
         files.append(x)
     else:
         slicercmd.append(x)
@@ -43,7 +52,8 @@ def repl_suffix(f):
 if len(files) < 1:
     err('No input files given')
 
-# issue clang
+###
+# Issue clang to compile sources to bitcode(s)
 clangcmd += files
 bitcodes = list(map(repl_suffix, files))
 bitcode = None
@@ -53,6 +63,8 @@ r = call(clangcmd)
 if r != 0:
     err('clang command return non-zero status')
 
+###
+# Link multiple files if needed
 if len(files) > 1:
     bitcode='bitcode.bc'
     linkcmd=[link, '-o', bitcode] + bitcodes
@@ -65,6 +77,8 @@ if len(files) > 1:
 else:
     bitcode = bitcodes[0]
 
+###
+# Slice the code
 slicercmd.append(bitcode)
 printcmd(slicercmd)
 
