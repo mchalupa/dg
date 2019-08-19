@@ -93,9 +93,10 @@ if (LLVM_DG)
 		RUNTIME DESTINATION bin)
 
 	# copy also the wrapper scripts
-	configure_file(ps-show ps-show COPYONLY)
+	configure_file(pta-show pta-show COPYONLY)
 	configure_file(llvmrd-dump llvmrd-dump COPYONLY)
 	configure_file(llvmdg-show llvmdg-show COPYONLY)
+	configure_file(llvm-slicer-c llvm-slicer-c COPYONLY)
 endif (LLVM_DG)
 
 include_directories(../src)
