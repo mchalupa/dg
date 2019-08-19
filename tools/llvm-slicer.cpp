@@ -553,7 +553,7 @@ int main(int argc, char *argv[])
     if (!findSecondarySlicingCriteria(criteria_nodes,
                                       secondaryControlCriteria,
                                       secondaryDataCriteria)) {
-        llvm::errs() << "Finding dependent nodes failed\n";
+        llvm::errs() << "Finding secondary slicing criteria nodes failed\n";
         return 1;
     }
 
