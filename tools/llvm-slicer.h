@@ -25,7 +25,7 @@
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
 
-#include "llvm/LLVMDGAssemblyAnnotationWriter.h"
+#include "dg/llvm/LLVMDGAssemblyAnnotationWriter.h"
 #include "llvm-slicer-opts.h"
 #include "TimeMeasure.h"
 

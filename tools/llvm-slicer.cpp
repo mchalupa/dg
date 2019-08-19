@@ -60,7 +60,7 @@
 
 #include "dg/ADT/Queue.h"
 #include "dg/llvm/LLVMDG2Dot.h"
-#include "llvm/LLVMDGAssemblyAnnotationWriter.h"
+#include "dg/llvm/LLVMDGAssemblyAnnotationWriter.h"
 #include "dg/util/debug.h"
 
 using namespace dg;
