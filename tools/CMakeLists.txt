@@ -98,7 +98,7 @@ if (LLVM_DG)
 		RUNTIME DESTINATION bin)
 
 	install(TARGETS dgllvmslicer
-		RUNTIME DESTINATION lib)
+		LIBRARY DESTINATION lib)
 
 	install(FILES llvm-slicer.h llvm-slicer-opts.h llvm-slicer-utils.h
 		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
