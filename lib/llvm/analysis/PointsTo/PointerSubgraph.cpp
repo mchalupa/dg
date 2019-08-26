@@ -496,6 +496,10 @@ LLVMPointerSubgraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             return createInsertElement(&Inst);
         case Instruction::ExtractElement:
             return createExtractElement(&Inst);
+        case Instruction::ShuffleVector:
+            llvm::errs() << "ShuffleVector instruction is not supported, loosing precision\n";
+            node = createUnknown(&Inst);
+            break;
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");
