@@ -28,8 +28,8 @@
 #endif
 
 #include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
 namespace debug {
@@ -219,9 +219,9 @@ private:
             if (PTA) {
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
-                    analysis::pta::PSNode *ps = PTA->getPointsTo(node->getKey());
+                    auto ps = PTA->getPointsTo(node->getKey());
                     if (ps) {
-                        for (const analysis::pta::Pointer& ptr : ps->pointsTo)
+                        for (const auto& ptr : ps->pointsTo)
                             printPointer(ptr, os);
                     }
                 }
