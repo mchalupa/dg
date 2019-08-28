@@ -43,6 +43,8 @@
 #include "llvm/analysis/PointsTo/PointerSubgraphValidator.h"
 #include "llvm/llvm-utils.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace analysis {
 namespace pta {
@@ -691,6 +693,8 @@ void LLVMPointerSubgraphBuilder::buildArguments(const llvm::Function& F,
 LLVMPointerSubgraphBuilder::Subgraph&
 LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
 {
+    DBG_SECTION_BEGIN(pta, "building function '" << F.getName().str() << "'");
+
     assert(subgraphs_map.count(&F) == 0 && "We already built this function");
     assert(!F.isDeclaration() && "Cannot build an undefined function");
 
@@ -757,6 +761,8 @@ LLVMPointerSubgraphBuilder::buildFunction(const llvm::Function& F)
     addPHIOperands(F);
 
     assert(subgraphs_map[&F].root != nullptr);
+
+    DBG_SECTION_END(pta, "building function '" << F.getName().str() << "' done");
     return s;
 }
 
@@ -954,6 +960,8 @@ void LLVMPointerSubgraphBuilder::addInterproceduralOperands(const llvm::Function
 
 PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
 {
+    DBG_SECTION_BEGIN(pta, "building pointer graph");
+
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
     if (!F) {
@@ -999,6 +1007,8 @@ PointerSubgraph *LLVMPointerSubgraphBuilder::buildLLVMPointerSubgraph()
         llvm::errs() << validator.getWarnings();
     }
 #endif // NDEBUG
+
+    DBG_SECTION_END(pta, "building pointer graph done");
 
     return &PS;
 }

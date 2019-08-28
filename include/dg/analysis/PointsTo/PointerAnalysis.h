@@ -11,6 +11,8 @@
 #include "dg/ADT/Queue.h"
 #include "dg/analysis/SCC.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace analysis {
 namespace pta {
@@ -33,12 +35,14 @@ class PointerAnalysis
 
     void initPointerAnalysis() {
         assert(PS && "Need PointerSubgraph object");
-
+        DBG_SECTION_BEGIN(pta, "Computing SCCs");
         // compute the strongly connected components
         // FIXME: do that optional
         SCC<PSNode> scc_comp;
         SCCs = std::move(scc_comp.compute(PS->getRoot()));
         sccs_index = scc_comp.getIndex();
+
+        DBG_SECTION_END(pta, "Computing SCCs done");
     }
 
 protected:
@@ -146,6 +150,8 @@ public:
 
     void run()
     {
+        DBG_SECTION_BEGIN(pta, "Running pointer analysis");
+
         // do preprocessing and queue the nodes
         preprocess();
         initialize_queue();
@@ -153,8 +159,19 @@ public:
         // check that the current state of pointer analysis makes sense
         sanityCheck();
 
+#if DEBUG_ENABLED
+        int n = 0;
+#endif
+
         // do fixpoint
         do {
+#if DEBUG_ENABLED
+            if (n % 100 == 0) {
+                DBG(pta, "Iteration " << n << ", queue size " << to_process.size());
+            }
+            ++n;
+#endif
+
             iteration();
             queue_changed();
         } while (!to_process.empty());
@@ -173,6 +190,8 @@ public:
         // generated, so this is OK.
 
         sanityCheck();
+
+        DBG_SECTION_END(pta, "Running pointer analysis done");
     }
 
     // generic error
