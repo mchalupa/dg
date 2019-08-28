@@ -61,6 +61,7 @@
 #include "dg/ADT/Queue.h"
 #include "dg/llvm/LLVMDG2Dot.h"
 #include "llvm/LLVMDGAssemblyAnnotationWriter.h"
+#include "dg/util/debug.h"
 
 using namespace dg;
 
@@ -71,6 +72,9 @@ using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
 using AnnotationOptsT
     = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
 
+llvm::cl::opt<bool> enable_debug("debug",
+    llvm::cl::desc("Enable debugging messages (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> should_verify_module("dont-verify",
     llvm::cl::desc("Verify sliced module (default=true)."),
@@ -841,6 +845,9 @@ int main(int argc, char *argv[])
     setupStackTraceOnError(argc, argv);
 
     SlicerOptions options = parseSlicerOptions(argc, argv);
+
+    if (enable_debug)
+        DBG_ENABLE();
 
     // dump_dg_only implies dumg_dg
     if (dump_dg_only)
