@@ -16,6 +16,8 @@
 
 #include "dg/analysis/ReachingDefinitions/RDNode.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace analysis {
 namespace rd {
@@ -299,12 +301,15 @@ public:
     : ReachingDefinitionsAnalysis(std::move(graph)) {}
 
     void run() override {
+        DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
         // transform the graph to SSA
         if (graph.getBBlocks().empty())
             graph.buildBBlocks();
 
         performLvn();
         performGvn();
+
+        DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
     }
 
     // return the reaching definitions of ('mem', 'off', 'len')

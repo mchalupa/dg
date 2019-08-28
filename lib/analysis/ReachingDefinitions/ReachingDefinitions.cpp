@@ -5,6 +5,8 @@
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/BBlocksBuilder.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace analysis {
 namespace rd {
@@ -15,6 +17,7 @@ RDNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 void ReachingDefinitionsGraph::buildBBlocks(bool dce) {
     assert(getRoot() && "No root node");
+    DBG(dda, "Building basic blocks");
 
     BBlocksBuilder<RDBBlock> builder;
     _bblocks = std::move(builder.buildAndGetBlocks(getRoot()));
@@ -58,13 +61,24 @@ bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
 
 void ReachingDefinitionsAnalysis::run()
 {
+    DBG_SECTION_BEGIN(dda, "Starting reaching definitions analysis");
     assert(getRoot() && "Do not have root");
 
     std::vector<RDNode *> to_process = getNodes(getRoot());
     std::vector<RDNode *> changed;
 
+#ifdef DEBUG_ENABLED
+    int n = 0;
+#endif
+
     // do fixpoint
     do {
+#ifdef DEBUG_ENABLED
+        if (n % 100 == 0) {
+            DBG(dda, "Iteration " << n << ", queued " << to_process.size() << " nodes");
+        }
+        ++n;
+#endif
         unsigned last_processed_num = to_process.size();
         changed.clear();
 
@@ -83,6 +97,8 @@ void ReachingDefinitionsAnalysis::run()
             assert(!to_process.empty());
         }
     } while (!changed.empty());
+
+    DBG_SECTION_END(dda, "Finished reaching definitions analysis");
 }
 
 // return the reaching definitions of ('mem', 'off', 'len')
@@ -269,12 +285,15 @@ void SSAReachingDefinitionsAnalysis::performLvn(RDBBlock *block) {
 }
 
 void SSAReachingDefinitionsAnalysis::performLvn() {
+    DBG_SECTION_BEGIN(dda, "Starting LVN");
     for (RDBBlock *block : graph.blocks()) {
         performLvn(block);
     }
+    DBG_SECTION_END(dda, "LVN finished");
 }
 
 void SSAReachingDefinitionsAnalysis::performGvn() {
+    DBG_SECTION_BEGIN(dda, "Starting GVN");
     std::set<RDNode *> phis(_phis.begin(), _phis.end());
 
     while(!phis.empty()) {
@@ -302,6 +321,7 @@ void SSAReachingDefinitionsAnalysis::performGvn() {
             }
         }
     }
+    DBG_SECTION_END(dda, "GVN finished");
 }
 
 static void recGatherNonPhisDefs(RDNode *phi, std::set<RDNode *>& phis, std::set<RDNode *>& ret) {
@@ -345,6 +365,7 @@ SSAReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
 
 std::vector<RDNode *>
 SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
+    DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
     assert(from->getBBlock() && "The node has no BBlock");
 
     DefinitionsMap<RDNode> defs; // auxiliary map for finding defintions
@@ -402,6 +423,7 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
     ///
     // Gather all the defintions
     ///
+    DBG_SECTION_END(dda, "MemorySSA - finding all definitions done");
     return gatherNonPhisDefs(foundDefs);
 }
 
