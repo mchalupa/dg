@@ -57,9 +57,9 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi) {
     if (auto I = dyn_cast<Instruction>(vi.v)) {
         os << I->getParent()->getParent()->getName()
                << ":: " << *I;
-    } else if (isa<Argument>(vi.v)) {
-        os << I->getParent()->getParent()->getName()
-               << ":: (arg) " << *I;
+    } else if (auto A = dyn_cast<Argument>(vi.v)) {
+        os << A->getParent()->getParent()->getName()
+               << ":: (arg) " << *A;
     } else if (auto F = dyn_cast<Function>(vi.v)) {
         os << "(func) " << F->getName();
     } else {
