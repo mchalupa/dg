@@ -71,7 +71,6 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi) {
 
 static inline void makeEdge(RDNode *src, RDNode *dst)
 {
-    assert(src != dst && "Tried creating self-loop");
     assert(src != nullptr);
     src->addSuccessor(dst);
 }
