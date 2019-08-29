@@ -150,17 +150,12 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     PSNodeCallRet *returnNode = PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
     assert(returnNode);
 
-    // we will remove this edge if the procedure does not return
-    // (later, now keep it for simplicity)
+    // we will remove this edge later if the procedure does not return
+    // (now keep it for simplicity)
     callNode->addSuccessor(returnNode);
 
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
-    for (auto ret : subg.returnNodes) {
-        assert(PSNodeRet::get(ret));
-        PSNodeRet::get(ret)->addReturnSite(returnNode);
-        returnNode->addReturn(ret);
-    }
 
     // this must be after we created the CALL_RETURN node
     if (ad_hoc_building) {
@@ -870,16 +865,22 @@ void LLVMPointerGraphBuilder::addReturnNodesOperands(const llvm::Function *F,
     }
 }
 
-void LLVMPointerGraphBuilder::addReturnNodeOperand(PSNode *callNode, PSNode *op) {
-    PSNode *callReturn = callNode->getPairedNode();
+void LLVMPointerGraphBuilder::addReturnNodeOperand(PSNode *callNode, PSNode *ret) {
+    assert(PSNodeRet::get(ret));
+    auto callReturn = PSNodeCallRet::cast(callNode->getPairedNode());
     // the function must be defined, since we have the return node,
     // so there must be associated the return node
     assert(callReturn);
     assert(callReturn != callNode);
     assert(callReturn->getType() == PSNodeType::CALL_RETURN);
 
-    if (!callReturn->hasOperand(op))
-        callReturn->addOperand(op);
+    if (!callReturn->hasOperand(ret))
+        callReturn->addOperand(ret);
+
+    // setup return edges (do it here, since recursive calls
+    // may not have build return nodes earlier)
+    PSNodeRet::get(ret)->addReturnSite(callReturn);
+    callReturn->addReturn(ret);
 }
 
 
@@ -936,9 +937,9 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
         addReturnNodesOperands(F, subg, callNode);
     } else {
         // disconnect call-return nodes
-        auto cr = callNode->getPairedNode();
-        assert(cr && cr != callNode);
-        assert(callNode->getSingleSuccessor() == cr);
+        auto callReturnNode = PSNodeCallRet::cast(callNode->getPairedNode());
+        assert(callReturnNode && callNode != callReturnNode);
+        assert(callNode->getSingleSuccessor() == callReturnNode);
         callNode->removeSingleSuccessor();
     }
 }
