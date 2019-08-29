@@ -160,24 +160,21 @@ public:
 
     void replaceSingleSuccessor(NodeT *succ) {
         assert(succ && "Passed nullptr as the successor");
+        removeSingleSuccessor();
+        addSuccessor(succ);
+    }
+
+    void removeSingleSuccessor() {
         assert(successors.size() == 1);
-        NodeT *old = successors[0];
 
         // we need to remove this node from
         // successor's predecessors
-        std::vector<NodeT *> tmp;
-        tmp.reserve(old->predecessorsNum());
-        for (NodeT *p : old->predecessors) {
-            if (p != this)
-                tmp.push_back(p);
-        }
+        _removeThisFromSuccessorsPredecessors(successors[0]);
 
-        old->predecessors.swap(tmp);
-
-        // replace the successor
+        // remove the successor
         successors.clear();
-        addSuccessor(succ);
     }
+
 
     // get the successor when we know there's only one of them
     NodeT *getSingleSuccessor() const {
@@ -360,6 +357,18 @@ public:
 #endif
 
 private:
+
+    void _removeThisFromSuccessorsPredecessors(NodeT *succ) {
+        std::vector<NodeT *> tmp;
+        tmp.reserve(succ->predecessorsNum());
+        for (NodeT *p : succ->predecessors) {
+            if (p != this)
+                tmp.push_back(p);
+        }
+
+        succ->predecessors.swap(tmp);
+    }
+
     bool removeDuplicitOperands() {
         std::set<NodeT *> ops;
         bool duplicated = false;

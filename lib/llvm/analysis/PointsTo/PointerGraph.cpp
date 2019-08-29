@@ -147,22 +147,19 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
 
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
-    PSNodeCallRet *returnNode = nullptr;
-    if (!subg.returnNodes.empty()) {
-        returnNode = PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
-        assert(returnNode);
+    PSNodeCallRet *returnNode = PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
+    assert(returnNode);
 
-        callNode->addSuccessor(returnNode);
+    // we will remove this edge if the procedure does not return
+    // (later, now keep it for simplicity)
+    callNode->addSuccessor(returnNode);
 
-        returnNode->setPairedNode(callNode);
-        callNode->setPairedNode(returnNode);
-        for (auto ret : subg.returnNodes) {
-            assert(PSNodeRet::get(ret));
-            PSNodeRet::get(ret)->addReturnSite(returnNode);
-            returnNode->addReturn(ret);
-        }
-    } else {
-        callNode->setPairedNode(callNode);
+    returnNode->setPairedNode(callNode);
+    callNode->setPairedNode(returnNode);
+    for (auto ret : subg.returnNodes) {
+        assert(PSNodeRet::get(ret));
+        PSNodeRet::get(ret)->addReturnSite(returnNode);
+        returnNode->addReturn(ret);
     }
 
     // this must be after we created the CALL_RETURN node
@@ -937,6 +934,12 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
 
     if (!subg.returnNodes.empty()) {
         addReturnNodesOperands(F, subg, callNode);
+    } else {
+        // disconnect call-return nodes
+        auto cr = callNode->getPairedNode();
+        assert(cr && cr != callNode);
+        assert(callNode->getSingleSuccessor() == cr);
+        callNode->removeSingleSuccessor();
     }
 }
 
