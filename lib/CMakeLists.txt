@@ -51,6 +51,7 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/PointerGraph.cpp
 	llvm/analysis/PointsTo/PointerGraphValidator.cpp
 	llvm/analysis/PointsTo/Block.cpp
+	llvm/analysis/PointsTo/Interprocedural.cpp
 	llvm/analysis/PointsTo/Structure.cpp
 	llvm/analysis/PointsTo/Globals.cpp
 	llvm/analysis/PointsTo/Constants.cpp
