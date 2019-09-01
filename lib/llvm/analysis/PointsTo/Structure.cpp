@@ -109,7 +109,7 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
 
     // add successors in each one basic block
     for (auto& it : finfo.llvmBlocks) {
-        PSNodesBlockAddSuccessors(it.second);
+        PSNodesBlockAddSuccessors(it.second, true);
     }
 
     addCFGEdges(F, finfo, lastNode);

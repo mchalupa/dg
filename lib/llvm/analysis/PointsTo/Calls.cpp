@@ -77,7 +77,6 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const ll
     ret_call->setPairedNode(call_funcptr);
     call_funcptr->setPairedNode(ret_call);
 
-    call_funcptr->addSuccessor(ret_call);
     call_funcptr->setUserData(const_cast<llvm::CallInst *>(CInst));
 
     return addNode(CInst, {call_funcptr, ret_call});

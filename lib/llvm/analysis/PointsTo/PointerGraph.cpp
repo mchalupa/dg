@@ -161,10 +161,6 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
 
-    // we will remove this edge later if the procedure does not return
-    // (now keep it for simplicity)
-    callNode->addSuccessor(returnNode);
-
     // this must be after we created the CALL_RETURN node
     if (ad_hoc_building) {
         // add operands to arguments and return nodes
