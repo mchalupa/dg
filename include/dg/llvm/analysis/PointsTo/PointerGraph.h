@@ -177,6 +177,13 @@ class LLVMPointerGraphBuilder
     void addProgramStructure(const llvm::Function *F, PointerSubgraph& subg);
     void blockAddCalls(const llvm::BasicBlock& block);
 
+    void addCFGEdges(const llvm::Function *F,
+                     LLVMPointerGraphBuilder::FuncGraph& finfo,
+                     PSNode *lastNode);
+
+    PSNode *connectArguments(const llvm::Function *F,
+                             PSNodesBlock& argsBlk, PointerSubgraph& subg);
+
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, PSNodesSeq> nodes_map;
     // map of all built subgraphs - the value type is a pair (root, return)

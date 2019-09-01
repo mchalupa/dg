@@ -35,6 +35,7 @@
 #endif
 
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
+#include "dg/util/debug.h"
 
 namespace dg {
 namespace analysis {
@@ -88,8 +89,7 @@ LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F) {
 }
 
 void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
-                                                  PointerSubgraph& subg)
-{
+                                                  PointerSubgraph& subg) {
     assert(subg.root && "Subgraph has no root");
 
     assert(_funcInfo.find(F) != _funcInfo.end());
@@ -97,10 +97,32 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
 
     // with function pointer calls it may happen that we try
     // to add structure more times, so bail out in that case
-    if (finfo.has_structure)
+    if (finfo.has_structure) {
+        DBG(pta, "Already got structure for function '" << F->getName().str() <<
+                 "', bailing out");
         return;
+    }
 
     PSNodesBlock argsBlk = buildArgumentsStructure(*F);
+    PSNode *lastNode = connectArguments(F, argsBlk, subg);
+    assert(lastNode && "Did not connect arguments of a function correctly");
+
+    // add successors in each one basic block
+    for (auto& it : finfo.llvmBlocks) {
+        PSNodesBlockAddSuccessors(it.second);
+    }
+
+    addCFGEdges(F, finfo, lastNode);
+
+    DBG(pta, "Added CFG structure to function '" << F->getName().str() << "'");
+
+    finfo.has_structure = true;
+}
+
+PSNode *
+LLVMPointerGraphBuilder::connectArguments(const llvm::Function *F,
+                                          PSNodesBlock& argsBlk,
+                                          PointerSubgraph& subg) {
     PSNode *lastNode = nullptr;
 
     // make arguments the entry block of the subgraphs (if there
@@ -125,13 +147,13 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
         lastNode = subg.root;
     }
 
-    assert(lastNode);
+    return lastNode;
+}
 
-    // add successors in one basic block
-    for (auto& it : finfo.llvmBlocks) {
-        PSNodesBlockAddSuccessors(it.second);
-    }
-
+void
+LLVMPointerGraphBuilder::addCFGEdges(const llvm::Function *F,
+                                     LLVMPointerGraphBuilder::FuncGraph& finfo,
+                                     PSNode *lastNode) {
     // check whether we created the entry block. If not, we would
     // have a problem while adding successors, so fake that
     // the entry block is the root or the last argument
@@ -164,8 +186,6 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
         std::set<const llvm::BasicBlock *> found_blocks;
         finfo.blockAddSuccessors(found_blocks, blk, *it.first);
     }
-
-    finfo.has_structure = true;
 }
 
 } // namespace pta
