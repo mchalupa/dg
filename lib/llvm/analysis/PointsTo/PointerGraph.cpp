@@ -196,6 +196,8 @@ LLVMPointerGraphBuilder::callIsCompatible(PSNode *call,
 {
     const llvm::CallInst *CI = call->getUserData<llvm::CallInst>();
     const llvm::Function *F = func->getUserData<llvm::Function>();
+    assert(CI && "No user data in call node");
+    assert(F && "No user data in function node");
     // incompatible prototypes, skip it...
     return llvmutils::callIsCompatible(F, CI);
 } 
