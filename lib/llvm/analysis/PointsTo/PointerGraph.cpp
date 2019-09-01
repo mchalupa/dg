@@ -132,11 +132,8 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
 
     // setup call edges
     callNode->addCallee(&subg);
-    if (PSNodeEntry *ent = PSNodeEntry::get(subg.root)) {
-        ent->addCaller(callNode);
-    } else {
-        assert(false && "Root is not an entry node");
-    }
+    PSNodeEntry *ent = PSNodeEntry::cast(subg.root);
+    ent->addCaller(callNode);
 
     // update callgraph
     auto cinstg = getSubgraph(CInst->getParent()->getParent());
@@ -147,7 +144,8 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
 
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
-    PSNodeCallRet *returnNode = PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
+    PSNodeCallRet *returnNode
+        = PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
 
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
@@ -170,7 +168,7 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
 
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
-                                              const llvm::Function *F)
+                                           const llvm::Function *F)
 {
     // set this flag to true, so that createCallToFunction
     // (and all recursive calls to this function)
