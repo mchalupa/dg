@@ -231,9 +231,9 @@ public:
 
     // this is the same as the getNode, but it
     // creates ConstantExpr
-    PSNode *getPointsTo(const llvm::Value *val)
-    {
-        PSNode *n = getMapping(val);
+    // FIXME: make this return the points-to set
+    PSNode *getPointsTo(const llvm::Value *val) {
+        PSNode *n = getPointsToNode(val);
         if (!n)
             n = getConstant(val);
 
@@ -270,8 +270,19 @@ private:
     PSNodesSeq&
     createCallToFunction(const llvm::CallInst *, const llvm::Function *);
 
-    PSNode *getMapping(const llvm::Value *val) {
-        return mapping.get(val);
+    PSNode *getPointsToNode(const llvm::Value *val) {
+        // if we have a mapping for this node (e.g. the original
+        // node was optimized away and replaced by mapping),
+        // return it
+        if (auto mp = mapping.get(val))
+            return mp;
+        else if (auto nds = getNodes(val)) {
+            // otherwise get the representant of the built nodes
+            return nds->getRepresentant();
+        }
+
+        // not built!
+        return nullptr;
     }
 
     // get the built nodes for this value or null
@@ -285,23 +296,11 @@ private:
         return &it->second;
     }
 
-    void setMapping(const llvm::Value *val, PSNode *node) {
-        // if this is a call that returns a pointer,
-        // then the points-to is in CALL_RETURN node
-        if (node->getType() == PSNodeType::CALL
-            || node->getType() == PSNodeType::CALL_FUNCPTR)
-            node = node->getPairedNode();
-
-        mapping.add(val, node);
-    }
-
     PSNodesSeq& addNode(const llvm::Value *val, PSNode *node) {
         assert(nodes_map.find(val) == nodes_map.end());
         auto it = nodes_map.emplace(val, node);
         node->setUserData(const_cast<llvm::Value *>(val));
 
-        // FIXME: get rid of mapping
-        setMapping(val, node);
         return it.first->second;
     }
 
@@ -310,7 +309,6 @@ private:
         seq.getRepresentant()->setUserData(const_cast<llvm::Value *>(val));
         auto it = nodes_map.emplace(val, std::move(seq));
 
-        setMapping(val, seq.getRepresentant());
         return it.first->second;
     }
 
