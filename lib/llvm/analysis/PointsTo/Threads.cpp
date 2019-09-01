@@ -130,20 +130,20 @@ LLVMPointerGraphBuilder::createFork(const llvm::CallInst *CInst) {
     PSNodeFork *forkNode = PSNodeFork::get(PS.create(PSNodeType::FORK));
     callNode->setPairedNode(forkNode);
     forkNode->setPairedNode(callNode);
-    
+
+    if (auto nds = getNodes(CInst)) {
+        // CInst is already in nodes_map - probably function pointer call
+        forkNode->setCallInst(nds->getFirst());
+    } else {
+        forkNode->setCallInst(callNode);
+    }
+
     threadCreateCalls.emplace(CInst, forkNode);
     addArgumentOperands(*CInst, *callNode);
 
     const Value *functionToBeCalledOperand = CInst->getArgOperand(2);
     if (const Function *func = dyn_cast<Function>(functionToBeCalledOperand)) {
         addFunctionToFork(nodes_map[func].getSingleNode(), forkNode);
-    }
-
-    auto iterator = nodes_map.find(CInst);
-    if (iterator == nodes_map.end()) {
-        forkNode->setCallInst(callNode);
-    } else { // CInst is already in nodes_map - probably function pointer call
-        forkNode->setCallInst(iterator->second.getSingleNode());
     }
 
     return addNode(CInst, {callNode, forkNode});
@@ -158,13 +158,14 @@ LLVMPointerGraphBuilder::createJoin(const llvm::CallInst *CInst) {
     callNode->setPairedNode(joinNode);
     joinNode->setPairedNode(callNode);
     callNode->addSuccessor(joinNode);
-    auto iterator = nodes_map.find(CInst);
-    if (iterator == nodes_map.end()) {
+
+    if (auto nds = getNodes(CInst)) {
+        // CInst is already in nodes_map - probably function pointer call
+        joinNode->setCallInst(nds->getFirst());
+    } else {
         joinNode->setCallInst(callNode);
-    } else { // CInst is already in nodes_map - probably function pointer call
-        joinNode->setCallInst(iterator->second.getSingleNode());
     }
-    
+
     threadJoinCalls.emplace(CInst, joinNode);
     addArgumentOperands(*CInst, *callNode);
 
