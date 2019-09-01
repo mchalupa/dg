@@ -57,6 +57,7 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/Constants.cpp
 	llvm/analysis/PointsTo/Instructions.cpp
 	llvm/analysis/PointsTo/Calls.cpp
+	llvm/analysis/PointsTo/Threads.cpp
 )
 target_link_libraries(LLVMpta PUBLIC PTA)
 

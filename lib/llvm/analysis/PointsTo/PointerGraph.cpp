@@ -202,22 +202,6 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
     addInterproceduralOperands(F, subg, CI, callsite);
 }
 
-void LLVMPointerGraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite)
-{
-    auto seq = createFork(callsite->getUserData<llvm::CallInst>());
-    seq.getLast()->addSuccessor(callsite->getSingleSuccessor());
-    callsite->replaceSingleSuccessor(seq.getFirst());
-    PSNodeFork::cast(seq.getLast())->setCallInst(callsite);
-}
-
-void LLVMPointerGraphBuilder::insertPthreadJoinByPtrCall(PSNode *callsite)
-{
-    auto seq = createJoin(callsite->getUserData<llvm::CallInst>());
-    seq.getLast()->addSuccessor(callsite->getSingleSuccessor());
-    callsite->replaceSingleSuccessor(seq.getFirst());
-    PSNodeJoin::cast(seq.getLast())->setCallInst(callsite);
-}
-
 std::vector<PSNode *>
 LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
 {
@@ -249,26 +233,6 @@ LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
         }
     }
     return functions;
-}
-
-std::map<const llvm::CallInst *, PSNodeJoin *>
-LLVMPointerGraphBuilder::getJoins() const
-{
-    return threadJoinCalls;
-}
-
-std::map<const llvm::CallInst *, PSNodeFork *> LLVMPointerGraphBuilder::getForks() const
-{
-    return threadCreateCalls;
-}
-
-PSNodeJoin *LLVMPointerGraphBuilder::findJoin(const llvm::CallInst *callInst) const
-{
-    auto iterator = threadJoinCalls.find(callInst);
-    if (iterator != threadJoinCalls.end()) {
-        return iterator->second;
-    }
-    return nullptr;
 }
 
 PointerSubgraph&
