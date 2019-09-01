@@ -50,8 +50,7 @@ public:
     : PTType(PS), builder(b) {}
 
     // build new subgraphs on calls via pointer
-    bool functionPointerCall(PSNode *callsite, PSNode *called) override
-    {
+    bool functionPointerCall(PSNode *callsite, PSNode *called) override {
         using namespace analysis::pta;
         const llvm::Function *F
             = llvm::dyn_cast<llvm::Function>(called->getUserData<llvm::Value>());

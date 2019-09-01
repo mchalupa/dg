@@ -176,7 +176,11 @@ class PointerGraph
                 node = new PSNodeEntry(getNewNodeId());
                 break;
             case PSNodeType::CALL:
-                node = new PSNodeCall(getNewNodeId());
+                node = new PSNodeCall(t, getNewNodeId());
+                break;
+            case PSNodeType::CALL_FUNCPTR:
+                node = new PSNodeCall(t, getNewNodeId());
+                node->addOperand(va_arg(args, PSNode *));
                 break;
             case PSNodeType::FORK:
                 node = new PSNodeFork(getNewNodeId());

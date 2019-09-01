@@ -120,18 +120,16 @@ PSNode *LLVMPointerGraphBuilder::getOperand(const llvm::Value *val)
         return op;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
-                                              const llvm::Function *F)
-{
-    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
-
+PointerSubgraph&
+LLVMPointerGraphBuilder::getAndConnectSubgraph(const llvm::Function *F,
+                                               const llvm::CallInst *CInst,
+                                               PSNode *callNode) {
     // find or build the subgraph for the function F
     PointerSubgraph& subg = createOrGetSubgraph(F);
     assert(subg.root); // we took the subg by reference, so it should be filled now
 
     // setup call edges
-    callNode->addCallee(&subg);
+    PSNodeCall::cast(callNode)->addCallee(&subg);
     PSNodeEntry *ent = PSNodeEntry::cast(subg.root);
     ent->addCaller(callNode);
 
@@ -141,6 +139,19 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     auto parentEntry = cinstg->root;
     assert(parentEntry);
     PS.registerCall(parentEntry, subg.root);
+
+    DBG(pta, "CallGraph: " << PSNodeEntry::cast(parentEntry)->getFunctionName()
+                           << " -> "
+                           << PSNodeEntry::cast(subg.root)->getFunctionName());
+    return subg;
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
+                                              const llvm::Function *F) {
+    PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
+
+    auto& subg = getAndConnectSubgraph(F, CInst, callNode);
 
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
@@ -166,34 +177,9 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     return addNode(CInst, seq);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
-                                           const llvm::Function *F)
-{
-    // set this flag to true, so that createCallToFunction
-    // (and all recursive calls to this function)
-    // will also add the program structure instead of only
-    // building the nodes. This is needed as we have the
-    // graph already built and we are now only building
-    // newly created subgraphs ad hoc.
-    ad_hoc_building = true;
-
-    auto& ret = createCallToFunction(CInst, F);
-#ifndef NDEBUG
-    PointerSubgraph *subg = getSubgraph(F);
-    assert(subg != nullptr);
-    assert(subg->root != nullptr);
-#endif
-
-    ad_hoc_building = false;
-
-    return ret;
-}
-
 bool
 LLVMPointerGraphBuilder::callIsCompatible(PSNode *call,
-                                             PSNode *func)
-{
+                                          PSNode *func) {
     const llvm::CallInst *CI = call->getUserData<llvm::CallInst>();
     const llvm::Function *F = func->getUserData<llvm::Function>();
     assert(CI && "No user data in call node");
@@ -203,62 +189,37 @@ LLVMPointerGraphBuilder::callIsCompatible(PSNode *call,
 } 
 
 void
-LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called)
-{ 
+LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) { 
     const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
     const llvm::Function *F = called->getUserData<llvm::Function>();
 
-    // create new instructions
-    auto& cf = createFuncptrCall(CI, F);
-    assert(cf.getFirst() && "Failed building the subgraph");
-    
-    // we got the return site for the call stored as the paired node
-    PSNode *ret = callsite->getPairedNode();
-    if (cf.getLast()) {
-        // If we have some returns from this function,
-        // pass the returned values to the return site.
-        ret->addOperand(cf.getLast());
-        cf.getLast()->addSuccessor(ret);
-    }
-    
-    // Connect the graph to the original graph --
-    // replace the edge call->ret that we have added
-    // due to the connectivity of the graph.
-    // Now we know what is to be called, so we can remove it.
-    // We can also replace the edge only when we know
-    // that the function will return.
-    // If the function does not return, we cannot trim the graph
-    // here as this called function may be due to an approximation
-    // and the real called function can be established in
-    // the following code (if this call is on a cycle).
+    PointerSubgraph& subg = getAndConnectSubgraph(F, CI, callsite);
+
+    // remove the CFG edge and keep only the call edge
     if (callsite->successorsNum() == 1 &&
-        callsite->getSingleSuccessor() == ret) {
-        callsite->replaceSingleSuccessor(cf.getFirst());
-    } else {
-        // we already have some subgraph connected,
-        // so just add a new one
-        callsite->addSuccessor(cf.getFirst());
+        callsite->getSingleSuccessor() == callsite->getPairedNode()) {
+        callsite->removeSingleSuccessor();
     }
+
+    assert(ad_hoc_building && "This should be called with ad_hoc_building");
+    // add operands to arguments and return nodes
+    addInterproceduralOperands(F, subg, CI, callsite);
 }
 
 void LLVMPointerGraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite)
 {
-    ad_hoc_building = true;
     auto seq = createFork(callsite->getUserData<llvm::CallInst>());
     seq.getLast()->addSuccessor(callsite->getSingleSuccessor());
     callsite->replaceSingleSuccessor(seq.getFirst());
     PSNodeFork::cast(seq.getLast())->setCallInst(callsite);
-    ad_hoc_building = false;
 }
 
 void LLVMPointerGraphBuilder::insertPthreadJoinByPtrCall(PSNode *callsite)
 {
-    ad_hoc_building = true;
     auto seq = createJoin(callsite->getUserData<llvm::CallInst>());
     seq.getLast()->addSuccessor(callsite->getSingleSuccessor());
     callsite->replaceSingleSuccessor(seq.getFirst());
     PSNodeJoin::cast(seq.getLast())->setCallInst(callsite);
-    ad_hoc_building = false;
 }
 
 std::vector<PSNode *>
@@ -751,6 +712,14 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
         llvm::errs() << validator.getWarnings();
     }
 #endif // NDEBUG
+
+    // set this flag to true, so that createCallToFunction
+    // (and all recursive calls to this function)
+    // will also add the program structure instead of only
+    // building the nodes. This is needed as we have the
+    // graph already built and we are now only building
+    // newly created subgraphs ad hoc.
+    ad_hoc_building = true;
 
     DBG_SECTION_END(pta, "building pointer graph done");
 

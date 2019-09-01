@@ -393,6 +393,9 @@ private:
     PSNodesSeq& createFuncptrCall(const llvm::CallInst *, const llvm::Value *);
 
     PointerSubgraph& createOrGetSubgraph(const llvm::Function *);
+    PointerSubgraph& getAndConnectSubgraph(const llvm::Function *F,
+                                           const llvm::CallInst *CInst,
+                                           PSNode *callNode);
 
     void handleGlobalVariableInitializer(const llvm::Constant *C,
                                          PSNodeAlloc *node,

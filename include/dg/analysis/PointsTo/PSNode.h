@@ -518,11 +518,12 @@ class PSNodeCall : public PSNode {
     PSNode *callReturn{nullptr};
 
 public:
-    PSNodeCall(unsigned id)
-    :PSNode(id, PSNodeType::CALL) {}
+    PSNodeCall(PSNodeType t, unsigned id) :PSNode(id, t) {
+        assert(t == PSNodeType::CALL || t == PSNodeType::CALL_FUNCPTR);
+    }
 
     static PSNodeCall *get(PSNode *n) {
-        return isa<PSNodeType::CALL>(n) ?
+        return (isa<PSNodeType::CALL>(n) || isa<PSNodeType::CALL_FUNCPTR>(n)) ?
             static_cast<PSNodeCall *>(n) : nullptr;
     }
     static PSNodeCall *cast(PSNode *n) { return _cast<PSNodeCall>(n); }
