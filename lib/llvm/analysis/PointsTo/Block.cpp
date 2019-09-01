@@ -36,7 +36,7 @@ void LLVMPointerGraphBuilder::addPHIOperands(const llvm::Function &F)
     for (const llvm::BasicBlock& B : F) {
         for (const llvm::Instruction& I : B) {
             if (const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I)) {
-                if (PSNode *node = getNode(PHI))
+                if (PSNode *node = getNodes(PHI)->getSingleNode())
                     addPHIOperands(node, PHI);
             }
         }

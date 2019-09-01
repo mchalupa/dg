@@ -61,8 +61,7 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const l
             return createUnknownCall(CInst);
     }
 
-    auto seq = createCallToFunction(CInst, func);
-    return addNode(CInst, seq);
+    return createCallToFunction(CInst, func);
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq&

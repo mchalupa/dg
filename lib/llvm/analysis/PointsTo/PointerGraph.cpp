@@ -148,14 +148,13 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
     PSNodeCallRet *returnNode = PSNodeCallRet::get(PS.create(PSNodeType::CALL_RETURN, nullptr));
-    assert(returnNode);
+
+    returnNode->setPairedNode(callNode);
+    callNode->setPairedNode(returnNode);
 
     // we will remove this edge later if the procedure does not return
     // (now keep it for simplicity)
     callNode->addSuccessor(returnNode);
-
-    returnNode->setPairedNode(callNode);
-    callNode->setPairedNode(returnNode);
 
     // this must be after we created the CALL_RETURN node
     if (ad_hoc_building) {

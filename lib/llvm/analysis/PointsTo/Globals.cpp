@@ -105,7 +105,7 @@ void LLVMPointerGraphBuilder::buildGlobals()
     // only now handle the initializers - we need to have then
     // built, because they can point to each other
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
-        PSNodeAlloc *node = PSNodeAlloc::get(getNode(&*I));
+        PSNodeAlloc *node = PSNodeAlloc::get(getNodes(&*I)->getSingleNode());
         assert(node && "BUG: Do not have global variable"
                        " or it is not an allocation");
 

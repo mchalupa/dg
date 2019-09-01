@@ -73,7 +73,6 @@ class LLVMPointerGraphBuilder
                 _nodes.push_back(n);
         }
 
-        //NodesT& getNodes() { return _nodes; }
         void setRepresentant(PSNode *r) { _repr = r; }
         PSNode *getRepresentant() { return _repr ? _repr : _nodes.back(); }
         const PSNode *getRepresentant() const { return _repr ? _repr : _nodes.back(); }
@@ -275,19 +274,15 @@ private:
         return mapping.get(val);
     }
 
-    PSNode *getNode(const llvm::Value *val)
-    {
+    // get the built nodes for this value or null
+    PSNodesSeq *getNodes(const llvm::Value *val) {
         auto it = nodes_map.find(val);
         if (it == nodes_map.end())
             return nullptr;
 
         // the node corresponding to the real llvm value
         // is always the last
-        //
-        // XXX: this holds everywhere except for va_start
-        // and realloc sequences. Maybe we should use a new class
-        // instead of std::pair to represent the sequence
-        return it->second.getRepresentant();
+        return &it->second;
     }
 
     void setMapping(const llvm::Value *val, PSNode *node) {
@@ -300,8 +295,8 @@ private:
         mapping.add(val, node);
     }
 
-    PSNodesSeq& addNode(const llvm::Value *val, PSNode *node)
-    {
+    PSNodesSeq& addNode(const llvm::Value *val, PSNode *node) {
+        assert(nodes_map.find(val) == nodes_map.end());
         auto it = nodes_map.emplace(val, node);
         node->setUserData(const_cast<llvm::Value *>(val));
 
@@ -310,8 +305,8 @@ private:
         return it.first->second;
     }
 
-    PSNodesSeq& addNode(const llvm::Value *val, PSNodesSeq seq)
-    {
+    PSNodesSeq& addNode(const llvm::Value *val, PSNodesSeq seq) {
+        assert(nodes_map.find(val) == nodes_map.end());
         seq.getRepresentant()->setUserData(const_cast<llvm::Value *>(val));
         auto it = nodes_map.emplace(val, std::move(seq));
 
