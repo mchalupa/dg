@@ -78,17 +78,15 @@ void LLVMPointerGraphBuilder::addArgumentsOperands(const llvm::Function *F,
     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++index) {
         auto it = nodes_map.find(&*A);
         assert(it != nodes_map.end());
-
         PSNodesSeq& cur = it->second;
-        assert(cur.first == cur.second);
 
         if (CI) {
             // with func ptr call we know from which
             // call we should take the values
-            addArgumentOperands(CI, cur.first, index);
+            addArgumentOperands(CI, cur.getSingleNode(), index);
         } else {
              // with regular call just use all calls
-            addArgumentOperands(F, cur.first, index);
+            addArgumentOperands(F, cur.getSingleNode(), index);
         }
     }
 }

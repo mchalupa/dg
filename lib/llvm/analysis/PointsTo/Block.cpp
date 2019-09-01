@@ -44,11 +44,12 @@ void LLVMPointerGraphBuilder::addPHIOperands(const llvm::Function &F)
 }
 
 // return first and last nodes of the block
-PSNodesSeq
+LLVMPointerGraphBuilder::PSNodesBlock
 LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
                                                 PointerSubgraph *parent)
 {
-    PSNodesSeq blk{nullptr, nullptr};
+    PSNodesBlock blk;
+
     for (const llvm::Instruction& Inst : block) {
         if (!isRelevantInstruction(Inst)) {
             // check if it is a zeroing of memory,
@@ -59,31 +60,16 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
             continue;
         }
 
-        assert(nodes_map.count(&Inst) == 0);
-
-        PSNodesSeq seq = buildInstruction(Inst);
-        assert(seq.first &&
-               (seq.second || seq.first->getType() == PSNodeType::CALL)
-               && "Didn't created the instruction properly");
+        assert(nodes_map.count(&Inst) == 0
+                && "Already built this instruction");
+        auto& seq = buildInstruction(Inst);
 
         // set parent to the new nodes
-        PSNode *cur = seq.first;
-        while (cur) {
-            cur->setParent(parent);
-            cur = cur->getSingleSuccessorOrNull();
+        for (auto nd : seq) {
+            nd->setParent(parent);
         }
 
-        if (!seq.second) {
-            // the call instruction does not return.
-            // Stop building the block here.
-            assert(seq.first->getType() == PSNodeType::CALL);
-            break;
-        }
-
-        // update the return value
-        if (blk.first == nullptr)
-            blk.first = seq.first;
-        blk.second = seq.second;
+        blk.append(&seq);
     }
 
     return blk;

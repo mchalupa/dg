@@ -37,7 +37,6 @@ using analysis::LLVMPointerAnalysisOptions;
 using analysis::pta::PointerGraph;
 using analysis::pta::PSNode;
 using analysis::pta::LLVMPointerGraphBuilder;
-using analysis::pta::PSNodesSeq;
 using analysis::pta::Pointer;
 using analysis::Offset;
 
@@ -213,12 +212,6 @@ public:
 
     analysis::pta::PSNodeJoin * findJoin(const llvm::CallInst * callInst) const {
         return _builder->findJoin(callInst);
-    }
-
-    const std::unordered_map<const llvm::Value *, PSNodesSeq>&
-    getNodesMap() const
-    {
-        return _builder->getNodesMap();
     }
 
     const std::vector<std::unique_ptr<PSNode>>& getNodes()

@@ -40,13 +40,9 @@ namespace dg {
 namespace analysis {
 namespace pta {
 
-static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
-                                          PSNodesSeq>& built_blocks,
-                                 std::set<const llvm::BasicBlock *>& found_blocks,
-                                 PSNodesSeq& ptan,
-                                 const llvm::BasicBlock& block)
-{
-    size_t num = 0;
+void LLVMPointerGraphBuilder::FuncGraph::blockAddSuccessors(std::set<const llvm::BasicBlock *>& found_blocks,
+                                                            LLVMPointerGraphBuilder::PSNodesBlock& blk,
+                                                            const llvm::BasicBlock& block) {
 
     for (llvm::succ_const_iterator
          S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
@@ -55,32 +51,23 @@ static size_t blockAddSuccessors(std::map<const llvm::BasicBlock *,
          if (!found_blocks.insert(*S).second)
             continue;
 
-        PSNodesSeq& succ = built_blocks[*S];
-        assert((succ.first && succ.second) || (!succ.first && !succ.second));
-        if (!succ.first) {
+        auto it = llvmBlocks.find(*S);
+        if (it == llvmBlocks.end()) {
             // if we don't have this block built (there was no points-to
             // relevant instruction), we must pretend to be there for
             // control flow information. Thus instead of adding it as
             // successor, add its successors as successors
-            num += blockAddSuccessors(built_blocks, found_blocks, ptan, *(*S));
+            blockAddSuccessors(found_blocks, blk, *(*S));
         } else {
             // add successor to the last nodes
-            ptan.second->addSuccessor(succ.first);
-            ++num;
+            blk.getLastNode()->addSuccessor(it->second.getFirstNode());
         }
-
-        // assert that we didn't corrupt the block
-        assert((succ.first && succ.second) || (!succ.first && !succ.second));
     }
-
-    return num;
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F)
-{
-    PSNodesSeq seq;
-    PSNode *last = nullptr;
+LLVMPointerGraphBuilder::PSNodesBlock
+LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F) {
+    PSNodesBlock blk;
 
     int idx = 0;
     for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A, ++idx) {
@@ -89,73 +76,15 @@ LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F)
             continue;
 
         PSNodesSeq& cur = it->second;
-        assert(cur.first == cur.second);
+        assert(cur.getFirst() == cur.getLast());
 
-        if (!seq.first) {
-            assert(!last);
-            seq.first = cur.first;
-        } else {
-            assert(last);
-            last->addSuccessor(cur.first);
-        }
-
-        last = cur.second;
+        blk.append(&cur);
     }
 
-    seq.second = last;
+    // add CFG edges between the arguments
+    PSNodesBlockAddSuccessors(blk);
 
-    assert((seq.first && seq.second) || (!seq.first && !seq.second));
-
-    return seq;
-}
-
-PSNodesSeq LLVMPointerGraphBuilder::buildBlockStructure(const llvm::BasicBlock& block)
-{
-    PSNodesSeq seq = PSNodesSeq(nullptr, nullptr);
-
-    PSNode *last = nullptr;
-    for (const llvm::Instruction& Inst : block) {
-        auto it = nodes_map.find(&Inst);
-        if (it == nodes_map.end()) {
-            assert(!isRelevantInstruction(Inst)
-                    || (last && last->getType() == PSNodeType::CALL));
-            continue;
-        }
-
-        PSNodesSeq& cur = it->second;
-
-        if (!seq.first) {
-            assert(!last);
-            seq.first = cur.first;
-        } else {
-            assert(last);
-            last->addSuccessor(cur.first);
-        }
-
-        // We store only the call node
-        // in the nodes_map, so there is not valid (call, return)
-        // sequence but only one node (actually, for call that may not
-        // be a sequence). We need to "insert" whole call here,
-        // so set the return node as the last node
-        if (llvm::isa<llvm::CallInst>(&Inst) &&
-            // undeclared funcs do not have paired nodes
-            cur.first->getPairedNode()) {
-            last = cur.first->getPairedNode();
-        } else if (llvm::isa<llvm::InsertElementInst>(&Inst)) {
-            assert(cur.first->getPairedNode() && "No paired node");
-            last = cur.first->getPairedNode();
-        } else
-            last = cur.second;
-    }
-
-    seq.second = last;
-
-    assert((seq.first && seq.second) || (!seq.first && !seq.second));
-
-    if (seq.first)
-        built_blocks[&block] = seq;
-
-    return seq;
+    return blk;
 }
 
 void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
@@ -171,79 +100,69 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
     if (finfo.has_structure)
         return;
 
-    PSNodesSeq args = buildArgumentsStructure(*F);
+    PSNodesBlock argsBlk = buildArgumentsStructure(*F);
     PSNode *lastNode = nullptr;
 
     // make arguments the entry block of the subgraphs (if there
     // are any arguments)
-    if (args.first) {
-        assert(args.second && "BUG: Have only first argument");
-        subg.root->addSuccessor(args.first);
+    if (!argsBlk.empty()) {
+        subg.root->addSuccessor(argsBlk.getFirstNode());
 
-        // inset the variadic arg node into the graph if needed
+        // insert the variadic arg node into the graph if needed
         if (F->isVarArg()) {
             assert(subg.vararg);
-            args.second->addSuccessor(subg.vararg);
+            argsBlk.getLastNode()->addSuccessor(subg.vararg);
             lastNode = subg.vararg;
-        } else
-            lastNode = args.second;
+        } else {
+            lastNode = argsBlk.getLastNode();
+        }
     } else if (subg.vararg) {
         // this function has only ... argument
         assert(F->isVarArg());
-        assert(!args.second && "BUG: Have only last argument");
         subg.root->addSuccessor(subg.vararg);
         lastNode = subg.vararg;
     } else {
-        assert(!args.second && "BUG: Have only last argument");
         lastNode = subg.root;
     }
 
     assert(lastNode);
 
     // add successors in one basic block
-    for (const llvm::BasicBlock* block : finfo.llvmBlocks)
-        buildBlockStructure(*block);
+    for (auto& it : finfo.llvmBlocks) {
+        PSNodesBlockAddSuccessors(it.second);
+    }
 
-    // check whether we create the entry block. If not, we would
+    // check whether we created the entry block. If not, we would
     // have a problem while adding successors, so fake that
     // the entry block is the root or the last argument
     const llvm::BasicBlock *entry = &F->getBasicBlockList().front();
-    PSNodesSeq& enblk = built_blocks[entry];
-    if (!enblk.first) {
-        assert(!enblk.second);
-        enblk.first = subg.root;
-        enblk.second = lastNode;
-    } else {
+    auto it = finfo.llvmBlocks.find(entry);
+    if (it != finfo.llvmBlocks.end()) {
         // if we have the entry block, just make it the successor
         // of the root or the last argument
-        lastNode->addSuccessor(enblk.first);
+        lastNode->addSuccessor(it->second.getFirstNode());
+    } else {
+        // Create a temporary PSNodesSeq with lastNode
+        // and use it during adding successors for the
+        // non-existing entry block
+        PSNodesSeq seq(lastNode);
+        PSNodesBlock blk(&seq);
+
+        std::set<const llvm::BasicBlock *> found_blocks;
+        finfo.blockAddSuccessors(found_blocks, blk, *entry);
     }
 
-    std::vector<PSNode *> rets;
-    for (const llvm::BasicBlock& block : *F) {
-        PSNodesSeq& ptan = built_blocks[&block];
-        // if the block does not contain any points-to relevant instruction,
-        // we get (nullptr, nullptr)
-        assert((ptan.first && ptan.second) || (!ptan.first && !ptan.second));
-        if (!ptan.first)
-            continue;
+    for (auto& it : finfo.llvmBlocks) {
+        auto& blk = it.second;
+        assert(!blk.empty() && "Has empty block between built blocks");
 
         // add successors to this block (skipping the empty blocks).
         // To avoid infinite loops we use found_blocks container that will
-        // server as a mark in BFS/DFS - the program should not contain
+        // serve as a marker in BFS/DFS - the program should not contain
         // so many blocks that this could have some big overhead. If proven
         // otherwise later, we'll change this.
         std::set<const llvm::BasicBlock *> found_blocks;
-        size_t succ_num = blockAddSuccessors(built_blocks,
-                                             found_blocks,
-                                             ptan, block);
-
-        // if we have not added any successor, then the last node
-        // of this block is a return node
-        if (succ_num == 0 && ptan.second->getType() == PSNodeType::RETURN)
-            rets.push_back(ptan.second);
-
-        assert(ptan.first && ptan.second);
+        finfo.blockAddSuccessors(found_blocks, blk, *it.first);
     }
 
     finfo.has_structure = true;

@@ -58,8 +58,10 @@ Pointer LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst
         if (!op)
             op = tryGetOperand(Inst->getOperand(1));
 
-        if (!op)
-            return Pointer{createUnknown(Inst), Offset::UNKNOWN};
+        if (!op) {
+            auto& unk = createUnknown(Inst);
+            return Pointer{unk.getSingleNode(), Offset::UNKNOWN};
+        }
     }
 
     assert(op && "Don't have operand for add");
@@ -92,7 +94,7 @@ Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(const llvm::Instructio
             op = tryGetOperand(Inst->getOperand(1));
 
         if (!op)
-            return Pointer{createUnknown(Inst), Offset::UNKNOWN};
+            return Pointer{createUnknown(Inst).getSingleNode(), Offset::UNKNOWN};
     }
 
     assert(op && "Don't have operand for add");
@@ -206,29 +208,25 @@ Pointer LLVMPointerGraphBuilder::getConstantExprPointer(const llvm::ConstantExpr
     return pointer;
 }
 
-PSNode *LLVMPointerGraphBuilder::createConstantExpr(const llvm::ConstantExpr *CE)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createConstantExpr(const llvm::ConstantExpr *CE) {
     Pointer ptr = getConstantExprPointer(CE);
     PSNode *node = PS.create(PSNodeType::CONSTANT, ptr.target, ptr.offset);
 
-    addNode(CE, node);
 
-    assert(node);
-    return node;
+    return addNode(CE, node);
 }
 
-PSNode *LLVMPointerGraphBuilder::createUnknown(const llvm::Value *val)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createUnknown(const llvm::Value *val) {
     // nothing better we can do, these operations
     // completely change the value of pointer...
 
     // FIXME: or there's enough unknown offset? Check it out!
     PSNode *node = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, Offset::UNKNOWN);
-
-    addNode(val, node);
-
     assert(node);
-    return node;
+
+    return addNode(val, node);
 }
 
 } // namespace pta

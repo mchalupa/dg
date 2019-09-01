@@ -58,7 +58,7 @@ PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val)
         return UNKNOWN_MEMORY;
     } else if (const llvm::ConstantExpr *CE
                     = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
-        return createConstantExpr(CE);
+        return createConstantExpr(CE).getRepresentant();
     } else if (llvm::isa<llvm::Function>(val)) {
         PSNode *ret = PS.create(PSNodeType::FUNCTION);
         addNode(val, ret);
@@ -77,7 +77,7 @@ PSNode *LLVMPointerGraphBuilder::tryGetOperand(const llvm::Value *val)
     PSNode *op = nullptr;
 
     if (it != nodes_map.end())
-        op = it->second.second;
+        op = it->second.getRepresentant();
 
     // if we don't have the operand, then it is a ConstantExpr
     // or some operand of intToPtr instruction (or related to that)
@@ -120,7 +120,7 @@ PSNode *LLVMPointerGraphBuilder::getOperand(const llvm::Value *val)
         return op;
 }
 
-PSNodesSeq
+LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
                                               const llvm::Function *F)
 {
@@ -163,10 +163,13 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
         addInterproceduralOperands(F, subg, CInst, callNode);
     }
 
-    return std::make_pair(callNode, returnNode);
+    PSNodesSeq seq({callNode, returnNode});
+    seq.setRepresentant(returnNode);
+
+    return addNode(CInst, seq);
 }
 
-PSNodesSeq
+LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
                                               const llvm::Function *F)
 {
@@ -178,7 +181,7 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
     // newly created subgraphs ad hoc.
     ad_hoc_building = true;
 
-    auto ret = createCallToFunction(CInst, F);
+    auto& ret = createCallToFunction(CInst, F);
 #ifndef NDEBUG
     PointerSubgraph *subg = getSubgraph(F);
     assert(subg != nullptr);
@@ -207,16 +210,16 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called)
     const llvm::Function *F = called->getUserData<llvm::Function>();
 
     // create new instructions
-    auto cf = createFuncptrCall(CI, F);
-    assert(cf.first && "Failed building the subgraph");
+    auto& cf = createFuncptrCall(CI, F);
+    assert(cf.getFirst() && "Failed building the subgraph");
     
     // we got the return site for the call stored as the paired node
     PSNode *ret = callsite->getPairedNode();
-    if (cf.second) {
+    if (cf.getLast()) {
         // If we have some returns from this function,
         // pass the returned values to the return site.
-        ret->addOperand(cf.second);
-        cf.second->addSuccessor(ret);
+        ret->addOperand(cf.getLast());
+        cf.getLast()->addSuccessor(ret);
     }
     
     // Connect the graph to the original graph --
@@ -231,11 +234,11 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called)
     // the following code (if this call is on a cycle).
     if (callsite->successorsNum() == 1 &&
         callsite->getSingleSuccessor() == ret) {
-        callsite->replaceSingleSuccessor(cf.first);
+        callsite->replaceSingleSuccessor(cf.getFirst());
     } else {
         // we already have some subgraph connected,
         // so just add a new one
-        callsite->addSuccessor(cf.first);
+        callsite->addSuccessor(cf.getFirst());
     }
 }
 
@@ -243,9 +246,9 @@ void LLVMPointerGraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite)
 {
     ad_hoc_building = true;
     auto seq = createFork(callsite->getUserData<llvm::CallInst>());
-    seq.second->addSuccessor(callsite->getSingleSuccessor());
-    callsite->replaceSingleSuccessor(seq.first);
-    PSNodeFork::cast(seq.second)->setCallInst(callsite);
+    seq.getLast()->addSuccessor(callsite->getSingleSuccessor());
+    callsite->replaceSingleSuccessor(seq.getFirst());
+    PSNodeFork::cast(seq.getLast())->setCallInst(callsite);
     ad_hoc_building = false;
 }
 
@@ -253,9 +256,9 @@ void LLVMPointerGraphBuilder::insertPthreadJoinByPtrCall(PSNode *callsite)
 {
     ad_hoc_building = true;
     auto seq = createJoin(callsite->getUserData<llvm::CallInst>());
-    seq.second->addSuccessor(callsite->getSingleSuccessor());
-    callsite->replaceSingleSuccessor(seq.first);
-    PSNodeJoin::cast(seq.second)->setCallInst(callsite);
+    seq.getLast()->addSuccessor(callsite->getSingleSuccessor());
+    callsite->replaceSingleSuccessor(seq.getFirst());
+    PSNodeJoin::cast(seq.getLast())->setCallInst(callsite);
     ad_hoc_building = false;
 }
 
@@ -272,7 +275,7 @@ LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
             addNode(calledValue, node);
             functions.push_back(node);
         } else {
-            functions.push_back(iterator->second.first);
+            functions.push_back(iterator->second.getFirst());
         }
         return functions;
     }
@@ -400,46 +403,46 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
     assert(0 && "We should not reach this");
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
     using namespace llvm;
-    PSNode *node;
+
+    PSNodesSeq *seq{nullptr};
 
     switch(Inst.getOpcode()) {
         case Instruction::Alloca:
-            node = createAlloc(&Inst);
+            seq = &createAlloc(&Inst);
             break;
         case Instruction::Store:
-            node = createStore(&Inst);
+            seq = &createStore(&Inst);
             break;
         case Instruction::Load:
-            node = createLoad(&Inst);
+            seq = &createLoad(&Inst);
             break;
         case Instruction::GetElementPtr:
-            node = createGEP(&Inst);
+            seq = &createGEP(&Inst);
             break;
         case Instruction::ExtractValue:
             return createExtract(&Inst);
         case Instruction::Select:
-            node = createSelect(&Inst);
+            seq = &createSelect(&Inst);
             break;
         case Instruction::PHI:
-            node = createPHI(&Inst);
+            seq = &createPHI(&Inst);
             break;
         case Instruction::BitCast:
         case Instruction::SExt:
         case Instruction::ZExt:
-            node = createCast(&Inst);
+            seq = &createCast(&Inst);
             break;
         case Instruction::PtrToInt:
-            node = createPtrToInt(&Inst);
+            seq = &createPtrToInt(&Inst);
             break;
         case Instruction::IntToPtr:
-            node = createIntToPtr(&Inst);
+            seq = &createIntToPtr(&Inst);
             break;
         case Instruction::Ret:
-            node = createReturn(&Inst);
+            seq = &createReturn(&Inst);
             break;
         case Instruction::Call:
             return createCall(&Inst);
@@ -463,25 +466,25 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst)
         case Instruction::FPExt:
             // these instructions reinterpert the pointer,
             // nothing better we can do here (I think?)
-            node = createUnknown(&Inst);
+            seq = &createUnknown(&Inst);
             break;
         case Instruction::Add:
-            node = createAdd(&Inst);
+            seq = &createAdd(&Inst);
             break;
         case Instruction::Sub:
         case Instruction::Mul:
-            node = createArithmetic(&Inst);
+            seq = &createArithmetic(&Inst);
             break;
         case Instruction::UIToFP:
         case Instruction::SIToFP:
-            node = createCast(&Inst);
+            seq = &createCast(&Inst);
             break;
         case Instruction::FPToUI:
         case Instruction::FPToSI:
             if (typeCanBePointer(&M->getDataLayout(), Inst.getType()))
-                node = createCast(&Inst);
+                seq = &createCast(&Inst);
             else
-                node = createUnknown(&Inst);
+                seq = &createUnknown(&Inst);
             break;
         case Instruction::InsertElement:
             return createInsertElement(&Inst);
@@ -489,15 +492,16 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst)
             return createExtractElement(&Inst);
         case Instruction::ShuffleVector:
             llvm::errs() << "ShuffleVector instruction is not supported, loosing precision\n";
-            node = createUnknown(&Inst);
+            seq = &createUnknown(&Inst);
             break;
         default:
             llvm::errs() << Inst << "\n";
             assert(0 && "Unhandled instruction");
-            node = createUnknown(&Inst);
+            seq = &createUnknown(&Inst);
     }
 
-    return std::make_pair(node, node);
+    assert(seq && "Did not create instruction");
+    return *seq;
 }
 
 // is the instruction relevant to points-to analysis?
@@ -522,14 +526,11 @@ bool LLVMPointerGraphBuilder::isRelevantInstruction(const llvm::Instruction& Ins
 }
 
 // create a formal argument
-PSNode *LLVMPointerGraphBuilder::createArgument(const llvm::Argument *farg)
-{
-    using namespace llvm;
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createArgument(const llvm::Argument *farg) {
 
     PSNode *arg = PS.create(PSNodeType::PHI, nullptr);
-    addNode(farg, arg);
-
-    return arg;
+    return addNode(farg, arg);
 }
 
 void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
@@ -564,8 +565,6 @@ void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
         buildInstruction(*Inst);
     }
 }
-
-
 
 // Get llvm BasicBlock's in levels of Dominator Tree (BFS order through the dominator tree)
 std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Function& F)
@@ -619,8 +618,8 @@ void LLVMPointerGraphBuilder::buildArguments(const llvm::Function& F,
         // (or it is a number or irelevant value)
         assert(a == nullptr || a == UNKNOWN_MEMORY);
 #endif
-        auto arg = createArgument(&*A);
-        arg->setParent(parent);
+        auto& arg = createArgument(&*A);
+        arg.getSingleNode()->setParent(parent);
     }
 }
 
@@ -663,18 +662,26 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
 
     assert(_funcInfo.find(&F) == _funcInfo.end());
     auto& finfo = _funcInfo[&F];
-    finfo.llvmBlocks =
+    auto llvmBlocks =
         getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F));
 
     // build the instructions from blocks
-    for (const llvm::BasicBlock *block : finfo.llvmBlocks) {
-        auto seq = buildPointerGraphBlock(*block, subg);
+    for (const llvm::BasicBlock *block : llvmBlocks) {
+        auto blk = buildPointerGraphBlock(*block, subg);
+
+        if (blk.empty()) {
+            continue;
+        }
+
+        assert(finfo.llvmBlocks.find(block) == finfo.llvmBlocks.end()
+                && "Already have this block");
 
         // gather all return nodes
-        if (seq.second &&
-            (seq.second->getType() == PSNodeType::RETURN)) {
-            subg->returnNodes.insert(seq.second);
+        if ((blk.getLastNode()->getType() == PSNodeType::RETURN)) {
+            subg->returnNodes.insert(blk.getLastNode());
         }
+
+        finfo.llvmBlocks.emplace(block, std::move(blk));
     }
 
     // add operands to PHI nodes. It must be done after all blocks are

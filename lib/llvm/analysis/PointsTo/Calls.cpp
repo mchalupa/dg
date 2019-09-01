@@ -8,16 +8,15 @@ namespace pta {
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PointerGraph
-PSNodesSeq
-LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst) {
     using namespace llvm;
+
     const CallInst *CInst = cast<CallInst>(Inst);
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
 
     if (CInst->isInlineAsm()) {
-        PSNode *n = createAsm(Inst);
-        return std::make_pair(n, n);
+        return createAsm(Inst);
     }
 
     if (const Function *func = dyn_cast<Function>(calledVal)) {
@@ -28,23 +27,19 @@ LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst)
     }
 }
 
-PSNodesSeq
+LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const llvm::Function *func)
 {
     // is it a call to free? If so, create invalidate node instead.
     if(invalidate_nodes && func->getName().equals("free")) {
-        PSNode *n = createFree(CInst);
-        return std::make_pair(n, n); 
+        return createFree(CInst);
     } else if (threads_) {
         if (func->getName().equals("pthread_create")) {
-           auto seq = createFork(CInst);
-           return seq;
+           return createFork(CInst);
         } else if (func->getName().equals("pthread_join")) {
-           auto seq = createJoin(CInst);
-           return seq;
+           return createJoin(CInst);
         } else if (func->getName().equals("pthread_exit")) {
-           auto seq = createPthreadExit(CInst);
-           return seq;
+           return createPthreadExit(CInst);
         }
     }
 
@@ -67,12 +62,10 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const l
     }
 
     auto seq = createCallToFunction(CInst, func);
-    addNode(CInst, seq.first);
-
-    return seq;
+    return addNode(CInst, seq);
 }
 
-PSNodesSeq
+LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const llvm::Value *calledVal)
 {
     // just the call_funcptr and call_return nodes are created and
@@ -85,36 +78,34 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const ll
     ret_call->setPairedNode(call_funcptr);
     call_funcptr->setPairedNode(ret_call);
 
-    call_funcptr->addSuccessor(ret_call);
-    addNode(CInst, call_funcptr);
-
-    return std::make_pair(call_funcptr, ret_call);
+    return addNode(CInst, {call_funcptr, ret_call});
 }
 
-PSNodesSeq LLVMPointerGraphBuilder::createFork(const llvm::CallInst *CInst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createFork(const llvm::CallInst *CInst) {
+
     using namespace llvm;
     PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
     PSNodeFork *forkNode = PSNodeFork::get(PS.create(PSNodeType::FORK));
     callNode->setPairedNode(forkNode);
     forkNode->setPairedNode(callNode);
-    callNode->addSuccessor(forkNode);
-    auto iterator = nodes_map.find(CInst);
-    if (iterator == nodes_map.end()) {
-        addNode(CInst, callNode);
-        forkNode->setCallInst(callNode);
-    } else { // CInst is already in nodes_map - probably function pointer call
-        forkNode->setCallInst(iterator->second.first);
-    }
     
     threadCreateCalls.emplace(CInst, forkNode);
     addArgumentOperands(*CInst, *callNode);
 
-    const Value * functionToBeCalledOperand = CInst->getArgOperand(2);
+    const Value *functionToBeCalledOperand = CInst->getArgOperand(2);
     if (const Function *func = dyn_cast<Function>(functionToBeCalledOperand)) {
-        addFunctionToFork(nodes_map[func].first, forkNode);
+        addFunctionToFork(nodes_map[func].getSingleNode(), forkNode);
     }
-    return {callNode, forkNode};    
+
+    auto iterator = nodes_map.find(CInst);
+    if (iterator == nodes_map.end()) {
+        forkNode->setCallInst(callNode);
+    } else { // CInst is already in nodes_map - probably function pointer call
+        forkNode->setCallInst(iterator->second.getSingleNode());
+    }
+
+    return addNode(CInst, {callNode, forkNode});
 }
 
 bool LLVMPointerGraphBuilder::addFunctionToFork(PSNode *function, 
@@ -159,9 +150,10 @@ bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function,
     return true;
 }
 
-PSNodesSeq LLVMPointerGraphBuilder::createJoin(const llvm::CallInst *CInst) 
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createJoin(const llvm::CallInst *CInst) {
     using namespace llvm;
+
     PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
     PSNodeJoin *joinNode = PSNodeJoin::get(PS.create(PSNodeType::JOIN));
     callNode->setPairedNode(joinNode);
@@ -169,54 +161,51 @@ PSNodesSeq LLVMPointerGraphBuilder::createJoin(const llvm::CallInst *CInst)
     callNode->addSuccessor(joinNode);
     auto iterator = nodes_map.find(CInst);
     if (iterator == nodes_map.end()) {
-        addNode(CInst, callNode);
         joinNode->setCallInst(callNode);
     } else { // CInst is already in nodes_map - probably function pointer call
-        joinNode->setCallInst(iterator->second.first);
+        joinNode->setCallInst(iterator->second.getSingleNode());
     }
     
     threadJoinCalls.emplace(CInst, joinNode);
     addArgumentOperands(*CInst, *callNode);
-    return {callNode, joinNode};
+
+    return addNode(CInst, {callNode, joinNode});
 }
 
-PSNodesSeq LLVMPointerGraphBuilder::createPthreadExit(const llvm::CallInst *CInst) {
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createPthreadExit(const llvm::CallInst *CInst) {
     using namespace llvm;
+
     PSNodeCall *callNode = PSNodeCall::get(PS.create(PSNodeType::CALL));
-    auto iterator = nodes_map.find(CInst);
-    if (iterator == nodes_map.end()) {
-        addNode(CInst, callNode);
-    }
     addArgumentOperands(*CInst, *callNode);
     auto pthread_exit_operand = callNode->getOperand(0);
-    PSNodeRet *returnNode = PSNodeRet::get(PS.create(PSNodeType::RETURN, pthread_exit_operand, nullptr));
+    PSNodeRet *returnNode
+        = PSNodeRet::get(PS.create(PSNodeType::RETURN,
+                                   pthread_exit_operand, nullptr));
     callNode->setPairedNode(returnNode);
     returnNode->setPairedNode(callNode);
     callNode->addSuccessor(returnNode);
-    return {callNode, returnNode};
+
+    return addNode(CInst, {callNode, returnNode});
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::createUnknownCall(const llvm::CallInst *CInst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
     // This assertion must not hold if the call is wrapped
     // inside bitcast - it defaults to int, but is bitcased
     // to pointer
     //assert(CInst->getType()->isPointerTy());
     PSNode *call = PS.create(PSNodeType::CALL, nullptr);
-
     call->setPairedNode(call);
 
     // the only thing that the node will point at
     call->addPointsTo(UnknownPointer);
 
-    addNode(CInst, call);
-
-    return std::make_pair(call, call);
+    return addNode(CInst, call);
 }
 
-PSNode *LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
     using namespace llvm;
     const Value *dest, *src;//, *lenVal;
     uint64_t lenVal = Offset::UNKNOWN;
@@ -238,13 +227,11 @@ PSNode *LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I)
     PSNode *node = PS.create(PSNodeType::MEMCPY,
                               srcNode, destNode, lenVal);
 
-    addNode(I, node);
-    return node;
+    return addNode(I, node);
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst) {
     PSNode *val;
     if (memsetIsZeroInitialization(llvm::cast<llvm::IntrinsicInst>(Inst)))
         val = NULLPTR;
@@ -257,21 +244,21 @@ LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst)
     // we need to make unknown offsets
     PSNode *G = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
     PSNode *S = PS.create(PSNodeType::STORE, val, G);
-    G->addSuccessor(S);
 
-    PSNodesSeq ret = PSNodesSeq(G, S);
-    addNode(Inst, ret);
+    PSNodesSeq ret(G);
+    ret.append(S);
+    // no representant here...
 
-    return ret;
+    return addNode(Inst, ret);
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst) {
     // just store all the pointers from vararg argument
     // to the memory given in vastart() on Offset::UNKNOWN.
     // It is the easiest thing we can do without any further
     // analysis
+    PSNodesSeq ret;
 
     // first we need to get the vararg argument phi
     const llvm::Function *F = Inst->getParent()->getParent();
@@ -302,22 +289,14 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst)
     // and also make vastart point to the vararg args
     PSNode *S2 = PS.create(PSNodeType::STORE, arg, vastart);
 
-    vastart->addSuccessor(ptr);
-    ptr->addSuccessor(S1);
-    S1->addSuccessor(S2);
+    ret.append(vastart);
+    ret.append(ptr);
+    ret.append(S1);
+    ret.append(S2);
 
-    // set paired node to S2 for vararg, so that when adding structure,
-    // we add the whole sequence (it adds from call-node to pair-node,
-    // because of the old system where we did not store all sequences)
-    // FIXME: fix this
-    vastart->setPairedNode(S2);
+    ret.setRepresentant(vastart);
 
-    // FIXME: we're assuming that in a sequence in the nodes_map
-    // is always the last node the 'real' node. In this case it is not true,
-    // so add only the 'vastart', so that we have the mapping in nodes_map
-    addNode(Inst, vastart);
-
-    return PSNodesSeq(vastart, S2);
+    return addNode(Inst, ret);
 }
 
 bool LLVMPointerGraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
@@ -366,16 +345,13 @@ bool LLVMPointerGraphBuilder::matchJoinToRightCreate(PSNode *joinNode)
     return changed;
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst) {
     using namespace llvm;
-    PSNode *n;
 
     const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
     if (isa<MemTransferInst>(I)) {
-        n = createMemTransfer(I);
-        return std::make_pair(n, n);
+        return createMemTransfer(I);
     } else if (isa<MemSetInst>(I)) {
         return createMemSet(I);
     }
@@ -386,14 +362,11 @@ LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst)
         case Intrinsic::stacksave:
             errs() << "WARNING: Saving stack may yield unsound results!: "
                    << *Inst << "\n";
-            n = createAlloc(Inst);
-            return std::make_pair(n, n);
+            return createAlloc(Inst);
         case Intrinsic::stackrestore:
-            n = createLoad(Inst);
-            return std::make_pair(n, n);
+            return createLoad(Inst);
         case Intrinsic::lifetime_end:
-            n = createLifetimeEnd(Inst);
-            return std::make_pair(n, n);
+            return createLifetimeEnd(Inst);
         default:
             errs() << *Inst << "\n";
             errs() << "Unhandled intrinsic ^^\n";
@@ -401,9 +374,8 @@ LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst)
     }
 }
 
-PSNode *
-LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst) {
     // we filter irrelevant calls in isRelevantCall()
     // and we don't have assembler there at all. If
     // we are here, then we got here because this
@@ -419,25 +391,21 @@ LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst)
     // it is call that returns pointer, so we'd like to have
     // a 'return' node that contains that pointer
     n->setPairedNode(n);
-    addNode(Inst, n);
-
-    return n;
+    return addNode(Inst, n);
 }
 
-PSNode * LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst) {
+
     PSNode *op1 = getOperand(Inst->getOperand(0));
     PSNode *node = PS.create(PSNodeType::FREE, op1);
 
-    addNode(Inst, node);
-
-    assert(node);
-    return node;
+    return addNode(Inst, node);
 }
 
-PSNode *LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
-                                                       AllocationFunction type)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
+                                            AllocationFunction type) {
     using namespace llvm;
 
     const Value *op;
@@ -476,18 +444,20 @@ PSNode *LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
     }
 
     node->setSize(size);
-    return node;
+    return addNode(CInst, node);
 }
 
-PSNodesSeq
-LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
     using namespace llvm;
+
+    PSNodesSeq ret;
 
     // we create new allocation node and memcpy old pointers there
     PSNode *orig_mem = getOperand(CInst->getOperand(0));
     PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
     reall->setIsHeap();
+    reall->setUserData(const_cast<llvm::CallInst *>(CInst));
 
     // copy everything that is in orig_mem to reall
     PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, Offset::UNKNOWN);
@@ -497,33 +467,24 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst)
     reall->setIsHeap();
     reall->setSize(getConstantSizeValue(CInst->getOperand(1)));
 
-    reall->addSuccessor(mcp);
-    mcp->addSuccessor(ptr);
+    ret.append(reall);
+    ret.append(mcp);
+    ret.append(ptr);
+    ret.setRepresentant(ptr);
 
-    reall->setUserData(const_cast<llvm::CallInst *>(CInst));
-
-    PSNodesSeq ret = PSNodesSeq(reall, ptr);
-    addNode(CInst, ret);
-
-    return ret;
+    return addNode(CInst, ret);
 }
 
-PSNodesSeq
+LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
-                                                  AllocationFunction type)
-{
+                                               AllocationFunction type) {
     assert(type != AllocationFunction::NONE
             && "BUG: creating dyn. memory node for NONMEM");
 
     if (type == AllocationFunction::REALLOC) {
         return createRealloc(CInst);
     } else {
-        PSNode *node = createDynamicAlloc(CInst, type);
-        addNode(CInst, node);
-
-        // we return (node, node), so that the parent function
-        // will seamlessly connect this node into the graph
-        return std::make_pair(node, node);
+        return createDynamicAlloc(CInst, type);
     }
 }
 
