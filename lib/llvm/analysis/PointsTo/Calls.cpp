@@ -35,9 +35,9 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const l
         return createFree(CInst);
     } else if (threads_) {
         if (func->getName().equals("pthread_create")) {
-           return createFork(CInst);
+           return createPthreadCreate(CInst);
         } else if (func->getName().equals("pthread_join")) {
-           return createJoin(CInst);
+           return createPthreadJoin(CInst);
         } else if (func->getName().equals("pthread_exit")) {
            return createPthreadExit(CInst);
         }

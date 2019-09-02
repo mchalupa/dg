@@ -166,15 +166,18 @@ public:
         return false;
     }
 
-    virtual bool handleFork(PSNode *)
-    {
+    // adjust the PointerGraph on when a new function that can be
+    // spawned by fork is discovered
+    // @ fork is the callsite
+    // @ called is the function that is being called
+    virtual bool handleFork(PSNode * /* fork */, PSNode * /* called */) {
         return false;
     }
 
-    virtual bool handleJoin(PSNode *)
-    {
-        return false;
-    }
+    // handle join of threads
+    // FIXME: this should be done in the generic pointer analysis,
+    // we do not need to pass this to the LLVM part...
+    virtual bool handleJoin(PSNode *) { return false; }
 
 private:
 

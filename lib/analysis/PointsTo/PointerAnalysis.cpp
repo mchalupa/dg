@@ -387,8 +387,26 @@ bool PointerAnalysis::processNode(PSNode *node)
                 }
             }
             break;
-        case PSNodeType::FORK:
-            changed |= handleFork(node);
+        case PSNodeType::FORK: // FORK works basically the same as FUNCPTR
+            for (const Pointer& ptr : node->getOperand(0)->pointsTo) {
+                // do not add pointers that do not point to functions
+                // (but do not do that when we are looking for invalidated
+                // memory as this may lead to undefined behavior)
+                if (!options.invalidateNodes
+                    && ptr.target->getType() != PSNodeType::FUNCTION)
+                    continue;
+
+                if (node->addPointsTo(ptr)) {
+                    changed = true;
+
+                    if (ptr.isValid() && !ptr.isInvalidated()) {
+                        handleFork(node, ptr.target);
+                    } else {
+                        error(node, "Calling invalid pointer in fork!");
+                        continue;
+                    }
+                }
+            }
             break;
         case PSNodeType::JOIN:
             changed |= handleJoin(node);

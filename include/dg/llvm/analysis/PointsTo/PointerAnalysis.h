@@ -95,28 +95,34 @@ public:
         return true; // we changed the graph
     }
 
-    bool handleFork(PSNode *forkNode) override
-    {
+    bool handleFork(PSNode *forkNode, PSNode *called) override {
         using namespace llvm;
         using namespace dg::analysis::pta;
+
+        assert(called->getType() == PSNodeType::FUNCTION
+                && "The called value is not a function");
+
         PSNodeFork *fork = PSNodeFork::get(forkNode);
-        const CallInst *CInst = fork->callInst()->getUserData<CallInst>();
-        const Value *funcValue = CInst->getArgOperand(2);
-        auto functions = builder->getPointsToFunctions(funcValue);
-        bool changed = false;
-        for(const auto & function : functions) {
-            builder->setAdHocBuilding(true);
-            changed |= builder->addFunctionToFork(function, fork);
-            builder->setAdHocBuilding(false);
+        builder->addFunctionToFork(called, fork);
+
+#ifndef NDEBUG
+        // check the graph after rebuilding, but do not check for connectivity,
+        // because we can call a function that will disconnect the graph
+        if (!builder->validateSubgraph(true)) {
+            const llvm::Function *F
+                = llvm::cast<llvm::Function>(called->getUserData<llvm::Value>());
+            llvm::errs() << "Pointer Subgraph is broken!\n";
+            llvm::errs() << "This happend after building this function spawned in a thread: "
+                         <<  F->getName() << "\n";
+            abort();
         }
-        return changed;
+#endif // NDEBUG
+
+        return true;
     }
 
-    bool handleJoin(PSNode *joinNode) override
-    {
-        builder->setAdHocBuilding(true);
+    bool handleJoin(PSNode *joinNode) override {
         return builder->matchJoinToRightCreate(joinNode);
-        builder->setAdHocBuilding(false);
     }
 };
 
@@ -199,13 +205,11 @@ public:
         return functions;
     }
 
-    std::map<const llvm::CallInst *, analysis::pta::PSNodeJoin *> getJoins() const
-    {
+    const std::vector<analysis::pta::PSNodeJoin *>& getJoins() const {
         return _builder->getJoins();
     }
 
-    std::map<const llvm::CallInst *, analysis::pta::PSNodeFork *> getForks() const
-    {
+    const std::vector<analysis::pta::PSNodeFork *>& getForks() const {
         return _builder->getForks();
     }
 

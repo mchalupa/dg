@@ -184,6 +184,7 @@ class PointerGraph
                 break;
             case PSNodeType::FORK:
                 node = new PSNodeFork(getNewNodeId());
+                node->addOperand(va_arg(args, PSNode *));
                 break;
             case PSNodeType::JOIN:
                 node = new PSNodeJoin(getNewNodeId());

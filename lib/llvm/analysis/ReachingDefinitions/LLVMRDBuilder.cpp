@@ -782,21 +782,19 @@ void LLVMRDBuilder::matchForksAndJoins()
 {
     using namespace llvm;
     using namespace pta;
-    auto joinsMap = PTA->getJoins();
 
-    for (auto & joinInstAndJoinNode : joinsMap) {
-        auto callInst = joinInstAndJoinNode.first;
-        auto PSJoinNode = joinInstAndJoinNode.second;
+    for (auto PSJoinNode : PTA->getJoins()) {
+        auto callInst = PSJoinNode->getUserData<llvm::CallInst>();
         auto iterator = threadJoinCalls.find(callInst);
         if (iterator != threadJoinCalls.end()) {
-            for (auto & function : PSJoinNode->functions()) {
+            for (auto function : PSJoinNode->functions()) {
                 auto llvmFunction = function->getUserData<llvm::Function>();
                 auto graphIterator = subgraphs_map.find(llvmFunction);
                 for (auto returnNode : graphIterator->second.returns) {
                     makeEdge(returnNode, iterator->second);
                 }
             }
-        } 
+        }
     }
 }
 

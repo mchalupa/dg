@@ -261,9 +261,8 @@ bool GraphBuilder::matchForksAndJoins() {
     using namespace llvm;
     auto joinsMap = pointsToAnalysis_->getJoins();
     bool changed = false;
-    for (auto &joinInstAndJoinNode : joinsMap) {
-        auto PSJoinNode = joinInstAndJoinNode.second;
-        auto callInst = joinInstAndJoinNode.first;
+    for (auto PSJoinNode : joinsMap) {
+        auto callInst = PSJoinNode->getUserData<llvm::CallInst>();
         auto iterator = llvmToJoins_.find(callInst);
         if (iterator != llvmToJoins_.end()) {
             auto joinNode = iterator->second;

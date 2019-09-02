@@ -189,8 +189,8 @@ class LLVMPointerGraphBuilder
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Function *, PointerSubgraph *> subgraphs_map;
 
-    std::map<const llvm::CallInst *, PSNodeFork *> threadCreateCalls;
-    std::map<const llvm::CallInst *, PSNodeJoin *> threadJoinCalls;
+    std::vector<PSNodeFork *> forkNodes;
+    std::vector<PSNodeJoin *> joinNodes;
 
 public:
     const PointerGraph *getPS() const { return &PS; }
@@ -219,8 +219,10 @@ public:
     void insertPthreadCreateByPtrCall(PSNode *callsite);
     void insertPthreadJoinByPtrCall(PSNode *callsite);
 
-    PSNodesSeq& createFork(const llvm::CallInst *CInst);
-    PSNodesSeq& createJoin(const llvm::CallInst *CInst);
+    PSNodeFork *createForkNode(const llvm::CallInst *CInst, PSNode *);
+    PSNodeJoin *createJoinNode(const llvm::CallInst *CInst, PSNode *);
+    PSNodesSeq& createPthreadCreate(const llvm::CallInst *CInst);
+    PSNodesSeq& createPthreadJoin(const llvm::CallInst *CInst);
     PSNodesSeq& createPthreadExit(const llvm::CallInst *CInst);
 
     bool addFunctionToFork(PSNode * function,
@@ -250,9 +252,10 @@ public:
     std::vector<PSNode *>
     getPointsToFunctions(const llvm::Value *calledValue);
 
-    std::map<const llvm::CallInst *, PSNodeJoin *> getJoins() const;
-
-    std::map<const llvm::CallInst *, PSNodeFork *> getForks() const;
+    std::vector<PSNodeJoin *>& getJoins() { return joinNodes; }
+    std::vector<PSNodeFork *>& getForks() { return forkNodes; }
+    const std::vector<PSNodeJoin *>& getJoins() const { return joinNodes; }
+    const std::vector<PSNodeFork *>& getForks() const { return forkNodes; }
 
     PSNodeJoin * findJoin(const llvm::CallInst * callInst) const;
     void setInvalidateNodesFlag(bool value) 
