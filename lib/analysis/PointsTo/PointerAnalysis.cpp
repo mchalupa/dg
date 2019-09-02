@@ -3,6 +3,8 @@
 #include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace analysis {
 namespace pta {
@@ -446,6 +448,58 @@ void PointerAnalysis::sanityCheck() {
         }
     }
 #endif // not NDEBUG
+}
+
+void PointerAnalysis::run() {
+    DBG_SECTION_BEGIN(pta, "Running pointer analysis");
+    
+    preprocess();
+    
+    // check that the current state of pointer analysis makes sense
+    sanityCheck();
+    
+    // process global nodes, these must reach fixpoint after one iteration
+    DBG(pta, "Processing global nodes");
+    queue_globals();
+    iteration();
+    assert((to_process.clear(), changed.clear(), queue_globals(), !iteration()) && "Globals did not reach fixpoint");
+    to_process.clear();
+    changed.clear();
+    
+    initialize_queue();
+
+#if DEBUG_ENABLED
+    int n = 0;
+#endif
+    // do fixpoint
+    do {
+#if DEBUG_ENABLED
+        if (n % 100 == 0) {
+            DBG(pta, "Iteration " << n << ", queue size " << to_process.size());
+        }
+        ++n;
+#endif
+
+        iteration();
+        queue_changed();
+    } while (!to_process.empty());
+
+    assert(to_process.empty());
+    assert(changed.empty());
+
+    // NOTE: With flow-insensitive analysis, it may happen that
+    // we have not reached the fixpoint here. This is beacuse
+    // we queue only reachable nodes from the nodes that changed
+    // something. So if in the rechable nodes something generates
+    // new information, than this information could be added to some
+    // node in a new iteration over all nodes. But this information
+    // can never get to that node in runtime, since that node is
+    // unreachable from the point where the information is
+    // generated, so this is OK.
+
+    sanityCheck();
+
+    DBG_SECTION_END(pta, "Running pointer analysis done");
 }
 
 
