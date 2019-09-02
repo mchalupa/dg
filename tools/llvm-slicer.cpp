@@ -228,8 +228,7 @@ private:
         // do not slice away these functions no matter what
         // FIXME do it a vector and fill it dynamically according
         // to what is the setup (like for sv-comp or general..)
-        const char *keep[] = {options.dgOptions.entryFunction.c_str(),
-                              nullptr};
+        const char *keep[] = {options.dgOptions.entryFunction.c_str()};
 
         // when erasing while iterating the slicer crashes
         // so set the to be erased values into container
