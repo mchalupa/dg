@@ -104,7 +104,7 @@ slice()
 	fi
 
 	llvm-slicer $DG_TESTS_PARAMS $DG_TESTS_CDA\
-	            $DG_TESTS_RDA $DG_TESTS_PTA\
+	            $DG_TESTS_RDA $DG_TESTS_PTA $DG_TESTS_SLICER_FLAGS\
 		     -c test_assert "$BCFILE" -o "$OUTPUT"
 }
 
