@@ -43,7 +43,7 @@ compile()
 	BCFILE="$2"
 
 	clang -emit-llvm -c -include "$TESTS_DIR/test_assert.h"\
-		$TESTS_CFLAGS -Wall -Wextra "$CODE" -o "$BCFILE" \
+		$DG_TESTS_CFLAGS -Wall -Wextra "$CODE" -o "$BCFILE" \
 		|| errmsg "Compilation failed"
 
 	if [ "x$DG_TESTS_OPTIMIZE" != "x" ]; then
