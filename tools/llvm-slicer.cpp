@@ -65,7 +65,7 @@ using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
 using AnnotationOptsT
     = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
 
-llvm::cl::opt<bool> enable_debug("debug",
+llvm::cl::opt<bool> enable_debug("dbg",
     llvm::cl::desc("Enable debugging messages (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
