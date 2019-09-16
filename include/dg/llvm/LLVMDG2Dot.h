@@ -59,7 +59,12 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
         ro << B->getParent()->getName() << "::\n";
         ro << "label " << val->getName();
     } else if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
-        ro << I->getParent()->getParent()->getName() << "::\n";
+        const auto B = I->getParent();
+        if (B) {
+            ro << B->getParent()->getName() << "::\n";
+        } else {
+            ro << "<null>::\n";
+        }
         ro << *val;
     } else {
         ro << *val;
