@@ -187,9 +187,9 @@ void LLVMPointerGraphBuilder::addInterproceduralPthreadOperands(const llvm::Func
 }
 
 void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F,
-                                                            PointerSubgraph& subg,
-                                                            const llvm::CallInst *CI,
-                                                            PSNode *callNode)
+                                                         PointerSubgraph& subg,
+                                                         const llvm::CallInst *CI,
+                                                         PSNode *callNode)
 {
     assert((!CI || callNode) && (!callNode || CI));
 
@@ -207,7 +207,7 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
 
     if (!subg.returnNodes.empty()) {
         addReturnNodesOperands(F, subg, callNode);
-    } else {
+    } else if (callNode) {
         // disconnect call-return nodes
         auto callReturnNode = PSNodeCallRet::cast(callNode->getPairedNode());
         assert(callReturnNode && callNode != callReturnNode);
