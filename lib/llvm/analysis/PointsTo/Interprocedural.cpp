@@ -168,13 +168,13 @@ void LLVMPointerGraphBuilder::addReturnNodeOperand(const llvm::Function *F, PSNo
         // get every call and its assocciated return and add the operand
         const CallInst *CI = dyn_cast<CallInst>(use);
         if (CI && CI->getCalledFunction() == F) {
-            PSNode *callNode = getNodes(CI)->getFirst();
-            assert(PSNodeCall::cast(callNode) && "Got wrong node");
-            // since we're building the graph from entry only where we can reach it,
-            // we may not have all call-sites of this function
-            if (!callNode)
+            auto *nodes = getNodes(CI);
+            // since we're building the graph only for the reachable nodes from
+            // the entry, we may not have all call-sites of this function
+            if (!nodes)
                 continue;
-
+            PSNode *callNode = nodes->getFirst();
+            assert(PSNodeCall::cast(callNode) && "Got wrong node");
             addReturnNodeOperand(callNode, op);
         }
     }
