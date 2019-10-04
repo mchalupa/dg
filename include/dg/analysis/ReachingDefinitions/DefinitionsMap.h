@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "dg/analysis/Offset.h"
-#include "DisjunctiveIntervalMap.h"
+#include "dg/ADT/DisjunctiveIntervalMap.h"
 
 namespace dg {
 namespace analysis {

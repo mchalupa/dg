@@ -8,7 +8,7 @@
 #undef NDEBUG
 
 #include "dg/analysis/Offset.h"
-#include "dg/analysis/ReachingDefinitions/DisjunctiveIntervalMap.h"
+#include "dg/ADT/DisjunctiveIntervalMap.h"
 
 using namespace dg::analysis::rd;
 using dg::analysis::Offset;
