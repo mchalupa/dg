@@ -32,6 +32,9 @@ class DefinitionsMap {
     }
 
 public:
+    void clear() { _definitions.clear(); }
+    bool empty() const { return _definitions.empty(); }
+
     bool add(const DefSite& ds, NodeT *node) {
         // if the offset is unknown, make it 0, so that the
         // definition get stretched over all possible offsets
@@ -110,6 +113,10 @@ public:
 
     auto end() const -> decltype(_definitions.end()) {
         return _definitions.end();
+    }
+
+    bool operator==(const DefinitionsMap<NodeT>& oth) const {
+        return _definitions == oth._definitions;
     }
 };
 

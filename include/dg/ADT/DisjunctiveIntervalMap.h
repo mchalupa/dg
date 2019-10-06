@@ -276,6 +276,10 @@ public:
     iterator end() { return _mapping.end(); }
     const_iterator end() const { return _mapping.end(); }
 
+    bool operator==(const DisjunctiveIntervalMap<ValueT, IntervalValueT>& rhs) const {
+        return _mapping == rhs._mapping;
+    }
+
     // return the iterator to an element that is the first
     // that overlaps the interval I or end() if there is
     // no such interval
