@@ -141,11 +141,16 @@ struct Offset
     const type *operator->() const { return &offset; }
 
 #ifndef NDEBUG
-    void dump() const {
-        if (isUnknown())
-            std::cout << "Offset::UNKNOWN";
+    friend std::ostream& operator<<(std::ostream& os, const Offset& o) {
+        if (o.isUnknown())
+            os << "?";
         else
-            std::cout << offset;
+            os << o.offset;
+        return os;
+    }
+
+    void dump() const {
+        std::cout << *this << "\n";
     }
 #endif // not NDEBUG
 

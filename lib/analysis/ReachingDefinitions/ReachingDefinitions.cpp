@@ -1,6 +1,10 @@
 #include <set>
 #include <vector>
 
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/BBlocksBuilder.h"
@@ -13,6 +17,12 @@ namespace rd {
 
 RDNode UNKNOWN_MEMLOC;
 RDNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+
+#ifndef NDEBUG
+void RDNode::dump() const {
+	std::cout << getID() << "\n";
+}
+#endif
 
 bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
 {

@@ -7,6 +7,10 @@
 #include <set>
 #include <vector>
 
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
 namespace dg {
 namespace analysis {
 namespace rd {
@@ -58,6 +62,10 @@ struct DiscreteInterval {
     bool covers(T rhs_start, T rhs_end) const {
         return covers(DiscreteInterval(rhs_start, rhs_end));
     }
+
+#ifndef NDEBUG
+    void dump() const;
+#endif
 };
 
 
@@ -299,7 +307,6 @@ public:
         return le(IntervalT(start, end));
     }
 
-#if 0
 #ifndef NDEBUG
     friend std::ostream& operator<<(std::ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
         os << "{";
@@ -315,6 +322,11 @@ public:
         os << "}";
         return os;
     }
+
+    void dump() const { std::cout << *this << "\n"; }
+#endif
+
+#if 0
     friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
         os << "{";
         for (const auto& pair : map) {
@@ -329,7 +341,7 @@ public:
         os << "}";
         return os;
     }
-#endif
+
 #endif
 
 private:

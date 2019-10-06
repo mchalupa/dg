@@ -3,6 +3,9 @@
 
 #include <set>
 #include <vector>
+#ifndef NDEBUG
+#include <iostream>
+#endif
 
 #include "dg/analysis/Offset.h"
 #include "dg/ADT/DisjunctiveIntervalMap.h"
@@ -118,6 +121,16 @@ public:
     bool operator==(const DefinitionsMap<NodeT>& oth) const {
         return _definitions == oth._definitions;
     }
+
+#ifndef NDEBUG
+    void dump() const {
+        for (auto& it : _definitions) {
+            it.first->dump();
+            std::cout << " defined at ";
+            it.second.dump();
+        }
+    }
+#endif
 };
 
 } // rd
