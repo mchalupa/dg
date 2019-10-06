@@ -96,6 +96,7 @@ public:
 
 #ifndef NDEBUG
     virtual ~RDNode() = default;
+    void dump() const;
 #endif
 
     // weak update
