@@ -51,19 +51,12 @@ static bool usesTheVariable(LLVMDependenceGraph& dg,
                             const llvm::Value *v,
                             const std::string& var)
 {
-    auto ptrNode = dg.getPTA()->getPointsTo(v);
-    if (!ptrNode)
+    auto pts = dg.getPTA()->getLLVMPointsTo(v);
+    if (pts.empty() || pts.hasUnknown())
         return true; // it may be a definition of the variable, we do not know
 
-    for (const auto& ptr : ptrNode->pointsTo) {
-        if (ptr.isUnknown())
-            return true; // it may be a definition of the variable, we do not know
-
-        auto value = ptr.target->getUserData<llvm::Value>();
-        if (!value)
-            continue;
-
-        auto name = valuesToVariables.find(value);
+    for (const auto& ptr : pts) {
+        auto name = valuesToVariables.find(ptr.value);
         if (name != valuesToVariables.end()) {
             if (name->second == var)
                 return true;

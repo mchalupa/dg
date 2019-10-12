@@ -61,27 +61,37 @@ add_library(LLVMpta SHARED
 )
 target_link_libraries(LLVMpta PUBLIC PTA)
 
+add_library(LLVMForkJoin SHARED
+	llvm/analysis/ForkJoin/ForkJoin.h
+	llvm/analysis/ForkJoin/ForkJoin.cpp
+)
+
+target_link_libraries(LLVMForkJoin PRIVATE LLVMpta)
+
 add_library(LLVMrd SHARED
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.cpp
 	llvm/analysis/ReachingDefinitions/LLVMReachingDefinitions.cpp
+	llvm/analysis/ForkJoin/ForkJoin.h
+	llvm/analysis/ForkJoin/ForkJoin.cpp
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
 )
 target_link_libraries(LLVMrd
 			PUBLIC LLVMpta
-			PUBLIC RD)
+			PUBLIC RD
+			PUBLIC LLVMForkJoin)
 
 add_library(dgThreadRegions SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ThreadRegions/CMakeLists.txt)
 target_include_directories(dgThreadRegions
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ThreadRegions)
-target_link_libraries(dgThreadRegions INTERFACE LLVMpta)
+target_link_libraries(dgThreadRegions INTERFACE LLVMpta PRIVATE LLVMForkJoin)
 
 add_library(dgControlDependence SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ControlDependence/CMakeLists.txt)
-target_link_libraries(dgControlDependence INTERFACE LLVMpta)
+target_link_libraries(dgControlDependence INTERFACE LLVMpta PRIVATE LLVMForkJoin)
 
 add_library(LLVMdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h

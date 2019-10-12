@@ -76,32 +76,20 @@ private:
             os << "\n";
     }
 
-    void printPointer(const analysis::pta::Pointer& ptr,
+    void printPointer(const LLVMPointer& ptr,
                       llvm::formatted_raw_ostream& os,
-                      const char *prefix = "PTR: ", bool nl = true)
-    {
+                      const char *prefix = "PTR: ", bool nl = true) {
         os << "  ; ";
         if (prefix)
             os << prefix;
 
-        if (!ptr.isUnknown()) {
-            if (ptr.isNull())
-                os << "null";
-            else if (ptr.isInvalidated())
-                os << "invalidated";
-            else {
-                const llvm::Value *val
-                    = ptr.target->getUserData<llvm::Value>();
-                printValue(val, os);
-            }
+        printValue(ptr.value, os);
 
-            os << " + ";
-            if (ptr.offset.isUnknown())
-                os << "UNKNOWN";
-            else
-                os << *ptr.offset;
-        } else
-            os << "unknown";
+        os << " + ";
+        if (ptr.offset.isUnknown())
+            os << "UNKNOWN";
+        else
+            os << *ptr.offset;
 
         if (nl)
             os << "\n";
@@ -219,10 +207,20 @@ private:
             if (PTA) {
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
-                    auto ps = PTA->getPointsTo(node->getKey());
-                    if (ps) {
-                        for (const auto& ptr : ps->pointsTo)
-                            printPointer(ptr, os);
+                    const auto& ps = PTA->getLLVMPointsTo(node->getKey());
+                    if (!ps.empty()) {
+                        for (const auto& llvmptr : ps) {
+                            printPointer(llvmptr, os);
+                        }
+                        if (ps.hasNull()) {
+                            os << "  ; null";
+                        }
+                        if (ps.hasUnknown()) {
+                            os << "  ; unknown";
+                        }
+                        if (ps.hasInvalidated()) {
+                            os << "  ; invalidated";
+                        }
                     }
                 }
             }

@@ -14,6 +14,9 @@ class Function;
 }
 
 namespace dg {
+
+class LLVMPointerAnalysis;
+
 namespace cd {
 
 class NonTerminationSensitiveControlDependencyAnalysis
@@ -25,7 +28,8 @@ public:
         size_t outDegreeCounter = 0;
     };
 
-    NonTerminationSensitiveControlDependencyAnalysis(const llvm::Function *function, LLVMPointerAnalysis * pointsToAnalysis);
+    NonTerminationSensitiveControlDependencyAnalysis(const llvm::Function *function,
+                                                     LLVMPointerAnalysis *pointsToAnalysis);
 
     void computeDependencies();
 

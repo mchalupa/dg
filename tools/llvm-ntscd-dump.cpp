@@ -61,8 +61,14 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, threads);
-    pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
+    dg::LLVMPointerAnalysisOptions opts;
+    opts.setEntryFunction("main");
+    opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
+    opts.threads = threads;
+    opts.setFieldSensitivity(dg::analysis::Offset::UNKNOWN);
+
+    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), opts);
+    pointsToAnalysis.run();
 
     dg::cd::NonTerminationSensitiveControlDependencyAnalysis controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
     controlDependencyAnalysis.computeDependencies();

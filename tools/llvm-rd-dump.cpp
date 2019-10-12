@@ -395,7 +395,7 @@ int main(int argc, char *argv[])
     bool todot = false;
     bool threads = false;
     const char *module = nullptr;
-    Offset::type field_senitivity = Offset::UNKNOWN;
+    Offset::type field_sensitivity = Offset::UNKNOWN;
     bool rd_strong_update_unknown = false;
     Offset::type max_set_size = Offset::UNKNOWN;
 
@@ -419,7 +419,7 @@ int main(int argc, char *argv[])
             if (strcmp(argv[i+1], "ssa") == 0)
                 rda = RdaType::SSA;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
-            field_senitivity = static_cast<Offset::type>(atoll(argv[i + 1]));
+            field_sensitivity = static_cast<Offset::type>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
             max_set_size = static_cast<Offset::type>(atoll(argv[i + 1]));
             if (max_set_size == 0) {
@@ -462,15 +462,21 @@ int main(int argc, char *argv[])
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M, entryFunc, field_senitivity, threads);
-
-    tm.start();
+    LLVMPointerAnalysisOptions ptaopts;
+    ptaopts.setEntryFunction(entryFunc);
+    ptaopts.setFieldSensitivity(field_sensitivity);
+    ptaopts.threads = threads;
 
     if (type == FLOW_INSENSITIVE) {
-        PTA.run<pta::PointerAnalysisFI>();
+        ptaopts.analysisType = LLVMPointerAnalysisOptions::AnalysisType::fi;
     } else {
-        PTA.run<pta::PointerAnalysisFS>();
+        ptaopts.analysisType = LLVMPointerAnalysisOptions::AnalysisType::fs;
     }
+
+    DGLLVMPointerAnalysis PTA(M, ptaopts);
+
+    tm.start();
+    PTA.run();
 
     tm.stop();
     tm.report("INFO: Points-to analysis took");

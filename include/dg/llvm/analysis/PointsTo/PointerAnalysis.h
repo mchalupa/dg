@@ -20,11 +20,13 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/analysis/PointsTo/PointerGraphOptimizations.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
+#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
-#include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
@@ -40,13 +42,45 @@ using analysis::pta::LLVMPointerGraphBuilder;
 using analysis::pta::Pointer;
 using analysis::Offset;
 
+///
+// Interface for LLVM pointer analysis
+class LLVMPointerAnalysis {
+protected:
+    const LLVMPointerAnalysisOptions options{};
+
+    LLVMPointerAnalysis(const LLVMPointerAnalysisOptions& opts)
+        : options(opts) {};
+public:
+    const LLVMPointerAnalysisOptions& getOptions() const { return options; }
+
+    ///
+    // Get the points-to information for the given LLVM value.
+    // The return object has methods begin(), end() that can be used
+    // for iteration over (llvm::Value *, Offset) pairs of the
+    // points-to set. Moreover, the object has methods hasUnknown()
+    // and hasNull() that reflect whether the points-to set of the
+    // LLVM value contains unknown element of null.
+    virtual LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) = 0;
+
+    ///
+    // This method is the same as getLLVMPointsTo, but it returns
+    // also the information whether the node of pointer analysis exists
+    // (opposed to the getLLVMPointsTo, which returns a set with
+    // unknown element when the node does not exists)
+    virtual std::pair<bool, LLVMPointsToSet> getLLVMPointsToChecked(const llvm::Value *val) = 0;
+
+    virtual void run() = 0;
+
+    virtual ~LLVMPointerAnalysis() = default;
+};
+
 template <typename PTType>
-class LLVMPointerAnalysisImpl : public PTType
+class DGLLVMPointerAnalysisImpl : public PTType
 {
     LLVMPointerGraphBuilder *builder;
 
 public:
-    LLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
+    DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
     : PTType(PS), builder(b) {}
 
     // build new subgraphs on calls via pointer
@@ -126,8 +160,7 @@ public:
     }
 };
 
-class LLVMPointerAnalysis
-{
+class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     PointerGraph *PS = nullptr;
     std::unique_ptr<LLVMPointerGraphBuilder> _builder;
 
@@ -150,14 +183,14 @@ class LLVMPointerAnalysis
 
 public:
 
-    LLVMPointerAnalysis(const llvm::Module *m,
-                        const char *entry_func = "main",
-                        uint64_t field_sensitivity = Offset::UNKNOWN,
-                        bool threads = false)
-        : LLVMPointerAnalysis(m, createOptions(entry_func, field_sensitivity, threads)) {}
+    DGLLVMPointerAnalysis(const llvm::Module *m,
+                          const char *entry_func = "main",
+                          uint64_t field_sensitivity = Offset::UNKNOWN,
+                          bool threads = false)
+        : DGLLVMPointerAnalysis(m, createOptions(entry_func, field_sensitivity, threads)) {}
 
-    LLVMPointerAnalysis(const llvm::Module *m, const LLVMPointerAnalysisOptions opts)
-        : _builder(new LLVMPointerGraphBuilder(m, opts)) {}
+    DGLLVMPointerAnalysis(const llvm::Module *m, const LLVMPointerAnalysisOptions opts)
+        : LLVMPointerAnalysis(opts), _builder(new LLVMPointerGraphBuilder(m, opts)) {}
 
     ///
     // Get the node from pointer analysis that holds the points-to set.
@@ -175,7 +208,7 @@ public:
     // points-to set. Moreover, the object has methods hasUnknown()
     // and hasNull() that reflect whether the points-to set of the
     // LLVM value contains unknown element of null.
-    LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) {
+    LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
         if (auto node = getPointsTo(val))
             return LLVMPointsToSet(node->pointsTo);
         else
@@ -188,33 +221,11 @@ public:
     // (opposed to the getLLVMPointsTo, which returns a set with
     // unknown element when the node does not exists)
     std::pair<bool, LLVMPointsToSet>
-    getLLVMPointsToChecked(const llvm::Value *val) {
+    getLLVMPointsToChecked(const llvm::Value *val) override {
         if (auto node = getPointsTo(val))
             return {true, LLVMPointsToSet(node->pointsTo)};
         else
             return {false, LLVMPointsToSet(getUnknownPTSet())};
-    }
-
-    std::vector<const llvm::Function *>
-    getPointsToFunctions(const llvm::Value *calledValue) const
-    {
-        std::vector<const llvm::Function *> functions;
-        for (auto node : _builder->getPointsToFunctions(calledValue)) {
-            functions.push_back(node->getUserData<llvm::Function>());
-        }
-        return functions;
-    }
-
-    const std::vector<analysis::pta::PSNodeJoin *>& getJoins() const {
-        return _builder->getJoins();
-    }
-
-    const std::vector<analysis::pta::PSNodeFork *>& getForks() const {
-        return _builder->getForks();
-    }
-
-    analysis::pta::PSNodeJoin * findJoin(const llvm::CallInst * callInst) const {
-        return _builder->findJoin(callInst);
     }
 
     const std::vector<std::unique_ptr<PSNode>>& getNodes()
@@ -228,6 +239,9 @@ public:
 
     PointerGraph *getPS() { return PS; }
     const PointerGraph *getPS() const { return PS; }
+
+    LLVMPointerGraphBuilder *getBuilder() { return _builder.get(); }
+    const LLVMPointerGraphBuilder *getBuilder() const { return _builder.get(); }
 
     void buildSubgraph()
     {
@@ -263,13 +277,26 @@ public:
 
     }
 
-    template <typename PTType>
-    void run()
-    {
+    void run() override {
+        if (options.isFSInv())
+            _builder->setInvalidateNodesFlag(true);
+
         buildSubgraph();
 
-        LLVMPointerAnalysisImpl<PTType> PTA(PS, _builder.get());
-        PTA.run();
+        if (options.isFS()) {
+            // FIXME: make a interface with run() method
+            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFS> PTA(PS, _builder.get());
+            PTA.run();
+        } else if (options.isFI()) {
+            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFI> PTA(PS, _builder.get());
+            PTA.run();
+        } else if (options.isFSInv()) {
+            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
+            PTA.run();
+        } else {
+            assert(0 && "Wrong pointer analysis");
+            abort();
+        }
     }
 
     // this method creates PointerAnalysis object and returns it.
@@ -280,31 +307,20 @@ public:
     analysis::pta::PointerAnalysis *createPTA()
     {
         buildSubgraph();
-        return new LLVMPointerAnalysisImpl<PTType>(PS, _builder.get());
+        return new DGLLVMPointerAnalysisImpl<PTType>(PS, _builder.get());
     }
 };
 
-template <>
-inline void LLVMPointerAnalysis::run<analysis::pta::PointerAnalysisFSInv>()
-{
-    // build the subgraph
-    assert(_builder && "Incorrectly constructed PTA, missing builder");
-    _builder->setInvalidateNodesFlag(true);
-    buildSubgraph();
-
-    LLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
-    PTA.run();
-}
-
-template <>
-inline analysis::pta::PointerAnalysis *LLVMPointerAnalysis::createPTA<analysis::pta::PointerAnalysisFSInv>()
-{
-    // build the subgraph
-    assert(_builder && "Incorrectly constructed PTA, missing builder");
-    _builder->setInvalidateNodesFlag(true);
-    buildSubgraph();
-
-    return new LLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv>(PS, _builder.get());
+// an auxiliary function
+inline std::vector<const llvm::Function *>
+getCalledFunctions(const llvm::Value *calledValue, LLVMPointerAnalysis *PTA) {
+    std::vector<const llvm::Function *> functions;
+    for (const auto& llvmptr : PTA->getLLVMPointsTo(calledValue)) {
+        if (const auto F = llvm::dyn_cast<llvm::Function>(llvmptr.value)) {
+            functions.push_back(F);
+        }
+    }
+    return functions;
 }
 
 } // namespace dg

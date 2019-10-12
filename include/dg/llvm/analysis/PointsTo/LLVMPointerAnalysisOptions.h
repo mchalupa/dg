@@ -9,12 +9,14 @@ namespace analysis {
 
 struct LLVMPointerAnalysisOptions : public LLVMAnalysisOptions, PointerAnalysisOptions
 {
-    enum class AnalysisType { fi, fs, inv } analysisType{AnalysisType::fi};
+    enum class AnalysisType { fi, fs, inv, svf } analysisType{AnalysisType::fi};
 
-    bool threads;
+    bool threads{false};
+
     bool isFS() const { return analysisType == AnalysisType::fs; }
     bool isFSInv() const { return analysisType == AnalysisType::inv; }
     bool isFI() const { return analysisType == AnalysisType::fi; }
+    bool isSVF() const { return analysisType == AnalysisType::svf; }
 };
 
 } // namespace analysis

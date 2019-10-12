@@ -403,8 +403,9 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(SIMPLE_FILE, SMD, context);
     const Function * function = M->getFunction("sum");
-    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
-    pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
+    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
+    auto PA = pointsToAnalysis.createPTA<dg::analysis::pta::PointerAnalysisFI>();
+    PA->run();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Test of buildInstruction and findInstruction") {
@@ -467,8 +468,9 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
     LLVMContext context;
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(PTHREAD_EXIT_FILE, SMD, context); 
-    dg::LLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
-    pointsToAnalysis.run<dg::analysis::pta::PointerAnalysisFI>();
+    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::analysis::Offset::UNKNOWN, true);
+    auto PA = pointsToAnalysis.createPTA<dg::analysis::pta::PointerAnalysisFI>();
+    PA->run();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Undefined function which is not really important for us") {

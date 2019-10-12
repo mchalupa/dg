@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 namespace dg {
-    class LLVMPointerAnalysis;
+    class DGLLVMPointerAnalysis;
     namespace analysis {
     namespace pta {
         class PSNodeJoin;
@@ -33,7 +33,7 @@ class FunctionGraph;
 class GraphBuilder
 {
 private:
-    dg::LLVMPointerAnalysis *                                       pointsToAnalysis_ = nullptr;
+    dg::DGLLVMPointerAnalysis *                                     pointsToAnalysis_ = nullptr;
 
     std::unordered_set<Node *>                                      artificialNodes_;
     std::unordered_map<const llvm::Instruction *, Node *>           llvmToNodeMap_;
@@ -50,7 +50,7 @@ private:
 public:
     using NodeSequence = std::pair<Node *, Node *>;
 
-    GraphBuilder(dg::LLVMPointerAnalysis * pointsToAnalysis);
+    GraphBuilder(dg::DGLLVMPointerAnalysis * pointsToAnalysis);
 
     ~GraphBuilder();
 
@@ -114,9 +114,6 @@ private:
 
     NodeSequence createOrGetFunction(const llvm::Function * function);
 
-    bool populateCorrespondingForks(JoinNode * join, dg::analysis::pta::PSNodeJoin *PSJoin);
-
-    bool connectJoins(JoinNode * join, dg::analysis::pta::PSNodeJoin *PSJoin);
 
     template <typename T>
     T * addNode(T * node) {
