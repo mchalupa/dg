@@ -471,7 +471,7 @@ static std::vector<std::string> splitList(const std::string& opt, char sep = ','
 }
 
 static void
-dumpPointerGraphdot(LLVMPointerAnalysis *pta, PTType type)
+dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type)
 {
 
     printf("digraph \"Pointer State Subgraph\" {\n");
@@ -539,7 +539,7 @@ dumpPointerGraphdot(LLVMPointerAnalysis *pta, PTType type)
 }
 
 static void
-dumpPointerGraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
+dumpPointerGraph(DGLLVMPointerAnalysis *pta, PTType type, bool todot)
 {
     assert(pta);
 
@@ -555,7 +555,7 @@ dumpPointerGraph(LLVMPointerAnalysis *pta, PTType type, bool todot)
 }
 
 static void
-dumpStats(LLVMPointerAnalysis *pta)
+dumpStats(DGLLVMPointerAnalysis *pta)
 {
     const auto& nodes = pta->getNodes();
     printf("Pointer subgraph size: %lu\n", nodes.size()-1);
@@ -795,7 +795,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    LLVMPointerAnalysis PTA(M, entry_func, field_senitivity, threads);
+    DGLLVMPointerAnalysis PTA(M, entry_func, field_senitivity, threads);
 
     tm.start();
 

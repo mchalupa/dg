@@ -1,5 +1,6 @@
 #include "GraphBuilder.h"
 
+#include "llvm/analysis/ForkJoin/ForkJoin.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 #include "Nodes.h"
@@ -14,7 +15,9 @@
 
 using namespace llvm;
 
-GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis):pointsToAnalysis_(pointsToAnalysis)
+using dg::analysis::ForkJoinAnalysis;
+
+GraphBuilder::GraphBuilder(dg::DGLLVMPointerAnalysis *pointsToAnalysis):pointsToAnalysis_(pointsToAnalysis)
 {}
 
 GraphBuilder::~GraphBuilder() {
@@ -259,17 +262,33 @@ std::set<LockNode *> GraphBuilder::getLocks() const {
 
 bool GraphBuilder::matchForksAndJoins() {
     using namespace llvm;
-    auto joinsMap = pointsToAnalysis_->getJoins();
     bool changed = false;
-    for (auto PSJoinNode : joinsMap) {
-        auto callInst = PSJoinNode->getUserData<llvm::CallInst>();
-        auto iterator = llvmToJoins_.find(callInst);
-        if (iterator != llvmToJoins_.end()) {
-            auto joinNode = iterator->second;
-            populateCorrespondingForks(joinNode, PSJoinNode);
-            changed |= connectJoins(joinNode, PSJoinNode);
+
+    ForkJoinAnalysis FJA{pointsToAnalysis_};
+
+    for (auto& it : llvmToJoins_) {
+        // it.first -> llvm::CallInst, it.second -> RDNode *
+        auto joinNode = it.second;
+        auto llvmforks = FJA.matchJoin(it.first);
+        for (auto forkcall : llvmforks) {
+            auto foundInstruction = findInstruction(cast<Instruction>(forkcall));
+            auto forkNode = castNode<NodeType::FORK>(foundInstruction);
+            if (forkNode) {
+                changed |= true;
+                joinNode->addCorrespondingFork(forkNode);
+            }
+        }
+
+        auto functions = FJA.joinFunctions(it.first);
+        for (auto llvmFunction : functions) {
+            auto functionGraph = findFunction(cast<Function>(llvmFunction));
+            if (functionGraph) {
+                joinNode->addJoinPredecessor(functionGraph->exitNode());
+                changed |= true;
+            }
         }
     }
+
     return changed;
 }
 
@@ -392,7 +411,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertPthreadCreate(const CallInst *cal
         forkNode = addNode(createNode<NodeType::FORK>(nullptr, callInstruction));
     }
     auto possibleFunction = callInstruction->getArgOperand(2);
-    auto functionsToBeForked = pointsToAnalysis_->getPointsToFunctions(possibleFunction);
+    auto functionsToBeForked = getCalledFunctions(possibleFunction, pointsToAnalysis_);
     for (auto function : functionsToBeForked) {
         auto graph = createOrGetFunction(function);
         if (graph.first) {
@@ -465,7 +484,7 @@ GraphBuilder::NodeSequence GraphBuilder::insertFunction(const Function *function
 
 GraphBuilder::NodeSequence GraphBuilder::insertFunctionPointerCall(const CallInst *callInstruction) {
     auto calledValue = callInstruction->getCalledValue();
-    auto functions = pointsToAnalysis_->getPointsToFunctions(calledValue);
+    auto functions = getCalledFunctions(calledValue, pointsToAnalysis_);
 
     auto callFuncPtrNode = addNode(createNode<NodeType::CALL_FUNCPTR>(callInstruction));
     Node * returnNode;
@@ -513,34 +532,6 @@ GraphBuilder::NodeSequence GraphBuilder::createOrGetFunction(const Function *fun
         return {functionGraph->entryNode(), functionGraph->exitNode()};
     }
     return buildFunction(function);
-}
-
-bool GraphBuilder::populateCorrespondingForks(JoinNode *join, dg::analysis::pta::PSNodeJoin *PSJoin) {
-    bool changed = false;
-    auto PSForks = PSJoin->forks();
-    for (auto PSFork : PSForks) {
-        auto forkInstruction = getCallInst(PSFork);
-        auto foundInstruction = findInstruction(forkInstruction);
-        ForkNode * forkNode = castNode<NodeType::FORK>(foundInstruction);
-        if (forkNode) {
-            changed |= true;
-            join->addCorrespondingFork(forkNode);
-        }
-    }
-    return changed;
-}
-
-bool GraphBuilder::connectJoins(JoinNode *join, dg::analysis::pta::PSNodeJoin *PSJoin) {
-    bool changed = false;
-    for (auto & function : PSJoin->functions()) {
-        auto llvmFunction = function->getUserData<llvm::Function>();
-        auto functionGraph = findFunction(llvmFunction);
-        if (functionGraph) {
-            join->addJoinPredecessor(functionGraph->exitNode());
-            changed |= true;
-        }
-    }
-    return changed;
 }
 
 int predecessorsNumber(const BasicBlock *basicBlock) {

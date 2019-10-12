@@ -46,7 +46,7 @@ public:
 
 private:
 
-    LLVMPointerAnalysis *                           pointsToAnalysis_   = nullptr;
+    LLVMPointerAnalysis *                         pointsToAnalysis_   = nullptr;
     bool                                            threads             = false;
     std::map<const llvm::Function *, Function *>    functions_;
 

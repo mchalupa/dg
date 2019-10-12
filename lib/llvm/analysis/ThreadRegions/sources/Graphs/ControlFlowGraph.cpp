@@ -4,7 +4,7 @@
 #include "ThreadRegionsBuilder.h"
 #include "CriticalSectionsBuilder.h"
 
-ControlFlowGraph::ControlFlowGraph(dg::LLVMPointerAnalysis *pointsToAnalysis)
+ControlFlowGraph::ControlFlowGraph(dg::DGLLVMPointerAnalysis *pointsToAnalysis)
     :graphBuilder(new GraphBuilder(pointsToAnalysis)),
      threadRegionsBuilder(new ThreadRegionsBuilder()),
      criticalSectionsBuilder(new CriticalSectionsBuilder()){}

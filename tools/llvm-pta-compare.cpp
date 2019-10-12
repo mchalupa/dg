@@ -122,8 +122,8 @@ dumpPSNode(PSNode *n)
 }
 
 static bool verify_ptsets(const llvm::Value *val,
-                          LLVMPointerAnalysis *fi,
-                          LLVMPointerAnalysis *fs)
+                          DGLLVMPointerAnalysis *fi,
+                          DGLLVMPointerAnalysis *fs)
 {
     PSNode *finode = fi->getPointsTo(val);
     PSNode *fsnode = fs->getPointsTo(val);
@@ -185,8 +185,8 @@ static bool verify_ptsets(const llvm::Value *val,
 }
 
 static bool verify_ptsets(llvm::Module *M,
-                          LLVMPointerAnalysis *fi,
-                          LLVMPointerAnalysis *fs)
+                          DGLLVMPointerAnalysis *fi,
+                          DGLLVMPointerAnalysis *fs)
 {
     using namespace llvm;
     bool ret = true;
@@ -248,36 +248,36 @@ int main(int argc, char *argv[])
 
     dg::debug::TimeMeasure tm;
 
-    LLVMPointerAnalysis *PTAfs = nullptr;
-    LLVMPointerAnalysis *PTAfi = nullptr;
+    std::unique_ptr<DGLLVMPointerAnalysis> PTAfs{};
+    std::unique_ptr<DGLLVMPointerAnalysis> PTAfi{};
+    LLVMPointerAnalysisOptions opts;
 
     if (type & FLOW_INSENSITIVE) {
-        PTAfi = new LLVMPointerAnalysis(M);
+        opts.analysisType = LLVMPointerAnalysisOptions::AnalysisType::fi;
+        PTAfi.reset(new DGLLVMPointerAnalysis(M, opts));
 
         tm.start();
-        PTAfi->run<analysis::pta::PointerAnalysisFI>();
+        PTAfi->run();
         tm.stop();
         tm.report("INFO: Points-to flow-insensitive analysis took");
     }
 
     if (type & FLOW_SENSITIVE) {
-        PTAfs = new LLVMPointerAnalysis(M);
+        opts.analysisType = LLVMPointerAnalysisOptions::AnalysisType::fs;
+        PTAfs.reset(new DGLLVMPointerAnalysis(M, opts));
 
         tm.start();
-        PTAfs->run<analysis::pta::PointerAnalysisFS>();
+        PTAfs->run();
         tm.stop();
         tm.report("INFO: Points-to flow-sensitive analysis took");
     }
 
     int ret = 0;
     if (type == (FLOW_SENSITIVE | FLOW_INSENSITIVE)) {
-        ret = !verify_ptsets(M, PTAfi, PTAfs);
+        ret = !verify_ptsets(M, PTAfi.get(), PTAfs.get());
         if (ret == 0)
             llvm::errs() << "FS is a subset of FI, all OK\n";
     }
-
-    delete PTAfi;
-    delete PTAfs;
 
     return ret;
 }

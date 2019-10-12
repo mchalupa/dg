@@ -177,7 +177,7 @@ static int check_pointer(const Pointer& ptr, const char *name)
   return NoAlias;
 }
 
-static AliasResult doAlias(LLVMPointerAnalysis *pta,
+static AliasResult doAlias(DGLLVMPointerAnalysis *pta,
 			               llvm::Value *V1, llvm::Value*V2)
 {
   PSNode *p1 = pta->getPointsTo(V1);
@@ -271,7 +271,7 @@ static int test_checkfunc(const llvm::StringRef &fun)
 }
 
 static void
-evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
+evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node)
 {
   enum PSNodeType nodetype = node->getType();
   if (nodetype != PSNodeType::CALL) {
@@ -407,7 +407,7 @@ evalPSNode(LLVMPointerAnalysis *pta, PSNode *node)
 }
 
 static void
-evalPTA(LLVMPointerAnalysis *pta)
+evalPTA(DGLLVMPointerAnalysis *pta)
 {
   for (auto& node : pta->getNodes()) {
     if (!node)
@@ -464,7 +464,7 @@ int main(int argc, char *argv[])
 
     TimeMeasure tm;
 
-    LLVMPointerAnalysis PTA(M, entry_func, field_senitivity);
+    DGLLVMPointerAnalysis PTA(M, entry_func, field_senitivity);
 
     tm.start();
 

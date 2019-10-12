@@ -23,13 +23,17 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "llvm/analysis/ForkJoin/ForkJoin.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+
+using dg::analysis::ForkJoinAnalysis;
 
 namespace dg {
 namespace cd {
 
 GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis)
-    :pointsToAnalysis_(pointsToAnalysis), threads(pointsToAnalysis->threads()) {}
+    :pointsToAnalysis_(pointsToAnalysis),
+     threads(pointsToAnalysis->getOptions().threads) {}
 
 GraphBuilder::~GraphBuilder() {
     for (auto function : functions_) {
@@ -174,7 +178,8 @@ void GraphBuilder::dump(std::ostream &ostream) const {
 
 void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, Block *lastBlock, bool &createBlock, bool &createCallReturn) {
     auto * callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
-    auto llvmFunctions = pointsToAnalysis_->getPointsToFunctions(callInst->getCalledValue());
+    auto llvmFunctions = getCalledFunctions(callInst->getCalledValue(),
+                                            pointsToAnalysis_);
 
     for (auto llvmFunction : llvmFunctions) {
         if (llvmFunction->size() > 0) {
@@ -193,8 +198,8 @@ void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, B
 
 bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst, Block *lastBlock) {
     bool createBlock = false;
-    llvm::Value * calledValue = callInst->getArgOperand(2);
-    auto forkFunctions = pointsToAnalysis_->getPointsToFunctions(calledValue);
+    llvm::Value *calledValue = callInst->getArgOperand(2);
+    auto forkFunctions = getCalledFunctions(calledValue, pointsToAnalysis_);
     std::vector <const llvm::Function *> forkFunctionsWithBlock;
     for (auto forkFunction : forkFunctions) {
         if (forkFunction->size() > 0) {
@@ -211,16 +216,17 @@ bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst, Block *la
 
 bool GraphBuilder::createPthreadJoin(const llvm::CallInst *callInst, Block *lastBlock) {
     bool createCallReturn = false;
-    auto PSJoin = pointsToAnalysis_->findJoin(callInst);
-    if (PSJoin) {
-        auto joinFunctions = PSJoin->functions();
-        for (auto joinFunction : joinFunctions) {
-            auto llvmFunction = joinFunction->getUserData<llvm::Function>();
-            if (llvmFunction->size() > 0) {
-                auto func = createOrGetFunction(llvmFunction);
-                lastBlock->addJoin(llvmFunction, func);
-                createCallReturn |= true;
-            }
+
+    // FIXME: create this as attibute so that we perform the analysis only once
+    // (now we do not care as we just forward the results of PTA, but in the future...)
+    ForkJoinAnalysis FJA{pointsToAnalysis_};
+    auto joinFunctions = FJA.joinFunctions(callInst);
+    for (auto joinFunction : joinFunctions) {
+        auto llvmFunction = llvm::cast<llvm::Function>(joinFunction);
+        if (llvmFunction->size() > 0) {
+            auto func = createOrGetFunction(llvmFunction);
+            lastBlock->addJoin(llvmFunction, func);
+            createCallReturn |= true;
         }
     }
     return createCallReturn;

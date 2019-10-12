@@ -441,40 +441,40 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // create the subgraph
         if (!func && !CInst->isInlineAsm() && PTA) {
             using namespace analysis::pta;
-            PSNode *op = PTA->getPointsTo(strippedValue);
-            if (op) {
-                for (const Pointer& ptr : op->pointsTo) {
-                    if (!ptr.isValid() || ptr.isInvalidated())
-                        continue;
+            auto pts = PTA->getLLVMPointsTo(strippedValue);
+            if (pts.empty()) {
+                llvmutils::printerr("Had no PTA node", strippedValue);
+            }
+            for (const LLVMPointer& ptr : pts) {
+                // vararg may introduce imprecision here, so we
+                // must check that it is really pointer to a function
+                Function *F = dyn_cast<Function>(ptr.value);
+                if (!F)
+                    continue;
 
-                    // vararg may introduce imprecision here, so we
-                    // must check that it is really pointer to a function
-                    if (!isa<Function>(ptr.target->getUserData<Value>()))
-                        continue;
-
-                    Function *F = ptr.target->getUserData<Function>();
-
-                    if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst)) {
-                        if (threads && F && F->getName() == "pthread_create") {
-                            auto possibleFunctions = PTA->getPointsToFunctions(CInst->getArgOperand(2));
-                            for (auto &function : possibleFunctions) {
-                                if (function->size() > 0) {
-                                    LLVMDependenceGraph *subg = buildSubgraph(node, const_cast<llvm::Function *>(function), true /*this is fork*/);
-                                    node->addSubgraph(subg);
-                                }
+                if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst)) {
+                    if (threads && F && F->getName() == "pthread_create") {
+                        auto possibleFunctions
+                            = getCalledFunctions(CInst->getArgOperand(2), PTA);
+                        for (auto &function : possibleFunctions) {
+                            if (function->size() > 0) {
+                                LLVMDependenceGraph *subg
+                                    = buildSubgraph(node,
+                                                    const_cast<llvm::Function *>(function),
+                                                    true /*this is fork*/);
+                                node->addSubgraph(subg);
                             }
-                        } else {
-                            // incompatible prototypes or the function
-                            // is only declaration
-                            continue;
                         }
                     } else {
-                        LLVMDependenceGraph *subg = buildSubgraph(node, F);
-                        node->addSubgraph(subg);
+                        // incompatible prototypes or the function
+                        // is only declaration
+                        continue;
                     }
+                } else {
+                    LLVMDependenceGraph *subg = buildSubgraph(node, F);
+                    node->addSubgraph(subg);
                 }
-            } else
-                llvmutils::printerr("Had no PTA node", strippedValue);
+            }
         }
 
         if (func && gather_callsites &&
@@ -496,9 +496,12 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
             addFormalParameter(val);
 
         if (threads && func && func->getName() == "pthread_create") {
-            auto possibleFunctions = PTA->getPointsToFunctions(CInst->getArgOperand(2));
+            auto possibleFunctions
+                = getCalledFunctions(CInst->getArgOperand(2), PTA);
             for (auto &function : possibleFunctions) {
-                LLVMDependenceGraph *subg = buildSubgraph(node, const_cast<llvm::Function *>(function), true /*this is fork*/);
+                auto *subg = buildSubgraph(node,
+                                           const_cast<llvm::Function *>(function),
+                                           true /*this is fork*/);
                 node->addSubgraph(subg);
             }
         }
@@ -1085,32 +1088,42 @@ void LLVMDependenceGraph::computeCriticalSections(ControlFlowGraph *controlFlowG
 
 void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
                                                             const std::set<const llvm::Instruction *> &stores) {
+
     for (const auto &load :loads) {
+        auto *loadInst = const_cast<llvm::Instruction *>(load);
+        auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getParent()->getParent()));
+        if (loadFunction == constructedFunctions.end())
+            continue;
+        auto loadNode = loadFunction->second->findNode(loadInst);
+        if (!loadNode)
+            continue;
+
         for (const auto &store : stores) {
-            auto loadOperand = PTA->getPointsTo(load->getOperand(0));
-            auto storeOperand = PTA->getPointsTo(store->getOperand(1));
-            if (loadOperand && storeOperand) { // if storeOperand does not have pointsTo, expect it can write anywhere??
-                for (const auto pointerLoad : loadOperand->pointsTo) {
-                    for (const auto pointerStore : storeOperand->pointsTo) {
-                        if (pointerLoad.target == pointerStore.target &&
-                            (pointerLoad.offset.isUnknown()  ||
-                             pointerStore.offset.isUnknown() ||
-                             pointerLoad.offset == pointerStore.offset)) {
-                            llvm::Instruction *loadInst = const_cast<llvm::Instruction *>(load);
-                            llvm::Instruction *storeInst = const_cast<llvm::Instruction *>(store);
-                            auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getParent()->getParent()));
-                            auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getParent()->getParent()));
-                            if (loadFunction != constructedFunctions.end() && storeFunction != constructedFunctions.end()) {
-                                auto loadNode = loadFunction->second->findNode(loadInst);
-                                auto storeNode = storeFunction->second->findNode(storeInst);
-                                if (loadNode && storeNode) {
-                                    storeNode->addInterferenceDependence(loadNode);
-                                }
-                            }
-                        }
+            auto *storeInst = const_cast<llvm::Instruction *>(store);
+            auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getParent()->getParent()));
+            if (storeFunction == constructedFunctions.end())
+                continue;
+            auto storeNode = storeFunction->second->findNode(storeInst);
+            if (!storeNode)
+                continue;
+
+            auto loadPts = PTA->getLLVMPointsTo(load->getOperand(0));
+            auto storePts = PTA->getLLVMPointsTo(store->getOperand(1));
+            for (const auto& pointerLoad : loadPts) {
+                for (const auto& pointerStore : storePts) {
+                    if (pointerLoad.value == pointerStore.value &&
+                        (pointerLoad.offset.isUnknown()  ||
+                         pointerStore.offset.isUnknown() ||
+                         pointerLoad.offset == pointerStore.offset)) {
+
+                        storeNode->addInterferenceDependence(loadNode);
                     }
                 }
             }
+
+            // handle the unknown pointer
+            if (loadPts.hasUnknown() || storePts.hasUnknown())
+                storeNode->addInterferenceDependence(loadNode);
         }
     }
 }

@@ -22,7 +22,7 @@
 #endif
 
 namespace dg {
-    class LLVMPointerAnalysis;
+    class DGLLVMPointerAnalysis;
 }
 
 namespace llvm {
@@ -42,7 +42,7 @@ private:
     std::unique_ptr<CriticalSectionsBuilder>    criticalSectionsBuilder;
 
 public:
-    ControlFlowGraph(dg::LLVMPointerAnalysis * pointsToAnalysis);
+    ControlFlowGraph(dg::DGLLVMPointerAnalysis * pointsToAnalysis);
 
     ~ControlFlowGraph();
 

@@ -93,18 +93,7 @@ class LLVMDependenceGraphBuilder {
         assert(_PTA && "BUG: No PTA");
 
         _timerStart();
-
-        if (_options.PTAOptions.isFS())
-            _PTA->run<analysis::pta::PointerAnalysisFS>();
-        else if (_options.PTAOptions.isFI())
-            _PTA->run<analysis::pta::PointerAnalysisFI>();
-        else if (_options.PTAOptions.isFSInv())
-            _PTA->run<analysis::pta::PointerAnalysisFSInv>();
-        else {
-            assert(0 && "Wrong pointer analysis");
-            abort();
-        }
-
+        _PTA->run();
         _statistics.ptaTime = _timerEnd();
     }
 
@@ -161,11 +150,12 @@ public:
     LLVMDependenceGraphBuilder(llvm::Module *M,
                                const LLVMDependenceGraphOptions& opts)
     : _M(M), _options(opts),
-      _PTA(new LLVMPointerAnalysis(M, _options.PTAOptions)),
+      _PTA(new DGLLVMPointerAnalysis(M, _options.PTAOptions)),
       _RD(new LLVMReachingDefinitions(M, _PTA.get(),
                                       _options.RDAOptions)),
       _dg(new LLVMDependenceGraph(opts.threads)),
-      _controlFlowGraph(new ControlFlowGraph(_PTA.get())),
+      _controlFlowGraph(_options.threads && !_options.PTAOptions.isSVF() ? // check SVF due to the static cast...
+            new ControlFlowGraph(static_cast<DGLLVMPointerAnalysis*>(_PTA.get())) : nullptr),
       _entryFunction(M->getFunction(_options.entryFunction)) {
         assert(_entryFunction && "The entry function not found");
     }
@@ -181,10 +171,6 @@ public:
         _runPointerAnalysis();
         _runReachingDefinitionsAnalysis();
 
-        if (_PTA->getForks().empty()) {
-            _dg->setThreads(false);
-        }
-
         // build the graph itself (the nodes, but without edges)
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
 
@@ -195,6 +181,10 @@ public:
         _runControlDependenceAnalysis();
 
         if (_options.threads) {
+            if (_options.PTAOptions.isSVF()) {
+                assert(0 && "Threading needs the DG pointer analysis, SVF is not supported yet");
+                abort();
+            }
             _controlFlowGraph->buildFunction(_entryFunction);
             _runInterferenceDependenceAnalysis();
             _runForkJoinAnalysis();
@@ -219,10 +209,6 @@ public:
     std::unique_ptr<LLVMDependenceGraph>&& constructCFGOnly() {
         // data dependencies
         _runPointerAnalysis();
-
-        if (_PTA->getForks().empty()) {
-            _dg->setThreads(false);
-        }
 
         // build the graph itself
         _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);

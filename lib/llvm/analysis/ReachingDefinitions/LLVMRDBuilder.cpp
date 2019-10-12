@@ -38,6 +38,7 @@
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 #include "dg/ADT/Queue.h"
 
+#include "llvm/analysis/ForkJoin/ForkJoin.h"
 #include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
 #include "llvm/llvm-utils.h"
 
@@ -783,16 +784,15 @@ void LLVMRDBuilder::matchForksAndJoins()
     using namespace llvm;
     using namespace pta;
 
-    for (auto PSJoinNode : PTA->getJoins()) {
-        auto callInst = PSJoinNode->getUserData<llvm::CallInst>();
-        auto iterator = threadJoinCalls.find(callInst);
-        if (iterator != threadJoinCalls.end()) {
-            for (auto function : PSJoinNode->functions()) {
-                auto llvmFunction = function->getUserData<llvm::Function>();
-                auto graphIterator = subgraphs_map.find(llvmFunction);
-                for (auto returnNode : graphIterator->second.returns) {
-                    makeEdge(returnNode, iterator->second);
-                }
+    ForkJoinAnalysis FJA{PTA};
+
+    for (auto& it : threadJoinCalls) {
+        // it.first -> llvm::CallInst, it.second -> RDNode *
+        auto functions = FJA.joinFunctions(it.first);
+        for (auto llvmFunction : functions) {
+            auto graphIterator = subgraphs_map.find(llvmFunction);
+            for (auto returnNode : graphIterator->second.returns) {
+                makeEdge(returnNode, it.second);
             }
         }
     }
@@ -968,7 +968,8 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
         return createCallToFunction(function, CInst);
     }
 
-    auto functions = PTA->getPointsToFunctions(calledVal);
+
+    const auto& functions = getCalledFunctions(calledVal, PTA);
     if (functions.empty()) {
         llvm::errs() << "[RD] error: could not determine the called function "
                         "in a call via pointer: \n"
@@ -1025,7 +1026,7 @@ RDNode *LLVMRDBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
     threadCreateCalls.emplace(CInst, rootNode);
 
     Value *calledValue = CInst->getArgOperand(2);
-    auto functions = PTA->getPointsToFunctions(calledValue);
+    const auto& functions = getCalledFunctions(calledValue, PTA);
 
     for (const Function *function : functions) {
         if (function->isDeclaration()) {
