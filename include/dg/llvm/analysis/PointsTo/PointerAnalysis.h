@@ -54,19 +54,28 @@ public:
     const LLVMPointerAnalysisOptions& getOptions() const { return options; }
 
     ///
+    // This method returns true if the pointer analysis
+    //  1) has any points-to set associated to the value 'val'
+    //  2) the points-to set is non-empty
+    virtual bool hasPointsTo(const llvm::Value *val) = 0;
+
+    ///
     // Get the points-to information for the given LLVM value.
     // The return object has methods begin(), end() that can be used
     // for iteration over (llvm::Value *, Offset) pairs of the
-    // points-to set. Moreover, the object has methods hasUnknown()
-    // and hasNull() that reflect whether the points-to set of the
-    // LLVM value contains unknown element of null.
+    // points-to set. Moreover, the object has methods hasUnknown(),
+    // hasNull(), and hasInvalidated() that reflect whether the points-to set of
+    // the LLVM value contains unknown element, null, or invalidated.
+    // If the pointer analysis has no or empty points-to set for 'val'
+    // (i.e. hasPointsTo() returns false), a points-to set containing
+    // the only element unknown is returned.
     virtual LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) = 0;
 
     ///
     // This method is the same as getLLVMPointsTo, but it returns
-    // also the information whether the node of pointer analysis exists
-    // (opposed to the getLLVMPointsTo, which returns a set with
-    // unknown element when the node does not exists)
+    // also the result of hasPointsTo(), so one can check whether the unknown
+    // pointer in the set is present because hasPointsTo() was false,
+    // or wether it has been propagated there during the analysis.
     virtual std::pair<bool, LLVMPointsToSet> getLLVMPointsToChecked(const llvm::Value *val) = 0;
 
     virtual void run() = 0;
@@ -201,6 +210,13 @@ public:
 
     inline bool threads() const { return _builder->threads(); }
 
+    bool hasPointsTo(const llvm::Value *val) override {
+        if (auto node = getPointsTo(val)) {
+            return !node->pointsTo.empty();
+        }
+        return false;
+    }
+
     ///
     // Get the points-to information for the given LLVM value.
     // The return object has methods begin(), end() that can be used
@@ -211,7 +227,11 @@ public:
     LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
         if (auto node = getPointsTo(val)) {
-            pts = new DGLLVMPointsToSet(node->pointsTo);
+            if (node->pointsTo.empty()) {
+                pts = new DGLLVMPointsToSet(getUnknownPTSet());
+            } else {
+                pts = new DGLLVMPointsToSet(node->pointsTo);
+            }
         } else {
             pts = new DGLLVMPointsToSet(getUnknownPTSet());
         }
@@ -227,8 +247,13 @@ public:
     getLLVMPointsToChecked(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
         if (auto node = getPointsTo(val)) {
-            pts = new DGLLVMPointsToSet(node->pointsTo);
-            return {true, pts->toLLVMPointsToSet()};
+            if (node->pointsTo.empty()) {
+                pts = new DGLLVMPointsToSet(getUnknownPTSet());
+                return {false, pts->toLLVMPointsToSet()};
+            } else {
+                pts = new DGLLVMPointsToSet(node->pointsTo);
+                return {true, pts->toLLVMPointsToSet()};
+            }
         } else {
             pts = new DGLLVMPointsToSet(getUnknownPTSet());
             return {false, pts->toLLVMPointsToSet()};
