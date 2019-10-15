@@ -209,10 +209,13 @@ public:
     // and hasNull() that reflect whether the points-to set of the
     // LLVM value contains unknown element of null.
     LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
-        if (auto node = getPointsTo(val))
-            return LLVMPointsToSet(node->pointsTo);
-        else
-            return LLVMPointsToSet(getUnknownPTSet());
+        DGLLVMPointsToSet *pts;
+        if (auto node = getPointsTo(val)) {
+            pts = new DGLLVMPointsToSet(node->pointsTo);
+        } else {
+            pts = new DGLLVMPointsToSet(getUnknownPTSet());
+        }
+        return pts->toLLVMPointsToSet();
     }
 
     ///
@@ -222,10 +225,14 @@ public:
     // unknown element when the node does not exists)
     std::pair<bool, LLVMPointsToSet>
     getLLVMPointsToChecked(const llvm::Value *val) override {
-        if (auto node = getPointsTo(val))
-            return {true, LLVMPointsToSet(node->pointsTo)};
-        else
-            return {false, LLVMPointsToSet(getUnknownPTSet())};
+        DGLLVMPointsToSet *pts;
+        if (auto node = getPointsTo(val)) {
+            pts = new DGLLVMPointsToSet(node->pointsTo);
+            return {true, pts->toLLVMPointsToSet()};
+        } else {
+            pts = new DGLLVMPointsToSet(getUnknownPTSet());
+            return {false, pts->toLLVMPointsToSet()};
+        }
     }
 
     const std::vector<std::unique_ptr<PSNode>>& getNodes()

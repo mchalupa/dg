@@ -158,6 +158,9 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
             clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::fi, "fi", "Flow-insensitive PTA (default)"),
             clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::fs, "fs", "Flow-sensitive PTA"),
             clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::inv, "inv", "PTA with invalidate nodes")
+#ifdef HAVE_SVF
+            , clEnumValN(LLVMPointerAnalysisOptions::AnalysisType::svf, "svf", "Use pointer analysis from SVF project")
+#endif
     #if LLVM_VERSION_MAJOR < 4
             , nullptr
     #endif
