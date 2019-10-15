@@ -13,6 +13,8 @@ if (LLVM_DG)
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 	target_link_libraries(llvm-dg-dump
 				PRIVATE LLVMdg
+				PRIVATE ${SVF_LIBS}
+				PRIVATE ${llvm_transformutils}
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_irreader}
@@ -27,12 +29,14 @@ if (LLVM_DG)
 
 	add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
-					  PRIVATE LLVMdg)
+					  PRIVATE LLVMdg
+					  PRIVATE ${SVF_LIBS})
 	target_link_libraries(llvm-slicer
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_bitwriter}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support}
+				PRIVATE ${llvm_transformutils}
 				PRIVATE ${llvm_core})
 	add_dependencies(llvm-slicer gitversion)
 

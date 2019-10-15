@@ -26,14 +26,16 @@
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
-
+#ifdef HAVE_SVF
+#include "dg/llvm/analysis/PointsTo/SVFPointerAnalysis.h"
+#endif
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/Offset.h"
 
+#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
 
 namespace llvm {
@@ -150,7 +152,7 @@ public:
     LLVMDependenceGraphBuilder(llvm::Module *M,
                                const LLVMDependenceGraphOptions& opts)
     : _M(M), _options(opts),
-      _PTA(new DGLLVMPointerAnalysis(M, _options.PTAOptions)),
+      _PTA(createPTA()),
       _RD(new LLVMReachingDefinitions(M, _PTA.get(),
                                       _options.RDAOptions)),
       _dg(new LLVMDependenceGraph(opts.threads)),
@@ -158,6 +160,13 @@ public:
             new ControlFlowGraph(static_cast<DGLLVMPointerAnalysis*>(_PTA.get())) : nullptr),
       _entryFunction(M->getFunction(_options.entryFunction)) {
         assert(_entryFunction && "The entry function not found");
+    }
+
+    LLVMPointerAnalysis *createPTA() {
+        if (_options.PTAOptions.isSVF())
+            return new SVFPointerAnalysis(_M, _options.PTAOptions);
+
+        return new DGLLVMPointerAnalysis(_M, _options.PTAOptions);
     }
 
     LLVMPointerAnalysis *getPTA() { return _PTA.get(); }
