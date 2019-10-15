@@ -79,6 +79,7 @@ if (LLVM_DG)
 endif(LLVM_DG)
 
 if (SVF_DIR)
+	set(HAVE_SVF ON)
 	add_definitions(-DHAVE_SVF)
 	set(SVF_LIBDIR ${SVF_DIR}/lib)
 
@@ -88,10 +89,16 @@ if (SVF_DIR)
 		set(SVF_INCLUDE ${SVF_DIR}/../include)
 	endif()
 
-	set(SVF_LIBS LLVMSvf)
+	set(SVF_LIBS LLVMSvf LLVMCudd)
 
 	include_directories(${SVF_INCLUDE})
-	link_directories(${SVF_LIBDIR})
+	link_directories(${SVF_LIBDIR} ${SVF_LIBDIR}/CUDD)
+
+	if (${LLVM_PACKAGE_VERSION} VERSION_GREATER "3.4")
+		llvm_map_components_to_libnames(llvm_transformutils transformutils)
+	else()
+		llvm_map_components_to_libraries(llvm_transformutils transformutils)
+	endif()
 
 	message(STATUS "SVF dir: ${SVF_DIR}")
 	message(STATUS "SVF libraries dir: ${SVF_LIBDIR}")
