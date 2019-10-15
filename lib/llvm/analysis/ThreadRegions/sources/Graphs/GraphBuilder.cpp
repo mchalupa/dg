@@ -296,9 +296,9 @@ bool GraphBuilder::matchLocksAndUnlocks() {
     using namespace dg::analysis::pta;
     bool changed = false;
     for (auto lock : llvmToLocks_) {
-        auto lockMutexPtr = pointsToAnalysis_->getPointsTo(lock.first);
+        auto lockMutexPtr = pointsToAnalysis_->getPointsToNode(lock.first);
         for (auto unlock : llvmToUnlocks_) {
-            auto unlockMutexPtr = pointsToAnalysis_->getPointsTo(unlock.first);
+            auto unlockMutexPtr = pointsToAnalysis_->getPointsToNode(unlock.first);
 
             std::set<PSNode *> mutexPointerIntersection;
             for (const auto lockPointsTo : lockMutexPtr->pointsTo) {

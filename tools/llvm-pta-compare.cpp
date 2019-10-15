@@ -125,8 +125,8 @@ static bool verify_ptsets(const llvm::Value *val,
                           DGLLVMPointerAnalysis *fi,
                           DGLLVMPointerAnalysis *fs)
 {
-    PSNode *finode = fi->getPointsTo(val);
-    PSNode *fsnode = fs->getPointsTo(val);
+    PSNode *finode = fi->getPointsToNode(val);
+    PSNode *fsnode = fs->getPointsToNode(val);
 
     if (!finode) {
         if (fsnode) {

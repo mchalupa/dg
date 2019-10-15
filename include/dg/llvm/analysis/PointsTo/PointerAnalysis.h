@@ -204,14 +204,14 @@ public:
     ///
     // Get the node from pointer analysis that holds the points-to set.
     // See: getLLVMPointsTo()
-    PSNode *getPointsTo(const llvm::Value *val) const {
+    PSNode *getPointsToNode(const llvm::Value *val) const {
         return _builder->getPointsTo(val);
     }
 
     inline bool threads() const { return _builder->threads(); }
 
     bool hasPointsTo(const llvm::Value *val) override {
-        if (auto node = getPointsTo(val)) {
+        if (auto node = getPointsToNode(val)) {
             return !node->pointsTo.empty();
         }
         return false;
@@ -226,7 +226,7 @@ public:
     // LLVM value contains unknown element of null.
     LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
-        if (auto node = getPointsTo(val)) {
+        if (auto node = getPointsToNode(val)) {
             if (node->pointsTo.empty()) {
                 pts = new DGLLVMPointsToSet(getUnknownPTSet());
             } else {
@@ -246,7 +246,7 @@ public:
     std::pair<bool, LLVMPointsToSet>
     getLLVMPointsToChecked(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
-        if (auto node = getPointsTo(val)) {
+        if (auto node = getPointsToNode(val)) {
             if (node->pointsTo.empty()) {
                 pts = new DGLLVMPointsToSet(getUnknownPTSet());
                 return {false, pts->toLLVMPointsToSet()};
