@@ -180,8 +180,8 @@ static int check_pointer(const Pointer& ptr, const char *name)
 static AliasResult doAlias(DGLLVMPointerAnalysis *pta,
 			               llvm::Value *V1, llvm::Value*V2)
 {
-  PSNode *p1 = pta->getPointsTo(V1);
-  PSNode *p2 = pta->getPointsTo(V2);
+  PSNode *p1 = pta->getPointsToNode(V1);
+  PSNode *p2 = pta->getPointsToNode(V2);
   int count1 = 0;
   int count2 = 0;
   for (const Pointer& ptr1 : p1->pointsTo) {
