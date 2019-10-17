@@ -30,7 +30,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 class LLVMRDBuilder;
 
@@ -131,8 +130,7 @@ public:
 };
 
 
-} // namespace rd
-} // namespace dg
 } // namespace analysis
+} // namespace dg
 
 #endif

@@ -50,7 +50,6 @@
 
 using namespace dg;
 using namespace dg::analysis;
-using namespace dg::analysis::rd;
 using llvm::errs;
 
 static bool verbose = false;
@@ -102,7 +101,7 @@ static inline void printAddress(RDNode *node, bool dot)
 static void
 printName(RDNode *node, bool dot)
 {
-    if (node == rd::UNKNOWN_MEMORY) {
+    if (node == UNKNOWN_MEMORY) {
         printf("UNKNOWN MEMORY");
         return;
     }
@@ -148,7 +147,7 @@ dumpMap(RDNode *node, bool dot = false)
         for (RDNode *site : it.second) {
             printName(it.first.target, dot);
             // don't print offsets with unknown memory
-            if (it.first.target == rd::UNKNOWN_MEMORY) {
+            if (it.first.target == UNKNOWN_MEMORY) {
                 printf(" => ");
             } else {
                 if (it.first.offset.isUnknown())
@@ -491,10 +490,10 @@ int main(int argc, char *argv[])
     tm.start();
     if (rda == RdaType::SSA) {
         llvm::errs() << "INFO: Running SSA RD analysis\n";
-        RD.run<dg::analysis::rd::SSAReachingDefinitionsAnalysis>();
+        RD.run<dg::analysis::SSAReachingDefinitionsAnalysis>();
     } else {
         llvm::errs() << "INFO: Running data-flow RD analysis\n";
-        RD.run<dg::analysis::rd::ReachingDefinitionsAnalysis>();
+        RD.run<dg::analysis::ReachingDefinitionsAnalysis>();
     }
     tm.stop();
     tm.report("INFO: Reaching definitions analysis took");

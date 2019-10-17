@@ -36,7 +36,7 @@ namespace debug {
 
 class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter
 {
-    using LLVMReachingDefinitions = dg::analysis::rd::LLVMReachingDefinitions;
+    using LLVMReachingDefinitions = dg::analysis::LLVMReachingDefinitions;
 public:
     enum AnnotationOptsT {
         // data dependencies
@@ -95,7 +95,7 @@ private:
             os << "\n";
     }
 
-    void printDefSite(const analysis::rd::DefSite& ds,
+    void printDefSite(const analysis::DefSite& ds,
                       llvm::formatted_raw_ostream& os,
                       const char *prefix = nullptr, bool nl = false)
     {

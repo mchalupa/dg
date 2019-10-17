@@ -12,8 +12,7 @@
 #endif
 
 namespace dg {
-namespace analysis {
-namespace rd {
+namespace ADT {
 
 template <typename T = int64_t>
 struct DiscreteInterval {
@@ -72,7 +71,7 @@ struct DiscreteInterval {
 ///
 // Mapping of disjunctive discrete intervals of values
 // to sets of ValueT.
-template <typename ValueT, typename IntervalValueT = Offset>
+template <typename ValueT, typename IntervalValueT = analysis::Offset>
 class DisjunctiveIntervalMap {
 public:
     using IntervalT = DiscreteInterval<IntervalValueT>;
@@ -618,8 +617,7 @@ private:
 };
 
 
-} // namespace rd
-} // namespace analysis
+} // namespace ADT
 } // namespace dg
 
 #endif // _DG_DISJUNCTIVE_INTERVAL_MAP_H_

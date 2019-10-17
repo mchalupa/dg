@@ -13,7 +13,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 RDNode UNKNOWN_MEMLOC;
 RDNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
@@ -126,6 +125,5 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
     return std::vector<RDNode *>(ret.begin(), ret.end());
 }
 
-} // namespace rd
 } // namespace analysis
 } // namespace dg

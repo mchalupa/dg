@@ -9,7 +9,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 extern RDNode *UNKNOWN_MEMORY;
 
@@ -339,7 +338,5 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RDNode
     }
 }
 
-
-} // namespace rd
 } // namespace analysis
 } // namespace dg
