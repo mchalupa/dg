@@ -77,18 +77,18 @@ public:
         RDA->run();
     }
 
-    RDNode *getRoot() { return RDA->getRoot(); }
-    ReachingDefinitionsGraph *getGraph() { return RDA->getGraph(); }
-    RDNode *getNode(const llvm::Value *val);
-    const RDNode *getNode(const llvm::Value *val) const;
+    RWNode *getRoot() { return RDA->getRoot(); }
+    ReadWriteGraph *getGraph() { return RDA->getGraph(); }
+    RWNode *getNode(const llvm::Value *val);
+    const RWNode *getNode(const llvm::Value *val) const;
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, RDNode *>& getNodesMap() const;
-    const std::unordered_map<const llvm::Value *, RDNode *>& getMapping() const;
+    const std::unordered_map<const llvm::Value *, RWNode *>& getNodesMap() const;
+    const std::unordered_map<const llvm::Value *, RWNode *>& getMapping() const;
 
-    RDNode *getMapping(const llvm::Value *val);
-    const RDNode *getMapping(const llvm::Value *val) const;
+    RWNode *getMapping(const llvm::Value *val);
+    const RWNode *getMapping(const llvm::Value *val) const;
 
     bool isUse(const llvm::Value *val) const {
         auto nd = getNode(val);
@@ -100,7 +100,7 @@ public:
         return nd && (!nd->getDefines().empty() || !nd->getOverwrites().empty());
     }
 
-    std::vector<RDNode *> getNodes() {
+    std::vector<RWNode *> getNodes() {
         assert(RDA);
         // FIXME: this is insane, we should have this method defined here
         // not in RDA
@@ -108,17 +108,17 @@ public:
     }
 
     /*
-    std::vector<RDNode *> getReachingDefinitions(RDNode *where, RDNode *mem,
+    std::vector<RWNode *> getReachingDefinitions(RWNode *where, RWNode *mem,
                                                  const Offset& off, const Offset& len) {
         return RDA->getReachingDefinitions(where, n, off, len, ret);
     }
     */
 
-    std::vector<RDNode *> getReachingDefinitions(RDNode *use) {
+    std::vector<RWNode *> getReachingDefinitions(RWNode *use) {
         return RDA->getReachingDefinitions(use);
     }
 
-    std::vector<RDNode *> getReachingDefinitions(llvm::Value *use) {
+    std::vector<RWNode *> getReachingDefinitions(llvm::Value *use) {
         auto node = getNode(use);
         assert(node);
         return getReachingDefinitions(node);

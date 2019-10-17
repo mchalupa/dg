@@ -15,7 +15,7 @@ namespace dg {
 namespace analysis {
 
 namespace pta { class PSNode; }
-class RDNode;
+class RWNode;
 
 template <typename NodeT>
 class SubgraphNode {

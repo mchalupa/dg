@@ -13,13 +13,13 @@
 namespace dg {
 namespace analysis {
 
-class ReachingDefinitionsGraph {
+class ReadWriteGraph {
     // FIXME: get rid of this
     unsigned int dfsnum{1};
 
     size_t lastNodeID{0};
     RWNode *root{nullptr};
-    using BBlocksVecT = std::vector<std::unique_ptr<RDBBlock>>;
+    using BBlocksVecT = std::vector<std::unique_ptr<RWBBlock>>;
     using NodesT = std::vector<std::unique_ptr<RWNode>>;
 
     // iterator over the bblocks that returns the bblock,
@@ -51,15 +51,15 @@ class ReachingDefinitionsGraph {
     NodesT _nodes;
 
 public:
-    ReachingDefinitionsGraph() = default;
-    ReachingDefinitionsGraph(RWNode *r) : root(r) {};
-    ReachingDefinitionsGraph(ReachingDefinitionsGraph&&) = default;
-    ReachingDefinitionsGraph& operator=(ReachingDefinitionsGraph&&) = default;
+    ReadWriteGraph() = default;
+    ReadWriteGraph(RWNode *r) : root(r) {};
+    ReadWriteGraph(ReadWriteGraph&&) = default;
+    ReadWriteGraph& operator=(ReadWriteGraph&&) = default;
 
     RWNode *getRoot() const { return root; }
     void setRoot(RWNode *r) { root = r; }
 
-    const std::vector<std::unique_ptr<RDBBlock>>& getBBlocks() const { return _bblocks; }
+    const std::vector<std::unique_ptr<RWBBlock>>& getBBlocks() const { return _bblocks; }
 
     block_iterator blocks_begin() { return block_iterator(_bblocks.begin()); }
     block_iterator blocks_end() { return block_iterator(_bblocks.end()); }
@@ -72,7 +72,7 @@ public:
         removeUselessNodes();
     }
 
-    RWNode *create(RDNodeType t) {
+    RWNode *create(RWNodeType t) {
       _nodes.emplace_back(new RWNode(++lastNodeID, t));
       return _nodes.back().get();
     }

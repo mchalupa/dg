@@ -1,13 +1,14 @@
 #ifndef DG_RWBBLOCK_H_
 #define DG_RWBBLOCK_H_
 
+#include <list>
 #include "dg/analysis/ReadWriteGraph/RWNode.h"
 #include "dg/analysis/ReachingDefinitions/DefinitionsMap.h"
 
 namespace dg {
 namespace analysis {
 
-class RDBBlock {
+class RWBBlock {
     void _check() {
 #ifndef NDEBUG
         // first node can have several predecessors
@@ -66,8 +67,8 @@ public:
         edge_iterator() = default;
         edge_iterator(const NodeSuccIterator& I) : NodeSuccIterator(I) {}
 
-        RDBBlock *operator*() { return NodeSuccIterator::operator*()->getBBlock(); }
-        RDBBlock *operator->() { return NodeSuccIterator::operator*()->getBBlock(); }
+        RWBBlock *operator*() { return NodeSuccIterator::operator*()->getBBlock(); }
+        RWBBlock *operator->() { return NodeSuccIterator::operator*()->getBBlock(); }
     };
 
     edge_iterator pred_begin() { return edge_iterator(_nodes.front()->getPredecessors().begin()); }
@@ -75,12 +76,12 @@ public:
     edge_iterator succ_begin() { return edge_iterator(_nodes.back()->getSuccessors().begin()); }
     edge_iterator succ_end() { return edge_iterator(_nodes.back()->getSuccessors().end()); }
 
-    RDBBlock *getSinglePredecessor() {
+    RWBBlock *getSinglePredecessor() {
         auto& preds = _nodes.front()->getPredecessors();
         return preds.size() == 1 ? (*preds.begin())->getBBlock() : nullptr;
     }
 
-    RDBBlock *getSingleSuccessor() {
+    RWBBlock *getSingleSuccessor() {
         auto& succs = _nodes.back()->getSuccessors();
         return succs.size() == 1 ? (*succs.begin())->getBBlock() : nullptr;
     }

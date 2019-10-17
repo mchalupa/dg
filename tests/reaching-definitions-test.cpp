@@ -9,7 +9,7 @@ using namespace dg::analysis;
 /*
 #ifdef DEBUG_ENABLED
 static void
-dumpMap(RDNode *node)
+dumpMap(RWNode *node)
 {
     RDMap& map = node->getReachingDefinitions();
     for (auto it : map) {
@@ -17,7 +17,7 @@ dumpMap(RDNode *node)
         printf("%s %lu - %lu @ ",
                tname ? tname : "<noname>",
                *it.first.offset, *it.first.offset + *it.first.len);
-        for (RDNode *site : it.second) {
+        for (RWNode *site : it.second) {
             const char *sname = site->getName();
             printf("%s\n", sname ? sname : "<noname>");
         }
@@ -30,9 +30,9 @@ dumpMap(RDNode *node)
 template <typename RDType>
 void basic1()
 {
-    RDNode AL1, AL2;
-    RDNode S1, S2;
-    RDNode U1, U2, U3, U4, U5;
+    RWNode AL1, AL2;
+    RWNode S1, S2;
+    RWNode U1, U2, U3, U4, U5;
 
     S1.addDef(&AL1, 0, 2, true /* strong update */);
     S2.addDef(&AL1, 0, 4, true /* strong update */);
@@ -80,9 +80,9 @@ void basic1()
 template <typename RDType>
 void basic2()
 {
-    RDNode AL1, AL2;
-    RDNode S1, S2;
-    RDNode U1, U2, U3, U4, U5;
+    RWNode AL1, AL2;
+    RWNode S1, S2;
+    RWNode U1, U2, U3, U4, U5;
 
     S1.addDef(&AL1, 0, 4, true /* strong update */);
     S2.addDef(&AL1, 0, 4, true /* strong update */);
@@ -129,9 +129,9 @@ void basic2()
 template <typename RDType>
 void basic3()
 {
-    RDNode AL1, AL2;
-    RDNode S1, S2;
-    RDNode U1, U2, U3, U4, U5, U6, U7, U8, U9;
+    RWNode AL1, AL2;
+    RWNode S1, S2;
+    RWNode U1, U2, U3, U4, U5, U6, U7, U8, U9;
 
     S1.addDef(&AL1, 0, 4, true /* strong update */);
     S2.addDef(&AL1, 4, 4, true /* strong update */);
@@ -201,9 +201,9 @@ void basic3()
 template <typename RDType>
 void basic4()
 {
-    RDNode AL1, AL2;
-    RDNode S1, S2;
-    RDNode U1, U2, U3, U4, U5, U6, U7, U8, U9;
+    RWNode AL1, AL2;
+    RWNode S1, S2;
+    RWNode U1, U2, U3, U4, U5, U6, U7, U8, U9;
 
     S1.addDef(&AL1, 0, 4, true /* strong update */);
     S2.addDef(&AL1, 2, 4, true /* strong update */);

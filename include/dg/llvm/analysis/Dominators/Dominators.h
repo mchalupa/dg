@@ -36,7 +36,7 @@ template <typename NodeT, bool CalculateDF=true>
 class Dominators
 {
 private:
-    using BlockT = BBlock<dg::analysis::rd::RDNode>;
+    using BlockT = BBlock<dg::analysis::rd::RWNode>;
     using CFMapT = std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, BlockT *>>;
     using BMapT = std::unordered_map<const llvm::Value *, std::unique_ptr<BlockT>>;
 

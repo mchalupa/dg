@@ -14,10 +14,10 @@
 namespace dg {
 namespace analysis {
 
-class RDNode;
+class RWNode;
 class ReachingDefinitionsAnalysis;
 
-template <typename NodeT = RDNode>
+template <typename NodeT = RWNode>
 class DefinitionsMap {
 
     using OffsetsT = ADT::DisjunctiveIntervalMap<NodeT *>;

@@ -12,12 +12,12 @@
 namespace dg {
 namespace analysis {
 
-class RDNode;
+class RWNode;
 class ReachingDefinitionsAnalysis;
 
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations
-enum class RDNodeType {
+enum class RWNodeType {
         // invalid type of node
         NONE,
         // these are nodes that just represent memory allocation sites
@@ -43,22 +43,22 @@ enum class RDNodeType {
         NOOP
 };
 
-extern RDNode *UNKNOWN_MEMORY;
+extern RWNode *UNKNOWN_MEMORY;
 
-class RDBBlock;
+class RWBBlock;
 
-class RDNode : public SubgraphNode<RDNode> {
-    RDNodeType type;
+class RWNode : public SubgraphNode<RWNode> {
+    RWNodeType type;
 
-    RDBBlock *bblock = nullptr;
+    RWBBlock *bblock = nullptr;
     // marks for DFS/BFS
     unsigned int dfsid;
 
     class DefUses {
-        using T = std::vector<RDNode *>;
+        using T = std::vector<RWNode *>;
         T defuse;
     public:
-        bool add(RDNode *d) {
+        bool add(RWNode *d) {
             for (auto x : defuse) {
                 if (x == d) {
                     return false;
@@ -71,12 +71,12 @@ class RDNode : public SubgraphNode<RDNode> {
         template <typename Cont>
         bool add(const Cont& C) {
             bool changed = false;
-            for (RDNode *n : C)
+            for (RWNode *n : C)
                 changed |= add(n);
             return changed;
         }
 
-        operator std::vector<RDNode *>() { return defuse; }
+        operator std::vector<RWNode *>() { return defuse; }
 
         T::iterator begin() { return defuse.begin(); }
         T::iterator end() { return defuse.end(); }
@@ -87,14 +87,14 @@ class RDNode : public SubgraphNode<RDNode> {
 public:
 
     // for invalid nodes like UNKNOWN_MEMLOC
-    RDNode(RDNodeType t = RDNodeType::NONE)
-    : SubgraphNode<RDNode>(0), type(t), dfsid(0) {}
+    RWNode(RWNodeType t = RWNodeType::NONE)
+    : SubgraphNode<RWNode>(0), type(t), dfsid(0) {}
 
-    RDNode(unsigned id, RDNodeType t = RDNodeType::NONE)
-    : SubgraphNode<RDNode>(id), type(t), dfsid(0) {}
+    RWNode(unsigned id, RWNodeType t = RWNodeType::NONE)
+    : SubgraphNode<RWNode>(id), type(t), dfsid(0) {}
 
 #ifndef NDEBUG
-    virtual ~RDNode() = default;
+    virtual ~RWNode() = default;
     void dump() const;
 #endif
 
@@ -114,7 +114,7 @@ public:
     // FIXME: get rid of this in a general node
     RDMap def_map;
 
-    RDNodeType getType() const { return type; }
+    RWNodeType getType() const { return type; }
     DefSiteSetT& getDefines() { return defs; }
     DefSiteSetT& getOverwrites() { return overwrites; }
     DefSiteSetT& getUses() { return uses; }
@@ -122,7 +122,7 @@ public:
     const DefSiteSetT& getOverwrites() const { return defs; }
     const DefSiteSetT& getUses() const { return uses; }
 
-    bool defines(RDNode *target, const Offset& off = Offset::UNKNOWN) const
+    bool defines(RWNode *target, const Offset& off = Offset::UNKNOWN) const
     {
         // FIXME: this is not efficient implementation,
         // use the ordering on the nodes
@@ -154,7 +154,7 @@ public:
         return false;
     }
 
-    void addUse(RDNode *target,
+    void addUse(RWNode *target,
                 const Offset& off = Offset::UNKNOWN,
                 const Offset& len = Offset::UNKNOWN) {
         addUse(DefSite(target, off, len));
@@ -185,7 +185,7 @@ public:
     // register that the node defines the memory 'target'
     // at offset 'off' of length 'len', i.e. it writes
     // to memory 'target' to bytes [off, off + len].
-    void addDef(RDNode *target,
+    void addDef(RWNode *target,
                 const Offset& off = Offset::UNKNOWN,
                 const Offset& len = Offset::UNKNOWN,
                 bool strong_update = false)
@@ -201,7 +201,7 @@ public:
         }
     }
 
-    void addOverwrites(RDNode *target,
+    void addOverwrites(RWNode *target,
                        const Offset& off = Offset::UNKNOWN,
                        const Offset& len = Offset::UNKNOWN)
     {
@@ -225,10 +225,10 @@ public:
 
     bool isUse() const { return !uses.empty(); }
 
-    RDBBlock *getBBlock() { return bblock; }
-    void setBBlock(RDBBlock *bb) { bblock = bb; }
+    RWBBlock *getBBlock() { return bblock; }
+    void setBBlock(RWBBlock *bb) { bblock = bb; }
 
-    friend class ReachingDefinitionsGraph;
+    friend class ReadWriteGraph;
 };
 
 } // namespace analysis

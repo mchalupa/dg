@@ -11,7 +11,7 @@ void run(int size, int times = 100000)
 {
     using namespace dg::analysis::rd;
 
-    std::vector<RDNode> rdnodes(size, RDNode());
+    std::vector<RWNode> rdnodes(size, RWNode());
 
     while (--times > 0) {
         RDMap A, B;
