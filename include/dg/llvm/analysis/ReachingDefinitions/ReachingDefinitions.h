@@ -25,6 +25,7 @@
 #endif
 
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/analysis/MemorySSA/MemorySSA.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 

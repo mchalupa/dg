@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/analysis/MemorySSA/MemorySSA.h"
 #include "dg/analysis/BBlocksBuilder.h"
 
 #include "dg/util/debug.h"
