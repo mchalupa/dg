@@ -87,7 +87,7 @@ private:
 
         os << " + ";
         if (ptr.offset.isUnknown())
-            os << "UNKNOWN";
+            os << "?";
         else
             os << *ptr.offset;
 
@@ -111,12 +111,12 @@ private:
                 printValue(val, os);
 
             if (ds.offset.isUnknown())
-                os << " bytes |UNKNOWN";
+                os << " bytes |?";
             else
                 os << " bytes |" << *ds.offset;
 
             if (ds.len.isUnknown())
-                os << " - UNKNOWN|";
+                os << " - ?|";
             else
                 os << " - " <<  *ds.offset + *ds.len- 1 << "|";
         } else
@@ -213,13 +213,13 @@ private:
                             printPointer(llvmptr, os);
                         }
                         if (ps.hasNull()) {
-                            os << "  ; null";
+                            os << "  ; null\n";
                         }
                         if (ps.hasUnknown()) {
-                            os << "  ; unknown";
+                            os << "  ; unknown\n";
                         }
                         if (ps.hasInvalidated()) {
-                            os << "  ; invalidated";
+                            os << "  ; invalidated\n";
                         }
                     }
                 }
