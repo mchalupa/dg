@@ -37,10 +37,10 @@ protected:
     const llvm::DataLayout *DL;
     const LLVMReachingDefinitionsAnalysisOptions& _options;
 
-    ReachingDefinitionsGraph graph;
+    ReadWriteGraph graph;
 
     struct Block {
-        std::vector<RDNode *> nodes;
+        std::vector<RWNode *> nodes;
     };
 
     struct Subgraph {
@@ -53,25 +53,25 @@ protected:
             return it.first->second;
         }
         Block *entry{nullptr};
-        std::vector<RDNode *> returns;
+        std::vector<RWNode *> returns;
     };
 
     // points-to information
     dg::LLVMPointerAnalysis *PTA;
 
     // map of all nodes we created - use to look up operands
-    std::unordered_map<const llvm::Value *, RDNode *> nodes_map;
+    std::unordered_map<const llvm::Value *, RWNode *> nodes_map;
 
-    std::map<const llvm::CallInst *, RDNode *> threadCreateCalls;
-    std::map<const llvm::CallInst *, RDNode *> threadJoinCalls;
+    std::map<const llvm::CallInst *, RWNode *> threadCreateCalls;
+    std::map<const llvm::CallInst *, RWNode *> threadJoinCalls;
 
     // mapping of call nodes to called subgraphs
-    std::map<std::pair<RDNode *, RDNode *>, std::set<Subgraph *>> calls;
+    std::map<std::pair<RWNode *, RWNode *>, std::set<Subgraph *>> calls;
 
     // map of all built subgraphs - the value type is a pair (root, return)
     std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
 
-    RDNode *create(RDNodeType t) { return graph.create(t); }
+    RWNode *create(RWNodeType t) { return graph.create(t); }
 
 public:
     LLVMRDBuilderBase(const llvm::Module *m,
@@ -84,14 +84,14 @@ public:
         delete DL;
     }
 
-    virtual ReachingDefinitionsGraph&& build() = 0;
+    virtual ReadWriteGraph&& build() = 0;
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, RDNode *>&
+    const std::unordered_map<const llvm::Value *, RWNode *>&
                                 getNodesMap() const { return nodes_map; }
 
-    RDNode *getNode(const llvm::Value *val) {
+    RWNode *getNode(const llvm::Value *val) {
         auto it = nodes_map.find(val);
         if (it == nodes_map.end())
             return nullptr;
@@ -110,9 +110,9 @@ public:
           buildUses(true), forgetLocalsAtReturn(forget_locals) {}
     virtual ~LLVMRDBuilder() = default;
 
-    ReachingDefinitionsGraph&& build() override;
+    ReadWriteGraph&& build() override;
 
-    RDNode *getOperand(const llvm::Value *val);
+    RWNode *getOperand(const llvm::Value *val);
 
 private:
 
@@ -124,7 +124,7 @@ private:
                                      const llvm::Value *val,
                                      Offset size);
 
-    void addNode(const llvm::Value *val, RDNode *node)
+    void addNode(const llvm::Value *val, RWNode *node)
     {
         auto it = nodes_map.find(val);
         assert(it == nodes_map.end() && "Adding a node that we already have");
@@ -134,43 +134,43 @@ private:
     }
 
     // FIXME: rename this method
-    void addArtificialNode(const llvm::Value *val, RDNode *node)
+    void addArtificialNode(const llvm::Value *val, RWNode *node)
     {
         node->setUserData(const_cast<llvm::Value *>(val));
     }
 
-    RDNode *createStore(const llvm::Instruction *Inst);
-    RDNode *createLoad(const llvm::Instruction *Inst);
-    RDNode *createAlloc(const llvm::Instruction *Inst);
-    RDNode *createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type);
-    RDNode *createRealloc(const llvm::Instruction *Inst);
-    RDNode *createReturn(const llvm::Instruction *Inst);
+    RWNode *createStore(const llvm::Instruction *Inst);
+    RWNode *createLoad(const llvm::Instruction *Inst);
+    RWNode *createAlloc(const llvm::Instruction *Inst);
+    RWNode *createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type);
+    RWNode *createRealloc(const llvm::Instruction *Inst);
+    RWNode *createReturn(const llvm::Instruction *Inst);
 
 
-    RDNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
+    RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
     Block& buildBlock(Subgraph& subg, const llvm::BasicBlock& block);
     Block& buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& block);
     Subgraph& buildFunction(const llvm::Function& F);
     Subgraph *getOrCreateSubgraph(const llvm::Function *F);
 
-    std::pair<RDNode *, RDNode *> buildGlobals();
+    std::pair<RWNode *, RWNode *> buildGlobals();
 
-    std::pair<RDNode *, RDNode *> createCallToFunction(const llvm::Function *F, const llvm::CallInst *CInst);
+    std::pair<RWNode *, RWNode *> createCallToFunction(const llvm::Function *F, const llvm::CallInst *CInst);
 
-    std::pair<RDNode *, RDNode *> createCall(const llvm::Instruction *Inst);
+    std::pair<RWNode *, RWNode *> createCall(const llvm::Instruction *Inst);
 
-    RDNode * createCallToZeroSizeFunction(const llvm::Function *function,
+    RWNode * createCallToZeroSizeFunction(const llvm::Function *function,
                                          const llvm::CallInst *CInst);
 
-    std::pair<RDNode *, RDNode *> createCallToFunctions(const std::vector<const llvm::Function *> &functions,
+    std::pair<RWNode *, RWNode *> createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                            const llvm::CallInst *CInst);
 
-    RDNode * createPthreadCreateCalls(const llvm::CallInst *CInst);
-    RDNode * createPthreadJoinCall(const llvm::CallInst *CInst);
-    RDNode * createPthreadExitCall(const llvm::CallInst *CInst);
+    RWNode * createPthreadCreateCalls(const llvm::CallInst *CInst);
+    RWNode * createPthreadJoinCall(const llvm::CallInst *CInst);
+    RWNode * createPthreadExitCall(const llvm::CallInst *CInst);
 
-    RDNode *createIntrinsicCall(const llvm::CallInst *CInst);
-    RDNode *createUndefinedCall(const llvm::CallInst *CInst);
+    RWNode *createIntrinsicCall(const llvm::CallInst *CInst);
+    RWNode *createUndefinedCall(const llvm::CallInst *CInst);
 
     // even the data-flow analysis needs uses to have the mapping of llvm values
     bool buildUses{true};

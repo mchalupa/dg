@@ -11,7 +11,7 @@
 namespace dg {
 namespace analysis {
 
-class RDNode;
+class RWNode;
 class ReachingDefinitionsAnalysis;
 
 /// Take two intervals (a, a_len) and (b, b_len) where 'a' ('b', resp.) is the
@@ -92,20 +92,20 @@ struct GenericDefSite
 };
 
 // for compatibility until we need to change it
-using DefSite = GenericDefSite<RDNode>;
+using DefSite = GenericDefSite<RWNode>;
 
-extern RDNode *UNKNOWN_MEMORY;
+extern RWNode *UNKNOWN_MEMORY;
 
 // wrapper around std::set<> with few
 // improvements that will be handy in our set-up
-class RDNodesSet {
-    using ContainerTy = std::set<RDNode *>;
+class RWNodesSet {
+    using ContainerTy = std::set<RWNode *>;
 
     ContainerTy nodes;
     bool is_unknown;
 
 public:
-    RDNodesSet() : is_unknown(false) {}
+    RWNodesSet() : is_unknown(false) {}
 
     // the set contains unknown mem. location
     void makeUnknown()
@@ -115,7 +115,7 @@ public:
         is_unknown = true;
     }
 
-    bool insert(RDNode *n)
+    bool insert(RWNode *n)
     {
         if (is_unknown)
             return false;
@@ -127,7 +127,7 @@ public:
             return nodes.insert(n).second;
     }
 
-    size_t count(RDNode *n) const
+    size_t count(RWNode *n) const
     {
         return nodes.count(n);
     }
@@ -164,7 +164,7 @@ using DefSiteSetT = std::set<DefSite>;
 class BasicRDMap
 {
 public:
-    using MapT = std::map<DefSite, RDNodesSet>;
+    using MapT = std::map<DefSite, RWNodesSet>;
 
     BasicRDMap() = default;
     BasicRDMap(const BasicRDMap& o) {
@@ -177,15 +177,15 @@ public:
                Offset::type max_set_size  = Offset::UNKNOWN,
                bool merge_unknown     = false);
 
-    bool add(const DefSite&, RDNode *n);
-    bool update(const DefSite&, RDNode *n);
+    bool add(const DefSite&, RWNode *n);
+    bool update(const DefSite&, RWNode *n);
     bool empty() const { return _defs.empty(); }
 
     // gather reaching definitions of memory [n + off, n + off + len]
     // and store them to the @ret
-    size_t get(RDNode *n, const Offset& off,
-               const Offset& len, std::set<RDNode *>& ret);
-    size_t get(DefSite& ds, std::set<RDNode *>& ret);
+    size_t get(RWNode *n, const Offset& off,
+               const Offset& len, std::set<RWNode *>& ret);
+    size_t get(DefSite& ds, std::set<RWNode *>& ret);
 
     template <typename IteratorT>
     class _map_iterator {

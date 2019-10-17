@@ -69,28 +69,28 @@ getInstName(const llvm::Value *val)
     return ostr.str();
 }
 
-static void printRDNodeType(enum RDNodeType type)
+static void printRWNodeType(enum RWNodeType type)
 {
 #define ELEM(t) case(t): do {printf("%s", #t); }while(0); break;
     switch(type) {
-        ELEM(RDNodeType::ALLOC)
-        ELEM(RDNodeType::DYN_ALLOC)
-        ELEM(RDNodeType::STORE)
-        ELEM(RDNodeType::PHI)
-        ELEM(RDNodeType::CALL)
-        ELEM(RDNodeType::CALL_RETURN)
-        ELEM(RDNodeType::FORK)
-        ELEM(RDNodeType::JOIN)
-        ELEM(RDNodeType::RETURN)
-        ELEM(RDNodeType::NOOP)
-        ELEM(RDNodeType::NONE)
+        ELEM(RWNodeType::ALLOC)
+        ELEM(RWNodeType::DYN_ALLOC)
+        ELEM(RWNodeType::STORE)
+        ELEM(RWNodeType::PHI)
+        ELEM(RWNodeType::CALL)
+        ELEM(RWNodeType::CALL_RETURN)
+        ELEM(RWNodeType::FORK)
+        ELEM(RWNodeType::JOIN)
+        ELEM(RWNodeType::RETURN)
+        ELEM(RWNodeType::NOOP)
+        ELEM(RWNodeType::NONE)
         default:
             printf("unknown reaching definitions subgraph type");
     };
 #undef ELEM
 }
 
-static inline void printAddress(RDNode *node, bool dot)
+static inline void printAddress(RWNode *node, bool dot)
 {
     if (dot)
         printf(" [%p]\\n", static_cast<void*>(node));
@@ -99,7 +99,7 @@ static inline void printAddress(RDNode *node, bool dot)
 }
 
 static void
-printName(RDNode *node, bool dot)
+printName(RWNode *node, bool dot)
 {
     if (node == UNKNOWN_MEMORY) {
         printf("UNKNOWN MEMORY");
@@ -115,7 +115,7 @@ printName(RDNode *node, bool dot)
     std::string nm;
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
-            printRDNodeType(node->getType());
+            printRWNodeType(node->getType());
             printAddress(node, dot);
             return;
         }
@@ -140,11 +140,11 @@ printName(RDNode *node, bool dot)
 }
 
 static void
-dumpMap(RDNode *node, bool dot = false)
+dumpMap(RWNode *node, bool dot = false)
 {
     RDMap& map = node->def_map;
     for (const auto& it : map) {
-        for (RDNode *site : it.second) {
+        for (RWNode *site : it.second) {
             printName(it.first.target, dot);
             // don't print offsets with unknown memory
             if (it.first.target == UNKNOWN_MEMORY) {
@@ -189,7 +189,7 @@ static void printInterval(T& I, const char *pref = nullptr,
 }
 
 static void
-dumpDDIMap(RDBBlock *block, bool dot = false)
+dumpDDIMap(RWBBlock *block, bool dot = false)
 {
     auto& map = block->definitions;
     for (const auto& it : map) {
@@ -235,7 +235,7 @@ dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
 }
 
 static void
-dumpDefines(RDNode *node, bool dot = false)
+dumpDefines(RWNode *node, bool dot = false)
 {
     if (!node->getDefines().empty())
         dumpDefSites(node->getDefines(), "DEF", dot);
@@ -243,21 +243,21 @@ dumpDefines(RDNode *node, bool dot = false)
 
 
 static void
-dumpOverwrites(RDNode *node, bool dot = false)
+dumpOverwrites(RWNode *node, bool dot = false)
 {
     if (!node->getOverwrites().empty())
         dumpDefSites(node->getOverwrites(), "DEF strong", dot);
 }
 
 static void
-dumpUses(RDNode *node, bool dot = false)
+dumpUses(RWNode *node, bool dot = false)
 {
     if (!node->getUses().empty())
         dumpDefSites(node->getUses(), "USE", dot);
 }
 
 static void
-dumpRDNode(RDNode *n)
+dumpRWNode(RWNode *n)
 {
     printf("NODE: ");
     printName(n, false);
@@ -268,7 +268,7 @@ dumpRDNode(RDNode *n)
     printf("---\n");
 }
 
-static void nodeToDot(RDNode *node) {
+static void nodeToDot(RWNode *node) {
     printf("\tNODE%p [label=\"%u ", static_cast<void*>(node), node->getID());
     printName(node, true);
     if (node->getSize() > 0) {
@@ -296,14 +296,14 @@ static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD)
 {
     const auto& nodes = RD->getNodes();
     // dump nodes
-    for(RDNode *node : nodes) {
+    for(RWNode *node : nodes) {
         nodeToDot(node);
     }
 
     // dump def-use edges
-    for(RDNode *node : nodes) {
+    for(RWNode *node : nodes) {
         if (node->isUse()) {
-            for (RDNode *def : RD->getReachingDefinitions(node)) {
+            for (RWNode *def : RD->getReachingDefinitions(node)) {
                 printf("\tNODE%p->NODE%p [style=dotted]",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
@@ -317,18 +317,18 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD) {
               E = RD->getGraph()->blocks_end(); I != E; ++I) {
         printf("subgraph cluster_%p {\n", *I);
         /* dump nodes */
-        for(RDNode *node : I->getNodes()) {
+        for(RWNode *node : I->getNodes()) {
             nodeToDot(node);
         }
 
         // dump def-use edges
-        for(RDNode *node : I->getNodes()) {
-            for (RDNode *def : node->defuse) {
+        for(RWNode *node : I->getNodes()) {
+            for (RWNode *def : node->defuse) {
                 printf("\tNODE%p->NODE%p [style=dotted]",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
             if (node->isUse()) {
-                for (RDNode *def : RD->getReachingDefinitions(node)) {
+                for (RWNode *def : RD->getReachingDefinitions(node)) {
                     printf("\tNODE%p->NODE%p [style=dotted color=blue]",
                            static_cast<void*>(def), static_cast<void*>(node));
                 }
@@ -363,8 +363,8 @@ dumpRDdot(LLVMReachingDefinitions *RD)
         dumpDotWithBlocks(RD);
 
     /* dump edges */
-    for (RDNode *node : RD->getNodes()) {
-        for (RDNode *succ : node->getSuccessors())
+    for (RWNode *node : RD->getNodes()) {
+        for (RWNode *succ : node->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n",
                    static_cast<void*>(node),
                    static_cast<void*>(succ));
@@ -381,8 +381,8 @@ dumpRD(LLVMReachingDefinitions *RD, bool todot)
     if (todot)
         dumpRDdot(RD);
     else {
-        for (RDNode *node : RD->getNodes())
-            dumpRDNode(node);
+        for (RWNode *node : RD->getNodes())
+            dumpRWNode(node);
     }
 }
 

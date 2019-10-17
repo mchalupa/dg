@@ -26,12 +26,12 @@ namespace analysis {
 class ReachingDefinitionsAnalysis
 {
 protected:
-    ReachingDefinitionsGraph graph;
+    ReadWriteGraph graph;
 
     const ReachingDefinitionsAnalysisOptions options;
 
 public:
-    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
+    ReachingDefinitionsAnalysis(ReadWriteGraph&& graph,
                                 const ReachingDefinitionsAnalysisOptions& opts)
     : graph(std::move(graph)), options(opts)
     {
@@ -41,40 +41,40 @@ public:
         assert(options.maxSetSize > 0 && "The set size must be at least 1");
     }
 
-    ReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
+    ReachingDefinitionsAnalysis(ReadWriteGraph&& graph)
     : ReachingDefinitionsAnalysis(std::move(graph), {}) {}
     virtual ~ReachingDefinitionsAnalysis() = default;
 
     // get nodes in BFS order and store them into
     // the container
     template <typename ContainerOrNode>
-    std::vector<RDNode *> getNodes(const ContainerOrNode& start,
+    std::vector<RWNode *> getNodes(const ContainerOrNode& start,
                                    unsigned expected_num = 0) {
         return graph.getNodes(start, expected_num);
     }
 
-    RDNode *getRoot() const { return graph.getRoot(); }
-    ReachingDefinitionsGraph *getGraph() { return &graph; }
-    const ReachingDefinitionsGraph *getGraph() const { return &graph; }
+    RWNode *getRoot() const { return graph.getRoot(); }
+    ReadWriteGraph *getGraph() { return &graph; }
+    const ReadWriteGraph *getGraph() const { return &graph; }
 
-    bool processNode(RDNode *n);
+    bool processNode(RWNode *n);
     virtual void run();
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    virtual std::vector<RDNode *>
-    getReachingDefinitions(RDNode *where, RDNode *mem,
+    virtual std::vector<RWNode *>
+    getReachingDefinitions(RWNode *where, RWNode *mem,
                            const Offset& off,
                            const Offset& len);
 
     // return reaching definitions of a node that represents
     // the given use
-    virtual std::vector<RDNode *> getReachingDefinitions(RDNode *use);
+    virtual std::vector<RWNode *> getReachingDefinitions(RWNode *use);
 };
 
 class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
     void performLvn();
-    void performLvn(RDBBlock *block);
+    void performLvn(RWBBlock *block);
     void performGvn();
 
     ////
@@ -84,7 +84,7 @@ class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
     // Find definitions of the def site and return def-use edges.
     // For the (possibly) uncovered bytes create phi nodes (which are also returned
     // as the definitions) in _this very block_. It is important for LVN.
-    std::vector<RDNode *> findDefinitionsInBlock(RDBBlock *, const DefSite&);
+    std::vector<RWNode *> findDefinitionsInBlock(RWBBlock *, const DefSite&);
 
     ////
     // GVN
@@ -92,24 +92,24 @@ class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
     // Find definitions of the def site and return def-use edges.
     // For the uncovered bytes create phi nodes (which are also returned
     // as the definitions).
-    std::vector<RDNode *> findDefinitions(RDBBlock *, const DefSite&);
+    std::vector<RWNode *> findDefinitions(RWBBlock *, const DefSite&);
 
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
-    std::vector<RDNode *> findAllReachingDefinitions(RDNode *from);
-    void findAllReachingDefinitions(DefinitionsMap<RDNode>& defs, RDBBlock *from,
-                                    std::set<RDNode *>& nodes,
-                                    std::set<RDBBlock *>& visitedBlocks);
+    std::vector<RWNode *> findAllReachingDefinitions(RWNode *from);
+    void findAllReachingDefinitions(DefinitionsMap<RWNode>& defs, RWBBlock *from,
+                                    std::set<RWNode *>& nodes,
+                                    std::set<RWBBlock *>& visitedBlocks);
 
     // all phi nodes added during transformation to SSA
-    std::vector<RDNode *> _phis;
+    std::vector<RWNode *> _phis;
 
 public:
-    SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph,
+    SSAReachingDefinitionsAnalysis(ReadWriteGraph&& graph,
                                    const ReachingDefinitionsAnalysisOptions& opts)
     : ReachingDefinitionsAnalysis(std::move(graph), opts) {}
 
-    SSAReachingDefinitionsAnalysis(ReachingDefinitionsGraph&& graph)
+    SSAReachingDefinitionsAnalysis(ReadWriteGraph&& graph)
     : ReachingDefinitionsAnalysis(std::move(graph)) {}
 
     void run() override {
@@ -126,15 +126,15 @@ public:
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    std::vector<RDNode *>
-    getReachingDefinitions(RDNode *, RDNode *,
+    std::vector<RWNode *>
+    getReachingDefinitions(RWNode *, RWNode *,
                            const Offset&,
                            const Offset&) override {
         assert(false && "This method is not implemented for this analysis");
         abort();
     }
 
-    std::vector<RDNode *> getReachingDefinitions(RDNode *use) override;
+    std::vector<RWNode *> getReachingDefinitions(RWNode *use) override;
 };
 
 } // namespace analysis

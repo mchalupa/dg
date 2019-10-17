@@ -267,7 +267,7 @@ bool GraphBuilder::matchForksAndJoins() {
     ForkJoinAnalysis FJA{pointsToAnalysis_};
 
     for (auto& it : llvmToJoins_) {
-        // it.first -> llvm::CallInst, it.second -> RDNode *
+        // it.first -> llvm::CallInst, it.second -> RWNode *
         auto joinNode = it.second;
         auto llvmforks = FJA.matchJoin(it.first);
         for (auto forkcall : llvmforks) {

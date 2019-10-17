@@ -14,9 +14,9 @@ using namespace dg::analysis;
 using namespace dg::analysis::rd;
 
 
-RDNode A;
-RDNode B;
-RDNode C;
+RWNode A;
+RWNode B;
+RWNode C;
 
 TEST_CASE("Querying empty set", "DisjunctiveIntervalMap") {
     RDMap M;
@@ -30,7 +30,7 @@ TEST_CASE("Singleton set", "DisjunctiveIntervalMap") {
     M.add(DefSite(&A, 0, 4), &B);
     REQUIRE(!M.empty());
 
-    std::set<RDNode *> rd;
+    std::set<RWNode *> rd;
     M.get(&A, 0, 4, rd);
     REQUIRE(!rd.empty());
     REQUIRE(*(rd.begin()) == &B);
@@ -61,7 +61,7 @@ TEST_CASE("2-elem set", "DisjunctiveIntervalMap") {
     M.add(DefSite(&A, 3, 4), &B);
     REQUIRE(!M.empty());
 
-    std::set<RDNode *> rd;
+    std::set<RWNode *> rd;
     M.get(&A, 0, 4, rd);
     REQUIRE(!rd.empty());
     REQUIRE(*(rd.begin()) == &B);

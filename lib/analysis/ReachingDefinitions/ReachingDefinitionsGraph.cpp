@@ -7,11 +7,11 @@
 namespace dg {
 namespace analysis {
 
-void ReachingDefinitionsGraph::buildBBlocks(bool dce) {
+void ReadWriteGraph::buildBBlocks(bool dce) {
     assert(getRoot() && "No root node");
     DBG(dda, "Building basic blocks");
 
-    BBlocksBuilder<RDBBlock> builder;
+    BBlocksBuilder<RWBBlock> builder;
     _bblocks = std::move(builder.buildAndGetBlocks(getRoot()));
 
     assert(getRoot()->getBBlock() && "Root node has no BBlock");
@@ -30,7 +30,7 @@ void ReachingDefinitionsGraph::buildBBlocks(bool dce) {
     }
 }
 
-void ReachingDefinitionsGraph::removeUselessNodes() {
+void ReadWriteGraph::removeUselessNodes() {
 }
 
 

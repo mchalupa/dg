@@ -44,17 +44,17 @@ void LLVMReachingDefinitions::initializeDenseRDA() {
                     new ReachingDefinitionsAnalysis(std::move(graph)));
 }
 
-RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
+RWNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
     return builder->getNode(val);
 }
 
-const RDNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) const {
+const RWNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) const {
     return builder->getNode(val);
 }
 
 // let the user get the nodes map, so that we can
 // map the points-to informatio back to LLVM nodes
-const std::unordered_map<const llvm::Value *, RDNode *>&
+const std::unordered_map<const llvm::Value *, RWNode *>&
 LLVMReachingDefinitions::getNodesMap() const {
     return builder->getNodesMap();
 }
@@ -89,8 +89,8 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
     }
 
     //map the values
-    for (RDNode *nd : rdDefs) {
-        assert(nd->getType() != RDNodeType::PHI);
+    for (RWNode *nd : rdDefs) {
+        assert(nd->getType() != RWNodeType::PHI);
         auto llvmvalue = nd->getUserData<llvm::Value>();
         assert(llvmvalue && "RD node has no value");
         defs.push_back(llvmvalue);

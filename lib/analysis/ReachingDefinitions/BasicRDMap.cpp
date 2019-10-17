@@ -8,7 +8,7 @@
 namespace dg {
 namespace analysis {
 
-class RDNode;
+class RWNode;
 
 static bool comp_ds(const DefSite& a, const DefSite& b)
 {
@@ -99,7 +99,7 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
                 // merging this definition into our map
                 if (overwrites_whole_memory)
                     continue;
-            } else if (ds.target->getType() != RDNodeType::DYN_ALLOC) {
+            } else if (ds.target->getType() != RWNodeType::DYN_ALLOC) {
                 bool skip = false;
                 auto range = std::equal_range(no_update->begin(),
                                               no_update->end(),
@@ -136,7 +136,7 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
 
         // MERGE CONCRETE OFFSETS (if desired)
         // ------------------------------------
-        RDNodesSet *our_vals = nullptr;
+        RWNodesSet *our_vals = nullptr;
         if (merge_unknown && is_unknown) {
             // this loop finds all concrete offsets and merges them into one
             // defsite with Offset::UNKNOWN. This defsite is set in 'our_vals'
@@ -156,7 +156,7 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
 
                 // merge values with concrete offset to
                 // this unknown offset
-                for (RDNode *defnode : cur->second)
+                for (RWNode *defnode : cur->second)
                     changed |= our_vals->insert(defnode);
 
                 // erase the def-site with concrete offset
@@ -172,7 +172,7 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
         assert(our_vals && "BUG");
 
         // copy values that have the map 'oth' for the defsite 'ds' to our map
-        for (RDNode *defnode : it.second)
+        for (RWNode *defnode : it.second)
             changed |= our_vals->insert(defnode);
 
         // crop the set to UNKNOWN_MEMORY if it is too big.
@@ -185,15 +185,15 @@ bool BasicRDMap::merge(const BasicRDMap *oth,
     return changed;
 }
 
-bool BasicRDMap::add(const DefSite& p, RDNode *n)
+bool BasicRDMap::add(const DefSite& p, RWNode *n)
 {
     return _defs[p].insert(n);
 }
 
-bool BasicRDMap::update(const DefSite& p, RDNode *n)
+bool BasicRDMap::update(const DefSite& p, RWNode *n)
 {
     bool ret;
-    RDNodesSet& dfs = _defs[p];
+    RWNodesSet& dfs = _defs[p];
 
     ret = dfs.count(n) == 0 || dfs.size() > 1;
     dfs.clear();
@@ -202,14 +202,14 @@ bool BasicRDMap::update(const DefSite& p, RDNode *n)
     return ret;
 }
 
-size_t BasicRDMap::get(RDNode *n, const Offset& off,
-                       const Offset& len, std::set<RDNode *>& ret)
+size_t BasicRDMap::get(RWNode *n, const Offset& off,
+                       const Offset& len, std::set<RWNode *>& ret)
 {
     DefSite ds(n, off, len);
     return get(ds, ret);
 }
 
-size_t BasicRDMap::get(DefSite& ds, std::set<RDNode *>& ret)
+size_t BasicRDMap::get(DefSite& ds, std::set<RWNode *>& ret)
 {
     if (ds.offset.isUnknown()) {
         auto range = getObjectRange(ds);
@@ -235,8 +235,8 @@ size_t BasicRDMap::get(DefSite& ds, std::set<RDNode *>& ret)
 }
 
 
-static inline bool comp(const std::pair<const DefSite, RDNodesSet>& a,
-                        const std::pair<const DefSite, RDNodesSet>& b)
+static inline bool comp(const std::pair<const DefSite, RWNodesSet>& a,
+                        const std::pair<const DefSite, RWNodesSet>& b)
 {
     return a.first.target < b.first.target;
 }
@@ -244,14 +244,14 @@ static inline bool comp(const std::pair<const DefSite, RDNodesSet>& a,
 std::pair<BasicRDMap::MapT::iterator, BasicRDMap::MapT::iterator>
 BasicRDMap::getObjectRange(const DefSite& ds)
 {
-    std::pair<const DefSite, RDNodesSet> what(ds, RDNodesSet());
+    std::pair<const DefSite, RWNodesSet> what(ds, RWNodesSet());
     return std::equal_range(_defs.begin(), _defs.end(), what, comp);
 }
 
 std::pair<BasicRDMap::MapT::const_iterator, BasicRDMap::MapT::const_iterator>
 BasicRDMap::getObjectRange(const DefSite& ds) const
 {
-    std::pair<const DefSite, RDNodesSet> what(ds, RDNodesSet());
+    std::pair<const DefSite, RWNodesSet> what(ds, RWNodesSet());
     return std::equal_range(_defs.begin(), _defs.end(), what, comp);
 }
 

@@ -14,21 +14,21 @@
 namespace dg {
 namespace analysis {
 
-RDNode UNKNOWN_MEMLOC;
-RDNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+RWNode UNKNOWN_MEMLOC;
+RWNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 #ifndef NDEBUG
-void RDNode::dump() const {
+void RWNode::dump() const {
 	std::cout << getID() << "\n";
 }
 #endif
 
-bool ReachingDefinitionsAnalysis::processNode(RDNode *node)
+bool ReachingDefinitionsAnalysis::processNode(RWNode *node)
 {
     bool changed = false;
 
     // merge maps from predecessors
-    for (RDNode *n : node->getPredecessors())
+    for (RWNode *n : node->getPredecessors())
         changed |= node->def_map.merge(&n->def_map,
                                        &node->overwrites /* strong update */,
                                        options.strongUpdateUnknown,
@@ -44,8 +44,8 @@ void ReachingDefinitionsAnalysis::run()
     DBG_SECTION_BEGIN(dda, "Starting reaching definitions analysis");
     assert(getRoot() && "Do not have root");
 
-    std::vector<RDNode *> to_process = getNodes(getRoot());
-    std::vector<RDNode *> changed;
+    std::vector<RWNode *> to_process = getNodes(getRoot());
+    std::vector<RWNode *> changed;
 
 #ifdef DEBUG_ENABLED
     int n = 0;
@@ -62,7 +62,7 @@ void ReachingDefinitionsAnalysis::run()
         unsigned last_processed_num = to_process.size();
         changed.clear();
 
-        for (RDNode *cur : to_process) {
+        for (RWNode *cur : to_process) {
             if (processNode(cur))
                 changed.push_back(cur);
         }
@@ -83,12 +83,12 @@ void ReachingDefinitionsAnalysis::run()
 
 // return the reaching definitions of ('mem', 'off', 'len')
 // at the location 'where'
-std::vector<RDNode *>
-ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *where, RDNode *mem,
+std::vector<RWNode *>
+ReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *where, RWNode *mem,
                                                     const Offset& off,
                                                     const Offset& len)
 {
-    std::set<RDNode *> ret;
+    std::set<RWNode *> ret;
     if (mem->isUnknown()) {
         // gather all definitions of memory
         for (auto& it : where->def_map) {
@@ -100,12 +100,12 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *where, RDNode *mem,
         where->def_map.get(mem, off, len, ret);
     }
 
-    return std::vector<RDNode *>(ret.begin(), ret.end());
+    return std::vector<RWNode *>(ret.begin(), ret.end());
 }
 
-std::vector<RDNode *>
-ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
-    std::set<RDNode *> ret;
+std::vector<RWNode *>
+ReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *use) {
+    std::set<RWNode *> ret;
 
     // gather all possible definitions of the memory including the unknown mem
     for (auto& ds : use->uses) {
@@ -122,7 +122,7 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
 
     use->def_map.get(UNKNOWN_MEMORY, Offset::UNKNOWN, Offset::UNKNOWN, ret);
 
-    return std::vector<RDNode *>(ret.begin(), ret.end());
+    return std::vector<RWNode *>(ret.begin(), ret.end());
 }
 
 } // namespace analysis

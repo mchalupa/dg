@@ -10,13 +10,13 @@
 namespace dg {
 namespace analysis {
 
-extern RDNode *UNKNOWN_MEMORY;
+extern RWNode *UNKNOWN_MEMORY;
 
 ///
 // Find the nodes that define the given def-site.
 // Create PHI nodes if needed.
-std::vector<RDNode *>
-SSAReachingDefinitionsAnalysis::findDefinitions(RDBBlock *block,
+std::vector<RWNode *>
+SSAReachingDefinitionsAnalysis::findDefinitions(RWBBlock *block,
                                                 const DefSite& ds) {
     // FIXME: the graph may contain dead code for which no blocks
     // are set (as the blocks are created only for the reachable code).
@@ -31,7 +31,7 @@ SSAReachingDefinitionsAnalysis::findDefinitions(RDBBlock *block,
 
     // Find known definitions.
     auto defSet = block->definitions.get(ds);
-    std::vector<RDNode *> defs(defSet.begin(), defSet.end());
+    std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
     // add definitions to unknown memory
     auto unknown = block->definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
@@ -48,7 +48,7 @@ SSAReachingDefinitionsAnalysis::findDefinitions(RDBBlock *block,
         } else {
             // Several predecessors -- we must create a PHI.
             // This phi is the definition that we are looking for.
-            _phis.emplace_back(graph.create(RDNodeType::PHI));
+            _phis.emplace_back(graph.create(RWNodeType::PHI));
             _phis.back()->addOverwrites(ds.target,
                                        interval.start,
                                        interval.length());
@@ -75,12 +75,12 @@ SSAReachingDefinitionsAnalysis::findDefinitions(RDBBlock *block,
 ///
 // Find the nodes that define the given def-site.
 // Create PHI nodes if needed. For LVN only.
-std::vector<RDNode *>
-SSAReachingDefinitionsAnalysis::findDefinitionsInBlock(RDBBlock *block,
+std::vector<RWNode *>
+SSAReachingDefinitionsAnalysis::findDefinitionsInBlock(RWBBlock *block,
                                                        const DefSite& ds) {
     // get defs of known definitions
     auto defSet = block->definitions.get(ds);
-    std::vector<RDNode *> defs(defSet.begin(), defSet.end());
+    std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
     // add definitions to unknown memory
     auto unknown = block->definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
@@ -90,7 +90,7 @@ SSAReachingDefinitionsAnalysis::findDefinitionsInBlock(RDBBlock *block,
     // and create phi nodes for these intervals
     auto uncovered = block->definitions.undefinedIntervals(ds);
     for (auto& interval : uncovered) {
-        _phis.emplace_back(graph.create(RDNodeType::PHI));
+        _phis.emplace_back(graph.create(RWNodeType::PHI));
         _phis.back()->addOverwrites(ds.target,
                                     interval.start,
                                     interval.length());
@@ -110,9 +110,9 @@ SSAReachingDefinitionsAnalysis::findDefinitionsInBlock(RDBBlock *block,
     return defs;
 }
 
-void SSAReachingDefinitionsAnalysis::performLvn(RDBBlock *block) {
+void SSAReachingDefinitionsAnalysis::performLvn(RWBBlock *block) {
     // perform Lvn for one block
-    for (RDNode *node : block->getNodes()) {
+    for (RWNode *node : block->getNodes()) {
         // strong update
         for (auto& ds : node->overwrites) {
             assert(!ds.offset.isUnknown() && "Update on unknown offset");
@@ -153,7 +153,7 @@ void SSAReachingDefinitionsAnalysis::performLvn(RDBBlock *block) {
 
 void SSAReachingDefinitionsAnalysis::performLvn() {
     DBG_SECTION_BEGIN(dda, "Starting LVN");
-    for (RDBBlock *block : graph.blocks()) {
+    for (RWBBlock *block : graph.blocks()) {
         performLvn(block);
     }
     DBG_SECTION_END(dda, "LVN finished");
@@ -161,10 +161,10 @@ void SSAReachingDefinitionsAnalysis::performLvn() {
 
 void SSAReachingDefinitionsAnalysis::performGvn() {
     DBG_SECTION_BEGIN(dda, "Starting GVN");
-    std::set<RDNode *> phis(_phis.begin(), _phis.end());
+    std::set<RWNode *> phis(_phis.begin(), _phis.end());
 
     while(!phis.empty()) {
-        RDNode *phi = *(phis.begin());
+        RWNode *phi = *(phis.begin());
         phis.erase(phis.begin());
 
         // get the definition from the PHI node
@@ -191,13 +191,13 @@ void SSAReachingDefinitionsAnalysis::performGvn() {
     DBG_SECTION_END(dda, "GVN finished");
 }
 
-static void recGatherNonPhisDefs(RDNode *phi, std::set<RDNode *>& phis, std::set<RDNode *>& ret) {
-    assert(phi->getType() == RDNodeType::PHI);
+static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
+    assert(phi->getType() == RWNodeType::PHI);
     if (!phis.insert(phi).second)
         return; // we already visited this phi
 
     for (auto n : phi->defuse) {
-        if (n->getType() != RDNodeType::PHI) {
+        if (n->getType() != RWNodeType::PHI) {
             ret.insert(n);
         } else {
             recGatherNonPhisDefs(n, phis, ret);
@@ -207,36 +207,36 @@ static void recGatherNonPhisDefs(RDNode *phi, std::set<RDNode *>& phis, std::set
 
 // recursivelu replace all phi values with its non-phi definitions
 template <typename ContT>
-std::vector<RDNode *> gatherNonPhisDefs(const ContT& nodes) {
-    std::set<RDNode *> ret; // use set to get rid of duplicates
-    std::set<RDNode *> phis; // set of visited phi nodes - to check the fixpoint
+std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
+    std::set<RWNode *> ret; // use set to get rid of duplicates
+    std::set<RWNode *> phis; // set of visited phi nodes - to check the fixpoint
 
     for (auto n : nodes) {
-        if (n->getType() != RDNodeType::PHI) {
+        if (n->getType() != RWNodeType::PHI) {
             ret.insert(n);
         } else {
             recGatherNonPhisDefs(n, phis, ret);
         }
     }
 
-    return std::vector<RDNode *>(ret.begin(), ret.end());
+    return std::vector<RWNode *>(ret.begin(), ret.end());
 }
 
-std::vector<RDNode *>
-SSAReachingDefinitionsAnalysis::getReachingDefinitions(RDNode *use) {
+std::vector<RWNode *>
+SSAReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *use) {
     if (use->usesUnknown())
         return findAllReachingDefinitions(use);
 
     return gatherNonPhisDefs(use->defuse);
 }
 
-std::vector<RDNode *>
-SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
+std::vector<RWNode *>
+SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RWNode *from) {
     DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
     assert(from->getBBlock() && "The node has no BBlock");
 
-    DefinitionsMap<RDNode> defs; // auxiliary map for finding defintions
-    std::set<RDNode *> foundDefs; // definitions that we found
+    DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
+    std::set<RWNode *> foundDefs; // definitions that we found
 
     ///
     // get the definitions from this block
@@ -273,7 +273,7 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
     ///
     // get the definitions from predecessors
     ///
-    std::set<RDBBlock *> visitedBlocks; // for terminating the search
+    std::set<RWBBlock *> visitedBlocks; // for terminating the search
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it
     if (auto singlePred = block->getSinglePredecessor()) {
@@ -295,10 +295,10 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RDNode *from) {
 }
 
 void
-SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RDNode>& defs,
-                                                           RDBBlock *from,
-                                                           std::set<RDNode *>& foundDefs,
-                                                           std::set<RDBBlock *>& visitedBlocks) {
+SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
+                                                           RWBBlock *from,
+                                                           std::set<RWNode *>& foundDefs,
+                                                           std::set<RWBBlock *>& visitedBlocks) {
     if (!from)
         return;
 
