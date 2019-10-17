@@ -1,5 +1,5 @@
-#ifndef DG_RD_NODE_H_
-#define DG_RD_NODE_H_
+#ifndef DG_RW_NODE_H_
+#define DG_RW_NODE_H_
 
 #include <vector>
 
@@ -11,7 +11,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 class RDNode;
 class ReachingDefinitionsAnalysis;
@@ -232,8 +231,7 @@ public:
     friend class ReachingDefinitionsGraph;
 };
 
-} // namespace rd
 } // namespace analysis
 } // namespace dg
 
-#endif //  DG_RD_NODE_H_
+#endif //  DG_RW_NODE_H_

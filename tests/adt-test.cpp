@@ -110,7 +110,7 @@ public:
 
     void test()
     {
-        using namespace analysis::rd;
+        using namespace analysis;
 
         check(intervalsDisjunctive(0, 1, 2, 20), "BUG: intervals should be disjunctive");
         check(intervalsDisjunctive(0, 1, 1, 2), "BUG: intervals should be disjunctive");

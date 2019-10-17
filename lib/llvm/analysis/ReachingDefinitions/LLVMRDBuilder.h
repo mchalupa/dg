@@ -23,16 +23,15 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "dg/analysis/ReadWriteGraph/ReadWriteGraph.h"
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
-class LLVMRDBuilderBase
-{
+class LLVMRDBuilderBase {
 protected:
     const llvm::Module *M;
     const llvm::DataLayout *DL;
@@ -182,9 +181,7 @@ private:
     void matchForksAndJoins();
 };
 
+} // namespace analysis
+} // namespace dg
 
-
-}
-}
-}
 #endif // _LLVM_DG_RD_BUILDER_H

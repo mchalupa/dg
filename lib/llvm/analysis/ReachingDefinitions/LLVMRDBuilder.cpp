@@ -44,7 +44,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 struct ValInfo {
     const llvm::Value *v;
@@ -1218,7 +1217,6 @@ std::vector<DefSite> LLVMRDBuilder::mapPointers(const llvm::Value *where,
     return result;
 }
 
-} // namespace rd
 } // namespace analysis
 } // namespace dg
 

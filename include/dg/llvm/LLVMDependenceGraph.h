@@ -43,12 +43,12 @@ class LLVMPointerAnalysis;
 
 // FIXME: why PTA is only in the namespace dg
 // and this is that nested? Make it consistent...
-namespace analysis {
-namespace rd {
-    class LLVMReachingDefinitions;
-}};
 
-using analysis::rd::LLVMReachingDefinitions;
+namespace analysis {
+class LLVMReachingDefinitions;
+} // namespace analysis
+
+using analysis::LLVMReachingDefinitions;
 
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 

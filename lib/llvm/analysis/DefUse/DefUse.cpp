@@ -38,11 +38,6 @@
 
 #include "DefUse.h"
 
-using dg::analysis::rd::LLVMReachingDefinitions;
-using dg::analysis::rd::RDNode;
-using dg::analysis::rd::RDNodeType;
-using dg::analysis::Offset;
-
 using namespace llvm;
 
 /// --------------------------------------------------

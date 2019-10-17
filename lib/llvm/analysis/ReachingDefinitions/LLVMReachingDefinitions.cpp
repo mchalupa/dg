@@ -21,7 +21,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 LLVMReachingDefinitions::~LLVMReachingDefinitions() {
     delete builder;
@@ -91,7 +90,7 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
 
     //map the values
     for (RDNode *nd : rdDefs) {
-        assert(nd->getType() != rd::RDNodeType::PHI);
+        assert(nd->getType() != RDNodeType::PHI);
         auto llvmvalue = nd->getUserData<llvm::Value>();
         assert(llvmvalue && "RD node has no value");
         defs.push_back(llvmvalue);
@@ -100,7 +99,6 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
     return defs;
 }
 
-} // namespace rd
 } // namespace dg
 } // namespace analysis
 

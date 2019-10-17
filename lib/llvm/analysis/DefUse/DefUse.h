@@ -25,7 +25,7 @@
 #include "dg/analysis/legacy/DataFlowAnalysis.h"
 #include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
-using dg::analysis::rd::LLVMReachingDefinitions;
+using dg::analysis::LLVMReachingDefinitions;
 
 namespace llvm {
     class DataLayout;

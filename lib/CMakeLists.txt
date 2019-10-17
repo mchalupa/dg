@@ -32,7 +32,9 @@ target_link_libraries(PTA PUBLIC DGAnalysis)
 add_library(RD SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/ReachingDefinitions.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/RDMap.h
-	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/RDNode.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/RWNode.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/RWBBlock.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/ReadWriteGraph.h
 
 	analysis/ReachingDefinitions/BasicRDMap.cpp
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp

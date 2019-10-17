@@ -9,10 +9,10 @@
 
 #include "dg/analysis/Offset.h"
 #include "dg/ADT/DisjunctiveIntervalMap.h"
+#include "dg/analysis/ReachingDefinitions/RDMap.h"
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 class RDNode;
 class ReachingDefinitionsAnalysis;
@@ -20,7 +20,7 @@ class ReachingDefinitionsAnalysis;
 template <typename NodeT = RDNode>
 class DefinitionsMap {
 
-    using OffsetsT = DisjunctiveIntervalMap<NodeT *>;
+    using OffsetsT = ADT::DisjunctiveIntervalMap<NodeT *>;
     using IntervalT = typename OffsetsT::IntervalT;
 
     std::map<NodeT *, OffsetsT> _definitions{};
@@ -133,7 +133,6 @@ public:
 #endif
 };
 
-} // rd
 } // analysis
 } // dg
 

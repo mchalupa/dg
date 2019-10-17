@@ -10,7 +10,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 class RDNode;
 class ReachingDefinitionsAnalysis;
@@ -231,7 +230,6 @@ private:
 
 using RDMap = BasicRDMap;
 
-} // rd
 } // analysis
 } // dg
 

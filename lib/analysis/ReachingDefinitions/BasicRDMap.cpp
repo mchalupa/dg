@@ -7,7 +7,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 class RDNode;
 
@@ -256,6 +255,5 @@ BasicRDMap::getObjectRange(const DefSite& ds) const
     return std::equal_range(_defs.begin(), _defs.end(), what, comp);
 }
 
-} // rd
 } // analysis
 } // dg

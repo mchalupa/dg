@@ -6,7 +6,6 @@
 
 namespace dg {
 namespace analysis {
-namespace rd {
 
 void ReachingDefinitionsGraph::buildBBlocks(bool dce) {
     assert(getRoot() && "No root node");
@@ -35,6 +34,5 @@ void ReachingDefinitionsGraph::removeUselessNodes() {
 }
 
 
-} // namespace rd
 } // namespace analysis
 } // namespace dg
