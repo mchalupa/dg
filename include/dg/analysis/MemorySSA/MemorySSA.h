@@ -7,8 +7,8 @@
 
 #include "dg/analysis/Offset.h"
 
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitionsAnalysisOptions.h"
+#include "dg/analysis/DataDependence/DataDependenceAnalysisOptions.h"
+#include "dg/analysis/DataDependence/DataDependenceAnalysisImpl.h"
 #include "dg/analysis/ReachingDefinitions/DefinitionsMap.h"
 
 #include "dg/analysis/ReadWriteGraph/ReadWriteGraph.h"
@@ -18,7 +18,7 @@
 namespace dg {
 namespace analysis {
 
-class MemorySSATransformation : public ReachingDefinitionsAnalysis {
+class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void performLvn();
     void performLvn(RWBBlock *block);
     void performGvn();
@@ -52,11 +52,11 @@ class MemorySSATransformation : public ReachingDefinitionsAnalysis {
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
-                                   const ReachingDefinitionsAnalysisOptions& opts)
-    : ReachingDefinitionsAnalysis(std::move(graph), opts) {}
+                            const DataDependenceAnalysisOptions& opts)
+    : DataDependenceAnalysisImpl(std::move(graph), opts) {}
 
     MemorySSATransformation(ReadWriteGraph&& graph)
-    : ReachingDefinitionsAnalysis(std::move(graph)) {}
+    : DataDependenceAnalysisImpl(std::move(graph)) {}
 
     void run() override {
         DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
@@ -72,15 +72,14 @@ public:
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    std::vector<RWNode *>
-    getReachingDefinitions(RWNode *, RWNode *,
-                           const Offset&,
-                           const Offset&) override {
+    std::vector<RWNode *> getDefinitions(RWNode *, RWNode *,
+                                         const Offset&,
+                                         const Offset&) override {
         assert(false && "This method is not implemented for this analysis");
         abort();
     }
 
-    std::vector<RWNode *> getReachingDefinitions(RWNode *use) override;
+    std::vector<RWNode *> getDefinitions(RWNode *use) override;
 };
 
 } // namespace analysis

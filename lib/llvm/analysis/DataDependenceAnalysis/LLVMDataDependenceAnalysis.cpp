@@ -15,53 +15,53 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
-#include "LLVMRDBuilder.h"
+#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
 
 namespace dg {
 namespace analysis {
 
-LLVMReachingDefinitions::~LLVMReachingDefinitions() {
+LLVMDataDependenceAnalysis::~LLVMDataDependenceAnalysis() {
     delete builder;
 }
 
-void LLVMReachingDefinitions::initializeSparseRDA() {
-    builder = new LLVMRDBuilder(m, pta, _options);
+LLVMRDBuilder *LLVMDataDependenceAnalysis::createBuilder() {
+    assert(m && pta);
+    if (_options.isSSA()) {
+        return new LLVMRDBuilder(m, pta, _options);
+    } else {
+        return new LLVMRDBuilder(m, pta, _options,
+                                 true /* forget locals at return */);
+    }
+}
+
+DataDependenceAnalysis *LLVMDataDependenceAnalysis::createDDA() {
+    assert(builder);
+
     // let the compiler do copy-ellision
     auto graph = builder->build();
-
-    RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-                    new MemorySSATransformation(std::move(graph)));
+    return new DataDependenceAnalysis(std::move(graph), _options);
 }
 
-void LLVMReachingDefinitions::initializeDenseRDA() {
-    builder = new LLVMRDBuilder(m, pta, _options,
-                                true /* forget locals at return */);
-    auto graph = builder->build();
-
-    RDA = std::unique_ptr<ReachingDefinitionsAnalysis>(
-                    new ReachingDefinitionsAnalysis(std::move(graph)));
-}
-
-RWNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) {
+RWNode *LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) {
     return builder->getNode(val);
 }
 
-const RWNode *LLVMReachingDefinitions::getNode(const llvm::Value *val) const {
+const RWNode *LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) const {
     return builder->getNode(val);
 }
 
 // let the user get the nodes map, so that we can
 // map the points-to informatio back to LLVM nodes
 const std::unordered_map<const llvm::Value *, RWNode *>&
-LLVMReachingDefinitions::getNodesMap() const {
+LLVMDataDependenceAnalysis::getNodesMap() const {
     return builder->getNodesMap();
 }
 
 // the value 'use' must be an instruction that reads from memory
 std::vector<llvm::Value *>
-LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
+LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
 
     std::vector<llvm::Value *> defs;
 
@@ -80,7 +80,7 @@ LLVMReachingDefinitions::getLLVMReachingDefinitions(llvm::Value *use) {
         llvm::errs() << "[RD] error: the queried value is not a use: " << *use << "\n";
     }
 
-    auto rdDefs = getReachingDefinitions(loc);
+    auto rdDefs = getDefinitions(loc);
     if (rdDefs.empty()) {
         static std::set<const llvm::Value *> reported;
         if (reported.insert(use).second) {

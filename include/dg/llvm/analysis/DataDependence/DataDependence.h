@@ -24,62 +24,46 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/MemorySSA/MemorySSA.h"
+#include "dg/analysis/DataDependence/DataDependence.h"
+
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
+#include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 namespace dg {
 namespace analysis {
 
 class LLVMRDBuilder;
 
-class LLVMReachingDefinitions
+class LLVMDataDependenceAnalysis
 {
-    LLVMRDBuilder *builder{nullptr};
-    std::unique_ptr<ReachingDefinitionsAnalysis> RDA;
     const llvm::Module *m;
     dg::LLVMPointerAnalysis *pta;
-    const LLVMReachingDefinitionsAnalysisOptions _options;
+    const LLVMDataDependenceAnalysisOptions _options;
+    LLVMRDBuilder *builder{nullptr};
+    std::unique_ptr<DataDependenceAnalysis> DDA;
 
-    void initializeSparseRDA();
-    void initializeDenseRDA();
+    LLVMRDBuilder *createBuilder();
+    DataDependenceAnalysis *createDDA();
 
 public:
 
-    LLVMReachingDefinitions(const llvm::Module *m,
+    LLVMDataDependenceAnalysis(const llvm::Module *m,
                             dg::LLVMPointerAnalysis *pta,
-                            const LLVMReachingDefinitionsAnalysisOptions& opts)
-        : m(m), pta(pta), _options(opts) {}
+                            const LLVMDataDependenceAnalysisOptions& opts)
+    : m(m), pta(pta), _options(opts), builder(createBuilder()), DDA(createDDA()) {}
 
-    ~LLVMReachingDefinitions();
+    ~LLVMDataDependenceAnalysis();
 
-    /**
-     * Template parameters:
-     * RdaType - class extending dg::analysis::rd::ReachingDefinitions to be used as analysis
-     */
-    template <typename RdaType>
-    void run()
-    {
-        // this helps while guessing causes of template substitution errors
-        static_assert(std::is_base_of<ReachingDefinitionsAnalysis, RdaType>::value,
-                      "RdaType has to be subclass of ReachingDefinitionsAnalysis");
-
-        if (std::is_same<RdaType, MemorySSATransformation>::value) {
-            initializeSparseRDA();
-        } else {
-            initializeDenseRDA();
-        }
-
+    void run() {
         assert(builder);
-        assert(RDA);
+        assert(DDA);
         assert(getRoot());
 
-        RDA->run();
+        DDA->run();
     }
 
-    RWNode *getRoot() { return RDA->getRoot(); }
-    ReadWriteGraph *getGraph() { return RDA->getGraph(); }
+    RWNode *getRoot() { return DDA->getRoot(); }
+    ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
     const RWNode *getNode(const llvm::Value *val) const;
 
@@ -102,32 +86,30 @@ public:
     }
 
     std::vector<RWNode *> getNodes() {
-        assert(RDA);
+        assert(DDA);
         // FIXME: this is insane, we should have this method defined here
-        // not in RDA
-        return RDA->getNodes(getRoot());
+        // not in DDA
+        return getGraph()->getNodes(getRoot());
     }
 
-    /*
-    std::vector<RWNode *> getReachingDefinitions(RWNode *where, RWNode *mem,
+    std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
                                                  const Offset& off, const Offset& len) {
-        return RDA->getReachingDefinitions(where, n, off, len, ret);
-    }
-    */
-
-    std::vector<RWNode *> getReachingDefinitions(RWNode *use) {
-        return RDA->getReachingDefinitions(use);
+        return DDA->getDefinitions(where, mem, off, len);
     }
 
-    std::vector<RWNode *> getReachingDefinitions(llvm::Value *use) {
+    std::vector<RWNode *> getDefinitions(RWNode *use) {
+        return DDA->getDefinitions(use);
+    }
+
+    std::vector<RWNode *> getDefinitions(llvm::Value *use) {
         auto node = getNode(use);
         assert(node);
-        return getReachingDefinitions(node);
+        return getDefinitions(node);
     }
 
     // return instructions that define the given value
     // (the value must read from memory, e.g. LoadInst)
-    std::vector<llvm::Value *> getLLVMReachingDefinitions(llvm::Value *use);
+    std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use);
 };
 
 

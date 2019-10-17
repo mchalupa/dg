@@ -1,22 +1,18 @@
-#ifndef _DG_LLVM_REACHING_DEFINITIONS_ANALYSIS_OPTIONS_H_
-#define _DG_LLVM_REACHING_DEFINITIONS_ANALYSIS_OPTIONS_H_
+#ifndef DG_LLVM_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
+#define DG_LLVM_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
 
 #include "dg/llvm/analysis/LLVMAnalysisOptions.h"
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitionsAnalysisOptions.h"
+#include "dg/analysis/DataDependence/DataDependenceAnalysisOptions.h"
 
 namespace dg {
 namespace analysis {
 
-struct LLVMReachingDefinitionsAnalysisOptions :
-    public LLVMAnalysisOptions, ReachingDefinitionsAnalysisOptions
+struct LLVMDataDependenceAnalysisOptions :
+    public LLVMAnalysisOptions, DataDependenceAnalysisOptions
 {
-    enum class AnalysisType { dataflow, ssa } analysisType{AnalysisType::dataflow};
-
     bool threads{false};
-    bool isDataFlow() const { return analysisType == AnalysisType::dataflow; }
-    bool isSSA() const { return analysisType == AnalysisType::ssa; }
 
-    LLVMReachingDefinitionsAnalysisOptions() {
+    LLVMDataDependenceAnalysisOptions() {
         // setup models for standard functions
 
         ///
@@ -56,4 +52,4 @@ struct LLVMReachingDefinitionsAnalysisOptions :
 } // namespace analysis
 } // namespace dg
 
-#endif // _DG_LLVM_REACHING_DEFINITIONS_ANALYSIS_OPTIONS_H_
+#endif // DG_LLVM_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_

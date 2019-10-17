@@ -11,7 +11,7 @@ using namespace dg::analysis;
 static void
 dumpMap(RWNode *node)
 {
-    RDMap& map = node->getReachingDefinitions();
+    RDMap& map = node->getDefinitions();
     for (auto it : map) {
         const char *tname = it.first.target->getName();
         printf("%s %lu - %lu @ ",
@@ -55,25 +55,25 @@ void basic1()
 
     // get reaching definitions of 0-th byte
     // (mem, off, len)
-    auto rd = RD.getReachingDefinitions(&U1);
+    auto rd = RD.getDefinitions(&U1);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U2);
+    rd = RD.getDefinitions(&U2);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U3);
+    rd = RD.getDefinitions(&U3);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U4);
+    rd = RD.getDefinitions(&U4);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
     // offset 4 should not be defined, since we had
     // defined 0 - 3 offsets (we're starting from 0)
-    rd = RD.getReachingDefinitions(&U5);
+    rd = RD.getDefinitions(&U5);
     CHECK(rd.size() == 0);
 }
 
@@ -104,25 +104,25 @@ void basic2()
     RDType RD(&AL1);
     RD.run();
 
-    auto rd = RD.getReachingDefinitions(&U1);
+    auto rd = RD.getDefinitions(&U1);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U2);
+    rd = RD.getDefinitions(&U2);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U3);
+    rd = RD.getDefinitions(&U3);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U4);
+    rd = RD.getDefinitions(&U4);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
     // offset 4 should not be defined);
     // defined 0 - 3 offsets (we're starting from 0)
-    rd = RD.getReachingDefinitions(&U5);
+    rd = RD.getDefinitions(&U5);
     CHECK(rd.size() == 0);
 }
 
@@ -162,39 +162,39 @@ void basic3()
     RDType RD(&AL1);
     RD.run();
 
-    auto rd = RD.getReachingDefinitions(&U1);
+    auto rd = RD.getDefinitions(&U1);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S1);
 
-    rd = RD.getReachingDefinitions(&U2);
+    rd = RD.getDefinitions(&U2);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S1);
 
-    rd = RD.getReachingDefinitions(&U3);
+    rd = RD.getDefinitions(&U3);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S1);
 
-    rd = RD.getReachingDefinitions(&U4);
+    rd = RD.getDefinitions(&U4);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S1);
 
-    rd = RD.getReachingDefinitions(&U5);
+    rd = RD.getDefinitions(&U5);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U6);
+    rd = RD.getDefinitions(&U6);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U7);
+    rd = RD.getDefinitions(&U7);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U8);
+    rd = RD.getDefinitions(&U8);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U9);
+    rd = RD.getDefinitions(&U9);
     CHECK(rd.size() == 0);
 }
 
@@ -233,30 +233,30 @@ void basic4()
     RD.run();
 
     // bytes 0 and 1 should be defined on S1
-    auto rd = RD.getReachingDefinitions(&U1);
+    auto rd = RD.getDefinitions(&U1);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S1);
 
-    rd = RD.getReachingDefinitions(&U2);
+    rd = RD.getDefinitions(&U2);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S1);
 
     // bytes 2 and 3 should be defined on both S1 and S2
-    rd = RD.getReachingDefinitions(&U3);
+    rd = RD.getDefinitions(&U3);
     CHECK(rd.size() == 2);
 
-    rd = RD.getReachingDefinitions(&U4);
+    rd = RD.getDefinitions(&U4);
     CHECK(rd.size() == 2);
 
-    rd = RD.getReachingDefinitions(&U5);
+    rd = RD.getDefinitions(&U5);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U6);
+    rd = RD.getDefinitions(&U6);
     CHECK(rd.size() == 1);
     CHECK(*(rd.begin()) == &S2);
 
-    rd = RD.getReachingDefinitions(&U7);
+    rd = RD.getDefinitions(&U7);
     CHECK(rd.size() == 0);
 }
 

@@ -23,7 +23,8 @@
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
+#include "dg/llvm/analysis/DataDependence/DataDependence.h"
+#include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #ifdef HAVE_SVF
@@ -35,7 +36,6 @@
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/analysis/Offset.h"
 
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
 
 namespace llvm {
@@ -47,11 +47,11 @@ namespace dg {
 namespace llvmdg {
 
 using analysis::LLVMPointerAnalysisOptions;
-using analysis::LLVMReachingDefinitionsAnalysisOptions;
+using analysis::LLVMDataDependenceAnalysisOptions;
 
 struct LLVMDependenceGraphOptions {
     LLVMPointerAnalysisOptions PTAOptions{};
-    LLVMReachingDefinitionsAnalysisOptions RDAOptions{};
+    LLVMDataDependenceAnalysisOptions DDAOptions{};
 
     bool terminationSensitive{true};
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
@@ -65,7 +65,7 @@ struct LLVMDependenceGraphOptions {
     void addAllocationFunction(const std::string& name,
                                analysis::AllocationFunction F) {
         PTAOptions.addAllocationFunction(name, F);
-        RDAOptions.addAllocationFunction(name, F);
+        DDAOptions.addAllocationFunction(name, F);
     }
 };
 
@@ -73,7 +73,7 @@ class LLVMDependenceGraphBuilder {
     llvm::Module *_M;
     const LLVMDependenceGraphOptions _options;
     std::unique_ptr<LLVMPointerAnalysis> _PTA{};
-    std::unique_ptr<LLVMReachingDefinitions> _RD{};
+    std::unique_ptr<LLVMDataDependenceAnalysis> _DDA{};
     std::unique_ptr<LLVMDependenceGraph> _dg{};
     std::unique_ptr<ControlFlowGraph> _controlFlowGraph{};
     llvm::Function *_entryFunction{nullptr};
@@ -99,20 +99,11 @@ class LLVMDependenceGraphBuilder {
         _statistics.ptaTime = _timerEnd();
     }
 
-    void _runReachingDefinitionsAnalysis() {
-        assert(_RD && "BUG: No RD");
+    void _runDataDependenceAnalysis() {
+        assert(_DDA && "BUG: No RD");
 
         _timerStart();
-
-        if (_options.RDAOptions.isDataFlow()) {
-            _RD->run<dg::analysis::ReachingDefinitionsAnalysis>();
-        } else if (_options.RDAOptions.isSSA()) {
-            _RD->run<dg::analysis::MemorySSATransformation>();
-        } else {
-            assert( false && "unknown RDA type" );
-            abort();
-        }
-
+        _DDA->run();
         _statistics.rdaTime = _timerEnd();
     }
 
@@ -153,8 +144,8 @@ public:
                                const LLVMDependenceGraphOptions& opts)
     : _M(M), _options(opts),
       _PTA(createPTA()),
-      _RD(new LLVMReachingDefinitions(M, _PTA.get(),
-                                      _options.RDAOptions)),
+      _DDA(new LLVMDataDependenceAnalysis(M, _PTA.get(),
+                                         _options.DDAOptions)),
       _dg(new LLVMDependenceGraph(opts.threads)),
       _controlFlowGraph(_options.threads && !_options.PTAOptions.isSVF() ? // check SVF due to the static cast...
             new ControlFlowGraph(static_cast<DGLLVMPointerAnalysis*>(_PTA.get())) : nullptr),
@@ -170,7 +161,7 @@ public:
     }
 
     LLVMPointerAnalysis *getPTA() { return _PTA.get(); }
-    LLVMReachingDefinitions *getRDA() { return _RD.get(); }
+    LLVMDataDependenceAnalysis *getRDA() { return _DDA.get(); }
 
     const Statistics& getStatistics() const { return _statistics; }
 
@@ -178,10 +169,10 @@ public:
     std::unique_ptr<LLVMDependenceGraph>&& build() {
         // compute data dependencies
         _runPointerAnalysis();
-        _runReachingDefinitionsAnalysis();
+        _runDataDependenceAnalysis();
 
         // build the graph itself (the nodes, but without edges)
-        _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
+        _dg->build(_M, _PTA.get(), _DDA.get(), _entryFunction);
 
         // insert the data dependencies edges
         _dg->addDefUseEdges();
@@ -220,7 +211,7 @@ public:
         _runPointerAnalysis();
 
         // build the graph itself
-        _dg->build(_M, _PTA.get(), _RD.get(), _entryFunction);
+        _dg->build(_M, _PTA.get(), _DDA.get(), _entryFunction);
 
         if (_options.threads) {
             _controlFlowGraph->buildFunction(_entryFunction);
@@ -246,7 +237,7 @@ public:
         _dg = std::move(dg);
 
         // data-dependence edges
-        _runReachingDefinitionsAnalysis();
+        _runDataDependenceAnalysis();
         _dg->addDefUseEdges();
 
         // fill-in control dependencies

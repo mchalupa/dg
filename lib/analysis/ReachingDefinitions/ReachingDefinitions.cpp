@@ -44,7 +44,7 @@ void ReachingDefinitionsAnalysis::run()
     DBG_SECTION_BEGIN(dda, "Starting reaching definitions analysis");
     assert(getRoot() && "Do not have root");
 
-    std::vector<RWNode *> to_process = getNodes(getRoot());
+    std::vector<RWNode *> to_process = graph.getNodes(getRoot());
     std::vector<RWNode *> changed;
 
 #ifdef DEBUG_ENABLED
@@ -69,8 +69,8 @@ void ReachingDefinitionsAnalysis::run()
 
         if (!changed.empty()) {
             to_process.clear();
-            to_process = getNodes(changed /* starting set */,
-                                  last_processed_num /* expected num */);
+            to_process = graph.getNodes(changed /* starting set */,
+                                        last_processed_num /* expected num */);
 
             // since changed was not empty,
             // the to_process must not be empty too
@@ -84,9 +84,9 @@ void ReachingDefinitionsAnalysis::run()
 // return the reaching definitions of ('mem', 'off', 'len')
 // at the location 'where'
 std::vector<RWNode *>
-ReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *where, RWNode *mem,
-                                                    const Offset& off,
-                                                    const Offset& len)
+ReachingDefinitionsAnalysis::getDefinitions(RWNode *where, RWNode *mem,
+                                            const Offset& off,
+                                            const Offset& len)
 {
     std::set<RWNode *> ret;
     if (mem->isUnknown()) {
@@ -104,7 +104,7 @@ ReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *where, RWNode *mem,
 }
 
 std::vector<RWNode *>
-ReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *use) {
+ReachingDefinitionsAnalysis::getDefinitions(RWNode *use) {
     std::set<RWNode *> ret;
 
     // gather all possible definitions of the memory including the unknown mem

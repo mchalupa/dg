@@ -29,14 +29,14 @@
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
 namespace dg {
 namespace debug {
 
 class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter
 {
-    using LLVMReachingDefinitions = dg::analysis::LLVMReachingDefinitions;
+    using LLVMDataDependenceAnalysis = dg::analysis::LLVMDataDependenceAnalysis;
 public:
     enum AnnotationOptsT {
         // data dependencies
@@ -59,7 +59,7 @@ private:
 
     AnnotationOptsT opts;
     LLVMPointerAnalysis *PTA;
-    LLVMReachingDefinitions *RD;
+    LLVMDataDependenceAnalysis *RD;
     const std::set<LLVMNode *> *criteria;
     std::string module_comment{};
 
@@ -237,7 +237,7 @@ private:
 public:
     LLVMDGAssemblyAnnotationWriter(AnnotationOptsT o = ANNOTATE_SLICE,
                                    LLVMPointerAnalysis *pta = nullptr,
-                                   LLVMReachingDefinitions *rd = nullptr,
+                                   LLVMDataDependenceAnalysis *rd = nullptr,
                                    const std::set<LLVMNode *>* criteria = nullptr)
         : opts(o), PTA(pta), RD(rd), criteria(criteria)
     {

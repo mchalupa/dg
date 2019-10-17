@@ -1,5 +1,5 @@
-#ifndef _DG_REACHING_DEFINITIONS_ANALYSIS_OPTIONS_H_
-#define _DG_REACHING_DEFINITIONS_ANALYSIS_OPTIONS_H_
+#ifndef DG_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
+#define DG_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
 
 #include <map>
 
@@ -87,7 +87,13 @@ private:
     std::map<unsigned, Operand> _uses;
 };
 
-struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
+struct DataDependenceAnalysisOptions : AnalysisOptions {
+    // default one
+    enum class AnalysisType { rd, ssa } analysisType{AnalysisType::ssa};
+
+    bool isSSA() const { return analysisType == AnalysisType::ssa;}
+    bool isReachingDefinitions() const { return analysisType == AnalysisType::rd;}
+
     // Should we perform strong update with unknown memory?
     // NOTE: not sound.
     bool strongUpdateUnknown{false};
@@ -103,19 +109,19 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
     // or just objects?
     bool fieldInsensitive{false};
 
-    ReachingDefinitionsAnalysisOptions& setStrongUpdateUnknown(bool b) {
+    DataDependenceAnalysisOptions& setStrongUpdateUnknown(bool b) {
         strongUpdateUnknown = b; return *this;
     }
 
-    ReachingDefinitionsAnalysisOptions& setUndefinedArePure(bool b) {
+    DataDependenceAnalysisOptions& setUndefinedArePure(bool b) {
         undefinedArePure = b; return *this;
     }
 
-    ReachingDefinitionsAnalysisOptions& setMaxSetSize(Offset s) {
+    DataDependenceAnalysisOptions& setMaxSetSize(Offset s) {
         maxSetSize = s; return *this;
     }
 
-    ReachingDefinitionsAnalysisOptions& setFieldInsensitive(bool b) {
+    DataDependenceAnalysisOptions& setFieldInsensitive(bool b) {
         fieldInsensitive = b; return *this;
     }
 
@@ -144,4 +150,4 @@ struct ReachingDefinitionsAnalysisOptions : AnalysisOptions {
 } // namespace analysis
 } // namespace dg
 
-#endif // _DG_REACHING_ANALYSIS_OPTIONS_H_
+#endif // DG_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_

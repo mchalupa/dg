@@ -767,7 +767,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
 bool LLVMDependenceGraph::build(llvm::Module *m,
                                 LLVMPointerAnalysis *pts,
-                                LLVMReachingDefinitions *rda,
+                                LLVMDataDependenceAnalysis *rda,
                                 llvm::Function *entry)
 {
     this->PTA = pts;

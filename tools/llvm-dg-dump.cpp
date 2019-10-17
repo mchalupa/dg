@@ -45,10 +45,10 @@
 #include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
+#include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
 #include "TimeMeasure.h"
 
@@ -150,9 +150,9 @@ int main(int argc, char *argv[])
     options.cdAlgorithm = cd_alg;
     options.threads = threads;
     options.PTAOptions.threads = threads;
-    options.RDAOptions.threads = threads;
+    options.DDAOptions.threads = threads;
     options.PTAOptions.entryFunction = entry_func;
-    options.RDAOptions.entryFunction = entry_func;
+    options.DDAOptions.entryFunction = entry_func;
     if (strcmp(pts, "fs") == 0) {
         options.PTAOptions.analysisType
             = LLVMPointerAnalysisOptions::AnalysisType::fs;
@@ -168,11 +168,11 @@ int main(int argc, char *argv[])
     }
 
     if (strcmp(rda, "dataflow") == 0) {
-        options.RDAOptions.analysisType
-            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow;
+        options.DDAOptions.analysisType
+            = analysis::LLVMDataDependenceAnalysisOptions::AnalysisType::rd;
     } else if (strcmp(rda, "ssa") == 0) {
-        options.RDAOptions.analysisType
-            = analysis::LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ssa;
+        options.DDAOptions.analysisType
+            = analysis::LLVMDataDependenceAnalysisOptions::AnalysisType::ssa;
     } else {
         llvm::errs() << "Unknown reaching definitions analysis, try: dataflow, ssa\n";
         abort();

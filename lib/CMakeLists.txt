@@ -35,6 +35,8 @@ add_library(RD SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/RWNode.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/RWBBlock.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/ReadWriteGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/DataDependence/DataDependenceAnalysisImpl.h
+	${CMAKE_SOURCE_DIR}/include/dg/analysis/DataDependence/DataDependence.h
 
 	analysis/ReachingDefinitions/BasicRDMap.cpp
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp
@@ -74,11 +76,11 @@ target_link_libraries(LLVMForkJoin PRIVATE LLVMpta)
 
 add_library(LLVMrd SHARED
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.cpp
-	llvm/analysis/ReachingDefinitions/LLVMReachingDefinitions.cpp
+	llvm/analysis/DataDependenceAnalysis/LLVMDataDependenceAnalysis.cpp
 	llvm/analysis/ForkJoin/ForkJoin.h
 	llvm/analysis/ForkJoin/ForkJoin.cpp
 
-	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/DataDependence/DataDependence.h
 	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
 )
 target_link_libraries(LLVMrd
