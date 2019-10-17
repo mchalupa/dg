@@ -490,7 +490,7 @@ int main(int argc, char *argv[])
     tm.start();
     if (rda == RdaType::SSA) {
         llvm::errs() << "INFO: Running SSA RD analysis\n";
-        RD.run<dg::analysis::SSAReachingDefinitionsAnalysis>();
+        RD.run<dg::analysis::MemorySSATransformation>();
     } else {
         llvm::errs() << "INFO: Running data-flow RD analysis\n";
         RD.run<dg::analysis::ReachingDefinitionsAnalysis>();

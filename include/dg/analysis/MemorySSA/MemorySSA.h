@@ -18,7 +18,7 @@
 namespace dg {
 namespace analysis {
 
-class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
+class MemorySSATransformation : public ReachingDefinitionsAnalysis {
     void performLvn();
     void performLvn(RWBBlock *block);
     void performGvn();
@@ -51,11 +51,11 @@ class SSAReachingDefinitionsAnalysis : public ReachingDefinitionsAnalysis {
     std::vector<RWNode *> _phis;
 
 public:
-    SSAReachingDefinitionsAnalysis(ReadWriteGraph&& graph,
+    MemorySSATransformation(ReadWriteGraph&& graph,
                                    const ReachingDefinitionsAnalysisOptions& opts)
     : ReachingDefinitionsAnalysis(std::move(graph), opts) {}
 
-    SSAReachingDefinitionsAnalysis(ReadWriteGraph&& graph)
+    MemorySSATransformation(ReadWriteGraph&& graph)
     : ReachingDefinitionsAnalysis(std::move(graph)) {}
 
     void run() override {

@@ -65,7 +65,7 @@ public:
         static_assert(std::is_base_of<ReachingDefinitionsAnalysis, RdaType>::value,
                       "RdaType has to be subclass of ReachingDefinitionsAnalysis");
 
-        if (std::is_same<RdaType, SSAReachingDefinitionsAnalysis>::value) {
+        if (std::is_same<RdaType, MemorySSATransformation>::value) {
             initializeSparseRDA();
         } else {
             initializeDenseRDA();
