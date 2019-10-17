@@ -38,7 +38,7 @@ add_library(RD SHARED
 
 	analysis/ReachingDefinitions/BasicRDMap.cpp
 	analysis/ReachingDefinitions/ReachingDefinitions.cpp
-	analysis/ReachingDefinitions/ReachingDefinitionsGraph.cpp
+	analysis/ReadWriteGraph/ReadWriteGraph.cpp
 	analysis/MemorySSA/MemorySSA.cpp
 )
 target_link_libraries(RD PUBLIC DGAnalysis)
