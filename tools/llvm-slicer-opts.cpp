@@ -2,7 +2,7 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
+#include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -27,7 +27,7 @@
 #include "git-version.h"
 
 using dg::analysis::LLVMPointerAnalysisOptions;
-using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
+using dg::analysis::LLVMDataDependenceAnalysisOptions;
 
 static void
 addAllocationFuns(dg::llvmdg::LLVMDependenceGraphOptions& dgOptions,
@@ -56,7 +56,7 @@ addAllocationFuns(dg::llvmdg::LLVMDependenceGraphOptions& dgOptions,
         }
 
         dgOptions.PTAOptions.addAllocationFunction(subitms[0], type);
-        dgOptions.RDAOptions.addAllocationFunction(subitms[0], type);
+        dgOptions.DDAOptions.addAllocationFunction(subitms[0], type);
     }
 }
 
@@ -167,18 +167,18 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
             ),
         llvm::cl::init(LLVMPointerAnalysisOptions::AnalysisType::fi), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<LLVMReachingDefinitionsAnalysisOptions::AnalysisType> rdaType("rda",
+    llvm::cl::opt<LLVMDataDependenceAnalysisOptions::AnalysisType> ddaType("dda",
         llvm::cl::desc("Choose reaching definitions analysis to use:"),
         llvm::cl::values(
-            clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow,
-                       "dataflow", "Classical data-flow RDA (default)"),
-            clEnumValN(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::ssa,
-                       "ssa", "MemorySSA-based RDA")
+            clEnumValN(LLVMDataDependenceAnalysisOptions::AnalysisType::rd,
+                       "rd", "Reaching definitions DDA"),
+            clEnumValN(LLVMDataDependenceAnalysisOptions::AnalysisType::ssa,
+                       "ssa", "MemorySSA DDA")
     #if LLVM_VERSION_MAJOR < 4
             , nullptr
     #endif
             ),
-        llvm::cl::init(LLVMReachingDefinitionsAnalysisOptions::AnalysisType::dataflow),
+        llvm::cl::init(LLVMDataDependenceAnalysisOptions::AnalysisType::rd),
                        llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<dg::CD_ALG> cdAlgorithm("cd-alg",
@@ -229,12 +229,12 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
 
     options.dgOptions.threads = threads;
     options.dgOptions.PTAOptions.threads = threads;
-    options.dgOptions.RDAOptions.threads = threads;
+    options.dgOptions.DDAOptions.threads = threads;
 
-    options.dgOptions.RDAOptions.entryFunction = entryFunction;
-    options.dgOptions.RDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
-    options.dgOptions.RDAOptions.undefinedArePure = undefinedArePure;
-    options.dgOptions.RDAOptions.analysisType = rdaType;
+    options.dgOptions.DDAOptions.entryFunction = entryFunction;
+    options.dgOptions.DDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
+    options.dgOptions.DDAOptions.undefinedArePure = undefinedArePure;
+    options.dgOptions.DDAOptions.analysisType = ddaType;
 
     addAllocationFuns(options.dgOptions, allocationFuns);
 

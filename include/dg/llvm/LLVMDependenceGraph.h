@@ -45,10 +45,10 @@ class LLVMPointerAnalysis;
 // and this is that nested? Make it consistent...
 
 namespace analysis {
-class LLVMReachingDefinitions;
+class LLVMDataDependenceAnalysis;
 } // namespace analysis
 
-using analysis::LLVMReachingDefinitions;
+using analysis::LLVMDataDependenceAnalysis;
 
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 
@@ -75,7 +75,7 @@ public:
     bool build(llvm::Module *m, llvm::Function *entry = nullptr);
     bool build(llvm::Module *m,
                LLVMPointerAnalysis *pts = nullptr,
-               LLVMReachingDefinitions *rda = nullptr,
+               LLVMDataDependenceAnalysis *rda = nullptr,
                llvm::Function *entry = nullptr);
 
     // build DependenceGraph for a function. This will automatically
@@ -162,7 +162,7 @@ public:
     }
 
     LLVMPointerAnalysis *getPTA() const { return PTA; }
-    LLVMReachingDefinitions *getRDA() const { return RDA; }
+    LLVMDataDependenceAnalysis *getRDA() const { return RDA; }
 
     LLVMNode *findNode(llvm::Value *value) const;
 
@@ -217,7 +217,7 @@ private:
     // points-to information (if available)
     LLVMPointerAnalysis *PTA;
     // reaching definitions information (if available)
-    LLVMReachingDefinitions *RDA;
+    LLVMDataDependenceAnalysis *RDA;
 
     // control expression for this graph
     ControlExpression CE;

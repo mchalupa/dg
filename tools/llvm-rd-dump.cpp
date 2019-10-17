@@ -44,7 +44,7 @@
 #include "dg/analysis/PointsTo/Pointer.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
 #include "TimeMeasure.h"
 
@@ -292,7 +292,7 @@ static void nodeToDot(RWNode *node) {
 
 }
 
-static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD)
+static void dumpDotOnlyNodes(LLVMDataDependenceAnalysis *RD)
 {
     const auto& nodes = RD->getNodes();
     // dump nodes
@@ -303,7 +303,7 @@ static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD)
     // dump def-use edges
     for(RWNode *node : nodes) {
         if (node->isUse()) {
-            for (RWNode *def : RD->getReachingDefinitions(node)) {
+            for (RWNode *def : RD->getDefinitions(node)) {
                 printf("\tNODE%p->NODE%p [style=dotted]",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
@@ -311,7 +311,7 @@ static void dumpDotOnlyNodes(LLVMReachingDefinitions *RD)
     }
 }
 
-static void dumpDotWithBlocks(LLVMReachingDefinitions *RD) {
+static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
 
     for (auto I = RD->getGraph()->blocks_begin(),
               E = RD->getGraph()->blocks_end(); I != E; ++I) {
@@ -328,7 +328,7 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD) {
                        static_cast<void*>(def), static_cast<void*>(node));
             }
             if (node->isUse()) {
-                for (RWNode *def : RD->getReachingDefinitions(node)) {
+                for (RWNode *def : RD->getDefinitions(node)) {
                     printf("\tNODE%p->NODE%p [style=dotted color=blue]",
                            static_cast<void*>(def), static_cast<void*>(node));
                 }
@@ -352,7 +352,7 @@ static void dumpDotWithBlocks(LLVMReachingDefinitions *RD) {
 }
 
 static void
-dumpRDdot(LLVMReachingDefinitions *RD)
+dumpDefsToDot(LLVMDataDependenceAnalysis *RD)
 {
 
     printf("digraph \"Reaching Definitions Subgraph\" {\n");
@@ -374,12 +374,12 @@ dumpRDdot(LLVMReachingDefinitions *RD)
 }
 
 static void
-dumpRD(LLVMReachingDefinitions *RD, bool todot)
+dumpDefs(LLVMDataDependenceAnalysis *RD, bool todot)
 {
     assert(RD);
 
     if (todot)
-        dumpRDdot(RD);
+        dumpDefsToDot(RD);
     else {
         for (RWNode *node : RD->getNodes())
             dumpRWNode(node);
@@ -478,27 +478,26 @@ int main(int argc, char *argv[])
     PTA.run();
 
     tm.stop();
-    tm.report("INFO: Points-to analysis took");
+    tm.report("INFO: Pointer analysis took");
 
-    LLVMReachingDefinitionsAnalysisOptions opts;
+    LLVMDataDependenceAnalysisOptions opts;
     opts.threads = threads;
     opts.entryFunction = entryFunc;
     opts.strongUpdateUnknown = rd_strong_update_unknown;
     opts.maxSetSize = max_set_size;
-
-    LLVMReachingDefinitions RD(M, &PTA, opts);
-    tm.start();
     if (rda == RdaType::SSA) {
-        llvm::errs() << "INFO: Running SSA RD analysis\n";
-        RD.run<dg::analysis::MemorySSATransformation>();
+        opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::ssa;
     } else {
-        llvm::errs() << "INFO: Running data-flow RD analysis\n";
-        RD.run<dg::analysis::ReachingDefinitionsAnalysis>();
+        opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::rd;
     }
-    tm.stop();
-    tm.report("INFO: Reaching definitions analysis took");
 
-    dumpRD(&RD, todot);
+    LLVMDataDependenceAnalysis DDA(M, &PTA, opts);
+    tm.start();
+    DDA.run();
+    tm.stop();
+    tm.report("INFO: Data dependence analysis took");
+
+    dumpDefs(&DDA, todot);
 
     return 0;
 }

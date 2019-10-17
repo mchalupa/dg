@@ -29,7 +29,7 @@
 #include "dg/analysis/DFS.h"
 
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
@@ -69,7 +69,7 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 }
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
-                                       LLVMReachingDefinitions *rd,
+                                       LLVMDataDependenceAnalysis *rd,
                                        LLVMPointerAnalysis *pta)
     : analysis::legacy::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
                                                    analysis::legacy::DATAFLOW_INTERPROCEDURAL),
@@ -147,7 +147,7 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
     }
 
     if (RD->isUse(val)) {
-        addDataDependence(node, RD->getLLVMReachingDefinitions(val));
+        addDataDependence(node, RD->getLLVMDefinitions(val));
     }
 
     // we will run only once

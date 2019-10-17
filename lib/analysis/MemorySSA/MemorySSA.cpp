@@ -223,7 +223,7 @@ std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
 }
 
 std::vector<RWNode *>
-MemorySSATransformation::getReachingDefinitions(RWNode *use) {
+MemorySSATransformation::getDefinitions(RWNode *use) {
     if (use->usesUnknown())
         return findAllReachingDefinitions(use);
 

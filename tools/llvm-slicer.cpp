@@ -60,7 +60,7 @@ using namespace dg;
 
 using llvm::errs;
 using dg::analysis::LLVMPointerAnalysisOptions;
-using dg::analysis::LLVMReachingDefinitionsAnalysisOptions;
+using dg::analysis::LLVMDataDependenceAnalysisOptions;
 
 using AnnotationOptsT
     = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
@@ -369,7 +369,7 @@ public:
         ";   * remove slicing criteria: '"
              + std::to_string(options.removeSlicingCriteria) + "'\n" +
         ";   * undefined are pure: '"
-             + std::to_string(options.dgOptions.RDAOptions.undefinedArePure) + "'\n" +
+             + std::to_string(options.dgOptions.DDAOptions.undefinedArePure) + "'\n" +
         ";   * pointer analysis: ";
         if (options.dgOptions.PTAOptions.analysisType
                 == LLVMPointerAnalysisOptions::AnalysisType::fi)

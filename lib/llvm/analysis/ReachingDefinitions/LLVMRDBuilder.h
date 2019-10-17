@@ -24,9 +24,8 @@
 #endif
 
 #include "dg/analysis/ReadWriteGraph/ReadWriteGraph.h"
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/llvm/analysis/ReachingDefinitions/LLVMReachingDefinitionsAnalysisOptions.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 namespace dg {
 namespace analysis {
@@ -35,7 +34,7 @@ class LLVMRDBuilderBase {
 protected:
     const llvm::Module *M;
     const llvm::DataLayout *DL;
-    const LLVMReachingDefinitionsAnalysisOptions& _options;
+    const LLVMDataDependenceAnalysisOptions& _options;
 
     ReadWriteGraph graph;
 
@@ -76,7 +75,7 @@ protected:
 public:
     LLVMRDBuilderBase(const llvm::Module *m,
                       dg::LLVMPointerAnalysis *p,
-                      const LLVMReachingDefinitionsAnalysisOptions& opts)
+                      const LLVMDataDependenceAnalysisOptions& opts)
         : M(m), DL(new llvm::DataLayout(m)), _options(opts), PTA(p) {}
 
     virtual ~LLVMRDBuilderBase() {
@@ -104,7 +103,7 @@ class LLVMRDBuilder : public LLVMRDBuilderBase {
 public:
     LLVMRDBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
-                  const LLVMReachingDefinitionsAnalysisOptions& opts,
+                  const LLVMDataDependenceAnalysisOptions& opts,
                   bool forget_locals = false)
         : LLVMRDBuilderBase(m, p, opts),
           buildUses(true), forgetLocalsAtReturn(forget_locals) {}

@@ -6,7 +6,7 @@
 #include "dg/analysis/Offset.h"
 #include "dg/analysis/SubgraphNode.h"
 
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitionsAnalysisOptions.h"
+#include "dg/analysis/DataDependence/DataDependenceAnalysisOptions.h"
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 
 namespace dg {
