@@ -16,7 +16,7 @@ extern RWNode *UNKNOWN_MEMORY;
 // Find the nodes that define the given def-site.
 // Create PHI nodes if needed.
 std::vector<RWNode *>
-SSAReachingDefinitionsAnalysis::findDefinitions(RWBBlock *block,
+MemorySSATransformation::findDefinitions(RWBBlock *block,
                                                 const DefSite& ds) {
     // FIXME: the graph may contain dead code for which no blocks
     // are set (as the blocks are created only for the reachable code).
@@ -76,7 +76,7 @@ SSAReachingDefinitionsAnalysis::findDefinitions(RWBBlock *block,
 // Find the nodes that define the given def-site.
 // Create PHI nodes if needed. For LVN only.
 std::vector<RWNode *>
-SSAReachingDefinitionsAnalysis::findDefinitionsInBlock(RWBBlock *block,
+MemorySSATransformation::findDefinitionsInBlock(RWBBlock *block,
                                                        const DefSite& ds) {
     // get defs of known definitions
     auto defSet = block->definitions.get(ds);
@@ -110,7 +110,7 @@ SSAReachingDefinitionsAnalysis::findDefinitionsInBlock(RWBBlock *block,
     return defs;
 }
 
-void SSAReachingDefinitionsAnalysis::performLvn(RWBBlock *block) {
+void MemorySSATransformation::performLvn(RWBBlock *block) {
     // perform Lvn for one block
     for (RWNode *node : block->getNodes()) {
         // strong update
@@ -151,7 +151,7 @@ void SSAReachingDefinitionsAnalysis::performLvn(RWBBlock *block) {
     }
 }
 
-void SSAReachingDefinitionsAnalysis::performLvn() {
+void MemorySSATransformation::performLvn() {
     DBG_SECTION_BEGIN(dda, "Starting LVN");
     for (RWBBlock *block : graph.blocks()) {
         performLvn(block);
@@ -159,7 +159,7 @@ void SSAReachingDefinitionsAnalysis::performLvn() {
     DBG_SECTION_END(dda, "LVN finished");
 }
 
-void SSAReachingDefinitionsAnalysis::performGvn() {
+void MemorySSATransformation::performGvn() {
     DBG_SECTION_BEGIN(dda, "Starting GVN");
     std::set<RWNode *> phis(_phis.begin(), _phis.end());
 
@@ -223,7 +223,7 @@ std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
 }
 
 std::vector<RWNode *>
-SSAReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *use) {
+MemorySSATransformation::getReachingDefinitions(RWNode *use) {
     if (use->usesUnknown())
         return findAllReachingDefinitions(use);
 
@@ -231,7 +231,7 @@ SSAReachingDefinitionsAnalysis::getReachingDefinitions(RWNode *use) {
 }
 
 std::vector<RWNode *>
-SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RWNode *from) {
+MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
     assert(from->getBBlock() && "The node has no BBlock");
 
@@ -295,7 +295,7 @@ SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(RWNode *from) {
 }
 
 void
-SSAReachingDefinitionsAnalysis::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
+MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
                                                            RWBBlock *from,
                                                            std::set<RWNode *>& foundDefs,
                                                            std::set<RWBBlock *>& visitedBlocks) {

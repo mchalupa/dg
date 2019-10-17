@@ -278,18 +278,18 @@ TEST_CASE("Basic4 data-flow", "[data-flow]") {
 
 /*
 TEST_CASE("Basic1 memory-ssa", "[memory-ssa]") {
-    basic1<SSAReachingDefinitionsAnalysis>();
+    basic1<MemorySSATransformation>();
 }
 
 TEST_CASE("Basic2 memory-ssa", "[memory-ssa]") {
-    basic2<SSAReachingDefinitionsAnalysis>();
+    basic2<MemorySSATransformation>();
 }
 
 TEST_CASE("Basic3 memory-ssa", "[memory-ssa]") {
-    basic3<SSAReachingDefinitionsAnalysis>();
+    basic3<MemorySSATransformation>();
 }
 
 TEST_CASE("Basic4 memory-ssa", "[memory-ssa]") {
-    basic4<SSAReachingDefinitionsAnalysis>();
+    basic4<MemorySSATransformation>();
 }
 */
