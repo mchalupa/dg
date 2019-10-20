@@ -16,8 +16,7 @@
 #endif
 
 #include "dg/llvm/analysis/DataDependence/DataDependence.h"
-
-#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
+#include "llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.h"
 
 namespace dg {
 namespace analysis {
@@ -26,12 +25,12 @@ LLVMDataDependenceAnalysis::~LLVMDataDependenceAnalysis() {
     delete builder;
 }
 
-LLVMRDBuilder *LLVMDataDependenceAnalysis::createBuilder() {
+LLVMReadWriteGraphBuilder *LLVMDataDependenceAnalysis::createBuilder() {
     assert(m && pta);
     if (_options.isSSA()) {
-        return new LLVMRDBuilder(m, pta, _options);
+        return new LLVMReadWriteGraphBuilder(m, pta, _options);
     } else {
-        return new LLVMRDBuilder(m, pta, _options,
+        return new LLVMReadWriteGraphBuilder(m, pta, _options,
                                  true /* forget locals at return */);
     }
 }

@@ -39,7 +39,7 @@
 #include "dg/ADT/Queue.h"
 
 #include "llvm/analysis/ForkJoin/ForkJoin.h"
-#include "llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h"
+#include "llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.h"
 #include "llvm/llvm-utils.h"
 
 namespace dg {
@@ -74,7 +74,7 @@ static inline void makeEdge(RWNode *src, RWNode *dst)
     src->addSuccessor(dst);
 }
 
-RWNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
+RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst)
 {
     RWNode *node = create(RWNodeType::ALLOC);
     auto iterator = nodes_map.find(Inst);
@@ -93,7 +93,7 @@ RWNode *LLVMRDBuilder::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
-RWNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type)
+RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type)
 {
     using namespace llvm;
 
@@ -139,7 +139,7 @@ RWNode *LLVMRDBuilder::createDynAlloc(const llvm::Instruction *Inst, AllocationF
     return node;
 }
 
-RWNode *LLVMRDBuilder::createRealloc(const llvm::Instruction *Inst)
+RWNode *LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst)
 {
     RWNode *node = create(RWNodeType::DYN_ALLOC);
     auto iterator = nodes_map.find(Inst);
@@ -206,7 +206,7 @@ static void getLocalVariables(const llvm::Function *F,
     }
 }
 
-RWNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
+RWNode *LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction *Inst)
 {
     RWNode *node = create(RWNodeType::RETURN);
     addNode(Inst, node);
@@ -241,7 +241,7 @@ RWNode *LLVMRDBuilder::createReturn(const llvm::Instruction *Inst)
     return node;
 }
 
-RWNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
+RWNode *LLVMReadWriteGraphBuilder::getOperand(const llvm::Value *val)
 {
     auto op = getNode(val);
     if (!op) {
@@ -269,7 +269,7 @@ RWNode *LLVMRDBuilder::getOperand(const llvm::Value *val)
     return op;
 }
 
-RWNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
+RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst)
 {
     RWNode *node = create(RWNodeType::STORE);
     addNode(Inst, node);
@@ -311,7 +311,7 @@ RWNode *LLVMRDBuilder::createStore(const llvm::Instruction *Inst)
     return node;
 }
 
-RWNode *LLVMRDBuilder::createLoad(const llvm::Instruction *Inst)
+RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst)
 {
     RWNode *node = create(RWNodeType::LOAD);
     addNode(Inst, node);
@@ -377,8 +377,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
     assert(0 && "We should not reach this");
 }
 
-LLVMRDBuilder::Block&
-LLVMRDBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& llvmBlock) {
+LLVMReadWriteGraphBuilder::Block&
+LLVMReadWriteGraphBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& llvmBlock) {
     using namespace llvm;
 
     Block& block = subg.createBlock(&llvmBlock);
@@ -438,8 +438,8 @@ LLVMRDBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& llvmBlock
 }
 
 // return first and last nodes of the block
-LLVMRDBuilder::Block&
-LLVMRDBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& llvmBlock)
+LLVMReadWriteGraphBuilder::Block&
+LLVMReadWriteGraphBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& llvmBlock)
 {
     auto& block = buildBlockNodes(subg, llvmBlock);
 
@@ -462,8 +462,8 @@ LLVMRDBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& llvmBlock)
     return block;
 }
 
-void LLVMRDBuilder::blockAddSuccessors(LLVMRDBuilder::Subgraph& subg,
-                                       LLVMRDBuilder::Block& block,
+void LLVMReadWriteGraphBuilder::blockAddSuccessors(LLVMReadWriteGraphBuilder::Subgraph& subg,
+                                       LLVMReadWriteGraphBuilder::Block& block,
                                        const llvm::BasicBlock *llvmBlock,
                                        std::set<const llvm::BasicBlock *>& visited)
 {
@@ -493,8 +493,8 @@ void LLVMRDBuilder::blockAddSuccessors(LLVMRDBuilder::Subgraph& subg,
     }
 }
 
-LLVMRDBuilder::Subgraph *
-LLVMRDBuilder::getOrCreateSubgraph(const llvm::Function *F) {
+LLVMReadWriteGraphBuilder::Subgraph *
+LLVMReadWriteGraphBuilder::getOrCreateSubgraph(const llvm::Function *F) {
     // reuse built subgraphs if available, so that we won't get
     // stuck in infinite loop with recursive functions
     Subgraph *subg = nullptr;
@@ -514,7 +514,7 @@ LLVMRDBuilder::getOrCreateSubgraph(const llvm::Function *F) {
 }
 
 std::pair<RWNode *, RWNode *>
-LLVMRDBuilder::createCallToFunction(const llvm::Function *F,
+LLVMReadWriteGraphBuilder::createCallToFunction(const llvm::Function *F,
                                     const llvm::CallInst * CInst)
 {
     assert(nodes_map.find(CInst) == nodes_map.end()
@@ -549,7 +549,7 @@ LLVMRDBuilder::createCallToFunction(const llvm::Function *F,
 }
 
 std::pair<RWNode *, RWNode *>
-LLVMRDBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &functions,
+LLVMReadWriteGraphBuilder::createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                                      const llvm::CallInst *CInst) {
 
     assert(!functions.empty() && "No functions to call");
@@ -656,8 +656,8 @@ getBasicBlocksInDominatorOrder(llvm::Function& F)
     return blocks;
 }
 
-LLVMRDBuilder::Subgraph&
-LLVMRDBuilder::buildFunction(const llvm::Function& F)
+LLVMReadWriteGraphBuilder::Subgraph&
+LLVMReadWriteGraphBuilder::buildFunction(const llvm::Function& F)
 {
     // emplace new subgraph to avoid looping with recursive functions
     auto si = subgraphs_map.emplace(&F, Subgraph());
@@ -713,7 +713,7 @@ LLVMRDBuilder::buildFunction(const llvm::Function& F)
     return subg;
 }
 
-RWNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createUndefinedCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
@@ -772,13 +772,13 @@ RWNode *LLVMRDBuilder::createUndefinedCall(const llvm::CallInst *CInst)
     return node;
 }
 
-bool LLVMRDBuilder::isInlineAsm(const llvm::Instruction *instruction)
+bool LLVMReadWriteGraphBuilder::isInlineAsm(const llvm::Instruction *instruction)
 {
     const llvm::CallInst *callInstruction = llvm::cast<llvm::CallInst>(instruction);
     return callInstruction->isInlineAsm();
 }
 
-void LLVMRDBuilder::matchForksAndJoins()
+void LLVMReadWriteGraphBuilder::matchForksAndJoins()
 {
     using namespace llvm;
     using namespace pta;
@@ -797,7 +797,7 @@ void LLVMRDBuilder::matchForksAndJoins()
     }
 }
 
-RWNode *LLVMRDBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
@@ -896,7 +896,7 @@ std::pair<Offset, Offset> getFromTo(const llvm::CallInst *CInst, T what) {
     return {from, to};
 }
 
-RWNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
+RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model, const llvm::CallInst *CInst) {
 
     RWNode *node = create(RWNodeType::CALL);
 
@@ -947,7 +947,7 @@ RWNode *LLVMRDBuilder::funcFromModel(const FunctionModel *model, const llvm::Cal
 }
 
 std::pair<RWNode *, RWNode *>
-LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
+LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst)
 {
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
@@ -980,7 +980,7 @@ LLVMRDBuilder::createCall(const llvm::Instruction *Inst)
 }
 
 RWNode *
-LLVMRDBuilder::createCallToZeroSizeFunction(const llvm::Function *function,
+LLVMReadWriteGraphBuilder::createCallToZeroSizeFunction(const llvm::Function *function,
                                             const llvm::CallInst *CInst)
 {
     if (function->isIntrinsic()) {
@@ -1010,7 +1010,7 @@ LLVMRDBuilder::createCallToZeroSizeFunction(const llvm::Function *function,
     abort();
 }
 
-RWNode *LLVMRDBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
 {
     using namespace llvm;
 
@@ -1039,7 +1039,7 @@ RWNode *LLVMRDBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst)
     return rootNode;
 }
 
-RWNode *LLVMRDBuilder::createPthreadJoinCall(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst *CInst)
 {
     // TODO later change this to create join node and set data correctly
     // we need just to create one node;
@@ -1049,12 +1049,12 @@ RWNode *LLVMRDBuilder::createPthreadJoinCall(const llvm::CallInst *CInst)
     return node;
 }
 
-RWNode *LLVMRDBuilder::createPthreadExitCall(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createPthreadExitCall(const llvm::CallInst *CInst)
 {
     return createReturn(CInst);
 }
 
-ReadWriteGraph&& LLVMRDBuilder::build()
+ReadWriteGraph&& LLVMReadWriteGraphBuilder::build()
 {
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
@@ -1116,7 +1116,7 @@ ReadWriteGraph&& LLVMRDBuilder::build()
     return std::move(graph);
 }
 
-std::pair<RWNode *, RWNode *> LLVMRDBuilder::buildGlobals()
+std::pair<RWNode *, RWNode *> LLVMReadWriteGraphBuilder::buildGlobals()
 {
     RWNode *cur = nullptr, *prev, *first = nullptr;
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
@@ -1149,7 +1149,7 @@ std::pair<RWNode *, RWNode *> LLVMRDBuilder::buildGlobals()
 // Map pointers of 'val' to def-sites.
 // \param where  location in the program, for debugging
 // \param size is the number of bytes used from the memory
-std::vector<DefSite> LLVMRDBuilder::mapPointers(const llvm::Value *where,
+std::vector<DefSite> LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
                                                 const llvm::Value *val,
                                                 Offset size)
 {
