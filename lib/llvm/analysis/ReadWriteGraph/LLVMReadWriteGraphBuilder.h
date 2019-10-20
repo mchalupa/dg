@@ -30,11 +30,11 @@
 namespace dg {
 namespace analysis {
 
-class LLVMReadWriteGraphBuilderBase {
-protected:
-    const llvm::Module *M;
-    const llvm::DataLayout *DL;
+class LLVMReadWriteGraphBuilder {
     const LLVMDataDependenceAnalysisOptions& _options;
+    const llvm::Module *M;
+    // points-to information
+    dg::LLVMPointerAnalysis *PTA;
 
     ReadWriteGraph graph;
 
@@ -55,9 +55,6 @@ protected:
         std::vector<RWNode *> returns;
     };
 
-    // points-to information
-    dg::LLVMPointerAnalysis *PTA;
-
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, RWNode *> nodes_map;
 
@@ -73,17 +70,16 @@ protected:
     RWNode *create(RWNodeType t) { return graph.create(t); }
 
 public:
-    LLVMReadWriteGraphBuilderBase(const llvm::Module *m,
-                                  dg::LLVMPointerAnalysis *p,
-                                  const LLVMDataDependenceAnalysisOptions& opts)
-        : M(m), DL(new llvm::DataLayout(m)), _options(opts), PTA(p) {}
+    LLVMReadWriteGraphBuilder(const llvm::Module *m,
+                              dg::LLVMPointerAnalysis *p,
+                              const LLVMDataDependenceAnalysisOptions& opts,
+                              bool forget_locals = false)
+        : _options(opts), M(m), PTA(p),
+          buildUses(true), forgetLocalsAtReturn(forget_locals) {}
 
-    virtual ~LLVMReadWriteGraphBuilderBase() {
-        // delete data layout
-        delete DL;
-    }
+    ReadWriteGraph&& build();
 
-    virtual ReadWriteGraph&& build() = 0;
+    RWNode *getOperand(const llvm::Value *val);
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
@@ -97,21 +93,7 @@ public:
 
         return it->second;
     }
-};
 
-class LLVMReadWriteGraphBuilder : public LLVMReadWriteGraphBuilderBase {
-public:
-    LLVMReadWriteGraphBuilder(const llvm::Module *m,
-                  dg::LLVMPointerAnalysis *p,
-                  const LLVMDataDependenceAnalysisOptions& opts,
-                  bool forget_locals = false)
-        : LLVMReadWriteGraphBuilderBase(m, p, opts),
-          buildUses(true), forgetLocalsAtReturn(forget_locals) {}
-    virtual ~LLVMReadWriteGraphBuilder() = default;
-
-    ReadWriteGraph&& build() override;
-
-    RWNode *getOperand(const llvm::Value *val);
 
 private:
 
