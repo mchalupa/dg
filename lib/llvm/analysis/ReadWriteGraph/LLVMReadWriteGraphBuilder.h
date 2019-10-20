@@ -30,7 +30,7 @@
 namespace dg {
 namespace analysis {
 
-class LLVMRDBuilderBase {
+class LLVMReadWriteGraphBuilderBase {
 protected:
     const llvm::Module *M;
     const llvm::DataLayout *DL;
@@ -73,12 +73,12 @@ protected:
     RWNode *create(RWNodeType t) { return graph.create(t); }
 
 public:
-    LLVMRDBuilderBase(const llvm::Module *m,
-                      dg::LLVMPointerAnalysis *p,
-                      const LLVMDataDependenceAnalysisOptions& opts)
+    LLVMReadWriteGraphBuilderBase(const llvm::Module *m,
+                                  dg::LLVMPointerAnalysis *p,
+                                  const LLVMDataDependenceAnalysisOptions& opts)
         : M(m), DL(new llvm::DataLayout(m)), _options(opts), PTA(p) {}
 
-    virtual ~LLVMRDBuilderBase() {
+    virtual ~LLVMReadWriteGraphBuilderBase() {
         // delete data layout
         delete DL;
     }
@@ -99,15 +99,15 @@ public:
     }
 };
 
-class LLVMRDBuilder : public LLVMRDBuilderBase {
+class LLVMReadWriteGraphBuilder : public LLVMReadWriteGraphBuilderBase {
 public:
-    LLVMRDBuilder(const llvm::Module *m,
+    LLVMReadWriteGraphBuilder(const llvm::Module *m,
                   dg::LLVMPointerAnalysis *p,
                   const LLVMDataDependenceAnalysisOptions& opts,
                   bool forget_locals = false)
-        : LLVMRDBuilderBase(m, p, opts),
+        : LLVMReadWriteGraphBuilderBase(m, p, opts),
           buildUses(true), forgetLocalsAtReturn(forget_locals) {}
-    virtual ~LLVMRDBuilder() = default;
+    virtual ~LLVMReadWriteGraphBuilder() = default;
 
     ReadWriteGraph&& build() override;
 

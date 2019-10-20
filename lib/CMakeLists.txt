@@ -75,13 +75,13 @@ add_library(LLVMForkJoin SHARED
 target_link_libraries(LLVMForkJoin PRIVATE LLVMpta)
 
 add_library(LLVMrd SHARED
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.cpp
+	llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.cpp
 	llvm/analysis/DataDependenceAnalysis/LLVMDataDependenceAnalysis.cpp
 	llvm/analysis/ForkJoin/ForkJoin.h
 	llvm/analysis/ForkJoin/ForkJoin.cpp
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/DataDependence/DataDependence.h
-	llvm/analysis/ReachingDefinitions/LLVMRDBuilder.h
+	llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.h
 )
 target_link_libraries(LLVMrd
 			PUBLIC LLVMpta

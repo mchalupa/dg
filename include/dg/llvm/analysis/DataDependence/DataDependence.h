@@ -32,17 +32,17 @@
 namespace dg {
 namespace analysis {
 
-class LLVMRDBuilder;
+class LLVMReadWriteGraphBuilder;
 
 class LLVMDataDependenceAnalysis
 {
     const llvm::Module *m;
     dg::LLVMPointerAnalysis *pta;
     const LLVMDataDependenceAnalysisOptions _options;
-    LLVMRDBuilder *builder{nullptr};
+    LLVMReadWriteGraphBuilder *builder{nullptr};
     std::unique_ptr<DataDependenceAnalysis> DDA;
 
-    LLVMRDBuilder *createBuilder();
+    LLVMReadWriteGraphBuilder *createBuilder();
     DataDependenceAnalysis *createDDA();
 
 public:
