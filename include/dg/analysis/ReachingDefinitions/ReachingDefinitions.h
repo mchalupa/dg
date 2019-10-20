@@ -8,7 +8,6 @@
 
 #include "dg/analysis/DataDependence/DataDependenceAnalysisOptions.h"
 #include "dg/analysis/DataDependence/DataDependenceAnalysisImpl.h"
-#include "dg/analysis/ReachingDefinitions/DefinitionsMap.h"
 
 #include "dg/analysis/ReadWriteGraph/ReadWriteGraph.h"
 
