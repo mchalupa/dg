@@ -2,8 +2,9 @@
 #define DG_RWBBLOCK_H_
 
 #include <list>
+
 #include "dg/analysis/ReadWriteGraph/RWNode.h"
-#include "dg/analysis/ReachingDefinitions/DefinitionsMap.h"
+#include "dg/analysis/MemorySSA/DefinitionsMap.h"
 
 namespace dg {
 namespace analysis {
