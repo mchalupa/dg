@@ -8,13 +8,6 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 
 # --------------------------------------------------
-# dg-test
-# --------------------------------------------------
-add_executable(dg-test dg-test.cpp)
-add_test(dg-test dg-test)
-add_dependencies(check dg-test)
-
-# --------------------------------------------------
 # points-to-test
 # --------------------------------------------------
 add_executable(points-to-test points-to-test.cpp)
