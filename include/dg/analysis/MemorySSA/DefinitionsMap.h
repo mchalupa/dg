@@ -60,6 +60,14 @@ public:
         return _definitions[ds.target].update(start, end, node);
     }
 
+    template <typename ContainerT>
+    bool add(const DefSite& ds, const ContainerT& nodes) {
+        bool changed = false;
+        for (auto n : nodes)
+            changed |= add(ds, n);
+        return changed;
+    }
+
     bool add(NodeT *target, const OffsetsT& elems) {
         bool changed = false;
         for (auto& it : elems)
@@ -67,11 +75,11 @@ public:
         return changed;
     }
 
-    template <typename ContainerT>
-    bool add(const DefSite& ds, const ContainerT& nodes) {
+    bool add(DefinitionsMap<NodeT>& rhs) {
         bool changed = false;
-        for (auto n : nodes)
-            changed |= add(ds, n);
+        for (auto& it : rhs){
+            changed |= add(it.first, it.second);
+        }
         return changed;
     }
 
