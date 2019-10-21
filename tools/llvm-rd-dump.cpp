@@ -46,6 +46,7 @@
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
+#include "dg/util/debug.h"
 #include "TimeMeasure.h"
 
 using namespace dg;
@@ -433,6 +434,8 @@ int main(int argc, char *argv[])
             threads = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
+        } else if (strcmp(argv[i], "-dbg") == 0) {
+            DBG_ENABLE();
         } else if (strcmp(argv[i], "-entry") == 0) {
             entryFunc = argv[i+1];
         } else {
