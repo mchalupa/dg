@@ -236,7 +236,6 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     assert(from->getBBlock() && "The node has no BBlock");
 
     DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
-    std::set<RWNode *> foundDefs; // definitions that we found
 
     ///
     // get the definitions from this block
@@ -264,12 +263,6 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
         }
     }
 
-    for (auto& it : defs) {
-        for (auto& nds : it.second) {
-            foundDefs.insert(nds.second.begin(), nds.second.end());
-        }
-    }
-
     ///
     // get the definitions from predecessors
     ///
@@ -277,13 +270,23 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it
     if (auto singlePred = block->getSinglePredecessor()) {
-        findAllReachingDefinitions(defs, singlePred, foundDefs, visitedBlocks);
+        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
     } else {
         // for multiple predecessors, we must create a copy of the
-        // definitions that we have not found yet
+        // definitions that we have not found yet (a new copy for each
+        // iteration. Here we create one redundant copy, but what the hell...)
+        auto oldDefs = defs;
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-            auto tmpDefs = defs;
-            findAllReachingDefinitions(tmpDefs, *I, foundDefs, visitedBlocks);
+            auto tmpDefs = oldDefs;
+            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+            defs.add(tmpDefs);
+        }
+    }
+
+    std::set<RWNode *> foundDefs; // definitions that we found
+    for (auto& it : defs) {
+        for (auto& nds : it.second) {
+            foundDefs.insert(nds.second.begin(), nds.second.end());
         }
     }
 
@@ -297,7 +300,6 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
 void
 MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
                                                     RWBBlock *from,
-                                                    std::set<RWNode *>& foundDefs,
                                                     std::set<RWBBlock *>& visitedBlocks) {
     if (!from)
         return;
@@ -310,9 +312,6 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
         if (!defs.definesTarget(it.first)) {
             // just copy the definitions
             defs.add(it.first, it.second);
-            for (auto& nds : it.second) {
-                foundDefs.insert(nds.second.begin(), nds.second.end());
-            }
             continue;
         }
 
@@ -329,11 +328,12 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
 
     // recurs into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
-        findAllReachingDefinitions(defs, singlePred, foundDefs, visitedBlocks);
+        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
     } else {
         for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
             auto tmpDefs = defs;
-            findAllReachingDefinitions(tmpDefs, *I, foundDefs, visitedBlocks);
+            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+            defs.add(tmpDefs);
         }
     }
 }
