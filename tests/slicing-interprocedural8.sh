@@ -19,10 +19,10 @@ if [ ! -z "$DG_TESTS_PTA" ]; then
     export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
 fi
 
-if [ ! -z "$DG_TESTS_RDA" ]; then
-    export DG_TESTS_RDA="-rda $DG_TESTS_RDA"
+if [ ! -z "$DG_TESTS_DDA" ]; then
+    export DG_TESTS_DDA="-dda $DG_TESTS_DDA"
 fi
-llvm-slicer $DG_TESTS_RDA $DG_TESTS_PTA -c test_assert "$BCFILE"
+llvm-slicer $DG_TESTS_DDA $DG_TESTS_PTA -c test_assert "$BCFILE"
 
 # link assert to the code
 link_with_assert "$SLICEDFILE" "$LINKEDFILE" -DASSERT_NO_ABORT
