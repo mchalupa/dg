@@ -15,13 +15,6 @@ add_test(dg-test dg-test)
 add_dependencies(check dg-test)
 
 # --------------------------------------------------
-# data-flow-test
-# --------------------------------------------------
-add_executable(data-flow-test data-flow-test.cpp)
-add_test(data-flow-test data-flow-test)
-add_dependencies(check data-flow-test)
-
-# --------------------------------------------------
 # points-to-test
 # --------------------------------------------------
 add_executable(points-to-test points-to-test.cpp)
