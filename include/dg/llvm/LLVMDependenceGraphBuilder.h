@@ -73,7 +73,7 @@ class LLVMDependenceGraphBuilder {
     llvm::Module *_M;
     const LLVMDependenceGraphOptions _options;
     std::unique_ptr<LLVMPointerAnalysis> _PTA{};
-    std::unique_ptr<LLVMDataDependenceAnalysis> _DDA{};
+    std::unique_ptr<LLVMDataDependenceAnalysis> _DDA{nullptr};
     std::unique_ptr<LLVMDependenceGraph> _dg{};
     std::unique_ptr<ControlFlowGraph> _controlFlowGraph{};
     llvm::Function *_entryFunction{nullptr};
@@ -145,7 +145,7 @@ public:
     : _M(M), _options(opts),
       _PTA(createPTA()),
       _DDA(new LLVMDataDependenceAnalysis(M, _PTA.get(),
-                                         _options.DDAOptions)),
+                                          _options.DDAOptions)),
       _dg(new LLVMDependenceGraph(opts.threads)),
       _controlFlowGraph(_options.threads && !_options.PTAOptions.isSVF() ? // check SVF due to the static cast...
             new ControlFlowGraph(static_cast<DGLLVMPointerAnalysis*>(_PTA.get())) : nullptr),
