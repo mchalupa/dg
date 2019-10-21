@@ -17,7 +17,7 @@ extern RWNode *UNKNOWN_MEMORY;
 // Create PHI nodes if needed.
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWBBlock *block,
-                                                const DefSite& ds) {
+                                         const DefSite& ds) {
     // FIXME: the graph may contain dead code for which no blocks
     // are set (as the blocks are created only for the reachable code).
     // Removing the dead code is easy, but then we must somehow
@@ -77,7 +77,7 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
 // Create PHI nodes if needed. For LVN only.
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitionsInBlock(RWBBlock *block,
-                                                       const DefSite& ds) {
+                                                const DefSite& ds) {
     // get defs of known definitions
     auto defSet = block->definitions.get(ds);
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
@@ -296,9 +296,9 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
 
 void
 MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
-                                                           RWBBlock *from,
-                                                           std::set<RWNode *>& foundDefs,
-                                                           std::set<RWBBlock *>& visitedBlocks) {
+                                                    RWBBlock *from,
+                                                    std::set<RWNode *>& foundDefs,
+                                                    std::set<RWBBlock *>& visitedBlocks) {
     if (!from)
         return;
 
