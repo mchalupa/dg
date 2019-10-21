@@ -40,7 +40,7 @@ class LLVMDataDependenceAnalysis
     dg::LLVMPointerAnalysis *pta;
     const LLVMDataDependenceAnalysisOptions _options;
     LLVMReadWriteGraphBuilder *builder{nullptr};
-    std::unique_ptr<DataDependenceAnalysis> DDA;
+    std::unique_ptr<DataDependenceAnalysis> DDA{nullptr};
 
     LLVMReadWriteGraphBuilder *createBuilder();
     DataDependenceAnalysis *createDDA();
@@ -48,15 +48,17 @@ class LLVMDataDependenceAnalysis
 public:
 
     LLVMDataDependenceAnalysis(const llvm::Module *m,
-                            dg::LLVMPointerAnalysis *pta,
-                            const LLVMDataDependenceAnalysisOptions& opts)
-    : m(m), pta(pta), _options(opts), builder(createBuilder()), DDA(createDDA()) {}
+                               dg::LLVMPointerAnalysis *pta,
+                               const LLVMDataDependenceAnalysisOptions& opts)
+    : m(m), pta(pta), _options(opts), builder(createBuilder()) {}
 
     ~LLVMDataDependenceAnalysis();
 
     void run() {
         assert(builder);
-        assert(DDA);
+        assert(pta);
+
+        DDA.reset(createDDA());
         assert(getRoot());
 
         DDA->run();

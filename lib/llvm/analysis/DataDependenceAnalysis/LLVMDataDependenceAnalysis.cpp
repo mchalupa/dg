@@ -31,7 +31,7 @@ LLVMReadWriteGraphBuilder *LLVMDataDependenceAnalysis::createBuilder() {
         return new LLVMReadWriteGraphBuilder(m, pta, _options);
     } else {
         return new LLVMReadWriteGraphBuilder(m, pta, _options,
-                                 true /* forget locals at return */);
+                                             true /* forget locals at return */);
     }
 }
 
