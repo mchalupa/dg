@@ -71,32 +71,33 @@ int main(int argc, char *argv[])
     const char *entry_func = "main";
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
-    using namespace debug;
-    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
+    uint32_t opts = dg::legacy::debug::PRINT_CFG | dg::legacy::debug::PRINT_DD |
+                    dg::legacy::debug::PRINT_CD | dg::legacy::debug::PRINT_USE |
+                    dg::legacy::debug::PRINT_ID;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
         if (strcmp(argv[i], "-no-control") == 0) {
-            opts &= ~PRINT_CD;
+            opts &= ~dg::legacy::debug::PRINT_CD;
         } else if (strcmp(argv[i], "-no-use") == 0) {
-            opts &= ~PRINT_USE;
+            opts &= ~dg::legacy::debug::PRINT_USE;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
         } else if (strcmp(argv[i], "-dda") == 0) {
             rda = argv[++i];
         } else if (strcmp(argv[i], "-no-data") == 0) {
-            opts &= ~PRINT_DD;
+            opts &= ~dg::legacy::debug::PRINT_DD;
         } else if (strcmp(argv[i], "-no-cfg") == 0) {
-            opts &= ~PRINT_CFG;
+            opts &= ~dg::legacy::debug::PRINT_CFG;
         } else if (strcmp(argv[i], "-call") == 0) {
-            opts |= PRINT_CALL;
+            opts |= dg::legacy::debug::PRINT_CALL;
         } else if (strcmp(argv[i], "-postdom") == 0) {
-            opts |= PRINT_POSTDOM;
+            opts |= dg::legacy::debug::PRINT_POSTDOM;
         } else if (strcmp(argv[i], "-bb-only") == 0) {
             bb_only = true;
         } else if (strcmp(argv[i], "-cfgall") == 0) {
-            opts |= PRINT_CFG;
-            opts |= PRINT_REV_CFG;
+            opts |= dg::legacy::debug::PRINT_CFG;
+            opts |= dg::legacy::debug::PRINT_REV_CFG;
         } else if (strcmp(argv[i], "-func") == 0) {
             dump_func_only = argv[++i];
         } else if (strcmp(argv[i], "-slice") == 0) {
@@ -182,7 +183,7 @@ int main(int argc, char *argv[])
     auto dg = builder.build();
 
 
-    std::set<LLVMNode *> callsites;
+    std::set<legacy::LLVMNode *> callsites;
     if (slicing_criterion) {
         const char *sc[] = {
             slicing_criterion,
@@ -192,7 +193,7 @@ int main(int argc, char *argv[])
 
         dg->getCallSites(sc, &callsites);
 
-        LLVMSlicer slicer;
+        legacy::LLVMSlicer slicer;
 
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
@@ -207,7 +208,7 @@ int main(int argc, char *argv[])
             }
 
             uint32_t slid = 0;
-            for (LLVMNode *start : callsites)
+            for (auto *start : callsites)
                 slid = slicer.mark(start, slid);
 
             if (!mark_only)
@@ -233,10 +234,10 @@ int main(int argc, char *argv[])
     }
 
     if (bb_only) {
-        LLVMDGDumpBlocks dumper(dg.get(), opts);
+        dg::legacy::debug::LLVMDGDumpBlocks dumper(dg.get(), opts);
         dumper.dump(nullptr, dump_func_only);
     } else {
-        LLVMDG2Dot dumper(dg.get(), opts);
+        dg::legacy::debug::LLVMDG2Dot dumper(dg.get(), opts);
         dumper.dump(nullptr, dump_func_only);
     }
 

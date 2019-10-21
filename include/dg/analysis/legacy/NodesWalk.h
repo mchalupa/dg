@@ -177,28 +177,28 @@ private:
     {
         // push terminator nodes of all blocks that are
         // control dependent
-        BBlock<NodeT> *BB = n->getBBlock();
+        auto *BB = n->getBBlock();
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *CD : BB->revControlDependence())
+        for (auto *CD : BB->revControlDependence())
             enqueue(CD->getLastNode());
     }
 
     void processBBlockCDs(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBBlock();
+        auto *BB = n->getBBlock();
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *CD : BB->controlDependence())
+        for (auto *CD : BB->controlDependence())
             enqueue(CD->getFirstNode());
     }
 
 
     void processBBlockCFG(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBBlock();
+        auto *BB = n->getBBlock();
         if (!BB)
             return;
 
@@ -208,21 +208,21 @@ private:
 
     void processBBlockRevCFG(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBBlock();
+        auto *BB = n->getBBlock();
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->predecessors())
+        for (auto *S : BB->predecessors())
             enqueue(S->getLastNode());
     }
 
     void processBBlockPostDomFrontieres(NodeT *n)
     {
-        BBlock<NodeT> *BB = n->getBBlock();
+        auto *BB = n->getBBlock();
         if (!BB)
             return;
 
-        for (BBlock<NodeT> *S : BB->getPostDomFrontiers())
+        for (auto *S : BB->getPostDomFrontiers())
             enqueue(S->getLastNode());
     }
 #endif // ENABLE_CFG
@@ -274,7 +274,7 @@ template <typename NodeT, typename QueueT>
 class BBlockWalk : public BBlockWalkBase<NodeT>
 {
 public:
-    using BBlockPtrT = dg::BBlock<NodeT> *;
+    using BBlockPtrT = dg::legacy::BBlock<NodeT> *;
 
     BBlockWalk<NodeT, QueueT>(uint32_t fl = BBLOCK_WALK_CFG)
         : flags(fl) {}
@@ -350,7 +350,7 @@ protected:
 private:
     void queueSubgraphsBBs(BBlockPtrT BB)
     {
-        DGParameters<NodeT> *params;
+        ::dg::legacy::DGParameters<NodeT> *params;
 
         // iterate over call-site nodes
         for (NodeT *cs : BB->getCallSites()) {

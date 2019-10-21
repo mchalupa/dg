@@ -16,19 +16,19 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/BFS.h"
 #include "dg/analysis/PostDominanceFrontiers.h"
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 
 namespace dg {
+namespace legacy {
 
 void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 {
     using namespace llvm;
     // iterate over all functions
     for (auto& F : getConstructedFunctions()) {
-        analysis::PostDominanceFrontiers<LLVMNode> pdfrontiers;
+        analysis::PostDominanceFrontiers<LLVMNode, LLVMBBlock> pdfrontiers;
 
         // root of post-dominator tree
         LLVMBBlock *root = nullptr;
@@ -114,4 +114,5 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
     }
 }
 
+} // namespace legacy
 } // namespace dg

@@ -8,9 +8,10 @@
 
 
 namespace dg {
+namespace legacy {
 namespace tests {
 
-struct TestRefcount : public Test
+struct TestRefcount : public dg::tests::Test
 {
     TestRefcount() : Test("reference counting test") {}
 
@@ -57,6 +58,7 @@ struct TestRefcount : public Test
 
 }
 }
+}
 
 int main(void)
 {
@@ -64,7 +66,7 @@ int main(void)
 
     TestRunner Runner;
 
-    Runner.add(new TestRefcount());
+    Runner.add(new dg::legacy::tests::TestRefcount());
 
     return Runner();
 }

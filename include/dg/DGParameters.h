@@ -8,6 +8,7 @@
 #include "BBlock.h"
 
 namespace dg {
+namespace legacy {
 
 
 template <typename NodeT>
@@ -245,6 +246,7 @@ private:
     }
 };
 
+} // namespace legacy
 } // namespace dg
 
 #endif // _DG_PARAMETERS_H_

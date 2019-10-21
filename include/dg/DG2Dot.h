@@ -9,6 +9,7 @@
 #include "analysis/DFS.h"
 
 namespace dg {
+namespace legacy {
 namespace debug {
 
 enum dg2dot_options {
@@ -637,6 +638,7 @@ protected:
 };
 
 } // debug
+} // legacy
 } // namespace dg
 
 #endif // DG_2_DOT_H_

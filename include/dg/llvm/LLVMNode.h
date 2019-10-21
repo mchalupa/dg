@@ -34,13 +34,14 @@
 #include "dg/Node.h"
 
 namespace dg {
+namespace legacy {
 
 class LLVMDependenceGraph;
 class LLVMNode;
 
-using LLVMBBlock = dg::BBlock<LLVMNode>;
-using LLVMDGParameter = dg::DGParameterPair<LLVMNode>;
-using LLVMDGParameters = dg::DGParameters<LLVMNode>;
+using LLVMBBlock = BBlock<LLVMNode>;
+using LLVMDGParameter = DGParameterPair<LLVMNode>;
+using LLVMDGParameters = DGParameters<LLVMNode>;
 
 /// ------------------------------------------------------------------
 //  -- LLVMNode
@@ -57,7 +58,7 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>
 
 public:
     LLVMNode(llvm::Value *val, bool owns_value = false)
-        :dg::Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val)
+        : Node<LLVMDependenceGraph, llvm::Value *, LLVMNode>(val)
     {
         if (owns_value)
 #if LLVM_VERSION_MAJOR >= 5
@@ -95,6 +96,7 @@ private:
 #endif
 };
 
+} // legacy
 } // namespace dg
 
 #endif // _LLVM_NODE_H_

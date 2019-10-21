@@ -63,7 +63,7 @@ using dg::analysis::LLVMPointerAnalysisOptions;
 using dg::analysis::LLVMDataDependenceAnalysisOptions;
 
 using AnnotationOptsT
-    = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+    = dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
 
 llvm::cl::opt<bool> enable_debug("dbg",
     llvm::cl::desc("Enable debugging messages (default=false)."),
@@ -309,13 +309,17 @@ class DGDumper {
     const SlicerOptions& options;
     LLVMDependenceGraph *dg;
     bool bb_only{false};
-    uint32_t dump_opts{debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID};
+    uint32_t dump_opts{dg::legacy::debug::PRINT_DD | dg::legacy::debug::PRINT_CD |
+                       dg::legacy::debug::PRINT_USE | dg::legacy::debug::PRINT_ID};
 
 public:
     DGDumper(const SlicerOptions& opts,
              LLVMDependenceGraph *dg,
              bool bb_only = false,
-             uint32_t dump_opts = debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID)
+             uint32_t dump_opts = dg::legacy::debug::PRINT_DD |
+                                  dg::legacy::debug::PRINT_CD |
+                                  dg::legacy::debug::PRINT_USE |
+                                  dg::legacy::debug::PRINT_ID)
     : options(opts), dg(dg), bb_only(bb_only), dump_opts(dump_opts) {}
 
     void dumpToDot(const char *suffix = nullptr) {
@@ -329,10 +333,10 @@ public:
         errs() << "[llvm-slicer] Dumping DG to to " << fl << "\n";
 
         if (bb_only) {
-            debug::LLVMDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
+            dg::legacy::debug::LLVMDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
             dumper.dump();
         } else {
-            debug::LLVMDG2Dot dumper(dg, dump_opts, fl.c_str());
+            dg::legacy::debug::LLVMDG2Dot dumper(dg, dump_opts, fl.c_str());
             dumper.dump();
         }
     }
@@ -351,7 +355,7 @@ public:
 
     bool shouldAnnotate() const { return annotationOptions != 0; }
 
-    void annotate(const std::set<LLVMNode *> *criteria = nullptr)
+    void annotate(const std::set<legacy::LLVMNode *> *criteria = nullptr)
     {
         // compose name
         std::string fl(options.inputFile);
@@ -391,10 +395,10 @@ public:
 
         errs() << "[llvm-slicer] Saving IR with annotations to " << fl << "\n";
         auto annot
-            = new dg::debug::LLVMDGAssemblyAnnotationWriter(annotationOptions,
-                                                            dg->getPTA(),
-                                                            dg->getRDA(),
-                                                            criteria);
+            = new dg::legacy::debug::LLVMDGAssemblyAnnotationWriter(annotationOptions,
+                                                                    dg->getPTA(),
+                                                                    dg->getRDA(),
+                                                                    criteria);
         annot->emitModuleComment(std::move(module_comment));
         llvm::Module *M = dg->getModule();
         M->print(outputstream, annot);
@@ -464,13 +468,13 @@ void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
 // defined in llvm-slicer-crit.cpp
-std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
-                                             const std::string& slicingCriteria);
+std::set<legacy::LLVMNode *> getSlicingCriteriaNodes(legacy::LLVMDependenceGraph& dg,
+                                                     const std::string& slicingCriteria);
 
 std::pair<std::set<std::string>, std::set<std::string>>
 parseSecondarySlicingCriteria(const std::string& slicingCriteria);
 
-bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
+bool findSecondarySlicingCriteria(std::set<legacy::LLVMNode *>& criteria_nodes,
                                   const std::set<std::string>& secondaryControlCriteria,
                                   const std::set<std::string>& secondaryDataCriteria);
 

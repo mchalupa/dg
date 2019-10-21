@@ -50,17 +50,17 @@ public:
 
     bool isForward() const { return forward_slice; }
     // returns marked blocks, but only for forward slicing atm
-    const std::set<BBlock<NodeT> *>& getMarkedBlocks() { return markedBlocks; }
+    const std::set<dg::legacy::BBlock<NodeT> *>& getMarkedBlocks() { return markedBlocks; }
 
 private:
     bool forward_slice{false};
-    std::set<BBlock<NodeT> *> markedBlocks;
+    std::set<dg::legacy::BBlock<NodeT> *> markedBlocks;
 
 
     struct WalkData
     {
         WalkData(uint32_t si, WalkAndMark *wm,
-                 std::set<BBlock<NodeT> *> *mb = nullptr)
+                 std::set<dg::legacy::BBlock<NodeT> *> *mb = nullptr)
             : slice_id(si), analysis(wm)
 #ifdef ENABLE_CFG
               , markedBlocks(mb)
@@ -70,7 +70,7 @@ private:
         uint32_t slice_id;
         WalkAndMark *analysis;
 #ifdef ENABLE_CFG
-        std::set<BBlock<NodeT> *> *markedBlocks;
+        std::set<dg::legacy::BBlock<NodeT> *> *markedBlocks;
 #endif
     };
 
@@ -82,7 +82,7 @@ private:
 #ifdef ENABLE_CFG
         // when we marked a node, we need to mark even
         // the basic block - if there are basic blocks
-        if (BBlock<NodeT> *B = n->getBBlock()) {
+        if (auto *B = n->getBBlock()) {
             B->setSlice(slice_id);
             if (data->markedBlocks)
                 data->markedBlocks->insert(B);
@@ -91,7 +91,7 @@ private:
 
         // the same with dependence graph, if we keep a node from
         // a dependence graph, we need to keep the dependence graph
-        if (DependenceGraph<NodeT> *dg = n->getDG()) {
+        if (auto *dg = n->getDG()) {
             dg->setSlice(slice_id);
             if (!data->analysis->isForward()) {
                 // and keep also all call-sites of this func (they are
@@ -126,10 +126,10 @@ class Slicer : legacy::Analysis<NodeT>
     uint32_t options;
     uint32_t slice_id;
 
-    std::set<DependenceGraph<NodeT> *> sliced_graphs;
+    std::set<dg::legacy::DependenceGraph<NodeT> *> sliced_graphs;
 
     // slice nodes from the graph; do it recursively for call-nodes
-    void sliceNodes(DependenceGraph<NodeT> *dg, uint32_t slice_id)
+    void sliceNodes(dg::legacy::DependenceGraph<NodeT> *dg, uint32_t slice_id)
     {
         for (auto& it : *dg) {
             NodeT *n = it.second;
@@ -143,7 +143,7 @@ class Slicer : legacy::Analysis<NodeT>
 
             // slice subgraphs if this node is
             // a call-site that is in the slice
-            for (DependenceGraph<NodeT> *sub : n->getSubgraphs()) {
+            for (auto *sub : n->getSubgraphs()) {
                 // slice the subgraph if we haven't sliced it yet
                 if (sliced_graphs.insert(sub).second)
                     sliceNodes(sub, slice_id);
@@ -217,7 +217,7 @@ public:
 
     // slice the graph and its subgraphs. mark needs to be called
     // before this routine (otherwise everything is sliced)
-    uint32_t slice(DependenceGraph<NodeT> *dg, uint32_t sl_id = 0)
+    uint32_t slice(dg::legacy::DependenceGraph<NodeT> *dg, uint32_t sl_id = 0)
     {
 #ifdef ENABLE_CFG
         // first slice away bblocks that should go away
@@ -239,16 +239,16 @@ public:
     }
 
 #ifdef ENABLE_CFG
-    virtual bool removeBlock(BBlock<NodeT> *) {
+    virtual bool removeBlock(dg::legacy::BBlock<NodeT> *) {
         return true;
     }
 
     struct RemoveBlockData {
         uint32_t sl_id;
-        std::set<BBlock<NodeT> *>& blocks;
+        std::set<dg::legacy::BBlock<NodeT> *>& blocks;
     };
 
-    static void getBlocksToRemove(BBlock<NodeT> *BB, RemoveBlockData& data)
+    static void getBlocksToRemove(dg::legacy::BBlock<NodeT> *BB, RemoveBlockData& data)
     {
         if (BB->getSlice() == data.sl_id)
             return;
@@ -256,16 +256,16 @@ public:
         data.blocks.insert(BB);
     }
 
-    void sliceBBlocks(BBlock<NodeT> *start, uint32_t sl_id)
+    void sliceBBlocks(dg::legacy::BBlock<NodeT> *start, uint32_t sl_id)
     {
         // we must queue the blocks ourselves before we potentially remove them
         legacy::BBlockBFS<NodeT> bfs(legacy::BFS_BB_CFG);
-        std::set<BBlock<NodeT> *> blocks;
+        std::set<dg::legacy::BBlock<NodeT> *> blocks;
 
         RemoveBlockData data = { sl_id, blocks };
         bfs.run(start, getBlocksToRemove, data);
 
-        for (BBlock<NodeT> *blk : blocks) {
+        for (auto *blk : blocks) {
             // update statistics
             statistics.nodesRemoved += blk->size();
             statistics.nodesTotal += blk->size();
@@ -281,7 +281,7 @@ public:
 
     // remove BBlocks that contain no node that should be in
     // sliced graph
-    void sliceBBlocks(DependenceGraph<NodeT> *graph, uint32_t sl_id)
+    void sliceBBlocks(dg::legacy::DependenceGraph<NodeT> *graph, uint32_t sl_id)
     {
         auto& CB = graph->getBlocks();
 #ifndef NDEBUG
@@ -290,13 +290,13 @@ public:
         // gather the blocks
         // FIXME: we don't need two loops, just go carefully
         // through the constructed blocks (keep temporary always-valid iterator)
-        std::set<BBlock<NodeT> *> blocks;
+        std::set<dg::legacy::BBlock<NodeT> *> blocks;
         for (auto& it : CB) {
             if (it.second->getSlice() != sl_id)
                 blocks.insert(it.second);
         }
 
-        for (BBlock<NodeT> *blk : blocks) {
+        for (auto *blk : blocks) {
             // update statistics
             statistics.nodesRemoved += blk->size();
             statistics.nodesTotal += blk->size();

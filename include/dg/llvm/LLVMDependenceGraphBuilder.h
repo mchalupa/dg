@@ -43,6 +43,8 @@ namespace llvm {
     class Function;
 }
 
+using dg::legacy::LLVMDependenceGraph;
+
 namespace dg {
 namespace llvmdg {
 

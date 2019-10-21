@@ -22,7 +22,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/legacy/DataFlowAnalysis.h"
 #include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
 using dg::analysis::LLVMDataDependenceAnalysis;
@@ -33,27 +32,25 @@ namespace llvm {
 };
 
 namespace dg {
+namespace legacy {
 
 class LLVMDependenceGraph;
 class LLVMNode;
 
-class LLVMDefUseAnalysis : public analysis::legacy::DataFlowAnalysis<LLVMNode>
-{
+class LLVMDefUseAnalysis {
     LLVMDependenceGraph *dg;
-    LLVMDataDependenceAnalysis *RD;
+    LLVMDataDependenceAnalysis *DDA;
     LLVMPointerAnalysis *PTA;
-    const llvm::DataLayout *DL;
 
 public:
     LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                        LLVMDataDependenceAnalysis *rd,
                        LLVMPointerAnalysis *pta);
 
-    ~LLVMDefUseAnalysis() { delete DL; }
-
-    /* virtual */
-    bool runOnNode(LLVMNode *node, LLVMNode *prev);
+    void run();
 private:
+    void runOnNode(LLVMNode *node);
+
     void addDataDependence(LLVMNode *node,
                            const std::vector<llvm::Value *>& defs);
 
@@ -66,6 +63,7 @@ private:
     void handleUndefinedCall(LLVMNode *callNode, llvm::CallInst *CI);
 };
 
+} // namespace legacy
 } // namespace dg
 
 #endif //  _LLVM_DEF_USE_ANALYSIS_H_

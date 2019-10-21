@@ -12,6 +12,7 @@
 #include "Node.h"
 
 namespace dg {
+namespace legacy {
 
 // non-template class representing a generic dependence graph
 class DependenceGraphBase {
@@ -471,6 +472,7 @@ private:
     }
 };
 
+} // namespace legacy
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_

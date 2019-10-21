@@ -27,8 +27,9 @@
 #pragma GCC diagnostic pop
 #endif
 
-using namespace dg;
+
 namespace dg {
+namespace legacy {
 namespace debug {
 
 /*
@@ -336,4 +337,5 @@ private:
     }
 };
 } /* namespace debug */
+} // legacy
 } /* namespace dg */

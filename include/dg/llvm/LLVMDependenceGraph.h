@@ -50,7 +50,9 @@ class LLVMDataDependenceAnalysis;
 
 using analysis::LLVMDataDependenceAnalysis;
 
-using LLVMBBlock = dg::BBlock<LLVMNode>;
+namespace legacy {
+
+using LLVMBBlock = BBlock<LLVMNode>;
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
@@ -234,6 +236,7 @@ findInstruction(llvm::Instruction * instruction,
                 const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions);
 
 llvm::Instruction * castToLLVMInstruction(const llvm::Value * value);
+} // namespace legacy
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_

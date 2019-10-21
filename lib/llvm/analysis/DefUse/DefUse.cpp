@@ -44,6 +44,7 @@ using namespace llvm;
 //   Add def-use edges
 /// --------------------------------------------------
 namespace dg {
+namespace legacy {
 
 /// Add def-use edges between instruction and its operands
 static void handleOperands(const Instruction *Inst, LLVMNode *node) {
@@ -69,13 +70,11 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 }
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
-                                       LLVMDataDependenceAnalysis *rd,
+                                       LLVMDataDependenceAnalysis *dda,
                                        LLVMPointerAnalysis *pta)
-    : analysis::legacy::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
-                                                   analysis::legacy::DATAFLOW_INTERPROCEDURAL),
-      dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())) {
+    : dg(dg), DDA(dda), PTA(pta) {
     assert(PTA && "Need points-to information");
-    assert(RD && "Need reaching definitions");
+    assert(DDA && "Need reaching definitions");
 }
 
 
@@ -134,8 +133,7 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
     }
 }
 
-bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
-{
+void LLVMDefUseAnalysis::runOnNode(LLVMNode *node) {
     Value *val = node->getKey();
 
     // just add direct def-use edges to every instruction
@@ -146,12 +144,18 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
         handleCallInst(node); // return edges and so...
     }
 
-    if (RD->isUse(val)) {
-        addDataDependence(node, RD->getLLVMDefinitions(val));
+    if (DDA->isUse(val)) {
+        addDataDependence(node, DDA->getLLVMDefinitions(val));
     }
-
-    // we will run only once
-    return false;
 }
 
+void LLVMDefUseAnalysis::run() {
+    for (auto& it : getConstructedFunctions()) {
+        for (auto& it2 : *it.second->getNodes()) {
+            runOnNode(it2.second);
+        }
+    }
+}
+
+} // namespace legacy
 } // namespace dg

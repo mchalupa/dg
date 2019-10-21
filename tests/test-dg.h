@@ -4,11 +4,10 @@
 #include "dg/DependenceGraph.h"
 
 namespace dg {
-namespace tests {
 
 class TestDG;
 
-class TestNode : public Node<TestDG, int, TestNode>
+class TestNode : public dg::legacy::Node<TestDG, int, TestNode>
 {
 public:
     TestNode(int k)
@@ -19,15 +18,14 @@ public:
 };
 
 #ifdef ENABLE_CFG
-using TestBBlock = BBlock<TestNode>;
+using TestBBlock = dg::legacy::BBlock<TestNode>;
 #endif // ENABLE_CFG
 
-class TestDG : public DependenceGraph<TestNode>
+class TestDG : public dg::legacy::DependenceGraph<TestNode>
 {
 };
 
 
-} // namespace tests
 } // namespace dg
 
 #endif // _TEST_DG_H_

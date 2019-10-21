@@ -9,6 +9,7 @@ namespace llvm {
 }
 
 namespace dg {
+namespace legacy {
 
 // verify if the built dg is ok
 // this is friend class of LLVMDependenceGraph,
@@ -27,6 +28,7 @@ public:
     bool verify();
 };
 
+}
 }
 
 #endif // _LLVM_DG_VERIFIER_H_

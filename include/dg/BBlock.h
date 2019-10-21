@@ -11,6 +11,7 @@
 #include "analysis/legacy/Analysis.h"
 
 namespace dg {
+namespace legacy {
 
 /// ------------------------------------------------------------------
 // - BBlock
@@ -490,6 +491,7 @@ private:
     friend class analysis::legacy::BBlockAnalysis<NodeT>;
 };
 
+} // namespace legacy
 } // namespace dg
 
 #endif // _BBLOCK_H_

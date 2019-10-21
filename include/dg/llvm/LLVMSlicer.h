@@ -35,6 +35,7 @@
 #include "dg/llvm/LLVMNode.h"
 
 namespace dg {
+namespace legacy {
 
 class LLVMNode;
 
@@ -610,6 +611,8 @@ private:
     // do not slice these functions at all
     std::set<const char *> dont_touch;
 };
+
+} // legacy
 } // namespace dg
 
 #endif  // _LLVM_DG_SLICER_H_

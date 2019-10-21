@@ -54,13 +54,13 @@ convertBFSBBFlags(uint32_t flags)
 
 template <typename NodeT>
 class BBlockBFS : public BBlockWalk<NodeT,
-                                    ADT::QueueFIFO<BBlock<NodeT> *> >
+                                    ADT::QueueFIFO<::dg::legacy::BBlock<NodeT> *> >
 {
 public:
-    using BBlockPtrT = BBlock<NodeT> *;
+    using BBlockPtrT = dg::legacy::BBlock<NodeT> *;
 
     BBlockBFS<NodeT>(uint32_t fl = 0)
-        : BBlockWalk<NodeT, ADT::QueueFIFO<BBlock<NodeT> *>>(convertBFSBBFlags(fl)),
+        : BBlockWalk<NodeT, ADT::QueueFIFO<BBlockPtrT>>(convertBFSBBFlags(fl)),
           bfsorder(0), flags(fl) {}
 
     template <typename FuncT, typename DataT>
@@ -77,9 +77,8 @@ public:
 
     uint32_t getFlags() const { return flags; }
 protected:
-    /* virtual */
-    void prepare(BBlockPtrT BB)
-    {
+
+    void prepare(BBlockPtrT BB) override {
         // set bfs order number
         AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
         aad.bfsorder = ++bfsorder;

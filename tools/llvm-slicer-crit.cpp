@@ -47,7 +47,7 @@ using llvm::errs;
 // mapping of AllocaInst to the names of C variables
 static std::map<const llvm::Value *, std::string> valuesToVariables;
 
-static bool usesTheVariable(LLVMDependenceGraph& dg,
+static bool usesTheVariable(legacy::LLVMDependenceGraph& dg,
                             const llvm::Value *v,
                             const std::string& var)
 {
@@ -67,7 +67,7 @@ static bool usesTheVariable(LLVMDependenceGraph& dg,
 }
 
 template <typename InstT>
-static bool useOfTheVar(LLVMDependenceGraph& dg,
+static bool useOfTheVar(legacy::LLVMDependenceGraph& dg,
                         const llvm::Instruction& I,
                         const std::string& var)
 {
@@ -79,14 +79,14 @@ static bool useOfTheVar(LLVMDependenceGraph& dg,
     return usesTheVariable(dg, tmp->getPointerOperand(), var);
 }
 
-static bool isStoreToTheVar(LLVMDependenceGraph& dg,
+static bool isStoreToTheVar(legacy::LLVMDependenceGraph& dg,
                             const llvm::Instruction& I,
                             const std::string& var)
 {
     return useOfTheVar<llvm::StoreInst>(dg, I, var);
 }
 
-static bool isLoadOfTheVar(LLVMDependenceGraph& dg,
+static bool isLoadOfTheVar(legacy::LLVMDependenceGraph& dg,
                            const llvm::Instruction& I,
                            const std::string& var)
 {
@@ -94,7 +94,7 @@ static bool isLoadOfTheVar(LLVMDependenceGraph& dg,
 }
 
 
-static bool instMatchesCrit(LLVMDependenceGraph& dg,
+static bool instMatchesCrit(legacy::LLVMDependenceGraph& dg,
                             const llvm::Instruction& I,
                             const std::vector<std::pair<int, std::string>>& parsedCrit)
 {
@@ -148,9 +148,9 @@ static inline bool isNumber(const std::string& s) {
     return true;
 }
 
-static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
+static void getLineCriteriaNodes(legacy::LLVMDependenceGraph& dg,
                                  std::vector<std::string>& criteria,
-                                 std::set<LLVMNode *>& nodes)
+                                 std::set<legacy::LLVMNode *>& nodes)
 {
     assert(!criteria.empty() && "No criteria given");
 
@@ -180,7 +180,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
     llvm::errs() << "WARNING: The slicing criteria with variables names will not work\n";
 #else
     // create the mapping from LLVM values to C variable names
-    for (auto& it : getConstructedFunctions()) {
+    for (auto& it : legacy::getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
             if (const llvm::DbgDeclareInst *DD = llvm::dyn_cast<llvm::DbgDeclareInst>(&I)) {
                 auto val = DD->getAddress();
@@ -208,7 +208,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
     // try match globals
     for (auto& G : dg.getModule()->globals()) {
         if (globalMatchesCrit(G, parsedCrit)) {
-            LLVMNode *nd = dg.getGlobalNode(&G);
+            auto *nd = dg.getGlobalNode(&G);
             assert(nd);
             nodes.insert(nd);
         }
@@ -220,10 +220,10 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
     }
 
     // map line criteria to nodes
-    for (auto& it : getConstructedFunctions()) {
+    for (auto& it : legacy::getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
             if (instMatchesCrit(dg, I, parsedCrit)) {
-                LLVMNode *nd = it.second->getNode(&I);
+                auto *nd = it.second->getNode(&I);
                 assert(nd);
                 nodes.insert(nd);
             }
@@ -232,10 +232,10 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
 #endif // LLVM > 3.6
 }
 
-std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
-                                             const std::string& slicingCriteria)
+std::set<legacy::LLVMNode *> getSlicingCriteriaNodes(legacy::LLVMDependenceGraph& dg,
+                                                     const std::string& slicingCriteria)
 {
-    std::set<LLVMNode *> nodes;
+    std::set<legacy::LLVMNode *> nodes;
     std::vector<std::string> criteria = splitList(slicingCriteria);
     assert(!criteria.empty() && "Did not get slicing criteria");
 
@@ -250,7 +250,7 @@ std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
     // insert the ret instructions to the nodes.
     for (const auto& c : node_criteria) {
         if (c == "ret") {
-            LLVMNode *exit = dg.getExit();
+            auto *exit = dg.getExit();
             // We could insert just the exit node, but this way we will
             // get annotations to the functions.
             for (auto it = exit->rev_control_begin(), et = exit->rev_control_end();
@@ -291,7 +291,7 @@ parseSecondarySlicingCriteria(const std::string& slicingCriteria)
 }
 
 // FIXME: copied from LLVMDependenceGraph.cpp, do not duplicate the code
-static bool isCallTo(LLVMNode *callNode, const std::set<std::string>& names)
+static bool isCallTo(legacy::LLVMNode *callNode, const std::set<std::string>& names)
 {
     using namespace llvm;
 
@@ -313,8 +313,8 @@ static bool isCallTo(LLVMNode *callNode, const std::set<std::string>& names)
     } else {
         // simply iterate over the subgraphs, get the entry node
         // and check it
-        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
-            LLVMNode *entry = dg->getEntry();
+        for (auto *dg : callNode->getSubgraphs()) {
+            auto *entry = dg->getEntry();
             assert(entry && "No entry node in graph");
 
             const Function *func
@@ -327,10 +327,10 @@ static bool isCallTo(LLVMNode *callNode, const std::set<std::string>& names)
 }
 
 static inline
-void checkSecondarySlicingCrit(std::set<LLVMNode *>& criteria_nodes,
+void checkSecondarySlicingCrit(std::set<legacy::LLVMNode *>& criteria_nodes,
                                const std::set<std::string>& secondaryControlCriteria,
                                const std::set<std::string>& secondaryDataCriteria,
-                               LLVMNode *nd) {
+                               legacy::LLVMNode *nd) {
     if (isCallTo(nd, secondaryControlCriteria))
         criteria_nodes.insert(nd);
     if (isCallTo(nd, secondaryDataCriteria)) {
@@ -342,13 +342,13 @@ void checkSecondarySlicingCrit(std::set<LLVMNode *>& criteria_nodes,
 }
 
 // mark nodes that are going to be in the slice
-bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
+bool findSecondarySlicingCriteria(std::set<legacy::LLVMNode *>& criteria_nodes,
                                   const std::set<std::string>& secondaryControlCriteria,
                                   const std::set<std::string>& secondaryDataCriteria)
 {
     // FIXME: do this more efficiently (and use the new DFS class)
-    std::set<LLVMBBlock *> visited;
-    ADT::QueueLIFO<LLVMBBlock *> queue;
+    std::set<legacy::LLVMBBlock *> visited;
+    ADT::QueueLIFO<legacy::LLVMBBlock *> queue;
     auto tmp = criteria_nodes;
     for (auto&c : tmp) {
         // the criteria may be a global variable and in that

@@ -59,9 +59,9 @@ class Slicer {
     const SlicerOptions& _options;
 
     dg::llvmdg::LLVMDependenceGraphBuilder _builder;
-    std::unique_ptr<dg::LLVMDependenceGraph> _dg{};
+    std::unique_ptr<dg::legacy::LLVMDependenceGraph> _dg{};
 
-    dg::LLVMSlicer slicer;
+    dg::legacy::LLVMSlicer slicer;
     uint32_t slice_id = 0;
     bool _computed_deps{false};
 
@@ -70,8 +70,8 @@ public:
     : M(mod), _options(opts),
       _builder(mod, _options.dgOptions) { assert(mod && "Need module"); }
 
-    const dg::LLVMDependenceGraph& getDG() const { return *_dg.get(); }
-    dg::LLVMDependenceGraph& getDG() { return *_dg.get(); }
+    const dg::legacy::LLVMDependenceGraph& getDG() const { return *_dg.get(); }
+    dg::legacy::LLVMDependenceGraph& getDG() { return *_dg.get(); }
 
     // Mirror LLVM to nodes of dependence graph,
     // No dependence edges are added here unless the
@@ -113,7 +113,7 @@ public:
     // Mark the nodes from the slice.
     // This method calls computeDependencies(),
     // but buildDG() must be called before.
-    bool mark(std::set<dg::LLVMNode *>& criteria_nodes)
+    bool mark(std::set<dg::legacy::LLVMNode *>& criteria_nodes)
     {
         assert(_dg && "mark() called without the dependence graph built");
         assert(!criteria_nodes.empty() && "Do not have slicing criteria");
@@ -125,7 +125,7 @@ public:
 
         // unmark this set of nodes after marking the relevant ones.
         // Used to mimic the Weissers algorithm
-        std::set<dg::LLVMNode *> unmark;
+        std::set<dg::legacy::LLVMNode *> unmark;
 
         if (_options.removeSlicingCriteria)
             unmark = criteria_nodes;
@@ -138,13 +138,13 @@ public:
         slice_id = 0xdead;
 
         tm.start();
-        for (dg::LLVMNode *start : criteria_nodes)
+        for (auto *start : criteria_nodes)
             slice_id = slicer.mark(start, slice_id, _options.forwardSlicing);
 
         assert(slice_id != 0 && "Somethig went wrong when marking nodes");
 
         // if we have some nodes in the unmark set, unmark them
-        for (dg::LLVMNode *nd : unmark)
+        for (auto *nd : unmark)
             nd->setSlice(0);
 
         tm.stop();

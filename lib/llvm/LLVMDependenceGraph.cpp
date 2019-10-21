@@ -60,6 +60,7 @@ using llvm::errs;
 using std::make_pair;
 
 namespace dg {
+namespace legacy {
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
@@ -1245,4 +1246,5 @@ llvm::Instruction * castToLLVMInstruction(const llvm::Value * value) {
     return const_cast<llvm::Instruction *>(static_cast<const llvm::Instruction *> (value));
 }
 
+} // namespace legacy
 } // namespace dg

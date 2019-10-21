@@ -35,6 +35,7 @@
 using llvm::errs;
 
 namespace dg {
+namespace legacy {
 
 static void addGlobalsParams(LLVMDGParameters *params, LLVMNode *callNode, LLVMDependenceGraph *funcGraph)
 {
@@ -200,4 +201,5 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph,
     addDynMemoryParams(params, this, funcGraph);
 }
 
+} // namespace legacy
 } // namespace dg

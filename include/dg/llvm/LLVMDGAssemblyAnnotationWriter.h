@@ -32,6 +32,7 @@
 #include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
 namespace dg {
+namespace legacy {
 namespace debug {
 
 class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter
@@ -319,23 +320,24 @@ public:
 };
 
 } // namespace debug
+} // legacy
 } // namespace dg
 
 // allow combinations of annotation options
-inline dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT
-operator |(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT a,
-           dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
+inline dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT
+operator |(dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT a,
+           dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
 
-  using AnT = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+  using AnT = dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
   using T = std::underlying_type<AnT>::type;
   return static_cast<AnT>(static_cast<T>(a) | static_cast<T>(b));
 }
 
-inline dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT
-operator |=(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT& a,
-           dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
+inline dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT
+operator |=(dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT& a,
+           dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
 
-  using AnT = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+  using AnT = dg::legacy::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
   using T = std::underlying_type<AnT>::type;
   a = static_cast<AnT>(static_cast<T>(a) | static_cast<T>(b));
   return a;

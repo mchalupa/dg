@@ -9,6 +9,7 @@
 #include "analysis/legacy/Analysis.h"
 
 namespace dg {
+namespace legacy {
 
 template <typename NodeT>
 class DependenceGraph;
@@ -429,6 +430,7 @@ private:
     friend class analysis::legacy::Analysis<NodeT>;
 };
 
+} // namespace legacy
 } // namespace dg
 
 #endif // _NODE_H_

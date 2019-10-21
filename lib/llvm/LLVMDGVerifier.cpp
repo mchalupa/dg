@@ -25,6 +25,7 @@
 #include "llvm/LLVMDGVerifier.h"
 
 namespace dg {
+namespace legacy {
 
 void LLVMDGVerifier::fault(const char *fmt, ...)
 {
@@ -128,4 +129,5 @@ void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g)
     }
 }
 
-};
+}
+}
