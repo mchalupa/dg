@@ -414,7 +414,7 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
-        } else if (strcmp(argv[i], "-rda") == 0) {
+        } else if (strcmp(argv[i], "-dda") == 0) {
             if (strcmp(argv[i+1], "ssa") == 0)
                 rda = RdaType::SSA;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {

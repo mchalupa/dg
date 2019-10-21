@@ -95,8 +95,8 @@ slice()
 		export DG_TESTS_PTA="-pta $DG_TESTS_PTA"
 	fi
 
-	if [ ! -z "$DG_TESTS_RDA" ]; then
-		export DG_TESTS_RDA="-rda $DG_TESTS_RDA"
+	if [ ! -z "$DG_TESTS_DDA" ]; then
+		export DG_TESTS_DDA="-dda $DG_TESTS_DDA"
 	fi
 
 	if [ ! -z "$DG_TESTS_CDA" ]; then
@@ -104,7 +104,7 @@ slice()
 	fi
 
 	llvm-slicer $DG_TESTS_PARAMS $DG_TESTS_CDA\
-	            $DG_TESTS_RDA $DG_TESTS_PTA $DG_TESTS_SLICER_FLAGS\
+	            $DG_TESTS_DDA $DG_TESTS_PTA $DG_TESTS_SLICER_FLAGS\
 		     -c test_assert "$BCFILE" -o "$OUTPUT"
 }
 

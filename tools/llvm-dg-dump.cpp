@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
             opts &= ~PRINT_USE;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
-        } else if (strcmp(argv[i], "-rda") == 0) {
+        } else if (strcmp(argv[i], "-dda") == 0) {
             rda = argv[++i];
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
