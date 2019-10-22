@@ -4,7 +4,6 @@
 #include <list>
 
 #include "dg/analysis/ReadWriteGraph/RWNode.h"
-#include "dg/analysis/MemorySSA/DefinitionsMap.h"
 
 namespace dg {
 namespace analysis {
@@ -60,10 +59,6 @@ public:
     }
 
     const NodesT& getNodes() const { return _nodes; }
-
-    DefinitionsMap<RWNode> definitions;
-    // cache for all definitions that reach the end of this block
-    DefinitionsMap<RWNode> allDefinitions;
 
     // override the operator* method in the successor/predecessor iterator of the node
     struct edge_iterator : public NodeSuccIterator {

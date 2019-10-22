@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <cassert>
+#include <unordered_map>
 
 #include "dg/analysis/Offset.h"
 
@@ -22,6 +23,13 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void performLvn();
     void performLvn(RWBBlock *block);
     void performGvn();
+
+    // information about definitions associated to each bblock
+    struct Definitions {
+        DefinitionsMap<RWNode> definitions;
+        // cache for all definitions that reach the end of this block
+        DefinitionsMap<RWNode> allDefinitions;
+    };
 
     ////
     // LVN
@@ -49,6 +57,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     // all phi nodes added during transformation to SSA
     std::vector<RWNode *> _phis;
+    std::unordered_map<RWBBlock *, Definitions> _defs;
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
@@ -80,6 +89,15 @@ public:
     }
 
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
+
+    const Definitions *getBBlockDefinitions(RWBBlock *b) const {
+        auto it = _defs.find(b);
+        if (it == _defs.end())
+            return nullptr;
+        return &it->second;
+    }
+
+
 };
 
 } // namespace analysis

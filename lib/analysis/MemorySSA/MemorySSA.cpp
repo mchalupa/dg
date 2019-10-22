@@ -30,15 +30,16 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     assert(ds.target && "Target is null");
 
     // Find known definitions.
-    auto defSet = block->definitions.get(ds);
+    auto& D = _defs[block];
+    auto defSet = D.definitions.get(ds);
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
     // add definitions to unknown memory
-    auto unknown = block->definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
+    auto unknown = D.definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
     defs.insert(defs.end(), unknown.begin(), unknown.end());
 
     // Find definitions that are not in this block (if any).
-    auto uncovered = block->definitions.undefinedIntervals(ds);
+    auto uncovered = D.definitions.undefinedIntervals(ds);
     for (auto& interval : uncovered) {
         // if we have a unique predecessor, try finding definitions
         // and creating the new PHI nodes there.
@@ -54,11 +55,12 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
                                        interval.length());
             // update definitions in the block -- this
             // phi node defines previously uncovered memory
-            assert(block->definitions.get({ds.target,
-                                           interval.start, interval.length()}
-                                         ).empty());
-            block->definitions.update({ds.target, interval.start, interval.length()},
-                                      _phis.back());
+            assert(D.definitions.get({ds.target,
+                                      interval.start, interval.length()}
+                                    ).empty());
+            D.definitions.update({ds.target,
+                                  interval.start, interval.length()},
+                                  _phis.back());
 
             // Inserting at the beginning of the block should not
             // invalidate the iterator
@@ -79,16 +81,17 @@ std::vector<RWNode *>
 MemorySSATransformation::findDefinitionsInBlock(RWBBlock *block,
                                                 const DefSite& ds) {
     // get defs of known definitions
-    auto defSet = block->definitions.get(ds);
+    auto& D = _defs[block];
+    auto defSet = D.definitions.get(ds);
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
     // add definitions to unknown memory
-    auto unknown = block->definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
+    auto unknown = D.definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
     defs.insert(defs.end(), unknown.begin(), unknown.end());
 
     // find out which bytes are not covered yet
     // and create phi nodes for these intervals
-    auto uncovered = block->definitions.undefinedIntervals(ds);
+    auto uncovered = D.definitions.undefinedIntervals(ds);
     for (auto& interval : uncovered) {
         _phis.emplace_back(graph.create(RWNodeType::PHI));
         _phis.back()->addOverwrites(ds.target,
@@ -96,9 +99,9 @@ MemorySSATransformation::findDefinitionsInBlock(RWBBlock *block,
                                     interval.length());
         // update definitions in the block -- this
         // phi node defines previously uncovered memory
-        assert(block->definitions.get({ds.target, interval.start, interval.length()}).empty());
-        block->definitions.update({ds.target, interval.start, interval.length()},
-                                  _phis.back());
+        assert(D.definitions.get({ds.target, interval.start, interval.length()}).empty());
+        D.definitions.update({ds.target, interval.start, interval.length()},
+                              _phis.back());
 
         // Inserting at the beginning of the block should not
         // invalidate the iterator
@@ -111,6 +114,8 @@ MemorySSATransformation::findDefinitionsInBlock(RWBBlock *block,
 }
 
 void MemorySSATransformation::performLvn(RWBBlock *block) {
+    auto& D = _defs[block];
+
     // perform Lvn for one block
     for (RWNode *node : block->getNodes()) {
         // strong update
@@ -118,7 +123,7 @@ void MemorySSATransformation::performLvn(RWBBlock *block) {
             assert(!ds.offset.isUnknown() && "Update on unknown offset");
             assert(!ds.target->isUnknown() && "Update on unknown memory");
 
-            block->definitions.update(ds, node);
+            D.definitions.update(ds, node);
         }
 
         // weak update
@@ -128,9 +133,9 @@ void MemorySSATransformation::performLvn(RWBBlock *block) {
                 // -- this node may define any memory that we know
                 // about at this moment, so just add it to every
                 // element of the definition map
-                block->definitions.addAll(node);
+                D.definitions.addAll(node);
                 // also add the definition as a proper target for Gvn
-                block->definitions.add({ds.target, 0, Offset::UNKNOWN}, node);
+                D.definitions.add({ds.target, 0, Offset::UNKNOWN}, node);
                 continue;
             }
 
@@ -141,7 +146,7 @@ void MemorySSATransformation::performLvn(RWBBlock *block) {
 
             // NOTE: this must be after findDefinitionsInBlock, otherwise
             // also this definition will be found
-            block->definitions.add(ds, node);
+            D.definitions.add(ds, node);
         }
 
         // use
@@ -256,7 +261,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     if (auto singlePred = block->getSinglePredecessor()) {
         findAllReachingDefinitions(defs, singlePred, visitedBlocks);
         // cache the found definitions
-        singlePred->allDefinitions = defs;
+        _defs[singlePred].allDefinitions = defs;
     } else {
         // for multiple predecessors, we must create a copy of the
         // definitions that we have not found yet (a new copy for each
@@ -266,7 +271,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
             findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
 
             defs.add(tmpDefs);
-            (*I)->allDefinitions = std::move(tmpDefs);
+            _defs[*I].allDefinitions = std::move(tmpDefs);
         }
     }
 
@@ -342,19 +347,20 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
     if (!visitedBlocks.insert(from).second) {
         // we already visited this block, therefore we have computed
         // all reaching definitions and we can re-use them
-        joinDefinitions(from->allDefinitions, defs);
+        joinDefinitions(_defs[from].allDefinitions, defs);
         return;
     }
 
     // we already computed all the definitions during some search?
     // Then use it.
-    if (!from->allDefinitions.empty()) {
-        joinDefinitions(from->allDefinitions, defs);
+    auto& D = _defs[from];
+    if (!D.allDefinitions.empty()) {
+        joinDefinitions(D.allDefinitions, defs);
         return;
     }
 
     // get the definitions from this block
-    joinDefinitions(from->definitions, defs);
+    joinDefinitions(D.definitions, defs);
 
     // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {

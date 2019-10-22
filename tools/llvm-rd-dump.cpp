@@ -190,7 +190,7 @@ static void printInterval(T& I, const char *pref = nullptr,
 }
 
 static void
-dumpDDIMap(DefinitionsMap<RWNode>& map, bool dot = false) {
+dumpDDIMap(const DefinitionsMap<RWNode>& map, bool dot = false) {
     for (const auto& it : map) {
        printf("\\l----  ");
        printName(it.first, dot);
@@ -210,11 +210,18 @@ dumpDDIMap(DefinitionsMap<RWNode>& map, bool dot = false) {
 }
 
 static void
-dumpDefinitions(RWBBlock *block, bool dot = false) {
-    dumpDDIMap(block->definitions, dot);
-    if (!block->allDefinitions.empty()) {
+dumpDefinitions(LLVMDataDependenceAnalysis *DDA, RWBBlock *block, bool dot = false) {
+    if (!DDA->getOptions().isSSA())
+        return;
+
+    auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+    auto *D = SSA->getBBlockDefinitions(block);
+    if (!D)
+        return;
+    dumpDDIMap(D->definitions, dot);
+    if (!D->allDefinitions.empty()) {
         printf("\\n==== all defs ====\\n");
-        dumpDDIMap(block->allDefinitions, dot);
+        dumpDDIMap(D->allDefinitions, dot);
     }
 }
 
@@ -343,7 +350,7 @@ static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
             }
         }
         printf("label=\"\\nblock: %p\\n", *I);
-        dumpDefinitions(*I, true);
+        dumpDefinitions(RD, *I, true);
         printf("\"\nlabelloc=b\n");
         printf("}\n");
     }
