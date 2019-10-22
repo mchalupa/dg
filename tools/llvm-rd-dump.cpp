@@ -190,9 +190,7 @@ static void printInterval(T& I, const char *pref = nullptr,
 }
 
 static void
-dumpDDIMap(RWBBlock *block, bool dot = false)
-{
-    auto& map = block->definitions;
+dumpDDIMap(DefinitionsMap<RWNode>& map, bool dot = false) {
     for (const auto& it : map) {
        printf("\\l----  ");
        printName(it.first, dot);
@@ -208,6 +206,15 @@ dumpDDIMap(RWBBlock *block, bool dot = false)
                    putchar('\n');
            }
        }
+    }
+}
+
+static void
+dumpDefinitions(RWBBlock *block, bool dot = false) {
+    dumpDDIMap(block->definitions, dot);
+    if (!block->allDefinitions.empty()) {
+        printf("\\n==== all defs ====\\n");
+        dumpDDIMap(block->allDefinitions, dot);
     }
 }
 
@@ -336,7 +343,7 @@ static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
             }
         }
         printf("label=\"\\nblock: %p\\n", *I);
-        dumpDDIMap(*I, true);
+        dumpDefinitions(*I, true);
         printf("\"\nlabelloc=b\n");
         printf("}\n");
     }
