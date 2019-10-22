@@ -189,6 +189,16 @@ void MemorySSATransformation::performGvn() {
         }
     }
     DBG_SECTION_END(dda, "GVN finished");
+
+    DBG_SECTION_BEGIN(dda, "Caching reads of unknown memory (requested)");
+    for (auto *block :graph.blocks()) {
+        for (auto *node : block->getNodes()) {
+            if (node->usesUnknown()) {
+                findAllReachingDefinitions(node);
+            }
+        }
+    }
+    DBG_SECTION_END(dda, "Caching reads of unknown memory");
 }
 
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
@@ -235,21 +245,40 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
     assert(from->getBBlock() && "The node has no BBlock");
 
+    auto block = from->getBBlock();
     DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
+    std::set<RWBBlock *> visitedBlocks; // for terminating the search
 
     ///
-    // get the definitions from this block
-    // (this is basically the LVN)
+    // -- Get the definitions from predecessors --
+    // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
+    // in which case we want to process it
+    if (auto singlePred = block->getSinglePredecessor()) {
+        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
+        // cache the found definitions
+        singlePred->allDefinitions = defs;
+    } else {
+        // for multiple predecessors, we must create a copy of the
+        // definitions that we have not found yet (a new copy for each
+        // iteration. Here we create one redundant copy, but what the hell...)
+        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
+            DefinitionsMap<RWNode> tmpDefs;
+            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+
+            defs.add(tmpDefs);
+            (*I)->allDefinitions = std::move(tmpDefs);
+        }
+    }
+
     ///
-    auto block = from->getBBlock();
+    // get the definitions from this block (this is basically the LVN)
+    // We do it after searching predecessors, because we cache the
+    // definitions in predecessors.
+    ///
     for (auto node : block->getNodes()) {
         // run only from the beginning of the block up to the node
         if (node == from)
             break;
-
-        for (auto& ds : node->overwrites) {
-            defs.update(ds, node);
-        }
 
         // weak update
         for (auto& ds : node->defs) {
@@ -261,25 +290,10 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
 
             defs.add(ds, node);
         }
-    }
 
-    ///
-    // get the definitions from predecessors
-    ///
-    std::set<RWBBlock *> visitedBlocks; // for terminating the search
-    // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
-    // in which case we want to process it
-    if (auto singlePred = block->getSinglePredecessor()) {
-        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
-    } else {
-        // for multiple predecessors, we must create a copy of the
-        // definitions that we have not found yet (a new copy for each
-        // iteration. Here we create one redundant copy, but what the hell...)
-        auto oldDefs = defs;
-        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-            auto tmpDefs = oldDefs;
-            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
-            defs.add(tmpDefs);
+        // strong update
+        for (auto& ds : node->overwrites) {
+            defs.update(ds, node);
         }
     }
 
@@ -297,6 +311,27 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     return gatherNonPhisDefs(foundDefs);
 }
 
+static void joinDefinitions(DefinitionsMap<RWNode>& from,
+                            DefinitionsMap<RWNode>& to) {
+    for (auto& it : from) {
+        if (!to.definesTarget(it.first)) {
+            // just copy the definitions
+            to.add(it.first, it.second);
+            continue;
+        }
+
+        for (auto& it2 : it.second) {
+            auto& interv = it2.first;
+            auto uncovered
+                = to.undefinedIntervals({it.first, interv.start, interv.length()});
+            for (auto& undefInterv : uncovered) {
+                // we still do not have definitions for these bytes, add it
+                to.add({it.first, undefInterv.start, undefInterv.length()}, it2.second);
+            }
+        }
+    }
+}
+
 void
 MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
                                                     RWBBlock *from,
@@ -304,29 +339,24 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
     if (!from)
         return;
 
-    if (!visitedBlocks.insert(from).second)
+    if (!visitedBlocks.insert(from).second) {
+        // we already visited this block, therefore we have computed
+        // all reaching definitions and we can re-use them
+        joinDefinitions(from->allDefinitions, defs);
         return;
-
-    // get the definitions from this block
-    for (auto& it : from->definitions) {
-        if (!defs.definesTarget(it.first)) {
-            // just copy the definitions
-            defs.add(it.first, it.second);
-            continue;
-        }
-
-        for (auto& it2 : it.second) {
-            auto& interv = it2.first;
-            auto uncovered
-                = defs.undefinedIntervals({it.first, interv.start, interv.length()});
-            for (auto& undefInterv : uncovered) {
-                // we still do not have definitions for these bytes, add it
-                defs.add({it.first, undefInterv.start, undefInterv.length()}, it2.second);
-            }
-        }
     }
 
-    // recurs into predecessors
+    // we already computed all the definitions during some search?
+    // Then use it.
+    if (!from->allDefinitions.empty()) {
+        joinDefinitions(from->allDefinitions, defs);
+        return;
+    }
+
+    // get the definitions from this block
+    joinDefinitions(from->definitions, defs);
+
+    // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
         findAllReachingDefinitions(defs, singlePred, visitedBlocks);
     } else {
