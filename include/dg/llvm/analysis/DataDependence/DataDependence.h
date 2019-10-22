@@ -64,6 +64,8 @@ public:
         DDA->run();
     }
 
+    const LLVMDataDependenceAnalysisOptions& getOptions() const { return _options; }
+
     RWNode *getRoot() { return DDA->getRoot(); }
     ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
@@ -112,6 +114,9 @@ public:
     // return instructions that define the given value
     // (the value must read from memory, e.g. LoadInst)
     std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use);
+
+    DataDependenceAnalysis *getDDA() { return DDA.get(); }
+    const DataDependenceAnalysis *getDDA() const { return DDA.get(); }
 };
 
 

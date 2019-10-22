@@ -36,13 +36,15 @@ class DataDependenceAnalysis {
         }
     }
 
+    const DataDependenceAnalysisOptions& _options;
+
 public:
     DataDependenceAnalysis(ReadWriteGraph&& graph,
                            const DataDependenceAnalysisOptions& opts)
-    : _impl(createAnalysis(std::move(graph), opts)) {}
+    : _impl(createAnalysis(std::move(graph), opts)), _options(opts) {}
 
     DataDependenceAnalysis(ReadWriteGraph&& graph)
-    : _impl(createAnalysis(std::move(graph), {})) {}
+    : DataDependenceAnalysis(std::move(graph), {}) {}
 
     ReadWriteGraph *getGraph() { return _impl->getGraph(); }
     const ReadWriteGraph *getGraph() const { return _impl->getGraph(); }
@@ -63,6 +65,11 @@ public:
     std::vector<RWNode *> getDefinitions(RWNode *use) {
         return _impl->getDefinitions(use);
     }
+
+    const DataDependenceAnalysisOptions& getOptions() const { return _options; }
+
+    DataDependenceAnalysisImpl *getImpl() { return _impl.get(); }
+    const DataDependenceAnalysisImpl *getImpl() const { return _impl.get(); }
 };
 
 
