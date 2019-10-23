@@ -206,6 +206,12 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
 
     // Find known definitions.
     auto& D = _defs[block];
+
+    if (!D.allDefinitions.empty()) { // do we have a cache?
+        auto defSet = D.allDefinitions.get(ds);
+        return std::vector<RWNode *>{defSet.begin(), defSet.end()};
+    }
+
     auto defSet = D.definitions.get(ds);
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
@@ -350,11 +356,12 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
         // definitions that we have not found yet (a new copy for each
         // iteration. Here we create one redundant copy, but what the hell...)
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-            DefinitionsMap<RWNode> tmpDefs;
-            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
-
-            defs.add(tmpDefs);
-            _defs[*I].allDefinitions = std::move(tmpDefs);
+            //DefinitionsMap<RWNode> tmpDefs;
+            // NOTE: we cannot catch here because of the DFS nature of the search
+            //findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+            //defs.add(tmpDefs);
+            //_defs[*I].allDefinitions = std::move(tmpDefs);
+            findAllReachingDefinitions(defs, *I, visitedBlocks);
         }
     }
 
