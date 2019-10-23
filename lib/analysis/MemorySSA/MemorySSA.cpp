@@ -12,8 +12,183 @@ namespace analysis {
 
 extern RWNode *UNKNOWN_MEMORY;
 
+// make this a method of Definitions
+void
+MemorySSATransformation::Definitions::update(RWNode *node) {
+    // possible definitions
+    for (auto& ds : node->defs) {
+        if (ds.target->isUnknown()) {
+            // this makes all lastDefs into possibleDefs,
+            // since we do not know if it was defined here or there
+            // also add the definition as a proper target for Gvn
+            definitions.addAll(node);
+            addUnknownWrite(node);
+        } else {
+            definitions.add(ds, node);
+        }
+    }
+
+    // definitive definitions
+    for (auto& ds : node->overwrites) {
+        assert(!ds.offset.isUnknown() && "Update on unknown offset");
+        assert(!ds.target->isUnknown() && "Update on unknown memory");
+
+        kills.add(ds, node);
+        definitions.update(ds, node);
+    }
+
+    // gather unknown uses
+    if (node->usesUnknown()) {
+        addUnknownRead(node);
+    }
+}
+
+// find definitions of a given node
+std::vector<RWNode *>
+MemorySSATransformation::findDefinitions(RWNode *node) {
+    assert(node->isUse() && "Searching definitions for non-use node");
+
+    // handle reads from unknown memory
+    if (node->usesUnknown()) {
+        return findAllReachingDefinitions(node);
+    }
+
+    auto block = node->getBBlock();
+    // FIXME: the graph may contain dead code for which no blocks
+    // are set (as the blocks are created only for the reachable code).
+    // Removing the dead code is easy, but then we must somehow
+    // adjust the mapping in the builder, which is not that straightforward.
+    // Once we have that, uncomment this assertion.
+    //assert(block && "Block is null");
+    if (!block)
+        return {};
+
+    // gather all definitions from the beginning of the block
+    // to the node (we must do that always, because adding PHI
+    // nodes changes the definitions)
+    auto D = findDefinitionsInBlock(node);
+    std::vector<RWNode *> defs;
+
+    for (auto& ds : node->uses) {
+        assert(ds.target && "Target is null");
+
+        // add the definitions from the beginning of this block to the defs container
+        auto defSet = D.definitions.get(ds);
+        if (defSet.empty()) {
+            defs.insert(defs.end(),
+                        D.getUnknownWrites().begin(),
+                        D.getUnknownWrites().end());
+        } else {
+            defs.insert(defs.end(), defSet.begin(), defSet.end());
+        }
+
+        auto uncovered = D.kills.undefinedIntervals(ds);
+        for (auto& interval : uncovered) {
+            auto preddefs
+                = findDefinitionsInPredecessors(block, {ds.target,
+                                                        interval.start,
+                                                        interval.length()});
+            defs.insert(defs.end(), preddefs.begin(), preddefs.end());
+        }
+    }
+
+    return defs;
+}
+
 ///
-// Find the nodes that define the given def-site.
+// Find the nodes that define the given def-site in the predecessors
+// of block.  Create PHI nodes if needed.
+std::vector<RWNode *>
+MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
+                                                       const DefSite& ds) {
+    assert(block);
+    assert(ds.target && "Target is null");
+    assert(!ds.target->isUnknown() && "Finding uknown memory"); // this is handled differently
+
+    std::vector<RWNode *> defs;
+
+    // if we have a unique predecessor,
+    // we can find the definitions there and continue searching in the predecessor
+    // if something is missing
+    if (auto pred = block->getSinglePredecessor()) {
+        auto pdefs = findDefinitions(pred, ds);
+        auto& D = _defs[pred];
+        if (pdefs.empty()) {
+            defs.insert(defs.end(),
+                        D.getUnknownWrites().begin(),
+                        D.getUnknownWrites().end());
+        } else {
+            defs.insert(defs.end(), pdefs.begin(), pdefs.end());
+        }
+
+        auto uncovered = D.kills.undefinedIntervals(ds);
+        for (auto& interval : uncovered) {
+            auto preddefs
+                = findDefinitionsInPredecessors(pred, {ds.target,
+                                                       interval.start,
+                                                       interval.length()});
+            defs.insert(defs.end(), preddefs.begin(), preddefs.end());
+        }
+    } else { // multiple predecessors
+        // create PHI node and find definitions for the PHI node
+        auto& D = _defs[block];
+
+        // This phi is the definition that we are looking for.
+        _phis.emplace_back(graph.create(RWNodeType::PHI));
+        _phis.back()->addOverwrites(ds);
+        // update definitions in the block -- this
+        // phi node defines previously uncovered memory
+        assert(D.definitions.get(ds).empty());
+        D.definitions.update(ds, _phis.back());
+        D.kills.add(ds, _phis.back());
+        // to simulate the whole LVN, we must add also writes to unknown memory
+        if (!D.getUnknownWrites().empty()) {
+            D.definitions.add(ds, D.getUnknownWrites());
+        }
+
+        // Inserting at the beginning of the block should not
+        // invalidate the iterator
+        block->prependAndUpdateCFG(_phis.back());
+
+        // this represents the sought definition
+        defs.push_back(_phis.back());
+
+        findPhiDefinitions(_phis.back());
+    }
+
+    return defs;
+}
+
+///
+// Find the nodes that define the given def-site in this block
+// (using the definitions computed for each single block)
+// Create PHI nodes if needed.
+void MemorySSATransformation::findPhiDefinitions(RWNode *phi) {
+    auto block = phi->getBBlock();
+
+    assert(block);
+    assert(!block->getSinglePredecessor() &&
+           "Phi in a block with single predecessor");
+
+    std::set<RWNode *> defs;
+
+    assert(phi->overwrites.size() == 1);
+    const auto& ds = *(phi->overwrites.begin());
+    // we handle this case separately
+    assert(!ds.target->isUnknown() && "PHI for unknown memory");
+
+    for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
+        auto tmpdefs = findDefinitions(*I, ds);
+        defs.insert(tmpdefs.begin(), tmpdefs.end());
+    }
+
+    phi->defuse.add(defs);
+}
+
+
+///
+// Find the nodes that define the given def-site in this block
+// (using the definitions computed for each single block)
 // Create PHI nodes if needed.
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWBBlock *block,
@@ -34,128 +209,55 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     auto defSet = D.definitions.get(ds);
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
-    // add definitions to unknown memory
-    auto unknown = D.definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
-    defs.insert(defs.end(), unknown.begin(), unknown.end());
+    // XXX: wrap this into a get() method of Definitions
+    if (defSet.empty()) {
+        defs.insert(defs.end(),
+                    D.getUnknownWrites().begin(),
+                    D.getUnknownWrites().end());
+    } else {
+        defs.insert(defs.end(), defSet.begin(), defSet.end());
+    }
 
-    // Find definitions that are not in this block (if any).
-    auto uncovered = D.definitions.undefinedIntervals(ds);
+    auto uncovered = D.kills.undefinedIntervals(ds);
     for (auto& interval : uncovered) {
-        // if we have a unique predecessor, try finding definitions
-        // and creating the new PHI nodes there.
-        if (auto pred = block->getSinglePredecessor()) {
-            auto pdefs = findDefinitions(pred, ds);
-            defs.insert(defs.end(), pdefs.begin(), pdefs.end());
-        } else {
-            // Several predecessors -- we must create a PHI.
-            // This phi is the definition that we are looking for.
-            _phis.emplace_back(graph.create(RWNodeType::PHI));
-            _phis.back()->addOverwrites(ds.target,
-                                       interval.start,
-                                       interval.length());
-            // update definitions in the block -- this
-            // phi node defines previously uncovered memory
-            assert(D.definitions.get({ds.target,
-                                      interval.start, interval.length()}
-                                    ).empty());
-            D.definitions.update({ds.target,
-                                  interval.start, interval.length()},
-                                  _phis.back());
-
-            // Inserting at the beginning of the block should not
-            // invalidate the iterator
-            block->prependAndUpdateCFG(_phis.back());
-
-            // this represents the sought definition
-            defs.push_back(_phis.back());
-        }
+        auto preddefs
+            = findDefinitionsInPredecessors(block, {ds.target,
+                                                    interval.start,
+                                                    interval.length()});
+        defs.insert(defs.end(), preddefs.begin(), preddefs.end());
     }
 
     return defs;
+}
+
+// perform Lvn for one block
+void MemorySSATransformation::performLvn(RWBBlock *block) {
+    auto& D = _defs[block];
+    for (RWNode *node : block->getNodes()) {
+        D.update(node);
+    }
+
+    D.setProcessed();
 }
 
 ///
-// Find the nodes that define the given def-site.
-// Create PHI nodes if needed. For LVN only.
-std::vector<RWNode *>
-MemorySSATransformation::findDefinitionsInBlock(RWBBlock *block,
-                                                const DefSite& ds) {
-    // get defs of known definitions
-    auto& D = _defs[block];
-    auto defSet = D.definitions.get(ds);
-    std::vector<RWNode *> defs(defSet.begin(), defSet.end());
-
-    // add definitions to unknown memory
-    auto unknown = D.definitions.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
-    defs.insert(defs.end(), unknown.begin(), unknown.end());
-
-    // find out which bytes are not covered yet
-    // and create phi nodes for these intervals
-    auto uncovered = D.definitions.undefinedIntervals(ds);
-    for (auto& interval : uncovered) {
-        _phis.emplace_back(graph.create(RWNodeType::PHI));
-        _phis.back()->addOverwrites(ds.target,
-                                    interval.start,
-                                    interval.length());
-        // update definitions in the block -- this
-        // phi node defines previously uncovered memory
-        assert(D.definitions.get({ds.target, interval.start, interval.length()}).empty());
-        D.definitions.update({ds.target, interval.start, interval.length()},
-                              _phis.back());
-
-        // Inserting at the beginning of the block should not
-        // invalidate the iterator
-        block->prependAndUpdateCFG(_phis.back());
-
-        defs.push_back(_phis.back());
-    }
-
-    return defs;
-}
-
-void MemorySSATransformation::performLvn(RWBBlock *block) {
-    auto& D = _defs[block];
-
-    // perform Lvn for one block
+// The same as LVN but only up to some point (and returns the map)
+MemorySSATransformation::Definitions
+MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
+    auto block = to->getBBlock();
+    // perform LVN up to the node
+    Definitions D;
     for (RWNode *node : block->getNodes()) {
-        // strong update
-        for (auto& ds : node->overwrites) {
-            assert(!ds.offset.isUnknown() && "Update on unknown offset");
-            assert(!ds.target->isUnknown() && "Update on unknown memory");
-
-            D.definitions.update(ds, node);
-        }
-
-        // weak update
-        for (auto& ds : node->defs) {
-            if (ds.target->isUnknown()) {
-                // special handling for unknown memory
-                // -- this node may define any memory that we know
-                // about at this moment, so just add it to every
-                // element of the definition map
-                D.definitions.addAll(node);
-                // also add the definition as a proper target for Gvn
-                D.definitions.add({ds.target, 0, Offset::UNKNOWN}, node);
-                continue;
-            }
-
-            // since this is just weak update,
-            // look for the previous definitions of 'ds'
-            // and if there are none, add a PHI node
-            node->defuse.add(findDefinitionsInBlock(block, ds));
-
-            // NOTE: this must be after findDefinitionsInBlock, otherwise
-            // also this definition will be found
-            D.definitions.add(ds, node);
-        }
-
-        // use
-        for (auto& ds : node->uses) {
-            node->defuse.add(findDefinitionsInBlock(block, ds));
-        }
+        if (node == to)
+            break;
+        D.update(node);
     }
+
+    return D;
 }
 
+
+// perform Lvn on all blocks
 void MemorySSATransformation::performLvn() {
     DBG_SECTION_BEGIN(dda, "Starting LVN");
     for (RWBBlock *block : graph.blocks()) {
@@ -164,37 +266,20 @@ void MemorySSATransformation::performLvn() {
     DBG_SECTION_END(dda, "LVN finished");
 }
 
+// take each use and compute def-use edges (adding PHI nodes if needed)
 void MemorySSATransformation::performGvn() {
     DBG_SECTION_BEGIN(dda, "Starting GVN");
     std::set<RWNode *> phis(_phis.begin(), _phis.end());
 
-    while(!phis.empty()) {
-        RWNode *phi = *(phis.begin());
-        phis.erase(phis.begin());
-
-        // get the definition from the PHI node
-        assert(phi->overwrites.size() == 1);
-        const auto& ds = *(phi->overwrites.begin());
-
-        auto block = phi->getBBlock();
-
-        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-            auto old_phis_size = _phis.size();
-
-            // find definitions of this memory in the predecessor blocks
-            phi->defuse.add(findDefinitions(*I, ds));
-
-            // Queue the new phi (if any) for processing.
-            if (_phis.size() != old_phis_size) {
-                assert(_phis.size() > old_phis_size);
-                for (auto i = old_phis_size; i < _phis.size(); ++i) {
-                    phis.insert(_phis[i]);
-                }
-            }
+    for (RWBBlock *block : graph.blocks()) {
+        for (RWNode *node : block->getNodes()) {
+            if (node->isUse())
+                node->defuse.add(findDefinitions(node));
         }
     }
     DBG_SECTION_END(dda, "GVN finished");
 
+/*
     DBG_SECTION_BEGIN(dda, "Caching reads of unknown memory (requested)");
     for (auto *block :graph.blocks()) {
         for (auto *node : block->getNodes()) {
@@ -204,6 +289,7 @@ void MemorySSATransformation::performGvn() {
         }
     }
     DBG_SECTION_END(dda, "Caching reads of unknown memory");
+*/
 }
 
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
@@ -239,9 +325,6 @@ std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
 
 std::vector<RWNode *>
 MemorySSATransformation::getDefinitions(RWNode *use) {
-    if (use->usesUnknown())
-        return findAllReachingDefinitions(use);
-
     return gatherNonPhisDefs(use->defuse);
 }
 
@@ -372,6 +455,20 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
             defs.add(tmpDefs);
         }
     }
+}
+
+void MemorySSATransformation::run() {
+    DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
+
+    if (graph.getBBlocks().empty()) {
+        graph.buildBBlocks();
+        _defs.reserve(graph.getBBlocks().size());
+    }
+
+    performLvn();
+    performGvn();
+
+    DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
 }
 
 } // namespace analysis
