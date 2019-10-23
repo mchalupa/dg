@@ -14,6 +14,7 @@
 
 #include "dg/analysis/ReadWriteGraph/ReadWriteGraph.h"
 
+#include "dg/ADT/Queue.h"
 #include "dg/util/debug.h"
 
 namespace dg {
@@ -26,19 +27,56 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     // information about definitions associated to each bblock
     struct Definitions {
+        bool _processed{false};
+
+        // definitions gathered at the end of this bblock
+        // (if you find the sought memory here,
+        // you got all definitions from this block)
         DefinitionsMap<RWNode> definitions;
-        // cache for all definitions that reach the end of this block
+        // all memory that is overwritten by this block (strong update)
+        // FIXME: we should have just a mapping from memory to disjunctive intervals
+        // as data structure here (if you find the sought memory here, you can
+        // terminate the search)
+        DefinitionsMap<RWNode> kills;
+        // cache for all definitions that reach the end of this block.
+        // You can terminate the search once you find this map and it is
+        // non-empty.
         DefinitionsMap<RWNode> allDefinitions;
+
+        // writes to unknown memory in this block
+        std::vector<RWNode*> unknownWrites;
+        // just a cache
+        std::vector<RWNode*> unknownReads;
+
+        void addUnknownWrite(RWNode *n) {
+            unknownWrites.push_back(n);
+        }
+
+        void addUnknownRead(RWNode *n) {
+            unknownReads.push_back(n);
+        }
+
+        const std::vector<RWNode *> getUnknownWrites() const {
+            return unknownWrites;
+        }
+
+        const std::vector<RWNode *> getUnknownReads() const {
+            return unknownReads;
+        }
+
+        void update(RWNode *);
+
+        // for on-demand analysis
+        bool isProcessed() const { return _processed; }
+        void setProcessed() { _processed = true; }
     };
 
     ////
     // LVN
     ///
-
-    // Find definitions of the def site and return def-use edges.
-    // For the (possibly) uncovered bytes create phi nodes (which are also returned
-    // as the definitions) in _this very block_. It is important for LVN.
-    std::vector<RWNode *> findDefinitionsInBlock(RWBBlock *, const DefSite&);
+    // Perform LVN up to a certain point.
+    // XXX: we could avoid this by (at least virtually) splitting blocks on uses.
+    Definitions findDefinitionsInBlock(RWNode *);
 
     ////
     // GVN
@@ -48,6 +86,17 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // as the definitions).
     std::vector<RWNode *> findDefinitions(RWBBlock *, const DefSite&);
 
+    ////
+    // GVN
+    //
+    // Find definitions for the given node (which is supposed to be a use)
+    std::vector<RWNode *> findDefinitions(RWNode *node);
+
+    std::vector<RWNode *> findDefinitionsInPredecessors(RWBBlock *block,
+                                                        const DefSite& ds);
+
+    void findPhiDefinitions(RWNode *phi);
+
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RWNode *> findAllReachingDefinitions(RWNode *from);
@@ -55,8 +104,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                                     RWBBlock *from,
                                     std::set<RWBBlock *>& visitedBlocks);
 
-    // all phi nodes added during transformation to SSA
+    void updateDefinitions(Definitions& D, RWNode *node);
+
     std::vector<RWNode *> _phis;
+    dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
 
 public:
@@ -67,18 +118,7 @@ public:
     MemorySSATransformation(ReadWriteGraph&& graph)
     : DataDependenceAnalysisImpl(std::move(graph)) {}
 
-    void run() override {
-        DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
-        if (graph.getBBlocks().empty()) {
-            graph.buildBBlocks();
-            _defs.reserve(graph.getBBlocks().size());
-        }
-
-        performLvn();
-        performGvn();
-
-        DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
-    }
+    void run() override;
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'

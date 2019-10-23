@@ -218,9 +218,12 @@ dumpDefinitions(LLVMDataDependenceAnalysis *DDA, RWBBlock *block, bool dot = fal
     auto *D = SSA->getBBlockDefinitions(block);
     if (!D)
         return;
+    printf("\\n====  defines ====\\n");
+    dumpDDIMap(D->definitions, dot);
+    printf("\\n====  kills ====\\n");
     dumpDDIMap(D->definitions, dot);
     if (!D->allDefinitions.empty()) {
-        printf("\\n==== all defs ====\\n");
+        printf("\\n==== all defs cache ====\\n");
         dumpDDIMap(D->allDefinitions, dot);
     }
 }
