@@ -69,9 +69,10 @@ public:
 
     void run() override {
         DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
-        // transform the graph to SSA
-        if (graph.getBBlocks().empty())
+        if (graph.getBBlocks().empty()) {
             graph.buildBBlocks();
+            _defs.reserve(graph.getBBlocks().size());
+        }
 
         performLvn();
         performGvn();
