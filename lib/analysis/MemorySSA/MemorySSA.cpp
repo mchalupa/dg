@@ -32,7 +32,8 @@ MemorySSATransformation::Definitions::update(RWNode *node) {
 
     // definitive definitions
     for (auto& ds : node->overwrites) {
-        assert(!ds.offset.isUnknown() && "Update on unknown offset");
+        assert((node->getType() == RWNodeType::PHI || // we allow ? for PHI nodes
+               !ds.offset.isUnknown()) && "Update on unknown offset");
         assert(!ds.target->isUnknown() && "Update on unknown memory");
 
         kills.add(ds, node);
