@@ -54,13 +54,20 @@ public:
 
     ~LLVMDataDependenceAnalysis();
 
-    void run() {
+    void buildGraph() {
         assert(builder);
         assert(pta);
 
         DDA.reset(createDDA());
-        assert(getRoot());
+        assert(getRoot() && "Failed building graph");
+    }
 
+    void run() {
+        if (!DDA) {
+            buildGraph();
+        }
+
+        assert(DDA);
         DDA->run();
     }
 

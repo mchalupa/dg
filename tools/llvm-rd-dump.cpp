@@ -411,6 +411,7 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     bool todot = false;
     bool threads = false;
+    bool graph_only = false;
     const char *module = nullptr;
     Offset::type field_sensitivity = Offset::UNKNOWN;
     bool rd_strong_update_unknown = false;
@@ -453,6 +454,8 @@ int main(int argc, char *argv[])
             verbose = true;
         } else if (strcmp(argv[i], "-dbg") == 0) {
             DBG_ENABLE();
+        } else if (strcmp(argv[i], "-graph-only") == 0) {
+            graph_only = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entryFunc = argv[i+1];
         } else {
@@ -511,9 +514,13 @@ int main(int argc, char *argv[])
         opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::rd;
     }
 
-    LLVMDataDependenceAnalysis DDA(M, &PTA, opts);
     tm.start();
-    DDA.run();
+    LLVMDataDependenceAnalysis DDA(M, &PTA, opts);
+    if (graph_only) {
+        DDA.buildGraph();
+    } else {
+        DDA.run();
+    }
     tm.stop();
     tm.report("INFO: Data dependence analysis took");
 
