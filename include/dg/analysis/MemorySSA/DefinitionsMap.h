@@ -37,6 +37,7 @@ private:
 
 public:
     void clear() { _definitions.clear(); }
+    void swap(DefinitionsMap& rhs) { _definitions.swap(rhs._definitions); }
     bool empty() const { return _definitions.empty(); }
 
     bool add(const DefSite& ds, NodeT *node) {
