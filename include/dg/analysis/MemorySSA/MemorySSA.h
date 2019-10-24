@@ -56,11 +56,11 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             unknownReads.push_back(n);
         }
 
-        const std::vector<RWNode *> getUnknownWrites() const {
+        const std::vector<RWNode *>& getUnknownWrites() const {
             return unknownWrites;
         }
 
-        const std::vector<RWNode *> getUnknownReads() const {
+        const std::vector<RWNode *>& getUnknownReads() const {
             return unknownReads;
         }
 
