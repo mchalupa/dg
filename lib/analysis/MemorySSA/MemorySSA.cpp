@@ -104,6 +104,23 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
 }
 
 ///
+// Add found definitions 'found' from a block to 'defs'.
+// Account for the cases when we found nothing and therefore we
+// want to add writes to unknown memory
+template <typename FoundT, typename DefsT> void
+addFoundDefinitions(std::vector<RWNode *>& defs,
+                    const FoundT& found,
+                    DefsT& D) {
+    if (found.empty()) {
+        defs.insert(defs.end(),
+                    D.getUnknownWrites().begin(),
+                    D.getUnknownWrites().end());
+    } else {
+        defs.insert(defs.end(), found.begin(), found.end());
+    }
+}
+
+///
 // Find the nodes that define the given def-site in the predecessors
 // of block.  Create PHI nodes if needed.
 std::vector<RWNode *>
@@ -121,13 +138,8 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     if (auto pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
         auto& D = _defs[pred];
-        if (pdefs.empty()) {
-            defs.insert(defs.end(),
-                        D.getUnknownWrites().begin(),
-                        D.getUnknownWrites().end());
-        } else {
-            defs.insert(defs.end(), pdefs.begin(), pdefs.end());
-        }
+
+        addFoundDefinitions(defs, pdefs, D);
 
         auto uncovered = D.uncovered(ds);
         for (auto& interval : uncovered) {
@@ -225,17 +237,11 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
         return std::vector<RWNode *>{defSet.begin(), defSet.end()};
     }
 
+    // XXX: wrap this into a get() method of Definitions
     auto defSet = D.definitions.get(ds);
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
 
-    // XXX: wrap this into a get() method of Definitions
-    if (defSet.empty()) {
-        defs.insert(defs.end(),
-                    D.getUnknownWrites().begin(),
-                    D.getUnknownWrites().end());
-    } else {
-        defs.insert(defs.end(), defSet.begin(), defSet.end());
-    }
+    addFoundDefinitions(defs, defSet, D);
 
     auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
