@@ -138,12 +138,17 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
         _phis.back()->addOverwrites(ds);
         // update definitions in the block -- this
         // phi node defines previously uncovered memory
-        assert(D.definitions.get(ds).empty());
-        D.definitions.update(ds, _phis.back());
-        D.kills.add(ds, _phis.back());
-        // to simulate the whole LVN, we must add also writes to unknown memory
-        if (!D.getUnknownWrites().empty()) {
-            D.definitions.add(ds, D.getUnknownWrites());
+        auto uncovered = D.uncovered(ds);
+        for (auto& interval : uncovered) {
+            DefSite uds{ds.target, interval.start, interval.length()};
+            assert(D.kills.get(uds).empty());
+            D.definitions.update(uds, _phis.back());
+            D.kills.add(uds, _phis.back());
+
+            // to simulate the whole LVN, we must add also writes to unknown memory
+            if (!D.getUnknownWrites().empty()) {
+                D.definitions.add(uds, D.getUnknownWrites());
+            }
         }
 
         // Inserting at the beginning of the block should not
