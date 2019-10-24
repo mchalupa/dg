@@ -19,10 +19,11 @@ class ReachingDefinitionsAnalysis;
 
 template <typename NodeT = RWNode>
 class DefinitionsMap {
-
+public:
     using OffsetsT = ADT::DisjunctiveIntervalMap<NodeT *>;
     using IntervalT = typename OffsetsT::IntervalT;
 
+private:
     std::map<NodeT *, OffsetsT> _definitions{};
 
     // transform (offset, lenght) from a DefSite into the interval
@@ -104,7 +105,7 @@ public:
 
     ///
     // Return intervals of bytes from 'ds' that are not defined by this map
-    std::vector<IntervalT> undefinedIntervals(const DefSite& ds) {
+    std::vector<IntervalT> undefinedIntervals(const DefSite& ds) const {
         auto it = _definitions.find(ds.target);
         if (it == _definitions.end())
             return {IntervalT(ds.offset, ds.offset + (ds.len - 1))};
