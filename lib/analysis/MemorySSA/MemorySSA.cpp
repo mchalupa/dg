@@ -12,7 +12,9 @@ namespace analysis {
 
 extern RWNode *UNKNOWN_MEMORY;
 
-// make this a method of Definitions
+/// ------------------------------------------------------------------
+// class Definitions
+/// ------------------------------------------------------------------
 void
 MemorySSATransformation::Definitions::update(RWNode *node) {
     // possible definitions
@@ -42,6 +44,11 @@ MemorySSATransformation::Definitions::update(RWNode *node) {
         addUnknownRead(node);
     }
 }
+
+
+/// ------------------------------------------------------------------
+// class MemorySSATransformation
+/// ------------------------------------------------------------------
 
 // find definitions of a given node
 std::vector<RWNode *>
