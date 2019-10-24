@@ -9,7 +9,7 @@
 // size 'size' and merge them
 void run(int size, int times = 100000)
 {
-    using namespace dg::analysis::rd;
+    using namespace dg::analysis;
 
     std::vector<RWNode> rdnodes(size, RWNode());
 
