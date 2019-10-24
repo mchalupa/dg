@@ -72,6 +72,14 @@ if (LLVM_DG)
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support})
 
+	add_executable(llvm-dda-compare llvm-dda-compare.cpp)
+	target_link_libraries(llvm-dda-compare PRIVATE LLVMrd)
+	target_link_libraries(llvm-dda-compare
+				PRIVATE ${llvm_core}
+				PRIVATE ${llvm_irreader}
+				PRIVATE ${llvm_analysis}
+				PRIVATE ${llvm_support})
+
 	add_executable(llvm-vr-dump llvm-vr-dump.cpp)
 	target_link_libraries(llvm-vr-dump
 				PRIVATE ${llvm_core}
