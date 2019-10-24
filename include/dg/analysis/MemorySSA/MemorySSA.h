@@ -66,6 +66,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
         void update(RWNode *);
 
+        auto uncovered(const DefSite& ds) const -> decltype(kills.undefinedIntervals(ds)) {
+            return kills.undefinedIntervals(ds);
+        }
+
         // for on-demand analysis
         bool isProcessed() const { return _processed; }
         void setProcessed() { _processed = true; }

@@ -82,7 +82,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
             defs.insert(defs.end(), defSet.begin(), defSet.end());
         }
 
-        auto uncovered = D.kills.undefinedIntervals(ds);
+        auto uncovered = D.uncovered(ds);
         for (auto& interval : uncovered) {
             auto preddefs
                 = findDefinitionsInPredecessors(block, {ds.target,
@@ -121,7 +121,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             defs.insert(defs.end(), pdefs.begin(), pdefs.end());
         }
 
-        auto uncovered = D.kills.undefinedIntervals(ds);
+        auto uncovered = D.uncovered(ds);
         for (auto& interval : uncovered) {
             auto preddefs
                 = findDefinitionsInPredecessors(pred, {ds.target,
@@ -224,7 +224,7 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
         defs.insert(defs.end(), defSet.begin(), defSet.end());
     }
 
-    auto uncovered = D.kills.undefinedIntervals(ds);
+    auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
         auto preddefs
             = findDefinitionsInPredecessors(block, {ds.target,
