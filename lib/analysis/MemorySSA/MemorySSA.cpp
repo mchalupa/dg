@@ -353,78 +353,6 @@ MemorySSATransformation::getDefinitions(RWNode *use) {
     return gatherNonPhisDefs(use->defuse);
 }
 
-std::vector<RWNode *>
-MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
-    DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
-    assert(from->getBBlock() && "The node has no BBlock");
-
-    auto block = from->getBBlock();
-    DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
-    std::set<RWBBlock *> visitedBlocks; // for terminating the search
-
-    ///
-    // -- Get the definitions from predecessors --
-    // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
-    // in which case we want to process it
-    if (auto singlePred = block->getSinglePredecessor()) {
-        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
-        // cache the found definitions
-        _defs[singlePred].allDefinitions = defs;
-    } else {
-        // for multiple predecessors, we must create a copy of the
-        // definitions that we have not found yet (a new copy for each
-        // iteration. Here we create one redundant copy, but what the hell...)
-        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-            //DefinitionsMap<RWNode> tmpDefs;
-            // NOTE: we cannot catch here because of the DFS nature of the search
-            //findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
-            //defs.add(tmpDefs);
-            //_defs[*I].allDefinitions = std::move(tmpDefs);
-            findAllReachingDefinitions(defs, *I, visitedBlocks);
-        }
-    }
-
-    ///
-    // get the definitions from this block (this is basically the LVN)
-    // We do it after searching predecessors, because we cache the
-    // definitions in predecessors.
-    ///
-    for (auto node : block->getNodes()) {
-        // run only from the beginning of the block up to the node
-        if (node == from)
-            break;
-
-        // weak update
-        for (auto& ds : node->defs) {
-            if (ds.target->isUnknown()) {
-                defs.addAll(node);
-                defs.add({ds.target, 0, Offset::UNKNOWN}, node);
-                continue;
-            }
-
-            defs.add(ds, node);
-        }
-
-        // strong update
-        for (auto& ds : node->overwrites) {
-            defs.update(ds, node);
-        }
-    }
-
-    std::set<RWNode *> foundDefs; // definitions that we found
-    for (auto& it : defs) {
-        for (auto& nds : it.second) {
-            foundDefs.insert(nds.second.begin(), nds.second.end());
-        }
-    }
-
-    ///
-    // Gather all the defintions
-    ///
-    DBG_SECTION_END(dda, "MemorySSA - finding all definitions done");
-    return gatherNonPhisDefs(foundDefs);
-}
-
 static void joinDefinitions(DefinitionsMap<RWNode>& from,
                             DefinitionsMap<RWNode>& to) {
     for (auto& it : from) {
@@ -481,6 +409,67 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
             defs.add(tmpDefs);
         }
     }
+}
+
+std::vector<RWNode *>
+MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
+    DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
+    assert(from->getBBlock() && "The node has no BBlock");
+
+    auto block = from->getBBlock();
+    DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
+    std::set<RWBBlock *> visitedBlocks; // for terminating the search
+
+    auto D = findDefinitionsInBlock(from);
+
+    ///
+    // -- Get the definitions from predecessors --
+    // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
+    // in which case we want to process it
+    if (auto singlePred = block->getSinglePredecessor()) {
+        // NOTE: we must start with emtpy defs,
+        // to gather all reaching definitions (due to caching)
+        assert(defs.empty());
+        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
+        // cache the found definitions
+        _defs[singlePred].allDefinitions = defs;
+    } else {
+        // for multiple predecessors, we must create a copy of the
+        // definitions that we have not found yet (a new copy for each
+        // iteration.
+        // NOTE: no caching here...
+        for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
+            DefinitionsMap<RWNode> tmpDefs = D.kills; // do not search for what we have already
+            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+            defs.add(tmpDefs);
+            // NOTE: we cannot catch here because of the DFS nature of the search
+            // (the found definitions does not contain _all_ reaching definitions)
+            //_defs[*I].allDefinitions = std::move(tmpDefs);
+        }
+    }
+
+    // create the final map of definitions reaching the 'from' node
+    joinDefinitions(defs, D.definitions);
+    defs.swap(D.definitions);
+
+    ///
+    // get the definitions from this block (this is basically the LVN)
+    // We do it after searching predecessors, because we cache the
+    // definitions in predecessors.
+    ///
+
+    std::set<RWNode *> foundDefs; // definitions that we found
+    for (auto& it : defs) {
+        for (auto& nds : it.second) {
+            foundDefs.insert(nds.second.begin(), nds.second.end());
+        }
+    }
+
+    ///
+    // Gather all the defintions
+    ///
+    DBG_SECTION_END(dda, "MemorySSA - finding all definitions done");
+    return gatherNonPhisDefs(foundDefs);
 }
 
 void MemorySSATransformation::run() {
