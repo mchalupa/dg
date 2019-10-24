@@ -341,9 +341,11 @@ static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
 
         // dump def-use edges
         for(RWNode *node : I->getNodes()) {
-            for (RWNode *def : node->defuse) {
-                printf("\tNODE%p->NODE%p [style=dotted]",
-                       static_cast<void*>(def), static_cast<void*>(node));
+            if (node->getType() == RWNodeType::PHI) {
+                for (RWNode *def : node->defuse) {
+                    printf("\tNODE%p->NODE%p [style=dotted]",
+                           static_cast<void*>(def), static_cast<void*>(node));
+                }
             }
             if (node->isUse()) {
                 for (RWNode *def : RD->getDefinitions(node)) {
