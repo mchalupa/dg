@@ -29,7 +29,7 @@ add_library(PTA SHARED
 )
 target_link_libraries(PTA PUBLIC DGAnalysis)
 
-add_library(RD SHARED
+add_library(dgdda SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/ReachingDefinitions.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/RDMap.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReadWriteGraph/RWNode.h
@@ -43,7 +43,7 @@ add_library(RD SHARED
 	analysis/ReadWriteGraph/ReadWriteGraph.cpp
 	analysis/MemorySSA/MemorySSA.cpp
 )
-target_link_libraries(RD PUBLIC DGAnalysis)
+target_link_libraries(dgdda PUBLIC DGAnalysis)
 
 
 if (LLVM_DG)
@@ -74,7 +74,7 @@ add_library(LLVMForkJoin SHARED
 
 target_link_libraries(LLVMForkJoin PRIVATE LLVMpta)
 
-add_library(LLVMrd SHARED
+add_library(dgllvmdda SHARED
 	llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.cpp
 	llvm/analysis/DataDependenceAnalysis/LLVMDataDependenceAnalysis.cpp
 	llvm/analysis/ForkJoin/ForkJoin.h
@@ -83,9 +83,9 @@ add_library(LLVMrd SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/DataDependence/DataDependence.h
 	llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.h
 )
-target_link_libraries(LLVMrd
+target_link_libraries(dgllvmdda
 			PUBLIC LLVMpta
-			PUBLIC RD
+			PUBLIC dgdda
 			PUBLIC LLVMForkJoin)
 
 add_library(dgThreadRegions SHARED "")
@@ -130,7 +130,7 @@ if(APPLE)
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
-  set_target_properties(LLVMrd PROPERTIES
+  set_target_properties(dgllvmdda PROPERTIES
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 endif(APPLE)
@@ -138,7 +138,7 @@ endif(APPLE)
 if (APPLE)
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
-				PUBLIC LLVMrd
+				PUBLIC dgllvmdda
 				PUBLIC dgThreadRegions
 				PUBLIC dgControlDependence
 				PRIVATE ${llvm_support}
@@ -149,12 +149,12 @@ if (APPLE)
 else()
 	target_link_libraries(LLVMdg
 				PUBLIC LLVMpta
-				PUBLIC LLVMrd
+				PUBLIC dgllvmdda
 				PUBLIC dgThreadRegions
 				PUBLIC dgControlDependence)
 endif(APPLE)
 
-install(TARGETS LLVMdg dgThreadRegions dgControlDependence LLVMpta LLVMrd PTA RD DGAnalysis
+install(TARGETS LLVMdg dgThreadRegions dgControlDependence LLVMpta dgllvmdda PTA dgdda DGAnalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)
