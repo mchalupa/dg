@@ -151,8 +151,10 @@ public:
     }
 
     LLVMPointerAnalysis *createPTA() {
+#ifdef HAVE_SVF
         if (_options.PTAOptions.isSVF())
             return new SVFPointerAnalysis(_M, _options.PTAOptions);
+#endif
 
         return new DGLLVMPointerAnalysis(_M, _options.PTAOptions);
     }
