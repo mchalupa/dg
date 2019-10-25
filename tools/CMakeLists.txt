@@ -64,9 +64,9 @@ if (LLVM_DG)
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support})
 
-	add_executable(llvm-rd-dump llvm-rd-dump.cpp)
-	target_link_libraries(llvm-rd-dump PRIVATE LLVMrd)
-	target_link_libraries(llvm-rd-dump
+	add_executable(llvm-dda-dump llvm-dda-dump.cpp)
+	target_link_libraries(llvm-dda-dump PRIVATE LLVMrd)
+	target_link_libraries(llvm-dda-dump
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}
@@ -116,7 +116,7 @@ if (LLVM_DG)
 		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
 
 	# copy also the wrapper scripts
-	install(FILES pta-show llvmrd-dump llvmdg-show llvm-slicer-c
+	install(FILES pta-show llvmdda-dump llvmdg-show llvm-slicer-c
 		DESTINATION bin)
 endif (LLVM_DG)
 

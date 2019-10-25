@@ -242,11 +242,11 @@ The tools subdirectory contains a set of useful programs for debugging
 and playing with the llvm bitcode. Except for the `llvm-slicer` you can find there:
 
 * `llvm-dg-dump`      - Dump the dependence graph for given program to graphviz format (to stdout)
-* `llvm-pta-dump`      - dump pointer subgraph and results of the points-to analysis to stdout
-* `llvm-rd-dump`      - display reaching definitions in llvm-bitcode
+* `llvm-pta-dump`     - dump pointer subgraph and results of the points-to analysis to stdout
+* `llvm-dda-dump`     - display reaching definitions in llvm-bitcode
 * `llvmdg-show`       - wrapper for llvm-dg-dump that displays the dependence graph in dot
-* `llvmrd-dump`       - wrapper for llvm-rd-dump that displays reaching definitions in dot
-* `pta-show`           - wrapper for llvm-pta-dump that prints the PS in grapviz to pdf
+* `llvmdda-dump`      - wrapper for llvm-dda-dump that displays reaching definitions in dot
+* `pta-show`          - wrapper for llvm-pta-dump that prints the PS in grapviz to pdf
 * `llvm-to-source`    - find lines from the source code that are in given file
 
 All these programs take as an input llvm bitcode, for example:
