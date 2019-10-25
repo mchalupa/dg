@@ -12,6 +12,8 @@
 
 using namespace dg::pta;
 
+using namespace dg::pta;
+
 namespace dg {
 namespace tests {
 
