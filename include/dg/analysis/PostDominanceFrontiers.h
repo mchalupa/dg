@@ -1,5 +1,5 @@
-#ifndef _DG_POST_DOMINANCE_FRONTIERS_H_
-#define _DG_POST_DOMINANCE_FRONTIERS_H_
+#ifndef DG_POST_DOMINANCE_FRONTIERS_H_
+#define DG_POST_DOMINANCE_FRONTIERS_H_
 
 #include <vector>
 
@@ -7,7 +7,6 @@
 #include "dg/analysis/legacy/BFS.h"
 
 namespace dg {
-namespace analysis {
 
 ///
 // Compute post-dominance frontiers
@@ -78,7 +77,6 @@ public:
     }
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_POST_DOMINANCE_FRONTIERS_H_
+#endif

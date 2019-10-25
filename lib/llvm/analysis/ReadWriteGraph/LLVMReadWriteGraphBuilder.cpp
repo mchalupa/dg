@@ -43,7 +43,7 @@
 #include "llvm/llvm-utils.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 struct ValInfo {
     const llvm::Value *v;
@@ -88,7 +88,7 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst)
 
     if (const llvm::AllocaInst *AI
             = llvm::dyn_cast<llvm::AllocaInst>(Inst))
-        node->setSize(getAllocatedSize(AI, &M->getDataLayout()));
+        node->setSize(llvmutils::getAllocatedSize(AI, &M->getDataLayout()));
 
     return node;
 }
@@ -126,11 +126,11 @@ RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst,
     };
 
     // infer allocated size
-    size = getConstantValue(op);
+    size = llvmutils::getConstantValue(op);
     if (size != 0 && type == AllocationFunction::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
-        size2 = getConstantValue(CInst->getOperand(0));
+        size2 = llvmutils::getConstantValue(CInst->getOperand(0));
         if (size2 != 0)
             size *= size2;
     }
@@ -150,7 +150,7 @@ RWNode *LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst)
         addArtificialNode(Inst, node);
     }
 
-    uint64_t size = getConstantValue(Inst->getOperand(1));
+    uint64_t size = llvmutils::getConstantValue(Inst->getOperand(1));
     if (size == 0)
         size = Offset::UNKNOWN;
     else
@@ -274,8 +274,8 @@ RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst)
     RWNode *node = create(RWNodeType::STORE);
     addNode(Inst, node);
 
-    uint64_t size = getAllocatedSize(Inst->getOperand(0)->getType(),
-                                     &M->getDataLayout());
+    uint64_t size = llvmutils::getAllocatedSize(Inst->getOperand(0)->getType(),
+                                                &M->getDataLayout());
     if (size == 0)
         size = Offset::UNKNOWN;
 
@@ -317,8 +317,8 @@ RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst)
     RWNode *node = create(RWNodeType::LOAD);
     addNode(Inst, node);
 
-    uint64_t size = getAllocatedSize(Inst->getType(),
-                                     &M->getDataLayout());
+    uint64_t size = llvmutils::getAllocatedSize(Inst->getType(),
+                                                &M->getDataLayout());
     if (size == 0)
         size = Offset::UNKNOWN;
 
@@ -889,10 +889,10 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
 template <typename T>
 std::pair<Offset, Offset> getFromTo(const llvm::CallInst *CInst, T what) {
     auto from = what->from.isOperand()
-                ? getConstantValue(CInst->getArgOperand(what->from.getOperand()))
+                ? llvmutils::getConstantValue(CInst->getArgOperand(what->from.getOperand()))
                   : what->from.getOffset();
     auto to = what->to.isOperand()
-                ? getConstantValue(CInst->getArgOperand(what->to.getOperand()))
+                ? llvmutils::getConstantValue(CInst->getArgOperand(what->to.getOperand()))
                   : what->to.getOffset();
 
     return {from, to};
@@ -1130,8 +1130,8 @@ std::pair<RWNode *, RWNode *> LLVMReadWriteGraphBuilder::buildGlobals()
 
         // add the initial global definitions
         if (auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
-            auto size = getAllocatedSize(GV->getType()->getContainedType(0),
-                                         &M->getDataLayout());
+            auto size = llvmutils::getAllocatedSize(GV->getType()->getContainedType(0),
+                                                    &M->getDataLayout());
             if (size == 0)
                 size = Offset::UNKNOWN;
 
@@ -1220,6 +1220,6 @@ std::vector<DefSite> LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *w
     return result;
 }
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 

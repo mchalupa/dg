@@ -18,7 +18,7 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void performLvn();
@@ -145,7 +145,7 @@ public:
 
 };
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif // DG_MEMORY_SSA_H_

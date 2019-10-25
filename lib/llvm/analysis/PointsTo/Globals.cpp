@@ -37,7 +37,6 @@
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 void
@@ -126,5 +125,4 @@ void LLVMPointerGraphBuilder::buildGlobals()
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

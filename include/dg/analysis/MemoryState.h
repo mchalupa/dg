@@ -1,5 +1,5 @@
-#ifndef _DG_MEMORY_STATE_H_
-#define _DG_MEMORY_STATE_H_
+#ifndef DG_MEMORY_STATE_H_
+#define DG_MEMORY_STATE_H_
 
 #include <map>
 #include "dg/util/cow_shared_ptr.h"
@@ -110,4 +110,4 @@ class COWMemoryState {
 
 } // namespace dg
 
-#endif // _DG_MEMORY_STATE_H_
+#endif

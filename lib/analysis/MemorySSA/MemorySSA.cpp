@@ -8,7 +8,7 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 extern RWNode *UNKNOWN_MEMORY;
 
@@ -486,5 +486,5 @@ void MemorySSATransformation::run() {
     DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
 }
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg

@@ -440,7 +440,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
         // via function pointer. If we have the points-to information,
         // create the subgraph
         if (!func && !CInst->isInlineAsm() && PTA) {
-            using namespace analysis::pta;
+            using namespace dg::pta;
             auto pts = PTA->getLLVMPointsTo(strippedValue);
             if (pts.empty()) {
                 llvmutils::printerr("Had no PTA node", strippedValue);

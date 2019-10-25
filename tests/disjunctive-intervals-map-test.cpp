@@ -10,9 +10,8 @@
 #include "dg/analysis/Offset.h"
 #include "dg/ADT/DisjunctiveIntervalMap.h"
 
-using namespace dg::analysis;
+using namespace dg;
 using dg::ADT::DisjunctiveIntervalMap;
-using dg::analysis::Offset;
 
 static std::ostream& operator<<(std::ostream& os, const std::vector<std::tuple<int,int,int>>& v) {
     os << "{";

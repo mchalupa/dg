@@ -46,9 +46,6 @@ namespace llvm {
 namespace dg {
 namespace llvmdg {
 
-using analysis::LLVMPointerAnalysisOptions;
-using analysis::LLVMDataDependenceAnalysisOptions;
-
 struct LLVMDependenceGraphOptions {
     LLVMPointerAnalysisOptions PTAOptions{};
     LLVMDataDependenceAnalysisOptions DDAOptions{};
@@ -63,7 +60,7 @@ struct LLVMDependenceGraphOptions {
     std::string entryFunction{"main"};
 
     void addAllocationFunction(const std::string& name,
-                               analysis::AllocationFunction F) {
+                               AllocationFunction F) {
         PTAOptions.addAllocationFunction(name, F);
         DDAOptions.addAllocationFunction(name, F);
     }

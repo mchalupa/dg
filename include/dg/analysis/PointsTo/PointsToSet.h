@@ -1,5 +1,5 @@
-#ifndef _DG_POINTS_TO_SET_H_
-#define _DG_POINTS_TO_SET_H_
+#ifndef DG_POINTS_TO_SET_H_
+#define DG_POINTS_TO_SET_H_
 
 #include "dg/analysis/PointsTo/PointsToSets/OffsetsSetPointsToSet.h"
 #include "dg/analysis/PointsTo/PointsToSets/SimplePointsToSet.h"
@@ -10,14 +10,12 @@
 #include "dg/analysis/PointsTo/PointsToSets/AlignedPointerIdPointsToSet.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 using PointsToSetT = OffsetsSetPointsToSet;
 using PointsToMapT = std::map<Offset, PointsToSetT>;
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_POINTS_TO_SET_H_
+#endif

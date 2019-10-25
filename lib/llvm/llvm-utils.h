@@ -74,12 +74,10 @@ inline bool callIsCompatible(const Function *F, const CallInst *CI)
 
     return true;
 }
-} // namespace llvmutils
 
 /* ----------------------------------------------
  * -- analysis helpers
  * ---------------------------------------------- */
-namespace analysis {
 
 inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
                                           const llvm::Value *ptr)
@@ -155,7 +153,6 @@ inline bool isConstantZero(const llvm::Value *val)
 /* ----------------------------------------------
  * -- pointer analysis helpers
  * ---------------------------------------------- */
-namespace pta {
 inline bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I)
 {
     return isConstantZero(I->getOperand(1));
@@ -189,9 +186,7 @@ inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty)
     return false;
 }
 
-} // namespace pta
-
-} // namespace analysis
+} // namespace llvmutils
 } // namespace dg
 
 #endif //  _DG_LLVM_UTILS_H_

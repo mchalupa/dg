@@ -6,7 +6,7 @@
 #include "dg/analysis/ReadWriteGraph/RWNode.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class RWBBlock {
     void _check() {
@@ -91,7 +91,7 @@ private:
     NodesT _nodes;
 };
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif //DG_RWBBLOCK_H_

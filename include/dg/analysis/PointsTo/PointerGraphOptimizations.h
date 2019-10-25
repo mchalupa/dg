@@ -1,10 +1,9 @@
-#ifndef _DG_POINTER_SUBGRAPH_OPTIMIZATIONS_H_
-#define _DG_POINTER_SUBGRAPH_OPTIMIZATIONS_H_
+#ifndef DG_POINTER_SUBGRAPH_OPTIMIZATIONS_H_
+#define DG_POINTER_SUBGRAPH_OPTIMIZATIONS_H_
 
 #include "PointsToMapping.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 class PSNoopRemover {
@@ -246,7 +245,6 @@ public:
 
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_POINTER_SUBGRAPH_OPTIMIZATIONS_H_
+#endif

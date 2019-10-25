@@ -71,7 +71,7 @@ struct DiscreteInterval {
 ///
 // Mapping of disjunctive discrete intervals of values
 // to sets of ValueT.
-template <typename ValueT, typename IntervalValueT = analysis::Offset>
+template <typename ValueT, typename IntervalValueT = Offset>
 class DisjunctiveIntervalMap {
 public:
     using IntervalT = DiscreteInterval<IntervalValueT>;

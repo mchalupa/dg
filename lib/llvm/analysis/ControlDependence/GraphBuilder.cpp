@@ -26,7 +26,7 @@
 #include "llvm/analysis/ForkJoin/ForkJoin.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
-using dg::analysis::ForkJoinAnalysis;
+using dg::ForkJoinAnalysis;
 
 namespace dg {
 namespace cd {

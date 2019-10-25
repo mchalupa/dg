@@ -25,7 +25,7 @@
 #include "dg/analysis/legacy/DataFlowAnalysis.h"
 #include "dg/llvm/analysis/DataDependence/DataDependence.h"
 
-using dg::analysis::LLVMDataDependenceAnalysis;
+using dg::dda::LLVMDataDependenceAnalysis;
 
 namespace llvm {
     class DataLayout;
@@ -37,7 +37,7 @@ namespace dg {
 class LLVMDependenceGraph;
 class LLVMNode;
 
-class LLVMDefUseAnalysis : public analysis::legacy::DataFlowAnalysis<LLVMNode>
+class LLVMDefUseAnalysis : public legacy::DataFlowAnalysis<LLVMNode>
 {
     LLVMDependenceGraph *dg;
     LLVMDataDependenceAnalysis *RD;

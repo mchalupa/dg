@@ -1,18 +1,16 @@
-#ifndef _DG_POINTER_SUBGRAPH_VALIDATOR_H_
-#define _DG_POINTER_SUBGRAPH_VALIDATOR_H_
+#ifndef DG_POINTER_SUBGRAPH_VALIDATOR_H_
+#define DG_POINTER_SUBGRAPH_VALIDATOR_H_
 
 #include <string>
 #include "dg/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
-namespace debug {
 
 
 /**
- * Take PointerGraph instance and check
- * whether it is not broken
+ * Take PointerGraph instance and check whether it is not broken
+ * FIXME: make this private to PointerGraph
  */
 class PointerGraphValidator {
     /* These methods return true if the graph is invalid */
@@ -47,11 +45,7 @@ public:
     const std::string& getWarnings() const { return warnings; }
 };
 
-} // namespace debug
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-
-
-#endif // _DG_POINTER_SUBGRAPH_VALIDATOR_H_
+#endif

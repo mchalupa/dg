@@ -65,7 +65,7 @@ int main(int argc, const char *argv[]) {
     opts.setEntryFunction("main");
     opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
     opts.threads = threads;
-    opts.setFieldSensitivity(dg::analysis::Offset::UNKNOWN);
+    opts.setFieldSensitivity(dg::Offset::UNKNOWN);
 
     dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), opts);
     pointsToAnalysis.run();

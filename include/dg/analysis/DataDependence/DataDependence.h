@@ -14,7 +14,7 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations
@@ -74,7 +74,7 @@ public:
 
 
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif // DG_DATA_DEPENDENCE_ANALYSIS_H_

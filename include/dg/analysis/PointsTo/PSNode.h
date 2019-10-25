@@ -1,5 +1,5 @@
-#ifndef _DG_PS_NODE_H_
-#define _DG_PS_NODE_H_
+#ifndef DG_PS_NODE_H_
+#define DG_PS_NODE_H_
 
 #include <cassert>
 #include <cstdarg>
@@ -15,7 +15,6 @@
 #include "dg/analysis/SubgraphNode.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 enum class PSNodeType {
@@ -746,7 +745,6 @@ public:
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
 #endif

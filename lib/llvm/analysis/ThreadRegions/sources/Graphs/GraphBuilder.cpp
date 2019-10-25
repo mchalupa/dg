@@ -15,7 +15,7 @@
 
 using namespace llvm;
 
-using dg::analysis::ForkJoinAnalysis;
+using dg::ForkJoinAnalysis;
 
 GraphBuilder::GraphBuilder(dg::DGLLVMPointerAnalysis *pointsToAnalysis):pointsToAnalysis_(pointsToAnalysis)
 {}
@@ -293,7 +293,7 @@ bool GraphBuilder::matchForksAndJoins() {
 }
 
 bool GraphBuilder::matchLocksAndUnlocks() {
-    using namespace dg::analysis::pta;
+    using namespace dg::pta;
     bool changed = false;
     for (auto lock : llvmToLocks_) {
         auto lockMutexPtr = pointsToAnalysis_->getPointsToNode(lock.first);

@@ -1,5 +1,5 @@
-#ifndef _DG_REACHING_DEFINITIONS_ANALYSIS_H_
-#define _DG_REACHING_DEFINITIONS_ANALYSIS_H_
+#ifndef DG_REACHING_DEFINITIONS_ANALYSIS_H_
+#define DG_REACHING_DEFINITIONS_ANALYSIS_H_
 
 #include <vector>
 #include <cassert>
@@ -14,7 +14,7 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations
@@ -47,7 +47,7 @@ public:
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
 };
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif //  _DG_REACHING_DEFINITIONS_ANALYSIS_H_

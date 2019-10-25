@@ -6,7 +6,7 @@
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class RWNode;
 
@@ -255,5 +255,5 @@ BasicRDMap::getObjectRange(const DefSite& ds) const
     return std::equal_range(_defs.begin(), _defs.end(), what, comp);
 }
 
-} // analysis
+} // dda
 } // dg

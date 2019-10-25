@@ -4,9 +4,7 @@
 #include "dg/analysis/PointsTo/PointerGraphValidator.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
-namespace debug {
 
 static void dumpNode(const PSNode *nd, std::string& errors) {
   errors +=  std::string(PSNodeTypeToCString(nd->getType())) + " with ID " +
@@ -263,8 +261,6 @@ bool PointerGraphValidator::validate() {
 }
 
 
-} // namespace debug
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 

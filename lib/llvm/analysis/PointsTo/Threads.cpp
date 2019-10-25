@@ -46,7 +46,6 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 void LLVMPointerGraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite) {
@@ -197,17 +196,17 @@ LLVMPointerGraphBuilder::createPthreadExit(const llvm::CallInst *CInst) {
 
 bool LLVMPointerGraphBuilder::matchJoinToRightCreate(PSNode *joinNode) {
     using namespace llvm;
-    using namespace dg::analysis::pta;
+    using namespace dg::pta;
     PSNodeJoin *join = PSNodeJoin::get(joinNode);
     PSNode *pthreadJoinCall = join->getPairedNode();
-    
+
     PSNode *loadNode = pthreadJoinCall->getOperand(0);
     PSNode *joinThreadHandlePtr = loadNode->getOperand(0);
     bool changed = false;
     for (auto fork : getForks()) {
         auto pthreadCreateCall = fork->getPairedNode();
         auto createThreadHandlePtr = pthreadCreateCall->getOperand(0);
- 
+
         std::set<PSNode *> threadHandleIntersection;
         for (const auto& createPointsTo : createThreadHandlePtr->pointsTo) {
             for (const auto& joinPointsTo : joinThreadHandlePtr->pointsTo) {
@@ -217,7 +216,7 @@ bool LLVMPointerGraphBuilder::matchJoinToRightCreate(PSNode *joinNode) {
             }
         }
 
-        
+
         if (!threadHandleIntersection.empty()) {//TODO refactor this into method for finding new functions
             PSNode *func = pthreadCreateCall->getOperand(2);
             const llvm::Value *V = func->getUserData<llvm::Value>();
@@ -238,5 +237,4 @@ bool LLVMPointerGraphBuilder::matchJoinToRightCreate(PSNode *joinNode) {
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

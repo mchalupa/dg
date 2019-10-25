@@ -1,8 +1,10 @@
-#ifndef _DG_GENERIC_CALLGRAPH_H_
-#define _DG_GENERIC_CALLGRAPH_H_
+#ifndef DG_GENERIC_CALLGRAPH_H_
+#define DG_GENERIC_CALLGRAPH_H_
 
 #include <map>
 #include <vector>
+
+namespace dg {
 
 template <typename ValueT>
 class GenericCallGraph {
@@ -74,4 +76,6 @@ public:
     auto end() const -> decltype(_mapping.end()) { return _mapping.end(); }
 };
 
-#endif // _DG_GENERIC_CALLGRAPH_H_
+} // namespace dg
+
+#endif

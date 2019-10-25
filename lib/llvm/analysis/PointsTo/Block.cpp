@@ -28,7 +28,6 @@
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 void LLVMPointerGraphBuilder::addPHIOperands(const llvm::Function &F)
@@ -76,5 +75,4 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

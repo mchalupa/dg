@@ -486,8 +486,8 @@ private:
     std::set<NodeT *> callSites;
 
     // auxiliary data for different analyses
-    analysis::legacy::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::legacy::BBlockAnalysis<NodeT>;
+    legacy::AnalysesAuxiliaryData analysisAuxData;
+    friend class legacy::BBlockAnalysis<NodeT>;
 };
 
 } // namespace dg

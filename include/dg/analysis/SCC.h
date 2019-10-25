@@ -1,5 +1,5 @@
-#ifndef _DG_SCC_H_
-#define  _DG_SCC_H_
+#ifndef DG_SCC_H_
+#define DG_SCC_H_
 
 #include <vector>
 #include <set>
@@ -7,7 +7,6 @@
 #include "dg/ADT/Queue.h"
 
 namespace dg {
-namespace analysis {
 
 // implementation of tarjan's algorithm for
 // computing strongly connected components
@@ -176,6 +175,6 @@ public:
     }
 };
 
-} // analysis
 } // dg
-#endif //  _DG_SCC_H_
+
+#endif

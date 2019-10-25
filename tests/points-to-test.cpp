@@ -10,11 +10,10 @@
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 
+using namespace dg::pta;
+
 namespace dg {
 namespace tests {
-
-using namespace analysis::pta;
-using analysis::Offset;
 
 template <typename PTStoT>
 class PointsToTest : public Test
@@ -24,7 +23,6 @@ public:
 
     void store_load()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -46,7 +44,6 @@ public:
 
     void store_load2()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -93,7 +90,6 @@ public:
 
     void store_load3()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -122,7 +118,6 @@ public:
 
     void store_load4()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -154,7 +149,6 @@ public:
 
     void store_load5()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -191,7 +185,6 @@ public:
 
     void gep1()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -222,7 +215,6 @@ public:
 
     void gep2()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -255,7 +247,6 @@ public:
 
     void gep3()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -293,7 +284,6 @@ public:
 
     void gep4()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -335,7 +325,6 @@ public:
 
     void gep5()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -385,7 +374,6 @@ public:
 
     void nulltest()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *B = PS.create(PSNodeType::ALLOC);
@@ -405,7 +393,6 @@ public:
 
     void constant_store()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -431,7 +418,6 @@ public:
 
     void load_from_zeroed()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNodeAlloc *B = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -450,7 +436,6 @@ public:
 
     void load_from_unknown_offset()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -479,7 +464,6 @@ public:
 
     void load_from_unknown_offset2()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -508,7 +492,6 @@ public:
 
     void load_from_unknown_offset3()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -535,7 +518,6 @@ public:
 
     void memcpy_test()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -592,7 +574,6 @@ public:
 
     void memcpy_test2()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -649,7 +630,6 @@ public:
 
     void memcpy_test3()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -706,7 +686,6 @@ public:
 
     void memcpy_test4()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -755,7 +734,6 @@ public:
 
     void memcpy_test5()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -800,7 +778,6 @@ public:
 
     void memcpy_test6()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNode *A = PS.create(PSNodeType::ALLOC);
@@ -841,7 +818,6 @@ public:
 
     void memcpy_test7()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -886,7 +862,6 @@ public:
 
     void memcpy_test8()
     {
-        using namespace analysis;
 
         PointerGraph PS;
         PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
@@ -963,20 +938,20 @@ public:
 };
 
 class FlowInsensitivePointsToTest
-    : public PointsToTest<analysis::pta::PointerAnalysisFI>
+    : public PointsToTest<pta::PointerAnalysisFI>
 {
 public:
     FlowInsensitivePointsToTest()
-        : PointsToTest<analysis::pta::PointerAnalysisFI>
+        : PointsToTest<pta::PointerAnalysisFI>
           ("flow-insensitive points-to test") {}
 };
 
 class FlowSensitivePointsToTest
-    : public PointsToTest<analysis::pta::PointerAnalysisFS>
+    : public PointsToTest<pta::PointerAnalysisFS>
 {
 public:
     FlowSensitivePointsToTest()
-        : PointsToTest<analysis::pta::PointerAnalysisFS>
+        : PointsToTest<pta::PointerAnalysisFS>
           ("flow-sensitive points-to test") {}
 };
 
@@ -989,7 +964,7 @@ public:
 
     void unknown_offset1()
     {
-        using namespace dg::analysis::pta;
+        using namespace dg::pta;
         PointerGraph PS;
         PSNode *N1 = PS.create(PSNodeType::ALLOC);
         PSNode *N2 = PS.create(PSNodeType::LOAD, N1);

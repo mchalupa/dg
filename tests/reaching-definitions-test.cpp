@@ -4,7 +4,7 @@
 #include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 
-using namespace dg::analysis;
+using namespace dg::dda;
 
 /*
 #ifdef DEBUG_ENABLED

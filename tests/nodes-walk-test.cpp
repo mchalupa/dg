@@ -5,7 +5,7 @@
 #include <dg/ADT/Queue.h>
 #include <set>
 
-using namespace dg::analysis;
+using namespace dg;
 
 struct Node {
     std::vector<Node *> successors;

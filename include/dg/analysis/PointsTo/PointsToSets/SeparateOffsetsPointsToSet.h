@@ -8,7 +8,6 @@
 #include <vector>
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 class PSNode;
@@ -188,7 +187,6 @@ public:
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
 #endif /* SEPARATEOFFSETSPOINTSTOSET_H */

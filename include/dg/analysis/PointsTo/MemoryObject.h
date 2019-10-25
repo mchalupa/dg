@@ -1,5 +1,5 @@
-#ifndef _DG_MEMORY_OBJECT_H_
-#define _DG_MEMORY_OBJECT_H_
+#ifndef DG_MEMORY_OBJECT_H_
+#define DG_MEMORY_OBJECT_H_
 
 #include <map>
 #include <unordered_map>
@@ -14,7 +14,6 @@
 #include "PointsToSet.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 struct MemoryObject
@@ -107,7 +106,6 @@ struct MemoryObject
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_MEMORY_OBJECT_H_
+#endif // DG_MEMORY_OBJECT_H_

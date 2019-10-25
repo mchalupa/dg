@@ -1,10 +1,9 @@
-#ifndef _DG_POINTER_ANALYSIS_OPTIONS_H_
-#define _DG_POINTER_ANALYSIS_OPTIONS_H_
+#ifndef DG_POINTER_ANALYSIS_OPTIONS_H_
+#define DG_POINTER_ANALYSIS_OPTIONS_H_
 
 #include "dg/analysis/AnalysisOptions.h"
 
 namespace dg {
-namespace analysis {
 
 struct PointerAnalysisOptions : AnalysisOptions {
     // Preprocess GEP nodes such that the offset
@@ -23,7 +22,6 @@ struct PointerAnalysisOptions : AnalysisOptions {
     PointerAnalysisOptions& setPreprocessGeps(bool b)  { preprocessGeps = b; return *this;}
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_POINTER_ANALYSIS_OPTIONS_H_
+#endif

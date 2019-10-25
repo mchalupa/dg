@@ -1,11 +1,10 @@
-#ifndef _DG_LEGACY_NODES_WALK_H_
-#define _DG_LEGACY_NODES_WALK_H_
+#ifndef DG_LEGACY_NODES_WALK_H_
+#define DG_LEGACY_NODES_WALK_H_
 
 #include "dg/DGParameters.h"
 #include "dg/analysis/legacy/Analysis.h"
 
 namespace dg {
-namespace analysis {
 namespace legacy {
 
 enum NodesWalkFlags {
@@ -394,7 +393,6 @@ private:
 #endif
 
 } // legacy
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_NODES_WALK_H_
+#endif

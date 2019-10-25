@@ -49,7 +49,7 @@
 #include "TimeMeasure.h"
 
 using namespace dg;
-using namespace dg::analysis::pta;
+using namespace dg::pta;
 using dg::debug::TimeMeasure;
 using llvm::errs;
 
@@ -472,15 +472,15 @@ int main(int argc, char *argv[])
     // the analysis data (like memory objects) which may be needed
     if (type == FLOW_INSENSITIVE) {
         PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<analysis::pta::PointerAnalysisFI>()
+            PTA.createPTA<pta::PointerAnalysisFI>()
             );
     } else if (type == WITH_INVALIDATE) {
         PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<analysis::pta::PointerAnalysisFSInv>()
+            PTA.createPTA<pta::PointerAnalysisFSInv>()
             );
     } else {
         PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<analysis::pta::PointerAnalysisFS>()
+            PTA.createPTA<pta::PointerAnalysisFS>()
             );
     }
 

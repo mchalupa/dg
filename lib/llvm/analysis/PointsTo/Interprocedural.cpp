@@ -28,7 +28,6 @@
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
@@ -219,5 +218,4 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
 
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

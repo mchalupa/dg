@@ -4,7 +4,6 @@
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 
 namespace dg {
-namespace analysis {
 
 ///
 // Analyse which functions are spawned by threads
@@ -29,6 +28,6 @@ public:
     std::vector<const llvm::Value*> joinFunctions(const llvm::Value*);
 };
 
-} // namespace analysis
 } // namespace dg
-#endif // DG_FORK_JOIN_ANALYSIS_H_
+
+#endif

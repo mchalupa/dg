@@ -35,12 +35,10 @@
 
 namespace dg {
 
-using analysis::LLVMPointerAnalysisOptions;
-using analysis::pta::PointerGraph;
-using analysis::pta::PSNode;
-using analysis::pta::LLVMPointerGraphBuilder;
-using analysis::pta::Pointer;
-using analysis::Offset;
+using pta::PointerGraph;
+using pta::PSNode;
+using pta::LLVMPointerGraphBuilder;
+using pta::Pointer;
 
 ///
 // Interface for LLVM pointer analysis
@@ -94,7 +92,7 @@ public:
 
     // build new subgraphs on calls via pointer
     bool functionPointerCall(PSNode *callsite, PSNode *called) override {
-        using namespace analysis::pta;
+        using namespace pta;
         const llvm::Function *F
             = llvm::dyn_cast<llvm::Function>(called->getUserData<llvm::Value>());
         // with vararg it may happen that we get pointer that
@@ -112,7 +110,7 @@ public:
                     return true;
                 }
             }
-            return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
+            return callsite->getPairedNode()->addPointsTo(UnknownPointer);
         }
 
         if (!LLVMPointerGraphBuilder::callIsCompatible(callsite, called)) {
@@ -140,7 +138,7 @@ public:
 
     bool handleFork(PSNode *forkNode, PSNode *called) override {
         using namespace llvm;
-        using namespace dg::analysis::pta;
+        using namespace dg::pta;
 
         assert(called->getType() == PSNodeType::FUNCTION
                 && "The called value is not a function");
@@ -186,7 +184,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
 
     const PointsToSetT& getUnknownPTSet() const {
         static const PointsToSetT _unknownPTSet
-            = PointsToSetT({Pointer{analysis::pta::UNKNOWN_MEMORY, 0}});
+            = PointsToSetT({Pointer{pta::UNKNOWN_MEMORY, 0}});
         return _unknownPTSet;
     }
 
@@ -287,7 +285,7 @@ public:
         }
 
 /*
-        analysis::pta::PointerGraphOptimizer optimizer(PS);
+        pta::PointerGraphOptimizer optimizer(PS);
         optimizer.run();
 
         if (optimizer.getNumOfRemovedNodes() > 0)
@@ -296,7 +294,7 @@ public:
         llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
 
 #ifndef NDEBUG
-        analysis::pta::debug::LLVMPointerGraphValidator validator(_builder->getPS());
+        pta::debug::LLVMPointerGraphValidator validator(_builder->getPS());
         if (validator.validate()) {
             llvm::errs() << "Pointer Subgraph is broken!\n";
             llvm::errs() << "This happend after optimizing the graph.";
@@ -317,13 +315,13 @@ public:
 
         if (options.isFS()) {
             // FIXME: make a interface with run() method
-            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFS> PTA(PS, _builder.get());
+            DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS> PTA(PS, _builder.get());
             PTA.run();
         } else if (options.isFI()) {
-            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFI> PTA(PS, _builder.get());
+            DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI> PTA(PS, _builder.get());
             PTA.run();
         } else if (options.isFSInv()) {
-            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
+            DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
             PTA.run();
         } else {
             assert(0 && "Wrong pointer analysis");
@@ -336,8 +334,7 @@ public:
     // the analysis data as the run() (like memory objects and so on).
     // run() preserves only PointerGraph and the builder
     template <typename PTType>
-    analysis::pta::PointerAnalysis *createPTA()
-    {
+    pta::PointerAnalysis *createPTA() {
         buildSubgraph();
         return new DGLLVMPointerAnalysisImpl<PTType>(PS, _builder.get());
     }

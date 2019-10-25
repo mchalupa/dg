@@ -17,7 +17,6 @@
 #include <unordered_map>
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // special nodes and pointers to them
@@ -417,7 +416,6 @@ getReachableNodes(PSNode *n,
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
 #endif

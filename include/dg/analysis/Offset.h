@@ -1,5 +1,5 @@
-#ifndef _DG_OFFSET_H_
-#define _DG_OFFSET_H_
+#ifndef DG_OFFSET_H_
+#define DG_OFFSET_H_
 
 #include <cstdint>
 
@@ -8,7 +8,6 @@
 #endif // not NDEBUG
 
 namespace dg {
-namespace analysis {
 
 // just a wrapper around uint64_t to
 // handle Offset::UNKNOWN somehow easily
@@ -158,7 +157,6 @@ struct Offset
     type offset;
 };
 
-} // namespace analysis
 } // namespace dg
 
 #endif

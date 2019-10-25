@@ -19,9 +19,7 @@
 #include "llvm/analysis/PointsTo/PointerGraphValidator.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
-namespace debug {
 
 static const llvm::Value *getValue(const PSNode *nd) {
     return nd->getUserData<llvm::Value>();
@@ -49,8 +47,6 @@ bool LLVMPointerGraphValidator::reportInvalOperands(const PSNode *nd, const std:
 }
 
 
-} // namespace debug
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 

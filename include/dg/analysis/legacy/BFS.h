@@ -1,11 +1,10 @@
-#ifndef _DG_LEGACY_BFS_H_
-#define _DG_LEGACY_BFS_H_
+#ifndef DG_LEGACY_BFS_H_
+#define DG_LEGACY_BFS_H_
 
 #include "dg/analysis/legacy/NodesWalk.h"
 #include "dg/ADT/Queue.h"
 
 namespace dg {
-namespace analysis {
 namespace legacy {
 
 enum BFSFlags {
@@ -91,7 +90,6 @@ private:
 #endif // ENABLE_CFG
 
 } // namespace legacy
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_LEGACY_BFS_H_
+#endif

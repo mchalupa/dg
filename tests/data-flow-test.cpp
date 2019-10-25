@@ -9,12 +9,12 @@
 namespace dg {
 namespace tests {
 
-class DataFlowA : public analysis::legacy::DataFlowAnalysis<TestNode>
+class DataFlowA : public legacy::DataFlowAnalysis<TestNode>
 {
 public:
     DataFlowA(TestBBlock *B,
               bool (*ron)(TestNode *), uint32_t fl = 0)
-        : analysis::legacy::DataFlowAnalysis<TestNode>(B, fl),
+        : legacy::DataFlowAnalysis<TestNode>(B, fl),
           run_on_node(ron) {}
 
     /* virtual */
@@ -195,8 +195,8 @@ public:
               stats.getIterationsNum());
 
         DataFlowA dfa2(d->getEntryBB(), one_change,
-                       analysis::legacy::DATAFLOW_INTERPROCEDURAL |
-                       analysis::legacy::DATAFLOW_BB_NO_CALLSITES);
+                       legacy::DATAFLOW_INTERPROCEDURAL |
+                       legacy::DATAFLOW_BB_NO_CALLSITES);
         dfa2.run();
 
         for (int i = 0; i < NODES_NUM; ++i) {
@@ -243,7 +243,7 @@ public:
         // BBlocks now keep call-sites information, so now
         // this should work too
         DataFlowA dfa3(d->getEntryBB(), one_change,
-                       analysis::legacy::DATAFLOW_INTERPROCEDURAL);
+                       legacy::DATAFLOW_INTERPROCEDURAL);
         dfa3.run();
 
         for (int i = 0; i < NODES_NUM; ++i) {

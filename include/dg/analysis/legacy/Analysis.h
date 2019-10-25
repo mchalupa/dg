@@ -1,8 +1,7 @@
-#ifndef _DG_LEGACY_ANALYSIS_H_
-#define _DG_LEGACY_ANALYSIS_H_
+#ifndef DG_LEGACY_ANALYSIS_H_
+#define DG_LEGACY_ANALYSIS_H_
 
 namespace dg {
-namespace analysis {
 namespace legacy {
 
 // data for analyses, stored in nodes
@@ -56,7 +55,6 @@ protected:
 };
 
 } // namespace legacy
-} // namespace analysis
 } // namespace dg
 
 namespace dg {
@@ -64,7 +62,6 @@ namespace dg {
 // forward declaration of BBlock
 template <typename NodeT> class BBlock;
 
-namespace analysis {
 namespace legacy {
 
 /// --------------------------------------------------------
@@ -84,7 +81,6 @@ public:
 
 
 } // namespace legacy
-} // namespace analysis
 } // namespace dg
 
-#endif //  _DG_LEGACY_ANALYSIS_H_
+#endif

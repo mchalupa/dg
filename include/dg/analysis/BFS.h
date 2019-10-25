@@ -1,5 +1,5 @@
-#ifndef _DG_BFS_H_
-#define _DG_BFS_H_
+#ifndef DG_BFS_H_
+#define DG_BFS_H_
 
 #include "dg/analysis/NodesWalk.h"
 #include "dg/ADT/Queue.h"
@@ -7,7 +7,6 @@
 using dg::ADT::QueueFIFO;
 
 namespace dg {
-namespace analysis {
 
 template <typename Node,
           typename VisitTracker = SetVisitTracker<Node>,
@@ -20,7 +19,6 @@ struct BFS : public NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser
     : NodesWalk<Node, QueueFIFO<Node *>, VisitTracker, EdgeChooser>(std::move(tracker), std::move(chooser)) {}
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_BFS_H_
+#endif

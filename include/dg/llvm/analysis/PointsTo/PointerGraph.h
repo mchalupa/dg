@@ -33,8 +33,6 @@
 
 
 namespace dg {
-
-namespace analysis {
 namespace pta {
 
 class LLVMPointerGraphBuilder
@@ -462,6 +460,5 @@ inline bool isInvalid(const llvm::Value *val, bool invalidate_nodes)
 
 } // namespace pta
 } // namespace dg
-} // namespace analysis
 
 #endif

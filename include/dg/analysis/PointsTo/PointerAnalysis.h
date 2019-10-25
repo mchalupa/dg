@@ -1,5 +1,5 @@
-#ifndef _DG_POINTER_ANALYSIS_H_
-#define _DG_POINTER_ANALYSIS_H_
+#ifndef DG_POINTER_ANALYSIS_H_
+#define DG_POINTER_ANALYSIS_H_
 
 #include <cassert>
 #include <vector>
@@ -11,7 +11,6 @@
 #include "dg/ADT/Queue.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // special nodes and pointers to them
@@ -195,7 +194,6 @@ private:
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
 #endif

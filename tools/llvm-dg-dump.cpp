@@ -169,10 +169,10 @@ int main(int argc, char *argv[])
 
     if (strcmp(rda, "dataflow") == 0) {
         options.DDAOptions.analysisType
-            = analysis::LLVMDataDependenceAnalysisOptions::AnalysisType::rd;
+            = LLVMDataDependenceAnalysisOptions::AnalysisType::rd;
     } else if (strcmp(rda, "ssa") == 0) {
         options.DDAOptions.analysisType
-            = analysis::LLVMDataDependenceAnalysisOptions::AnalysisType::ssa;
+            = LLVMDataDependenceAnalysisOptions::AnalysisType::ssa;
     } else {
         llvm::errs() << "Unknown reaching definitions analysis, try: dataflow, ssa\n";
         abort();
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
 
         dg->getCallSites(sc, &callsites);
 
-        LLVMSlicer slicer;
+        llvmdg::LLVMSlicer slicer;
 
         if (strcmp(slicing_criterion, "ret") == 0) {
             if (mark_only)
@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
             std::ofstream ofs(fl);
             llvm::raw_os_ostream output(ofs);
 
-            analysis::SlicerStatistics& st = slicer.getStatistics();
+            SlicerStatistics& st = slicer.getStatistics();
             errs() << "INFO: Sliced away " << st.nodesRemoved
                    << " from " << st.nodesTotal << " nodes\n";
 

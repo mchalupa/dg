@@ -60,9 +60,7 @@
 
 namespace dg {
 
-using analysis::LLVMPointerAnalysisOptions;
-using analysis::pta::Pointer;
-using analysis::Offset;
+using pta::Pointer;
 
 /// Implementation of LLVMPointsToSet that iterates
 //  over the DG's points-to set

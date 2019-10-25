@@ -22,9 +22,8 @@
 
 namespace dg {
 
-using analysis::pta::PointsToSetT;
-using analysis::pta::PSNode;
-using analysis::Offset;
+using pta::PointsToSetT;
+using pta::PSNode;
 
 ///
 // LLVM pointer

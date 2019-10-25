@@ -1,11 +1,10 @@
-#ifndef _DG_NODES_WALK_H_
-#define _DG_NODES_WALK_H_
+#ifndef DG_NODES_WALK_H_
+#define DG_NODES_WALK_H_
 
 #include <set>
 #include <initializer_list>
 
 namespace dg {
-namespace analysis {
 
 // universal but not very efficient visits tracker
 template <typename Node>
@@ -137,7 +136,6 @@ public:
     }
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_NODES_WALK_H_
+#endif
