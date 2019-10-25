@@ -15,13 +15,13 @@ elif which evince &>/dev/null; then
 	GUI=evince
 fi
 
-`dirname $0`/llvm-rd-dump -dot $@ > _rd.dot
+`dirname $0`/llvm-dda-dump -dot $@ > _dda.dot
 
 if [ $DIRECTDOT -eq 1 ]; then
-	$GUI _rd.dot
-	rm _rd.dot
+	$GUI _dda.dot
+	rm _dda.dot
 else
-	dot -Tpdf -o _rd.pdf _rd.dot
-	$GUI _rd.pdf
-	rm _rd.pdf _rd.dot
+	dot -Tpdf -o _dda.pdf _dda.dot
+	$GUI _dda.pdf
+	rm _dda.pdf _dda.dot
 fi
