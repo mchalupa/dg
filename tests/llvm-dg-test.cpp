@@ -3,7 +3,7 @@
 #include <cstdio>
 
 #include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/analysis/DFS.h"
+#include "dg/DFS.h"
 #include "test-runner.h"
 
 

@@ -5,8 +5,8 @@
 #include <fstream>
 #include <set>
 
-#include "DependenceGraph.h"
-#include "analysis/DFS.h"
+#include "dg/DependenceGraph.h"
+#include "dg/DFS.h"
 
 namespace dg {
 namespace debug {

@@ -38,7 +38,7 @@
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/ADT/Queue.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 using namespace dg;
 

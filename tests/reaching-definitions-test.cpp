@@ -1,8 +1,8 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/ReachingDefinitions/RDMap.h"
 
 using namespace dg::dda;
 

@@ -1,8 +1,8 @@
-#include "dg/analysis/Offset.h"
+#include "dg/Offset.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
-#include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
+#include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)

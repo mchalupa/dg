@@ -3,7 +3,7 @@
 
 #include "DGParameters.h"
 #include "ADT/DGContainer.h"
-#include "analysis/legacy/Analysis.h"
+#include "legacy/Analysis.h"
 
 namespace dg {
 

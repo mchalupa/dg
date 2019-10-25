@@ -39,12 +39,12 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/Pointer.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/PointerAnalysis/PointerAnalysisFS.h"
+#include "dg/PointerAnalysis/Pointer.h"
 
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/DataDependence/DataDependence.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
 
 #include "dg/util/debug.h"
 #include "TimeMeasure.h"

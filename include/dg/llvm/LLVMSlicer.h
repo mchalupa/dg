@@ -30,7 +30,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/analysis/Slicing.h"
+#include "dg/Slicing.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 

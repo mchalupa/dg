@@ -29,11 +29,11 @@
 #include <iostream>
 #include <fstream>
 
-#include "../lib/llvm/analysis/ThreadRegions/include/Graphs/ThreadRegionsBuilder.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Graphs/GraphBuilder.h"
-#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "llvm/ThreadRegions/include/Graphs/ThreadRegionsBuilder.h"
+#include "llvm/ThreadRegions/include/Graphs/GraphBuilder.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include <iostream>
 

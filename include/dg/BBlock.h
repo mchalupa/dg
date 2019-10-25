@@ -1,14 +1,11 @@
-/// XXX add licence
-//
-
-#ifndef _BBLOCK_H_
-#define _BBLOCK_H_
+#ifndef BBLOCK_H_
+#define BBLOCK_H_
 
 #include <cassert>
 #include <list>
 
 #include "ADT/DGContainer.h"
-#include "analysis/legacy/Analysis.h"
+#include "legacy/Analysis.h"
 
 namespace dg {
 

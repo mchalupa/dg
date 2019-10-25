@@ -7,12 +7,10 @@
 
 #undef NDEBUG
 
-#include "dg/analysis/ReachingDefinitions/ReachingDefinitions.h"
-#include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/ReachingDefinitions/RDMap.h"
 
 using namespace dg::analysis;
-using namespace dg::analysis::rd;
-
 
 RWNode A;
 RWNode B;

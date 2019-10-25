@@ -22,21 +22,21 @@
 #endif
 
 #include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/analysis/DataDependence/DataDependence.h"
-#include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #ifdef HAVE_SVF
-#include "dg/llvm/analysis/PointsTo/SVFPointerAnalysis.h"
+#include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
 #endif
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
-#include "dg/analysis/PointsTo/Pointer.h"
-#include "dg/analysis/Offset.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/PointerAnalysis/PointerAnalysisFS.h"
+#include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
+#include "dg/PointerAnalysis/Pointer.h"
+#include "dg/Offset.h"
 
-#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 
 namespace llvm {
     class Module;
