@@ -1,13 +1,12 @@
 #include "catch.hpp"
 
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
 
-#include "../include/dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
-#include "../include/dg/llvm/analysis/ThreadRegions/ThreadRegion.h"
-#include "../lib/llvm/analysis/ThreadRegions/include/Graphs/GraphBuilder.h"
-
-#include "../lib/llvm/analysis/ThreadRegions/include/Nodes/Nodes.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
+#include "dg/llvm/ThreadRegions/ThreadRegion.h"
+#include "../lib/llvm/ThreadRegions/include/Graphs/GraphBuilder.h"
+#include "../lib/llvm/ThreadRegions/include/Nodes/Nodes.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)

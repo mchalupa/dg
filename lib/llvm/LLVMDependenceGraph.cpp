@@ -42,16 +42,16 @@
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "../lib/llvm/analysis/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "../lib/llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
 
 #include "llvm/LLVMDGVerifier.h"
-#include "llvm/analysis/ControlExpression.h"
+#include "llvm/ControlExpression.h"
 #include "llvm-utils.h"
 
 #include "dg/ADT/Queue.h"
 
-#include "analysis/DefUse/DefUse.h"
+#include "DefUse/DefUse.h"
 
 #include "ControlFlowGraph.h"
 #include "MayHappenInParallel.h"

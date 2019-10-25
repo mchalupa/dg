@@ -1,8 +1,8 @@
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "../lib/llvm/analysis/ControlDependence/GraphBuilder.h"
-#include "../lib/llvm/analysis/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
+#include "../lib/llvm/ControlDependence/GraphBuilder.h"
+#include "../lib/llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)

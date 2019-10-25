@@ -7,7 +7,7 @@
 
 #undef NDEBUG
 
-#include "dg/analysis/Offset.h"
+#include "dg/Offset.h"
 #include "dg/ADT/DisjunctiveIntervalMap.h"
 
 using namespace dg;

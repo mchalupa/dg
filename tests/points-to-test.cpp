@@ -6,9 +6,9 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
-#include "dg/analysis/PointsTo/PointerGraph.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/PointerAnalysis/PointerAnalysisFS.h"
 
 using namespace dg::pta;
 

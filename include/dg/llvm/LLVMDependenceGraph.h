@@ -12,7 +12,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "dg/llvm/analysis/ThreadRegions/ControlFlowGraph.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 
 
 // forward declaration of llvm classes
@@ -24,7 +24,7 @@ namespace llvm {
 
 #include "dg/llvm/LLVMNode.h"
 #include "dg/DependenceGraph.h"
-#include "dg/analysis/ControlExpression/ControlExpression.h"
+#include "dg/ControlExpression/ControlExpression.h"
 
 namespace dg {
 
@@ -44,9 +44,7 @@ class LLVMPointerAnalysis;
 // FIXME: why PTA is only in the namespace dg
 // and this is that nested? Make it consistent...
 
-namespace dda {
-class LLVMDataDependenceAnalysis;
-} // namespace analysis
+namespace dda { class LLVMDataDependenceAnalysis; }
 
 using dda::LLVMDataDependenceAnalysis;
 

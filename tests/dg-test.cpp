@@ -5,7 +5,7 @@
 #include "test-runner.h"
 #include "test-dg.h"
 
-#include "dg/analysis/Slicing.h"
+#include "dg/Slicing.h"
 #include "dg/DG2Dot.h"
 
 namespace dg {

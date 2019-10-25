@@ -1,7 +1,6 @@
-#ifndef _DG_DISJUNCTIVE_INTERVAL_MAP_H_
-#define _DG_DISJUNCTIVE_INTERVAL_MAP_H_
+#ifndef DG_DISJUNCTIVE_INTERVAL_MAP_H_
+#define DG_DISJUNCTIVE_INTERVAL_MAP_H_
 
-#include "dg/analysis/Offset.h"
 #include <cassert>
 #include <map>
 #include <set>
@@ -10,6 +9,8 @@
 #ifndef NDEBUG
 #include <iostream>
 #endif
+
+#include "dg/Offset.h"
 
 namespace dg {
 namespace ADT {

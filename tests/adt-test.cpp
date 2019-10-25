@@ -6,7 +6,7 @@
 
 #include "dg/ADT/Queue.h"
 #include "dg/ADT/Bitvector.h"
-#include "dg/analysis/ReachingDefinitions/RDMap.h"
+#include "dg/ReachingDefinitions/RDMap.h"
 
 using namespace dg::ADT;
 using dg::Offset;

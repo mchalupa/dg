@@ -28,8 +28,8 @@
 #endif
 
 #include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/DataDependence/DataDependence.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
 
 namespace dg {
 namespace debug {

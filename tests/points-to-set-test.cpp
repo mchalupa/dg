@@ -1,9 +1,9 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include "dg/analysis/PointsTo/PSNode.h"
-#include "dg/analysis/PointsTo/PointerGraph.h"
-#include "dg/analysis/PointsTo/Pointer.h"
+#include "dg/PointerAnalysis/PSNode.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
+#include "dg/PointerAnalysis/Pointer.h"
 
 using namespace dg::pta;
 
