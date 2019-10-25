@@ -6,7 +6,6 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // nodes representing NULL, unknown memory
@@ -522,5 +521,4 @@ void PointerAnalysis::run() {
 
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

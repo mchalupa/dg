@@ -1,5 +1,5 @@
-#ifndef _DG_DOMINANCE_FRONTIERS_H_
-#define _DG_DOMINANCE_FRONTIERS_H_
+#ifndef DG_DOMINANCE_FRONTIERS_H_
+#define DG_DOMINANCE_FRONTIERS_H_
 
 #include <vector>
 
@@ -7,7 +7,6 @@
 #include "BFS.h"
 
 namespace dg {
-namespace analysis {
 
 ///
 // Compute dominance frontiers
@@ -71,7 +70,6 @@ public:
     }
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_DOMINANCE_FRONTIERS_H_
+#endif

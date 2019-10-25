@@ -1,5 +1,5 @@
-#ifndef _SUBGRAPH_NODE_H_
-#define _SUBGRAPH_NODE_H_
+#ifndef SUBGRAPH_NODE_H_
+#define SUBGRAPH_NODE_H_
 
 // This file defines a basis for nodes from
 // PointerGraph and reaching definitions subgraph.
@@ -12,10 +12,9 @@
 #include <algorithm>
 
 namespace dg {
-namespace analysis {
 
 namespace pta { class PSNode; }
-class RWNode;
+namespace dda {class RWNode; }
 
 template <typename NodeT>
 class SubgraphNode {
@@ -410,6 +409,6 @@ private:
     }
 };
 
-} // analysis
 } // dg
-#endif // _SUBGRAPH_NODE_H_
+
+#endif

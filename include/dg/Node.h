@@ -1,8 +1,5 @@
-/// XXX add licence
-//
-
-#ifndef _NODE_H_
-#define _NODE_H_
+#ifndef NODE_H_
+#define NODE_H_
 
 #include "DGParameters.h"
 #include "ADT/DGContainer.h"
@@ -425,8 +422,8 @@ private:
 #endif /* ENABLE_CFG */
 
     // auxiliary data for different analyses
-    analysis::legacy::AnalysesAuxiliaryData analysisAuxData;
-    friend class analysis::legacy::Analysis<NodeT>;
+    legacy::AnalysesAuxiliaryData analysisAuxData;
+    friend class legacy::Analysis<NodeT>;
 };
 
 } // namespace dg

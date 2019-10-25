@@ -1,11 +1,10 @@
-#ifndef _DG_BBLOCKS_BUILDER_H_
-#define _DG_BBLOCKS_BUILDER_H_
+#ifndef DG_BBLOCKS_BUILDER_H_
+#define DG_BBLOCKS_BUILDER_H_
 
 #include <cassert>
 #include "dg/ADT/Queue.h"
 
 namespace dg {
-namespace analysis {
 
 ///
 // Generate basic blocks from nodes with successors.
@@ -90,8 +89,6 @@ public:
     }
 };
 
-
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_BBLOCKS_BUILDER_H_
+#endif

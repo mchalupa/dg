@@ -7,7 +7,6 @@
 #include <map>
 
 namespace dg {
-namespace analysis {
 namespace pta {
     std::vector<PSNode*> SeparateOffsetsPointsToSet::idVector;
     std::vector<Pointer> PointerIdPointsToSet::idVector;
@@ -20,5 +19,4 @@ namespace pta {
     std::map<PSNode*,size_t> AlignedSmallOffsetsPointsToSet::ids;
     std::map<Pointer,size_t> AlignedPointerIdPointsToSet::ids;
 } // namespace pta
-} // namespace analysis
 } // namespace debug

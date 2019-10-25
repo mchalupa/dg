@@ -46,13 +46,12 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val)
 {
     if (llvm::isa<llvm::ConstantPointerNull>(val)
-        || isConstantZero(val)) {
+        || llvmutils::isConstantZero(val)) {
         return NULLPTR;
     } else if (llvm::isa<llvm::UndefValue>(val)) {
         return UNKNOWN_MEMORY;
@@ -225,7 +224,7 @@ LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
         return functions;
     }
 
-    for (const analysis::pta::Pointer pointer : operand->pointsTo) {
+    for (const auto& pointer : operand->pointsTo) {
         if (pointer.isValid()
                 && !pointer.isInvalidated()
                 && isa<Function>(pointer.target->getUserData<Value>())) {
@@ -401,7 +400,7 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
             break;
         case Instruction::FPToUI:
         case Instruction::FPToSI:
-            if (typeCanBePointer(&M->getDataLayout(), Inst.getType()))
+            if (llvmutils::typeCanBePointer(&M->getDataLayout(), Inst.getType()))
                 seq = &createCast(&Inst);
             else
                 seq = &createUnknown(&Inst);
@@ -457,8 +456,7 @@ void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
 {
     using namespace llvm;
 
-    bool zeroed = memsetIsZeroInitialization(cast<IntrinsicInst>(Inst));
-    if (!zeroed) {
+    if (!llvmutils::memsetIsZeroInitialization(cast<IntrinsicInst>(Inst))) {
         llvm::errs() << "WARNING: Non-0 memset: " << *Inst << "\n";
         return;
     }
@@ -474,7 +472,7 @@ void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
         // char mem[100];
         // void *ptr = (void *) mem;
         // void *p = *ptr;
-        if (tyContainsPointer(AI->getAllocatedType()))
+        if (llvmutils::tyContainsPointer(AI->getAllocatedType()))
             PSNodeAlloc::cast(op)->setZeroInitialized();
     } else {
         // fallback: create a store that represents memset
@@ -660,7 +658,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
         assert(subg->root && "No root in a subgraph");
     }
 
-    debug::LLVMPointerGraphValidator validator(&PS);
+    LLVMPointerGraphValidator validator(&PS);
     if (validator.validate()) {
         llvm::errs() << validator.getWarnings();
 
@@ -689,7 +687,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
 
 bool LLVMPointerGraphBuilder::validateSubgraph(bool no_connectivity) const
 {
-    debug::LLVMPointerGraphValidator validator(getPS(), no_connectivity);
+    LLVMPointerGraphValidator validator(getPS(), no_connectivity);
     if (validator.validate()) {
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();
@@ -715,5 +713,4 @@ LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

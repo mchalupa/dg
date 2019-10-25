@@ -71,8 +71,8 @@ static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
                                        LLVMDataDependenceAnalysis *rd,
                                        LLVMPointerAnalysis *pta)
-    : analysis::legacy::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
-                                                   analysis::legacy::DATAFLOW_INTERPROCEDURAL),
+    : legacy::DataFlowAnalysis<LLVMNode>(dg->getEntryBB(),
+                                                   legacy::DATAFLOW_INTERPROCEDURAL),
       dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())) {
     assert(PTA && "Need points-to information");
     assert(RD && "Need reaching definitions");
@@ -116,7 +116,6 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
 void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
                                            const std::vector<llvm::Value *>& defs)
 {
-    using namespace dg::analysis;
     static std::set<const llvm::Value *> reported_mappings;
 
     if (defs.empty()) {

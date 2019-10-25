@@ -549,7 +549,7 @@ public:
         BB5->setSlice(1);
         BB6->setSlice(1);
 
-        analysis::Slicer<TestNode> slicer;
+        Slicer<TestNode> slicer;
         slicer.sliceBBlocks(BB1, 1);
 
         check(BB1->successorsNum() == 1, "BB1 should have one successor "
@@ -602,7 +602,7 @@ public:
         BB2->setSlice(1);
         BB3->setSlice(1);
 
-        analysis::Slicer<TestNode> slicer;
+        Slicer<TestNode> slicer;
         slicer.sliceBBlocks(BB1, 1);
 
         check(BB2->successorsNum() == 1, "BB2 should have one successor "
@@ -654,7 +654,7 @@ public:
         debug::DG2Dot<TestNode> dump(&d);
         dump.dump("test-pre.dot");
 
-        analysis::Slicer<TestNode> slicer;
+        Slicer<TestNode> slicer;
         slicer.sliceBBlocks(&d, 1);
 
         dump.dump("test.dot");

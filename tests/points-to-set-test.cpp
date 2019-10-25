@@ -5,18 +5,7 @@
 #include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/Pointer.h"
 
-using dg::analysis::pta::PSNode;
-using dg::analysis::pta::PSNodeType;
-using dg::analysis::pta::Pointer;
-using dg::analysis::pta::PointerGraph;
-
-using dg::analysis::pta::OffsetsSetPointsToSet;
-using dg::analysis::pta::SimplePointsToSet;
-using dg::analysis::pta::SeparateOffsetsPointsToSet;
-using dg::analysis::pta::SmallOffsetsPointsToSet;
-using dg::analysis::pta::AlignedSmallOffsetsPointsToSet;
-using dg::analysis::pta::PointerIdPointsToSet;
-using dg::analysis::pta::AlignedPointerIdPointsToSet;
+using namespace dg::pta;
 
 template<typename PTSetT>
 void queryingEmptySet() {
@@ -173,7 +162,7 @@ void pointsToTest() {
     REQUIRE(S.mayPointTo(Pointer(A,10000)) == false);
     REQUIRE(S.mustPointTo(Pointer(A,10000)) == false);
     REQUIRE(S.pointsTo(Pointer(A,10000)) == false);
-    S.add(Pointer(A, dg::analysis::Offset::UNKNOWN));
+    S.add(Pointer(A, dg::Offset::UNKNOWN));
     REQUIRE(S.pointsTo(Pointer(A, 0)) == false);
     REQUIRE(S.mayPointTo(Pointer(A, 0)) == true);
     REQUIRE(S.mustPointTo(Pointer(A, 0)) == false);
@@ -201,7 +190,7 @@ void testAlignedOverflowBehavior() { //only works for aligned PTSets using overf
     REQUIRE(S.add(Pointer(A, 11 * S.getMultiplier() + 1)) == true);
     REQUIRE(S.size() == 5);
     REQUIRE(S.overflowSetSize() == 2);
-    REQUIRE(S.add(Pointer(B, dg::analysis::Offset::UNKNOWN)) == true);
+    REQUIRE(S.add(Pointer(B, dg::Offset::UNKNOWN)) == true);
     REQUIRE(S.size() == 6);
     REQUIRE(S.overflowSetSize() == 2);
     REQUIRE(S.remove(Pointer(A, 11 * S.getMultiplier() + 1)) == true);
@@ -210,7 +199,7 @@ void testAlignedOverflowBehavior() { //only works for aligned PTSets using overf
     REQUIRE(S.remove(Pointer(A, 2 * S.getMultiplier())) == true);
     REQUIRE(S.size() == 4);
     REQUIRE(S.overflowSetSize() == 1);
-    REQUIRE(S.add(Pointer(A, dg::analysis::Offset::UNKNOWN)) == true);
+    REQUIRE(S.add(Pointer(A, dg::Offset::UNKNOWN)) == true);
     REQUIRE(S.size() == 2);
     REQUIRE(S.overflowSetSize() == 0);
     REQUIRE(S.removeAny(B) == true);
@@ -239,7 +228,7 @@ void testSmallOverflowBehavior() { //only works for SmallOffsetsPTSet
     REQUIRE(S.add(Pointer(A, 1287)) == true);
     REQUIRE(S.size() == 5);
     REQUIRE(S.overflowSetSize() == 2);
-    REQUIRE(S.add(Pointer(B, dg::analysis::Offset::UNKNOWN)) == true);
+    REQUIRE(S.add(Pointer(B, dg::Offset::UNKNOWN)) == true);
     REQUIRE(S.size() == 6);
     REQUIRE(S.overflowSetSize() == 2);
     REQUIRE(S.remove(Pointer(A, 63)) == true);
@@ -248,7 +237,7 @@ void testSmallOverflowBehavior() { //only works for SmallOffsetsPTSet
     REQUIRE(S.remove(Pointer(A, 62)) == true);
     REQUIRE(S.size() == 4);
     REQUIRE(S.overflowSetSize() == 1);
-    REQUIRE(S.add(Pointer(A, dg::analysis::Offset::UNKNOWN)) == true);
+    REQUIRE(S.add(Pointer(A, dg::Offset::UNKNOWN)) == true);
     REQUIRE(S.size() == 2);
     REQUIRE(S.overflowSetSize() == 0);
     REQUIRE(S.removeAny(B) == true);

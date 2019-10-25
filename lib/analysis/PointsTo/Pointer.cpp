@@ -5,7 +5,6 @@
 #include <iostream>
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 void Pointer::dump() const {
@@ -21,7 +20,6 @@ void Pointer::print() const {
 
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
 #endif // not NDEBUG

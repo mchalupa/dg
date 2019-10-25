@@ -5,7 +5,6 @@
 #include "dg/analysis/DataDependence/DataDependenceAnalysisOptions.h"
 
 namespace dg {
-namespace analysis {
 
 struct LLVMDataDependenceAnalysisOptions :
     public LLVMAnalysisOptions, DataDependenceAnalysisOptions
@@ -49,7 +48,6 @@ struct LLVMDataDependenceAnalysisOptions :
     };
 };
 
-} // namespace analysis
 } // namespace dg
 
 #endif // DG_LLVM_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_

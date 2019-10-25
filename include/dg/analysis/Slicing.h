@@ -1,5 +1,5 @@
-#ifndef _DG_SLICING_H_
-#define _DG_SLICING_H_
+#ifndef DG_SLICING_H_
+#define DG_SLICING_H_
 
 #include <set>
 
@@ -14,7 +14,6 @@
 #endif
 
 namespace dg {
-namespace analysis {
 
 // this class will go through the nodes
 // and will mark the ones that should be in the slice
@@ -316,7 +315,6 @@ public:
 #endif
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_SLICING_H_
+#endif

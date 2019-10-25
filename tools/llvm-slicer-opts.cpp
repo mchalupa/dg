@@ -26,13 +26,13 @@
 
 #include "git-version.h"
 
-using dg::analysis::LLVMPointerAnalysisOptions;
-using dg::analysis::LLVMDataDependenceAnalysisOptions;
+using dg::LLVMPointerAnalysisOptions;
+using dg::LLVMDataDependenceAnalysisOptions;
 
 static void
 addAllocationFuns(dg::llvmdg::LLVMDependenceGraphOptions& dgOptions,
                   const std::string& allocationFuns) {
-    using dg::analysis::AllocationFunction;
+    using dg::AllocationFunction;
 
     auto items = splitList(allocationFuns);
     for (auto& item : items) {
@@ -119,7 +119,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
         llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
                        "is cropped to Offset::UNKNOWN when it is greater than N bytes.\n"
                        "Default is full field-sensitivity (N = Offset::UNKNOWN).\n"),
-                       llvm::cl::value_desc("N"), llvm::cl::init(dg::analysis::Offset::UNKNOWN),
+                       llvm::cl::value_desc("N"), llvm::cl::init(dg::Offset::UNKNOWN),
                        llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<bool> rdaStrongUpdateUnknown("rd-strong-update-unknown",
@@ -224,7 +224,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     options.dgOptions.entryFunction = entryFunction;
     options.dgOptions.PTAOptions.entryFunction = entryFunction;
     options.dgOptions.PTAOptions.fieldSensitivity
-                                    = dg::analysis::Offset(ptaFieldSensitivity);
+                                    = dg::Offset(ptaFieldSensitivity);
     options.dgOptions.PTAOptions.analysisType = ptaType;
 
     options.dgOptions.threads = threads;

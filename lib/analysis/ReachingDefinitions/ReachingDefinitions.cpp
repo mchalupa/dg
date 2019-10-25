@@ -12,7 +12,7 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 RWNode UNKNOWN_MEMLOC;
 RWNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
@@ -125,5 +125,5 @@ ReachingDefinitionsAnalysis::getDefinitions(RWNode *use) {
     return std::vector<RWNode *>(ret.begin(), ret.end());
 }
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg

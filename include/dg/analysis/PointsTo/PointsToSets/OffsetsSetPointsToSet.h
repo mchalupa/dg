@@ -8,7 +8,6 @@
 #include <cassert>
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // declare PSNode
@@ -223,7 +222,6 @@ public:
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
 

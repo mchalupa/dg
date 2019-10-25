@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_RD_BUILDER_H
-#define _LLVM_DG_RD_BUILDER_H
+#ifndef LLVM_DG_RWG_BUILDER_H
+#define LLVM_DG_RWG_BUILDER_H
 
 #include <unordered_map>
 #include <memory>
@@ -28,7 +28,7 @@
 #include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class LLVMReadWriteGraphBuilder {
     const LLVMDataDependenceAnalysisOptions& _options;
@@ -162,7 +162,7 @@ private:
     void matchForksAndJoins();
 };
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
-#endif // _LLVM_DG_RD_BUILDER_H
+#endif

@@ -50,7 +50,7 @@
 #include "TimeMeasure.h"
 
 using namespace dg;
-using namespace dg::analysis;
+using namespace dg::dda;
 using llvm::errs;
 
 static bool verbose = false;

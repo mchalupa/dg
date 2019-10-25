@@ -44,11 +44,11 @@ class LLVMPointerAnalysis;
 // FIXME: why PTA is only in the namespace dg
 // and this is that nested? Make it consistent...
 
-namespace analysis {
+namespace dda {
 class LLVMDataDependenceAnalysis;
 } // namespace analysis
 
-using analysis::LLVMDataDependenceAnalysis;
+using dda::LLVMDataDependenceAnalysis;
 
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 

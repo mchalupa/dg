@@ -5,7 +5,7 @@
 #include "dg/analysis/PointsTo/PointsToSet.h"
 #include "../tools/TimeMeasure.h"
 
-using namespace dg::analysis::pta;
+using namespace dg::pta;
 
 std::default_random_engine generator;
 std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0));

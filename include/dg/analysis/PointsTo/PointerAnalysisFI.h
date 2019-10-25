@@ -1,5 +1,5 @@
-#ifndef _DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
-#define _DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
+#ifndef DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
+#define DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
 
 #include <cassert>
 #include <vector>
@@ -8,7 +8,6 @@
 #include "PointerAnalysis.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 ///
@@ -81,8 +80,7 @@ public:
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
+#endif // DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
 

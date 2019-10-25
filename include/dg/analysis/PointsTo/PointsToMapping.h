@@ -1,11 +1,10 @@
-#ifndef _DG_POINTS_TO_MAPPING_H_
-#define _DG_POINTS_TO_MAPPING_H_
+#ifndef DG_POINTS_TO_MAPPING_H_
+#define DG_POINTS_TO_MAPPING_H_
 
 #include <unordered_map>
 #include "PSNode.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // this is a wrapper around a map that
@@ -75,6 +74,6 @@ public:
 
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
-#endif // _DG_POINTS_TO_MAPPING_H_
+
+#endif

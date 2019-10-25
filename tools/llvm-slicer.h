@@ -61,7 +61,7 @@ class Slicer {
     dg::llvmdg::LLVMDependenceGraphBuilder _builder;
     std::unique_ptr<dg::LLVMDependenceGraph> _dg{};
 
-    dg::LLVMSlicer slicer;
+    dg::llvmdg::LLVMSlicer slicer;
     uint32_t slice_id = 0;
     bool _computed_deps{false};
 
@@ -166,7 +166,7 @@ public:
         tm.stop();
         tm.report("[llvm-slicer] Slicing dependence graph took");
 
-        dg::analysis::SlicerStatistics& st = slicer.getStatistics();
+        dg::SlicerStatistics& st = slicer.getStatistics();
         llvm::errs() << "[llvm-slicer] Sliced away " << st.nodesRemoved
                      << " from " << st.nodesTotal << " nodes in DG\n";
 

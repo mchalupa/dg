@@ -38,7 +38,6 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 void LLVMPointerGraphBuilder::FuncGraph::blockAddSuccessors(std::set<const llvm::BasicBlock *>& found_blocks,
@@ -189,5 +188,4 @@ LLVMPointerGraphBuilder::addCFGEdges(const llvm::Function *F,
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg

@@ -45,7 +45,7 @@
 #include "TimeMeasure.h"
 
 using namespace dg;
-using namespace dg::analysis::pta;
+using namespace dg::pta;
 using llvm::errs;
 
 enum PTType {

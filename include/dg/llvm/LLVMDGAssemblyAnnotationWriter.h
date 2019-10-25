@@ -36,7 +36,7 @@ namespace debug {
 
 class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter
 {
-    using LLVMDataDependenceAnalysis = dg::analysis::LLVMDataDependenceAnalysis;
+    using LLVMDataDependenceAnalysis = dg::dda::LLVMDataDependenceAnalysis;
 public:
     enum AnnotationOptsT {
         // data dependencies
@@ -95,7 +95,7 @@ private:
             os << "\n";
     }
 
-    void printDefSite(const analysis::DefSite& ds,
+    void printDefSite(const dda::DefSite& ds,
                       llvm::formatted_raw_ostream& os,
                       const char *prefix = nullptr, bool nl = false)
     {

@@ -5,7 +5,7 @@
 #include "dg/analysis/BBlocksBuilder.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 void ReadWriteGraph::buildBBlocks(bool dce) {
     assert(getRoot() && "No root node");
@@ -34,5 +34,5 @@ void ReadWriteGraph::removeUselessNodes() {
 }
 
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg

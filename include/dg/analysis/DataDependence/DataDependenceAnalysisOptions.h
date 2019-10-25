@@ -7,7 +7,6 @@
 #include "dg/analysis/AnalysisOptions.h"
 
 namespace dg {
-namespace analysis {
 
 struct FunctionModel {
     std::string name;
@@ -147,7 +146,6 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
     }
 };
 
-} // namespace analysis
 } // namespace dg
 
 #endif // DG_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_

@@ -30,7 +30,7 @@
 #include "dg/llvm/analysis/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class LLVMReadWriteGraphBuilder;
 
@@ -127,7 +127,7 @@ public:
 };
 
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif

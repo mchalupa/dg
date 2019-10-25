@@ -3,7 +3,6 @@
 #include "ForkJoin.h"
 
 namespace dg {
-namespace analysis {
 
 std::vector<const llvm::Value*>
 ForkJoinAnalysis::matchJoin(const llvm::Value *joinVal) {
@@ -64,6 +63,4 @@ ForkJoinAnalysis::joinFunctions(const llvm::Value *joinVal) {
     return threads;
 }
 
-
-} // namespace analysis
 } // namespace dg

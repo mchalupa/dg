@@ -9,9 +9,11 @@
 #include "dg/analysis/Offset.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class RWNode;
+
+
 class ReachingDefinitionsAnalysis;
 
 /// Take two intervals (a, a_len) and (b, b_len) where 'a' ('b', resp.) is the
@@ -230,7 +232,7 @@ private:
 
 using RDMap = BasicRDMap;
 
-} // analysis
-} // dg
+} // namespace dda
+} // namespace dg
 
 #endif

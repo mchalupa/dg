@@ -10,7 +10,7 @@
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class RWNode;
 class ReachingDefinitionsAnalysis;
@@ -231,7 +231,7 @@ public:
     friend class ReadWriteGraph;
 };
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif //  DG_RW_NODE_H_

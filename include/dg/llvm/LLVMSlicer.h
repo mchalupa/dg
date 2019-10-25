@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_SLICER_H_
-#define _LLVM_DG_SLICER_H_
+#ifndef LLVM_DG_SLICER_H_
+#define LLVM_DG_SLICER_H_
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -38,6 +38,11 @@ namespace dg {
 
 class LLVMNode;
 
+extern std::map<const llvm::Value *,
+                LLVMDependenceGraph *> constructedFunctions;
+
+namespace llvmdg {
+
 template <typename Val>
 static void dropAllUses(Val *V)
 {
@@ -54,7 +59,7 @@ static void dropAllUses(Val *V)
 }
 
 
-class LLVMSlicer : public analysis::Slicer<LLVMNode>
+class LLVMSlicer : public Slicer<LLVMNode>
 {
 public:
     LLVMSlicer(){}
@@ -143,8 +148,6 @@ public:
 
         // take every subgraph and slice it intraprocedurally
         // this includes the main graph
-        extern std::map<const llvm::Value *,
-                        LLVMDependenceGraph *> constructedFunctions;
         for (auto& it : constructedFunctions) {
             if (dontTouch(it.first->getName()))
                 continue;
@@ -610,7 +613,9 @@ private:
     // do not slice these functions at all
     std::set<const char *> dont_touch;
 };
+
+} // namespace llvmdg
 } // namespace dg
 
-#endif  // _LLVM_DG_SLICER_H_
+#endif
 

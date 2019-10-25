@@ -19,7 +19,7 @@
 #include "llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 LLVMDataDependenceAnalysis::~LLVMDataDependenceAnalysis() {
     delete builder;
@@ -98,6 +98,6 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
     return defs;
 }
 
+} // namespace dda
 } // namespace dg
-} // namespace analysis
 

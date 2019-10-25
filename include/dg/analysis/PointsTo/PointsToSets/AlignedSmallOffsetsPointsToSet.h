@@ -10,7 +10,6 @@
 #include <cassert>
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 class PSNode;
@@ -261,7 +260,6 @@ public:
 };
 
 } // namespacce pta
-} // namespace analysis
 } // namespace dg
 
 #endif /* ALIGNEDOFFSETSPOINTSTOSET_H */

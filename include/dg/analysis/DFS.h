@@ -1,5 +1,5 @@
-#ifndef _DG_DFS_H_
-#define _DG_DFS_H_
+#ifndef DG_DFS_H_
+#define DG_DFS_H_
 
 #include "dg/analysis/NodesWalk.h"
 #include "dg/ADT/Queue.h"
@@ -7,7 +7,6 @@
 using dg::ADT::QueueLIFO;
 
 namespace dg {
-namespace analysis {
 
 template <typename Node,
           typename VisitTracker = SetVisitTracker<Node>,
@@ -20,7 +19,6 @@ struct DFS : public NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser
     : NodesWalk<Node, QueueLIFO<Node *>, VisitTracker, EdgeChooser>(std::move(tracker), std::move(chooser)) {}
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_NODES_WALK_H_
+#endif

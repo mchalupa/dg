@@ -2,7 +2,6 @@
 #include "llvm/llvm-utils.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // create subgraph or add edges to already existing subgraph,
@@ -108,7 +107,7 @@ LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
         case Intrinsic::memcpy:
             dest = I->getOperand(0);
             src = I->getOperand(1);
-            lenVal = getConstantValue(I->getOperand(2));
+            lenVal = llvmutils::getConstantValue(I->getOperand(2));
             break;
         default:
             errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
@@ -126,7 +125,7 @@ LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst) {
     PSNode *val;
-    if (memsetIsZeroInitialization(llvm::cast<llvm::IntrinsicInst>(Inst)))
+    if (llvmutils::memsetIsZeroInitialization(llvm::cast<llvm::IntrinsicInst>(Inst)))
         val = NULLPTR;
     else
         // if the memset is not 0-initialized, it does some
@@ -280,11 +279,11 @@ LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
     };
 
     // infer allocated size
-    size = getConstantSizeValue(op);
+    size = llvmutils::getConstantSizeValue(op);
     if (size != 0 && type == AllocationFunction::CALLOC) {
         // if this is call to calloc, the size is given
         // in the first argument too
-        size2 = getConstantSizeValue(CInst->getOperand(0));
+        size2 = llvmutils::getConstantSizeValue(CInst->getOperand(0));
         // if both ops are constants, multiply them to get
         // the correct size, otherwise return 0 (unknown)
         size = size2 != 0 ? size * size2 : 0;
@@ -312,7 +311,7 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
     PSNode *ptr = PS.create(PSNodeType::CONSTANT, reall, 0);
 
     reall->setIsHeap();
-    reall->setSize(getConstantSizeValue(CInst->getOperand(1)));
+    reall->setSize(llvmutils::getConstantSizeValue(CInst->getOperand(1)));
 
     ret.append(reall);
     ret.append(mcp);
@@ -338,6 +337,5 @@ LLVMPointerGraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
 
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 

@@ -1,11 +1,10 @@
-#ifndef _DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
-#define _DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
+#ifndef DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
+#define DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
 
 #include <cassert>
 #include "PointerAnalysisFS.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 class PointerAnalysisFSInv : public PointerAnalysisFS
@@ -411,7 +410,6 @@ public:
 };
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
+#endif

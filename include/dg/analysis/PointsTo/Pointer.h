@@ -1,11 +1,10 @@
-#ifndef _DG_POINTER_H_
-#define _DG_POINTER_H_
+#ifndef DG_POINTER_H_
+#define DG_POINTER_H_
 
 #include "dg/analysis/Offset.h"
 #include <cassert>
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 // declare PSNode
@@ -54,7 +53,6 @@ extern const Pointer UnknownPointer;
 extern const Pointer NullPointer;
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_POINTER_H_
+#endif

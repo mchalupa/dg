@@ -12,7 +12,7 @@
 #include "dg/analysis/ReachingDefinitions/RDMap.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class RWNode;
 class ReachingDefinitionsAnalysis;
@@ -143,7 +143,7 @@ public:
 #endif
 };
 
-} // analysis
+} // dda
 } // dg
 
 #endif

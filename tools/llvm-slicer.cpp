@@ -59,8 +59,8 @@
 using namespace dg;
 
 using llvm::errs;
-using dg::analysis::LLVMPointerAnalysisOptions;
-using dg::analysis::LLVMDataDependenceAnalysisOptions;
+using dg::LLVMPointerAnalysisOptions;
+using dg::LLVMDataDependenceAnalysisOptions;
 
 using AnnotationOptsT
     = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
@@ -517,7 +517,7 @@ int main(int argc, char *argv[])
     // slice the code
     /// ---------------
 
-    Slicer slicer(M.get(), options);
+    ::Slicer slicer(M.get(), options);
     if (!slicer.buildDG()) {
         errs() << "ERROR: Failed building DG\n";
         return 1;

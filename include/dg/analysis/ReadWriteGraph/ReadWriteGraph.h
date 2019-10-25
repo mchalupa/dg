@@ -11,7 +11,7 @@
 #include "dg/util/debug.h"
 
 namespace dg {
-namespace analysis {
+namespace dda {
 
 class ReadWriteGraph {
     // FIXME: get rid of this
@@ -113,7 +113,7 @@ public:
     }
 };
 
-} // namespace analysis
+} // namespace dda
 } // namespace dg
 
 #endif // DG_READ_WRITE_GRAPH_H_

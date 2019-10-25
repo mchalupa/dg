@@ -1,5 +1,5 @@
-#ifndef _DG_DATA_FLOW_ANALYSIS_H_
-#define _DG_DATA_FLOW_ANALYSIS_H_
+#ifndef DG_DATA_FLOW_ANALYSIS_H_
+#define DG_DATA_FLOW_ANALYSIS_H_
 
 #include <utility>
 #include <set>
@@ -12,7 +12,6 @@
 #endif
 
 namespace dg {
-namespace analysis {
 namespace legacy {
 
 struct DataFlowStatistics : public AnalysisStatistics {
@@ -165,12 +164,9 @@ public:
     }
 
     virtual bool runOnNode(NodeT *n, NodeT *prev) = 0;
-
-private:
 };
 
 } // namespace legacy
-} // namespace analysis
 } // namespace dg
 
-#endif //  _DG_DATA_FLOW_ANALYSIS_H_
+#endif

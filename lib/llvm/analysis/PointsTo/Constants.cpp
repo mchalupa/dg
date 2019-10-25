@@ -2,7 +2,6 @@
 #include "llvm/llvm-utils.h"
 
 namespace dg {
-namespace analysis {
 namespace pta {
 
 extern const Pointer UnknownPointer;
@@ -66,7 +65,7 @@ Pointer LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst
 
     assert(op && "Don't have operand for add");
     if (val)
-        off = getConstantValue(val);
+        off = llvmutils::getConstantValue(val);
 
     assert(op->pointsTo.size() == 1
            && "Constant add with not only one pointer");
@@ -139,7 +138,7 @@ Pointer LLVMPointerGraphBuilder::handleConstantGep(const llvm::GetElementPtrInst
            && "Constant node has more that 1 pointer");
     pointer = *(opNode->pointsTo.begin());
 
-    unsigned bitwidth = getPointerBitwidth(&M->getDataLayout(), op);
+    unsigned bitwidth = llvmutils::getPointerBitwidth(&M->getDataLayout(), op);
     APInt offset(bitwidth, 0);
 
     // get offset of this GEP
@@ -230,6 +229,5 @@ LLVMPointerGraphBuilder::createUnknown(const llvm::Value *val) {
 }
 
 } // namespace pta
-} // namespace analysis
 } // namespace dg
 

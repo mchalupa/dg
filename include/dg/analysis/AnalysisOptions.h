@@ -1,12 +1,11 @@
-#ifndef _DG_ANALYSIS_OPTIONS_H_
-#define _DG_ANALYSIS_OPTIONS_H_
+#ifndef DG_ANALYSIS_OPTIONS_H_
+#define DG_ANALYSIS_OPTIONS_H_
 
 #include "Offset.h"
 #include <map>
 #include <string>
 
 namespace dg {
-namespace analysis {
 
 ///
 // Enumeration for functions that are known to
@@ -58,7 +57,6 @@ struct AnalysisOptions {
     }
 };
 
-} // namespace analysis
 } // namespace dg
 
-#endif // _DG_ANALYSIS_OPTIONS_H_
+#endif
