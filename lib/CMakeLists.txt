@@ -1,7 +1,7 @@
 include_directories(${CMAKE_SOURCE_DIR}/lib)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_library(DGAnalysis SHARED
+add_library(dganalysis SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/Offset.h
 	${CMAKE_SOURCE_DIR}/include/dg/ADT/DGContainer.h
 	${CMAKE_SOURCE_DIR}/include/dg/ADT/Bitvector.h
@@ -11,7 +11,7 @@ add_library(DGAnalysis SHARED
 	analysis/Offset.cpp
 )
 
-add_library(PTA SHARED
+add_library(dgpta SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/SubgraphNode.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/Pointer.h
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/PointsTo/PointsToSet.h
@@ -27,7 +27,7 @@ add_library(PTA SHARED
 	analysis/PointsTo/PointerGraphValidator.cpp
 	analysis/PointsTo/PointsToSet.cpp
 )
-target_link_libraries(PTA PUBLIC DGAnalysis)
+target_link_libraries(dgpta PUBLIC dganalysis)
 
 add_library(dgdda SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/analysis/ReachingDefinitions/ReachingDefinitions.h
@@ -43,12 +43,12 @@ add_library(dgdda SHARED
 	analysis/ReadWriteGraph/ReadWriteGraph.cpp
 	analysis/MemorySSA/MemorySSA.cpp
 )
-target_link_libraries(dgdda PUBLIC DGAnalysis)
+target_link_libraries(dgdda PUBLIC dganalysis)
 
 
 if (LLVM_DG)
 
-add_library(LLVMpta SHARED
+add_library(dgllvmpta SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/PointerAnalysis.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/PointsTo/PointerGraph.h
@@ -65,14 +65,14 @@ add_library(LLVMpta SHARED
 	llvm/analysis/PointsTo/Calls.cpp
 	llvm/analysis/PointsTo/Threads.cpp
 )
-target_link_libraries(LLVMpta PUBLIC PTA)
+target_link_libraries(dgllvmpta PUBLIC dgpta)
 
-add_library(LLVMForkJoin SHARED
+add_library(dgllvmforkjoin SHARED
 	llvm/analysis/ForkJoin/ForkJoin.h
 	llvm/analysis/ForkJoin/ForkJoin.cpp
 )
 
-target_link_libraries(LLVMForkJoin PRIVATE LLVMpta)
+target_link_libraries(dgllvmforkjoin PRIVATE dgllvmpta)
 
 add_library(dgllvmdda SHARED
 	llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.cpp
@@ -84,22 +84,22 @@ add_library(dgllvmdda SHARED
 	llvm/analysis/ReadWriteGraph/LLVMReadWriteGraphBuilder.h
 )
 target_link_libraries(dgllvmdda
-			PUBLIC LLVMpta
+			PUBLIC dgllvmpta
 			PUBLIC dgdda
-			PUBLIC LLVMForkJoin)
+			PUBLIC dgllvmforkjoin)
 
-add_library(dgThreadRegions SHARED "")
+add_library(dgllvmthreadregions SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ThreadRegions/CMakeLists.txt)
-target_include_directories(dgThreadRegions
+target_include_directories(dgllvmthreadregions
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/analysis/ThreadRegions)
-target_link_libraries(dgThreadRegions INTERFACE LLVMpta PRIVATE LLVMForkJoin)
+target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
-add_library(dgControlDependence SHARED "")
+add_library(dgllvmcda SHARED "")
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/analysis/ControlDependence/CMakeLists.txt)
-target_link_libraries(dgControlDependence INTERFACE LLVMpta PRIVATE LLVMForkJoin)
+target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
-add_library(LLVMdg SHARED
+add_library(dgllvmdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h
 	${CMAKE_SOURCE_DIR}/include/dg/Node.h
 	${CMAKE_SOURCE_DIR}/include/dg/DependenceGraph.h
@@ -122,11 +122,11 @@ add_library(LLVMdg SHARED
 # Get proper shared-library behavior (where symbols are not necessarily
 # resolved when the shared library is linked) on OS X.
 if(APPLE)
-  set_target_properties(LLVMdg PROPERTIES
+  set_target_properties(dgllvmdg PROPERTIES
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
-  set_target_properties(LLVMpta PROPERTIES
+  set_target_properties(dgllvmpta PROPERTIES
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
@@ -136,25 +136,25 @@ if(APPLE)
 endif(APPLE)
 
 if (APPLE)
-	target_link_libraries(LLVMdg
-				PUBLIC LLVMpta
+	target_link_libraries(dgllvmdg
+				PUBLIC dgllvmpta
 				PUBLIC dgllvmdda
-				PUBLIC dgThreadRegions
-				PUBLIC dgControlDependence
+				PUBLIC dgllvmthreadregions
+				PUBLIC dgllvmcda
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_bitwriter}
 				PRIVATE ${llvm_core})
 else()
-	target_link_libraries(LLVMdg
-				PUBLIC LLVMpta
+	target_link_libraries(dgllvmdg
+				PUBLIC dgllvmpta
 				PUBLIC dgllvmdda
-				PUBLIC dgThreadRegions
-				PUBLIC dgControlDependence)
+				PUBLIC dgllvmthreadregions
+				PUBLIC dgllvmcda)
 endif(APPLE)
 
-install(TARGETS LLVMdg dgThreadRegions dgControlDependence LLVMpta dgllvmdda PTA dgdda DGAnalysis
+install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda dgllvmpta dgllvmdda dgpta dgdda dganalysis
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)

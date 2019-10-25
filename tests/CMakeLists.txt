@@ -27,7 +27,7 @@ add_dependencies(check data-flow-test)
 add_executable(points-to-test points-to-test.cpp)
 add_test(points-to-test points-to-test)
 add_dependencies(check points-to-test)
-target_link_libraries(points-to-test PRIVATE PTA)
+target_link_libraries(points-to-test PRIVATE dgpta)
 
 # --------------------------------------------------
 # rdmap-test
@@ -36,10 +36,10 @@ target_link_libraries(points-to-test PRIVATE PTA)
 # on some machines for no reason.
 # --------------------------------------------------
 # add_executable(rdmap-test rdmap-test.cpp)
-# target_link_libraries(rdmap-test PRIVATE DGAnalysis)
+# target_link_libraries(rdmap-test PRIVATE dganalysis)
 # add_test(rdmap-test rdmap-test)
 # add_dependencies(check rdmap-test)
-# target_link_libraries(rdmap-test PRIVATE RD)
+# target_link_libraries(rdmap-test PRIVATE dgdda)
 # target_include_directories(rdmap-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 
 # --------------------------------------------------
@@ -48,13 +48,13 @@ target_link_libraries(points-to-test PRIVATE PTA)
 add_executable(reaching-definitions-test reaching-definitions-test.cpp)
 add_test(reaching-definitions-test reaching-definitions-test)
 add_dependencies(check reaching-definitions-test)
-target_link_libraries(reaching-definitions-test PRIVATE RD)
+target_link_libraries(reaching-definitions-test PRIVATE dgdda)
 
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
 add_executable(adt-test adt-test.cpp)
-target_link_libraries(adt-test PRIVATE DGAnalysis)
+target_link_libraries(adt-test PRIVATE dganalysis)
 add_test(adt-test adt-test)
 add_dependencies(check adt-test)
 
@@ -76,7 +76,7 @@ add_dependencies(check numbers-set-test)
 # points-to-set-test
 # --------------------------------------------------
 add_executable(points-to-set-test points-to-set-test.cpp)
-target_link_libraries(points-to-set-test PRIVATE DGAnalysis PTA)
+target_link_libraries(points-to-set-test PRIVATE dganalysis dgpta)
 add_test(points-to-set-test points-to-set-test)
 add_dependencies(check points-to-set-test)
 
@@ -84,7 +84,7 @@ add_dependencies(check points-to-set-test)
 # disjunctive-intervals-map-test
 # --------------------------------------------------
 add_executable(disjunctive-intervals-map-test disjunctive-intervals-map-test.cpp)
-target_link_libraries(disjunctive-intervals-map-test PRIVATE DGAnalysis)
+target_link_libraries(disjunctive-intervals-map-test PRIVATE dganalysis)
 add_test(disjunctive-intervals-map-test disjunctive-intervals-map-test)
 add_dependencies(check disjunctive-intervals-map-test)
 target_include_directories(disjunctive-intervals-map-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
@@ -137,7 +137,7 @@ target_compile_definitions(thread-regions-test
         SIMPLE_FILE="${CMAKE_CURRENT_BINARY_DIR}/simple.ll"
         PTHREAD_EXIT_FILE="${CMAKE_CURRENT_BINARY_DIR}/pthread_exit.ll")
 
-target_link_libraries(thread-regions-test PRIVATE dgThreadRegions
+target_link_libraries(thread-regions-test PRIVATE dgllvmthreadregions
                                           PRIVATE ${llvm_core}
                                           PRIVATE ${llvm_irreader}
                                           PRIVATE ${llvm_support})
@@ -151,7 +151,7 @@ if (LLVM_DG)
 	set(LLVM_LINK_COMPONENTS core engine asmparser bitreader)
 	add_executable(llvm-dg-test llvm-dg-test.cpp)
 	target_link_libraries(llvm-dg-test
-				PRIVATE LLVMdg
+				PRIVATE dgllvmdg
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis})
 
@@ -309,8 +309,8 @@ endif (LLVM_DG)
 # benchmarking
 # --------------------------------------------------
 add_executable(rdmap-benchmark rdmap-benchmark.cpp)
-target_link_libraries(rdmap-benchmark RD)
+target_link_libraries(rdmap-benchmark dgdda)
 
 add_executable(ptset-benchmark ptset-benchmark.cpp)
-target_link_libraries(ptset-benchmark PRIVATE DGAnalysis)
+target_link_libraries(ptset-benchmark PRIVATE dganalysis)
 
