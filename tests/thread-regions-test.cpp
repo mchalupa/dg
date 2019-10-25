@@ -494,7 +494,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
                     }
                 }
             }
-        } 
+        }
 
         REQUIRE(pthreadExitCall != nullptr);
         auto nodeSeq = graphBuilder->buildInstruction(pthreadExitCall);
