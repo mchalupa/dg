@@ -1,4 +1,4 @@
-target_sources(dgThreadRegions
+target_sources(dgllvmthreadregions
         PRIVATE
             ${CMAKE_CURRENT_LIST_DIR}/BlockGraph.cpp
             ${CMAKE_CURRENT_LIST_DIR}/FunctionGraph.cpp
