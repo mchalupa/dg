@@ -102,9 +102,7 @@ int main(int argc, char *argv[])
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    bool todot = false;
     bool threads = false;
-    bool graph_only = false;
     const char *module = nullptr;
     Offset::type field_sensitivity = Offset::UNKNOWN;
     bool rd_strong_update_unknown = false;
@@ -142,16 +140,12 @@ int main(int argc, char *argv[])
             }
         } else if (strcmp(argv[i], "-rd-strong-update-unknown") == 0) {
             rd_strong_update_unknown = true;
-        } else if (strcmp(argv[i], "-dot") == 0) {
-            todot = true;
         } else if (strcmp(argv[i], "-threads") == 0) {
             threads = true;
         } else if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-dbg") == 0) {
             DBG_ENABLE();
-        } else if (strcmp(argv[i], "-graph-only") == 0) {
-            graph_only = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entryFunc = argv[i+1];
         } else {
