@@ -2,15 +2,31 @@
 
 from sys import stdout, argv
 from subprocess import Popen, PIPE
-from os.path import join, dirname
-from os import unlink, chdir
+from os.path import join, dirname, abspath
+from os import unlink, chdir, getcwd
 
 debug=False
 have_svf = False
-BUILDDIR="../" # FIXME
-CMAKECACHE=BUILDDIR + "CMakeCache.txt"
-TOOLSDIR=BUILDDIR + "tools/"
+
+# going to be (possibly) re-set in set_environment()
+TOOLSDIR="../../tools/"
 SOURCESDIR="sources/"
+
+#RUNDIR=getcwd()
+
+def parse_cmake_cache(cmakecache):
+    with open(cmakecache, 'r') as f:
+        for line in f:
+            if line.startswith('SVF_DIR'):
+                have_svf = True
+            elif line.startswith('dg_SOURCE_DIR'):
+                parts = line.split('=')
+                global SOURCESDIR
+                SOURCESDIR=abspath(join(parts[1].strip(), 'tests/slicing/sources/'))
+            elif line.startswith('dg_BINARY_DIR'):
+                parts = line.split('=')
+                global TOOLSDIR
+                TOOLSDIR=abspath(join(parts[1].strip(), 'tools/'))
 
 configs = {
     '-dda': ['rd', 'ssa'],
@@ -40,10 +56,17 @@ def error(msg):
     exit(1)
 
 def set_environment():
+    try:
+        parse_cmake_cache("../../CMakeCache.txt")
+    except FileNotFoundError:
+        # assume in-source build where we want to call
+        # the test-runner.py from everywhere
+        chdir(dirname(argv[0]))
+
     from os import environ
-    #FIXME
-    environ['PATH'] += ":../../tools"
-    chdir(dirname(argv[0]))
+    environ['PATH'] += ":"+abspath(TOOLSDIR)
+    print(environ['PATH'])
+
 
 def _getbcname(name):
     # FIXME: check for suffix
@@ -53,7 +76,7 @@ def compile(source, output = None, params=[]):
     if output is None:
         output = _getbcname(source)
 
-    ret = command(["clang", "-include", "test_assert.h",
+    ret = command(["clang", "-include", join(SOURCESDIR, '..', "test_assert.h"),
                    "-emit-llvm", "-c", source, "-o", output] + params)
     if ret != 0:
         error('Failed executing command')
@@ -214,7 +237,8 @@ if __name__ == "__main__":
         bccode = link(bccode, linkbefore)
 
     # always link test_assert() after slicing
-    assertbc = compile('test_assert.c', params=t.compilerparams)
+    assertbc = compile(join(SOURCESDIR, '..', 'test_assert.c'),
+                       params=t.compilerparams)
     linkafter.append(assertbc)
 
     # RUN!
