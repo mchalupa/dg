@@ -65,7 +65,6 @@ def set_environment():
 
     from os import environ
     environ['PATH'] += ":"+abspath(TOOLSDIR)
-    print(environ['PATH'])
 
 
 def _getbcname(name):
