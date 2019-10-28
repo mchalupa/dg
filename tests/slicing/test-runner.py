@@ -174,7 +174,7 @@ def _test_enabled(test, setup):
 def run_test(test, bccode, optafter, linkafter, args):
     toremove = []
 
-    bccode = slice(bccode, args)
+    bccode = slice(bccode, args + test.addparams)
     toremove.append(bccode)
 
     if optafter:
