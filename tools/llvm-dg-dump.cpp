@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
-    const char *rda = "dataflow";
+    const char *rda = "ssa";
     const char *entry_func = "main";
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
@@ -167,14 +167,14 @@ int main(int argc, char *argv[])
         abort();
     }
 
-    if (strcmp(rda, "dataflow") == 0) {
+    if (strcmp(rda, "rd") == 0) {
         options.DDAOptions.analysisType
             = LLVMDataDependenceAnalysisOptions::AnalysisType::rd;
     } else if (strcmp(rda, "ssa") == 0) {
         options.DDAOptions.analysisType
             = LLVMDataDependenceAnalysisOptions::AnalysisType::ssa;
     } else {
-        llvm::errs() << "Unknown reaching definitions analysis, try: dataflow, ssa\n";
+        llvm::errs() << "Unknown reaching definitions analysis, try: rd, ssa\n";
         abort();
     }
 
