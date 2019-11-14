@@ -34,6 +34,9 @@ class SubgraphNode {
     // than one pointer, we can change this design.
     void *user_data{nullptr};
 
+    // id of scc component
+    unsigned int scc_id{0};
+
 public:
     using NodesVec = std::vector<NodeT *>;
 
@@ -50,14 +53,6 @@ protected:
     size_t size{0};
 
 public:
-    // FIXME: get rid of these things
-    unsigned int dfs_id{0};
-    unsigned int lowpt{0};
-
-    // id of scc component
-    unsigned int scc_id{0};
-    // true if the node is on stack
-    bool on_stack{false};
 
     SubgraphNode(unsigned id) : id(id) {}
 #ifndef NDEBUG
@@ -72,6 +67,7 @@ public:
 
     void setSize(size_t s) { size = s; }
     size_t getSize() const { return size; }
+    void setSCCId(unsigned id) { scc_id = id; }
     unsigned getSCCId() const { return scc_id; }
 
     // getters & setters for analysis's data in the node
