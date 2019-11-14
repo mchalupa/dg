@@ -178,7 +178,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
             , nullptr
     #endif
             ),
-        llvm::cl::init(LLVMDataDependenceAnalysisOptions::AnalysisType::rd),
+        llvm::cl::init(LLVMDataDependenceAnalysisOptions::AnalysisType::ssa),
                        llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<dg::CD_ALG> cdAlgorithm("cd-alg",

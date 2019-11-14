@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
     enum class RdaType {
         DATAFLOW,
         SSA
-    } rda = RdaType::DATAFLOW;
+    } rda = RdaType::SSA;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
