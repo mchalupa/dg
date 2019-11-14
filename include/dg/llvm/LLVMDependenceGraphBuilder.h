@@ -160,7 +160,7 @@ public:
     }
 
     LLVMPointerAnalysis *getPTA() { return _PTA.get(); }
-    LLVMDataDependenceAnalysis *getRDA() { return _DDA.get(); }
+    LLVMDataDependenceAnalysis *getDDA() { return _DDA.get(); }
 
     const Statistics& getStatistics() const { return _statistics; }
 

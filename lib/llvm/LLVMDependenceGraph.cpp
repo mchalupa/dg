@@ -771,7 +771,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m,
                                 llvm::Function *entry)
 {
     this->PTA = pts;
-    this->RDA = rda;
+    this->DDA = rda;
     return build(m, entry);
 }
 
@@ -1229,7 +1229,7 @@ void LLVMDependenceGraph::addNoreturnDependencies()
 }
 
 void LLVMDependenceGraph::addDefUseEdges() {
-    LLVMDefUseAnalysis DUA(this, RDA, PTA);
+    LLVMDefUseAnalysis DUA(this, DDA, PTA);
     DUA.run();
 }
 
