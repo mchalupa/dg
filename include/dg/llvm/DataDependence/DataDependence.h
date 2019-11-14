@@ -104,12 +104,21 @@ public:
     }
 
     std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
-                                                 const Offset& off, const Offset& len) {
+                                         const Offset& off, const Offset& len) {
         return DDA->getDefinitions(where, mem, off, len);
     }
 
     std::vector<RWNode *> getDefinitions(RWNode *use) {
         return DDA->getDefinitions(use);
+    }
+
+    std::vector<RWNode *> getDefinitions(llvm::Instruction *where, llvm::Value *mem,
+                                         const Offset& off, const Offset& len) {
+        auto whereN = getNode(where);
+        assert(whereN);
+        auto memN = getNode(mem);
+        assert(memN);
+        return DDA->getDefinitions(whereN, memN, off, len);
     }
 
     std::vector<RWNode *> getDefinitions(llvm::Value *use) {
@@ -121,6 +130,10 @@ public:
     // return instructions that define the given value
     // (the value must read from memory, e.g. LoadInst)
     std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use);
+    std::vector<llvm::Value *> getLLVMDefinitions(llvm::Instruction *where,
+                                                  llvm::Value *mem,
+                                                  const Offset& off,
+                                                  const Offset& len);
 
     DataDependenceAnalysis *getDDA() { return DDA.get(); }
     const DataDependenceAnalysis *getDDA() const { return DDA.get(); }
