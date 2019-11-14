@@ -526,7 +526,7 @@ dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type)
         for (auto& it : CG) {
             printf("NODEcg%u [label=\"%s\"]\n",
                     it.second.getID(),
-                    PSNodeEntry::get(it.first)->getFunctionName().c_str());
+                    it.first->getUserData<llvm::Function>()->getName().str().c_str());
         }
         for (auto& it : CG) {
             for (auto succ : it.second.getCalls()) {
