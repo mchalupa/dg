@@ -160,7 +160,7 @@ public:
     }
 
     LLVMPointerAnalysis *getPTA() const { return PTA; }
-    LLVMDataDependenceAnalysis *getRDA() const { return RDA; }
+    LLVMDataDependenceAnalysis *getDDA() const { return DDA; }
 
     LLVMNode *findNode(llvm::Value *value) const;
 
@@ -215,7 +215,7 @@ private:
     // points-to information (if available)
     LLVMPointerAnalysis *PTA;
     // reaching definitions information (if available)
-    LLVMDataDependenceAnalysis *RDA;
+    LLVMDataDependenceAnalysis *DDA;
 
     // control expression for this graph
     ControlExpression CE;

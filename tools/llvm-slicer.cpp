@@ -393,7 +393,7 @@ public:
         auto annot
             = new dg::debug::LLVMDGAssemblyAnnotationWriter(annotationOptions,
                                                             dg->getPTA(),
-                                                            dg->getRDA(),
+                                                            dg->getDDA(),
                                                             criteria);
         annot->emitModuleComment(std::move(module_comment));
         llvm::Module *M = dg->getModule();
