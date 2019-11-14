@@ -249,6 +249,7 @@ public:
         return callGraph.addCall(a, b);
     }
 
+    GenericCallGraph<PSNode *>& getCallGraph() { return callGraph; }
     const GenericCallGraph<PSNode *>& getCallGraph() const { return callGraph; }
     const SubgraphsT& getSubgraphs() const { return _subgraphs; }
 

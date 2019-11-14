@@ -11,6 +11,7 @@ class GenericCallGraph {
 public:
     class FuncNode {
         unsigned _id;
+        unsigned _scc_id{0};
         std::vector<FuncNode *> _calls;
         std::vector<FuncNode *> _callers;
 
@@ -24,14 +25,18 @@ public:
         }
 
     public:
-        ValueT value;
+        const ValueT value;
 
-        FuncNode(unsigned id, ValueT& nd) : _id(id), value(nd) {};
+        FuncNode(unsigned id, const ValueT& nd) : _id(id), value(nd) {};
         FuncNode(FuncNode&&) = default;
 
         bool calls(FuncNode *x) const { return _contains(x, _calls); }
         bool isCalledBy(FuncNode *x) const { return _contains(x, _callers); }
+
         unsigned getID() const { return _id; }
+        unsigned getSCCId() const { return _scc_id; }
+        void setSCCId(unsigned id) { _scc_id = id; }
+
 
         bool addCall(FuncNode *x) {
             if (calls(x))
@@ -43,20 +48,17 @@ public:
         }
 
         const std::vector<FuncNode *>& getCalls() const { return _calls; }
+        // alias for getCalls()
+        const std::vector<FuncNode *>& getSuccessors() const { return getCalls(); }
         const std::vector<FuncNode *>& getCallers() const { return _callers; }
-    };
 
-    // a calls b
-    bool addCall(ValueT& a, ValueT& b) {
-        auto A = getOrCreate(a);
-        auto B = getOrCreate(b);
-        return A->addCall(B);
-    }
+        const ValueT& getValue() const { return value; };
+    };
 
 private:
     unsigned last_id{0};
 
-    FuncNode *getOrCreate(ValueT& v) {
+    FuncNode *getOrCreate(const ValueT& v) {
         auto it = _mapping.find(v);
         if (it == _mapping.end()) {
             auto newIt = _mapping.emplace(v, FuncNode(++last_id, v));
@@ -65,11 +67,33 @@ private:
         return &it->second;
     }
 
-    std::map<ValueT, FuncNode> _mapping;
-    //std::map<ValueT, FuncNode *> _mapping;
-    //std::vector<FuncNode> _nodes;
+    std::map<const ValueT, FuncNode> _mapping;
 
 public:
+
+    // a calls b
+    bool addCall(const ValueT& a, const ValueT& b) {
+        auto A = getOrCreate(a);
+        auto B = getOrCreate(b);
+        return A->addCall(B);
+    }
+
+    const FuncNode *get(const ValueT& v) const {
+        auto it = _mapping.find(v);
+        if (it == _mapping.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
+    FuncNode *get(const ValueT& v) {
+        auto it = _mapping.find(v);
+        if (it == _mapping.end()) {
+            return nullptr;
+        }
+        return &it->second;
+    }
+
     auto begin() -> decltype(_mapping.begin()) { return _mapping.begin(); }
     auto end() -> decltype(_mapping.end()) { return _mapping.end(); }
     auto begin() const -> decltype(_mapping.begin()) { return _mapping.begin(); }
