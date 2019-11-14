@@ -110,6 +110,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void updateDefinitions(Definitions& D, RWNode *node);
 
+    // insert a (temporary) use into the graph before the node 'where'
+    RWNode *insertUse(RWNode *where, RWNode *mem,
+                      const Offset& off, const Offset& len);
+
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
@@ -126,12 +130,10 @@ public:
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    std::vector<RWNode *> getDefinitions(RWNode *, RWNode *,
-                                         const Offset&,
-                                         const Offset&) override {
-        assert(false && "This method is not implemented for this analysis");
-        abort();
-    }
+    std::vector<RWNode *> getDefinitions(RWNode *where,
+                                         RWNode *mem,
+                                         const Offset& off,
+                                         const Offset& len) override;
 
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
 
