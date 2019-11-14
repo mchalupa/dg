@@ -25,8 +25,8 @@ class PointerAnalysisFI : public PointerAnalysis
         // number of iterations (in FI analysis), so we can do that right now
         // and save iterations
 
-        assert(getPS() && "Must have PG");
-        for (auto& sg : getPS()->getSubgraphs()) {
+        assert(getPG() && "Must have PG");
+        for (auto& sg : getPG()->getSubgraphs()) {
             for (auto& loop : sg->getLoops()) {
                 for (PSNode *n : loop) {
                     if (PSNodeGep *gep = PSNodeGep::get(n))

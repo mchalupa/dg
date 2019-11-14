@@ -22,7 +22,7 @@ extern const Pointer UnknownPointer;
 class PointerAnalysis
 {
     void initPointerAnalysis() {
-        assert(PS && "Need PointerGraph object");
+        assert(PG && "Need PointerGraph object");
     }
 
 protected:
@@ -32,7 +32,7 @@ protected:
     std::vector<PSNode *> changed;
 
     // the pointer state subgraph
-    PointerGraph *PS{nullptr};
+    PointerGraph *PG{nullptr};
 
     const PointerAnalysisOptions options{};
 
@@ -40,7 +40,7 @@ public:
 
     PointerAnalysis(PointerGraph *ps,
                     const PointerAnalysisOptions& opts)
-    : PS(ps), options(opts) {
+    : PG(ps), options(opts) {
         initPointerAnalysis();
     }
 
@@ -75,7 +75,8 @@ public:
         return false;
     }
 
-    PointerGraph *getPS() const { return PS; }
+    PointerGraph *getPG() { return PG; }
+    const PointerGraph *getPG() const { return PG; }
 
 
     virtual void enqueue(PSNode *n)
@@ -88,15 +89,15 @@ public:
     void initialize_queue() {
         assert(to_process.empty());
 
-        PSNode *root = PS->getEntry()->getRoot();
-        assert(root && "Do not have root of PS");
+        PSNode *root = PG->getEntry()->getRoot();
+        assert(root && "Do not have root of PG");
         // rely on C++11 move semantics
-        to_process = PS->getNodes(root);
+        to_process = PG->getNodes(root);
     }
 
     void queue_globals() {
         assert(to_process.empty());
-        for (auto& it : PS->getGlobals()) {
+        for (auto& it : PG->getGlobals()) {
             to_process.push_back(it.get());
         }
     }
@@ -123,7 +124,7 @@ public:
 
         if (!changed.empty()) {
             // DONT std::move - it prevents compiler from copy ellision
-            to_process = PS->getNodes(changed /* starting set */,
+            to_process = PG->getNodes(changed /* starting set */,
                                       true /* interprocedural */,
                                       last_processed_num /* expected num */);
 

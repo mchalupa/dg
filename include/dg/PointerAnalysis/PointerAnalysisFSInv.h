@@ -54,8 +54,8 @@ public:
             // if this is the root of the entry procedure,
             // we must propagate the points-to information
             // from the globals initialization
-            if (n == PS->getEntry()->getRoot()) {
-                mergeGlobalsState(mm, PS->getGlobals());
+            if (n == PG->getEntry()->getRoot()) {
+                mergeGlobalsState(mm, PG->getGlobals());
             }
         } else {
             // this node can not change the memory map,

@@ -46,8 +46,8 @@ public:
             // if this is the root of the entry procedure,
             // we must propagate the points-to information
             // from the globals initialization
-            if (n == PS->getEntry()->getRoot()) {
-                mergeGlobalsState(mm, PS->getGlobals());
+            if (n == PG->getEntry()->getRoot()) {
+                mergeGlobalsState(mm, PG->getGlobals());
             }
         } else {
             // this node can not change the memory map,
@@ -120,7 +120,7 @@ public:
     }
 
     bool functionPointerCall(PSNode *, PSNode *) override {
-        PS->computeLoops();
+        PG->computeLoops();
         return false;
     }
 
@@ -240,7 +240,7 @@ protected:
                canChangeMM(n);
     }
 
-    void mergeGlobalsState(MemoryMapT *mm, decltype(PS->getGlobals())& globals) {
+    void mergeGlobalsState(MemoryMapT *mm, decltype(PG->getGlobals())& globals) {
         for (auto& glob : globals) {
             if (MemoryMapT *globmm = glob->getData<MemoryMapT>()) {
                 mergeMaps(mm, globmm, nullptr);
