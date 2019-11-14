@@ -58,6 +58,46 @@ LLVMDataDependenceAnalysis::getNodesMap() const {
     return builder->getNodesMap();
 }
 
+std::vector<llvm::Value *>
+LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
+                                               llvm::Value *mem,
+                                               const Offset& off,
+                                               const Offset& len) {
+
+    std::vector<llvm::Value *> defs;
+
+    auto whereN = getNode(where);
+    if (!whereN) {
+        llvm::errs() << "[RD] error: no node for: " << *where << "\n";
+        return defs;
+    }
+
+    auto memN = getNode(mem);
+    if (!memN) {
+        llvm::errs() << "[RD] error: no node for: " << *mem << "\n";
+        return defs;
+    }
+
+    auto rdDefs = getDefinitions(whereN, memN, off, len);
+    if (rdDefs.empty()) {
+        static std::set<std::pair<const llvm::Value *, const llvm::Value *>> reported;
+        if (reported.insert({where, mem}).second) {
+            llvm::errs() << "[RD] error: no reaching definition for: "
+                         << *mem << "at " << *where << "\n";
+        }
+    }
+
+    // map the values
+    for (RWNode *nd : rdDefs) {
+        assert(nd->getType() != RWNodeType::PHI);
+        auto llvmvalue = nd->getUserData<llvm::Value>();
+        assert(llvmvalue && "RD node has no value");
+        defs.push_back(llvmvalue);
+    }
+
+    return defs;
+}
+
 // the value 'use' must be an instruction that reads from memory
 std::vector<llvm::Value *>
 LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
