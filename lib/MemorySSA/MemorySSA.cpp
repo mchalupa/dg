@@ -358,10 +358,12 @@ MemorySSATransformation::getDefinitions(RWNode *use) {
 std::vector<RWNode *>
 MemorySSATransformation::getDefinitions(RWNode *where,
                                         RWNode *mem,
-                                        const Offset& len,
-                                        const Offset& off) {
+                                        const Offset& off,
+                                        const Offset& len) {
+    //DBG_SECTION_BEGIN(dda, "Adding MU node");
     auto use = insertUse(where, mem, off, len);
     use->defuse.add(findDefinitions(use));
+    //DBG_SECTION_END(dda, "Created MU node " << use->getID());
     return gatherNonPhisDefs(use->defuse);
 }
 
@@ -370,6 +372,7 @@ RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
     auto use = graph.create(RWNodeType::MU);
     use->addUse({mem, off, len});
     use->insertBefore(where);
+    where->getBBlock()->insertBefore(use, where);
 
     return use;
 }
