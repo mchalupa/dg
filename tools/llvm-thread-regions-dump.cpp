@@ -69,8 +69,7 @@ int main(int argc, const char *argv[])
     }
 
     dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::Offset::UNKNOWN, true);
-    auto PA = pointsToAnalysis.createPTA<dg::pta::PointerAnalysisFI>();
-    PA->run();
+    pointsToAnalysis.run();
 
     ControlFlowGraph controlFlowGraph(&pointsToAnalysis);
     controlFlowGraph.buildFunction(M->getFunction("main"));

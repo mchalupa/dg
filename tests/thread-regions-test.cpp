@@ -403,8 +403,7 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
     std::unique_ptr<Module> M = parseIRFile(SIMPLE_FILE, SMD, context);
     const Function * function = M->getFunction("sum");
     dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::Offset::UNKNOWN, true);
-    auto PA = pointsToAnalysis.createPTA<dg::pta::PointerAnalysisFI>();
-    PA->run();
+    pointsToAnalysis.run();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Test of buildInstruction and findInstruction") {
@@ -468,8 +467,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(PTHREAD_EXIT_FILE, SMD, context); 
     dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::Offset::UNKNOWN, true);
-    auto PA = pointsToAnalysis.createPTA<dg::pta::PointerAnalysisFI>();
-    PA->run();
+    pointsToAnalysis.run();
     std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Undefined function which is not really important for us") {

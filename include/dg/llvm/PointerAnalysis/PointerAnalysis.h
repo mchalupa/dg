@@ -169,6 +169,7 @@ public:
 
 class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     PointerGraph *PS = nullptr;
+    std::unique_ptr<pta::PointerAnalysis> PTA{}; // dg pointer analysis object
     std::unique_ptr<LLVMPointerGraphBuilder> _builder;
 
     LLVMPointerAnalysisOptions createOptions(const char *entry_func,
@@ -206,7 +207,10 @@ public:
         return _builder->getPointsTo(val);
     }
 
-    inline bool threads() const { return _builder->threads(); }
+    pta::PointerAnalysis *getPTA() { return PTA.get(); }
+    const pta::PointerAnalysis *getPTA() const { return PTA.get(); }
+
+    bool threads() const { return _builder->threads(); }
 
     bool hasPointsTo(const llvm::Value *val) override {
         if (auto node = getPointsToNode(val)) {
@@ -307,7 +311,7 @@ public:
 
     }
 
-    void run() override {
+    void initialize() {
         if (options.isFSInv())
             _builder->setInvalidateNodesFlag(true);
 
@@ -315,28 +319,22 @@ public:
 
         if (options.isFS()) {
             // FIXME: make a interface with run() method
-            DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS> PTA(PS, _builder.get());
-            PTA.run();
+            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS>(PS, _builder.get()));
         } else if (options.isFI()) {
-            DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI> PTA(PS, _builder.get());
-            PTA.run();
+            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI>(PS, _builder.get()));
         } else if (options.isFSInv()) {
-            DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
-            PTA.run();
+            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv>(PS, _builder.get()));
         } else {
             assert(0 && "Wrong pointer analysis");
             abort();
         }
     }
 
-    // this method creates PointerAnalysis object and returns it.
-    // It is alternative to run() method, but it does not delete all
-    // the analysis data as the run() (like memory objects and so on).
-    // run() preserves only PointerGraph and the builder
-    template <typename PTType>
-    pta::PointerAnalysis *createPTA() {
-        buildSubgraph();
-        return new DGLLVMPointerAnalysisImpl<PTType>(PS, _builder.get());
+    void run() override {
+        if (!PTA) {
+            initialize();
+        }
+        PTA->run();
     }
 };
 
