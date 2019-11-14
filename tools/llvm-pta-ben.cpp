@@ -53,8 +53,6 @@ using namespace dg::pta;
 using dg::debug::TimeMeasure;
 using llvm::errs;
 
-std::unique_ptr<PointerAnalysis> PA;
-
 enum PTType {
     FLOW_SENSITIVE = 1,
     FLOW_INSENSITIVE,
@@ -424,7 +422,7 @@ int main(int argc, char *argv[])
     const char *module = nullptr;
     const char *entry_func = "main";
     PTType type = FLOW_INSENSITIVE;
-    uint64_t field_senitivity = Offset::UNKNOWN;
+    uint64_t field_sensitivity = Offset::UNKNOWN;
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -435,7 +433,7 @@ int main(int argc, char *argv[])
             else if (strcmp(argv[i+1], "inv") == 0)
                 type = WITH_INVALIDATE;
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
-            field_senitivity = static_cast<uint64_t>(atoll(argv[i + 1]));
+            field_sensitivity = static_cast<uint64_t>(atoll(argv[i + 1]));
         } else if (strcmp(argv[i], "-entry") == 0) {
             entry_func = argv[i + 1];
         } else {
@@ -464,30 +462,27 @@ int main(int argc, char *argv[])
 
     TimeMeasure tm;
 
-    DGLLVMPointerAnalysis PTA(M, entry_func, field_senitivity);
+    LLVMPointerAnalysisOptions opts;
+
+    if (type == FLOW_INSENSITIVE) {
+      opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
+    } else if (type == WITH_INVALIDATE) {
+      opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::inv;
+    } else {
+      opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fs;
+    }
+
+    opts.entryFunction = entry_func;
+    opts.fieldSensitivity = field_sensitivity;
+
+    DGLLVMPointerAnalysis PTA(M, opts);
 
     tm.start();
 
-    // use createAnalysis instead of the run() method so that we won't delete
-    // the analysis data (like memory objects) which may be needed
-    if (type == FLOW_INSENSITIVE) {
-        PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<pta::PointerAnalysisFI>()
-            );
-    } else if (type == WITH_INVALIDATE) {
-        PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<pta::PointerAnalysisFSInv>()
-            );
-    } else {
-        PA = std::unique_ptr<PointerAnalysis>(
-            PTA.createPTA<pta::PointerAnalysisFS>()
-            );
-    }
-
-    PA->run();
+    PTA.run();
 
     tm.stop();
-    tm.report("INFO: Points-to analysis [new] took");
+    tm.report("INFO: Pointer analysis took");
 
     evalPTA(&PTA);
 
