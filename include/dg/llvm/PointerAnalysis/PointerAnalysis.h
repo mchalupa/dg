@@ -204,7 +204,7 @@ public:
     // Get the node from pointer analysis that holds the points-to set.
     // See: getLLVMPointsTo()
     PSNode *getPointsToNode(const llvm::Value *val) const {
-        return _builder->getPointsTo(val);
+        return _builder->getPointsToNode(val);
     }
 
     pta::PointerAnalysis *getPTA() { return PTA.get(); }

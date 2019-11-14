@@ -236,11 +236,9 @@ public:
 
     std::vector<PSNode *> getFunctionNodes(const llvm::Function *F) const;
 
-    // this is the same as the getNode, but it
-    // creates ConstantExpr
-    // FIXME: make this return the points-to set
-    PSNode *getPointsTo(const llvm::Value *val) {
-        PSNode *n = getPointsToNode(val);
+    // this is the same as the getNode, but it creates ConstantExpr
+    PSNode *getPointsToNode(const llvm::Value *val) {
+        PSNode *n = getPointsToNodeOrNull(val);
         if (!n)
             n = getConstant(val);
 
@@ -278,7 +276,7 @@ private:
     PSNodesSeq&
     createCallToFunction(const llvm::CallInst *, const llvm::Function *);
 
-    PSNode *getPointsToNode(const llvm::Value *val) {
+    PSNode *getPointsToNodeOrNull(const llvm::Value *val) {
         // if we have a mapping for this node (e.g. the original
         // node was optimized away and replaced by mapping),
         // return it
