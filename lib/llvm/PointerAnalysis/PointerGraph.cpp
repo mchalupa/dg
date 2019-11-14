@@ -214,7 +214,7 @@ LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
         return functions;
     }
 
-    PSNode *operand = getPointsTo(calledValue);
+    PSNode *operand = getPointsToNode(calledValue);
     if (operand == nullptr) {
         return functions;
     }
