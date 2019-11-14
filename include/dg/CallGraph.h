@@ -71,6 +71,12 @@ private:
 
 public:
 
+    // just create a node for the value
+    // (e.g., the entry node)
+    FuncNode *createNode(const ValueT& a) {
+        return getOrCreate(a);
+    }
+
     // a calls b
     bool addCall(const ValueT& a, const ValueT& b) {
         auto A = getOrCreate(a);
@@ -93,6 +99,8 @@ public:
         }
         return &it->second;
     }
+
+    bool empty() const { return _mapping.empty(); }
 
     auto begin() -> decltype(_mapping.begin()) { return _mapping.begin(); }
     auto end() -> decltype(_mapping.end()) { return _mapping.end(); }
