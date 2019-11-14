@@ -49,8 +49,9 @@ public:
 
     unsigned getID() const { return _id; }
 
-    // the first node of the subgraph
     // FIXME: make the attrs private
+
+    // the first node of the subgraph. XXX: rename to entry
     PSNode *root{nullptr};
 
 	// return nodes of this graph

@@ -133,15 +133,10 @@ LLVMPointerGraphBuilder::getAndConnectSubgraph(const llvm::Function *F,
     ent->addCaller(callNode);
 
     // update callgraph
-    auto cinstg = getSubgraph(CInst->getParent()->getParent());
-    assert(cinstg);
-    auto parentEntry = cinstg->root;
-    assert(parentEntry);
-    PS.registerCall(parentEntry, subg.root);
+    auto *callerF = CInst->getParent()->getParent();
+    PS.registerCall(getPointsToNode(callerF), getPointsToNode(F));
+    DBG(pta, "CallGraph: " << callerF->getName().str() << " -> " << F->getName().str());
 
-    DBG(pta, "CallGraph: " << PSNodeEntry::cast(parentEntry)->getFunctionName()
-                           << " -> "
-                           << PSNodeEntry::cast(subg.root)->getFunctionName());
     return subg;
 }
 
