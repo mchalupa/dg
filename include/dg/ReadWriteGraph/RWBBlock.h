@@ -36,6 +36,22 @@ public:
 
     void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); _check(); }
     void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(this); _check(); }
+    void insertBefore(NodeT *n, NodeT *before) {
+        assert(!_nodes.empty());
+
+        auto it = _nodes.begin();
+        while (it != _nodes.end()) {
+            if (*it == before)
+                break;
+            ++it;
+        }
+        assert(it != _nodes.end() && "Did not find 'before' node");
+
+        _nodes.insert(it, n);
+        n->setBBlock(this);
+        _check();
+    }
+
     // FIXME: get rid of this method in favor of either append/prepend
     // (so these method would update CFG edges) or keeping CFG
     // only in blocks
