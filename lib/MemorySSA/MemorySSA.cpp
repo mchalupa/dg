@@ -353,6 +353,27 @@ MemorySSATransformation::getDefinitions(RWNode *use) {
     return gatherNonPhisDefs(use->defuse);
 }
 
+// return the reaching definitions of ('mem', 'off', 'len')
+// at the location 'where'
+std::vector<RWNode *>
+MemorySSATransformation::getDefinitions(RWNode *where,
+                                        RWNode *mem,
+                                        const Offset& len,
+                                        const Offset& off) {
+    auto use = insertUse(where, mem, off, len);
+    use->defuse.add(findDefinitions(use));
+    return gatherNonPhisDefs(use->defuse);
+}
+
+RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
+                                           const Offset& off, const Offset& len) {
+    auto use = graph.create(RWNodeType::MU);
+    use->addUse({mem, off, len});
+    use->insertBefore(where);
+
+    return use;
+}
+
 static void joinDefinitions(DefinitionsMap<RWNode>& from,
                             DefinitionsMap<RWNode>& to) {
     for (auto& it : from) {

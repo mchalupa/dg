@@ -31,6 +31,8 @@ enum class RWNodeType {
         LOAD,
         // merging information from several locations
         PHI,
+        // artificial use (load)
+        MU,
         // return from the subprocedure
         RETURN,
         // call node
