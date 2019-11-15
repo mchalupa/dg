@@ -39,6 +39,225 @@ struct LLVMPointer {
     }
 };
 
+
+///
+// LLVM memory region
+// Pointer + length of referenced memory
+struct LLVMMemoryRegion {
+    LLVMPointer pointer;
+    Offset len;
+
+    LLVMMemoryRegion(const LLVMPointer& ptr, const Offset l)
+    : pointer(ptr), len(l) {}
+
+    LLVMMemoryRegion(llvm::Value *val, const Offset off, const Offset l)
+    : pointer(val, off), len(l) {}
+};
+
+///
+// A set of memory regions
+// XXX: we should create more efficient implementation.
+class LLVMMemoryRegionSet {
+    struct OffsetPair {
+        const Offset offset{0};
+        const Offset len{0};
+
+        OffsetPair() = default;
+        OffsetPair(const OffsetPair& rhs) = default;
+        OffsetPair(const Offset o, const Offset l)
+            : offset(o), len(l) {}
+
+        bool overlaps(const OffsetPair interval) const {
+            return overlaps(interval.offset, interval.len);
+        }
+
+        bool overlaps(const Offset o, const Offset l) const {
+            if (o.isUnknown() || offset.isUnknown())
+                return true;
+
+            if (o < offset) {
+                if (l.isUnknown() || o + l >= offset) {
+                    return true;
+                }
+            } else {
+                return o <= offset + len;
+            }
+
+            return false;
+        }
+
+        bool coveredBy(const OffsetPair& rhs)  const {
+            return coveredBy(rhs.offset, rhs.len);
+        }
+
+        bool coveredBy(const Offset o, const Offset l) const {
+            assert(!o.isUnknown() && !offset.isUnknown());
+            // we allow len == UNKNOWN and treat it as infinity
+
+            return (o <= offset &&
+                    ((l.isUnknown() && len.isUnknown()) ||
+                     l.isUnknown() || l >= len));
+        }
+
+        bool extends(const OffsetPair& rhs)  const {
+            return rhs.coveredBy(*this);
+        }
+
+        bool extends(const Offset o, const Offset l) const {
+            return extends({o, l});
+        }
+    };
+
+    using MappingT = std::map<llvm::Value *, std::vector<OffsetPair>>;
+
+    // intervals of bytes for each memory
+    // (llvm::Value corresponding to the allocation)
+    MappingT _regions;
+
+    std::tuple<Offset, Offset> _extend(const OffsetPair interval,
+                       const Offset off, const Offset len) {
+        assert(interval.overlaps(off, len));
+        assert(!off.isUnknown());
+
+        Offset o = interval.offset;
+        Offset l = interval.len;
+
+        if (off < interval.len)
+            o = off;
+        if (interval.len < len || len.isUnknown()) {
+            l = len;
+        }
+
+        return {o, l};
+    }
+
+    const std::vector<OffsetPair> *_get(llvm::Value *v) const {
+        auto it = _regions.find(v);
+        return it == _regions.end() ? nullptr : &it->second;
+    }
+
+public:
+    // Add a memory region to this set
+    //
+    // not very efficient, but we will use it only
+    // for transfering the results, so it should be fine
+    void add(llvm::Value *mem, const Offset o, const Offset l) {
+        auto& R = _regions[mem];
+        // we do not know the bytes in this region
+        if (o.isUnknown()) {
+            R.clear();
+            R.emplace_back(o, o);
+            return;
+        }
+
+        assert(!o.isUnknown());
+
+        for (auto& interval : R) {
+            if (interval.extends(o, l)) {
+                return; // nothing to be done
+            }
+        }
+
+
+        // join all overlapping intervals
+        Offset newO = o;
+        Offset newL = l;
+        for (auto& interval : R) {
+            if (interval.overlaps(newO, newL)) {
+                std::tie(newO, newL) = _extend(interval, newO, newL);
+            }
+        }
+
+        std::vector<OffsetPair> tmp;
+        tmp.reserve(R.size());
+
+        for (auto& interval : R) {
+            // get rid of covered intervals
+            if (interval.coveredBy(newO, newL))
+                continue;
+
+
+
+            // if intervals overlap, join them,
+            // otherwise keep the original interval
+            assert(!interval.overlaps(newO, newL));
+            tmp.push_back(interval);
+        }
+
+        tmp.emplace_back(newO, newL);
+        tmp.swap(R);
+
+#ifndef NDEBUG
+        for (auto& interval : R) {
+            assert(((interval.offset == newO && interval.len == newL) ||
+                     !interval.overlaps(newO, newL))
+                    && "Joined intervals incorrectly");
+        }
+#endif // NDEBUG
+    }
+
+    // XXX: inefficient
+    bool overlaps(const LLVMMemoryRegionSet& rhs) const {
+        for (auto& it : rhs._regions) {
+            auto *our = _get(it.first);
+            if (!our) {
+                continue;
+            }
+
+            for (auto& interval : *our) {
+                for (auto& interval2 : it.second) {
+                    if (interval.overlaps(interval2))
+                        return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    class const_iterator {
+        size_t pos{0};
+        typename MappingT::const_iterator it;
+
+        const_iterator(const MappingT::const_iterator I) : it(I) {}
+
+    public:
+        LLVMMemoryRegion operator*() const {
+            return LLVMMemoryRegion{it->first,
+                                    it->second[pos].offset,
+                                    it->second[pos].len};
+        }
+
+        const_iterator& operator++() {
+            ++pos;
+            if (pos >= it->second.size()) {
+                ++it;
+                pos = 0;
+            }
+            return *this;
+        }
+
+        const_iterator operator++(int) {
+            auto tmp = *this;
+            operator++();
+            return tmp;
+        }
+
+        bool operator==(const const_iterator& rhs) const {
+            return it == rhs.it && pos == rhs.pos;
+        }
+
+        bool operator!=(const const_iterator& rhs) const {
+            return !operator==(rhs);
+        }
+
+        friend class LLVMMemoryRegionSet;
+    };
+
+    const_iterator begin() const { return const_iterator(_regions.begin()); }
+    const_iterator end() const { return const_iterator(_regions.end()); }
+};
+
 ///
 // Implementation of LLVMPointsToSet
 class LLVMPointsToSetImpl {
@@ -92,14 +311,14 @@ public:
             if (impl)
                 _check_end();
         }
-    
+
     public:
         const_iterator& operator++() {
             impl->shift();
             _check_end();
             return *this;
         }
-    
+
         const_iterator operator++(int) {
             auto tmp = *this;
             operator++();
@@ -129,6 +348,9 @@ public:
     };
 
     LLVMPointsToSet(LLVMPointsToSetImpl *impl) : _impl(impl) {}
+    LLVMPointsToSet() = default;
+    LLVMPointsToSet(LLVMPointsToSet&&) = default;
+    LLVMPointsToSet& operator=(LLVMPointsToSet&&) = default;
 
     ///
     // NOTE: this may not be O(1) operation
