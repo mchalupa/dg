@@ -15,7 +15,8 @@ elif which evince &>/dev/null; then
 	GUI=evince
 fi
 
-`dirname $0`/llvm-dda-dump -dot $@ > _dda.dot
+PATH=`dirname $0`:$PATH
+llvm-dda-dump -dot $@ > _dda.dot
 
 if [ $DIRECTDOT -eq 1 ]; then
 	$GUI _dda.dot
