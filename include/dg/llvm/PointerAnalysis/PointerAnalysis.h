@@ -77,13 +77,14 @@ public:
     virtual std::pair<bool, LLVMPointsToSet>
     getLLVMPointsToChecked(const llvm::Value *val) = 0;
 
-    // A convenient wrapper around getLLVMPoints
+    // A convenient wrapper around getLLVMPointsTo
     // that takes an instruction and returns a set of
     // memory regions that are accessed (read/written)
     // by this instruction. It also returns a boolean
     // set to true if this information is not known (i.e.,
     // the points-to set did contain 'unknown' element
-    // or was empty)
+    // or was empty). For CallInst, it returns memory
+    // regions that may be accessed via the passed arguments.
     std::pair<bool, LLVMMemoryRegionSet>
     getAccessedMemory(const llvm::Instruction *I);
 
