@@ -52,6 +52,24 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
                              << *I << "\n";
                 return {true, regions};
         }
+    } else if (auto CI = dyn_cast<CallInst>(I)) {
+        if (CI->doesNotAccessMemory()) {
+            return {false, regions};
+        }
+
+        // check which operands are pointers and get the information for them
+        bool hasUnknown = false;
+        for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
+            if (hasPointsTo(CI->getArgOperand(i))) {
+                auto tmp = getLLVMPointsTo(CI->getArgOperand(i));
+                hasUnknown |= tmp.hasUnknown();
+                // translate to regions
+                for (const auto& ptr : tmp) {
+                    regions.add(ptr.value, Offset::UNKNOWN, Offset::UNKNOWN);
+                }
+            }
+        }
+        return {hasUnknown, regions};
     } else {
         if (I->mayReadOrWriteMemory()) {
             llvm::errs() << "[ERROR]: getAccessedMemory: unhandled intruction\n"
