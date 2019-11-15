@@ -48,7 +48,7 @@ public:
         // points-to information
         ANNOTATE_PTR                = 1 << 3,
         // reaching definitions
-        ANNOTATE_RD                 = 1 << 4,
+        ANNOTATE_DU                 = 1 << 4,
         // post-dominators
         ANNOTATE_POSTDOM            = 1 << 5,
         // comment out nodes that will be sliced
@@ -59,7 +59,7 @@ private:
 
     AnnotationOptsT opts;
     LLVMPointerAnalysis *PTA;
-    LLVMDataDependenceAnalysis *RD;
+    LLVMDataDependenceAnalysis *DDA;
     const std::set<LLVMNode *> *criteria;
     std::string module_comment{};
 
@@ -129,14 +129,14 @@ private:
 
     void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
     {
-        if (opts & ANNOTATE_RD) {
-            assert(RD && "No reaching definitions analysis");
+        if (opts & ANNOTATE_DU) {
+            assert(DDA && "No reaching definitions analysis");
             /*
 
             // FIXME
 
             LLVMDGParameters *params = node->getParameters();
-            // don't dump params when we use new analyses (RD is not null)
+            // don't dump params when we use new analyses (DDA is not null)
             // because there we don't add definitions with new analyses
             if (params) {
                 for (auto& it : *params) {
@@ -237,12 +237,12 @@ private:
 public:
     LLVMDGAssemblyAnnotationWriter(AnnotationOptsT o = ANNOTATE_SLICE,
                                    LLVMPointerAnalysis *pta = nullptr,
-                                   LLVMDataDependenceAnalysis *rd = nullptr,
+                                   LLVMDataDependenceAnalysis *dda = nullptr,
                                    const std::set<LLVMNode *>* criteria = nullptr)
-        : opts(o), PTA(pta), RD(rd), criteria(criteria)
+        : opts(o), PTA(pta), DDA(dda), criteria(criteria)
     {
         assert(!(opts & ANNOTATE_PTR) || PTA);
-        assert(!(opts & ANNOTATE_RD) || RD);
+        assert(!(opts & ANNOTATE_DU) || DDA);
     }
 
     void emitModuleComment(const std::string& comment) {
