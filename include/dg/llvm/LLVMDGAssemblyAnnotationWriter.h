@@ -53,6 +53,9 @@ public:
         ANNOTATE_POSTDOM            = 1 << 5,
         // comment out nodes that will be sliced
         ANNOTATE_SLICE              = 1 << 6,
+        // annotate memory accesses (like ANNOTATE_PTR,
+        // but with byte intervals)
+        ANNOTATE_MEMORYACC          = 1 << 7,
     };
 
 private:
@@ -127,8 +130,35 @@ private:
 
     }
 
+    void printMemRegion(const LLVMMemoryRegion& R,
+                        llvm::formatted_raw_ostream& os,
+                        const char *prefix = nullptr,
+                        bool nl = false) {
+        os << "  ; ";
+        if (prefix)
+            os << prefix;
+
+        assert(R.pointer.value);
+        printValue(R.pointer.value, os);
+
+        if (R.pointer.offset.isUnknown())
+            os << " bytes [?";
+        else
+            os << " bytes [" << *R.pointer.offset;
+
+        if (R.len.isUnknown())
+            os << " - ?]";
+        else
+            os << " - " <<  *R.pointer.offset + *R.len - 1 << "]";
+
+        if (nl)
+            os << "\n";
+    }
+
     void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
     {
+        using namespace llvm;
+
         if (opts & ANNOTATE_DU) {
             assert(DDA && "No reaching definitions analysis");
             /*
@@ -221,6 +251,20 @@ private:
                         if (ps.hasInvalidated()) {
                             os << "  ; invalidated\n";
                         }
+                    }
+                }
+            }
+        }
+
+        if (PTA && (opts & ANNOTATE_MEMORYACC)) {
+            if (auto I = dyn_cast<Instruction>(node->getValue())) {
+                if (I->mayReadOrWriteMemory()) {
+                    auto regions = PTA->getAccessedMemory(I);
+                    if (regions.first) {
+                            os << "  ; unknown region\n";
+                    }
+                    for (const auto& mem : regions.second) {
+                        printMemRegion(mem, os, nullptr, true);
                     }
                 }
             }

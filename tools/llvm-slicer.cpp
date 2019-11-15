@@ -97,10 +97,13 @@ llvm::cl::opt<bool> dump_bb_only("dump-bb-only",
 
 llvm::cl::opt<std::string> annotationOpts("annotate",
     llvm::cl::desc("Save annotated version of module as a text (.ll).\n"
-                   "(dd: data dependencies, cd:control dependencies,\n"
-                   "rd: reaching definitions, pta: points-to information,\n"
-                   "slice: comment out what is going to be sliced away, etc.)\n"
-                   "for more options, use comma separated list"),
+                   "Options:\n"
+                    "  dd: data dependencies,\n"
+                    "  cd:control dependencies,\n"
+                    "  pta: points-to information,\n"
+                    "  memacc: memory accesses of instructions,\n"
+                    "  slice: comment out what is going to be sliced away).\n"
+                    "for more options, use comma separated list"),
     llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
     llvm::cl::cat(SlicingOpts));
 
@@ -417,9 +420,11 @@ static AnnotationOptsT parseAnnotationOptions(const std::string& annot)
         else if (opt == "cd")
             opts |= AnnotationOptsT::ANNOTATE_CD;
         else if (opt == "rd")
-            opts |= AnnotationOptsT::ANNOTATE_RD;
+            opts |= AnnotationOptsT::ANNOTATE_DU;
         else if (opt == "pta")
             opts |= AnnotationOptsT::ANNOTATE_PTR;
+        else if (opt == "memacc")
+            opts |= AnnotationOptsT::ANNOTATE_MEMORYACC;
         else if (opt == "slice" || opt == "sl" || opt == "slicer")
             opts |= AnnotationOptsT::ANNOTATE_SLICE;
     }
