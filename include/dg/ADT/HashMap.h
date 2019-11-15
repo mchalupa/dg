@@ -24,9 +24,12 @@ class CachingHashMap : public std::unordered_map<Key, T> {
     }
 
     void _insert_to_cache(const Key& key, T *v) {
-        _last = std::max(_last + 1, CACHE_SIZE);
+        _last = std::min(_last + 1, CACHE_SIZE);
         _cache[_insert_pos] = {key, v};
         _insert_pos = (_insert_pos + 1) % CACHE_SIZE;
+
+        assert(_insert_pos < CACHE_SIZE);
+        assert(_last <= CACHE_SIZE);
     }
 
     void _invalidate_cache() {
