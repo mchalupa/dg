@@ -53,9 +53,13 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
                 return {true, regions};
         }
     } else {
-        llvm::errs() << "ERROR: Unhandled intruction\n"
-                     << *I << "\n";
-        assert(!I->mayReadOrWriteMemory());
+        if (I->mayReadOrWriteMemory()) {
+            llvm::errs() << "[ERROR]: getAccessedMemory: unhandled intruction\n"
+                         << *I << "\n";
+        } else {
+            llvm::errs() << "[ERROR]: getAccessedMemory: queries invalid instruction\n"
+                         << *I << "\n";
+        }
         return {true, regions};
     }
 
