@@ -74,7 +74,18 @@ public:
     // also the result of hasPointsTo(), so one can check whether the unknown
     // pointer in the set is present because hasPointsTo() was false,
     // or wether it has been propagated there during the analysis.
-    virtual std::pair<bool, LLVMPointsToSet> getLLVMPointsToChecked(const llvm::Value *val) = 0;
+    virtual std::pair<bool, LLVMPointsToSet>
+    getLLVMPointsToChecked(const llvm::Value *val) = 0;
+
+    // A convenient wrapper around getLLVMPoints
+    // that takes an instruction and returns a set of
+    // memory regions that are accessed (read/written)
+    // by this instruction. It also returns a boolean
+    // set to true if this information is not known (i.e.,
+    // the points-to set did contain 'unknown' element
+    // or was empty)
+    std::pair<bool, LLVMMemoryRegionSet>
+    getAccessedMemory(const llvm::Instruction *I);
 
     virtual void run() = 0;
 
