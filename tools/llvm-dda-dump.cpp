@@ -92,12 +92,12 @@ static void printRWNodeType(enum RWNodeType type)
 #undef ELEM
 }
 
-static inline void printAddress(RWNode *node, bool dot)
+static inline void printId(RWNode *node, bool dot)
 {
     if (dot)
-        printf(" [%p]\\n", static_cast<void*>(node));
+        printf(" [%u]\\n", node->getID());
     else
-        printf(" [%p]\n", static_cast<void*>(node));
+        printf(" [%u]\n", node->getID());
 }
 
 static void
@@ -118,7 +118,7 @@ printName(RWNode *node, bool dot)
     if (!name) {
         if (!node->getUserData<llvm::Value>()) {
             printRWNodeType(node->getType());
-            printAddress(node, dot);
+            printId(node, dot);
             return;
         }
 
