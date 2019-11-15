@@ -98,38 +98,33 @@ struct Offset
         return Offset::UNKNOWN;
     }
 
-    bool operator<(const Offset& o) const
-    {
+    // strict comparision (no 'maybe' comparions
+    // that arises due to UNKNOWN)
+    bool operator<(const Offset& o) const {
         return offset < o.offset;
     }
 
-    bool operator>(const Offset& o) const
-    {
+    bool operator>(const Offset& o) const {
         return offset > o.offset;
     }
 
-    bool operator<=(const Offset& o) const
-    {
+    bool operator<=(const Offset& o) const {
         return offset <= o.offset;
     }
 
-    bool operator>=(const Offset& o) const
-    {
+    bool operator>=(const Offset& o) const {
         return offset >= o.offset;
     }
 
-    bool operator==(const Offset& o) const
-    {
+    bool operator==(const Offset& o) const {
         return offset == o.offset;
     }
 
-    bool operator!=(const Offset& o) const
-    {
+    bool operator!=(const Offset& o) const {
         return offset != o.offset;
     }
 
-    bool inRange(type from, type to) const
-    {
+    bool inRange(type from, type to) const {
         return (offset >= from && offset <= to);
     }
 
