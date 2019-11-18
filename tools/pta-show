@@ -16,7 +16,8 @@ elif which evince &>/dev/null; then
 	GUI=evince
 fi
 
-`dirname $0`/llvm-pta-dump -dot $@ > _ps.dot
+export PATH=`dirname $0`:$PATH
+llvm-pta-dump -dot $@ > _ps.dot
 
 
 if [ $DIRECTDOT -eq 1 ]; then

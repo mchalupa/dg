@@ -758,6 +758,8 @@ int main(int argc, char *argv[])
             entry_func = argv[i + 1];
         } else if (strcmp(argv[i], "-display-only") == 0) {
             display_only = argv[i + 1];
+        } else if (strcmp(argv[i], "-dbg") == 0) {
+            DBG_ENABLE();
         } else {
             module = argv[i];
         }
