@@ -836,9 +836,6 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
     if (!pts.first) {
         llvm::errs() << "[RD] Error: No points-to information for destination in\n";
         llvm::errs() << ValInfo(I) << "\n";
-#ifndef NDEBUG
-        abort();
-#endif
         // continue, the points-to set is {unknown}
     }
 
