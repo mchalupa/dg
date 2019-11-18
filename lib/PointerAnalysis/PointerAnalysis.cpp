@@ -504,7 +504,8 @@ bool PointerAnalysis::run() {
     size_t n = 0;
     // do fixpoint
     do {
-        if (n > options.maxIterations) {
+        if (options.maxIterations > 0 &&
+            n > options.maxIterations) {
             DBG(pta, "Reached the maximum number of iterations: " << n);
             setToEmpty(to_process);
             to_process.clear();
@@ -520,6 +521,8 @@ bool PointerAnalysis::run() {
         iteration();
         queue_changed();
     } while (!to_process.empty());
+
+    DBG(pta, "Reached fixpoint after " << n << " iterations\n");
 
     assert(to_process.empty());
     assert(changed.empty());
