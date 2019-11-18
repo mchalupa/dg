@@ -184,9 +184,10 @@ public:
         return {!pts.empty(), mapSVFPointsTo(pts, pag)};
     }
 
-    void run() override {
+    bool run() override {
 		_pta.reset(new Andersen());
         _pta->analyze(_svfModule);
+        return true;
     }
 };
 

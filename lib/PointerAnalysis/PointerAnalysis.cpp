@@ -467,7 +467,13 @@ void PointerAnalysis::sanityCheck() {
 #endif // not NDEBUG
 }
 
-void PointerAnalysis::run() {
+static void setToEmpty(std::vector<PSNode *>& nodes) {
+    for (auto *n : nodes) {
+        n->pointsTo.clear();
+    }
+}
+
+bool PointerAnalysis::run() {
     DBG_SECTION_BEGIN(pta, "Running pointer analysis");
     
     preprocess();
@@ -479,23 +485,34 @@ void PointerAnalysis::run() {
     DBG(pta, "Processing global nodes");
     queue_globals();
     iteration();
-    assert((to_process.clear(), changed.clear(), queue_globals(), !iteration()) && "Globals did not reach fixpoint");
+    assert((to_process.clear(), changed.clear(), queue_globals(), !iteration())
+            && "Globals did not reach fixpoint");
     to_process.clear();
     changed.clear();
     
     initialize_queue();
 
-#if DEBUG_ENABLED
-    int n = 0;
-#endif
+    // override the pre-set value
+    if (options.maxIterations > 0) {
+        DBG(pta, "The maximal number of iterations is set to " <<
+                 options.maxIterations);
+    }
+
+    size_t n = 0;
     // do fixpoint
     do {
+        if (n > options.maxIterations) {
+            DBG(pta, "Reached the maximum number of iterations: " << n);
+            setToEmpty(to_process);
+            to_process.clear();
+            break;
+        }
 #if DEBUG_ENABLED
         if (n % 100 == 0) {
             DBG(pta, "Iteration " << n << ", queue size " << to_process.size());
         }
-        ++n;
 #endif
+        ++n;
 
         iteration();
         queue_changed();
@@ -517,6 +534,8 @@ void PointerAnalysis::run() {
     sanityCheck();
 
     DBG_SECTION_END(pta, "Running pointer analysis done");
+
+    return n <= options.maxIterations;
 }
 
 
