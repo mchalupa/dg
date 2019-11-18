@@ -469,7 +469,10 @@ void PointerAnalysis::sanityCheck() {
 
 static void setToEmpty(std::vector<PSNode *>& nodes) {
     for (auto *n : nodes) {
-        n->pointsTo.clear();
+        if (n->getType() != PSNodeType::ALLOC &&
+            n->getType() != PSNodeType::CONSTANT) {
+            n->pointsTo.clear();
+        }
     }
 }
 
