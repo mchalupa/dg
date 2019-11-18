@@ -88,7 +88,7 @@ public:
     std::pair<bool, LLVMMemoryRegionSet>
     getAccessedMemory(const llvm::Instruction *I);
 
-    virtual void run() = 0;
+    virtual bool run() = 0;
 
     virtual ~LLVMPointerAnalysis() = default;
 };
@@ -342,11 +342,11 @@ public:
         }
     }
 
-    void run() override {
+    bool run() override {
         if (!PTA) {
             initialize();
         }
-        PTA->run();
+        return PTA->run();
     }
 };
 

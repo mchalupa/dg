@@ -136,7 +136,7 @@ public:
         }
     }
 
-    void run();
+    bool run();
 
     // generic error
     // @msg - message for the user
