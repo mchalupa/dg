@@ -50,6 +50,10 @@ public:
     DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
     : PTType(PS), builder(b) {}
 
+    DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b,
+                              const LLVMPointerAnalysisOptions& opts)
+    : PTType(PS, opts), builder(b) {}
+
     // build new subgraphs on calls via pointer
     bool functionPointerCall(PSNode *callsite, PSNode *called) override {
         using namespace analysis::pta;
