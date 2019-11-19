@@ -102,6 +102,10 @@ public:
     DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
     : PTType(PS), builder(b) {}
 
+    DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b,
+                              const LLVMPointerAnalysisOptions& opts)
+    : PTType(PS, opts), builder(b) {}
+
     // build new subgraphs on calls via pointer
     bool functionPointerCall(PSNode *callsite, PSNode *called) override {
         using namespace pta;
@@ -331,11 +335,14 @@ public:
 
         if (options.isFS()) {
             // FIXME: make a interface with run() method
-            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS>(PS, _builder.get()));
+            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS>(
+                            PS, _builder.get(), options));
         } else if (options.isFI()) {
-            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI>(PS, _builder.get()));
+            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI>(
+                            PS, _builder.get(), options));
         } else if (options.isFSInv()) {
-            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv>(PS, _builder.get()));
+            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv>(
+                            PS, _builder.get(), options));
         } else {
             assert(0 && "Wrong pointer analysis");
             abort();
