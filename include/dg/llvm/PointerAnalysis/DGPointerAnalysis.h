@@ -244,26 +244,29 @@ public:
 
     }
 
-    void run() override {
+    bool run() override {
         if (options.isFSInv())
             _builder->setInvalidateNodesFlag(true);
 
         buildSubgraph();
 
+        bool ret = false;
         if (options.isFS()) {
             // FIXME: make a interface with run() method
             DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFS> PTA(PS, _builder.get());
-            PTA.run();
+            ret = PTA.run();
         } else if (options.isFI()) {
             DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFI> PTA(PS, _builder.get());
-            PTA.run();
+            ret = PTA.run();
         } else if (options.isFSInv()) {
             DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
-            PTA.run();
+            ret = PTA.run();
         } else {
             assert(0 && "Wrong pointer analysis");
             abort();
         }
+
+        return ret;
     }
 
     // this method creates PointerAnalysis object and returns it.
