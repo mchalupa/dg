@@ -541,7 +541,7 @@ bool PointerAnalysis::run() {
 
     DBG_SECTION_END(pta, "Running pointer analysis done");
 
-    return n <= options.maxIterations;
+    return options.maxIterations > 0 ? n <= options.maxIterations : true;
 }
 
 
