@@ -992,11 +992,11 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
     ntscdAnalysis.computeDependencies();
     auto dependencies = ntscdAnalysis.controlDependencies();
 
-    for (const auto & node : dependencies) {
-        if (!node.first->isArtificial()) {
-            auto lastInstruction = findInstruction(castToLLVMInstruction(node.first->lastInstruction()),
+    for (const auto & dep : dependencies) {
+        if (!dep.first->isArtificial()) {
+            auto lastInstruction = findInstruction(castToLLVMInstruction(dep.first->lastInstruction()),
                                                    getConstructedFunctions());
-            for (const auto dependant : node.second) {
+            for (const auto dependant : dep.second) {
                 for (const auto instruction : dependant->llvmInstructions()) {
                     auto dgInstruction = findInstruction(castToLLVMInstruction(instruction), getConstructedFunctions());
                     if (lastInstruction && dgInstruction) {
@@ -1017,8 +1017,16 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
                     }
                 }
                 if (dependant->isExit() && lastInstruction) {
-                    auto noreturn = lastInstruction->getDG()->getOrCreateNoReturn();
-                    lastInstruction->addControlDependence(noreturn);
+                    auto dg = lastInstruction->getDG();
+                    auto noret = dg->getOrCreateNoReturn();
+                    lastInstruction->addControlDependence(noret);
+
+                    // we added the formal noreturn, now add the noreturn to every callnode
+                    for (auto *caller : dg->getCallers()) {
+                        caller->getOrCreateParameters(); // create params if not created
+                        auto actnoret = dg->getOrCreateNoReturn(caller);
+                        noret->addControlDependence(actnoret);
+                    }
                 }
             }
         }
@@ -1184,7 +1192,7 @@ void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *f
         if (visited.insert(succ.target).second)
             queue.push(succ.target);
     }
-            
+
     while (!queue.empty()) {
         auto cur = queue.pop();
 
