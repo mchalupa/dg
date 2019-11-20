@@ -72,6 +72,15 @@ public:
         setDG(dg);
     }
 
+    LLVMDGParameters *getOrCreateParameters() {
+        auto params = getParameters();
+        if (!params) {
+            params = new LLVMDGParameters(this);
+            setParameters(params);
+        }
+        return params;
+    }
+
     llvm::Value *getValue() const { return getKey(); }
 
     // create new subgraph with actual parameters that are given

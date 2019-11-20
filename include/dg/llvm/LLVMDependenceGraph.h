@@ -133,14 +133,15 @@ public:
         if (alg_type == CD_ALG::CLASSIC) {
             computePostDominators(true);
             //makeSelfLoopsControlDependent();
-            if (terminSensitive)
-                addNoreturnDependencies();
         } else if (alg_type == CD_ALG::CONTROL_EXPRESSION) {
             computeControlExpression(true);
         } else if (alg_type == CD_ALG::NTSCD) {
             computeNonTerminationControlDependencies();
         } else
             abort();
+
+        if (terminSensitive)
+            addNoreturnDependencies();
     }
 
     bool verify() const;
