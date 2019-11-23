@@ -12,7 +12,8 @@
 namespace dg {
 namespace pta {
 
-using PointsToSetT = OffsetsSetPointsToSet;
+//using PointsToSetT = OffsetsSetPointsToSet;
+using PointsToSetT = PointerIdPointsToSet;
 using PointsToMapT = std::map<Offset, PointsToSetT>;
 
 } // namespace pta
