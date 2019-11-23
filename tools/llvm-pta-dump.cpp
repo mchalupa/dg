@@ -817,12 +817,13 @@ int main(int argc, char *argv[])
 
     tm.start();
 
+    PTA.initialize();
+
     if (dump_graph_only) {
         dumpPointerGraph(&PTA, type, true);
         return 0;
     }
 
-    PTA.initialize();
     auto PA = PTA.getPTA();
     assert(PA && "Did not initialize the analysis");
 
