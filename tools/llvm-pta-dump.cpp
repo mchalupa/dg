@@ -60,6 +60,7 @@ static bool threads = false;
 static bool dump_graph_only = false;
 static bool names_with_funs = false;
 static bool callgraph = false;
+static bool callgraph_only = false;
 static uint64_t dump_iteration = 0;
 static const char *entry_func = "main";
 
@@ -476,6 +477,26 @@ dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type)
 
     printf("digraph \"Pointer State Subgraph\" {\n");
 
+    if (callgraph) {
+        // dump call-graph
+        const auto& CG = pta->getPS()->getCallGraph();
+        for (auto& it : CG) {
+            printf("NODEcg%u [label=\"%s\"]\n",
+                    it.second.getID(),
+                    it.first->getUserData<llvm::Function>()->getName().str().c_str());
+        }
+        for (auto& it : CG) {
+            for (auto succ : it.second.getCalls()) {
+                printf("NODEcg%u -> NODEcg%u\n", it.second.getID(), succ->getID());
+            }
+        }
+        if (callgraph_only) {
+            printf("}\n");
+            return;
+        }
+    }
+
+
     if (!display_only_func.empty()) {
         std::set<PSNode *> nodes;
         for (auto llvmFunc : display_only_func) {
@@ -518,21 +539,6 @@ dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type)
     } else {
         dumpToDot(pta->getPS()->getGlobals(), type);
         dumpToDot(pta->getNodes(), type);
-    }
-
-    if (callgraph) {
-        // dump call-graph
-        const auto& CG = pta->getPS()->getCallGraph();
-        for (auto& it : CG) {
-            printf("NODEcg%u [label=\"%s\"]\n",
-                    it.second.getID(),
-                    it.first->getUserData<llvm::Function>()->getName().str().c_str());
-        }
-        for (auto& it : CG) {
-            for (auto succ : it.second.getCalls()) {
-                printf("NODEcg%u -> NODEcg%u\n", it.second.getID(), succ->getID());
-            }
-        }
     }
 
     printf("}\n");
@@ -739,6 +745,9 @@ int main(int argc, char *argv[])
             threads = true;
         } else if (strcmp(argv[i], "-callgraph") == 0) {
             callgraph = true;
+        } else if (strcmp(argv[i], "-callgraph-only") == 0) {
+            callgraph = true;
+            callgraph_only = true;
         } else if (strcmp(argv[i], "-ids-only") == 0) {
             ids_only = true;
         } else if (strcmp(argv[i], "-iteration") == 0) {
