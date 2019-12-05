@@ -504,14 +504,13 @@ LLVMReadWriteGraphBuilder::getOrCreateSubgraph(const llvm::Function *F) {
     if (it == subgraphs_map.end()) {
         // create a new subgraph
         subg = &buildFunction(*F);
+        assert(subg->entry && "No entry in the subgraph");
+        assert(subg->entry->nodes.front() && "No first node in the subgraph");
     } else {
         subg = &it->second;
     }
 
     assert(subg && "No subgraph");
-    assert(subg->entry && "No entry in the subgraph");
-    assert(subg->entry->nodes.front() && "No first node in the subgraph");
-
     return subg;
 }
 
