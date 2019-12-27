@@ -26,6 +26,7 @@ if (LLVM_DG)
 		    llvm-slicer-utils.cpp llvm-slicer-utils.h
 		    llvm-slicer.h)
 	#target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
+	add_dependencies(dgllvmslicer gitversion)
 
 	add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
