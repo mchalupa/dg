@@ -65,7 +65,7 @@ llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
 
 // Use LLVM's CommandLine library to parse
 // command line arguments
-SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
+SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
     llvm::cl::opt<std::string> outputFile("o",
         llvm::cl::desc("Save the output to given file. If not specified,\n"
                        "a .sliced suffix is used with the original module name."),
@@ -74,7 +74,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
     llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
         llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<std::string> slicingCriteria("c", llvm::cl::Required,
+    llvm::cl::opt<std::string> slicingCriteria("c",
         llvm::cl::desc("Slice with respect to the call-sites of a given function\n"
                        "i. e.: '-c foo' or '-c __assert_fail'. Special value is a 'ret'\n"
                        "in which case the slice is taken with respect to the return value\n"
@@ -85,6 +85,9 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[]) {
                        "You can use comma-separated list of more slicing criteria,\n"
                        "e.g. -c foo,5:x,:glob\n"), llvm::cl::value_desc("crit"),
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+    if (requireCrit) {
+        slicingCriteria.setNumOccurrencesFlag(llvm::cl::Required);
+    }
 
     llvm::cl::opt<std::string> secondarySlicingCriteria("2c",
         llvm::cl::desc("Set secondary slicing criterion. The criterion is a call\n"

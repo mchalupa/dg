@@ -26,9 +26,16 @@ public:
     void setEntry(DependenceGraph *g) { _entry = g; }
 
     DependenceGraph *createGraph() {
-        _graphs.emplace_back(new DependenceGraph(_graphs.size(), this));
+        _graphs.emplace_back(new DependenceGraph(_graphs.size() + 1, this));
         return _graphs.back().get();
     }
+
+    DependenceGraph *createGraph(const std::string& name) {
+        auto *g = createGraph();
+        g->setName(name);
+        return g;
+    }
+
 };
 
 } // namespace sdg

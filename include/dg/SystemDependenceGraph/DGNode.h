@@ -12,7 +12,7 @@ namespace sdg {
 
 enum class DGNodeType {
         // Invalid node
-        INVALID=0
+        INVALID=0,
         // Ordinary instruction
         INSTRUCTION = 1,
         ARGUMENT,
@@ -28,25 +28,24 @@ inline const char *DGNodeTypeToCString(enum DGNodeType type)
         ELEM(DGNodeType::ARGUMENT)
         ELEM(DGNodeType::CALL)
        default:
-            assert(false && "unknown PointerSubgraph type");
+            assert(false && "unknown node type");
             return "Unknown type";
     };
 #undef ELEM
 }
 
-class PointerSubgraph;
-
 class DGNode {
-    DGNodeType _type;
     unsigned _id{0};
+    DGNodeType _type;
 
 protected:
-    Node(unsigned id, DGNodeType t) : id(_id), type(t) {}
+    DGNode(unsigned id, DGNodeType t) : _id(id), _type(t) {}
 
 public:
-    virtual ~Node() = default;
+    virtual ~DGNode() = default;
 
-    DGNodeType getType() const { return type; }
+    unsigned getID() const { return _id; }
+    DGNodeType getType() const { return _type; }
 
 #ifndef NDEBUG
     virtual void dump() const {
@@ -54,7 +53,7 @@ public:
     }
 
     // verbose dump
-    void dumpv() const override {
+    void dumpv() const {
         dump();
         std::cout << "\n";
     }
@@ -84,7 +83,7 @@ public:
 /// ----------------------------------------------------------------------
 // Call
 /// ----------------------------------------------------------------------
-class DGNodeCall : public Node {
+class DGNodeCall : public DGNode {
     std::set<DependenceGraph *> _callees;
 
 public:
@@ -96,7 +95,7 @@ public:
     }
 
     const std::set<DependenceGraph *>& getCallees() const { return _callees; }
-    bool addCalee(DependenceGraph *g) { _callees.insert(g).second; }
+    bool addCalee(DependenceGraph *g) { return _callees.insert(g).second; }
 };
 
 /// ----------------------------------------------------------------------

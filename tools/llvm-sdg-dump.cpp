@@ -143,10 +143,12 @@ int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
 
-    SlicerOptions options = parseSlicerOptions(argc, argv);
+    SlicerOptions options = parseSlicerOptions(argc, argv,
+                                               /* requireCrit = */ false);
 
-    if (enable_debug)
+    if (enable_debug) {
         DBG_ENABLE();
+    }
 
     llvm::LLVMContext context;
     std::unique_ptr<llvm::Module> M = parseModule(context, options);
@@ -161,7 +163,12 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    llvmdg::SystemDependenceGraph sdg(M.get());
+    DGLLVMPointerAnalysis PTA(M.get());
+    PTA.run();
+    LLVMDataDependenceAnalysis DDA(M.get(), &PTA);
+    DDA.run();
+
+    llvmdg::SystemDependenceGraph sdg(M.get(), &PTA);
 
     SDGDumper dumper(options, &sdg, dump_bb_only);
     dumper.dumpToDot();
