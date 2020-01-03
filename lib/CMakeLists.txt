@@ -162,6 +162,7 @@ add_library(dgllvmsdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
+    ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGBBlock.h
 )
 target_link_libraries(dgllvmsdg
 		      PUBLIC dgllvmpta

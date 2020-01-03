@@ -49,7 +49,7 @@ public:
 
     LLVMDataDependenceAnalysis(const llvm::Module *m,
                                dg::LLVMPointerAnalysis *pta,
-                               const LLVMDataDependenceAnalysisOptions& opts)
+                               const LLVMDataDependenceAnalysisOptions& opts = {})
     : m(m), pta(pta), _options(opts), builder(createBuilder()) {}
 
     ~LLVMDataDependenceAnalysis();

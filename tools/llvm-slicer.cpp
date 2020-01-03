@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
 
-    SlicerOptions options = parseSlicerOptions(argc, argv);
+    SlicerOptions options = parseSlicerOptions(argc, argv, true /* require crit*/);
 
     if (enable_debug)
         DBG_ENABLE();
