@@ -34,18 +34,32 @@ inline const char *DGNodeTypeToCString(enum DGNodeType type)
 #undef ELEM
 }
 
+class DependenceGraph;
+class DGBBlock;
+
 class DGNode {
     unsigned _id{0};
     DGNodeType _type;
+    DependenceGraph *_dg{nullptr};
+    DGBBlock *_bblock{nullptr};
 
 protected:
     DGNode(unsigned id, DGNodeType t) : _id(id), _type(t) {}
+    DGNode(DependenceGraph *g, unsigned id, DGNodeType t) : _id(id), _type(t), _dg(g) {}
 
 public:
     virtual ~DGNode() = default;
 
     unsigned getID() const { return _id; }
     DGNodeType getType() const { return _type; }
+
+    void setDG(DependenceGraph *g) { _dg = g; }
+    const DependenceGraph* getDG() const { return _dg; }
+    DependenceGraph* getDG() { return _dg; }
+
+    void setBBlock(DGBBlock *g) { _bblock = g; }
+    const DGBBlock* getBBlock() const { return _bblock; }
+    DGBBlock* getBBlock() { return _bblock; }
 
 #ifndef NDEBUG
     virtual void dump() const {
@@ -65,14 +79,14 @@ template <DGNodeType T> bool isa(DGNode *n) {
     return n->getType() == T;
 }
 
-class DependenceGraph;
-
 /// ----------------------------------------------------------------------
 // Instruction
 /// ----------------------------------------------------------------------
 class DGNodeInstruction : public DGNode {
 public:
     DGNodeInstruction(unsigned id) : DGNode(id, DGNodeType::INSTRUCTION) {}
+    DGNodeInstruction(DependenceGraph *g, unsigned id)
+    : DGNode(g, id, DGNodeType::INSTRUCTION) {}
 
     static DGNodeInstruction *get(DGNode *n) {
         return isa<DGNodeType::INSTRUCTION>(n) ?
@@ -88,6 +102,7 @@ class DGNodeCall : public DGNode {
 
 public:
     DGNodeCall(unsigned id) : DGNode(id, DGNodeType::CALL) {}
+    DGNodeCall(DependenceGraph *g, unsigned id) : DGNode(g, id, DGNodeType::CALL) {}
 
     static DGNodeCall *get(DGNode *n) {
         return isa<DGNodeType::CALL>(n) ?
@@ -104,6 +119,7 @@ public:
 class DGNodeArgument : public DGNode {
 public:
     DGNodeArgument(unsigned id) : DGNode(id, DGNodeType::ARGUMENT) {}
+    DGNodeArgument(DependenceGraph *g, unsigned id) : DGNode(g, id, DGNodeType::ARGUMENT) {}
 
     static DGNodeArgument *get(DGNode *n) {
         return isa<DGNodeType::ARGUMENT>(n) ?

@@ -96,8 +96,8 @@ public:
             //SDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
             //dumper.dump();
         } else {
-            llvmdg::SDG2Dot dumper(dg, fl.c_str());
-            dumper.dump();
+            llvmdg::SDG2Dot dumper(dg);
+            dumper.dump(fl.c_str());
         }
     }
 };
