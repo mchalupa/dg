@@ -20,6 +20,18 @@ class SystemDependenceGraph {
     std::vector<std::unique_ptr<DependenceGraph>> _graphs;
     DependenceGraph* _entry{nullptr};
 
+    // wrapper around graphs iterator that unwraps the unique_ptr
+    struct graphs_iterator : public decltype(_graphs.begin()) {
+        using OrigItType = decltype(_graphs.begin());
+
+        graphs_iterator() = default;
+        graphs_iterator(const graphs_iterator& I) = default;
+        graphs_iterator(const OrigItType& I) : OrigItType(I) {}
+
+        DependenceGraph* operator*() { return OrigItType::operator*().get(); }
+        //DependenceGraph* operator->() { return OrigItType::operator*().get(); }
+    };
+
 public:
     DependenceGraph *getEntry() { return _entry; }
     const DependenceGraph *getEntry() const { return _entry; }
@@ -35,6 +47,11 @@ public:
         g->setName(name);
         return g;
     }
+
+    graphs_iterator begin() { return graphs_iterator(_graphs.begin()); }
+    graphs_iterator end() { return graphs_iterator(_graphs.end()); }
+
+
 
 };
 

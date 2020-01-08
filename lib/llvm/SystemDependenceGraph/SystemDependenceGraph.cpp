@@ -13,9 +13,14 @@ struct Builder {
 
     void buildBBlock(sdg::DependenceGraph *dg, llvm::BasicBlock& B) {
         auto *block = dg->createBBlock();
-    
+
         for (auto& I : B) {
-            auto *node = dg->createNode();
+            sdg::DGNode *node;
+            if (llvm::isa<llvm::CallInst>(&I)) {
+                node = dg->createCall();
+            } else {
+                node = dg->createInstruction();
+            }
             block->append(node);
             _llvmsdg->addMapping(&I, node);
         }
@@ -26,9 +31,9 @@ struct Builder {
         for (auto& B: F) {
             buildBBlock(dg, B);
         }
-    
+
         // FIXME: build parameters
-    
+
         DBG_SECTION_END(sdg, "Building '" << F.getName().str() << "' finished");
     }
 
