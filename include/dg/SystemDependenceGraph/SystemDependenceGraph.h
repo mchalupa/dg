@@ -48,6 +48,8 @@ public:
         return g;
     }
 
+    size_t size() const { return _graphs.size(); }
+
     graphs_iterator begin() { return graphs_iterator(_graphs.begin()); }
     graphs_iterator end() { return graphs_iterator(_graphs.end()); }
 };

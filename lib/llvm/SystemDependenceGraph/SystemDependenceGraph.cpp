@@ -74,7 +74,10 @@ struct Builder {
             if (F.isDeclaration()) {
                 continue;
             }
+
             auto& g = sdg.createGraph(F.getName().str());
+            _llvmsdg->addFunMapping(&F, &g);
+
             buildDG(g, F);
         }
     }
@@ -90,6 +93,13 @@ void SystemDependenceGraph::buildSDG() {
     // builder.buildGlobals();
 
     builder.buildFuns();
+
+    // set the entry function
+    auto *llvmentry = _module->getFunction(_options.entryFunction);
+    assert(llvmentry && "Module does not contain the entry function");
+    auto* entry = getDG(llvmentry);
+    assert(entry && "Did not build the entry function");
+    _sdg.setEntry(entry);
 
     DBG(sdg, "Building SDG finished");
 }
