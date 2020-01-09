@@ -58,7 +58,7 @@ def error(msg):
 def set_environment():
     try:
         parse_cmake_cache("../../CMakeCache.txt")
-    except FileNotFoundError:
+    except IOError:
         # assume in-source build where we want to call
         # the test-runner.py from everywhere
         chdir(dirname(argv[0]))
