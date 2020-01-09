@@ -13,11 +13,14 @@ struct Builder {
 
     sdg::DGNodeCall& buildCallNode(sdg::DependenceGraph& dg, llvm::CallInst *CI) {
         auto& node = dg.createCall();
+        auto& params = node.getParameters();
 
         // create actual parameters
         for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
             auto *A = CI->getArgOperand(i);
             llvm::errs() << "Act: " << *A << "\n";
+            auto& param = params.createParameter();
+            _llvmsdg->addMapping(A, &param);
         }
         return node;
     }
@@ -47,12 +50,8 @@ struct Builder {
 
         for (auto& arg : F.args()) {
             llvm::errs() << "Form: " << arg << "\n";
-
-            /*
-            auto& P = params.createParameter();
-            P.inputNode();
-            P.outputNode();
-            */
+            auto& param = params.createParameter();
+            _llvmsdg->addMapping(&arg, &param);
         }
     }
 

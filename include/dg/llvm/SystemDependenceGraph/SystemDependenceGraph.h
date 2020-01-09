@@ -22,8 +22,8 @@ class SystemDependenceGraph {
 
     //SystemDependenceGraphBuilder _builder;
     // FIXME: do this unordered maps
-    std::map<const llvm::Value *, sdg::DGNode *> _mapping;
-    std::map<const sdg::DGNode *, llvm::Value *> _rev_mapping;
+    std::map<const llvm::Value *, sdg::DGElement *> _mapping;
+    std::map<const sdg::DGElement *, llvm::Value *> _rev_mapping;
 
     void buildSDG();
 
@@ -38,19 +38,19 @@ public:
     llvm::Module *getModule() { return _module; }
     const llvm::Module *getModule() const { return _module; }
 
-    void addMapping(llvm::Value *v, sdg::DGNode *n) {
+    void addMapping(llvm::Value *v, sdg::DGElement *n) {
         assert(_mapping.find(v) == _mapping.end() &&
                 "Already have this value");
         _mapping[v] = n;
         _rev_mapping[n] = v;
     }
 
-    sdg::DGNode* getNode(const llvm::Value *v) const {
+    sdg::DGElement* getNode(const llvm::Value *v) const {
         auto it = _mapping.find(v);
         return it == _mapping.end() ? nullptr : it->second;
     }
 
-    llvm::Value* getValue(const sdg::DGNode *n) const {
+    llvm::Value* getValue(const sdg::DGElement *n) const {
         auto it = _rev_mapping.find(n);
         return it == _rev_mapping.end() ? nullptr : it->second;
     }

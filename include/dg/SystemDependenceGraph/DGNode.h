@@ -2,7 +2,6 @@
 #define DG_DG_NODE_H_
 
 #include <cassert>
-#include <set>
 #include "DGElement.h"
 
 namespace dg {
@@ -52,24 +51,6 @@ public:
         return isa<DGElementType::ND_INSTRUCTION>(n) ?
             static_cast<DGNodeInstruction *>(n) : nullptr;
     }
-};
-
-/// ----------------------------------------------------------------------
-// Call
-/// ----------------------------------------------------------------------
-class DGNodeCall : public DGNode {
-    std::set<DependenceGraph *> _callees;
-
-public:
-    DGNodeCall(DependenceGraph& g) : DGNode(g, DGElementType::ND_CALL) {}
-
-    static DGNodeCall *get(DGElement *n) {
-        return isa<DGElementType::ND_CALL>(n) ?
-            static_cast<DGNodeCall *>(n) : nullptr;
-    }
-
-    const std::set<DependenceGraph *>& getCallees() const { return _callees; }
-    bool addCalee(DependenceGraph *g) { return _callees.insert(g).second; }
 };
 
 /// ----------------------------------------------------------------------

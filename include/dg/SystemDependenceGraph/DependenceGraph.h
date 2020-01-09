@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "DGNode.h"
+#include "DGNodeCall.h"
 #include "DGBBlock.h"
 #include "DGParameters.h"
 

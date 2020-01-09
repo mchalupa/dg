@@ -55,16 +55,16 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
     llvm::raw_os_ostream ro(ostr);
 
     if (llvm::isa<llvm::Function>(val)) {
-        ro << "FUNC " << val->getName();
+        ro << "FUN " << val->getName();
     } else if (auto B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
-        ro << B->getParent()->getName() << "::\n";
+        ro << B->getParent()->getName() << "::";
         ro << "label " << val->getName();
     } else if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
         const auto B = I->getParent();
         if (B) {
-            ro << B->getParent()->getName() << "::\n";
+            ro << B->getParent()->getName() << "::";
         } else {
-            ro << "<null>::\n";
+            ro << "<null>::";
         }
         ro << *val;
     } else {
@@ -75,7 +75,7 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
 
     // break the string if it is too long
     std::string str = ostr.str();
-    if (str.length() > 100) {
+    if (str.length() > 50) {
         str.resize(40);
     }
 
@@ -93,9 +93,53 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
 }
 
 
-
 class SDG2Dot {
     SystemDependenceGraph* _llvmsdg;
+
+    // keep track of dumped nodes for checking that we dumped all
+    mutable std::set<sdg::DGNode *> dumpedNodes;
+
+    void dumpNode(std::ostream& out, sdg::DGNode& nd,
+                  const llvm::Value *v = nullptr) const {
+        assert(isa<DGNode>(&nd));
+
+        auto& dg = nd.getDG();
+        out << "      N" << dg.getID() << "_" << nd.getID();
+        out << "[label=\"[" <<
+                  dg.getID() << "." << nd.getID() << "] ";
+        if (v) {
+            // this node is associated to this value
+            printLLVMVal(out, v);
+        } else {
+            printLLVMVal(out, _llvmsdg->getValue(&nd));
+        }
+        out << "\"]\n";
+    }
+
+    void dumpParams(std::ostream& out,
+                    sdg::DGParameters& params,
+                    const std::string& name) const {
+        /// input parameters
+        out << "    subgraph cluster_params_in_" << &params << " {\n";
+        out << "      label=\"" << name << " (input)\"\n";
+        for (auto& param : params) {
+            auto& nd = param.getInputArgument();
+            dumpedNodes.insert(&nd);
+            dumpNode(out, nd, _llvmsdg->getValue(&param));
+        }
+        out << "    }\n";
+
+        /// output parameters 
+        out << "    subgraph cluster_params_out_" << &params << " {\n";
+        out << "      label=\"" << name << " (output)\"\n";
+        for (auto& param : params) {
+            auto& nd = param.getOutputArgument();
+            dumpedNodes.insert(&nd);
+            dumpNode(out, nd, _llvmsdg->getValue(&param));
+        }
+        out << "    }\n";
+    }
+
 public:
     SDG2Dot(SystemDependenceGraph *sdg) : _llvmsdg(sdg) {}
 
@@ -105,8 +149,8 @@ public:
         out << "digraph SDG {\n";
 
         for (auto *dg : _llvmsdg->getSDG()) {
-            std::set<sdg::DGNode *> dumpedNodes;
-
+            ///
+            // Dependence graphs (functions) 
             out << "  subgraph cluster_" << dg->getID() << " {\n";
             out << "    color=black;\n";
             out << "    style=filled;\n";
@@ -114,21 +158,32 @@ public:
             out << "    label=\"" << dg->getName() << " (id " << dg->getID() << ")\";\n";
             out << "\n";
 
+            ///
+            // Parameters of the DG
+            //
+            /// Formal input parameters 
+            dumpParams(out, dg->getParameters(), "formal parameters");
+
+            ///
+            // Basic blocks
             for (auto *blk : dg->getBBlocks()) {
                 out << "    subgraph cluster_bb_" << blk->getID() << " {\n";
                 out << "      label=\"bblock #" << blk->getID() << "\"\n";
                 for (auto *nd : blk->getNodes()) {
                     dumpedNodes.insert(nd);
-                    out << "      N" << dg->getID() << "_" << nd->getID();
-                    out << "[label=\"[" <<
-                              dg->getID() << "." << nd->getID() << "] ";
-                    printLLVMVal(out, _llvmsdg->getValue(nd));
-                    out << "\"]\n";
+                    dumpNode(out, *nd);
+
+                    if (auto *C = sdg::DGNodeCall::get(nd)) {
+                        // dump actual parameters
+                        dumpParams(out, C->getParameters(), "actual parameters");
+                    }
                 }
                 out << "    }\n";
             }
 
             out << "  }\n";
+
+            dumpedNodes.clear();
         }
 
         out << "}\n";
