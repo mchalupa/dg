@@ -24,7 +24,7 @@ class DependenceGraph {
     unsigned _lastNodeID{0};
 
     // SDG to which this dependence graph belongs
-    SystemDependenceGraph *_sdg{nullptr};
+    SystemDependenceGraph& _sdg;
     // parameters associated to this graph
     DGFormalParameters _parameters;
 
@@ -33,7 +33,7 @@ class DependenceGraph {
     std::vector<std::unique_ptr<DGNode>> _nodes;
     BBlocksContainerTy _bblocks;
     // only SystemDependenceGraph can create new DependenceGraph's
-    DependenceGraph(unsigned id, SystemDependenceGraph *g)
+    DependenceGraph(unsigned id, SystemDependenceGraph& g)
     : _id(id), _sdg(g), _parameters(*this) { assert(id > 0); }
 
     std::string _name;
@@ -70,35 +70,35 @@ class DependenceGraph {
 public:
 
     unsigned getID() const { return _id; }
-    SystemDependenceGraph *getSDG() { return _sdg; }
-    const SystemDependenceGraph *getSDG() const { return _sdg; }
+    SystemDependenceGraph& getSDG() { return _sdg; }
+    const SystemDependenceGraph& getSDG() const { return _sdg; }
 
     void setName(const std::string& nm) { _name = nm; }
     const std::string& getName() const { return _name; }
 
     bblocks_range getBBlocks() { return bblocks_range(_bblocks); }
 
-    DGNodeInstruction *createInstruction() {
+    DGNodeInstruction& createInstruction() {
         auto *nd = new DGNodeInstruction(*this);
         _nodes.emplace_back(nd);
-        return nd;
+        return *nd;
     }
 
-    DGNodeCall *createCall() {
+    DGNodeCall& createCall() {
         auto *nd = new DGNodeCall(*this);
         _nodes.emplace_back(nd);
-        return nd;
+        return *nd;
     }
 
-    DGNodeArtificial *createArtificial() {
+    DGNodeArtificial& createArtificial() {
         auto *nd = new DGNodeArtificial(*this);
         _nodes.emplace_back(nd);
-        return nd;
+        return *nd;
     }
 
-    DGBBlock *createBBlock() {
+    DGBBlock& createBBlock() {
         _bblocks.emplace_back(new DGBBlock(_bblocks.size() + 1, this));
-        return _bblocks.back().get();
+        return *_bblocks.back().get();
     }
 
     DGFormalParameters& getParameters() { return _parameters; }

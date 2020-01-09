@@ -7,12 +7,12 @@ namespace llvmdg {
 struct Builder {
     SystemDependenceGraph *_llvmsdg;
     llvm::Module *_module;
-    Builder(SystemDependenceGraph *llvmsdg,
-            llvm::Module *m)
+
+    Builder(SystemDependenceGraph *llvmsdg, llvm::Module *m)
     : _llvmsdg(llvmsdg), _module(m) {}
 
-    sdg::DGNodeCall *buildCallNode(sdg::DependenceGraph *dg, llvm::CallInst *CI) {
-        auto *node = dg->createCall();
+    sdg::DGNodeCall& buildCallNode(sdg::DependenceGraph& dg, llvm::CallInst *CI) {
+        auto& node = dg.createCall();
 
         // create actual parameters
         for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
@@ -22,24 +22,24 @@ struct Builder {
         return node;
     }
 
-    void buildBBlock(sdg::DependenceGraph *dg, llvm::BasicBlock& B) {
-        auto *block = dg->createBBlock();
+    void buildBBlock(sdg::DependenceGraph& dg, llvm::BasicBlock& B) {
+        auto& block = dg.createBBlock();
 
         for (auto& I : B) {
             sdg::DGNode *node;
             if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
-                node = buildCallNode(dg, CI);
+                node = &buildCallNode(dg, CI);
             } else {
-                node = dg->createInstruction();
+                node = &dg.createInstruction();
             }
-            block->append(node);
+            block.append(node);
             _llvmsdg->addMapping(&I, node);
         }
     }
 
-    void buildFormalParameters(sdg::DependenceGraph *dg, llvm::Function& F) {
+    void buildFormalParameters(sdg::DependenceGraph& dg, llvm::Function& F) {
         DBG(sdg, "Building parameters for '" << F.getName().str() << "'");
-        auto& params = dg->getParameters();
+        auto& params = dg.getParameters();
 
         if (F.isVarArg()) {
             params.createVarArg();
@@ -56,7 +56,7 @@ struct Builder {
         }
     }
 
-    void buildDG(sdg::DependenceGraph *dg, llvm::Function& F) {
+    void buildDG(sdg::DependenceGraph& dg, llvm::Function& F) {
         DBG_SECTION_BEGIN(sdg, "Building '" << F.getName().str() << "'");
 
         buildFormalParameters(dg, F);
@@ -75,7 +75,7 @@ struct Builder {
             if (F.isDeclaration()) {
                 continue;
             }
-            auto *g = sdg.createGraph(F.getName().str());
+            auto& g = sdg.createGraph(F.getName().str());
             buildDG(g, F);
         }
     }
