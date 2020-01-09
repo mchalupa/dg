@@ -37,22 +37,19 @@ public:
     const DependenceGraph *getEntry() const { return _entry; }
     void setEntry(DependenceGraph *g) { _entry = g; }
 
-    DependenceGraph *createGraph() {
-        _graphs.emplace_back(new DependenceGraph(_graphs.size() + 1, this));
-        return _graphs.back().get();
+    DependenceGraph& createGraph() {
+        _graphs.emplace_back(new DependenceGraph(_graphs.size() + 1, *this));
+        return *_graphs.back().get();
     }
 
-    DependenceGraph *createGraph(const std::string& name) {
-        auto *g = createGraph();
-        g->setName(name);
+    DependenceGraph& createGraph(const std::string& name) {
+        auto &g = createGraph();
+        g.setName(name);
         return g;
     }
 
     graphs_iterator begin() { return graphs_iterator(_graphs.begin()); }
     graphs_iterator end() { return graphs_iterator(_graphs.end()); }
-
-
-
 };
 
 } // namespace sdg
