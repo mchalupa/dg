@@ -36,8 +36,9 @@ public:
     const NodesTy& getNodes() const { return _nodes; }
 
     void append(DGNode *n) {
-        _nodes.push_back(n);
+        assert(n && "nullptr passed as node");
         assert(n->getBBlock() == nullptr && "BBlock already set");
+        _nodes.push_back(n);
         n->setBBlock(this);
     }
 
