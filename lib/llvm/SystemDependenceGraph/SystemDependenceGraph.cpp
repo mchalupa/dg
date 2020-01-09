@@ -11,13 +11,24 @@ struct Builder {
             llvm::Module *m)
     : _llvmsdg(llvmsdg), _module(m) {}
 
+    sdg::DGNodeCall *buildCallNode(sdg::DependenceGraph *dg, llvm::CallInst *CI) {
+        auto *node = dg->createCall();
+
+        // create actual parameters
+        for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
+            auto *A = CI->getArgOperand(i);
+            llvm::errs() << "Act: " << *A << "\n";
+        }
+        return node;
+    }
+
     void buildBBlock(sdg::DependenceGraph *dg, llvm::BasicBlock& B) {
         auto *block = dg->createBBlock();
 
         for (auto& I : B) {
             sdg::DGNode *node;
-            if (llvm::isa<llvm::CallInst>(&I)) {
-                node = dg->createCall();
+            if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
+                node = buildCallNode(dg, CI);
             } else {
                 node = dg->createInstruction();
             }
@@ -26,13 +37,33 @@ struct Builder {
         }
     }
 
+    void buildFormalParameters(sdg::DependenceGraph *dg, llvm::Function& F) {
+        DBG(sdg, "Building parameters for '" << F.getName().str() << "'");
+        auto& params = dg->getParameters();
+
+        if (F.isVarArg()) {
+            params.createVarArg();
+        }
+
+        for (auto& arg : F.args()) {
+            llvm::errs() << "Form: " << arg << "\n";
+
+            /*
+            auto& P = params.createParameter();
+            P.inputNode();
+            P.outputNode();
+            */
+        }
+    }
+
     void buildDG(sdg::DependenceGraph *dg, llvm::Function& F) {
         DBG_SECTION_BEGIN(sdg, "Building '" << F.getName().str() << "'");
+
+        buildFormalParameters(dg, F);
+
         for (auto& B: F) {
             buildBBlock(dg, B);
         }
-
-        // FIXME: build parameters
 
         DBG_SECTION_END(sdg, "Building '" << F.getName().str() << "' finished");
     }

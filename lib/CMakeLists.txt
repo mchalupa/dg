@@ -155,16 +155,28 @@ else()
 				PUBLIC dgllvmcda)
 endif(APPLE)
 
-add_library(dgllvmsdg SHARED
-	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
+add_library(dgsdg SHARED
+	SystemDependenceGraph/DependenceGraph.cpp
 
 	#${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGElement.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
-    ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGBBlock.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGArgumentPair.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGBBlock.h
+)
+target_link_libraries(dgsdg
+		      PUBLIC dgpta
+		      PUBLIC dgdda)
+
+add_library(dgllvmsdg SHARED
+	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
+
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 )
 target_link_libraries(dgllvmsdg
+		      PUBLIC dgsdg
 		      PUBLIC dgllvmpta
 		      PUBLIC dgllvmdda
 		      PUBLIC dgllvmcda)

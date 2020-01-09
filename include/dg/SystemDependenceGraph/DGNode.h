@@ -2,94 +2,54 @@
 #define DG_DG_NODE_H_
 
 #include <cassert>
-
-#ifndef NDEBUG
-#include <iostream>
-#endif // not NDEBUG
+#include <set>
+#include "DGElement.h"
 
 namespace dg {
 namespace sdg {
 
-enum class DGNodeType {
-        // Invalid node
-        INVALID=0,
-        // Ordinary instruction
-        INSTRUCTION = 1,
-        ARGUMENT,
-        CALL,
-};
-
-inline const char *DGNodeTypeToCString(enum DGNodeType type)
-{
-#define ELEM(t) case t: do {return (#t); }while(0); break;
-    switch(type) {
-        ELEM(DGNodeType::INVALID)
-        ELEM(DGNodeType::INSTRUCTION)
-        ELEM(DGNodeType::ARGUMENT)
-        ELEM(DGNodeType::CALL)
-       default:
-            assert(false && "unknown node type");
-            return "Unknown type";
-    };
-#undef ELEM
-}
-
-class DependenceGraph;
 class DGBBlock;
 
-class DGNode {
+class DGNode : public DGElement {
     unsigned _id{0};
-    DGNodeType _type;
-    DependenceGraph *_dg{nullptr};
     DGBBlock *_bblock{nullptr};
 
+    // Only for the use in ctor. This method gets the ID of this node
+    // from the DependenceGraph (increasing the graph's id counter).
+    friend class DependenceGraph;
+    unsigned getNewID(DependenceGraph& g);
+
 protected:
-    DGNode(unsigned id, DGNodeType t) : _id(id), _type(t) {}
-    DGNode(DependenceGraph *g, unsigned id, DGNodeType t) : _id(id), _type(t), _dg(g) {}
+    DGNode(DependenceGraph& g, DGElementType t);
 
 public:
-    virtual ~DGNode() = default;
-
-    unsigned getID() const { return _id; }
-    DGNodeType getType() const { return _type; }
-
-    void setDG(DependenceGraph *g) { _dg = g; }
-    const DependenceGraph* getDG() const { return _dg; }
-    DependenceGraph* getDG() { return _dg; }
-
+    ///
+    // Assign a BBlock to the node. Having BBlocks in SDG is optional,
+    // but usually useful (we can merge control dependencies of nodes).
     void setBBlock(DGBBlock *g) { _bblock = g; }
     const DGBBlock* getBBlock() const { return _bblock; }
     DGBBlock* getBBlock() { return _bblock; }
 
-#ifndef NDEBUG
-    virtual void dump() const {
-        std::cout << "<"<< getID() << "> " << DGNodeTypeToCString(getType());
-    }
+    unsigned getID() const { return _id; }
 
-    // verbose dump
-    void dumpv() const {
-        dump();
-        std::cout << "\n";
+#ifndef NDEBUG
+    void dump() const override {
+        std::cout << "<"<< getID() << "> ";
+        DGElement::dump();
     }
 #endif // not NDEBUG
 };
-
-// check type of node
-template <DGNodeType T> bool isa(DGNode *n) {
-    return n->getType() == T;
-}
 
 /// ----------------------------------------------------------------------
 // Instruction
 /// ----------------------------------------------------------------------
 class DGNodeInstruction : public DGNode {
 public:
-    DGNodeInstruction(unsigned id) : DGNode(id, DGNodeType::INSTRUCTION) {}
-    DGNodeInstruction(DependenceGraph *g, unsigned id)
-    : DGNode(g, id, DGNodeType::INSTRUCTION) {}
+    DGNodeInstruction(DependenceGraph& g)
+    : DGNode(g, DGElementType::ND_INSTRUCTION) {}
 
-    static DGNodeInstruction *get(DGNode *n) {
-        return isa<DGNodeType::INSTRUCTION>(n) ?
+    static DGNodeInstruction *get(DGElement *n) {
+        return isa<DGElementType::ND_INSTRUCTION>(n) ?
             static_cast<DGNodeInstruction *>(n) : nullptr;
     }
 };
@@ -101,11 +61,10 @@ class DGNodeCall : public DGNode {
     std::set<DependenceGraph *> _callees;
 
 public:
-    DGNodeCall(unsigned id) : DGNode(id, DGNodeType::CALL) {}
-    DGNodeCall(DependenceGraph *g, unsigned id) : DGNode(g, id, DGNodeType::CALL) {}
+    DGNodeCall(DependenceGraph& g) : DGNode(g, DGElementType::ND_CALL) {}
 
-    static DGNodeCall *get(DGNode *n) {
-        return isa<DGNodeType::CALL>(n) ?
+    static DGNodeCall *get(DGElement *n) {
+        return isa<DGElementType::ND_CALL>(n) ?
             static_cast<DGNodeCall *>(n) : nullptr;
     }
 
@@ -118,13 +77,22 @@ public:
 /// ----------------------------------------------------------------------
 class DGNodeArgument : public DGNode {
 public:
-    DGNodeArgument(unsigned id) : DGNode(id, DGNodeType::ARGUMENT) {}
-    DGNodeArgument(DependenceGraph *g, unsigned id) : DGNode(g, id, DGNodeType::ARGUMENT) {}
+    DGNodeArgument(DependenceGraph& g) : DGNode(g, DGElementType::ND_ARGUMENT) {}
 
-    static DGNodeArgument *get(DGNode *n) {
-        return isa<DGNodeType::ARGUMENT>(n) ?
+    static DGNodeArgument *get(DGElement *n) {
+        return isa<DGElementType::ND_ARGUMENT>(n) ?
             static_cast<DGNodeArgument *>(n) : nullptr;
     }
+};
+
+/// ----------------------------------------------------------------------
+// Artificial node (e.g., vararg node, noreturn node,
+// unified return node, etc.)
+/// ----------------------------------------------------------------------
+class DGNodeArtificial : public DGNode {
+public:
+    DGNodeArtificial(DependenceGraph& g)
+    : DGNode(g, DGElementType::ND_ARTIFICIAL) {}
 };
 
 } // namespace sdg
