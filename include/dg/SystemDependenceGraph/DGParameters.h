@@ -15,7 +15,11 @@ class DependenceGraph;
 
 class DGParameters {
     DependenceGraph& _dg;
+    // node representing that the function may not return
+    // (it terminates the program or loops forever)
     std::unique_ptr<DGNodeArtificial> _noreturn;
+    // output argument representing the return from the function
+    std::unique_ptr<DGNodeArtificial> _return;
 
     using ParametersContainerTy = std::vector<std::unique_ptr<DGArgumentPair>>;
     ParametersContainerTy _params;
@@ -69,6 +73,13 @@ public:
 
     params_iterator begin() { return params_iterator(_params.begin()); }
     params_iterator end() { return params_iterator(_params.end()); }
+
+    DGNode *getReturn() { return _return.get(); }
+    const DGNode *getReturn() const { return _return.get(); }
+
+    DGNode& createNoReturn();
+    DGNode *getNoReturn() { return _noreturn.get(); }
+    const DGNode *getNoReturn() const { return _noreturn.get(); }
 };
 
 class DGFormalParameters : public DGParameters {
@@ -92,6 +103,9 @@ class DGActualParameters : public DGParameters {
 
     DGActualParameters(DGNodeCall& call);
 public:
+
+    DGNodeCall& getCall() { return _call; }
+    const DGNodeCall& getCall() const { return _call; }
 };
 
 } // namespace sdg
