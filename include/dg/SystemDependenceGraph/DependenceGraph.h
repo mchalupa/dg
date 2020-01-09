@@ -6,6 +6,7 @@
 
 #include "DGNode.h"
 #include "DGBBlock.h"
+#include "DGParameters.h"
 
 namespace dg {
 namespace sdg {
@@ -17,17 +18,23 @@ class SystemDependenceGraph;
 // (in papers refered to as Program Dependence Graph)
 class DependenceGraph {
     friend class SystemDependenceGraph;
+    friend unsigned DGNode::getNewID(DependenceGraph& g);
 
     unsigned _id{0};
+    unsigned _lastNodeID{0};
+
     // SDG to which this dependence graph belongs
     SystemDependenceGraph *_sdg{nullptr};
+    // parameters associated to this graph
+    DGFormalParameters _parameters;
 
     using BBlocksContainerTy = std::vector<std::unique_ptr<DGBBlock>>;
 
     std::vector<std::unique_ptr<DGNode>> _nodes;
     BBlocksContainerTy _bblocks;
+    // only SystemDependenceGraph can create new DependenceGraph's
     DependenceGraph(unsigned id, SystemDependenceGraph *g)
-    : _id(id), _sdg(g) { assert(id > 0); }
+    : _id(id), _sdg(g), _parameters(*this) { assert(id > 0); }
 
     std::string _name;
 
@@ -54,8 +61,14 @@ class DependenceGraph {
         bblocks_iterator end() { return bblocks_iterator(_C.end()); }
     };
 
+    unsigned getNextNodeID() {
+        // we could use _nodes.size(), but this is more error-prone
+        // as this function could not increate _nodes.size()
+        return ++_lastNodeID;
+    }
 
 public:
+
     unsigned getID() const { return _id; }
     SystemDependenceGraph *getSDG() { return _sdg; }
     const SystemDependenceGraph *getSDG() const { return _sdg; }
@@ -65,15 +78,21 @@ public:
 
     bblocks_range getBBlocks() { return bblocks_range(_bblocks); }
 
-    DGNode *createInstruction() {
-        _nodes.emplace_back(new DGNodeInstruction(this, _nodes.size() + 1));
-        auto *nd = _nodes.back().get();
+    DGNodeInstruction *createInstruction() {
+        auto *nd = new DGNodeInstruction(*this);
+        _nodes.emplace_back(nd);
         return nd;
     }
 
-    DGNode *createCall() {
-        _nodes.emplace_back(new DGNodeCall(this, _nodes.size() + 1));
-        auto *nd = _nodes.back().get();
+    DGNodeCall *createCall() {
+        auto *nd = new DGNodeCall(*this);
+        _nodes.emplace_back(nd);
+        return nd;
+    }
+
+    DGNodeArtificial *createArtificial() {
+        auto *nd = new DGNodeArtificial(*this);
+        _nodes.emplace_back(nd);
         return nd;
     }
 
@@ -81,6 +100,9 @@ public:
         _bblocks.emplace_back(new DGBBlock(_bblocks.size() + 1, this));
         return _bblocks.back().get();
     }
+
+    DGFormalParameters& getParameters() { return _parameters; }
+    const DGFormalParameters& getParameters() const { return _parameters; }
 };
 
 } // namespace sdg
