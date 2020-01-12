@@ -11,16 +11,44 @@ struct SDGBuilder {
     SDGBuilder(SystemDependenceGraph *llvmsdg, llvm::Module *m)
     : _llvmsdg(llvmsdg), _module(m) {}
 
-    sdg::DGNodeCall& buildCallNode(sdg::DependenceGraph& dg, llvm::CallInst *CI) {
+    sdg::DependenceGraph& getOrCreateDG(llvm::Function *F) {
+        auto* dg = _llvmsdg->getDG(F);
+        if (!dg) {
+            auto& g = _llvmsdg->getSDG().createGraph(F->getName().str());
+            _llvmsdg->addFunMapping(F, &g);
+            return g;
+        }
+
+        return *dg;
+    }
+
+    sdg::DGNode& buildCallNode(sdg::DependenceGraph& dg, llvm::CallInst *CI) {
+        auto *CV = CI->getCalledValue()->stripPointerCasts();
+        if (!CV) {
+            assert(false && "funcptr not implemnted yet");
+            abort();
+        }
+
+        auto *F = llvm::dyn_cast<llvm::Function>(CV);
+        if (!F) {
+            assert(false && "funcptr not implemnted yet");
+            abort();
+        }
+
+        if (F->isDeclaration()) {
+            return dg.createInstruction();
+        }
+
+        // create the node call and and the call edge
         auto& node = dg.createCall();
-        auto& params = node.getParameters();
+        node.addCallee(getOrCreateDG(F));
 
         // create actual parameters
+        auto& params = node.getParameters();
         for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
             auto *A = CI->getArgOperand(i);
             llvm::errs() << "Act: " << *A << "\n";
-            auto& param = params.createParameter();
-            _llvmsdg->addMapping(A, &param);
+            params.createParameter();
         }
         return node;
     }
@@ -68,16 +96,13 @@ struct SDGBuilder {
     }
 
     void buildFuns() {
-        auto& sdg = _llvmsdg->getSDG();
         // build dependence graph for each procedure
         for (auto& F : *_module) {
             if (F.isDeclaration()) {
                 continue;
             }
 
-            auto& g = sdg.createGraph(F.getName().str());
-            _llvmsdg->addFunMapping(&F, &g);
-
+            auto& g = getOrCreateDG(&F);
             buildDG(g, F);
         }
     }

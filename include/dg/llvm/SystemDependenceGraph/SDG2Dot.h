@@ -26,8 +26,10 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 
 #include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
+#include "dg/SystemDependenceGraph/DGNodeCall.h"
 
 namespace dg {
 namespace llvmdg {
@@ -92,6 +94,11 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
     return os;
 }
 
+static std::ostream& operator<<(std::ostream& os, const sdg::DGNode& nd) {
+    os << "N" << nd.getDG().getID() << "_" << nd.getID();
+    return os;
+}
+
 
 class SDG2Dot {
     SystemDependenceGraph* _llvmsdg;
@@ -104,9 +111,8 @@ class SDG2Dot {
         assert(sdg::DGNode::get(&nd) && "Wrong type");
 
         auto& dg = nd.getDG();
-        out << "      N" << dg.getID() << "_" << nd.getID();
-        out << "[label=\"[" <<
-                  dg.getID() << "." << nd.getID() << "] ";
+        out << "      " << nd <<
+               " [label=\"[" << dg.getID() << "." << nd.getID() << "] ";
         if (v) {
             // this node is associated to this value
             printLLVMVal(out, v);
@@ -145,13 +151,15 @@ public:
 
     void dump(const std::string& file) const {
         std::ofstream out(file);
+        std::set<sdg::DGNodeCall *> calls;
 
         out << "digraph SDG {\n";
+        out << "  compound=\"true\"\n";
 
         for (auto *dg : _llvmsdg->getSDG()) {
             ///
             // Dependence graphs (functions) 
-            out << "  subgraph cluster_" << dg->getID() << " {\n";
+            out << "  subgraph cluster_dg_" << dg->getID() << " {\n";
             out << "    color=black;\n";
             out << "    style=filled;\n";
             out << "    fillcolor=grey95;\n";
@@ -174,6 +182,8 @@ public:
                     dumpNode(out, *nd);
 
                     if (auto *C = sdg::DGNodeCall::get(nd)) {
+                        // store the node for later use (dumping of call edges etc.)
+                        calls.insert(C);
                         // dump actual parameters
                         dumpParams(out, C->getParameters(), "actual parameters");
                     }
@@ -184,6 +194,22 @@ public:
             out << "  }\n";
 
             dumpedNodes.clear();
+        }
+
+        ////
+        // -- Interprocedural edges --
+
+        if (!calls.empty()) {
+            out << " /* call edges */\n";
+        }
+        for (auto *C : calls) {
+            for (auto *dg : C->getCallees()) {
+                out << "  " << *C
+                    << " -> " << *dg->getFirstNode()
+                    << "[lhead=cluster_dg_" << dg->getID()
+                    << " label=\"call '" << dg->getName()<< "'\""
+                    << " style=bold]\n";
+            }
         }
 
         out << "}\n";

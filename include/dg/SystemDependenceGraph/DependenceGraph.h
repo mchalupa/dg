@@ -29,10 +29,15 @@ class DependenceGraph {
     // parameters associated to this graph
     DGFormalParameters _parameters;
 
+    using NodesContainerTy = std::vector<std::unique_ptr<DGNode>>;
     using BBlocksContainerTy = std::vector<std::unique_ptr<DGBBlock>>;
+    using CallersContainerTy = std::set<DGNodeCall*>;
 
-    std::vector<std::unique_ptr<DGNode>> _nodes;
+    NodesContainerTy _nodes;
     BBlocksContainerTy _bblocks;
+    // call nodes that call this function
+    CallersContainerTy _callers;
+
     // only SystemDependenceGraph can create new DependenceGraph's
     DependenceGraph(unsigned id, SystemDependenceGraph& g)
     : _id(id), _sdg(g), _parameters(*this) { assert(id > 0); }
@@ -79,6 +84,26 @@ public:
 
     bblocks_range getBBlocks() { return bblocks_range(_bblocks); }
 
+
+    // we do not have any total order on nodes or blocks in SDG,
+    // but sometimes we need to get "some" node/block, so add
+    // a getter for the first element in containers
+    DGBBlock* getEntryBBlock() {
+        return _bblocks.empty() ? nullptr : _bblocks.begin()->get();
+    }
+
+    const DGBBlock* getEntryBBlock() const {
+        return _bblocks.empty() ? nullptr : _bblocks.begin()->get();
+    }
+
+    DGNode* getFirstNode() {
+        return _nodes.empty() ? nullptr : _nodes.begin()->get();
+    }
+
+    const DGNode* getFirstNode() const {
+        return _nodes.empty() ? nullptr : _nodes.begin()->get();
+    }
+
     DGNodeInstruction& createInstruction() {
         auto *nd = new DGNodeInstruction(*this);
         _nodes.emplace_back(nd);
@@ -101,6 +126,12 @@ public:
         _bblocks.emplace_back(new DGBBlock(_bblocks.size() + 1, this));
         return *_bblocks.back().get();
     }
+
+    void addCaller(DGNodeCall *n) {
+        _callers.insert(n);
+    }
+
+    const CallersContainerTy& getCallers() const { return _callers; }
 
     DGFormalParameters& getParameters() { return _parameters; }
     const DGFormalParameters& getParameters() const { return _parameters; }
