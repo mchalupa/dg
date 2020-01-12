@@ -31,6 +31,18 @@ public:
 
     unsigned getID() const { return _id; }
 
+    static DGNode* get(DGElement *n) {
+        switch(n->getType()) {
+            case DGElementType::ND_INSTRUCTION:
+            case DGElementType::ND_CALL:
+            case DGElementType::ND_ARGUMENT:
+            case DGElementType::ND_ARTIFICIAL:
+                return static_cast<DGNode*>(n);
+            default:
+                return nullptr;
+        }
+    }
+
 #ifndef NDEBUG
     void dump() const override {
         std::cout << "<"<< getID() << "> ";

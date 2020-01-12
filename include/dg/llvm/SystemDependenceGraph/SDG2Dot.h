@@ -101,7 +101,7 @@ class SDG2Dot {
 
     void dumpNode(std::ostream& out, sdg::DGNode& nd,
                   const llvm::Value *v = nullptr) const {
-        assert(isa<DGNode>(&nd));
+        assert(sdg::DGNode::get(&nd) && "Wrong type");
 
         auto& dg = nd.getDG();
         out << "      N" << dg.getID() << "_" << nd.getID();
