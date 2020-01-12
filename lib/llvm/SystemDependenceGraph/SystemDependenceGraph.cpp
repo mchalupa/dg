@@ -4,11 +4,11 @@
 namespace dg {
 namespace llvmdg {
 
-struct Builder {
+struct SDGBuilder {
     SystemDependenceGraph *_llvmsdg;
     llvm::Module *_module;
 
-    Builder(SystemDependenceGraph *llvmsdg, llvm::Module *m)
+    SDGBuilder(SystemDependenceGraph *llvmsdg, llvm::Module *m)
     : _llvmsdg(llvmsdg), _module(m) {}
 
     sdg::DGNodeCall& buildCallNode(sdg::DependenceGraph& dg, llvm::CallInst *CI) {
@@ -88,9 +88,10 @@ void SystemDependenceGraph::buildSDG() {
     assert(_module);
     assert(_pta);
 
-    Builder builder(this, _module);
+    SDGBuilder builder(this, _module);
     // FIXME: build globals
     // builder.buildGlobals();
+    DBG(sdg, "FIXME: must build globals");
 
     builder.buildFuns();
 

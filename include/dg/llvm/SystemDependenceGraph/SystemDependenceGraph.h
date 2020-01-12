@@ -19,7 +19,7 @@ class SystemDependenceGraphOptions : public LLVMAnalysisOptions {
 };
 
 /* FIXME: hide this from the world */
-struct Builder;
+struct SDGBuilder;
 
 class SystemDependenceGraph {
     const SystemDependenceGraphOptions _options;
@@ -49,7 +49,7 @@ class SystemDependenceGraph {
         _fun_mapping[F] = g;
     }
 
-    friend struct Builder;
+    friend struct SDGBuilder;
 
 public:
     SystemDependenceGraph(llvm::Module *M,
