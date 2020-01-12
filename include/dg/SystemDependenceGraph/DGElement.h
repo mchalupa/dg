@@ -30,8 +30,8 @@ inline const char *DGElemTypeToCString(enum DGElementType type)
 #define ELEM(t) case t: do {return (#t); }while(0); break;
     switch(type) {
         ELEM(DGElementType::INVALID)
-        ELEM(DGElementType::ND_INSTRUCTION)
         ELEM(DGElementType::ARG_PAIR)
+        ELEM(DGElementType::ND_INSTRUCTION)
         ELEM(DGElementType::ND_ARGUMENT)
         ELEM(DGElementType::ND_CALL)
         ELEM(DGElementType::ND_ARTIFICIAL)
@@ -60,7 +60,7 @@ public:
 
 #ifndef NDEBUG
     virtual void dump() const {
-        std::cout << "<"<< getID() << "> " << DGElemTypeToCString(getType());
+        std::cout << DGElemTypeToCString(getType());
     }
 
     // verbose dump
@@ -71,12 +71,14 @@ public:
 #endif // not NDEBUG
 };
 
+} // namespace sdg
+
+
 // check type of node
-template <DGElementType T> bool isa(DGElement *n) {
+template <sdg::DGElementType T> bool isa(sdg::DGElement *n) {
     return n->getType() == T;
 }
 
-} // namespace sdg
 } // namespace dg
 
 #endif
