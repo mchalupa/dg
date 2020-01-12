@@ -38,7 +38,6 @@ DGNode& DGParameters::createNoReturn() {
 // ------------------------------------------------------------------
 
 unsigned DGNode::getNewID(DependenceGraph& g) {
-    assert(_id == 0 && "Used outside of ctor");
     return g.getNextNodeID();
 }
 
