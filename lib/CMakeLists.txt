@@ -172,6 +172,7 @@ target_link_libraries(dgsdg
 
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
+	llvm/SystemDependenceGraph/Dependencies.cpp
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 )

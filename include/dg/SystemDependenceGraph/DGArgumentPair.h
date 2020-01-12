@@ -20,6 +20,11 @@ class DGArgumentPair : public DGElement {
     DGArgumentPair(DGParameters& p);
 public:
 
+    static DGArgumentPair* get(DGElement *n) {
+        return isa<DGElementType::ARG_PAIR>(n) ?
+            static_cast<DGArgumentPair *>(n) : nullptr;
+    }
+
     DGNodeArgument& getInputArgument() { return _input; }
     const DGNodeArgument& getInputArgument() const { return _input; }
 

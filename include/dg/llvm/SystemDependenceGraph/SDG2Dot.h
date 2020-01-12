@@ -175,7 +175,8 @@ public:
             ///
             // Basic blocks
             for (auto *blk : dg->getBBlocks()) {
-                out << "    subgraph cluster_bb_" << blk->getID() << " {\n";
+                out << "    subgraph cluster_dg_" << dg->getID() << "_bb_"
+                                                  << blk->getID() << " {\n";
                 out << "      label=\"bblock #" << blk->getID() << "\"\n";
                 for (auto *nd : blk->getNodes()) {
                     dumpedNodes.insert(nd);
@@ -190,6 +191,19 @@ public:
                 }
                 out << "    }\n";
             }
+
+            ///
+            // -- edges --
+            out << "    /* edges */\n";
+            for (auto *blk : dg->getBBlocks()) {
+                for (auto *nd : blk->getNodes()) {
+                    for (auto *use : nd->uses()) {
+                        out << "    " << *nd << " -> " << *use
+                            << "[style=\"dashed\"]\n";
+                    }
+                }
+            }
+ 
 
             out << "  }\n";
 

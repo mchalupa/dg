@@ -108,8 +108,8 @@ struct SDGBuilder {
     }
 };
 
-void SystemDependenceGraph::buildSDG() {
-    DBG(sdg, "Building SDG");
+void SystemDependenceGraph::buildNodes() {
+    DBG_SECTION_BEGIN(sdg, "Building SDG nodes");
     assert(_module);
     assert(_pta);
 
@@ -127,7 +127,13 @@ void SystemDependenceGraph::buildSDG() {
     assert(entry && "Did not build the entry function");
     _sdg.setEntry(entry);
 
-    DBG(sdg, "Building SDG finished");
+    DBG_SECTION_END(sdg, "Building SDG nodes finished");
+}
+
+void SystemDependenceGraph::buildSDG() {
+    buildNodes();
+    // defined in Dependencies.cpp
+    buildEdges();
 }
 
 } // namespace llvmdg
