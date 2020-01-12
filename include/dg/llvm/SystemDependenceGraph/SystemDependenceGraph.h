@@ -34,6 +34,8 @@ class SystemDependenceGraph {
     // built functions
     std::map<const llvm::Function *, sdg::DependenceGraph *> _fun_mapping;
 
+    void buildNodes();
+    void buildEdges();
     void buildSDG();
 
     void addMapping(llvm::Value *v, sdg::DGElement *n) {
