@@ -13,7 +13,10 @@ namespace sdg {
 // Call
 /// ----------------------------------------------------------------------
 class DGNodeCall : public DGNode {
-    std::set<DependenceGraph *> _callees;
+    // FIXME: change to vector set or smallptr set (small vector set?)
+    using CalleesTy = std::set<DependenceGraph *>;
+
+    CalleesTy _callees;
     DGParameters _parameters;
 
 public:
@@ -25,8 +28,8 @@ public:
             static_cast<DGNodeCall *>(n) : nullptr;
     }
 
-    const std::set<DependenceGraph *>& getCallees() const { return _callees; }
-    bool addCalee(DependenceGraph *g) { return _callees.insert(g).second; }
+    const CalleesTy& getCallees() const { return _callees; }
+    bool addCallee(DependenceGraph& g);
 
     DGParameters& getParameters() { return _parameters; }
     const DGParameters& getParameters() const { return _parameters; }

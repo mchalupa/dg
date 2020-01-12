@@ -44,6 +44,10 @@ unsigned DGNode::getNewID(DependenceGraph& g) {
 DGNode::DGNode(DependenceGraph& g, DGElementType t)
 : DGElement(g, t), _id(getNewID(g)) {}
 
+bool DGNodeCall::addCallee(DependenceGraph& g) {
+    g.addCaller(this);
+    return _callees.insert(&g).second;
+}
 
 } // namespace sdg
 } // namespace dg
