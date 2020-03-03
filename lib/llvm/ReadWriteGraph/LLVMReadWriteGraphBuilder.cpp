@@ -663,6 +663,7 @@ LLVMReadWriteGraphBuilder::buildFunction(const llvm::Function& F)
     // emplace new subgraph to avoid looping with recursive functions
     auto si = subgraphs_map.emplace(&F, Subgraph());
     Subgraph& subg = si.first->second;
+    subg.rwsubgraph = graph.createSubgraph();
 
     ///
     // Create blocks
@@ -670,7 +671,7 @@ LLVMReadWriteGraphBuilder::buildFunction(const llvm::Function& F)
 
     // iterate over the blocks in dominator-tree order
     // so that all operands are created before their uses
-    for (const auto llvmBlock :
+    for (const auto *llvmBlock :
               getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F))) {
 
         auto& block = buildBlock(subg, *llvmBlock);
