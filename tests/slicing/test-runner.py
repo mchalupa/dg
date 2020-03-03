@@ -107,10 +107,11 @@ def opt(bccode, passes, output = None):
     return output
 
 def check_output(out, expout):
-    lines = out.decode().split('\n')
+    lines = [line for line in out.decode().split('\n') if line]
     if expout:
         with open(join(SOURCESDIR,expout), 'r') as f:
-            expected = list(map(lambda s: s.strip(), f.readlines()))
+            expected = [line for line
+                        in map(lambda s: s.strip(), f.readlines()) if line]
             if expected != lines:
                 if debug:
                     print(' -- expected --')
