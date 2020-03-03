@@ -76,6 +76,11 @@ public:
       return _nodes.back().get();
     }
 
+    RWSubgraph *createSubgraph() {
+      _subgraphs.emplace_back(new RWSubgraph());
+      return _subgraphs.back().get();
+    }
+
     // Build blocks for the nodes. If 'dce' is set to true,
     // the dead code is eliminated after building the blocks.
     void buildBBlocks(bool dce = false) {
