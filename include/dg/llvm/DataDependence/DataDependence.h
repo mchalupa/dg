@@ -73,7 +73,7 @@ public:
 
     const LLVMDataDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    RWNode *getRoot() { return DDA->getRoot(); }
+    const RWNode *getRoot() const { return DDA->getRoot(); }
     ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
     const RWNode *getNode(const llvm::Value *val) const;
@@ -96,12 +96,12 @@ public:
         return nd && (!nd->getDefines().empty() || !nd->getOverwrites().empty());
     }
 
-    std::vector<RWNode *> getNodes() {
-        assert(DDA);
-        // FIXME: this is insane, we should have this method defined here
-        // not in DDA
-        return getGraph()->getNodes(getRoot());
-    }
+   //std::vector<RWNode *> getNodes() {
+   //    assert(DDA);
+   //    // FIXME: this is insane, we should have this method defined here
+   //    // not in DDA
+   //    return getGraph()->getNodes(getRoot());
+   //}
 
     std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
                                          const Offset& off, const Offset& len) {

@@ -48,7 +48,7 @@ public:
 
     ReadWriteGraph *getGraph() { return _impl->getGraph(); }
     const ReadWriteGraph *getGraph() const { return _impl->getGraph(); }
-    RWNode *getRoot() const { return _impl->getRoot(); }
+    const RWNode *getRoot() const { return _impl->getRoot(); }
 
     // run the analysis
     void run() { _impl->run(); }

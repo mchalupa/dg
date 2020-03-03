@@ -7,7 +7,7 @@
 namespace dg {
 namespace dda {
 
-void ReadWriteGraph::buildBBlocks(bool dce) {
+void RWSubgraph::buildBBlocks(bool dce) {
     assert(getRoot() && "No root node");
     DBG(dda, "Building basic blocks");
 
@@ -19,6 +19,7 @@ void ReadWriteGraph::buildBBlocks(bool dce) {
     // should we eliminate dead code?
     // The dead code are the nodes that have no basic block assigned
     // (follows from the DFS nature of the block builder algorithm)
+    /*
     if (!dce)
         return;
 
@@ -28,6 +29,7 @@ void ReadWriteGraph::buildBBlocks(bool dce) {
             nd.reset();
         }
     }
+    */
 }
 
 void ReadWriteGraph::removeUselessNodes() {

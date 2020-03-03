@@ -7,6 +7,7 @@
 #include "dg/BFS.h"
 #include "dg/ReadWriteGraph/RWNode.h"
 #include "dg/ReadWriteGraph/RWBBlock.h"
+#include "dg/ReadWriteGraph/RWSubgraph.h"
 
 #include "dg/util/debug.h"
 
@@ -19,36 +20,40 @@ class ReadWriteGraph {
 
     size_t lastNodeID{0};
     RWNode *root{nullptr};
-    using BBlocksVecT = std::vector<std::unique_ptr<RWBBlock>>;
     using NodesT = std::vector<std::unique_ptr<RWNode>>;
-
-    // iterator over the bblocks that returns the bblock,
-    // not the unique_ptr to the bblock
-    struct block_iterator : public BBlocksVecT::iterator {
-        using ContainedType
-            = std::remove_reference<decltype(*(std::declval<BBlocksVecT::iterator>()->get()))>::type;
-
-        block_iterator(const BBlocksVecT::iterator& it) : BBlocksVecT::iterator(it) {}
-
-        ContainedType *operator*() {
-            return (BBlocksVecT::iterator::operator*()).get();
-        };
-        ContainedType *operator->() {
-            return ((BBlocksVecT::iterator::operator*()).get());
-        };
-    };
-
-    BBlocksVecT _bblocks;
-
-    struct blocks_range {
-        BBlocksVecT& blocks;
-        blocks_range(BBlocksVecT& b) : blocks(b) {}
-
-        block_iterator begin() { return block_iterator(blocks.begin()); }
-        block_iterator end() { return block_iterator(blocks.end()); }
-    };
+    using SubgraphsT = std::vector<std::unique_ptr<RWSubgraph>>;
 
     NodesT _nodes;
+    SubgraphsT _subgraphs;
+    RWSubgraph *_entry{nullptr};
+
+    // iterator over the bsubgraphs that returns the bsubgraph,
+    // not the unique_ptr to the bsubgraph
+    struct subgraph_iterator : public SubgraphsT::iterator {
+        using ContainedType
+            = std::remove_reference<
+                decltype(*(std::declval<SubgraphsT::iterator>()->get()))
+                                   >::type;
+
+        subgraph_iterator(const SubgraphsT::iterator& it)
+        : SubgraphsT::iterator(it) {}
+
+        ContainedType *operator*() {
+            return (SubgraphsT::iterator::operator*()).get();
+        };
+        ContainedType *operator->() {
+            return ((SubgraphsT::iterator::operator*()).get());
+        };
+    };
+
+    struct subgraphs_range {
+        SubgraphsT& subgraphs;
+        subgraphs_range(SubgraphsT& b) : subgraphs(b) {}
+
+        subgraph_iterator begin() { return subgraph_iterator(subgraphs.begin()); }
+        subgraph_iterator end() { return subgraph_iterator(subgraphs.end()); }
+    };
+
 
 public:
     ReadWriteGraph() = default;
@@ -56,15 +61,9 @@ public:
     ReadWriteGraph(ReadWriteGraph&&) = default;
     ReadWriteGraph& operator=(ReadWriteGraph&&) = default;
 
-    RWNode *getRoot() const { return root; }
-    void setRoot(RWNode *r) { root = r; }
-
-    const std::vector<std::unique_ptr<RWBBlock>>& getBBlocks() const { return _bblocks; }
-
-    block_iterator blocks_begin() { return block_iterator(_bblocks.begin()); }
-    block_iterator blocks_end() { return block_iterator(_bblocks.end()); }
-
-    blocks_range blocks() { return blocks_range(_bblocks); }
+    RWSubgraph *getEntry() { return _entry; }
+    const RWSubgraph *getEntry() const { return _entry; }
+    void setEntry(RWSubgraph *e) { _entry = e; }
 
     void removeUselessNodes();
 
@@ -79,10 +78,24 @@ public:
 
     // Build blocks for the nodes. If 'dce' is set to true,
     // the dead code is eliminated after building the blocks.
-    void buildBBlocks(bool dce = false);
+    void buildBBlocks(bool dce = false) {
+        for (auto& s : _subgraphs) {
+            s->buildBBlocks(dce);
+        }
+    }
+
+    subgraph_iterator subgraphs_begin() {
+        return subgraph_iterator(_subgraphs.begin());
+    }
+    subgraph_iterator subgraphs_end() {
+        return subgraph_iterator(_subgraphs.end());
+    }
+
+    subgraphs_range subgraphs() { return subgraphs_range(_subgraphs); }
 
     // get nodes in BFS order and store them into
     // the container
+    /*
     template <typename ContainerOrNode>
     std::vector<RWNode *> getNodes(const ContainerOrNode& start,
                                    unsigned expected_num = 0)
@@ -111,6 +124,7 @@ public:
 
         return cont;
     }
+    */
 };
 
 } // namespace dda

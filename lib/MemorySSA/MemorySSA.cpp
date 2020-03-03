@@ -285,8 +285,10 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
 // perform Lvn on all blocks
 void MemorySSATransformation::performLvn() {
     DBG_SECTION_BEGIN(dda, "Starting LVN");
-    for (RWBBlock *block : graph.blocks()) {
-        performLvn(block);
+    for (auto *subgraph : graph.subgraphs()) {
+        for (RWBBlock *block : subgraph->bblocks()) {
+            performLvn(block);
+        }
     }
     DBG_SECTION_END(dda, "LVN finished");
 }
@@ -296,10 +298,12 @@ void MemorySSATransformation::performGvn() {
     DBG_SECTION_BEGIN(dda, "Starting GVN");
     std::set<RWNode *> phis(_phis.begin(), _phis.end());
 
-    for (RWBBlock *block : graph.blocks()) {
-        for (RWNode *node : block->getNodes()) {
-            if (node->isUse())
-                node->defuse.add(findDefinitions(node));
+    for (auto *subgraph : graph.subgraphs()) {
+        for (RWBBlock *block : subgraph->bblocks()) {
+            for (RWNode *node : block->getNodes()) {
+                if (node->isUse())
+                    node->defuse.add(findDefinitions(node));
+            }
         }
     }
     DBG_SECTION_END(dda, "GVN finished");
@@ -499,10 +503,8 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
 void MemorySSATransformation::run() {
     DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
 
-    if (graph.getBBlocks().empty()) {
-        graph.buildBBlocks();
-        _defs.reserve(graph.getBBlocks().size());
-    }
+    graph.buildBBlocks();
+    // _defs.reserve(graph.getBBlocks().size());
 
     performLvn();
     performGvn();
