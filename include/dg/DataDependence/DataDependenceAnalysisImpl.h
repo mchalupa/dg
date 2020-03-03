@@ -25,7 +25,7 @@ public:
     DataDependenceAnalysisImpl(ReadWriteGraph&& graph,
                                const DataDependenceAnalysisOptions& opts)
     : graph(std::move(graph)), options(opts) {
-        assert(graph.getRoot() && "Root cannot be null");
+        assert(graph.getEntry() && "Graph has no entry");
     }
 
     DataDependenceAnalysisImpl(ReadWriteGraph&& graph)
@@ -35,7 +35,10 @@ public:
 
     ReadWriteGraph *getGraph() { return &graph; }
     const ReadWriteGraph *getGraph() const { return &graph; }
-    RWNode *getRoot() const { return graph.getRoot(); }
+    const RWSubgraph *getEntry() const { return graph.getEntry(); }
+    // FIXME: rename to getEntryNode();
+    //RWNode *getRoot() { return graph.getEntry()->getRoot(); }
+    const RWNode *getRoot() const { return graph.getEntry()->getRoot(); }
 
     virtual void run() = 0;
 

@@ -53,6 +53,8 @@ class LLVMReadWriteGraphBuilder {
         }
         Block *entry{nullptr};
         std::vector<RWNode *> returns;
+
+        RWSubgraph *rwsubgraph;
     };
 
     // map of all nodes we created - use to look up operands

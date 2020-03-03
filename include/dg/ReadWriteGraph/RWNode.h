@@ -13,6 +13,7 @@ namespace dg {
 namespace dda {
 
 class RWNode;
+class RWSubgraph;
 class ReachingDefinitionsAnalysis;
 
 // here the types are for type-checking (optional - user can do it
@@ -53,8 +54,6 @@ class RWNode : public SubgraphNode<RWNode> {
     RWNodeType type;
 
     RWBBlock *bblock = nullptr;
-    // marks for DFS/BFS
-    unsigned int dfsid;
 
     class DefUses {
         using T = std::vector<RWNode *>;
@@ -87,13 +86,15 @@ class RWNode : public SubgraphNode<RWNode> {
     };
 
 public:
+    // marks for DFS/BFS
+    unsigned int dfsid{0};
 
     // for invalid nodes like UNKNOWN_MEMLOC
     RWNode(RWNodeType t = RWNodeType::NONE)
-    : SubgraphNode<RWNode>(0), type(t), dfsid(0) {}
+    : SubgraphNode<RWNode>(0), type(t) {}
 
     RWNode(unsigned id, RWNodeType t = RWNodeType::NONE)
-    : SubgraphNode<RWNode>(id), type(t), dfsid(0) {}
+    : SubgraphNode<RWNode>(id), type(t) {}
 
 #ifndef NDEBUG
     virtual ~RWNode() = default;
@@ -232,6 +233,69 @@ public:
 
     friend class ReadWriteGraph;
 };
+
+class RWNodeCall : public RWNode {
+    // what this call calls?
+    std::vector<RWSubgraph *> callees;
+    // where it returns?
+    RWNode *callReturn{nullptr};
+
+public:
+    RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
+
+    static RWNodeCall *get(RWNode *n) {
+        return (n->getType() == RWNodeType::CALL) ?
+            static_cast<RWNodeCall*>(n) : nullptr;
+    }
+
+    void setCallReturn(RWNode *callRet) { callReturn = callRet; }
+    RWNode *getCallReturn() { return callReturn; }
+    const RWNode *getCallReturn() const { return callReturn; }
+
+    const std::vector<RWSubgraph *>& getCallees() const { return callees; }
+
+    bool addCallee(RWSubgraph *ps) {
+        // we suppose there are just few callees,
+        // so this should be faster than std::set
+        for (auto *p : callees) {
+            if (p == ps)
+                return false;
+        }
+
+        callees.push_back(ps);
+        return true;
+    }
+};
+
+class RWNodeRet : public RWNode {
+    // this node returns control to...
+    std::vector<RWNode *> returns;
+
+public:
+    RWNodeRet(unsigned id)
+    :RWNode(id, RWNodeType::RETURN) {}
+
+    static RWNodeRet *get(RWNode *n) {
+        return n->getType() == RWNodeType::RETURN ?
+            static_cast<RWNodeRet *>(n) : nullptr;
+    }
+
+    const std::vector<RWNode*>& getReturnSites() const { return returns; }
+
+    bool addReturnSite(RWNode *r) {
+        // we suppose there are just few callees,
+        // so this should be faster than std::set
+        for (RWNode *p : returns) {
+            if (p == r)
+                return false;
+        }
+
+        returns.push_back(r);
+        return true;
+    }
+};
+
+
 
 } // namespace dda
 } // namespace dg
