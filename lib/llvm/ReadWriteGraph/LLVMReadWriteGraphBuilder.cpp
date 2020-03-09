@@ -81,7 +81,8 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst)
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
     } else {
-        assert(iterator->second->getType() == RWNodeType::CALL && "Adding node we already have");
+        assert(iterator->second->getType() == RWNodeType::CALL &&
+               "Adding node we already have");
         addArtificialNode(Inst, node);
         makeEdge(iterator->second, node);
     }
@@ -93,7 +94,8 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst)
     return node;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type)
+RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst,
+                                                  AllocationFunction type)
 {
     using namespace llvm;
 
@@ -102,7 +104,8 @@ RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst,
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
     } else {
-        assert(iterator->second->getType() == RWNodeType::CALL && "Adding node we already have");
+        assert(iterator->second->getType() == RWNodeType::CALL &&
+               "Adding node we already have");
         addArtificialNode(Inst, node);
     }
 
@@ -146,7 +149,8 @@ RWNode *LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst)
     if (iterator == nodes_map.end()) {
         addNode(Inst, node);
     } else {
-        assert(iterator->second->getType() == RWNodeType::CALL && "Adding node we already have");
+        assert(iterator->second->getType() == RWNodeType::CALL &&
+               "Adding node we already have");
         addArtificialNode(Inst, node);
     }
 
@@ -380,7 +384,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
 }
 
 LLVMReadWriteGraphBuilder::Block&
-LLVMReadWriteGraphBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& llvmBlock) {
+LLVMReadWriteGraphBuilder::buildBlockNodes(Subgraph& subg,
+                                           const llvm::BasicBlock& llvmBlock) {
     using namespace llvm;
 
     Block& block = subg.createBlock(&llvmBlock);
@@ -441,7 +446,8 @@ LLVMReadWriteGraphBuilder::buildBlockNodes(Subgraph& subg, const llvm::BasicBloc
 
 // return first and last nodes of the block
 LLVMReadWriteGraphBuilder::Block&
-LLVMReadWriteGraphBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& llvmBlock)
+LLVMReadWriteGraphBuilder::buildBlock(Subgraph& subg,
+                                      const llvm::BasicBlock& llvmBlock)
 {
     auto& block = buildBlockNodes(subg, llvmBlock);
 
@@ -464,7 +470,8 @@ LLVMReadWriteGraphBuilder::buildBlock(Subgraph& subg, const llvm::BasicBlock& ll
     return block;
 }
 
-void LLVMReadWriteGraphBuilder::blockAddSuccessors(LLVMReadWriteGraphBuilder::Subgraph& subg,
+void LLVMReadWriteGraphBuilder::blockAddSuccessors(
+                                       LLVMReadWriteGraphBuilder::Subgraph& subg,
                                        LLVMReadWriteGraphBuilder::Block& block,
                                        const llvm::BasicBlock *llvmBlock,
                                        std::set<const llvm::BasicBlock *>& visited)
@@ -529,8 +536,10 @@ LLVMReadWriteGraphBuilder::createCallToFunction(const llvm::Function *F,
         auto node = createCallToZeroSizeFunction(F, CInst);
         return {node, node};
     } else if (!llvmutils::callIsCompatible(F, CInst)) {
-        llvm::errs() << "[RD] error: call of incompatible function: " << ValInfo(CInst) << "\n";
-        llvm::errs() << "            Calling : " << F->getName() << " of type " << *F->getType() << "\n";
+        llvm::errs() << "[RD] error: call of incompatible function: "
+                     << ValInfo(CInst) << "\n";
+        llvm::errs() << "            Calling : "
+                     << F->getName() << " of type " << *F->getType() << "\n";
         auto node = createUndefinedCall(CInst);
         return {node, node};
     }
@@ -592,9 +601,11 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(const std::vector<const llvm::F
 
     if (!incompatibleCalls.empty()) {
 #ifndef NDEBUG
-        llvm::errs() << "[RD] warning: incompatible function pointers for " << ValInfo(CInst) << "\n";
-        for (auto F : incompatibleCalls) {
-            llvm::errs() << "   Tried call: " << F->getName() << " of type " << *F->getType() << "\n";
+        llvm::errs() << "[RD] warning: incompatible function pointers for "
+                     << ValInfo(CInst) << "\n";
+        for (auto *F : incompatibleCalls) {
+            llvm::errs() << "   Tried call: " << F->getName() << " of type "
+                         << *F->getType() << "\n";
         }
         if (incompatibleCalls.size() == functions.size()) {
             llvm::errs() << "[RD] error: did not find any compatible pointer for this call.\n";
@@ -603,8 +614,9 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(const std::vector<const llvm::F
         if (incompatibleCalls.size() == functions.size()) {
             llvm::errs() << "[RD] error: did not find any compatible function pointer for "
                          << ValInfo(CInst) << "\n";
-            for (auto F : incompatibleCalls) {
-                llvm::errs() << "   Tried call: " << F->getName() << " of type " << *F->getType() << "\n";
+            for (auto *F : incompatibleCalls) {
+                llvm::errs() << "   Tried call: " << F->getName() << " of type "
+                             << *F->getType() << "\n";
             }
         }
 #endif // not NDEBUG
