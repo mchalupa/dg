@@ -44,32 +44,54 @@ inline bool isPointerOrIntegerTy(const Type *Ty)
 }
 
 // can the given function be called by the given call inst?
-inline bool callIsCompatible(const Function *F, const CallInst *CI)
+enum class CallCompatibility {
+    STRICT, // require full compatibility
+    LOOSE,  // ignore some incompatible patterns that usually work
+            // in practice, e.g., calling a function of 2 arguments
+            // with 3 arguments.
+    MATCHING_ARGS    // check only that matching arguments are compatible,
+                     // ignore the number of arguments, etc.
+};
+
+inline bool callIsCompatible(const Function *F, const CallInst *CI,
+                             CallCompatibility policy = CallCompatibility::LOOSE)
 {
     using namespace llvm;
 
-    if (F->isVarArg()) {
-        if (F->arg_size() > CI->getNumArgOperands())
-            return false;
-    } else {
-        if (F->arg_size() != CI->getNumArgOperands())
-            return false;
+    if (policy != CallCompatibility::MATCHING_ARGS) {
+        if (F->isVarArg()) {
+            if (F->arg_size() > CI->getNumArgOperands()) {
+                return false;
+            }
+        } else if (F->arg_size() != CI->getNumArgOperands()) {
+            if (policy == CallCompatibility::STRICT ||
+                F->arg_size() > CI->getNumArgOperands()) {
+                // too few arguments
+                return false;
+            }
+        }
+
+        if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType())) {
+            // it showed up that the loosless bitcast is too strict
+            // alternative since we can use the constexpr castings
+            if (!(isPointerOrIntegerTy(F->getReturnType()) &&
+                  isPointerOrIntegerTy(CI->getType()))) {
+                return false;
+            }
+        }
     }
 
-    if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType()))
-        // it showed up that the loosless bitcast is too strict
-        // alternative since we can use the constexpr castings
-        if (!(isPointerOrIntegerTy(F->getReturnType()) && isPointerOrIntegerTy(CI->getType())))
-            return false;
-
-    int idx = 0;
-    for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++idx) {
+    size_t idx = 0;
+    auto max_idx = CI->getNumArgOperands();
+    for (auto A = F->arg_begin(), E = F->arg_end();
+         idx < max_idx && A != E; ++A, ++idx) {
         Type *CTy = CI->getArgOperand(idx)->getType();
         Type *ATy = A->getType();
 
         if (!(isPointerOrIntegerTy(CTy) && isPointerOrIntegerTy(ATy)))
-            if (!CTy->canLosslesslyBitCastTo(ATy))
+            if (!CTy->canLosslesslyBitCastTo(ATy)) {
                 return false;
+            }
     }
 
     return true;
