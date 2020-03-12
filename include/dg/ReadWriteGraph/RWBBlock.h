@@ -9,33 +9,14 @@ namespace dg {
 namespace dda {
 
 class RWBBlock {
-    void _check() {
-#ifndef NDEBUG
-        // first node can have several predecessors
-        // and the last node can have several successors,
-        // otherwise the structure must be a chain
-        if (_nodes.size() <= 1)
-            return;
-
-        auto it = _nodes.begin();
-        assert((*it)->getSuccessors().size() == 1);
-        do {
-            ++it;
-            if (it == _nodes.end())
-                return;
-            assert((*it)->getPredecessors().size() == 1);
-            assert((*it)->getSuccessors().size() == 1 || ++it == _nodes.end());
-        } while (it != _nodes.end());
-#endif // not NDEBUG
-    }
 
 public:
     using NodeT = RWNode;
     using NodeSuccIterator = decltype(NodeT().getSuccessors().begin());
     using NodesT = std::list<NodeT *>;
 
-    void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); _check(); }
-    void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(this); _check(); }
+    void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); }
+    void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(this); }
     void insertBefore(NodeT *n, NodeT *before) {
         assert(!_nodes.empty());
 
@@ -49,7 +30,6 @@ public:
 
         _nodes.insert(it, n);
         n->setBBlock(this);
-        _check();
     }
 
     // FIXME: get rid of this method in favor of either append/prepend
@@ -70,8 +50,6 @@ public:
         assert(!n->getSuccessors().empty());
         assert(n->getBBlock() == this);
         assert(n->getSingleSuccessor()->getBBlock() == this);
-
-        _check();
     }
 
     const NodesT& getNodes() const { return _nodes; }

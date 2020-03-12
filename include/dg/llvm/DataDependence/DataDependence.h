@@ -80,7 +80,7 @@ public:
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, RWNode *>& getNodesMap() const;
+    const std::unordered_map<const llvm::Value *, RWNode *>& getNodesMapping() const;
     const std::unordered_map<const llvm::Value *, RWNode *>& getMapping() const;
 
     RWNode *getMapping(const llvm::Value *val);

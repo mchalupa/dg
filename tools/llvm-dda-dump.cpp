@@ -311,60 +311,43 @@ static void nodeToDot(RWNode *node) {
 
 }
 
-static void dumpDotOnlyNodes(LLVMDataDependenceAnalysis *RD)
-{
-    const auto& nodes = RD->getNodes();
-    // dump nodes
-    for(RWNode *node : nodes) {
-        nodeToDot(node);
-    }
-
-    // dump def-use edges
-    for(RWNode *node : nodes) {
-        if (node->isUse()) {
-            for (RWNode *def : RD->getDefinitions(node)) {
-                printf("\tNODE%p->NODE%p [style=dotted]",
-                       static_cast<void*>(def), static_cast<void*>(node));
-            }
-        }
-    }
-}
-
 static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
 
-    for (auto I = RD->getGraph()->blocks_begin(),
-              E = RD->getGraph()->blocks_end(); I != E; ++I) {
-        printf("subgraph cluster_%p {\n", *I);
-        /* dump nodes */
-        for(RWNode *node : I->getNodes()) {
-            nodeToDot(node);
-        }
+    for (auto *subg : RD->getGraph()->subgraphs()) {
+        printf("subgraph cluster_subg_%p {\n", subg);
+        for (auto *block : subg->bblocks()) {
+            printf("subgraph cluster_bb_%p {\n", block);
+            /* dump nodes */
+            for(RWNode *node : block->getNodes()) {
+                nodeToDot(node);
+            }
 
-        // dump def-use edges
-        for(RWNode *node : I->getNodes()) {
-            if (node->getType() == RWNodeType::PHI) {
-                for (RWNode *def : node->defuse) {
-                    printf("\tNODE%p->NODE%p [style=dotted]",
-                           static_cast<void*>(def), static_cast<void*>(node));
+            // dump def-use edges
+            for(RWNode *node : block->getNodes()) {
+                if (node->getType() == RWNodeType::PHI) {
+                    for (RWNode *def : node->defuse) {
+                        printf("\tNODE%p->NODE%p [style=dotted]",
+                               static_cast<void*>(def), static_cast<void*>(node));
+                    }
+                }
+                if (node->isUse()) {
+                    for (RWNode *def : RD->getDefinitions(node)) {
+                        printf("\tNODE%p->NODE%p [style=dotted color=blue]",
+                               static_cast<void*>(def), static_cast<void*>(node));
+                    }
                 }
             }
-            if (node->isUse()) {
-                for (RWNode *def : RD->getDefinitions(node)) {
-                    printf("\tNODE%p->NODE%p [style=dotted color=blue]",
-                           static_cast<void*>(def), static_cast<void*>(node));
-                }
-            }
+            printf("label=\"\\nblock: %p\\n", block);
+            dumpDefinitions(RD, block, true);
+            printf("\"\nlabelloc=b\n");
+            printf("}\n");
         }
-        printf("label=\"\\nblock: %p\\n", *I);
-        dumpDefinitions(RD, *I, true);
-        printf("\"\nlabelloc=b\n");
         printf("}\n");
     }
-
     /* dump block edges
     for (auto I = RD->getGraph()->blocks_begin(),
               E = RD->getGraph()->blocks_end(); I != E; ++I) {
-        for (auto succ : I->getSuccessors())
+        for (auto *succ : I->getSuccessors())
             printf("\tNODE%p -> NODE%p [penwidth=2]\n",
                    static_cast<void*>(*I),
                    static_cast<void*>(succ));
@@ -376,20 +359,9 @@ static void
 dumpDefsToDot(LLVMDataDependenceAnalysis *RD)
 {
 
-    printf("digraph \"Reaching Definitions Subgraph\" {\n");
+    printf("digraph \"Data Dependencies Graph\" {\n");
 
-    if (RD->getGraph()->getBBlocks().empty())
-        dumpDotOnlyNodes(RD);
-    else
-        dumpDotWithBlocks(RD);
-
-    /* dump edges */
-    for (RWNode *node : RD->getNodes()) {
-        for (RWNode *succ : node->getSuccessors())
-            printf("\tNODE%p -> NODE%p [penwidth=2]\n",
-                   static_cast<void*>(node),
-                   static_cast<void*>(succ));
-    }
+    dumpDotWithBlocks(RD);
 
     printf("}\n");
 }
@@ -402,8 +374,8 @@ dumpDefs(LLVMDataDependenceAnalysis *RD, bool todot)
     if (todot)
         dumpDefsToDot(RD);
     else {
-        for (RWNode *node : RD->getNodes())
-            dumpRWNode(node);
+        for (auto& it : RD->getNodesMapping())
+            dumpRWNode(it.second);
     }
 }
 
