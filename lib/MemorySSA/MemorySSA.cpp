@@ -154,7 +154,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
         auto& D = _defs[block];
 
         // This phi is the definition that we are looking for.
-        _phis.emplace_back(graph.create(RWNodeType::PHI));
+        _phis.emplace_back(&graph.create(RWNodeType::PHI));
         _phis.back()->addOverwrites(ds);
         // update definitions in the block -- this
         // phi node defines previously uncovered memory
@@ -373,12 +373,12 @@ MemorySSATransformation::getDefinitions(RWNode *where,
 
 RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
                                            const Offset& off, const Offset& len) {
-    auto use = graph.create(RWNodeType::MU);
-    use->addUse({mem, off, len});
-    use->insertBefore(where);
-    where->getBBlock()->insertBefore(use, where);
+    auto& use = graph.create(RWNodeType::MU);
+    use.addUse({mem, off, len});
+    use.insertBefore(where);
+    where->getBBlock()->insertBefore(&use, where);
 
-    return use;
+    return &use;
 }
 
 static void joinDefinitions(DefinitionsMap<RWNode>& from,
@@ -503,7 +503,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
 void MemorySSATransformation::run() {
     DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
 
-    graph.buildBBlocks();
+    // graph.buildBBlocks();
     // _defs.reserve(graph.getBBlocks().size());
 
     performLvn();

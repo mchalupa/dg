@@ -9,6 +9,7 @@
 #endif // not NDEBUG
 
 #include <vector>
+#include <set>
 #include <algorithm>
 
 namespace dg {

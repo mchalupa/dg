@@ -77,6 +77,8 @@ target_link_libraries(dgllvmforkjoin PRIVATE dgllvmpta)
 
 add_library(dgllvmdda SHARED
 	llvm/ReadWriteGraph/LLVMReadWriteGraphBuilder.cpp
+	llvm/ReadWriteGraph/Instructions.cpp
+	llvm/ReadWriteGraph/Calls.cpp
 	llvm/DataDependenceAnalysis/LLVMDataDependenceAnalysis.cpp
 	llvm/ForkJoin/ForkJoin.h
 	llvm/ForkJoin/ForkJoin.cpp

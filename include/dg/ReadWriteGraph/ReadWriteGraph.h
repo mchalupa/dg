@@ -19,7 +19,6 @@ class ReadWriteGraph {
     unsigned int dfsnum{1};
 
     size_t lastNodeID{0};
-    RWNode *root{nullptr};
     using NodesT = std::vector<std::unique_ptr<RWNode>>;
     using SubgraphsT = std::vector<std::unique_ptr<RWSubgraph>>;
 
@@ -57,7 +56,6 @@ class ReadWriteGraph {
 
 public:
     ReadWriteGraph() = default;
-    ReadWriteGraph(RWNode *r) : root(r) {};
     ReadWriteGraph(ReadWriteGraph&&) = default;
     ReadWriteGraph& operator=(ReadWriteGraph&&) = default;
 
@@ -71,23 +69,25 @@ public:
         removeUselessNodes();
     }
 
-    RWNode *create(RWNodeType t) {
+    RWNode& create(RWNodeType t) {
       _nodes.emplace_back(new RWNode(++lastNodeID, t));
-      return _nodes.back().get();
+      return *_nodes.back().get();
     }
 
-    RWSubgraph *createSubgraph() {
+    RWSubgraph& createSubgraph() {
       _subgraphs.emplace_back(new RWSubgraph());
-      return _subgraphs.back().get();
+      return *_subgraphs.back().get();
     }
 
     // Build blocks for the nodes. If 'dce' is set to true,
     // the dead code is eliminated after building the blocks.
+    /*
     void buildBBlocks(bool dce = false) {
         for (auto& s : _subgraphs) {
             s->buildBBlocks(dce);
         }
     }
+    */
 
     subgraph_iterator subgraphs_begin() {
         return subgraph_iterator(_subgraphs.begin());
