@@ -103,6 +103,11 @@ static inline void printId(RWNode *node, bool dot)
 static void
 printName(RWNode *node, bool dot)
 {
+    if (node == nullptr) {
+        printf("nullptr");
+        return;
+    }
+
     if (node == UNKNOWN_MEMORY) {
         printf("UNKNOWN MEMORY");
         return;
@@ -279,6 +284,10 @@ static void
 dumpRWNode(RWNode *n)
 {
     printf("NODE: ");
+    if (n == nullptr) {
+        printf("nullptr\n");
+        return;
+    }
     printName(n, false);
     if (n->getSize() > 0)
         printf(" [size: %lu]", n->getSize());
