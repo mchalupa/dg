@@ -8,15 +8,60 @@
 namespace dg {
 namespace dda {
 
-class RWBBlock {
+template <typename BBlockT>
+class BBlockBase {
+    using EdgesT = std::vector<BBlockT *>;
+
+    EdgesT _successors;
+    EdgesT _predecessors;
+
+public:
+    auto succ_begin() -> decltype(_successors.begin()) { return _successors.begin(); }
+    auto succ_end() -> decltype(_successors.begin())  { return _successors.end(); }
+    auto pred_begin() -> decltype(_predecessors.begin()) { return _predecessors.begin(); }
+    auto pred_end() -> decltype(_predecessors.begin()) { return _predecessors.end(); }
+    auto succ_begin() const -> decltype(_successors.begin()) { return _successors.begin(); }
+    auto succ_end() const -> decltype(_successors.begin())  { return _successors.end(); }
+    auto pred_begin() const -> decltype(_predecessors.begin()) { return _predecessors.begin(); }
+    auto pred_end() const -> decltype(_predecessors.begin()) { return _predecessors.end(); }
+
+    void addSuccessor(BBlockT *s) {
+        for (auto *succ : _successors) {
+            if (succ == s)
+                return;
+        }
+
+        _successors.push_back(s);
+
+        for (auto *pred : s->_predecessors) {
+            if (pred == this)
+                return;
+        }
+        s->_predecessors.push_back(s);
+    }
+
+    BBlockT *getSinglePredecessor() {
+        return _predecessors.size() == 1 ? _predecessors.back() : nullptr;
+    }
+
+    BBlockT *getSingleSuccessor() {
+        return _successors.size() == 1 ? _successors.back() : nullptr;
+    }
+
+};
+
+class RWBBlock;
+
+class RWBBlock : public BBlockBase<RWBBlock> {
 
 public:
     using NodeT = RWNode;
-    using NodeSuccIterator = decltype(NodeT().getSuccessors().begin());
     using NodesT = std::list<NodeT *>;
 
+    // FIXME: move also this into BBlockBase
     void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); }
     void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(this); }
+
     void insertBefore(NodeT *n, NodeT *before) {
         assert(!_nodes.empty());
 
@@ -40,44 +85,16 @@ public:
         // we can fix it at some point
         assert(!_nodes.empty());
 
-        assert(n->getSuccessors().empty());
-        assert(n->getPredecessors().empty());
-
         // update CFG edges
         n->insertBefore(_nodes.front());
 
         prepend(n);
-        assert(!n->getSuccessors().empty());
         assert(n->getBBlock() == this);
-        assert(n->getSingleSuccessor()->getBBlock() == this);
     }
 
     const NodesT& getNodes() const { return _nodes; }
 
-    // override the operator* method in the successor/predecessor iterator of the node
-    struct edge_iterator : public NodeSuccIterator {
-        edge_iterator() = default;
-        edge_iterator(const NodeSuccIterator& I) : NodeSuccIterator(I) {}
-
-        RWBBlock *operator*() { return NodeSuccIterator::operator*()->getBBlock(); }
-        RWBBlock *operator->() { return NodeSuccIterator::operator*()->getBBlock(); }
-    };
-
-    edge_iterator pred_begin() { return edge_iterator(_nodes.front()->getPredecessors().begin()); }
-    edge_iterator pred_end() { return edge_iterator(_nodes.front()->getPredecessors().end()); }
-    edge_iterator succ_begin() { return edge_iterator(_nodes.back()->getSuccessors().begin()); }
-    edge_iterator succ_end() { return edge_iterator(_nodes.back()->getSuccessors().end()); }
-
-    RWBBlock *getSinglePredecessor() {
-        auto& preds = _nodes.front()->getPredecessors();
-        return preds.size() == 1 ? (*preds.begin())->getBBlock() : nullptr;
-    }
-
-    RWBBlock *getSingleSuccessor() {
-        auto& succs = _nodes.back()->getSuccessors();
-        return succs.size() == 1 ? (*succs.begin())->getBBlock() : nullptr;
-    }
-
+    // FIXME: rename to first/front(), last/back()
     NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }
     NodeT *getLast() { return _nodes.empty() ? nullptr : _nodes.back(); }
 
