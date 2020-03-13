@@ -94,6 +94,13 @@ public:
 
     const NodesT& getNodes() const { return _nodes; }
 
+    /*
+    auto begin() -> decltype(_nodes.begin()) { return _nodes.begin(); }
+    auto begin() const -> decltype(_nodes.begin()) { return _nodes.begin(); }
+    auto end() -> decltype(_nodes.end()) { return _nodes.end(); }
+    auto end() const -> decltype(_nodes.end()) { return _nodes.end(); }
+    */
+
     // FIXME: rename to first/front(), last/back()
     NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }
     NodeT *getLast() { return _nodes.empty() ? nullptr : _nodes.back(); }

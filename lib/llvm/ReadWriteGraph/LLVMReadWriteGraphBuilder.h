@@ -2,6 +2,7 @@
 #define LLVM_DG_RWG_BUILDER_H
 
 #include <unordered_map>
+#include <set>
 #include <memory>
 
 // ignore unused parameters in LLVM libraries
@@ -16,6 +17,7 @@
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/CFG.h>
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
@@ -109,12 +111,54 @@ class GraphBuilder {
     }
 
     void buildSubgraph(const llvm::Function& F) {
+        using namespace llvm;
+
         DBG_SECTION_BEGIN(rwg, "Building the subgraph for " << F.getName().str());
         auto& subg = createSubgraph(&F);
 
         DBG(rwg, "Building basic blocks");
-        for (auto& B : F) {
-            auto& bblock = buildBBlock(B, subg);
+        // do a walk through basic blocks such that all predecessors of
+        // a block are searched before the block itself
+        // (operands must be created before their use)
+        std::unordered_map<const BasicBlock *, unsigned> visited;
+        visited.reserve(F.size());
+        auto &entry = F.getEntryBlock();
+
+        // XXX: we could optimize this (vector set?)
+        std::set<const BasicBlock *> queue;
+        assert(pred_size(&entry) == 0);
+        visited[&entry] = 0;
+
+        auto get_ready_block = [&]() -> const BasicBlock * {
+            for (auto *b : queue) {
+                if (visited[b] == 0) {
+                    queue.erase(b);
+                    return b;
+                }
+            }
+            return nullptr;
+        };
+
+        queue.insert(&entry);
+        while (true) {
+            auto *cur = get_ready_block();
+            llvm::errs() << "Processing\n";
+            llvm::errs() << *cur << "\n";
+            if (!cur)
+                break;
+
+            auto& bblock = buildBBlock(*cur, subg);
+            // FIXME: do something with bblock...
+
+            for (auto *succ : successors(cur)) {
+                auto it = visited.find(succ);
+                if (it == visited.end()) {
+                    visited.emplace_hint(it, succ, pred_size(succ) - 1);
+                    queue.insert(succ);
+                } else {
+                    --it->second;
+                }
+            }
         }
 
         DBG(rwg, "Building CFG");
