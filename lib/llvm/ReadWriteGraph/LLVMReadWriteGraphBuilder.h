@@ -68,6 +68,7 @@ public:
 template <typename NodeT, typename BBlockT, typename SubgraphT>
 class GraphBuilder {
     using NodesMappingT = std::unordered_map<const llvm::Value *, NodeT *>;
+    using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphT *>;
 
     const llvm::Module *_module;
 
@@ -78,7 +79,7 @@ class GraphBuilder {
     };
     */
 
-    std::vector<SubgraphT> _subgraphs;
+    SubgraphsMappingT _subgraphs;
     NodesMappingT _nodes;
 
     void buildCFG(const llvm::Function& F, SubgraphT& subg) {
@@ -114,9 +115,12 @@ class GraphBuilder {
         using namespace llvm;
 
         DBG_SECTION_BEGIN(rwg, "Building the subgraph for " << F.getName().str());
+        assert(_subgraphs.find(&F) == _subgraphs.end()
+                && "Already have that subgraph");
         auto& subg = createSubgraph(&F);
+        _subgraphs[&F] = &subg;
 
-        DBG(rwg, "Building basic blocks");
+        DBG(rwg, "Building basic blocks of " << F.getName().str());
         // do a walk through basic blocks such that all predecessors of
         // a block are searched before the block itself
         // (operands must be created before their use)
@@ -142,8 +146,6 @@ class GraphBuilder {
         queue.insert(&entry);
         while (true) {
             auto *cur = get_ready_block();
-            llvm::errs() << "Processing\n";
-            llvm::errs() << *cur << "\n";
             if (!cur)
                 break;
 
@@ -167,6 +169,11 @@ class GraphBuilder {
         DBG_SECTION_END(rwg, "Building the subgraph done");
     }
 
+    void buildGlobals() {
+        DBG_SECTION_BEGIN(rwg, "Building globals");
+        DBG_SECTION_END(rwg, "Building globals done");
+    }
+
 public:
     GraphBuilder(const llvm::Module *m) : _module(m) {}
     virtual ~GraphBuilder() = default;
@@ -188,7 +195,16 @@ public:
         return it == _nodes.end() ? nullptr : it->second;
     }
 
-    //virtual NodeT& getOperand(const llvm::Value *);
+    SubgraphT *getSubgraph(const llvm::Function *f) {
+        auto it = _subgraphs.find(f);
+        return it == _subgraphs.end() ? nullptr : it->second;
+    }
+
+    const SubgraphT *getSubgraph(const llvm::Function *f) const {
+        auto it = _subgraphs.find(f);
+        return it == _subgraphs.end() ? nullptr : it->second;
+    }
+
     virtual NodesSeq<NodeT> createNode(const llvm::Value *) = 0;
     virtual BBlockT& createBBlock(const llvm::BasicBlock *, SubgraphT&) = 0;
     virtual SubgraphT& createSubgraph(const llvm::Function *) = 0;
@@ -196,18 +212,20 @@ public:
     void buildFromLLVM() {
         assert(_module && "Do not have the LLVM module");
 
+        buildGlobals();
+
         // build only reachable calls from CallGraph
         // (if given as an argument)
         // FIXME: do a walk on reachable blocks so that
         // we respect the domination properties of instructions
         for (auto& F : *_module) {
-            buildSubgraph(F);
+            if (!F.isDeclaration()) {
+                buildSubgraph(F);
+            }
         }
 
         // add call-edges
         buildICFG();
-
-        //buildGlobals();
     }
 };
 
@@ -237,34 +255,11 @@ class LLVMReadWriteGraphBuilder : public GraphBuilder<RWNode, RWBBlock, RWSubgra
     }
 
     /*
-    struct Subgraph {
-        std::map<const llvm::BasicBlock *, Block> blocks;
-
-        Block& createBlock(const llvm::BasicBlock *b) {
-            auto it = blocks.emplace(b, Block());
-            assert(it.second && "Already had this block");
-
-            return it.first->second;
-        }
-        Block *entry{nullptr};
-        std::vector<RWNode *> returns;
-
-        RWSubgraph *rwsubgraph;
-    };
-
-    // map of all nodes we created - use to look up operands
-    std::unordered_map<const llvm::Value *, RWNode *> nodes_map;
-
     std::map<const llvm::CallInst *, RWNode *> threadCreateCalls;
     std::map<const llvm::CallInst *, RWNode *> threadJoinCalls;
 
     // mapping of call nodes to called subgraphs
     std::map<std::pair<RWNode *, RWNode *>, std::set<Subgraph *>> calls;
-
-    // map of all built subgraphs - the value type is a pair (root, return)
-    std::unordered_map<const llvm::Value *, Subgraph> subgraphs_map;
-
-
     */
 
     RWNode& create(RWNodeType t) { return graph.create(t); }
@@ -277,34 +272,16 @@ public:
 
     ReadWriteGraph&& build() {
         buildFromLLVM();
+        
+        auto *entry = getModule()->getFunction(_options.entryFunction);
+        assert(entry && "Did not find the entry function");
+        graph.setEntry(getSubgraph(entry));
+
         return std::move(graph);
     }
 
     RWNode *getOperand(const llvm::Value *val);
 
-    /*
-
-    // let the user get the nodes map, so that we can
-    // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, RWNode *>&
-                                getNodesMap() const { return nodes_map; }
-
-    RWNode *getNode(const llvm::Value *val) {
-        auto it = nodes_map.find(val);
-        if (it == nodes_map.end())
-            return nullptr;
-
-        return it->second;
-    }
-
-
-private:
-
-    static void blockAddSuccessors(Subgraph& subg, Block& block,
-                                   const llvm::BasicBlock *llvmBlock,
-                                   std::set<const llvm::BasicBlock *>& visited);
-
-*/
     std::vector<DefSite> mapPointers(const llvm::Value *where,
                                      const llvm::Value *val,
                                      Offset size);
@@ -316,9 +293,8 @@ private:
     RWNode *createRealloc(const llvm::Instruction *Inst);
     RWNode *createReturn(const llvm::Instruction *Inst);
 
-
-
 /*
+    RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
 
     void addNode(const llvm::Value *val, RWNode *node)
     {
@@ -326,22 +302,13 @@ private:
         assert(it == nodes_map.end() && "Adding a node that we already have");
 
         nodes_map.emplace_hint(it, val, node);
-        node->setUserData(const_cast<llvm::Value *>(val));
     }
 
-    // FIXME: rename this method
-    void addArtificialNode(const llvm::Value *val, RWNode *node)
-    {
-        node->setUserData(const_cast<llvm::Value *>(val));
-    }
-
-    RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
     Block& buildBlock(Subgraph& subg, const llvm::BasicBlock& block);
     Block& buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& block);
     Subgraph& buildFunction(const llvm::Function& F);
     Subgraph *getOrCreateSubgraph(const llvm::Function *F);
 
-    std::pair<RWNode *, RWNode *> buildGlobals();
 
     std::pair<RWNode *, RWNode *>
     createCallToFunction(const llvm::Function *F, const llvm::CallInst *CInst);

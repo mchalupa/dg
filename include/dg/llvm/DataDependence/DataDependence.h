@@ -59,7 +59,7 @@ public:
         assert(pta);
 
         DDA.reset(createDDA());
-        assert(getRoot() && "Failed building graph");
+        //assert(getRoot() && "Failed building graph");
     }
 
     void run() {
@@ -73,7 +73,7 @@ public:
 
     const LLVMDataDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    const RWNode *getRoot() const { return DDA->getRoot(); }
+    //const RWNode *getRoot() const { return DDA->getRoot(); }
     ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
     const RWNode *getNode(const llvm::Value *val) const;
