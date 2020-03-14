@@ -67,22 +67,38 @@ public:
 
 template <typename NodeT, typename BBlockT, typename SubgraphT>
 class GraphBuilder {
+    struct SubgraphInfo {
+        using BlocksMappingT
+            = std::unordered_map<const llvm::BasicBlock *, BBlockT *>;
+
+        SubgraphT& subgraph;
+        BlocksMappingT blocks{};
+
+        SubgraphInfo(SubgraphT& s) : subgraph(s) {}
+        SubgraphInfo(SubgraphInfo&&) = default;
+        SubgraphInfo(const SubgraphInfo&) = delete;
+    };
+
     using NodesMappingT = std::unordered_map<const llvm::Value *, NodeT *>;
-    using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphT *>;
+    using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphInfo>;
 
     const llvm::Module *_module;
-
-    /*
-    struct Subgraph {
-        SubgraphT *subgraph;
-        Subgraph(const SubgraphT&) = delete;
-    };
-    */
 
     SubgraphsMappingT _subgraphs;
     NodesMappingT _nodes;
 
-    void buildCFG(const llvm::Function& F, SubgraphT& subg) {
+    void buildCFG(const llvm::Function& F, SubgraphInfo& subginfo) {
+        for (auto& it : subginfo.blocks) {
+            auto llvmblk = it.first;
+            auto bblock = it.second;
+
+            for (auto succ : successors(llvmblk)) {
+                auto succit = subginfo.blocks.find(succ);
+                assert(succit != subginfo.blocks.end());
+
+                bblock->addSuccessor(succit->second);
+            }
+        }
     }
 
     void buildICFG() {
@@ -90,9 +106,12 @@ class GraphBuilder {
         DBG_SECTION_END(rwg, "Building call edges done");
     }
 
-    BBlockT& buildBBlock(const llvm::BasicBlock& B, SubgraphT& subg) {
+    BBlockT& buildBBlock(const llvm::BasicBlock& B, SubgraphInfo& subginfo) {
         DBG_SECTION_BEGIN(rwg, "Building basic block");
-        auto& bblock = createBBlock(&B, subg);
+        auto& bblock = createBBlock(&B, subginfo.subgraph);
+        assert(subginfo.blocks.find(&B) == subginfo.blocks.end()
+                && "Already have this basic block");
+        subginfo.blocks[&B] = &bblock;
 
         for (auto& I : B) {
             assert(_nodes.find(&I) == _nodes.end()
@@ -118,7 +137,7 @@ class GraphBuilder {
         assert(_subgraphs.find(&F) == _subgraphs.end()
                 && "Already have that subgraph");
         auto& subg = createSubgraph(&F);
-        _subgraphs[&F] = &subg;
+        auto& subginfo = _subgraphs.emplace(&F, subg).first->second;
 
         DBG(rwg, "Building basic blocks of " << F.getName().str());
         // do a walk through basic blocks such that all predecessors of
@@ -149,7 +168,7 @@ class GraphBuilder {
             if (!cur)
                 break;
 
-            auto& bblock = buildBBlock(*cur, subg);
+            auto& bblock = buildBBlock(*cur, subginfo);
             // FIXME: do something with bblock...
 
             for (auto *succ : successors(cur)) {
@@ -164,7 +183,7 @@ class GraphBuilder {
         }
 
         DBG(rwg, "Building CFG");
-        buildCFG(F, subg);
+        buildCFG(F, subginfo);
 
         DBG_SECTION_END(rwg, "Building the subgraph done");
     }
@@ -197,12 +216,12 @@ public:
 
     SubgraphT *getSubgraph(const llvm::Function *f) {
         auto it = _subgraphs.find(f);
-        return it == _subgraphs.end() ? nullptr : it->second;
+        return it == _subgraphs.end() ? nullptr : &it->second.subgraph;
     }
 
     const SubgraphT *getSubgraph(const llvm::Function *f) const {
         auto it = _subgraphs.find(f);
-        return it == _subgraphs.end() ? nullptr : it->second;
+        return it == _subgraphs.end() ? nullptr : &it->second.subgraph;
     }
 
     virtual NodesSeq<NodeT> createNode(const llvm::Value *) = 0;
