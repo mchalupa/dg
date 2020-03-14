@@ -324,12 +324,24 @@ static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
 
     for (auto *subg : RD->getGraph()->subgraphs()) {
         printf("subgraph cluster_subg_%p {\n", subg);
+        printf("  compund=true;\n\n");
         for (auto *block : subg->bblocks()) {
             printf("subgraph cluster_bb_%p {\n", block);
             /* dump nodes */
             for(RWNode *node : block->getNodes()) {
                 nodeToDot(node);
             }
+
+            // dump CFG edges
+            RWNode *last = nullptr;
+            for(RWNode *node : block->getNodes()) {
+                if (last) { // successor edge
+                    printf("\tNODE%p->NODE%p\n",
+                           static_cast<void*>(last), static_cast<void*>(node));
+                }
+                last = node;
+            }
+            putchar('\n');
 
             // dump def-use edges
             for(RWNode *node : block->getNodes()) {
@@ -346,22 +358,27 @@ static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
                     }
                 }
             }
+
             printf("label=\"\\nblock: %p\\n", block);
             dumpDefinitions(RD, block, true);
             printf("\"\nlabelloc=b\n");
             printf("}\n");
         }
         printf("}\n");
+
+        /* dump block edges */
+        for (auto bblock : subg->bblocks()) {
+            for (auto *succ : bblock->getSuccessors())
+                printf("\tNODE%p -> NODE%p "
+                       "[penwidth=2"
+                       " lhead=\"cluster_bb_%p\""
+                       " ltail=\"cluster_bb_%p\"]\n",
+                       static_cast<void*>(bblock->getLast()),
+                       static_cast<void*>(succ->getFirst()),
+                       static_cast<void*>(bblock),
+                       static_cast<void*>(succ));
+        }
     }
-    /* dump block edges
-    for (auto I = RD->getGraph()->blocks_begin(),
-              E = RD->getGraph()->blocks_end(); I != E; ++I) {
-        for (auto *succ : I->getSuccessors())
-            printf("\tNODE%p -> NODE%p [penwidth=2]\n",
-                   static_cast<void*>(*I),
-                   static_cast<void*>(succ));
-    }
-    */
 }
 
 static void
@@ -369,6 +386,7 @@ dumpDefsToDot(LLVMDataDependenceAnalysis *RD)
 {
 
     printf("digraph \"Data Dependencies Graph\" {\n");
+    printf("  compund=true;\n\n");
 
     dumpDotWithBlocks(RD);
 

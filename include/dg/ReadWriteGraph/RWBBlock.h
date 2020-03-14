@@ -25,6 +25,9 @@ public:
     auto pred_begin() const -> decltype(_predecessors.begin()) { return _predecessors.begin(); }
     auto pred_end() const -> decltype(_predecessors.begin()) { return _predecessors.end(); }
 
+    const EdgesT getSuccessors() const { return _successors; }
+    const EdgesT getPredecessors() const { return _predecessors; }
+
     void addSuccessor(BBlockT *s) {
         for (auto *succ : _successors) {
             if (succ == s)
