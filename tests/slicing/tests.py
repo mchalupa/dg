@@ -108,6 +108,7 @@ tests = {
     'global8'              : Test('global8.c'),
     'global9'              : Test('global9.c'),
     'global10'             : Test('global10.c'),
+    'global-init'          : Test('global-init.c'),
     'ptrtoint1'            : Test('ptrtoint1.c'),
     'ptrtoint2'            : Test('ptrtoint2.c'),
     'ptrtoint3'            : Test('ptrtoint3.c'),
