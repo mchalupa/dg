@@ -40,7 +40,7 @@ public:
             if (pred == this)
                 return;
         }
-        s->_predecessors.push_back(s);
+        s->_predecessors.push_back(static_cast<BBlockT*>(this));
     }
 
     BBlockT *getSinglePredecessor() {
