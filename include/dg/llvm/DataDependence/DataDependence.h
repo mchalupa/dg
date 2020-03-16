@@ -73,10 +73,10 @@ public:
 
     const LLVMDataDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    //const RWNode *getRoot() const { return DDA->getRoot(); }
     ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
     const RWNode *getNode(const llvm::Value *val) const;
+    const llvm::Value *getValue(const RWNode *node) const;
 
     // let the user get the nodes map, so that we can
     // map the points-to informatio back to LLVM nodes

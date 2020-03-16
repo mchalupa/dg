@@ -80,12 +80,14 @@ class GraphBuilder {
     };
 
     using NodesMappingT = std::unordered_map<const llvm::Value *, NodeT *>;
+    using ValuesMappingT = std::unordered_map<const NodeT *, const llvm::Value *>;
     using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphInfo>;
 
     const llvm::Module *_module;
 
     SubgraphsMappingT _subgraphs;
     NodesMappingT _nodes;
+    ValuesMappingT _nodeToValue;
 
     void buildCFG(const llvm::Function& F, SubgraphInfo& subginfo) {
         for (auto& it : subginfo.blocks) {
@@ -122,7 +124,14 @@ class GraphBuilder {
                 bblock.append(node);
             }
 
-            _nodes[&I] = nds.getRepresentant();
+            auto *repr = nds.getRepresentant();
+            _nodes[&I] = repr;
+
+            if (repr) {
+                assert(_nodeToValue.find(nds.getRepresentant()) == _nodeToValue.end()
+                        && "Mapping a node that we already have");
+                _nodeToValue[repr] = &I;
+            }
         }
 
         DBG_SECTION_END(rwg, "Building basic block done");
@@ -203,6 +212,10 @@ public:
         return _nodes;
     }
 
+    const ValuesMappingT& getValuesMapping() const {
+        return _nodeToValue;
+    }
+
     NodeT *getNode(const llvm::Value *v) {
         auto it = _nodes.find(v);
         return it == _nodes.end() ? nullptr : it->second;
@@ -211,6 +224,11 @@ public:
     const NodeT *getNode(const llvm::Value *v) const {
         auto it = _nodes.find(v);
         return it == _nodes.end() ? nullptr : it->second;
+    }
+
+    const llvm::Value *getValue(const NodeT *n) const {
+        auto it = _nodeToValue.find(n);
+        return it == _nodeToValue.end() ? nullptr : it->second;
     }
 
     SubgraphT *getSubgraph(const llvm::Function *f) {

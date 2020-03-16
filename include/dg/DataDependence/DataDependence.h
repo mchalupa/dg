@@ -27,8 +27,7 @@ class DataDependenceAnalysis {
 
     DataDependenceAnalysisImpl *
     createAnalysis(ReadWriteGraph&& graph,
-                   const DataDependenceAnalysisOptions& opts)
-    {
+                   const DataDependenceAnalysisOptions& opts) {
         if (opts.isSSA()) {
             return new MemorySSATransformation(std::move(graph), opts);
         } else {
@@ -48,6 +47,7 @@ public:
 
     ReadWriteGraph *getGraph() { return _impl->getGraph(); }
     const ReadWriteGraph *getGraph() const { return _impl->getGraph(); }
+    // FIXME: remove this method
     const RWNode *getRoot() const { return _impl->getRoot(); }
 
     // run the analysis

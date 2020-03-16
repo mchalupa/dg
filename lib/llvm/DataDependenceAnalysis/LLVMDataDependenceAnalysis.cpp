@@ -46,6 +46,10 @@ const RWNode *LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) const 
     return builder->getNode(val);
 }
 
+const llvm::Value *LLVMDataDependenceAnalysis::getValue(const RWNode *node) const {
+    return builder->getValue(node);
+}
+
 // let the user get the nodes map, so that we can
 // map the points-to informatio back to LLVM nodes
 const std::unordered_map<const llvm::Value *, RWNode *>&

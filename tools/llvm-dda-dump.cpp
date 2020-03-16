@@ -135,13 +135,14 @@ protected:
 
         std::string nm;
         if (!name) {
-            if (!node->getUserData<llvm::Value>()) {
+            auto *val = DDA->getValue(node);
+            if (!val) {
                 printRWNodeType(node->getType());
                 printId(node);
                 return;
             }
 
-            nm = getInstName(node->getUserData<llvm::Value>());
+            nm = getInstName(val);
             name = nm.c_str();
         }
 
