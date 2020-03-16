@@ -51,6 +51,27 @@ MemorySSATransformation::Definitions::update(RWNode *node) {
 // class MemorySSATransformation
 /// ------------------------------------------------------------------
 
+
+///
+// Add found definitions 'found' from a block to 'defs'.
+// Account for the cases when we found nothing and therefore we
+// want to add writes to unknown memory
+template <typename FoundT, typename DefsT> void
+addFoundDefinitions(std::vector<RWNode *>& defs,
+                    const FoundT& found,
+                    DefsT& D) {
+    if (found.empty()) {
+        // if we have no definitions of this memory, add at least
+        // the definitions of unknown memory (these can be our definitions)
+        defs.insert(defs.end(),
+                    D.getUnknownWrites().begin(),
+                    D.getUnknownWrites().end());
+    } else {
+        // gather the found definitions (these include also the unknown memory)
+        defs.insert(defs.end(), found.begin(), found.end());
+    }
+}
+
 // find definitions of a given node
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWNode *node) {
@@ -61,7 +82,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
         return findAllReachingDefinitions(node);
     }
 
-    auto block = node->getBBlock();
+    auto *block = node->getBBlock();
     // FIXME: the graph may contain dead code for which no blocks
     // are set (as the blocks are created only for the reachable code).
     // Removing the dead code is easy, but then we must somehow
@@ -82,13 +103,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
 
         // add the definitions from the beginning of this block to the defs container
         auto defSet = D.definitions.get(ds);
-        if (defSet.empty()) {
-            defs.insert(defs.end(),
-                        D.getUnknownWrites().begin(),
-                        D.getUnknownWrites().end());
-        } else {
-            defs.insert(defs.end(), defSet.begin(), defSet.end());
-        }
+        addFoundDefinitions(defs, defSet, D);
 
         auto uncovered = D.uncovered(ds);
         for (auto& interval : uncovered) {
@@ -101,23 +116,6 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     }
 
     return defs;
-}
-
-///
-// Add found definitions 'found' from a block to 'defs'.
-// Account for the cases when we found nothing and therefore we
-// want to add writes to unknown memory
-template <typename FoundT, typename DefsT> void
-addFoundDefinitions(std::vector<RWNode *>& defs,
-                    const FoundT& found,
-                    DefsT& D) {
-    if (found.empty()) {
-        defs.insert(defs.end(),
-                    D.getUnknownWrites().begin(),
-                    D.getUnknownWrites().end());
-    } else {
-        defs.insert(defs.end(), found.begin(), found.end());
-    }
 }
 
 ///
@@ -266,10 +264,10 @@ void MemorySSATransformation::performLvn(RWBBlock *block) {
 }
 
 ///
-// The same as LVN but only up to some point (and returns the map)
+// The same as performLVN() but only up to some point (and returns the map)
 MemorySSATransformation::Definitions
 MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
-    auto block = to->getBBlock();
+    auto *block = to->getBBlock();
     // perform LVN up to the node
     Definitions D;
     for (RWNode *node : block->getNodes()) {
@@ -365,7 +363,7 @@ MemorySSATransformation::getDefinitions(RWNode *where,
                                         const Offset& off,
                                         const Offset& len) {
     //DBG_SECTION_BEGIN(dda, "Adding MU node");
-    auto use = insertUse(where, mem, off, len);
+    auto *use = insertUse(where, mem, off, len);
     use->defuse.add(findDefinitions(use));
     //DBG_SECTION_END(dda, "Created MU node " << use->getID());
     return gatherNonPhisDefs(use->defuse);
