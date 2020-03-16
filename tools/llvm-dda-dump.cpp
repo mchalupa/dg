@@ -77,6 +77,7 @@ static void printRWNodeType(enum RWNodeType type)
         ELEM(RWNodeType::ALLOC)
         ELEM(RWNodeType::DYN_ALLOC)
         ELEM(RWNodeType::STORE)
+        ELEM(RWNodeType::LOAD)
         ELEM(RWNodeType::PHI)
         ELEM(RWNodeType::MU)
         ELEM(RWNodeType::CALL)
@@ -87,92 +88,9 @@ static void printRWNodeType(enum RWNodeType type)
         ELEM(RWNodeType::NOOP)
         ELEM(RWNodeType::NONE)
         default:
-            printf("unknown reaching definitions subgraph type");
+            printf("!unknown RWNodeType!");
     };
 #undef ELEM
-}
-
-static inline void printId(RWNode *node, bool dot)
-{
-    if (dot)
-        printf(" [%u]\\n", node->getID());
-    else
-        printf(" [%u]\n", node->getID());
-}
-
-static void
-printName(RWNode *node, bool dot)
-{
-    if (node == nullptr) {
-        printf("nullptr");
-        return;
-    }
-
-    if (node == UNKNOWN_MEMORY) {
-        printf("UNKNOWN MEMORY");
-        return;
-    }
-
-    const char *name = nullptr;
-#if 0
-#ifdef DEBUG_ENABLED
-    name = node->getName();
-#endif
-#endif
-    std::string nm;
-    if (!name) {
-        if (!node->getUserData<llvm::Value>()) {
-            printRWNodeType(node->getType());
-            printId(node, dot);
-            return;
-        }
-
-        nm = getInstName(node->getUserData<llvm::Value>());
-        name = nm.c_str();
-    }
-
-    // escape the " character
-    for (int i = 0; name[i] != '\0'; ++i) {
-        // crop long names
-        if (i >= 70) {
-            printf(" ...");
-            break;
-        }
-
-        if (name[i] == '"')
-            putchar('\\');
-
-        putchar(name[i]);
-    }
-}
-
-static void
-dumpMap(RWNode *node, bool dot = false)
-{
-    RDMap& map = node->def_map;
-    for (const auto& it : map) {
-        for (RWNode *site : it.second) {
-            printName(it.first.target, dot);
-            // don't print offsets with unknown memory
-            if (it.first.target == UNKNOWN_MEMORY) {
-                printf(" => ");
-            } else {
-                if (it.first.offset.isUnknown())
-                    printf(" | UNKNOWN | => ");
-                else if (it.first.len.isUnknown())
-                    printf(" | %lu - UNKNOWN | => ", *it.first.offset);
-                else
-                    printf(" | %lu - %lu | => ", *it.first.offset,
-                           *it.first.offset + *it.first.len - 1);
-            }
-
-            printName(site, dot);
-            if (dot)
-                printf("\\n");
-            else
-                putchar('\n');
-        }
-    }
 }
 
 template <typename T>
@@ -195,214 +113,296 @@ static void printInterval(T& I, const char *pref = nullptr,
         printf("%s", suff);
 }
 
-static void
-dumpDDIMap(const DefinitionsMap<RWNode>& map, bool dot = false) {
-    for (const auto& it : map) {
-       printf("\\l----  ");
-       printName(it.first, dot);
-       printf("  ----\\l");
-       for (auto& it2 : it.second) {
-           printInterval(it2.first, "  ", " => \\l");
-           for (auto where : it2.second) {
-               printf("      ");
-               printName(where, dot);
-               if (dot)
-                   printf("\\n");
-               else
-                   putchar('\n');
-           }
-       }
-    }
-}
+class Dumper {
+protected:
+    LLVMDataDependenceAnalysis *DDA;
+    bool dot{false};
 
-static void
-dumpDefinitions(LLVMDataDependenceAnalysis *DDA, RWBBlock *block, bool dot = false) {
-    if (!DDA->getOptions().isSSA())
-        return;
+    virtual void dumpBBlockDefinitions(RWBBlock *) {}
 
-    auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
-    auto *D = SSA->getBBlockDefinitions(block);
-    if (!D)
-        return;
-    printf("\\n====  defines ====\\n");
-    dumpDDIMap(D->definitions, dot);
-    printf("\\n====  kills ====\\n");
-    dumpDDIMap(D->definitions, dot);
-    if (!D->allDefinitions.empty()) {
-        printf("\\n==== all defs cache ====\\n");
-        dumpDDIMap(D->allDefinitions, dot);
-    }
-}
+    void printName(RWNode *node) {
+        if (node == nullptr) {
+            printf("nullptr");
+            return;
+        }
 
-static void
-dumpDefSites(const std::set<DefSite>& defs, const char *kind, bool dot = false)
-{
-    printf("-------------\\n");
-    for (const DefSite& def : defs) {
-        printf("%s: ", kind);
-        printName(def.target, dot);
-            if (def.offset.isUnknown())
-                printf(" [? - ");
-            else
-                printf(" [%lu - ", *def.offset);
+        if (node == UNKNOWN_MEMORY) {
+            printf("UNKNOWN MEMORY");
+            return;
+        }
 
-            if (def.len.isUnknown())
-                printf("?]");
-            else
-                printf("%lu]", *def.offset + (*def.len - 1));
+        const char *name = nullptr;
 
-            if (dot)
-                printf("\\n");
-            else
-                putchar('\n');
-    }
-}
+        std::string nm;
+        if (!name) {
+            if (!node->getUserData<llvm::Value>()) {
+                printRWNodeType(node->getType());
+                printId(node);
+                return;
+            }
 
-static void
-dumpDefines(RWNode *node, bool dot = false)
-{
-    if (!node->getDefines().empty())
-        dumpDefSites(node->getDefines(), "DEF", dot);
-}
+            nm = getInstName(node->getUserData<llvm::Value>());
+            name = nm.c_str();
+        }
 
+        // escape the " character
+        for (int i = 0; name[i] != '\0'; ++i) {
+            // crop long names
+            if (i >= 70) {
+                printf(" ...");
+                break;
+            }
 
-static void
-dumpOverwrites(RWNode *node, bool dot = false)
-{
-    if (!node->getOverwrites().empty())
-        dumpDefSites(node->getOverwrites(), "DEF strong", dot);
-}
+            if (name[i] == '"')
+                putchar('\\');
 
-static void
-dumpUses(RWNode *node, bool dot = false)
-{
-    if (!node->getUses().empty())
-        dumpDefSites(node->getUses(), "USE", dot);
-}
-
-static void
-dumpRWNode(RWNode *n)
-{
-    printf("NODE: ");
-    if (n == nullptr) {
-        printf("nullptr\n");
-        return;
-    }
-    printName(n, false);
-    if (n->getSize() > 0)
-        printf(" [size: %lu]", n->getSize());
-    putchar('\n');
-    dumpMap(n);
-    printf("---\n");
-}
-
-static void nodeToDot(RWNode *node) {
-    printf("\tNODE%p [label=\"%u ", static_cast<void*>(node), node->getID());
-    printName(node, true);
-    if (node->getSize() > 0) {
-        printf("\\n[size: %lu]\\n", node->getSize());
-        printf("\\n-------------\\n");
+            putchar(name[i]);
+        }
     }
 
-    if (verbose) {
-        printf("\\nblock: %p\\n", node->getBBlock());
-        printf("\\n-------------\\n");
+public:
+    Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = true)
+    : DDA(DDA), dot(todot) {}
 
-        dumpDefines(node, true);
-        dumpOverwrites(node, true);
-        dumpUses(node, true);
-        printf("\\n-------------\\n");
-    }
+    void dump() {
+        assert(dot && "Non-dot dump unsupported right now");
 
-    dumpMap(node, true /* dot */);
-
-    printf("\" shape=box]\n");
-
-}
-
-static void dumpDotWithBlocks(LLVMDataDependenceAnalysis *RD) {
-
-    for (auto *subg : RD->getGraph()->subgraphs()) {
-        printf("subgraph cluster_subg_%p {\n", subg);
+        printf("digraph \"Data Dependencies Graph\" {\n");
         printf("  compund=true;\n\n");
-        for (auto *block : subg->bblocks()) {
-            printf("subgraph cluster_bb_%p {\n", block);
-            /* dump nodes */
-            for(RWNode *node : block->getNodes()) {
-                nodeToDot(node);
-            }
 
-            // dump CFG edges
-            RWNode *last = nullptr;
-            for(RWNode *node : block->getNodes()) {
-                if (last) { // successor edge
-                    printf("\tNODE%p->NODE%p\n",
-                           static_cast<void*>(last), static_cast<void*>(node));
+        for (auto *subg : DDA->getGraph()->subgraphs()) {
+            printf("subgraph cluster_subg_%p {\n", subg);
+            printf("  compund=true;\n\n");
+
+            for (auto *block : subg->bblocks()) {
+                printf("subgraph cluster_bb_%p {\n", block);
+
+                printf("label=\"\\nblock: %p\\n", block);
+                dumpBBlockDefinitions(block);
+                printf("\"\nlabelloc=b\n");
+
+                /* dump nodes */
+                for(RWNode *node : block->getNodes()) {
+                    nodeToDot(node);
                 }
-                last = node;
-            }
-            putchar('\n');
 
-            // dump def-use edges
-            for(RWNode *node : block->getNodes()) {
-                if (node->getType() == RWNodeType::PHI) {
-                    for (RWNode *def : node->defuse) {
-                        printf("\tNODE%p->NODE%p [style=dotted]",
-                               static_cast<void*>(def), static_cast<void*>(node));
+                // dump CFG edges between nodes in one block
+                RWNode *last = nullptr;
+                for(RWNode *node : block->getNodes()) {
+                    if (last) { // successor edge
+                        printf("\tNODE%p->NODE%p\n",
+                               static_cast<void*>(last), static_cast<void*>(node));
+                    }
+                    last = node;
+                }
+                putchar('\n');
+
+                // dump def-use edges
+                for(RWNode *node : block->getNodes()) {
+                    if (node->getType() == RWNodeType::PHI) {
+                        for (RWNode *def : node->defuse) {
+                            printf("\tNODE%p->NODE%p [style=dotted]",
+                                   static_cast<void*>(def), static_cast<void*>(node));
+                        }
+                    }
+                    if (node->isUse()) {
+                        for (RWNode *def : DDA->getDefinitions(node)) {
+                            printf("\tNODE%p->NODE%p [style=dotted color=blue]",
+                                   static_cast<void*>(def), static_cast<void*>(node));
+                        }
                     }
                 }
-                if (node->isUse()) {
-                    for (RWNode *def : RD->getDefinitions(node)) {
-                        printf("\tNODE%p->NODE%p [style=dotted color=blue]",
-                               static_cast<void*>(def), static_cast<void*>(node));
-                    }
-                }
-            }
 
-            printf("label=\"\\nblock: %p\\n", block);
-            dumpDefinitions(RD, block, true);
-            printf("\"\nlabelloc=b\n");
+                printf("}\n");
+            }
             printf("}\n");
-        }
-        printf("}\n");
 
-        /* dump block edges */
-        for (auto bblock : subg->bblocks()) {
-            for (auto *succ : bblock->getSuccessors())
-                printf("\tNODE%p -> NODE%p "
-                       "[penwidth=2"
-                       " lhead=\"cluster_bb_%p\""
-                       " ltail=\"cluster_bb_%p\"]\n",
-                       static_cast<void*>(bblock->getLast()),
-                       static_cast<void*>(succ->getFirst()),
-                       static_cast<void*>(bblock),
-                       static_cast<void*>(succ));
+            /* dump block edges */
+            for (auto bblock : subg->bblocks()) {
+                for (auto *succ : bblock->getSuccessors())
+                    printf("\tNODE%p -> NODE%p "
+                           "[penwidth=2"
+                           " lhead=\"cluster_bb_%p\""
+                           " ltail=\"cluster_bb_%p\"]\n",
+                           static_cast<void*>(bblock->getLast()),
+                           static_cast<void*>(succ->getFirst()),
+                           static_cast<void*>(bblock),
+                           static_cast<void*>(succ));
+            }
+        }
+
+        printf("}\n");
+    }
+
+
+private:
+
+    void printId(RWNode *node) {
+        if (dot)
+            printf(" [%u]\\n", node->getID());
+        else
+            printf(" [%u]\n", node->getID());
+    }
+
+    void dumpMap(RWNode *node) {
+        auto& map = node->def_map;
+        for (const auto& it : map) {
+            for (RWNode *site : it.second) {
+                printName(it.first.target);
+                // don't print offsets with unknown memory
+                if (it.first.target == UNKNOWN_MEMORY) {
+                    printf(" => ");
+                } else {
+                    if (it.first.offset.isUnknown())
+                        printf(" | UNKNOWN | => ");
+                    else if (it.first.len.isUnknown())
+                        printf(" | %lu - UNKNOWN | => ", *it.first.offset);
+                    else
+                        printf(" | %lu - %lu | => ", *it.first.offset,
+                               *it.first.offset + *it.first.len - 1);
+                }
+
+                printName(site);
+                if (dot)
+                    printf("\\n");
+                else
+                    putchar('\n');
+            }
         }
     }
-}
+
+    void _dumpDefSites(const std::set<DefSite>& defs, const char *kind) {
+        printf("-------------\\n");
+        for (const DefSite& def : defs) {
+            printf("%s: ", kind);
+            printName(def.target);
+                if (def.offset.isUnknown())
+                    printf(" [? - ");
+                else
+                    printf(" [%lu - ", *def.offset);
+
+                if (def.len.isUnknown())
+                    printf("?]");
+                else
+                    printf("%lu]", *def.offset + (*def.len - 1));
+
+                if (dot)
+                    printf("\\n");
+                else
+                    putchar('\n');
+        }
+    }
+
+    void dumpDefines(RWNode *node) {
+        if (!node->getDefines().empty()) {
+            _dumpDefSites(node->getDefines(), "DEF");
+        }
+    }
+
+    void dumpOverwrites(RWNode *node) {
+        if (!node->getOverwrites().empty()) {
+            _dumpDefSites(node->getOverwrites(), "DEF strong");
+        }
+    }
+
+    void dumpUses(RWNode *node) {
+        if (!node->getUses().empty()) {
+            _dumpDefSites(node->getUses(), "USE");
+        }
+    }
+
+    void nodeToDot(RWNode *node) {
+        printf("\tNODE%p [label=\"%u ", static_cast<void*>(node), node->getID());
+        printName(node);
+        if (node->getSize() > 0) {
+            printf("\\n[size: %lu]\\n", node->getSize());
+            printf("\\n-------------\\n");
+        }
+
+        if (verbose) {
+            printf("\\nblock: %p\\n", node->getBBlock());
+            printf("\\n-------------\\n");
+
+            dumpDefines(node);
+            dumpOverwrites(node);
+            dumpUses(node);
+            printf("\\n-------------\\n");
+        }
+
+        dumpMap(node);
+
+        printf("\" shape=box]\n");
+    }
+
+    /*
+    void dumpRWNode(RWNode *n) {
+        printf("NODE: ");
+        if (n == nullptr) {
+            printf("nullptr\n");
+            return;
+        }
+        printName(n, false);
+        if (n->getSize() > 0)
+            printf(" [size: %lu]", n->getSize());
+        putchar('\n');
+        dumpMap(n);
+        printf("---\n");
+    }
+    */
+};
+
+class MemorySSADumper : public Dumper {
+
+    void dumpDDIMap(const DefinitionsMap<RWNode>& map) {
+        for (const auto& it : map) {
+           printf("\\l----  ");
+           printName(it.first);
+           printf("  ----\\l");
+           for (auto& it2 : it.second) {
+               printInterval(it2.first, "  ", " => \\l");
+               for (auto where : it2.second) {
+                   printf("      ");
+                   printName(where);
+                   if (dot)
+                       printf("\\n");
+                   else
+                       putchar('\n');
+               }
+           }
+        }
+    }
+
+public:
+    MemorySSADumper(LLVMDataDependenceAnalysis *DDA, bool todot)
+    : Dumper(DDA, todot) {}
+
+    void dumpBBlockDefinitions(RWBBlock *block) override {
+        auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+        auto *D = SSA->getBBlockDefinitions(block);
+        if (!D)
+            return;
+        printf("\\n====  defines ====\\n");
+        dumpDDIMap(D->definitions);
+        printf("\\n====  kills ====\\n");
+        dumpDDIMap(D->definitions);
+        if (!D->allDefinitions.empty()) {
+            printf("\\n==== all defs cache ====\\n");
+            dumpDDIMap(D->allDefinitions);
+        }
+    }
+};
 
 static void
-dumpDefsToDot(LLVMDataDependenceAnalysis *RD)
+dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot)
 {
+    assert(DDA);
 
-    printf("digraph \"Data Dependencies Graph\" {\n");
-    printf("  compund=true;\n\n");
-
-    dumpDotWithBlocks(RD);
-
-    printf("}\n");
-}
-
-static void
-dumpDefs(LLVMDataDependenceAnalysis *RD, bool todot)
-{
-    assert(RD);
-
-    if (todot)
-        dumpDefsToDot(RD);
-    else {
-        for (auto& it : RD->getNodesMapping())
-            dumpRWNode(it.second);
+    if (DDA->getOptions().isSSA()) {
+        MemorySSADumper dumper(DDA, todot);
+        dumper.dump();
+    } else {
+        Dumper dumper(DDA, todot);
+        dumper.dump();
     }
 }
 

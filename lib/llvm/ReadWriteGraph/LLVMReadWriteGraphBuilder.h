@@ -117,7 +117,6 @@ class GraphBuilder {
             assert(_nodes.find(&I) == _nodes.end()
                     && "Building a node that we already have");
 
-            llvm::errs() << "Building " << I << "\n";
             const auto& nds = createNode(&I);
             for (auto *node : nds) {
                 bblock.append(node);
