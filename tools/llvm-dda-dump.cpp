@@ -56,22 +56,51 @@ using llvm::errs;
 static bool verbose = false;
 static const char *entryFunc = "main";
 
+static inline size_t count_ws(const std::string& str) {
+    size_t n = 0;
+    while (isspace(str[n])) {
+        ++n;
+    }
+    return n;
+}
+
+static inline size_t trim_name_idx(const std::string& str) {
+    // skip, e.g., align attributes, etc.
+    auto m = str.rfind(", align");
+    if (m == std::string::npos)
+        return str.length();
+    return m - 1;
+}
+
 static std::string
-getInstName(const llvm::Value *val)
-{
+getInstName(const llvm::Value *val) {
+    assert(val);
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
 
-    assert(val);
     ro << *val;
     ro.flush();
 
-    // break the string if it is too long
-    return ostr.str();
+    auto str = ostr.str();
+    auto n = count_ws(str);
+    auto m = trim_name_idx(str);
+    if (n > 0)
+        str = str.substr(n, m);
+
+    if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+        const auto& fun = I->getParent()->getParent()->getName();
+        auto funstr = fun.str();
+        if (funstr.length() > 15)
+            funstr = funstr.substr(0, 15);
+        funstr += "::";
+        funstr += str;
+        return funstr;
+    }
+
+    return str;
 }
 
-static void printRWNodeType(enum RWNodeType type)
-{
+static void printRWNodeType(enum RWNodeType type) {
 #define ELEM(t) case(t): do {printf("%s", #t); }while(0); break;
     switch(type) {
         ELEM(RWNodeType::ALLOC)
@@ -138,7 +167,6 @@ protected:
             auto *val = DDA->getValue(node);
             if (!val) {
                 printRWNodeType(node->getType());
-                printId(node);
                 return;
             }
 
@@ -169,22 +197,37 @@ public:
         assert(dot && "Non-dot dump unsupported right now");
 
         printf("digraph \"Data Dependencies Graph\" {\n");
-        printf("  compund=true;\n\n");
+        printf("  compound=true;\n\n");
 
         for (auto *subg : DDA->getGraph()->subgraphs()) {
             printf("subgraph cluster_subg_%p {\n", subg);
-            printf("  compund=true;\n\n");
+            printf("  compound=true;\n\n");
+
+            printf("  label=\"subgraph:\\n\";\n");
+            printf("  style=filled;\n");
+            printf("  color=white;\n");
 
             for (auto *block : subg->bblocks()) {
                 printf("subgraph cluster_bb_%p {\n", block);
+                printf("    style=filled;\n");
+                printf("    fillcolor=\"#eeeeee\";\n");
+                printf("    color=\"black\";\n");
 
-                printf("label=\"\\nblock: %p\\n", block);
+                puts("label=<<table border=\"0\">");
+                printf("<tr><td colspan=\"4\">bblock: %p</td></tr>", block);
                 dumpBBlockDefinitions(block);
-                printf("\"\nlabelloc=b\n");
+                printf("</table>>\nlabelloc=b\n");
 
                 /* dump nodes */
-                for(RWNode *node : block->getNodes()) {
-                    nodeToDot(node);
+                if (block->empty()) {
+                    // if the block is empty, create at least a
+                    // dummy node so that we can draw CFG edges to it
+                    printf("\tNODE%p [label=\"empty blk\"]\n",
+                           static_cast<void*>(block));
+                } else {
+                    for(RWNode *node : block->getNodes()) {
+                        nodeToDot(node);
+                    }
                 }
 
                 // dump CFG edges between nodes in one block
@@ -202,13 +245,13 @@ public:
                 for(RWNode *node : block->getNodes()) {
                     if (node->getType() == RWNodeType::PHI) {
                         for (RWNode *def : node->defuse) {
-                            printf("\tNODE%p->NODE%p [style=dotted]",
+                            printf("\tNODE%p->NODE%p [style=dotted]\n",
                                    static_cast<void*>(def), static_cast<void*>(node));
                         }
                     }
                     if (node->isUse()) {
                         for (RWNode *def : DDA->getDefinitions(node)) {
-                            printf("\tNODE%p->NODE%p [style=dotted color=blue]",
+                            printf("\tNODE%p->NODE%p [style=dotted color=blue]\n",
                                    static_cast<void*>(def), static_cast<void*>(node));
                         }
                     }
@@ -220,15 +263,18 @@ public:
 
             /* dump block edges */
             for (auto bblock : subg->bblocks()) {
-                for (auto *succ : bblock->getSuccessors())
+                for (auto *succ : bblock->getSuccessors()) {
                     printf("\tNODE%p -> NODE%p "
                            "[penwidth=2"
                            " lhead=\"cluster_bb_%p\""
                            " ltail=\"cluster_bb_%p\"]\n",
-                           static_cast<void*>(bblock->getLast()),
-                           static_cast<void*>(succ->getFirst()),
+                           bblock->empty() ? static_cast<void*>(bblock) :
+                                             static_cast<void*>(bblock->getLast()),
+                           succ->empty() ? static_cast<void*>(succ) :
+                                           static_cast<void*>(succ->getFirst()),
                            static_cast<void*>(bblock),
                            static_cast<void*>(succ));
+                }
             }
         }
 
@@ -247,6 +293,11 @@ private:
 
     void dumpMap(RWNode *node) {
         auto& map = node->def_map;
+        if (map.empty()) {
+            return;
+        }
+
+        printf("----- def_map -----\\n\n");
         for (const auto& it : map) {
             for (RWNode *site : it.second) {
                 printName(it.first.target);
@@ -255,9 +306,9 @@ private:
                     printf(" => ");
                 } else {
                     if (it.first.offset.isUnknown())
-                        printf(" | UNKNOWN | => ");
+                        printf(" | ? | => ");
                     else if (it.first.len.isUnknown())
-                        printf(" | %lu - UNKNOWN | => ", *it.first.offset);
+                        printf(" | %lu - ? | => ", *it.first.offset);
                     else
                         printf(" | %lu - %lu | => ", *it.first.offset,
                                *it.first.offset + *it.first.len - 1);
@@ -272,10 +323,14 @@ private:
         }
     }
 
-    void _dumpDefSites(const std::set<DefSite>& defs, const char *kind) {
-        printf("-------------\\n");
+    void _dumpDefSites(const std::set<DefSite>& defs,
+                       const char *kind) {
+        if (defs.empty())
+            return;
+
+        printf("<tr><td></td><td>------ %s ------</td></tr>\n", kind);
         for (const DefSite& def : defs) {
-            printf("%s: ", kind);
+            puts("<tr><td></td><td>");
             printName(def.target);
                 if (def.offset.isUnknown())
                     printf(" [? - ");
@@ -286,53 +341,51 @@ private:
                     printf("?]");
                 else
                     printf("%lu]", *def.offset + (*def.len - 1));
-
-                if (dot)
-                    printf("\\n");
-                else
-                    putchar('\n');
+            puts("</td></tr>\n");
         }
     }
 
     void dumpDefines(RWNode *node) {
         if (!node->getDefines().empty()) {
-            _dumpDefSites(node->getDefines(), "DEF");
+            _dumpDefSites(node->getDefines(), "defines");
         }
     }
 
     void dumpOverwrites(RWNode *node) {
         if (!node->getOverwrites().empty()) {
-            _dumpDefSites(node->getOverwrites(), "DEF strong");
+            _dumpDefSites(node->getOverwrites(), "overwrites");
         }
     }
 
     void dumpUses(RWNode *node) {
         if (!node->getUses().empty()) {
-            _dumpDefSites(node->getUses(), "USE");
+            _dumpDefSites(node->getUses(), "uses");
         }
     }
 
     void nodeToDot(RWNode *node) {
-        printf("\tNODE%p [label=\"%u ", static_cast<void*>(node), node->getID());
+        printf("\tNODE%p ", static_cast<void*>(node));
+        printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
+        printf("<td><font color=\"#af0000\">");
         printName(node);
+        printf("</font></td>");
+        printf("</tr>\n");
+
         if (node->getSize() > 0) {
-            printf("\\n[size: %lu]\\n", node->getSize());
-            printf("\\n-------------\\n");
+              printf("<tr><td></td><td>size: %lu</td></tr>\n", node->getSize());
         }
 
         if (verbose) {
-            printf("\\nblock: %p\\n", node->getBBlock());
-            printf("\\n-------------\\n");
-
+            //printf("block: %p<br/>", node->getBBlock());
             dumpDefines(node);
             dumpOverwrites(node);
             dumpUses(node);
-            printf("\\n-------------\\n");
         }
 
-        dumpMap(node);
+      ////dumpMap(node);
 
-        printf("\" shape=box]\n");
+        puts("</table>>"); // end of label
+        printf(" style=filled fillcolor=white shape=box]\n");
     }
 
     /*
@@ -356,18 +409,16 @@ class MemorySSADumper : public Dumper {
 
     void dumpDDIMap(const DefinitionsMap<RWNode>& map) {
         for (const auto& it : map) {
-           printf("\\l----  ");
-           printName(it.first);
-           printf("  ----\\l");
            for (auto& it2 : it.second) {
-               printInterval(it2.first, "  ", " => \\l");
+                printf("<tr><td align=\"left\" colspan=\"4\">");
+                printName(it.first);
+                printf("</td></tr>");
                for (auto where : it2.second) {
-                   printf("      ");
+                printf("<tr><td>&nbsp;&nbsp;</td><td>");
+                printInterval(it2.first);
+                printf("</td><td>@</td><td>");
                    printName(where);
-                   if (dot)
-                       printf("\\n");
-                   else
-                       putchar('\n');
+                puts("</td></tr>");
                }
            }
         }
@@ -382,12 +433,12 @@ public:
         auto *D = SSA->getBBlockDefinitions(block);
         if (!D)
             return;
-        printf("\\n====  defines ====\\n");
+        printf("<tr><td colspan=\"4\">==  defines ==</td></tr>");
         dumpDDIMap(D->definitions);
-        printf("\\n====  kills ====\\n");
+        printf("<tr><td colspan=\"4\">==  kills ==</td></tr>");
         dumpDDIMap(D->definitions);
         if (!D->allDefinitions.empty()) {
-            printf("\\n==== all defs cache ====\\n");
+            printf("<tr><td colspan=\"4\">== all defs cached ==</td></tr>");
             dumpDDIMap(D->allDefinitions);
         }
     }

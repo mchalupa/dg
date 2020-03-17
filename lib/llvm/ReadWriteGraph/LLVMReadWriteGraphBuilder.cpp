@@ -152,8 +152,20 @@ static inline void makeEdge(RWNode *src, RWNode *dst)
 RWNode *LLVMReadWriteGraphBuilder::getOperand(const llvm::Value *val) {
     auto *op = getNode(val);
     if (!op) {
-        llvm::errs() << "[RD] error: cannot find an operand: " << *val << "\n";
-        abort();
+        // lazily create allocations as these are targets in defsites
+        // and may not have been created yet
+        if (llvm::isa<llvm::AllocaInst>(val) ||
+            // FIXME: check that it is allocation
+            llvm::isa<llvm::CallInst>(val)) {
+            llvm::errs() << "On demand:\n";
+            op = buildNode(val).getRepresentant();
+        }
+
+        if (!op) {
+            llvm::errs() << "[RWG] error: cannot find an operand: "
+                         << *val << "\n";
+            abort();
+        }
     }
     assert(op && "Do not have an operand");
     return op;
@@ -363,7 +375,6 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(const std::vector<const llvm::F
     return {callNode, returnNode};
 }
 
-/*
 LLVMReadWriteGraphBuilder::Subgraph&
 LLVMReadWriteGraphBuilder::buildFunction(const llvm::Function& F)
 {

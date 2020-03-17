@@ -50,6 +50,9 @@ public:
         }
     }
 
+    NodesSeq(NodesSeq&&) = default;
+    NodesSeq(const NodesSeq&) = default;
+
     NodeT *setRepresentant(NodeT *r) {
         representant = r;
     }
@@ -57,6 +60,8 @@ public:
     NodeT *getRepresentant() const {
         return representant;
     }
+
+    bool empty() const { return nodes.empty(); }
 
     auto begin() -> decltype(nodes.begin()) { return nodes.begin(); }
     auto end() -> decltype(nodes.end()) { return nodes.end(); }
@@ -79,7 +84,7 @@ class GraphBuilder {
         SubgraphInfo(const SubgraphInfo&) = delete;
     };
 
-    using NodesMappingT = std::unordered_map<const llvm::Value *, NodeT *>;
+    using NodesMappingT = std::unordered_map<const llvm::Value *, NodesSeq<NodeT>>;
     using ValuesMappingT = std::unordered_map<const NodeT *, const llvm::Value *>;
     using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphInfo>;
 
@@ -89,7 +94,7 @@ class GraphBuilder {
     NodesMappingT _nodes;
     ValuesMappingT _nodeToValue;
 
-    void buildCFG(const llvm::Function& F, SubgraphInfo& subginfo) {
+    void buildCFG(SubgraphInfo& subginfo) {
         for (auto& it : subginfo.blocks) {
             auto llvmblk = it.first;
             auto bblock = it.second;
@@ -108,6 +113,34 @@ class GraphBuilder {
         DBG_SECTION_END(rwg, "Building call edges done");
     }
 
+    void buildGlobals() {
+        DBG_SECTION_BEGIN(rwg, "Building globals");
+        DBG_SECTION_END(rwg, "Building globals done");
+    }
+
+protected:
+
+    NodesSeq<NodeT> buildNode(const llvm::Value *val) {
+        llvm::errs() << "Creating " << *val << "\n";
+        auto it = _nodes.find(val);
+        if (it != _nodes.end()) {
+        }
+
+        const auto& nds = createNode(val);
+        assert((nds.getRepresentant() || nds.empty())
+                && "Built node sequence has no representant");
+
+        if (auto *repr = nds.getRepresentant()) {
+            _nodes.emplace(val, std::move(nds));
+
+            assert((_nodeToValue.find(repr) == _nodeToValue.end())
+                    && "Mapping a node that we already have");
+            _nodeToValue[repr] = val;
+        }
+
+        return nds;
+    }
+
     BBlockT& buildBBlock(const llvm::BasicBlock& B, SubgraphInfo& subginfo) {
         DBG_SECTION_BEGIN(rwg, "Building basic block");
         auto& bblock = createBBlock(&B, subginfo.subgraph);
@@ -116,21 +149,8 @@ class GraphBuilder {
         subginfo.blocks[&B] = &bblock;
 
         for (auto& I : B) {
-            assert(_nodes.find(&I) == _nodes.end()
-                    && "Building a node that we already have");
-
-            const auto& nds = createNode(&I);
-            for (auto *node : nds) {
+            for (auto *node : buildNode(&I)) {
                 bblock.append(node);
-            }
-
-            auto *repr = nds.getRepresentant();
-            _nodes[&I] = repr;
-
-            if (repr) {
-                assert(_nodeToValue.find(nds.getRepresentant()) == _nodeToValue.end()
-                        && "Mapping a node that we already have");
-                _nodeToValue[repr] = &I;
             }
         }
 
@@ -176,8 +196,7 @@ class GraphBuilder {
             if (!cur)
                 break;
 
-            auto& bblock = buildBBlock(*cur, subginfo);
-            // FIXME: do something with bblock...
+            buildBBlock(*cur, subginfo);
 
             for (auto *succ : successors(cur)) {
                 auto it = visited.find(succ);
@@ -191,14 +210,9 @@ class GraphBuilder {
         }
 
         DBG(rwg, "Building CFG");
-        buildCFG(F, subginfo);
+        buildCFG(subginfo);
 
         DBG_SECTION_END(rwg, "Building the subgraph done");
-    }
-
-    void buildGlobals() {
-        DBG_SECTION_BEGIN(rwg, "Building globals");
-        DBG_SECTION_END(rwg, "Building globals done");
     }
 
 public:
@@ -218,12 +232,12 @@ public:
 
     NodeT *getNode(const llvm::Value *v) {
         auto it = _nodes.find(v);
-        return it == _nodes.end() ? nullptr : it->second;
+        return it == _nodes.end() ? nullptr : it->second.getRepresentant();
     }
 
     const NodeT *getNode(const llvm::Value *v) const {
         auto it = _nodes.find(v);
-        return it == _nodes.end() ? nullptr : it->second;
+        return it == _nodes.end() ? nullptr : it->second.getRepresentant();
     }
 
     const llvm::Value *getValue(const NodeT *n) const {
