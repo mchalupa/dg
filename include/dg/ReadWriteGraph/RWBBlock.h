@@ -50,7 +50,6 @@ public:
     BBlockT *getSingleSuccessor() {
         return _successors.size() == 1 ? _successors.back() : nullptr;
     }
-
 };
 
 class RWBBlock;
@@ -107,6 +106,9 @@ public:
     // FIXME: rename to first/front(), last/back()
     NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }
     NodeT *getLast() { return _nodes.empty() ? nullptr : _nodes.back(); }
+
+    bool empty() const { return _nodes.empty(); }
+    size_t size() const { return _nodes.size(); }
 
 private:
     NodesT _nodes;
