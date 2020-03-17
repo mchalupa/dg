@@ -38,8 +38,6 @@ enum class RWNodeType {
         RETURN,
         // call node
         CALL,
-        // return from the call (in caller)
-        CALL_RETURN,
         FORK,
         JOIN,
         // dummy nodes
@@ -122,7 +120,7 @@ public:
     DefSiteSetT& getOverwrites() { return overwrites; }
     DefSiteSetT& getUses() { return uses; }
     const DefSiteSetT& getDefines() const { return defs; }
-    const DefSiteSetT& getOverwrites() const { return defs; }
+    const DefSiteSetT& getOverwrites() const { return overwrites; }
     const DefSiteSetT& getUses() const { return uses; }
 
     bool defines(RWNode *target, const Offset& off = Offset::UNKNOWN) const
@@ -234,11 +232,31 @@ public:
     friend class ReadWriteGraph;
 };
 
+// we may either call a properly defined function
+// or a function that is undefined and we
+// have just a model for it.
+class RWCalledValue {
+    RWSubgraph *subgraph{nullptr};
+    RWNode *calledValue{nullptr};
+
+public:
+    RWCalledValue(RWSubgraph *s) : subgraph(s) {}
+    RWCalledValue(RWNode *c) : calledValue(c) {}
+
+    bool callsUndefined() const { return calledValue != nullptr; }
+
+    RWSubgraph *getSubgraph() { return subgraph; }
+    RWNode *getCalledValue() { return calledValue; }
+    const RWSubgraph *getSubgraph() const { return subgraph; }
+    const RWNode *getCalledValue() const { return calledValue; }
+};
+
 class RWNodeCall : public RWNode {
     // what this call calls?
-    std::vector<RWSubgraph *> callees;
-    // where it returns?
-    RWNode *callReturn{nullptr};
+    using CalleesT = std::vector<RWCalledValue>;
+    CalleesT callees;
+
+    //RWNode *callReturn{nullptr};
 
 public:
     RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
@@ -248,23 +266,22 @@ public:
             static_cast<RWNodeCall*>(n) : nullptr;
     }
 
+    static const RWNodeCall *get(const RWNode *n) {
+        return (n->getType() == RWNodeType::CALL) ?
+            static_cast<const RWNodeCall*>(n) : nullptr;
+    }
+
+    /*
     void setCallReturn(RWNode *callRet) { callReturn = callRet; }
     RWNode *getCallReturn() { return callReturn; }
     const RWNode *getCallReturn() const { return callReturn; }
+    */
 
-    const std::vector<RWSubgraph *>& getCallees() const { return callees; }
+    const CalleesT& getCallees() const { return callees; }
 
-    bool addCallee(RWSubgraph *ps) {
-        // we suppose there are just few callees,
-        // so this should be faster than std::set
-        for (auto *p : callees) {
-            if (p == ps)
-                return false;
-        }
-
-        callees.push_back(ps);
-        return true;
-    }
+    void addCallee(const RWCalledValue& cv) { callees.push_back(cv); }
+    void addCallee(RWNode *n) { callees.emplace_back(n); }
+    void addCallee(RWSubgraph *s) { callees.emplace_back(s); }
 };
 
 class RWNodeRet : public RWNode {

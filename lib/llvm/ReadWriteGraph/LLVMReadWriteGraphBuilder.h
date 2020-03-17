@@ -343,48 +343,34 @@ public:
     RWNode *createRealloc(const llvm::Instruction *Inst);
     RWNode *createReturn(const llvm::Instruction *Inst);
 
-/*
     RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
 
-    void addNode(const llvm::Value *val, RWNode *node)
-    {
-        auto it = nodes_map.find(val);
-        assert(it == nodes_map.end() && "Adding a node that we already have");
+    NodesSeq<RWNode> createCall(const llvm::Instruction *Inst);
 
-        nodes_map.emplace_hint(it, val, node);
-    }
+    RWNode *createCallToUndefinedFunction(const llvm::Function *function,
+                                          const llvm::CallInst *CInst);
 
-    Block& buildBlock(Subgraph& subg, const llvm::BasicBlock& block);
-    Block& buildBlockNodes(Subgraph& subg, const llvm::BasicBlock& block);
-    Subgraph& buildFunction(const llvm::Function& F);
-    Subgraph *getOrCreateSubgraph(const llvm::Function *F);
-
-
-    std::pair<RWNode *, RWNode *>
-    createCallToFunction(const llvm::Function *F, const llvm::CallInst *CInst);
-
-    std::pair<RWNode *, RWNode *>
-    createCall(const llvm::Instruction *Inst);
-
-    RWNode * createCallToZeroSizeFunction(const llvm::Function *function,
-                                         const llvm::CallInst *CInst);
-
-    std::pair<RWNode *, RWNode *>
+    NodesSeq<RWNode>
     createCallToFunctions(const std::vector<const llvm::Function *> &functions,
                           const llvm::CallInst *CInst);
 
-    RWNode * createPthreadCreateCalls(const llvm::CallInst *CInst);
-    RWNode * createPthreadJoinCall(const llvm::CallInst *CInst);
-    RWNode * createPthreadExitCall(const llvm::CallInst *CInst);
+    RWNode *createPthreadCreateCalls(const llvm::CallInst *CInst);
+    RWNode *createPthreadJoinCall(const llvm::CallInst *CInst);
+    RWNode *createPthreadExitCall(const llvm::CallInst *CInst);
 
     RWNode *createIntrinsicCall(const llvm::CallInst *CInst);
-    RWNode *createUndefinedCall(const llvm::CallInst *CInst);
+    RWNode *createUnknownCall(const llvm::CallInst *CInst);
 
-    bool isInlineAsm(const llvm::Instruction *instruction);
-
-    void matchForksAndJoins();
-    */
+    //void matchForksAndJoins();
 };
+
+struct ValInfo {
+    const llvm::Value *v;
+    ValInfo(const llvm::Value *val) : v(val) {}
+};
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi);
+
 
 } // namespace dda
 } // namespace dg

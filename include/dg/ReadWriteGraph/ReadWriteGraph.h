@@ -70,7 +70,11 @@ public:
     }
 
     RWNode& create(RWNodeType t) {
-      _nodes.emplace_back(new RWNode(++lastNodeID, t));
+      if (t == RWNodeType::CALL) {
+        _nodes.emplace_back(new RWNodeCall(++lastNodeID));
+      } else {
+        _nodes.emplace_back(new RWNode(++lastNodeID, t));
+      }
       return *_nodes.back().get();
     }
 
