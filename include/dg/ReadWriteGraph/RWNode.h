@@ -278,6 +278,7 @@ public:
     */
 
     const CalleesT& getCallees() const { return callees; }
+    CalleesT& getCallees() { return callees; }
 
     void addCallee(const RWCalledValue& cv) { callees.push_back(cv); }
     void addCallee(RWNode *n) { callees.emplace_back(n); }

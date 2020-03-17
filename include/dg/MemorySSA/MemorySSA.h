@@ -21,9 +21,12 @@ namespace dg {
 namespace dda {
 
 class MemorySSATransformation : public DataDependenceAnalysisImpl {
-    void performLvn();
-    void performLvn(RWBBlock *block);
-    void performGvn();
+    //void performLvn();
+    void performLvn(RWSubgraph *);
+    void performLvn(RWBBlock *);
+
+    //void performGvn();
+    void performGvn(RWSubgraph *);
 
     // information about definitions associated to each bblock
     struct Definitions {
@@ -114,9 +117,14 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     RWNode *insertUse(RWNode *where, RWNode *mem,
                       const Offset& off, const Offset& len);
 
+    /// compute a summary for a function
+    Definitions *computeSummary(RWSubgraph *);
+
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
+    // summaries for subgraphs
+    std::unordered_map<RWSubgraph *, Definitions> _summaries;
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
@@ -144,7 +152,12 @@ public:
         return &it->second;
     }
 
-
+    const Definitions *getSummary(RWSubgraph *s) const {
+        auto it = _summaries.find(s);
+        if (it == _summaries.end())
+            return nullptr;
+        return &it->second;
+    }
 };
 
 } // namespace dda

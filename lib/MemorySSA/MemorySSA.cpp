@@ -257,10 +257,32 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
 void MemorySSATransformation::performLvn(RWBBlock *block) {
     auto& D = _defs[block];
     for (RWNode *node : block->getNodes()) {
+        if (auto *C = RWNodeCall::get(node)) {
+            for (auto& cv : C->getCallees()) {
+                auto *subg = cv.getSubgraph();
+                if (!subg)
+                    continue;
+                auto *summary = getSummary(subg);
+                if (!summary) {
+                    summary = computeSummary(subg);
+                }
+
+            }
+        }
         D.update(node);
     }
 
     D.setProcessed();
+}
+
+MemorySSATransformation::Definitions *
+MemorySSATransformation::computeSummary(RWSubgraph *subg) {
+    // first normally process the subgraph
+    performLvn(subg);
+    performGvn(subg);
+
+    // now compute the summary
+    return &_summaries[subg];
 }
 
 ///
@@ -279,45 +301,56 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
     return D;
 }
 
-
-// perform Lvn on all blocks
-void MemorySSATransformation::performLvn() {
-    DBG_SECTION_BEGIN(dda, "Starting LVN");
-    for (auto *subgraph : graph.subgraphs()) {
-        for (RWBBlock *block : subgraph->bblocks()) {
-            performLvn(block);
-        }
+void MemorySSATransformation::performLvn(RWSubgraph *subgraph) {
+    DBG_SECTION_BEGIN(dda, "Starting LVN for a subgraph");
+    for (RWBBlock *block : subgraph->bblocks()) {
+        performLvn(block);
     }
     DBG_SECTION_END(dda, "LVN finished");
 }
 
 // take each use and compute def-use edges (adding PHI nodes if needed)
+/*
 void MemorySSATransformation::performGvn() {
     DBG_SECTION_BEGIN(dda, "Starting GVN");
-    std::set<RWNode *> phis(_phis.begin(), _phis.end());
-
     for (auto *subgraph : graph.subgraphs()) {
-        for (RWBBlock *block : subgraph->bblocks()) {
-            for (RWNode *node : block->getNodes()) {
-                if (node->isUse())
-                    node->defuse.add(findDefinitions(node));
-            }
-        }
+        performGvn(subgraph);
     }
+
     DBG_SECTION_END(dda, "GVN finished");
 
-/*
-    DBG_SECTION_BEGIN(dda, "Caching reads of unknown memory (requested)");
-    for (auto *block :graph.blocks()) {
-        for (auto *node : block->getNodes()) {
-            if (node->usesUnknown()) {
-                findAllReachingDefinitions(node);
-            }
+   //DBG_SECTION_BEGIN(dda, "Caching reads of unknown memory (requested)");
+   //for (auto *block :graph.blocks()) {
+   //    for (auto *node : block->getNodes()) {
+   //        if (node->usesUnknown()) {
+   //            findAllReachingDefinitions(node);
+   //        }
+   //    }
+   //}
+   //DBG_SECTION_END(dda, "Caching reads of unknown memory");
+}
+*/
+
+// take each use and compute def-use edges (adding PHI nodes if needed)
+void MemorySSATransformation::performGvn(RWSubgraph *subgraph) {
+    for (RWBBlock *block : subgraph->bblocks()) {
+        for (RWNode *node : block->getNodes()) {
+            if (node->isUse())
+                node->defuse.add(findDefinitions(node));
         }
     }
-    DBG_SECTION_END(dda, "Caching reads of unknown memory");
-*/
 }
+
+/*
+void MemorySSATransformation::performLvn() {
+    DBG_SECTION_BEGIN(dda, "Starting LVN");
+    for (auto *subgraph : graph.subgraphs()) {
+        performLvn(subgraph);
+    }
+    DBG_SECTION_END(dda, "LVN finished");
+}
+*/
+
 
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
     assert(phi->getType() == RWNodeType::PHI);
@@ -414,8 +447,7 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
         return;
     }
 
-    // we already computed all the definitions during some search?
-    // Then use it.
+    // we already computed all the definitions during some search? Then use it.
     auto& D = _defs[from];
     if (!D.allDefinitions.empty()) {
         joinDefinitions(D.allDefinitions, defs);
@@ -504,8 +536,10 @@ void MemorySSATransformation::run() {
     // graph.buildBBlocks();
     // _defs.reserve(graph.getBBlocks().size());
 
-    performLvn();
-    performGvn();
+    // recursively perform LVN on all reachable functions
+    performLvn(graph.getEntry());
+    // perform also GVN on the entry subgraph
+    performGvn(graph.getEntry());
 
     DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
 }
