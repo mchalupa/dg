@@ -14,7 +14,6 @@ class RWSubgraph {
     // FIXME: get rid of this
     //unsigned int dfsnum{1};
 
-    RWNode *root{nullptr};
     using BBlocksVecT = std::vector<std::unique_ptr<RWBBlock>>;
 
     // iterator over the bblocks that returns the bblock,
@@ -51,12 +50,11 @@ class RWSubgraph {
 
 public:
     RWSubgraph() = default;
-    RWSubgraph(RWNode *r) : root(r) {};
     RWSubgraph(RWSubgraph&&) = default;
     RWSubgraph& operator=(RWSubgraph&&) = default;
 
-    RWNode *getRoot() const { return root; }
-    void setRoot(RWNode *r) { root = r; }
+    RWNode *getRoot() { return _bblocks.front()->getFirst(); }
+    const RWNode *getRoot() const { return _bblocks.front()->getFirst(); }
 
     RWBBlock& createBBlock() {
         _bblocks.emplace_back(new RWBBlock());

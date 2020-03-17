@@ -166,8 +166,7 @@ RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst) {
     return &node;
 }
 
-/*
-std::pair<RWNode *, RWNode *>
+NodesSeq<RWNode>
 LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
@@ -176,15 +175,14 @@ LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
 
     if (CInst->isInlineAsm()) {
         if (!warned_inline_assembly) {
-            llvm::errs() << "WARNING: RD: Inline assembler found\n";
+            llvm::errs() << "[RWG] WARNING: Inline assembler found\n";
             warned_inline_assembly = true;
         }
-        RWNode& node = createUndefinedCall(CInst);
-        return {node, node};
+        return {createUnknownCall(CInst)};
     }
 
     if (const Function *function = dyn_cast<Function>(calledVal)) {
-        return createCallToFunction(function, CInst);
+        return createCallToFunctions({function}, CInst);
     }
 
 
@@ -193,12 +191,58 @@ LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
         llvm::errs() << "[RD] error: could not determine the called function "
                         "in a call via pointer: \n"
                      << ValInfo(CInst) << "\n";
-        RWNode *node = createUndefinedCall(CInst);
-        return {node, node};
+        return {createUnknownCall(CInst)};
     }
     return createCallToFunctions(functions, CInst);
 }
-*/
+
+template <typename OptsT>
+static bool isRelevantCall(const llvm::Instruction *Inst,
+                           OptsT& opts)
+{
+    using namespace llvm;
+
+    // we don't care about debugging stuff
+    if (isa<DbgValueInst>(Inst))
+        return false;
+
+    const CallInst *CInst = cast<CallInst>(Inst);
+    const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+    const Function *func = dyn_cast<Function>(calledVal);
+
+    if (!func)
+        // function pointer call - we need that
+        return true;
+
+    if (func->size() == 0) {
+        // we have a model for this function
+        if (opts.getFunctionModel(func->getName()))
+            return true;
+        // memory allocation
+        if (opts.isAllocationFunction(func->getName()))
+            return true;
+
+        if (func->isIntrinsic()) {
+            switch (func->getIntrinsicID()) {
+                case Intrinsic::memmove:
+                case Intrinsic::memcpy:
+                case Intrinsic::memset:
+                case Intrinsic::vastart:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        // undefined function
+        return true;
+    } else
+        // we want defined function, since those can contain
+        // pointer's manipulation and modify CFG
+        return true;
+
+    assert(0 && "We should not reach this");
+}
 
 NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
     using namespace llvm;
@@ -222,28 +266,11 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
              // we need create returns, since
              // these modify CFG and thus data-flow
              return {createReturn(I)};
-             /*
          case Instruction::Call:
              if (!isRelevantCall(I, _options))
                  break;
 
-             auto call = createCall(I);
-             assert(call.first != nullptr);
-
-             // the call does not return, bail out
-             if (!call.second)
-                 return block;
-
-             if (call.first != call.second) {
-                 // this call does return something
-                 block.nodes.push_back(call.first);
-                 block.nodes.push_back(call.second);
-                 node = nullptr;
-             } else {
-                 node = call.first;
-             }
-             break;
-             */
+             return createCall(I);
     }
 
     return {};

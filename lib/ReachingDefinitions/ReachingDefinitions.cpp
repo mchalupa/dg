@@ -74,8 +74,10 @@ std::vector<RWNode *> getNodes(const ContainerOrNode& start,
        void foreach(RWNode *cur, std::function<void(RWNode *)> Dispatch) {
            if (interproc) {
                if (RWNodeCall *C = RWNodeCall::get(cur)) {
-                   for (auto *subg : C->getCallees()) {
-                       Dispatch(subg->getRoot());
+                   for (auto& calledVal : C->getCallees()) {
+                       if (auto *subg = calledVal.getSubgraph()) {
+                           Dispatch(const_cast<RWNode *>(subg->getRoot()));
+                       }
                    }
                    // we do not need to iterate over succesors
                    // if we dive into the procedure (as we will

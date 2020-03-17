@@ -110,7 +110,6 @@ static void printRWNodeType(enum RWNodeType type) {
         ELEM(RWNodeType::PHI)
         ELEM(RWNodeType::MU)
         ELEM(RWNodeType::CALL)
-        ELEM(RWNodeType::CALL_RETURN)
         ELEM(RWNodeType::FORK)
         ELEM(RWNodeType::JOIN)
         ELEM(RWNodeType::RETURN)
@@ -149,7 +148,7 @@ protected:
 
     virtual void dumpBBlockDefinitions(RWBBlock *) {}
 
-    void printName(RWNode *node) {
+    void printName(const RWNode *node) {
         if (node == nullptr) {
             printf("nullptr");
             return;
@@ -241,7 +240,7 @@ public:
                 }
                 putchar('\n');
 
-                // dump def-use edges
+                // dump def-use edges and call edges
                 for(RWNode *node : block->getNodes()) {
                     if (node->getType() == RWNodeType::PHI) {
                         for (RWNode *def : node->defuse) {
@@ -253,6 +252,18 @@ public:
                         for (RWNode *def : DDA->getDefinitions(node)) {
                             printf("\tNODE%p->NODE%p [style=dotted color=blue]\n",
                                    static_cast<void*>(def), static_cast<void*>(node));
+                        }
+                    }
+                    if (auto *C = RWNodeCall::get(node)) {
+                        for (auto& cv : C->getCallees()) {
+                            if (auto *s = cv.getSubgraph()) {
+                                assert(s->getRoot() && "Subgraph has no root");
+                                printf("\tNODE%p->NODE%p "
+                                       "[penwidth=4 color=blue "
+                                       "ltail=cluster_subg_%p]\n",
+                                       static_cast<void*>(C),
+                                       static_cast<const void*>(s->getRoot()), s);
+                            }
                         }
                     }
                 }
@@ -345,26 +356,26 @@ private:
         }
     }
 
-    void dumpDefines(RWNode *node) {
+    void dumpDefines(const RWNode *node) {
         if (!node->getDefines().empty()) {
             _dumpDefSites(node->getDefines(), "defines");
         }
     }
 
-    void dumpOverwrites(RWNode *node) {
+    void dumpOverwrites(const RWNode *node) {
         if (!node->getOverwrites().empty()) {
             _dumpDefSites(node->getOverwrites(), "overwrites");
         }
     }
 
-    void dumpUses(RWNode *node) {
+    void dumpUses(const RWNode *node) {
         if (!node->getUses().empty()) {
             _dumpDefSites(node->getUses(), "uses");
         }
     }
 
-    void nodeToDot(RWNode *node) {
-        printf("\tNODE%p ", static_cast<void*>(node));
+    void nodeToDot(const RWNode *node) {
+        printf("\tNODE%p ", static_cast<const void*>(node));
         printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
         printf("<td><font color=\"#af0000\">");
         printName(node);
@@ -376,10 +387,22 @@ private:
         }
 
         if (verbose) {
-            //printf("block: %p<br/>", node->getBBlock());
             dumpDefines(node);
             dumpOverwrites(node);
             dumpUses(node);
+        }
+
+        // dumped data for undefined functions
+        // (call edges will be dumped with other edges)
+        if (auto *C = RWNodeCall::get(node)) {
+            for (auto& cv : C->getCallees()) {
+                if (const RWNode *undef = cv.getCalledValue()) {
+                    printf("<tr><td></td><td>------ undef call ------</td></tr>\n");
+                    dumpDefines(undef);
+                    dumpOverwrites(undef);
+                    dumpUses(undef);
+                }
+            }
         }
 
       ////dumpMap(node);
