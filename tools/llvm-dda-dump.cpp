@@ -1,7 +1,3 @@
-#ifndef HAVE_LLVM
-#error "This code needs LLVM enabled"
-#endif
-
 #include <set>
 #include <iostream>
 #include <sstream>
@@ -192,6 +188,75 @@ public:
     Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = true)
     : DDA(DDA), dot(todot) {}
 
+    void dumpBBlockEdges(RWBBlock *block) {
+        // dump CFG edges between nodes in one block
+        RWNode *last = nullptr;
+        for(RWNode *node : block->getNodes()) {
+            if (last) { // successor edge
+                printf("\tNODE%p->NODE%p\n",
+                       static_cast<void*>(last), static_cast<void*>(node));
+            }
+            last = node;
+        }
+        putchar('\n');
+
+        // dump def-use edges and call edges
+        for(RWNode *node : block->getNodes()) {
+            if (node->getType() == RWNodeType::PHI) {
+                for (RWNode *def : node->defuse) {
+                    printf("\tNODE%p->NODE%p [style=dotted]\n",
+                           static_cast<void*>(def), static_cast<void*>(node));
+                }
+            }
+            if (node->isUse()) {
+                for (RWNode *def : DDA->getDefinitions(node)) {
+                    printf("\tNODE%p->NODE%p [style=dotted color=blue]\n",
+                           static_cast<void*>(def), static_cast<void*>(node));
+                }
+            }
+            if (auto *C = RWNodeCall::get(node)) {
+                for (auto& cv : C->getCallees()) {
+                    if (auto *s = cv.getSubgraph()) {
+                        assert(s->getRoot() && "Subgraph has no root");
+                        printf("\tNODE%p->NODE%p "
+                               "[penwidth=4 color=blue "
+                               "ltail=cluster_subg_%p]\n",
+                               static_cast<void*>(C),
+                               static_cast<const void*>(s->getRoot()), s);
+                    }
+                }
+            }
+        }
+    }
+
+    void dumpBBlock(RWBBlock *block) {
+        printf("subgraph cluster_bb_%p {\n", block);
+        printf("    style=filled;\n");
+        printf("    fillcolor=\"#eeeeee\";\n");
+        printf("    color=\"black\";\n");
+
+        puts("label=<<table border=\"0\">");
+        printf("<tr><td colspan=\"4\">bblock: %p</td></tr>", block);
+        dumpBBlockDefinitions(block);
+        printf("</table>>\nlabelloc=b\n");
+
+        /* dump nodes */
+        if (block->empty()) {
+            // if the block is empty, create at least a
+            // dummy node so that we can draw CFG edges to it
+            printf("\tNODE%p [label=\"empty blk\"]\n",
+                   static_cast<void*>(block));
+        } else {
+            for(RWNode *node : block->getNodes()) {
+                nodeToDot(node);
+            }
+        }
+
+        dumpBBlockEdges(block);
+
+        printf("}\n");
+    }
+
     void dump() {
         assert(dot && "Non-dot dump unsupported right now");
 
@@ -207,68 +272,7 @@ public:
             printf("  color=white;\n");
 
             for (auto *block : subg->bblocks()) {
-                printf("subgraph cluster_bb_%p {\n", block);
-                printf("    style=filled;\n");
-                printf("    fillcolor=\"#eeeeee\";\n");
-                printf("    color=\"black\";\n");
-
-                puts("label=<<table border=\"0\">");
-                printf("<tr><td colspan=\"4\">bblock: %p</td></tr>", block);
-                dumpBBlockDefinitions(block);
-                printf("</table>>\nlabelloc=b\n");
-
-                /* dump nodes */
-                if (block->empty()) {
-                    // if the block is empty, create at least a
-                    // dummy node so that we can draw CFG edges to it
-                    printf("\tNODE%p [label=\"empty blk\"]\n",
-                           static_cast<void*>(block));
-                } else {
-                    for(RWNode *node : block->getNodes()) {
-                        nodeToDot(node);
-                    }
-                }
-
-                // dump CFG edges between nodes in one block
-                RWNode *last = nullptr;
-                for(RWNode *node : block->getNodes()) {
-                    if (last) { // successor edge
-                        printf("\tNODE%p->NODE%p\n",
-                               static_cast<void*>(last), static_cast<void*>(node));
-                    }
-                    last = node;
-                }
-                putchar('\n');
-
-                // dump def-use edges and call edges
-                for(RWNode *node : block->getNodes()) {
-                    if (node->getType() == RWNodeType::PHI) {
-                        for (RWNode *def : node->defuse) {
-                            printf("\tNODE%p->NODE%p [style=dotted]\n",
-                                   static_cast<void*>(def), static_cast<void*>(node));
-                        }
-                    }
-                    if (node->isUse()) {
-                        for (RWNode *def : DDA->getDefinitions(node)) {
-                            printf("\tNODE%p->NODE%p [style=dotted color=blue]\n",
-                                   static_cast<void*>(def), static_cast<void*>(node));
-                        }
-                    }
-                    if (auto *C = RWNodeCall::get(node)) {
-                        for (auto& cv : C->getCallees()) {
-                            if (auto *s = cv.getSubgraph()) {
-                                assert(s->getRoot() && "Subgraph has no root");
-                                printf("\tNODE%p->NODE%p "
-                                       "[penwidth=4 color=blue "
-                                       "ltail=cluster_subg_%p]\n",
-                                       static_cast<void*>(C),
-                                       static_cast<const void*>(s->getRoot()), s);
-                            }
-                        }
-                    }
-                }
-
-                printf("}\n");
+                dumpBBlock(block);
             }
             printf("}\n");
 
