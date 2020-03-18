@@ -4,6 +4,8 @@
 #include <vector>
 #include <memory>
 
+#include "RWBBlock.h"
+
 namespace dg {
 namespace dda {
 
@@ -57,7 +59,7 @@ public:
     const RWNode *getRoot() const { return _bblocks.front()->getFirst(); }
 
     RWBBlock& createBBlock() {
-        _bblocks.emplace_back(new RWBBlock());
+        _bblocks.emplace_back(new RWBBlock(this));
         return *_bblocks.back().get();
     }
 

@@ -28,6 +28,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     //void performGvn();
     void performGvn(RWSubgraph *);
 
+    struct Summary;
+
     // information about definitions associated to each bblock
     struct Definitions {
         bool _processed{false};
@@ -67,7 +69,15 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             return unknownReads;
         }
 
+        // update this Definitions by definitions from 'node'.
+        // I.e., as if node would be executed when already
+        // having the definitions we have
         void update(RWNode *node, RWNode *defnode = nullptr);
+        // update this Definitions from a Summary
+        void update(Summary *summary, RWNode *defnode);
+        // Join another definitions to this Definitions.
+        // I.e., perform union of definitions and intersection of overwrites.
+        void joinInterprocedural(Definitions&, RWSubgraph *);
 
         auto uncovered(const DefSite& ds) const -> decltype(kills.undefinedIntervals(ds)) {
             return kills.undefinedIntervals(ds);
@@ -76,6 +86,15 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         // for on-demand analysis
         bool isProcessed() const { return _processed; }
         void setProcessed() { _processed = true; }
+    };
+
+    struct Summary {
+        Definitions definitions;
+        std::vector<RWNode *> reads;
+
+        // pick definitions from 'D' that are not local to the
+        // given subgraph and join them to this summary
+        void joinInterprocedural(Definitions& D, RWSubgraph *);
     };
 
     ////
@@ -119,13 +138,13 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                       const Offset& off, const Offset& len);
 
     /// compute a summary for a function
-    Definitions *computeSummary(RWSubgraph *);
+    Summary *computeSummary(RWSubgraph *);
 
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
     // summaries for subgraphs
-    std::unordered_map<RWSubgraph *, Definitions> _summaries;
+    std::unordered_map<RWSubgraph *, Summary> _summaries;
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
@@ -153,7 +172,14 @@ public:
         return &it->second;
     }
 
-    const Definitions *getSummary(RWSubgraph *s) const {
+    Summary *getSummary(RWSubgraph *s) {
+        auto it = _summaries.find(s);
+        if (it == _summaries.end())
+            return nullptr;
+        return &it->second;
+    }
+
+    const Summary *getSummary(RWSubgraph *s) const {
         auto it = _summaries.find(s);
         if (it == _summaries.end())
             return nullptr;
