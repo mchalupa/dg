@@ -17,6 +17,9 @@ namespace dda {
 class RWNode;
 class ReachingDefinitionsAnalysis;
 
+/// A data structure that represents a mapping
+/// DefSite -> RWNode, that is, it stores which memory (DefSite)
+/// was defined where.
 template <typename NodeT = RWNode>
 class DefinitionsMap {
 public:

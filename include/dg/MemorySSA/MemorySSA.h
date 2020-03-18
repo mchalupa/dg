@@ -67,7 +67,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             return unknownReads;
         }
 
-        void update(RWNode *);
+        void update(RWNode *node, RWNode *defnode = nullptr);
 
         auto uncovered(const DefSite& ds) const -> decltype(kills.undefinedIntervals(ds)) {
             return kills.undefinedIntervals(ds);
@@ -111,6 +111,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                                     RWBBlock *from,
                                     std::set<RWBBlock *>& visitedBlocks);
 
+    void updateCallDefinitions(Definitions& D, RWNodeCall *call);
     void updateDefinitions(Definitions& D, RWNode *node);
 
     // insert a (temporary) use into the graph before the node 'where'

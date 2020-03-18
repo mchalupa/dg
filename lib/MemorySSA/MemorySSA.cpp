@@ -15,37 +15,47 @@ extern RWNode *UNKNOWN_MEMORY;
 /// ------------------------------------------------------------------
 // class Definitions
 /// ------------------------------------------------------------------
+///
+// Update Definitions object with definitions from 'node'.
+// 'defnode' is the node that should be added as the
+// node that performs these definitions. Usually, defnode == node
+// (defnode was added to correctly handle call nodes where the
+// definitions are stored separately, but we want to have the call node
+// as the node that defines the memory.
+///
 void
-MemorySSATransformation::Definitions::update(RWNode *node) {
+MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
+    if (!defnode)
+        defnode = node;
+
     // possible definitions
     for (auto& ds : node->defs) {
         if (ds.target->isUnknown()) {
             // this makes all lastDefs into possibleDefs,
             // since we do not know if it was defined here or there
             // also add the definition as a proper target for Gvn
-            definitions.addAll(node);
-            addUnknownWrite(node);
+            definitions.addAll(defnode);
+            addUnknownWrite(defnode);
         } else {
-            definitions.add(ds, node);
+            definitions.add(ds, defnode);
         }
     }
 
     // definitive definitions
     for (auto& ds : node->overwrites) {
-        assert((node->getType() == RWNodeType::PHI || // we allow ? for PHI nodes
+        assert((defnode->getType() == RWNodeType::PHI || // we allow ? for PHI nodes
                !ds.offset.isUnknown()) && "Update on unknown offset");
         assert(!ds.target->isUnknown() && "Update on unknown memory");
 
-        kills.add(ds, node);
-        definitions.update(ds, node);
+        kills.add(ds, defnode);
+        definitions.update(ds, defnode);
     }
 
     // gather unknown uses
     if (node->usesUnknown()) {
-        addUnknownRead(node);
+        addUnknownRead(defnode);
     }
 }
-
 
 /// ------------------------------------------------------------------
 // class MemorySSATransformation
@@ -61,8 +71,6 @@ addFoundDefinitions(std::vector<RWNode *>& defs,
                     const FoundT& found,
                     DefsT& D) {
     if (found.empty()) {
-        // if we have no definitions of this memory, add at least
-        // the definitions of unknown memory (these can be our definitions)
         defs.insert(defs.end(),
                     D.getUnknownWrites().begin(),
                     D.getUnknownWrites().end());
@@ -253,28 +261,6 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     return defs;
 }
 
-// perform Lvn for one block
-void MemorySSATransformation::performLvn(RWBBlock *block) {
-    auto& D = _defs[block];
-    for (RWNode *node : block->getNodes()) {
-        if (auto *C = RWNodeCall::get(node)) {
-            for (auto& cv : C->getCallees()) {
-                auto *subg = cv.getSubgraph();
-                if (!subg)
-                    continue;
-                auto *summary = getSummary(subg);
-                if (!summary) {
-                    summary = computeSummary(subg);
-                }
-
-            }
-        }
-        D.update(node);
-    }
-
-    D.setProcessed();
-}
-
 MemorySSATransformation::Definitions *
 MemorySSATransformation::computeSummary(RWSubgraph *subg) {
     // first normally process the subgraph
@@ -283,6 +269,66 @@ MemorySSATransformation::computeSummary(RWSubgraph *subg) {
 
     // now compute the summary
     return &_summaries[subg];
+}
+
+// call node can call several procedures and undefined function,
+// each of which define different memory.
+// We must put all these definitions into disjunction
+// (and compute the definitions for procedures first, if it was not done yet)
+void MemorySSATransformation::updateCallDefinitions(Definitions& D, RWNodeCall *C) {
+    auto& callees = C->getCallees();
+    // fast path
+    if (callees.size() == 1) {
+        auto& cv = *(callees.begin());
+        if (auto *subg = cv.getSubgraph()) {
+            auto *summary = getSummary(subg);
+            if (!summary) {
+                summary = computeSummary(subg);
+            }
+        } else {
+            DBG(tmp, "Updating from call " << C->getID());
+            // undefined call
+            D.update(cv.getCalledValue(), C);
+        }
+        return;
+    }
+
+    // joining several definitions
+    assert(false && "Not implemented");
+   //for (auto& cv : callees) {
+
+   //    if (auto *subg = cv.getSubgraph()) {
+   //        auto *summary = getSummary(subg);
+   //        if (!summary) {
+   //            summary = computeSummary(subg);
+   //        }
+   //    } else {
+   //        // undefined call
+   //        // FIXME: disjunction of definitions and uses,
+   //        // intersection of overwrites
+   //        D.update(C);
+   //    }
+   //}
+}
+
+
+void MemorySSATransformation::updateDefinitions(Definitions& D, RWNode *node) {
+    // special handling for call nodes
+    if (auto *C = RWNodeCall::get(node)) {
+        updateCallDefinitions(D, C);
+    } else {
+        D.update(node);
+    }
+}
+
+// perform Lvn for one block
+void MemorySSATransformation::performLvn(RWBBlock *block) {
+    auto& D = _defs[block];
+    for (RWNode *node : block->getNodes()) {
+        updateDefinitions(D, node);
+   }
+
+    D.setProcessed();
 }
 
 ///
@@ -295,7 +341,7 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
     for (RWNode *node : block->getNodes()) {
         if (node == to)
             break;
-        D.update(node);
+        updateDefinitions(D, node);
     }
 
     return D;
@@ -412,6 +458,11 @@ RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
     return &use;
 }
 
+///
+/// Copy definitions from 'from' map to 'to' map.
+/// Copy only those that are not already killed by 'to' map
+/// (thus simulating the state when 'to' is executed after 'from')
+///
 static void joinDefinitions(DefinitionsMap<RWNode>& from,
                             DefinitionsMap<RWNode>& to) {
     for (auto& it : from) {
@@ -535,6 +586,8 @@ void MemorySSATransformation::run() {
 
     // graph.buildBBlocks();
     // _defs.reserve(graph.getBBlocks().size());
+
+    // XXX: maybe we could have _defs per a subgraph?
 
     // recursively perform LVN on all reachable functions
     performLvn(graph.getEntry());
