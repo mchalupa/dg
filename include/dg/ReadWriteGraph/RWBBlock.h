@@ -55,10 +55,18 @@ public:
 class RWBBlock;
 
 class RWBBlock : public BBlockBase<RWBBlock> {
+    RWSubgraph *subgraph{nullptr};
 
 public:
+
     using NodeT = RWNode;
     using NodesT = std::list<NodeT *>;
+
+    RWBBlock() = default;
+    RWBBlock(RWSubgraph *s) : subgraph(s) {}
+
+    RWSubgraph *getSubgraph() { return subgraph; }
+    const RWSubgraph *getSubgraph() const { return subgraph; }
 
     // FIXME: move also this into BBlockBase
     void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); }

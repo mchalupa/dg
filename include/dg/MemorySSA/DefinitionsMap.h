@@ -80,7 +80,7 @@ public:
         return changed;
     }
 
-    bool add(DefinitionsMap<NodeT>& rhs) {
+    bool add(const DefinitionsMap<NodeT>& rhs) {
         bool changed = false;
         for (auto& it : rhs){
             changed |= add(it.first, it.second);
@@ -121,6 +121,30 @@ public:
 
     bool definesTarget(NodeT *target) const {
         return _definitions.find(target) != _definitions.end();
+    }
+
+    /*
+    template <typename KeyFilt, typename SetFilt>
+    DefinitionsMap<NodeT> filter(KeyFilt keyfilt, SetFilt setfilt) {
+        DefinitionsMap<NodeT> tmp;
+        for (auto& it : _definitions) {
+            if (keyfilt(it.first) && setfilt(it.second)) {
+                tmp._definitions.emplace(it.first, it.second);
+            }
+        }
+        return tmp;
+    }
+    */
+
+    template <typename FiltFun>
+    DefinitionsMap<NodeT> filter(FiltFun filt) {
+        DefinitionsMap<NodeT> tmp;
+        for (auto& it : _definitions) {
+            if (filt(it.first)) {
+                tmp._definitions.emplace(it.first, it.second);
+            }
+        }
+        return tmp;
     }
 
     auto begin() const -> decltype(_definitions.begin()) {

@@ -57,6 +57,34 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 }
 
+void
+MemorySSATransformation::Definitions::update(Summary *summary, RWNode *defnode) {
+    auto&D = summary->definitions;
+    definitions.add(D.definitions);
+    kills.add(D.kills);
+}
+
+
+void
+MemorySSATransformation::Definitions::joinInterprocedural(Definitions& D, RWSubgraph *s) {
+    // possible definitions
+    definitions.add(D.definitions.filter([s](RWNode *n) -> bool {
+                                            return !n->getBBlock() ||
+                                                    n->getBBlock()->getSubgraph() != s;
+                                          }));
+    //kills.
+}
+
+
+/// ------------------------------------------------------------------
+// class Summary
+/// ------------------------------------------------------------------
+
+void
+MemorySSATransformation::Summary::joinInterprocedural(Definitions& D, RWSubgraph *s) {
+    definitions.joinInterprocedural(D, s);
+}
+
 /// ------------------------------------------------------------------
 // class MemorySSATransformation
 /// ------------------------------------------------------------------
@@ -261,18 +289,29 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     return defs;
 }
 
-MemorySSATransformation::Definitions *
+MemorySSATransformation::Summary *
 MemorySSATransformation::computeSummary(RWSubgraph *subg) {
     // first normally process the subgraph
+    // FIXME: this will cycle for recursive procedure...
     performLvn(subg);
     performGvn(subg);
 
-    // now compute the summary
-    return &_summaries[subg];
+    // create the summary mapping, to avoid repeated call of this function
+    Summary& S = _summaries[subg];
+
+    // take terminator blocks from the subgraph and join them into a summary
+    for (auto *block : subg->bblocks()) {
+        if (block->getSuccessors().empty()) {
+            assert(_defs.find(block) != _defs.end() && "Did not process a block");
+            assert(_defs[block].isProcessed());
+            S.joinInterprocedural(_defs[block], subg);
+        }
+    }
+    return &S;
 }
 
-// call node can call several procedures and undefined function,
-// each of which define different memory.
+// call node can call several procedures and undefined functions,
+// each of which may define different memory.
 // We must put all these definitions into disjunction
 // (and compute the definitions for procedures first, if it was not done yet)
 void MemorySSATransformation::updateCallDefinitions(Definitions& D, RWNodeCall *C) {
@@ -284,6 +323,8 @@ void MemorySSATransformation::updateCallDefinitions(Definitions& D, RWNodeCall *
             auto *summary = getSummary(subg);
             if (!summary) {
                 summary = computeSummary(subg);
+                assert(summary && "Did not compute a summary");
+                D.update(summary, C); // XXX: this is not correct...
             }
         } else {
             DBG(tmp, "Updating from call " << C->getID());
