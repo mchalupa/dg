@@ -144,6 +144,10 @@ protected:
 
     virtual void dumpBBlockDefinitions(RWBBlock *) {}
 
+    virtual void dumpSubgraphLabel(RWSubgraph *subgraph) {
+        printf("  label=\"subgraph: %p\\n\";\n", subgraph);
+    }
+
     void printName(const RWNode *node) {
         if (node == nullptr) {
             printf("nullptr");
@@ -267,7 +271,8 @@ public:
             printf("subgraph cluster_subg_%p {\n", subg);
             printf("  compound=true;\n\n");
 
-            printf("  label=\"subgraph:\\n\";\n");
+            dumpSubgraphLabel(subg);
+
             printf("  style=filled;\n");
             printf("  color=white;\n");
 
@@ -451,10 +456,6 @@ class MemorySSADumper : public Dumper {
         }
     }
 
-public:
-    MemorySSADumper(LLVMDataDependenceAnalysis *DDA, bool todot)
-    : Dumper(DDA, todot) {}
-
     void dumpBBlockDefinitions(RWBBlock *block) override {
         auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
         auto *D = SSA->getBBlockDefinitions(block);
@@ -463,12 +464,37 @@ public:
         printf("<tr><td colspan=\"4\">==  defines ==</td></tr>");
         dumpDDIMap(D->definitions);
         printf("<tr><td colspan=\"4\">==  kills ==</td></tr>");
-        dumpDDIMap(D->definitions);
+        dumpDDIMap(D->kills);
         if (!D->allDefinitions.empty()) {
             printf("<tr><td colspan=\"4\">== all defs cached ==</td></tr>");
             dumpDDIMap(D->allDefinitions);
         }
     }
+
+    void dumpSubgraphLabel(RWSubgraph *subgraph) override {
+        auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+        auto *summary = SSA->getSummary(subgraph);
+
+        if (!summary) {
+            printf("  label=<<table><tr><td>subgraph %p</td></tr>\n"
+                                   "<tr><td>no summary</td></tr></table>>;\n", subgraph);
+            return;
+        }
+
+        printf("  label=<<table><tr><td colspan=\"4\">subgraph %p</td></tr>\n"
+                               "<tr><td colspan=\"4\">-- summary -- </td></tr>\n", subgraph);
+        printf("<tr><td colspan=\"4\">==  defines ==</td></tr>");
+        dumpDDIMap(summary->definitions.definitions);
+        printf("<tr><td colspan=\"4\">==  kills ==</td></tr>");
+        dumpDDIMap(summary->definitions.kills);
+        printf("</table>>;\n");
+    }
+
+
+public:
+    MemorySSADumper(LLVMDataDependenceAnalysis *DDA, bool todot)
+    : Dumper(DDA, todot) {}
+
 };
 
 static void
