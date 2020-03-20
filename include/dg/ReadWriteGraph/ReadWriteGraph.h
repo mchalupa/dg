@@ -93,6 +93,12 @@ public:
     }
     */
 
+    void splitBBlocksOnCalls() {
+        for (auto& s : _subgraphs) {
+            s->splitBBlocksOnCalls();
+        }
+    }
+
     subgraph_iterator subgraphs_begin() {
         return subgraph_iterator(_subgraphs.begin());
     }

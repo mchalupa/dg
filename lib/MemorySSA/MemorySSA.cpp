@@ -627,6 +627,7 @@ void MemorySSATransformation::run() {
 
     // graph.buildBBlocks();
     // _defs.reserve(graph.getBBlocks().size());
+    graph.splitBBlocksOnCalls();
 
     // XXX: maybe we could have _defs per a subgraph?
 

@@ -277,6 +277,12 @@ public:
     const RWNode *getCallReturn() const { return callReturn; }
     */
 
+    bool callsOneUndefined() const {
+        if (callees.size() != 1)
+            return false;
+        return callees[0].callsUndefined();
+    }
+
     const CalleesT& getCallees() const { return callees; }
     CalleesT& getCallees() { return callees; }
 
