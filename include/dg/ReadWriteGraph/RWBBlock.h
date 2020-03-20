@@ -2,6 +2,7 @@
 #define DG_RWBBLOCK_H_
 
 #include <list>
+#include <memory>
 
 #include "dg/ReadWriteGraph/RWNode.h"
 
@@ -12,6 +13,7 @@ template <typename BBlockT>
 class BBlockBase {
     using EdgesT = std::vector<BBlockT *>;
 
+protected:
     EdgesT _successors;
     EdgesT _predecessors;
 
@@ -110,6 +112,137 @@ public:
     auto end() -> decltype(_nodes.end()) { return _nodes.end(); }
     auto end() const -> decltype(_nodes.end()) { return _nodes.end(); }
     */
+
+    /*
+    // split the block before the given node and return the later
+    // part (the one including n). If 'node' is the first node
+    // of this block, return nullptr;
+    std::unique_ptr<RWBBlock> splitBefore(NodeT *node) {
+        assert(node->getBBlock() == this
+               && "Spliting a block on invalid node");
+
+#ifndef NDEBUG
+        auto old_size = _nodes.size();
+#endif
+        unsigned num = 0;
+        auto it = _nodes.begin(), et = _nodes.end();
+        for (; it != et; ++it) {
+            if (*it == node) {
+                break;
+            }
+            ++num;
+        }
+
+        assert(*it == node);
+
+        if (num == 0) {
+            return nullptr;
+        }
+
+        auto newblock = std::unique_ptr<RWBBlock>(new RWBBlock(subgraph));
+        for (; it != et; ++it) {
+            newblock->_nodes.push_back(*it);
+        }
+
+        assert(newblock->size() >= 1 && "New block must contain at least a node");
+
+        // truncate nodes in this block
+        _nodes.resize(num);
+
+        assert(_nodes.size() + newblock->size() == old_size
+               && "Bug in splitting nodes");
+
+        return newblock;
+    }
+    */
+
+    // Split the block before and after the given node.
+    // Return newly created basic blocks (there are at most two of them).
+    std::pair<std::unique_ptr<RWBBlock>, std::unique_ptr<RWBBlock>>
+    splitAround(NodeT *node) {
+        assert(node->getBBlock() == this
+               && "Spliting a block on invalid node");
+
+        RWBBlock *withnode = nullptr;
+        RWBBlock *after = nullptr;
+
+        if (_nodes.size() == 1) {
+            assert(*_nodes.begin() == node);
+            return {nullptr, nullptr};
+        }
+
+#ifndef NDEBUG
+        auto old_size = _nodes.size();
+        assert(old_size > 1);
+#endif
+        unsigned num = 0;
+        auto it = _nodes.begin(), et = _nodes.end();
+        for (; it != et; ++it) {
+            if (*it == node) {
+                break;
+            }
+            ++num;
+        }
+
+        assert(it != et && "Did not find the node");
+        assert(*it == node);
+
+        ++it;
+        if (it != et) {
+            after = new RWBBlock(subgraph);
+            for (; it != et; ++it) {
+                after->append(*it);
+            }
+        }
+
+        // truncate nodes in this block
+        if (num > 0) {
+            withnode = new RWBBlock(subgraph);
+            withnode->append(node);
+
+            _nodes.resize(num);
+        } else {
+            assert(*_nodes.begin() == node);
+            assert(after && "Should have a suffix");
+            _nodes.resize(1);
+        }
+
+        assert(!withnode || withnode->size() == 1);
+        assert(((_nodes.size() +
+                (withnode ? withnode->size() : 0) +
+                (after ? after->size() : 0)) == old_size)
+               && "Bug in splitting nodes");
+
+        // reconnect edges
+        RWBBlock *bbwithsuccessors = after;
+        if (!bbwithsuccessors) // no suffix
+            bbwithsuccessors = withnode;
+
+        assert(bbwithsuccessors);
+        for (auto *s : this->_successors) {
+            for (auto& p : s->_predecessors) {
+                if (p == this) {
+                    p = bbwithsuccessors;
+                }
+            }
+        }
+        // swap this and after successors
+        bbwithsuccessors->_successors.swap(this->_successors);
+
+        if (withnode) {
+            this->addSuccessor(withnode);
+            if (after) {
+                withnode->addSuccessor(after);
+            }
+        } else {
+            assert(after && "Should have a suffix");
+            this->addSuccessor(after);
+        }
+
+        return {std::unique_ptr<RWBBlock>(withnode),
+                std::unique_ptr<RWBBlock>(after)};
+    }
+
 
     // FIXME: rename to first/front(), last/back()
     NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }

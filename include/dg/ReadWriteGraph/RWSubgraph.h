@@ -63,6 +63,8 @@ public:
         return *_bblocks.back().get();
     }
 
+    void splitBBlocksOnCalls();
+
     const BBlocksVecT& getBBlocks() const { return _bblocks; }
 
     block_iterator bblocks_begin() { return block_iterator(_bblocks.begin()); }

@@ -37,6 +37,14 @@ add_dependencies(check reaching-definitions-test)
 target_link_libraries(reaching-definitions-test PRIVATE dgdda)
 
 # --------------------------------------------------
+# read write graph test
+# --------------------------------------------------
+add_executable(readwritegraph-test readwritegraph-test.cpp)
+add_test(readwritegraph-test readwritegraph-test)
+add_dependencies(check readwritegraph-test)
+target_link_libraries(readwritegraph-test PRIVATE dgdda)
+
+# --------------------------------------------------
 # adt-test
 # --------------------------------------------------
 add_executable(adt-test adt-test.cpp)
