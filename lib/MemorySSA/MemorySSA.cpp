@@ -57,34 +57,6 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 }
 
-void
-MemorySSATransformation::Definitions::update(Summary *summary, RWNode *defnode) {
-    auto&D = summary->definitions;
-    definitions.add(D.definitions);
-    kills.add(D.kills);
-}
-
-
-void
-MemorySSATransformation::Definitions::joinInterprocedural(Definitions& D, RWSubgraph *s) {
-    // possible definitions
-    definitions.add(D.definitions.filter([s](RWNode *n) -> bool {
-                                            return !n->getBBlock() ||
-                                                    n->getBBlock()->getSubgraph() != s;
-                                          }));
-    //kills.
-}
-
-
-/// ------------------------------------------------------------------
-// class Summary
-/// ------------------------------------------------------------------
-
-void
-MemorySSATransformation::Summary::joinInterprocedural(Definitions& D, RWSubgraph *s) {
-    definitions.joinInterprocedural(D, s);
-}
-
 /// ------------------------------------------------------------------
 // class MemorySSATransformation
 /// ------------------------------------------------------------------
@@ -111,6 +83,8 @@ addFoundDefinitions(std::vector<RWNode *>& defs,
 // find definitions of a given node
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWNode *node) {
+    DBG(dda, "Searching definitions for node " << node->getID());
+
     assert(node->isUse() && "Searching definitions for non-use node");
 
     // handle reads from unknown memory
@@ -289,87 +263,28 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     return defs;
 }
 
-MemorySSATransformation::Summary *
-MemorySSATransformation::computeSummary(RWSubgraph *subg) {
-    // first normally process the subgraph
-    // FIXME: this will cycle for recursive procedure...
-    performLvn(subg);
-    performGvn(subg);
-
-    // create the summary mapping, to avoid repeated call of this function
-    Summary& S = _summaries[subg];
-
-    // take terminator blocks from the subgraph and join them into a summary
-    for (auto *block : subg->bblocks()) {
-        if (block->getSuccessors().empty()) {
-            assert(_defs.find(block) != _defs.end() && "Did not process a block");
-            assert(_defs[block].isProcessed());
-            S.joinInterprocedural(getBBlockDefinitions(block), subg);
-        }
+MemorySSATransformation::Definitions&
+MemorySSATransformation::getBBlockDefinitions(RWBBlock *b) {
+    auto& D = _defs[b];
+    if (!D.isProcessed()) {
+        performLvn(D, b);
     }
-    return &S;
+    return D;
 }
 
-// call node can call several procedures and undefined functions,
-// each of which may define different memory.
-// We must put all these definitions into disjunction
-// (and compute the definitions for procedures first, if it was not done yet)
-void MemorySSATransformation::updateCallDefinitions(Definitions& D, RWNodeCall *C) {
-    auto& callees = C->getCallees();
-    // fast path
-    if (callees.size() == 1) {
-        auto& cv = *(callees.begin());
-        if (auto *subg = cv.getSubgraph()) {
-            auto *summary = getSummary(subg);
-            if (!summary) {
-                summary = computeSummary(subg);
-                assert(summary && "Did not compute a summary");
-                D.update(summary, C); // XXX: this is not correct...
-            }
-        } else {
-            DBG(tmp, "Updating from call " << C->getID());
-            // undefined call
-            D.update(cv.getCalledValue(), C);
-        }
-        return;
-    }
-
-    // joining several definitions
-    assert(false && "Not implemented");
-   //for (auto& cv : callees) {
-
-   //    if (auto *subg = cv.getSubgraph()) {
-   //        auto *summary = getSummary(subg);
-   //        if (!summary) {
-   //            summary = computeSummary(subg);
-   //        }
-   //    } else {
-   //        // undefined call
-   //        // FIXME: disjunction of definitions and uses,
-   //        // intersection of overwrites
-   //        D.update(C);
-   //    }
-   //}
-}
-
-
-void MemorySSATransformation::updateDefinitions(Definitions& D, RWNode *node) {
-    // special handling for call nodes
-    if (auto *C = RWNodeCall::get(node)) {
-        updateCallDefinitions(D, C);
-    } else {
-        D.update(node);
-    }
-}
 
 // perform Lvn for one block
-void MemorySSATransformation::performLvn(RWBBlock *block) {
-    auto& D = _defs[block];
+void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
+    DBG_SECTION_BEGIN(dda, "Starting LVN for " << block);
+
+    assert(!D.isProcessed() && "Processing a block multiple times");
+
     for (RWNode *node : block->getNodes()) {
-        updateDefinitions(D, node);
+        D.update(node);
    }
 
     D.setProcessed();
+    DBG_SECTION_END(dda, "LVN finished");
 }
 
 ///
@@ -382,41 +297,11 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
     for (RWNode *node : block->getNodes()) {
         if (node == to)
             break;
-        updateDefinitions(D, node);
+        D.update(node);
     }
 
     return D;
 }
-
-void MemorySSATransformation::performLvn(RWSubgraph *subgraph) {
-    DBG_SECTION_BEGIN(dda, "Starting LVN for a subgraph");
-    for (RWBBlock *block : subgraph->bblocks()) {
-        performLvn(block);
-    }
-    DBG_SECTION_END(dda, "LVN finished");
-}
-
-// take each use and compute def-use edges (adding PHI nodes if needed)
-/*
-void MemorySSATransformation::performGvn() {
-    DBG_SECTION_BEGIN(dda, "Starting GVN");
-    for (auto *subgraph : graph.subgraphs()) {
-        performGvn(subgraph);
-    }
-
-    DBG_SECTION_END(dda, "GVN finished");
-
-   //DBG_SECTION_BEGIN(dda, "Caching reads of unknown memory (requested)");
-   //for (auto *block :graph.blocks()) {
-   //    for (auto *node : block->getNodes()) {
-   //        if (node->usesUnknown()) {
-   //            findAllReachingDefinitions(node);
-   //        }
-   //    }
-   //}
-   //DBG_SECTION_END(dda, "Caching reads of unknown memory");
-}
-*/
 
 // take each use and compute def-use edges (adding PHI nodes if needed)
 void MemorySSATransformation::performGvn(RWSubgraph *subgraph) {
@@ -427,17 +312,6 @@ void MemorySSATransformation::performGvn(RWSubgraph *subgraph) {
         }
     }
 }
-
-/*
-void MemorySSATransformation::performLvn() {
-    DBG_SECTION_BEGIN(dda, "Starting LVN");
-    for (auto *subgraph : graph.subgraphs()) {
-        performLvn(subgraph);
-    }
-    DBG_SECTION_END(dda, "LVN finished");
-}
-*/
-
 
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
     assert(phi->getType() == RWNodeType::PHI);
@@ -631,8 +505,6 @@ void MemorySSATransformation::run() {
 
     // XXX: maybe we could have _defs per a subgraph?
 
-    // recursively perform LVN on all reachable functions
-    performLvn(graph.getEntry());
     // perform also GVN on the entry subgraph
     performGvn(graph.getEntry());
 

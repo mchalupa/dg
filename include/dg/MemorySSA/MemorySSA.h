@@ -21,14 +21,6 @@ namespace dg {
 namespace dda {
 
 class MemorySSATransformation : public DataDependenceAnalysisImpl {
-    //void performLvn();
-    void performLvn(RWSubgraph *);
-    void performLvn(RWBBlock *);
-
-    //void performGvn();
-    void performGvn(RWSubgraph *);
-
-    struct Summary;
 
     // information about definitions associated to each bblock
     struct Definitions {
@@ -73,11 +65,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         // I.e., as if node would be executed when already
         // having the definitions we have
         void update(RWNode *node, RWNode *defnode = nullptr);
-        // update this Definitions from a Summary
-        void update(Summary *summary, RWNode *defnode);
         // Join another definitions to this Definitions.
         // I.e., perform union of definitions and intersection of overwrites.
-        void joinInterprocedural(Definitions&, RWSubgraph *);
 
         auto uncovered(const DefSite& ds) const -> decltype(kills.undefinedIntervals(ds)) {
             return kills.undefinedIntervals(ds);
@@ -88,21 +77,18 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         void setProcessed() { _processed = true; }
     };
 
-    struct Summary {
-        Definitions definitions;
-        std::vector<RWNode *> reads;
-
-        // pick definitions from 'D' that are not local to the
-        // given subgraph and join them to this summary
-        void joinInterprocedural(Definitions& D, RWSubgraph *);
-    };
-
     ////
     // LVN
     ///
     // Perform LVN up to a certain point.
     // XXX: we could avoid this by (at least virtually) splitting blocks on uses.
     Definitions findDefinitionsInBlock(RWNode *);
+    void performLvn(Definitions&, RWBBlock *);
+
+    //void performGvn();
+    void performGvn(RWSubgraph *);
+
+
 
     ////
     // GVN
@@ -131,24 +117,16 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                                     std::set<RWBBlock *>& visitedBlocks);
 
     void updateCallDefinitions(Definitions& D, RWNodeCall *call);
-    void updateDefinitions(Definitions& D, RWNode *node);
 
     // insert a (temporary) use into the graph before the node 'where'
     RWNode *insertUse(RWNode *where, RWNode *mem,
                       const Offset& off, const Offset& len);
 
-    /// compute a summary for a function
-    Summary *computeSummary(RWSubgraph *);
-
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
-    // summaries for subgraphs
-    std::unordered_map<RWSubgraph *, Summary> _summaries;
 
-    Definitions& getBBlockDefinitions(RWBBlock *b) {
-        return _defs[b];
-    }
+    Definitions& getBBlockDefinitions(RWBBlock *b);
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
@@ -172,20 +150,6 @@ public:
     const Definitions *getDefinitions(RWBBlock *b) const {
         auto it = _defs.find(b);
         if (it == _defs.end())
-            return nullptr;
-        return &it->second;
-    }
-
-    Summary *getSummary(RWSubgraph *s) {
-        auto it = _summaries.find(s);
-        if (it == _summaries.end())
-            return nullptr;
-        return &it->second;
-    }
-
-    const Summary *getSummary(RWSubgraph *s) const {
-        auto it = _summaries.find(s);
-        if (it == _summaries.end())
             return nullptr;
         return &it->second;
     }
