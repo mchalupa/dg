@@ -67,7 +67,6 @@ int main(int argc, char *argv[])
     const char *slicing_criterion = nullptr;
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
-    const char *rda = "ssa";
     const char *entry_func = "main";
     CD_ALG cd_alg = CD_ALG::CLASSIC;
 
@@ -82,8 +81,10 @@ int main(int argc, char *argv[])
             opts &= ~PRINT_USE;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
+        /*
         } else if (strcmp(argv[i], "-dda") == 0) {
-            rda = argv[++i];
+            dda = argv[++i];
+        */
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
         } else if (strcmp(argv[i], "-no-cfg") == 0) {
@@ -164,17 +165,6 @@ int main(int argc, char *argv[])
             = LLVMPointerAnalysisOptions::AnalysisType::inv;
     } else {
         llvm::errs() << "Unknown points to analysis, try: fs, fi, inv\n";
-        abort();
-    }
-
-    if (strcmp(rda, "rd") == 0) {
-        options.DDAOptions.analysisType
-            = LLVMDataDependenceAnalysisOptions::AnalysisType::rd;
-    } else if (strcmp(rda, "ssa") == 0) {
-        options.DDAOptions.analysisType
-            = LLVMDataDependenceAnalysisOptions::AnalysisType::ssa;
-    } else {
-        llvm::errs() << "Unknown reaching definitions analysis, try: rd, ssa\n";
         abort();
     }
 

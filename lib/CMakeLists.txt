@@ -30,16 +30,12 @@ add_library(dgpta SHARED
 target_link_libraries(dgpta PUBLIC dganalysis)
 
 add_library(dgdda SHARED
-	${CMAKE_SOURCE_DIR}/include/dg/ReachingDefinitions/ReachingDefinitions.h
-	${CMAKE_SOURCE_DIR}/include/dg/ReachingDefinitions/RDMap.h
 	${CMAKE_SOURCE_DIR}/include/dg/ReadWriteGraph/RWNode.h
 	${CMAKE_SOURCE_DIR}/include/dg/ReadWriteGraph/RWBBlock.h
 	${CMAKE_SOURCE_DIR}/include/dg/ReadWriteGraph/ReadWriteGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/DataDependence/DataDependenceAnalysisImpl.h
 	${CMAKE_SOURCE_DIR}/include/dg/DataDependence/DataDependence.h
 
-	ReachingDefinitions/BasicRDMap.cpp
-	ReachingDefinitions/ReachingDefinitions.cpp
 	ReadWriteGraph/ReadWriteGraph.cpp
 	MemorySSA/MemorySSA.cpp
 )

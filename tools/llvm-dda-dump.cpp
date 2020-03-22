@@ -311,38 +311,6 @@ private:
             printf(" [%u]\n", node->getID());
     }
 
-    void dumpMap(RWNode *node) {
-        auto& map = node->def_map;
-        if (map.empty()) {
-            return;
-        }
-
-        printf("----- def_map -----\\n\n");
-        for (const auto& it : map) {
-            for (RWNode *site : it.second) {
-                printName(it.first.target);
-                // don't print offsets with unknown memory
-                if (it.first.target == UNKNOWN_MEMORY) {
-                    printf(" => ");
-                } else {
-                    if (it.first.offset.isUnknown())
-                        printf(" | ? | => ");
-                    else if (it.first.len.isUnknown())
-                        printf(" | %lu - ? | => ", *it.first.offset);
-                    else
-                        printf(" | %lu - %lu | => ", *it.first.offset,
-                               *it.first.offset + *it.first.len - 1);
-                }
-
-                printName(site);
-                if (dot)
-                    printf("\\n");
-                else
-                    putchar('\n');
-            }
-        }
-    }
-
     void _dumpDefSites(const std::set<DefSite>& defs,
                        const char *kind) {
         if (defs.empty())
@@ -414,8 +382,6 @@ private:
             }
         }
 
-      ////dumpMap(node);
-
         puts("</table>>"); // end of label
         printf(" style=filled fillcolor=white shape=box]\n");
     }
@@ -431,7 +397,6 @@ private:
         if (n->getSize() > 0)
             printf(" [size: %lu]", n->getSize());
         putchar('\n');
-        dumpMap(n);
         printf("---\n");
     }
     */
@@ -525,18 +490,19 @@ int main(int argc, char *argv[])
     bool graph_only = false;
     const char *module = nullptr;
     Offset::type field_sensitivity = Offset::UNKNOWN;
-    bool rd_strong_update_unknown = false;
-    Offset::type max_set_size = Offset::UNKNOWN;
+    bool strong_update_unknown = false;
 
     enum {
         FLOW_SENSITIVE = 1,
         FLOW_INSENSITIVE,
     } type = FLOW_INSENSITIVE;
 
+    /*
     enum class RdaType {
         DATAFLOW,
         SSA
     } rda = RdaType::SSA;
+    */
 
     // parse options
     for (int i = 1; i < argc; ++i) {
@@ -544,19 +510,15 @@ int main(int argc, char *argv[])
         if (strcmp(argv[i], "-pta") == 0) {
             if (strcmp(argv[i+1], "fs") == 0)
                 type = FLOW_SENSITIVE;
+            /*
         } else if (strcmp(argv[i], "-dda") == 0) {
             if (strcmp(argv[i+1], "ssa") == 0)
                 rda = RdaType::SSA;
+                */
         } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
             field_sensitivity = static_cast<Offset::type>(atoll(argv[i + 1]));
-        } else if (strcmp(argv[i], "-rd-max-set-size") == 0) {
-            max_set_size = static_cast<Offset::type>(atoll(argv[i + 1]));
-            if (max_set_size == 0) {
-                llvm::errs() << "Invalid -rd-max-set-size argument\n";
-                abort();
-            }
-        } else if (strcmp(argv[i], "-rd-strong-update-unknown") == 0) {
-            rd_strong_update_unknown = true;
+        } else if (strcmp(argv[i], "-strong-update-unknown") == 0) {
+            strong_update_unknown = true;
         } else if (strcmp(argv[i], "-dot") == 0) {
             todot = true;
         } else if (strcmp(argv[i], "-threads") == 0) {
@@ -617,13 +579,8 @@ int main(int argc, char *argv[])
     LLVMDataDependenceAnalysisOptions opts;
     opts.threads = threads;
     opts.entryFunction = entryFunc;
-    opts.strongUpdateUnknown = rd_strong_update_unknown;
-    opts.maxSetSize = max_set_size;
-    if (rda == RdaType::SSA) {
-        opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::ssa;
-    } else {
-        opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::rd;
-    }
+    opts.strongUpdateUnknown = strong_update_unknown;
+    opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::ssa;
 
     tm.start();
     LLVMDataDependenceAnalysis DDA(M, &PTA, opts);

@@ -29,7 +29,7 @@ def parse_cmake_cache(cmakecache):
                 TOOLSDIR=abspath(join(parts[1].strip(), 'tools/'))
 
 configs = {
-    '-dda': ['rd', 'ssa'],
+#    '-dda': ['rd', 'ssa'],
     '-pta': ['fi', 'fs', 'inv'],
     '-cd-alg': ['ntscd', 'classic'],
 }
