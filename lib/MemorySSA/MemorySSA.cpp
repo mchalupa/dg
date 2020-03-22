@@ -128,6 +128,36 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     return defs;
 }
 
+RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSite& ds) {
+    // create PHI node and find definitions for the PHI node
+    auto& D = getBBlockDefinitions(block);
+
+    // This phi is the definition that we are looking for.
+    _phis.emplace_back(&graph.create(RWNodeType::PHI));
+    auto *phi = _phis.back();
+
+    phi->addOverwrites(ds);
+    // update definitions in the block -- this
+    // phi node defines previously uncovered memory
+    auto uncovered = D.uncovered(ds);
+    for (auto& interval : uncovered) {
+        DefSite uds{ds.target, interval.start, interval.length()};
+        assert(D.kills.get(uds).empty());
+        D.definitions.update(uds, phi);
+        D.kills.add(uds, phi);
+
+        // to simulate the whole LVN, we must add also writes to unknown memory
+        if (!D.getUnknownWrites().empty()) {
+            D.definitions.add(uds, D.getUnknownWrites());
+        }
+    }
+
+    // Inserting at the beginning of the block should not
+    // invalidate the iterator
+    block->prependAndUpdateCFG(phi);
+    return phi;
+}
+
 ///
 // Find the nodes that define the given def-site in the predecessors
 // of block.  Create PHI nodes if needed.
@@ -158,35 +188,11 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             defs.insert(defs.end(), preddefs.begin(), preddefs.end());
         }
     } else { // multiple predecessors
-        // create PHI node and find definitions for the PHI node
-        auto& D = getBBlockDefinitions(block);
-
-        // This phi is the definition that we are looking for.
-        _phis.emplace_back(&graph.create(RWNodeType::PHI));
-        _phis.back()->addOverwrites(ds);
-        // update definitions in the block -- this
-        // phi node defines previously uncovered memory
-        auto uncovered = D.uncovered(ds);
-        for (auto& interval : uncovered) {
-            DefSite uds{ds.target, interval.start, interval.length()};
-            assert(D.kills.get(uds).empty());
-            D.definitions.update(uds, _phis.back());
-            D.kills.add(uds, _phis.back());
-
-            // to simulate the whole LVN, we must add also writes to unknown memory
-            if (!D.getUnknownWrites().empty()) {
-                D.definitions.add(uds, D.getUnknownWrites());
-            }
-        }
-
-        // Inserting at the beginning of the block should not
-        // invalidate the iterator
-        block->prependAndUpdateCFG(_phis.back());
-
+        auto *phi = createAndPlacePhi(block, ds);
         // this represents the sought definition
-        defs.push_back(_phis.back());
-
-        findPhiDefinitions(_phis.back());
+        defs.push_back(phi);
+        // recursively find definitions for this phi node
+        findPhiDefinitions(phi);
     }
 
     return defs;
