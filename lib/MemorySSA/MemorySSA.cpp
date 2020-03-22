@@ -128,15 +128,13 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     return defs;
 }
 
-RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSite& ds) {
-    // create PHI node and find definitions for the PHI node
-    auto& D = getBBlockDefinitions(block);
-
+RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds) {
     // This phi is the definition that we are looking for.
     _phis.emplace_back(&graph.create(RWNodeType::PHI));
     auto *phi = _phis.back();
 
     phi->addOverwrites(ds);
+
     // update definitions in the block -- this
     // phi node defines previously uncovered memory
     auto uncovered = D.uncovered(ds);
@@ -152,8 +150,13 @@ RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSit
         }
     }
 
-    // Inserting at the beginning of the block should not
-    // invalidate the iterator
+    return phi;
+}
+
+RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSite& ds) {
+    // create PHI node and find definitions for the PHI node
+    auto& D = getBBlockDefinitions(block, &ds);
+    auto *phi = createPhi(D, ds);
     block->prependAndUpdateCFG(phi);
     return phi;
 }
@@ -188,6 +191,8 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             defs.insert(defs.end(), preddefs.begin(), preddefs.end());
         }
     } else { // multiple predecessors
+        // The phi node will be placed at the beginning of the block,
+        // so the iterator should not be invalidated
         auto *phi = createAndPlacePhi(block, ds);
         // this represents the sought definition
         defs.push_back(phi);
