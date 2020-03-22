@@ -178,7 +178,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     // if something is missing
     if (auto pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
-        auto& D = getBBlockDefinitions(pred);
+        auto& D = getBBlockDefinitions(pred, &ds);
 
         addFoundDefinitions(defs, pdefs, D);
 
@@ -214,19 +214,7 @@ void MemorySSATransformation::findPhiDefinitions(RWNode *phi) {
     assert(!block->getSinglePredecessor() &&
            "Phi in a block with single predecessor");
 
-    std::set<RWNode *> defs;
-
-    assert(phi->overwrites.size() == 1);
-    const auto& ds = *(phi->overwrites.begin());
-    // we handle this case separately
-    assert(!ds.target->isUnknown() && "PHI for unknown memory");
-
-    for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-        auto tmpdefs = findDefinitions(*I, ds);
-        defs.insert(tmpdefs.begin(), tmpdefs.end());
-    }
-
-    phi->defuse.add(defs);
+    findPhiDefinitions(phi, block->getPredecessors());
 }
 
 
@@ -248,13 +236,13 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
 
     assert(ds.target && "Target is null");
 
-    // Find known definitions.
-    auto& D = getBBlockDefinitions(block);
-
     if (hasCachedDefinitions(block)) { // do we have a cache?
         auto defSet = getCachedDefinitions(block).get(ds);
         return std::vector<RWNode *>{defSet.begin(), defSet.end()};
     }
+
+    // Find known definitions.
+    auto& D = getBBlockDefinitions(block, &ds);
 
     // XXX: wrap this into a get() method of Definitions
     auto defSet = D.definitions.get(ds);
@@ -279,11 +267,54 @@ MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
     return _cached_defs[b];
 }
 
+static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
+    if (b->size() != 1)
+        return nullptr;
+    return RWNodeCall::get(b->getFirst());
+}
+
+void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
+                                                      RWNodeCall *C,
+                                                      const DefSite& ds) {
+    // check if we have found such a definitions before
+    auto uncovered = D.uncovered(ds);
+    for (auto& interval : uncovered) {
+        auto uncoveredds = DefSite{ds.target, interval.start, interval.length()};
+        auto *phi = createPhi(D, uncoveredds);
+
+        // recursively find definitions for this phi node
+        for (auto& callee : C->getCallees()) {
+            auto *subg = callee.getSubgraph();
+            assert(subg && "Undefined values mixed with subgraph yet undefined");
+
+            for (auto *subgblock : subg->bblocks()) {
+                if (subgblock->hasSuccessors()) {
+                    continue;
+                }
+                phi->defuse.add(findDefinitions(subgblock, uncoveredds));
+            }
+        }
+    }
+}
+
+
+///
+/// Get Definitions object for a bblock. Optionally, a definition site due to
+///  which we are getting the definitions can be specified (used when searching
+///  in call blocks on demand)
+///
 MemorySSATransformation::Definitions&
-MemorySSATransformation::getBBlockDefinitions(RWBBlock *b) {
+MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     auto& D = _defs[b];
-    if (!D.isProcessed()) {
-        performLvn(D, b);
+
+    if (auto *C = getCallFromCallBBlock(b)) {
+        assert(ds && "Search without defsite unsupported yet");
+        findDefinitionsFromCall(D, C, *ds);
+    } else {
+        // normal basic block
+        if (!D.isProcessed()) {
+            performLvn(D, b);
+        }
     }
     return D;
 }
@@ -430,14 +461,13 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
     }
 
     // we already computed all the definitions during some search? Then use it.
-    auto& D = getBBlockDefinitions(from);
     if (hasCachedDefinitions(from)) {
         joinDefinitions(getCachedDefinitions(from), defs);
         return;
     }
 
     // get the definitions from this block
-    joinDefinitions(D.definitions, defs);
+    joinDefinitions(getBBlockDefinitions(from).definitions, defs);
 
     // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
