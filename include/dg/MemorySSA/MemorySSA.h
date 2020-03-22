@@ -112,6 +112,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void updateCallDefinitions(Definitions& D, RWNodeCall *call);
 
+    RWNode *createPhi(Definitions& D, const DefSite& ds);
     RWNode *createAndPlacePhi(RWBBlock *block, const DefSite& ds);
 
     // insert a (temporary) use into the graph before the node 'where'
