@@ -60,13 +60,13 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
 
     auto whereN = getNode(where);
     if (!whereN) {
-        llvm::errs() << "[RD] error: no node for: " << *where << "\n";
+        llvm::errs() << "[DDA] error: no node for: " << *where << "\n";
         return defs;
     }
 
     auto memN = getNode(mem);
     if (!memN) {
-        llvm::errs() << "[RD] error: no node for: " << *mem << "\n";
+        llvm::errs() << "[DDA] error: no node for: " << *mem << "\n";
         return defs;
     }
 
@@ -74,7 +74,7 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
     if (rdDefs.empty()) {
         static std::set<std::pair<const llvm::Value *, const llvm::Value *>> reported;
         if (reported.insert({where, mem}).second) {
-            llvm::errs() << "[RD] error: no reaching definition for: "
+            llvm::errs() << "[DDA] error: no reaching definition for: "
                          << *mem << "at " << *where << "\n";
         }
     }
@@ -83,7 +83,7 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
     for (RWNode *nd : rdDefs) {
         assert(nd->getType() != RWNodeType::PHI);
         auto llvmvalue = nd->getUserData<llvm::Value>();
-        assert(llvmvalue && "RD node has no value");
+        assert(llvmvalue && "RWG node has no value");
         defs.push_back(llvmvalue);
     }
 
@@ -98,33 +98,36 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
 
     auto loc = getNode(use);
     if (!loc) {
-        llvm::errs() << "[RD] error: no node for: " << *use << "\n";
+        llvm::errs() << "[DDA] error: no node for: " << *use << "\n";
         return defs;
     }
 
     if (loc->getUses().empty()) {
-        llvm::errs() << "[RD] error: the queried value has empty uses: " << *use << "\n";
+        llvm::errs() << "[DDA] error: the queried value has empty uses: "
+                     << *use << "\n";
         return defs;
     }
 
     if (!llvm::isa<llvm::LoadInst>(use) && !llvm::isa<llvm::CallInst>(use)) {
-        llvm::errs() << "[RD] error: the queried value is not a use: " << *use << "\n";
+        llvm::errs() << "[DDA] error: the queried value is not a use: "
+                     << *use << "\n";
     }
 
     auto rdDefs = getDefinitions(loc);
     if (rdDefs.empty()) {
         static std::set<const llvm::Value *> reported;
         if (reported.insert(use).second) {
-            llvm::errs() << "[RD] error: no reaching definition for: " << *use << "\n";
+            llvm::errs() << "[DDA] error: no reaching definition for: "
+                         << *use << "\n";
         }
     }
 
     //map the values
     for (RWNode *nd : rdDefs) {
         assert(nd->getType() != RWNodeType::PHI);
-        auto llvmvalue = nd->getUserData<llvm::Value>();
-        assert(llvmvalue && "RD node has no value");
-        defs.push_back(llvmvalue);
+        auto llvmvalue = getValue(nd);
+        assert(llvmvalue && "Have no value for a node");
+        defs.push_back(const_cast<llvm::Value*>(llvmvalue));
     }
 
     return defs;
