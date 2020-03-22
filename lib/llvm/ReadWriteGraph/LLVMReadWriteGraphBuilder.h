@@ -121,7 +121,6 @@ class GraphBuilder {
 protected:
 
     NodesSeq<NodeT> buildNode(const llvm::Value *val) {
-        llvm::errs() << "Creating " << *val << "\n";
         auto it = _nodes.find(val);
         if (it != _nodes.end()) {
         }
