@@ -458,7 +458,7 @@ class MemorySSADumper : public Dumper {
 
     void dumpBBlockDefinitions(RWBBlock *block) override {
         auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
-        auto *D = SSA->getBBlockDefinitions(block);
+        auto *D = SSA->getDefinitions(block);
         if (!D)
             return;
         printf("<tr><td colspan=\"4\">==  defines ==</td></tr>");

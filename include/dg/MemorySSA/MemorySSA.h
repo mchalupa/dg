@@ -146,6 +146,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // summaries for subgraphs
     std::unordered_map<RWSubgraph *, Summary> _summaries;
 
+    Definitions& getBBlockDefinitions(RWBBlock *b) {
+        return _defs[b];
+    }
+
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
                             const DataDependenceAnalysisOptions& opts)
@@ -165,7 +169,7 @@ public:
 
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
 
-    const Definitions *getBBlockDefinitions(RWBBlock *b) const {
+    const Definitions *getDefinitions(RWBBlock *b) const {
         auto it = _defs.find(b);
         if (it == _defs.end())
             return nullptr;

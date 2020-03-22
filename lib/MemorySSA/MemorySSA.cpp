@@ -171,7 +171,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     // if something is missing
     if (auto pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
-        auto& D = _defs[pred];
+        auto& D = getBBlockDefinitions(pred);
 
         addFoundDefinitions(defs, pdefs, D);
 
@@ -185,7 +185,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
         }
     } else { // multiple predecessors
         // create PHI node and find definitions for the PHI node
-        auto& D = _defs[block];
+        auto& D = getBBlockDefinitions(block);
 
         // This phi is the definition that we are looking for.
         _phis.emplace_back(&graph.create(RWNodeType::PHI));
@@ -264,7 +264,7 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     assert(ds.target && "Target is null");
 
     // Find known definitions.
-    auto& D = _defs[block];
+    auto& D = getBBlockDefinitions(block);
 
     if (!D.allDefinitions.empty()) { // do we have a cache?
         auto defSet = D.allDefinitions.get(ds);
@@ -304,7 +304,7 @@ MemorySSATransformation::computeSummary(RWSubgraph *subg) {
         if (block->getSuccessors().empty()) {
             assert(_defs.find(block) != _defs.end() && "Did not process a block");
             assert(_defs[block].isProcessed());
-            S.joinInterprocedural(_defs[block], subg);
+            S.joinInterprocedural(getBBlockDefinitions(block), subg);
         }
     }
     return &S;
@@ -535,12 +535,12 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
     if (!visitedBlocks.insert(from).second) {
         // we already visited this block, therefore we have computed
         // all reaching definitions and we can re-use them
-        joinDefinitions(_defs[from].allDefinitions, defs);
+        joinDefinitions(getBBlockDefinitions(from).allDefinitions, defs);
         return;
     }
 
     // we already computed all the definitions during some search? Then use it.
-    auto& D = _defs[from];
+    auto& D = getBBlockDefinitions(from);
     if (!D.allDefinitions.empty()) {
         joinDefinitions(D.allDefinitions, defs);
         return;
@@ -582,7 +582,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
         assert(defs.empty());
         findAllReachingDefinitions(defs, singlePred, visitedBlocks);
         // cache the found definitions
-        _defs[singlePred].allDefinitions = defs;
+        getBBlockDefinitions(singlePred).allDefinitions = defs;
     } else {
         // for multiple predecessors, we must create a copy of the
         // definitions that we have not found yet (a new copy for each
