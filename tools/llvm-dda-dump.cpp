@@ -465,10 +465,12 @@ class MemorySSADumper : public Dumper {
         dumpDDIMap(D->definitions);
         printf("<tr><td colspan=\"4\">==  kills ==</td></tr>");
         dumpDDIMap(D->kills);
+        /*
         if (!D->allDefinitions.empty()) {
             printf("<tr><td colspan=\"4\">== all defs cached ==</td></tr>");
             dumpDDIMap(D->allDefinitions);
         }
+        */
     }
 
     /*
