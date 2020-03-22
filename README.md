@@ -243,9 +243,9 @@ and playing with the llvm bitcode. Except for the `llvm-slicer` you can find the
 
 * `llvm-dg-dump`      - Dump the dependence graph for given program to graphviz format (to stdout)
 * `llvm-pta-dump`     - dump pointer subgraph and results of the points-to analysis to stdout
-* `llvm-dda-dump`     - display reaching definitions in llvm-bitcode
+* `llvm-dda-dump`     - display data dependencies between instructions in a llvm bitcode
 * `llvmdg-show`       - wrapper for llvm-dg-dump that displays the dependence graph in dot
-* `llvmdda-dump`      - wrapper for llvm-dda-dump that displays reaching definitions in dot
+* `llvmdda-dump`      - wrapper for llvm-dda-dump that displays data dependencies in dot
 * `pta-show`          - wrapper for llvm-pta-dump that prints the PS in grapviz to pdf
 * `llvm-to-source`    - find lines from the source code that are in given file
 

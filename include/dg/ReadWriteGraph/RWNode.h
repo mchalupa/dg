@@ -3,11 +3,11 @@
 
 #include <vector>
 
+#include "DefSite.h"
 #include "dg/Offset.h"
 #include "dg/SubgraphNode.h"
 
 #include "dg/DataDependence/DataDependenceAnalysisOptions.h"
-#include "dg/ReachingDefinitions/RDMap.h"
 
 namespace dg {
 namespace dda {
@@ -111,10 +111,6 @@ public:
     // (so this node has non-empty uses)
     DefUses defuse;
 
-    // state of the data-flow analysis
-    // FIXME: get rid of this in a general node
-    RDMap def_map;
-
     RWNodeType getType() const { return type; }
     DefSiteSetT& getDefines() { return defs; }
     DefSiteSetT& getOverwrites() { return overwrites; }
@@ -177,9 +173,6 @@ public:
             overwrites.insert(ds);
         else
             defs.insert(ds);
-
-        // TODO: Get rid of this!
-        def_map.update(ds, this);
     }
 
     ///

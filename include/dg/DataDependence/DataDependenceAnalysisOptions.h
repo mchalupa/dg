@@ -88,10 +88,9 @@ private:
 
 struct DataDependenceAnalysisOptions : AnalysisOptions {
     // default one
-    enum class AnalysisType { rd, ssa } analysisType{AnalysisType::ssa};
+    enum class AnalysisType { ssa } analysisType{AnalysisType::ssa};
 
     bool isSSA() const { return analysisType == AnalysisType::ssa;}
-    bool isReachingDefinitions() const { return analysisType == AnalysisType::rd;}
 
     // Should we perform strong update with unknown memory?
     // NOTE: not sound.
@@ -99,10 +98,6 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
 
     // Undefined functions have no side-effects
     bool undefinedArePure{false};
-
-    // Maximal size of the reaching definitions set.
-    // If this size is exceeded, the set is cropped to unknown.
-    Offset maxSetSize{Offset::UNKNOWN};
 
     // Does the analysis track concrete bytes
     // or just objects?
@@ -114,10 +109,6 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
 
     DataDependenceAnalysisOptions& setUndefinedArePure(bool b) {
         undefinedArePure = b; return *this;
-    }
-
-    DataDependenceAnalysisOptions& setMaxSetSize(Offset s) {
-        maxSetSize = s; return *this;
     }
 
     DataDependenceAnalysisOptions& setFieldInsensitive(bool b) {

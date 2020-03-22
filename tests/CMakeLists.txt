@@ -16,27 +16,6 @@ add_dependencies(check points-to-test)
 target_link_libraries(points-to-test PRIVATE dgpta)
 
 # --------------------------------------------------
-# rdmap-test
-# DISABLED for now: it contains just a one that case
-# that does nothing and even though it behaved weirdly
-# on some machines for no reason.
-# --------------------------------------------------
-# add_executable(rdmap-test rdmap-test.cpp)
-# target_link_libraries(rdmap-test PRIVATE dganalysis)
-# add_test(rdmap-test rdmap-test)
-# add_dependencies(check rdmap-test)
-# target_link_libraries(rdmap-test PRIVATE dgdda)
-# target_include_directories(rdmap-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
-
-# --------------------------------------------------
-# reaching-definitions-test
-# --------------------------------------------------
-add_executable(reaching-definitions-test reaching-definitions-test.cpp)
-add_test(reaching-definitions-test reaching-definitions-test)
-add_dependencies(check reaching-definitions-test)
-target_link_libraries(reaching-definitions-test PRIVATE dgdda)
-
-# --------------------------------------------------
 # read write graph test
 # --------------------------------------------------
 add_executable(readwritegraph-test readwritegraph-test.cpp)

@@ -2,6 +2,8 @@
 #define DG_BBLOCKS_BUILDER_H_
 
 #include <cassert>
+#include <memory>
+
 #include "dg/ADT/Queue.h"
 
 namespace dg {

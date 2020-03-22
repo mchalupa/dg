@@ -171,12 +171,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
         llvm::cl::init(LLVMPointerAnalysisOptions::AnalysisType::fi), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<LLVMDataDependenceAnalysisOptions::AnalysisType> ddaType("dda",
-        llvm::cl::desc("Choose reaching definitions analysis to use:"),
+        llvm::cl::desc("Choose data dependence analysis to use:"),
         llvm::cl::values(
-            clEnumValN(LLVMDataDependenceAnalysisOptions::AnalysisType::rd,
-                       "rd", "Reaching definitions DDA"),
             clEnumValN(LLVMDataDependenceAnalysisOptions::AnalysisType::ssa,
-                       "ssa", "MemorySSA DDA")
+                       "ssa", "MemorySSA DDA (the only option right now)")
     #if LLVM_VERSION_MAJOR < 4
             , nullptr
     #endif

@@ -1,11 +1,20 @@
 #include <set>
 #include <vector>
 
-#include "dg/ReachingDefinitions/ReachingDefinitions.h"
+#include "dg/ReadWriteGraph/ReadWriteGraph.h"
 #include "dg/BBlocksBuilder.h"
 
 namespace dg {
 namespace dda {
+
+RWNode UNKNOWN_MEMLOC;
+RWNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
+
+#ifndef NDEBUG
+void RWNode::dump() const {
+       std::cout << getID() << "\n";
+}
+#endif
 
 void ReadWriteGraph::removeUselessNodes() {
 }

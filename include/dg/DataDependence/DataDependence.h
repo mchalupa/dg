@@ -9,7 +9,6 @@
 #include "dg/DataDependence/DataDependenceAnalysisOptions.h"
 #include "dg/ReadWriteGraph/ReadWriteGraph.h"
 #include "dg/MemorySSA/MemorySSA.h"
-#include "dg/ReachingDefinitions/ReachingDefinitions.h"
 
 #include "dg/util/debug.h"
 
@@ -28,11 +27,8 @@ class DataDependenceAnalysis {
     DataDependenceAnalysisImpl *
     createAnalysis(ReadWriteGraph&& graph,
                    const DataDependenceAnalysisOptions& opts) {
-        if (opts.isSSA()) {
-            return new MemorySSATransformation(std::move(graph), opts);
-        } else {
-            return new ReachingDefinitionsAnalysis(std::move(graph), opts);
-        }
+        assert(opts.isSSA() && "Unsupported analysis");
+        return new MemorySSATransformation(std::move(graph), opts);
     }
 
     const DataDependenceAnalysisOptions& _options;
@@ -71,8 +67,6 @@ public:
     DataDependenceAnalysisImpl *getImpl() { return _impl.get(); }
     const DataDependenceAnalysisImpl *getImpl() const { return _impl.get(); }
 };
-
-
 
 } // namespace dda
 } // namespace dg
