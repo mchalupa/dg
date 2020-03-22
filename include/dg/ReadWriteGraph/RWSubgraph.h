@@ -25,6 +25,8 @@ class RWSubgraph {
             = std::remove_reference<decltype(*(std::declval<BBlocksVecT::iterator>()->get()))>::type;
 
         block_iterator(const BBlocksVecT::iterator& it) : BBlocksVecT::iterator(it) {}
+        block_iterator(const block_iterator&) = default;
+        block_iterator() = default;
 
         ContainedType *operator*() {
             return (BBlocksVecT::iterator::operator*()).get();

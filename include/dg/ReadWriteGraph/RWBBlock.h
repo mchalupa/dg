@@ -30,6 +30,9 @@ public:
     const EdgesT getSuccessors() const { return _successors; }
     const EdgesT getPredecessors() const { return _predecessors; }
 
+    bool hasSuccessors() const { return !_successors.empty(); }
+    bool hasPredecessors() const { return !_predecessors.empty(); }
+
     void addSuccessor(BBlockT *s) {
         for (auto *succ : _successors) {
             if (succ == s)

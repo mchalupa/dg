@@ -103,6 +103,26 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void findPhiDefinitions(RWNode *phi);
 
+    void findDefinitionsFromCall(Definitions& D, RWNodeCall *C, const DefSite& ds);
+
+    template <typename Iterable>
+    void findPhiDefinitions(RWNode *phi, Iterable& I) {
+        std::set<RWNode *> defs;
+
+        assert(phi->overwrites.size() == 1);
+        const auto& ds = *(phi->overwrites.begin());
+        // we handle this case separately
+        assert(!ds.target->isUnknown() && "PHI for unknown memory");
+
+        for (auto *block : I) {
+            auto tmpdefs = findDefinitions(block, ds);
+            defs.insert(tmpdefs.begin(), tmpdefs.end());
+        }
+
+        phi->defuse.add(defs);
+    }
+
+
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RWNode *> findAllReachingDefinitions(RWNode *from);
@@ -124,7 +144,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     std::unordered_map<RWBBlock *, Definitions> _defs;
     std::unordered_map<RWBBlock *, DefinitionsMap<RWNode>> _cached_defs;
 
-    Definitions& getBBlockDefinitions(RWBBlock *b);
+    Definitions& getBBlockDefinitions(RWBBlock *b, const DefSite *ds = nullptr);
     DefinitionsMap<RWNode>& getCachedDefinitions(RWBBlock *b);
     bool hasCachedDefinitions(RWBBlock *b) const { return _cached_defs.count(b) > 0; }
 
