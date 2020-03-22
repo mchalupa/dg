@@ -35,10 +35,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         // as data structure here (if you find the sought memory here, you can
         // terminate the search)
         DefinitionsMap<RWNode> kills;
-        // cache for all definitions that reach the end of this block.
-        // You can terminate the search once you find this map and it is
-        // non-empty.
-        DefinitionsMap<RWNode> allDefinitions;
 
         // writes to unknown memory in this block
         std::vector<RWNode*> unknownWrites;
@@ -88,8 +84,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     //void performGvn();
     void performGvn(RWSubgraph *);
 
-
-
     ////
     // GVN
     ///
@@ -125,8 +119,11 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
+    std::unordered_map<RWBBlock *, DefinitionsMap<RWNode>> _cached_defs;
 
     Definitions& getBBlockDefinitions(RWBBlock *b);
+    DefinitionsMap<RWNode>& getCachedDefinitions(RWBBlock *b);
+    bool hasCachedDefinitions(RWBBlock *b) const { return _cached_defs.count(b) > 0; }
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
