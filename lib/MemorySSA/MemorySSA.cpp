@@ -385,16 +385,6 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
     return D;
 }
 
-// take each use and compute def-use edges (adding PHI nodes if needed)
-void MemorySSATransformation::performGvn(RWSubgraph *subgraph) {
-    for (RWBBlock *block : subgraph->bblocks()) {
-        for (RWNode *node : block->getNodes()) {
-            if (node->isUse())
-                node->defuse.add(findDefinitions(node));
-        }
-    }
-}
-
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
     assert(phi->getType() == RWNodeType::PHI);
     if (!phis.insert(phi).second)
@@ -428,6 +418,11 @@ std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
 
 std::vector<RWNode *>
 MemorySSATransformation::getDefinitions(RWNode *use) {
+    // on demand triggering finding the definitions
+    if (!use->defuse.initialized()) {
+        use->defuse.add(findDefinitions(use));
+        assert(use->defuse.initialized());
+    }
     return gatherNonPhisDefs(use->defuse);
 }
 
@@ -440,9 +435,8 @@ MemorySSATransformation::getDefinitions(RWNode *where,
                                         const Offset& len) {
     //DBG_SECTION_BEGIN(dda, "Adding MU node");
     auto *use = insertUse(where, mem, off, len);
-    use->defuse.add(findDefinitions(use));
     //DBG_SECTION_END(dda, "Created MU node " << use->getID());
-    return gatherNonPhisDefs(use->defuse);
+    return getDefinitions(use);
 }
 
 RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
@@ -586,9 +580,6 @@ void MemorySSATransformation::run() {
     graph.splitBBlocksOnCalls();
 
     // XXX: maybe we could have _defs per a subgraph?
-
-    // perform also GVN on the entry subgraph
-    performGvn(graph.getEntry());
 
     DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
 }
