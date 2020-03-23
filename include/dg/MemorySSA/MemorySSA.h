@@ -81,11 +81,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     Definitions findDefinitionsInBlock(RWNode *);
     void performLvn(Definitions&, RWBBlock *);
 
-    //void performGvn();
-    void performGvn(RWSubgraph *);
-
-    ////
-    // GVN
     ///
     // Find definitions of the def site and return def-use edges.
     // For the uncovered bytes create phi nodes (which are also returned

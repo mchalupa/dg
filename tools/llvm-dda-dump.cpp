@@ -51,6 +51,7 @@ using llvm::errs;
 
 static bool verbose = false;
 static const char *entryFunc = "main";
+bool graph_only = false;
 
 static inline size_t count_ws(const std::string& str) {
     size_t n = 0;
@@ -197,7 +198,7 @@ public:
         RWNode *last = nullptr;
         for(RWNode *node : block->getNodes()) {
             if (last) { // successor edge
-                printf("\tNODE%p->NODE%p\n",
+                printf("\tNODE%p->NODE%p [constraint=true]\n",
                        static_cast<void*>(last), static_cast<void*>(node));
             }
             last = node;
@@ -206,16 +207,18 @@ public:
 
         // dump def-use edges and call edges
         for(RWNode *node : block->getNodes()) {
-            if (node->getType() == RWNodeType::PHI) {
-                for (RWNode *def : node->defuse) {
-                    printf("\tNODE%p->NODE%p [style=dotted]\n",
-                           static_cast<void*>(def), static_cast<void*>(node));
+            if (!graph_only) {
+                if (node->getType() == RWNodeType::PHI) {
+                    for (RWNode *def : node->defuse) {
+                        printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
+                               static_cast<void*>(def), static_cast<void*>(node));
+                    }
                 }
-            }
-            if (node->isUse()) {
-                for (RWNode *def : DDA->getDefinitions(node)) {
-                    printf("\tNODE%p->NODE%p [style=dotted color=blue]\n",
-                           static_cast<void*>(def), static_cast<void*>(node));
+                if (node->isUse()) {
+                    for (RWNode *def : DDA->getDefinitions(node)) {
+                        printf("\tNODE%p->NODE%p [style=dotted constraint=false color=blue]\n",
+                               static_cast<void*>(def), static_cast<void*>(node));
+                    }
                 }
             }
             if (auto *C = RWNodeCall::get(node)) {
@@ -291,7 +294,7 @@ public:
             for (auto bblock : subg->bblocks()) {
                 for (auto *succ : bblock->getSuccessors()) {
                     printf("\tNODE%p -> NODE%p "
-                           "[penwidth=2"
+                           "[penwidth=2 constraint=true"
                            " lhead=\"cluster_bb_%p\""
                            " ltail=\"cluster_bb_%p\"]\n",
                            bblock->empty() ? static_cast<void*>(bblock) :
@@ -493,7 +496,6 @@ int main(int argc, char *argv[])
     llvm::SMDiagnostic SMD;
     bool todot = false;
     bool threads = false;
-    bool graph_only = false;
     const char *module = nullptr;
     Offset::type field_sensitivity = Offset::UNKNOWN;
     bool strong_update_unknown = false;
