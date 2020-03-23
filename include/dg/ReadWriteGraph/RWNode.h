@@ -228,6 +228,7 @@ public:
 
     bool isUse() const { return !uses.empty(); }
 
+    const RWBBlock *getBBlock() const { return bblock; }
     RWBBlock *getBBlock() { return bblock; }
     void setBBlock(RWBBlock *bb) { bblock = bb; }
 
