@@ -156,7 +156,7 @@ protected:
         }
 
         if (node == UNKNOWN_MEMORY) {
-            printf("UNKNOWN MEMORY");
+            printf("unknown mem");
             return;
         }
 
@@ -167,6 +167,7 @@ protected:
             auto *val = DDA->getValue(node);
             if (!val) {
                 printRWNodeType(node->getType());
+                printId(node);
                 return;
             }
 
@@ -188,6 +189,42 @@ protected:
             putchar(name[i]);
         }
     }
+
+    void nodeToDot(const RWNode *node) {
+        printf("\tNODE%p ", static_cast<const void*>(node));
+        printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
+        printf("<td><font color=\"#af0000\">");
+        printName(node);
+        printf("</font></td>");
+        printf("</tr>\n");
+
+        if (node->getSize() > 0) {
+              printf("<tr><td></td><td>size: %lu</td></tr>\n", node->getSize());
+        }
+
+        if (verbose) {
+            dumpDefines(node);
+            dumpOverwrites(node);
+            dumpUses(node);
+        }
+
+        // dumped data for undefined functions
+        // (call edges will be dumped with other edges)
+        if (auto *C = RWNodeCall::get(node)) {
+            for (auto& cv : C->getCallees()) {
+                if (const RWNode *undef = cv.getCalledValue()) {
+                    printf("<tr><td></td><td>------ undef call ------</td></tr>\n");
+                    dumpDefines(undef);
+                    dumpOverwrites(undef);
+                    dumpUses(undef);
+                }
+            }
+        }
+
+        puts("</table>>"); // end of label
+        printf(" style=filled fillcolor=white shape=box]\n");
+    }
+
 
 public:
     Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = true)
@@ -270,6 +307,7 @@ public:
         printf("digraph \"Data Dependencies Graph\" {\n");
         printf("  compound=true;\n\n");
 
+
         /*
         for (auto *global : DDA->getGraph()->getGlobals()) {
             nodeToDot(global);
@@ -279,11 +317,10 @@ public:
         for (auto *subg : DDA->getGraph()->subgraphs()) {
             printf("subgraph cluster_subg_%p {\n", subg);
             printf("  compound=true;\n\n");
-
-            dumpSubgraphLabel(subg);
-
             printf("  style=filled;\n");
             printf("  color=white;\n");
+
+            dumpSubgraphLabel(subg);
 
             for (auto *block : subg->bblocks()) {
                 dumpBBlock(block);
@@ -313,11 +350,8 @@ public:
 
 private:
 
-    void printId(RWNode *node) {
-        if (dot)
-            printf(" [%u]\\n", node->getID());
-        else
-            printf(" [%u]\n", node->getID());
+    void printId(const RWNode *node) {
+        printf(" [%u]\n", node->getID());
     }
 
     void _dumpDefSites(const std::set<DefSite>& defs,
@@ -360,40 +394,6 @@ private:
         }
     }
 
-    void nodeToDot(const RWNode *node) {
-        printf("\tNODE%p ", static_cast<const void*>(node));
-        printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
-        printf("<td><font color=\"#af0000\">");
-        printName(node);
-        printf("</font></td>");
-        printf("</tr>\n");
-
-        if (node->getSize() > 0) {
-              printf("<tr><td></td><td>size: %lu</td></tr>\n", node->getSize());
-        }
-
-        if (verbose) {
-            dumpDefines(node);
-            dumpOverwrites(node);
-            dumpUses(node);
-        }
-
-        // dumped data for undefined functions
-        // (call edges will be dumped with other edges)
-        if (auto *C = RWNodeCall::get(node)) {
-            for (auto& cv : C->getCallees()) {
-                if (const RWNode *undef = cv.getCalledValue()) {
-                    printf("<tr><td></td><td>------ undef call ------</td></tr>\n");
-                    dumpDefines(undef);
-                    dumpOverwrites(undef);
-                    dumpUses(undef);
-                }
-            }
-        }
-
-        puts("</table>>"); // end of label
-        printf(" style=filled fillcolor=white shape=box]\n");
-    }
 
     /*
     void dumpRWNode(RWNode *n) {
@@ -412,6 +412,28 @@ private:
 };
 
 class MemorySSADumper : public Dumper {
+
+    void _dumpDefSites(RWNode *n, const std::set<DefSite>& defs) {
+        if (defs.empty())
+            return;
+
+        for (const DefSite& def : defs) {
+            printf("<tr><td>at (%u): </td><td>(%u)</td><td>",
+                   n->getID(), def.target->getID());
+            printName(def.target);
+            printf("</td><td>");
+                if (def.offset.isUnknown())
+                    printf(" [? - ");
+                else
+                    printf(" [%lu - ", *def.offset);
+
+                if (def.len.isUnknown())
+                    printf("?]");
+                else
+                    printf("%lu]", *def.offset + (*def.len - 1));
+            puts("</td></tr>\n");
+        }
+    }
 
     void dumpDDIMap(const DefinitionsMap<RWNode>& map) {
         for (const auto& it : map) {
@@ -447,10 +469,10 @@ class MemorySSADumper : public Dumper {
         */
     }
 
-    /*
     void dumpSubgraphLabel(RWSubgraph *subgraph) override {
         auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
-        auto *summary = SSA->getSummary(subgraph);
+        SSA->computeAllDefinitions();
+        const auto *summary = SSA->getSummary(subgraph);
 
         if (!summary) {
             printf("  label=<<table><tr><td>subgraph %p</td></tr>\n"
@@ -458,15 +480,23 @@ class MemorySSADumper : public Dumper {
             return;
         }
 
+        for (auto i : summary->inputs)
+            nodeToDot(i);
+        for (auto o : summary->outputs)
+            nodeToDot(o);
+
         printf("  label=<<table><tr><td colspan=\"4\">subgraph %p</td></tr>\n"
                                "<tr><td colspan=\"4\">-- summary -- </td></tr>\n", subgraph);
-        printf("<tr><td colspan=\"4\">==  defines ==</td></tr>");
-        dumpDDIMap(summary->definitions.definitions);
-        printf("<tr><td colspan=\"4\">==  kills ==</td></tr>");
-        dumpDDIMap(summary->definitions.kills);
+        printf("<tr><td colspan=\"4\">==  inputs ==</td></tr>");
+        for (auto i : summary->inputs) {
+            _dumpDefSites(i, i->getOverwrites());
+        }
+        printf("<tr><td colspan=\"4\">==  outputs ==</td></tr>");
+        for (auto o : summary->outputs) {
+            _dumpDefSites(o, o->getOverwrites());
+        }
         printf("</table>>;\n");
     }
-    */
 
 
 public:

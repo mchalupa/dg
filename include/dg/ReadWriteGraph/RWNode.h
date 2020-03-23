@@ -286,6 +286,15 @@ public:
         return callees[0].callsUndefined();
     }
 
+    bool callsDefined() const {
+        for (auto& c : callees) {
+            if (c.getSubgraph()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     const CalleesT& getCallees() const { return callees; }
     CalleesT& getCallees() { return callees; }
 

@@ -73,13 +73,27 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         void setProcessed() { _processed = true; }
     };
 
+    struct Summary {
+        // phi nodes representing reads/writes to memory that is
+        // external to the procedure
+        std::vector<RWNode *> inputs;
+        std::vector<RWNode *> outputs;
+
+        Summary() = default;
+        Summary(Summary&&) = default;
+        Summary(const Summary&) = delete;
+
+        void addInput(RWNode *n) { inputs.push_back(n); }
+        void addOutput(RWNode *n) { outputs.push_back(n); }
+    };
+
     ////
     // LVN
     ///
     // Perform LVN up to a certain point.
     // XXX: we could avoid this by (at least virtually) splitting blocks on uses.
     Definitions findDefinitionsInBlock(RWNode *);
-    void performLvn(Definitions&, RWBBlock *);
+    static void performLvn(Definitions&, RWBBlock *);
 
     ///
     // Find definitions of the def site and return def-use edges.
@@ -87,9 +101,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // as the definitions).
     std::vector<RWNode *> findDefinitions(RWBBlock *, const DefSite&);
 
-    ////
-    // GVN
-    //
     // Find definitions for the given node (which is supposed to be a use)
     std::vector<RWNode *> findDefinitions(RWNode *node);
 
@@ -128,6 +139,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void updateCallDefinitions(Definitions& D, RWNodeCall *call);
 
+    RWNode *createPhi(const DefSite& ds);
     RWNode *createPhi(Definitions& D, const DefSite& ds);
     RWNode *createAndPlacePhi(RWBBlock *block, const DefSite& ds);
 
@@ -139,10 +151,13 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
     std::unordered_map<RWBBlock *, DefinitionsMap<RWNode>> _cached_defs;
+    std::unordered_map<const RWSubgraph *, Summary> _summaries;
 
     Definitions& getBBlockDefinitions(RWBBlock *b, const DefSite *ds = nullptr);
     DefinitionsMap<RWNode>& getCachedDefinitions(RWBBlock *b);
     bool hasCachedDefinitions(RWBBlock *b) const { return _cached_defs.count(b) > 0; }
+
+    Summary& getSubgraphSummary(const RWSubgraph *s) { return _summaries[s]; }
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
@@ -153,6 +168,11 @@ public:
     : DataDependenceAnalysisImpl(std::move(graph)) {}
 
     void run() override;
+
+    // compute definitions for all uses at once
+    // (otherwise the definitions are computed on demand
+    // when calling getDefinitions())
+    void computeAllDefinitions();
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
@@ -168,6 +188,11 @@ public:
         if (it == _defs.end())
             return nullptr;
         return &it->second;
+    }
+
+    const Summary *getSummary(const RWSubgraph *s) const {
+        auto it = _summaries.find(s);
+        return it == _summaries.end() ? nullptr : &it->second;
     }
 };
 
