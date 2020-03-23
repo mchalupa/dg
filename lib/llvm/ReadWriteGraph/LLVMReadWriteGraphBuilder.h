@@ -84,6 +84,7 @@ class GraphBuilder {
         SubgraphInfo(const SubgraphInfo&) = delete;
     };
 
+    using GlobalsT = std::vector<NodeT *>;
     using NodesMappingT = std::unordered_map<const llvm::Value *, NodesSeq<NodeT>>;
     using ValuesMappingT = std::unordered_map<const NodeT *, const llvm::Value *>;
     using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphInfo>;
@@ -93,6 +94,7 @@ class GraphBuilder {
     SubgraphsMappingT _subgraphs;
     NodesMappingT _nodes;
     ValuesMappingT _nodeToValue;
+    GlobalsT _globals;
 
     void buildCFG(SubgraphInfo& subginfo) {
         for (auto& it : subginfo.blocks) {
@@ -108,21 +110,34 @@ class GraphBuilder {
         }
     }
 
-    void buildICFG() {
-        DBG_SECTION_BEGIN(rwg, "Building call edges");
-        DBG_SECTION_END(rwg, "Building call edges done");
-    }
-
     void buildGlobals() {
         DBG_SECTION_BEGIN(rwg, "Building globals");
+
+        for (auto& G : _module->globals()) {
+            // every global node is like memory allocation
+            auto cur = buildNode(&G);
+            _globals.insert(_globals.end(), cur.begin(), cur.end());
+
+            // add the initial global definitions
+            //if (auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&G)) {
+            //    auto size = llvmutils::getAllocatedSize(GV->getType()->getContainedType(0),
+             //                                           &_module->getDataLayout());
+//                if (size == 0)
+//                    size = Offset::UNKNOWN;
+
+//                cur->addDef(cur, 0, size, true /* strong update */);
+        }
+
         DBG_SECTION_END(rwg, "Building globals done");
     }
+
 
 protected:
 
     NodesSeq<NodeT> buildNode(const llvm::Value *val) {
         auto it = _nodes.find(val);
         if (it != _nodes.end()) {
+            return it->second;
         }
 
         const auto& nds = createNode(val);
@@ -221,6 +236,8 @@ public:
     const llvm::Module *getModule() const { return _module; }
     const llvm::DataLayout *getDataLayout() const { return &_module->getDataLayout(); }
 
+    const GlobalsT& getGlobals() const { return _globals; }
+
     const NodesMappingT& getNodesMapping() const {
         return _nodes;
     }
@@ -272,9 +289,6 @@ public:
                 buildSubgraph(F);
             }
         }
-
-        // add call-edges
-        buildICFG();
     }
 };
 

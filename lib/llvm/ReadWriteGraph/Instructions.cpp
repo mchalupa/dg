@@ -246,6 +246,11 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
 
 NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
     using namespace llvm;
+    if (isa<GlobalVariable>(v)) {
+        // global variables are like allocations
+        return {&create(RWNodeType::ALLOC)};
+    }
+
     auto *I = dyn_cast<Instruction>(v);
     if (!I)
         return {};

@@ -267,6 +267,12 @@ public:
         printf("digraph \"Data Dependencies Graph\" {\n");
         printf("  compound=true;\n\n");
 
+        /*
+        for (auto *global : DDA->getGraph()->getGlobals()) {
+            nodeToDot(global);
+        }
+        */
+
         for (auto *subg : DDA->getGraph()->subgraphs()) {
             printf("subgraph cluster_subg_%p {\n", subg);
             printf("  compound=true;\n\n");
