@@ -56,8 +56,14 @@ class RWNode : public SubgraphNode<RWNode> {
     class DefUses {
         using T = std::vector<RWNode *>;
         T defuse;
+        // to differentiate between empty() because nothing
+        // has been added yet and empty() because there are no
+        // definitions
+        bool _init{false};
+
     public:
         bool add(RWNode *d) {
+            _init = true;
             for (auto x : defuse) {
                 if (x == d) {
                     return false;
@@ -69,11 +75,14 @@ class RWNode : public SubgraphNode<RWNode> {
 
         template <typename Cont>
         bool add(const Cont& C) {
+            _init = true;
             bool changed = false;
             for (RWNode *n : C)
                 changed |= add(n);
             return changed;
         }
+
+        bool initialized() const { return _init; }
 
         operator std::vector<RWNode *>() { return defuse; }
 
