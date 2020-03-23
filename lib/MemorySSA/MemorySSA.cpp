@@ -189,14 +189,23 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
                                                        interval.length()});
             defs.insert(defs.end(), preddefs.begin(), preddefs.end());
         }
-    } else { // multiple predecessors
-        // The phi node will be placed at the beginning of the block,
-        // so the iterator should not be invalidated
-        auto *phi = createAndPlacePhi(block, ds);
-        // this represents the sought definition
+    } else { // multiple or no predecessors
+        RWNode *phi;
+        if (block->hasPredecessors()) {
+            phi = createAndPlacePhi(block, ds);
+            // The phi node will be placed at the beginning of the block,
+            // so the iterator should not be invalidated
+            // this represents the sought definition
+            // recursively find definitions for this phi node
+            findPhiDefinitions(phi);
+        } else {
+            phi = createPhi(getBBlockDefinitions(block, &ds), ds);
+            // TODO: Add this PHI node as the input argument of the procedure
+            //block->getSubgraph()
+            findDefinitionsFromCalledFun(phi, block->getSubgraph(), ds);
+        }
+
         defs.push_back(phi);
-        // recursively find definitions for this phi node
-        findPhiDefinitions(phi);
     }
 
     return defs;
@@ -267,6 +276,9 @@ MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
 }
 
 static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
+    // FIXME: this will not work once we start adding MU nodes
+    // as those can be inserted into this block.
+    // We must add a flag.
     if (b->size() != 1)
         return nullptr;
     return RWNodeCall::get(b->getFirst());
@@ -293,6 +305,30 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                 phi->defuse.add(findDefinitions(subgblock, uncoveredds));
             }
         }
+    }
+}
+
+static inline bool isCallBlock(RWBBlock *b) {
+    // FIXME: this will not work once we start adding MU nodes
+    // as those can be inserted into this block.
+    // We must add a flag.
+    if (b->size() != 1)
+        return false;
+    return b->getFirst()->getType() == RWNodeType::CALL;
+}
+
+
+// get all callers of the function and find the given definitions reaching these
+// call-sites
+void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
+                                                           RWSubgraph *subg,
+                                                           const DefSite& ds) {
+    // get call-sites of this
+    for (auto *callsite : subg->getCallers()) {
+        // there should be NO definitions from the beginning of the block to the callsite
+        auto *bblock = callsite->getBBlock();
+        assert(bblock && isCallBlock(bblock));
+        phi->defuse.add(findDefinitionsInPredecessors(bblock, ds));
     }
 }
 

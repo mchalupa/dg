@@ -281,7 +281,7 @@ public:
 
     void addCallee(const RWCalledValue& cv) { callees.push_back(cv); }
     void addCallee(RWNode *n) { callees.emplace_back(n); }
-    void addCallee(RWSubgraph *s) { callees.emplace_back(s); }
+    void addCallee(RWSubgraph *s);
 };
 
 class RWNodeRet : public RWNode {

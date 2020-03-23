@@ -104,6 +104,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void findPhiDefinitions(RWNode *phi);
 
     void findDefinitionsFromCall(Definitions& D, RWNodeCall *C, const DefSite& ds);
+    void findDefinitionsFromCalledFun(RWNode *phi, RWSubgraph *subg, const DefSite& ds);
 
     template <typename Iterable>
     void findPhiDefinitions(RWNode *phi, Iterable& I) {

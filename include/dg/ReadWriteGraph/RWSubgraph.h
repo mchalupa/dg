@@ -52,6 +52,8 @@ class RWSubgraph {
 
     friend class ReadWriteGraph;
 
+    std::vector<RWNode *> _callers;
+
 public:
     RWSubgraph() = default;
     RWSubgraph(RWSubgraph&&) = default;
@@ -66,6 +68,17 @@ public:
     }
 
     void splitBBlocksOnCalls();
+    void addCaller(RWNode *c) {
+        assert(c->getType() == RWNodeType::CALL);
+        for (auto *tmp : _callers) {
+            if (tmp == c)
+                return;
+        }
+        _callers.push_back(c);
+    }
+
+    std::vector<RWNode *>& getCallers() { return _callers; }
+    const std::vector<RWNode *>& getCallers() const { return _callers; }
 
     const BBlocksVecT& getBBlocks() const { return _bblocks; }
 
