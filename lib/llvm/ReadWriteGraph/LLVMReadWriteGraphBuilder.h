@@ -28,10 +28,12 @@
 #include "dg/ReadWriteGraph/ReadWriteGraph.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/ADT/SetQueue.h"
 
 #ifndef NDEBUG
 #include "dg/util/debug.h"
 #endif // NDEBUG
+
 
 namespace dg {
 namespace dda {
@@ -101,9 +103,10 @@ class GraphBuilder {
             auto llvmblk = it.first;
             auto bblock = it.second;
 
-            for (auto succ : successors(llvmblk)) {
+            for (auto *succ : successors(llvmblk)) {
                 auto succit = subginfo.blocks.find(succ);
-                assert(succit != subginfo.blocks.end());
+                assert((succit != subginfo.blocks.end())
+                       && "Do not have the block built");
 
                 bblock->addSuccessor(succit->second);
             }
@@ -185,41 +188,20 @@ protected:
         // do a walk through basic blocks such that all predecessors of
         // a block are searched before the block itself
         // (operands must be created before their use)
-        std::unordered_map<const BasicBlock *, unsigned> visited;
-        visited.reserve(F.size());
         auto &entry = F.getEntryBlock();
 
-        // XXX: we could optimize this (vector set?)
-        std::set<const BasicBlock *> queue;
-        assert(pred_size(&entry) == 0);
-        visited[&entry] = 0;
+        // process the block in BFS order to make sure
+        // the operands are created before their use
+        ADT::SetQueue<ADT::QueueFIFO<const llvm::BasicBlock *>> queue;
+        queue.push(&entry);
 
-        auto get_ready_block = [&]() -> const BasicBlock * {
-            for (auto *b : queue) {
-                if (visited[b] == 0) {
-                    queue.erase(b);
-                    return b;
-                }
-            }
-            return nullptr;
-        };
-
-        queue.insert(&entry);
-        while (true) {
-            auto *cur = get_ready_block();
-            if (!cur)
-                break;
+        while (!queue.empty()) {
+            auto *cur = queue.pop();
 
             buildBBlock(*cur, subginfo);
 
             for (auto *succ : successors(cur)) {
-                auto it = visited.find(succ);
-                if (it == visited.end()) {
-                    visited.emplace_hint(it, succ, pred_size(succ) - 1);
-                    queue.insert(succ);
-                } else {
-                    --it->second;
-                }
+                queue.push(succ);
             }
         }
 
