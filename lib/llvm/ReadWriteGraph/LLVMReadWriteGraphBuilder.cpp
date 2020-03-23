@@ -159,38 +159,6 @@ RWNode *LLVMReadWriteGraphBuilder::getOperand(const llvm::Value *val) {
     return op;
 }
 
-#if 0
-std::pair<RWNode *, RWNode *> LLVMReadWriteGraphBuilder::buildGlobals()
-{
-    RWNode *cur = nullptr, *prev, *first = nullptr;
-    for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
-        prev = cur;
-
-        // every global node is like memory allocation
-        cur = create(RWNodeType::ALLOC);
-        addNode(&*I, cur);
-
-        // add the initial global definitions
-        if (auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
-            auto size = llvmutils::getAllocatedSize(GV->getType()->getContainedType(0),
-                                                    &M->getDataLayout());
-            if (size == 0)
-                size = Offset::UNKNOWN;
-
-            cur->addDef(cur, 0, size, true /* strong update */);
-        }
-
-        if (prev)
-            makeEdge(prev, cur);
-        else
-            first = cur;
-    }
-
-    assert((!first && !cur) || (first && cur));
-    return std::pair<RWNode *, RWNode *>(first, cur);
-}
-#endif
-
 } // namespace dda
 } // namespace dg
 
