@@ -16,6 +16,11 @@ void RWNode::dump() const {
 }
 #endif
 
+void RWNodeCall::addCallee(RWSubgraph *s) {
+        callees.emplace_back(s);
+        s->addCaller(this);
+}
+
 void ReadWriteGraph::removeUselessNodes() {
 }
 
