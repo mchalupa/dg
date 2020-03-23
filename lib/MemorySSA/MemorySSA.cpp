@@ -9,8 +9,6 @@
 namespace dg {
 namespace dda {
 
-extern RWNode *UNKNOWN_MEMORY;
-
 /// ------------------------------------------------------------------
 // class Definitions
 /// ------------------------------------------------------------------
@@ -127,12 +125,20 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     return defs;
 }
 
-RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds) {
+RWNode *MemorySSATransformation::createPhi(const DefSite& ds) {
     // This phi is the definition that we are looking for.
     _phis.emplace_back(&graph.create(RWNodeType::PHI));
     auto *phi = _phis.back();
 
     phi->addOverwrites(ds);
+
+    DBG(dda, "Created PHI with ID " << phi->getID());
+    return phi;
+}
+
+
+RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds) {
+    auto *phi = createPhi(ds);
 
     // update definitions in the block -- this
     // phi node defines previously uncovered memory
@@ -156,7 +162,7 @@ RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSit
     // create PHI node and find definitions for the PHI node
     auto& D = getBBlockDefinitions(block, &ds);
     auto *phi = createPhi(D, ds);
-    block->prependAndUpdateCFG(phi);
+    block->prepend(phi);
     return phi;
 }
 
@@ -200,9 +206,10 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             findPhiDefinitions(phi);
         } else {
             phi = createPhi(getBBlockDefinitions(block, &ds), ds);
-            // TODO: Add this PHI node as the input argument of the procedure
-            //block->getSubgraph()
-            findDefinitionsFromCalledFun(phi, block->getSubgraph(), ds);
+            auto *subg = block->getSubgraph();
+            auto& summary = getSubgraphSummary(subg);
+            summary.addInput(phi);
+            findDefinitionsFromCalledFun(phi, subg, ds);
         }
 
         defs.push_back(phi);
@@ -291,18 +298,33 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
     auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
         auto uncoveredds = DefSite{ds.target, interval.start, interval.length()};
+        // this phi will merge the definitions from all the
+        // possibly called subgraphs
         auto *phi = createPhi(D, uncoveredds);
+        // FIXME: this will break recognizing call blocks
+        C->getBBlock()->append(phi);
 
         // recursively find definitions for this phi node
+        // FIXME: optimize this for a single subgraph
+        // (we do not need to create the other PHI nodes)
         for (auto& callee : C->getCallees()) {
             auto *subg = callee.getSubgraph();
             assert(subg && "Undefined values mixed with subgraph yet undefined");
+
+            // we must create a new phi for each subgraph (these phis will
+            // be merged by the single phi created at the beginning of this
+            // method
+            auto *subgphi = createPhi(uncoveredds);
+            auto& summary = getSubgraphSummary(subg);
+            summary.addOutput(subgphi);
+
+            phi->defuse.add(subgphi);
 
             for (auto *subgblock : subg->bblocks()) {
                 if (subgblock->hasSuccessors()) {
                     continue;
                 }
-                phi->defuse.add(findDefinitions(subgblock, uncoveredds));
+                subgphi->defuse.add(findDefinitions(subgblock, uncoveredds));
             }
         }
     }
@@ -310,11 +332,12 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
 
 static inline bool isCallBlock(RWBBlock *b) {
     // FIXME: this will not work once we start adding MU nodes
-    // as those can be inserted into this block.
+    // as those can be inserted at the beggining of this block.
     // We must add a flag.
-    if (b->size() != 1)
+    auto *C = RWNodeCall::get(b->getFirst());
+    if (!C)
         return false;
-    return b->getFirst()->getType() == RWNodeType::CALL;
+    return C->callsDefined();
 }
 
 
@@ -570,6 +593,20 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
     ///
     DBG_SECTION_END(dda, "MemorySSA - finding all definitions done");
     return gatherNonPhisDefs(foundDefs);
+}
+
+void MemorySSATransformation::computeAllDefinitions() {
+    DBG_SECTION_BEGIN(dda, "Computing definitions for all uses (requested)");
+    for (auto *subg : graph.subgraphs()) {
+        for (auto *b : subg->bblocks()) {
+            for (auto *n : b->getNodes()) {
+                if (n->isUse()) {
+                    findDefinitions(n);
+                }
+            }
+        }
+    }
+    DBG_SECTION_END(dda, "Computing definitions for all uses finished");
 }
 
 void MemorySSATransformation::run() {
