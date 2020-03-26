@@ -286,6 +286,9 @@ static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
     // FIXME: this will not work once we start adding MU nodes
     // as those can be inserted at the beginning of this block.
     // We must add a flag.
+    if (b->size() < 1) {
+        return nullptr;
+    }
     auto *C = RWNodeCall::get(b->getFirst());
     if (!C)
         return nullptr;
