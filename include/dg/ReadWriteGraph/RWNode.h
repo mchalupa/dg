@@ -287,6 +287,13 @@ public:
         return callees[0].callsUndefined();
     }
 
+    RWNode *getSingleUndefined() {
+        if (callees.size() != 1)
+            return nullptr;
+        assert(callees[0].callsUndefined());
+        return callees[0].getCalledValue();
+    }
+
     bool callsDefined() const {
         for (auto& c : callees) {
             if (c.getSubgraph()) {
