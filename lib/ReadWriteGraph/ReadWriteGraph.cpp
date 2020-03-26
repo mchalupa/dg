@@ -112,6 +112,8 @@ splitBlockOnFirstCall(RWBBlock *block,
             if (blks.second) {
                 newblocks.push_back(std::move(blks.second));
                 return newblocks.back().get();
+            } else {
+                return nullptr;
             }
         }
     }
