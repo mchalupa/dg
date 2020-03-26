@@ -48,6 +48,20 @@ extern RWNode *UNKNOWN_MEMORY;
 
 class RWBBlock;
 
+///
+/// Gathers information about the node
+/// - what memory it accesses and whether it writes it or reads it.
+///
+struct Annotations {
+    // weak update
+    DefSiteSetT defs;
+    // strong update
+    DefSiteSetT overwrites;
+    // this is set of variables used in this node
+    DefSiteSetT uses;
+
+};
+
 class RWNode : public SubgraphNode<RWNode> {
     RWNodeType type;
 
@@ -108,42 +122,38 @@ public:
     void dump() const;
 #endif
 
-    // weak update
-    DefSiteSetT defs;
-    // strong update
-    DefSiteSetT overwrites;
+    Annotations annotations;
 
-    // this is set of variables used in this node
-    DefSiteSetT uses;
+    virtual Annotations& getAnnotations() { return annotations; }
+    virtual const Annotations& getAnnotations() const { return annotations; }
 
     // places where this node is defined
     // (so this node has non-empty uses)
     DefUses defuse;
 
     RWNodeType getType() const { return type; }
-    DefSiteSetT& getDefines() { return defs; }
-    DefSiteSetT& getOverwrites() { return overwrites; }
-    DefSiteSetT& getUses() { return uses; }
-    const DefSiteSetT& getDefines() const { return defs; }
-    const DefSiteSetT& getOverwrites() const { return overwrites; }
-    const DefSiteSetT& getUses() const { return uses; }
 
-    bool defines(RWNode *target, const Offset& off = Offset::UNKNOWN) const
-    {
+    DefSiteSetT& getDefines() { return getAnnotations().defs; }
+    DefSiteSetT& getOverwrites() { return getAnnotations().overwrites; }
+    DefSiteSetT& getUses() { return getAnnotations().uses; }
+    const DefSiteSetT& getDefines() const { return getAnnotations().defs; }
+    const DefSiteSetT& getOverwrites() const { return getAnnotations().overwrites; }
+    const DefSiteSetT& getUses() const { return getAnnotations().uses; }
+
+    bool defines(RWNode *target, const Offset& off = Offset::UNKNOWN) const {
         // FIXME: this is not efficient implementation,
         // use the ordering on the nodes
-        // (see old DefMap.h in llvm/)
         if (off.isUnknown()) {
-            for (const DefSite& ds : defs)
+            for (const DefSite& ds : getDefines())
                 if (ds.target == target)
                     return true;
         } else {
-            for (const DefSite& ds : defs)
+            for (const DefSite& ds : getDefines())
                 if (ds.target == target
                     && off.inRange(*ds.offset, *ds.offset + *ds.len))
                     return true;
 
-            for (const DefSite& ds : overwrites)
+            for (const DefSite& ds : getOverwrites())
                 if (ds.target == target
                     && off.inRange(*ds.offset, *ds.offset + *ds.len))
                     return true;
@@ -153,7 +163,7 @@ public:
     }
 
     bool usesUnknown() const {
-        for (auto& ds : uses) {
+        for (auto& ds : getUses()) {
             if (ds.target->isUnknown())
                 return true;
         }
@@ -166,22 +176,20 @@ public:
         addUse(DefSite(target, off, len));
     }
 
-    void addUse(const DefSite& ds) { uses.insert(ds); }
+    void addUse(const DefSite& ds) { getUses().insert(ds); }
 
     template <typename T>
-    void addUses(T&& u)
-    {
+    void addUses(T&& u) {
         for (auto& ds : u) {
-            uses.insert(ds);
+            getUses().insert(ds);
         }
     }
 
-    void addDef(const DefSite& ds, bool strong_update = false)
-    {
+    void addDef(const DefSite& ds, bool strong_update = false) {
         if (strong_update)
-            overwrites.insert(ds);
+            getOverwrites().insert(ds);
         else
-            defs.insert(ds);
+            getDefines().insert(ds);
     }
 
     ///
@@ -191,14 +199,12 @@ public:
     void addDef(RWNode *target,
                 const Offset& off = Offset::UNKNOWN,
                 const Offset& len = Offset::UNKNOWN,
-                bool strong_update = false)
-    {
+                bool strong_update = false) {
         addDef(DefSite(target, off, len), strong_update);
     }
 
     template <typename T>
-    void addDefs(T&& defs)
-    {
+    void addDefs(T&& defs) {
         for (auto& ds : defs) {
             addDef(ds);
         }
@@ -206,27 +212,23 @@ public:
 
     void addOverwrites(RWNode *target,
                        const Offset& off = Offset::UNKNOWN,
-                       const Offset& len = Offset::UNKNOWN)
-    {
+                       const Offset& len = Offset::UNKNOWN) {
         addOverwrites(DefSite(target, off, len));
     }
 
-    void addOverwrites(const DefSite& ds)
-    {
-        overwrites.insert(ds);
+    void addOverwrites(const DefSite& ds) {
+        getOverwrites().insert(ds);
     }
 
-    bool isOverwritten(const DefSite& ds)
-    {
-        return overwrites.find(ds) != overwrites.end();
+    bool isOverwritten(const DefSite& ds) {
+        return getOverwrites().find(ds) != getOverwrites().end();
     }
 
-    bool isUnknown() const
-    {
+    bool isUnknown() const {
         return this == UNKNOWN_MEMORY;
     }
 
-    bool isUse() const { return !uses.empty(); }
+    bool isUse() const { return !getUses().empty(); }
 
     const RWBBlock *getBBlock() const { return bblock; }
     RWBBlock *getBBlock() { return bblock; }
