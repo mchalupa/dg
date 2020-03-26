@@ -37,18 +37,6 @@ void RWNodeCall::dump() const {
        std::cout << "]\n";
 }
 
-void RWNodeRet::dump() const {
-       std::cout << getID() << " returns to [";
-       unsigned n = 0;
-       for (auto *r : returns) {
-           if (n++ > 0) {
-               std::cout << ", ";
-           }
-           std::cout << r->getID();
-       }
-       std::cout << "]\n";
-}
-
 void RWBBlock::dump() const {
        std::cout << "bblock " << this << "\n";
        for (auto *n : _nodes) {
