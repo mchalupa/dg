@@ -93,7 +93,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // Perform LVN up to a certain point.
     // XXX: we could avoid this by (at least virtually) splitting blocks on uses.
     Definitions findDefinitionsInBlock(RWNode *);
-    static void performLvn(Definitions&, RWBBlock *);
+    void performLvn(Definitions&, RWBBlock *);
+    void updateDefinitions(Definitions& D, RWNode *node);
 
     ///
     // Find definitions of the def site and return def-use edges.

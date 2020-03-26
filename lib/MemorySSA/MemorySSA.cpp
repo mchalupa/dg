@@ -380,6 +380,15 @@ MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     return D;
 }
 
+void MemorySSATransformation::updateDefinitions(Definitions& D, RWNode *node) {
+    if (auto *C = RWNodeCall::get(node)) {
+        assert(!C->callsDefined() && "Need splitted blocks");
+        assert(C->callsOneUndefined() && "Multiple call targets not implemented yet");
+        D.update(C->getSingleUndefined(), C);
+    } else {
+        D.update(node);
+    }
+}
 
 // perform Lvn for one block
 void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
@@ -388,13 +397,7 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
     assert(!D.isProcessed() && "Processing a block multiple times");
 
     for (RWNode *node : block->getNodes()) {
-        if (auto *C = RWNodeCall::get(node)) {
-            assert(!C->callsDefined() && "Need splitted blocks");
-            assert(C->callsOneUndefined() && "Multiple call targets not implemented yet");
-            D.update(C->getSingleUndefined(), C);
-        } else {
-            D.update(node);
-        }
+        updateDefinitions(D, node);
    }
 
     D.setProcessed();
@@ -411,7 +414,7 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
     for (RWNode *node : block->getNodes()) {
         if (node == to)
             break;
-        D.update(node);
+        updateDefinitions(D, node);
     }
 
     return D;
