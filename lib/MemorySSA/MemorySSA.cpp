@@ -305,7 +305,6 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
         // this phi will merge the definitions from all the
         // possibly called subgraphs
         auto *phi = createPhi(D, uncoveredds);
-        // FIXME: this will break recognizing call blocks
         C->getBBlock()->append(phi);
 
         // recursively find definitions for this phi node
@@ -389,7 +388,13 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
     assert(!D.isProcessed() && "Processing a block multiple times");
 
     for (RWNode *node : block->getNodes()) {
-        D.update(node);
+        if (auto *C = RWNodeCall::get(node)) {
+            assert(!C->callsDefined() && "Need splitted blocks");
+            assert(C->callsOneUndefined() && "Multiple call targets not implemented yet");
+            D.update(C->getSingleUndefined(), C);
+        } else {
+            D.update(node);
+        }
    }
 
     D.setProcessed();
