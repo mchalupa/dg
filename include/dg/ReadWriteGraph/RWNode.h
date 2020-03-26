@@ -315,40 +315,6 @@ public:
 #endif
 };
 
-class RWNodeRet : public RWNode {
-    // this node returns control to...
-    std::vector<RWNode *> returns;
-
-public:
-    RWNodeRet(unsigned id)
-    :RWNode(id, RWNodeType::RETURN) {}
-
-    static RWNodeRet *get(RWNode *n) {
-        return n->getType() == RWNodeType::RETURN ?
-            static_cast<RWNodeRet *>(n) : nullptr;
-    }
-
-    const std::vector<RWNode*>& getReturnSites() const { return returns; }
-
-    bool addReturnSite(RWNode *r) {
-        // we suppose there are just few callees,
-        // so this should be faster than std::set
-        for (RWNode *p : returns) {
-            if (p == r)
-                return false;
-        }
-
-        returns.push_back(r);
-        return true;
-    }
-
-#ifndef NDEBUG
-    void dump() const;
-#endif
-};
-
-
-
 } // namespace dda
 } // namespace dg
 
