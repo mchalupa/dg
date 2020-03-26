@@ -203,6 +203,7 @@ protected:
         }
 
         if (verbose) {
+            printf("<tr><td colspan=\"2\">bblock: %p</td></tr>", node->getBBlock());
             dumpDefines(node);
             dumpOverwrites(node);
             dumpUses(node);
@@ -481,10 +482,14 @@ class MemorySSADumper : public Dumper {
             return;
         }
 
-        for (auto i : summary->inputs)
-            nodeToDot(i);
-        for (auto o : summary->outputs)
-            nodeToDot(o);
+        if (!summary->inputs.empty() || !summary->outputs.empty()) {
+            printf("subgraph cluster_summary_%p {\n", summary);
+            for (auto i : summary->inputs)
+                nodeToDot(i);
+            for (auto o : summary->outputs)
+                nodeToDot(o);
+            printf("}\n");
+        }
 
         printf("  label=<<table><tr><td colspan=\"4\">subgraph %p</td></tr>\n"
                                "<tr><td colspan=\"4\">-- summary -- </td></tr>\n", subgraph);

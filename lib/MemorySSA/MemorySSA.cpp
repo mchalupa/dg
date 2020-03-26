@@ -284,11 +284,12 @@ MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
 
 static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
     // FIXME: this will not work once we start adding MU nodes
-    // as those can be inserted into this block.
+    // as those can be inserted at the beginning of this block.
     // We must add a flag.
-    if (b->size() != 1)
+    auto *C = RWNodeCall::get(b->getFirst());
+    if (!C)
         return nullptr;
-    return RWNodeCall::get(b->getFirst());
+    return C->callsDefined() ? C : nullptr;
 }
 
 void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,

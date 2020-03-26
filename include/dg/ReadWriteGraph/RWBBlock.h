@@ -254,6 +254,10 @@ public:
     bool empty() const { return _nodes.empty(); }
     size_t size() const { return _nodes.size(); }
 
+#ifndef NDEBUG
+    void dump() const;
+#endif
+
 private:
     NodesT _nodes;
 };

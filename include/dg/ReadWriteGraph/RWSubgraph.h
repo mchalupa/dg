@@ -54,6 +54,8 @@ class RWSubgraph {
 
     std::vector<RWNode *> _callers;
 
+    std::string name;
+
 public:
     RWSubgraph() = default;
     RWSubgraph(RWSubgraph&&) = default;
@@ -61,6 +63,9 @@ public:
 
     RWNode *getRoot() { return _bblocks.front()->getFirst(); }
     const RWNode *getRoot() const { return _bblocks.front()->getFirst(); }
+
+    void setName(const std::string& nm) { name = nm; }
+    const std::string& getName() const { return name; }
 
     RWBBlock& createBBlock() {
         _bblocks.emplace_back(new RWBBlock(this));
