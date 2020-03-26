@@ -190,7 +190,7 @@ protected:
         }
     }
 
-    void nodeToDot(const RWNode *node) {
+    void nodeToDot(RWNode *node) {
         printf("\tNODE%p ", static_cast<const void*>(node));
         printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
         printf("<td><font color=\"#af0000\">");
@@ -223,7 +223,38 @@ protected:
 
         puts("</table>>"); // end of label
         printf(" style=filled fillcolor=white shape=box]\n");
+
+        dumpNodeEdges(node);
     }
+
+    void dumpNodeEdges(RWNode *node) {
+        if (node->getType() == RWNodeType::PHI) {
+            for (RWNode *def : node->defuse) {
+                printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
+                       static_cast<void*>(def), static_cast<void*>(node));
+            }
+        }
+        if (node->isUse()) {
+            for (RWNode *def : DDA->getDefinitions(node)) {
+                printf("\tNODE%p->NODE%p [style=dotted constraint=false color=blue]\n",
+                       static_cast<void*>(def), static_cast<void*>(node));
+            }
+        }
+        if (auto *C = RWNodeCall::get(node)) {
+            for (auto& cv : C->getCallees()) {
+                if (auto *s = cv.getSubgraph()) {
+                    assert(s->getRoot() && "Subgraph has no root");
+                    printf("\tNODE%p->NODE%p "
+                           "[penwidth=4 color=blue "
+                           "ltail=cluster_subg_%p]\n",
+                           static_cast<void*>(C),
+                           static_cast<const void*>(s->getRoot()), s);
+                }
+            }
+        }
+    }
+
+
 
 
 public:
@@ -241,36 +272,6 @@ public:
             last = node;
         }
         putchar('\n');
-
-        // dump def-use edges and call edges
-        for(RWNode *node : block->getNodes()) {
-            if (!graph_only) {
-                if (node->getType() == RWNodeType::PHI) {
-                    for (RWNode *def : node->defuse) {
-                        printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
-                               static_cast<void*>(def), static_cast<void*>(node));
-                    }
-                }
-                if (node->isUse()) {
-                    for (RWNode *def : DDA->getDefinitions(node)) {
-                        printf("\tNODE%p->NODE%p [style=dotted constraint=false color=blue]\n",
-                               static_cast<void*>(def), static_cast<void*>(node));
-                    }
-                }
-            }
-            if (auto *C = RWNodeCall::get(node)) {
-                for (auto& cv : C->getCallees()) {
-                    if (auto *s = cv.getSubgraph()) {
-                        assert(s->getRoot() && "Subgraph has no root");
-                        printf("\tNODE%p->NODE%p "
-                               "[penwidth=4 color=blue "
-                               "ltail=cluster_subg_%p]\n",
-                               static_cast<void*>(C),
-                               static_cast<const void*>(s->getRoot()), s);
-                    }
-                }
-            }
-        }
     }
 
     void dumpBBlock(RWBBlock *block) {
