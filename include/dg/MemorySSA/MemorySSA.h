@@ -117,8 +117,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void findPhiDefinitions(RWNode *phi, Iterable& I) {
         std::set<RWNode *> defs;
 
-        assert(phi->overwrites.size() == 1);
-        const auto& ds = *(phi->overwrites.begin());
+        assert(phi->getOverwrites().size() == 1);
+        const auto& ds = *(phi->getOverwrites().begin());
         // we handle this case separately
         assert(!ds.target->isUnknown() && "PHI for unknown memory");
 

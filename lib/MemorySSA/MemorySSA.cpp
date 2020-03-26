@@ -26,7 +26,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
         defnode = node;
 
     // possible definitions
-    for (auto& ds : node->defs) {
+    for (auto& ds : node->getDefines()) {
         if (ds.target->isUnknown()) {
             // this makes all lastDefs into possibleDefs,
             // since we do not know if it was defined here or there
@@ -39,7 +39,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 
     // definitive definitions
-    for (auto& ds : node->overwrites) {
+    for (auto& ds : node->getOverwrites()) {
         assert((defnode->getType() == RWNodeType::PHI || // we allow ? for PHI nodes
                !ds.offset.isUnknown()) && "Update on unknown offset");
         assert(!ds.target->isUnknown() && "Update on unknown memory");
@@ -105,7 +105,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     auto D = findDefinitionsInBlock(node);
     std::vector<RWNode *> defs;
 
-    for (auto& ds : node->uses) {
+    for (auto& ds : node->getUses()) {
         assert(ds.target && "Target is null");
 
         // add the definitions from the beginning of this block to the defs container
