@@ -14,6 +14,49 @@ RWNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 void RWNode::dump() const {
        std::cout << getID() << "\n";
 }
+
+void RWNodeCall::dump() const {
+       std::cout << getID() << " calls [";
+       unsigned n = 0;
+       for (auto& cv : callees) {
+           if (n++ > 0) {
+               std::cout << ", ";
+           }
+
+           if (auto *subg = cv.getSubgraph()) {
+                const auto& nm = subg->getName();
+                if (nm.empty()) {
+                    std::cout << subg;
+                } else {
+                    std::cout << nm;
+                }
+           } else {
+               std::cout << cv.getCalledValue()->getID();
+           }
+       }
+       std::cout << "]\n";
+}
+
+void RWNodeRet::dump() const {
+       std::cout << getID() << " returns to [";
+       unsigned n = 0;
+       for (auto *r : returns) {
+           if (n++ > 0) {
+               std::cout << ", ";
+           }
+           std::cout << r->getID();
+       }
+       std::cout << "]\n";
+}
+
+void RWBBlock::dump() const {
+       std::cout << "bblock " << this << "\n";
+       for (auto *n : _nodes) {
+           std::cout << "  ";
+           n->dump();
+       }
+}
+
 #endif
 
 void RWNodeCall::addCallee(RWSubgraph *s) {

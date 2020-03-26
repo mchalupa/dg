@@ -252,6 +252,7 @@ public:
     RWNode *getCalledValue() { return calledValue; }
     const RWSubgraph *getSubgraph() const { return subgraph; }
     const RWNode *getCalledValue() const { return calledValue; }
+
 };
 
 class RWNodeCall : public RWNode {
@@ -301,6 +302,10 @@ public:
     void addCallee(const RWCalledValue& cv) { callees.push_back(cv); }
     void addCallee(RWNode *n) { callees.emplace_back(n); }
     void addCallee(RWSubgraph *s);
+
+#ifndef NDEBUG
+    void dump() const;
+#endif
 };
 
 class RWNodeRet : public RWNode {
@@ -329,6 +334,10 @@ public:
         returns.push_back(r);
         return true;
     }
+
+#ifndef NDEBUG
+    void dump() const;
+#endif
 };
 
 
