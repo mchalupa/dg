@@ -107,9 +107,6 @@ class RWNode : public SubgraphNode<RWNode> {
     };
 
 public:
-    // marks for DFS/BFS
-    unsigned int dfsid{0};
-
     // for invalid nodes like UNKNOWN_MEMLOC
     RWNode(RWNodeType t = RWNodeType::NONE)
     : SubgraphNode<RWNode>(0), type(t) {}
