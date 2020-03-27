@@ -48,20 +48,6 @@ extern RWNode *UNKNOWN_MEMORY;
 
 class RWBBlock;
 
-///
-/// Gathers information about the node
-/// - what memory it accesses and whether it writes it or reads it.
-///
-struct Annotations {
-    // weak update
-    DefSiteSetT defs;
-    // strong update
-    DefSiteSetT overwrites;
-    // this is set of variables used in this node
-    DefSiteSetT uses;
-
-};
-
 class RWNode : public SubgraphNode<RWNode> {
     RWNodeType type;
 
@@ -107,6 +93,27 @@ class RWNode : public SubgraphNode<RWNode> {
     };
 
 public:
+
+    ///
+    /// Gathers information about the node
+    /// - what memory it accesses and whether it writes it or reads it.
+    ///
+    struct Annotations {
+        // weak update
+        DefSiteSetT defs;
+        // strong update
+        DefSiteSetT overwrites;
+        // this is set of variables used in this node
+        DefSiteSetT uses;
+
+        DefSiteSetT& getDefines() { return defs; }
+        DefSiteSetT& getOverwrites() { return overwrites; }
+        DefSiteSetT& getUses() { return uses; }
+        const DefSiteSetT& getDefines() const { return defs; }
+        const DefSiteSetT& getOverwrites() const { return overwrites; }
+        const DefSiteSetT& getUses() const { return uses; }
+    } annotations;
+
     // for invalid nodes like UNKNOWN_MEMLOC
     RWNode(RWNodeType t = RWNodeType::NONE)
     : SubgraphNode<RWNode>(0), type(t) {}
@@ -114,28 +121,27 @@ public:
     RWNode(unsigned id, RWNodeType t = RWNodeType::NONE)
     : SubgraphNode<RWNode>(id), type(t) {}
 
+    RWNodeType getType() const { return type; }
+
 #ifndef NDEBUG
     virtual ~RWNode() = default;
     void dump() const;
 #endif
 
-    Annotations annotations;
-
-    virtual Annotations& getAnnotations() { return annotations; }
-    virtual const Annotations& getAnnotations() const { return annotations; }
-
     // places where this node is defined
     // (so this node has non-empty uses)
+    // FIXME: add a getter
     DefUses defuse;
 
-    RWNodeType getType() const { return type; }
+    Annotations& getAnnotations() { return annotations; }
+    const Annotations& getAnnotations() const { return annotations; }
 
-    DefSiteSetT& getDefines() { return getAnnotations().defs; }
-    DefSiteSetT& getOverwrites() { return getAnnotations().overwrites; }
-    DefSiteSetT& getUses() { return getAnnotations().uses; }
-    const DefSiteSetT& getDefines() const { return getAnnotations().defs; }
-    const DefSiteSetT& getOverwrites() const { return getAnnotations().overwrites; }
-    const DefSiteSetT& getUses() const { return getAnnotations().uses; }
+    DefSiteSetT& getDefines() { return getAnnotations().getDefines(); }
+    DefSiteSetT& getOverwrites() { return getAnnotations().getOverwrites(); }
+    DefSiteSetT& getUses() { return getAnnotations().getUses(); }
+    const DefSiteSetT& getDefines() const { return getAnnotations().getDefines(); }
+    const DefSiteSetT& getOverwrites() const { return getAnnotations().getOverwrites(); }
+    const DefSiteSetT& getUses() const { return getAnnotations().getUses(); }
 
     bool defines(RWNode *target, const Offset& off = Offset::UNKNOWN) const {
         // FIXME: this is not efficient implementation,

@@ -9,6 +9,37 @@
 namespace dg {
 namespace dda {
 
+// FIXME: these should be methods of RWNode
+static RWNode::Annotations& getAnnotations(RWNode *node) {
+    return node->getAnnotations();
+}
+
+static DefSiteSetT& getDefines(RWNode *node) {
+    return getAnnotations(node).getDefines();
+}
+
+static DefSiteSetT& getOverwrites(RWNode *node) {
+    return getAnnotations(node).getOverwrites();
+}
+
+static DefSiteSetT& getUses(RWNode *node) {
+    return getAnnotations(node).getUses();
+}
+
+static bool isUse(RWNode *node) {
+    return !getUses(node).empty();
+}
+
+static bool usesUnknown(RWNode *node) {
+    for (auto& ds : getUses(node)) {
+        if (ds.target->isUnknown()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 /// ------------------------------------------------------------------
 // class Definitions
 /// ------------------------------------------------------------------
@@ -26,7 +57,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
         defnode = node;
 
     // possible definitions
-    for (auto& ds : node->getDefines()) {
+    for (auto& ds : getDefines(node)) {
         if (ds.target->isUnknown()) {
             // this makes all lastDefs into possibleDefs,
             // since we do not know if it was defined here or there
@@ -39,7 +70,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 
     // definitive definitions
-    for (auto& ds : node->getOverwrites()) {
+    for (auto& ds : getOverwrites(node)) {
         assert((defnode->getType() == RWNodeType::PHI || // we allow ? for PHI nodes
                !ds.offset.isUnknown()) && "Update on unknown offset");
         assert(!ds.target->isUnknown() && "Update on unknown memory");
@@ -49,7 +80,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 
     // gather unknown uses
-    if (node->usesUnknown()) {
+    if (usesUnknown(node)) {
         addUnknownRead(defnode);
     }
 }
@@ -57,7 +88,6 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
 /// ------------------------------------------------------------------
 // class MemorySSATransformation
 /// ------------------------------------------------------------------
-
 
 ///
 // Add found definitions 'found' from a block to 'defs'.
@@ -82,10 +112,10 @@ std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWNode *node) {
     DBG(dda, "Searching definitions for node " << node->getID());
 
-    assert(node->isUse() && "Searching definitions for non-use node");
+    assert(isUse(node) && "Searching definitions for non-use node");
 
     // handle reads from unknown memory
-    if (node->usesUnknown()) {
+    if (usesUnknown(node)) {
         return findAllReachingDefinitions(node);
     }
 
@@ -105,7 +135,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     auto D = findDefinitionsInBlock(node);
     std::vector<RWNode *> defs;
 
-    for (auto& ds : node->getUses()) {
+    for (auto& ds : getUses(node)) {
         assert(ds.target && "Target is null");
 
         // add the definitions from the beginning of this block to the defs container
@@ -612,7 +642,7 @@ void MemorySSATransformation::computeAllDefinitions() {
     for (auto *subg : graph.subgraphs()) {
         for (auto *b : subg->bblocks()) {
             for (auto *n : b->getNodes()) {
-                if (n->isUse()) {
+                if (isUse(n)) {
                     findDefinitions(n);
                 }
             }
