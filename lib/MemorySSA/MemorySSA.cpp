@@ -152,14 +152,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
         auto defSet = D.definitions.get(ds);
         addFoundDefinitions(defs, defSet, D);
 
-        auto uncovered = D.uncovered(ds);
-        for (auto& interval : uncovered) {
-            auto preddefs
-                = findDefinitionsInPredecessors(block, {ds.target,
-                                                        interval.start,
-                                                        interval.length()});
-            defs.insert(defs.end(), preddefs.begin(), preddefs.end());
-        }
+        addUncoveredFromPredecessors(block, D, ds, defs);
     }
 
     return defs;
@@ -185,7 +178,8 @@ RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds) {
     auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
         DefSite uds{ds.target, interval.start, interval.length()};
-        assert(D.kills.get(uds).empty());
+        assert(D.kills.get(uds).empty()
+               && "BUG: Basic block already kills this memory");
         D.definitions.update(uds, phi);
         D.kills.add(uds, phi);
 
@@ -224,17 +218,9 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     if (auto pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
         auto& D = getBBlockDefinitions(pred, &ds);
-
         addFoundDefinitions(defs, pdefs, D);
+        addUncoveredFromPredecessors(pred, D, ds, defs);
 
-        auto uncovered = D.uncovered(ds);
-        for (auto& interval : uncovered) {
-            auto preddefs
-                = findDefinitionsInPredecessors(pred, {ds.target,
-                                                       interval.start,
-                                                       interval.length()});
-            defs.insert(defs.end(), preddefs.begin(), preddefs.end());
-        }
     } else { // multiple or no predecessors
         RWNode *phi;
         if (block->hasPredecessors()) {
@@ -272,6 +258,21 @@ void MemorySSATransformation::findPhiDefinitions(RWNode *phi) {
     findPhiDefinitions(phi, block->getPredecessors());
 }
 
+void MemorySSATransformation::addUncoveredFromPredecessors(
+                                        RWBBlock *block,
+                                        MemorySSATransformation::Definitions& D,
+                                        const DefSite& ds,
+                                        std::vector<RWNode *>& defs) {
+    auto uncovered = D.uncovered(ds);
+    for (auto& interval : uncovered) {
+        auto preddefs
+            = findDefinitionsInPredecessors(block, {ds.target,
+                                                    interval.start,
+                                                    interval.length()});
+        defs.insert(defs.end(), preddefs.begin(), preddefs.end());
+    }
+}
+
 
 ///
 // Find the nodes that define the given def-site in this block
@@ -305,14 +306,7 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
 
     addFoundDefinitions(defs, defSet, D);
 
-    auto uncovered = D.uncovered(ds);
-    for (auto& interval : uncovered) {
-        auto preddefs
-            = findDefinitionsInPredecessors(block, {ds.target,
-                                                    interval.start,
-                                                    interval.length()});
-        defs.insert(defs.end(), preddefs.begin(), preddefs.end());
-    }
+    addUncoveredFromPredecessors(block, D, ds, defs);
 
     return defs;
 }

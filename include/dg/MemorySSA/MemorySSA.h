@@ -108,6 +108,11 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     std::vector<RWNode *> findDefinitionsInPredecessors(RWBBlock *block,
                                                         const DefSite& ds);
 
+    void addUncoveredFromPredecessors(RWBBlock *block,
+                                      MemorySSATransformation::Definitions& D,
+                                      const DefSite& ds,
+                                      std::vector<RWNode *>& defs);
+
     void findPhiDefinitions(RWNode *phi);
 
     void findDefinitionsFromCall(Definitions& D, RWNodeCall *C, const DefSite& ds);
