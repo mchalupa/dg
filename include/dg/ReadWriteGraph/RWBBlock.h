@@ -92,21 +92,6 @@ public:
         n->setBBlock(this);
     }
 
-    // FIXME: get rid of this method in favor of either append/prepend
-    // (so these method would update CFG edges) or keeping CFG
-    // only in blocks
-    void prependAndUpdateCFG(NodeT *n) {
-        // precondition for this method,
-        // we can fix it at some point
-        assert(!_nodes.empty());
-
-        // update CFG edges
-        n->insertBefore(_nodes.front());
-
-        prepend(n);
-        assert(n->getBBlock() == this);
-    }
-
     const NodesT& getNodes() const { return _nodes; }
 
     /*
@@ -114,49 +99,6 @@ public:
     auto begin() const -> decltype(_nodes.begin()) { return _nodes.begin(); }
     auto end() -> decltype(_nodes.end()) { return _nodes.end(); }
     auto end() const -> decltype(_nodes.end()) { return _nodes.end(); }
-    */
-
-    /*
-    // split the block before the given node and return the later
-    // part (the one including n). If 'node' is the first node
-    // of this block, return nullptr;
-    std::unique_ptr<RWBBlock> splitBefore(NodeT *node) {
-        assert(node->getBBlock() == this
-               && "Spliting a block on invalid node");
-
-#ifndef NDEBUG
-        auto old_size = _nodes.size();
-#endif
-        unsigned num = 0;
-        auto it = _nodes.begin(), et = _nodes.end();
-        for (; it != et; ++it) {
-            if (*it == node) {
-                break;
-            }
-            ++num;
-        }
-
-        assert(*it == node);
-
-        if (num == 0) {
-            return nullptr;
-        }
-
-        auto newblock = std::unique_ptr<RWBBlock>(new RWBBlock(subgraph));
-        for (; it != et; ++it) {
-            newblock->_nodes.push_back(*it);
-        }
-
-        assert(newblock->size() >= 1 && "New block must contain at least a node");
-
-        // truncate nodes in this block
-        _nodes.resize(num);
-
-        assert(_nodes.size() + newblock->size() == old_size
-               && "Bug in splitting nodes");
-
-        return newblock;
-    }
     */
 
     // Split the block before and after the given node.
