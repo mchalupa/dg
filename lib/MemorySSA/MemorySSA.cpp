@@ -11,6 +11,16 @@ namespace dda {
 
 // FIXME: these should be methods of RWNode
 static RWNode::Annotations& getAnnotations(RWNode *node) {
+    if (auto *C = RWNodeCall::get(node)) {
+        auto *cv = C->getSingleCallee();
+        assert(cv && "Multiple callees yet unsupported");
+
+        if (auto *uc = cv->getCalledValue()) {
+            return uc->getAnnotations();
+        }
+
+        // fall-through
+    }
     return node->getAnnotations();
 }
 
@@ -312,19 +322,6 @@ MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
     return _cached_defs[b];
 }
 
-static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
-    // FIXME: this will not work once we start adding MU nodes
-    // as those can be inserted at the beginning of this block.
-    // We must add a flag.
-    if (b->size() < 1) {
-        return nullptr;
-    }
-    auto *C = RWNodeCall::get(b->getFirst());
-    if (!C)
-        return nullptr;
-    return C->callsDefined() ? C : nullptr;
-}
-
 void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                                                       RWNodeCall *C,
                                                       const DefSite& ds) {
@@ -373,7 +370,6 @@ static inline bool isCallBlock(RWBBlock *b) {
     return C->callsDefined();
 }
 
-
 // get all callers of the function and find the given definitions reaching these
 // call-sites
 void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
@@ -386,6 +382,19 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
         assert(bblock && isCallBlock(bblock));
         phi->defuse.add(findDefinitionsInPredecessors(bblock, ds));
     }
+}
+
+static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
+    // FIXME: this will not work once we start adding MU nodes
+    // as those can be inserted at the beginning of this block.
+    // We must add a flag.
+    if (b->size() < 1) {
+        return nullptr;
+    }
+    auto *C = RWNodeCall::get(b->getFirst());
+    if (!C)
+        return nullptr;
+    return C->callsDefined() ? C : nullptr;
 }
 
 
@@ -410,16 +419,6 @@ MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     return D;
 }
 
-void MemorySSATransformation::updateDefinitions(Definitions& D, RWNode *node) {
-    if (auto *C = RWNodeCall::get(node)) {
-        assert(!C->callsDefined() && "Need splitted blocks");
-        assert(C->callsOneUndefined() && "Multiple call targets not implemented yet");
-        D.update(C->getSingleUndefined(), C);
-    } else {
-        D.update(node);
-    }
-}
-
 // perform Lvn for one block
 void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
     DBG_SECTION_BEGIN(dda, "Starting LVN for " << block);
@@ -427,7 +426,7 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
     assert(!D.isProcessed() && "Processing a block multiple times");
 
     for (RWNode *node : block->getNodes()) {
-        updateDefinitions(D, node);
+        D.update(node);
    }
 
     D.setProcessed();
@@ -444,7 +443,7 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
     for (RWNode *node : block->getNodes()) {
         if (node == to)
             break;
-        updateDefinitions(D, node);
+        D.update(node);
     }
 
     return D;
@@ -499,6 +498,7 @@ MemorySSATransformation::getDefinitions(RWNode *where,
                                         const Offset& off,
                                         const Offset& len) {
     //DBG_SECTION_BEGIN(dda, "Adding MU node");
+    DBG(dda, "FIXME: this will break the MEM SSA! (recognition of call bblocks)");
     auto *use = insertUse(where, mem, off, len);
     //DBG_SECTION_END(dda, "Created MU node " << use->getID());
     return getDefinitions(use);
@@ -608,7 +608,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
             DefinitionsMap<RWNode> tmpDefs = D.kills; // do not search for what we have already
             findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
-            // NOTE: we cannot catch here because of the DFS nature of the search
+            // NOTE: we cannot cache here because of the DFS nature of the search
             // (the found definitions does not contain _all_ reaching definitions)
         }
     }
