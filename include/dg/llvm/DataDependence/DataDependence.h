@@ -59,7 +59,6 @@ public:
         assert(pta);
 
         DDA.reset(createDDA());
-        //assert(getRoot() && "Failed building graph");
     }
 
     void run() {
@@ -78,30 +77,15 @@ public:
     const RWNode *getNode(const llvm::Value *val) const;
     const llvm::Value *getValue(const RWNode *node) const;
 
-    // let the user get the nodes map, so that we can
-    // map the points-to informatio back to LLVM nodes
-    const std::unordered_map<const llvm::Value *, RWNode *>& getNodesMapping() const;
-    const std::unordered_map<const llvm::Value *, RWNode *>& getMapping() const;
-
-    RWNode *getMapping(const llvm::Value *val);
-    const RWNode *getMapping(const llvm::Value *val) const;
-
     bool isUse(const llvm::Value *val) const {
         auto nd = getNode(val);
-        return nd && !nd->getUses().empty();
+        return nd && nd->isUse();
     }
 
     bool isDef(const llvm::Value *val) const {
         auto nd = getNode(val);
-        return nd && (!nd->getDefines().empty() || !nd->getOverwrites().empty());
+        return nd && nd->isDef();
     }
-
-   //std::vector<RWNode *> getNodes() {
-   //    assert(DDA);
-   //    // FIXME: this is insane, we should have this method defined here
-   //    // not in DDA
-   //    return getGraph()->getNodes(getRoot());
-   //}
 
     std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
                                          const Offset& off, const Offset& len) {
