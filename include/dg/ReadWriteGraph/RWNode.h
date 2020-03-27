@@ -265,8 +265,6 @@ class RWNodeCall : public RWNode {
     using CalleesT = std::vector<RWCalledValue>;
     CalleesT callees;
 
-    //RWNode *callReturn{nullptr};
-
 public:
     RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
 
@@ -280,23 +278,30 @@ public:
             static_cast<const RWNodeCall*>(n) : nullptr;
     }
 
-    /*
-    void setCallReturn(RWNode *callRet) { callReturn = callRet; }
-    RWNode *getCallReturn() { return callReturn; }
-    const RWNode *getCallReturn() const { return callReturn; }
-    */
-
-    bool callsOneUndefined() const {
+    RWCalledValue *getSingleCallee() {
         if (callees.size() != 1)
-            return false;
-        return callees[0].callsUndefined();
+            return nullptr;
+        return &callees[0];
+    }
+
+    const RWCalledValue *getSingleCallee() const {
+        if (callees.size() != 1)
+            return nullptr;
+        return &callees[0];
     }
 
     RWNode *getSingleUndefined() {
-        if (callees.size() != 1)
-            return nullptr;
-        assert(callees[0].callsUndefined());
-        return callees[0].getCalledValue();
+        auto *cv = getSingleCallee();
+        return cv ? cv->getCalledValue() : nullptr;
+    }
+
+    const RWNode *getSingleUndefined() const {
+        auto *cv = getSingleCallee();
+        return cv ? cv->getCalledValue() : nullptr;
+    }
+
+    bool callsOneUndefined() const {
+        return getSingleUndefined() != nullptr;
     }
 
     bool callsDefined() const {
