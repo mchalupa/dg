@@ -229,7 +229,7 @@ protected:
     }
 
     void dumpNodeEdges(RWNode *node) {
-        if (node->getType() == RWNodeType::PHI) {
+        if (verbose || node->getType() == RWNodeType::PHI) {
             for (RWNode *def : node->defuse) {
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
                        static_cast<void*>(def), static_cast<void*>(node));

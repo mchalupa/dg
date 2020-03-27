@@ -342,13 +342,13 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
             auto& summary = getSubgraphSummary(subg);
             summary.addOutput(subgphi);
 
-            phi->defuse.add(subgphi);
+            phi->addDefUse(subgphi);
 
             for (auto *subgblock : subg->bblocks()) {
                 if (subgblock->hasSuccessors()) {
                     continue;
                 }
-                subgphi->defuse.add(findDefinitions(subgblock, uncoveredds));
+                subgphi->addDefUse(findDefinitions(subgblock, uncoveredds));
             }
         }
     }
@@ -374,7 +374,7 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
         // there should be NO definitions from the beginning of the block to the callsite
         auto *bblock = callsite->getBBlock();
         assert(bblock && isCallBlock(bblock));
-        phi->defuse.add(findDefinitionsInPredecessors(bblock, ds));
+        phi->addDefUse(findDefinitionsInPredecessors(bblock, ds));
     }
 }
 
@@ -478,7 +478,7 @@ std::vector<RWNode *>
 MemorySSATransformation::getDefinitions(RWNode *use) {
     // on demand triggering finding the definitions
     if (!use->defuse.initialized()) {
-        use->defuse.add(findDefinitions(use));
+        use->addDefUse(findDefinitions(use));
         assert(use->defuse.initialized());
     }
     return gatherNonPhisDefs(use->defuse);
@@ -637,7 +637,10 @@ void MemorySSATransformation::computeAllDefinitions() {
         for (auto *b : subg->bblocks()) {
             for (auto *n : b->getNodes()) {
                 if (isUse(n)) {
-                    findDefinitions(n);
+                    if (!n->defuse.initialized()) {
+                        n->addDefUse(findDefinitions(n));
+                        assert(n->defuse.initialized());
+                    }
                 }
             }
         }

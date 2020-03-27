@@ -133,6 +133,13 @@ public:
     // FIXME: add a getter
     DefUses defuse;
 
+    bool addDefUse(RWNode *n) { return defuse.add(n); }
+
+    template <typename C>
+    bool addDefUse(const C& c) {
+        return defuse.add(c);
+    }
+
     Annotations& getAnnotations() { return annotations; }
     const Annotations& getAnnotations() const { return annotations; }
 
@@ -232,6 +239,10 @@ public:
     }
 
     bool isUse() const { return !getUses().empty(); }
+
+    bool isDef() const {
+        return !getDefines().empty() || !getOverwrites().empty();
+    }
 
     const RWBBlock *getBBlock() const { return bblock; }
     RWBBlock *getBBlock() { return bblock; }
