@@ -84,7 +84,7 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(
 RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
     using namespace llvm;
 
-    RWNode *node = &create(RWNodeType::CALL);
+    RWNode *node = &create(RWNodeType::GENERIC);
 
     // if we assume that undefined functions are pure
     // (have no side effects), we can bail out here
@@ -179,14 +179,14 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
             // we create this node because this nodes works
             // as ALLOC in points-to, so we can have
             // reaching definitions to that
-            ret = &create(RWNodeType::CALL);
+            ret = &create(RWNodeType::GENERIC);
             ret->addDef(ret, 0, Offset::UNKNOWN);
             return ret;
         default:
             return createUnknownCall(CInst);
     }
 
-    ret = &create(RWNodeType::CALL);
+    ret = &create(RWNodeType::GENERIC);
 
     auto pts = PTA->getLLVMPointsToChecked(dest);
     if (!pts.first) {
@@ -254,7 +254,7 @@ std::pair<Offset, Offset> getFromTo(const llvm::CallInst *CInst, T what) {
 RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
                                                  const llvm::CallInst *CInst) {
 
-    RWNode *node = &create(RWNodeType::CALL);
+    RWNode *node = &create(RWNodeType::GENERIC);
 
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
         if (!model->handles(i))
