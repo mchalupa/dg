@@ -40,6 +40,10 @@ enum class RWNodeType {
         CALL,
         FORK,
         JOIN,
+        // node that may define/use memory but does
+        // not fall into any of these categories
+        // (e.g., it represents an undefined call for which we have a model)
+        GENERIC,
         // dummy nodes
         NOOP
 };
@@ -140,8 +144,8 @@ public:
         return defuse.add(c);
     }
 
-    Annotations& getAnnotations() { return annotations; }
-    const Annotations& getAnnotations() const { return annotations; }
+    virtual Annotations& getAnnotations() { return annotations; }
+    virtual const Annotations& getAnnotations() const { return annotations; }
 
     DefSiteSetT& getDefines() { return getAnnotations().getDefines(); }
     DefSiteSetT& getOverwrites() { return getAnnotations().getOverwrites(); }
@@ -180,26 +184,32 @@ public:
         return false;
     }
 
+    // add uses to annotations of 'this' object
+    // (call objects can have several annotations as they are
+    //  composed of several nodes)
+    void addUse(const DefSite& ds) { annotations.getUses().insert(ds); }
+
     void addUse(RWNode *target,
                 const Offset& off = Offset::UNKNOWN,
                 const Offset& len = Offset::UNKNOWN) {
         addUse(DefSite(target, off, len));
     }
 
-    void addUse(const DefSite& ds) { getUses().insert(ds); }
-
     template <typename T>
     void addUses(T&& u) {
         for (auto& ds : u) {
-            getUses().insert(ds);
+            annotations.getUses().insert(ds);
         }
     }
 
+    // add definitions to annotations of 'this' object
+    // (call objects can have several annotations as they are
+    //  composed of several nodes)
     void addDef(const DefSite& ds, bool strong_update = false) {
         if (strong_update)
-            getOverwrites().insert(ds);
+            annotations.getOverwrites().insert(ds);
         else
-            getDefines().insert(ds);
+            annotations.getDefines().insert(ds);
     }
 
     ///
@@ -227,22 +237,12 @@ public:
     }
 
     void addOverwrites(const DefSite& ds) {
-        getOverwrites().insert(ds);
+        annotations.getOverwrites().insert(ds);
     }
 
-    bool isOverwritten(const DefSite& ds) {
-        return getOverwrites().find(ds) != getOverwrites().end();
-    }
-
-    bool isUnknown() const {
-        return this == UNKNOWN_MEMORY;
-    }
-
+    bool isUnknown() const { return this == UNKNOWN_MEMORY; }
     bool isUse() const { return !getUses().empty(); }
-
-    bool isDef() const {
-        return !getDefines().empty() || !getOverwrites().empty();
-    }
+    bool isDef() const { return !getDefines().empty() || !getOverwrites().empty(); }
 
     const RWBBlock *getBBlock() const { return bblock; }
     RWBBlock *getBBlock() { return bblock; }
@@ -331,8 +331,32 @@ public:
     void addCallee(RWNode *n) { callees.emplace_back(n); }
     void addCallee(RWSubgraph *s);
 
+    RWNode::Annotations& getAnnotations() override {
+        auto *cv = getSingleCallee();
+        assert(cv && "Multiple callees yet unsupported");
+
+        if (auto *uc = cv->getCalledValue()) {
+            return uc->getAnnotations();
+        }
+
+        // fall-through
+        return RWNode::getAnnotations();
+    }
+
+    const RWNode::Annotations& getAnnotations() const override {
+        auto *cv = getSingleCallee();
+        assert(cv && "Multiple callees yet unsupported");
+
+        if (auto *uc = cv->getCalledValue()) {
+            return uc->getAnnotations();
+        }
+
+        // fall-through
+        return RWNode::getAnnotations();
+    }
+
 #ifndef NDEBUG
-    void dump() const;
+    void dump() const override;
 #endif
 };
 

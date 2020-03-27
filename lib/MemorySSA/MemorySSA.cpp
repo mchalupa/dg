@@ -9,46 +9,21 @@
 namespace dg {
 namespace dda {
 
-// FIXME: these should be methods of RWNode
-static RWNode::Annotations& getAnnotations(RWNode *node) {
-    if (auto *C = RWNodeCall::get(node)) {
-        auto *cv = C->getSingleCallee();
-        assert(cv && "Multiple callees yet unsupported");
-
-        if (auto *uc = cv->getCalledValue()) {
-            return uc->getAnnotations();
-        }
-
-        // fall-through
-    }
+static inline RWNode::Annotations& getAnnotations(RWNode *node) {
     return node->getAnnotations();
 }
 
-static DefSiteSetT& getDefines(RWNode *node) {
+static inline DefSiteSetT& getDefines(RWNode *node) {
     return getAnnotations(node).getDefines();
 }
 
-static DefSiteSetT& getOverwrites(RWNode *node) {
+static inline DefSiteSetT& getOverwrites(RWNode *node) {
     return getAnnotations(node).getOverwrites();
 }
 
-static DefSiteSetT& getUses(RWNode *node) {
+static inline DefSiteSetT& getUses(RWNode *node) {
     return getAnnotations(node).getUses();
 }
-
-static bool isUse(RWNode *node) {
-    return !getUses(node).empty();
-}
-
-static bool usesUnknown(RWNode *node) {
-    for (auto& ds : getUses(node)) {
-        if (ds.target->isUnknown()) {
-            return true;
-        }
-    }
-    return false;
-}
-
 
 /// ------------------------------------------------------------------
 // class Definitions
@@ -90,7 +65,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 
     // gather unknown uses
-    if (usesUnknown(node)) {
+    if (node->usesUnknown()) {
         addUnknownRead(defnode);
     }
 }
@@ -122,10 +97,10 @@ std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWNode *node) {
     DBG(dda, "Searching definitions for node " << node->getID());
 
-    assert(isUse(node) && "Searching definitions for non-use node");
+    assert(node->isUse() && "Searching definitions for non-use node");
 
     // handle reads from unknown memory
-    if (usesUnknown(node)) {
+    if (node->usesUnknown()) {
         return findAllReachingDefinitions(node);
     }
 
@@ -636,7 +611,7 @@ void MemorySSATransformation::computeAllDefinitions() {
     for (auto *subg : graph.subgraphs()) {
         for (auto *b : subg->bblocks()) {
             for (auto *n : b->getNodes()) {
-                if (isUse(n)) {
+                if (n->isUse()) {
                     if (!n->defuse.initialized()) {
                         n->addDefUse(findDefinitions(n));
                         assert(n->defuse.initialized());
