@@ -628,38 +628,6 @@ void MemorySSATransformation::initialize() {
                     if (C->callsDefined()) {
                         si._bblock_infos[bb].setCallBlock(C);
                     }
-                    // summarize the effect of undefined calls
-                    if (C->callsUndefined()) {
-                        auto& callees = C->getCallees();
-                        if (callees.size() == 1) {
-                            C->annotations = callees[0].getCalledValue()->annotations;
-                        } else if (callees.size() > 1) {
-                            std::vector<RWNode *> undefined;
-                            for (auto& cv : callees) {
-                                if (auto *uc = cv.getCalledValue()) {
-                                    undefined.push_back(uc);
-                                }
-                            }
-
-                            assert(!undefined.empty());
-                            if (undefined.size() == 1) {
-                                C->annotations = undefined[0]->annotations;
-                            } else {
-                                auto kills = undefined[0]->annotations.overwrites.intersect(
-                                                undefined[1]->annotations.overwrites);
-                                for (size_t i = 2; i < undefined.size(); ++i) {
-                                    kills = kills.intersect(undefined[i]->annotations.overwrites);
-                                }
-
-                                C->annotations.overwrites = kills;
-                                for (auto *u : undefined) {
-                                    C->annotations.defs.add(u->annotations.defs);
-                                    C->annotations.uses.add(u->annotations.uses);
-                                }
-                            }
-
-                        }
-                    }
                 }
             }
         }

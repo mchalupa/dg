@@ -199,4 +199,6 @@ tests = {
 
     'threads1' : Test('threads1.c',
                       addparams=['-threads'], requiredparams=['-pta=fi']),
+    'undefcall1'          : Test('undefcall1_true-unreach-call.c'),
+    'undefcall2'          : Test('undefcall2_true-unreach-call.c')
 }

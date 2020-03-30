@@ -151,4 +151,6 @@ add_test(globalptr4          ${SCRIPTDIR}/test-runner.py globalptr4)
 add_test(threads1            ${SCRIPTDIR}/test-runner.py threads1)
 add_test(pta-inv-infinite-loop
                              ${SCRIPTDIR}/test-runner.py pta-inv-infinite-loop)
+add_test(undefcall1          ${SCRIPTDIR}/test-runner.py undefcall1)
+add_test(undefcall2          ${SCRIPTDIR}/test-runner.py undefcall2)
 
