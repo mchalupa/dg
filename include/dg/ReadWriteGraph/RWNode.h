@@ -327,6 +327,15 @@ public:
         return false;
     }
 
+    bool callsUndefined() const {
+        for (auto& c : callees) {
+            if (c.getCalledValue()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     const CalleesT& getCallees() const { return callees; }
     CalleesT& getCallees() { return callees; }
 

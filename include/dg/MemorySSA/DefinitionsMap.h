@@ -8,6 +8,7 @@
 #endif
 
 #include "dg/Offset.h"
+#include "dg/ReadWriteGraph/DefSite.h"
 #include "dg/ADT/DisjunctiveIntervalMap.h"
 
 namespace dg {
@@ -144,6 +145,17 @@ public:
             }
         }
         return tmp;
+    }
+
+    DefinitionsMap<NodeT> intersect(const DefinitionsMap<NodeT>& rhs) {
+        DefinitionsMap<NodeT> retval;
+        for (auto& it : _definitions) {
+            auto rhsit = rhs._definitions.find(it.first);
+            if (rhsit != rhs._definitions.end()) {
+                retval.add(it.first, it.second.intersect(rhsit->second));
+            }
+        }
+        return retval;
     }
 
     auto begin() const -> decltype(_definitions.begin()) {
