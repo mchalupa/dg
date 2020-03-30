@@ -54,6 +54,7 @@ class RWSubgraph {
 
     std::vector<RWNode *> _callers;
 
+    // for debugging
     std::string name;
 
 public:

@@ -146,7 +146,8 @@ protected:
     virtual void dumpBBlockDefinitions(RWBBlock *) {}
 
     virtual void dumpSubgraphLabel(RWSubgraph *subgraph) {
-        printf("  label=\"subgraph: %p\\n\";\n", subgraph);
+        printf("  label=\"subgraph: %s(%p)\\n\";\n",
+               subgraph->getName().c_str(), subgraph);
     }
 
     void printName(const RWNode *node) {

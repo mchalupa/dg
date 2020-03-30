@@ -184,6 +184,8 @@ protected:
         auto& subg = createSubgraph(&F);
         auto& subginfo = _subgraphs.emplace(&F, subg).first->second;
 
+        subg.setName(F.getName().str());
+
         DBG(rwg, "Building basic blocks of " << F.getName().str());
         // do a walk through basic blocks such that all predecessors of
         // a block are searched before the block itself
