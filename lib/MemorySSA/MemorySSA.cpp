@@ -304,10 +304,9 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
         C->getBBlock()->append(phi);
 
         // recursively find definitions for this phi node
-        // FIXME: optimize this for a single subgraph
-        // (we do not need to create the other PHI nodes)
         for (auto& callee : C->getCallees()) {
             auto *subg = callee.getSubgraph();
+            // FIXME: add support for mixing the values
             assert(subg && "Undefined values mixed with subgraph yet undefined");
 
             // we must create a new phi for each subgraph (these phis will
@@ -329,16 +328,6 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
     }
 }
 
-static inline bool isCallBlock(RWBBlock *b) {
-    // FIXME: this will not work once we start adding MU nodes
-    // as those can be inserted at the beggining of this block.
-    // We must add a flag.
-    auto *C = RWNodeCall::get(b->getFirst());
-    if (!C)
-        return false;
-    return C->callsDefined();
-}
-
 // get all callers of the function and find the given definitions reaching these
 // call-sites
 void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
@@ -346,24 +335,15 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
                                                            const DefSite& ds) {
     // get call-sites of this
     for (auto *callsite : subg->getCallers()) {
-        // there should be NO definitions from the beginning of the block to the callsite
         auto *bblock = callsite->getBBlock();
-        assert(bblock && isCallBlock(bblock));
-        phi->addDefUse(findDefinitionsInPredecessors(bblock, ds));
-    }
-}
+        assert(bblock && getBBlockInfo(bblock).isCallBlock());
 
-static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
-    // FIXME: this will not work once we start adding MU nodes
-    // as those can be inserted at the beginning of this block.
-    // We must add a flag.
-    if (b->size() < 1) {
-        return nullptr;
+        auto D = findDefinitionsInBlock(callsite, ds.target);
+        std::vector<RWNode *> defs;
+        addUncoveredFromPredecessors(bblock, D, ds, defs);
+        // FIXME: we could move the defintions
+        phi->addDefUse(defs);
     }
-    auto *C = RWNodeCall::get(b->getFirst());
-    if (!C)
-        return nullptr;
-    return C->callsDefined() ? C : nullptr;
 }
 
 
@@ -374,11 +354,14 @@ static inline RWNodeCall *getCallFromCallBBlock(RWBBlock *b) {
 ///
 MemorySSATransformation::Definitions&
 MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
+    // FIXME: make defs per subginfo (we can reserve memory for that then,
+    // but do that on-demand...)
     auto& D = _defs[b];
+    auto& bi = getBBlockInfo(b);
 
-    if (auto *C = getCallFromCallBBlock(b)) {
+    if (bi.isCallBlock()) {
         assert(ds && "Search without defsite unsupported yet");
-        findDefinitionsFromCall(D, C, *ds);
+        findDefinitionsFromCall(D, bi.getCall(), *ds);
     } else {
         // normal basic block
         if (!D.isProcessed()) {
@@ -405,14 +388,16 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
 ///
 // The same as performLVN() but only up to some point (and returns the map)
 MemorySSATransformation::Definitions
-MemorySSATransformation::findDefinitionsInBlock(RWNode *to) {
+MemorySSATransformation::findDefinitionsInBlock(RWNode *to, const RWNode *mem) {
     auto *block = to->getBBlock();
     // perform LVN up to the node
     Definitions D;
     for (RWNode *node : block->getNodes()) {
         if (node == to)
             break;
-        D.update(node);
+        if (!mem || node->defines(mem)) {
+            D.update(node);
+        }
     }
 
     return D;
@@ -466,19 +451,18 @@ MemorySSATransformation::getDefinitions(RWNode *where,
                                         RWNode *mem,
                                         const Offset& off,
                                         const Offset& len) {
-    //DBG_SECTION_BEGIN(dda, "Adding MU node");
-    DBG(dda, "FIXME: this will break the MEM SSA! (recognition of call bblocks)");
     auto *use = insertUse(where, mem, off, len);
-    //DBG_SECTION_END(dda, "Created MU node " << use->getID());
     return getDefinitions(use);
 }
 
 RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
                                            const Offset& off, const Offset& len) {
+    //DBG_SECTION_BEGIN(dda, "Adding MU node");
     auto& use = graph.create(RWNodeType::MU);
     use.addUse({mem, off, len});
     use.insertBefore(where);
     where->getBBlock()->insertBefore(&use, where);
+    //DBG_SECTION_END(dda, "Created MU node " << use->getID());
 
     return &use;
 }
@@ -641,7 +625,7 @@ void MemorySSATransformation::initialize() {
             if (bb->size() == 1) {
                 if (auto *C = RWNodeCall::get(bb->getFirst())) {
                     if (C->callsDefined()) {
-                        si._bblock_infos[bb].setIsCallBlock();
+                        si._bblock_infos[bb].setCallBlock(C);
                     }
                 }
             }

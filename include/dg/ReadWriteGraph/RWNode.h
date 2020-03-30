@@ -144,8 +144,8 @@ public:
         return defuse.add(c);
     }
 
-    virtual Annotations& getAnnotations() { return annotations; }
-    virtual const Annotations& getAnnotations() const { return annotations; }
+    Annotations& getAnnotations() { return annotations; }
+    const Annotations& getAnnotations() const { return annotations; }
 
     DefSiteSetT& getDefines() { return getAnnotations().getDefines(); }
     DefSiteSetT& getOverwrites() { return getAnnotations().getOverwrites(); }
@@ -154,11 +154,14 @@ public:
     const DefSiteSetT& getOverwrites() const { return getAnnotations().getOverwrites(); }
     const DefSiteSetT& getUses() const { return getAnnotations().getUses(); }
 
-    bool defines(RWNode *target, const Offset& off = Offset::UNKNOWN) const {
+    bool defines(const RWNode *target, const Offset& off = Offset::UNKNOWN) const {
         // FIXME: this is not efficient implementation,
         // use the ordering on the nodes
         if (off.isUnknown()) {
             for (const DefSite& ds : getDefines())
+                if (ds.target == target)
+                    return true;
+            for (const DefSite& ds : getOverwrites())
                 if (ds.target == target)
                     return true;
         } else {
@@ -241,7 +244,7 @@ public:
     }
 
     bool isUnknown() const { return this == UNKNOWN_MEMORY; }
-    bool isUse() const { return !getUses().empty(); }
+    virtual bool isUse() const { return !getUses().empty(); }
     bool isDef() const { return !getDefines().empty() || !getOverwrites().empty(); }
 
     const RWBBlock *getBBlock() const { return bblock; }
@@ -331,28 +334,15 @@ public:
     void addCallee(RWNode *n) { callees.emplace_back(n); }
     void addCallee(RWSubgraph *s);
 
-    RWNode::Annotations& getAnnotations() override {
-        auto *cv = getSingleCallee();
-        assert(cv && "Multiple callees yet unsupported");
-
-        if (auto *uc = cv->getCalledValue()) {
-            return uc->getAnnotations();
+    bool isUse() const override {
+        for (auto& cv : callees) {
+            if (auto *c = cv.getCalledValue()) {
+                if (!c->getUses().empty()) {
+                    return true;
+                }
+            }
         }
-
-        // fall-through
-        return RWNode::getAnnotations();
-    }
-
-    const RWNode::Annotations& getAnnotations() const override {
-        auto *cv = getSingleCallee();
-        assert(cv && "Multiple callees yet unsupported");
-
-        if (auto *uc = cv->getCalledValue()) {
-            return uc->getAnnotations();
-        }
-
-        // fall-through
-        return RWNode::getAnnotations();
+        return false;
     }
 
 #ifndef NDEBUG

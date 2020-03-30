@@ -75,11 +75,13 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     class BBlockInfo {
         Definitions definitions{};
-        bool callblock{false};
+        RWNodeCall *call{nullptr};
 
     public:
-        void setIsCallBlock() { callblock = true; }
-        bool isCallBlock() const { return callblock; }
+        void setCallBlock(RWNodeCall *c) { call = c; }
+        bool isCallBlock() const { return call != nullptr; }
+        RWNodeCall *getCall() { return call; }
+        const RWNodeCall *getCall() const { return call; }
 
         Definitions& getDefinitions() { return definitions; }
     };
@@ -112,6 +114,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         Summary& getSummary() { return summary; }
         const Summary& getSummary() const { return summary; }
         BBlockInfo& getBBlockInfo(const RWBBlock *b) { return _bblock_infos[b]; }
+        const BBlockInfo *getBBlockInfo(const RWBBlock *b) const {
+            auto it = _bblock_infos.find(b);
+            return it == _bblock_infos.end() ? nullptr : &it->second;
+        }
     };
 
     void initialize();
@@ -119,9 +125,9 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     ////
     // LVN
     ///
-    // Perform LVN up to a certain point.
+    // Perform LVN up to a certain point and search only for a certain memory.
     // XXX: we could avoid this by (at least virtually) splitting blocks on uses.
-    Definitions findDefinitionsInBlock(RWNode *);
+    Definitions findDefinitionsInBlock(RWNode *to, const RWNode *mem = nullptr);
     void performLvn(Definitions&, RWBBlock *);
     void updateDefinitions(Definitions& D, RWNode *node);
 
@@ -199,6 +205,14 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     }
     BBlockInfo& getBBlockInfo(const RWBBlock *b) {
         return getSubgraphInfo(b->getSubgraph()).getBBlockInfo(b);
+    }
+
+    const BBlockInfo *getBBlockInfo(const RWBBlock *b) const {
+        auto *si = getSubgraphInfo(b->getSubgraph());
+        if (si) {
+            return si->getBBlockInfo(b);
+        }
+        return nullptr;
     }
 
     SubgraphInfo::Summary& getSubgraphSummary(const RWSubgraph *s) {
