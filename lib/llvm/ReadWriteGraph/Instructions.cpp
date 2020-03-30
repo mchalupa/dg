@@ -188,7 +188,7 @@ LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
 
     const auto& functions = getCalledFunctions(calledVal, PTA);
     if (functions.empty()) {
-        llvm::errs() << "[RD] error: could not determine the called function "
+        llvm::errs() << "[RWG] error: could not determine the called function "
                         "in a call via pointer: \n"
                      << ValInfo(CInst) << "\n";
         return {createUnknownCall(CInst)};

@@ -89,7 +89,7 @@ class GraphBuilder {
     using GlobalsT = std::vector<NodeT *>;
     using NodesMappingT = std::unordered_map<const llvm::Value *, NodesSeq<NodeT>>;
     using ValuesMappingT = std::unordered_map<const NodeT *, const llvm::Value *>;
-    using SubgraphsMappingT = std::unordered_map<const llvm::Value *, SubgraphInfo>;
+    using SubgraphsMappingT = std::unordered_map<const llvm::Function *, SubgraphInfo>;
 
     const llvm::Module *_module;
 
@@ -179,22 +179,17 @@ protected:
         using namespace llvm;
 
         DBG_SECTION_BEGIN(rwg, "Building the subgraph for " << F.getName().str());
-        assert(_subgraphs.find(&F) == _subgraphs.end()
-                && "Already have that subgraph");
-        auto& subg = createSubgraph(&F);
-        auto& subginfo = _subgraphs.emplace(&F, subg).first->second;
+        auto subgit = _subgraphs.find(&F);
+        assert(subgit != _subgraphs.end() && "Do not have that subgraph");
 
-        subg.setName(F.getName().str());
+        auto& subginfo = subgit->second;
 
         DBG(rwg, "Building basic blocks of " << F.getName().str());
         // do a walk through basic blocks such that all predecessors of
         // a block are searched before the block itself
         // (operands must be created before their use)
-        auto &entry = F.getEntryBlock();
-
-        // process the block in BFS order to make sure
-        // the operands are created before their use
         ADT::SetQueue<ADT::QueueFIFO<const llvm::BasicBlock *>> queue;
+        auto &entry = F.getEntryBlock();
         queue.push(&entry);
 
         while (!queue.empty()) {
@@ -264,10 +259,21 @@ public:
 
         buildGlobals();
 
+        // create emtpy subgraphs for each procedure,
+        // so that calls can use them as operands
+
+        // FIXME:
         // build only reachable calls from CallGraph
         // (if given as an argument)
-        // FIXME: do a walk on reachable blocks so that
-        // we respect the domination properties of instructions
+        for (auto& F : *_module) {
+            assert(_subgraphs.find(&F) == _subgraphs.end()
+                   && "Already have that subgraph");
+            auto& subg = createSubgraph(&F);
+            subg.setName(F.getName().str());
+            _subgraphs.emplace(&F, subg);
+        }
+
+        // now do the real thing
         for (auto& F : *_module) {
             if (!F.isDeclaration()) {
                 buildSubgraph(F);
