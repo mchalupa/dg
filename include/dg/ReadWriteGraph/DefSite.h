@@ -89,6 +89,7 @@ using DefSite = GenericDefSite<RWNode>;
 
 extern RWNode *UNKNOWN_MEMORY;
 
+/*
 // wrapper around std::set<> with few
 // improvements that will be handy in our set-up
 class RWNodesSet {
@@ -138,6 +139,7 @@ public:
     };
 
 };
+*/
 
 using DefSiteSetT = std::set<DefSite>;
 
