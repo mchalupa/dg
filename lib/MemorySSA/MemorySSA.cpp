@@ -314,6 +314,7 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
             // method
             auto *subgphi = createPhi(uncoveredds);
             auto& summary = getSubgraphSummary(subg);
+            // FIXME: reuse the outputs
             summary.addOutput(subgphi);
 
             phi->addDefUse(subgphi);
