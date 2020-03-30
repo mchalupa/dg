@@ -483,25 +483,12 @@ class MemorySSADumper : public Dumper {
             return;
         }
 
-        if (!summary->inputs.empty() || !summary->outputs.empty()) {
-            printf("subgraph cluster_summary_%p {\n", summary);
-            for (auto i : summary->inputs)
-                nodeToDot(i);
-            for (auto o : summary->outputs)
-                nodeToDot(o);
-            printf("}\n");
-        }
-
         printf("  label=<<table><tr><td colspan=\"4\">subgraph %p</td></tr>\n"
                                "<tr><td colspan=\"4\">-- summary -- </td></tr>\n", subgraph);
         printf("<tr><td colspan=\"4\">==  inputs ==</td></tr>");
-        for (auto i : summary->inputs) {
-            _dumpDefSites(i, i->getOverwrites());
-        }
+        dumpDDIMap(summary->inputs);
         printf("<tr><td colspan=\"4\">==  outputs ==</td></tr>");
-        for (auto o : summary->outputs) {
-            _dumpDefSites(o, o->getOverwrites());
-        }
+        dumpDDIMap(summary->outputs);
         printf("</table>>;\n");
     }
 

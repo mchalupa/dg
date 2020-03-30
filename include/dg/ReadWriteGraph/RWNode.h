@@ -292,10 +292,9 @@ class RWNodeCall : public RWNode {
                 }
             }
 
-            assert(!undefined.empty());
             if (undefined.size() == 1) {
                 annotations = undefined[0]->annotations;
-            } else {
+            } else if (undefined.size() > 1){
                 auto kills = undefined[0]->annotations.overwrites.intersect(
                                 undefined[1]->annotations.overwrites);
                 for (size_t i = 2; i < undefined.size(); ++i) {
@@ -311,8 +310,6 @@ class RWNodeCall : public RWNode {
         }
         _annotations_summarized = true;
     }
-
-
 
 public:
     RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
