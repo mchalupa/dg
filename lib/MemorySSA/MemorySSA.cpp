@@ -623,16 +623,40 @@ void MemorySSATransformation::computeAllDefinitions() {
     DBG_SECTION_END(dda, "Computing definitions for all uses finished");
 }
 
-void MemorySSATransformation::run() {
-    DBG_SECTION_BEGIN(dda, "Running MemorySSA analysis");
-
-    // graph.buildBBlocks();
-    // _defs.reserve(graph.getBBlocks().size());
+void MemorySSATransformation::initialize() {
+    // we need each call (of a defined function) in its own basic block
     graph.splitBBlocksOnCalls();
+    // remove useless blocks and nodes
+    graph.optimize();
 
-    // XXX: maybe we could have _defs per a subgraph?
+    // make sure we have a constant-time access to information
+    _subgraphs_info.reserve(graph.size());
 
-    DBG_SECTION_END(dda, "Running MemorySSA analysis finished");
+    for (auto *subg : graph.subgraphs()) {
+        auto& si = _subgraphs_info[subg];
+        si._bblock_infos.reserve(subg->size());
+
+        // initialize information about basic blocks
+        for (auto *bb : subg->bblocks()) {
+            if (bb->size() == 1) {
+                if (auto *C = RWNodeCall::get(bb->getFirst())) {
+                    if (C->callsDefined()) {
+                        si._bblock_infos[bb].setIsCallBlock();
+                    }
+                }
+            }
+        }
+    }
+}
+
+void MemorySSATransformation::run() {
+    DBG_SECTION_BEGIN(dda, "Initializing MemorySSA analysis");
+
+    initialize();
+
+    // the rest is on-demand :)
+
+    DBG_SECTION_END(dda, "Initializing MemorySSA analysis finished");
 }
 
 } // namespace dda

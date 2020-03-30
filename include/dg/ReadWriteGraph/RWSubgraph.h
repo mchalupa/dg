@@ -91,6 +91,8 @@ public:
     block_iterator bblocks_end() { return block_iterator(_bblocks.end()); }
 
     blocks_range bblocks() { return blocks_range(_bblocks); }
+
+    auto size() const -> decltype(_bblocks.size()) { return _bblocks.size(); }
 };
 
 } // namespace dda
