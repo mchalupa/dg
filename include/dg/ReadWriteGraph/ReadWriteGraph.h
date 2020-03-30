@@ -108,38 +108,7 @@ public:
 
     subgraphs_range subgraphs() { return subgraphs_range(_subgraphs); }
 
-    // get nodes in BFS order and store them into
-    // the container
-    /*
-    template <typename ContainerOrNode>
-    std::vector<RWNode *> getNodes(const ContainerOrNode& start,
-                                   unsigned expected_num = 0)
-    {
-        ++dfsnum;
-
-        std::vector<RWNode *> cont;
-        if (expected_num != 0)
-            cont.reserve(expected_num);
-
-        struct DfsIdTracker {
-            const unsigned dfsnum;
-            DfsIdTracker(unsigned dnum) : dfsnum(dnum) {}
-
-            void visit(RWNode *n) { n->dfsid = dfsnum; }
-            bool visited(RWNode *n) const { return n->dfsid == dfsnum; }
-        };
-
-        DfsIdTracker visitTracker(dfsnum);
-        BFS<RWNode, DfsIdTracker> bfs(visitTracker);
-
-        bfs.run(start,
-                [&cont](RWNode *n) {
-                    cont.push_back(n);
-                });
-
-        return cont;
-    }
-    */
+    auto size() const -> decltype(_subgraphs.size()) { return _subgraphs.size(); }
 };
 
 } // namespace dda

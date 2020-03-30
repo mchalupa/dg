@@ -73,19 +73,48 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         void setProcessed() { _processed = true; }
     };
 
-    struct Summary {
-        // phi nodes representing reads/writes to memory that is
-        // external to the procedure
-        std::vector<RWNode *> inputs;
-        std::vector<RWNode *> outputs;
+    class BBlockInfo {
+        Definitions definitions{};
+        bool callblock{false};
 
-        Summary() = default;
-        Summary(Summary&&) = default;
-        Summary(const Summary&) = delete;
+    public:
+        void setIsCallBlock() { callblock = true; }
+        bool isCallBlock() const { return callblock; }
 
-        void addInput(RWNode *n) { inputs.push_back(n); }
-        void addOutput(RWNode *n) { outputs.push_back(n); }
+        Definitions& getDefinitions() { return definitions; }
     };
+
+    class SubgraphInfo {
+        std::unordered_map<const RWBBlock *, BBlockInfo> _bblock_infos;
+
+
+        struct Summary {
+            // phi nodes representing reads/writes to memory that is
+            // external to the procedure
+            std::vector<RWNode *> inputs;
+            std::vector<RWNode *> outputs;
+
+            Summary() = default;
+            Summary(Summary&&) = default;
+            Summary(const Summary&) = delete;
+
+            void addInput(RWNode *n) { inputs.push_back(n); }
+            void addOutput(RWNode *n) { outputs.push_back(n); }
+        } summary;
+
+        SubgraphInfo(RWSubgraph *s);
+
+        friend class MemorySSATransformation;
+
+    public:
+        SubgraphInfo() = default;
+
+        Summary& getSummary() { return summary; }
+        const Summary& getSummary() const { return summary; }
+        BBlockInfo& getBBlockInfo(const RWBBlock *b) { return _bblock_infos[b]; }
+    };
+
+    void initialize();
 
     ////
     // LVN
@@ -157,13 +186,24 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     dg::ADT::QueueLIFO<RWNode> _queue;
     std::unordered_map<RWBBlock *, Definitions> _defs;
     std::unordered_map<RWBBlock *, DefinitionsMap<RWNode>> _cached_defs;
-    std::unordered_map<const RWSubgraph *, Summary> _summaries;
+    std::unordered_map<const RWSubgraph *, SubgraphInfo> _subgraphs_info;
 
     Definitions& getBBlockDefinitions(RWBBlock *b, const DefSite *ds = nullptr);
     DefinitionsMap<RWNode>& getCachedDefinitions(RWBBlock *b);
     bool hasCachedDefinitions(RWBBlock *b) const { return _cached_defs.count(b) > 0; }
 
-    Summary& getSubgraphSummary(const RWSubgraph *s) { return _summaries[s]; }
+    SubgraphInfo& getSubgraphInfo(const RWSubgraph *s) { return _subgraphs_info[s]; }
+    const SubgraphInfo *getSubgraphInfo(const RWSubgraph *s) const {
+        auto it = _subgraphs_info.find(s);
+        return it == _subgraphs_info.end() ? nullptr : &it->second;
+    }
+    BBlockInfo& getBBlockInfo(const RWBBlock *b) {
+        return getSubgraphInfo(b->getSubgraph()).getBBlockInfo(b);
+    }
+
+    SubgraphInfo::Summary& getSubgraphSummary(const RWSubgraph *s) {
+        return getSubgraphInfo(s).getSummary();
+    }
 
 public:
     MemorySSATransformation(ReadWriteGraph&& graph,
@@ -196,9 +236,11 @@ public:
         return &it->second;
     }
 
-    const Summary *getSummary(const RWSubgraph *s) const {
-        auto it = _summaries.find(s);
-        return it == _summaries.end() ? nullptr : &it->second;
+    const SubgraphInfo::Summary *getSummary(const RWSubgraph *s) const {
+        auto si = getSubgraphInfo(s);
+        if (!si)
+            return nullptr;
+        return &si->getSummary();
     }
 };
 
