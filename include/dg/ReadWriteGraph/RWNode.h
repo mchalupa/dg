@@ -102,7 +102,7 @@ public:
     /// Gathers information about the node
     /// - what memory it accesses and whether it writes it or reads it.
     ///
-    struct Annotations {
+    mutable struct Annotations {
         // weak update
         DefSiteSetT defs;
         // strong update
@@ -144,8 +144,8 @@ public:
         return defuse.add(c);
     }
 
-    Annotations& getAnnotations() { return annotations; }
-    const Annotations& getAnnotations() const { return annotations; }
+    virtual Annotations& getAnnotations() { return annotations; }
+    virtual const Annotations& getAnnotations() const { return annotations; }
 
     DefSiteSetT& getDefines() { return getAnnotations().getDefines(); }
     DefSiteSetT& getOverwrites() { return getAnnotations().getOverwrites(); }
@@ -244,7 +244,7 @@ public:
     }
 
     bool isUnknown() const { return this == UNKNOWN_MEMORY; }
-    virtual bool isUse() const { return !getUses().empty(); }
+    bool isUse() const { return !getUses().empty(); }
     bool isDef() const { return !getDefines().empty() || !getOverwrites().empty(); }
 
     const RWBBlock *getBBlock() const { return bblock; }
@@ -278,6 +278,41 @@ class RWNodeCall : public RWNode {
     // what this call calls?
     using CalleesT = std::vector<RWCalledValue>;
     CalleesT callees;
+    mutable bool _annotations_summarized{false};
+
+    // compute the overall effect of all undefined calls
+    // in this call and store them into the annotations
+    // of this node
+    void _summarizeAnnotation() const {
+        if (callees.size() > 1) {
+            std::vector<const RWNode *> undefined;
+            for (auto& cv : callees) {
+                if (auto *uc = cv.getCalledValue()) {
+                    undefined.push_back(uc);
+                }
+            }
+
+            assert(!undefined.empty());
+            if (undefined.size() == 1) {
+                annotations = undefined[0]->annotations;
+            } else {
+                auto kills = undefined[0]->annotations.overwrites.intersect(
+                                undefined[1]->annotations.overwrites);
+                for (size_t i = 2; i < undefined.size(); ++i) {
+                    kills = kills.intersect(undefined[i]->annotations.overwrites);
+                }
+
+                annotations.overwrites = kills;
+                for (auto *u : undefined) {
+                    annotations.defs.add(u->annotations.defs);
+                    annotations.uses.add(u->annotations.uses);
+                }
+            }
+        }
+        _annotations_summarized = true;
+    }
+
+
 
 public:
     RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
@@ -343,16 +378,21 @@ public:
     void addCallee(RWNode *n) { callees.emplace_back(n); }
     void addCallee(RWSubgraph *s);
 
-    bool isUse() const override {
-        for (auto& cv : callees) {
-            if (auto *c = cv.getCalledValue()) {
-                if (!c->getUses().empty()) {
-                    return true;
-                }
-            }
-        }
-        return false;
+    Annotations& getAnnotations() override {
+        if (auto *uc = getSingleUndefined())
+            return uc->annotations;
+        if (!_annotations_summarized)
+            _summarizeAnnotation();
+        return annotations;
     }
+    const Annotations& getAnnotations() const override {
+        if (auto *uc = getSingleUndefined())
+            return uc->annotations;
+        if (!_annotations_summarized)
+            _summarizeAnnotation();
+        return annotations;
+    }
+
 
 #ifndef NDEBUG
     void dump() const override;
