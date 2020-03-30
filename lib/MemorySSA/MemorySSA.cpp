@@ -209,7 +209,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             phi = createPhi(getBBlockDefinitions(block, &ds), ds);
             auto *subg = block->getSubgraph();
             auto& summary = getSubgraphSummary(subg);
-            summary.addInput(phi);
+            summary.addInput(ds, phi);
             findDefinitionsFromCalledFun(phi, subg, ds);
         }
 
@@ -309,22 +309,27 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
             // FIXME: add support for mixing the values
             assert(subg && "Undefined values mixed with subgraph yet undefined");
 
+            auto& summary = getSubgraphSummary(subg);
             // we must create a new phi for each subgraph (these phis will
             // be merged by the single phi created at the beginning of this
-            // method
-            auto *subgphi = createPhi(uncoveredds);
-            auto& summary = getSubgraphSummary(subg);
-            // FIXME: reuse the outputs
-            summary.addOutput(subgphi);
+            // method. Of course, we create them only when not already present.
+            for (auto& subginterval : summary.getUncoveredOutputs(ds)) {
+                auto *subgphi = createPhi(uncoveredds);
+                summary.addOutput(DefSite{uncoveredds.target,
+                                          subginterval.start,
+                                          subginterval.length()},
+                                  subgphi);
 
-            phi->addDefUse(subgphi);
-
-            for (auto *subgblock : subg->bblocks()) {
-                if (subgblock->hasSuccessors()) {
-                    continue;
+                // find the new phi operands
+                for (auto *subgblock : subg->bblocks()) {
+                    if (subgblock->hasSuccessors()) {
+                        continue;
+                    }
+                    subgphi->addDefUse(findDefinitions(subgblock, uncoveredds));
                 }
-                subgphi->addDefUse(findDefinitions(subgblock, uncoveredds));
             }
+
+            phi->addDefUse(summary.getOutputs(uncoveredds));
         }
     }
 }

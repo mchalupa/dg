@@ -93,15 +93,21 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         struct Summary {
             // phi nodes representing reads/writes to memory that is
             // external to the procedure
-            std::vector<RWNode *> inputs;
-            std::vector<RWNode *> outputs;
+            DefinitionsMap<RWNode> inputs;
+            DefinitionsMap<RWNode> outputs;
 
             Summary() = default;
             Summary(Summary&&) = default;
             Summary(const Summary&) = delete;
 
-            void addInput(RWNode *n) { inputs.push_back(n); }
-            void addOutput(RWNode *n) { outputs.push_back(n); }
+            void addInput(const DefSite& ds, RWNode *n) { inputs.add(ds, n); }
+            void addOutput(const DefSite& ds, RWNode *n) { outputs.add(ds, n); }
+
+            std::set<RWNode *> getOutputs(const DefSite& ds) { return outputs.get(ds); }
+            auto getUncoveredOutputs(const DefSite& ds) -> decltype (outputs.undefinedIntervals(ds)) {
+                return outputs.undefinedIntervals(ds);
+            }
+
         } summary;
 
         SubgraphInfo(RWSubgraph *s);
