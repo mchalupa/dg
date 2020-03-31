@@ -174,7 +174,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             defs.insert(tmpdefs.begin(), tmpdefs.end());
         }
 
-        phi->defuse.add(defs);
+        phi->addDefUse(defs);
     }
 
 
@@ -184,6 +184,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
                                     RWBBlock *from,
                                     std::set<RWBBlock *>& visitedBlocks);
+
+    void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
 
     void updateCallDefinitions(Definitions& D, RWNodeCall *call);
 

@@ -105,14 +105,9 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     }
 
     auto *block = node->getBBlock();
-    // FIXME: the graph may contain dead code for which no blocks
-    // are set (as the blocks are created only for the reachable code).
-    // Removing the dead code is easy, but then we must somehow
-    // adjust the mapping in the builder, which is not that straightforward.
-    // Once we have that, uncomment this assertion.
-    //assert(block && "Block is null");
-    if (!block)
-        return {};
+    assert(block && "Block is null");
+    //if (!block)
+    //    return {};
 
     // gather all definitions from the beginning of the block
     // to the node (we must do that always, because adding PHI
@@ -256,14 +251,9 @@ void MemorySSATransformation::addUncoveredFromPredecessors(
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWBBlock *block,
                                          const DefSite& ds) {
-    // FIXME: the graph may contain dead code for which no blocks
-    // are set (as the blocks are created only for the reachable code).
-    // Removing the dead code is easy, but then we must somehow
-    // adjust the mapping in the builder, which is not that straightforward.
-    // Once we have that, uncomment this assertion.
-    //assert(block && "Block is null");
-    if (!block)
-        return {};
+    assert(block && "Block is null");
+    //if (!block)
+    //    return {};
 
     assert(ds.target && "Target is null");
 
@@ -364,8 +354,11 @@ MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     auto& D = bi.getDefinitions();
 
     if (bi.isCallBlock()) {
-        assert(ds && "Search without defsite unsupported yet");
-        findDefinitionsFromCall(D, bi.getCall(), *ds);
+        if (ds) {
+            findDefinitionsFromCall(D, bi.getCall(), *ds);
+        } else {
+            findAllDefinitionsFromCall(D, bi.getCall());
+        }
     } else {
         // normal basic block
         if (!D.isProcessed()) {
@@ -495,6 +488,12 @@ static void joinDefinitions(DefinitionsMap<RWNode>& from,
             }
         }
     }
+}
+
+void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
+                                                         RWNodeCall *C) {
+
+    assert(false && "Not implemented");
 }
 
 void

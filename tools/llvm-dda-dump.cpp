@@ -236,7 +236,7 @@ protected:
                        static_cast<void*>(def), static_cast<void*>(node));
             }
         }
-        if (node->isUse()) {
+        if (!graph_only && node->isUse()) {
             for (RWNode *def : DDA->getDefinitions(node)) {
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false color=blue]\n",
                        static_cast<void*>(def), static_cast<void*>(node));
@@ -474,7 +474,8 @@ class MemorySSADumper : public Dumper {
 
     void dumpSubgraphLabel(RWSubgraph *subgraph) override {
         auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
-        SSA->computeAllDefinitions();
+        if (!graph_only)
+            SSA->computeAllDefinitions();
         const auto *summary = SSA->getSummary(subgraph);
 
         if (!summary) {
