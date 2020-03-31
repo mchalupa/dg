@@ -152,7 +152,7 @@ public:
         for (auto& it : _definitions) {
             auto rhsit = rhs._definitions.find(it.first);
             if (rhsit != rhs._definitions.end()) {
-                retval.add(it.first, it.second.intersect(rhsit->second));
+                retval.add(it.first, it.second.intersection(rhsit->second));
             }
         }
         return retval;

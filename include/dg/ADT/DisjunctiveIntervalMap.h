@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <algorithm>
 
 #ifndef NDEBUG
 #include <iostream>
@@ -189,6 +190,29 @@ public:
 
     bool overlapsFull(IntervalValueT start, IntervalValueT end) const {
         return overlapsFull(IntervalT(start, end));
+    }
+
+    DisjunctiveIntervalMap intersection(const DisjunctiveIntervalMap& rhs) const {
+        DisjunctiveIntervalMap tmp;
+        // FIXME: this could be done more efficiently
+        auto it = _mapping.begin();
+        for (auto& rhsit : rhs._mapping) {
+            while (it->first.end < rhsit.first.start) {
+                if (it == _mapping.end()) {
+                    return tmp;
+                }
+            }
+            if (it->first.overlaps(rhsit.first)) {
+                decltype(rhsit.second) vals;
+                std::set_intersection(it->second.begin(), it->second.end(),
+                                      rhsit.second.begin(), rhsit.second.end(),
+                                      std::inserter(vals, vals.begin()));
+                tmp.add(IntervalT{std::max(it->first.start, rhsit.first.start),
+                                  std::min(it->first.end, rhsit.first.end)},
+                        vals);
+            }
+        }
+        return tmp;
     }
 
     ///

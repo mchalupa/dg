@@ -61,8 +61,9 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         // I.e., as if node would be executed when already
         // having the definitions we have
         void update(RWNode *node, RWNode *defnode = nullptr);
-        // Join another definitions to this Definitions.
-        // I.e., perform union of definitions and intersection of overwrites.
+        // Join another definitions to this Definitions
+        // (as if on  a joint point in a CFG)
+        void join(const Definitions& rhs);
 
         auto uncovered(const DefSite& ds) const -> decltype(kills.undefinedIntervals(ds)) {
             return kills.undefinedIntervals(ds);
