@@ -84,6 +84,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         const RWNodeCall *getCall() const { return call; }
 
         Definitions& getDefinitions() { return definitions; }
+        const Definitions& getDefinitions() const { return definitions; }
     };
 
     class SubgraphInfo {
@@ -196,7 +197,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
-    std::unordered_map<RWBBlock *, Definitions> _defs;
     std::unordered_map<RWBBlock *, DefinitionsMap<RWNode>> _cached_defs;
     std::unordered_map<const RWSubgraph *, SubgraphInfo> _subgraphs_info;
 
@@ -250,10 +250,8 @@ public:
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
 
     const Definitions *getDefinitions(RWBBlock *b) const {
-        auto it = _defs.find(b);
-        if (it == _defs.end())
-            return nullptr;
-        return &it->second;
+        auto *bi = getBBlockInfo(b);
+        return bi ? &bi->getDefinitions() : nullptr;
     }
 
     const SubgraphInfo::Summary *getSummary(const RWSubgraph *s) const {
