@@ -113,8 +113,6 @@ int main(int argc, char *argv[])
             const char *arg = argv[++i];
             if (strcmp(arg, "classic") == 0)
                 cd_alg = CD_ALG::CLASSIC;
-            else if (strcmp(arg, "ce") == 0)
-                cd_alg = CD_ALG::CONTROL_EXPRESSION;
             else if (strcmp(arg, "ntscd") == 0)
                 cd_alg = CD_ALG::NTSCD;
             else {

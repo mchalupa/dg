@@ -24,15 +24,12 @@ namespace llvm {
 
 #include "dg/llvm/LLVMNode.h"
 #include "dg/DependenceGraph.h"
-#include "dg/ControlExpression/ControlExpression.h"
 
 namespace dg {
 
 enum class CD_ALG {
     // Ferrante & Ottenstein
     CLASSIC,
-    // our algorithm
-    CONTROL_EXPRESSION,
     // non-termination sensitive control dependencies
     NTSCD
 };
@@ -133,8 +130,6 @@ public:
         if (alg_type == CD_ALG::CLASSIC) {
             computePostDominators(true);
             //makeSelfLoopsControlDependent();
-        } else if (alg_type == CD_ALG::CONTROL_EXPRESSION) {
-            computeControlExpression(true);
         } else if (alg_type == CD_ALG::NTSCD) {
             computeNonTerminationControlDependencies();
         } else
@@ -171,7 +166,6 @@ public:
     void computeCriticalSections(ControlFlowGraph * controlFlowGraph);
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
-    void computeControlExpression(bool addCDs = false);
     void computeNonTerminationControlDependencies();
 
     void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
@@ -217,9 +211,6 @@ private:
     LLVMPointerAnalysis *PTA;
     // reaching definitions information (if available)
     LLVMDataDependenceAnalysis *DDA;
-
-    // control expression for this graph
-    ControlExpression CE;
 
     // verifier needs access to private elements
     friend class LLVMDGVerifier;
