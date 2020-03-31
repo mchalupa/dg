@@ -360,10 +360,8 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
 ///
 MemorySSATransformation::Definitions&
 MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
-    // FIXME: make defs per subginfo (we can reserve memory for that then,
-    // but do that on-demand...)
-    auto& D = _defs[b];
     auto& bi = getBBlockInfo(b);
+    auto& D = bi.getDefinitions();
 
     if (bi.isCallBlock()) {
         assert(ds && "Search without defsite unsupported yet");
