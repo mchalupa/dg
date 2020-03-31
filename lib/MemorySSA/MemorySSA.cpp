@@ -497,9 +497,9 @@ void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
 }
 
 void
-MemorySSATransformation::findAllDefinitions(DefinitionsMap<RWNode>& defs,
-                                            RWBBlock *from,
-                                            std::set<RWBBlock *>& visitedBlocks) {
+MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
+                                              RWBBlock *from,
+                                              std::set<RWBBlock *>& visitedBlocks) {
     if (!from)
         return;
 
@@ -521,19 +521,18 @@ MemorySSATransformation::findAllDefinitions(DefinitionsMap<RWNode>& defs,
 
     // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
-        findAllDefinitions(defs, singlePred, visitedBlocks);
+        collectAllDefinitions(defs, singlePred, visitedBlocks);
     } else {
         for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
             auto tmpDefs = defs;
-            findAllDefinitions(tmpDefs, *I, visitedBlocks);
+            collectAllDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
         }
     }
 }
 
-std::vector<RWNode *>
-MemorySSATransformation::findAllDefinitions(RWNode *from) {
-    DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
+DefinitionsMap<RWNode>
+MemorySSATransformation::collectAllDefinitions(RWNode *from) {
     assert(from->getBBlock() && "The node has no BBlock");
 
     auto *block = from->getBBlock();
@@ -550,7 +549,7 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
         // NOTE: we must start with emtpy defs,
         // to gather all reaching definitions (due to caching)
         assert(defs.empty());
-        findAllDefinitions(defs, singlePred, visitedBlocks);
+        collectAllDefinitions(defs, singlePred, visitedBlocks);
         // cache the found definitions
         // FIXME: optimize the accesses
         assert(!hasCachedDefinitions(singlePred));
@@ -562,7 +561,7 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
         // NOTE: no caching here...
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
             DefinitionsMap<RWNode> tmpDefs = D.kills; // do not search for what we have already
-            findAllDefinitions(tmpDefs, *I, visitedBlocks);
+            collectAllDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
             // NOTE: we cannot cache here because of the DFS nature of the search
             // (the found definitions does not contain _all_ reaching definitions)
@@ -573,12 +572,14 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
     joinDefinitions(defs, D.definitions);
     defs.swap(D.definitions);
 
-    ///
-    // get the definitions from this block (this is basically the LVN)
-    // We do it after searching predecessors, because we cache the
-    // definitions in predecessors.
-    ///
+    return defs;
+}
 
+std::vector<RWNode *>
+MemorySSATransformation::findAllDefinitions(RWNode *from) {
+    DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
+
+    auto defs = collectAllDefinitions(from);
     std::set<RWNode *> foundDefs; // definitions that we found
     for (auto& it : defs) {
         for (auto& nds : it.second) {
@@ -586,9 +587,6 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
         }
     }
 
-    ///
-    // Gather all the defintions
-    ///
     DBG_SECTION_END(dda, "MemorySSA - finding all definitions done");
     return gatherNonPhisDefs(foundDefs);
 }

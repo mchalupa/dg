@@ -181,9 +181,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RWNode *> findAllDefinitions(RWNode *from);
-    void findAllDefinitions(DefinitionsMap<RWNode>& defs,
-                            RWBBlock *from,
-                           std::set<RWBBlock *>& visitedBlocks);
+    DefinitionsMap<RWNode> collectAllDefinitions(RWNode *from);
+    void collectAllDefinitions(DefinitionsMap<RWNode>& defs,
+                               RWBBlock *from,
+                               std::set<RWBBlock *>& visitedBlocks);
 
     void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
 
