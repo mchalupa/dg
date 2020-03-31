@@ -223,7 +223,7 @@ MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
 void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                                                       RWNodeCall *C,
                                                       const DefSite& ds) {
-    // check if we have found such a definitions before
+    // find the uncovered parts of the sought definition
     auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
         auto uncoveredds = DefSite{ds.target, interval.start, interval.length()};
@@ -285,7 +285,10 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
 ///
 /// Get Definitions object for a bblock. Optionally, a definition site due to
 ///  which we are getting the definitions can be specified (used when searching
-///  in call blocks on demand)
+///  in call blocks on demand).
+/// The on-demand for calls was such that we retrive the sought definitions
+/// and store them into the Definitions object. This object is then
+/// returned and can be queried.
 ///
 MemorySSATransformation::Definitions&
 MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
@@ -322,7 +325,8 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
 }
 
 ///
-// The same as performLVN() but only up to some point (and returns the map)
+// The same as performLVN() but only up to some point (and returns the map).
+// Also, if mem is specified, then search for effects only to this memory.
 MemorySSATransformation::Definitions
 MemorySSATransformation::findDefinitionsInBlock(RWNode *to, const RWNode *mem) {
     auto *block = to->getBBlock();
@@ -493,7 +497,7 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from) {
     ///
     // -- Get the definitions from predecessors --
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
-    // in which case we want to process it
+    // in which case we want to process it again
     if (auto singlePred = block->getSinglePredecessor()) {
         // NOTE: we must start with emtpy defs,
         // to gather all reaching definitions (due to caching)
