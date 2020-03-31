@@ -38,6 +38,7 @@ add_library(dgdda SHARED
 
 	ReadWriteGraph/ReadWriteGraph.cpp
 	MemorySSA/MemorySSA.cpp
+	MemorySSA/Definitions.cpp
 )
 target_link_libraries(dgdda PUBLIC dganalysis)
 
