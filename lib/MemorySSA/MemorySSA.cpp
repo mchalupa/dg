@@ -101,7 +101,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
 
     // handle reads from unknown memory
     if (node->usesUnknown()) {
-        return findAllReachingDefinitions(node);
+        return findAllDefinitions(node);
     }
 
     auto *block = node->getBBlock();
@@ -497,9 +497,9 @@ void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
 }
 
 void
-MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs,
-                                                    RWBBlock *from,
-                                                    std::set<RWBBlock *>& visitedBlocks) {
+MemorySSATransformation::findAllDefinitions(DefinitionsMap<RWNode>& defs,
+                                            RWBBlock *from,
+                                            std::set<RWBBlock *>& visitedBlocks) {
     if (!from)
         return;
 
@@ -521,18 +521,18 @@ MemorySSATransformation::findAllReachingDefinitions(DefinitionsMap<RWNode>& defs
 
     // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
-        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
+        findAllDefinitions(defs, singlePred, visitedBlocks);
     } else {
         for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
             auto tmpDefs = defs;
-            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+            findAllDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
         }
     }
 }
 
 std::vector<RWNode *>
-MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
+MemorySSATransformation::findAllDefinitions(RWNode *from) {
     DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
     assert(from->getBBlock() && "The node has no BBlock");
 
@@ -550,7 +550,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
         // NOTE: we must start with emtpy defs,
         // to gather all reaching definitions (due to caching)
         assert(defs.empty());
-        findAllReachingDefinitions(defs, singlePred, visitedBlocks);
+        findAllDefinitions(defs, singlePred, visitedBlocks);
         // cache the found definitions
         // FIXME: optimize the accesses
         assert(!hasCachedDefinitions(singlePred));
@@ -562,7 +562,7 @@ MemorySSATransformation::findAllReachingDefinitions(RWNode *from) {
         // NOTE: no caching here...
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
             DefinitionsMap<RWNode> tmpDefs = D.kills; // do not search for what we have already
-            findAllReachingDefinitions(tmpDefs, *I, visitedBlocks);
+            findAllDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
             // NOTE: we cannot cache here because of the DFS nature of the search
             // (the found definitions does not contain _all_ reaching definitions)
