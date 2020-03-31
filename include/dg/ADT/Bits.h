@@ -3,6 +3,7 @@
 
 #include <cstddef> // size_t
 #include <cassert>
+#include <cstdint>
 
 namespace dg {
 namespace ADT {

@@ -70,6 +70,16 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 }
 
+void
+MemorySSATransformation::Definitions::join(const Definitions& rhs) {
+    definitions.add(rhs.definitions);
+    kills.intersect(rhs.kills);
+    unknownWrites.insert(unknownWrites.end(),
+                        rhs.unknownWrites.begin(), rhs.unknownWrites.end());
+    unknownReads.insert(unknownReads.end(),
+                        rhs.unknownReads.begin(), rhs.unknownReads.end());
+}
+
 /// ------------------------------------------------------------------
 // class MemorySSATransformation
 /// ------------------------------------------------------------------
