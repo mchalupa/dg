@@ -3,6 +3,7 @@
 
 #include "Offset.h"
 #include <map>
+#include <string>
 
 namespace dg {
 namespace analysis {
