@@ -3,7 +3,7 @@ project(dg)
 
 include(CTest)
 
-# we need C++11 standard
+# we need at least C++11 standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
@@ -73,6 +73,12 @@ if (LLVM_DG)
 		llvm_map_components_to_libraries(llvm_analysis analysis)
 		llvm_map_components_to_libraries(llvm_support support)
 	endif()
+
+	# LLVM 10 and newer require at least c++14 standard
+	if (${LLVM_PACKAGE_VERSION} VERSION_GREATER_EQUAL "10.0")
+		set(CMAKE_CXX_STANDARD 14)
+		option(USE_CXX14 "Use C++14 standard" ON)
+	endif()
 endif(LLVM_DG)
 
 if (ENABLE_CFG)
@@ -96,12 +102,17 @@ endif()
 #	message(STATUS "Will NOT build fuzzing tests")
 #endif()
 
-# explicitly add -std=c++11 and -fno-rtti
+# explicitly add -std=c++11 (-std=c++14) and -fno-rtti
 # we have CMAKE_CXX_STANDARD, but for some reason it does not
-# put the -std=c++11 or -std=gnu++11 to the flags
-# on some systems. For the -fno-rtti: LLVM still got problems
-# with turning RTTI off...
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -std=c++11 -Wall -Wextra")
+# put the -std=c++11 (-std=c++14) or -std=gnu++11 (-std=gnu++14)
+# to the flags on some systems.
+# For the -fno-rtti: LLVM still got problems with turning RTTI off...
+if (USE_CXX14)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -Wall -Wextra")
 
 if (USE_CLANG_SANITIZERS)
 	message(WARNING "USE_CLANG_SANITIZERS has been renamed to USE_SANITIZERS")
