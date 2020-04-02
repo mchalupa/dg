@@ -37,24 +37,24 @@ if (LLVM_DG)
 	# if we were provided a path to custom sources
 	# use that path
 	if (LLVM_SRC_PATH)
-	  include_directories(${LLVM_SRC_PATH}/include)
-	  message(STATUS "Looking for headers in given: ${LLVM_SRC_PATH}/include")
+		include_directories(${LLVM_SRC_PATH}/include)
+		message(STATUS "Looking for headers in given: ${LLVM_SRC_PATH}/include")
 	else()
-	  include_directories(${LLVM_INCLUDE_DIRS})
-	  message(STATUS "Looking for headers in: ${LLVM_INCLUDE_DIRS}")
+		include_directories(${LLVM_INCLUDE_DIRS})
+		message(STATUS "Looking for headers in: ${LLVM_INCLUDE_DIRS}")
 	endif()
 
-       # if we were provided a path to custom build directory
-       # use that
+	# if we were provided a path to custom build directory
+	# use that
 	if (LLVM_BUILD_PATH)
-	  link_directories(${LLVM_BUILD_PATH}/lib)
+		link_directories(${LLVM_BUILD_PATH}/lib)
 
-         # llvm-config.h
-	  include_directories("${LLVM_BUILD_PATH}/include")
-	  message(STATUS "Looking for libraries in given: ${LLVM_BUILD_PATH}/lib")
+		# llvm-config.h
+		include_directories("${LLVM_BUILD_PATH}/include")
+		message(STATUS "Looking for libraries in given: ${LLVM_BUILD_PATH}/lib")
 	else()
-	  link_directories(${LLVM_LIBRARY_DIRS})
-	  message(STATUS "Looking for libraries in: ${LLVM_LIBRARY_DIRS}")
+		link_directories(${LLVM_LIBRARY_DIRS})
+		message(STATUS "Looking for libraries in: ${LLVM_LIBRARY_DIRS}")
 	endif(LLVM_BUILD_PATH)
 
 	add_definitions(${LLVM_DEFINITIONS})
