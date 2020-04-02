@@ -4,6 +4,7 @@
 #include "dg/analysis/PointsTo/Pointer.h"
 #include "dg/ADT/Bitvector.h"
 
+#include <cstdlib>
 #include <map>
 #include <vector>
 

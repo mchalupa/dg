@@ -1,6 +1,7 @@
 #ifndef GRAPHBUILDER_H
 #define GRAPHBUILDER_H
 
+#include <ostream>
 #include <utility>
 #include <set>
 #include <unordered_set>
