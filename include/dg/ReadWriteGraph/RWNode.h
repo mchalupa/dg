@@ -26,6 +26,7 @@ enum class RWNodeType {
         // so that we can use them as targets in DefSites
         ALLOC,
         DYN_ALLOC,
+        GLOBAL,
         // nodes that write the memory
         STORE,
         // nodes that use the memory
@@ -54,7 +55,7 @@ class RWBBlock;
 
 class RWNode : public SubgraphNode<RWNode> {
     RWNodeType type;
-
+    bool has_address_taken{false};
     RWBBlock *bblock = nullptr;
 
     class DefUses {
@@ -126,6 +127,12 @@ public:
     : SubgraphNode<RWNode>(id), type(t) {}
 
     RWNodeType getType() const { return type; }
+
+    // FIXME: create a child class (RWNodeAddressTaken??)
+    // and move this bool there, it is not relevant for all nodes
+    // (from this node then can inherit alloca, etc.)
+    bool hasAddressTaken() const { return has_address_taken; }
+    void setAddressTaken() { has_address_taken = true; }
 
 #ifndef NDEBUG
     virtual ~RWNode() = default;

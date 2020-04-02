@@ -140,6 +140,8 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             // recursively find definitions for this phi node
             findPhiDefinitions(phi);
         } else {
+            // this is the entry block, so we add a PHI node
+            // representing "input" into this procedure
             phi = createPhi(getBBlockDefinitions(block, &ds), ds);
             auto *subg = block->getSubgraph();
             auto& summary = getSubgraphSummary(subg);
@@ -295,17 +297,19 @@ MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     auto& bi = getBBlockInfo(b);
     auto& D = bi.getDefinitions();
 
+    if (D.isProcessed())
+        return D;
+
     if (bi.isCallBlock()) {
         if (ds) {
             findDefinitionsFromCall(D, bi.getCall(), *ds);
         } else {
             findAllDefinitionsFromCall(D, bi.getCall());
+            assert(D.isProcessed());
         }
     } else {
-        // normal basic block
-        if (!D.isProcessed()) {
-            performLvn(D, b);
-        }
+        performLvn(D, b); // normal basic block
+        assert(D.isProcessed());
     }
     return D;
 }
@@ -433,26 +437,121 @@ static void joinDefinitions(DefinitionsMap<RWNode>& from,
     }
 }
 
+static inline bool canEscape(const RWNode *node) {
+    return (node->getType() == RWNodeType::DYN_ALLOC ||
+            node->getType() == RWNodeType::GLOBAL ||
+            node->hasAddressTaken());
+}
+
+template <typename MR, typename C>
+static void modRefAdd(MR& modref, const C& c, RWNode *node, RWSubgraph *subg) {
+    assert(node && "Node the definion node");
+    for (const DefSite& ds : c) {
+        // can escape
+        if (canEscape(ds.target)) {
+            modref.add(ds, node);
+        }
+        // or escaped
+        if (!ds.target->getBBlock() ||
+            ds.target->getBBlock()->getSubgraph() != subg) {
+            modref.add(ds, node);
+        }
+    }
+}
+
+void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) {
+    // set it here due to recursive procedures
+    if (si.modref.isInitialized()) {
+        return;
+    }
+
+    DBG_SECTION_BEGIN(dda, "Computing modref for subgraph " << subg->getName());
+
+    si.modref.setInitialized();
+
+    // iterate over the blocks (note: not over the infos, those
+    // may not be created if the block was not used yet
+    for (auto *b : subg->bblocks()) {
+        auto& bi = si.getBBlockInfo(b);
+        if (bi.isCallBlock()) {
+            // if the block is a call bblock, we must
+            // compute all the reaching definitions first,
+            // so that we have the modref info for the call
+            // (calling getBBlockDefinitions() will trigger computing
+            //  computing modref on demand)
+            getBBlockDefinitions(b, nullptr);
+
+            auto *C = bi.getCall();
+            for (auto& callee : C->getCallees()) {
+                auto *subg = callee.getSubgraph();
+                if (subg) {
+                    auto& callsi = getSubgraphInfo(subg);
+                    assert(callsi.modref.isInitialized());
+                    si.modref.add(callsi.modref);
+                } else {
+                    // undefined function
+                    modRefAdd(si.modref.maydef,
+                              callee.getCalledValue()->getDefines(),
+                              C, subg);
+                    modRefAdd(si.modref.maydef,
+                              callee.getCalledValue()->getOverwrites(),
+                              C, subg);
+                    modRefAdd(si.modref.mayref,
+                              callee.getCalledValue()->getUses(),
+                              C, subg);
+                }
+            }
+        } else {
+            // do not perform LVN if not needed,
+            // just scan the nodes
+            for (auto *node : b->getNodes()) {
+                modRefAdd(si.modref.maydef, node->getDefines(), node, subg);
+                modRefAdd(si.modref.maydef, node->getOverwrites(), node, subg);
+                modRefAdd(si.modref.mayref, node->getUses(), node, subg);
+            }
+        }
+    }
+    DBG_SECTION_END(dda, "Computing modref for subgraph " << subg->getName() << " done");
+}
+
 void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
                                                          RWNodeCall *C) {
-    assert(false && "Not implemented");
-    /*
+    DBG_SECTION_BEGIN(dda, "Finding all definitions for a call " << C);
+    if (D.isProcessed()) {
+        return;
+    }
 
     for (auto& callee : C->getCallees()) {
         auto *subg = callee.getSubgraph();
+        assert(subg && "Summarizing undefined functions yet unsupported");
+        auto& si = getSubgraphInfo(subg);
 
-        for (auto *subgblock : subg->bblocks()) {
-            if (subgblock->hasSuccessors()) {
-                continue;
+        if (!si.modref.isInitialized()) {
+            DBG_SECTION_BEGIN(dda, "Computing modref for subgraph "
+                                   << subg->getName());
+            computeModRef(subg, si);
+            assert(si.modref.isInitialized());
+            DBG_SECTION_END(dda, "Computing modref for subgraph "
+                                  << subg->getName() << " done");
+        }
+
+        for (auto& it : si.modref.maydef) {
+            for (auto& it2: it.second) {
+                findDefinitionsFromCall(D, C, {it.first,
+                                               it2.first.start,
+                                               it2.first.length()});
             }
-            auto defs = collectAllDefinitions(ret);
-            */
+        }
+    }
+
+    DBG_SECTION_BEGIN(dda, "Finding all definitions for a call " << C << " finished");
+    D.setProcessed();
 }
 
 void
 MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
-                                              RWBBlock *from,
-                                              std::set<RWBBlock *>& visitedBlocks) {
+                                               RWBBlock *from,
+                                               std::set<RWBBlock *>& visitedBlocks) {
     if (!from)
         return;
 
@@ -513,11 +612,13 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from) {
         // iteration.
         // NOTE: no caching here...
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
-            DefinitionsMap<RWNode> tmpDefs = D.kills; // do not search for what we have already
+            // assign 'kills' to not to search for what we already have
+            DefinitionsMap<RWNode> tmpDefs = D.kills;
             collectAllDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
             // NOTE: we cannot cache here because of the DFS nature of the search
-            // (the found definitions does not contain _all_ reaching definitions)
+            // (the found definitions does not contain _all_ reaching definitions
+            //  as we search only for those that we do not have already)
         }
     }
 

@@ -35,12 +35,49 @@
 namespace dg {
 namespace dda {
 
-RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
-    RWNode& node = create(RWNodeType::ALLOC);
-    if (const llvm::AllocaInst *AI
-            = llvm::dyn_cast<llvm::AllocaInst>(Inst))
-        node.setSize(llvmutils::getAllocatedSize(AI, getDataLayout()));
+static inline llvm::Value *getMemIntrinsicValueOp(llvm::MemIntrinsic *MI) {
+    switch (MI->getIntrinsicID()) {
+        case llvm::Intrinsic::memmove:
+        case llvm::Intrinsic::memcpy:
+        case llvm::Intrinsic::memset:
+            return MI->getOperand(1);
+            break;
+        default:
+            assert(false && "Unsupported intrinsic");
+    }
+    return nullptr;
+}
 
+RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
+    using namespace llvm;
+
+    RWNode& node = create(RWNodeType::ALLOC);
+    if (const AllocaInst *AI = dyn_cast<AllocaInst>(Inst)) {
+        node.setSize(llvmutils::getAllocatedSize(AI, getDataLayout()));
+    }
+
+    // check if the address of this alloca is taken
+    for (auto I = Inst->use_begin(), E = Inst->use_end(); I != E; ++I) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        auto *use = *I;
+#else
+        auto *use = I->getUser();
+#endif
+        if (auto *S = dyn_cast<StoreInst>(use)) {
+            if (S->getValueOperand() == Inst) {
+                node.setAddressTaken();
+                break;
+            }
+        } else if (auto *MI = dyn_cast<MemIntrinsic>(use)) {
+            if (getMemIntrinsicValueOp(MI) == Inst) {
+                node.setAddressTaken();
+                break;
+            }
+        } else if (auto *I = dyn_cast<Instruction>(Inst)) {
+            assert(!I->mayWriteToMemory() &&
+                   "Unhandled memory-writing instruction");
+        }
+    }
     return &node;
 }
 
@@ -248,7 +285,7 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
     using namespace llvm;
     if (isa<GlobalVariable>(v)) {
         // global variables are like allocations
-        return {&create(RWNodeType::ALLOC)};
+        return {&create(RWNodeType::GLOBAL)};
     }
 
     auto *I = dyn_cast<Instruction>(v);

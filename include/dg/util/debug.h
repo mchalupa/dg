@@ -76,7 +76,9 @@ inline std::ostream& dbg_section_end(const char *domain = nullptr) {
 }
 
 inline std::ostream& dbg(const char *domain = nullptr) {
+    _getInd() += 1;
     _dump_prefix(domain);
+    _getInd() -= 1;
     return _stream();
 }
 
