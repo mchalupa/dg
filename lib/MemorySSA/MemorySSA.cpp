@@ -460,13 +460,14 @@ static void modRefAdd(MR& modref, const C& c, RWNode *node, RWSubgraph *subg) {
 }
 
 void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) {
-    // set it here due to recursive procedures
+
     if (si.modref.isInitialized()) {
         return;
     }
 
     DBG_SECTION_BEGIN(dda, "Computing modref for subgraph " << subg->getName());
 
+    // set it here due to recursive procedures
     si.modref.setInitialized();
 
     // iterate over the blocks (note: not over the infos, those
@@ -502,8 +503,7 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
                 }
             }
         } else {
-            // do not perform LVN if not needed,
-            // just scan the nodes
+            // do not perform LVN if not needed, just scan the nodes
             for (auto *node : b->getNodes()) {
                 modRefAdd(si.modref.maydef, node->getDefines(), node, subg);
                 modRefAdd(si.modref.maydef, node->getOverwrites(), node, subg);
@@ -514,6 +514,19 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
     DBG_SECTION_END(dda, "Computing modref for subgraph " << subg->getName() << " done");
 }
 
+void MemorySSATransformation::addDefsFromUndefCall(Definitions& D, RWNode *defs,
+                                                   RWNode *call, bool isstrong) {
+    for (auto& ds : defs->getDefines()) {
+        D.definitions.add(ds, call);
+    }
+    for (auto& ds : defs->getOverwrites()) {
+        D.definitions.add(ds, call);
+        if (isstrong) {
+            D.kills.add(ds, call);
+        }
+    }
+}
+
 void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
                                                          RWNodeCall *C) {
     DBG_SECTION_BEGIN(dda, "Finding all definitions for a call " << C);
@@ -521,19 +534,19 @@ void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
         return;
     }
 
+    auto& callees = C->getCallees();
     for (auto& callee : C->getCallees()) {
         auto *subg = callee.getSubgraph();
-        assert(subg && "Summarizing undefined functions yet unsupported");
+        if (!subg) {
+            addDefsFromUndefCall(D, callee.getCalledValue(),
+                                 C, callees.size() == 1);
+            continue;
+        }
+
         auto& si = getSubgraphInfo(subg);
 
-        if (!si.modref.isInitialized()) {
-            DBG_SECTION_BEGIN(dda, "Computing modref for subgraph "
-                                   << subg->getName());
-            computeModRef(subg, si);
-            assert(si.modref.isInitialized());
-            DBG_SECTION_END(dda, "Computing modref for subgraph "
-                                  << subg->getName() << " done");
-        }
+        computeModRef(subg, si);
+        assert(si.modref.isInitialized());
 
         for (auto& it : si.modref.maydef) {
             for (auto& it2: it.second) {
