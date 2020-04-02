@@ -34,9 +34,6 @@ if (LLVM_DG)
 	message(STATUS "LLVM libraries dir: ${LLVM_LIBRARY_DIRS}")
 	message(STATUS "LLVM definitions: ${LLVM_DEFINITIONS}")
 
-	include_directories(${LLVM_INCLUDE_DIRS})
-	link_directories(${LLVM_LIBRARY_DIRS})
-
 	# if we were provided a path to custom sources
 	# use that path
 	if (LLVM_SRC_PATH)
