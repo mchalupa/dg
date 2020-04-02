@@ -229,6 +229,9 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void findDefinitionsFromCall(Definitions& D, RWNodeCall *C, const DefSite& ds);
     void findDefinitionsFromCalledFun(RWNode *phi, RWSubgraph *subg, const DefSite& ds);
 
+    void addDefsFromUndefCall(Definitions& D, RWNode *defs,
+                              RWNode *call, bool isstrong);
+
     template <typename Iterable>
     void findPhiDefinitions(RWNode *phi, Iterable& I) {
         std::set<RWNode *> defs;
