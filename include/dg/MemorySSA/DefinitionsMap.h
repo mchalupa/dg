@@ -73,6 +73,14 @@ public:
         return changed;
     }
 
+    template <typename ContainerT>
+    bool add(const ContainerT& defsites, NodeT *n) {
+        bool changed = false;
+        for (auto& ds : defsites)
+            changed |= add(ds, n);
+        return changed;
+    }
+
     bool add(NodeT *target, const OffsetsT& elems) {
         bool changed = false;
         for (auto& it : elems)

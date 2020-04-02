@@ -237,19 +237,29 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
         // recursively find definitions for this phi node
         for (auto& callee : C->getCallees()) {
             auto *subg = callee.getSubgraph();
-            // FIXME: add support for mixing the values
-            assert(subg && "Undefined values mixed with subgraph yet undefined");
+            if (!subg) {
+                std::vector<RWNode *> defs;
+                Definitions D;
+                // FIXME: cache this somehow ?
+                D.update(callee.getCalledValue());
+
+                auto defSet = D.definitions.get(uncoveredds);
+                addFoundDefinitions(defs, defSet, D);
+                addUncoveredFromPredecessors(C->getBBlock(), D, uncoveredds, defs);
+                phi->addDefUse(defs);
+                continue;
+            }
 
             auto& summary = getSubgraphSummary(subg);
-            // we must create a new phi for each subgraph (these phis will
-            // be merged by the single phi created at the beginning of this
-            // method. Of course, we create them only when not already present.
-            for (auto& subginterval : summary.getUncoveredOutputs(ds)) {
-                auto *subgphi = createPhi(uncoveredds);
-                summary.addOutput(DefSite{uncoveredds.target,
-                                          subginterval.start,
-                                          subginterval.length()},
-                                  subgphi);
+            // we must create a new phi for each subgraph inside the subgraph
+            // (these phis will be merged by the single phi created at the beginning
+            // of this method. Of course, we create them only when not already present.
+            for (auto& subginterval : summary.getUncoveredOutputs(uncoveredds)) {
+                auto subgds = DefSite{uncoveredds.target,
+                                      subginterval.start,
+                                      subginterval.length()};
+                auto *subgphi = createPhi(subgds);
+                summary.addOutput(subgds, subgphi);
 
                 // find the new phi operands
                 for (auto *subgblock : subg->bblocks()) {
@@ -514,45 +524,35 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
     DBG_SECTION_END(dda, "Computing modref for subgraph " << subg->getName() << " done");
 }
 
-void MemorySSATransformation::addDefsFromUndefCall(Definitions& D, RWNode *defs,
-                                                   RWNode *call, bool isstrong) {
-    for (auto& ds : defs->getDefines()) {
-        D.definitions.add(ds, call);
-    }
-    for (auto& ds : defs->getOverwrites()) {
-        D.definitions.add(ds, call);
-        if (isstrong) {
-            D.kills.add(ds, call);
-        }
-    }
-}
-
 void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
                                                          RWNodeCall *C) {
-    DBG_SECTION_BEGIN(dda, "Finding all definitions for a call " << C);
     if (D.isProcessed()) {
         return;
     }
 
-    auto& callees = C->getCallees();
+    DBG_SECTION_BEGIN(dda, "Finding all definitions for a call " << C);
+
     for (auto& callee : C->getCallees()) {
         auto *subg = callee.getSubgraph();
         if (!subg) {
-            addDefsFromUndefCall(D, callee.getCalledValue(),
-                                 C, callees.size() == 1);
-            continue;
-        }
+            auto *called = callee.getCalledValue();
+            for (auto& ds : called->getDefines()) {
+                findDefinitionsFromCall(D, C, ds);
+            }
+            for (auto& ds : called->getOverwrites()) {
+                findDefinitionsFromCall(D, C, ds);
+            }
+        } else {
+            auto& si = getSubgraphInfo(subg);
+            computeModRef(subg, si);
+            assert(si.modref.isInitialized());
 
-        auto& si = getSubgraphInfo(subg);
-
-        computeModRef(subg, si);
-        assert(si.modref.isInitialized());
-
-        for (auto& it : si.modref.maydef) {
-            for (auto& it2: it.second) {
-                findDefinitionsFromCall(D, C, {it.first,
-                                               it2.first.start,
-                                               it2.first.length()});
+            for (auto& it : si.modref.maydef) {
+                for (auto& it2: it.second) {
+                    findDefinitionsFromCall(D, C, {it.first,
+                                                   it2.first.start,
+                                                   it2.first.length()});
+                }
             }
         }
     }
