@@ -70,6 +70,9 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         }
 
         // for on-demand analysis
+        // once isProcessed is true, the Defiitions contain
+        // summarized all the information that one needs
+        // (may be then altered just only by adding a phi node definitions)
         bool isProcessed() const { return _processed; }
         void setProcessed() { _processed = true; }
     };
@@ -89,10 +92,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     };
 
     class SubgraphInfo {
-        std::unordered_map<const RWBBlock *, BBlockInfo> _bblock_infos;
+        std::unordered_map<RWBBlock *, BBlockInfo> _bblock_infos;
 
-
-        struct Summary {
+        class Summary {
+        public:
             // phi nodes representing reads/writes to memory that is
             // external to the procedure
             DefinitionsMap<RWNode> inputs;
@@ -109,8 +112,73 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             auto getUncoveredOutputs(const DefSite& ds) -> decltype (outputs.undefinedIntervals(ds)) {
                 return outputs.undefinedIntervals(ds);
             }
-
         } summary;
+
+        // sumarized information about visible external
+        // effects of the procedure
+        class ModRefInfo {
+            // to distinguish between empty and non-computed modref information
+            bool _initialized{false};
+        public:
+            // the set of memory that is defined in this procedure
+            // and is external to the subgraph or is local but its address is taken
+            // In other words, memory whose definitions can be "visible"
+            // outside the procedure.
+            // FIXME: we should keep only sets of DefSites
+            DefinitionsMap<RWNode> maydef;
+            // external or local address-taken memory that can be
+            // used inside the procedure
+            // FIXME: we should keep only sets of DefSites
+            DefinitionsMap<RWNode> mayref;
+            // memory that must be defined in this procedure
+            // (on every path through the procedure)
+            DefinitionsMap<RWNode> mustdef;
+
+            void addMayDef(const DefSite& ds, RWNode *def) {
+                // FIXME: do not store def, it is useless. Just takes memory...
+                maydef.add(ds, def);
+            }
+
+            template <typename C>
+            void addMayDef(const C& c, RWNode *def) {
+                for (auto& ds : c) {
+                        maydef.add(ds, def);
+                }
+            }
+
+            void addMayRef(const DefSite& ds, RWNode *ref) {
+                // FIXME: do not store ref, it is useless. Just takes memory...
+                mayref.add(ds, ref);
+            }
+
+            template <typename C>
+            void addMayRef(const C& c, RWNode *ref) {
+                for (auto& ds : c) {
+                        mayref.add(ds, ref);
+                }
+            }
+
+            void addMustDef(const DefSite& ds, RWNode *def) {
+                // FIXME: do not store def, it is useless. Just takes memory...
+                mustdef.add(ds, def);
+            }
+
+            template <typename C>
+            void addMustDef(const C& c, RWNode *def) {
+                for (auto& ds : c) {
+                        mustdef.add(ds, def);
+                }
+            }
+
+            void add(const ModRefInfo& oth) {
+                maydef.add(oth.maydef);
+                mayref.add(oth.mayref);
+                mustdef.add(oth.mustdef);
+            }
+
+            void setInitialized() { _initialized = true; }
+            bool isInitialized() const { return _initialized  ; }
+        } modref;
 
         SubgraphInfo(RWSubgraph *s);
 
@@ -121,8 +189,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
         Summary& getSummary() { return summary; }
         const Summary& getSummary() const { return summary; }
-        BBlockInfo& getBBlockInfo(const RWBBlock *b) { return _bblock_infos[b]; }
-        const BBlockInfo *getBBlockInfo(const RWBBlock *b) const {
+        BBlockInfo& getBBlockInfo(RWBBlock *b) { return _bblock_infos[b]; }
+        const BBlockInfo *getBBlockInfo(RWBBlock *b) const {
             auto it = _bblock_infos.find(b);
             return it == _bblock_infos.end() ? nullptr : &it->second;
         }
@@ -190,6 +258,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
 
     void updateCallDefinitions(Definitions& D, RWNodeCall *call);
+    void computeModRef(RWSubgraph *subg, SubgraphInfo& si);
 
     RWNode *createPhi(const DefSite& ds);
     RWNode *createPhi(Definitions& D, const DefSite& ds);
@@ -213,11 +282,11 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         auto it = _subgraphs_info.find(s);
         return it == _subgraphs_info.end() ? nullptr : &it->second;
     }
-    BBlockInfo& getBBlockInfo(const RWBBlock *b) {
+    BBlockInfo& getBBlockInfo(RWBBlock *b) {
         return getSubgraphInfo(b->getSubgraph()).getBBlockInfo(b);
     }
 
-    const BBlockInfo *getBBlockInfo(const RWBBlock *b) const {
+    const BBlockInfo *getBBlockInfo(RWBBlock *b) const {
         auto *si = getSubgraphInfo(b->getSubgraph());
         if (si) {
             return si->getBBlockInfo(b);

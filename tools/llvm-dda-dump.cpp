@@ -102,6 +102,7 @@ static void printRWNodeType(enum RWNodeType type) {
     switch(type) {
         ELEM(RWNodeType::ALLOC)
         ELEM(RWNodeType::DYN_ALLOC)
+        ELEM(RWNodeType::GLOBAL)
         ELEM(RWNodeType::STORE)
         ELEM(RWNodeType::LOAD)
         ELEM(RWNodeType::PHI)
