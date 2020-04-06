@@ -178,6 +178,8 @@ public:
         return _definitions == oth._definitions;
     }
 
+    size_t size() const { return _definitions.size(); }
+
 #ifndef NDEBUG
     void dump() const {
         for (auto& it : _definitions) {

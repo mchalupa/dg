@@ -548,6 +548,14 @@ void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
             assert(si.modref.isInitialized());
 
             for (auto& it : si.modref.maydef) {
+                if (it.first->isUnknown()) {
+                    for (auto& it2 : it.second) {
+                        D.unknownWrites.insert(D.unknownWrites.end(),
+                                               it2.second.begin(),
+                                               it2.second.end());
+                    }
+                    continue;
+                }
                 for (auto& it2: it.second) {
                     findDefinitionsFromCall(D, C, {it.first,
                                                    it2.first.start,
