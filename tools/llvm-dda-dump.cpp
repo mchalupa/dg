@@ -205,7 +205,10 @@ protected:
         }
 
         if (verbose) {
-            printf("<tr><td colspan=\"2\">bblock: %p</td></tr>", node->getBBlock());
+            printf("<tr><td>type:</td><td>");
+            printRWNodeType(node->getType());
+            printf("</td></tr>\n");
+            printf("<tr><td colspan=\"2\">bblock: %p</td></tr>\n", node->getBBlock());
             dumpDefines(node);
             dumpOverwrites(node);
             dumpUses(node);
