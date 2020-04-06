@@ -157,27 +157,17 @@ RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst) {
 
     auto defSites = mapPointers(Inst, Inst->getOperand(1), size);
 
-    // strong update is possible only with must aliases. Also we can not
-    // be pointing to heap, because then we don't know which object it
-    // is in run-time, like:
-    //  void *foo(int a)
-    //  {
-    //      void *mem = malloc(...)
-    //      mem->n = a;
-    //  }
-    //
-    //  1. mem1 = foo(3);
-    //  2. mem2 = foo(4);
-    //  3. assert(mem1->n == 3);
-    //
-    //  If we would do strong update on line 2 (which we would, since
-    //  there we have must alias for the malloc), we would loose the
-    //  definitions for line 1 and we would get incorrect results
+    // strong update is possible only with must aliases that point
+    // to the last instance of the memory object. Since detecting that
+    // is not that easy, do strong updates only on must aliases
+    // of local and global variables (and, of course, we must know the offsets)
+    // FIXME: ALLOCAs in recursive procedures can also yield only weak update
     bool strong_update = false;
     if (defSites.size() == 1) {
         const auto& ds = *(defSites.begin());
-        strong_update = !ds.offset.isUnknown() && !ds.len.isUnknown() &&
-                         ds.target->getType() != RWNodeType::DYN_ALLOC;
+        strong_update = (ds.target->getType() == RWNodeType::ALLOC ||
+                         ds.target->getType() == RWNodeType::GLOBAL) &&
+                        !ds.offset.isUnknown() && !ds.len.isUnknown();
     }
 
     for (const auto& ds : defSites) {
