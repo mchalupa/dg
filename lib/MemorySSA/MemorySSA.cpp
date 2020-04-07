@@ -116,6 +116,12 @@ RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSit
     return phi;
 }
 
+static inline bool canEscape(const RWNode *node) {
+    return (node->getType() == RWNodeType::DYN_ALLOC ||
+            node->getType() == RWNodeType::GLOBAL ||
+            node->hasAddressTaken());
+}
+
 ///
 // Find the nodes that define the given def-site in the predecessors
 // of block.  Create PHI nodes if needed.
@@ -453,10 +459,10 @@ static void joinDefinitions(DefinitionsMap<RWNode>& from,
     }
 }
 
-static inline bool canEscape(const RWNode *node) {
-    return (node->getType() == RWNodeType::DYN_ALLOC ||
-            node->getType() == RWNodeType::GLOBAL ||
-            node->hasAddressTaken());
+static inline bool canBeOutput(const RWNode *node, RWSubgraph *subg) {
+    // can escape or already escaped
+    return canEscape(node) ||
+            (!node->getBBlock() || node->getBBlock()->getSubgraph() != subg);
 }
 
 template <typename MR, typename C>
@@ -464,12 +470,7 @@ static void modRefAdd(MR& modref, const C& c, RWNode *node, RWSubgraph *subg) {
     assert(node && "Node the definion node");
     for (const DefSite& ds : c) {
         // can escape
-        if (canEscape(ds.target)) {
-            modref.add(ds, node);
-        }
-        // or escaped
-        if (!ds.target->getBBlock() ||
-            ds.target->getBBlock()->getSubgraph() != subg) {
+        if (canBeOutput(ds.target, subg)) {
             modref.add(ds, node);
         }
     }
