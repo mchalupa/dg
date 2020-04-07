@@ -486,12 +486,14 @@ int main(int argc, char *argv[])
 
     SlicerOptions options = parseSlicerOptions(argc, argv, true /* require crit*/);
 
-    if (enable_debug)
+    if (enable_debug) {
         DBG_ENABLE();
+    }
 
     // dump_dg_only implies dumg_dg
-    if (dump_dg_only)
+    if (dump_dg_only) {
         dump_dg = true;
+    }
 
     llvm::LLVMContext context;
     std::unique_ptr<llvm::Module> M = parseModule(context, options);
