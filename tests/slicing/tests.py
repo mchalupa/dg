@@ -41,6 +41,9 @@ tests = {
     'interprocedural8'     : Test('interprocedural8.c',
                                   compilerparams=['-DASSERT_NO_ABORT'],
                                   expectedoutput='interprocedural8.output'),
+    'interprocedural8-a'   : Test('interprocedural8-a.c',
+                                  compilerparams=['-DASSERT_NO_ABORT'],
+                                  expectedoutput='interprocedural8.output'),
     'interprocedural9'     : Test('interprocedural9.c'),
     'funcptr1'             : Test('funcptr1.c'),
     'funcptr2'             : Test('funcptr2.c'),
@@ -200,5 +203,13 @@ tests = {
     'threads1' : Test('threads1.c',
                       addparams=['-threads'], requiredparams=['-pta=fi']),
     'undefcall1'          : Test('undefcall1_true-unreach-call.c'),
-    'undefcall2'          : Test('undefcall2_true-unreach-call.c')
+    'undefcall2'          : Test('undefcall2_true-unreach-call.c'),
+    'unknown-interproc'   : Test('unknown-interproc.c',
+                                  linkafter=['ptr.c']),
+    'unknown-interproc2'  : Test('unknown-interproc2.c',
+                                  linkafter=['glob_ptr.c']),
+    'unknown-interproc2-a': Test('unknown-interproc2-a.c',
+                                  linkafter=['glob_ptr-a.c']),
+    'unknown-interproc3'  : Test('unknown-interproc3.c',
+                                  linkafter=['a_ptr.c'])
 }
