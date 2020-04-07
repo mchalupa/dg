@@ -179,7 +179,7 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
             // we create this node because this nodes works
             // as ALLOC in points-to, so we can have
             // reaching definitions to that
-            ret = &create(RWNodeType::GENERIC);
+            ret = &create(RWNodeType::ALLOC);
             ret->addDef(ret, 0, Offset::UNKNOWN);
             return ret;
         default:
