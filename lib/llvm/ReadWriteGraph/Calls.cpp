@@ -34,6 +34,29 @@
 namespace dg {
 namespace dda {
 
+static void reportIncompatibleCalls(const std::set<const llvm::Function *>& incompatibleCalls,
+                                    const llvm::CallInst *CInst,
+                                    size_t tried_num) {
+
+    if (incompatibleCalls.empty()) {
+        return;
+    }
+
+#ifndef NDEBUG
+    llvm::errs() << "[RWG] warning: incompatible function pointers for "
+                 << ValInfo(CInst) << "\n";
+
+    for (auto *F : incompatibleCalls) {
+        llvm::errs() << "   Tried: " << F->getName() << " of type "
+                     << *F->getType() << "\n";
+    }
+#endif
+    if (incompatibleCalls.size() == tried_num) {
+        llvm::errs() << "[RWG] error: did not find any compatible function "
+                        "pointer for " << ValInfo(CInst) << "\n";
+    }
+}
+
 NodesSeq<RWNode>
 LLVMReadWriteGraphBuilder::createCallToFunctions(
                             const std::vector<const llvm::Function *> &functions,
@@ -41,10 +64,9 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(
 
     assert(!functions.empty() && "No functions to call");
 
-    RWNodeCall *callNode = RWNodeCall::get(&create(RWNodeType::CALL));
-
     std::set<const llvm::Function *> incompatibleCalls;
-    std::vector<RWNode *> created_calls;
+    std::vector<RWNode *> called_values;
+    std::vector<RWSubgraph *> called_subgraphs;
     for (auto *F : functions) {
         if (!llvmutils::callIsCompatible(F, CInst)) {
             incompatibleCalls.insert(F);
@@ -52,33 +74,30 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(
         }
 
         if (auto model = _options.getFunctionModel(F->getName())) {
-            callNode->addCallee(funcFromModel(model, CInst));
+            called_values.push_back(funcFromModel(model, CInst));
         } else if (F->isDeclaration()) {
-            callNode->addCallee(createCallToUndefinedFunction(F, CInst));
+            called_values.push_back(createCallToUndefinedFunction(F, CInst));
         } else {
             auto *s = getSubgraph(F);
             assert(s && "Do not have a subgraph for a function");
-            callNode->addCallee(s);
+            called_subgraphs.push_back(s);
         }
     }
 
-    if (!incompatibleCalls.empty()) {
-#ifndef NDEBUG
-        llvm::errs() << "[RWG] warning: incompatible function pointers for "
-                     << ValInfo(CInst) << "\n";
+    reportIncompatibleCalls(incompatibleCalls, CInst, functions.size());
 
-        for (auto *F : incompatibleCalls) {
-            llvm::errs() << "   Tried: " << F->getName() << " of type "
-                         << *F->getType() << "\n";
-        }
-#endif
-        if (incompatibleCalls.size() == functions.size()) {
-            llvm::errs() << "[RWG] error: did not find any compatible function "
-                            "pointer for " << ValInfo(CInst) << "\n";
-        }
+    // if we call just one undefined function, simplify the graph and
+    // do not create a CALL node -- just put the already created node there
+    if (called_subgraphs.empty() && called_values.size() == 1) {
+        return {called_values[0]};
+    } else {
+        RWNodeCall *callNode = RWNodeCall::get(&create(RWNodeType::CALL));
+        for (auto *item : called_subgraphs)
+            callNode->addCallee(item);
+        for (auto *item : called_values)
+            callNode->addCallee(item);
+        return {callNode};
     }
-
-    return {callNode};
 }
 
 RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
