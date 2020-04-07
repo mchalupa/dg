@@ -122,6 +122,15 @@ static inline bool canEscape(const RWNode *node) {
             node->hasAddressTaken());
 }
 
+static inline bool canBeInput(const RWNode *node, RWSubgraph *subg) {
+    // can escape or already escaped
+    if (canEscape(node))
+        return true;
+    if (node->getBBlock())
+        return node->getBBlock()->getSubgraph() != subg;
+    return false;
+}
+
 ///
 // Find the nodes that define the given def-site in the predecessors
 // of block.  Create PHI nodes if needed.
@@ -146,15 +155,16 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     } else { // multiple or no predecessors
         RWNode *phi;
         if (block->hasPredecessors()) {
-            phi = createAndPlacePhi(block, ds);
             // The phi node will be placed at the beginning of the block,
-            // so the iterator should not be invalidated
-            // this represents the sought definition
-            // recursively find definitions for this phi node
+            // so the iterator should not be invalidated.
+            phi = createAndPlacePhi(block, ds);
+            // Recursively find definitions for this phi node
             findPhiDefinitions(phi);
-        } else {
+        } else if (canBeInput(ds.target, block->getSubgraph())){
+            DBG(dda, "Node " << ds.target->getID() << " can be input");
             // this is the entry block, so we add a PHI node
             // representing "input" into this procedure
+            // (but only if the input can be used from the called procedure)
             phi = createPhi(getBBlockDefinitions(block, &ds), ds);
             auto *subg = block->getSubgraph();
             auto& summary = getSubgraphSummary(subg);
