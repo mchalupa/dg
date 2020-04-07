@@ -153,7 +153,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
         addUncoveredFromPredecessors(pred, D, ds, defs);
 
     } else { // multiple or no predecessors
-        RWNode *phi;
+        RWNode *phi = nullptr;
         if (block->hasPredecessors()) {
             // The phi node will be placed at the beginning of the block,
             // so the iterator should not be invalidated.
@@ -172,7 +172,9 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
             findDefinitionsFromCalledFun(phi, subg, ds);
         }
 
-        defs.push_back(phi);
+        if (phi) {
+            defs.push_back(phi);
+        }
     }
 
     return defs;
