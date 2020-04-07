@@ -87,9 +87,11 @@ RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds) {
     auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
         DefSite uds{ds.target, interval.start, interval.length()};
+        // NOTE: add, not update! D can already have some weak definitions
+        // of this memory (but they are "uncovered" as they are only weak
+        D.definitions.add(uds, phi);
         assert(D.kills.get(uds).empty()
                && "BUG: Basic block already kills this memory");
-        D.definitions.update(uds, phi);
         D.kills.add(uds, phi);
 
         // to simulate the whole LVN, we must add also writes to unknown memory
@@ -192,11 +194,10 @@ void MemorySSATransformation::addUncoveredFromPredecessors(
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWBBlock *block,
                                          const DefSite& ds) {
+    assert(ds.target && "Target is null");
     assert(block && "Block is null");
     //if (!block)
     //    return {};
-
-    assert(ds.target && "Target is null");
 
     if (hasCachedDefinitions(block)) { // do we have a cache?
         auto defSet = getCachedDefinitions(block).get(ds);
