@@ -112,6 +112,7 @@ static void printRWNodeType(enum RWNodeType type) {
         ELEM(RWNodeType::JOIN)
         ELEM(RWNodeType::RETURN)
         ELEM(RWNodeType::NOOP)
+        ELEM(RWNodeType::GENERIC)
         ELEM(RWNodeType::NONE)
         default:
             printf("!unknown RWNodeType!");
@@ -193,6 +194,10 @@ protected:
     }
 
     void nodeToDot(RWNode *node) {
+        static std::set<RWNode *> _dumped;
+        if (!_dumped.insert(node).second) // already dumped
+            return;
+
         printf("\tNODE%p ", static_cast<const void*>(node));
         printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
         printf("<td><font color=\"#af0000\">");
@@ -236,12 +241,14 @@ protected:
     void dumpNodeEdges(RWNode *node) {
         if (verbose || node->getType() == RWNodeType::PHI) {
             for (RWNode *def : node->defuse) {
+                nodeToDot(def);
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
         }
         if (!graph_only && node->isUse()) {
             for (RWNode *def : DDA->getDefinitions(node)) {
+                nodeToDot(def);
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false color=blue]\n",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
@@ -255,6 +262,8 @@ protected:
                            "ltail=cluster_subg_%p]\n",
                            static_cast<void*>(C),
                            static_cast<const void*>(s->getRoot()), s);
+                } else {
+                    nodeToDot(cv.getCalledValue());
                 }
             }
         }
