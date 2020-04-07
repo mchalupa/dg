@@ -1,8 +1,7 @@
 #include <string.h>
 
-#define FORWARD 1
-
 int main(void) {
+        int FORWARD = 1;
 	char *a = "baba";
         char *(*f)(const char *s, int c) = strchr;
         if (FORWARD) {
@@ -10,6 +9,6 @@ int main(void) {
         }
 
 	char *x = f(a, 'b');
-	test_assert(x == a);
+	test_assert(x == a + 2);
 }
 
