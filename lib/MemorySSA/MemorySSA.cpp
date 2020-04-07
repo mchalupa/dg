@@ -131,6 +131,34 @@ static inline bool canBeInput(const RWNode *node, RWSubgraph *subg) {
     return false;
 }
 
+void
+MemorySSATransformation::findDefinitionsInMultiplePredecessors(RWBBlock *block,
+                                                               const DefSite& ds,
+                                                               std::vector<RWNode *>& defs) {
+    RWNode *phi = nullptr;
+    if (block->hasPredecessors()) {
+        // The phi node will be placed at the beginning of the block,
+        // so the iterator should not be invalidated.
+        phi = createAndPlacePhi(block, ds);
+        // recursively find definitions for this phi node
+        findPhiDefinitions(phi);
+    } else if (canBeInput(ds.target, block->getSubgraph())){
+        // this is the entry block, so we add a PHI node
+        // representing "input" into this procedure
+        // (but only if the input can be used from the called procedure)
+        phi = createPhi(getBBlockDefinitions(block, &ds), ds);
+        auto *subg = block->getSubgraph();
+        auto& summary = getSubgraphSummary(subg);
+        summary.addInput(ds, phi);
+
+        findDefinitionsFromCalledFun(phi, subg, ds);
+    }
+
+    if (phi) {
+        defs.push_back(phi);
+    }
+}
+
 ///
 // Find the nodes that define the given def-site in the predecessors
 // of block.  Create PHI nodes if needed.
@@ -151,30 +179,8 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
         auto& D = getBBlockDefinitions(pred, &ds);
         addFoundDefinitions(defs, pdefs, D);
         addUncoveredFromPredecessors(pred, D, ds, defs);
-
     } else { // multiple or no predecessors
-        RWNode *phi = nullptr;
-        if (block->hasPredecessors()) {
-            // The phi node will be placed at the beginning of the block,
-            // so the iterator should not be invalidated.
-            phi = createAndPlacePhi(block, ds);
-            // Recursively find definitions for this phi node
-            findPhiDefinitions(phi);
-        } else if (canBeInput(ds.target, block->getSubgraph())){
-            DBG(dda, "Node " << ds.target->getID() << " can be input");
-            // this is the entry block, so we add a PHI node
-            // representing "input" into this procedure
-            // (but only if the input can be used from the called procedure)
-            phi = createPhi(getBBlockDefinitions(block, &ds), ds);
-            auto *subg = block->getSubgraph();
-            auto& summary = getSubgraphSummary(subg);
-            summary.addInput(ds, phi);
-            findDefinitionsFromCalledFun(phi, subg, ds);
-        }
-
-        if (phi) {
-            defs.push_back(phi);
-        }
+        findDefinitionsInMultiplePredecessors(block, ds, defs);
     }
 
     return defs;
@@ -304,7 +310,6 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
 void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
                                                            RWSubgraph *subg,
                                                            const DefSite& ds) {
-    // get call-sites of this
     for (auto *callsite : subg->getCallers()) {
         auto *bblock = callsite->getBBlock();
         assert(bblock && getBBlockInfo(bblock).isCallBlock());
