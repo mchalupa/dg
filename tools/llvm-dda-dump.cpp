@@ -510,8 +510,6 @@ class MemorySSADumper : public Dumper {
 
     void dumpSubgraphLabel(RWSubgraph *subgraph) override {
         auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
-        if (!graph_only)
-            SSA->computeAllDefinitions();
         const auto *summary = SSA->getSummary(subgraph);
 
         if (!summary) {
@@ -542,6 +540,10 @@ dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot)
     assert(DDA);
 
     if (DDA->getOptions().isSSA()) {
+        auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+        if (!graph_only)
+            SSA->computeAllDefinitions();
+
         MemorySSADumper dumper(DDA, todot);
         dumper.dump();
     } else {
