@@ -75,6 +75,10 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         // (may be then altered just only by adding a phi node definitions)
         bool isProcessed() const { return _processed; }
         void setProcessed() { _processed = true; }
+
+#ifndef NDEBUG
+        void dump() const;
+#endif
     };
 
     class BBlockInfo {
