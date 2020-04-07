@@ -117,9 +117,7 @@ RWNode *MemorySSATransformation::createAndPlacePhi(RWBBlock *block, const DefSit
 }
 
 static inline bool canEscape(const RWNode *node) {
-    return (node->getType() == RWNodeType::DYN_ALLOC ||
-            node->getType() == RWNodeType::GLOBAL ||
-            node->hasAddressTaken());
+    return node->isDynAlloc() || node->isGlobal() || node->hasAddressTaken();
 }
 
 static inline bool canBeInput(const RWNode *node, RWSubgraph *subg) {
@@ -387,12 +385,12 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to, const RWNode *mem) {
 }
 
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
-    assert(phi->getType() == RWNodeType::PHI);
+    assert(phi->isPhi());
     if (!phis.insert(phi).second)
         return; // we already visited this phi
 
     for (auto n : phi->defuse) {
-        if (n->getType() != RWNodeType::PHI) {
+        if (!n->isPhi()) {
             ret.insert(n);
         } else {
             recGatherNonPhisDefs(n, phis, ret);
@@ -407,7 +405,7 @@ std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
     std::set<RWNode *> phis; // set of visited phi nodes - to check the fixpoint
 
     for (auto n : nodes) {
-        if (n->getType() != RWNodeType::PHI) {
+        if (!n->isPhi()) {
             ret.insert(n);
         } else {
             recGatherNonPhisDefs(n, phis, ret);

@@ -254,6 +254,13 @@ public:
     bool isUse() const { return !getUses().empty(); }
     bool isDef() const { return !getDefines().empty() || !getOverwrites().empty(); }
 
+    bool isPhi() const { return getType() == RWNodeType::PHI; }
+    bool isGlobal() const { return getType() == RWNodeType::GLOBAL; }
+    bool isCall() const { return getType() == RWNodeType::CALL; }
+    bool isAlloc() const { return getType() == RWNodeType::ALLOC; }
+    bool isAllocation() const { return isAlloc() || isDynAlloc(); }
+    bool isDynAlloc() const;
+
     const RWBBlock *getBBlock() const { return bblock; }
     RWBBlock *getBBlock() { return bblock; }
     void setBBlock(RWBBlock *bb) { bblock = bb; }
@@ -322,12 +329,12 @@ public:
     RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
 
     static RWNodeCall *get(RWNode *n) {
-        return (n->getType() == RWNodeType::CALL) ?
+        return n->isCall() ?
             static_cast<RWNodeCall*>(n) : nullptr;
     }
 
     static const RWNodeCall *get(const RWNode *n) {
-        return (n->getType() == RWNodeType::CALL) ?
+        return n->isCall() ?
             static_cast<const RWNodeCall*>(n) : nullptr;
     }
 

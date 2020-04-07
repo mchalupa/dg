@@ -257,7 +257,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
         phi->addDefUse(defs);
     }
 
-
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RWNode *> findAllDefinitions(RWNode *from);
@@ -268,7 +267,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
 
-    void updateCallDefinitions(Definitions& D, RWNodeCall *call);
     void computeModRef(RWSubgraph *subg, SubgraphInfo& si);
 
     RWNode *createPhi(const DefSite& ds);

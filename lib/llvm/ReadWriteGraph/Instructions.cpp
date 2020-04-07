@@ -165,8 +165,7 @@ RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst) {
     bool strong_update = false;
     if (defSites.size() == 1) {
         const auto& ds = *(defSites.begin());
-        strong_update = (ds.target->getType() == RWNodeType::ALLOC ||
-                         ds.target->getType() == RWNodeType::GLOBAL) &&
+        strong_update = (ds.target->isAlloc() || ds.target->isGlobal()) &&
                         !ds.offset.isUnknown() && !ds.len.isUnknown();
     }
 

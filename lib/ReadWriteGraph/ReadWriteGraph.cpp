@@ -47,6 +47,23 @@ void RWBBlock::dump() const {
 
 #endif
 
+bool RWNode::isDynAlloc() const {
+    if (getType() == RWNodeType::DYN_ALLOC)
+        return true;
+
+    if (auto *C = RWNodeCall::get(this)) {
+        for (auto& cv : C->getCallees()) {
+            if (auto *val = cv.getCalledValue()) {
+                if (val->getType() == RWNodeType::DYN_ALLOC) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 void RWNodeCall::addCallee(RWSubgraph *s) {
         callees.emplace_back(s);
         s->addCaller(this);
