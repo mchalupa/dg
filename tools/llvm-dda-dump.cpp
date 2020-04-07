@@ -234,14 +234,11 @@ protected:
 
         puts("</table>>"); // end of label
         printf(" style=filled fillcolor=white shape=box]\n");
-
-        dumpNodeEdges(node);
     }
 
     void dumpNodeEdges(RWNode *node) {
         if (verbose || node->getType() == RWNodeType::PHI) {
             for (RWNode *def : node->defuse) {
-                nodeToDot(def);
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
                        static_cast<void*>(def), static_cast<void*>(node));
             }
@@ -262,8 +259,6 @@ protected:
                            "ltail=cluster_subg_%p]\n",
                            static_cast<void*>(C),
                            static_cast<const void*>(s->getRoot()), s);
-                } else {
-                    nodeToDot(cv.getCalledValue());
                 }
             }
         }
@@ -309,10 +304,15 @@ public:
         } else {
             for(RWNode *node : block->getNodes()) {
                 nodeToDot(node);
+
+                if (auto *C = RWNodeCall::get(node)) {
+                    for (auto& cv : C->getCallees()) {
+                        if (auto *val = cv.getCalledValue())
+                            nodeToDot(val);
+                    }
+                }
             }
         }
-
-        dumpBBlockEdges(block);
 
         printf("}\n");
     }
@@ -338,13 +338,31 @@ public:
 
             dumpSubgraphLabel(subg);
 
+            // dump summary nodes
+            auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+            const auto *summary = SSA->getSummary(subg);
+            for (auto& i : summary->inputs) {
+                for (auto& it : i.second)
+                    for (auto *nd : it.second)
+                        nodeToDot(nd);
+            }
+            for (auto& o : summary->outputs) {
+                for (auto& it : o.second)
+                    for (auto *nd : it.second)
+                        nodeToDot(nd);
+            }
+
             for (auto *block : subg->bblocks()) {
                 dumpBBlock(block);
             }
             printf("}\n");
+        }
 
-            /* dump block edges */
+        for (auto *subg : DDA->getGraph()->subgraphs()) {
+            // CFG
             for (auto bblock : subg->bblocks()) {
+                dumpBBlockEdges(bblock);
+
                 for (auto *succ : bblock->getSuccessors()) {
                     printf("\tNODE%p -> NODE%p "
                            "[penwidth=2 constraint=true"
@@ -356,6 +374,11 @@ public:
                                            static_cast<void*>(succ->getFirst()),
                            static_cast<void*>(bblock),
                            static_cast<void*>(succ));
+                }
+
+                // def-use
+                for (auto *node : bblock->getNodes()) {
+                    dumpNodeEdges(node);
                 }
             }
         }
