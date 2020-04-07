@@ -44,9 +44,14 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     }
 
     auto *block = node->getBBlock();
-    assert(block && "Block is null");
-    //if (!block)
-    //    return {};
+    if (!block) {
+        // no basic block means that this node is either
+        // a subnode of a CALL node or that it is
+        // in unreachable part of program (and therefore
+        // the block was not built).
+        // In either case, we're safe to return nothing
+        return {};
+    }
 
     // gather all definitions from the beginning of the block
     // to the node (we must do that always, because adding PHI
