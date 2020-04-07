@@ -2,6 +2,10 @@
 
 #include "dg/util/debug.h"
 
+#ifndef NDEBUG
+#include <iostream>
+#endif
+
 namespace dg {
 namespace dda {
 
@@ -59,6 +63,26 @@ MemorySSATransformation::Definitions::join(const Definitions& rhs) {
     unknownReads.insert(unknownReads.end(),
                         rhs.unknownReads.begin(), rhs.unknownReads.end());
 }
+
+#ifndef NDEBUG
+void MemorySSATransformation::Definitions::dump() const {
+    std::cout << "processed: " << _processed << "\n";
+    std::cout << " -- defines -- \n";
+    definitions.dump();
+    std::cout << " -- kills -- \n";
+    kills.dump();
+    std::cout << " -- unknown reads -- \n";
+    for (auto *nd : unknownReads) {
+        std::cout << nd->getID() << " ";
+    }
+    std::cout << "\n";
+    std::cout << " -- unknown writes -- \n";
+    for (auto *nd : unknownWrites) {
+        std::cout << nd->getID() << " ";
+    }
+    std::cout << std::endl;
+}
+#endif
 
 } // namespace dda
 } // namespace dg
