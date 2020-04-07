@@ -259,6 +259,9 @@ protected:
                            "ltail=cluster_subg_%p]\n",
                            static_cast<void*>(C),
                            static_cast<const void*>(s->getRoot()), s);
+                } else {
+                    printf("\tNODE%p->NODE%p [style=dashed constraint=false color=blue]\n",
+                           static_cast<void*>(C), static_cast<void*>(cv.getCalledValue()));
                 }
             }
         }
