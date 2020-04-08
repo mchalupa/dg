@@ -216,6 +216,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // For the uncovered bytes create phi nodes (which are also returned
     // as the definitions).
     std::vector<RWNode *> findDefinitions(RWBBlock *, const DefSite&);
+    std::vector<RWNode *> findDefinitions(RWNode *node, const DefSite& ds);
 
     // Find definitions for the given node (which is supposed to be a use)
     std::vector<RWNode *> findDefinitions(RWNode *node);
@@ -269,8 +270,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void computeModRef(RWSubgraph *subg, SubgraphInfo& si);
 
-    RWNode *createPhi(const DefSite& ds);
-    RWNode *createPhi(Definitions& D, const DefSite& ds);
+    RWNode *createPhi(const DefSite& ds, RWNodeType type = RWNodeType::PHI);
+    RWNode *createPhi(Definitions& D, const DefSite& ds, RWNodeType type = RWNodeType::PHI);
     RWNode *createAndPlacePhi(RWBBlock *block, const DefSite& ds);
 
     // insert a (temporary) use into the graph before the node 'where'

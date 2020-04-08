@@ -106,6 +106,10 @@ static void printRWNodeType(enum RWNodeType type) {
         ELEM(RWNodeType::STORE)
         ELEM(RWNodeType::LOAD)
         ELEM(RWNodeType::PHI)
+        ELEM(RWNodeType::INARG)
+        ELEM(RWNodeType::OUTARG)
+        ELEM(RWNodeType::CALLIN)
+        ELEM(RWNodeType::CALLOUT)
         ELEM(RWNodeType::MU)
         ELEM(RWNodeType::CALL)
         ELEM(RWNodeType::FORK)
@@ -237,7 +241,7 @@ protected:
     }
 
     void dumpNodeEdges(RWNode *node) {
-        if (verbose || node->getType() == RWNodeType::PHI) {
+        if (verbose || node->isPhi()) {
             for (RWNode *def : node->defuse) {
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
                        static_cast<void*>(def), static_cast<void*>(node));
@@ -266,9 +270,6 @@ protected:
             }
         }
     }
-
-
-
 
 public:
     Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = true)
@@ -362,6 +363,20 @@ public:
         }
 
         for (auto *subg : DDA->getGraph()->subgraphs()) {
+            // dump summary nodes edges
+            auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+            const auto *summary = SSA->getSummary(subg);
+            for (auto& i : summary->inputs) {
+                for (auto& it : i.second)
+                    for (auto *nd : it.second)
+                        dumpNodeEdges(nd);
+            }
+            for (auto& o : summary->outputs) {
+                for (auto& it : o.second)
+                    for (auto *nd : it.second)
+                        dumpNodeEdges(nd);
+            }
+
             // CFG
             for (auto bblock : subg->bblocks()) {
                 dumpBBlockEdges(bblock);

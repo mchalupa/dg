@@ -72,10 +72,47 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
     return defs;
 }
 
-RWNode *MemorySSATransformation::createPhi(const DefSite& ds) {
+
+// find definitions of a given node
+std::vector<RWNode *>
+MemorySSATransformation::findDefinitions(RWNode *node, const DefSite& ds) {
+    DBG(dda, "Searching definitions for node " << node->getID());
+
+    // we use this only for PHI nodes
+    assert(node->isPhi() && "Searching definitions for non-use node");
+    assert(ds.target && "Target is null");
+    assert(!ds.target->isUnknown() && "Searching unknown memory");
+
+    auto *block = node->getBBlock();
+    if (!block) {
+        // no basic block means that this node is either
+        // a subnode of a CALL node or that it is
+        // in unreachable part of program (and therefore
+        // the block was not built).
+        // In either case, we're safe to return nothing
+        return {};
+    }
+
+    // gather all definitions from the beginning of the block
+    // to the node (we must do that always, because adding PHI
+    // nodes changes the definitions)
+    auto D = findDefinitionsInBlock(node);
+    std::vector<RWNode *> defs;
+
+    // add the definitions from the beginning of this block to the defs container
+    auto defSet = D.definitions.get(ds);
+    addFoundDefinitions(defs, defSet, D);
+
+    addUncoveredFromPredecessors(block, D, ds, defs);
+
+    return defs;
+}
+
+RWNode *MemorySSATransformation::createPhi(const DefSite& ds, RWNodeType type) {
     // This phi is the definition that we are looking for.
-    _phis.emplace_back(&graph.create(RWNodeType::PHI));
+    _phis.emplace_back(&graph.create(type));
     auto *phi = _phis.back();
+	assert(phi->isPhi() && "Got wrong type");
 
     phi->addOverwrites(ds);
 
@@ -84,8 +121,8 @@ RWNode *MemorySSATransformation::createPhi(const DefSite& ds) {
 }
 
 
-RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds) {
-    auto *phi = createPhi(ds);
+RWNode *MemorySSATransformation::createPhi(Definitions& D, const DefSite& ds, RWNodeType type) {
+    auto *phi = createPhi(ds, type);
 
     // update definitions in the block -- this
     // phi node defines previously uncovered memory
@@ -144,7 +181,7 @@ MemorySSATransformation::findDefinitionsInMultiplePredecessors(RWBBlock *block,
         // this is the entry block, so we add a PHI node
         // representing "input" into this procedure
         // (but only if the input can be used from the called procedure)
-        phi = createPhi(getBBlockDefinitions(block, &ds), ds);
+        phi = createPhi(getBBlockDefinitions(block, &ds), ds, /* type = */ RWNodeType::INARG);
         auto *subg = block->getSubgraph();
         auto& summary = getSubgraphSummary(subg);
         summary.addInput(ds, phi);
@@ -259,8 +296,9 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
         auto uncoveredds = DefSite{ds.target, interval.start, interval.length()};
         // this phi will merge the definitions from all the
         // possibly called subgraphs
-        auto *phi = createPhi(D, uncoveredds);
+        auto *phi = createPhi(D, uncoveredds, RWNodeType::CALLOUT);
         C->getBBlock()->append(phi);
+        C->addOutput(phi);
 
         // recursively find definitions for this phi node
         for (auto& callee : C->getCallees()) {
@@ -286,7 +324,7 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                 auto subgds = DefSite{uncoveredds.target,
                                       subginterval.start,
                                       subginterval.length()};
-                auto *subgphi = createPhi(subgds);
+                auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
                 summary.addOutput(subgds, subgphi);
 
                 // find the new phi operands
@@ -309,14 +347,19 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
                                                            RWSubgraph *subg,
                                                            const DefSite& ds) {
     for (auto *callsite : subg->getCallers()) {
+        auto *C = RWNodeCall::get(callsite);
+        assert(C && "Callsite is not a call");
+
         auto *bblock = callsite->getBBlock();
         assert(bblock && getBBlockInfo(bblock).isCallBlock());
 
-        auto D = findDefinitionsInBlock(callsite, ds.target);
-        std::vector<RWNode *> defs;
-        addUncoveredFromPredecessors(bblock, D, ds, defs);
-        // FIXME: we could move the defintions
-        phi->addDefUse(defs);
+        // create input PHI for this call
+        auto *callphi = createPhi(ds, RWNodeType::CALLIN);
+        bblock->insertBefore(callphi, C);
+        C->addInput(callphi);
+
+        phi->addDefUse(callphi);
+        callphi->addDefUse(findDefinitions(callphi, ds));
     }
 }
 
