@@ -550,31 +550,26 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
     for (auto *b : subg->bblocks()) {
         auto& bi = si.getBBlockInfo(b);
         if (bi.isCallBlock()) {
-            // if the block is a call bblock, we must
-            // compute all the reaching definitions first,
-            // so that we have the modref info for the call
-            // (calling getBBlockDefinitions() will trigger computing
-            //  computing modref on demand)
-            getBBlockDefinitions(b, nullptr);
-
             auto *C = bi.getCall();
             for (auto& callee : C->getCallees()) {
-                auto *subg = callee.getSubgraph();
-                if (subg) {
-                    auto& callsi = getSubgraphInfo(subg);
+                auto *csubg = callee.getSubgraph();
+                if (csubg) {
+                    auto& callsi = getSubgraphInfo(csubg);
+                    computeModRef(csubg, callsi);
                     assert(callsi.modref.isInitialized());
+
                     si.modref.add(callsi.modref);
                 } else {
                     // undefined function
                     modRefAdd(si.modref.maydef,
                               callee.getCalledValue()->getDefines(),
-                              C, subg);
+                              C, csubg);
                     modRefAdd(si.modref.maydef,
                               callee.getCalledValue()->getOverwrites(),
-                              C, subg);
+                              C, csubg);
                     modRefAdd(si.modref.mayref,
                               callee.getCalledValue()->getUses(),
-                              C, subg);
+                              C, csubg);
                 }
             }
         } else {
