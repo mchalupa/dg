@@ -252,7 +252,16 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     void findPhiDefinitions(RWNode *phi);
 
-    void findDefinitionsFromCall(Definitions& D, RWNodeCall *C, const DefSite& ds);
+    ///
+    // Search call C for definitions of ds and store the results into D.
+    // Used to implement on-demand search inside procedures.
+    void fillDefinitionsFromCall(Definitions& D, RWNodeCall *C, const DefSite& ds);
+    ///
+    // Search call C for all definitions that may be visible after the call.
+    // After the call to this method, D is completely filled with all
+    // information, similarly as when we perform LVN for non-call bblock.
+    void fillDefinitionsFromCall(Definitions& D, RWNodeCall *C);
+
     void findDefinitionsFromCalledFun(RWNode *phi, RWSubgraph *subg, const DefSite& ds);
 
     void addDefsFromUndefCall(Definitions& D, RWNode *defs,
@@ -283,7 +292,6 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                                RWBBlock *from,
                                std::set<RWBBlock *>& visitedBlocks);
 
-    void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
     void findDefinitionsInSubgraph(RWNode *phi,
                                    RWNodeCall *C,
                                    const DefSite& ds,
