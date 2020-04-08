@@ -180,6 +180,23 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                 mustdef.add(oth.mustdef);
             }
 
+            ///
+            // Check whether the procedure may define 'n' (ignoring writes
+            // to unknown memory, \see mayDefineOrUnknown())
+            bool mayDefine(RWNode *n) const { return maydef.definesTarget(n); }
+            bool mayDefineUnknown() const { return mayDefine(UNKNOWN_MEMORY); }
+
+            ///
+            // Check whether the procedure may define 'n', taking into
+            // account also writes to unknown memory
+            bool mayDefineOrUnknown(RWNode *n) const {
+                return mayDefine(n) or mayDefineUnknown();
+            }
+
+            auto getMayDef(RWNode *n) -> decltype(maydef.get(n)) {
+                return maydef.get(n);
+            }
+
             void setInitialized() { _initialized = true; }
             bool isInitialized() const { return _initialized  ; }
         } modref;
@@ -269,6 +286,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
 
     void computeModRef(RWSubgraph *subg, SubgraphInfo& si);
+    bool callMayDefineTarget(RWNodeCall *C, RWNode *target);
 
     RWNode *createPhi(const DefSite& ds, RWNodeType type = RWNodeType::PHI);
     RWNode *createPhi(Definitions& D, const DefSite& ds, RWNodeType type = RWNodeType::PHI);

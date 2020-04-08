@@ -79,19 +79,11 @@ MemorySSATransformation::findDefinitions(RWNode *node, const DefSite& ds) {
     DBG(dda, "Searching definitions for node " << node->getID());
 
     // we use this only for PHI nodes
-    assert(node->isPhi() && "Searching definitions for non-use node");
     assert(ds.target && "Target is null");
     assert(!ds.target->isUnknown() && "Searching unknown memory");
 
     auto *block = node->getBBlock();
-    if (!block) {
-        // no basic block means that this node is either
-        // a subnode of a CALL node or that it is
-        // in unreachable part of program (and therefore
-        // the block was not built).
-        // In either case, we're safe to return nothing
-        return {};
-    }
+    assert(block && "Need bblock");
 
     // gather all definitions from the beginning of the block
     // to the node (we must do that always, because adding PHI
@@ -287,9 +279,34 @@ MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
     return _cached_defs[b];
 }
 
+bool MemorySSATransformation::callMayDefineTarget(RWNodeCall *C, RWNode *target) {
+    // check if this call may define the memory at all
+    for (auto& callee : C->getCallees()) {
+        auto *subg = callee.getSubgraph();
+        if (!subg) {
+            auto *cv = callee.getCalledValue();
+            if (cv->defines(target)) {
+                return true;
+            }
+        } else {
+            auto& si = getSubgraphInfo(subg);
+            computeModRef(subg, si);
+            assert(si.modref.isInitialized());
+            if (si.modref.mayDefineOrUnknown(target)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                                                       RWNodeCall *C,
                                                       const DefSite& ds) {
+    if (!callMayDefineTarget(C, ds.target))
+        return;
+
     // find the uncovered parts of the sought definition
     auto uncovered = D.uncovered(ds);
     for (auto& interval : uncovered) {
@@ -317,6 +334,10 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
             }
 
             auto& summary = getSubgraphSummary(subg);
+            auto& si = getSubgraphInfo(subg);
+            computeModRef(subg, si);
+            assert(si.modref.isInitialized());
+
             // we must create a new phi for each subgraph inside the subgraph
             // (these phis will be merged by the single phi created at the beginning
             // of this method. Of course, we create them only when not already present.
@@ -324,6 +345,25 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                 auto subgds = DefSite{uncoveredds.target,
                                       subginterval.start,
                                       subginterval.length()};
+
+                // do not search the procedure if it cannot define the memory
+                // (this saves creating PHI nodes). If it may define only
+                // unknown memory, add that definitions and continue searching
+                // in predecessors)
+                if (!si.modref.mayDefine(uncoveredds.target)) {
+                    if (si.modref.mayDefineUnknown()) {
+                        auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
+                        summary.addOutput(subgds, subgphi);
+                        for (auto& it : si.modref.getMayDef(UNKNOWN_MEMORY)) {
+                            subgphi->addDefUse(it);
+                        }
+                    }
+                    // continue search in this procedure
+                    // FIXME: what if C defines the memory in one of its callees?
+                    phi->addDefUse(findDefinitions(C, subgds));
+                    continue;
+                }
+ 
                 auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
                 summary.addOutput(subgds, subgphi);
 
