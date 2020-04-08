@@ -365,7 +365,7 @@ void MemorySSATransformation::addDefinitionsFromCalledValue(RWNode *phi,
 }
 
 
-void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
+void MemorySSATransformation::fillDefinitionsFromCall(Definitions& D,
                                                       RWNodeCall *C,
                                                       const DefSite& ds) {
     if (!callMayDefineTarget(C, ds.target))
@@ -433,9 +433,9 @@ MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
 
     if (bi.isCallBlock()) {
         if (ds) {
-            findDefinitionsFromCall(D, bi.getCall(), *ds);
+            fillDefinitionsFromCall(D, bi.getCall(), *ds);
         } else {
-            findAllDefinitionsFromCall(D, bi.getCall());
+            fillDefinitionsFromCall(D, bi.getCall());
             assert(D.isProcessed());
         }
     } else {
@@ -635,8 +635,8 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
     DBG_SECTION_END(dda, "Computing modref for subgraph " << subg->getName() << " done");
 }
 
-void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
-                                                         RWNodeCall *C) {
+void MemorySSATransformation::fillDefinitionsFromCall(Definitions& D,
+                                                      RWNodeCall *C) {
     if (D.isProcessed()) {
         return;
     }
@@ -648,10 +648,10 @@ void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
         if (!subg) {
             auto *called = callee.getCalledValue();
             for (auto& ds : called->getDefines()) {
-                findDefinitionsFromCall(D, C, ds);
+                fillDefinitionsFromCall(D, C, ds);
             }
             for (auto& ds : called->getOverwrites()) {
-                findDefinitionsFromCall(D, C, ds);
+                fillDefinitionsFromCall(D, C, ds);
             }
         } else {
             auto& si = getSubgraphInfo(subg);
@@ -668,7 +668,7 @@ void MemorySSATransformation::findAllDefinitionsFromCall(Definitions& D,
                     continue;
                 }
                 for (auto& it2: it.second) {
-                    findDefinitionsFromCall(D, C, {it.first,
+                    fillDefinitionsFromCall(D, C, {it.first,
                                                    it2.first.start,
                                                    it2.first.length()});
                 }
