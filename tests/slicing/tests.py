@@ -80,6 +80,8 @@ tests = {
                                   linkafter=['unknownptrfoo2.c']),
     'unknownptr8'          : Test('unknownptr8.c',
                                   linkafter=['unknownptrfoo2.c']),
+    'unknownptr9'          : Test('unknownptr9.c',
+                                  linkafter=['ptr-9.c']),
     'pointers1'            : Test('pointers1.c'),
     'pointers2'            : Test('pointers2.c'),
     'pointers3'            : Test('pointers3.c'),
