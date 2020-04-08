@@ -33,6 +33,13 @@ enum class RWNodeType {
         LOAD,
         // merging information from several locations
         PHI,
+        ////  PHIs used to pass information between procedures
+        // PHIs on the side of procedure (formal arguments)
+        INARG,
+        OUTARG,
+        // PHIs on the side of call (actual arguments)
+        CALLIN,
+        CALLOUT,
         // artificial use (load)
         MU,
         // return from the subprocedure
@@ -254,7 +261,11 @@ public:
     bool isUse() const { return !getUses().empty(); }
     bool isDef() const { return !getDefines().empty() || !getOverwrites().empty(); }
 
-    bool isPhi() const { return getType() == RWNodeType::PHI; }
+    bool isInOut() const { return getType() == RWNodeType::INARG ||
+                                  getType() == RWNodeType::OUTARG ||
+                                  getType() == RWNodeType::CALLIN ||
+                                  getType() == RWNodeType::CALLOUT; }
+    bool isPhi() const { return getType() == RWNodeType::PHI || isInOut(); }
     bool isGlobal() const { return getType() == RWNodeType::GLOBAL; }
     bool isCall() const { return getType() == RWNodeType::CALL; }
     bool isAlloc() const { return getType() == RWNodeType::ALLOC; }
@@ -291,7 +302,15 @@ public:
 class RWNodeCall : public RWNode {
     // what this call calls?
     using CalleesT = std::vector<RWCalledValue>;
+    // PHI nodes representing defined/used memory
+    // by the call
+    using InputsT = std::vector<RWNode *>;
+    using OutputsT = std::vector<RWNode *>;
+
     CalleesT callees;
+    InputsT inputs;
+    OutputsT outputs;
+
     mutable bool _annotations_summarized{false};
 
     // compute the overall effect of all undefined calls
@@ -403,6 +422,12 @@ public:
             _summarizeAnnotation();
         return annotations;
     }
+
+    void addOutput(RWNode *n) { assert(n->isPhi()); outputs.push_back(n); }
+    const OutputsT& getOutputs() const { return outputs; }
+
+    void addInput(RWNode *n) { assert(n->isPhi()); inputs.push_back(n); }
+    const InputsT& getInputs() const { return inputs; }
 
 
 #ifndef NDEBUG

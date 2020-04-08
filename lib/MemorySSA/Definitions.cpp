@@ -40,7 +40,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
 
     // definitive definitions
     for (auto& ds : node->getOverwrites()) {
-        assert((defnode->getType() == RWNodeType::PHI || // we allow ? for PHI nodes
+        assert((defnode->isPhi() || // we allow ? for PHI nodes
                !ds.offset.isUnknown()) && "Update on unknown offset");
         assert(!ds.target->isUnknown() && "Update on unknown memory");
 
