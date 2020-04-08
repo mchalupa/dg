@@ -94,6 +94,19 @@ public:
         nd.addUser(*this);
     }
 
+    // this node reads values from 'nd' (the edge 'nd' -> 'this')
+    void addMemoryDep(DGNode& nd) {
+        _memory_deps.insert(&nd);
+        nd._rev_memory_deps.insert(this);
+    }
+
+    /*
+    // this node is control dependent on 'nd' (the edge 'nd' -> 'this')
+    void addControlDep(DGNode& nd) {
+    }
+    */
+
+    // use dependencies
     edge_iterator uses_begin() { return _use_deps.begin(); }
     edge_iterator uses_end() { return _use_deps.end(); }
     edge_iterator users_begin() { return _rev_use_deps.begin(); }
@@ -108,6 +121,25 @@ public:
     edges_range users() { return edges_range(_rev_use_deps); }
     const_edges_range users() const { return const_edges_range(_rev_use_deps); }
 
+    // memory dependencies
+    edge_iterator memdep_begin() { return _memory_deps.begin(); }
+    edge_iterator memdep_end() { return _memory_deps.end(); }
+    edge_iterator rev_memdep_begin() { return _rev_memory_deps.begin(); }
+    edge_iterator rev_memdep_end() { return _rev_memory_deps.end(); }
+    const_edge_iterator memdep_begin() const { return _memory_deps.begin(); }
+    const_edge_iterator memdep_end() const { return _memory_deps.end(); }
+    const_edge_iterator rev_memdep_begin() const { return _rev_memory_deps.begin(); }
+    const_edge_iterator rev_memdep_end() const { return _rev_memory_deps.end(); }
+
+    edges_range memdep() { return edges_range(_memory_deps); }
+    const_edges_range memdep() const { return const_edges_range(_memory_deps); }
+    edges_range rev_memdep() { return edges_range(_rev_memory_deps); }
+    const_edges_range rev_memdep() const { return const_edges_range(_rev_memory_deps); }
+
+    // FIXME: add datadep iterator = memdep + uses
+
+    // control dependencies
+    // TODO
 
 #ifndef NDEBUG
     void dump() const override {
