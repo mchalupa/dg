@@ -5,6 +5,7 @@
 
 #include "dg/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/LLVMAnalysisOptions.h"
 
 namespace llvm {
@@ -26,6 +27,7 @@ class SystemDependenceGraph {
     llvm::Module *_module;
     sdg::SystemDependenceGraph _sdg;
     LLVMPointerAnalysis *_pta{nullptr};
+    dda::LLVMDataDependenceAnalysis *_dda{nullptr};
 
     //SystemDependenceGraphBuilder _builder;
     // FIXME: do this unordered maps
@@ -56,8 +58,9 @@ class SystemDependenceGraph {
 public:
     SystemDependenceGraph(llvm::Module *M,
                           LLVMPointerAnalysis *PTA,
+                          dda::LLVMDataDependenceAnalysis *DDA,
                           const SystemDependenceGraphOptions& opts = {})
-    :  _options(opts), _module(M), _sdg(), _pta{PTA} {
+    :  _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA) {
         buildSDG();
     }
 

@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     LLVMDataDependenceAnalysis DDA(M.get(), &PTA);
     DDA.run();
 
-    llvmdg::SystemDependenceGraph sdg(M.get(), &PTA);
+    llvmdg::SystemDependenceGraph sdg(M.get(), &PTA, &DDA);
 
     SDGDumper dumper(options, &sdg, dump_bb_only);
     dumper.dumpToDot();
