@@ -301,6 +301,70 @@ bool MemorySSATransformation::callMayDefineTarget(RWNodeCall *C, RWNode *target)
     return false;
 }
 
+void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
+                                                        RWNodeCall *C,
+                                                        const DefSite& ds,
+                                                        RWSubgraph *subg) {
+    auto& summary = getSubgraphSummary(subg);
+    auto& si = getSubgraphInfo(subg);
+    computeModRef(subg, si);
+    assert(si.modref.isInitialized());
+
+    // we must create a new phi for each subgraph inside the subgraph
+    // (these phis will be merged by the single 'phi'.
+    // Of course, we create them only when not already present.
+    for (auto& subginterval : summary.getUncoveredOutputs(ds)) {
+        auto subgds = DefSite{ds.target,
+                              subginterval.start,
+                              subginterval.length()};
+
+        // do not search the procedure if it cannot define the memory
+        // (this saves creating PHI nodes). If it may define only
+        // unknown memory, add that definitions directly and continue searching
+        // before the call.
+        if (!si.modref.mayDefine(ds.target)) {
+            if (si.modref.mayDefineUnknown()) {
+                auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
+                summary.addOutput(subgds, subgphi);
+                for (auto& it : si.modref.getMayDef(UNKNOWN_MEMORY)) {
+                    subgphi->addDefUse(it);
+                }
+            }
+            // continue search before the call
+            phi->addDefUse(findDefinitions(C, subgds));
+            continue;
+        }
+ 
+        auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
+        summary.addOutput(subgds, subgphi);
+        phi->addDefUse(subgphi);
+
+        // find the new phi operands
+        for (auto *subgblock : subg->bblocks()) {
+            if (subgblock->hasSuccessors()) {
+                continue;
+            }
+            subgphi->addDefUse(findDefinitions(subgblock, ds));
+        }
+    }
+}
+
+void MemorySSATransformation::addDefinitionsFromCalledValue(RWNode *phi,
+                                                            RWNodeCall *C,
+                                                            const DefSite& ds,
+                                                            RWNode *calledValue) {
+    std::vector<RWNode *> defs;
+    Definitions D;
+    // FIXME: cache this somehow ?
+    D.update(calledValue);
+
+    auto defSet = D.definitions.get(ds);
+    addFoundDefinitions(defs, defSet, D);
+    addUncoveredFromPredecessors(C->getBBlock(), D, ds, defs);
+    phi->addDefUse(defs);
+}
+
+
 void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
                                                       RWNodeCall *C,
                                                       const DefSite& ds) {
@@ -319,64 +383,11 @@ void MemorySSATransformation::findDefinitionsFromCall(Definitions& D,
 
         // recursively find definitions for this phi node
         for (auto& callee : C->getCallees()) {
-            auto *subg = callee.getSubgraph();
-            if (!subg) {
-                std::vector<RWNode *> defs;
-                Definitions D;
-                // FIXME: cache this somehow ?
-                D.update(callee.getCalledValue());
-
-                auto defSet = D.definitions.get(uncoveredds);
-                addFoundDefinitions(defs, defSet, D);
-                addUncoveredFromPredecessors(C->getBBlock(), D, uncoveredds, defs);
-                phi->addDefUse(defs);
-                continue;
+            if (auto *subg = callee.getSubgraph()) {
+                findDefinitionsInSubgraph(phi, C, uncoveredds, subg);
+            } else {
+                addDefinitionsFromCalledValue(phi, C, uncoveredds, callee.getCalledValue());
             }
-
-            auto& summary = getSubgraphSummary(subg);
-            auto& si = getSubgraphInfo(subg);
-            computeModRef(subg, si);
-            assert(si.modref.isInitialized());
-
-            // we must create a new phi for each subgraph inside the subgraph
-            // (these phis will be merged by the single phi created at the beginning
-            // of this method. Of course, we create them only when not already present.
-            for (auto& subginterval : summary.getUncoveredOutputs(uncoveredds)) {
-                auto subgds = DefSite{uncoveredds.target,
-                                      subginterval.start,
-                                      subginterval.length()};
-
-                // do not search the procedure if it cannot define the memory
-                // (this saves creating PHI nodes). If it may define only
-                // unknown memory, add that definitions and continue searching
-                // in predecessors)
-                if (!si.modref.mayDefine(uncoveredds.target)) {
-                    if (si.modref.mayDefineUnknown()) {
-                        auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
-                        summary.addOutput(subgds, subgphi);
-                        for (auto& it : si.modref.getMayDef(UNKNOWN_MEMORY)) {
-                            subgphi->addDefUse(it);
-                        }
-                    }
-                    // continue search in this procedure
-                    // FIXME: what if C defines the memory in one of its callees?
-                    phi->addDefUse(findDefinitions(C, subgds));
-                    continue;
-                }
- 
-                auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
-                summary.addOutput(subgds, subgphi);
-
-                // find the new phi operands
-                for (auto *subgblock : subg->bblocks()) {
-                    if (subgblock->hasSuccessors()) {
-                        continue;
-                    }
-                    subgphi->addDefUse(findDefinitions(subgblock, uncoveredds));
-                }
-            }
-
-            phi->addDefUse(summary.getOutputs(uncoveredds));
         }
     }
 }

@@ -284,6 +284,15 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                                std::set<RWBBlock *>& visitedBlocks);
 
     void findAllDefinitionsFromCall(Definitions& D, RWNodeCall *C);
+    void findDefinitionsInSubgraph(RWNode *phi,
+                                   RWNodeCall *C,
+                                   const DefSite& ds,
+                                   RWSubgraph *subg);
+
+    void addDefinitionsFromCalledValue(RWNode *phi,
+                                       RWNodeCall *C,
+                                       const DefSite& ds,
+                                       RWNode *calledValue);
 
     void computeModRef(RWSubgraph *subg, SubgraphInfo& si);
     bool callMayDefineTarget(RWNodeCall *C, RWNode *target);
