@@ -51,19 +51,10 @@ struct SDGDependenciesBuilder {
             return;
 
         for (auto& op : DDA->getLLVMDefinitions(&I)) {
-            /*
             auto *val = &*op;
-            llvm::errs() << I << " -> " << *val << "\n";
-            if (llvm::isa<llvm::ConstantExpr>(val)) {
-                val = val->stripPointerCasts();
-            }
+            llvm::errs() << *val << " d-> " << I << "\n";
             auto *opnd = _sdg.getNode(val);
             if (!opnd) {
-                if (llvm::isa<llvm::ConstantInt>(val) ||
-                    llvm::isa<llvm::Function>(val)) {
-                    continue;
-                }
-
                 llvm::errs() << "[SDG error] Do not have operand node:\n";
                 llvm::errs() << *val << "\n";
                 abort();
@@ -73,16 +64,14 @@ struct SDGDependenciesBuilder {
             assert(sdg::DGNode::get(nd) && "Wrong type of node");
 
             if (auto *arg = sdg::DGArgumentPair::get(opnd)) {
-                sdg::DGNode::get(nd)->addUses(arg->getInputArgument());
+                sdg::DGNode::get(nd)->addMemoryDep(arg->getInputArgument());
             } else {
                 auto *opnode = sdg::DGNode::get(opnd);
                 assert(opnode && "Wrong type of node");
-                sdg::DGNode::get(nd)->addUses(*sdg::DGNode::get(opnd));
+                sdg::DGNode::get(nd)->addMemoryDep(*sdg::DGNode::get(opnd));
             }
-            */
         }
     }
-
 
     void processInstr(llvm::Instruction& I) {
         llvm::errs() << "I: " << I << "\n";

@@ -201,6 +201,9 @@ public:
                         out << "    " << *nd << " -> " << *use
                             << "[style=\"dashed\"]\n";
                     }
+                    for (auto *def : nd->memdep()) {
+                        out << "    " << *def << " -> " << *nd << "\n";
+                    }
                 }
             }
  
