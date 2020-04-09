@@ -154,4 +154,8 @@ add_test(pta-inv-infinite-loop
                              ${SCRIPTDIR}/test-runner.py pta-inv-infinite-loop)
 add_test(undefcall1          ${SCRIPTDIR}/test-runner.py undefcall1)
 add_test(undefcall2          ${SCRIPTDIR}/test-runner.py undefcall2)
+add_test(unknown-interproc   ${SCRIPTDIR}/test-runner.py unknown-interproc)
+add_test(unknown-interproc2  ${SCRIPTDIR}/test-runner.py unknown-interproc2)
+add_test(unknown-interproc2-a  ${SCRIPTDIR}/test-runner.py unknown-interproc2-a)
+add_test(unknown-interproc3  ${SCRIPTDIR}/test-runner.py unknown-interproc3)
 
