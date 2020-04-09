@@ -329,6 +329,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
                 for (auto& it : si.modref.getMayDef(UNKNOWN_MEMORY)) {
                     subgphi->addDefUse(it);
                 }
+                phi->addDefUse(subgphi);
             }
             // continue search before the call
             phi->addDefUse(findDefinitions(C, subgds));
