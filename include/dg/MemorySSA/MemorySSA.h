@@ -316,12 +316,9 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
 
     std::vector<RWNode *> _phis;
     dg::ADT::QueueLIFO<RWNode> _queue;
-    std::unordered_map<RWBBlock *, DefinitionsMap<RWNode>> _cached_defs;
     std::unordered_map<const RWSubgraph *, SubgraphInfo> _subgraphs_info;
 
     Definitions& getBBlockDefinitions(RWBBlock *b, const DefSite *ds = nullptr);
-    DefinitionsMap<RWNode>& getCachedDefinitions(RWBBlock *b);
-    bool hasCachedDefinitions(RWBBlock *b) const { return _cached_defs.count(b) > 0; }
 
     SubgraphInfo& getSubgraphInfo(const RWSubgraph *s) { return _subgraphs_info[s]; }
     const SubgraphInfo *getSubgraphInfo(const RWSubgraph *s) const {
