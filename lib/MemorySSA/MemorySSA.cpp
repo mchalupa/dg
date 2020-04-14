@@ -467,6 +467,23 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to, const RWNode *mem) {
     return D;
 }
 
+MemorySSATransformation::Definitions
+MemorySSATransformation::findEscapingDefinitionsInBlock(RWNode *to) {
+    auto *block = to->getBBlock();
+    // perform LVN up to the node
+    Definitions D;
+    for (RWNode *node : block->getNodes()) {
+        if (node == to)
+            break;
+        if (canEscape(node)) {
+            D.update(node);
+        }
+    }
+
+    return D;
+}
+
+
 static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
     assert(phi->isPhi());
     if (!phis.insert(phi).second)
@@ -537,8 +554,13 @@ RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
 /// (thus simulating the state when 'to' is executed after 'from')
 ///
 static void joinDefinitions(DefinitionsMap<RWNode>& from,
-                            DefinitionsMap<RWNode>& to) {
+                            DefinitionsMap<RWNode>& to,
+                            bool escaping = false) {
     for (auto& it : from) {
+        if (escaping && !canEscape(it.first)) {
+            continue;
+        }
+
         if (!to.definesTarget(it.first)) {
             // just copy the definitions
             to.add(it.first, it.second);
@@ -672,7 +694,8 @@ void MemorySSATransformation::fillDefinitionsFromCall(Definitions& D,
 void
 MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
                                                RWBBlock *from,
-                                               std::set<RWBBlock *>& visitedBlocks) {
+                                               std::set<RWBBlock *>& visitedBlocks,
+                                               bool escaping) {
     if (!from)
         return;
 
@@ -681,15 +704,15 @@ MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
     }
 
     // get the definitions from this block
-    joinDefinitions(getBBlockDefinitions(from).definitions, defs);
+    joinDefinitions(getBBlockDefinitions(from).definitions, defs, escaping);
 
     // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
-        collectAllDefinitions(defs, singlePred, visitedBlocks);
+        collectAllDefinitions(defs, singlePred, visitedBlocks, escaping);
     } else {
         for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
             auto tmpDefs = defs;
-            collectAllDefinitions(tmpDefs, *I, visitedBlocks);
+            collectAllDefinitions(tmpDefs, *I, visitedBlocks, escaping);
             defs.add(tmpDefs);
         }
     }
@@ -704,29 +727,34 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from) {
 
 void
 MemorySSATransformation::collectAllDefinitions(RWNode *from,
-                                               DefinitionsMap<RWNode>& defs) {
+                                               DefinitionsMap<RWNode>& defs,
+                                               bool escaping) {
     assert(from->getBBlock() && "The node has no BBlock");
 
     auto *block = from->getBBlock();
     std::set<RWBBlock *> visitedBlocks; // for terminating the search
 
-    auto D = findDefinitionsInBlock(from);
+    Definitions D;
+    if (escaping) {
+        D = findEscapingDefinitionsInBlock(from);
+    } else {
+        D = findDefinitionsInBlock(from);
+    }
 
     ///
     // -- Get the definitions from predecessors --
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it again
     if (auto singlePred = block->getSinglePredecessor()) {
-        collectAllDefinitions(defs, singlePred, visitedBlocks);
+        collectAllDefinitions(defs, singlePred, visitedBlocks, escaping);
     } else {
         // for multiple predecessors, we must create a copy of the
         // definitions that we have not found yet (a new copy for each
         // iteration.
-        // NOTE: no caching here...
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
             // assign 'kills' to not to search for what we already have
             DefinitionsMap<RWNode> tmpDefs = D.kills;
-            collectAllDefinitions(tmpDefs, *I, visitedBlocks);
+            collectAllDefinitions(tmpDefs, *I, visitedBlocks, escaping);
             defs.add(tmpDefs);
         }
     }
@@ -736,7 +764,7 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from,
     auto *subg = block->getSubgraph();
     for (auto *callsite : subg->getCallers()) {
         auto tmpDefs = defs;
-        collectAllDefinitions(callsite, tmpDefs);
+        collectAllDefinitions(callsite, tmpDefs, /* escaping = */ true);
         defs.add(tmpDefs);
     }
 

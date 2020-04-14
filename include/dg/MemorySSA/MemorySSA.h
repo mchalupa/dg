@@ -225,6 +225,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // Perform LVN up to a certain point and search only for a certain memory.
     // XXX: we could avoid this by (at least virtually) splitting blocks on uses.
     Definitions findDefinitionsInBlock(RWNode *to, const RWNode *mem = nullptr);
+    Definitions findEscapingDefinitionsInBlock(RWNode *to);
     void performLvn(Definitions&, RWBBlock *);
     void updateDefinitions(Definitions& D, RWNode *node);
 
@@ -288,10 +289,13 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RWNode *> findAllDefinitions(RWNode *from);
     DefinitionsMap<RWNode> collectAllDefinitions(RWNode *from);
-    void collectAllDefinitions(RWNode *from, DefinitionsMap<RWNode>& defs);
+    /// if escaping is set to true, collect only definitions of escaping memory
+    // (optimization for searching definitions in callers)
+    void collectAllDefinitions(RWNode *from, DefinitionsMap<RWNode>& defs, bool esacping = false);
     void collectAllDefinitions(DefinitionsMap<RWNode>& defs,
                                RWBBlock *from,
-                               std::set<RWBBlock *>& visitedBlocks);
+                               std::set<RWBBlock *>& visitedBlocks,
+                               bool escaping);
 
     void findDefinitionsInSubgraph(RWNode *phi,
                                    RWNodeCall *C,
