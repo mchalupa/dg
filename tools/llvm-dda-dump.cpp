@@ -352,7 +352,7 @@ public:
             printf("subgraph cluster_subg_%p {\n", subg);
             printf("  compound=true;\n\n");
             printf("  style=filled;\n");
-            printf("  color=white;\n");
+            printf("  fillcolor=white; color=blue;\n");
 
             dumpSubgraphLabel(subg);
 
@@ -407,8 +407,10 @@ public:
                            static_cast<void*>(bblock),
                            static_cast<void*>(succ));
                 }
+            }
 
-                // def-use
+            // def-use
+            for (auto bblock : subg->bblocks()) {
                 for (auto *node : bblock->getNodes()) {
                     dumpNodeEdges(node);
                 }
@@ -545,13 +547,16 @@ class MemorySSADumper : public Dumper {
         const auto *summary = SSA->getSummary(subgraph);
 
         if (!summary) {
-            printf("  label=<<table><tr><td>subgraph %p</td></tr>\n"
-                                   "<tr><td>no summary</td></tr></table>>;\n", subgraph);
+            printf("  label=<<table cellborder=\"0\">\n"
+                                   "<tr><td>subgraph %s(%p)</td></tr>\n"
+                                   "<tr><td>no summary</td></tr></table>>;\n",
+                                   subgraph->getName().c_str(), subgraph);
             return;
         }
 
-        printf("  label=<<table><tr><td colspan=\"4\">subgraph %p</td></tr>\n"
-                               "<tr><td colspan=\"4\">-- summary -- </td></tr>\n", subgraph);
+        printf("  label=<<table cellborder=\"0\"><tr><td colspan=\"4\">subgraph %s (%p)</td></tr>\n"
+                               "<tr><td colspan=\"4\">-- summary -- </td></tr>\n",
+                               subgraph->getName().c_str(), subgraph);
         printf("<tr><td colspan=\"4\">==  inputs ==</td></tr>");
         dumpDDIMap(summary->inputs);
         printf("<tr><td colspan=\"4\">==  outputs ==</td></tr>");
