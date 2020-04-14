@@ -708,20 +708,38 @@ MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
     if (auto singlePred = from->getSinglePredecessor()) {
         collectAllDefinitions(defs, singlePred, visitedBlocks);
     } else {
-        for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
-            auto tmpDefs = defs;
-            collectAllDefinitions(tmpDefs, *I, visitedBlocks);
-            defs.add(tmpDefs);
+        if (from->hasPredecessors()) {
+            for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
+                auto tmpDefs = defs;
+                collectAllDefinitions(tmpDefs, *I, visitedBlocks);
+                defs.add(tmpDefs);
+            }
+        } else {
+            // search in the callers
+            DBG(tmp, "Search in callers");
+            auto *subg = from->getSubgraph();
+            for (auto *callsite : subg->getCallers()) {
+                auto tmpDefs = defs;
+                collectAllDefinitions(callsite, tmpDefs);
+                defs.add(tmpDefs);
+            }
         }
     }
 }
 
 DefinitionsMap<RWNode>
 MemorySSATransformation::collectAllDefinitions(RWNode *from) {
+    DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
+    collectAllDefinitions(from, defs);
+    return defs;
+}
+
+void
+MemorySSATransformation::collectAllDefinitions(RWNode *from,
+                                               DefinitionsMap<RWNode>& defs) {
     assert(from->getBBlock() && "The node has no BBlock");
 
     auto *block = from->getBBlock();
-    DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
     std::set<RWBBlock *> visitedBlocks; // for terminating the search
 
     auto D = findDefinitionsInBlock(from);
@@ -731,14 +749,18 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from) {
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it again
     if (auto singlePred = block->getSinglePredecessor()) {
-        // NOTE: we must start with emtpy defs,
-        // to gather all reaching definitions (due to caching)
-        assert(defs.empty());
+        // to be able to cache, we must start with emtpy defs
+        // to gather _all_ reaching definitions
+        bool cache = false;
+        if (defs.empty())
+            cache = true;
         collectAllDefinitions(defs, singlePred, visitedBlocks);
-        // cache the found definitions
-        // FIXME: optimize the accesses
-        assert(!hasCachedDefinitions(singlePred));
-        getCachedDefinitions(singlePred) = defs;
+        // cache the found definitions if possible
+        if (cache) {
+            // FIXME: optimize the accesses
+            //assert(!hasCachedDefinitions(singlePred));
+            getCachedDefinitions(singlePred) = defs;
+        }
     } else {
         // for multiple predecessors, we must create a copy of the
         // definitions that we have not found yet (a new copy for each
@@ -755,11 +777,18 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from) {
         }
     }
 
+    // search in the callers
+    DBG(tmp, "Search in callers");
+    auto *subg = block->getSubgraph();
+    for (auto *callsite : subg->getCallers()) {
+        auto tmpDefs = defs;
+        collectAllDefinitions(callsite, tmpDefs);
+        defs.add(tmpDefs);
+    }
+
     // create the final map of definitions reaching the 'from' node
     joinDefinitions(defs, D.definitions);
     defs.swap(D.definitions);
-
-    return defs;
 }
 
 std::vector<RWNode *>
