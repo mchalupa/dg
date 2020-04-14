@@ -341,6 +341,47 @@ public:
     }
 };
 
+static inline std::string
+undefFunsBehaviorToStr(dg::dda::UndefinedFunsBehavior b) {
+    using namespace dg::dda;
+    if (b == PURE)
+        return "pure";
+
+    std::string ret;
+    if (b & (WRITE_ANY | WRITE_ARGS)) {
+        ret = "write ";
+        if (b & WRITE_ANY) {
+            if (b & WRITE_ARGS) {
+                ret += "any+args";
+            } else {
+                ret += "any";
+            }
+        } else if (b & WRITE_ARGS) {
+            ret += "args";
+        }
+
+    }
+    if (b & (READ_ANY | READ_ARGS)) {
+        if (b & (WRITE_ANY | WRITE_ARGS)) {
+            ret += " read ";
+        } else {
+            ret = "read ";
+        }
+
+        if (b & READ_ANY) {
+            if (b & READ_ARGS) {
+                ret += "any+args";
+            } else {
+                ret += "any";
+            }
+        } else if (b & READ_ARGS) {
+            ret += "args";
+        }
+    }
+
+    return ret;
+}
+
 class ModuleAnnotator {
     const SlicerOptions& options;
     LLVMDependenceGraph *dg;
@@ -371,8 +412,8 @@ public:
         ";   * forward slice: '" + std::to_string(options.forwardSlicing) + "'\n" +
         ";   * remove slicing criteria: '"
              + std::to_string(options.removeSlicingCriteria) + "'\n" +
-        ";   * undefined are pure: '"
-             + std::to_string(options.dgOptions.DDAOptions.undefinedArePure) + "'\n" +
+        ";   * undefined functions behavior: '"
+             + undefFunsBehaviorToStr(options.dgOptions.DDAOptions.undefinedFunsBehavior) + "'\n" +
         ";   * pointer analysis: ";
         if (options.dgOptions.PTAOptions.analysisType
                 == LLVMPointerAnalysisOptions::AnalysisType::fi)

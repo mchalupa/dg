@@ -131,9 +131,28 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        "the whole memory. May be unsound for out-of-bound access\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<bool> undefinedArePure("undefined-are-pure",
-        llvm::cl::desc("Assume that undefined functions have no side-effects\n"),
-                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+    llvm::cl::opt<dg::dda::UndefinedFunsBehavior> undefinedFunsBehavior("undefined-funs",
+        llvm::cl::desc("Set the behavior of undefined functions\n"),
+        llvm::cl::values(
+            clEnumValN(dg::dda::PURE,       "pure",
+                       "Assume that undefined functions do not read nor write memory"),
+            clEnumValN(dg::dda::WRITE_ANY,  "write-any",
+                       "Assume that undefined functions may write any memory"),
+            clEnumValN(dg::dda::READ_ANY,   "read-any",
+                       "Assume that undefined functions may read any memory"),
+            clEnumValN(dg::dda::READ_ANY | dg::dda::WRITE_ANY,   "rw-any",
+                       "Assume that undefined functions may read and write any memory"),
+            clEnumValN(dg::dda::WRITE_ARGS, "write-args",
+                       "Assume that undefined functions may write to arguments"),
+            clEnumValN(dg::dda::READ_ARGS,  "read-args",
+                       "Assume that undefined functions may read from arguments (default)"),
+            clEnumValN(dg::dda::WRITE_ARGS | dg::dda::READ_ARGS,
+                       "rw-args",  "Assume that undefined functions may read or write from/to arguments")
+    #if LLVM_VERSION_MAJOR < 4
+            , nullptr
+    #endif
+            ),
+        llvm::cl::init(dg::dda::READ_ARGS), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<std::string> entryFunction("entry",
         llvm::cl::desc("Entry function of the program\n"),
@@ -233,7 +252,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
 
     options.dgOptions.DDAOptions.entryFunction = entryFunction;
     options.dgOptions.DDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
-    options.dgOptions.DDAOptions.undefinedArePure = undefinedArePure;
+    options.dgOptions.DDAOptions.undefinedFunsBehavior = undefinedFunsBehavior;
     options.dgOptions.DDAOptions.analysisType = ddaType;
 
     addAllocationFuns(options.dgOptions, allocationFuns);

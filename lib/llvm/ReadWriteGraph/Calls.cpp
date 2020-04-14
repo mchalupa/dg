@@ -107,7 +107,23 @@ RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst
 
     // if we assume that undefined functions are pure
     // (have no side effects), we can bail out here
-    if (_options.undefinedArePure)
+    if (_options.undefinedArePure())
+        return node;
+
+    bool args = false;
+    if (_options.undefinedFunsReadAny()) {
+        node->addUse(UNKNOWN_MEMORY);
+    } else {
+        args |= _options.undefinedFunsReadArgs();
+    }
+
+    if (_options.undefinedFunsWriteAny()) {
+        node->addDef(UNKNOWN_MEMORY);
+    } else {
+        args |= _options.undefinedFunsWriteArgs();
+    }
+
+    if (!args)
         return node;
 
     // every pointer we pass into the undefined call may be defined
@@ -142,14 +158,12 @@ RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst
             assert(target && "Don't have pointer target for call argument");
 
             // this call may use and define this memory
-            node->addDef(target, Offset::UNKNOWN, Offset::UNKNOWN);
-            node->addUse(target, Offset::UNKNOWN, Offset::UNKNOWN);
+            if (_options.undefinedFunsWriteArgs() && !_options.undefinedFunsWriteAny())
+                node->addDef(target, Offset::UNKNOWN, Offset::UNKNOWN);
+            if (_options.undefinedFunsReadArgs() && !_options.undefinedFunsReadAny())
+                node->addUse(target, Offset::UNKNOWN, Offset::UNKNOWN);
         }
     }
-
-    // XXX: to be completely correct, we should assume also modification
-    // of all global variables, so we should perform a write to
-    // unknown memory instead of the loop above
 
     return node;
 }
