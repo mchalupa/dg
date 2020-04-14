@@ -307,6 +307,8 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                                std::set<RWBBlock *>& visitedBlocks,
                                bool escaping);
 
+    void collectAllDefinitionsInCallers(DefinitionsMap<RWNode>& defs, RWSubgraph *subg);
+
     void findDefinitionsInSubgraph(RWNode *phi,
                                    RWNodeCall *C,
                                    const DefSite& ds,
