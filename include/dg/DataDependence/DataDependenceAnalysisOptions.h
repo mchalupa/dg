@@ -86,6 +86,17 @@ private:
     std::map<unsigned, Operand> _uses;
 };
 
+namespace dda {
+enum UndefinedFunsBehavior {
+    PURE        = 0,
+    WRITE_ANY   = 1,
+    READ_ANY    = 1 << 1,
+    WRITE_ARGS  = 1 << 2,
+    READ_ARGS   = 1 << 3,
+};
+} // namespace dda
+
+
 struct DataDependenceAnalysisOptions : AnalysisOptions {
     // default one
     enum class AnalysisType { ssa } analysisType{AnalysisType::ssa};
@@ -96,8 +107,7 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
     // NOTE: not sound.
     bool strongUpdateUnknown{false};
 
-    // Undefined functions have no side-effects
-    bool undefinedArePure{false};
+    dda::UndefinedFunsBehavior undefinedFunsBehavior{dda::READ_ARGS};
 
     // Does the analysis track concrete bytes
     // or just objects?
@@ -107,9 +117,11 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
         strongUpdateUnknown = b; return *this;
     }
 
-    DataDependenceAnalysisOptions& setUndefinedArePure(bool b) {
-        undefinedArePure = b; return *this;
-    }
+    bool undefinedArePure() const { return undefinedFunsBehavior == dda::PURE; }
+    bool undefinedFunsWriteAny() const { return undefinedFunsBehavior & dda::WRITE_ANY; }
+    bool undefinedFunsReadAny() const { return undefinedFunsBehavior & dda::READ_ANY; }
+    bool undefinedFunsWriteArgs() const { return undefinedFunsBehavior & dda::WRITE_ARGS; }
+    bool undefinedFunsReadArgs() const { return undefinedFunsBehavior & dda::READ_ARGS; }
 
     DataDependenceAnalysisOptions& setFieldInsensitive(bool b) {
         fieldInsensitive = b; return *this;
