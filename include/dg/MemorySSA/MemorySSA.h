@@ -112,6 +112,16 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             void addInput(const DefSite& ds, RWNode *n) { inputs.add(ds, n); }
             void addOutput(const DefSite& ds, RWNode *n) { outputs.add(ds, n); }
 
+            RWNode *getUnknownPhi() {
+                // FIXME: optimize this, we create std::set for nothing...
+                auto S = inputs.get({UNKNOWN_MEMORY, 0, Offset::UNKNOWN});
+                if (S.empty()) {
+                    return nullptr;
+                }
+                assert(S.size() == 1);
+                return *(S.begin());
+            }
+
             std::set<RWNode *> getOutputs(const DefSite& ds) { return outputs.get(ds); }
             auto getUncoveredOutputs(const DefSite& ds) -> decltype (outputs.undefinedIntervals(ds)) {
                 return outputs.undefinedIntervals(ds);

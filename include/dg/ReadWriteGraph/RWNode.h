@@ -306,6 +306,7 @@ class RWNodeCall : public RWNode {
     // by the call
     using InputsT = std::vector<RWNode *>;
     using OutputsT = std::vector<RWNode *>;
+    RWNode *unknownInput{nullptr};
 
     CalleesT callees;
     InputsT inputs;
@@ -356,6 +357,8 @@ public:
         return n->isCall() ?
             static_cast<const RWNodeCall*>(n) : nullptr;
     }
+
+    RWNode *getUnknownPhi() { return unknownInput; }
 
     RWCalledValue *getSingleCallee() {
         if (callees.size() != 1)
@@ -426,7 +429,17 @@ public:
     void addOutput(RWNode *n) { assert(n->isPhi()); outputs.push_back(n); }
     const OutputsT& getOutputs() const { return outputs; }
 
-    void addInput(RWNode *n) { assert(n->isPhi()); inputs.push_back(n); }
+    void addInput(RWNode *n) {
+        assert(n->isPhi());
+        inputs.push_back(n);
+   }
+
+    void addUnknownInput(RWNode *n) {
+        assert(unknownInput == nullptr);
+        assert(n->isPhi());
+        inputs.push_back(n);
+        unknownInput = n;
+    }
     const InputsT& getInputs() const { return inputs; }
 
 

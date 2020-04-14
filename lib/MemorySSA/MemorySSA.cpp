@@ -696,8 +696,7 @@ MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
                                                RWBBlock *from,
                                                std::set<RWBBlock *>& visitedBlocks,
                                                bool escaping) {
-    if (!from)
-        return;
+    assert(from);
 
     if (!visitedBlocks.insert(from).second) {
         return; // we already visited this block
@@ -760,12 +759,45 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from,
     }
 
     // search in the callers
-    DBG(tmp, "Search in callers");
     auto *subg = block->getSubgraph();
-    for (auto *callsite : subg->getCallers()) {
-        auto tmpDefs = defs;
-        collectAllDefinitions(callsite, tmpDefs, /* escaping = */ true);
-        defs.add(tmpDefs);
+    auto& callers = subg->getCallers();
+    if (!callers.empty()) {
+        // create an input PHI node
+        auto& summary = getSubgraphSummary(subg);
+        DefSite ds{UNKNOWN_MEMORY};
+        RWNode *phi = summary.getUnknownPhi();
+        if (!phi) {
+            phi = createPhi(ds, /* type = */ RWNodeType::INARG);
+            summary.addInput(ds, phi);
+        }
+
+        defs.add(ds, phi);
+
+        for (auto *callsite : subg->getCallers()) {
+            // create input PHI for this call
+            auto *C = RWNodeCall::get(callsite);
+            auto *callphi = C->getUnknownPhi();
+            if (callphi) {
+                phi->addDefUse(callphi);
+                continue;
+            }
+
+            callphi = createPhi(ds, RWNodeType::CALLIN);
+            C->addUnknownInput(callphi);
+            phi->addDefUse(callphi);
+
+            // NOTE: search _all_ definitions, not only those that are
+            // not covered by 'defs'. Therefore, we can reuse this search
+            // in all later searches.
+            //auto tmpDefs = defs;
+            DefinitionsMap<RWNode> tmpDefs;
+            collectAllDefinitions(callsite, tmpDefs, /* escaping = */ true);
+            for (auto& it : tmpDefs) {
+                for (auto& it2 : it.second) {
+                    callphi->addDefUse(it2.second);
+                }
+            }
+        }
     }
 
     // create the final map of definitions reaching the 'from' node
@@ -778,15 +810,18 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
     DBG_SECTION_BEGIN(dda, "MemorySSA - finding all definitions");
 
     auto defs = collectAllDefinitions(from);
+    // FIXME: use vectorset
     std::set<RWNode *> foundDefs; // definitions that we found
     for (auto& it : defs) {
         for (auto& nds : it.second) {
             foundDefs.insert(nds.second.begin(), nds.second.end());
         }
     }
+    for (auto *n : foundDefs)
+        DBG(tmp, "Found def: " << n->getID());
 
     DBG_SECTION_END(dda, "MemorySSA - finding all definitions done");
-    return gatherNonPhisDefs(foundDefs);
+    return std::vector<RWNode *>(foundDefs.begin(), foundDefs.end());
 }
 
 void MemorySSATransformation::computeAllDefinitions() {
