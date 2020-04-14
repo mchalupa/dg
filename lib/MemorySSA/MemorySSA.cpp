@@ -252,13 +252,6 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
                                          const DefSite& ds) {
     assert(ds.target && "Target is null");
     assert(block && "Block is null");
-    //if (!block)
-    //    return {};
-
-    if (hasCachedDefinitions(block)) { // do we have a cache?
-        auto defSet = getCachedDefinitions(block).get(ds);
-        return std::vector<RWNode *>{defSet.begin(), defSet.end()};
-    }
 
     // Find known definitions.
     auto& D = getBBlockDefinitions(block, &ds);
@@ -272,11 +265,6 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
     addUncoveredFromPredecessors(block, D, ds, defs);
 
     return defs;
-}
-
-DefinitionsMap<RWNode>&
-MemorySSATransformation::getCachedDefinitions(RWBBlock *b) {
-    return _cached_defs[b];
 }
 
 bool MemorySSATransformation::callMayDefineTarget(RWNodeCall *C, RWNode *target) {
@@ -689,16 +677,7 @@ MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
         return;
 
     if (!visitedBlocks.insert(from).second) {
-        // we already visited this block, therefore we have computed
-        // all reaching definitions and we can re-use them
-        joinDefinitions(getCachedDefinitions(from), defs);
-        return;
-    }
-
-    // we already computed all the definitions during some search? Then use it.
-    if (hasCachedDefinitions(from)) {
-        joinDefinitions(getCachedDefinitions(from), defs);
-        return;
+        return; // we already visited this block
     }
 
     // get the definitions from this block
@@ -708,21 +687,10 @@ MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
     if (auto singlePred = from->getSinglePredecessor()) {
         collectAllDefinitions(defs, singlePred, visitedBlocks);
     } else {
-        if (from->hasPredecessors()) {
-            for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
-                auto tmpDefs = defs;
-                collectAllDefinitions(tmpDefs, *I, visitedBlocks);
-                defs.add(tmpDefs);
-            }
-        } else {
-            // search in the callers
-            DBG(tmp, "Search in callers");
-            auto *subg = from->getSubgraph();
-            for (auto *callsite : subg->getCallers()) {
-                auto tmpDefs = defs;
-                collectAllDefinitions(callsite, tmpDefs);
-                defs.add(tmpDefs);
-            }
+        for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
+            auto tmpDefs = defs;
+            collectAllDefinitions(tmpDefs, *I, visitedBlocks);
+            defs.add(tmpDefs);
         }
     }
 }
@@ -749,18 +717,7 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from,
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it again
     if (auto singlePred = block->getSinglePredecessor()) {
-        // to be able to cache, we must start with emtpy defs
-        // to gather _all_ reaching definitions
-        bool cache = false;
-        if (defs.empty())
-            cache = true;
         collectAllDefinitions(defs, singlePred, visitedBlocks);
-        // cache the found definitions if possible
-        if (cache) {
-            // FIXME: optimize the accesses
-            //assert(!hasCachedDefinitions(singlePred));
-            getCachedDefinitions(singlePred) = defs;
-        }
     } else {
         // for multiple predecessors, we must create a copy of the
         // definitions that we have not found yet (a new copy for each
@@ -771,9 +728,6 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from,
             DefinitionsMap<RWNode> tmpDefs = D.kills;
             collectAllDefinitions(tmpDefs, *I, visitedBlocks);
             defs.add(tmpDefs);
-            // NOTE: we cannot cache here because of the DFS nature of the search
-            // (the found definitions does not contain _all_ reaching definitions
-            //  as we search only for those that we do not have already)
         }
     }
 
