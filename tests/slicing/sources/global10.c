@@ -1,5 +1,3 @@
-
-
 int glob;
 int *setglob(void)
 {
