@@ -328,6 +328,13 @@ public:
                         if (auto *val = cv.getCalledValue())
                             nodeToDot(val);
                     }
+
+                    for (auto *i : C->getInputs()) {
+                        nodeToDot(i);
+                    }
+                    for (auto *o : C->getOutputs()) {
+                        nodeToDot(o);
+                    }
                 }
             }
         }
@@ -413,6 +420,13 @@ public:
             for (auto bblock : subg->bblocks()) {
                 for (auto *node : bblock->getNodes()) {
                     dumpNodeEdges(node);
+
+                    if (auto *C = RWNodeCall::get(node)) {
+                        for (auto *n : C->getInputs())
+                            dumpNodeEdges(n);
+                        for (auto *n : C->getOutputs())
+                            dumpNodeEdges(n);
+                    }
                 }
             }
         }
