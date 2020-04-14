@@ -45,13 +45,27 @@
 #include "dg/util/debug.h"
 #include "TimeMeasure.h"
 
+#include "llvm-slicer-opts.h"
+
 using namespace dg;
 using namespace dg::dda;
 using llvm::errs;
 
-static bool verbose = false;
-static const char *entryFunc = "main";
-bool graph_only = false;
+llvm::cl::opt<bool> enable_debug("dbg",
+    llvm::cl::desc("Enable debugging messages (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> verbose("v",
+    llvm::cl::desc("Verbose output (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> graph_only("graph-only",
+    llvm::cl::desc("Dump only graph, do not run any analysis (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> todot("dot",
+    llvm::cl::desc("Output in graphviz format (forced atm.)."),
+    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
 static inline size_t count_ws(const std::string& str) {
     size_t n = 0;
@@ -570,94 +584,50 @@ dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot)
     }
 }
 
-int main(int argc, char *argv[])
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
+                                          const SlicerOptions& options)
 {
-    llvm::Module *M;
-    llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
-    bool todot = false;
-    bool threads = false;
-    const char *module = nullptr;
-    Offset::type field_sensitivity = Offset::UNKNOWN;
-    bool strong_update_unknown = false;
-
-    enum {
-        FLOW_SENSITIVE = 1,
-        FLOW_INSENSITIVE,
-    } type = FLOW_INSENSITIVE;
-
-    /*
-    enum class RdaType {
-        DATAFLOW,
-        SSA
-    } rda = RdaType::SSA;
-    */
-
-    // parse options
-    for (int i = 1; i < argc; ++i) {
-        // run given points-to analysis
-        if (strcmp(argv[i], "-pta") == 0) {
-            if (strcmp(argv[i+1], "fs") == 0)
-                type = FLOW_SENSITIVE;
-            /*
-        } else if (strcmp(argv[i], "-dda") == 0) {
-            if (strcmp(argv[i+1], "ssa") == 0)
-                rda = RdaType::SSA;
-                */
-        } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
-            field_sensitivity = static_cast<Offset::type>(atoll(argv[i + 1]));
-        } else if (strcmp(argv[i], "-strong-update-unknown") == 0) {
-            strong_update_unknown = true;
-        } else if (strcmp(argv[i], "-dot") == 0) {
-            todot = true;
-        } else if (strcmp(argv[i], "-threads") == 0) {
-            threads = true;
-        } else if (strcmp(argv[i], "-v") == 0) {
-            verbose = true;
-        } else if (strcmp(argv[i], "-dbg") == 0) {
-            DBG_ENABLE();
-        } else if (strcmp(argv[i], "-graph-only") == 0) {
-            graph_only = true;
-        } else if (strcmp(argv[i], "-entry") == 0) {
-            entryFunc = argv[i+1];
-        } else {
-            module = argv[i];
-        }
-    }
-
-    if (!module) {
-        errs() << "Usage: % IR_module [-pts fs|fi] [-dot] [-v] [output_file]\n";
-        return 1;
-    }
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    M = llvm::ParseIRFile(module, SMD, context);
+    auto _M = llvm::ParseIRFile(options.inputFile, SMD, context);
+    auto M = std::unique_ptr<llvm::Module>(_M);
 #else
-    auto _M = llvm::parseIRFile(module, SMD, context);
+    auto M = llvm::parseIRFile(options.inputFile, SMD, context);
     // _M is unique pointer, we need to get Module *
-    M = _M.get();
 #endif
 
     if (!M) {
-        llvm::errs() << "Failed parsing '" << module << "' file:\n";
-        SMD.print(argv[0], errs());
+        SMD.print("llvm-dda-dump", llvm::errs());
+    }
+
+    return M;
+}
+
+int main(int argc, char *argv[])
+{
+    SlicerOptions options = parseSlicerOptions(argc, argv);
+
+    if (enable_debug) {
+        DBG_ENABLE();
+    }
+
+    llvm::LLVMContext context;
+    std::unique_ptr<llvm::Module> M = parseModule(context, options);
+    if (!M) {
+        llvm::errs() << "Failed parsing '" << options.inputFile << "' file:\n";
+        return 1;
+    }
+
+    if (!M->getFunction(options.dgOptions.entryFunction)) {
+        llvm::errs() << "The entry function not found: "
+                     << options.dgOptions.entryFunction << "\n";
         return 1;
     }
 
     debug::TimeMeasure tm;
 
-    LLVMPointerAnalysisOptions ptaopts;
-    ptaopts.setEntryFunction(entryFunc);
-    ptaopts.setFieldSensitivity(field_sensitivity);
-    ptaopts.threads = threads;
-
-    if (type == FLOW_INSENSITIVE) {
-        ptaopts.analysisType = LLVMPointerAnalysisOptions::AnalysisType::fi;
-    } else {
-        ptaopts.analysisType = LLVMPointerAnalysisOptions::AnalysisType::fs;
-    }
-
-    DGLLVMPointerAnalysis PTA(M, ptaopts);
+    DGLLVMPointerAnalysis PTA(M.get(), options.dgOptions.PTAOptions);
 
     tm.start();
     PTA.run();
@@ -665,14 +635,8 @@ int main(int argc, char *argv[])
     tm.stop();
     tm.report("INFO: Pointer analysis took");
 
-    LLVMDataDependenceAnalysisOptions opts;
-    opts.threads = threads;
-    opts.entryFunction = entryFunc;
-    opts.strongUpdateUnknown = strong_update_unknown;
-    opts.analysisType = DataDependenceAnalysisOptions::AnalysisType::ssa;
-
     tm.start();
-    LLVMDataDependenceAnalysis DDA(M, &PTA, opts);
+    LLVMDataDependenceAnalysis DDA(M.get(), &PTA, options.dgOptions.DDAOptions);
     if (graph_only) {
         DDA.buildGraph();
     } else {

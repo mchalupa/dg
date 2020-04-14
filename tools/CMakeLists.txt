@@ -79,6 +79,7 @@ if (LLVM_DG)
 	add_executable(llvm-dda-dump llvm-dda-dump.cpp)
 	target_link_libraries(llvm-dda-dump PRIVATE dgllvmdda)
 	target_link_libraries(llvm-dda-dump
+                                PRIVATE dgllvmslicer
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}
