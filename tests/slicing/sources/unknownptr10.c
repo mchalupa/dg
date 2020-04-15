@@ -1,6 +1,6 @@
 void test_assert(int);
-extern int glob;
 extern int *glob_ptr(int *);
+int glob;
 
 void foo2() {
         int x;

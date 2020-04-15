@@ -1,3 +1,4 @@
+int glob;
 void test_assert(int);
 void foo(void);
 

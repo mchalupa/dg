@@ -91,7 +91,7 @@ tests = {
                                   addparams=['-undefined-funs=rw-any']),
     'unknownptr11'         : Test('unknownptr11.c',
                                   linkafter=['foo.c'],
-                                  addparams=['-undefined-funs=write-any']),
+                                  addparams=['-undefined-funs=rw-any']),
     'pointers1'            : Test('pointers1.c'),
     'pointers2'            : Test('pointers2.c'),
     'pointers3'            : Test('pointers3.c'),
