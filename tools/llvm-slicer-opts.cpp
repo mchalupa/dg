@@ -233,25 +233,27 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;
 
-    options.dgOptions.entryFunction = entryFunction;
-    options.dgOptions.PTAOptions.entryFunction = entryFunction;
-    options.dgOptions.PTAOptions.fieldSensitivity
-                                    = dg::Offset(ptaFieldSensitivity);
-    options.dgOptions.PTAOptions.analysisType = ptaType;
+    auto& dgOptions = options.dgOptions;
+    auto& PTAOptions = dgOptions.PTAOptions;
+    auto& DDAOptions = dgOptions.DDAOptions;
 
-    options.dgOptions.threads = threads;
-    options.dgOptions.PTAOptions.threads = threads;
-    options.dgOptions.DDAOptions.threads = threads;
-
-    options.dgOptions.DDAOptions.entryFunction = entryFunction;
-    options.dgOptions.DDAOptions.undefinedFunsBehavior = undefinedFunsBehavior;
-    options.dgOptions.DDAOptions.analysisType = ddaType;
-
-    addAllocationFuns(options.dgOptions, allocationFuns);
-
+    dgOptions.entryFunction = entryFunction;
+    dgOptions.threads = threads;
     // FIXME: add options class for CD
-    options.dgOptions.cdAlgorithm = cdAlgorithm;
-    options.dgOptions.interprocCd = interprocCd;
+    dgOptions.cdAlgorithm = cdAlgorithm;
+    dgOptions.interprocCd = interprocCd;
+
+    addAllocationFuns(dgOptions, allocationFuns);
+
+    PTAOptions.entryFunction = entryFunction;
+    PTAOptions.fieldSensitivity = dg::Offset(ptaFieldSensitivity);
+    PTAOptions.analysisType = ptaType;
+    PTAOptions.threads = threads;
+
+    DDAOptions.threads = threads;
+    DDAOptions.entryFunction = entryFunction;
+    DDAOptions.undefinedFunsBehavior = undefinedFunsBehavior;
+    DDAOptions.analysisType = ddaType;
 
     return options;
 }
