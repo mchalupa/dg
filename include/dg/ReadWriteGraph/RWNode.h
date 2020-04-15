@@ -272,6 +272,10 @@ public:
     bool isAllocation() const { return isAlloc() || isDynAlloc(); }
     bool isDynAlloc() const;
 
+    bool canEscape() const {
+        return isDynAlloc() || isGlobal() || hasAddressTaken();
+    }
+
     const RWBBlock *getBBlock() const { return bblock; }
     RWBBlock *getBBlock() { return bblock; }
     void setBBlock(RWBBlock *bb) { bblock = bb; }
