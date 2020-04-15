@@ -1,6 +1,6 @@
-int glob;
-void test_assert(int);
-void foo(void);
+int *glob;
+extern void test_assert(int);
+extern void foo(void);
 
 int main(void) {
         int a = 0;
