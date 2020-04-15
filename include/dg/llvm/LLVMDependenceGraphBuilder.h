@@ -50,7 +50,9 @@ struct LLVMDependenceGraphOptions {
     LLVMPointerAnalysisOptions PTAOptions{};
     LLVMDataDependenceAnalysisOptions DDAOptions{};
 
-    bool terminationSensitive{true};
+    // take into account interprocedural control dependencies
+    // (raising e.g., from calls to exit() which terminates the program)
+    bool interprocCd{true};
     CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
 
     bool verifyGraph{true};
@@ -107,7 +109,7 @@ class LLVMDependenceGraphBuilder {
     void _runControlDependenceAnalysis() {
         _timerStart();
         _dg->computeControlDependencies(_options.cdAlgorithm,
-                                        _options.terminationSensitive);
+                                        _options.interprocCd);
         _statistics.cdTime = _timerEnd();
     }
 

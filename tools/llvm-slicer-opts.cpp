@@ -111,11 +111,10 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        llvm::cl::value_desc("funs"),
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<bool> terminationSensitive("termination-sensitive",
+    llvm::cl::opt<bool> interprocCd("interproc-cd",
         llvm::cl::desc("Do not slice away parts of programs that might make\n"
-                       "the slicing criteria unreachable (e.g. calls to exit()\n""or potentially infinite loops).\n"
-                       "NOTE: at this moment we do not handle potentially infinite loops.\n"
-                       "Default: on\n"),
+                       "the slicing criteria unreachable (e.g. calls to exit()\n"
+                       "or potentially infinite loops). Default: on\n"),
                        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<uint64_t> ptaFieldSensitivity("pta-field-sensitive",
@@ -252,7 +251,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
 
     // FIXME: add options class for CD
     options.dgOptions.cdAlgorithm = cdAlgorithm;
-    options.dgOptions.terminationSensitive = terminationSensitive;
+    options.dgOptions.interprocCd = interprocCd;
 
     return options;
 }
