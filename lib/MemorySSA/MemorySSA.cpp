@@ -213,7 +213,7 @@ void MemorySSATransformation::findPhiDefinitions(RWNode *phi) {
 
 void MemorySSATransformation::addUncoveredFromPredecessors(
                                         RWBBlock *block,
-                                        MemorySSATransformation::Definitions& D,
+                                        Definitions& D,
                                         const DefSite& ds,
                                         std::vector<RWNode *>& defs) {
     auto uncovered = D.uncovered(ds);
@@ -396,7 +396,7 @@ void MemorySSATransformation::findDefinitionsFromCalledFun(RWNode *phi,
 /// and store them into the Definitions object. This object is then
 /// returned and can be queried.
 ///
-MemorySSATransformation::Definitions&
+Definitions&
 MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     auto& bi = getBBlockInfo(b);
     auto& D = bi.getDefinitions();
@@ -435,7 +435,7 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
 ///
 // The same as performLVN() but only up to some point (and returns the map).
 // Also, if mem is specified, then search for effects only to this memory.
-MemorySSATransformation::Definitions
+Definitions
 MemorySSATransformation::findDefinitionsInBlock(RWNode *to, const RWNode *mem) {
     auto *block = to->getBBlock();
     // perform LVN up to the node
@@ -451,7 +451,7 @@ MemorySSATransformation::findDefinitionsInBlock(RWNode *to, const RWNode *mem) {
     return D;
 }
 
-MemorySSATransformation::Definitions
+Definitions
 MemorySSATransformation::findEscapingDefinitionsInBlock(RWNode *to) {
     auto *block = to->getBBlock();
     // perform LVN up to the node
