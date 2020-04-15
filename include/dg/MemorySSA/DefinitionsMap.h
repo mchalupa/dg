@@ -166,6 +166,17 @@ public:
         return retval;
     }
 
+    // FIXME: do that as iterators
+    std::set<NodeT *> values() const {
+        std::set<NodeT *> ret;
+        for (auto& it : _definitions) {
+            for (auto& it2: it.second) {
+                ret.insert(it2.second.begin(), it2.second.end());
+            }
+        }
+        return ret;
+    }
+
     auto begin() const -> decltype(_definitions.begin()) {
         return _definitions.begin();
     }

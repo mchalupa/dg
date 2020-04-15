@@ -13,24 +13,6 @@ namespace dda {
 // class MemorySSATransformation
 /// ------------------------------------------------------------------
 
-///
-// Add found definitions 'found' from a block to 'defs'.
-// Account for the cases when we found nothing and therefore we
-// want to add writes to unknown memory
-template <typename FoundT, typename DefsT> void
-addFoundDefinitions(std::vector<RWNode *>& defs,
-                    const FoundT& found,
-                    DefsT& D) {
-    if (found.empty()) {
-        defs.insert(defs.end(),
-                    D.getUnknownWrites().begin(),
-                    D.getUnknownWrites().end());
-    } else {
-        // gather the found definitions (these include also the unknown memory)
-        defs.insert(defs.end(), found.begin(), found.end());
-    }
-}
-
 // find definitions of a given node
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWNode *node) {
@@ -63,8 +45,10 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
         assert(ds.target && "Target is null");
 
         // add the definitions from the beginning of this block to the defs container
-        auto defSet = D.definitions.get(ds);
-        addFoundDefinitions(defs, defSet, D);
+        auto defSet = D.get(ds);
+        assert((!defSet.empty() || D.unknownWrites.empty()) &&
+               "BUG: if we found no definitions, also unknown writes must be empty");
+        defs.insert(defs.end(), defSet.begin(), defSet.end());
 
         addUncoveredFromPredecessors(block, D, ds, defs);
     }
@@ -92,8 +76,10 @@ MemorySSATransformation::findDefinitions(RWNode *node, const DefSite& ds) {
     std::vector<RWNode *> defs;
 
     // add the definitions from the beginning of this block to the defs container
-    auto defSet = D.definitions.get(ds);
-    addFoundDefinitions(defs, defSet, D);
+    auto defSet = D.get(ds);
+    assert((!defSet.empty() || D.unknownWrites.empty()) &&
+           "BUG: if we found no definitions, also unknown writes must be empty");
+    defs.insert(defs.end(), defSet.begin(), defSet.end());
 
     addUncoveredFromPredecessors(block, D, ds, defs);
 
@@ -204,7 +190,9 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     if (auto pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
         auto& D = getBBlockDefinitions(pred, &ds);
-        addFoundDefinitions(defs, pdefs, D);
+        assert((!pdefs.empty() || D.unknownWrites.empty()) &&
+               "BUG: if we found no definitions, also unknown writes must be empty");
+        defs.insert(defs.end(), pdefs.begin(), pdefs.end());
         addUncoveredFromPredecessors(pred, D, ds, defs);
     } else { // multiple or no predecessors
         findDefinitionsInMultiplePredecessors(block, ds, defs);
@@ -255,12 +243,10 @@ MemorySSATransformation::findDefinitions(RWBBlock *block,
 
     // Find known definitions.
     auto& D = getBBlockDefinitions(block, &ds);
-
-    // XXX: wrap this into a get() method of Definitions
-    auto defSet = D.definitions.get(ds);
+    auto defSet = D.get(ds);
+    assert((!defSet.empty() || D.unknownWrites.empty()) &&
+           "BUG: if we found no definitions, also unknown writes must be empty");
     std::vector<RWNode *> defs(defSet.begin(), defSet.end());
-
-    addFoundDefinitions(defs, defSet, D);
 
     addUncoveredFromPredecessors(block, D, ds, defs);
 
@@ -323,7 +309,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
             phi->addDefUse(findDefinitions(C, subgds));
             continue;
         }
- 
+
         auto *subgphi = createPhi(subgds, /* type = */ RWNodeType::OUTARG);
         summary.addOutput(subgds, subgphi);
         phi->addDefUse(subgphi);
@@ -347,8 +333,10 @@ void MemorySSATransformation::addDefinitionsFromCalledValue(RWNode *phi,
     // FIXME: cache this somehow ?
     D.update(calledValue);
 
-    auto defSet = D.definitions.get(ds);
-    addFoundDefinitions(defs, defSet, D);
+    auto defSet = D.get(ds);
+    assert((!defSet.empty() || D.unknownWrites.empty()) &&
+           "BUG: if we found no definitions, also unknown writes must be empty");
+    defs.insert(defs.end(), defSet.begin(), defSet.end());
     addUncoveredFromPredecessors(C->getBBlock(), D, ds, defs);
     phi->addDefUse(defs);
 }
@@ -820,20 +808,11 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
 
     auto defs = collectAllDefinitions(from);
 
-    // FIXME: use vectorset
-    // FIXME: make this a method of DefinitionsMap
-    std::set<RWNode *> foundDefs; // definitions that we found
-    for (auto& it : defs) {
-        for (auto& nds : it.second) {
-            foundDefs.insert(nds.second.begin(), nds.second.end());
-        }
-    }
-    for (auto *n : foundDefs)
-        DBG(tmp, "Found def: " << n->getID());
-
     DBG_SECTION_END(dda, "MemorySSA - finding all definitions for node "
                          << from->getID() << " done");
-    return std::vector<RWNode *>(foundDefs.begin(), foundDefs.end());
+
+    auto values = defs.values();
+    return std::vector<RWNode *>(values.begin(), values.end());
 }
 
 void MemorySSATransformation::computeAllDefinitions() {
