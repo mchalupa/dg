@@ -35,6 +35,9 @@ add_library(dgdda SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/ReadWriteGraph/ReadWriteGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/DataDependence/DataDependenceAnalysisImpl.h
 	${CMAKE_SOURCE_DIR}/include/dg/DataDependence/DataDependence.h
+	${CMAKE_SOURCE_DIR}/include/dg/MemorySSA/MemorySSA.h
+	${CMAKE_SOURCE_DIR}/include/dg/MemorySSA/ModRef.h
+	${CMAKE_SOURCE_DIR}/include/dg/MemorySSA/Definitions.h
 
 	ReadWriteGraph/ReadWriteGraph.cpp
 	MemorySSA/MemorySSA.cpp
