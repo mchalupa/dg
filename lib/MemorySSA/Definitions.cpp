@@ -20,8 +20,7 @@ namespace dda {
 // definitions are stored separately, but we want to have the call node
 // as the node that defines the memory.
 ///
-void
-MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
+void Definitions::update(RWNode *node, RWNode *defnode) {
     if (!defnode)
         defnode = node;
 
@@ -54,8 +53,7 @@ MemorySSATransformation::Definitions::update(RWNode *node, RWNode *defnode) {
     }
 }
 
-void
-MemorySSATransformation::Definitions::join(const Definitions& rhs) {
+void Definitions::join(const Definitions& rhs) {
     definitions.add(rhs.definitions);
     kills = kills.intersect(rhs.kills);
     unknownWrites.insert(unknownWrites.end(),
@@ -65,7 +63,7 @@ MemorySSATransformation::Definitions::join(const Definitions& rhs) {
 }
 
 #ifndef NDEBUG
-void MemorySSATransformation::Definitions::dump() const {
+void Definitions::dump() const {
     std::cout << "processed: " << _processed << "\n";
     std::cout << " -- defines -- \n";
     definitions.dump();
