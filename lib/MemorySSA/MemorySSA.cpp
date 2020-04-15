@@ -467,71 +467,6 @@ MemorySSATransformation::findEscapingDefinitionsInBlock(RWNode *to) {
     return D;
 }
 
-
-static void recGatherNonPhisDefs(RWNode *phi, std::set<RWNode *>& phis, std::set<RWNode *>& ret) {
-    assert(phi->isPhi());
-    if (!phis.insert(phi).second)
-        return; // we already visited this phi
-
-    for (auto n : phi->defuse) {
-        if (!n->isPhi()) {
-            ret.insert(n);
-        } else {
-            recGatherNonPhisDefs(n, phis, ret);
-        }
-    }
-}
-
-// recursivelu replace all phi values with its non-phi definitions
-template <typename ContT>
-std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes) {
-    std::set<RWNode *> ret; // use set to get rid of duplicates
-    std::set<RWNode *> phis; // set of visited phi nodes - to check the fixpoint
-
-    for (auto n : nodes) {
-        if (!n->isPhi()) {
-            ret.insert(n);
-        } else {
-            recGatherNonPhisDefs(n, phis, ret);
-        }
-    }
-
-    return std::vector<RWNode *>(ret.begin(), ret.end());
-}
-
-std::vector<RWNode *>
-MemorySSATransformation::getDefinitions(RWNode *use) {
-    // on demand triggering finding the definitions
-    if (!use->defuse.initialized()) {
-        use->addDefUse(findDefinitions(use));
-        assert(use->defuse.initialized());
-    }
-    return gatherNonPhisDefs(use->defuse);
-}
-
-// return the reaching definitions of ('mem', 'off', 'len')
-// at the location 'where'
-std::vector<RWNode *>
-MemorySSATransformation::getDefinitions(RWNode *where,
-                                        RWNode *mem,
-                                        const Offset& off,
-                                        const Offset& len) {
-    auto *use = insertUse(where, mem, off, len);
-    return getDefinitions(use);
-}
-
-RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
-                                           const Offset& off, const Offset& len) {
-    //DBG_SECTION_BEGIN(dda, "Adding MU node");
-    auto& use = graph.create(RWNodeType::MU);
-    use.addUse({mem, off, len});
-    use.insertBefore(where);
-    where->getBBlock()->insertBefore(&use, where);
-    //DBG_SECTION_END(dda, "Created MU node " << use->getID());
-
-    return &use;
-}
-
 ///
 /// Copy definitions from 'from' map to 'to' map.
 /// Copy only those that are not already killed by 'to' map
@@ -809,6 +744,82 @@ void MemorySSATransformation::initialize() {
             }
         }
     }
+}
+
+RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
+                                           const Offset& off, const Offset& len) {
+    //DBG_SECTION_BEGIN(dda, "Adding MU node");
+    auto& use = graph.create(RWNodeType::MU);
+    use.addUse({mem, off, len});
+    use.insertBefore(where);
+    where->getBBlock()->insertBefore(&use, where);
+    //DBG_SECTION_END(dda, "Created MU node " << use->getID());
+
+    return &use;
+}
+
+static void recGatherNonPhisDefs(RWNode *phi,
+                                 std::set<RWNode *>& phis,
+                                 std::set<RWNode *>& ret,
+                                 bool intraproc = false) {
+    assert(phi->isPhi());
+    if (!phis.insert(phi).second)
+        return; // we already visited this phi
+
+    for (auto n : phi->defuse) {
+        if (!n->isPhi()) {
+            ret.insert(n);
+        } else {
+            if (intraproc && n->isInOut()) {
+                ret.insert(n);
+            } else {
+                recGatherNonPhisDefs(n, phis, ret, intraproc);
+            }
+        }
+    }
+}
+
+// recursivelu replace all phi values with its non-phi definitions
+template <typename ContT>
+std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes,
+                                        bool intraproc = false) {
+    std::set<RWNode *> ret; // use set to get rid of duplicates
+    std::set<RWNode *> phis; // set of visited phi nodes - to check the fixpoint
+
+    for (auto n : nodes) {
+        if (!n->isPhi()) {
+            ret.insert(n);
+        } else {
+            if (intraproc && n->isInOut()) {
+                ret.insert(n);
+            } else {
+                recGatherNonPhisDefs(n, phis, ret, intraproc);
+            }
+        }
+    }
+
+    return std::vector<RWNode *>(ret.begin(), ret.end());
+}
+
+std::vector<RWNode *>
+MemorySSATransformation::getDefinitions(RWNode *use) {
+    // on demand triggering finding the definitions
+    if (!use->defuse.initialized()) {
+        use->addDefUse(findDefinitions(use));
+        assert(use->defuse.initialized());
+    }
+    return gatherNonPhisDefs(use->defuse);
+}
+
+// return the reaching definitions of ('mem', 'off', 'len')
+// at the location 'where'
+std::vector<RWNode *>
+MemorySSATransformation::getDefinitions(RWNode *where,
+                                        RWNode *mem,
+                                        const Offset& off,
+                                        const Offset& len) {
+    auto *use = insertUse(where, mem, off, len);
+    return getDefinitions(use);
 }
 
 void MemorySSATransformation::run() {
