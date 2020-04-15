@@ -103,19 +103,11 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
 
     bool isSSA() const { return analysisType == AnalysisType::ssa;}
 
-    // Should we perform strong update with unknown memory?
-    // NOTE: not sound.
-    bool strongUpdateUnknown{false};
-
     dda::UndefinedFunsBehavior undefinedFunsBehavior{dda::READ_ARGS};
 
     // Does the analysis track concrete bytes
     // or just objects?
     bool fieldInsensitive{false};
-
-    DataDependenceAnalysisOptions& setStrongUpdateUnknown(bool b) {
-        strongUpdateUnknown = b; return *this;
-    }
 
     bool undefinedArePure() const { return undefinedFunsBehavior == dda::PURE; }
     bool undefinedFunsWriteAny() const { return undefinedFunsBehavior & dda::WRITE_ANY; }
