@@ -88,7 +88,7 @@ class SystemDependenceGraphBuilder {
     void _runControlDependenceAnalysis() {
         _timerStart();
         _sdg->computeControlDependencies(_options.cdAlgorithm,
-                                        _options.terminationSensitive);
+                                        _options.interprocCd);
         _statistics.cdTime = _timerEnd();
     }
 
