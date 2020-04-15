@@ -163,16 +163,16 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     /// Finding definitions for unknown memory
     // Must be called after LVN proceeded - ideally only when the client is getting the definitions
     std::vector<RWNode *> findAllDefinitions(RWNode *from);
-    DefinitionsMap<RWNode> collectAllDefinitions(RWNode *from);
+    Definitions collectAllDefinitions(RWNode *from);
     /// if escaping is set to true, collect only definitions of escaping memory
     // (optimization for searching definitions in callers)
-    void collectAllDefinitions(RWNode *from, DefinitionsMap<RWNode>& defs, bool esacping = false);
-    void collectAllDefinitions(DefinitionsMap<RWNode>& defs,
+    void collectAllDefinitions(RWNode *from, Definitions& defs, bool esacping = false);
+    void collectAllDefinitions(Definitions& defs,
                                RWBBlock *from,
                                std::set<RWBBlock *>& visitedBlocks,
                                bool escaping);
 
-    void collectAllDefinitionsInCallers(DefinitionsMap<RWNode>& defs, RWSubgraph *subg);
+    void collectAllDefinitionsInCallers(Definitions& defs, RWSubgraph *subg);
 
     void findDefinitionsInSubgraph(RWNode *phi,
                                    RWNodeCall *C,

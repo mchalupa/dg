@@ -563,6 +563,18 @@ static void joinDefinitions(DefinitionsMap<RWNode>& from,
     }
 }
 
+static void joinDefinitions(Definitions& from,
+                            Definitions& to,
+                            bool escaping = false) {
+    joinDefinitions(from.definitions, to.definitions, escaping);
+    to.unknownWrites.insert(to.unknownWrites.end(),
+                            from.unknownWrites.begin(),
+                            from.unknownWrites.end());
+    // we ignore 'kills' and 'unknownReads' as this function is used
+    // only when searching for all definitions
+}
+
+
 void MemorySSATransformation::fillDefinitionsFromCall(Definitions& D,
                                                       RWNodeCall *C) {
     if (D.isProcessed()) {
@@ -609,7 +621,7 @@ void MemorySSATransformation::fillDefinitionsFromCall(Definitions& D,
 }
 
 void
-MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
+MemorySSATransformation::collectAllDefinitions(Definitions& defs,
                                                RWBBlock *from,
                                                std::set<RWBBlock *>& visitedBlocks,
                                                bool escaping) {
@@ -620,29 +632,34 @@ MemorySSATransformation::collectAllDefinitions(DefinitionsMap<RWNode>& defs,
     }
 
     // get the definitions from this block
-    joinDefinitions(getBBlockDefinitions(from).definitions, defs, escaping);
+    joinDefinitions(getBBlockDefinitions(from), defs, escaping);
 
     // recur into predecessors
     if (auto singlePred = from->getSinglePredecessor()) {
         collectAllDefinitions(defs, singlePred, visitedBlocks, escaping);
     } else {
+        auto olddefinitions = defs.definitions;
         for (auto I = from->pred_begin(), E = from->pred_end(); I != E; ++I) {
-            auto tmpDefs = defs;
+            Definitions tmpDefs;
+            tmpDefs.definitions = olddefinitions;
             collectAllDefinitions(tmpDefs, *I, visitedBlocks, escaping);
-            defs.add(tmpDefs);
+            defs.definitions.add(tmpDefs.definitions);
+            defs.unknownWrites.insert(defs.unknownWrites.end(),
+                                      tmpDefs.unknownWrites.begin(),
+                                      tmpDefs.unknownWrites.end());
         }
     }
 }
 
-DefinitionsMap<RWNode>
+Definitions
 MemorySSATransformation::collectAllDefinitions(RWNode *from) {
-    DefinitionsMap<RWNode> defs; // auxiliary map for finding defintions
+    Definitions defs; // auxiliary map for finding defintions
     collectAllDefinitions(from, defs);
     return defs;
 }
 
 void
-MemorySSATransformation::collectAllDefinitionsInCallers(DefinitionsMap<RWNode>& defs,
+MemorySSATransformation::collectAllDefinitionsInCallers(Definitions& defs,
                                                         RWSubgraph *subg) {
     auto& callers = subg->getCallers();
     if (callers.empty()) {
@@ -658,7 +675,7 @@ MemorySSATransformation::collectAllDefinitionsInCallers(DefinitionsMap<RWNode>& 
         summary.addInput(ds, phi);
     }
 
-    defs.add(ds, phi);
+    defs.unknownWrites.push_back(phi);
 
     for (auto *callsite : subg->getCallers()) {
         // create input PHI for this call
@@ -677,19 +694,20 @@ MemorySSATransformation::collectAllDefinitionsInCallers(DefinitionsMap<RWNode>& 
         // not covered by 'defs'. Therefore, we can reuse this search
         // in all later searches.
         //auto tmpDefs = defs;
-        DefinitionsMap<RWNode> tmpDefs;
+        Definitions tmpDefs;
         collectAllDefinitions(callsite, tmpDefs, /* escaping = */ true);
-        for (auto& it : tmpDefs) {
+        for (auto& it : tmpDefs.definitions) {
             for (auto& it2 : it.second) {
                 callphi->addDefUse(it2.second);
             }
         }
+        callphi->addDefUse(tmpDefs.unknownWrites);
     }
 }
 
 void
 MemorySSATransformation::collectAllDefinitions(RWNode *from,
-                                               DefinitionsMap<RWNode>& defs,
+                                               Definitions& defs,
                                                bool escaping) {
     assert(from->getBBlock() && "The node has no BBlock");
 
@@ -714,9 +732,13 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from,
         // multiple predecessors
         for (auto I = block->pred_begin(), E = block->pred_end(); I != E; ++I) {
             // assign 'kills' to not to search for what we already have
-            DefinitionsMap<RWNode> tmpDefs = D.kills;
+            Definitions tmpDefs;
+            tmpDefs.definitions = D.kills;
             collectAllDefinitions(tmpDefs, *I, visitedBlocks, escaping);
-            defs.add(tmpDefs);
+            defs.definitions.add(tmpDefs.definitions);
+            defs.unknownWrites.insert(defs.unknownWrites.end(),
+                                      tmpDefs.unknownWrites.begin(),
+                                      tmpDefs.unknownWrites.end());
         }
     }
 
@@ -727,8 +749,8 @@ MemorySSATransformation::collectAllDefinitions(RWNode *from,
     collectAllDefinitionsInCallers(defs, block->getSubgraph());
 
     // create the final map of definitions reaching the 'from' node
-    joinDefinitions(defs, D.definitions);
-    defs.swap(D.definitions);
+    joinDefinitions(defs, D);
+    defs.swap(D);
 }
 
 std::vector<RWNode *>
@@ -740,7 +762,9 @@ MemorySSATransformation::findAllDefinitions(RWNode *from) {
     DBG_SECTION_END(dda, "MemorySSA - finding all definitions for node "
                          << from->getID() << " done");
 
-    auto values = defs.values();
+    auto values = defs.definitions.values();
+    values.insert(defs.unknownWrites.begin(),
+                  defs.unknownWrites.end());
     return std::vector<RWNode *>(values.begin(), values.end());
 }
 

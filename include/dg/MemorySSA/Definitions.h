@@ -30,6 +30,13 @@ struct Definitions {
     // just a cache
     std::vector<RWNode*> unknownReads;
 
+    void swap(Definitions& rhs) {
+        definitions.swap(rhs.definitions);
+        kills.swap(rhs.kills);
+        unknownWrites.swap(rhs.unknownWrites);
+        unknownReads.swap(rhs.unknownReads);
+    }
+
     void addUnknownWrite(RWNode *n) {
         unknownWrites.push_back(n);
     }
