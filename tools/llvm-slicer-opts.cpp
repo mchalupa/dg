@@ -100,20 +100,20 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<bool> removeSlicingCriteria("remove-slicing-criteria",
-        llvm::cl::desc("By default, slicer keeps also calls to the slicing criteria\n"
+        llvm::cl::desc("By default, slicer keeps also slicing criteria\n"
                        "in the sliced program. This switch makes slicer to remove\n"
-                       "also the calls (i.e. behave like Weisser's algorithm)"),
+                       "also the criteria (i.e. behave like Weisser's algorithm)"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<std::string> preservedFuns("preserved-functions",
-        llvm::cl::desc("Do not slice bodies of the given functions\n."
+        llvm::cl::desc("Do not slice bodies of the given functions.\n"
                        "The argument is a comma-separated list of functions.\n"),
                        llvm::cl::value_desc("funs"),
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<bool> terminationSensitive("termination-sensitive",
         llvm::cl::desc("Do not slice away parts of programs that might make\n"
-                       "the slicing criteria unreachable (e.g. calls to exit() or potentially infinite loops).\n"
+                       "the slicing criteria unreachable (e.g. calls to exit()\n""or potentially infinite loops).\n"
                        "NOTE: at this moment we do not handle potentially infinite loops.\n"
                        "Default: on\n"),
                        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
@@ -124,12 +124,6 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        "Default is full field-sensitivity (N = Offset::UNKNOWN).\n"),
                        llvm::cl::value_desc("N"), llvm::cl::init(dg::Offset::UNKNOWN),
                        llvm::cl::cat(SlicingOpts));
-
-    llvm::cl::opt<bool> rdaStrongUpdateUnknown("rd-strong-update-unknown",
-        llvm::cl::desc("Let reaching defintions analysis do strong updates on memory defined\n"
-                       "with uknown offset in the case, that new definition overwrites\n"
-                       "the whole memory. May be unsound for out-of-bound access\n"),
-                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<dg::dda::UndefinedFunsBehavior> undefinedFunsBehavior("undefined-funs",
         llvm::cl::desc("Set the behavior of undefined functions\n"),
@@ -251,7 +245,6 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
     options.dgOptions.DDAOptions.threads = threads;
 
     options.dgOptions.DDAOptions.entryFunction = entryFunction;
-    options.dgOptions.DDAOptions.strongUpdateUnknown = rdaStrongUpdateUnknown;
     options.dgOptions.DDAOptions.undefinedFunsBehavior = undefinedFunsBehavior;
     options.dgOptions.DDAOptions.analysisType = ddaType;
 
