@@ -57,6 +57,17 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             return unknownReads;
         }
 
+        ///
+        /// get the definition-sites for the given 'ds'
+        ///
+        std::set<RWNode *> get(const DefSite& ds) {
+            auto retval = definitions.get(ds);
+            if (retval.empty()) {
+                retval.insert(unknownWrites.begin(), unknownWrites.end());
+            }
+            return retval;
+        }
+
         // update this Definitions by definitions from 'node'.
         // I.e., as if node would be executed when already
         // having the definitions we have
