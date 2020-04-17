@@ -366,15 +366,17 @@ public:
             // dump summary nodes
             auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
             const auto *summary = SSA->getSummary(subg);
-            for (auto& i : summary->inputs) {
-                for (auto& it : i.second)
-                    for (auto *nd : it.second)
-                        nodeToDot(nd);
-            }
-            for (auto& o : summary->outputs) {
-                for (auto& it : o.second)
-                    for (auto *nd : it.second)
-                        nodeToDot(nd);
+            if (summary) {
+                for (auto& i : summary->inputs) {
+                    for (auto& it : i.second)
+                        for (auto *nd : it.second)
+                            nodeToDot(nd);
+                }
+                for (auto& o : summary->outputs) {
+                    for (auto& it : o.second)
+                        for (auto *nd : it.second)
+                            nodeToDot(nd);
+                }
             }
 
             for (auto *block : subg->bblocks()) {
@@ -387,15 +389,17 @@ public:
             // dump summary nodes edges
             auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
             const auto *summary = SSA->getSummary(subg);
-            for (auto& i : summary->inputs) {
-                for (auto& it : i.second)
-                    for (auto *nd : it.second)
-                        dumpNodeEdges(nd);
-            }
-            for (auto& o : summary->outputs) {
-                for (auto& it : o.second)
-                    for (auto *nd : it.second)
-                        dumpNodeEdges(nd);
+            if (summary) {
+                for (auto& i : summary->inputs) {
+                    for (auto& it : i.second)
+                        for (auto *nd : it.second)
+                            dumpNodeEdges(nd);
+                }
+                for (auto& o : summary->outputs) {
+                    for (auto& it : o.second)
+                        for (auto *nd : it.second)
+                            dumpNodeEdges(nd);
+                }
             }
 
             // CFG
