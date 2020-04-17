@@ -10,6 +10,8 @@ namespace dda {
 RWNode UNKNOWN_MEMLOC;
 RWNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
+unsigned BBlockId::idcnt = 0;
+
 #ifndef NDEBUG
 void RWNode::dump() const {
        std::cout << getID() << "\n";
@@ -38,7 +40,7 @@ void RWNodeCall::dump() const {
 }
 
 void RWBBlock::dump() const {
-       std::cout << "bblock " << this << "\n";
+       std::cout << "bblock " << getID() << "(" << this << ")\n";
        for (auto *n : _nodes) {
            std::cout << "  ";
            n->dump();

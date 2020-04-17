@@ -401,26 +401,31 @@ MemorySSATransformation::getBBlockDefinitions(RWBBlock *b, const DefSite *ds) {
     auto& bi = getBBlockInfo(b);
     auto& D = bi.getDefinitions();
 
-    if (D.isProcessed())
+    if (D.isProcessed()) {
+        DBG(dda, "Retrived processed definitions for block " << b->getID());
         return D;
+    }
 
     if (bi.isCallBlock()) {
         if (ds) {
             fillDefinitionsFromCall(D, bi.getCall(), *ds);
+            DBG(dda, "Retrived (partial) definitions for call block " << b->getID());
         } else {
+            DBG(dda, "Filling all definitions for call block " << b->getID());
             fillDefinitionsFromCall(D, bi.getCall());
             assert(D.isProcessed());
         }
     } else {
         performLvn(D, b); // normal basic block
         assert(D.isProcessed());
+        DBG(dda, "Retrived LVN'd definitions for block " << b->getID());
     }
     return D;
 }
 
 // perform Lvn for one block
 void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
-    DBG_SECTION_BEGIN(dda, "Starting LVN for " << block);
+    DBG_SECTION_BEGIN(dda, "Starting LVN for block " << block->getID());
 
     assert(!D.isProcessed() && "Processing a block multiple times");
 
@@ -429,7 +434,7 @@ void MemorySSATransformation::performLvn(Definitions& D, RWBBlock *block) {
    }
 
     D.setProcessed();
-    DBG_SECTION_END(dda, "LVN finished");
+    DBG_SECTION_END(dda, "LVN of block " << block->getID() << " finished");
 }
 
 ///

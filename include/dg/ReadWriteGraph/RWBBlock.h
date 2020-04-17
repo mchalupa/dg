@@ -9,8 +9,16 @@
 namespace dg {
 namespace dda {
 
+class BBlockId {
+    static unsigned idcnt;
+    unsigned id;
+public:
+    BBlockId() : id(++idcnt) {}
+    unsigned getID() const { return id; }
+};
+
 template <typename BBlockT>
-class BBlockBase {
+class BBlockBase : public BBlockId {
     using EdgesT = std::vector<BBlockT *>;
 
 protected:

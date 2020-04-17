@@ -309,7 +309,8 @@ public:
         printf("    color=\"black\";\n");
 
         puts("label=<<table border=\"0\">");
-        printf("<tr><td colspan=\"4\">bblock: %p</td></tr>", block);
+        printf("<tr><td colspan=\"4\">bblock %u (%p)</td></tr>",
+               block->getID(), block);
         dumpBBlockDefinitions(block);
         printf("</table>>\nlabelloc=b\n");
 
