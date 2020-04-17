@@ -315,6 +315,10 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
             if (subgblock->hasSuccessors()) {
                 continue;
             }
+            if (!subgblock->isReturnBBlock()) {
+                // ignore blocks that does not return to this subgraph
+                continue;
+            }
             subgphi->addDefUse(findDefinitions(subgblock, ds));
         }
     }
