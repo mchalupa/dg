@@ -12,9 +12,11 @@ namespace debug {
 
 #ifdef DEBUG_ENABLED
 
+extern unsigned _debug_lvl;
+extern unsigned _ind;
+
 namespace {
 static inline unsigned& _getDebugLvl() {
-    static unsigned _debug_lvl;
     return _debug_lvl;
 }
 
@@ -23,7 +25,6 @@ static inline void _setDebugLvl(unsigned int x) {
 }
 
 static inline unsigned& _getInd() {
-    static unsigned _ind;
     return _ind;
 }
 
@@ -37,7 +38,7 @@ static void _dump_ind() {
         _stream() << " ";
 }
 
-static void _dump_prefix(const char *domain) {
+static void _dump_prefix(const char *domain, const char *add = nullptr) {
     std::cerr << "[" << std::clock() << "]";
     if (domain)
         _stream() << "[" << domain << "]";
@@ -45,6 +46,9 @@ static void _dump_prefix(const char *domain) {
     _stream() << " ";
 
     _dump_ind();
+    if (add) {
+        _stream() << add;
+    }
 }
 }
 
@@ -63,22 +67,20 @@ inline bool dbg_is_enabled() {
 }
 
 inline std::ostream& dbg_section_begin(const char *domain = nullptr) {
-    _dump_prefix(domain);
-    _getInd() += 2;
+    _dump_prefix(domain, "-> ");
+    _getInd() += 3;
     return _stream();
 }
 
 inline std::ostream& dbg_section_end(const char *domain = nullptr) {
-    assert(_getInd() >= 2);
-    _getInd() -= 2;
-    _dump_prefix(domain);
+    assert(_getInd() >= 3);
+    _getInd() -= 3;
+    _dump_prefix(domain, "<- ");
     return _stream();
 }
 
 inline std::ostream& dbg(const char *domain = nullptr) {
-    _getInd() += 1;
     _dump_prefix(domain);
-    _getInd() -= 1;
     return _stream();
 }
 

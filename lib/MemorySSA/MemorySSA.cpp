@@ -16,7 +16,7 @@ namespace dda {
 // find definitions of a given node
 std::vector<RWNode *>
 MemorySSATransformation::findDefinitions(RWNode *node) {
-    DBG(dda, "Searching definitions for node " << node->getID());
+    DBG_SECTION_BEGIN(dda, "Searching definitions for node " << node->getID());
 
     assert(node->isUse() && "Searching definitions for non-use node");
 
@@ -53,6 +53,7 @@ MemorySSATransformation::findDefinitions(RWNode *node) {
         addUncoveredFromPredecessors(block, D, ds, defs);
     }
 
+    DBG_SECTION_END(dda, "Done searching definitions for node " << node->getID());
     return defs;
 }
 
@@ -276,6 +277,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
                                                         RWNodeCall *C,
                                                         const DefSite& ds,
                                                         RWSubgraph *subg) {
+    DBG_SECTION_BEGIN(tmp, "Searching definitions in subgraph " << subg->getName());
     auto& summary = getSubgraphSummary(subg);
     auto& si = getSubgraphInfo(subg);
     computeModRef(subg, si);
@@ -323,6 +325,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
             subgphi->addDefUse(findDefinitions(subgblock, ds));
         }
     }
+    DBG_SECTION_END(tmp, "Done searching definitions in subgraph " << subg->getName());
 }
 
 void MemorySSATransformation::addDefinitionsFromCalledValue(RWNode *phi,

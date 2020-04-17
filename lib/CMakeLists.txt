@@ -9,6 +9,7 @@ add_library(dganalysis SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/ADT/NumberSet.h
 
 	Offset.cpp
+        Debug.cpp
 )
 
 add_library(dgpta SHARED

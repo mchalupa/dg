@@ -159,7 +159,6 @@ protected:
     }
 
     BBlockT& buildBBlock(const llvm::BasicBlock& B, SubgraphInfo& subginfo) {
-        DBG_SECTION_BEGIN(rwg, "Building basic block");
         auto& bblock = createBBlock(&B, subginfo.subgraph);
         assert(subginfo.blocks.find(&B) == subginfo.blocks.end()
                 && "Already have this basic block");
@@ -171,7 +170,6 @@ protected:
             }
         }
 
-        DBG_SECTION_END(rwg, "Building basic block done");
         return bblock;
     }
 
