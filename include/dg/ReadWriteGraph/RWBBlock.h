@@ -200,6 +200,15 @@ public:
     // FIXME: rename to first/front(), last/back()
     NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }
     NodeT *getLast() { return _nodes.empty() ? nullptr : _nodes.back(); }
+    const NodeT *getFirst() const { return _nodes.empty() ? nullptr : _nodes.front(); }
+    const NodeT *getLast() const { return _nodes.empty() ? nullptr : _nodes.back(); }
+
+    bool isReturnBBlock() const {
+        if (auto *last = getLast()) {
+            return last->isRet();
+        }
+        return false;
+    }
 
     bool empty() const { return _nodes.empty(); }
     size_t size() const { return _nodes.size(); }

@@ -270,6 +270,7 @@ public:
     bool isCall() const { return getType() == RWNodeType::CALL; }
     bool isAlloc() const { return getType() == RWNodeType::ALLOC; }
     bool isAllocation() const { return isAlloc() || isDynAlloc(); }
+    bool isRet() const { return getType() == RWNodeType::RETURN; }
     bool isDynAlloc() const;
 
     bool canEscape() const {
