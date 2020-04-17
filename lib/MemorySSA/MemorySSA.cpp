@@ -185,11 +185,12 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     // if something is missing
     if (auto pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
+#ifndef NDEBUG
         auto& D = getBBlockDefinitions(pred, &ds);
         assert((!pdefs.empty() || D.unknownWrites.empty()) &&
                "BUG: if we found no definitions, also unknown writes must be empty");
+#endif // not NDEBUG
         defs.insert(defs.end(), pdefs.begin(), pdefs.end());
-        addUncoveredFromPredecessors(pred, D, ds, defs);
     } else { // multiple or no predecessors
         findDefinitionsInMultiplePredecessors(block, ds, defs);
     }
