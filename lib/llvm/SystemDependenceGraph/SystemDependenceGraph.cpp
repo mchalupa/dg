@@ -95,7 +95,22 @@ struct SDGBuilder {
         DBG_SECTION_END(sdg, "Building '" << F.getName().str() << "' finished");
     }
 
+    void buildGlobals(sdg::DependenceGraph& entry) {
+        DBG_SECTION_BEGIN(sdg, "Building globals");
+
+        // globals are formal parameters of the entry function
+        auto& params = entry.getParameters();
+        for (auto& GV : _module->globals()) {
+            auto& g = params.createParameter();
+            _llvmsdg->addMapping(&GV, &g);
+            llvm::errs() << "GV: " << GV << "\n";
+        }
+        DBG_SECTION_END(sdg, "Finished building globals");
+    }
+
+
     void buildFuns() {
+        DBG_SECTION_BEGIN(sdg, "Building functions");
         // build dependence graph for each procedure
         for (auto& F : *_module) {
             if (F.isDeclaration()) {
@@ -105,6 +120,7 @@ struct SDGBuilder {
             auto& g = getOrCreateDG(&F);
             buildDG(g, F);
         }
+        DBG_SECTION_END(sdg, "Done building functions");
     }
 };
 
@@ -114,9 +130,6 @@ void SystemDependenceGraph::buildNodes() {
     assert(_pta);
 
     SDGBuilder builder(this, _module);
-    // FIXME: build globals
-    // builder.buildGlobals();
-    DBG(sdg, "FIXME: must build globals");
 
     builder.buildFuns();
 
@@ -126,6 +139,9 @@ void SystemDependenceGraph::buildNodes() {
     auto* entry = getDG(llvmentry);
     assert(entry && "Did not build the entry function");
     _sdg.setEntry(entry);
+
+    // only after funs, we need the entry fun created
+    builder.buildGlobals(*entry);
 
     DBG_SECTION_END(sdg, "Building SDG nodes finished");
 }
