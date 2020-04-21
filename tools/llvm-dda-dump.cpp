@@ -65,7 +65,7 @@ llvm::cl::opt<bool> graph_only("graph-only",
 
 llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Output in graphviz format (forced atm.)."),
-    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 static inline size_t count_ws(const std::string& str) {
     size_t n = 0;
@@ -286,7 +286,7 @@ protected:
     }
 
 public:
-    Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = true)
+    Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = false)
     : DDA(DDA), dot(todot) {}
 
     void dumpBBlockEdges(RWBBlock *block) {
@@ -343,7 +343,47 @@ public:
         printf("}\n");
     }
 
+
     void dump() {
+        if (dot)
+            dumpToDot();
+        else
+            dumpToTty();
+    }
+
+    void dumpRWNode(RWNode *n) {
+        printf("NODE [%u]: ", n->getID());
+        if (n == nullptr) {
+            printf("nullptr\n");
+            return;
+        }
+        printName(n);
+        if (n->getSize() > 0)
+            printf(" [size: %lu]", n->getSize());
+        putchar('\n');
+    }
+
+    void dumpToTty() {
+
+        for (auto *subg : DDA->getGraph()->subgraphs()) {
+            printf("=========== fun: %s ===========\n", subg->getName().c_str());
+            for (auto *bb : subg->bblocks()) {
+                printf("<<< bblock: %u >>>\n", bb->getID());
+                for (auto *node : bb->getNodes()) {
+                    dumpRWNode(node);
+                    if (!graph_only && node->isUse() && !node->isPhi()) {
+                        for (RWNode *def : DDA->getDefinitions(node)) {
+                            printf("  <- ");
+                            printName(def);
+                            putchar('\n');
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void dumpToDot() {
         assert(dot && "Non-dot dump unsupported right now");
 
         printf("digraph \"Data Dependencies Graph\" {\n");
@@ -443,7 +483,7 @@ public:
 private:
 
     void printId(const RWNode *node) {
-        printf(" [%u]\n", node->getID());
+        printf(" [%u]", node->getID());
     }
 
     void _dumpDefSites(const std::set<DefSite>& defs,
@@ -485,22 +525,6 @@ private:
             _dumpDefSites(node->getUses(), "uses");
         }
     }
-
-
-    /*
-    void dumpRWNode(RWNode *n) {
-        printf("NODE: ");
-        if (n == nullptr) {
-            printf("nullptr\n");
-            return;
-        }
-        printName(n, false);
-        if (n->getSize() > 0)
-            printf(" [size: %lu]", n->getSize());
-        putchar('\n');
-        printf("---\n");
-    }
-    */
 };
 
 class MemorySSADumper : public Dumper {
@@ -553,12 +577,6 @@ class MemorySSADumper : public Dumper {
         dumpDDIMap(D->definitions);
         printf("<tr><td colspan=\"4\">==  kills ==</td></tr>");
         dumpDDIMap(D->kills);
-        /*
-        if (!D->allDefinitions.empty()) {
-            printf("<tr><td colspan=\"4\">== all defs cached ==</td></tr>");
-            dumpDDIMap(D->allDefinitions);
-        }
-        */
     }
 
     void dumpSubgraphLabel(RWSubgraph *subgraph) override {
