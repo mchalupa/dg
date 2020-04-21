@@ -52,9 +52,6 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
     using namespace llvm;
 
     RWNode& node = create(RWNodeType::ALLOC);
-    if (const AllocaInst *AI = dyn_cast<AllocaInst>(Inst)) {
-        node.setSize(llvmutils::getAllocatedSize(AI, getDataLayout()));
-    }
 
     // check if the address of this alloca is taken
     for (auto I = Inst->use_begin(), E = Inst->use_end(); I != E; ++I) {
@@ -76,6 +73,18 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
         } else if (auto *I = dyn_cast<Instruction>(Inst)) {
             assert(!I->mayWriteToMemory() &&
                    "Unhandled memory-writing instruction");
+        }
+    }
+
+    if (const AllocaInst *AI = dyn_cast<AllocaInst>(Inst)) {
+        auto size = llvmutils::getAllocatedSize(AI, getDataLayout());
+        node.setSize(size);
+        // this is a alloca that does not have the address taken,
+        // therefore we must always access the last instance in loads
+        // (even in recursive functions) and may terminate the search
+        // for definitions of this alloca at this alloca
+        if (!node.hasAddressTaken()) {
+            node.addOverwrites(&node, 0, size > 0 ? size : Offset::UNKNOWN);
         }
     }
     return &node;
