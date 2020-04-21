@@ -47,6 +47,10 @@ struct SDGDependenciesBuilder {
     }
 
     void addDataDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
+        addInterprocDataDependencies(nd, I);
+    }
+
+    void addInterprocDataDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
         if (!DDA->isUse(&I))
             return;
 
