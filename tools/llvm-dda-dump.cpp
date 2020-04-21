@@ -255,6 +255,10 @@ protected:
     }
 
     void dumpNodeEdges(RWNode *node) {
+        static std::set<RWNode *> dumped;
+        if (!dumped.insert(node).second)
+            return;
+
         if (verbose || node->isPhi()) {
             for (RWNode *def : node->defuse) {
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
