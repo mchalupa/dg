@@ -91,7 +91,7 @@ RWNode *MemorySSATransformation::createPhi(const DefSite& ds, RWNodeType type) {
     // This phi is the definition that we are looking for.
     _phis.emplace_back(&graph.create(type));
     auto *phi = _phis.back();
-	assert(phi->isPhi() && "Got wrong type");
+    assert(phi->isPhi() && "Got wrong type");
 
     phi->addOverwrites(ds);
 
