@@ -100,7 +100,7 @@ target_include_directories(dgllvmthreadregions
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
 target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
-add_library(dgllvmcda SHARED "")
+add_library(dgllvmcda SHARED llvm/ControlDependence/ControlDependence.cpp)
 include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/ControlDependence/CMakeLists.txt)
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
