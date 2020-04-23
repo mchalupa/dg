@@ -22,6 +22,7 @@ public:
 
     Block(bool callReturn = false):callReturn(callReturn) {}
 
+    // FIXME: make vector
     const std::set<Block *> & predecessors() const;
 
     const std::set<Block *> & successors() const;

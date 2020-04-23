@@ -10,6 +10,7 @@ add_library(dganalysis SHARED
 
 	Offset.cpp
         Debug.cpp
+        BBlockBase.cpp
 )
 
 add_library(dgpta SHARED
