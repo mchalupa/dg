@@ -451,7 +451,7 @@ public:
             for (auto bblock : subg->bblocks()) {
                 dumpBBlockEdges(bblock);
 
-                for (auto *succ : bblock->getSuccessors()) {
+                for (auto *succ : bblock->successors()) {
                     printf("\tNODE%p -> NODE%p "
                            "[penwidth=2 constraint=true"
                            " lhead=\"cluster_bb_%p\""

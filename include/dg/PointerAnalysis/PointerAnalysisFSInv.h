@@ -139,7 +139,7 @@ public:
 
     bool handleInvalidateLocals(PSNode *node) {
         bool changed = false;
-        for (PSNode *pred : node->getPredecessors()) {
+        for (PSNode *pred : node->predecessors()) {
             changed |= handleInvalidateLocals(node, pred);
         }
         return changed;
@@ -213,7 +213,7 @@ public:
 
     bool invalidateMemory(PSNode *node) {
         bool changed = false;
-        for (PSNode *pred : node->getPredecessors()) {
+        for (PSNode *pred : node->predecessors()) {
             changed |= invalidateMemory(node, pred);
         }
         return changed;
@@ -221,7 +221,7 @@ public:
 
     bool handleFree(PSNode *node) {
         bool changed = false;
-        for (PSNode *pred : node->getPredecessors()) {
+        for (PSNode *pred : node->predecessors()) {
             changed |= invalidateMemory(node, pred, true /* is free */);
         }
         return changed;

@@ -76,7 +76,7 @@ public:
             setBlock(cur);
 
             // queue successors for processing
-            for (NodeT *succ : cur->getSuccessors()) {
+            for (NodeT *succ : cur->successors()) {
                 enqueue(succ);
             }
         }

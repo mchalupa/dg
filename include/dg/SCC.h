@@ -65,7 +65,7 @@ private:
         info.on_stack = true;
         stack.push(n);
 
-        for (auto *succ : n->getSuccessors()) {
+        for (auto *succ : n->successors()) {
             auto& succ_info = _info[succ];
             if (succ_info.dfs_id == 0) {
                 assert(!succ_info.on_stack);
@@ -107,25 +107,14 @@ class SCCCondensation {
 
     struct Node {
         const SCC_component_t& component;
-        std::set<unsigned> successors;
+        std::set<unsigned> _successors;
 
         Node(SCC_component_t& comp) : component(comp) {}
 
-        void addSuccessor(unsigned idx)
-        {
-            successors.insert(idx);
-        }
-
-        const SCC_component_t& operator*() const
-        {
-            return component;
-        }
-
+        void addSuccessor(unsigned idx) { _successors.insert(idx); }
+        const SCC_component_t& operator*() const { return component; }
         // XXX: create iterators instead
-        const std::set<unsigned>& getSuccessors() const
-        {
-            return successors;
-        }
+        const std::set<unsigned>& successors() const { return _successors; }
     };
 
     std::vector<Node> nodes;
@@ -153,7 +142,7 @@ public:
             for (NodeT *node : comp) {
                 // we can get from this component
                 // to the component of succ
-                for (NodeT *succ : node->getSuccessors()) {
+                for (NodeT *succ : node->successors()) {
                     unsigned succ_idx = succ->getSCCId();
                     if (static_cast<int>(succ_idx) != idx)
                         nodes[idx].addSuccessor(succ_idx);

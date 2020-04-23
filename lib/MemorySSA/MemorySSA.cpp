@@ -210,7 +210,7 @@ void MemorySSATransformation::findPhiDefinitions(RWNode *phi) {
     assert(!block->getSinglePredecessor() &&
            "Phi in a block with single predecessor");
 
-    findPhiDefinitions(phi, block->getPredecessors());
+    findPhiDefinitions(phi, block->predecessors());
 }
 
 void MemorySSATransformation::addUncoveredFromPredecessors(

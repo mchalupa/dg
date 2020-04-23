@@ -290,8 +290,8 @@ public:
     void remove(PSNode *nd) {
         assert(nd && "nullptr passed as nd");
         // the node must be isolated
-        assert(nd->successors.empty() && "The node is still in graph");
-        assert(nd->predecessors.empty() && "The node is still in graph");
+        assert(nd->successors().empty() && "The node is still in graph");
+        assert(nd->predecessors().empty() && "The node is still in graph");
         assert(nd->getID() < size() && "Invalid ID");
         assert(nd->getID() > 0 && "Invalid ID");
         assert(nd->users.empty() && "This node is used by other nodes");
@@ -353,7 +353,7 @@ public:
                     }
                 }
 
-                for (auto s : cur->getSuccessors())
+                for (auto s : cur->successors())
                     Dispatch(s);
             }
         };
@@ -388,7 +388,7 @@ getReachableNodes(PSNode *n,
         if (!cont.insert(cur).second)
             continue; // we already visited this node
 
-        for (PSNode *succ : cur->getSuccessors()) {
+        for (PSNode *succ : cur->successors()) {
             assert(succ != nullptr);
 
             if (succ == exit)

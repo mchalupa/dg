@@ -8,9 +8,9 @@
 using namespace dg;
 
 struct Node {
-    std::vector<Node *> successors;
-    const std::vector<Node *>& getSuccessors() const { return successors; }
-    void addSuccessor(Node *s) { successors.push_back(s); }
+    std::vector<Node *> _successors;
+    const std::vector<Node *>& successors() const { return _successors; }
+    void addSuccessor(Node *s) { _successors.push_back(s); }
 };
 
 TEST_CASE("NodesWalk1", "NodesWalk") {

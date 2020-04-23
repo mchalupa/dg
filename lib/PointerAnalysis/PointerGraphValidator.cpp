@@ -169,7 +169,7 @@ bool PointerGraphValidator::checkOperands() {
 }
 
 static inline bool isInPredecessors(const PSNode *nd, const PSNode *of) {
-    for (const PSNode *pred: of->getPredecessors()) {
+    for (const PSNode *pred: of->predecessors()) {
         if (pred == nd)
             return true;
     }
@@ -200,7 +200,7 @@ std::set<const PSNode *> reachableNodes(const PSNode *nd) {
         new_to_process.reserve(to_process.size());
 
         for (const PSNode *cur : to_process) {
-            for (const PSNode *succ : cur->getSuccessors()) {
+            for (const PSNode *succ : cur->successors()) {
                 if (reachable.insert(succ).second)
                     new_to_process.push_back(succ);
             }
@@ -228,7 +228,7 @@ bool PointerGraphValidator::checkEdges() {
             }
         }
 
-        for (const PSNode *succ : nd->getSuccessors()) {
+        for (const PSNode *succ : nd->successors()) {
             if (!isInPredecessors(nd.get(), succ))
                 invalid |= reportInvalEdges(nd.get(), "Node not set as a predecessor of some of its successors");
         }

@@ -250,7 +250,7 @@ static bool mmChanged(PSNode *n)
     PointerAnalysisFS::MemoryMapT *mm
         = n->getData<PointerAnalysisFS::MemoryMapT>();
 
-    for (PSNode *pred : n->getPredecessors()) {
+    for (PSNode *pred : n->predecessors()) {
         if (pred->getData<PointerAnalysisFS::MemoryMapT>() != mm)
             return true;
     }
@@ -400,7 +400,7 @@ dumpNodeToDot(PSNode *node, PTType type)
 static void
 dumpNodeEdgesToDot(PSNode *node)
 {
-    for (PSNode *succ : node->getSuccessors()) {
+    for (PSNode *succ : node->successors()) {
         printf("\tNODE%u -> NODE%u [penwidth=2]\n",
                node->getID(), succ->getID());
     }
