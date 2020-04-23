@@ -23,20 +23,20 @@ struct SuccessorsEdgeChooser {
     public:
         range(Node *n) : _node(n) {}
 
-        auto begin() -> decltype(_node->getSuccessors().begin()) {
-            return _node->getSuccessors().begin();
+        auto begin() -> decltype(_node->successors().begin()) {
+            return _node->successors().begin();
         }
 
-        auto end() -> decltype(_node->getSuccessors().end()) {
-            return _node->getSuccessors().end();
+        auto end() -> decltype(_node->successors().end()) {
+            return _node->successors().end();
         }
 
-        auto begin() const -> decltype(_node->getSuccessors().begin()) {
-            return _node->getSuccessors().begin();
+        auto begin() const -> decltype(_node->successors().begin()) {
+            return _node->successors().begin();
         }
 
-        auto end() const -> decltype(_node->getSuccessors().end()) {
-            return _node->getSuccessors().end();
+        auto end() const -> decltype(_node->successors().end()) {
+            return _node->successors().end();
         }
     };
 

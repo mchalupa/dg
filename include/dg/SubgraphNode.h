@@ -44,8 +44,8 @@ public:
 
 protected:
     // XXX: make those private!
-    NodesVec successors;
-    NodesVec predecessors;
+    NodesVec _successors;
+    NodesVec _predecessors;
     // XXX: maybe we could use SmallPtrVector or something like that
     NodesVec operands;
     // nodes that use this node
@@ -144,14 +144,14 @@ public:
 
     void addSuccessor(NodeT *succ) {
         assert(succ && "Passed nullptr as the successor");
-        successors.push_back(succ);
-        succ->predecessors.push_back(static_cast<NodeT *>(this));
+        _successors.push_back(succ);
+        succ->_predecessors.push_back(static_cast<NodeT *>(this));
     }
 
     // return const only, so that we cannot change them
     // other way then addSuccessor()
-    const NodesVec& getSuccessors() const { return successors; }
-    const NodesVec& getPredecessors() const { return predecessors; }
+    const NodesVec& successors() const { return _successors; }
+    const NodesVec& predecessors() const { return _predecessors; }
     const NodesVec& getOperands() const { return operands; }
     const NodesVec& getUsers() const { return users; }
 
@@ -162,43 +162,43 @@ public:
     }
 
     void removeSingleSuccessor() {
-        assert(successors.size() == 1);
+        assert(_successors.size() == 1);
 
         // we need to remove this node from
         // successor's predecessors
-        _removeThisFromSuccessorsPredecessors(successors[0]);
+        _removeThisFromSuccessorsPredecessors(_successors[0]);
 
         // remove the successor
-        successors.clear();
+        _successors.clear();
     }
 
 
     // get the successor when we know there's only one of them
     NodeT *getSingleSuccessor() const {
-        assert(successors.size() == 1);
-        return successors.front();
+        assert(_successors.size() == 1);
+        return _successors.front();
     }
 
     // get the successor when there's only one of them,
     // otherwise get null
     NodeT *getSingleSuccessorOrNull() const {
-        if (successors.size() == 1)
-            return successors.front();
+        if (_successors.size() == 1)
+            return _successors.front();
 
         return nullptr;
     }
 
     // get the predecessor when we know there's only one of them
     NodeT *getSinglePredecessor() const {
-        assert(predecessors.size() == 1);
-        return predecessors.front();
+        assert(_predecessors.size() == 1);
+        return _predecessors.front();
     }
 
     // get the predecessor when there's only one of them,
     // or get null
     NodeT *getSinglePredecessorOrNull() const {
-        if (predecessors.size() == 1)
-            return predecessors.front();
+        if (_predecessors.size() == 1)
+            return _predecessors.front();
 
         return nullptr;
     }
@@ -211,16 +211,16 @@ public:
         assert(successorsNum() == 0);
 
         // take over successors
-        successors.swap(n->successors);
+        _successors.swap(n->_successors);
 
         // make this node the successor of n
         n->addSuccessor(static_cast<NodeT *>(this));
 
         // replace the reference to n in successors
-        for (NodeT *succ : successors) {
+        for (NodeT *succ : _successors) {
             for (unsigned i = 0; i < succ->predecessorsNum(); ++i) {
-                if (succ->predecessors[i] == n)
-                    succ->predecessors[i] = static_cast<NodeT *>(this);
+                if (succ->_predecessors[i] == n)
+                    succ->_predecessors[i] = static_cast<NodeT *>(this);
             }
         }
     }
@@ -233,16 +233,16 @@ public:
         assert(successorsNum() == 0);
 
         // take over predecessors
-        predecessors.swap(n->predecessors);
+        _predecessors.swap(n->_predecessors);
 
         // 'n' is a successors of this node
         addSuccessor(n);
 
         // replace the reference to n in predecessors
-        for (NodeT *pred : predecessors) {
+        for (NodeT *pred : _predecessors) {
             for (unsigned i = 0; i < pred->successorsNum(); ++i) {
-                if (pred->successors[i] == n)
-                    pred->successors[i] = static_cast<NodeT *>(this);
+                if (pred->_successors[i] == n)
+                    pred->_successors[i] = static_cast<NodeT *>(this);
             }
         }
     }
@@ -257,13 +257,13 @@ public:
         // first node of the sequence takes over predecessors
         // this also clears 'this->predecessors' since seq.first
         // has no predecessors
-        predecessors.swap(seq.first->predecessors);
+        _predecessors.swap(seq.first->_predecessors);
 
         // replace the reference to 'this' in predecessors
-        for (NodeT *pred : seq.first->predecessors) {
+        for (NodeT *pred : seq.first->_predecessors) {
             for (unsigned i = 0; i < pred->successorsNum(); ++i) {
-                if (pred->successors[i] == this)
-                    pred->successors[i] = seq.first;
+                if (pred->_successors[i] == this)
+                    pred->_successors[i] = seq.first;
             }
         }
 
@@ -273,41 +273,41 @@ public:
 
     void isolate() {
         // Remove this node from successors of the predecessors
-        for (NodeT *pred : predecessors) {
+        for (NodeT *pred : _predecessors) {
             std::vector<NodeT *> new_succs;
-            new_succs.reserve(pred->successors.size());
+            new_succs.reserve(pred->_successors.size());
 
-            for (NodeT *n : pred->successors) {
+            for (NodeT *n : pred->_successors) {
                 if (n != this)
                     new_succs.push_back(n);
             }
 
-            new_succs.swap(pred->successors);
+            new_succs.swap(pred->_successors);
         }
 
         // remove this nodes from successors' predecessors
-        for (NodeT *succ : successors) {
+        for (NodeT *succ : _successors) {
             std::vector<NodeT *> new_preds;
-            new_preds.reserve(succ->predecessors.size());
+            new_preds.reserve(succ->_predecessors.size());
 
-            for (NodeT *n : succ->predecessors) {
+            for (NodeT *n : succ->_predecessors) {
                 if (n != this)
                     new_preds.push_back(n);
             }
 
-            new_preds.swap(succ->predecessors);
+            new_preds.swap(succ->_predecessors);
         }
 
         // Take every predecessor and connect it to every successor.
-        for (NodeT *pred : predecessors) {
-            for (NodeT *succ : successors) {
+        for (NodeT *pred : _predecessors) {
+            for (NodeT *succ : _successors) {
                 assert(succ != this && "Self-loop");
                 pred->addSuccessor(succ);
             }
         }
 
-        successors.clear();
-        predecessors.clear();
+        _successors.clear();
+        _predecessors.clear();
     }
 
     void replaceAllUsesWith(NodeT *nd, bool removeDupl = false) {
@@ -331,11 +331,11 @@ public:
     }
 
     size_t predecessorsNum() const {
-        return predecessors.size();
+        return _predecessors.size();
     }
 
     size_t successorsNum() const {
-        return successors.size();
+        return _successors.size();
     }
 
 #ifndef NDEBUG
@@ -358,12 +358,12 @@ private:
     void _removeThisFromSuccessorsPredecessors(NodeT *succ) {
         std::vector<NodeT *> tmp;
         tmp.reserve(succ->predecessorsNum());
-        for (NodeT *p : succ->predecessors) {
+        for (NodeT *p : succ->_predecessors) {
             if (p != this)
                 tmp.push_back(p);
         }
 
-        succ->predecessors.swap(tmp);
+        succ->_predecessors.swap(tmp);
     }
 
     bool removeDuplicitOperands() {

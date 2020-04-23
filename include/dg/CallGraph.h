@@ -49,7 +49,7 @@ public:
 
         const std::vector<FuncNode *>& getCalls() const { return _calls; }
         // alias for getCalls()
-        const std::vector<FuncNode *>& getSuccessors() const { return getCalls(); }
+        const std::vector<FuncNode *>& successors() const { return getCalls(); }
         const std::vector<FuncNode *>& getCallers() const { return _callers; }
 
         const ValueT& getValue() const { return value; };

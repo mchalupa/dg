@@ -31,8 +31,8 @@ public:
     auto pred_begin() const -> decltype(_predecessors.begin()) { return _predecessors.begin(); }
     auto pred_end() const -> decltype(_predecessors.begin()) { return _predecessors.end(); }
 
-    const EdgesT getSuccessors() const { return _successors; }
-    const EdgesT getPredecessors() const { return _predecessors; }
+    const EdgesT successors() const { return _successors; }
+    const EdgesT predecessors() const { return _predecessors; }
 
     bool hasSuccessors() const { return !_successors.empty(); }
     bool hasPredecessors() const { return !_predecessors.empty(); }

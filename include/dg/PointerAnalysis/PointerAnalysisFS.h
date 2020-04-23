@@ -90,7 +90,7 @@ public:
         // and this is not a store, the memory map couldn't
         // change, so we don't have to do that)
         if (needsMerge(n)) {
-            for (PSNode *p : n->getPredecessors()) {
+            for (PSNode *p : n->predecessors()) {
                 if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
                     // merge pm to mm (but only if pm was already created)
                     changed |= mergeMaps(mm, pm, overwritten);
