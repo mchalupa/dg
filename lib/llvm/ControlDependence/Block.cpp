@@ -27,46 +27,6 @@ namespace cd {
 
 int Block::traversalCounter = 0;
 
-const std::set<Block *> &Block::predecessors() const{
-    return predecessors_;
-}
-
-const std::set<Block *> &Block::successors() const {
-    return successors_;
-}
-
-bool Block::addPredecessor(Block *predecessor) {
-    if (!predecessor) {
-        return false;
-    }
-    predecessors_.insert(predecessor);
-    return predecessor->successors_.insert(this).second;
-}
-
-bool Block::removePredecessor(Block *predecessor) {
-    if (!predecessor) {
-        return false;
-    }
-    predecessors_.erase(predecessor);
-    return predecessor->successors_.erase(this);
-}
-
-bool Block::addSuccessor(Block *successor) {
-    if (!successor) {
-        return false;
-    }
-    successors_.insert(successor);
-    return successor->predecessors_.insert(this).second;
-}
-
-bool Block::removeSuccessor(Block *successor) {
-    if (!successor) {
-        return false;
-    }
-    successors_.erase(successor);
-    return successor->predecessors_.erase(this);
-}
-
 const llvm::Instruction *Block::lastInstruction() const {
     if (!llvmInstructions_.empty()) {
         return llvmInstructions_.back();
@@ -147,8 +107,8 @@ bool Block::isExit() const {
 const llvm::BasicBlock *Block::llvmBlock() const {
     if (!llvmInstructions_.empty()) {
         return llvmInstructions_.back()->getParent();
-    } else if (!predecessors_.empty()) {
-        for (auto predecessor : predecessors_) {
+    } else if (!predecessors().empty()) {
+        for (auto predecessor : predecessors()) {
             if (predecessor->llvmInstructions_.size() > 0) {
                 return predecessor->llvmInstructions_.back()->getParent();
             }
@@ -189,7 +149,7 @@ std::string Block::label() const {
 
 void Block::visit() {
     this->traversalId();
-    for (auto successor : successors_) {
+    for (auto successor : successors()) {
         if (successor->bfsId() == 0) {
             successor->visit();
         }
@@ -202,7 +162,7 @@ void Block::dumpNode(std::ostream &ostream) const {
 }
 
 void Block::dumpEdges(std::ostream &ostream) const {
-    for (auto successor : successors_) {
+    for (auto successor : successors()) {
         ostream << this->dotName() << " -> " << successor->dotName() << "\n";
     }
 
