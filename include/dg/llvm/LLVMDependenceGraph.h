@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
+#include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 
 // forward declaration of llvm classes
@@ -26,13 +27,6 @@ namespace llvm {
 #include "dg/DependenceGraph.h"
 
 namespace dg {
-
-enum class CD_ALG {
-    // Ferrante & Ottenstein
-    CLASSIC,
-    // non-termination sensitive control dependencies
-    NTSCD
-};
 
 // forward declaration
 class LLVMPointerAnalysis;
@@ -125,17 +119,16 @@ public:
     void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
     void addNoreturnDependencies();
 
-    void computeControlDependencies(CD_ALG alg_type, bool terminSensitive = true)
-    {
-        if (alg_type == CD_ALG::CLASSIC) {
+    void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts) {
+        if (opts.standardCD()) {
             computePostDominators(true);
             //makeSelfLoopsControlDependent();
-        } else if (alg_type == CD_ALG::NTSCD) {
+        } else if (opts.ntscdCD()) {
             computeNonTerminationControlDependencies();
         } else
             abort();
 
-        if (terminSensitive)
+        if (opts.interproceduralCD())
             addNoreturnDependencies();
     }
 

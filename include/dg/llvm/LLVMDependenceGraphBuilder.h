@@ -25,6 +25,7 @@
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #ifdef HAVE_SVF
@@ -49,11 +50,7 @@ namespace llvmdg {
 struct LLVMDependenceGraphOptions {
     LLVMPointerAnalysisOptions PTAOptions{};
     LLVMDataDependenceAnalysisOptions DDAOptions{};
-
-    // take into account interprocedural control dependencies
-    // (raising e.g., from calls to exit() which terminates the program)
-    bool interprocCd{true};
-    CD_ALG cdAlgorithm{CD_ALG::CLASSIC};
+    LLVMControlDependenceAnalysisOptions CDAOptions{};
 
     bool verifyGraph{true};
 
@@ -108,8 +105,7 @@ class LLVMDependenceGraphBuilder {
 
     void _runControlDependenceAnalysis() {
         _timerStart();
-        _dg->computeControlDependencies(_options.cdAlgorithm,
-                                        _options.interprocCd);
+        _dg->computeControlDependencies(_options.CDAOptions);
         _statistics.cdTime = _timerEnd();
     }
 
