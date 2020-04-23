@@ -3,6 +3,7 @@
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -194,16 +195,22 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
         llvm::cl::init(LLVMDataDependenceAnalysisOptions::AnalysisType::ssa),
                        llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<dg::CD_ALG> cdAlgorithm("cd-alg",
+    // FIXME: rename to -cda ?
+    llvm::cl::opt<dg::ControlDependenceAnalysisOptions::CDAlgorithm> cdAlgorithm("cd-alg",
         llvm::cl::desc("Choose control dependencies algorithm to use:"),
         llvm::cl::values(
-            clEnumValN(dg::CD_ALG::CLASSIC , "classic", "Ferrante's algorithm (default)"),
-            clEnumValN(dg::CD_ALG::NTSCD, "ntscd", "Non-termination sensitive control dependencies algorithm")
+            clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD,
+                       "standard", "Ferrante's algorithm (default)"),
+            clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD,
+                       "classic", "Alias to \"standard\""),
+            clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD,
+                       "ntscd", "Non-termination sensitive control dependencies algorithm")
     #if LLVM_VERSION_MAJOR < 4
             , nullptr
     #endif
              ),
-        llvm::cl::init(dg::CD_ALG::CLASSIC), llvm::cl::cat(SlicingOpts));
+        llvm::cl::init(dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD),
+        llvm::cl::cat(SlicingOpts));
 
     ////////////////////////////////////
     // ===-- End of the options --=== //
@@ -236,12 +243,14 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
     auto& dgOptions = options.dgOptions;
     auto& PTAOptions = dgOptions.PTAOptions;
     auto& DDAOptions = dgOptions.DDAOptions;
+    auto& CDAOptions = dgOptions.CDAOptions;
 
     dgOptions.entryFunction = entryFunction;
     dgOptions.threads = threads;
+
     // FIXME: add options class for CD
-    dgOptions.cdAlgorithm = cdAlgorithm;
-    dgOptions.interprocCd = interprocCd;
+    CDAOptions.algorithm = cdAlgorithm;
+    CDAOptions.interprocedural = interprocCd;
 
     addAllocationFuns(dgOptions, allocationFuns);
 

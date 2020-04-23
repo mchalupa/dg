@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
     const char *entry_func = "main";
-    CD_ALG cd_alg = CD_ALG::CLASSIC;
+    LLVMControlDependenceAnalysisOptions::CDAlgorithm cd_alg;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
@@ -111,10 +111,12 @@ int main(int argc, char *argv[])
             entry_func = argv[++i];
         } else if (strcmp(argv[i], "-cd-alg") == 0) {
             const char *arg = argv[++i];
-            if (strcmp(arg, "classic") == 0)
-                cd_alg = CD_ALG::CLASSIC;
+            if (strcmp(arg, "standard") == 0)
+                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
+            else if (strcmp(arg, "classic") == 0)
+                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
             else if (strcmp(arg, "ntscd") == 0)
-                cd_alg = CD_ALG::NTSCD;
+                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::NTSCD;
             else {
                 errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
                 abort();
@@ -146,7 +148,7 @@ int main(int argc, char *argv[])
 
     llvmdg::LLVMDependenceGraphOptions options;
 
-    options.cdAlgorithm = cd_alg;
+    options.CDAOptions.algorithm = cd_alg;
     options.threads = threads;
     options.PTAOptions.threads = threads;
     options.DDAOptions.threads = threads;
