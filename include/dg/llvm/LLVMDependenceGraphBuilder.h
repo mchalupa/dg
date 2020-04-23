@@ -25,6 +25,7 @@
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
@@ -53,7 +54,6 @@ struct LLVMDependenceGraphOptions {
     LLVMControlDependenceAnalysisOptions CDAOptions{};
 
     bool verifyGraph{true};
-
     bool threads{false};
 
     std::string entryFunction{"main"};
@@ -70,12 +70,13 @@ class LLVMDependenceGraphBuilder {
     const LLVMDependenceGraphOptions _options;
     std::unique_ptr<LLVMPointerAnalysis> _PTA{};
     std::unique_ptr<LLVMDataDependenceAnalysis> _DDA{nullptr};
+    std::unique_ptr<LLVMControlDependenceAnalysis> _CDA{nullptr};
     std::unique_ptr<LLVMDependenceGraph> _dg{};
     std::unique_ptr<ControlFlowGraph> _controlFlowGraph{};
     llvm::Function *_entryFunction{nullptr};
 
     struct Statistics {
-        uint64_t cdTime{0};
+        uint64_t cdaTime{0};
         uint64_t ptaTime{0};
         uint64_t rdaTime{0};
         uint64_t inferaTime{0};
@@ -105,8 +106,8 @@ class LLVMDependenceGraphBuilder {
 
     void _runControlDependenceAnalysis() {
         _timerStart();
-        _dg->computeControlDependencies(_options.CDAOptions);
-        _statistics.cdTime = _timerEnd();
+        _CDA->run();
+        _statistics.cdaTime = _timerEnd();
     }
 
     void _runInterferenceDependenceAnalysis() {
@@ -141,6 +142,7 @@ public:
       _PTA(createPTA()),
       _DDA(new LLVMDataDependenceAnalysis(M, _PTA.get(),
                                           _options.DDAOptions)),
+      _CDA(new LLVMControlDependenceAnalysis(M, _options.CDAOptions)),
       _dg(new LLVMDependenceGraph(opts.threads)),
       _controlFlowGraph(_options.threads && !_options.PTAOptions.isSVF() ? // check SVF due to the static cast...
             new ControlFlowGraph(static_cast<DGLLVMPointerAnalysis*>(_PTA.get())) : nullptr),
