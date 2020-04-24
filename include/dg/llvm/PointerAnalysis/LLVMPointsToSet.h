@@ -114,7 +114,7 @@ class LLVMMemoryRegionSet {
     // (llvm::Value corresponding to the allocation)
     MappingT _regions;
 
-    std::tuple<Offset, Offset> _extend(const OffsetPair interval,
+    std::pair<Offset, Offset> _extend(const OffsetPair interval,
                        const Offset off, const Offset len) {
         assert(interval.overlaps(off, len));
         assert(!off.isUnknown());
