@@ -6,8 +6,6 @@
 #include <map>
 #include <iosfwd>
 
-#include "dg/BBlockBase.h"
-
 namespace llvm {
     class Instruction;
     class Function;
@@ -19,11 +17,21 @@ namespace cd {
 
 class Function;
 
-class Block;
-class Block : public BBlockBase<Block> {
+class Block {
 public:
 
     Block(bool callReturn = false):callReturn(callReturn) {}
+
+    // FIXME: make vector
+    const std::set<Block *> & predecessors() const;
+
+    const std::set<Block *> & successors() const;
+
+    bool addPredecessor(Block * predecessor);
+    bool removePredecessor(Block * predecessor);
+
+    bool addSuccessor(Block * successor);
+    bool removeSuccessor(Block * successor);
 
     const std::vector<const llvm::Instruction *> & llvmInstructions() const { return llvmInstructions_; }
 
@@ -68,6 +76,9 @@ private:
     static int traversalCounter;
 
     std::vector<const llvm::Instruction *> llvmInstructions_;
+
+    std::set<Block *> predecessors_;
+    std::set<Block *> successors_;
 
     bool callReturn = false;
     int traversalId_       = 0;
