@@ -102,7 +102,11 @@ target_include_directories(dgllvmthreadregions
 target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmcda SHARED llvm/ControlDependence/ControlDependence.cpp)
-include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/ControlDependence/CMakeLists.txt)
+target_sources(dgllvmcda
+    PRIVATE llvm/ControlDependence/Block.cpp
+            llvm/ControlDependence/Function.cpp
+            llvm/ControlDependence/GraphBuilder.cpp
+            llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.cpp)
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED
