@@ -12,6 +12,7 @@
 namespace dg {
 namespace cd {
 
+// FIXME: we've got this and SCC, unify it
 template <typename T>
 class TarjanAnalysis
 {
