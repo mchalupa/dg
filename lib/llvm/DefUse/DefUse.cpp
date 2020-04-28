@@ -86,36 +86,11 @@ void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
         addReturnEdge(node, subgraph);
 }
 
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node, llvm::Value *rdval)
-{
-    LLVMNode *rdnode = dg->getNode(rdval);
-    if (!rdnode) {
-        // that means that the value is not from this graph.
-        // We need to add interprocedural edge
-        llvm::Function *F
-            = llvm::cast<llvm::Instruction>(rdval)->getParent()->getParent();
-        LLVMNode *entryNode = dg->getGlobalNode(F);
-        assert(entryNode && "Don't have built function");
-
-        // get the graph where the node lives
-        LLVMDependenceGraph *graph = entryNode->getDG();
-        assert(graph != dg && "Cannot find a node");
-        rdnode = graph->getNode(rdval);
-        if (!rdnode) {
-            llvmutils::printerr("[DU] error: DG doesn't have val: ", rdval);
-            abort();
-            return;
-        }
-    }
-
-    assert(rdnode);
-    rdnode->addDataDependence(node);
-}
-
-void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
-                                           const std::vector<llvm::Value *>& defs)
-{
+void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
     static std::set<const llvm::Value *> reported_mappings;
+
+    auto val = node->getValue();
+    auto defs = RD->getLLVMDefinitions(val);
 
     if (defs.empty()) {
         static std::set<const llvm::Value *> reported;
@@ -128,7 +103,28 @@ void LLVMDefUseAnalysis::addDataDependence(LLVMNode *node,
 
     // add data dependence
     for (auto def : defs) {
-        addDataDependence(node, def);
+        LLVMNode *rdnode = dg->getNode(def);
+        if (!rdnode) {
+            // that means that the value is not from this graph.
+            // We need to add interprocedural edge
+            llvm::Function *F
+                = llvm::cast<llvm::Instruction>(def)->getParent()->getParent();
+            LLVMNode *entryNode = dg->getGlobalNode(F);
+            assert(entryNode && "Don't have built function");
+
+            // get the graph where the node lives
+            LLVMDependenceGraph *graph = entryNode->getDG();
+            assert(graph != dg && "Cannot find a node");
+            rdnode = graph->getNode(def);
+            if (!rdnode) {
+                llvmutils::printerr("[DU] error: DG doesn't have val: ", def);
+                abort();
+                return;
+            }
+        }
+
+        assert(rdnode);
+        rdnode->addDataDependence(node);
     }
 }
 
@@ -145,7 +141,7 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
     }
 
     if (RD->isUse(val)) {
-        addDataDependence(node, RD->getLLVMDefinitions(val));
+        addDataDependencies(node);
     }
 
     // we will run only once
