@@ -54,10 +54,7 @@ public:
     /* virtual */
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
 private:
-    void addDataDependence(LLVMNode *node,
-                           const std::vector<llvm::Value *>& defs);
-
-    void addDataDependence(LLVMNode *node, llvm::Value *val);
+    void addDataDependencies(LLVMNode *node);
 
     void handleLoadInst(llvm::LoadInst *, LLVMNode *);
     void handleCallInst(LLVMNode *);
