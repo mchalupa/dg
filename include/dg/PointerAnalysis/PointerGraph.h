@@ -3,7 +3,7 @@
 
 #include "dg/ADT/Queue.h"
 #include "dg/SubgraphNode.h"
-#include "dg/CallGraph.h"
+#include "dg/CallGraph/CallGraph.h"
 #include "dg/PointerAnalysis/PSNode.h"
 #include "dg/BFS.h"
 #include "dg/SCC.h"
