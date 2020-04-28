@@ -207,6 +207,44 @@ protected:
         DBG_SECTION_END(rwg, "Building the subgraph done");
     }
 
+    void buildAllFuns() {
+        DBG(rwg, "Building all functions from LLVM module");
+        for (auto& F : *_module) {
+            assert(_subgraphs.find(&F) == _subgraphs.end()
+                   && "Already have that subgraph");
+            auto& subg = createSubgraph(&F);
+            subg.setName(F.getName().str());
+            _subgraphs.emplace(&F, subg);
+        }
+
+        // now do the real thing
+        for (auto& F : *_module) {
+            if (!F.isDeclaration()) {
+                buildSubgraph(F);
+            }
+        }
+    }
+
+    void buildFunsFromCG(llvmdg::CallGraph *cg) {
+        auto funs = cg->functions();
+        for (auto *F : funs) {
+            DBG(rwg, "Building functions based on call graph information");
+            assert(_subgraphs.find(F) == _subgraphs.end()
+                   && "Already have that subgraph");
+            auto& subg = createSubgraph(F);
+            subg.setName(F->getName().str());
+            _subgraphs.emplace(F, subg);
+        }
+
+        // now do the real thing
+        for (auto *F : funs) {
+           if (!F->isDeclaration()) {
+               buildSubgraph(*F);
+           }
+        }
+    }
+
+
 public:
     GraphBuilder(const llvm::Module *m) : _module(m) {}
     virtual ~GraphBuilder() = default;
@@ -261,34 +299,10 @@ public:
         // create emtpy subgraphs for each procedure,
         // so that calls can use them as operands
 
-        // FIXME:
-        // build only reachable calls from CallGraph
-        // (if given as an argument)
         if (cg) {
-            for (auto *F : cg->functions()) {
-                DBG(rwg, "Building functions based on call graph information");
-                assert(_subgraphs.find(F) == _subgraphs.end()
-                       && "Already have that subgraph");
-                auto& subg = createSubgraph(F);
-                subg.setName(F->getName().str());
-                _subgraphs.emplace(F, subg);
-            }
+            buildFunsFromCG(cg);
         } else {
-                DBG(rwg, "Building all functions from LLVM module");
-            for (auto& F : *_module) {
-                assert(_subgraphs.find(&F) == _subgraphs.end()
-                       && "Already have that subgraph");
-                auto& subg = createSubgraph(&F);
-                subg.setName(F.getName().str());
-                _subgraphs.emplace(&F, subg);
-            }
-        }
-
-        // now do the real thing
-        for (auto& F : *_module) {
-            if (!F.isDeclaration()) {
-                buildSubgraph(F);
-            }
+            buildAllFuns();
         }
     }
 };
@@ -335,8 +349,14 @@ public:
         : GraphBuilder(m), _options(opts), PTA(p) {}
 
     ReadWriteGraph&& build() {
-        // FIXME: pass a call-graph object to build only reachable functions
-        buildFromLLVM();
+        // FIXME: this is a bit of a hack
+        if (!PTA->getOptions().isSVF()) {
+            auto dgpta = static_cast<DGLLVMPointerAnalysis *>(PTA);
+            llvmdg::CallGraph CG(dgpta->getPTA()->getPG()->getCallGraph());
+            buildFromLLVM(&CG);
+        } else {
+            buildFromLLVM();
+        }
         
         auto *entry = getModule()->getFunction(_options.entryFunction);
         assert(entry && "Did not find the entry function");
