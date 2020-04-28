@@ -28,6 +28,7 @@
 #include "dg/ReadWriteGraph/ReadWriteGraph.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/CallGraph/CallGraph.h"
 #include "dg/ADT/SetQueue.h"
 
 #ifndef NDEBUG
@@ -252,7 +253,7 @@ public:
     virtual BBlockT& createBBlock(const llvm::BasicBlock *, SubgraphT&) = 0;
     virtual SubgraphT& createSubgraph(const llvm::Function *) = 0;
 
-    void buildFromLLVM() {
+    void buildFromLLVM(llvmdg::CallGraph *cg = nullptr) {
         assert(_module && "Do not have the LLVM module");
 
         buildGlobals();
@@ -263,12 +264,24 @@ public:
         // FIXME:
         // build only reachable calls from CallGraph
         // (if given as an argument)
-        for (auto& F : *_module) {
-            assert(_subgraphs.find(&F) == _subgraphs.end()
-                   && "Already have that subgraph");
-            auto& subg = createSubgraph(&F);
-            subg.setName(F.getName().str());
-            _subgraphs.emplace(&F, subg);
+        if (cg) {
+            for (auto *F : cg->functions()) {
+                DBG(rwg, "Building functions based on call graph information");
+                assert(_subgraphs.find(F) == _subgraphs.end()
+                       && "Already have that subgraph");
+                auto& subg = createSubgraph(F);
+                subg.setName(F->getName().str());
+                _subgraphs.emplace(F, subg);
+            }
+        } else {
+                DBG(rwg, "Building all functions from LLVM module");
+            for (auto& F : *_module) {
+                assert(_subgraphs.find(&F) == _subgraphs.end()
+                       && "Already have that subgraph");
+                auto& subg = createSubgraph(&F);
+                subg.setName(F.getName().str());
+                _subgraphs.emplace(&F, subg);
+            }
         }
 
         // now do the real thing
@@ -322,6 +335,7 @@ public:
         : GraphBuilder(m), _options(opts), PTA(p) {}
 
     ReadWriteGraph&& build() {
+        // FIXME: pass a call-graph object to build only reachable functions
         buildFromLLVM();
         
         auto *entry = getModule()->getFunction(_options.entryFunction);
