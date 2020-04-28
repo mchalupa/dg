@@ -16,7 +16,7 @@ public:
         std::vector<FuncNode *> _callers;
 
         template <typename Cont>
-        bool _contains(FuncNode *x, const Cont& C) const {
+        bool _contains(const FuncNode *x, const Cont& C) const {
             for (auto s : C) {
                 if (s == x)
                     return true;
@@ -30,7 +30,7 @@ public:
         FuncNode(unsigned id, const ValueT& nd) : _id(id), value(nd) {};
         FuncNode(FuncNode&&) = default;
 
-        bool calls(FuncNode *x) const { return _contains(x, _calls); }
+        bool calls(const FuncNode *x) const { return _contains(x, _calls); }
         bool isCalledBy(FuncNode *x) const { return _contains(x, _callers); }
 
         unsigned getID() const { return _id; }
