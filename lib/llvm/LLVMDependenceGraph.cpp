@@ -47,6 +47,7 @@
 
 #include "llvm/LLVMDGVerifier.h"
 #include "llvm-utils.h"
+#include "dg/util/debug.h"
 
 #include "dg/ADT/Queue.h"
 
@@ -121,12 +122,14 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
 static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
 {
+    DBG_SECTION_BEGIN(llvmdg, "Building globals");
     // create a container for globals,
     // it will be inherited to subgraphs
     dg->allocateGlobalNodes();
 
     for (auto I = m->global_begin(), E = m->global_end(); I != E; ++I)
         dg->addGlobalNode(new LLVMNode(&*I));
+    DBG_SECTION_END(llvmdg, "Done building globals");
 }
 
 bool LLVMDependenceGraph::verify() const
@@ -148,8 +151,8 @@ LLVMNode *LLVMDependenceGraph::findNode(llvm::Value * value) const {
     }
 }
 
-bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
-{
+bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry) {
+    DBG_SECTION_BEGIN(llvmdg, "Building dependence graphs for the module");
     // get entry function if not given
     if (entry)
         entryFunction = entry;
@@ -170,6 +173,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry)
     // build recursively DG from entry point
     build(entryFunction);
 
+    DBG_SECTION_END(llvmdg, "Done building dependence graphs for the module");
     return true;
 };
 
@@ -535,6 +539,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
 
 LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
 {
+    DBG(llvmdg, "Building basic block");
     using namespace llvm;
 
     LLVMBBlock *BB = new LLVMBBlock();
@@ -688,6 +693,8 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
     assert(func && "Passed no func");
 
+    DBG_SECTION_BEGIN(llvmdg, "Building function " << func->getName().str());
+
     // do we have anything to process?
     if (func->size() == 0)
         return false;
@@ -718,6 +725,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     assert(blocks.size() == func->size()
             && "Did not created all blocks");
 
+    DBG(llvmdg, "Adding CFG structure to function " << func->getName().str());
     // add CFG edges
     for (auto& it : blocks) {
         BasicBlock *llvmBB = cast<BasicBlock>(it.first);
@@ -760,6 +768,8 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
 
     // add CFG edge from entry point to the first instruction
     entry->addControlDependence(getEntryBB()->getFirstNode());
+
+    DBG_SECTION_END(llvmdg, "Done building function " << func->getName().str());
 
     return true;
 }
