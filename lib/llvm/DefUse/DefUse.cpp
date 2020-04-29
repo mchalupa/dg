@@ -92,15 +92,6 @@ void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
     auto val = node->getValue();
     auto defs = RD->getLLVMDefinitions(val);
 
-    if (defs.empty()) {
-        static std::set<const llvm::Value *> reported;
-        if (reported.insert(node->getValue()).second) {
-            llvm::errs() << "[DU] error: no reaching definition for: "
-                         << *node->getValue() << "\n";
-        }
-        return;
-    }
-
     // add data dependence
     for (auto def : defs) {
         LLVMNode *rdnode = dg->getNode(def);
@@ -109,8 +100,6 @@ void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
             // We need to add interprocedural edge
             llvm::Function *F
                 = llvm::cast<llvm::Instruction>(def)->getParent()->getParent();
-            llvm::errs() << "def: " << *def << "\n";
-            llvm::errs() << "F: " << F->getName() << "\n";
             LLVMNode *entryNode = dg->getGlobalNode(F);
             assert(entryNode && "Don't have built function");
 
