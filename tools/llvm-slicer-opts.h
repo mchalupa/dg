@@ -2,7 +2,23 @@
 #define  _DG_TOOLS_LLVM_SLICER_OPTS_H_
 
 #include <vector>
+
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
 #include <llvm/Support/CommandLine.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
 
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 
