@@ -71,13 +71,22 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
     }
 
     auto rdDefs = getDefinitions(whereN, memN, off, len);
+#ifndef NDEBUG
     if (rdDefs.empty()) {
-        static std::set<std::pair<const llvm::Value *, const llvm::Value *>> reported;
-        if (reported.insert({where, mem}).second) {
-            llvm::errs() << "[DDA] error: no reaching definition for: "
-                         << *mem << "at " << *where << "\n";
+        if (llvm::isa<llvm::GlobalVariable>(mem)
+            && (getOptions().entryFunction
+                == where->getParent()->getParent()->getName().str())) {
+            // we're in the entry function and the memory is global,
+            // no need to worry
+        } else {
+            static std::set<std::pair<const llvm::Value *, const llvm::Value *>> reported;
+            if (reported.insert({where, mem}).second) {
+                llvm::errs() << "[DDA] warn: no definition for: "
+                             << *mem << "at " << *where << "\n";
+            }
         }
     }
+#endif // NDEBUG
 
     // map the values
     for (RWNode *nd : rdDefs) {
@@ -115,10 +124,12 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
 
     auto rdDefs = getDefinitions(loc);
     if (rdDefs.empty()) {
-        static std::set<const llvm::Value *> reported;
-        if (reported.insert(use).second) {
-            llvm::errs() << "[DDA] error: no reaching definition for: "
-                         << *use << "\n";
+        if (loc->usesOnlyGlobals()) {
+            static std::set<const llvm::Value *> reported;
+            if (reported.insert(use).second) {
+                llvm::errs() << "[DDA] error: no definitions for: "
+                             << *use << "\n";
+            }
         }
     }
 

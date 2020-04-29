@@ -201,6 +201,14 @@ public:
         return false;
     }
 
+    bool usesOnlyGlobals() const {
+        for (auto& ds : getUses()) {
+            if (!ds.target->isGlobal())
+                return false;
+        }
+        return true;
+    }
+
     // add uses to annotations of 'this' object
     // (call objects can have several annotations as they are
     //  composed of several nodes)

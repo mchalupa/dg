@@ -92,15 +92,6 @@ void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
     auto val = node->getValue();
     auto defs = RD->getLLVMDefinitions(val);
 
-    if (defs.empty()) {
-        static std::set<const llvm::Value *> reported;
-        if (reported.insert(node->getValue()).second) {
-            llvm::errs() << "[DU] error: no reaching definition for: "
-                         << *node->getValue() << "\n";
-        }
-        return;
-    }
-
     // add data dependence
     for (auto def : defs) {
         LLVMNode *rdnode = dg->getNode(def);
