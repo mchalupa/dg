@@ -17,8 +17,10 @@ enum class DGElementType {
         /// special elements
         // Pair of arguments (input & output)
         ARG_PAIR = 1,
+        BBLOCK,
         // nodes
-        ND_INSTRUCTION = 2,
+        NODE = 3,
+        ND_INSTRUCTION,
         ND_ARGUMENT,
         ND_CALL,
         ND_ARTIFICIAL
@@ -31,6 +33,8 @@ inline const char *DGElemTypeToCString(enum DGElementType type)
     switch(type) {
         ELEM(DGElementType::INVALID)
         ELEM(DGElementType::ARG_PAIR)
+        ELEM(DGElementType::BBLOCK)
+        ELEM(DGElementType::NODE)
         ELEM(DGElementType::ND_INSTRUCTION)
         ELEM(DGElementType::ND_ARGUMENT)
         ELEM(DGElementType::ND_CALL)
@@ -45,15 +49,23 @@ inline const char *DGElemTypeToCString(enum DGElementType type)
 class DependenceGraph;
 
 class DGElement {
+    unsigned _id{0};
     DGElementType _type;
     DependenceGraph& _dg;
+
+protected:
+    friend class DependenceGraph;
+    // Only for the use in ctor. This method gets the ID of this node
+    // from the DependenceGraph (increasing the graph's id counter).
+    unsigned getNewID(DependenceGraph& g);
 
 public:
     virtual ~DGElement() = default;
 
-    DGElement(DependenceGraph& dg, DGElementType t) : _type(t), _dg(dg) {}
+    DGElement(DependenceGraph& dg, DGElementType t);
 
     DGElementType getType() const { return _type; }
+    unsigned getID() const { return _id; }
 
     const DependenceGraph& getDG() const { return _dg; }
     DependenceGraph& getDG() { return _dg; }

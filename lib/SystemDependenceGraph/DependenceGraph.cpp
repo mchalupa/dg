@@ -34,15 +34,25 @@ DGNode& DGParameters::createNoReturn() {
 
 
 // ------------------------------------------------------------------
-// -- Node --
+// -- DGElem --
 // ------------------------------------------------------------------
 
-unsigned DGNode::getNewID(DependenceGraph& g) {
+unsigned DGElement::getNewID(DependenceGraph& g) {
     return g.getNextNodeID();
 }
 
+DGElement::DGElement(DependenceGraph& g, DGElementType t)
+: _id(getNewID(g)), _type(t), _dg(g) {}
+
+// ------------------------------------------------------------------
+// -- Node --
+// ------------------------------------------------------------------
+
+
 DGNode::DGNode(DependenceGraph& g, DGElementType t)
-: DGElement(g, t), _id(getNewID(g)) {}
+: DepDGElement(g, t) {
+    assert(t > DGElementType::NODE && "Invalid node type");
+}
 
 bool DGNodeCall::addCallee(DependenceGraph& g) {
     g.addCaller(this);

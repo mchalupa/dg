@@ -1,5 +1,6 @@
 #include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"
 
 namespace dg {
@@ -10,9 +11,12 @@ namespace llvmdg {
 struct SDGDependenciesBuilder {
     llvmdg::SystemDependenceGraph& _sdg;
     dda::LLVMDataDependenceAnalysis *DDA;
+    LLVMControlDependenceAnalysis *CDA;
 
     SDGDependenciesBuilder(llvmdg::SystemDependenceGraph& g,
-                           dda::LLVMDataDependenceAnalysis *dda) : _sdg(g), DDA(dda) {}
+                           dda::LLVMDataDependenceAnalysis *dda,
+                           LLVMControlDependenceAnalysis *cda)
+        : _sdg(g), DDA(dda), CDA(cda) {}
 
     void addUseDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
         for (auto& op : I.operands()) {
@@ -45,6 +49,24 @@ struct SDGDependenciesBuilder {
             }
         }
     }
+
+    void addControlDependencies(sdg::DGElement *, llvm::Instruction&) {
+    }
+
+    void addControlDependencies(sdg::DGBBlock *block, llvm::BasicBlock& B) {
+        assert(block);
+        for (auto * dep : CDA->getDependencies(&B)) {
+            if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(&B)) {
+                auto *depblock = _sdg.getBBlock(depB);
+                assert(depblock && "Do not have the block");
+                block->addControlDep(*depblock);
+
+            } else {
+                assert(false && "Not implemented");
+            }
+        }
+    }
+
 
     void addDataDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
         addInterprocDataDependencies(nd, I);
@@ -91,6 +113,7 @@ struct SDGDependenciesBuilder {
         // add dependencies
         addUseDependencies(nd, I);
         addDataDependencies(nd, I);
+        addControlDependencies(nd, I);
     }
 
     void processDG(llvm::Function& F) {
@@ -101,6 +124,9 @@ struct SDGDependenciesBuilder {
             for (auto& I : B) {
                 processInstr(I);
             }
+
+            // block-based control dependencies
+            addControlDependencies(_sdg.getBBlock(&B), B);
         }
     }
 
@@ -118,7 +144,7 @@ struct SDGDependenciesBuilder {
 void SystemDependenceGraph::buildEdges() {
     DBG_SECTION_BEGIN(sdg, "Adding edges into SDG");
 
-    SDGDependenciesBuilder builder(*this, _dda);
+    SDGDependenciesBuilder builder(*this, _dda, _cda);
     builder.processFuns();
 
     DBG_SECTION_END(sdg, "Adding edges into SDG finished");

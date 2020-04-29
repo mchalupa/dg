@@ -3,6 +3,7 @@
 
 #include <assert.h>
 
+#include "DepDGElement.h"
 #include "DGNode.h"
 
 namespace dg {
@@ -14,24 +15,14 @@ class DependenceGraph;
 // A basic block of a dependence graph.
 // Basic blocks are useful even in dependence graph in order
 // to cluster nodes with the same control dependence.
-class DGBBlock {
+class DGBBlock : public DepDGElement {
     friend class DependenceGraph;
     using NodesTy = std::vector<DGNode *>;
 
-    unsigned _id{0};
-    // SDG to which this dependence graph belongs
-    DependenceGraph *_dg{nullptr};
-
     NodesTy _nodes;
-    DGBBlock(unsigned id, DependenceGraph *g)
-    : _id(id), _dg(g) { assert(id > 0); }
+    DGBBlock(DependenceGraph& g) : DepDGElement(g, DGElementType::BBLOCK) { }
 
 public:
-    unsigned getID() const { return _id; }
-
-    DependenceGraph *getDG() { return _dg; }
-    const DependenceGraph *getDG() const { return _dg; }
-
     NodesTy& getNodes() { return _nodes; }
     const NodesTy& getNodes() const { return _nodes; }
 

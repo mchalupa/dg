@@ -35,11 +35,23 @@ public:
                                   const LLVMControlDependenceAnalysisOptions& opts)
         : _module(module), _options(opts) {}
 
+    using ValVec = std::vector<llvm::Value *>;
+
     // public API
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    void run();
+    virtual void run();
+
+    virtual ValVec getDependencies(const llvm::Value *v) {
+        assert(false && "Not implemented");
+        abort();
+    }
+
+    virtual ValVec getDependencies(const llvm::BasicBlock *b) {
+        assert(false && "Not implemented");
+        abort();
+    }
 };
 
 //} // namespace cda

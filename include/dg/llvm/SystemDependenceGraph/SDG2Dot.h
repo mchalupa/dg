@@ -94,8 +94,8 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
     return os;
 }
 
-static std::ostream& operator<<(std::ostream& os, const sdg::DGNode& nd) {
-    os << "N" << nd.getDG().getID() << "_" << nd.getID();
+static std::ostream& operator<<(std::ostream& os, const sdg::DGElement& nd) {
+    os << "elem" << nd.getDG().getID() << "_" << nd.getID();
     return os;
 }
 
@@ -206,7 +206,6 @@ public:
                     }
                 }
             }
- 
 
             out << "  }\n";
 

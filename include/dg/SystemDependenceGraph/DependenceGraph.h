@@ -13,13 +13,14 @@ namespace dg {
 namespace sdg {
 
 class SystemDependenceGraph;
+class DGElement;
 
 ///
 // Dependence graph for one procedure in an system dependence graph
 // (in papers refered to as Program Dependence Graph)
 class DependenceGraph {
     friend class SystemDependenceGraph;
-    friend unsigned DGNode::getNewID(DependenceGraph& g);
+    friend unsigned DGElement::getNewID(DependenceGraph& g);
 
     unsigned _id{0};
     unsigned _lastNodeID{0};
@@ -123,7 +124,7 @@ public:
     }
 
     DGBBlock& createBBlock() {
-        _bblocks.emplace_back(new DGBBlock(_bblocks.size() + 1, this));
+        _bblocks.emplace_back(new DGBBlock(*this));
         return *_bblocks.back().get();
     }
 
