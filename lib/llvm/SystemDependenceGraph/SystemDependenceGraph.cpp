@@ -55,6 +55,7 @@ struct SDGBuilder {
 
     void buildBBlock(sdg::DependenceGraph& dg, llvm::BasicBlock& B) {
         auto& block = dg.createBBlock();
+        _llvmsdg->addBlkMapping(&B, &block);
 
         for (auto& I : B) {
             sdg::DGNode *node;

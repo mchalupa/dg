@@ -163,12 +163,14 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    DGLLVMPointerAnalysis PTA(M.get());
+    DGLLVMPointerAnalysis PTA(M.get(), options.dgOptions.PTAOptions);
     PTA.run();
-    LLVMDataDependenceAnalysis DDA(M.get(), &PTA);
+    LLVMDataDependenceAnalysis DDA(M.get(), &PTA, options.dgOptions.DDAOptions);
     DDA.run();
+    LLVMControlDependenceAnalysis CDA(M.get(), options.dgOptions.CDAOptions);
+    CDA.run();
 
-    llvmdg::SystemDependenceGraph sdg(M.get(), &PTA, &DDA);
+    llvmdg::SystemDependenceGraph sdg(M.get(), &PTA, &DDA, &CDA);
 
     SDGDumper dumper(options, &sdg, dump_bb_only);
     dumper.dumpToDot();

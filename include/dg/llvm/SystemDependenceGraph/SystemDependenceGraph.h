@@ -6,6 +6,7 @@
 #include "dg/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/llvm/LLVMAnalysisOptions.h"
 
 namespace llvm {
@@ -28,6 +29,7 @@ class SystemDependenceGraph {
     sdg::SystemDependenceGraph _sdg;
     LLVMPointerAnalysis *_pta{nullptr};
     dda::LLVMDataDependenceAnalysis *_dda{nullptr};
+    LLVMControlDependenceAnalysis *_cda{nullptr};
 
     //SystemDependenceGraphBuilder _builder;
     // FIXME: do this unordered maps
@@ -35,6 +37,7 @@ class SystemDependenceGraph {
     std::map<const sdg::DGElement *, llvm::Value *> _rev_mapping;
     // built functions
     std::map<const llvm::Function *, sdg::DependenceGraph *> _fun_mapping;
+    std::map<const llvm::BasicBlock *, sdg::DGBBlock *> _blk_mapping;
 
     void buildNodes();
     void buildEdges();
@@ -53,12 +56,19 @@ class SystemDependenceGraph {
         _fun_mapping[F] = g;
     }
 
+    void addBlkMapping(llvm::BasicBlock *b, sdg::DGBBlock *dgb) {
+        assert(_blk_mapping.find(b) == _blk_mapping.end() &&
+                "Already have this block");
+        _blk_mapping[b] = dgb;
+    }
+
     friend struct SDGBuilder;
 
 public:
     SystemDependenceGraph(llvm::Module *M,
                           LLVMPointerAnalysis *PTA,
                           dda::LLVMDataDependenceAnalysis *DDA,
+                          LLVMControlDependenceAnalysis *CDA,
                           const SystemDependenceGraphOptions& opts = {})
     :  _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA) {
         buildSDG();
@@ -70,6 +80,11 @@ public:
     sdg::DGElement* getNode(const llvm::Value *v) const {
         auto it = _mapping.find(v);
         return it == _mapping.end() ? nullptr : it->second;
+    }
+
+    sdg::DGBBlock* getBBlock(const llvm::BasicBlock *b) const {
+        auto it = _blk_mapping.find(b);
+        return it == _blk_mapping.end() ? nullptr : it->second;
     }
 
     llvm::Value* getValue(const sdg::DGElement *n) const {

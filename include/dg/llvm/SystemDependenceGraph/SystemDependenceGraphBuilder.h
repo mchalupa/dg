@@ -44,8 +44,8 @@ namespace llvm {
 namespace dg {
 namespace llvmdg {
 
-using LLVMPointerAnalysisOptions;
-using LLVMDataDependenceAnalysisOptions;
+class LLVMPointerAnalysisOptions;
+class LLVMDataDependenceAnalysisOptions;
 
 class SystemDependenceGraphBuilder {
     llvm::Module *_M;

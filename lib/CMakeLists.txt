@@ -171,7 +171,8 @@ add_library(dgsdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGElement.h
-	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
+        ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DepDGElement.h
+        ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGArgumentPair.h
 	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGBBlock.h
 )
