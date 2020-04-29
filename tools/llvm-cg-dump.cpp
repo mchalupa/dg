@@ -51,6 +51,11 @@
 #pragma GCC diagnostic pop
 #endif
 
+#ifdef HAVE_SVF
+#include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
+#endif
+#include "dg/llvm/PointerAnalysis/DGPointerAnalysis.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/CallGraph/CallGraph.h"
 #include "dg/util/debug.h"
 
@@ -98,6 +103,20 @@ void setupStackTraceOnError(int argc, char *argv[])
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
+static void dumpCallGraph(llvmdg::CallGraph& CG) {
+    std::cout << "digraph CallGraph {\n";
+
+    for (auto *f : CG.functions()) {
+        for (auto *c: CG.callees(f)) {
+            std::cout << "  " << f->getName().str()
+                      << " -> " << c->getName().str() << "\n";
+        }
+    }
+
+    std::cout << "}\n";
+}
+
+
 int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
@@ -122,22 +141,24 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    DGLLVMPointerAnalysis PTA(M.get());
-    PTA.run();
+    auto& ptaopts = options.dgOptions.PTAOptions;
+#ifdef HAVE_SVF
+    if (ptaopts.isSVF()) {
+        SVFPointerAnalysis PTA(M.get(), ptaopts);
+        PTA.run();
 
-    llvmdg::CallGraph CG(PTA.getPTA()->getPG()->getCallGraph());
+        llvmdg::CallGraph CG(M.get(), &PTA);
+        dumpCallGraph(CG);
+    } else
+#endif // HAVE_SVF
+    {
+        DGLLVMPointerAnalysis PTA(M.get(), ptaopts);
+        PTA.run();
 
-    // dump the call graph
-    std::cout << "digraph CallGraph {\n";
-
-    for (auto *f : CG.functions()) {
-        for (auto *c: CG.callees(f)) {
-            std::cout << "  " << f->getName().str()
-                      << " -> " << c->getName().str() << "\n";
-        }
+        //llvmdg::CallGraph CG(M.get(), &PTA);
+        llvmdg::CallGraph CG(PTA.getPTA()->getPG()->getCallGraph());
+        dumpCallGraph(CG);
     }
-
-    std::cout << "}\n";
 
     return 0;
 }
