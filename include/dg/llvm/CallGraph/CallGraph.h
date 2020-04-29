@@ -4,12 +4,29 @@
 #include <vector>
 #include <memory>
 
-#include "dg/PointerAnalysis/PSNode.h"
-#include "dg/CallGraph/CallGraph.h"
+// ignore unused parameters in LLVM libraries
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
 
-namespace llvm {
-    class Function;
-}
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Module.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
+
+#include "dg/PointerAnalysis/PSNode.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/CallGraph/CallGraph.h"
+#include "dg/ADT/Queue.h"
+#include "dg/ADT/SetQueue.h"
 
 namespace dg {
 namespace pta {
@@ -31,6 +48,9 @@ public:
     virtual bool calls(const llvm::Function*, const llvm::Function *) const = 0;
 };
 
+///
+/// Callgraph that re-uses the Call graph built during pointer analysis from DG
+///
 class DGCallGraphImpl : public CallGraphImpl {
     const GenericCallGraph<PSNode*>& _cg;
     std::map<const llvm::Function *, PSNode *> _mapping;
@@ -97,6 +117,92 @@ public:
 
 };
 
+///
+/// Callgraph that is built based on the results of pointer analysis
+///
+class LLVMCallGraphImpl : public CallGraphImpl {
+    GenericCallGraph<const llvm::Function *> _cg{};
+    const llvm::Module *_module;
+    LLVMPointerAnalysis *_pta;
+
+    void processBBlock(const llvm::Function *parent,
+                       const llvm::BasicBlock& B,
+                       ADT::SetQueue<QueueFIFO<const llvm::Function*>>& queue) {
+        for (auto& I : B) {
+            if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
+                auto pts = _pta->getLLVMPointsTo(C->getCalledValue());
+                for (const auto& ptr : pts) {
+                    auto *F = llvm::dyn_cast<llvm::Function>(ptr.value);
+                    if (!F)
+                        continue;
+
+                    _cg.addCall(parent, F);
+                    queue.push(F);
+                }
+            }
+        }
+    }
+
+    void build() {
+        auto *entry = _module->getFunction(_pta->getOptions().entryFunction);
+        assert(entry && "Entry function not found");
+        _cg.createNode(entry);
+
+        ADT::SetQueue<QueueFIFO<const llvm::Function*>> queue;
+        queue.push(entry);
+
+        while (!queue.empty()) {
+            auto *cur = queue.pop();
+            for (auto& B : *cur) {
+                processBBlock(cur, B, queue);
+            }
+        }
+    }
+
+public:
+    LLVMCallGraphImpl(const llvm::Module *m, LLVMPointerAnalysis *pta)
+        : _module(m), _pta(pta) {
+        build();
+    }
+
+    FuncVec functions() const override {
+        FuncVec ret;
+        for (auto& it : _cg) {
+            ret.push_back(it.first);
+        }
+        return ret;
+    }
+
+    FuncVec callers(const llvm::Function *F) const override {
+        FuncVec ret;
+        auto fnd = _cg.get(F);
+        for (auto *nd : fnd->getCallers()) {
+            ret.push_back(nd->getValue());
+        }
+        return ret;
+    }
+
+    FuncVec callees(const llvm::Function *F) const override {
+        FuncVec ret;
+        auto fnd = _cg.get(F);
+        for (auto *nd : fnd->getCalls()) {
+            ret.push_back(nd->getValue());
+        }
+        return ret;
+    }
+
+    bool calls(const llvm::Function *F, const llvm::Function *what) const override {
+        auto fn1 =  _cg.get(F);
+        auto fn2 =  _cg.get(what);
+        if (fn1 && fn2) {
+            return fn1->calls(fn2);
+        }
+        return false;
+    };
+
+};
+
+
 class CallGraph {
     std::unique_ptr<CallGraphImpl> _impl;
 
@@ -104,6 +210,8 @@ public:
     using FuncVec = CallGraphImpl::FuncVec;
 
     CallGraph(GenericCallGraph<PSNode*>& cg) : _impl(new DGCallGraphImpl(cg)) {}
+    CallGraph(const llvm::Module *m, LLVMPointerAnalysis *pta)
+        : _impl(new LLVMCallGraphImpl(m, pta)) {}
 
     ///
     /// Get all functions in this call graph
