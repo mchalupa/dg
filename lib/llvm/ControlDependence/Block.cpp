@@ -23,7 +23,7 @@
 #endif
 
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
 int Block::traversalCounter = 0;
 
@@ -221,5 +221,5 @@ void Block::dumpEdges(std::ostream &ostream) const {
 }
 
 
-}
-}
+} // namespace llvmdg
+} // namespace dg

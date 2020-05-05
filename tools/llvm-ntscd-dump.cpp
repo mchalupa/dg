@@ -70,7 +70,7 @@ int main(int argc, const char *argv[]) {
     dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), opts);
     pointsToAnalysis.run();
 
-    dg::cd::NonTerminationSensitiveControlDependencyAnalysis controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
+    dg::llvmdg::NTSCD controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
     controlDependencyAnalysis.computeDependencies();
 
     if (graphVizFileName == "") {

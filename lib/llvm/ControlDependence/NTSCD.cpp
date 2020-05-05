@@ -15,13 +15,13 @@ namespace llvm {
 using namespace std;
 
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
-NonTerminationSensitiveControlDependencyAnalysis::NonTerminationSensitiveControlDependencyAnalysis(const llvm::Function *function, dg::LLVMPointerAnalysis *pointsToAnalysis)
+NTSCD::NTSCD(const llvm::Function *function, dg::LLVMPointerAnalysis *pointsToAnalysis)
     :entryFunction(function), graphBuilder(pointsToAnalysis)
 {}
 
-void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
+void NTSCD::computeDependencies() {
     if (!entryFunction) {
         std::cerr << "Missing entry function!\n";
         return;
@@ -100,7 +100,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::computeDependencies() {
     }
 }
 
-void NonTerminationSensitiveControlDependencyAnalysis::dump(ostream &ostream) const {
+void NTSCD::dump(ostream &ostream) const {
     ostream << "digraph \"BlockGraph\" {\n";
     graphBuilder.dumpNodes(ostream);
     graphBuilder.dumpEdges(ostream);
@@ -108,7 +108,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::dump(ostream &ostream) co
     ostream << "}\n";
 }
 
-void NonTerminationSensitiveControlDependencyAnalysis::dumpDependencies(ostream &ostream) const {
+void NTSCD::dumpDependencies(ostream &ostream) const {
     for (auto keyValue : controlDependency) {
         for (auto dependent : keyValue.second) {
             ostream << keyValue.first->dotName() << " -> " << dependent->dotName()
@@ -117,14 +117,14 @@ void NonTerminationSensitiveControlDependencyAnalysis::dumpDependencies(ostream 
     }
 }
 
-void NonTerminationSensitiveControlDependencyAnalysis::visitInitialNode(Block *node) {
+void NTSCD::visitInitialNode(Block *node) {
     nodeInfo[node].red = true;
     for (auto predecessor : node->predecessors()) {
         visit(predecessor);
     }
 }
 
-void NonTerminationSensitiveControlDependencyAnalysis::visit(Block *node) {
+void NTSCD::visit(Block *node) {
     if (nodeInfo[node].outDegreeCounter == 0) {
         return;
     }
@@ -137,7 +137,7 @@ void NonTerminationSensitiveControlDependencyAnalysis::visit(Block *node) {
     }
 }
 
-bool NonTerminationSensitiveControlDependencyAnalysis::hasRedAndNonRedSuccessor(Block *node) {
+bool NTSCD::hasRedAndNonRedSuccessor(Block *node) {
     size_t redCounter = 0;
     for (auto successor : node->successors()) {
         if (nodeInfo[successor].red) {

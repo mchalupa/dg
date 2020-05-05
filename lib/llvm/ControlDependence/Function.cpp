@@ -4,7 +4,7 @@
 #include <ostream>
 #include <algorithm>
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
 Function::Function():lastBlock(new Block()) {
     blocks.insert(lastBlock);
@@ -16,11 +16,11 @@ Function::~Function() {
     }
 }
 
-Block *dg::cd::Function::entry() const {
+Block *dg::llvmdg::Function::entry() const {
     return firstBlock;
 }
 
-Block *dg::cd::Function::exit() const {
+Block *dg::llvmdg::Function::exit() const {
     return lastBlock;
 }
 

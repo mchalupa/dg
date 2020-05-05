@@ -17,7 +17,7 @@ namespace dg {
 
 class LLVMPointerAnalysis;
 
-namespace cd {
+namespace llvmdg {
 
 class Function;
 class Block;
