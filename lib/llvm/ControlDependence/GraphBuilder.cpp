@@ -1,8 +1,3 @@
-#include "GraphBuilder.h"
-#include "Function.h"
-#include "Block.h"
-#include "TarjanAnalysis.h"
-
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
 #pragma clang diagnostic push
@@ -12,6 +7,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
+#include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/CFG.h>
 #include <llvm/Analysis/LoopInfo.h>
@@ -26,6 +22,11 @@
 #include "llvm/ForkJoin/ForkJoin.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
+#include "GraphBuilder.h"
+#include "Function.h"
+#include "Block.h"
+#include "TarjanAnalysis.h"
+
 using dg::ForkJoinAnalysis;
 
 namespace dg {
@@ -33,10 +34,10 @@ namespace llvmdg {
 
 GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis)
     :pointsToAnalysis_(pointsToAnalysis),
-     threads(pointsToAnalysis->getOptions().threads) {}
+     threads(pointsToAnalysis ? pointsToAnalysis->getOptions().threads : false) {}
 
 GraphBuilder::~GraphBuilder() {
-    for (auto function : functions_) {
+    for (auto function : _functions) {
         delete function.second;
     }
 }
@@ -53,44 +54,46 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
     if (!llvmFunction) {
         return nullptr;
     }
-    auto iterator = functions_.find(llvmFunction);
-    if (iterator != functions_.end()) {
+    auto iterator = _functions.find(llvmFunction);
+    if (iterator != _functions.end()) {
         return nullptr;
     }
-    iterator = functions_.emplace(llvmFunction, new Function()).first;
+    iterator = _functions.emplace(llvmFunction, new Function()).first;
     Function * function = iterator->second;
 
     std::map<const llvm::Instruction *, Block *> instToBlockMap;
     Block * lastBlock = nullptr;
     for (auto & llvmBlock : *llvmFunction) {
-        if (isReachable(&llvmBlock)) {
-            bool createBlock = true;
-            for (auto & llvmInst : llvmBlock) {
-                if (createBlock) {
-                    auto tmpBlock = new Block();
-                    function->addBlock(tmpBlock);
-                    if (lastBlock) {
-                        if (lastBlock->llvmBlock() == &llvmBlock) {
-                            lastBlock->addSuccessor(tmpBlock);
-                        }
-                    }
-                    lastBlock = tmpBlock;
-                    createBlock = false;
-                }
-                bool createCallReturn = false;
-                if (llvmInst.getOpcode() == llvm::Instruction::Call) {
-                    handleCallInstruction(&llvmInst, lastBlock, createBlock, createCallReturn);
-                }
-                lastBlock->addInstruction(&llvmInst);
-                instToBlockMap.emplace(&llvmInst, lastBlock);
+        if (!isReachable(&llvmBlock)) {
+            continue;
+        }
 
-                if (createCallReturn) {
-                    auto tmpBlock = new Block(createCallReturn);
-                    function->addBlock(tmpBlock);
-                    lastBlock->addSuccessor(tmpBlock);
-                    lastBlock = tmpBlock;
-                    createBlock = true;
+        bool createBlock = true;
+        for (auto& llvmInst : llvmBlock) {
+            if (createBlock) {
+                auto tmpBlock = new Block();
+                function->addBlock(tmpBlock);
+                if (lastBlock) {
+                    if (lastBlock->llvmBlock() == &llvmBlock) {
+                        lastBlock->addSuccessor(tmpBlock);
+                    }
                 }
+                lastBlock = tmpBlock;
+                createBlock = false;
+            }
+            bool createCallReturn = false;
+            if (llvmInst.getOpcode() == llvm::Instruction::Call) {
+                handleCallInstruction(&llvmInst, lastBlock, createBlock, createCallReturn);
+            }
+            lastBlock->addInstruction(&llvmInst);
+            instToBlockMap.emplace(&llvmInst, lastBlock);
+
+            if (createCallReturn) {
+                auto tmpBlock = new Block(createCallReturn);
+                function->addBlock(tmpBlock);
+                lastBlock->addSuccessor(tmpBlock);
+                lastBlock = tmpBlock;
+                createBlock = true;
             }
         }
     }
@@ -134,8 +137,8 @@ Function *GraphBuilder::findFunction(const llvm::Function *llvmFunction) {
     if (!llvmFunction) {
         return nullptr;
     }
-    auto iterator = functions_.find(llvmFunction);
-    if (iterator != functions_.end()) {
+    auto iterator = _functions.find(llvmFunction);
+    if (iterator != _functions.end()) {
         return iterator->second;
     }
     return nullptr;
@@ -153,18 +156,18 @@ Function *GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) 
 }
 
 std::map<const llvm::Function *, Function *> GraphBuilder::functions() const {
-    return functions_;
+    return _functions;
 }
 
 void GraphBuilder::dumpNodes(std::ostream &ostream) const {
-    for (auto function : functions_) {
+    for (auto function : _functions) {
         function.second->dumpBlocks(ostream);
     }
 
 }
 
 void GraphBuilder::dumpEdges(std::ostream &ostream) const {
-    for (auto function : functions_) {
+    for (auto function : _functions) {
         function.second->dumpEdges(ostream);
     }
 }
@@ -176,10 +179,21 @@ void GraphBuilder::dump(std::ostream &ostream) const {
     ostream << "}\n";
 }
 
+std::vector<const llvm::Function *>
+GraphBuilder::getCalledFunctions(const llvm::Value *v) {
+    if (auto* F = llvm::dyn_cast<llvm::Function>(v)) {
+        return {F};
+    }
+
+    if (!pointsToAnalysis_)
+        return {};
+
+    return dg::getCalledFunctions(v, pointsToAnalysis_);
+}
+
 void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, Block *lastBlock, bool &createBlock, bool &createCallReturn) {
     auto * callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
-    auto llvmFunctions = getCalledFunctions(callInst->getCalledValue(),
-                                            pointsToAnalysis_);
+    auto llvmFunctions = getCalledFunctions(callInst->getCalledValue());
 
     for (auto llvmFunction : llvmFunctions) {
         if (llvmFunction->size() > 0) {
@@ -199,7 +213,7 @@ void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, B
 bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst, Block *lastBlock) {
     bool createBlock = false;
     llvm::Value *calledValue = callInst->getArgOperand(2);
-    auto forkFunctions = getCalledFunctions(calledValue, pointsToAnalysis_);
+    auto forkFunctions = getCalledFunctions(calledValue);
     std::vector <const llvm::Function *> forkFunctionsWithBlock;
     for (auto forkFunction : forkFunctions) {
         if (forkFunction->size() > 0) {

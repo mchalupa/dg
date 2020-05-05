@@ -3,7 +3,14 @@
 namespace dg {
 
 void LLVMControlDependenceAnalysis::run() {
-    abort();
+    if (getOptions().standardCD()) {
+        assert(false && "Unhandled analysis type");
+    } else if (getOptions().ntscdCD()) {
+        assert(false && "Unhandled analysis type");
+    } else {
+        assert(false && "Unhandled analysis type");
+        abort();
+    }
 }
 
 } // namespace dg
