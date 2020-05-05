@@ -960,48 +960,51 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
 }
 
 void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
-    dg::llvmdg::NTSCD ntscdAnalysis(entryFunction, PTA);
-    ntscdAnalysis.computeDependencies();
-    auto dependencies = ntscdAnalysis.controlDependencies();
+    llvmdg::NTSCD ntscdAnalysis(this->module, {}, PTA);
+    ntscdAnalysis.run();
+    auto& dependencies = ntscdAnalysis.controlDependencies();
 
-    for (const auto & dep : dependencies) {
-        if (!dep.first->isArtificial()) {
-            auto lastInstruction = findInstruction(castToLLVMInstruction(dep.first->lastInstruction()),
-                                                   getConstructedFunctions());
-            for (const auto dependant : dep.second) {
-                for (const auto instruction : dependant->llvmInstructions()) {
-                    auto dgInstruction = findInstruction(castToLLVMInstruction(instruction), getConstructedFunctions());
-                    if (lastInstruction && dgInstruction) {
-                        lastInstruction->addControlDependence(dgInstruction);
-                    } else {
-                        static std::set<std::pair<LLVMNode *, LLVMNode *>> reported;
-                        if (reported.insert({lastInstruction, dgInstruction}).second) {
-                            llvm::errs() << "[CD] error: CD could not be set up, some instruction was not found:\n";
-                            if (lastInstruction)
-                                llvm::errs() << "[CD] last instruction: " << *lastInstruction->getValue() << "\n";
-                            else
-                                llvm::errs() << "[CD] No last instruction\n";
-                            if (dgInstruction)
-                                llvm::errs() << "[CD] current instruction: " << *dgInstruction->getValue() << "\n";
-                            else
-                                llvm::errs() << "[CD] No current instruction\n";
-                        }
-                    }
-                }
-                if (dependant->isExit() && lastInstruction) {
-                    auto dg = lastInstruction->getDG();
-                    auto noret = dg->getOrCreateNoReturn();
-                    lastInstruction->addControlDependence(noret);
+    for (const auto& dep : dependencies) {
+        if (dep.first->isArtificial()) {
+            continue;
+        }
 
-                    // we added the formal noreturn, now add the noreturn to every callnode
-                    for (auto *caller : dg->getCallers()) {
-                        caller->getOrCreateParameters(); // create params if not created
-                        auto actnoret = dg->getOrCreateNoReturn(caller);
-                        noret->addControlDependence(actnoret);
+        auto lastInstruction = findInstruction(castToLLVMInstruction(dep.first->lastInstruction()),
+                                               getConstructedFunctions());
+        for (const auto dependant : dep.second) {
+            for (const auto instruction : dependant->llvmInstructions()) {
+                auto dgInstruction = findInstruction(castToLLVMInstruction(instruction), getConstructedFunctions());
+                if (lastInstruction && dgInstruction) {
+                    lastInstruction->addControlDependence(dgInstruction);
+                } else {
+                    static std::set<std::pair<LLVMNode *, LLVMNode *>> reported;
+                    if (reported.insert({lastInstruction, dgInstruction}).second) {
+                        llvm::errs() << "[CD] error: CD could not be set up, some instruction was not found:\n";
+                        if (lastInstruction)
+                            llvm::errs() << "[CD] last instruction: " << *lastInstruction->getValue() << "\n";
+                        else
+                            llvm::errs() << "[CD] No last instruction\n";
+                        if (dgInstruction)
+                            llvm::errs() << "[CD] current instruction: " << *dgInstruction->getValue() << "\n";
+                        else
+                            llvm::errs() << "[CD] No current instruction\n";
                     }
                 }
             }
+            if (dependant->isExit() && lastInstruction) {
+                auto dg = lastInstruction->getDG();
+                auto noret = dg->getOrCreateNoReturn();
+                lastInstruction->addControlDependence(noret);
+
+                // we added the formal noreturn, now add the noreturn to every callnode
+                for (auto *caller : dg->getCallers()) {
+                    caller->getOrCreateParameters(); // create params if not created
+                    auto actnoret = dg->getOrCreateNoReturn(caller);
+                    noret->addControlDependence(actnoret);
+                }
+            }
         }
+
     }
 }
 

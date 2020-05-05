@@ -25,10 +25,39 @@
 namespace dg {
 //namespace cda {
 
+class LLVMControlDependenceAnalysisImpl {
+
+    const llvm::Module *_module;
+    const LLVMControlDependenceAnalysisOptions _options;
+
+public:
+    LLVMControlDependenceAnalysisImpl(const llvm::Module *module,
+                                      const LLVMControlDependenceAnalysisOptions& opts)
+        : _module(module), _options(opts) {}
+
+    using ValVec = std::vector<llvm::Value *>;
+
+    // public API
+    const llvm::Module *getModule() const { return _module; }
+    const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
+
+    virtual void run() = 0;
+
+    /// Getters of dependencies for a value
+    virtual ValVec getDependencies(const llvm::Value *) = 0;
+    virtual ValVec getDependent(const llvm::Value *) = 0;
+
+    /// Getters of dependencies for a basic block
+    virtual ValVec getDependencies(const llvm::BasicBlock *) = 0;
+    virtual ValVec getDependent(const llvm::BasicBlock *) = 0;
+};
+
+
 class LLVMControlDependenceAnalysis {
 
     const llvm::Module *_module;
     const LLVMControlDependenceAnalysisOptions _options;
+    std::unique_ptr<LLVMControlDependenceAnalysisImpl> _impl{nullptr};
 
 public:
     LLVMControlDependenceAnalysis(const llvm::Module *module,
@@ -41,17 +70,25 @@ public:
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    virtual void run();
+    void run();
 
-    virtual ValVec getDependencies(const llvm::Value *v) {
-        assert(false && "Not implemented");
-        abort();
+    ValVec getDependencies(const llvm::Value *v) {
+        return _impl->getDependencies(v);
     }
 
-    virtual ValVec getDependencies(const llvm::BasicBlock *b) {
-        assert(false && "Not implemented");
-        abort();
+    ValVec getDependencies(const llvm::BasicBlock *b) {
+        return _impl->getDependencies(b);
     }
+
+    ValVec getDependent(const llvm::Value *v) {
+        return _impl->getDependent(v);
+    }
+
+    ValVec getDependent(const llvm::BasicBlock *b) {
+        return _impl->getDependent(b);
+    }
+
+    // FIXME: add also API that return just iterators
 };
 
 //} // namespace cda

@@ -2,12 +2,27 @@
 #include "Function.h"
 #include "Block.h"
 
+#if (__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#endif
+
+#include <llvm/IR/Module.h>
+
+#if (__clang__)
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#else
+#pragma GCC diagnostic pop
+#endif
+
 namespace llvm {
     class Function;
 }
 
 #include <algorithm>
-#include <iostream>
 #include <functional>
 #include <queue>
 #include <unordered_set>
@@ -17,13 +32,18 @@ using namespace std;
 namespace dg {
 namespace llvmdg {
 
-NTSCD::NTSCD(const llvm::Function *function, dg::LLVMPointerAnalysis *pointsToAnalysis)
-    :entryFunction(function), graphBuilder(pointsToAnalysis)
+NTSCD::NTSCD(const llvm::Module *module,
+             const LLVMControlDependenceAnalysisOptions& opts,
+             dg::LLVMPointerAnalysis *pointsToAnalysis)
+    : LLVMControlDependenceAnalysisImpl(module, opts), graphBuilder(pointsToAnalysis)
 {}
 
+// FIXME: make it working on-demand
 void NTSCD::computeDependencies() {
+    auto *entryFunction = getModule()->getFunction(getOptions().entryFunction);
     if (!entryFunction) {
-        std::cerr << "Missing entry function!\n";
+        llvm::errs() << "Missing entry function: "
+                     << getOptions().entryFunction << "\n";
         return;
     }
 
@@ -58,19 +78,21 @@ void NTSCD::computeDependencies() {
         }
 
         // add interprocedural dependencies
-        for (auto node : nodes) {
-            if (!node->callees().empty() || !node->joins().empty()) {
-                auto iterator = std::find_if(node->successors().begin(),
-                                             node->successors().end(),
-                                             [](const Block *block){
-                                                    return block->isCallReturn();
-                                             });
-                if (iterator != node->successors().end()) {
-                    for (auto callee : node->callees()) {
-                        controlDependency[callee.second->exit()].insert(*iterator);
-                    }
-                    for (auto join : node->joins()) {
-                        controlDependency[join.second->exit()].insert(*iterator);
+        if (getOptions().interproceduralCD()) {
+            for (auto node : nodes) {
+                if (!node->callees().empty() || !node->joins().empty()) {
+                    auto iterator = std::find_if(node->successors().begin(),
+                                                 node->successors().end(),
+                                                 [](const Block *block){
+                                                        return block->isCallReturn();
+                                                 });
+                    if (iterator != node->successors().end()) {
+                        for (auto callee : node->callees()) {
+                            controlDependency[callee.second->exit()].insert(*iterator);
+                        }
+                        for (auto join : node->joins()) {
+                            controlDependency[join.second->exit()].insert(*iterator);
+                        }
                     }
                 }
             }

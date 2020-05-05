@@ -44,6 +44,10 @@ int main(int argc, const char *argv[]) {
     llvm::cl::opt<bool> threads("threads",
                                 llvm::cl::desc("Consider threads are in input file (default=false)."),
                                 llvm::cl::init(false));
+
+    llvm::cl::opt<bool> withpta("pta",
+                                llvm::cl::desc("Run pointer analysis to ger reachable functions (default=false)."),
+                                llvm::cl::init(false));
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
 
@@ -61,17 +65,20 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    dg::LLVMPointerAnalysisOptions opts;
-    opts.setEntryFunction("main");
-    opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
-    opts.threads = threads;
-    opts.setFieldSensitivity(dg::Offset::UNKNOWN);
+    std::unique_ptr<dg::LLVMPointerAnalysis> PTA;
+    if (withpta) {
+        dg::LLVMPointerAnalysisOptions opts;
+        opts.setEntryFunction("main");
+        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
+        opts.threads = threads;
+        opts.setFieldSensitivity(dg::Offset::UNKNOWN);
 
-    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), opts);
-    pointsToAnalysis.run();
+        PTA.reset(new dg::DGLLVMPointerAnalysis(M.get(), opts));
+        PTA->run();
+    }
 
-    dg::llvmdg::NTSCD controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
-    controlDependencyAnalysis.computeDependencies();
+    dg::llvmdg::NTSCD controlDependencyAnalysis(M.get(), {}, PTA.get());
+    controlDependencyAnalysis.run();
 
     if (graphVizFileName == "") {
         controlDependencyAnalysis.dump(std::cout);
