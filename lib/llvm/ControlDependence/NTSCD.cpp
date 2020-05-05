@@ -1,4 +1,4 @@
-#include "NonTerminationSensitiveControlDependencyAnalysis.h"
+#include "NTSCD.h"
 #include "Function.h"
 #include "Block.h"
 

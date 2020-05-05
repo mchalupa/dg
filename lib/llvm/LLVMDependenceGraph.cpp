@@ -43,7 +43,8 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-#include "../lib/llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
+// !FIXME
+#include "../lib/llvm/ControlDependence/NTSCD.h"
 
 #include "llvm/LLVMDGVerifier.h"
 #include "llvm-utils.h"

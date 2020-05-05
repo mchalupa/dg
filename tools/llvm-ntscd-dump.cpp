@@ -2,7 +2,7 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "../lib/llvm/ControlDependence/GraphBuilder.h"
-#include "../lib/llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
+#include "../lib/llvm/ControlDependence/NTSCD.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
