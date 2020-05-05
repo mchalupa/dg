@@ -29,7 +29,7 @@
 using dg::ForkJoinAnalysis;
 
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
 GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis)
     :pointsToAnalysis_(pointsToAnalysis),

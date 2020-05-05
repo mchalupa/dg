@@ -106,7 +106,8 @@ target_sources(dgllvmcda
     PRIVATE llvm/ControlDependence/Block.cpp
             llvm/ControlDependence/Function.cpp
             llvm/ControlDependence/GraphBuilder.cpp
-            llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.cpp)
+            llvm/ControlDependence/NTSCD.cpp
+            llvm/ControlDependence/NTSCD.h)
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED

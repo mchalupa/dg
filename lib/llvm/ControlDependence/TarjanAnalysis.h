@@ -10,7 +10,7 @@
 #include <algorithm>
 
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
 // FIXME: we've got this and SCC, unify it
 template <typename T>

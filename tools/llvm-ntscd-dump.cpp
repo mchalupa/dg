@@ -2,7 +2,7 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "../lib/llvm/ControlDependence/GraphBuilder.h"
-#include "../lib/llvm/ControlDependence/NonTerminationSensitiveControlDependencyAnalysis.h"
+#include "../lib/llvm/ControlDependence/NTSCD.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -70,7 +70,7 @@ int main(int argc, const char *argv[]) {
     dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), opts);
     pointsToAnalysis.run();
 
-    dg::cd::NonTerminationSensitiveControlDependencyAnalysis controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
+    dg::llvmdg::NTSCD controlDependencyAnalysis(M.get()->getFunction("main"), &pointsToAnalysis);
     controlDependencyAnalysis.computeDependencies();
 
     if (graphVizFileName == "") {

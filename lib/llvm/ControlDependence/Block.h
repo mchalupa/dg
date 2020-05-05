@@ -13,7 +13,7 @@ namespace llvm {
 }
 
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
 class Function;
 

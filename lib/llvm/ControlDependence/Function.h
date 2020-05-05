@@ -5,7 +5,7 @@
 #include <iosfwd>
 
 namespace dg {
-namespace cd {
+namespace llvmdg {
 
 class Block;
 

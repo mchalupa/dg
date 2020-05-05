@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_NONTERMINATIONSENSITIVECONTROLDEPENDENCYANALYSIS_H
-#define DG_LLVM_NONTERMINATIONSENSITIVECONTROLDEPENDENCYANALYSIS_H
+#ifndef DG_LLVM_NTSCD_H_
+#define DG_LLVM_NTSCD_H_
 
 #include "GraphBuilder.h"
 
@@ -17,9 +17,9 @@ namespace dg {
 
 class LLVMPointerAnalysis;
 
-namespace cd {
+namespace llvmdg {
 
-class NonTerminationSensitiveControlDependencyAnalysis
+class NTSCD
 {
 public:
     struct NodeInfo {
@@ -28,8 +28,7 @@ public:
         size_t outDegreeCounter = 0;
     };
 
-    NonTerminationSensitiveControlDependencyAnalysis(const llvm::Function *function,
-                                                     LLVMPointerAnalysis *pointsToAnalysis);
+    NTSCD(const llvm::Function *function, LLVMPointerAnalysis *pointsToAnalysis);
 
     void computeDependencies();
 
@@ -37,7 +36,8 @@ public:
 
     void dumpDependencies(std::ostream & ostream) const;
 
-    const std::map<Block *, std::set<Block *>> & controlDependencies() const { return controlDependency; }
+    const std::map<Block *, std::set<Block *>>&
+    controlDependencies() const { return controlDependency; }
 
 
 private:
@@ -54,7 +54,7 @@ private:
     bool hasRedAndNonRedSuccessor(Block * node);
 };
 
-}
-}
+} // namespace llvmdg
+} // namespace dg
 
-#endif // DG_LLVM_NONTERMINATIONSENSITIVECONTROLDEPENDENCYANALYSIS_H
+#endif
