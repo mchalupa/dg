@@ -69,6 +69,7 @@ private:
     std::unordered_map<Block *, NodeInfo> nodeInfo;
 
     void computeDependencies();
+    void computeDependencies(Function *);
 
     void visitInitialNode(Block * node);
     void visit(Block * node);
