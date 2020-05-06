@@ -155,10 +155,6 @@ Function *GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) 
     return  function;
 }
 
-std::map<const llvm::Function *, Function *> GraphBuilder::functions() const {
-    return _functions;
-}
-
 void GraphBuilder::dumpNodes(std::ostream &ostream) const {
     for (auto function : _functions) {
         function.second->dumpBlocks(ostream);

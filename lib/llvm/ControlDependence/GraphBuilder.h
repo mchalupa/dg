@@ -49,7 +49,9 @@ public:
     Function *findFunction(const llvm::Function * llvmFunction);
     Function *createOrGetFunction(const llvm::Function * llvmFunction);
 
-    std::map<const llvm::Function *, Function *> functions() const;
+    const std::map<const llvm::Function *, Function *>& functions() const {
+        return _functions;
+    }
 
     void dumpNodes(std::ostream& ostream) const;
     void dumpEdges(std::ostream& ostream) const;
