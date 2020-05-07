@@ -46,14 +46,21 @@ public:
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
-        /*
-        auto it = controlDependency.find(b);
-        if (it == controlDependency.end()) {
+        auto *block = graphBuilder.mapBlock(b);
+        if (!block) {
             return {};
         }
-        return ValVec{it->second.begin(), it->second.end()};
-        */
-        return {};
+        auto it = revControlDependency.find(block->front());
+        if (it == revControlDependency.end())
+            return {};
+
+        std::set<llvm::Value *> ret;
+        for (auto *dep : it->second) {
+            assert(dep->llvmBlock() && "Do not have LLVM block");
+            ret.insert(const_cast<llvm::BasicBlock*>(dep->llvmBlock()));
+        }
+
+        return ValVec{ret.begin(), ret.end()};
     }
 
     ValVec getDependent(const llvm::BasicBlock *) override {
@@ -65,11 +72,17 @@ public:
 
 private:
     GraphBuilder graphBuilder;
+    // forward edges (from branchings to dependent blocks)
     std::map<Block *, std::set<Block *>> controlDependency;
+    // reverse edges (from dependent blocks to branchings)
+    std::map<Block *, std::set<Block *>> revControlDependency;
     std::unordered_map<Block *, NodeInfo> nodeInfo;
 
     void computeDependencies();
     void computeDependencies(Function *);
+
+    // a is CD on b
+    void addControlDependence(Block *a, Block *b);
 
     void visitInitialNode(Block * node);
     void visit(Block * node);

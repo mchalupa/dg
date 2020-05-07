@@ -18,13 +18,14 @@ namespace llvmdg {
 class Function;
 
 class Block {
+    const llvm::BasicBlock *_llvm_blk;
 public:
 
-    Block(bool callReturn = false):callReturn(callReturn) {}
+    Block(const llvm::BasicBlock *b, bool callReturn = false)
+        : _llvm_blk(b), callReturn(callReturn) {}
 
     // FIXME: make vector
     const std::set<Block *> & predecessors() const;
-
     const std::set<Block *> & successors() const;
 
     bool addPredecessor(Block * predecessor);
@@ -60,7 +61,7 @@ public:
     void traversalId() { traversalId_ = ++traversalCounter; }
     int bfsId() const { return traversalId_; }
 
-    const llvm::BasicBlock * llvmBlock() const;
+    const llvm::BasicBlock * llvmBlock() const { return _llvm_blk; }
 
     std::string dotName() const;
 
