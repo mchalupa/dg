@@ -35,6 +35,8 @@ public:
                                       const LLVMControlDependenceAnalysisOptions& opts)
         : _module(module), _options(opts) {}
 
+    virtual ~LLVMControlDependenceAnalysisImpl() = default;
+
     using ValVec = std::vector<llvm::Value *>;
 
     // public API
@@ -59,10 +61,14 @@ class LLVMControlDependenceAnalysis {
     const LLVMControlDependenceAnalysisOptions _options;
     std::unique_ptr<LLVMControlDependenceAnalysisImpl> _impl{nullptr};
 
+    void initializeImpl();
+
 public:
     LLVMControlDependenceAnalysis(const llvm::Module *module,
                                   const LLVMControlDependenceAnalysisOptions& opts)
-        : _module(module), _options(opts) {}
+        : _module(module), _options(opts) {
+        initializeImpl();
+    }
 
     using ValVec = std::vector<llvm::Value *>;
 
@@ -70,7 +76,7 @@ public:
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    void run();
+    void run() { _impl->run(); }
 
     ValVec getDependencies(const llvm::Value *v) {
         return _impl->getDependencies(v);

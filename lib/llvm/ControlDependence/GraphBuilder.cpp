@@ -71,7 +71,8 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
         bool createBlock = true;
         for (auto& llvmInst : llvmBlock) {
             if (createBlock) {
-                auto tmpBlock = new Block();
+                auto tmpBlock = new Block(&llvmBlock);
+                _mapping[&llvmBlock].push_back(tmpBlock);
                 function->addBlock(tmpBlock);
                 if (lastBlock) {
                     if (lastBlock->llvmBlock() == &llvmBlock) {
@@ -89,7 +90,8 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
             instToBlockMap.emplace(&llvmInst, lastBlock);
 
             if (createCallReturn) {
-                auto tmpBlock = new Block(createCallReturn);
+                auto tmpBlock = new Block(&llvmBlock, createCallReturn);
+                _mapping[&llvmBlock].push_back(tmpBlock);
                 function->addBlock(tmpBlock);
                 lastBlock->addSuccessor(tmpBlock);
                 lastBlock = tmpBlock;

@@ -28,7 +28,10 @@ class GraphBuilder {
     LLVMPointerAnalysis *pointsToAnalysis_ = nullptr;
     bool threads = false;
     std::map<const llvm::Function *, Function *> _functions;
-    std::unordered_map<const llvm::BasicBlock *, Block *> _mapping;
+    // mapping from llvm block to our blocks (a vector of blocks
+    // since we split them apart)
+    // FIXME: optimize this, most of the vectors will be just a singleton...
+    std::unordered_map<const llvm::BasicBlock *, std::vector<Block *>> _mapping;
 
     std::vector<const llvm::Function *> getCalledFunctions(const llvm::Value *v);
 
@@ -53,15 +56,20 @@ public:
         return _functions;
     }
 
+    const std::vector<Block *> *mapBlock(const llvm::BasicBlock *b) const {
+        auto it = _mapping.find(b);
+        return it == _mapping.end() ? nullptr : &it->second;
+    }
+
     void dumpNodes(std::ostream& ostream) const;
     void dumpEdges(std::ostream& ostream) const;
     void dump(std::ostream& ostream) const;
 };
 
 // auxiliary functions
-int predecessorsNumber(const llvm::BasicBlock * basicBlock);
-int successorsNumber(const llvm::BasicBlock * basicBlock);
-bool isReachable(const llvm::BasicBlock * basicBlock);
+int predecessorsNumber(const llvm::BasicBlock *basicBlock);
+int successorsNumber(const llvm::BasicBlock *basicBlock);
+bool isReachable(const llvm::BasicBlock *basicBlock);
 
 }
 }

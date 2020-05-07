@@ -144,19 +144,6 @@ bool Block::isExit() const {
     return isArtificial() && !isCallReturn();
 }
 
-const llvm::BasicBlock *Block::llvmBlock() const {
-    if (!llvmInstructions_.empty()) {
-        return llvmInstructions_.back()->getParent();
-    } else if (!predecessors_.empty()) {
-        for (auto predecessor : predecessors_) {
-            if (predecessor->llvmInstructions_.size() > 0) {
-                return predecessor->llvmInstructions_.back()->getParent();
-            }
-        }
-    }
-    return nullptr;
-}
-
 std::string Block::dotName() const {
     std::stringstream stream;
     stream << "NODE" << this;
@@ -165,8 +152,10 @@ std::string Block::dotName() const {
 
 std::string Block::label() const {
     std::string label_ = "[label=\"";
-    label_ += "Function: ";
-    label_ += llvmBlock()->getParent()->getName();
+    if (llvmBlock()) {
+        label_ += "Function: ";
+        label_ += llvmBlock()->getParent()->getName();
+    }
     label_ += "\\n\\nid:";
     label_ += std::to_string(traversalId_);
     if (isCallReturn()) {

@@ -101,11 +101,12 @@ target_include_directories(dgllvmthreadregions
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
 target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
-add_library(dgllvmcda SHARED llvm/ControlDependence/ControlDependence.cpp)
+add_library(dgllvmcda SHARED)
 target_sources(dgllvmcda
     PRIVATE llvm/ControlDependence/Block.cpp
             llvm/ControlDependence/Function.cpp
             llvm/ControlDependence/GraphBuilder.cpp
+            llvm/ControlDependence/ControlDependence.cpp
             llvm/ControlDependence/NTSCD.cpp
             llvm/ControlDependence/NTSCD.h)
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)

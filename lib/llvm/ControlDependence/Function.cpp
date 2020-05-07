@@ -6,7 +6,7 @@
 namespace dg {
 namespace llvmdg {
 
-Function::Function():lastBlock(new Block()) {
+Function::Function(): lastBlock(new Block(nullptr)) {
     blocks.insert(lastBlock);
 }
 
