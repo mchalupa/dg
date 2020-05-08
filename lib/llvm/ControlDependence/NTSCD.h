@@ -70,8 +70,11 @@ public:
 
     void run() override { computeDependencies(); }
 
+    void computeInterprocDependencies(Function *function);
+
 private:
     GraphBuilder graphBuilder;
+
     // forward edges (from branchings to dependent blocks)
     std::map<Block *, std::set<Block *>> controlDependency;
     // reverse edges (from dependent blocks to branchings)
