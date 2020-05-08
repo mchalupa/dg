@@ -46,6 +46,11 @@ public:
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
+        if (_computed.insert(b->getParent()).second) {
+            /// FIXME: get rid of the const cast
+            computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
+        }
+
         auto *block = graphBuilder.mapBlock(b);
         if (!block) {
             return {};
@@ -68,9 +73,14 @@ public:
         abort();
     }
 
-    void run() override { computeDependencies(); }
+    // We run on demand. However, you may use manually computeDependencies()
+    // to compute all dependencies in the interprocedural CFG.
+    void run() override { /* we run on demand */ }
 
     void computeInterprocDependencies(Function *function);
+    void computeIntraprocDependencies(Function *function);
+
+    void computeOnDemand(llvm::Function *F);
 
 private:
     GraphBuilder graphBuilder;
@@ -80,6 +90,7 @@ private:
     // reverse edges (from dependent blocks to branchings)
     std::map<Block *, std::set<Block *>> revControlDependency;
     std::unordered_map<Block *, NodeInfo> nodeInfo;
+    std::set<const llvm::Function *> _computed; // for on-demand
 
     void computeDependencies();
     void computeDependencies(Function *);

@@ -50,7 +50,8 @@ bool isExit(const TarjanAnalysis<Block>::StronglyConnectedComponent * component,
     return component->nodes().back() == function->exit();
 }
 
-Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunction) {
+Function *GraphBuilder::buildFunction(const llvm::Function *llvmFunction,
+                                      bool recursively) {
     if (!llvmFunction) {
         return nullptr;
     }
@@ -83,7 +84,7 @@ Function *GraphBuilder::buildFunctionRecursively(const llvm::Function *llvmFunct
                 createBlock = false;
             }
             bool createCallReturn = false;
-            if (llvmInst.getOpcode() == llvm::Instruction::Call) {
+            if (recursively && llvmInst.getOpcode() == llvm::Instruction::Call) {
                 handleCallInstruction(&llvmInst, lastBlock, createBlock, createCallReturn);
             }
             lastBlock->addInstruction(&llvmInst);
@@ -152,7 +153,7 @@ Function *GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) 
     }
     auto function = findFunction(llvmFunction);
     if (!function) {
-        function = buildFunctionRecursively(llvmFunction);
+        function = buildFunction(llvmFunction);
     }
     return  function;
 }
@@ -189,7 +190,10 @@ GraphBuilder::getCalledFunctions(const llvm::Value *v) {
     return dg::getCalledFunctions(v, pointsToAnalysis_);
 }
 
-void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction, Block *lastBlock, bool &createBlock, bool &createCallReturn) {
+void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction,
+                                         Block *lastBlock,
+                                         bool &createBlock,
+                                         bool &createCallReturn) {
     auto * callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
     auto llvmFunctions = getCalledFunctions(callInst->getCalledValue());
 
