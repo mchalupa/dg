@@ -21,47 +21,49 @@
 #endif
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
+#include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
 
 namespace dg {
 //namespace cda {
 
-class LLVMControlDependenceAnalysisImpl {
-
-    const llvm::Module *_module;
-    const LLVMControlDependenceAnalysisOptions _options;
-
+class LLVMControlDependenceAnalysis {
 public:
-    LLVMControlDependenceAnalysisImpl(const llvm::Module *module,
-                                      const LLVMControlDependenceAnalysisOptions& opts)
-        : _module(module), _options(opts) {}
-
-    virtual ~LLVMControlDependenceAnalysisImpl() = default;
-
     using ValVec = std::vector<llvm::Value *>;
 
-    // public API
-    const llvm::Module *getModule() const { return _module; }
-    const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
-
-    virtual void run() = 0;
-
-    /// Getters of dependencies for a value
-    virtual ValVec getDependencies(const llvm::Instruction *) = 0;
-    virtual ValVec getDependent(const llvm::Instruction *) = 0;
-
-    /// Getters of dependencies for a basic block
-    virtual ValVec getDependencies(const llvm::BasicBlock *) = 0;
-    virtual ValVec getDependent(const llvm::BasicBlock *) = 0;
-};
-
-
-class LLVMControlDependenceAnalysis {
-
+private:
     const llvm::Module *_module;
     const LLVMControlDependenceAnalysisOptions _options;
     std::unique_ptr<LLVMControlDependenceAnalysisImpl> _impl{nullptr};
+    std::unique_ptr<LLVMControlDependenceAnalysisImpl> _interprocImpl{nullptr};
 
     void initializeImpl();
+
+    template <typename ValT>
+    ValVec _getDependencies(ValT v) {
+        assert(_impl);
+        auto ret = _impl->getDependencies(v);
+
+        if (getOptions().interproceduralCD()) {
+            assert(_interprocImpl);
+            auto interproc = _interprocImpl->getDependencies(v);
+            ret.insert(ret.end(), interproc.begin(), interproc.end());
+        }
+        return ret;
+    }
+
+    template <typename ValT>
+    ValVec _getDependent(ValT v) {
+        assert(_impl);
+        auto ret = _impl->getDependent(v);
+
+        if (getOptions().interproceduralCD()) {
+            assert(_interprocImpl);
+            auto interproc = _interprocImpl->getDependent(v);
+            ret.insert(ret.end(), interproc.begin(), interproc.end());
+        }
+        return ret;
+    }
+
 
 public:
     LLVMControlDependenceAnalysis(const llvm::Module *module,
@@ -70,29 +72,17 @@ public:
         initializeImpl();
     }
 
-    using ValVec = std::vector<llvm::Value *>;
-
     // public API
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
 
     void run() { _impl->run(); }
 
-    ValVec getDependencies(const llvm::Instruction *v) {
-        return _impl->getDependencies(v);
-    }
+    ValVec getDependencies(const llvm::Instruction *v) { return _getDependencies(v); }
+    ValVec getDependent(const llvm::Instruction *v) { return _getDependent(v); }
 
-    ValVec getDependent(const llvm::Instruction *v) {
-        return _impl->getDependent(v);
-    }
-
-    ValVec getDependencies(const llvm::BasicBlock *b) {
-        return _impl->getDependencies(b);
-    }
-
-    ValVec getDependent(const llvm::BasicBlock *b) {
-        return _impl->getDependent(b);
-    }
+    ValVec getDependencies(const llvm::BasicBlock *b) { return _getDependencies(b); }
+    ValVec getDependent(const llvm::BasicBlock *b) { return _getDependent(b); }
 
     // FIXME: add also API that return just iterators
 };

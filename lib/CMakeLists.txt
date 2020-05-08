@@ -107,10 +107,15 @@ target_sources(dgllvmcda
             llvm/ControlDependence/Function.cpp
             llvm/ControlDependence/GraphBuilder.cpp
             llvm/ControlDependence/ControlDependence.cpp
+            llvm/ControlDependence/InterproceduralCD.cpp
+            llvm/ControlDependence/InterproceduralCD.h
             llvm/ControlDependence/NTSCD.cpp
             llvm/ControlDependence/NTSCD.h
             llvm/ControlDependence/SCD.cpp
-            llvm/ControlDependence/SCD.h)
+            llvm/ControlDependence/SCD.h
+            ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h
+            ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h
+            )
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED

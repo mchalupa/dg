@@ -1,6 +1,7 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "llvm/ControlDependence/NTSCD.h"
 #include "llvm/ControlDependence/SCD.h"
+#include "llvm/ControlDependence/InterproceduralCD.h"
 
 namespace dg {
 
@@ -13,6 +14,8 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
         assert(false && "Unhandled analysis type");
         abort();
     }
+
+    _interprocImpl.reset(new llvmdg::LLVMInterprocCD(_module, _options));
 }
 
 } // namespace dg
