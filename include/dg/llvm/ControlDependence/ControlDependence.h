@@ -46,8 +46,8 @@ public:
     virtual void run() = 0;
 
     /// Getters of dependencies for a value
-    virtual ValVec getDependencies(const llvm::Value *) = 0;
-    virtual ValVec getDependent(const llvm::Value *) = 0;
+    virtual ValVec getDependencies(const llvm::Instruction *) = 0;
+    virtual ValVec getDependent(const llvm::Instruction *) = 0;
 
     /// Getters of dependencies for a basic block
     virtual ValVec getDependencies(const llvm::BasicBlock *) = 0;
@@ -78,16 +78,16 @@ public:
 
     void run() { _impl->run(); }
 
-    ValVec getDependencies(const llvm::Value *v) {
+    ValVec getDependencies(const llvm::Instruction *v) {
         return _impl->getDependencies(v);
+    }
+
+    ValVec getDependent(const llvm::Instruction *v) {
+        return _impl->getDependent(v);
     }
 
     ValVec getDependencies(const llvm::BasicBlock *b) {
         return _impl->getDependencies(b);
-    }
-
-    ValVec getDependent(const llvm::Value *v) {
-        return _impl->getDependent(v);
     }
 
     ValVec getDependent(const llvm::BasicBlock *b) {
