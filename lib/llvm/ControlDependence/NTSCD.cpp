@@ -47,11 +47,55 @@ void NTSCD::addControlDependence(Block *a, Block *b) {
 }
 
 // FIXME: make it working on-demand
+void NTSCD::computeInterprocDependencies(Function *function) {
+    DBG_SECTION_BEGIN(cda, "Computing interprocedural CD");
+
+    const auto& nodes = function->nodes();
+    for (auto node : nodes) {
+        if (!node->callees().empty() || !node->joins().empty()) {
+            auto iterator = std::find_if(node->successors().begin(),
+                                         node->successors().end(),
+                                         [](const Block *block){
+                                                return block->isCallReturn();
+                                         });
+            if (iterator != node->successors().end()) {
+                for (auto callee : node->callees()) {
+                    addControlDependence(*iterator, callee.second->exit());
+                }
+                for (auto join : node->joins()) {
+                    addControlDependence(*iterator, join.second->exit());
+                }
+            }
+        }
+    }
+
+    for (auto node : function->callReturnNodes()) {
+        std::queue<Block *> q;
+        std::unordered_set<Block *> visited(nodes.size());
+        visited.insert(node);
+        for(auto successor : node->successors()) {
+            if (visited.find(successor) == visited.end()) {
+                q.push(successor);
+                visited.insert(successor);
+            }
+        }
+        while (!q.empty()) {
+            addControlDependence(q.front(), node);
+            for(auto successor : q.front()->successors()) {
+                if (visited.find(successor) == visited.end()) {
+                    q.push(successor);
+                    visited.insert(successor);
+                }
+            }
+            q.pop();
+        }
+    }
+    DBG_SECTION_END(cda, "Finished computing interprocedural CD");
+}
+
 void NTSCD::computeDependencies(Function *function) {
     DBG_SECTION_BEGIN(cda, "Computing CD for a function");
-    auto nodes = function->nodes();
-    auto condNodes = function->condNodes();
-    auto callReturnNodes = function->callReturnNodes();
+    const auto& nodes = function->nodes();
 
     DBG_SECTION_BEGIN(cda, "Computing intraprocedural CD");
     for (auto node : nodes) {
@@ -76,48 +120,9 @@ void NTSCD::computeDependencies(Function *function) {
 
     // add interprocedural dependencies
     if (getOptions().interproceduralCD()) {
-        DBG_SECTION_BEGIN(cda, "Computing interprocedural CD");
-        for (auto node : nodes) {
-            if (!node->callees().empty() || !node->joins().empty()) {
-                auto iterator = std::find_if(node->successors().begin(),
-                                             node->successors().end(),
-                                             [](const Block *block){
-                                                    return block->isCallReturn();
-                                             });
-                if (iterator != node->successors().end()) {
-                    for (auto callee : node->callees()) {
-                        addControlDependence(*iterator, callee.second->exit());
-                    }
-                    for (auto join : node->joins()) {
-                        addControlDependence(*iterator, join.second->exit());
-                    }
-                }
-            }
-        }
-
-        for (auto node : callReturnNodes) {
-            std::queue<Block *> q;
-            std::unordered_set<Block *> visited(nodes.size());
-            visited.insert(node);
-            for(auto successor : node->successors()) {
-                if (visited.find(successor) == visited.end()) {
-                    q.push(successor);
-                    visited.insert(successor);
-                }
-            }
-            while (!q.empty()) {
-                addControlDependence(q.front(), node);
-                for(auto successor : q.front()->successors()) {
-                    if (visited.find(successor) == visited.end()) {
-                        q.push(successor);
-                        visited.insert(successor);
-                    }
-                }
-                q.pop();
-            }
-        }
-        DBG_SECTION_END(cda, "Finished computing interprocedural CD");
+        computeInterprocDependencies(function);
     }
+
     DBG_SECTION_END(cda, "Finished computing CD for a function");
 }
 
