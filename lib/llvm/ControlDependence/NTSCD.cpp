@@ -93,10 +93,8 @@ void NTSCD::computeInterprocDependencies(Function *function) {
     DBG_SECTION_END(cda, "Finished computing interprocedural CD");
 }
 
-void NTSCD::computeDependencies(Function *function) {
-    DBG_SECTION_BEGIN(cda, "Computing CD for a function");
+void NTSCD::computeIntraprocDependencies(Function *function) {
     const auto& nodes = function->nodes();
-
     DBG_SECTION_BEGIN(cda, "Computing intraprocedural CD");
     for (auto node : nodes) {
         // (1) initialize
@@ -114,11 +112,15 @@ void NTSCD::computeDependencies(Function *function) {
                 addControlDependence(node, node1);
             }
         }
-
     }
     DBG_SECTION_END(cda, "Finished computing intraprocedural CD");
+}
 
-    // add interprocedural dependencies
+void NTSCD::computeDependencies(Function *function) {
+    DBG_SECTION_BEGIN(cda, "Computing CD for a function");
+
+    computeIntraprocDependencies(function);
+
     if (getOptions().interproceduralCD()) {
         computeInterprocDependencies(function);
     }
@@ -126,6 +128,13 @@ void NTSCD::computeDependencies(Function *function) {
     DBG_SECTION_END(cda, "Finished computing CD for a function");
 }
 
+///
+///  Compute dependencies for all functions including
+/// the interprocedural dependencies (this method builds
+/// interprocedural CFG). This method is still here mainly
+/// for the legacy LLVMDependenceGraph class.
+/// \see computeOnDemand
+///
 void NTSCD::computeDependencies() {
     DBG_SECTION_BEGIN(cda, "Computing CD for the whole module");
     auto *entryFunction = getModule()->getFunction(getOptions().entryFunction);
@@ -135,7 +144,7 @@ void NTSCD::computeDependencies() {
         return;
     }
 
-    graphBuilder.buildFunctionRecursively(entryFunction);
+    graphBuilder.buildFunction(entryFunction, /* recursively = */ true);
     auto entryFunc = graphBuilder.findFunction(entryFunction);
 
     entryFunc->entry()->visit();
@@ -145,6 +154,21 @@ void NTSCD::computeDependencies() {
     }
     DBG_SECTION_END(cda, "Finished computing CD for the whole module");
 }
+
+/// Compute intraprocedural dependencies in the given function
+void NTSCD::computeOnDemand(llvm::Function *F) {
+    DBG_SECTION_BEGIN(cda, "Computing CD for function " << F->getName().str());
+    assert(F);
+
+    auto *function = graphBuilder.createOrGetFunction(F);
+    function->entry()->visit();
+
+    computeIntraprocDependencies(function);
+
+    DBG_SECTION_END(cda, "Done computing CD for function " << F->getName().str());
+}
+
+
 
 void NTSCD::dump(ostream &ostream) const {
     ostream << "digraph \"BlockGraph\" {\n";

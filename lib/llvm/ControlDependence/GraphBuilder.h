@@ -48,7 +48,7 @@ public:
     GraphBuilder(LLVMPointerAnalysis *pointsToAnalysis = nullptr);
     ~GraphBuilder();
 
-    Function *buildFunctionRecursively(const llvm::Function * llvmFunction);
+    Function *buildFunction(const llvm::Function * llvmFunction, bool recursively = false);
     Function *findFunction(const llvm::Function * llvmFunction);
     Function *createOrGetFunction(const llvm::Function * llvmFunction);
 
