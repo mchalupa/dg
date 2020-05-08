@@ -4,9 +4,10 @@
 #include <vector>
 
 #include "dg/BBlock.h"
-#include "dg/legacy/BFS.h"
+#include "dg/BFS.h"
 
 namespace dg {
+namespace legacy {
 
 ///
 // Compute post-dominance frontiers
@@ -26,12 +27,7 @@ namespace dg {
 // DOI=http://dx.doi.org/10.1145/75277.75280
 //
 template <typename NodeT, typename BBlockT>
-class PostDominanceFrontiers
-{
-    static void queuePostDomBBs(BBlockT *BB,
-                                std::vector<BBlockT *> *blocks) {
-        blocks->push_back(BB);
-    }
+class PostDominanceFrontiers {
 
     void computePDFrontiers(BBlockT *BB, bool add_cd) {
         // compute DFlocal
@@ -95,6 +91,7 @@ public:
     }
 };
 
+} // namespace legacy
 } // namespace dg
 
 #endif

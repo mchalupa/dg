@@ -108,7 +108,9 @@ target_sources(dgllvmcda
             llvm/ControlDependence/GraphBuilder.cpp
             llvm/ControlDependence/ControlDependence.cpp
             llvm/ControlDependence/NTSCD.cpp
-            llvm/ControlDependence/NTSCD.h)
+            llvm/ControlDependence/NTSCD.h
+            llvm/ControlDependence/SCD.cpp
+            llvm/ControlDependence/SCD.h)
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED
@@ -138,11 +140,19 @@ if(APPLE)
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
+  set_target_properties(dgllvmsdg PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+
   set_target_properties(dgllvmpta PROPERTIES
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
   set_target_properties(dgllvmdda PROPERTIES
+    LINK_FLAGS "-undefined dynamic_lookup"
+  )
+
+  set_target_properties(dgllvmcda PROPERTIES
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 endif(APPLE)

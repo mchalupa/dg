@@ -36,6 +36,7 @@ if (LLVM_DG)
 	add_executable(llvm-sdg-dump llvm-sdg-dump.cpp)
 	target_link_libraries(llvm-sdg-dump PRIVATE dgllvmslicer
 					    PRIVATE dgllvmsdg
+					    PRIVATE dgllvmcda
 					    PRIVATE ${SVF_LIBS}
 					    PRIVATE ${llvm_support}
 					    PRIVATE ${llvm_analysis}
@@ -57,8 +58,7 @@ if (LLVM_DG)
 	target_link_libraries(llvm-cda-dump PRIVATE dgllvmslicer
                                             PRIVATE dganalysis
                                             PRIVATE dgllvmcda
-					    PRIVATE ${llvm_support}
-					    PRIVATE ${llvm_analysis}
+					    PUBLIC ${llvm_analysis}
 					    PRIVATE ${llvm_irreader}
 					    PRIVATE ${llvm_core}
 					    )
