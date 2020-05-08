@@ -1,11 +1,12 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "llvm/ControlDependence/NTSCD.h"
+#include "llvm/ControlDependence/SCD.h"
 
 namespace dg {
 
 void LLVMControlDependenceAnalysis::initializeImpl() {
     if (getOptions().standardCD()) {
-        assert(false && "Unhandled analysis type");
+        _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD()) {
         _impl.reset(new llvmdg::NTSCD(_module, _options));
     } else {
