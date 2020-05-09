@@ -95,10 +95,10 @@ LLVMInterprocCD::computeFuncInfo(const llvm::Function *fun,
         }
     }
 
-    //llvm::errs() << "Noret points of " << fun->getName() << "\n";
-    //for (auto *nr : info.noret) {
-    //    llvm::errs() << "  -> " << *nr << "\n";
-    //}
+    llvm::errs() << "Noret points of " << fun->getName() << "\n";
+    for (auto *nr : info.noret) {
+        llvm::errs() << "  -> " << *nr << "\n";
+    }
 
     DBG_SECTION_END(cda, "Done computing no-return points for function " << fun->getName().str());
 }

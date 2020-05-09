@@ -158,6 +158,23 @@ class SDG2Dot {
         out << "    }\n";
     }
 
+    void bindParamsToCall(std::ostream& out,
+                          sdg::DGParameters& params,
+                          sdg::DGNode *call) const {
+        /// input parameters
+        for (auto& param : params) {
+            auto& nd = param.getOutputArgument();
+            out << "      " << *call << " -> " << nd << "[style=dashed]\n";
+        }
+
+        if (auto *noret = params.getNoReturn()) {
+            out << "      " << *call << " -> " << *noret << "[style=dashed]\n";
+        }
+        if (auto *ret = params.getReturn()) {
+            out << "      " << *call << " -> " << *ret << "[style=dashed]\n";
+        }
+    }
+
 public:
     SDG2Dot(SystemDependenceGraph *sdg) : _llvmsdg(sdg) {}
 
@@ -170,7 +187,7 @@ public:
 
         for (auto *dg : _llvmsdg->getSDG()) {
             ///
-            // Dependence graphs (functions) 
+            // Dependence graphs (functions)
             out << "  subgraph cluster_dg_" << dg->getID() << " {\n";
             out << "    color=black;\n";
             out << "    style=filled;\n";
@@ -181,7 +198,7 @@ public:
             ///
             // Parameters of the DG
             //
-            /// Formal input parameters 
+            /// Formal input parameters
             dumpParams(out, dg->getParameters(), "formal parameters");
 
             ///
@@ -207,20 +224,20 @@ public:
             ///
             // -- edges --
             out << "    /* edges */\n";
-            for (auto *blk : dg->getBBlocks()) {
-                for (auto *nd : blk->getNodes()) {
-                    for (auto *use : nd->uses()) {
-                        out << "    " << *nd << " -> " << *use
-                            << "[style=\"dashed\"]\n";
-                    }
-                    for (auto *def : nd->memdep()) {
-                        out << "    " << *def << " -> " << *nd << "[color=red]\n";
-                    }
-                    for (auto *ctrl : nd->controls()) {
-                        out << "    " << *nd << " -> " << *ctrl << "[color=blue]\n";
-                    }
+            for (auto *nd : dg->getNodes()) {
+                for (auto *use : nd->uses()) {
+                    out << "    " << *nd << " -> " << *use
+                        << "[style=\"dashed\"]\n";
                 }
-
+                for (auto *def : nd->memdep()) {
+                    out << "    " << *def << " -> " << *nd << "[color=red]\n";
+                }
+                for (auto *ctrl : nd->controls()) {
+                    out << "    " << *nd << " -> " << *ctrl << "[color=blue]\n";
+                }
+            }
+            out << "    /* block edges */\n";
+            for (auto *blk : dg->getBBlocks()) {
                 for (auto *ctrl : blk->controls()) {
                     out << "    " << *blk->back() << " -> ";
                     if (auto *ctrlB = sdg::DGBBlock::get(ctrl)) {
@@ -248,9 +265,10 @@ public:
         // -- Interprocedural edges --
 
         if (!calls.empty()) {
-            out << " /* call edges */\n";
+            out << " /* call and param edges */\n";
         }
         for (auto *C : calls) {
+            bindParamsToCall(out, C->getParameters(), C);
             for (auto *dg : C->getCallees()) {
                 out << "  " << *C
                     << " -> " << *dg->getFirstNode()

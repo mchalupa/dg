@@ -55,33 +55,47 @@ struct SDGDependenciesBuilder {
         }
     }
 
+    // elem is CD on 'on'
+    void addControlDep(sdg::DepDGElement *elem, const llvm::Value *on) {
+        if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(on)) {
+            auto *depblock = _sdg.getBBlock(depB);
+            assert(depblock && "Do not have the block");
+            elem->addControlDep(*depblock);
+        } else {
+            auto *depnd = sdg::DepDGElement::get(_sdg.getNode(on));
+            assert(depnd && "Do not have the node");
+
+            if (auto *C = sdg::DGNodeCall::get(depnd)) {
+                // this is 'noret' dependence (we have no other control deps for calls)
+                auto *noret = C->getParameters().getNoReturn();
+                if (!noret)
+                    noret = &C->getParameters().createNoReturn();
+                elem->addControlDep(*noret);
+
+                // add CD to all formal norets
+                for (auto *calledF : C->getCallees()) {
+                    auto *fnoret = calledF->getParameters().getNoReturn();
+                    if (!fnoret)
+                        fnoret = &calledF->getParameters().createNoReturn();
+                    noret->addControlDep(*fnoret);
+                }
+            } else {
+                elem->addControlDep(*depnd);
+            }
+        }
+    }
+
     void addControlDependencies(sdg::DepDGElement *elem, llvm::Instruction& I) {
         assert(elem);
         for (auto *dep : CDA->getDependencies(&I)) {
-            if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(dep)) {
-                auto *depblock = _sdg.getBBlock(depB);
-                assert(depblock && "Do not have the block");
-                elem->addControlDep(*depblock);
-            } else {
-                auto *depnd = sdg::DepDGElement::get(_sdg.getNode(dep));
-                assert(depnd && "Do not have the node");
-                elem->addControlDep(*depnd);
-            }
+            addControlDep(elem, dep);
         }
     }
 
     void addControlDependencies(sdg::DGBBlock *block, llvm::BasicBlock& B) {
         assert(block);
         for (auto *dep : CDA->getDependencies(&B)) {
-            if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(dep)) {
-                auto *depblock = _sdg.getBBlock(depB);
-                assert(depblock && "Do not have the block");
-                block->addControlDep(*depblock);
-            } else {
-                auto *depnd = sdg::DepDGElement::get(_sdg.getNode(dep));
-                assert(depnd && "Do not have the node");
-                block->addControlDep(*depnd);
-            }
+            addControlDep(block, dep);
         }
     }
 
@@ -95,7 +109,6 @@ struct SDGDependenciesBuilder {
 
         for (auto& op : DDA->getLLVMDefinitions(&I)) {
             auto *val = &*op;
-            llvm::errs() << *val << " d-> " << I << "\n";
             auto *opnd = _sdg.getNode(val);
             if (!opnd) {
                 llvm::errs() << "[SDG error] Do not have operand node:\n";
@@ -117,7 +130,6 @@ struct SDGDependenciesBuilder {
     }
 
     void processInstr(llvm::Instruction& I) {
-        llvm::errs() << "I: " << I << "\n";
         auto *nd = sdg::DepDGElement::get(_sdg.getNode(&I));
         assert(nd && "Do not have node");
 
@@ -144,6 +156,27 @@ struct SDGDependenciesBuilder {
 
             // block-based control dependencies
             addControlDependencies(_sdg.getBBlock(&B), B);
+        }
+
+        // add noreturn dependencies
+
+        DBG(sdg, "Adding noreturn dependencies to " << F.getName().str());
+        auto *noret = dg->getParameters().getNoReturn();
+        if (!noret)
+            noret = &dg->getParameters().createNoReturn();
+        for (auto *dep : CDA->getNoReturns(&F)) {
+            llvm::errs() << "NORET: " << *dep << "\n";
+            auto *nd = sdg::DepDGElement::get(_sdg.getNode(dep));
+            assert(nd && "Do not have the node");
+            if (auto *C = sdg::DGNodeCall::get(nd)) {
+                // if this is call, add it again to noret node
+                auto *cnoret = C->getParameters().getNoReturn();
+                assert(cnoret && "Did not create a noret for a call");
+                noret->addControlDep(*cnoret);
+            } else {
+                noret->addControlDep(*nd);
+            }
+
         }
     }
 

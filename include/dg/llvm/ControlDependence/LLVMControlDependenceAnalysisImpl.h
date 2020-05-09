@@ -6,6 +6,7 @@
 namespace llvm {
     class Module;
     class Value;
+    class Function;
 };
 
 namespace dg {
@@ -38,6 +39,11 @@ public:
     /// Getters of dependencies for a basic block
     virtual ValVec getDependencies(const llvm::BasicBlock *) = 0;
     virtual ValVec getDependent(const llvm::BasicBlock *) = 0;
+
+    /// Getter for noreturn nodes in function (for interprocedural analysis)
+    virtual ValVec getNoReturns(const llvm::Function *) const {
+        assert(false && "Unsupported"); abort();
+    }
 };
 
 
