@@ -77,10 +77,8 @@ public:
     // to compute all dependencies in the interprocedural CFG.
     void run() override { /* we run on demand */ }
 
-    void computeInterprocDependencies(Function *function);
-    void computeIntraprocDependencies(Function *function);
-
-    void computeOnDemand(llvm::Function *F);
+    // Compute dependencies for the whole ICFG (used in legacy code)
+    void computeDependencies();
 
 private:
     GraphBuilder graphBuilder;
@@ -92,8 +90,11 @@ private:
     std::unordered_map<Block *, NodeInfo> nodeInfo;
     std::set<const llvm::Function *> _computed; // for on-demand
 
-    void computeDependencies();
     void computeDependencies(Function *);
+    void computeOnDemand(llvm::Function *F);
+
+    void computeInterprocDependencies(Function *function);
+    void computeIntraprocDependencies(Function *function);
 
     // a is CD on b
     void addControlDependence(Block *a, Block *b);

@@ -106,7 +106,11 @@ class LLVMDependenceGraphBuilder {
 
     void _runControlDependenceAnalysis() {
         _timerStart();
-        _CDA->run();
+        //_CDA->run();
+        // FIXME: until we get rid of the legacy code,
+        // use the old way of inserting CD edges directly
+        // into the dg
+        _dg->computeControlDependencies(_options.CDAOptions);
         _statistics.cdaTime = _timerEnd();
     }
 
