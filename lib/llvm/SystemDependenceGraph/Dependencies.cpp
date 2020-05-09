@@ -50,23 +50,35 @@ struct SDGDependenciesBuilder {
         }
     }
 
-    void addControlDependencies(sdg::DGElement *, llvm::Instruction&) {
-    }
-
-    void addControlDependencies(sdg::DGBBlock *block, llvm::BasicBlock& B) {
-        assert(block);
-        for (auto * dep : CDA->getDependencies(&B)) {
-            if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(&B)) {
+    void addControlDependencies(sdg::DepDGElement *elem, llvm::Instruction& I) {
+        assert(elem);
+        for (auto *dep : CDA->getDependencies(&I)) {
+            if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(dep)) {
                 auto *depblock = _sdg.getBBlock(depB);
                 assert(depblock && "Do not have the block");
-                block->addControlDep(*depblock);
-
+                elem->addControlDep(*depblock);
             } else {
-                assert(false && "Not implemented");
+                auto *depnd = sdg::DepDGElement::get(_sdg.getNode(dep));
+                assert(depnd && "Do not have the node");
+                elem->addControlDep(*depnd);
             }
         }
     }
 
+    void addControlDependencies(sdg::DGBBlock *block, llvm::BasicBlock& B) {
+        assert(block);
+        for (auto *dep : CDA->getDependencies(&B)) {
+            if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(dep)) {
+                auto *depblock = _sdg.getBBlock(depB);
+                assert(depblock && "Do not have the block");
+                block->addControlDep(*depblock);
+            } else {
+                auto *depnd = sdg::DepDGElement::get(_sdg.getNode(dep));
+                assert(depnd && "Do not have the node");
+                block->addControlDep(*depnd);
+            }
+        }
+    }
 
     void addDataDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
         addInterprocDataDependencies(nd, I);
@@ -101,7 +113,7 @@ struct SDGDependenciesBuilder {
 
     void processInstr(llvm::Instruction& I) {
         llvm::errs() << "I: " << I << "\n";
-        auto *nd = _sdg.getNode(&I);
+        auto *nd = sdg::DepDGElement::get(_sdg.getNode(&I));
         assert(nd && "Do not have node");
 
         if (llvm::isa<llvm::DbgInfoIntrinsic>(&I)) {

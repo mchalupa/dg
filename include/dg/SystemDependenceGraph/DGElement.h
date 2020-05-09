@@ -19,6 +19,7 @@ enum class DGElementType {
         ARG_PAIR = 1,
         BBLOCK,
         // nodes
+        // NOTE: here can follow only childs of DGNode class
         NODE = 3,
         ND_INSTRUCTION,
         ND_ARGUMENT,

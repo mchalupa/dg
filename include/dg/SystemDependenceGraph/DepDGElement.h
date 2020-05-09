@@ -59,6 +59,13 @@ protected:
 
 public:
 
+    static DepDGElement *get(DGElement *elem) {
+        if (elem->getType() == DGElementType::BBLOCK ||
+                elem->getType() >= DGElementType::NODE)
+            return static_cast<DepDGElement*>(elem);
+        return nullptr;
+    }
+
     /// add user of this node (edge 'this'->'nd')
     void addUser(DepDGElement& nd) {
         _use_deps.insert(&nd);
