@@ -202,8 +202,28 @@ public:
                             << "[style=\"dashed\"]\n";
                     }
                     for (auto *def : nd->memdep()) {
-                        out << "    " << *def << " -> " << *nd << "\n";
+                        out << "    " << *def << " -> " << *nd << "[color=red]\n";
                     }
+                    for (auto *ctrl : nd->controls()) {
+                        out << "    " << *nd << " -> " << *ctrl << "[color=blue]\n";
+                    }
+                }
+
+                for (auto *ctrl : blk->controls()) {
+                    out << "    " << *blk->back() << " -> ";
+                    if (auto *ctrlB = sdg::DGBBlock::get(ctrl)) {
+                        out << *ctrlB->front();
+                    } else {
+                        out << *ctrl;
+                    }
+
+                    out << "[color=blue penwidth=2 "
+                        << " ltail=cluster_dg_" << dg->getID() << "_bb_" << blk->getID();
+
+                    if (ctrl->getType() == sdg::DGElementType::BBLOCK) {
+                        out << " lhead=cluster_dg_" << dg->getID() << "_bb_" << ctrl->getID();
+                    }
+                    out << "]\n";
                 }
             }
 
@@ -224,7 +244,7 @@ public:
                     << " -> " << *dg->getFirstNode()
                     << "[lhead=cluster_dg_" << dg->getID()
                     << " label=\"call '" << dg->getName()<< "'\""
-                    << " style=bold]\n";
+                    << " style=dashed penwidth=3]\n";
             }
         }
 

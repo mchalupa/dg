@@ -23,6 +23,11 @@ class DGBBlock : public DepDGElement {
     DGBBlock(DependenceGraph& g) : DepDGElement(g, DGElementType::BBLOCK) { }
 
 public:
+    static DGBBlock *get(DGElement *elem) {
+        return elem->getType() == DGElementType::BBLOCK ?
+                    static_cast<DGBBlock*>(elem) : nullptr;
+    }
+
     NodesTy& getNodes() { return _nodes; }
     const NodesTy& getNodes() const { return _nodes; }
 
@@ -33,6 +38,10 @@ public:
         n->setBBlock(this);
     }
 
+    DGNode *front() { return _nodes.front(); }
+    DGNode *back() { return _nodes.back(); }
+    const DGNode *front() const { return _nodes.front(); }
+    const DGNode *back() const { return _nodes.back(); }
 };
 
 } // namespace sdg

@@ -21,10 +21,15 @@ struct SDGDependenciesBuilder {
     void addUseDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
         for (auto& op : I.operands()) {
             auto *val = &*op;
-            llvm::errs() << I << " -> " << *val << "\n";
             if (llvm::isa<llvm::ConstantExpr>(val)) {
                 val = val->stripPointerCasts();
+            } else if (llvm::isa<llvm::BasicBlock>(val)) {
+                // we do not add use edges to basic blocks
+                // FIXME: but maybe we could? The implementation could be then
+                // clearer...
+                continue;
             }
+
             auto *opnd = _sdg.getNode(val);
             if (!opnd) {
                 if (llvm::isa<llvm::ConstantInt>(val) ||
