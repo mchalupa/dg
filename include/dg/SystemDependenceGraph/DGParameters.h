@@ -17,9 +17,10 @@ class DGParameters {
     DependenceGraph& _dg;
     // node representing that the function may not return
     // (it terminates the program or loops forever)
-    std::unique_ptr<DGNodeArtificial> _noreturn;
+    // NOTE: it is owned by the _dg after creation
+    DGNodeArtificial *_noreturn{nullptr};
     // output argument representing the return from the function
-    std::unique_ptr<DGNodeArtificial> _return;
+    DGNodeArtificial *_return{nullptr};
 
     using ParametersContainerTy = std::vector<std::unique_ptr<DGArgumentPair>>;
     ParametersContainerTy _params;
@@ -74,12 +75,13 @@ public:
     params_iterator begin() { return params_iterator(_params.begin()); }
     params_iterator end() { return params_iterator(_params.end()); }
 
-    DGNode *getReturn() { return _return.get(); }
-    const DGNode *getReturn() const { return _return.get(); }
+    DGNode& createReturn();
+    DGNode *getReturn() { return _return; }
+    const DGNode *getReturn() const { return _return; }
 
     DGNode& createNoReturn();
-    DGNode *getNoReturn() { return _noreturn.get(); }
-    const DGNode *getNoReturn() const { return _noreturn.get(); }
+    DGNode *getNoReturn() { return _noreturn; }
+    const DGNode *getNoReturn() const { return _noreturn; }
 };
 
 class DGFormalParameters : public DGParameters {

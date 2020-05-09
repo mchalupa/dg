@@ -76,13 +76,23 @@ public:
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
 
-    void run() { _impl->run(); }
+    void run() {
+        _impl->run();
+        if (getOptions().interproceduralCD())
+            _interprocImpl->run();
+    }
 
     ValVec getDependencies(const llvm::Instruction *v) { return _getDependencies(v); }
     ValVec getDependent(const llvm::Instruction *v) { return _getDependent(v); }
 
     ValVec getDependencies(const llvm::BasicBlock *b) { return _getDependencies(b); }
     ValVec getDependent(const llvm::BasicBlock *b) { return _getDependent(b); }
+
+    ValVec getNoReturns(const llvm::Function *F) const {
+        if (_interprocImpl)
+            return _interprocImpl->getNoReturns(F);
+        return {};
+    }
 
     // FIXME: add also API that return just iterators
 };

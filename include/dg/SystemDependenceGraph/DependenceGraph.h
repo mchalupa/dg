@@ -45,7 +45,7 @@ class DependenceGraph {
 
     std::string _name;
 
-    // wrapper around graphs iterator that unwraps the unique_ptr
+    // wrapper around block iterator that unwraps the unique_ptr
     struct bblocks_iterator : public decltype(_bblocks.begin()) {
         using OrigItType = decltype(_bblocks.begin());
 
@@ -68,6 +68,29 @@ class DependenceGraph {
         bblocks_iterator end() { return bblocks_iterator(_C.end()); }
     };
 
+    // wrapper around nodes iterator that unwraps the unique_ptr
+    struct nodes_iterator : public decltype(_nodes.begin()) {
+        using OrigItType = decltype(_nodes.begin());
+
+        nodes_iterator() = default;
+        nodes_iterator(const nodes_iterator& I) = default;
+        nodes_iterator(const OrigItType& I) : OrigItType(I) {}
+
+        DGNode* operator*() { return OrigItType::operator*().get(); }
+        //DependenceGraph* operator->() { return OrigItType::operator*().get(); }
+    };
+
+    class nodes_range {
+        friend class DependenceGraph;
+
+        NodesContainerTy& _C;
+
+        nodes_range(NodesContainerTy& C) : _C(C) {}
+    public:
+        nodes_iterator begin() { return nodes_iterator(_C.begin()); }
+        nodes_iterator end() { return nodes_iterator(_C.end()); }
+    };
+
     unsigned getNextNodeID() {
         // we could use _nodes.size(), but this is more error-prone
         // as this function could not increate _nodes.size()
@@ -83,7 +106,9 @@ public:
     void setName(const std::string& nm) { _name = nm; }
     const std::string& getName() const { return _name; }
 
+    // FIXME: rename to blocks() and nodes()
     bblocks_range getBBlocks() { return bblocks_range(_bblocks); }
+    nodes_range getNodes() { return nodes_range(_nodes); }
 
 
     // we do not have any total order on nodes or blocks in SDG,

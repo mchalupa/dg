@@ -28,8 +28,14 @@ DGNodeArtificial& DGFormalParameters::createVarArg() {
 
 DGNode& DGParameters::createNoReturn() {
     auto& dg = getDG();
-    _noreturn.reset(&dg.createArtificial());
-    return *_noreturn.get();
+    _noreturn = &dg.createArtificial();
+    return *_noreturn;
+}
+
+DGNode& DGParameters::createReturn() {
+    auto& dg = getDG();
+    _return = &dg.createArtificial();
+    return *_return;
 }
 
 

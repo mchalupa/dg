@@ -40,6 +40,12 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         return it == _funcInfos.end() ? nullptr : &it->second;
     }
 
+    const FuncInfo *getFuncInfo(const llvm::Function *F) const {
+        auto it = _funcInfos.find(F);
+        return it == _funcInfos.end() ? nullptr : &it->second;
+    }
+
+
     bool hasFuncInfo(const llvm::Function *fun) const {
        return _funcInfos.find(fun) != _funcInfos.end();
     }
@@ -58,6 +64,15 @@ public:
                     const LLVMControlDependenceAnalysisOptions& opts = {},
                     LLVMPointerAnalysis *pta = nullptr)
         : LLVMControlDependenceAnalysisImpl(module, opts), PTA(pta) {}
+
+    ValVec getNoReturns(const llvm::Function *F) const override {
+        ValVec ret;
+        if (auto *fi = getFuncInfo(F)) {
+            for (auto *val : fi->noret)
+                ret.push_back(const_cast<llvm::Value *>(val));
+        }
+        return ret;
+    }
 
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *I) override {
