@@ -119,14 +119,12 @@ public:
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *, bool fork = false);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
-    void makeSelfLoopsControlDependent();
     void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
     void addNoreturnDependencies();
 
     void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts) {
         if (opts.standardCD()) {
             computePostDominators(true);
-            //makeSelfLoopsControlDependent();
         } else if (opts.ntscdCD()) {
             computeNonTerminationControlDependencies();
         } else
