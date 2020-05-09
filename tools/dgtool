@@ -7,29 +7,30 @@ from os.path import isfile, join, dirname, basename
 def err(msg):
     stdout.flush()
     stderr.flush()
-    stderr.write('[llvm-slicer-c]: ' + msg + '\n')
+    stderr.write('[dgtool]: ' + msg + '\n')
     exit(1)
 
 def printcmd(cmd):
     print('> {0}'.format(' '.join(cmd)))
 
-slicer='llvm-slicer'
+prog=None
 clang='clang'
 link='llvm-link'
 
-###
-# Try to find the right path to the slicer
-if isfile(slicer):
-    slicer='./{0}'.format(slicer)
-else:
-    d = dirname(argv[0])
-    p = join(d, slicer)
-    if isfile(p):
-        slicer = p
-
 clangcmd=[clang, '-emit-llvm', '-c', '-g']
-slicercmd=[slicer]
+cmd=[]
 files=[]
+bcfiles=[]
+
+def get_tool(prog):
+    if isfile(prog):
+        prog= './{0}'.format(prog)
+    else:
+        d = dirname(argv[0])
+        p = join(d, prog)
+        if isfile(p):
+            prog = p
+    return prog
 
 ###
 # Build the commands
@@ -42,8 +43,18 @@ for x in argv[1:]:
         next_is_clang = True
     elif x.endswith('.c') or x.endswith('.cpp') or x.endswith('.i'):
         files.append(x)
+    elif x.endswith('.bc') or x.endswith('.ll'):
+        bcfiles.append(x)
     else:
-        slicercmd.append(x)
+        if not cmd:
+            cmd.append(get_tool(x))
+        else:
+            cmd.append(x)
+
+###
+# Try to find the right path to the program
+if not cmd:
+    err('no command given')
 
 def repl_suffix(fl):
     f = basename(fl)
@@ -52,13 +63,13 @@ def repl_suffix(fl):
     elif f.endswith('.cpp'):
         return '{0}.bc'.format(f[:-4])
 
-if len(files) < 1:
+if len(files) < 1 and len(bcfiles) < 1:
     err('No input files given')
 
 ###
 # Issue clang to compile sources to bitcode(s)
 clangcmd += files
-bitcodes = list(map(repl_suffix, files))
+bitcodes = bcfiles + list(map(repl_suffix, files))
 bitcode = None
 
 printcmd(clangcmd)
@@ -68,7 +79,7 @@ if r != 0:
 
 ###
 # Link multiple files if needed
-if len(files) > 1:
+if len(bitcodes) > 1:
     bitcode='bitcode.bc'
     linkcmd=[link, '-o', bitcode] + bitcodes
 
@@ -81,10 +92,10 @@ else:
     bitcode = bitcodes[0]
 
 ###
-# Slice the code
-slicercmd.append(bitcode)
-printcmd(slicercmd)
+# Run to tool
+cmd.append(bitcode)
+printcmd(cmd)
 
-r = call(slicercmd)
+r = call(cmd)
 if r != 0:
-    err('slicer command return non-zero status')
+    err('command return non-zero status')
