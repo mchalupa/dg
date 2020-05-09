@@ -70,7 +70,7 @@ public:
                           dda::LLVMDataDependenceAnalysis *DDA,
                           LLVMControlDependenceAnalysis *CDA,
                           const SystemDependenceGraphOptions& opts = {})
-    :  _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA) {
+    :  _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA), _cda(CDA) {
         buildSDG();
     }
 
