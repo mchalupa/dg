@@ -20,11 +20,13 @@
 #include "dg/Dominators/PostDominanceFrontiers.h"
 
 #include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/util/debug.h"
 
 namespace dg {
 
 void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 {
+    DBG_SECTION_BEGIN(llvmdg, "Computing post-dominator frontiers (control deps.)");
     using namespace llvm;
     // iterate over all functions
     for (auto& F : getConstructedFunctions()) {
@@ -35,6 +37,8 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         Value *val = const_cast<Value *>(F.first);
         Function& f = *cast<Function>(val);
         PostDominatorTree *pdtree;
+
+        DBG_SECTION_BEGIN(llvmdg, "Computing control deps. for " << f.getName().str());
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
         pdtree = new PostDominatorTree();
@@ -111,7 +115,9 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
         delete pdtree;
 #endif
+        DBG_SECTION_END(llvmdg, "Done computing control deps. for " << f.getName().str());
     }
+    DBG_SECTION_END(llvmdg, "Done computing post-dominator frontiers (control deps.)");
 }
 
 } // namespace dg

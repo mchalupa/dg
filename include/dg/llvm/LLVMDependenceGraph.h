@@ -28,8 +28,11 @@ namespace llvm {
 
 namespace dg {
 
-// forward declaration
 class LLVMPointerAnalysis;
+
+//namespace llvmdg {
+//class LLVMControlDependenceAnalysis;
+//}
 
 
 // FIXME: why PTA is only in the namespace dg
@@ -38,6 +41,7 @@ class LLVMPointerAnalysis;
 namespace dda { class LLVMDataDependenceAnalysis; }
 
 using dda::LLVMDataDependenceAnalysis;
+//using llvmdg::LLVMControlDependenceAnalysis;
 
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 
@@ -200,10 +204,10 @@ private:
     // while building the graph
     llvm::Module *module;
 
-    // points-to information (if available)
+    // analyses needed for building the graph
     LLVMPointerAnalysis *PTA;
-    // reaching definitions information (if available)
     LLVMDataDependenceAnalysis *DDA;
+    //LLVMControlDependenceAnalysis *CDA;
 
     // verifier needs access to private elements
     friend class LLVMDGVerifier;

@@ -960,8 +960,9 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
 }
 
 void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
+    DBG_SECTION_BEGIN(llvmdg, "Computing NTSCD");
     llvmdg::NTSCD ntscdAnalysis(this->module, {}, PTA);
-    ntscdAnalysis.run();
+    ntscdAnalysis.computeDependencies();
     auto& dependencies = ntscdAnalysis.controlDependencies();
 
     for (const auto& dep : dependencies) {
@@ -1006,6 +1007,7 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
         }
 
     }
+    DBG_SECTION_END(llvmdg, "Done computing NTSCD");
 }
 
 void LLVMDependenceGraph::computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph)
