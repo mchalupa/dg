@@ -72,6 +72,11 @@ llvm::cl::opt<bool> show_cfg("cfg",
     llvm::cl::desc("Show CFG edges (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> quiet("q",
+    llvm::cl::desc("Do not generate output, just run the analysis "
+                   "(e.g., for performance analysis) (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
                                           const SlicerOptions& options)
 {
@@ -177,6 +182,9 @@ static void dumpCda(LLVMControlDependenceAnalysis& cda) {
 
     // dump nodes
     for (auto& f : *m) {
+        if (f.isDeclaration())
+            continue;
+
         std::cout << "subgraph cluster_f_" << f.getName().str() << " {\n";
         std::cout << "label=\"" << f.getName().str() << "\"\n";
         for (auto& b : f) {
@@ -260,7 +268,20 @@ int main(int argc, char *argv[])
 
     LLVMControlDependenceAnalysis cda(M.get(), options.dgOptions.CDAOptions);
     cda.run();
-    dumpCda(cda);
+
+    if (quiet) {
+        // the computation is on-demand, so we must trigger the computation
+        for (auto& f : *M.get()) {
+            for (auto& b : f) {
+                cda.getDependencies(&b);
+                for (auto& I : b) {
+                cda.getDependencies(&I);
+                }
+            }
+        }
+    } else {
+        dumpCda(cda);
+    }
 
     return 0;
 }

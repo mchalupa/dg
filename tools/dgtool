@@ -80,7 +80,7 @@ if r != 0:
 ###
 # Link multiple files if needed
 if len(bitcodes) > 1:
-    bitcode='bitcode.bc'
+    bitcode='/tmp/bitcode.bc'
     linkcmd=[link, '-o', bitcode] + bitcodes
 
     printcmd(linkcmd)
