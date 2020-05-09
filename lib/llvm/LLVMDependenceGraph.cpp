@@ -1138,29 +1138,6 @@ LLVMDependenceGraph::getInstructionsOfType(const unsigned opCode,
     return instructions;
 }
 
-// the original algorithm from Ferrante & Ottenstein
-// works with nodes that represent instructions, therefore
-// there's no point in control dependence self-loops.
-// However, we use basic blocks and having a 'node' control
-// dependent on itself may be desired. If a block jumps
-// on itself, the decision whether we get to that block (again)
-// is made on that block - so we want to make it control dependent
-// on itself.
-void LLVMDependenceGraph::makeSelfLoopsControlDependent()
-{
-    for (auto& F : getConstructedFunctions()) {
-        auto& blocks = F.second->getBlocks();
-
-        for (auto& it : blocks) {
-            LLVMBBlock *B = it.second;
-
-            if (B->successorsNum() > 1 && B->hasSelfLoop())
-                // add self-loop control dependence
-                B->addControlDependence(B);
-        }
-    }
-}
-
 void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from) {
     std::set<LLVMBBlock *> visited;
     ADT::QueueLIFO<LLVMBBlock *> queue;
