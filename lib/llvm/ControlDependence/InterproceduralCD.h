@@ -28,6 +28,7 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         // points due to which the function may not return
         // to its caller
         std::set<const llvm::Value *> noret;
+        bool hasCD = false;
     };
 
     std::unordered_map<const llvm::Instruction *, std::set<llvm::Value *>> _instrCD;
@@ -43,7 +44,10 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
        return _funcInfos.find(fun) != _funcInfos.end();
     }
 
-    void computeFuncInfo(const llvm::Function *fun);
+    // recursively compute function info, 'stack' is there to detect recursive calls
+    void computeFuncInfo(const llvm::Function *fun,
+                         std::set<const llvm::Function *> stack = {});
+    void computeCD(const llvm::Function *fun);
 
     std::vector<const llvm::Function *> getCalledFunctions(const llvm::Value *v);
 
@@ -58,8 +62,16 @@ public:
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *I) override {
         auto *fun = I->getParent()->getParent();
-        if (!getFuncInfo(fun)) {
+        auto *fi = getFuncInfo(fun);
+        if (!fi) {
             computeFuncInfo(fun);
+        }
+
+        fi = getFuncInfo(fun);
+        assert(fi && "BUG in computeFuncInfo");
+        if (!fi->hasCD) {
+            computeCD(fun);
+            assert(fi->hasCD && "BUG in computeCD");
         }
 
         ValVec ret;
