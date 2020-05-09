@@ -648,6 +648,9 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     assert(mainsg);
     PS.setEntry(mainsg);
 
+    // add root to the call graph
+    PS.getCallGraph().createNode(getPointsToNode(F));
+
 #ifndef NDEBUG
     for (const auto& subg : PS.getSubgraphs()) {
         assert(subg->root && "No root in a subgraph");
