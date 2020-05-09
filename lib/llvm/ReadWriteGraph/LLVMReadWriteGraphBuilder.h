@@ -226,7 +226,10 @@ protected:
     }
 
     void buildFunsFromCG(llvmdg::CallGraph *cg) {
-        auto funs = cg->functions();
+        const auto& funs = cg->functions();
+        // we should have at least the entry fun
+        assert(!funs.empty() && "No function in call graph");
+
         for (auto *F : funs) {
             DBG(rwg, "Building functions based on call graph information");
             assert(_subgraphs.find(F) == _subgraphs.end()
