@@ -86,6 +86,12 @@ public:
     // this node is control dependent on 'nd' (the edge 'nd' -> 'this')
     void addControlDep(DepDGElement& nd) {
         _control_deps.insert(&nd);
+        nd._rev_control_deps.insert(this);
+    }
+
+    // this node controls 'nd' (the edge 'this' -> 'nd')
+    void addControls(DepDGElement& nd) {
+        nd.addControlDep(*this);
     }
 
     // use dependencies
@@ -123,17 +129,17 @@ public:
     // control dependencies
     edge_iterator control_dep_begin() { return _control_deps.begin(); }
     edge_iterator control_dep_end() { return _control_deps.end(); }
-    edge_iterator rev_control_dep_begin() { return _rev_control_deps.begin(); }
-    edge_iterator rev_control_dep_end() { return _rev_control_deps.end(); }
+    edge_iterator controls_begin() { return _rev_control_deps.begin(); }
+    edge_iterator controls_dep_end() { return _rev_control_deps.end(); }
     const_edge_iterator control_dep_begin() const { return _control_deps.begin(); }
     const_edge_iterator control_dep_end() const { return _control_deps.end(); }
-    const_edge_iterator rev_control_dep_begin() const { return _rev_control_deps.begin(); }
-    const_edge_iterator rev_control_dep_end() const { return _rev_control_deps.end(); }
+    const_edge_iterator controls_begin() const { return _rev_control_deps.begin(); }
+    const_edge_iterator controls_end() const { return _rev_control_deps.end(); }
 
     edges_range control_deps() { return edges_range(_control_deps); }
     const_edges_range control_deps() const { return const_edges_range(_control_deps); }
-    edges_range rev_control_deps() { return edges_range(_rev_control_deps); }
-    const_edges_range rev_control_deps() const { return const_edges_range(_rev_control_deps); }
+    edges_range controls() { return edges_range(_rev_control_deps); }
+    const_edges_range controls() const { return const_edges_range(_rev_control_deps); }
 };
 
 } // namespace sdg
