@@ -2,12 +2,22 @@
 
 from subprocess import call
 from sys import argv, stderr, stdout, exit
-from os.path import isfile, join, dirname, basename
+from os.path import isfile, join, dirname, basename, abspath
+from os import chdir, getcwd
+from tempfile import mkdtemp
+from shutil import rmtree
+
+wd = None
+olddir = getcwd()
 
 def err(msg):
     stdout.flush()
     stderr.flush()
     stderr.write('[dgtool]: ' + msg + '\n')
+
+    if wd:
+        chdir(olddir);
+        rmtree(wd)
     exit(1)
 
 def printcmd(cmd):
@@ -30,7 +40,7 @@ def get_tool(prog):
         p = join(d, prog)
         if isfile(p):
             prog = p
-    return prog
+    return abspath(prog)
 
 ###
 # Build the commands
@@ -42,9 +52,9 @@ for x in argv[1:]:
     elif x == '-Xclang':
         next_is_clang = True
     elif x.endswith('.c') or x.endswith('.cpp') or x.endswith('.i'):
-        files.append(x)
+        files.append(abspath(x))
     elif x.endswith('.bc') or x.endswith('.ll'):
-        bcfiles.append(x)
+        bcfiles.append(abspath(x))
     else:
         if not cmd:
             cmd.append(get_tool(x))
@@ -67,6 +77,11 @@ if len(files) < 1 and len(bcfiles) < 1:
     err('No input files given')
 
 ###
+# Create temporary directory
+wd = mkdtemp(suffix='dgtool')
+chdir(wd)
+
+###
 # Issue clang to compile sources to bitcode(s)
 clangcmd += files
 bitcodes = bcfiles + list(map(repl_suffix, files))
@@ -80,7 +95,7 @@ if r != 0:
 ###
 # Link multiple files if needed
 if len(bitcodes) > 1:
-    bitcode='/tmp/bitcode.bc'
+    bitcode='bitcode.bc'
     linkcmd=[link, '-o', bitcode] + bitcodes
 
     printcmd(linkcmd)
@@ -99,3 +114,7 @@ printcmd(cmd)
 r = call(cmd)
 if r != 0:
     err('command return non-zero status')
+
+chdir(olddir);
+rmtree(wd)
+exit(0)
