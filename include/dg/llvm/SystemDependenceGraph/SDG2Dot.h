@@ -107,7 +107,8 @@ class SDG2Dot {
     mutable std::set<sdg::DGNode *> dumpedNodes;
 
     void dumpNode(std::ostream& out, sdg::DGNode& nd,
-                  const llvm::Value *v = nullptr) const {
+                  const llvm::Value *v = nullptr,
+                  const char *descr = nullptr) const {
         assert(sdg::DGNode::get(&nd) && "Wrong type");
 
         auto& dg = nd.getDG();
@@ -118,6 +119,9 @@ class SDG2Dot {
             printLLVMVal(out, v);
         } else {
             printLLVMVal(out, _llvmsdg->getValue(&nd));
+        }
+        if (descr) {
+            out << " " << descr;
         }
         out << "\"]\n";
     }
@@ -135,13 +139,21 @@ class SDG2Dot {
         }
         out << "    }\n";
 
-        /// output parameters 
+        /// output parameters
         out << "    subgraph cluster_params_out_" << &params << " {\n";
         out << "      label=\"" << name << " (output)\"\n";
         for (auto& param : params) {
             auto& nd = param.getOutputArgument();
             dumpedNodes.insert(&nd);
             dumpNode(out, nd, _llvmsdg->getValue(&param));
+        }
+        if (auto *noret = params.getNoReturn()) {
+            dumpedNodes.insert(noret);
+            dumpNode(out, *noret, nullptr, "noret");
+        }
+        if (auto *ret = params.getReturn()) {
+            dumpedNodes.insert(ret);
+            dumpNode(out, *ret, nullptr, "ret");
         }
         out << "    }\n";
     }
