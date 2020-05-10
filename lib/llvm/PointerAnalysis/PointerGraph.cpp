@@ -370,6 +370,7 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
         case Instruction::FSub:
         case Instruction::FAdd:
         case Instruction::FDiv:
+        case Instruction::FNeg:
         case Instruction::FMul:
         case Instruction::UDiv:
         case Instruction::SDiv:
