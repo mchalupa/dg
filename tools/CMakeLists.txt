@@ -141,7 +141,7 @@ if (LLVM_DG)
 		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
 
 	# copy also the wrapper scripts
-	install(FILES pta-show llvmdda-dump llvmdg-show llvm-slicer-c
+	install(FILES pta-show llvmdda-dump llvmdg-show dgtool
 		DESTINATION bin)
 endif (LLVM_DG)
 
