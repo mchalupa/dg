@@ -73,12 +73,9 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
     auto rdDefs = getDefinitions(whereN, memN, off, len);
 #ifndef NDEBUG
     if (rdDefs.empty()) {
-        if (llvm::isa<llvm::GlobalVariable>(mem)
-            && (getOptions().entryFunction
-                == where->getParent()->getParent()->getName().str())) {
-            // we're in the entry function and the memory is global,
-            // no need to worry
-        } else {
+        auto *GV = llvm::dyn_cast<llvm::GlobalVariable>(mem);
+        if (!GV || GV->isExternallyInitialized()) {
+            // the memory is global and initialised, no need to worry
             static std::set<std::pair<const llvm::Value *, const llvm::Value *>> reported;
             if (reported.insert({where, mem}).second) {
                 llvm::errs() << "[DDA] warn: no definition for: "
@@ -123,15 +120,17 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
     }
 
     auto rdDefs = getDefinitions(loc);
+#ifndef NDEBUG
     if (rdDefs.empty()) {
-        if (loc->usesOnlyGlobals()) {
+        if (!loc->usesOnlyGlobals()) {
             static std::set<const llvm::Value *> reported;
             if (reported.insert(use).second) {
-                llvm::errs() << "[DDA] error: no definitions for: "
+                llvm::errs() << "[DDA] warn: no definitions for: "
                              << *use << "\n";
             }
         }
     }
+#endif // NDEBUG
 
     //map the values
     for (RWNode *nd : rdDefs) {
