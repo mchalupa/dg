@@ -68,7 +68,8 @@ int main(int argc, char *argv[])
     const char *dump_func_only = nullptr;
     const char *pts = "fi";
     const char *entry_func = "main";
-    LLVMControlDependenceAnalysisOptions::CDAlgorithm cd_alg;
+    LLVMControlDependenceAnalysisOptions::CDAlgorithm cd_alg =
+        LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
