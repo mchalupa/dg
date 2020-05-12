@@ -34,6 +34,7 @@ clangcmd=[clang, '-emit-llvm', '-c', '-g']
 cmd=[]
 files=[]
 bcfiles=[]
+yamlfiles=[]
 
 def get_tool(prog):
     if isfile(prog):
@@ -67,6 +68,8 @@ for x in argv[1:]:
         files.append(abspath(x))
     elif x.endswith('.bc') or x.endswith('.ll'):
         bcfiles.append(abspath(x))
+    elif x.endswith('.yml') or x.endswith('.yaml'):
+        yamlfiles.append(abspath(x))
     else:
         if all_is_clang: # (all except files)
             clangcmd.append(x)
@@ -86,6 +89,18 @@ if 'debug' in options or 'dbg' in options:
 # Try to find the right path to the program
 if not cmd and not cc_mode:
     err('no command given')
+
+if yamlfiles:
+    try:
+        import yaml
+    except ImportError:
+        err("Got YAML file, but does not have yaml module")
+
+    for fl in yamlfiles:
+        with open(fl) as yf:
+            data = yaml.load(yf, Loader=yaml.FullLoader)
+            inp = data['input_files'] #NOTE is always just one?
+            files.append(join(dirname(fl), inp))
 
 def repl_suffix(fl):
     f = basename(fl)
