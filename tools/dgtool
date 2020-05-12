@@ -9,6 +9,7 @@ from shutil import rmtree
 
 wd = None
 olddir = getcwd()
+debug = False
 
 def err(msg):
     stdout.flush()
@@ -17,11 +18,13 @@ def err(msg):
 
     if wd:
         chdir(olddir);
+        printcmd(["rmtree", wd])
         rmtree(wd)
     exit(1)
 
 def printcmd(cmd):
-    print('> {0}'.format(' '.join(cmd)))
+    if debug:
+        print('> {0}'.format(' '.join(cmd)))
 
 prog=None
 clang='clang'
@@ -44,26 +47,44 @@ def get_tool(prog):
 
 ###
 # Build the commands
+options=[]
+next_is_dg=False
 next_is_clang=False
+all_is_clang=False
+cc_mode = False
 for x in argv[1:]:
     if next_is_clang:
         clangcmd.append(x)
         next_is_clang = False
+    elif next_is_dg:
+        options.append(x)
+        next_is_dg = False
     elif x == '-Xclang':
         next_is_clang = True
+    elif x == '-Xdg':
+        next_is_dg = True
     elif x.endswith('.c') or x.endswith('.cpp') or x.endswith('.i'):
         files.append(abspath(x))
     elif x.endswith('.bc') or x.endswith('.ll'):
         bcfiles.append(abspath(x))
     else:
-        if not cmd:
+        if all_is_clang: # (all except files)
+            clangcmd.append(x)
+        elif not cmd:
+            # cc mode we just compile, so everything goes to clang
+            if x == 'cc':
+                all_is_clang = True
+                cc_mode = True
+                continue
             cmd.append(get_tool(x))
         else:
             cmd.append(x)
 
+if 'debug' in options or 'dbg' in options:
+    debug=True
 ###
 # Try to find the right path to the program
-if not cmd:
+if not cmd and not cc_mode:
     err('no command given')
 
 def repl_suffix(fl):
@@ -78,8 +99,10 @@ if len(files) < 1 and len(bcfiles) < 1:
 
 ###
 # Create temporary directory
-wd = mkdtemp(suffix='dgtool')
-chdir(wd)
+if not cc_mode:
+    wd = mkdtemp(suffix='dgtool')
+    printcmd(["chdir", wd])
+    chdir(wd)
 
 ###
 # Issue clang to compile sources to bitcode(s)
@@ -108,13 +131,19 @@ else:
 
 ###
 # Run to tool
-cmd.append(bitcode)
-printcmd(cmd)
+if not cc_mode:
+    cmd.append(bitcode)
+    printcmd(cmd)
 
-r = call(cmd)
-if r != 0:
-    err('command return non-zero status')
+    try:
+        r = call(cmd)
+        if r != 0:
+            err('command return non-zero status')
+    except OSError as e:
+            err('command failed: {0}'.format(str(e)))
 
-chdir(olddir);
-rmtree(wd)
+if wd:
+    chdir(olddir);
+    printcmd(["rmtree", wd])
+    rmtree(wd)
 exit(0)
