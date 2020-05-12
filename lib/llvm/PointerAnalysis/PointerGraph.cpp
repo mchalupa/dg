@@ -370,7 +370,6 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
         case Instruction::FSub:
         case Instruction::FAdd:
         case Instruction::FDiv:
-        case Instruction::FNeg:
         case Instruction::FMul:
         case Instruction::UDiv:
         case Instruction::SDiv:
@@ -379,6 +378,9 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
         case Instruction::FRem:
         case Instruction::FPTrunc:
         case Instruction::FPExt:
+#if LLVM_VERSION_MAJOR >= 8
+        case Instruction::FNeg:
+#endif
             // these instructions reinterpert the pointer,
             // nothing better we can do here (I think?)
             seq = &createUnknown(&Inst);
