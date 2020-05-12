@@ -90,6 +90,7 @@ class LLVMDependenceGraphBuilder {
 
     void _runPointerAnalysis() {
         assert(_PTA && "BUG: No PTA");
+        llvm::errs() << "-- running PTA --\n";
 
         _timerStart();
         _PTA->run();
@@ -98,6 +99,7 @@ class LLVMDependenceGraphBuilder {
 
     void _runDataDependenceAnalysis() {
         assert(_DDA && "BUG: No RD");
+        llvm::errs() << "-- running DDA --\n";
 
         _timerStart();
         _DDA->run();
@@ -105,6 +107,7 @@ class LLVMDependenceGraphBuilder {
     }
 
     void _runControlDependenceAnalysis() {
+        llvm::errs() << "-- running CDA --\n";
         _timerStart();
         //_CDA->run();
         // FIXME: until we get rid of the legacy code,
@@ -178,6 +181,7 @@ public:
         _dg->build(_M, _PTA.get(), _DDA.get(), _entryFunction);
 
         // insert the data dependencies edges
+        llvm::errs() << "-- adding def-use --\n";
         _dg->addDefUseEdges();
 
         // compute and fill-in control dependencies
@@ -241,6 +245,7 @@ public:
 
         // data-dependence edges
         _runDataDependenceAnalysis();
+        llvm::errs() << "-- adding def-use --\n";
         _dg->addDefUseEdges();
 
         // fill-in control dependencies
