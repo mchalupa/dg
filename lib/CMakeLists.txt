@@ -99,11 +99,11 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/ThreadRegions/CMakeLists.txt)
 target_include_directories(dgllvmthreadregions
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
-target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
+target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta
+                                          PRIVATE dgllvmforkjoin)
 
-add_library(dgllvmcda SHARED)
-target_sources(dgllvmcda
-    PRIVATE llvm/ControlDependence/Block.cpp
+add_library(dgllvmcda SHARED
+            llvm/ControlDependence/Block.cpp
             llvm/ControlDependence/Function.cpp
             llvm/ControlDependence/GraphBuilder.cpp
             llvm/ControlDependence/ControlDependence.cpp
@@ -116,7 +116,9 @@ target_sources(dgllvmcda
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h
             )
-target_link_libraries(dgllvmcda INTERFACE dgllvmpta PRIVATE dgllvmforkjoin)
+target_link_libraries(dgllvmcda INTERFACE dgllvmpta
+				INTERFACE ${llvm_analysis}
+                                PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/BBlock.h

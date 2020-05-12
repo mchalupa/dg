@@ -19,7 +19,6 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "dg/Dominators/PostDominanceFrontiers.h"
 #include "dg/ADT/Queue.h"
 #include "dg/util/debug.h"
 
@@ -29,7 +28,8 @@ namespace dg {
 namespace llvmdg {
 
 void SCD::computePostDominators(llvm::Function& F) {
-    DBG_SECTION_BEGIN(cda, "Computing post dominators for function " << F.getName().str());
+    DBG_SECTION_BEGIN(cda, "Computing post dominators for function "
+                           << F.getName().str());
     using namespace llvm;
 
     PostDominatorTree *pdtree = nullptr;
