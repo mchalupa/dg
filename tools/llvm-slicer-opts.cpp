@@ -113,9 +113,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<bool> interprocCd("interproc-cd",
-        llvm::cl::desc("Do not slice away parts of programs that might make\n"
-                       "the slicing criteria unreachable (e.g. calls to exit()\n"
-                       "or potentially infinite loops). Default: on\n"),
+        llvm::cl::desc("Compute interprocedural dependencies that cover, e.g.,\n"
+                       "calls calls to exit() from inside of procedures. Default: true.\n"),
                        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
     llvm::cl::opt<uint64_t> ptaFieldSensitivity("pta-field-sensitive",
@@ -195,9 +194,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
         llvm::cl::init(LLVMDataDependenceAnalysisOptions::AnalysisType::ssa),
                        llvm::cl::cat(SlicingOpts));
 
-    // FIXME: rename to -cda ?
-    llvm::cl::opt<dg::ControlDependenceAnalysisOptions::CDAlgorithm> cdAlgorithm("cd-alg",
-        llvm::cl::desc("Choose control dependencies algorithm to use:"),
+    llvm::cl::opt<dg::ControlDependenceAnalysisOptions::CDAlgorithm> cdAlgorithm("cda",
+        llvm::cl::desc("Choose control dependencies algorithm:"),
         llvm::cl::values(
             clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD,
                        "standard", "Ferrante's algorithm (default)"),
@@ -210,6 +208,12 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
     #endif
              ),
         llvm::cl::init(dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD),
+        llvm::cl::cat(SlicingOpts));
+
+    llvm::cl::alias cdAlgAlias("cd-alg",
+        llvm::cl::desc("Choose control dependencies algorithm to use"
+                       "(this options is obsolete, it is alias to -cda):"),
+        llvm::cl::aliasopt(cdAlgorithm),
         llvm::cl::cat(SlicingOpts));
 
     ////////////////////////////////////
