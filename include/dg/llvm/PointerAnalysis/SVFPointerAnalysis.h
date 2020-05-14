@@ -39,6 +39,8 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/PointerAnalysis/LLVMPointsToSet.h"
 
+#include "dg/util/debug.h"
+
 #ifndef HAVE_SVF
 #error "Do not have SVF"
 #endif
@@ -71,7 +73,6 @@ class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
                 break;
             } else {
                 llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
-                continue;
             }
             ++it;
             ++_position;
@@ -175,10 +176,14 @@ public:
     }
 
     bool run() override {
+        DBG_SECTION_BEGIN(pta, "Running SVF pointer analysis (Andersen)");
+
         auto moduleset = LLVMModuleSet::getLLVMModuleSet();
         _svfModule = moduleset->buildSVFModule(*const_cast<llvm::Module*>(_module));
 		_pta.reset(new Andersen());
         _pta->analyze(_svfModule);
+
+        DBG_SECTION_END(pta, "Done running SVF pointer analysis (Andersen)");
         return true;
     }
 };
