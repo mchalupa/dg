@@ -32,7 +32,6 @@ if (LLVM_DG)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
 					  PRIVATE dgllvmdg
 					  PRIVATE ${SVF_LIBS})
-
 	add_executable(llvm-sdg-dump llvm-sdg-dump.cpp)
 	target_link_libraries(llvm-sdg-dump PRIVATE dgllvmslicer
 					    PRIVATE dgllvmsdg
@@ -53,6 +52,10 @@ if (LLVM_DG)
 					    PRIVATE ${llvm_irreader}
 					    PRIVATE ${llvm_core}
 					    )
+if (HAVE_SVF)
+	target_link_libraries(llvm-cg-dump PRIVATE ${llvm_bitwriter}
+                                           PRIVATE ${llvm_transformutils})
+endif (HAVE_SVF)
 
 	add_executable(llvm-cda-dump llvm-cda-dump.cpp)
 	target_link_libraries(llvm-cda-dump PRIVATE dgllvmslicer
