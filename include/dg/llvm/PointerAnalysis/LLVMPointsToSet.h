@@ -290,6 +290,9 @@ public:
 // This also means that it is possible that iterating over the
 // set yields no elements, but empty() == false
 // (the set contains only unknown or null elements)
+// XXX: would it be easier and actually more efficient
+// just to return a std::vector<LLVMPointer> instead
+// of all this wrapping?
 class LLVMPointsToSet {
     std::unique_ptr<LLVMPointsToSetImpl> _impl{};
 
