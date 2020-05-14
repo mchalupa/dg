@@ -92,7 +92,7 @@ if (SVF_DIR)
 		set(SVF_INCLUDE ${SVF_DIR}/../include)
 	endif()
 
-	set(SVF_LIBS LLVMSvf LLVMCudd)
+	set(SVF_LIBS Svf Cudd)
 
 	include_directories(${SVF_INCLUDE})
 	link_directories(${SVF_LIBDIR} ${SVF_LIBDIR}/CUDD)

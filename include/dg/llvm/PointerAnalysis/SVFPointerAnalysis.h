@@ -14,6 +14,9 @@
 #include <llvm/IR/DataLayout.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include "WPA/Andersen.h" // Andersen analysis from SVF
+#include "SVF-FE/LLVMModule.h" // LLVMModuleSet
+
 #if (__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wreorder"
@@ -28,24 +31,6 @@
 #pragma clang diagnostic ignored "-Wignored-qualifiers"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
-#endif
-
-#include "WPA/Andersen.h" // Andersen analysis from SVF
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wreorder
-#pragma clang diagnostic pop // ignore -Wignored-qualifiers
-#pragma clang diagnostic pop // ignore -Woverloaded-virtual
-#else
-#pragma clang diagnostic pop // ignore -Wreorder
-#pragma clang diagnostic pop // ignore -Wignored-qualifiers
-#pragma clang diagnostic pop // ignore -Woverloaded-virtual
-#endif
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
-#else
-#pragma GCC diagnostic pop
 #endif
 
 #include "dg/PointerAnalysis/Pointer.h"
@@ -126,7 +111,7 @@ public:
 // Integration of pointer analysis from SVF
 class SVFPointerAnalysis : public LLVMPointerAnalysis {
     const llvm::Module *_module{nullptr};
-    SVFModule _svfModule;
+    SVFModule *_svfModule;
     std::unique_ptr<PointerAnalysis> _pta{};
 
     PointsTo& getUnknownPTSet() const {
@@ -150,8 +135,13 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
 public:
     SVFPointerAnalysis(const llvm::Module *M,
                        const LLVMPointerAnalysisOptions& opts)
-        : LLVMPointerAnalysis(opts), _module(M),
-          _svfModule(const_cast<llvm::Module*>(_module)) {}
+        : LLVMPointerAnalysis(opts), _module(M) {}
+
+    ~SVFPointerAnalysis() {
+        // _svfModule overtook the ovenership of llvm::Module,
+        // we must re-take it to avoid double free
+        LLVMModuleSet::releaseLLVMModuleSet();
+    }
 
     bool hasPointsTo(const llvm::Value *val) override {
 		PAG* pag = _pta->getPAG();
@@ -185,6 +175,8 @@ public:
     }
 
     bool run() override {
+        auto moduleset = LLVMModuleSet::getLLVMModuleSet();
+        _svfModule = moduleset->buildSVFModule(*const_cast<llvm::Module*>(_module));
 		_pta.reset(new Andersen());
         _pta->analyze(_svfModule);
         return true;
