@@ -151,7 +151,8 @@ add_test(globalptr1          ${SCRIPTDIR}/test-runner.py globalptr1)
 add_test(globalptr2          ${SCRIPTDIR}/test-runner.py globalptr2)
 add_test(globalptr3          ${SCRIPTDIR}/test-runner.py globalptr3)
 add_test(globalptr4          ${SCRIPTDIR}/test-runner.py globalptr4)
-add_test(threads1            ${SCRIPTDIR}/test-runner.py threads1)
+# Disabled until we properly support threads again
+#add_test(threads1            ${SCRIPTDIR}/test-runner.py threads1)
 add_test(pta-inv-infinite-loop
                              ${SCRIPTDIR}/test-runner.py pta-inv-infinite-loop)
 add_test(undefcall1          ${SCRIPTDIR}/test-runner.py undefcall1)
