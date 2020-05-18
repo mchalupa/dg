@@ -39,17 +39,21 @@ void SCD::computePostDominators(llvm::Function& F) {
     pdtree = new PostDominatorTree();
     // compute post-dominator tree for this function
     pdtree->runOnFunction(F);
+
+    using ReverseIDFCalculator = llvm::IDFCalculator<llvm::Inverse<llvm::BasicBlock *>>;
 #else
     PostDominatorTreeWrapperPass wrapper;
     wrapper.runOnFunction(F);
     pdtree = &wrapper.getPostDomTree();
+
+    using llvm::ReverseIDFCalculator;
 #ifndef NDEBUG
     wrapper.verifyAnalysis();
 #endif
 #endif
 
     DBG(cda, "Computing post dominator frontiers and adding CD");
-    llvm::ReverseIDFCalculator PDF(*pdtree);
+    ReverseIDFCalculator PDF(*pdtree);
     for (auto& B : F) {
         llvm::SmallPtrSet<llvm::BasicBlock *, 1> blocks;
         blocks.insert(&B);
