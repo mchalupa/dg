@@ -123,9 +123,6 @@ add_subdirectory(slicing)
 # --------------------------------------------------
 # benchmarking
 # --------------------------------------------------
-add_executable(rdmap-benchmark rdmap-benchmark.cpp)
-target_link_libraries(rdmap-benchmark dgdda)
-
 add_executable(ptset-benchmark ptset-benchmark.cpp)
 target_link_libraries(ptset-benchmark PRIVATE dganalysis)
 
