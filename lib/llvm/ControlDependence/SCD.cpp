@@ -38,7 +38,7 @@ void SCD::computePostDominators(llvm::Function& F) {
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
     pdtree = new PostDominatorTree();
     // compute post-dominator tree for this function
-    pdtree->runOnFunction(f);
+    pdtree->runOnFunction(F);
 #else
     PostDominatorTreeWrapperPass wrapper;
     wrapper.runOnFunction(F);
