@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <vector>
+#include <string>
 
 #include "DGNode.h"
 #include "DGNodeCall.h"

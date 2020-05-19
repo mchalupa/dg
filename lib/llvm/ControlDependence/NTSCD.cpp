@@ -26,6 +26,7 @@ namespace llvm {
 #include <functional>
 #include <queue>
 #include <unordered_set>
+#include <ostream>
 
 #include "dg/util/debug.h"
 
