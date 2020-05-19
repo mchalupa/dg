@@ -2,32 +2,34 @@
 
 [![Build Status](https://travis-ci.org/mchalupa/dg.svg?branch=master)](https://travis-ci.org/mchalupa/dg)
 
-Dg is a library which implements dependence graphs for programs.
-It contains a set of generic templates that can be specialized to user's needs.
-Dg can be used for different analyses, optimizations or program slicing
-(we currently use it for the last one in our tool called Symbiotic:
-https://github.com/staticafi/symbiotic). As a part of dg, you can find
-pointer analyses, reaching definitions analysis and a static (backward and forward) slicer for LLVM bitcode.
+DG is a library containing various bits for program analysis. However, the main motivation of this library is program slicing. The library contains implementation of a pointer analysis, data dependence analysis, control dependence analysis, and an analysis of relations between values in LLVM bitcode. All of the analyses target LLVM bitcode, but most of them are written in a generic way, so they are not dependent on LLVM in particular.
 
-Whole project is under developement and lacks documentation for now,
-so in the case of need, contact us by an e-mail (below).
+Further, DG contains an implementation of dependence graphs and a static program slicer for LLVM bitcode. Some documentation can be found in the [doc/](doc/) directory.
 
-## LLVM DependenceGraph && llvm-slicer
 
-We have implemented a dependence graph for LLVM and a static slicer for LLVM bitcode.
+### Compiling DG
 
-### Requirements & Compilation
-
-LLVM DependenceGraph needs LLVM 3.4 or higher.
-Clone the repository to your machine:
+DG needs LLVM 3.4 or higher. The first step is to clone the repository to your machine:
 
 ```
 git clone https://github.com/mchalupa/dg
 cd dg
 ```
 
-Once you have the project cloned, you need to configure it.
-Fully manual configuration would look like this:
+Once you have the project cloned, you need to configure it. When LLVM is installed on your system in standard paths,
+the configuration should be as easy as calling `cmake`:
+
+```
+cmake .
+```
+or
+```
+mkdir build
+cd build
+cmake ..
+```
+
+However, if you have LLVM installed in non-standard paths, or you have several versions of LLVM and want to use a particular one, you must manually specify path to the installation:
 
 ```
 cmake -DLLVM_SRC_PATH=/path/to/src -DLLVM_BUILD_PATH=/path/to/build -DLLVM_DIR=path/to/llvm/share/llvm/cmake .
@@ -38,27 +40,18 @@ LLVM\_DIR is an environment variable used by LLVM to find cmake config files
 LLVM\_SRC\_DIR is a variable that tells cmake where to look for llvm's sources
 and it is used to override include paths. The same holds for LLVM\_BUILD\_PATH
 that is used to override library paths. Usually, you don't need to specify
-all these variables. When LLVM is installed on your system in standard paths,
-the configuration should look just like:
-
-```
-cmake .
-```
-
-If there is any collision (i.e. there are more versions of LLVM installed),
-you may need to define the LLVM\_DIR variable to point to the directory where
-are the config files of the desired version (`$PREFIX/share/llvm/cmake`
-or `$PREFIX/lib/cmake/llvm/` for newer versions).
+all these variables: LLVM\_DIR variable is useful if there is any collision (i.e. there are more versions of LLVM installed) and you want to use a particular build of LLVM. In that case define the LLVM\_DIR variable to point to the directory where
+are the config files of the desired version (`$PREFIX/share/llvm/cmake` or `$PREFIX/lib/cmake/llvm/` for newer versions).
 If you have LLVM compiled from sources, but not installed anywhere,
-you may need to use LLVM\_SRC\_PATH and LLVM\_BUILD\_PATH variables too.
-For the last case, suppose you have LLVM built in /home/user/llvm-build from
+you may need to use LLVM\_SRC\_PATH and LLVM\_BUILD\_PATH variables to specify the directory with sources and build.
+As an example, suppose you have LLVM built in /home/user/llvm-build from
 sources in /home/user/llvm-src. Then the following configuration should work:
 
 ```
 cmake -DLLVM_SRC_PATH=/home/user/llvm-src -DLLVM_BUILD_PATH=/home/user/llvm-build -DLLVM_DIR=/home/user/llvm-build/share/llvm/cmake .
 ```
 
-After configuring the project, usual make takes place:
+After configuring the project, usual `make` takes place:
 
 ```
 make -j4
@@ -66,10 +59,10 @@ make -j4
 
 ### Testing
 
-You can run tests with `make check` or `make test`. To change the pointer analysis used while testing,
-you can export `DG_TESTS_PTA` variable before running tests and set it to one of `fi` or `fs`.
+You can run tests with `make check` or `make test`. The command runs unit tests and also tests of slicing LLVM bitcode in several different configurations, so it may take a while.
 
-### Using the slicer
+
+### Using the llvm-slicer
 
 The ompiled `llvm-slicer` can be found in the `tools` subdirectory. First, you need to compile your
 program into LLVM IR (make sure you are using the correct version of LLVM binaries if you have more of them):
@@ -96,7 +89,7 @@ with respect to the return value of the main function. Alternatively, if the pro
 you can also use `line:variable` as slicing criterion. Slicer then will try finding a use of the variable on the provided line and marks this use as slicing criterion (if found). If no line is provided (e.g. `:x`), then the variable is considered to be global variable. You can provide a comma-separated list of slicing criterions, e.g.: `-c crit1,crit2,crit3`.
 
 To export the dependence graph to .dot file, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool
-`llvm-dg-dump`:
+`llvm-dg-dump` (this one is deprecated, but should still work):
 
 ```
 ./llvm-dg-dump bitecode.bc > file.dot
@@ -107,11 +100,12 @@ You can highligh nodes from the dependence graph that will be in the slice using
 ```
 ./llvm-dg-dump -mark slicing_criterion bitecode.bc > file.dot
 ```
+
 When using `-dump-dg` with `llvm-slicer`, the nodes should be already highlighted.
 Also a .dot file with the sliced dependence graph is generated (similar behviour
 can be achieved with `llvm-dg-dump` using the `-slice` switch).
 
-In the `tools/` directory, there are few scripts for convenient manipulation
+In the `tools/` directory, there are a few scripts for convenient manipulation
 with sliced bitecode. First is a `sliced-diff.sh`. This script takes file and shows
 differences after slicing. It uses `meld` or `kompare` or just `diff` program
 to display the results (the first that is available on the system, in this order)
@@ -120,7 +114,8 @@ to display the results (the first that is available on the system, in this order
 ./llvm-slicer -c crit code.bc
 ./slicer-diff.sh code.bc
 ```
-If the program was compiled with `-g`, you can use `llvm-to-source sliced-bitcode.bc source.c` to see the original lines of the source that stayed in the sliced program.
+
+If the program was compiled with `-g`, you can use `llvm-to-source sliced-bitcode.bc source.c` to see the original lines of the source that stayed in the sliced program. Note that this program just dumps the lines of the original code that are present in the sliced bitcode, it does not produce a syntactically valid C program.
 
 Another script is a wrapper around the `llvm-dg-dump`. It uses `xdot` or `evince` or `okular` (or `xdg-open`).
 It takes exactly the same arguments as the `llvm-dg-dump`:
@@ -129,7 +124,7 @@ It takes exactly the same arguments as the `llvm-dg-dump`:
 ./llvmdg-show -mark crit code.bc
 ```
 
-If the dependence graph is too big to be displayed using .dot files, you can debug the slice right from
+If the dependence graph is too big to be displayed using .dot files, you can debug/see the slice right from
 the LLVM. Just pass `-annotate` option to the `llvm-slicer` and it will store readable annotated LLVM in `file-debug.ll`
 (where `file.bc` is the name of file being sliced). There are more options (try `llvm-slicer -help` for all of them),
 but the most interesting is probably the `-annotate slicer`:
@@ -160,13 +155,13 @@ The content of code-debug.ll will look like this:
   ; x   br i1 %31, label %19, label %32, !dbg !166
 ```
 
-Other interesting debugging options are `ptr`, `rd`, `dd`, `cd`, `postdom` to annotate points-to information,
-reaching definitions, data dependences, control dependences or post-dominator information.
+Other options for `-annotate` are `pta`, `dd`, `cd`, `memacc` to annotate points-to information,
+data dependencies, control dependencies or memory accessed by instructions.
 You can provide comma-separated list of more options (`-annotate cd,slice,dd`)
 
 ### Example
 
-We can try slice for example this program (with respect to the assertion):
+We can try slicing, for example, this program (with respect to the assertion):
 
 ```C
 #include <assert.h>
@@ -244,17 +239,20 @@ and playing with the llvm bitcode. Except for the `llvm-slicer` you can find the
 * `llvm-dg-dump`      - Dump the dependence graph for given program to graphviz format (to stdout)
 * `llvm-pta-dump`     - dump pointer subgraph and results of the points-to analysis to stdout
 * `llvm-dda-dump`     - display data dependencies between instructions in a llvm bitcode
+* `llvm-cda-dump`     - display control dependencies between instructions in a llvm bitcode
 * `llvm-cg-dump`      - dump call graph of the given LLVM bitcode (based on pointer analysis)
 * `llvmdg-show`       - wrapper for llvm-dg-dump that displays the dependence graph in dot
 * `llvmdda-dump`      - wrapper for llvm-dda-dump that displays data dependencies in dot
 * `pta-show`          - wrapper for llvm-pta-dump that prints the PS in grapviz to pdf
 * `llvm-to-source`    - find lines from the source code that are in given file
+* `dgtool`            - a wrapper around clang that compiles code and passes it to a specified tool
 
 All these programs take as an input llvm bitcode, for example:
 
 ```
-./ps-show code.bc
+./pta-show code.bc
 ```
+
 will show the pointer state subgraph for code.bc and the results of points-to analysis.
 Some useful switches for all programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
 and flow-insensitive points-to analysis within all these programs that use points-to analysis.
