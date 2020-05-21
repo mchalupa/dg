@@ -1,4 +1,4 @@
-## llvm-slicer
+# llvm-slicer
 
 DG project contains a static slicer for LLVM bitcode. The slicer supports backward and forward (experimental) slicing.
 
