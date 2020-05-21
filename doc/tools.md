@@ -18,3 +18,29 @@ It takes exactly the same arguments as the `llvm-dg-dump`:
 ```
 ./llvmdg-show -mark crit code.bc
 ```
+
+### All tools
+
+The tools subdirectory contains a set of useful programs for debugging
+and playing with the llvm bitcode. Except for the `llvm-slicer` you can find there:
+
+* `llvm-dg-dump`      - Dump the dependence graph for given program to graphviz format (to stdout)
+* `llvm-pta-dump`     - dump pointer subgraph and results of the points-to analysis to stdout
+* `llvm-dda-dump`     - display data dependencies between instructions in a llvm bitcode
+* `llvm-cda-dump`     - display control dependencies between instructions in a llvm bitcode
+* `llvm-cg-dump`      - dump call graph of the given LLVM bitcode (based on pointer analysis)
+* `llvmdg-show`       - wrapper for llvm-dg-dump that displays the dependence graph in dot
+* `llvmdda-dump`      - wrapper for llvm-dda-dump that displays data dependencies in dot
+* `pta-show`          - wrapper for llvm-pta-dump that prints the PS in grapviz to pdf
+* `llvm-to-source`    - find lines from the source code that are in given file
+* `dgtool`            - a wrapper around clang that compiles code and passes it to a specified tool
+
+All these programs take as an input llvm bitcode, for example:
+
+```
+./pta-show code.bc
+```
+
+will show the pointer state subgraph for code.bc and the results of points-to analysis.
+Some useful switches for all programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
+and flow-insensitive points-to analysis within all these programs that use points-to analysis.
