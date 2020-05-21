@@ -18,7 +18,7 @@ apt install git cmake make llvm zlib1g-dev clang g++
 On ArchLinux, the command for installing the dependencies is the following:
 
 ```
-pacman -S git cmake make llvm clang gcc
+pacman -S git cmake make llvm clang gcc python
 ```
 
 On Fedora, the command for installing the dependencies is the following:
