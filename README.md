@@ -6,6 +6,8 @@ DG is a library containing various bits for program analysis. However, the main 
 
 Further, DG contains an implementation of dependence graphs and a [static program slicer](doc/llvm-slicer.md) for LLVM bitcode. Some documentation can be found in the [doc/](doc/) directory.
 
+
+* [Downloading DG](doc/downloading.md)
 * [Compiling DG](doc/compiling.md)
 * [Using llvm-slicer](doc/llvm-slicer.md)
 * [Other tools](doc/tools.md)
