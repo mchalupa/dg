@@ -6,7 +6,10 @@ DG needs LLVM 3.4 or higher. Further requirements are `cmake`, `make`, `g++` or 
 in a version that supports at least C++11 standard.
 And, of course, `git` for downloading the project. On some systems,
 also `zlib` is required. For compilation of files into LLVM, we need also `clang`
-compiler. On Ubuntu, you install the dependencies with:
+compiler. To run slicing tests and some of the tools, you need also an installation
+of python.
+
+On Ubuntu, you install the dependencies with:
 
 ```
 apt install git cmake make llvm zlib1g-dev clang g++
