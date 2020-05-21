@@ -4,7 +4,7 @@
 
 DG is a library containing various bits for program analysis. However, the main motivation of this library is program slicing. The library contains implementation of a pointer analysis, data dependence analysis, control dependence analysis, and an analysis of relations between values in LLVM bitcode. All of the analyses target LLVM bitcode, but most of them are written in a generic way, so they are not dependent on LLVM in particular.
 
-Further, DG contains an implementation of dependence graphs and a static program slicer for LLVM bitcode. Some documentation can be found in the [doc/](doc/) directory.
+Further, DG contains an implementation of dependence graphs and a [static program slicer](doc/llvm-slicer.md) for LLVM bitcode. Some documentation can be found in the [doc/](doc/) directory.
 
 
 ### Compiling DG
@@ -64,172 +64,16 @@ You can run tests with `make check` or `make test`. The command runs unit tests 
 
 ### Using the llvm-slicer
 
-The ompiled `llvm-slicer` can be found in the `tools` subdirectory. First, you need to compile your
-program into LLVM IR (make sure you are using the correct version of LLVM binaries if you have more of them):
-
-```
-clang -c -emit-llvm source.c -o bitecode.bc
-```
-
-If the program is split into more source files (exactly one of them must contain main),
-you must compile all of them separately (as above) and then link the bitcodes together using `llvm-link`:
-
-```
-llvm-link bitecode1.bc bitecode2.bc ... -o bitecode.bc
-```
-
-Now you're ready to slice the program:
-
-```
-./llvm-slicer -c slicing_criterion bitecode.bc
-```
-
-The `slicing_criterion` is a call-site of some function or `ret` to slice
-with respect to the return value of the main function. Alternatively, if the program was compiled with `-g` option,
-you can also use `line:variable` as slicing criterion. Slicer then will try finding a use of the variable on the provided line and marks this use as slicing criterion (if found). If no line is provided (e.g. `:x`), then the variable is considered to be global variable. You can provide a comma-separated list of slicing criterions, e.g.: `-c crit1,crit2,crit3`.
-
-To export the dependence graph to .dot file, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool
-`llvm-dg-dump` (this one is deprecated, but should still work):
-
-```
-./llvm-dg-dump bitecode.bc > file.dot
-```
-
-You can highligh nodes from the dependence graph that will be in the slice using `-mark` switch:
-
-```
-./llvm-dg-dump -mark slicing_criterion bitecode.bc > file.dot
-```
-
-When using `-dump-dg` with `llvm-slicer`, the nodes should be already highlighted.
-Also a .dot file with the sliced dependence graph is generated (similar behviour
-can be achieved with `llvm-dg-dump` using the `-slice` switch).
-
-In the `tools/` directory, there are a few scripts for convenient manipulation
-with sliced bitecode. First is a `sliced-diff.sh`. This script takes file and shows
-differences after slicing. It uses `meld` or `kompare` or just `diff` program
-to display the results (the first that is available on the system, in this order)
+The compiled binary called `llvm-slicer` can be found in the `tools` subdirectory. The basic usage is:
 
 ```
 ./llvm-slicer -c crit code.bc
-./slicer-diff.sh code.bc
 ```
 
-If the program was compiled with `-g`, you can use `llvm-to-source sliced-bitcode.bc source.c` to see the original lines of the source that stayed in the sliced program. Note that this program just dumps the lines of the original code that are present in the sliced bitcode, it does not produce a syntactically valid C program.
-
-Another script is a wrapper around the `llvm-dg-dump`. It uses `xdot` or `evince` or `okular` (or `xdg-open`).
-It takes exactly the same arguments as the `llvm-dg-dump`:
-
-```
-./llvmdg-show -mark crit code.bc
-```
-
-If the dependence graph is too big to be displayed using .dot files, you can debug/see the slice right from
-the LLVM. Just pass `-annotate` option to the `llvm-slicer` and it will store readable annotated LLVM in `file-debug.ll`
-(where `file.bc` is the name of file being sliced). There are more options (try `llvm-slicer -help` for all of them),
-but the most interesting is probably the `-annotate slicer`:
-
-```
-./llvm-slicer -c crit -annotate slicer code.bc
-```
-
-The content of code-debug.ll will look like this:
-
-```LLVM
-; <label>:25                                      ; preds = %20
-  ; x   call void @llvm.dbg.value(metadata !{i32* %i}, i64 0, metadata !151), !dbg !164
-  %26 = load i32* %i, align 4, !dbg !164
-  %27 = add nsw i32 %26, 1, !dbg !164
-  ; x   call void @llvm.dbg.value(metadata !{i32 %27}, i64 0, metadata !151), !dbg !164
-  store i32 %27, i32* %i, align 4, !dbg !164
-  ; x   call void @llvm.dbg.value(metadata !{i32* %j}, i64 0, metadata !153), !dbg !161
-  ; x   %28 = load i32* %j, align 4, !dbg !161
-  ; x   %29 = add nsw i32 %28, 1, !dbg !161
-  ; x   call void @llvm.dbg.value(metadata !{i32 %29}, i64 0, metadata !153), !dbg !161
-  ; x   br label %20, !dbg !165
-
-.critedge:                                        ; preds = %20
-  ; x   call void @llvm.dbg.value(metadata !{i32* %j}, i64 0, metadata !153), !dbg !166
-  ; x   %30 = load i32* %j, align 4, !dbg !166
-  ; x   %31 = icmp sgt i32 %30, 99, !dbg !166
-  ; x   br i1 %31, label %19, label %32, !dbg !166
-```
-
-Other options for `-annotate` are `pta`, `dd`, `cd`, `memacc` to annotate points-to information,
-data dependencies, control dependencies or memory accessed by instructions.
-You can provide comma-separated list of more options (`-annotate cd,slice,dd`)
-
-### Example
-
-We can try slicing, for example, this program (with respect to the assertion):
-
-```C
-#include <assert.h>
-#include <stdio.h>
-
-long int fact(int x)
-{
-	long int r = x;
-	while (--x >=2)
-		r *= x;
-
-	return r;
-}
-
-int main(void)
-{
-	int a, b, c = 7;
-
-	while (scanf("%d", &a) > 0) {
-		assert(a > 0);
-		printf("fact: %lu\n", fact(a));
-	}
-
-	return 0;
-}
-```
-
-Let's say the program is stored in a file `fact.c`. We translate it into LLVM bitcode and then slice:
-
-```
-$ cd tools
-$ clang -c -emit-llvm fact.c -o fact.bc
-$ ./llvm-slicer -c __assert_fail fact.bc
-```
-
-The output is in fact.sliced, we can look at the result using `llvm-dis` or `sliced-diff.sh` script:
-
-```LLVM
-; Function Attrs: nounwind uwtable
-define i32 @main() #0 {
-  %a = alloca i32, align 4
-  br label %1
-
-; <label>:1                                       ; preds = %4, %0
-  %2 = call i32 (i8*, ...) @__isoc99_scanf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str, i32 0, i32 0), i32* %a)
-  %3 = icmp sgt i32 %2, 0
-  br i1 %3, label %4, label %safe_return
-
-; <label>:4                                       ; preds = %1
-  %5 = load i32, i32* %a, align 4
-  %6 = icmp sgt i32 %5, 0
-  br i1 %6, label %1, label %7
-
-; <label>:7                                       ; preds = %4
-  call void @__assert_fail(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @.str1, i32 0, i32 0), ... [truncated])
-  unreachable
-
-safe_return:                                      ; preds = %1
-  ret i32 0
-}
-
-```
-
-To get this output conveniently, you can use:
-
-```
-./sliced-diff.sh fact.bc
-```
+where `crit` is a name of a function whose calls are used as a slicing criteria. Alternatively, if the program was
+compiled with `-g`, the you can use "line:var" as slicing criterion, where "var" is a C variable and "line"
+is a line of the C code. Slicer than marks as slicing criteria instructions that use "var" at line "line".
+More about using slicer can be found in the documentation: [doc/llvm-slicer.md](doc/llvm-slicer.md).
 
 ### Tools
 
