@@ -54,7 +54,7 @@ memset(array + 2, 0, 20);
 
 The analysis will create a model that tells that this call to `memset` defines bytes 8 - 27 of `array`
 (given that the size of int is 4 bytes).Another examples of using these functions can be found in
-[LLVMDataDependenceAnalysisOptions.h](include/dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h).
+[LLVMDataDependenceAnalysisOptions.h](../include/dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h).
 
 
 ## Tools
