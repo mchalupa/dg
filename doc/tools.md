@@ -44,3 +44,20 @@ All these programs take as an input llvm bitcode, for example:
 will show the pointer state subgraph for code.bc and the results of points-to analysis.
 Some useful switches for all programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
 and flow-insensitive points-to analysis within all these programs that use points-to analysis.
+
+### dgtool
+
+`dgtool` is a wrapper around clang that compiles given files (C or LLVM bitcode or a mix),
+links them together and then calls the program given as an argument on the bitcode.
+For example,
+
+```
+dgtool llvm-slicer -c __assert_fail -cda ntscd main.c foo.c
+```
+
+You can pass arguments to clang if you preceed them with `-Xclang`, the same way, you can pass arguments to
+`dgtool` itself when using `-Xdg`, for example:
+
+```
+dgtool -Xclang -O3 -Xclang -fno-discard-value-names -Xdg dbg llvm-dda-dump test.c
+```
