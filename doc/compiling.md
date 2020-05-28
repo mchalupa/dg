@@ -75,7 +75,7 @@ cmake -DLLVM_SRC_PATH=/home/user/llvm-src -DLLVM_BUILD_PATH=/home/user/llvm-buil
 
 If you want to build the project with debugging information and assertions, you may specify the build type
 by adding `-DCMAKE_BUILD_TYPE=Debug` during configuration. Also, you may enable building with sanitizers
-by adding `-DUSE_CLANG_SANITIZERS`.
+by adding `-DUSE_SANITIZERS`.
 
 
 After configuring the project, usual `make` takes place:
@@ -92,6 +92,6 @@ If you want to build DG with the support of the [SVF](https://github.com/SVF-too
 
 ## Testing
 
-You can run tests with `make check` or `make test`. The command runs unit tests and also tests of slicing LLVM bitcode
-in several different configurations, so it may take a while. If the project is configured with `TESING_ENABLE_FUZZING`
+You can run tests with `make check`. The command runs unit tests and also tests of slicing LLVM bitcode
+in several different configurations, so it may take a while. If the project is configured with `TESTING_ENABLE_FUZZING`
 cmake variable, also tests using libFuzzer are compiled and run.
