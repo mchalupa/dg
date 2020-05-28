@@ -31,12 +31,15 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include <memory>
 #include <queue>
 #include <string>
 
+using NodePtr = std::unique_ptr<Node>;
+
 TEST_CASE("Test of node class methods", "[node]") {
-    Node * node0 = createNode<NodeType::GENERAL>();
-    Node * node1 = createNode<NodeType::CALL>();
+    NodePtr node0(createNode<NodeType::GENERAL>()),
+            node1(createNode<NodeType::CALL>());
 
     REQUIRE(node0->isArtificial());
     REQUIRE(node0->getType() == NodeType::GENERAL);
@@ -48,17 +51,17 @@ TEST_CASE("Test of node class methods", "[node]") {
     }
 
     SECTION("createNode creates the rightNode") {
-        auto General = createNode<NodeType::GENERAL>();
-        auto Fork = createNode<NodeType::FORK>();
-        auto Join = createNode<NodeType::JOIN>();
-        auto Lock = createNode<NodeType::LOCK>();
-        auto Unlock = createNode<NodeType::UNLOCK>();
-        auto Entry = createNode<NodeType::ENTRY>();
-        auto Exit = createNode<NodeType::EXIT>();
-        auto Call = createNode<NodeType::CALL>();
-        auto CallReturn = createNode<NodeType::CALL_RETURN>();
-        auto CallFuncPtr = createNode<NodeType::CALL_FUNCPTR>(nullptr);
-        auto Return = createNode<NodeType::RETURN>();
+        NodePtr General(createNode<NodeType::GENERAL>()),
+                Fork(createNode<NodeType::FORK>()),
+                Join(createNode<NodeType::JOIN>()),
+                Lock(createNode<NodeType::LOCK>()),
+                Unlock(createNode<NodeType::UNLOCK>()),
+                Entry(createNode<NodeType::ENTRY>()),
+                Exit(createNode<NodeType::EXIT>()),
+                Call(createNode<NodeType::CALL>()),
+                CallReturn(createNode<NodeType::CALL_RETURN>()),
+                CallFuncPtr(createNode<NodeType::CALL_FUNCPTR>(nullptr)),
+                Return(createNode<NodeType::RETURN>());
 
         REQUIRE(General->getType() == NodeType::GENERAL);
         REQUIRE(Fork->getType() == NodeType::FORK);
@@ -107,12 +110,12 @@ TEST_CASE("Test of node class methods", "[node]") {
 
     SECTION("add new successor increases size of successors"
             " of node0 and size of predecessors of node 1") {
-        REQUIRE(node0->addSuccessor(node1));
+        REQUIRE(node0->addSuccessor(node1.get()));
         REQUIRE(node0->successors().size() == 1);
         REQUIRE(node1->predecessors().size() == 1);
 
         SECTION("adding the same successor for the second time does nothing") {
-            REQUIRE_FALSE(node0->addSuccessor(node1));
+            REQUIRE_FALSE(node0->addSuccessor(node1.get()));
             REQUIRE(node0->successors().size() == 1);
             REQUIRE(node1->predecessors().size() == 1);
         }
@@ -122,34 +125,34 @@ TEST_CASE("Test of node class methods", "[node]") {
     SECTION("Removing node1 from successors of node0"
             " decreases size of successors of node0 and predecessors of node1") {
         REQUIRE(node0->successors().empty());
-        REQUIRE(node0->addSuccessor(node1));
-        auto foundNodeIterator = node0->successors().find(node1);
+        REQUIRE(node0->addSuccessor(node1.get()));
+        auto foundNodeIterator = node0->successors().find(node1.get());
         REQUIRE_FALSE(foundNodeIterator == node0->successors().end());
         REQUIRE(node0->successors().size() == 1);
-        REQUIRE(node0->removeSuccessor(node1));
+        REQUIRE(node0->removeSuccessor(node1.get()));
         REQUIRE(node0->successors().empty());
     }
 
     SECTION("Removing nonexistent successor does nothing") {
         REQUIRE(node0->successors().empty());
-        REQUIRE_FALSE(node0->removeSuccessor(node1));
+        REQUIRE_FALSE(node0->removeSuccessor(node1.get()));
         REQUIRE(node0->successors().empty());
-        Node * node2 = createNode<NodeType::GENERAL>();
-        REQUIRE(node0->addSuccessor(node1));
+        NodePtr node2(createNode<NodeType::GENERAL>());
+        REQUIRE(node0->addSuccessor(node1.get()));
         REQUIRE(node0->successors().size() == 1);
-        REQUIRE_FALSE(node0->removeSuccessor(node2));
+        REQUIRE_FALSE(node0->removeSuccessor(node2.get()));
         REQUIRE(node0->successors().size() == 1);
     }
 
     SECTION("add new predecessor increases size of predecessors"
             " of node0 and size of successors of node 1") {
         REQUIRE(node0->predecessors().empty());
-        REQUIRE(node0->addPredecessor(node1));
+        REQUIRE(node0->addPredecessor(node1.get()));
         REQUIRE(node0->predecessors().size() == 1);
         REQUIRE(node1->successors().size() == 1);
 
         SECTION("adding the same predecessor for the second time does nothing") {
-            REQUIRE_FALSE(node0->addPredecessor(node1));
+            REQUIRE_FALSE(node0->addPredecessor(node1.get()));
             REQUIRE(node0->predecessors().size() == 1);
             REQUIRE(node1->successors().size() == 1);
         }
@@ -158,22 +161,22 @@ TEST_CASE("Test of node class methods", "[node]") {
     SECTION("Removing node1 from predecessors of node0"
             " decreases size of successors of node0 and predecessors of node1") {
         REQUIRE(node0->successors().empty());
-        REQUIRE(node0->addPredecessor(node1));
-        auto foundNodeIterator = node0->predecessors().find(node1);
+        REQUIRE(node0->addPredecessor(node1.get()));
+        auto foundNodeIterator = node0->predecessors().find(node1.get());
         REQUIRE_FALSE(foundNodeIterator == node0->predecessors().end());
         REQUIRE(node0->predecessors().size() == 1);
-        REQUIRE(node0->removePredecessor(node1));
+        REQUIRE(node0->removePredecessor(node1.get()));
         REQUIRE(node0->successors().empty());
     }
 
     SECTION("Removing nonexistent predecessor does nothing") {
         REQUIRE(node0->predecessors().empty());
-        REQUIRE_FALSE(node0->removePredecessor(node1));
+        REQUIRE_FALSE(node0->removePredecessor(node1.get()));
         REQUIRE(node0->successors().empty());
-        Node * node2 = createNode<NodeType::GENERAL>();
-        REQUIRE(node0->addPredecessor(node1));
+        NodePtr node2(createNode<NodeType::GENERAL>());
+        REQUIRE(node0->addPredecessor(node1.get()));
         REQUIRE(node0->predecessors().size() == 1);
-        REQUIRE_FALSE(node0->removePredecessor(node2));
+        REQUIRE_FALSE(node0->removePredecessor(node2.get()));
         REQUIRE(node0->predecessors().size() == 1);
     }
 
@@ -203,10 +206,11 @@ TEST_CASE("Test of node class methods", "[node]") {
 }
 
 TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
-    auto node0 = createNode<NodeType::GENERAL>();
-    auto node1 = createNode<NodeType::GENERAL>();
-    ThreadRegion * threadRegion0 = new ThreadRegion(node0);
-    ThreadRegion * threadRegion1 = new ThreadRegion(node1);
+    NodePtr node0(createNode<NodeType::GENERAL>()),
+            node1(createNode<NodeType::GENERAL>());
+
+    std::unique_ptr<ThreadRegion> threadRegion0(new ThreadRegion(node0.get())),
+                                  threadRegion1(new ThreadRegion(node1.get()));
 
     REQUIRE(threadRegion0->successors().empty());
     REQUIRE(threadRegion1->successors().empty());
@@ -221,37 +225,37 @@ TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
     }
 
     SECTION("Add successor") {
-        REQUIRE(threadRegion0->addSuccessor(threadRegion1));
+        REQUIRE(threadRegion0->addSuccessor(threadRegion1.get()));
         REQUIRE(threadRegion0->successors().size() == 1);
         REQUIRE(threadRegion1->predecessors().size() == 1);
     }
 
     SECTION("Add predecessor") {
-        REQUIRE(threadRegion0->addPredecessor(threadRegion1));
+        REQUIRE(threadRegion0->addPredecessor(threadRegion1.get()));
         REQUIRE(threadRegion0->predecessors().size() == 1);
         REQUIRE(threadRegion1->successors().size() == 1);
     }
 
     SECTION("Remove existing successor") {
-        threadRegion0->addSuccessor(threadRegion1);
+        threadRegion0->addSuccessor(threadRegion1.get());
         REQUIRE(threadRegion0->successors().size() == 1);
-        REQUIRE(threadRegion0->removeSuccessor(threadRegion1));
+        REQUIRE(threadRegion0->removeSuccessor(threadRegion1.get()));
         REQUIRE(threadRegion0->successors().empty());
     }
 
     SECTION("Removing existing predecessor") {
-        threadRegion0->addPredecessor(threadRegion1);
+        threadRegion0->addPredecessor(threadRegion1.get());
         REQUIRE(threadRegion0->predecessors().size() == 1);
-        REQUIRE(threadRegion0->removePredecessor(threadRegion1));
+        REQUIRE(threadRegion0->removePredecessor(threadRegion1.get()));
         REQUIRE(threadRegion0->predecessors().size() == 0);
     }
 
     SECTION("Removing nonexistent successor") {
-        REQUIRE_FALSE(threadRegion0->removeSuccessor(threadRegion1));
+        REQUIRE_FALSE(threadRegion0->removeSuccessor(threadRegion1.get()));
     }
 
     SECTION("Removing nonexistent predecessor") {
-        REQUIRE_FALSE(threadRegion0->removePredecessor(threadRegion1));
+        REQUIRE_FALSE(threadRegion0->removePredecessor(threadRegion1.get()));
     }
 
     SECTION("Remove nullptr from successor") {
@@ -264,47 +268,47 @@ TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
 }
 
 TEST_CASE("Test of EntryNode class methods", "[EntryNode]") {
-    ForkNode * forkNode = createNode<NodeType::FORK>();
-    EntryNode * entryNode = createNode<NodeType::ENTRY>();
+    std::unique_ptr<ForkNode> forkNode(createNode<NodeType::FORK>());
+    std::unique_ptr<EntryNode> entryNode(createNode<NodeType::ENTRY>());
 
     SECTION("Add fork predecessor") {
-        REQUIRE(entryNode->addForkPredecessor(forkNode));
+        REQUIRE(entryNode->addForkPredecessor(forkNode.get()));
         REQUIRE(entryNode->forkPredecessors().size() == 1);
-        REQUIRE_FALSE(entryNode->addForkPredecessor(forkNode));
+        REQUIRE_FALSE(entryNode->addForkPredecessor(forkNode.get()));
         REQUIRE(entryNode->forkPredecessors().size() == 1);
         REQUIRE_FALSE(entryNode->addForkPredecessor(nullptr));
         REQUIRE(entryNode->forkPredecessors().size() == 1);
     }
 
     SECTION("Remove fork predecessor") {
-        entryNode->addForkPredecessor(forkNode);
+        entryNode->addForkPredecessor(forkNode.get());
         REQUIRE(entryNode->forkPredecessors().size() == 1);
-        REQUIRE(entryNode->removeForkPredecessor(forkNode));
+        REQUIRE(entryNode->removeForkPredecessor(forkNode.get()));
         REQUIRE(entryNode->forkPredecessors().size() == 0);
-        REQUIRE_FALSE(entryNode->removeForkPredecessor(forkNode));
+        REQUIRE_FALSE(entryNode->removeForkPredecessor(forkNode.get()));
         REQUIRE(entryNode->forkPredecessors().size() == 0);
     }
 }
 
 TEST_CASE("Test of ExitNode class methods", "[ExitNode]") {
-    auto joinNode = createNode<NodeType::JOIN>();
-    auto exitNode = createNode<NodeType::EXIT>();
+    std::unique_ptr<JoinNode> joinNode(createNode<NodeType::JOIN>());
+    std::unique_ptr<ExitNode> exitNode(createNode<NodeType::EXIT>());
 
     SECTION("Add join successor") {
-        REQUIRE(exitNode->addJoinSuccessor(joinNode));
+        REQUIRE(exitNode->addJoinSuccessor(joinNode.get()));
         REQUIRE(exitNode->joinSuccessors().size() == 1);
-        REQUIRE_FALSE(exitNode->addJoinSuccessor(joinNode));
+        REQUIRE_FALSE(exitNode->addJoinSuccessor(joinNode.get()));
         REQUIRE(exitNode->joinSuccessors().size() == 1);
         REQUIRE_FALSE(exitNode->addJoinSuccessor(nullptr));
         REQUIRE(exitNode->joinSuccessors().size() == 1);
     }
 
     SECTION("Remove join successor") {
-        exitNode->addJoinSuccessor(joinNode);
+        exitNode->addJoinSuccessor(joinNode.get());
         REQUIRE(exitNode->joinSuccessors().size() == 1);
-        REQUIRE(exitNode->removeJoinSuccessor(joinNode));
+        REQUIRE(exitNode->removeJoinSuccessor(joinNode.get()));
         REQUIRE(exitNode->joinSuccessors().size() == 0);
-        REQUIRE_FALSE(exitNode->removeJoinSuccessor(joinNode));
+        REQUIRE_FALSE(exitNode->removeJoinSuccessor(joinNode.get()));
         REQUIRE(exitNode->joinSuccessors().size() == 0);
         REQUIRE_FALSE(exitNode->removeJoinSuccessor(nullptr));
         REQUIRE(exitNode->joinSuccessors().size() == 0);
@@ -312,34 +316,34 @@ TEST_CASE("Test of ExitNode class methods", "[ExitNode]") {
 }
 
 TEST_CASE("Test of ForkNode class methods", "[ForkNode]") {
-    auto forkNode = createNode<NodeType::FORK>();
-    auto joinNode = createNode<NodeType::JOIN>();
-    auto entryNode = createNode<NodeType::ENTRY>();
+    std::unique_ptr<ForkNode> forkNode(createNode<NodeType::FORK>());
+    std::unique_ptr<JoinNode> joinNode(createNode<NodeType::JOIN>());
+    std::unique_ptr<EntryNode> entryNode(createNode<NodeType::ENTRY>());
 
     SECTION("Add corresponding join") {
-        REQUIRE(forkNode->addCorrespondingJoin(joinNode));
+        REQUIRE(forkNode->addCorrespondingJoin(joinNode.get()));
         REQUIRE(forkNode->correspondingJoins().size() == 1);
-        REQUIRE_FALSE(forkNode->addCorrespondingJoin(joinNode));
+        REQUIRE_FALSE(forkNode->addCorrespondingJoin(joinNode.get()));
         REQUIRE(forkNode->correspondingJoins().size() == 1);
         REQUIRE_FALSE(forkNode->addCorrespondingJoin(nullptr));
         REQUIRE(forkNode->correspondingJoins().size() == 1);
     }
 
     SECTION("Add fork successor") {
-        REQUIRE(forkNode->addForkSuccessor(entryNode));
+        REQUIRE(forkNode->addForkSuccessor(entryNode.get()));
         REQUIRE(forkNode->forkSuccessors().size() == 1);
-        REQUIRE_FALSE(forkNode->addForkSuccessor(entryNode));
+        REQUIRE_FALSE(forkNode->addForkSuccessor(entryNode.get()));
         REQUIRE(forkNode->forkSuccessors().size() == 1);
         REQUIRE_FALSE(forkNode->addForkSuccessor(nullptr));
         REQUIRE(forkNode->forkSuccessors().size() == 1);
     }
 
     SECTION("Remove fork successor") {
-        forkNode->addForkSuccessor(entryNode);
+        forkNode->addForkSuccessor(entryNode.get());
         REQUIRE(forkNode->forkSuccessors().size() == 1);
-        REQUIRE(forkNode->removeForkSuccessor(entryNode));
+        REQUIRE(forkNode->removeForkSuccessor(entryNode.get()));
         REQUIRE(forkNode->forkSuccessors().size() == 0);
-        REQUIRE_FALSE(forkNode->removeForkSuccessor(entryNode));
+        REQUIRE_FALSE(forkNode->removeForkSuccessor(entryNode.get()));
         REQUIRE(forkNode->forkSuccessors().size() == 0);
         REQUIRE_FALSE(forkNode->removeForkSuccessor(nullptr));
         REQUIRE(forkNode->forkSuccessors().size() == 0);
@@ -347,35 +351,35 @@ TEST_CASE("Test of ForkNode class methods", "[ForkNode]") {
 }
 
 TEST_CASE("Test of JoinNode class methods", "[JoinNode]") {
-    auto joinNode = createNode<NodeType::JOIN>();
-    auto forkNode = createNode<NodeType::FORK>();
-    auto exitNode = createNode<NodeType::EXIT>();
+    std::unique_ptr<JoinNode> joinNode(createNode<NodeType::JOIN>());
+    std::unique_ptr<ForkNode> forkNode(createNode<NodeType::FORK>());
+    std::unique_ptr<ExitNode> exitNode(createNode<NodeType::EXIT>());
 
 
     SECTION("Add corresponding fork") {
-        REQUIRE(joinNode->addCorrespondingFork(forkNode));
+        REQUIRE(joinNode->addCorrespondingFork(forkNode.get()));
         REQUIRE(joinNode->correspondingForks().size() == 1);
-        REQUIRE_FALSE(joinNode->addCorrespondingFork(forkNode));
+        REQUIRE_FALSE(joinNode->addCorrespondingFork(forkNode.get()));
         REQUIRE(joinNode->correspondingForks().size() == 1);
         REQUIRE_FALSE(joinNode->addCorrespondingFork(nullptr));
         REQUIRE(joinNode->correspondingForks().size() == 1);
     }
 
     SECTION("Add join predecessor") {
-        REQUIRE(joinNode->addJoinPredecessor(exitNode));
+        REQUIRE(joinNode->addJoinPredecessor(exitNode.get()));
         REQUIRE(joinNode->joinPredecessors().size() == 1);
-        REQUIRE_FALSE(joinNode->addJoinPredecessor(exitNode));
+        REQUIRE_FALSE(joinNode->addJoinPredecessor(exitNode.get()));
         REQUIRE(joinNode->joinPredecessors().size() == 1);
         REQUIRE_FALSE(joinNode->addJoinPredecessor(nullptr));
         REQUIRE(joinNode->joinPredecessors().size() == 1);
     }
 
     SECTION("Remove join predecessor") {
-        joinNode->addJoinPredecessor(exitNode);
+        joinNode->addJoinPredecessor(exitNode.get());
         REQUIRE(joinNode->joinPredecessors().size() == 1);
-        REQUIRE(joinNode->removeJoinPredecessor(exitNode));
+        REQUIRE(joinNode->removeJoinPredecessor(exitNode.get()));
         REQUIRE(joinNode->joinPredecessors().size() == 0);
-        REQUIRE_FALSE(joinNode->removeJoinPredecessor(exitNode));
+        REQUIRE_FALSE(joinNode->removeJoinPredecessor(exitNode.get()));
         REQUIRE(joinNode->joinPredecessors().size() == 0);
         REQUIRE_FALSE(joinNode->removeJoinPredecessor(nullptr));
         REQUIRE(joinNode->joinPredecessors().size() == 0);
@@ -383,13 +387,13 @@ TEST_CASE("Test of JoinNode class methods", "[JoinNode]") {
 }
 
 TEST_CASE("Test of LockNode class methods", "[LockNode]") {
-    auto lockNode = createNode<NodeType::LOCK>();
-    auto unlockNode = createNode<NodeType::UNLOCK>();
+    std::unique_ptr<LockNode> lockNode(createNode<NodeType::LOCK>());
+    std::unique_ptr<UnlockNode> unlockNode(createNode<NodeType::UNLOCK>());
 
     SECTION("Add corresponding unlock") {
-        REQUIRE(lockNode->addCorrespondingUnlock(unlockNode));
+        REQUIRE(lockNode->addCorrespondingUnlock(unlockNode.get()));
         REQUIRE(lockNode->correspondingUnlocks().size() == 1);
-        REQUIRE_FALSE(lockNode->addCorrespondingUnlock(unlockNode));
+        REQUIRE_FALSE(lockNode->addCorrespondingUnlock(unlockNode.get()));
         REQUIRE(lockNode->correspondingUnlocks().size() == 1);
         REQUIRE_FALSE(lockNode->addCorrespondingUnlock(nullptr));
         REQUIRE(lockNode->correspondingUnlocks().size() == 1);
@@ -570,15 +574,12 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
     }
 
     SECTION("ForkNode iterator test") {
-        auto forkNode = createNode<NodeType::FORK>();
+        std::unique_ptr<ForkNode> forkNode(createNode<NodeType::FORK>());
+        std::unique_ptr<EntryNode> entryNode0(createNode<NodeType::ENTRY>());
+        NodePtr node0(createNode<NodeType::GENERAL>());
 
-        auto entryNode0 = createNode<NodeType::ENTRY>();
-
-        forkNode->addForkSuccessor(entryNode0);
-
-        auto node0 = createNode<NodeType::GENERAL>();
-
-        forkNode->addSuccessor(node0);
+        forkNode->addForkSuccessor(entryNode0.get());
+        forkNode->addSuccessor(node0.get());
 
         int i = 0;
 
