@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from subprocess import call
 from sys import argv, stderr, stdout, exit
