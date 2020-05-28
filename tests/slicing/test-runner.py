@@ -78,7 +78,7 @@ def compile(source, output = None, params=[]):
     ret = command(["clang", "-include", join(SOURCESDIR, '..', "test_assert.h"),
                    "-emit-llvm", "-c", source, "-o", output] + params)
     if ret != 0:
-        error('Failed executing command')
+        error('Failed executing clang')
 
     return output
 
@@ -88,7 +88,8 @@ def slice(bccode, args):
     cmd.append(bccode)
     cmd += ["-o", output]
 
-    command(cmd)
+    if command(cmd) != 0:
+        error('Failed executing llvm-slicer')
 
     return output
 
@@ -96,14 +97,20 @@ def link(bccode, codes, output = None):
     if output is None:
         output = bccode + ".linked"
     cmd = ["llvm-link", bccode, "-o", output] + codes
-    command(cmd)
+
+    if command(cmd) != 0:
+        error('Failed executing llvm-link')
+
     return output
 
 def opt(bccode, passes, output = None):
     if output is None:
         output = bccode + ".opt"
     cmd = ["opt", bccode, "-o", output] + passes
-    command(cmd)
+
+    if command(cmd) != 0:
+        error('Failed executing opt')
+
     return output
 
 def check_output(out, expout):
