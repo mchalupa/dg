@@ -1,0 +1,87 @@
+# vim: syntax=spec
+
+Name:       {{{ git_dir_name }}}
+Version:    {{{ git_dir_version }}}
+Release:    1%{?dist}
+Summary:    Various program analyses, construction of dependence graphs and program slicing of LLVM bitcode
+
+License:    MIT
+URL:        https://github.com/mchalupa/dg
+VCS:        {{{ git_dir_vcs }}}
+
+Source:     {{{ git_dir_archive }}}
+
+BuildRequires: clang
+BuildRequires: cmake
+BuildRequires: gcc
+BuildRequires: llvm-devel
+BuildRequires: ncurses-devel
+BuildRequires: python3
+BuildRequires: zlib-devel
+
+# FIXME: dg should support dynamic linking with LLVM
+BuildRequires: llvm-static
+
+Requires: clang
+Requires: llvm
+
+%description
+DG is a library containing various bits for program analysis. However, the main
+motivation of this library is program slicing. The library contains implementation
+of a pointer analysis, data dependence analysis, control dependence analysis,
+and an analysis of relations between values in LLVM bitcode. All of the analyses
+target LLVM bitcode, but most of them are written in a generic way, so they are
+not dependent on LLVM in particular.
+
+%prep
+{{{ git_dir_setup_macro }}}
+GIT_REVISION={{{ git rev-parse --short --sq HEAD }}}
+sed -i "s/unknown/$GIT_REVISION/" tools/git-version.sh
+
+%build
+%if 0%{?fedora} || 0%{?rhel} || 0%{?centos}
+  %cmake . -DCMAKE_BUILD_TYPE=Release
+  %make_build
+%endif
+
+%if 0%{?mageia} == 7
+  %cmake -DCMAKE_BUILD_TYPE=Release
+  %make_build
+%endif
+
+%if 0%{?mageia} > 7 || 0%{?sle_version} || 0%{?suse_version}
+  %cmake -DCMAKE_BUILD_TYPE=Release
+  %cmake_build
+%endif
+
+%install
+%if 0%{?fedora} || 0%{?rhel} || 0%{?centos}
+  %make_install
+%endif
+
+%if 0%{?mageia} == 7
+  cd %{_cmake_builddir}
+  %make_install
+%endif
+
+%if 0%{?mageia} > 7 || 0%{?sle_version} || 0%{?suse_version}
+  %cmake_install
+%endif
+
+%check
+
+%if 0%{?mageia} == 7
+  cd %{_cmake_builddir}
+%endif
+
+%if 0%{?mageia} > 7 || 0%{?sle_version} || 0%{?suse_version}
+  cd %{__builddir}
+%endif
+
+make check %{?_smp_mflags}
+
+%files
+%license LICENSE
+%{_bindir}/*
+%{_includedir}/%{name}
+%{_libdir}/*
