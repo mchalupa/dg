@@ -50,10 +50,19 @@ tags
 # LLVM files
 *.bc
 *.sliced
+*.linked
+*.opt
+*.ll
 
 *.i
 
 tests/*-test
+
+# clang
+.clangd
+
+# pycache
+__pycache__
 
 # C files in tools are test codes
 tools/*.c
