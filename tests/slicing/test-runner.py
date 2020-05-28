@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from sys import stdout, argv
 from subprocess import Popen, PIPE
