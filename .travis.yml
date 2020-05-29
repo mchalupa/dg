@@ -38,14 +38,10 @@ install:
   - cd ..
 
 script:
-  # gcc in the versions that we use has problems with sanitizers
-  - if test "$CXX" = "clang++"; then export CXX_FLAGS="-fsanitize=undefined,address"; fi
-  - cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DCMAKE_CXX_FLAGS=$CXX_FLAGS .
+  - cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" -DUSE_SANITIZERS=ON .
   - make -j2
-  - cd tests
-  - make
   # for now turn off the detection of leaks, we're working on it
-  - ASAN_OPTIONS=detect_leaks=0 make check
+  - ASAN_OPTIONS=detect_leaks=0 make check -j2
 
 notifications:
     email: false
