@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from sys import stdout, argv
-from subprocess import Popen, PIPE
+from subprocess import Popen, DEVNULL, PIPE
 from os.path import join, dirname, abspath
 from os import unlink, chdir, getcwd
 
@@ -40,7 +40,7 @@ def command(cmd):
     if debug:
         p = Popen(cmd)
     else:
-        p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        p = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
     return p.wait()
 
 def command_output(cmd):
