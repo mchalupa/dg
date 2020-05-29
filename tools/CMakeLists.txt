@@ -135,17 +135,17 @@ endif (HAVE_SVF)
                                               PRIVATE ${llvm_support})
 
 	install(TARGETS llvm-dg-dump llvm-slicer
-		RUNTIME DESTINATION bin)
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 	install(TARGETS dgllvmslicer
-		LIBRARY DESTINATION lib)
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 	install(FILES llvm-slicer.h llvm-slicer-opts.h llvm-slicer-utils.h
 		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
 
 	# copy also the wrapper scripts
 	install(FILES pta-show llvmdda-dump llvmdg-show dgtool
-		DESTINATION bin)
+		DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif (LLVM_DG)
 
 include_directories(../src)
