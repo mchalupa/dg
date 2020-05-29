@@ -5,7 +5,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # add check target
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
+enable_testing()
+
+include(ProcessorCount)
+ProcessorCount(N)
+if(N EQUAL 0)
+    set(N 1)
+endif()
+
+set(CTEST_OPTS -j${N} ${CTEST_OPTS})
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS})
 
 # --------------------------------------------------
 # points-to-test

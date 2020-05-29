@@ -2,15 +2,16 @@
 
 from sys import stdout, argv
 from subprocess import Popen, DEVNULL, PIPE
-from os.path import join, dirname, abspath
-from os import unlink, chdir, getcwd
+from os.path import join, dirname, abspath, basename
+from os import chdir, getcwd, unlink
+from shutil import rmtree
 
 debug=False
 have_svf = False
 
 # going to be (possibly) re-set in set_environment()
 TOOLSDIR="../../tools/"
-SOURCESDIR="sources/"
+SOURCESDIR="../sources/"
 
 #RUNDIR=getcwd()
 
@@ -50,6 +51,11 @@ def command_output(cmd):
     out, err = p.communicate()
     return out, err, p.poll()
 
+def cleanup():
+    oldpath = getcwd()
+    chdir('..')
+    rmtree(oldpath)
+
 def error(msg):
     from sys import stderr, exit
     stderr.write("{0}\n".format(msg))
@@ -68,8 +74,10 @@ def set_environment():
 
 
 def _getbcname(name):
-    # FIXME: check for suffix
-    return '{0}.bc'.format(name[:-2])
+    if name[-2:] != '.c':
+        error('Input is not a .c source code')
+
+    return '{0}.bc'.format(basename(name[:-2]))
 
 def compile(source, output = None, params=[]):
     if output is None:
@@ -218,6 +226,12 @@ if __name__ == "__main__":
 
     set_environment()
 
+    # create tmpdir for given test
+    from os import mkdir
+    rmtree(argv[1], ignore_errors=True)  # just to be sure it does not exist
+    mkdir(argv[1])
+    chdir(argv[1])
+
     # compile the source
     bccode = compile(join(SOURCESDIR, t.source),
                      params=t.compilerparams)
@@ -267,8 +281,4 @@ if __name__ == "__main__":
             print('OK!')
 
     # cleanup
-    unlink(bccode)
-    for f in linkbefore:
-        unlink(f)
-    for f in linkafter: # contains also test_assert.bc
-        unlink(f)
+    cleanup()
