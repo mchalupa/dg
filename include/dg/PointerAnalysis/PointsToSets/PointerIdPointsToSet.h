@@ -36,7 +36,7 @@ class PointerIdPointsToSet {
 
 public:
     PointerIdPointsToSet() = default;
-    PointerIdPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
+    explicit PointerIdPointsToSet(const std::initializer_list<Pointer>& elems) { add(elems); }
 
     bool add(PSNode *target, Offset off) {
         return add(Pointer(target,off));
@@ -50,6 +50,14 @@ public:
             return addWithUnknownOffset(ptr.target);
         }
         return !pointers.set(getPointerID(ptr));
+    }
+
+    template <typename ContainerTy>
+    bool add(const ContainerTy& C) {
+        bool changed = false;
+        for (const auto& ptr : C)
+            changed |= add(ptr);
+        return changed;
     }
 
     bool add(const PointerIdPointsToSet& S) {
