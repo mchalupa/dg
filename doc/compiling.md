@@ -21,10 +21,10 @@ On ArchLinux, the command for installing the dependencies is the following:
 pacman -S git cmake make llvm clang gcc python
 ```
 
-On Fedora, the command for installing the dependencies is the following:
+On CentOS/RHEL/Fedora, the command for installing the dependencies is the following:
 
 ```
-dnf install git cmake make zlib-devel llvm-devel llvm-static gcc-c++
+dnf install git cmake make zlib-devel llvm-devel llvm-static gcc-c++ ncurses-devel
 ```
 
 You can use also LLVM compiled from sources (see below).
