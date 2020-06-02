@@ -129,7 +129,6 @@ public:
         }
 
         const_iterator(const const_iterator&) = default;
-        const_iterator& operator=(const const_iterator&) = default;
 
         const_iterator& operator++() {
             if (is_small)
