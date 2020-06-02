@@ -213,7 +213,7 @@ target_link_libraries(dgllvmsdg
 
 install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
                 dgllvmpta dgllvmdda dgpta dgdda dganalysis
-		dgllvmforkjoin dgllvmsdg
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+                dgllvmforkjoin dgsdg dgllvmsdg
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)
