@@ -141,8 +141,9 @@ public:
     bool hasAddressTaken() const { return has_address_taken; }
     void setAddressTaken() { has_address_taken = true; }
 
-#ifndef NDEBUG
     virtual ~RWNode() = default;
+
+#ifndef NDEBUG
     void dump() const;
 #endif
 
