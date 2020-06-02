@@ -109,7 +109,7 @@ public:
     ValVec getDependencies(const llvm::BasicBlock *b) override { return {}; }
     ValVec getDependent(const llvm::BasicBlock *) override { return {}; }
 
-    void run() { /* we run on demand */ }
+    void run() override { /* we run on demand */ }
 };
 
 } // namespace llvmdg
