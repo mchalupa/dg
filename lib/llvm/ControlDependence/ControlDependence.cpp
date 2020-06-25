@@ -1,5 +1,5 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
-#include "llvm/ControlDependence/NTSCD.h"
+#include "llvm/ControlDependence/legacy/NTSCD.h"
 #include "llvm/ControlDependence/SCD.h"
 #include "llvm/ControlDependence/InterproceduralCD.h"
 

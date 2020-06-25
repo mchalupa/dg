@@ -44,7 +44,7 @@
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 // !FIXME
-#include "../lib/llvm/ControlDependence/NTSCD.h"
+#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
 
 #include "llvm/LLVMDGVerifier.h"
 #include "llvm-utils.h"

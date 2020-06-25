@@ -103,14 +103,14 @@ target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta
                                           PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmcda SHARED
-            llvm/ControlDependence/Block.cpp
-            llvm/ControlDependence/Function.cpp
-            llvm/ControlDependence/GraphBuilder.cpp
+            llvm/ControlDependence/legacy/Block.cpp
+            llvm/ControlDependence/legacy/Function.cpp
+            llvm/ControlDependence/legacy/GraphBuilder.cpp
+            llvm/ControlDependence/legacy/NTSCD.cpp
+            llvm/ControlDependence/legacy/NTSCD.h
             llvm/ControlDependence/ControlDependence.cpp
             llvm/ControlDependence/InterproceduralCD.cpp
             llvm/ControlDependence/InterproceduralCD.h
-            llvm/ControlDependence/NTSCD.cpp
-            llvm/ControlDependence/NTSCD.h
             llvm/ControlDependence/SCD.cpp
             llvm/ControlDependence/SCD.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h

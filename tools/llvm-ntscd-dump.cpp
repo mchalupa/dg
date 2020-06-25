@@ -1,8 +1,8 @@
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "../lib/llvm/ControlDependence/GraphBuilder.h"
-#include "../lib/llvm/ControlDependence/NTSCD.h"
+#include "../lib/llvm/ControlDependence/legacy/GraphBuilder.h"
+#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
