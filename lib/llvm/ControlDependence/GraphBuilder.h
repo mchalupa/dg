@@ -19,6 +19,7 @@ namespace dg {
 class LLVMPointerAnalysis;
 
 namespace llvmdg {
+namespace legacy {
 
 class Function;
 class Block;
@@ -71,6 +72,7 @@ int predecessorsNumber(const llvm::BasicBlock *basicBlock);
 int successorsNumber(const llvm::BasicBlock *basicBlock);
 bool isReachable(const llvm::BasicBlock *basicBlock);
 
+}
 }
 }
 

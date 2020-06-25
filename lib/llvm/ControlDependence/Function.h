@@ -6,6 +6,7 @@
 
 namespace dg {
 namespace llvmdg {
+namespace legacy {
 
 class Block;
 
@@ -34,6 +35,7 @@ private:
     std::set<Block *> blocks;
 };
 
+}
 }
 }
 

@@ -24,6 +24,7 @@
 
 namespace dg {
 namespace llvmdg {
+namespace legacy {
 
 int Block::traversalCounter = 0;
 
@@ -210,5 +211,6 @@ void Block::dumpEdges(std::ostream &ostream) const {
 }
 
 
+} // namespace legacy
 } // namespace llvmdg
 } // namespace dg

@@ -14,6 +14,7 @@ namespace llvm {
 
 namespace dg {
 namespace llvmdg {
+namespace legacy {
 
 class Function;
 
@@ -89,6 +90,7 @@ private:
     std::map<const llvm::Function *, Function *> joins_;
 };
 
+}
 }
 }
 

@@ -3,8 +3,10 @@
 
 #include <ostream>
 #include <algorithm>
+
 namespace dg {
 namespace llvmdg {
+namespace legacy {
 
 Function::Function(): lastBlock(new Block(nullptr)) {
     blocks.insert(lastBlock);
@@ -16,11 +18,11 @@ Function::~Function() {
     }
 }
 
-Block *dg::llvmdg::Function::entry() const {
+Block *Function::entry() const {
     return firstBlock;
 }
 
-Block *dg::llvmdg::Function::exit() const {
+Block *Function::exit() const {
     return lastBlock;
 }
 
@@ -75,5 +77,6 @@ void Function::dumpEdges(std::ostream &ostream) {
     }
 }
 
+}
 }
 }

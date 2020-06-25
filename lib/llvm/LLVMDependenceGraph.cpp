@@ -961,7 +961,7 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
 
 void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
     DBG_SECTION_BEGIN(llvmdg, "Computing NTSCD");
-    llvmdg::NTSCD ntscdAnalysis(this->module, {}, PTA);
+    llvmdg::legacy::NTSCD ntscdAnalysis(this->module, {}, PTA);
     ntscdAnalysis.computeDependencies();
     auto& dependencies = ntscdAnalysis.controlDependencies();
 

@@ -31,6 +31,7 @@ using dg::ForkJoinAnalysis;
 
 namespace dg {
 namespace llvmdg {
+namespace legacy {
 
 GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis)
     :pointsToAnalysis_(pointsToAnalysis),
@@ -263,5 +264,6 @@ bool isReachable(const llvm::BasicBlock *basicBlock) {
            &basicBlock->getParent()->front() == basicBlock;
 }
 
-}
-}
+} // namespace legacy
+} // namespace llvmdg
+} // namespace dg

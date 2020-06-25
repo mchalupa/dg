@@ -34,6 +34,7 @@ using namespace std;
 
 namespace dg {
 namespace llvmdg {
+namespace legacy {
 
 NTSCD::NTSCD(const llvm::Module *module,
              const LLVMControlDependenceAnalysisOptions& opts,
@@ -218,5 +219,6 @@ bool NTSCD::hasRedAndNonRedSuccessor(Block *node) {
     return redCounter > 0 && node->successors().size() > redCounter;
 }
 
+} // namespace legacy
 } // namespace llvmdg
 } // namespace dg

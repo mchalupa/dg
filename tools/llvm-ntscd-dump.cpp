@@ -77,7 +77,7 @@ int main(int argc, const char *argv[]) {
         PTA->run();
     }
 
-    dg::llvmdg::NTSCD controlDependencyAnalysis(M.get(), {}, PTA.get());
+    dg::llvmdg::legacy::NTSCD controlDependencyAnalysis(M.get(), {}, PTA.get());
     controlDependencyAnalysis.run();
 
     if (graphVizFileName == "") {

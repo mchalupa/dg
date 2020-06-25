@@ -19,6 +19,7 @@ namespace dg {
 class LLVMPointerAnalysis;
 
 namespace llvmdg {
+namespace legacy {
 
 class NTSCD : public LLVMControlDependenceAnalysisImpl {
 public:
@@ -105,6 +106,7 @@ private:
     bool hasRedAndNonRedSuccessor(Block * node);
 };
 
+} // namespace legacy
 } // namespace llvmdg
 } // namespace dg
 
