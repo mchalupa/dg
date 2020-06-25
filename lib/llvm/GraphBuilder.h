@@ -21,6 +21,9 @@
 #pragma GCC diagnostic pop
 #endif
 
+#include "dg/llvm/CallGraph/CallGraph.h"
+#include "dg/ADT/SetQueue.h"
+
 namespace dg {
 
 template <typename NodeT>

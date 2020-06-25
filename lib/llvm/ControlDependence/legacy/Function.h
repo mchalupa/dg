@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_FUNCTION_H
-#define DG_LLVM_FUNCTION_H
+#ifndef DG_LEGACY_NTSCD_FUNCTION_H
+#define DG_LEGACY_NTSCD_FUNCTION_H
 
 #include <set>
 #include <iosfwd>

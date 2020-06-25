@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_GRAPHBUILDER_H
-#define DG_LLVM_GRAPHBUILDER_H
+#ifndef DG_LEGACY_NTSCD_GRAPHBUILDER_H
+#define DG_LEGACY_NTSCD_GRAPHBUILDER_H
 
 #include <map>
 #include <unordered_map>

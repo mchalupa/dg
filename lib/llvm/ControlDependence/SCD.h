@@ -19,7 +19,9 @@ class LLVMPointerAnalysis;
 namespace llvmdg {
 
 // Standard control dependencies based on the computation
-// of post-dominance frontiers
+// of post-dominance frontiers.
+// This class uses purely LLVM, no internal representation
+// like the other classes (we use the post-dominance computation from LLVM).
 class SCD : public LLVMControlDependenceAnalysisImpl {
 
     void computePostDominators(llvm::Function& F);

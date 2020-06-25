@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_BLOCK_H
-#define DG_LLVM_BLOCK_H
+#ifndef DG_LEGACY_NTSCD_BLOCK_H
+#define DG_LEGACY_NTSCD_BLOCK_H
 
 #include <vector>
 #include <set>

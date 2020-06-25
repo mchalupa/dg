@@ -29,7 +29,6 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 #include "dg/llvm/CallGraph/CallGraph.h"
-#include "dg/ADT/SetQueue.h"
 
 #include "llvm/GraphBuilder.h"
 

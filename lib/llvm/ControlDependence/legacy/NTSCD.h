@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_NTSCD_H_
-#define DG_LLVM_NTSCD_H_
+#ifndef DG_LEGACY_LLVM_NTSCD_H_
+#define DG_LEGACY_LLVM_NTSCD_H_
 
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "GraphBuilder.h"

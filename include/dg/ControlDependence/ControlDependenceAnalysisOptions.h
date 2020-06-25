@@ -9,6 +9,7 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
     // FIXME: add options class for CD
     enum class CDAlgorithm {
         STANDARD,
+        LEGACY_NTSCD,
         NTSCD
     } algorithm;
 
@@ -18,6 +19,7 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
 
     bool standardCD() const { return algorithm == CDAlgorithm::STANDARD; }
     bool ntscdCD() const { return algorithm == CDAlgorithm::NTSCD; }
+    bool legacyNtscdCD() const { return algorithm == CDAlgorithm::LEGACY_NTSCD; }
     bool interproceduralCD() const { return interprocedural; }
 };
 

@@ -1,5 +1,6 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "llvm/ControlDependence/legacy/NTSCD.h"
+#include "llvm/ControlDependence/NTSCD.h"
 #include "llvm/ControlDependence/SCD.h"
 #include "llvm/ControlDependence/InterproceduralCD.h"
 
@@ -9,6 +10,8 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
     if (getOptions().standardCD()) {
         _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD()) {
+        _impl.reset(new llvmdg::NTSCD(_module, _options));
+    } else if (getOptions().legacyNtscdCD()) {
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
     } else {
         assert(false && "Unhandled analysis type");
