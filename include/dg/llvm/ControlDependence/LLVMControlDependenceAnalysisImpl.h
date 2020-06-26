@@ -11,6 +11,9 @@ namespace llvm {
 
 namespace dg {
 //namespace cda {
+namespace llvmdg {
+ class CDGraph;
+}
 
 class LLVMControlDependenceAnalysisImpl {
 
@@ -29,6 +32,9 @@ public:
     // public API
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
+
+    virtual llvmdg::CDGraph *getGraph(const llvm::Function *) { return nullptr; }
+    virtual const llvmdg::CDGraph *getGraph(const llvm::Function *) const { return nullptr; }
 
     virtual void run() = 0;
 

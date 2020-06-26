@@ -60,8 +60,10 @@ class LLVMReadWriteGraphBuilder : public GraphBuilder<RWNode, RWBBlock, RWSubgra
         return subg.createBBlock();
     }
 
-    RWSubgraph& createSubgraph(const llvm::Function *) override {
-        return graph.createSubgraph();
+    RWSubgraph& createSubgraph(const llvm::Function *F) override {
+        auto& subg = graph.createSubgraph();
+        subg.setName(F->getName().str());
+        return subg;
     }
 
     /*

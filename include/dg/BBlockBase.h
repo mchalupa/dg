@@ -2,20 +2,21 @@
 #define DG_BBLOCK_BASE_H_
 
 #include <vector>
+#include <list>
 
 namespace dg {
 
-class BBlockId {
+class ElemId {
     static unsigned idcnt;
     unsigned id;
 public:
-    BBlockId() : id(++idcnt) {}
+    ElemId() : id(++idcnt) {}
     unsigned getID() const { return id; }
 };
 
-template <typename BBlockT>
-class BBlockBase : public BBlockId {
-    using EdgesT = std::vector<BBlockT *>;
+template <typename ElemT>
+class CFGElement : public ElemId {
+    using EdgesT = std::vector<ElemT *>;
 
 protected:
     EdgesT _successors;
@@ -37,7 +38,7 @@ public:
     bool hasSuccessors() const { return !_successors.empty(); }
     bool hasPredecessors() const { return !_predecessors.empty(); }
 
-    void addSuccessor(BBlockT *s) {
+    void addSuccessor(ElemT *s) {
         for (auto *succ : _successors) {
             if (succ == s)
                 return;
@@ -49,16 +50,54 @@ public:
             if (pred == this)
                 return;
         }
-        s->_predecessors.push_back(static_cast<BBlockT*>(this));
+        s->_predecessors.push_back(static_cast<ElemT*>(this));
     }
 
-    BBlockT *getSinglePredecessor() {
+    ElemT *getSinglePredecessor() {
         return _predecessors.size() == 1 ? _predecessors.back() : nullptr;
     }
 
-    BBlockT *getSingleSuccessor() {
+    ElemT *getSingleSuccessor() {
         return _successors.size() == 1 ? _successors.back() : nullptr;
     }
+};
+
+template <typename ElemT, typename NodeT>
+class BBlockBase : public CFGElement<ElemT> {
+public:
+    using NodesT = std::list<NodeT *>;
+
+    void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(static_cast<ElemT*>(this)); }
+    void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(static_cast<ElemT*>(this)); }
+
+    void insertBefore(NodeT *n, NodeT *before) {
+        assert(!_nodes.empty());
+
+        auto it = _nodes.begin();
+        while (it != _nodes.end()) {
+            if (*it == before)
+                break;
+            ++it;
+        }
+        assert(it != _nodes.end() && "Did not find 'before' node");
+
+        _nodes.insert(it, n);
+        n->setBBlock(static_cast<ElemT*>(this));
+    }
+
+    const NodesT& getNodes() const { return _nodes; }
+    NodesT& getNodes() { return _nodes; }
+    // FIXME: rename to first/front(), last/back()
+    NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }
+    NodeT *getLast() { return _nodes.empty() ? nullptr : _nodes.back(); }
+    const NodeT *getFirst() const { return _nodes.empty() ? nullptr : _nodes.front(); }
+    const NodeT *getLast() const { return _nodes.empty() ? nullptr : _nodes.back(); }
+
+    bool empty() const { return _nodes.empty(); }
+    size_t size() const { return _nodes.size(); }
+
+private:
+    NodesT _nodes;
 };
 
 }

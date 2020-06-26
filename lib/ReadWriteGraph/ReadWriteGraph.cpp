@@ -39,7 +39,7 @@ void RWNodeCall::dump() const {
 
 void RWBBlock::dump() const {
        std::cout << "bblock " << getID() << "(" << this << ")\n";
-       for (auto *n : _nodes) {
+       for (auto *n : getNodes()) {
            std::cout << "  ";
            n->dump();
        }

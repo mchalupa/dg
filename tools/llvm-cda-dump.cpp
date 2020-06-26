@@ -60,6 +60,8 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"
 
+#include "llvm/ControlDependence/GraphBuilder.h"
+
 using namespace dg;
 
 using llvm::errs;
@@ -70,6 +72,10 @@ llvm::cl::opt<bool> enable_debug("dbg",
 
 llvm::cl::opt<bool> show_cfg("cfg",
     llvm::cl::desc("Show CFG edges (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dump_ir("ir",
+    llvm::cl::desc("Show internal representation instead of LLVM (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> quiet("q",
@@ -242,6 +248,64 @@ static void dumpCda(LLVMControlDependenceAnalysis& cda) {
     std::cout << "}\n";
 }
 
+static void dumpIr(LLVMControlDependenceAnalysis& cda) {
+    const auto *m = cda.getModule();
+    auto *impl = cda.getImpl();
+
+    std::cout << "digraph ControlDependencies {\n";
+    std::cout << "  compound=true;\n";
+
+    // dump nodes
+    for (const auto& f : *m) {
+        auto *graph = impl->getGraph(&f);
+        if (!graph)
+            continue;
+        std::cout << "subgraph cluster_f_" << f.getName().str() << " {\n";
+        std::cout << "label=\"" << f.getName().str() << "\"\n";
+        // dump nodes
+        for (const auto *nd : *graph) {
+            std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"]\n";
+            /*
+            const llvm::Instruction *last = nullptr;
+            // give the block top-down structure
+            for (auto& I : b) {
+                if (last) {
+                    std::cout << " instr" << last << " -> " << "instr" << &I;
+                    if (show_cfg) {
+                        std::cout << " [style=dotted]\n";
+                    } else {
+                        std::cout << " [style=invis]\n";
+                    }
+               }
+               last = &I;
+            }
+            */
+        }
+
+        // dump edges
+        for (const auto *nd : *graph) {
+            for (const auto *succ : nd->successors()) {
+                std::cout << " ND" << nd->getID() << " -> ND" << succ->getID() << "\n";
+            }
+        }
+        std::cout << "}\n";
+    }
+
+    std::cout << "}\n";
+}
+
+static void computeAll(llvm::Module *M, LLVMControlDependenceAnalysis& cda) {
+    // the computation is on-demand, so we must trigger the computation
+    for (auto& f : *M) {
+        for (auto& b : f) {
+            cda.getDependencies(&b);
+            for (auto& I : b) {
+            cda.getDependencies(&I);
+            }
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
@@ -270,17 +334,14 @@ int main(int argc, char *argv[])
     cda.run();
 
     if (quiet) {
-        // the computation is on-demand, so we must trigger the computation
-        for (auto& f : *M.get()) {
-            for (auto& b : f) {
-                cda.getDependencies(&b);
-                for (auto& I : b) {
-                cda.getDependencies(&I);
-                }
-            }
-        }
+        computeAll(M.get(), cda);
     } else {
-        dumpCda(cda);
+        if (dump_ir) {
+            computeAll(M.get(), cda);
+            dumpIr(cda);
+        } else {
+            dumpCda(cda);
+        }
     }
 
     return 0;

@@ -1,7 +1,6 @@
 #ifndef DG_RWBBLOCK_H_
 #define DG_RWBBLOCK_H_
 
-#include <list>
 #include <memory>
 
 #include "dg/ReadWriteGraph/RWNode.h"
@@ -11,41 +10,20 @@ namespace dg {
 namespace dda {
 
 class RWBBlock;
+class RWNode;
 
-class RWBBlock : public BBlockBase<RWBBlock> {
+class RWBBlock : public BBlockBase<RWBBlock, RWNode> {
     RWSubgraph *subgraph{nullptr};
 
 public:
 
     using NodeT = RWNode;
-    using NodesT = std::list<NodeT *>;
 
     RWBBlock() = default;
     RWBBlock(RWSubgraph *s) : subgraph(s) {}
 
     RWSubgraph *getSubgraph() { return subgraph; }
     const RWSubgraph *getSubgraph() const { return subgraph; }
-
-    // FIXME: move also this into BBlockBase
-    void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(this); }
-    void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(this); }
-
-    void insertBefore(NodeT *n, NodeT *before) {
-        assert(!_nodes.empty());
-
-        auto it = _nodes.begin();
-        while (it != _nodes.end()) {
-            if (*it == before)
-                break;
-            ++it;
-        }
-        assert(it != _nodes.end() && "Did not find 'before' node");
-
-        _nodes.insert(it, n);
-        n->setBBlock(this);
-    }
-
-    const NodesT& getNodes() const { return _nodes; }
 
     /*
     auto begin() -> decltype(_nodes.begin()) { return _nodes.begin(); }
@@ -64,17 +42,17 @@ public:
         RWBBlock *withnode = nullptr;
         RWBBlock *after = nullptr;
 
-        if (_nodes.size() == 1) {
-            assert(*_nodes.begin() == node);
+        if (getNodes().size() == 1) {
+            assert(*getNodes().begin() == node);
             return {nullptr, nullptr};
         }
 
 #ifndef NDEBUG
-        auto old_size = _nodes.size();
+        auto old_size = getNodes().size();
         assert(old_size > 1);
 #endif
         unsigned num = 0;
-        auto it = _nodes.begin(), et = _nodes.end();
+        auto it = getNodes().begin(), et = getNodes().end();
         for (; it != et; ++it) {
             if (*it == node) {
                 break;
@@ -98,15 +76,15 @@ public:
             withnode = new RWBBlock(subgraph);
             withnode->append(node);
 
-            _nodes.resize(num);
+            getNodes().resize(num);
         } else {
-            assert(*_nodes.begin() == node);
+            assert(*getNodes().begin() == node);
             assert(after && "Should have a suffix");
-            _nodes.resize(1);
+            getNodes().resize(1);
         }
 
         assert(!withnode || withnode->size() == 1);
-        assert(((_nodes.size() +
+        assert(((getNodes().size() +
                 (withnode ? withnode->size() : 0) +
                 (after ? after->size() : 0)) == old_size)
                && "Bug in splitting nodes");
@@ -142,12 +120,6 @@ public:
     }
 
 
-    // FIXME: rename to first/front(), last/back()
-    NodeT *getFirst() { return _nodes.empty() ? nullptr : _nodes.front(); }
-    NodeT *getLast() { return _nodes.empty() ? nullptr : _nodes.back(); }
-    const NodeT *getFirst() const { return _nodes.empty() ? nullptr : _nodes.front(); }
-    const NodeT *getLast() const { return _nodes.empty() ? nullptr : _nodes.back(); }
-
     bool isReturnBBlock() const {
         if (auto *last = getLast()) {
             return last->isRet();
@@ -155,15 +127,10 @@ public:
         return false;
     }
 
-    bool empty() const { return _nodes.empty(); }
-    size_t size() const { return _nodes.size(); }
-
 #ifndef NDEBUG
     void dump() const;
 #endif
 
-private:
-    NodesT _nodes;
 };
 
 } // namespace dda

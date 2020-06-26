@@ -117,6 +117,11 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        "calls calls to exit() from inside of procedures. Default: true.\n"),
                        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> cdaPerInstr("cda-per-inst",
+        llvm::cl::desc("Compute control dependencies per instruction (the default\n"
+                       "is per basic block)\n"),
+                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<uint64_t> ptaFieldSensitivity("pta-field-sensitive",
         llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
                        "is cropped to Offset::UNKNOWN when it is greater than N bytes.\n"
@@ -254,9 +259,9 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
     dgOptions.entryFunction = entryFunction;
     dgOptions.threads = threads;
 
-    // FIXME: add options class for CD
     CDAOptions.algorithm = cdAlgorithm;
     CDAOptions.interprocedural = interprocCd;
+    CDAOptions.setNodePerInstruction(cdaPerInstr);
 
     addAllocationFuns(dgOptions, allocationFuns);
 

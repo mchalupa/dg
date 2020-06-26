@@ -114,6 +114,7 @@ add_library(dgllvmcda SHARED
             llvm/ControlDependence/SCD.cpp
             llvm/ControlDependence/SCD.h
             llvm/ControlDependence/NTSCD.h
+            llvm/ControlDependence/CDGraph.h
             llvm/ControlDependence/GraphBuilder.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h

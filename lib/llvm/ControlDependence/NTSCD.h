@@ -1,6 +1,8 @@
 #ifndef DG_LLVM_NTSCD_H_
 #define DG_LLVM_NTSCD_H_
 
+#include <llvm/IR/Module.h>
+
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "GraphBuilder.h"
 
@@ -14,25 +16,20 @@ class Function;
 }
 
 namespace dg {
-
-class LLVMPointerAnalysis;
-
 namespace llvmdg {
 
 class NTSCD : public LLVMControlDependenceAnalysisImpl {
+    CDGraphBuilder graphBuilder{};
+    std::unordered_map<const llvm::Function *, CDGraph> _graphs;
+
 public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
-    struct NodeInfo {
-        bool visited = false;
-        bool red = false;
-        size_t outDegreeCounter = 0;
-    };
-
     NTSCD(const llvm::Module *module,
-          const LLVMControlDependenceAnalysisOptions& opts = {},
-          LLVMPointerAnalysis *pointsToAnalysis = nullptr)
-        : LLVMControlDependenceAnalysisImpl(module, opts), graphBuilder(module) {}
+          const LLVMControlDependenceAnalysisOptions& opts = {})
+        : LLVMControlDependenceAnalysisImpl(module, opts) {
+        _graphs.reserve(module->size());
+    }
 
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *) override { return {}; }
@@ -40,10 +37,10 @@ public:
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
-       //if (_computed.insert(b->getParent()).second) {
-       //    /// FIXME: get rid of the const cast
-       //    computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
-       //}
+       if (_computed.insert(b->getParent()).second) {
+           /// FIXME: get rid of the const cast
+           computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
+       }
 
        //auto *block = graphBuilder.mapBlock(b);
        //if (!block) {
@@ -60,6 +57,7 @@ public:
        //}
 
        //return ValVec{ret.begin(), ret.end()};
+        return {};
     }
 
     ValVec getDependent(const llvm::BasicBlock *) override {
@@ -71,32 +69,39 @@ public:
     // to compute all dependencies in the interprocedural CFG.
     void run() override { /* we run on demand */ }
 
+    CDGraph *getGraph(const llvm::Function *f) override { return _getGraph(f); }
+    const CDGraph *getGraph(const llvm::Function *f) const override { return _getGraph(f); }
+
 private:
-    CDGraphBuilder graphBuilder;
+    const CDGraph *_getGraph(const llvm::Function *f) const {
+        auto it = _graphs.find(f);
+        return it == _graphs.end() ? nullptr : &it->second;
+    }
 
-   //CDGraph&& build() {
-   //    // FIXME: this is a bit of a hack
-   //    if (!PTA->getOptions().isSVF()) {
-   //        auto dgpta = static_cast<DGLLVMPointerAnalysis *>(PTA);
-   //        llvmdg::CallGraph CG(dgpta->getPTA()->getPG()->getCallGraph());
-   //        buildFromLLVM(&CG);
-   //    } else {
-   //        buildFromLLVM();
-   //    }
-   //}
+    CDGraph *_getGraph(const llvm::Function *f) {
+        auto it = _graphs.find(f);
+        return it == _graphs.end() ? nullptr : &it->second;
+    }
 
-    // forward edges (from branchings to dependent blocks)
-   //std::map<CDBBlock *, std::set<CDBBlock *>> controlDependency;
-   //// reverse edges (from dependent blocks to branchings)
-   //std::map<CDBBlock *, std::set<CDBBlock *>> revControlDependency;
-   //std::unordered_map<CDBBlock *, NodeInfo> nodeInfo;
-   //std::set<const llvm::Function *> _computed; // for on-demand
+   // forward edges (from branchings to dependent blocks)
+   //std::map<CDNode *, std::set<CDNode *>> controlDependence;
+   // reverse edges (from dependent blocks to branchings)
+   //std::map<CDNode *, std::set<CDNode *>> revControlDependence;
+   //std::unordered_map<CDNode *, NodeInfo> nodeInfo;
+   std::set<const llvm::Function *> _computed; // for on-demand
 
    //void computeDependencies(Function *);
-   //void computeOnDemand(llvm::Function *F);
+   void computeOnDemand(llvm::Function *F) {
+       DBG(cda, "Triggering on-demand computation for " << F->getName().str());
+       assert(_getGraph(F) == nullptr
+              && "Already have the graph");
+
+       auto graph = graphBuilder.build(F, getOptions().nodePerInstruction());
+       _graphs.emplace(F, std::move(graph));
+   }
 
     // a is CD on b
-    void addControlDependence(CDBBlock *a, CDBBlock *b);
+    void addControlDependence(CDNode *a, CDNode *b);
 };
 
 } // namespace llvmdg

@@ -76,6 +76,9 @@ public:
     const llvm::Module *getModule() const { return _module; }
     const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
 
+    LLVMControlDependenceAnalysisImpl *getImpl() { return _impl.get(); }
+    const LLVMControlDependenceAnalysisImpl *getImpl() const { return _impl.get(); }
+
     void run() {
         _impl->run();
         if (getOptions().interproceduralCD())

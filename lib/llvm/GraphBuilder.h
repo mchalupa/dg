@@ -108,15 +108,6 @@ class GraphBuilder {
             // every global node is like memory allocation
             auto cur = buildNode(&G);
             _globals.insert(_globals.end(), cur.begin(), cur.end());
-
-            // add the initial global definitions
-            //if (auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&G)) {
-            //    auto size = llvmutils::getAllocatedSize(GV->getType()->getContainedType(0),
-             //                                           &_module->getDataLayout());
-//                if (size == 0)
-//                    size = Offset::UNKNOWN;
-
-//                cur->addDef(cur, 0, size, true /* strong update */);
         }
 
         DBG_SECTION_END(dg, "Building globals done");
@@ -197,10 +188,12 @@ protected:
     void buildAllFuns() {
         DBG(dg, "Building all functions from LLVM module");
         for (auto& F : *_module) {
+            if (F.isDeclaration()) {
+                continue;
+            }
             assert(_subgraphs.find(&F) == _subgraphs.end()
                    && "Already have that subgraph");
             auto& subg = createSubgraph(&F);
-            subg.setName(F.getName().str());
             _subgraphs.emplace(&F, subg);
         }
 
@@ -222,7 +215,6 @@ protected:
             assert(_subgraphs.find(F) == _subgraphs.end()
                    && "Already have that subgraph");
             auto& subg = createSubgraph(F);
-            subg.setName(F->getName().str());
             _subgraphs.emplace(F, subg);
         }
 
@@ -250,6 +242,10 @@ public:
 
     const ValuesMappingT& getValuesMapping() const {
         return _nodeToValue;
+    }
+
+    const SubgraphsMappingT& getSubgraphsMapping() const {
+        return _subgraphs;
     }
 
     NodeT *getNode(const llvm::Value *v) {

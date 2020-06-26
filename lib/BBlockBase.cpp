@@ -2,6 +2,6 @@
 
 namespace dg {
 
-unsigned BBlockId::idcnt = 0;
+unsigned ElemId::idcnt = 0;
 
 }

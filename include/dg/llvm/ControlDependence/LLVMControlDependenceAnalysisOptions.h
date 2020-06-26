@@ -9,6 +9,10 @@ namespace dg {
 struct LLVMControlDependenceAnalysisOptions :
     public LLVMAnalysisOptions, ControlDependenceAnalysisOptions
 {
+    bool _nodePerInstruction{false};
+
+    void setNodePerInstruction(bool b) { _nodePerInstruction = b; }
+    bool nodePerInstruction() const { return _nodePerInstruction; }
 };
 
 } // namespace dg
