@@ -12,6 +12,9 @@ namespace dg {
 namespace llvmdg {
 
 class CDGraphBuilder {
+    std::unordered_map<const llvm::Value *, CDNode *> _nodes;
+    std::unordered_map<const CDNode *, const llvm::Value *> _rev_mapping;
+
     CDGraph buildInstructions(const llvm::Function *F) {
 
         DBG_SECTION_BEGIN(cda, "Building graph (of instructions) for " << F->getName().str());
@@ -31,8 +34,9 @@ class CDGraphBuilder {
             BBlock& block = it.first->second;
             block.nodes.reserve(BB.size());
             for (auto& I : BB) {
-                (void)I;
                 auto& nd = graph.createNode();
+                _rev_mapping[&nd] = &I;
+                _nodes[&I] = &nd;
                 block.nodes.push_back(&nd);
             }
         }
@@ -77,11 +81,15 @@ class CDGraphBuilder {
 
         std::unordered_map<const llvm::BasicBlock *, CDNode *> _mapping;
         _mapping.reserve(F->size());
+        _nodes.reserve(F->size() + _nodes.size());
+        _rev_mapping.reserve(F->size() + _rev_mapping.size());
 
         // create nodes for blocks
         for (auto& BB : *F) {
             auto& nd = graph.createNode();
             _mapping[&BB] = &nd;
+            _nodes[&BB] = &nd;
+            _rev_mapping[&nd] = &BB;
         }
 
         // add successor edges
@@ -112,6 +120,22 @@ public:
 
         return buildBlocks(F);
     }
+
+    CDNode *getNode(const llvm::Value *v) {
+        auto it = _nodes.find(v);
+        return it == _nodes.end() ? nullptr : it->second;
+    }
+
+    const CDNode *getNode(const llvm::Value *v) const {
+        auto it = _nodes.find(v);
+        return it == _nodes.end() ? nullptr : it->second;
+    }
+
+    const llvm::Value *getValue(const CDNode *n) const {
+        auto it = _rev_mapping.find(n);
+        return it == _rev_mapping.end() ? nullptr : it->second;
+    }
+
 };
 
 } // namespace llvmdg
