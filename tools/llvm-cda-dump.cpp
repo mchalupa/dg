@@ -61,6 +61,7 @@
 #include "dg/util/debug.h"
 
 #include "ControlDependence/CDGraph.h"
+#include "llvm/ControlDependence/NTSCD.h"
 
 using namespace dg;
 
@@ -270,27 +271,29 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                 std::cout << " color=blue";
             }
             std::cout << "]\n";
-            /*
-            const llvm::Instruction *last = nullptr;
-            // give the block top-down structure
-            for (auto& I : b) {
-                if (last) {
-                    std::cout << " instr" << last << " -> " << "instr" << &I;
-                    if (show_cfg) {
-                        std::cout << " [style=dotted]\n";
-                    } else {
-                        std::cout << " [style=invis]\n";
-                    }
-               }
-               last = &I;
-            }
-            */
         }
 
         // dump edges
         for (const auto *nd : *graph) {
             for (const auto *succ : nd->successors()) {
                 std::cout << " ND" << nd->getID() << " -> ND" << succ->getID() << "\n";
+            }
+        }
+
+        if (cda.getOptions().ntscdCD()) {
+            auto *ntscd = static_cast<dg::llvmdg::NTSCD*>(impl);
+            const auto *info = ntscd->_getFunInfo(&f);
+            if (info) {
+                for (auto *nd : *graph) {
+                    auto it = info->controlDependence.find(nd);
+                    if (it == info->controlDependence.end())
+                        continue;
+
+                    for (const auto *dep : it->second) {
+                        std::cout << " ND" << dep->getID() << " -> ND" << nd->getID()
+                                  << " [ color=red ]\n";
+                    }
+                }
             }
         }
         std::cout << "}\n";

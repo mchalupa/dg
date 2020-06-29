@@ -6,6 +6,8 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "GraphBuilder.h"
 
+#include "ControlDependence/NTSCD.h"
+
 #include <set>
 #include <map>
 #include <unordered_map>
@@ -20,7 +22,21 @@ namespace llvmdg {
 
 class NTSCD : public LLVMControlDependenceAnalysisImpl {
     CDGraphBuilder graphBuilder{};
-    std::unordered_map<const llvm::Function *, CDGraph> _graphs;
+
+    using CDResultT =  std::map<CDNode *, std::set<CDNode *>>;
+
+    struct Info {
+        CDGraph graph;
+
+        // forward edges (from branchings to dependent blocks)
+        CDResultT controlDependence{};
+        // reverse edges (from dependent blocks to branchings)
+        CDResultT revControlDependence{};
+
+        Info(CDGraph&& graph) : graph(std::move(graph)) {}
+    };
+
+    std::unordered_map<const llvm::Function *, Info> _graphs;
 
 public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
@@ -32,11 +48,50 @@ public:
     }
 
     /// Getters of dependencies for a value
-    ValVec getDependencies(const llvm::Instruction *) override { return {}; }
+    ValVec getDependencies(const llvm::Instruction *I) override {
+        if (!getOptions().nodePerInstruction()) {
+            return {};
+        }
+
+        // XXX: this could be computed on-demand per one node (block)
+        // (in contrary to getDependent())
+        auto *f = I->getParent()->getParent();
+        if (_getGraph(f) == nullptr) {
+            /// FIXME: get rid of the const cast
+            computeOnDemand(const_cast<llvm::Function*>(f));
+        }
+
+        assert(_getGraph(f) != nullptr);
+
+        auto *node = graphBuilder.getNode(I);
+        if (!node) {
+            return {};
+        }
+        auto *info = _getFunInfo(f);
+        assert(info && "Did not compute CD");
+
+        auto dit = info->controlDependence.find(node);
+        if (dit == info->controlDependence.end())
+            return {};
+
+        std::set<llvm::Value *> ret;
+        for (auto *dep : dit->second) {
+            auto *val = graphBuilder.getValue(dep);
+            assert(val && "Invalid value");
+            ret.insert(const_cast<llvm::Value*>(val));
+        }
+
+        return ValVec{ret.begin(), ret.end()};
+    }
+
     ValVec getDependent(const llvm::Instruction *) override { return {}; }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
+        if (getOptions().nodePerInstruction()) {
+            return {};
+        }
+
         // XXX: this could be computed on-demand per one node (block)
         // (in contrary to getDependent())
         if (_computed.insert(b->getParent()).second) {
@@ -44,22 +99,25 @@ public:
             computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
         }
 
-        //auto *block = graphBuilder.mapBlock(b);
-        //if (!block) {
-        //    return {};
-        //}
-        //auto it = revControlDependency.find(block->front());
-        //if (it == revControlDependency.end())
-        //    return {};
+        auto *block = graphBuilder.getNode(b);
+        if (!block) {
+            return {};
+        }
+        auto *info = _getFunInfo(b->getParent());
+        assert(info && "Did not compute CD");
 
-        //std::set<llvm::Value *> ret;
-        //for (auto *dep : it->second) {
-        //    assert(dep->llvmBlock() && "Do not have LLVM block");
-        //    ret.insert(const_cast<llvm::BasicBlock*>(dep->llvmBlock()));
-        //}
+        auto dit = info->controlDependence.find(block);
+        if (dit == info->controlDependence.end())
+            return {};
 
-        //return ValVec{ret.begin(), ret.end()};
-        return {};
+        std::set<llvm::Value *> ret;
+        for (auto *dep : dit->second) {
+            auto *val = graphBuilder.getValue(dep);
+            assert(val && "Invalid value");
+            ret.insert(const_cast<llvm::Value*>(val));
+        }
+
+        return ValVec{ret.begin(), ret.end()};
     }
 
     ValVec getDependent(const llvm::BasicBlock *) override {
@@ -74,21 +132,30 @@ public:
     CDGraph *getGraph(const llvm::Function *f) override { return _getGraph(f); }
     const CDGraph *getGraph(const llvm::Function *f) const override { return _getGraph(f); }
 
+    // make this one public so that we can dump it in llvm-cda-dump
+    // (keep the _ prefix so that we can see that it should not be normally used...)
+    const Info *_getFunInfo(const llvm::Function *f) const {
+        auto it = _graphs.find(f);
+        return it == _graphs.end() ? nullptr : &it->second;
+    }
+
+    Info *_getFunInfo(const llvm::Function *f) {
+        auto it = _graphs.find(f);
+        return it == _graphs.end() ? nullptr : &it->second;
+    }
+
 private:
     const CDGraph *_getGraph(const llvm::Function *f) const {
         auto it = _graphs.find(f);
-        return it == _graphs.end() ? nullptr : &it->second;
+        return it == _graphs.end() ? nullptr : &it->second.graph;
     }
 
     CDGraph *_getGraph(const llvm::Function *f) {
         auto it = _graphs.find(f);
-        return it == _graphs.end() ? nullptr : &it->second;
+        return it == _graphs.end() ? nullptr : &it->second.graph;
     }
 
-   // forward edges (from branchings to dependent blocks)
-   //std::map<CDNode *, std::set<CDNode *>> controlDependence;
-   // reverse edges (from dependent blocks to branchings)
-   //std::map<CDNode *, std::set<CDNode *>> revControlDependence;
+    // FIXME: get rid of this, use _getGraph()
    std::set<const llvm::Function *> _computed; // for on-demand
 
    void computeOnDemand(llvm::Function *F) {
@@ -96,8 +163,17 @@ private:
        assert(_getGraph(F) == nullptr
               && "Already have the graph");
 
-       auto graph = graphBuilder.build(F, getOptions().nodePerInstruction());
-       _graphs.emplace(F, std::move(graph));
+       auto tmpgraph = graphBuilder.build(F, getOptions().nodePerInstruction());
+       // FIXME: we can actually just forget the graph if we do not want to dump
+       // it to the user
+       auto it = _graphs.emplace(F, std::move(tmpgraph));
+
+       auto& info = it.first->second;
+
+       dg::NTSCD ntscd;
+       auto result = ntscd.compute(info.graph);
+       info.controlDependence = std::move(result.first);
+       info.revControlDependence = std::move(result.second);
    }
 };
 

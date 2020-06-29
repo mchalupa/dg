@@ -115,6 +115,8 @@ public:
     node_iterator end() { return node_iterator(_nodes.end()); }
     nodes_range nodes() { return nodes_range(_nodes); }
 
+    size_t size() const { return _nodes.size(); }
+
     /*
     predicate_iterator predicates_begin() { return predicate_iterator(_nodes, _predicates.begin()); }
     predicate_iterator predicates_end() { return predicate_iterator(_nodes, _predicates.end()); }
