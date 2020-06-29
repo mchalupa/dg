@@ -51,7 +51,7 @@ class CDGraphBuilder {
             // successors inside the block
             for (auto* nd : bblock.nodes) {
                 if (last)
-                    last->addSuccessor(nd);
+                    graph.addNodeSuccessor(*last, *nd);
                 last = nd;
             }
             assert(last || BB.size() == 0);
@@ -67,7 +67,7 @@ class CDGraphBuilder {
                     continue;
                 }
 
-                last->addSuccessor(succblk.nodes.front());
+                graph.addNodeSuccessor(*last, *succblk.nodes.front());
             }
         }
 
@@ -103,7 +103,7 @@ class CDGraphBuilder {
             for (auto *bbsucc : successors(&BB)) {
                 auto *succ = _mapping[bbsucc];
                 assert(succ && "BUG: do not have a bblock created");
-                nd->addSuccessor(succ);
+                graph.addNodeSuccessor(*nd, *succ);
             }
         }
 

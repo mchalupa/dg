@@ -262,9 +262,14 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
             continue;
         std::cout << "subgraph cluster_f_" << f.getName().str() << " {\n";
         std::cout << "label=\"" << f.getName().str() << "\"\n";
+
         // dump nodes
         for (const auto *nd : *graph) {
-            std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"]\n";
+            std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"";
+            if (graph->isPredicate(*nd)) {
+                std::cout << " color=blue";
+            }
+            std::cout << "]\n";
             /*
             const llvm::Instruction *last = nullptr;
             // give the block top-down structure
