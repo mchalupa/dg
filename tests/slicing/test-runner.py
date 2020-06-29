@@ -6,14 +6,15 @@ from os.path import join, dirname, abspath, basename
 from os import chdir, getcwd, unlink
 from shutil import rmtree
 
-debug=False
+debug = False
 have_svf = False
 
 # going to be (possibly) re-set in set_environment()
-TOOLSDIR="../../tools/"
-SOURCESDIR="../sources/"
+TOOLSDIR = "../../tools/"
+SOURCESDIR = "../sources/"
 
-#RUNDIR=getcwd()
+# RUNDIR=getcwd()
+
 
 def parse_cmake_cache(cmakecache):
     with open(cmakecache, 'r') as f:
@@ -23,43 +24,48 @@ def parse_cmake_cache(cmakecache):
             elif line.startswith('dg_SOURCE_DIR'):
                 parts = line.split('=')
                 global SOURCESDIR
-                SOURCESDIR=abspath(join(parts[1].strip(), 'tests/slicing/sources/'))
+                SOURCESDIR = abspath(join(parts[1].strip(), 'tests/slicing/sources/'))
             elif line.startswith('dg_BINARY_DIR'):
                 parts = line.split('=')
                 global TOOLSDIR
-                TOOLSDIR=abspath(join(parts[1].strip(), 'tools/'))
+                TOOLSDIR = abspath(join(parts[1].strip(), 'tools/'))
+
 
 configs = {
-#    '-dda': ['rd', 'ssa'],
+#   '-dda': ['rd', 'ssa'],
     '-pta': ['fi', 'fs', 'inv'],
     '-cd-alg': ['ntscd', 'classic'],
 }
 
+
 def command(cmd):
     if debug:
-        print("> "+"  ".join(cmd))
-    if debug:
+        print("> " + "  ".join(cmd))
         p = Popen(cmd)
     else:
         p = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
     return p.wait()
 
+
 def command_output(cmd):
     if debug:
-        print("> "+"  ".join(cmd))
+        print("> " + "  ".join(cmd))
     p = Popen(cmd, stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
     return out, err, p.poll()
+
 
 def cleanup():
     oldpath = getcwd()
     chdir('..')
     rmtree(oldpath)
 
+
 def error(msg):
     from sys import stderr, exit
-    stderr.write("{0}\n".format(msg))
+    print(msg, file=stderr)
     exit(1)
+
 
 def set_environment():
     try:
@@ -70,16 +76,17 @@ def set_environment():
         chdir(dirname(argv[0]))
 
     from os import environ
-    environ['PATH'] += ":"+abspath(TOOLSDIR)
+    environ['PATH'] += ":" + abspath(TOOLSDIR)
 
 
 def _getbcname(name):
     if name[-2:] != '.c':
         error('Input is not a .c source code')
 
-    return '{0}.bc'.format(basename(name[:-2]))
+    return basename(name[:-2]) + '.bc'
 
-def compile(source, output = None, params=[]):
+
+def compile(source, output=None, params=[]):
     if output is None:
         output = _getbcname(source)
 
@@ -90,8 +97,9 @@ def compile(source, output = None, params=[]):
 
     return output
 
+
 def slice(bccode, args):
-    output = "{0}.sliced".format(bccode)
+    output = bccode + ".sliced"
     cmd = ["llvm-slicer", "-c", "test_assert"] + args
     cmd.append(bccode)
     cmd += ["-o", output]
@@ -101,7 +109,8 @@ def slice(bccode, args):
 
     return output
 
-def link(bccode, codes, output = None):
+
+def link(bccode, codes, output=None):
     if output is None:
         output = bccode + ".linked"
     cmd = ["llvm-link", bccode, "-o", output] + codes
@@ -111,7 +120,8 @@ def link(bccode, codes, output = None):
 
     return output
 
-def opt(bccode, passes, output = None):
+
+def opt(bccode, passes, output=None):
     if output is None:
         output = bccode + ".opt"
     cmd = ["opt", bccode, "-o", output] + passes
@@ -121,10 +131,11 @@ def opt(bccode, passes, output = None):
 
     return output
 
+
 def check_output(out, expout):
     lines = [line for line in out.decode().split('\n') if line]
     if expout:
-        with open(join(SOURCESDIR,expout), 'r') as f:
+        with open(join(SOURCESDIR, expout), 'r') as f:
             expected = [line for line
                         in map(lambda s: s.strip(), f.readlines()) if line]
             if expected != lines:
@@ -152,7 +163,8 @@ def check_output(out, expout):
     if not passed or failed:
         error('Assertion failed!')
 
-def execute(bccode, expout = None):
+
+def execute(bccode, expout=None):
     out, err, exitcode = command_output(["lli", bccode])
     if debug:
         print("--- stdout ---")
@@ -164,6 +176,7 @@ def execute(bccode, expout = None):
         error("Executing the bitcode failed!")
 
     check_output(out, expout)
+
 
 def get_variations(rem=list(configs), result=[]):
     """ Get all possible variations of the parameters """
@@ -180,12 +193,14 @@ def get_variations(rem=list(configs), result=[]):
 
     return get_variations(rem[1:], result)
 
+
 def _test_enabled(test, setup):
     for p in test.requiredparams:
-        if not p in setup:
+        if p not in setup:
             return False
 
     return True
+
 
 def run_test(test, bccode, optafter, linkafter, args):
     toremove = []
@@ -207,6 +222,7 @@ def run_test(test, bccode, optafter, linkafter, args):
     for f in toremove:
         unlink(f)
 
+
 if __name__ == "__main__":
     from tests import tests
 
@@ -222,7 +238,7 @@ if __name__ == "__main__":
         error("Unknown test name: '{0}'".format(argv[1]))
 
     if 'debug' in argv[0]:
-        debug=True
+        debug = True
 
     set_environment()
 
@@ -236,19 +252,17 @@ if __name__ == "__main__":
     bccode = compile(join(SOURCESDIR, t.source),
                      params=t.compilerparams)
 
-    optbefore=[]
-    linkbefore=[]
-    optafter=[]
-    linkafter=[]
+    optbefore, linkbefore, optafter, linkafter = [], [], [], []
+
     if t.linkbefore:
         for l in t.linkbefore:
             bctolink = compile(join(SOURCESDIR, l),
-                               params = t.compilerparams)
+                               params=t.compilerparams)
             linkbefore.append(bctolink)
     if t.linkafter:
         for l in t.linkafter:
             bctolink = compile(join(SOURCESDIR, l),
-                               params = t.compilerparams)
+                               params=t.compilerparams)
             linkafter.append(bctolink)
 
     if t.optbefore:
