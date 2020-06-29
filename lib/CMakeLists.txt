@@ -48,6 +48,13 @@ add_library(dgdda SHARED
 )
 target_link_libraries(dgdda PUBLIC dganalysis)
 
+add_library(dgcda SHARED
+	${CMAKE_SOURCE_DIR}/include/dg/ControlDependence/ControlDependence.h
+	${CMAKE_SOURCE_DIR}/include/dg/ControlDependence/ControlDependenceAnalysisOptions.h
+        ControlDependence/CDGraph.h
+        ControlDependence/NTSCD.h
+        ControlDependence/NTSCD.cpp
+)
 
 if (LLVM_DG)
 
@@ -114,13 +121,13 @@ add_library(dgllvmcda SHARED
             llvm/ControlDependence/SCD.cpp
             llvm/ControlDependence/SCD.h
             llvm/ControlDependence/NTSCD.h
-            llvm/ControlDependence/CDGraph.h
             llvm/ControlDependence/GraphBuilder.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h
             )
 target_link_libraries(dgllvmcda INTERFACE dgllvmpta
 				INTERFACE ${llvm_analysis}
+                                PUBLIC dgcda
                                 PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED

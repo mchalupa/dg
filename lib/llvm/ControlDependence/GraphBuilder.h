@@ -5,13 +5,16 @@
 
 #include "llvm/IR/CFG.h"
 
-#include "CDGraph.h"
+#include "ControlDependence/CDGraph.h"
 #include "dg/util/debug.h"
 
 namespace dg {
 namespace llvmdg {
 
 class CDGraphBuilder {
+    using CDGraph = dg::CDGraph;
+
+    // FIXME: store this per function (i.e., Function -> (Value -> CDNode))
     std::unordered_map<const llvm::Value *, CDNode *> _nodes;
     std::unordered_map<const CDNode *, const llvm::Value *> _rev_mapping;
 

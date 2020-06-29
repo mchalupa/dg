@@ -60,7 +60,7 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"
 
-#include "llvm/ControlDependence/GraphBuilder.h"
+#include "ControlDependence/CDGraph.h"
 
 using namespace dg;
 

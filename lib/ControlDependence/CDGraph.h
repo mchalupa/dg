@@ -4,7 +4,6 @@
 #include "dg/BBlockBase.h"
 
 namespace dg {
-namespace llvmdg {
 
 //////////////////////////////////////////////////////////////////
 /// Basic graph elements from which all other elements inherit.
@@ -54,18 +53,16 @@ class CDGraph {
         node_iterator end() { return node_iterator(nodes.end()); }
     };
 
-    friend class CDGraphBuilder;
+public:
+    CDGraph(const std::string& name = "") : _name(name) {}
+    CDGraph(const CDGraph& rhs) = delete;
+    CDGraph(CDGraph&& rhs) = default;
 
     CDNode& createNode() {
         auto *nd = new CDNode();
         _nodes.emplace_back(nd);
         return *nd;
     }
-
-public:
-    CDGraph(const std::string& name = "") : _name(name) {}
-    CDGraph(const CDGraph& rhs) = delete;
-    CDGraph(CDGraph&& rhs) = default;
 
     node_iterator begin() { return node_iterator(_nodes.begin()); }
     node_iterator end() { return node_iterator(_nodes.end()); }
@@ -74,8 +71,6 @@ public:
     const std::string& getName() const { return _name; }
 };
 
-
-} // namespace llvmdg
 } // namespace dg
 
 #endif

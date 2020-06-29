@@ -37,26 +37,28 @@ public:
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
-       if (_computed.insert(b->getParent()).second) {
-           /// FIXME: get rid of the const cast
-           computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
-       }
+        // XXX: this could be computed on-demand per one node (block)
+        // (in contrary to getDependent())
+        if (_computed.insert(b->getParent()).second) {
+            /// FIXME: get rid of the const cast
+            computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
+        }
 
-       //auto *block = graphBuilder.mapBlock(b);
-       //if (!block) {
-       //    return {};
-       //}
-       //auto it = revControlDependency.find(block->front());
-       //if (it == revControlDependency.end())
-       //    return {};
+        //auto *block = graphBuilder.mapBlock(b);
+        //if (!block) {
+        //    return {};
+        //}
+        //auto it = revControlDependency.find(block->front());
+        //if (it == revControlDependency.end())
+        //    return {};
 
-       //std::set<llvm::Value *> ret;
-       //for (auto *dep : it->second) {
-       //    assert(dep->llvmBlock() && "Do not have LLVM block");
-       //    ret.insert(const_cast<llvm::BasicBlock*>(dep->llvmBlock()));
-       //}
+        //std::set<llvm::Value *> ret;
+        //for (auto *dep : it->second) {
+        //    assert(dep->llvmBlock() && "Do not have LLVM block");
+        //    ret.insert(const_cast<llvm::BasicBlock*>(dep->llvmBlock()));
+        //}
 
-       //return ValVec{ret.begin(), ret.end()};
+        //return ValVec{ret.begin(), ret.end()};
         return {};
     }
 
@@ -87,10 +89,8 @@ private:
    //std::map<CDNode *, std::set<CDNode *>> controlDependence;
    // reverse edges (from dependent blocks to branchings)
    //std::map<CDNode *, std::set<CDNode *>> revControlDependence;
-   //std::unordered_map<CDNode *, NodeInfo> nodeInfo;
    std::set<const llvm::Function *> _computed; // for on-demand
 
-   //void computeDependencies(Function *);
    void computeOnDemand(llvm::Function *F) {
        DBG(cda, "Triggering on-demand computation for " << F->getName().str());
        assert(_getGraph(F) == nullptr
@@ -99,9 +99,6 @@ private:
        auto graph = graphBuilder.build(F, getOptions().nodePerInstruction());
        _graphs.emplace(F, std::move(graph));
    }
-
-    // a is CD on b
-    void addControlDependence(CDNode *a, CDNode *b);
 };
 
 } // namespace llvmdg
