@@ -127,6 +127,8 @@ public:
             computePostDominators(true);
         } else if (opts.legacyNtscdCD()) {
             computeNonTerminationControlDependencies();
+        } else if (opts.ntscdCD()) {
+            computeNTSCD();
         } else
             abort();
 
@@ -162,6 +164,7 @@ public:
 private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeNonTerminationControlDependencies();
+    void computeNTSCD();
 
     void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
                                            const std::set<const llvm::Instruction *> &stores);

@@ -97,8 +97,10 @@ public:
     CDNode& createNode() {
         auto *nd = new CDNode();
         _nodes.emplace_back(nd);
-        assert(_nodes.back()->getID() == _nodes.size()
-               && "BUG: we rely on the ordering by ids");
+        // NOTE for future: this does not holds, the counter is shared
+        // by all ElemId classes
+        //assert(_nodes.back()->getID() == _nodes.size()
+        //       && "BUG: we rely on the ordering by ids");
         return *nd;
     }
 
