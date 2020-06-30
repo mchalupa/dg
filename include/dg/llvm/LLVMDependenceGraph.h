@@ -125,7 +125,7 @@ public:
     void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts) {
         if (opts.standardCD()) {
             computePostDominators(true);
-        } else if (opts.legacyNtscdCD()) {
+        } else if (opts.ntscdLegacyCD()) {
             computeNonTerminationControlDependencies();
         } else if (opts.ntscdCD() || opts.ntscd2CD()) {
             computeNTSCD(opts);

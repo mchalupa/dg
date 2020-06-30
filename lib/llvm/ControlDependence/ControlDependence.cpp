@@ -11,7 +11,7 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
         _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD() || getOptions().ntscd2CD()) {
         _impl.reset(new llvmdg::NTSCD(_module, _options));
-    } else if (getOptions().legacyNtscdCD()) {
+    } else if (getOptions().ntscdLegacyCD()) {
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
     } else {
         assert(false && "Unhandled analysis type");

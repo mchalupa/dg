@@ -41,7 +41,6 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
-    // ntscd2 -- use the other implementation of NTSCD
     NTSCD(const llvm::Module *module,
           const LLVMControlDependenceAnalysisOptions& opts = {})
         : LLVMControlDependenceAnalysisImpl(module, opts) {
