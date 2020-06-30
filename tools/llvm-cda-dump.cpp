@@ -280,7 +280,8 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
             }
         }
 
-        if (cda.getOptions().ntscdCD() || cda.getOptions().ntscd2CD()) {
+        if (cda.getOptions().ntscdCD() || cda.getOptions().ntscd2CD() ||
+            cda.getOptions().ntscdRanganathCD()) {
             auto *ntscd = static_cast<dg::llvmdg::NTSCD*>(impl);
             const auto *info = ntscd->_getFunInfo(&f);
             if (info) {

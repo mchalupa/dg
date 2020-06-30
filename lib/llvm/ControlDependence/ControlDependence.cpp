@@ -9,7 +9,8 @@ namespace dg {
 void LLVMControlDependenceAnalysis::initializeImpl() {
     if (getOptions().standardCD()) {
         _impl.reset(new llvmdg::SCD(_module, _options));
-    } else if (getOptions().ntscdCD() || getOptions().ntscd2CD()) {
+    } else if (getOptions().ntscdCD() || getOptions().ntscd2CD() ||
+               getOptions().ntscdRanganathCD()) {
         _impl.reset(new llvmdg::NTSCD(_module, _options));
     } else if (getOptions().ntscdLegacyCD()) {
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));

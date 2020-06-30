@@ -172,6 +172,106 @@ public:
     }
 };
 
+/// Implementation of the original algorithm for the computation of NTSCD
+/// that is due to Ranganath et al. This algorithm is imprecise and
+/// can compute over-approximation of NTSCD (it behaves differently when
+/// LIFO or FIFO or some other type of queue is used).
+/// However, the algorithm should be correct AFAIK.
+class NTSCDRanganath {
+    using ResultT = std::map<CDNode *, std::set<CDNode *>>;
+
+    // symbol t_{mn}
+    struct Symbol : public std::pair<CDNode *, CDNode *> {
+        Symbol(CDNode *a, CDNode *b) : std::pair<CDNode*, CDNode*>(a, b) {}
+    };
+
+public:
+
+    // returns control dependencies and reverse control dependencies
+    std::pair<ResultT, ResultT> compute(CDGraph& graph) {
+        ResultT CD;
+        ResultT revCD;
+
+        std::unordered_map<CDNode *,
+                           std::unordered_map<CDNode *, std::set<Symbol>>> S;
+        S.reserve(2*graph.predicates().size());
+
+        ADT::QueueFIFO<CDNode *> workbag;
+
+        // (1) initialize
+        for (auto *p : graph.predicates()) {
+            for (auto *n : p->successors()) {
+                S[n][p].insert(Symbol{p, n});
+               //DBG(tmp, "(1) S[" << n->getID() << ", " << p->getID()
+               //                  << "] <- t(" << p->getID() << ", " << n->getID() << ")");
+               //DBG(tmp, "(1) queuing node: " << n->getID());
+                workbag.push(n);
+            }
+        }
+
+        // (2) calculate all-path reachability
+        while (!workbag.empty()) {
+            auto *n = workbag.pop();
+            //DBG(cda, "Processing node: " << n->getID());
+            auto *s = n->getSingleSuccessor();
+            if (s && s != n) { // (2.1) single successor case
+                for (auto *p : graph.predicates()) {
+                    auto& Ssp = S[s][p];
+                    for (const Symbol& symb : S[n][p]) {
+                        if (Ssp.insert(symb).second) {
+                           //DBG(tmp, "(1) S[" << s->getID() << ", " << p->getID()
+                           //                  << "] <- t(" << symb.first->getID() << ", "
+                           //                  << symb.second->getID() << ")");
+                           //DBG(tmp, "(2.1) queuing node: " << s->getID());
+                            workbag.push(s);
+                        }
+                    }
+                }
+            } else if (n->successors().size() > 1) { // (2.2) multiple successors case
+                for (auto *m : graph) {
+                    auto& Smn = S[m][n];
+                    if (Smn.size() == n->successors().size()) {
+                        for (auto *p : graph.predicates()) {
+                            if (p == n) {
+                                continue;
+                            }
+                            auto& Smp = S[m][p];
+                            for (const Symbol& symb : S[n][p]) {
+                                if (Smp.insert(symb).second) {
+                                    workbag.push(m);
+                                   //DBG(tmp, "(1) S[" << m->getID() << ", " << p->getID()
+                                   //                  << "] <- t(" << symb.first->getID() << ", "
+                                   //                  << symb.second->getID() << ")");
+                                   //DBG(tmp, "(2.2) queuing node: " << m->getID());
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // (3) compute NTSCD
+        for (auto *n : graph) {
+            for (auto *p : graph.predicates()) {
+                auto& Snp = S[n][p];
+
+                //DBG(tmp, "(1) S[" << n->getID() << ", " << p->getID() << "] =");
+                //for (auto & symb : Snp) {
+                //    DBG(tmp, "  t(" << symb.first->getID() << ", " << symb.second->getID() << ")");
+                //}
+                if (Snp.size() > 0 && Snp.size() < p->successors().size()) {
+                    CD[n].insert(p);
+                    revCD[p].insert(n);
+                }
+            }
+        }
+
+        return {CD, revCD};
+    }
+};
+
+
 
 } // namespace dg
 

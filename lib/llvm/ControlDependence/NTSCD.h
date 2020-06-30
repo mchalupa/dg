@@ -176,6 +176,12 @@ private:
             auto result = ntscd.compute(info.graph);
             info.controlDependence = std::move(result.first);
             info.revControlDependence = std::move(result.second);
+        } else if (getOptions().ntscdRanganathCD()) {
+            DBG(cda, "Using the NTSCD Ranganath algorithm");
+            dg::NTSCDRanganath ntscd;
+            auto result = ntscd.compute(info.graph);
+            info.controlDependence = std::move(result.first);
+            info.revControlDependence = std::move(result.second);
         } else {
             assert(getOptions().ntscdCD() && "Wrong analysis type");
             dg::NTSCD ntscd;

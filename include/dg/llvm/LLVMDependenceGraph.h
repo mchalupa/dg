@@ -127,7 +127,7 @@ public:
             computePostDominators(true);
         } else if (opts.ntscdLegacyCD()) {
             computeNonTerminationControlDependencies();
-        } else if (opts.ntscdCD() || opts.ntscd2CD()) {
+        } else if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdRanganathCD()) {
             computeNTSCD(opts);
         } else
             abort();
