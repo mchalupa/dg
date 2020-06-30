@@ -10,6 +10,7 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
     enum class CDAlgorithm {
         STANDARD,
         LEGACY_NTSCD,
+        NTSCD2,
         NTSCD
     } algorithm;
 
@@ -19,6 +20,7 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
 
     bool standardCD() const { return algorithm == CDAlgorithm::STANDARD; }
     bool ntscdCD() const { return algorithm == CDAlgorithm::NTSCD; }
+    bool ntscd2CD() const { return algorithm == CDAlgorithm::NTSCD2; }
     bool legacyNtscdCD() const { return algorithm == CDAlgorithm::LEGACY_NTSCD; }
     bool interproceduralCD() const { return interprocedural; }
 };

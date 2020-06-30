@@ -41,6 +41,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
+    // ntscd2 -- use the other implementation of NTSCD
     NTSCD(const llvm::Module *module,
           const LLVMControlDependenceAnalysisOptions& opts = {})
         : LLVMControlDependenceAnalysisImpl(module, opts) {
@@ -159,21 +160,30 @@ private:
    std::set<const llvm::Function *> _computed; // for on-demand
 
    void computeOnDemand(llvm::Function *F) {
-       DBG(cda, "Triggering on-demand computation for " << F->getName().str());
-       assert(_getGraph(F) == nullptr
-              && "Already have the graph");
+        DBG(cda, "Triggering on-demand computation for " << F->getName().str());
+        assert(_getGraph(F) == nullptr
+               && "Already have the graph");
 
-       auto tmpgraph = graphBuilder.build(F, getOptions().nodePerInstruction());
-       // FIXME: we can actually just forget the graph if we do not want to dump
-       // it to the user
-       auto it = _graphs.emplace(F, std::move(tmpgraph));
+        auto tmpgraph = graphBuilder.build(F, getOptions().nodePerInstruction());
+        // FIXME: we can actually just forget the graph if we do not want to dump
+        // it to the user
+        auto it = _graphs.emplace(F, std::move(tmpgraph));
 
-       auto& info = it.first->second;
+        auto& info = it.first->second;
 
-       dg::NTSCD ntscd;
-       auto result = ntscd.compute(info.graph);
-       info.controlDependence = std::move(result.first);
-       info.revControlDependence = std::move(result.second);
+        if (getOptions().ntscd2CD()) {
+            DBG(cda, "Using the NTSCD 2 algorithm");
+            dg::NTSCD2 ntscd;
+            auto result = ntscd.compute(info.graph);
+            info.controlDependence = std::move(result.first);
+            info.revControlDependence = std::move(result.second);
+        } else {
+            assert(getOptions().ntscdCD() && "Wrong analysis type");
+            dg::NTSCD ntscd;
+            auto result = ntscd.compute(info.graph);
+            info.controlDependence = std::move(result.first);
+            info.revControlDependence = std::move(result.second);
+        }
    }
 };
 

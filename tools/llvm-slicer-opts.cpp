@@ -208,6 +208,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
                        "classic", "Alias to \"standard\""),
             clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD,
                        "ntscd", "Non-termination sensitive control dependencies algorithm"),
+            clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD2,
+                       "ntscd2", "Non-termination sensitive control dependencies algorithm (a different implementation)"),
             clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::LEGACY_NTSCD,
                        "legacy-ntscd", "Non-termination sensitive control dependencies algorithm (legacy implementation)")
     #if LLVM_VERSION_MAJOR < 4
