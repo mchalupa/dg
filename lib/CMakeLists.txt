@@ -53,6 +53,7 @@ add_library(dgcda SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/ControlDependence/ControlDependenceAnalysisOptions.h
         ControlDependence/CDGraph.h
         ControlDependence/NTSCD.h
+        ControlDependence/ControlClosure.h
         ControlDependence/NTSCD.cpp
 )
 
@@ -121,6 +122,7 @@ add_library(dgllvmcda SHARED
             llvm/ControlDependence/SCD.cpp
             llvm/ControlDependence/SCD.h
             llvm/ControlDependence/NTSCD.h
+            llvm/ControlDependence/ControlClosure.h
             llvm/ControlDependence/GraphBuilder.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h
