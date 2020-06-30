@@ -37,7 +37,13 @@ public:
     virtual CDGraph *getGraph(const llvm::Function *) { return nullptr; }
     virtual const CDGraph *getGraph(const llvm::Function *) const { return nullptr; }
 
-    virtual void run() = 0;
+    // Compute control dependencies for all functions.
+    // If the analysis works on demand, calling this method
+    // will trigger the computation for the given function
+    // or the whole module if the function is nullptr.
+    // (so you don't want to call that if you want
+    //  on demand)
+    virtual void compute(const llvm::Function *F = nullptr) = 0;
 
     /// Getters of dependencies for a value
     virtual ValVec getDependencies(const llvm::Instruction *) = 0;

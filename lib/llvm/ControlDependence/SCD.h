@@ -1,7 +1,10 @@
 #ifndef DG_LLVM_SCD_H_
 #define DG_LLVM_SCD_H_
 
+#include <llvm/IR/Module.h>
+
 #include "dg/llvm/ControlDependence/ControlDependence.h"
+#include "dg/util/debug.h"
 
 #include <set>
 #include <map>
@@ -30,6 +33,12 @@ class SCD : public LLVMControlDependenceAnalysisImpl {
     std::unordered_map<const llvm::BasicBlock *, std::set<llvm::BasicBlock *>> dependencies;
     std::set<const llvm::Function *> _computed;
 
+    void computeOnDemand(const llvm::Function *F) {
+        if (_computed.insert(F).second) {
+            computePostDominators(*const_cast<llvm::Function*>(F));
+        }
+    }
+
 public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
@@ -43,24 +52,32 @@ public:
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
-        if (_computed.insert(b->getParent()).second) {
-            /// FIXME: get rid of the const cast
-            computePostDominators(*const_cast<llvm::Function*>(b->getParent()));
-        }
+        computeOnDemand(b->getParent());
 
         auto &S = dependencies[b];
         return ValVec{S.begin(), S.end()};
     }
 
     ValVec getDependent(const llvm::BasicBlock *b) override {
-        if (_computed.insert(b->getParent()).second) {
-            computePostDominators(*const_cast<llvm::Function*>(b->getParent()));
-        }
+        computeOnDemand(b->getParent());
+
         auto &S = dependentBlocks[b];
         return ValVec{S.begin(), S.end()};
     }
 
-    void run() override { /* we work on-demand */ }
+    void compute(const llvm::Function *F = nullptr) override {
+        DBG(cda, "Triggering computation of all dependencies");
+        if (F && !F->isDeclaration()) {
+            computeOnDemand(F);
+        } else {
+            for (auto& f : *getModule()) {
+                if (f.isDeclaration()) {
+                    continue;
+                }
+                computeOnDemand(&f);
+            }
+        }
+    }
 };
 
 } // namespace llvmdg

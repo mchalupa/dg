@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
     LLVMDataDependenceAnalysis DDA(M.get(), &PTA, options.dgOptions.DDAOptions);
     DDA.run();
     LLVMControlDependenceAnalysis CDA(M.get(), options.dgOptions.CDAOptions);
-    CDA.run();
+    // CDA runs on-demand
 
     llvmdg::SystemDependenceGraph sdg(M.get(), &PTA, &DDA, &CDA);
 

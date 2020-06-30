@@ -89,7 +89,7 @@ public:
     }
 
     // We run on demand
-    void run() override { /* we run on demand */ }
+    void compute(const llvm::Function *) override { /* we run on demand */ }
 
     CDGraph *getGraph(const llvm::Function *f) override { return _getGraph(f); }
     const CDGraph *getGraph(const llvm::Function *f) const override { return _getGraph(f); }

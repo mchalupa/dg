@@ -262,6 +262,7 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
 
     // dump nodes
     for (const auto& f : *m) {
+        cda.compute(&f);
         auto *graph = impl->getGraph(&f);
         if (!graph)
             continue;
@@ -308,18 +309,6 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
     std::cout << "}\n";
 }
 
-static void computeAll(llvm::Module *M, LLVMControlDependenceAnalysis& cda) {
-    // the computation is on-demand, so we must trigger the computation
-    for (auto& f : *M) {
-        for (auto& b : f) {
-            cda.getDependencies(&b);
-            for (auto& I : b) {
-            cda.getDependencies(&I);
-            }
-        }
-    }
-}
-
 int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
@@ -345,17 +334,15 @@ int main(int argc, char *argv[])
     }
 
     LLVMControlDependenceAnalysis cda(M.get(), options.dgOptions.CDAOptions);
-    cda.run();
 
     if (quiet) {
-        computeAll(M.get(), cda);
+        cda.compute(); // compute all the information
         if (stats) {
-            // FIXME:
-            //dumpStats();
+            // FIXME
+            //dumpStats(cda);
         }
     } else {
         if (dump_ir) {
-            computeAll(M.get(), cda);
             dumpIr(cda);
         } else {
             dumpCda(cda);

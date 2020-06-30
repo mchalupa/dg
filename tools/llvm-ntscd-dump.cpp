@@ -78,7 +78,7 @@ int main(int argc, const char *argv[]) {
     }
 
     dg::llvmdg::legacy::NTSCD controlDependencyAnalysis(M.get(), {}, PTA.get());
-    controlDependencyAnalysis.run();
+    controlDependencyAnalysis.compute();
 
     if (graphVizFileName == "") {
         controlDependencyAnalysis.dump(std::cout);

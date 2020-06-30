@@ -1,6 +1,8 @@
 #ifndef DG_LLVM_INTERPROC_CD_H_
 #define DG_LLVM_INTERPROC_CD_H_
 
+#include <llvm/IR/Module.h>
+
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
 
 #include <set>
@@ -109,7 +111,20 @@ public:
     ValVec getDependencies(const llvm::BasicBlock *b) override { return {}; }
     ValVec getDependent(const llvm::BasicBlock *) override { return {}; }
 
-    void run() override { /* we run on demand */ }
+    void compute(const llvm::Function *F = nullptr) override {
+        if (F && !F->isDeclaration()) {
+            if (!hasFuncInfo(F)) {
+                computeFuncInfo(F);
+            }
+        } else {
+            for (auto& f : *getModule()) {
+                if (!f.isDeclaration() && !hasFuncInfo(&f)) {
+                    computeFuncInfo(&f);
+                }
+            }
+        }
+
+    }
 };
 
 } // namespace llvmdg

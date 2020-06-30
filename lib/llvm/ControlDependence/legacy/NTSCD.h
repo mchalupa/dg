@@ -1,14 +1,17 @@
 #ifndef DG_LEGACY_LLVM_NTSCD_H_
 #define DG_LEGACY_LLVM_NTSCD_H_
 
+#include <llvm/IR/Module.h>
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "GraphBuilder.h"
+#include "dg/util/debug.h"
 
 #include <set>
 #include <map>
 #include <unordered_map>
 
 #include "Block.h"
+
 
 namespace llvm {
 class Function;
@@ -74,9 +77,21 @@ public:
         abort();
     }
 
+
     // We run on demand. However, you may use manually computeDependencies()
     // to compute all dependencies in the interprocedural CFG.
-    void run() override { /* we run on demand */ }
+    void compute(const llvm::Function *F = nullptr) override {
+        DBG(cda, "Triggering computation of all dependencies");
+        if (F && !F->isDeclaration() && _computed.insert(F).second) {
+            computeOnDemand(const_cast<llvm::Function*>(F));
+        } else {
+            for (auto& f : *getModule()) {
+                if (!f.isDeclaration() && _computed.insert(&f).second) {
+                    computeOnDemand(const_cast<llvm::Function*>(&f));
+                }
+            }
+        }
+    }
 
     // Compute dependencies for the whole ICFG (used in legacy code)
     void computeDependencies();

@@ -962,9 +962,7 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
 
 void LLVMDependenceGraph::computeNTSCD(const LLVMControlDependenceAnalysisOptions& opts) {
     DBG_SECTION_BEGIN(llvmdg, "Filling in CDA edges (NTSCD)");
-
     dg::llvmdg::NTSCD ntscd(this->module, opts);
-    ntscd.run();
 
     for (auto& it : getConstructedFunctions()) {
         auto& blocks = it.second->getBlocks();

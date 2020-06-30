@@ -125,9 +125,19 @@ public:
         abort();
     }
 
-    // We run on demand. However, you may use manually computeDependencies()
-    // to compute all dependencies in the interprocedural CFG.
-    void run() override { /* we run on demand */ }
+    // We run on demand but this method can trigger the computation
+    void compute(const llvm::Function *F = nullptr) override {
+        DBG(cda, "Triggering computation of all dependencies");
+        if (F && !F->isDeclaration() && (_getGraph(F) == nullptr)) {
+            computeOnDemand(const_cast<llvm::Function*>(F));
+        } else {
+            for (auto& f : *getModule()) {
+                if (!f.isDeclaration() && (_getGraph(&f) == nullptr)) {
+                    computeOnDemand(const_cast<llvm::Function*>(&f));
+                }
+            }
+        }
+    }
 
     CDGraph *getGraph(const llvm::Function *f) override { return _getGraph(f); }
     const CDGraph *getGraph(const llvm::Function *f) const override { return _getGraph(f); }
