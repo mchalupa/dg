@@ -97,6 +97,21 @@ public:
         return {};
     }
 
+    // A getter for results of closure-based algorithms.
+    // The method may abort if used with non-closure-based analysis.
+    ValVec getClosure(const llvm::Function *F, const std::set<llvm::Value *>& vals) {
+        return _impl->getClosure(F, vals);
+    }
+    /// XXX TBD
+   //// A getter for iterative building of results of closure-based algorithms.
+   //void startClosure(const llvm::Function *F, const std::set<llvm::Value *>& startSet) {
+   //    return _impl->startClosure(F, startSet);
+   //}
+   //// A getter for iterative building of results of closure-based algorithms.
+   //void closeSet(const std::set<llvm::Value *>& nodesset) {
+   //    return _impl->closeSet(nodesset);
+   //}
+
     // FIXME: add also API that return just iterators
 };
 

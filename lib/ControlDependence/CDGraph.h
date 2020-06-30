@@ -1,6 +1,8 @@
 #ifndef DG_LLVM_CDGRAPH_H_
 #define DG_LLVM_CDGRAPH_H_
 
+#include <set>
+
 #include "dg/BBlockBase.h"
 
 namespace dg {

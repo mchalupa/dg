@@ -1,6 +1,9 @@
 #ifndef LLVM_DG_CDA_IMPL_H_
 #define LLVM_DG_CDA_IMPL_H_
 
+
+#include <set>
+
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 namespace llvm {
@@ -46,6 +49,10 @@ public:
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
     virtual ValVec getNoReturns(const llvm::Function *) const {
+        assert(false && "Unsupported"); abort();
+    }
+
+    virtual ValVec getClosure(const llvm::Function *F, const std::set<llvm::Value *>& vals) {
         assert(false && "Unsupported"); abort();
     }
 };

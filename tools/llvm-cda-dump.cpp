@@ -79,6 +79,10 @@ llvm::cl::opt<bool> dump_ir("ir",
     llvm::cl::desc("Show internal representation instead of LLVM (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> stats("statistics",
+    llvm::cl::desc("Dump statistics(default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<bool> quiet("q",
     llvm::cl::desc("Do not generate output, just run the analysis "
                    "(e.g., for performance analysis) (default=false)."),
@@ -345,6 +349,10 @@ int main(int argc, char *argv[])
 
     if (quiet) {
         computeAll(M.get(), cda);
+        if (stats) {
+            // FIXME:
+            //dumpStats();
+        }
     } else {
         if (dump_ir) {
             computeAll(M.get(), cda);
