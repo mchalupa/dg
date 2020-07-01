@@ -1,6 +1,7 @@
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "llvm/ControlDependence/ControlClosure.h"
 #include "llvm/ControlDependence/legacy/NTSCD.h"
+#include "llvm/ControlDependence/DOD.h"
 #include "llvm/ControlDependence/NTSCD.h"
 #include "llvm/ControlDependence/SCD.h"
 #include "llvm/ControlDependence/InterproceduralCD.h"
@@ -17,6 +18,9 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
         _impl.reset(new llvmdg::StrongControlClosure(_module, _options));
     } else if (getOptions().ntscdLegacyCD()) {
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
+    } else if (getOptions().dodRanganathCD()) {
+        // DOD on itself makes no sense, but allow it due to debugging
+        _impl.reset(new llvmdg::DODRanganath(_module, _options));
     } else {
         assert(false && "Unhandled analysis type");
         abort();

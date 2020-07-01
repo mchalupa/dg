@@ -62,6 +62,7 @@
 
 #include "ControlDependence/CDGraph.h"
 #include "llvm/ControlDependence/NTSCD.h"
+#include "llvm/ControlDependence/DOD.h"
 
 using namespace dg;
 
@@ -289,6 +290,21 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
             cda.getOptions().ntscdRanganathCD()) {
             auto *ntscd = static_cast<dg::llvmdg::NTSCD*>(impl);
             const auto *info = ntscd->_getFunInfo(&f);
+            if (info) {
+                for (auto *nd : *graph) {
+                    auto it = info->controlDependence.find(nd);
+                    if (it == info->controlDependence.end())
+                        continue;
+
+                    for (const auto *dep : it->second) {
+                        std::cout << " ND" << dep->getID() << " -> ND" << nd->getID()
+                                  << " [ color=red ]\n";
+                    }
+                }
+            }
+        } else if (cda.getOptions().dodRanganathCD()) {
+            auto *dod = static_cast<dg::llvmdg::DODRanganath*>(impl);
+            const auto *info = dod->_getFunInfo(&f);
             if (info) {
                 for (auto *nd : *graph) {
                     auto it = info->controlDependence.find(nd);
