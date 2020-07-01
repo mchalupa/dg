@@ -9,7 +9,7 @@ namespace dg {
 // universal but not very efficient visits tracker
 template <typename Node>
 struct SetVisitTracker {
-    std::set<Node *> _visited;
+    std::set<Node *> _visited{};
 
     void visit(Node *n) { _visited.insert(n); }
     bool visited(Node *n) const { return _visited.count(n); }
