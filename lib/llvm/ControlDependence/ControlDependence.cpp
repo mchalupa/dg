@@ -18,9 +18,9 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
         _impl.reset(new llvmdg::StrongControlClosure(_module, _options));
     } else if (getOptions().ntscdLegacyCD()) {
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
-    } else if (getOptions().dodRanganathCD()) {
+    } else if (getOptions().dodCD() || getOptions().dodRanganathCD()) {
         // DOD on itself makes no sense, but allow it due to debugging
-        _impl.reset(new llvmdg::DODRanganath(_module, _options));
+        _impl.reset(new llvmdg::DOD(_module, _options));
     } else {
         assert(false && "Unhandled analysis type");
         abort();

@@ -14,6 +14,7 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
         NTSCD_RANGANATH,
         NTSCD,
         DOD_RANGANATH,
+        DOD,
         STRONG_CC
     } algorithm;
 
@@ -27,6 +28,7 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
     bool ntscdRanganathCD() const { return algorithm == CDAlgorithm::NTSCD_RANGANATH; }
     bool ntscdLegacyCD() const { return algorithm == CDAlgorithm::NTSCD_LEGACY; }
     bool dodRanganathCD() const { return algorithm == CDAlgorithm::DOD_RANGANATH; }
+    bool dodCD() const { return algorithm == CDAlgorithm::DOD; }
     bool strongCC() const { return algorithm == CDAlgorithm::STRONG_CC; }
     bool interproceduralCD() const { return interprocedural; }
 };

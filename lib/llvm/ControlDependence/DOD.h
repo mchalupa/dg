@@ -20,7 +20,7 @@ class Function;
 namespace dg {
 namespace llvmdg {
 
-class DODRanganath : public LLVMControlDependenceAnalysisImpl {
+class DOD : public LLVMControlDependenceAnalysisImpl {
     CDGraphBuilder graphBuilder{};
 
     // although DOD is a ternary relation, we treat it as binary relation
@@ -46,8 +46,8 @@ class DODRanganath : public LLVMControlDependenceAnalysisImpl {
 public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
-    DODRanganath(const llvm::Module *module,
-                 const LLVMControlDependenceAnalysisOptions& opts = {})
+    DOD(const llvm::Module *module,
+        const LLVMControlDependenceAnalysisOptions& opts = {})
         : LLVMControlDependenceAnalysisImpl(module, opts) {
         _graphs.reserve(module->size());
     }
@@ -183,10 +183,20 @@ private:
 
         auto& info = it.first->second;
 
-        dg::DODRanganath dod;
-        auto result = dod.compute(info.graph);
-        info.controlDependence = std::move(result.first);
-        info.revControlDependence = std::move(result.second);
+        if (getOptions().dodRanganathCD()) {
+            dg::DODRanganath dod;
+            auto result = dod.compute(info.graph);
+            info.controlDependence = std::move(result.first);
+            info.revControlDependence = std::move(result.second);
+        } else if (getOptions().dodCD()) {
+            dg::DOD dod;
+            auto result = dod.compute(info.graph);
+            info.controlDependence = std::move(result.first);
+            info.revControlDependence = std::move(result.second);
+        } else {
+            assert(false && "Wrong analysis type");
+            abort();
+        }
    }
 };
 

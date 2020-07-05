@@ -216,7 +216,9 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
             clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_LEGACY,
                        "ntscd-legacy", "Non-termination sensitive control dependencies algorithm (legacy implementation)"),
             clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD_RANGANATH,
-                       "dod-ranganath", "Decisive order dependencies algorithm (standalone - for debugging)"),
+                       "dod-ranganath", "Decisive order dependencies algorithm by Ranganath (standalone - for debugging)"),
+            clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD,
+                       "dod", "Decisive order dependencies algorithm (standalone - for debugging)"),
             clEnumValN(dg::ControlDependenceAnalysisOptions::CDAlgorithm::STRONG_CC,
                        "scc", "Use strong control closure algorithm")
     #if LLVM_VERSION_MAJOR < 4

@@ -302,8 +302,9 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                     }
                 }
             }
-        } else if (cda.getOptions().dodRanganathCD()) {
-            auto *dod = static_cast<dg::llvmdg::DODRanganath*>(impl);
+        } else if (cda.getOptions().dodCD() ||
+                   cda.getOptions().dodRanganathCD()) {
+            auto *dod = static_cast<dg::llvmdg::DOD*>(impl);
             const auto *info = dod->_getFunInfo(&f);
             if (info) {
                 for (auto *nd : *graph) {

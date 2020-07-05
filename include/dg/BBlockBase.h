@@ -15,7 +15,7 @@ public:
 };
 
 template <typename ElemT>
-class CFGElement : public ElemId {
+class ElemWithEdges {
     using EdgesT = std::vector<ElemT *>;
 
 protected:
@@ -61,6 +61,9 @@ public:
         return _successors.size() == 1 ? _successors.back() : nullptr;
     }
 };
+
+template <typename ElemT>
+class CFGElement : public ElemId, public ElemWithEdges<ElemT> { };
 
 template <typename ElemT, typename NodeT>
 class BBlockBase : public CFGElement<ElemT> {

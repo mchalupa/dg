@@ -1,7 +1,10 @@
 #ifndef DG_LLVM_CDGRAPH_H_
 #define DG_LLVM_CDGRAPH_H_
 
+#include <cassert>
 #include <set>
+#include <memory>
+#include <string>
 
 #include "dg/BBlockBase.h"
 
@@ -16,7 +19,15 @@ namespace dg {
 /// depending on the chosen granularity of CFG.
 /////
 class CDNode;
-class CDNode : public CFGElement<CDNode> {
+class CDGraph;
+class CDNode : public ElemWithEdges<CDNode> {
+    friend class CDGraph;
+
+    unsigned _id;
+    CDNode(unsigned id) : _id(id) {}
+
+public:
+    unsigned getID() const { return _id; }
 };
 
 /////
@@ -97,12 +108,10 @@ public:
     CDGraph(CDGraph&& rhs) = default;
 
     CDNode& createNode() {
-        auto *nd = new CDNode();
+        auto *nd = new CDNode(_nodes.size() + 1);
         _nodes.emplace_back(nd);
-        // NOTE for future: this does not holds, the counter is shared
-        // by all ElemId classes
-        //assert(_nodes.back()->getID() == _nodes.size()
-        //       && "BUG: we rely on the ordering by ids");
+        assert(_nodes.back()->getID() == _nodes.size()
+               && "BUG: we rely on the ordering by ids");
         return *nd;
     }
 
@@ -119,7 +128,18 @@ public:
     node_iterator end() { return node_iterator(_nodes.end()); }
     nodes_range nodes() { return nodes_range(_nodes); }
 
+    CDNode *getNode(unsigned id) {
+        assert(id - 1 < _nodes.size());
+        return _nodes[id - 1].get();
+    }
+
+    const CDNode *getNode(unsigned id) const {
+        assert(id - 1 < _nodes.size());
+        return _nodes[id - 1].get();
+    }
+
     size_t size() const { return _nodes.size(); }
+    bool empty() const { return _nodes.empty(); }
 
     /*
     predicate_iterator predicates_begin() { return predicate_iterator(_nodes, _predicates.begin()); }
