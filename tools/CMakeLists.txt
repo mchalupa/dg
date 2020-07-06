@@ -66,6 +66,15 @@ endif (HAVE_SVF)
 					    PRIVATE ${llvm_core}
 					    )
 
+	add_executable(llvm-cda-bench llvm-cda-bench.cpp)
+	target_link_libraries(llvm-cda-bench PRIVATE dgllvmslicer
+                                            PRIVATE dganalysis
+                                            PRIVATE dgllvmcda
+					    PUBLIC ${llvm_analysis}
+					    PRIVATE ${llvm_irreader}
+					    PRIVATE ${llvm_core}
+					    )
+
 	target_link_libraries(llvm-slicer
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_bitwriter}
