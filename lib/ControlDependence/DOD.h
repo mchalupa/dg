@@ -399,7 +399,7 @@ public:
         ResultT CD;
         ResultT revCD;
 
-        DBG_SECTION_BEGIN(cda, "Computing DOD for all nodes");
+        DBG_SECTION_BEGIN(cda, "Computing DOD for all predicates");
 
         AllMaxPath allmaxpath;
         DBG_SECTION_BEGIN(cda, "Coputing nodes that are on all max paths from nodes for fun "
@@ -407,16 +407,12 @@ public:
         auto allpaths = allmaxpath.compute(graph);
         DBG_SECTION_END(cda, "Done coputing nodes that are on all max paths from nodes");
 
-        for (auto *node : graph) {
-            if (node->successors().size() < 2) {
-                continue;
-            }
-
-            assert(node->successors().size() == 2 && "We work with at most 2 successors");
+        for (auto *p : graph.predicates()) {
+            assert(p->successors().size() == 2 && "We work with at most 2 successors");
 
             DBG_SECTION_BEGIN(cda, "Creating Ap graph for fun " << graph.getName() <<
-                                   " node " << node->getID());
-            auto res = createColoredAp(allpaths, graph, node);
+                                   " node " << p->getID());
+            auto res = createColoredAp(allpaths, graph, p);
             DBG_SECTION_END(cda, "Done creating Ap graph");
             if (res.Ap.empty()) {
                 DBG(cda, "No DOD in the Ap are possible");
@@ -425,10 +421,10 @@ public:
             }
 
             DBG(cda, "Computing DOD from the Ap");
-            computeDOD(res, node, CD, revCD);
+            computeDOD(res, p, CD, revCD);
         }
 
-        DBG_SECTION_END(cda, "Finished computing DOD for all nodes");
+        DBG_SECTION_END(cda, "Finished computing DOD for all predicates");
         return {CD, revCD};
     }
 };
