@@ -49,8 +49,10 @@ def get_tool(prog):
 ###
 # Build the commands
 options=[]
+passes=[]
 next_is_dg=False
 next_is_clang=False
+next_is_opt=False
 all_is_clang=False
 cc_mode = False
 for x in argv[1:]:
@@ -60,10 +62,15 @@ for x in argv[1:]:
     elif next_is_dg:
         options.append(x)
         next_is_dg = False
+    elif next_is_opt:
+        passes.append(x)
+        next_is_opt = False
     elif x == '-Xclang':
         next_is_clang = True
     elif x == '-Xdg':
         next_is_dg = True
+    elif x == '-Xopt':
+        next_is_opt = True
     elif x.endswith('.c') or x.endswith('.cpp') or x.endswith('.i'):
         files.append(abspath(x))
     elif x.endswith('.bc') or x.endswith('.ll'):
@@ -143,6 +150,16 @@ if len(bitcodes) > 1:
 
 else:
     bitcode = bitcodes[0]
+
+if passes:
+    newname = bitcode + '.opt.bc'
+    optcmd = ['opt', bitcode, '-o', newname] + passes
+    printcmd(optcmd)
+    r = call(optcmd)
+    if r != 0:
+        err('opt command return non-zero status')
+
+    bitcode = newname
 
 ###
 # Run to tool
