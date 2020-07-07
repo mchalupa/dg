@@ -55,6 +55,7 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"
+#include "dg/ADT/Queue.h"
 
 #include "ControlDependence/CDGraph.h"
 #include "llvm/ControlDependence/NTSCD.h"
@@ -133,6 +134,25 @@ static void dumpFunStats(const llvm::Function& F) {
     std::cout << "  instructions: " << instrs << "\n";
     std::cout << "  branches: " << branches << "\n";
     std::cout << "  blind ends: " << blinds << "\n";
+
+    std::set<const llvm::BasicBlock *> visited;
+    unsigned backedges = 0; // measure also the depth?
+    ADT::QueueLIFO<const llvm::BasicBlock *> queue;
+    queue.push(&F.getEntryBlock());
+    visited.insert(&F.getEntryBlock());
+
+    while (!queue.empty()) {
+        auto *cur = queue.pop();
+        for (auto *s : successors(cur)) {
+            if (visited.insert(s).second) {
+                queue.push(s);
+            } else {
+                ++backedges;
+            }
+        }
+    }
+
+    std::cout << "  DFS backedges: " << backedges << "\n";
 }
 
 int main(int argc, char *argv[])
