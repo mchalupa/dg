@@ -115,6 +115,10 @@ void setupStackTraceOnError(int argc, char *argv[])
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
+static inline bool hasSuccessors(const llvm::BasicBlock *B) {
+    return succ_begin(B) != succ_end(B);
+}
+
 static void dumpFunStats(const llvm::Function& F) {
     unsigned instrs = 0, branches = 0, blinds = 0;
     std::cout << "Function '" << F.getName().str() << "'\n";
@@ -135,24 +139,93 @@ static void dumpFunStats(const llvm::Function& F) {
     std::cout << "  branches: " << branches << "\n";
     std::cout << "  blind ends: " << blinds << "\n";
 
-    std::set<const llvm::BasicBlock *> visited;
-    unsigned backedges = 0; // measure also the depth?
-    ADT::QueueLIFO<const llvm::BasicBlock *> queue;
-    queue.push(&F.getEntryBlock());
-    visited.insert(&F.getEntryBlock());
+    // visited, on_stack
+    std::map<const llvm::BasicBlock *, bool> on_stack;
+    unsigned backedges = 0;
+    unsigned tree = 0;
+    unsigned nontree = 0;
+    unsigned forward = 0;
+    size_t maxdepth = 0;
+    struct StackNode {
+        const llvm::BasicBlock *block;
+        // next successor to follow
+        const llvm::BasicBlock *next_succ{nullptr};
 
-    while (!queue.empty()) {
-        auto *cur = queue.pop();
-        for (auto *s : successors(cur)) {
-            if (visited.insert(s).second) {
-                queue.push(s);
-            } else {
+        StackNode(const llvm::BasicBlock *b,
+                  const llvm::BasicBlock *s = nullptr)
+        : block(b), next_succ(s) {}
+    };
+
+    std::vector<StackNode> stack;
+    on_stack[&F.getEntryBlock()] = true;
+
+    stack.push_back({&F.getEntryBlock(),
+                     hasSuccessors(&F.getEntryBlock()) ?
+                       *succ_begin(&F.getEntryBlock()) : nullptr});
+    maxdepth = 1;
+
+    while (!stack.empty()) {
+        auto& si = stack.back();
+        assert(si.block);
+        auto *nextblk = si.next_succ;
+        // set next successor
+        if (!nextblk) {
+            on_stack[si.block] = false;
+            stack.pop_back();
+            continue;
+        }
+
+        auto it = succ_begin(si.block);
+        auto et = succ_end(si.block);
+        while (it != et && *it != si.next_succ) {
+            ++it;
+        }
+
+        assert(*it == si.next_succ);
+        // can have multiple same successors
+        auto sit = on_stack.find(*it);
+        bool is_on_stack = false;
+        if (sit != on_stack.end()) {
+            is_on_stack = sit->second;
+        }
+        while (it != et && *it == si.next_succ) {
+            // XXX: we may loose some back/forward edges here
+            // (we do not count the multiplicity)
+            ++it;
+        }
+        if (it == et) {
+            si.next_succ = nullptr;
+        } else {
+            si.next_succ = *it;
+        }
+
+        sit = on_stack.find(nextblk);
+        if (sit != on_stack.end()) {
+            // we have already visited this node
+            ++nontree;
+            if (sit->second) { // still on stack
                 ++backedges;
+            } else {
+                ++forward;
             }
+            // backtrack
+            sit->second = false;
+            stack.pop_back();
+        } else {
+            ++tree;
+            on_stack[nextblk] = true;
+            stack.push_back({nextblk,
+                             hasSuccessors(nextblk) ?
+                               *succ_begin(nextblk) : nullptr});
+            maxdepth = std::max(maxdepth, stack.size());
         }
     }
 
+    std::cout << "  DFS tree edges: " << tree << "\n";
+    std::cout << "  DFS nontree edges: " << nontree << "\n";
+    std::cout << "  DFS forward: " << forward << "\n";
     std::cout << "  DFS backedges: " << backedges << "\n";
+    std::cout << "  DFS max depth: " << maxdepth << "\n";
 }
 
 int main(int argc, char *argv[])
