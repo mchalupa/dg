@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
             continue;
         }
         start = clock();
-        cda.compute(); // compute all the information
+        cda.compute(&F); // compute all the information
         end = clock();
         elapsed = end - start;
         total += elapsed;
@@ -203,13 +203,13 @@ int main(int argc, char *argv[])
         std::cout << "Elapsed time: "
                   << static_cast<float>(elapsed) / CLOCKS_PER_SEC << " s ("
                   << elapsed << " ticks)\n";
-        std::cout << "-----\n";
+        std::cout << "-----" << std::endl;
     }
 
     if (!quiet || total_only) {
         std::cout << "Total elapsed time: "
                   << static_cast<float>(total) / CLOCKS_PER_SEC << " s ("
-                  << total << " ticks)\n";
+                  << total << " ticks)" << std::endl;
     }
 
     return 0;
