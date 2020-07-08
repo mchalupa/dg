@@ -97,10 +97,11 @@ public:
             return {};
         }
 
-        if (_computed.insert(b->getParent()).second) {
+        if (_getGraph(b->getParent()) == nullptr) {
             /// FIXME: get rid of the const cast
             computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
         }
+        assert(_getGraph(b->getParent()) != nullptr);
 
         auto *block = graphBuilder.getNode(b);
         if (!block) {
@@ -167,9 +168,6 @@ private:
         auto it = _graphs.find(f);
         return it == _graphs.end() ? nullptr : &it->second.graph;
     }
-
-    // FIXME: get rid of this, use _getGraph()
-   std::set<const llvm::Function *> _computed; // for on-demand
 
    void computeOnDemand(llvm::Function *F) {
         DBG(cda, "Triggering on-demand computation for " << F->getName().str());
