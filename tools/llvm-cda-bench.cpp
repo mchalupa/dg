@@ -98,6 +98,23 @@ llvm::cl::opt<bool> ntscd_ranganath("ntscd-ranganath",
     llvm::cl::desc("Benchmark NTSCD (Ranganath algorithm) (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> ntscd_legacy("ntscd-legacy",
+    llvm::cl::desc("Benchmark NTSCD (legacy implementation) (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dod("dod",
+    llvm::cl::desc("Benchmark DOD (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dod_ranganath("dod-ranganath",
+    llvm::cl::desc("Benchmark DOD (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+
+llvm::cl::opt<bool> compare("compare",
+    llvm::cl::desc("Compare the resulting control dependencies (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
                                           const SlicerOptions& options)
 {
@@ -133,6 +150,29 @@ void setupStackTraceOnError(int argc, char *argv[])
 #else
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
+
+void compareResults(const std::set<std::pair<const llvm::Value *, const llvm::Value *>>& R1,
+                    const std::set<std::pair<const llvm::Value *, const llvm::Value *>>& R2,
+                    const std::string& A1, const std::string& A2,
+                    const llvm::Function& F) {
+    size_t a1has = 0, a2has = 0;
+    for (auto& d : R1) {
+        if (R2.count(d) == 0) {
+            ++a1has;
+        }
+    }
+    for (auto& d : R2) {
+        if (R1.count(d) == 0) {
+            ++a2has;
+        }
+    }
+
+    if (a1has > 0 || a2has > 0) {
+        std::cout << "In function '" << F.getName().str() << "'\n";
+        std::cout << " " << A1 << " has " << a1has << " that are not in " << A2 << "\n";
+        std::cout << " " << A2 << " has " << a2has << " that are not in " << A1 << std::endl;
+    }
+}
 
 static inline bool hasSuccessors(const llvm::BasicBlock *B) {
     return succ_begin(B) != succ_end(B);
@@ -269,12 +309,6 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (!M->getFunction(options.dgOptions.entryFunction)) {
-        llvm::errs() << "The entry function not found: "
-                     << options.dgOptions.entryFunction << "\n";
-        return 1;
-    }
-
     if (fun_info_only) {
         for (auto& F : *M.get()) {
             if (F.isDeclaration()) {
@@ -308,9 +342,22 @@ int main(int argc, char *argv[])
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_RANGANATH;
         analyses.emplace_back("ntscd-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
     }
+    if (ntscd_legacy) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_LEGACY;
+        analyses.emplace_back("ntscd-legacy", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (dod) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD;
+        analyses.emplace_back("dod", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (dod_ranganath) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD_RANGANATH;
+        analyses.emplace_back("dod-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
 
     if (analyses.empty()) {
-        std::cerr << "No analysis to run specified, dumping just info";
+        std::cerr << "Warning: No analysis to run specified, "
+                     "dumping just info about funs\n";
     }
 
     for (auto& F : *M.get()) {
@@ -346,6 +393,47 @@ int main(int argc, char *argv[])
             std::cout << "  " << std::get<0>(it) << ": "
                       << static_cast<float>(std::get<2>(it)) / CLOCKS_PER_SEC << " s ("
                       << std::get<2>(it) << " ticks)" << std::endl;
+        }
+    }
+
+    // compare the results if requested
+    if (!compare)
+        return 0;
+
+    std::cout << "\n ==== Comparison ====\n";
+    for (auto& F : *M.get()) {
+        if (F.isDeclaration()) {
+            continue;
+        }
+
+        // not very efficient...
+        std::vector<std::set<std::pair<const llvm::Value *, const llvm::Value *>>> results;
+        results.resize(analyses.size());
+        unsigned n = 0;
+        for (auto& it : analyses) {
+            auto *cda = std::get<1>(it).get();
+            for (auto& B : F) {
+                for (auto *d : cda->getDependencies(&B)) {
+                    results[n].emplace(d, &B);
+                }
+
+                for (auto& I : B) {
+                    for (auto *d : cda->getDependencies(&I)) {
+                        results[n].emplace(d, &I);
+                    }
+                }
+            }
+
+            ++n;
+        }
+
+        n = 0;
+        for (n = 0; n < results.size(); ++n) {
+            for (unsigned m = 0; m < n; ++m) {
+                compareResults(results[n], results[m],
+                               std::get<0>(analyses[n]),  std::get<0>(analyses[m]),
+                               F);
+            }
         }
     }
 
