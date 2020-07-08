@@ -82,6 +82,22 @@ llvm::cl::opt<bool> fun_info_only("fun-info-only",
     llvm::cl::desc("Only dump statistics about the functions in module (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> scd("scd",
+    llvm::cl::desc("Benchmark standard CD (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> ntscd("ntscd",
+    llvm::cl::desc("Benchmark NTSCD (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> ntscd2("ntscd2",
+    llvm::cl::desc("Benchmark NTSCD 2 (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> ntscd_ranganath("ntscd-ranganath",
+    llvm::cl::desc("Benchmark NTSCD (Ranganath algorithm) (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
                                           const SlicerOptions& options)
 {
@@ -270,33 +286,67 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    std::vector<std::tuple<std::string,
+                          std::unique_ptr<LLVMControlDependenceAnalysis>,
+                          size_t>> analyses;
+
     clock_t start, end, elapsed, total = 0;
-    LLVMControlDependenceAnalysis cda(M.get(), options.dgOptions.CDAOptions);
+    auto& opts = options.dgOptions.CDAOptions;
+    if (scd) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
+        analyses.emplace_back("scd", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (ntscd) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD;
+        analyses.emplace_back("ntscd", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (ntscd2) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD2;
+        analyses.emplace_back("ntscd2", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (ntscd_ranganath) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_RANGANATH;
+        analyses.emplace_back("ntscd-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+
+    if (analyses.empty()) {
+        std::cerr << "No analysis to run specified, dumping just info";
+    }
 
     for (auto& F : *M.get()) {
         if (F.isDeclaration()) {
             continue;
         }
-        start = clock();
-        cda.compute(&F); // compute all the information
-        end = clock();
-        elapsed = end - start;
-        total += elapsed;
 
-        if (quiet)
-            continue;
+        if (!quiet) {
+            dumpFunStats(F);
+            std::cout << "Elapsed time: \n";
+        }
 
-        dumpFunStats(F);
-        std::cout << "Elapsed time: "
-                  << static_cast<float>(elapsed) / CLOCKS_PER_SEC << " s ("
-                  << elapsed << " ticks)\n";
-        std::cout << "-----" << std::endl;
+        for (auto& it : analyses) {
+            start = clock();
+            std::get<1>(it)->compute(&F); // compute all the information
+            end = clock();
+            elapsed = end - start;
+            std::get<2>(it) += elapsed;
+            if (!quiet) {
+                std::cout << "  " << std::get<0>(it) << ": "
+                          << static_cast<float>(elapsed) / CLOCKS_PER_SEC << " s ("
+                          << elapsed << " ticks)\n";
+            }
+        }
+        if (!quiet) {
+            std::cout << "-----" << std::endl;
+        }
     }
 
     if (!quiet || total_only) {
-        std::cout << "Total elapsed time: "
-                  << static_cast<float>(total) / CLOCKS_PER_SEC << " s ("
-                  << total << " ticks)" << std::endl;
+        std::cout << "Total elapsed time:\n";
+        for (auto& it : analyses) {
+            std::cout << "  " << std::get<0>(it) << ": "
+                      << static_cast<float>(std::get<2>(it)) / CLOCKS_PER_SEC << " s ("
+                      << std::get<2>(it) << " ticks)" << std::endl;
+        }
     }
 
     return 0;
