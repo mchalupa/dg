@@ -78,6 +78,9 @@ llvm::cl::opt<bool> total_only("total-only",
     llvm::cl::desc("Do not generate output other than the total time (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> fun_info_only("fun-info-only",
+    llvm::cl::desc("Only dump statistics about the functions in module (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
                                           const SlicerOptions& options)
@@ -254,6 +257,17 @@ int main(int argc, char *argv[])
         llvm::errs() << "The entry function not found: "
                      << options.dgOptions.entryFunction << "\n";
         return 1;
+    }
+
+    if (fun_info_only) {
+        for (auto& F : *M.get()) {
+            if (F.isDeclaration()) {
+                continue;
+            }
+
+            dumpFunStats(F);
+        }
+        return 0;
     }
 
     clock_t start, end, elapsed, total = 0;
