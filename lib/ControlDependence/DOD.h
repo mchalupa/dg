@@ -273,7 +273,7 @@ class DOD {
     }
 
     void computeDOD(ColoredAp& CAp, CDNode *p, ResultT& CD, ResultT& revCD,
-                    bool asTernary = false) {
+                    bool asTernary = true) {
         assert(checkAp(CAp.Ap)); // sanity check
 
        //for (auto *nd : CAp.Ap) {
@@ -353,7 +353,7 @@ class DOD {
         assert(endR);
 
         if (asTernary) {
-        cur = endB;
+             cur = endB;
              do {
                  auto *gcur = CAp.getGNode(cur);
                  assert(gcur);
