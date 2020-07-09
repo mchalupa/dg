@@ -162,6 +162,11 @@ void compareResults(const std::set<std::pair<const llvm::Value *, const llvm::Va
                     const std::set<std::pair<const llvm::Value *, const llvm::Value *>>& R2,
                     const std::string& A1, const std::string& A2,
                     const llvm::Function& F) {
+    std::cout << "In function '" << F.getName().str() << "'\n";
+    std::cout << " " << A1 << " computed " << R1.size() << " dependencies\n";
+    std::cout << " " << A2 << " computed " << R2.size() << " dependencies\n";
+    std::cout << "-----\n";
+
     size_t a1has = 0, a2has = 0;
     for (auto& d : R1) {
         if (R2.count(d) == 0) {
@@ -175,7 +180,6 @@ void compareResults(const std::set<std::pair<const llvm::Value *, const llvm::Va
     }
 
     if (a1has > 0 || a2has > 0) {
-        std::cout << "In function '" << F.getName().str() << "'\n";
         std::cout << " " << A1 << " has " << a1has << " that are not in " << A2 << "\n";
         std::cout << " " << A2 << " has " << a2has << " that are not in " << A1 << std::endl;
     }
