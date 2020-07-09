@@ -7,6 +7,7 @@
 #include "GraphBuilder.h"
 
 #include "ControlDependence/DOD.h"
+#include "ControlDependence/DODNTSCD.h"
 
 #include <set>
 #include <map>
@@ -189,6 +190,11 @@ private:
         } else if (getOptions().dodCD()) {
             dg::DOD dod;
             auto result = dod.compute(info.graph);
+            info.controlDependence = std::move(result.first);
+            info.revControlDependence = std::move(result.second);
+        } else if (getOptions().dodntscdCD()) {
+            dg::DODNTSCD dodntscd;
+            auto result = dodntscd.compute(info.graph);
             info.controlDependence = std::move(result.first);
             info.revControlDependence = std::move(result.second);
         } else {

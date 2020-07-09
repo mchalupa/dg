@@ -76,6 +76,7 @@ public:
 
 
 class DOD {
+public:
     //using ResultT = std::map<CDNode *, std::set<std::pair<CDNode *, CDNode *>>>;
     // NOTE: although DOD is a ternary relation, we treat it as binary
     // by breaking a->(b, c) to (a, b) and (a, c). It has no effect
@@ -83,6 +84,7 @@ class DOD {
     using ResultT = std::map<CDNode *, std::set<CDNode *>>;
     using ColoringT = ADT::SparseBitvector;
 
+private:
     struct ColoredAp {
         CDGraph Ap;
         ColoringT blues;
@@ -397,7 +399,30 @@ class DOD {
         }
     }
 
+protected:
+    // make this public, so that we can use it in NTSCD+DOD algorithm
+    template <typename OnAllPaths>
+    void computeDOD(CDNode *p, CDGraph& graph,
+                    OnAllPaths& allpaths,
+                    ResultT& CD, ResultT& revCD) {
+        assert(p->successors().size() == 2 && "We work with at most 2 successors");
+
+        DBG_SECTION_BEGIN(cda, "Creating Ap graph for fun " << graph.getName() <<
+                               " node " << p->getID());
+        auto res = createColoredAp(allpaths, graph, p);
+        DBG_SECTION_END(cda, "Done creating Ap graph");
+        if (res.Ap.empty()) {
+            DBG(cda, "No DOD in the Ap are possible");
+            // no DOD possible
+            return;
+        }
+
+        DBG(cda, "Computing DOD from the Ap");
+        computeDOD(res, p, CD, revCD);
+    }
+
 public:
+
     std::pair<ResultT, ResultT> compute(CDGraph& graph) {
         ResultT CD;
         ResultT revCD;
@@ -411,20 +436,7 @@ public:
         DBG_SECTION_END(cda, "Done coputing nodes that are on all max paths from nodes");
 
         for (auto *p : graph.predicates()) {
-            assert(p->successors().size() == 2 && "We work with at most 2 successors");
-
-            DBG_SECTION_BEGIN(cda, "Creating Ap graph for fun " << graph.getName() <<
-                                   " node " << p->getID());
-            auto res = createColoredAp(allpaths, graph, p);
-            DBG_SECTION_END(cda, "Done creating Ap graph");
-            if (res.Ap.empty()) {
-                DBG(cda, "No DOD in the Ap are possible");
-                // no DOD possible
-                continue;
-            }
-
-            DBG(cda, "Computing DOD from the Ap");
-            computeDOD(res, p, CD, revCD);
+            computeDOD(p, graph, allpaths, CD, revCD);
         }
 
         DBG_SECTION_END(cda, "Finished computing DOD for all predicates");
@@ -547,10 +559,8 @@ class DODRanganath {
         };
 
         data[from].onstack = true;
-        auto r = onallpths(from, n);
-        if (r)
-        DBG(tmp, "on all paths:" << from->getID() << ", " << n->getID() << ": " << r );
-        return r;
+        //DBG(tmp, "on all paths:" << from->getID() << ", " << n->getID() << ": " << r );
+        return onallpths(from, n);
     }
 
 public:

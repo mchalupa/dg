@@ -303,7 +303,8 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                 }
             }
         } else if (cda.getOptions().dodCD() ||
-                   cda.getOptions().dodRanganathCD()) {
+                   cda.getOptions().dodRanganathCD() ||
+                   cda.getOptions().dodntscdCD()) {
             auto *dod = static_cast<dg::llvmdg::DOD*>(impl);
             const auto *info = dod->_getFunInfo(&f);
             if (info) {

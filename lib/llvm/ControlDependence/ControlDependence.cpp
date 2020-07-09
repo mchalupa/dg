@@ -18,7 +18,8 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
         _impl.reset(new llvmdg::StrongControlClosure(_module, _options));
     } else if (getOptions().ntscdLegacyCD()) {
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
-    } else if (getOptions().dodCD() || getOptions().dodRanganathCD()) {
+    } else if (getOptions().dodCD() || getOptions().dodRanganathCD() ||
+               getOptions().dodntscdCD()) {
         // DOD on itself makes no sense, but allow it due to debugging
         _impl.reset(new llvmdg::DOD(_module, _options));
     } else {

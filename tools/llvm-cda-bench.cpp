@@ -110,6 +110,10 @@ llvm::cl::opt<bool> dod_ranganath("dod-ranganath",
     llvm::cl::desc("Benchmark DOD (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> dod_ntscd("dod+ntscd",
+    llvm::cl::desc("Benchmark DOD + NTSCD (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<bool> scc("scc",
     llvm::cl::desc("Strong control closure (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
@@ -356,6 +360,10 @@ int main(int argc, char *argv[])
     if (dod_ranganath) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD_RANGANATH;
         analyses.emplace_back("dod-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (dod_ntscd) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DODNTSCD;
+        analyses.emplace_back("dod+ntscd", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
     }
     if (scc) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::STRONG_CC;
