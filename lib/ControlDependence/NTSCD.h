@@ -6,6 +6,7 @@
 
 #include "CDGraph.h"
 #include "dg/ADT/Queue.h"
+#include "dg/ADT/SetQueue.h"
 
 namespace dg {
 
@@ -185,18 +186,66 @@ class NTSCDRanganath {
         Symbol(CDNode *a, CDNode *b) : std::pair<CDNode*, CDNode*>(a, b) {}
     };
 
+    std::unordered_map<CDNode *,
+                       std::unordered_map<CDNode *, std::set<Symbol>>> S;
+
+    ADT::SetQueue<ADT::QueueFIFO<CDNode *>> workbag;
+
+    bool processNode(CDGraph&graph, CDNode *n) {
+        bool changed = false;
+        auto *s = n->getSingleSuccessor();
+        if (s && s != n) { // (2.1) single successor case
+            for (auto *p : graph.predicates()) {
+                auto& Ssp = S[s][p];
+                for (const Symbol& symb : S[n][p]) {
+                    if (Ssp.insert(symb).second) {
+                        DBG(tmp, "(1) S[" << s->getID() << ", " << p->getID()
+                                          << "] <- t(" << symb.first->getID() << ", "
+                                          << symb.second->getID() << ")");
+                        DBG(tmp, "(2.1) queuing node: " << s->getID());
+                        changed = true;
+                        workbag.push(s);
+                    }
+                }
+            }
+        } else if (n->successors().size() > 1) { // (2.2) multiple successors case
+            for (auto *m : graph) {
+                auto& Smn = S[m][n];
+                if (Smn.size() == n->successors().size()) {
+                    for (auto *p : graph.predicates()) {
+                        if (p == n) {
+                            continue;
+                        }
+                        auto& Smp = S[m][p];
+                        for (const Symbol& symb : S[n][p]) {
+                            if (Smp.insert(symb).second) {
+                                changed = true;
+                                workbag.push(m);
+                                DBG(tmp, "(1) S[" << m->getID() << ", " << p->getID()
+                                                  << "] <- t(" << symb.first->getID() << ", "
+                                                  << symb.second->getID() << ")");
+                                DBG(tmp, "(2.2) queuing node: " << m->getID());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return changed;
+    }
+
 public:
 
     // returns control dependencies and reverse control dependencies
-    std::pair<ResultT, ResultT> compute(CDGraph& graph) {
+    // doFixpoint turns on the fix of the ranganath's algorithm
+    // XXX: we should create a new fixed algorithm completely, as we do not need
+    // the workbag and so on.
+    std::pair<ResultT, ResultT> compute(CDGraph& graph, bool doFixpoint = true) {
         ResultT CD;
         ResultT revCD;
 
-        std::unordered_map<CDNode *,
-                           std::unordered_map<CDNode *, std::set<Symbol>>> S;
         S.reserve(2*graph.predicates().size());
-
-        ADT::QueueFIFO<CDNode *> workbag;
 
         // (1) initialize
         for (auto *p : graph.predicates()) {
@@ -210,44 +259,19 @@ public:
         }
 
         // (2) calculate all-path reachability
-        while (!workbag.empty()) {
-            auto *n = workbag.pop();
-            //DBG(cda, "Processing node: " << n->getID());
-            auto *s = n->getSingleSuccessor();
-            if (s && s != n) { // (2.1) single successor case
-                for (auto *p : graph.predicates()) {
-                    auto& Ssp = S[s][p];
-                    for (const Symbol& symb : S[n][p]) {
-                        if (Ssp.insert(symb).second) {
-                           //DBG(tmp, "(1) S[" << s->getID() << ", " << p->getID()
-                           //                  << "] <- t(" << symb.first->getID() << ", "
-                           //                  << symb.second->getID() << ")");
-                           //DBG(tmp, "(2.1) queuing node: " << s->getID());
-                            workbag.push(s);
-                        }
-                    }
+        if (doFixpoint) {
+            bool changed;
+            do {
+                changed = false;
+                for (auto *n : graph) {
+                    changed |= processNode(graph, n);
                 }
-            } else if (n->successors().size() > 1) { // (2.2) multiple successors case
-                for (auto *m : graph) {
-                    auto& Smn = S[m][n];
-                    if (Smn.size() == n->successors().size()) {
-                        for (auto *p : graph.predicates()) {
-                            if (p == n) {
-                                continue;
-                            }
-                            auto& Smp = S[m][p];
-                            for (const Symbol& symb : S[n][p]) {
-                                if (Smp.insert(symb).second) {
-                                    workbag.push(m);
-                                   //DBG(tmp, "(1) S[" << m->getID() << ", " << p->getID()
-                                   //                  << "] <- t(" << symb.first->getID() << ", "
-                                   //                  << symb.second->getID() << ")");
-                                   //DBG(tmp, "(2.2) queuing node: " << m->getID());
-                                }
-                            }
-                        }
-                    }
-                }
+            } while (changed);
+        } else {
+            while (!workbag.empty()) {
+                auto *n = workbag.pop();
+                //DBG(cda, "Processing node: " << n->getID());
+                processNode(graph, n);
             }
         }
 
