@@ -75,6 +75,13 @@ endif (HAVE_SVF)
 					    PRIVATE ${llvm_core}
 					    )
 
+	add_executable(llvm-cda-stress llvm-cda-stress.cpp)
+	target_link_libraries(llvm-cda-stress PRIVATE dgllvmslicer
+                                            PRIVATE dganalysis
+                                            PRIVATE dgcda
+					    PRIVATE ${llvm_support}
+					    )
+
 	target_link_libraries(llvm-slicer
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_bitwriter}

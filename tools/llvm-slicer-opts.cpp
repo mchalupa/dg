@@ -66,14 +66,19 @@ llvm::cl::OptionCategory SlicingOpts("Slicer options", "");
 
 // Use LLVM's CommandLine library to parse
 // command line arguments
-SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit) {
+SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool inputFileRequired) {
     llvm::cl::opt<std::string> outputFile("o",
         llvm::cl::desc("Save the output to given file. If not specified,\n"
                        "a .sliced suffix is used with the original module name."),
         llvm::cl::value_desc("filename"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
+
+    llvm::cl::opt<std::string> inputFile(llvm::cl::Positional,
         llvm::cl::desc("<input file>"), llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
+    if (inputFileRequired) {
+        inputFile.setNumOccurrencesFlag(llvm::cl::Required);
+    }
 
     llvm::cl::opt<std::string> slicingCriteria("c",
         llvm::cl::desc("Slice with respect to the call-sites of a given function\n"

@@ -50,7 +50,7 @@ struct SlicerOptions {
 
 ///
 // Return filled SlicerOptions structure.
-SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit = false);
+SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit = false, bool inputFileRequired = true);
 
 #endif  // _DG_TOOLS_LLVM_SLICER_OPTS_H_
 

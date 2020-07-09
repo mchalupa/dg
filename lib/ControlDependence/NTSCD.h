@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <set>
+#include <map>
+#include <unordered_map>
 
 #include "CDGraph.h"
 #include "dg/ADT/Queue.h"
