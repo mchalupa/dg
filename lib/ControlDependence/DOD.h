@@ -2,7 +2,9 @@
 #define DG_DOD_H_
 
 #include <map>
+#include <unordered_map>
 #include <set>
+#include <functional>
 
 #include <dg/ADT/Queue.h>
 #include <dg/ADT/SetQueue.h>
@@ -492,6 +494,8 @@ class DODRanganath {
         return whiteChild && blackChild;
     }
 
+    // the paper uses 'reachable', but it is wrong
+    // Keep the method for now anyway.
     bool reachable(CDNode *from, CDNode *n) {
         ADT::SetQueue<ADT::QueueLIFO<CDNode *>> queue;
         queue.push(from);
@@ -507,6 +511,46 @@ class DODRanganath {
             }
         }
         return false;
+    }
+
+    bool onallpaths(CDNode *from, CDNode *n, CDGraph& G) {
+        if (from == n) // fast path
+            return true;
+
+        struct NodeInf { bool onstack{false}; bool visited{false}; };
+        std::unordered_map<CDNode *, NodeInf> data;
+
+        data.reserve(G.size());
+
+        const std::function<bool(CDNode*, CDNode*)> onallpths = [&](CDNode *node, CDNode *target) -> bool {
+            if (node == target)
+                return true;
+
+            data[node].visited = true;
+
+            if (!node->hasSuccessors())
+                return false;
+
+            for (auto *s : node->successors()) {
+                if (data[s].onstack)
+                    return false;
+                if (!data[s].visited) {
+                    data[s].onstack = true;
+                    if (!onallpths(s, target))
+                        return false;
+                    data[s].onstack = false;
+                }
+            }
+            // if we have successors and got here,
+            // then all successors reach target
+            return true;
+        };
+
+        data[from].onstack = true;
+        auto r = onallpths(from, n);
+        if (r)
+        DBG(tmp, "on all paths:" << from->getID() << ", " << n->getID() << ": " << r );
+        return r;
     }
 
 public:
@@ -525,7 +569,7 @@ public:
                         continue;
                     }
 
-                    if (reachable(m, p) && reachable(p, m) &&
+                    if (onallpaths(m, p, graph) && onallpaths(p, m, graph) &&
                         dependence(n, p, m, graph)) {
                         //DBG(cda, "DOD: " << n->getID() << " -> {"
                         //                 << p->getID() << ", " << m->getID() << "}");
