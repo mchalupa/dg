@@ -84,12 +84,28 @@ public:
 
         // TODO map values...
         dg::StrongControlClosure sclosure;
-        //return sclosure.closeSet(*graph);
-        return {};
+        std::set<CDNode *> X;
+        for (auto *v : vals) {
+            X.insert(graphBuilder.getNode(v));
+        }
+        auto cls = sclosure.getClosure(*graph, X);
+        std::vector<llvm::Value *> retval;
+        for (auto *n : cls) {
+            retval.push_back(const_cast<llvm::Value*>(graphBuilder.getValue(n)));
+        }
+        return retval;
     }
 
     // We run on demand
-    void compute(const llvm::Function *) override { /* we run on demand */ }
+    void compute(const llvm::Function *F) override {
+        unsigned n = 0;
+        for (auto& B : *F) {
+            if (n == F->size() / 2)
+                getClosure(F, {const_cast<llvm::BasicBlock *>(&B)});
+            ++n;
+        }
+        /* we run on demand */
+    }
 
     CDGraph *getGraph(const llvm::Function *f) override { return _getGraph(f); }
     const CDGraph *getGraph(const llvm::Function *f) const override { return _getGraph(f); }

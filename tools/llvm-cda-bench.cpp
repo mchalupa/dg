@@ -110,6 +110,9 @@ llvm::cl::opt<bool> dod_ranganath("dod-ranganath",
     llvm::cl::desc("Benchmark DOD (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> scc("scc",
+    llvm::cl::desc("Strong control closure (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> compare("compare",
     llvm::cl::desc("Compare the resulting control dependencies (default=false)."),
@@ -353,6 +356,10 @@ int main(int argc, char *argv[])
     if (dod_ranganath) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD_RANGANATH;
         analyses.emplace_back("dod-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+    }
+    if (scc) {
+        opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::STRONG_CC;
+        analyses.emplace_back("scc", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
     }
 
     if (analyses.empty()) {
