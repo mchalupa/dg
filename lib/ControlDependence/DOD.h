@@ -201,21 +201,21 @@ class DOD {
         auto sit = succs.begin();
         CDNode *bluesucc = *sit;
         CDNode *redsucc = *(++sit);
-        DBG(cda, "Blue successor: " << bluesucc->getID());
-        DBG(cda, "Red successor: " << redsucc->getID());
+       //DBG(cda, "Blue successor: " << bluesucc->getID());
+       //DBG(cda, "Red successor: " << redsucc->getID());
         assert(++sit == succs.end());
 
         if (nodes.get(bluesucc->getID())) { // is blue successor in Ap?
             auto *apn = CAp.getNode(bluesucc);
             assert(apn);
             CAp.blues.set(apn->getID());
-            DBG(cda, "  - Ap blue: " << apn->getID() << " (" << bluesucc->getID() << " in original)");
+            //DBG(cda, "  - Ap blue: " << apn->getID() << " (" << bluesucc->getID() << " in original)");
         } else {
             foreachFirstReachable(nodes, bluesucc, [&](CDNode *cur) {
                 auto *apn = CAp.getNode(cur);
                 assert(apn);
                 CAp.blues.set(apn->getID());
-                DBG(cda, "  - Ap blue: " << apn->getID() << " (" << cur->getID() << " in original)");
+                //DBG(cda, "  - Ap blue: " << apn->getID() << " (" << cur->getID() << " in original)");
             });
         }
 
@@ -223,20 +223,20 @@ class DOD {
             auto *apn = CAp.getNode(redsucc);
             assert(apn);
             CAp.reds.set(apn->getID());
-            DBG(cda, "  - Ap red: " << redsucc->getID());
+            //DBG(cda, "  - Ap red: " << redsucc->getID());
         } else {
             foreachFirstReachable(nodes, redsucc, [&](CDNode *cur) {
                 auto *apn = CAp.getNode(cur);
                 assert(apn);
                 CAp.reds.set(apn->getID());
-                DBG(cda, "  - Ap red: " << apn->getID() << " (" << cur->getID() << " in original)");
+                //DBG(cda, "  - Ap red: " << apn->getID() << " (" << cur->getID() << " in original)");
             });
         }
 
         return CAp;
     }
 
-    static void checkAp(CDGraph& Ap) {
+    static bool checkAp(CDGraph& Ap) {
         // we can have only a single node with multiple successors
         CDNode *p = nullptr;
         for (auto *n : Ap) {
@@ -267,31 +267,32 @@ class DOD {
         } while (cur != n);
 
         assert(visited.size() == Ap.size() - 1 && "Cycle does not contain all the nodes except p");
+        return true;
     }
 
     void computeDOD(ColoredAp& CAp, CDNode *p, ResultT& CD, ResultT& revCD,
                     bool asTernary = false) {
-        checkAp(CAp.Ap); // sanity check
+        assert(checkAp(CAp.Ap)); // sanity check
 
-        for (auto *nd : CAp.Ap) {
-              DBG(tmp, ">> Ap: " << nd->getID() << " b: " << CAp.blues.get(nd->getID())
-                                                << " r: " << CAp.reds.get(nd->getID()));
-        }
-        for (auto *nd : CAp.Ap) {
-            for (auto *succ: nd->successors()) {
-              DBG(tmp, ">> Ap:   " << nd->getID() << " -> " << succ->getID());
-            }
-        }
+       //for (auto *nd : CAp.Ap) {
+       //      DBG(tmp, ">> Ap: " << nd->getID() << " b: " << CAp.blues.get(nd->getID())
+       //                                        << " r: " << CAp.reds.get(nd->getID()));
+       //}
+       //for (auto *nd : CAp.Ap) {
+       //    for (auto *succ: nd->successors()) {
+       //      DBG(tmp, ">> Ap:   " << nd->getID() << " -> " << succ->getID());
+       //    }
+       //}
 
         CDNode *startB = nullptr, *endB = nullptr;
         CDNode *startR = nullptr, *endR = nullptr;
 
         // get some blue node to have a starting point
         auto bid = *(CAp.blues.begin());
-        DBG(tmp, "Blue node with id " << bid);
+        //DBG(tmp, "Blue node with id " << bid);
         startB = CAp.Ap.getNode(bid);
         assert(startB && "The blue node is not on Ap");
-        DBG(tmp, "Starting from blue: " << startB->getID());
+        //DBG(tmp, "Starting from blue: " << startB->getID());
         assert(CAp.isBlue(startB));
 
         auto *cur = startB;
@@ -359,8 +360,8 @@ class DOD {
                  do {
                      auto *gncur = CAp.getGNode(ncur);
                      assert(gncur);
-                     DBG(cda, p->getID() << " - dod -> {" << gcur->getID() << ", "
-                                                          << gncur->getID() << "}");
+                    //DBG(cda, p->getID() << " - dod -> {" << gcur->getID() << ", "
+                    //                                     << gncur->getID() << "}");
 
                      CD[gcur].insert(p);
                      CD[gncur].insert(p);
@@ -379,7 +380,7 @@ class DOD {
                 assert(gcur);
                 CD[gcur].insert(p);
                 revCD[p].insert(gcur);
-                DBG(cda, p->getID() << " - dod -> " << gcur->getID());
+                //DBG(cda, p->getID() << " - dod -> " << gcur->getID());
                 cur = cur->getSingleSuccessor();
             } while (!(CAp.isBlue(cur) || CAp.isRed(cur)));
             cur = endR;
@@ -388,7 +389,7 @@ class DOD {
                 assert(gcur);
                 CD[gcur].insert(p);
                 revCD[p].insert(gcur);
-                DBG(cda, p->getID() << " - dod -> " << gcur->getID());
+                //DBG(cda, p->getID() << " - dod -> " << gcur->getID());
                 cur = cur->getSingleSuccessor();
             } while (!(CAp.isBlue(cur) || CAp.isRed(cur)));
         }
