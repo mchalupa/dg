@@ -150,8 +150,8 @@ class DOD {
         // create nodes of graph
         for (auto *n : graph) {
             if (nodes.get(n->getID())) {
-                auto *nd = CAp.createNode(n);
-                DBG(cda, "  - Ap has node " << n->getID() << " (which is " << nd->getID() << " in Ap)");
+                CAp.createNode(n);
+                //DBG(cda, "  - Ap has node " << n->getID() << " (which is " << nd->getID() << " in Ap)");
             }
         }
 
@@ -169,7 +169,7 @@ class DOD {
                 auto *apn = CAp.getNode(cur);
                 assert(apn);
                 n->addSuccessor(apn);
-                DBG(cda, "  - Ap edge " << gn->getID() << " -> " << cur->getID());
+                //DBG(cda, "  - Ap edge " << gn->getID() << " -> " << cur->getID());
             });
         }
 
