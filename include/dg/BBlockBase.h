@@ -67,8 +67,11 @@ class CFGElement : public ElemId, public ElemWithEdges<ElemT> { };
 
 template <typename ElemT, typename NodeT>
 class BBlockBase : public CFGElement<ElemT> {
-public:
     using NodesT = std::list<NodeT *>;
+
+    NodesT _nodes;
+
+public:
 
     void append(NodeT *n) { _nodes.push_back(n); n->setBBlock(static_cast<ElemT*>(this)); }
     void prepend(NodeT *n) { _nodes.push_front(n); n->setBBlock(static_cast<ElemT*>(this)); }
@@ -98,10 +101,7 @@ public:
     const NodeT *getLast() const { return _nodes.empty() ? nullptr : _nodes.back(); }
 
     bool empty() const { return _nodes.empty(); }
-    auto size() const -> decltype(getNodes().size()) { return _nodes.size(); }
-
-private:
-    NodesT _nodes;
+    auto size() const -> decltype(_nodes.size()) { return _nodes.size(); }
 };
 
 }
