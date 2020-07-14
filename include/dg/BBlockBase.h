@@ -88,6 +88,7 @@ public:
         n->setBBlock(static_cast<ElemT*>(this));
     }
 
+    // FIXME: rename to nodes()
     const NodesT& getNodes() const { return _nodes; }
     NodesT& getNodes() { return _nodes; }
     // FIXME: rename to first/front(), last/back()
@@ -97,7 +98,7 @@ public:
     const NodeT *getLast() const { return _nodes.empty() ? nullptr : _nodes.back(); }
 
     bool empty() const { return _nodes.empty(); }
-    size_t size() const { return _nodes.size(); }
+    auto size() const -> decltype(getNodes().size()) { return _nodes.size(); }
 
 private:
     NodesT _nodes;
