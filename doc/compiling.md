@@ -62,9 +62,10 @@ LLVM\_DIR is an environment variable used by LLVM to find cmake config files
 LLVM\_SRC\_DIR is a variable that tells cmake where to look for llvm's sources
 and it is used to override include paths. The same holds for LLVM\_BUILD\_PATH
 that is used to override library paths. Usually, you don't need to specify
-all these variables: LLVM\_DIR variable is useful if there is any collision (i.e. there are more versions of LLVM installed) and you want to use a particular build of LLVM. In that case define the LLVM\_DIR variable to point to the directory where
-are the config files of the desired version (`$PREFIX/share/llvm/cmake` or `$PREFIX/lib/cmake/llvm/` for newer versions).
-If you have LLVM compiled from sources, but not installed anywhere,
+all these variables: LLVM\_DIR variable is useful if there is any collision (i.e. there are more versions of LLVM installed) and you want to use a particular build of LLVM. In that case, define the LLVM\_DIR variable to point to the directory where
+are the config files of the desired version (`$PREFIX/share/llvm/cmake` or `$PREFIX/lib/cmake/llvm/` for newer versions of LLVM
+-- for system installations, `PREFIX` is usually set to `/usr`).
+If you have LLVM compiled from sources but not installed anywhere,
 you may need to use LLVM\_SRC\_PATH and LLVM\_BUILD\_PATH variables to specify the directory with sources and build.
 As an example, suppose you have LLVM built in /home/user/llvm-build from
 sources in /home/user/llvm-src. Then the following configuration should work:
