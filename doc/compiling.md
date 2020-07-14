@@ -7,12 +7,12 @@ in a version that supports at least C++11 standard.
 And, of course, `git` for downloading the project. On some systems,
 also `zlib` is required. For compilation of files into LLVM, we need also `clang`
 compiler. To run slicing tests and some of the tools, you need also an installation
-of python.
+of `python`.
 
 On Ubuntu, you install the dependencies with:
 
 ```
-apt install git cmake make llvm zlib1g-dev clang g++
+apt install git cmake make llvm zlib1g-dev clang g++ python3
 ```
 
 On ArchLinux, the command for installing the dependencies is the following:
