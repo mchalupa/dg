@@ -88,7 +88,7 @@ void SCD::computePostDominators(llvm::Function& F) {
     DBG(cda, "Computing post dominator tree");
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
 
-    auto pdtreeobj = std::unique_ptr<PostDominatorTree>(new PostDominatorTree());
+    auto pdtreeptr = std::unique_ptr<PostDominatorTree>(new PostDominatorTree());
     pdtree = pdtreeptr.get();
     pdtree->runOnFunction(F); // compute post-dominator tree for this function
 
