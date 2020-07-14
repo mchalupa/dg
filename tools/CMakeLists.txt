@@ -80,6 +80,7 @@ endif (HAVE_SVF)
                                             PRIVATE dganalysis
                                             PRIVATE dgcda
 					    PRIVATE ${llvm_support}
+					    PRIVATE ${llvm_core}
 					    )
 
 	target_link_libraries(llvm-slicer
