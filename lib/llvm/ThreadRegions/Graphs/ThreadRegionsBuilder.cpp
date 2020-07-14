@@ -1,6 +1,6 @@
 #include "ThreadRegionsBuilder.h"
 
-#include "Nodes.h"
+#include "llvm/ThreadRegions/Nodes/Nodes.h"
 #include "ThreadRegion.h"
 
 ThreadRegionsBuilder::ThreadRegionsBuilder(std::size_t size):visitedNodeToRegionMap(size),

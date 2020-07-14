@@ -5,8 +5,8 @@
 
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/llvm/ThreadRegions/ThreadRegion.h"
-#include "../lib/llvm/ThreadRegions/include/Graphs/GraphBuilder.h"
-#include "../lib/llvm/ThreadRegions/include/Nodes/Nodes.h"
+#include "../lib/llvm/ThreadRegions/Graphs/GraphBuilder.h"
+#include "../lib/llvm/ThreadRegions/Nodes/Nodes.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)

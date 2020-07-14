@@ -3,7 +3,7 @@
 #include "llvm/ForkJoin/ForkJoin.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "Nodes.h"
+#include "llvm/ThreadRegions/Nodes/Nodes.h"
 #include "BlockGraph.h"
 #include "FunctionGraph.h"
 

@@ -29,8 +29,8 @@
 #include <iostream>
 #include <fstream>
 
-#include "llvm/ThreadRegions/include/Graphs/ThreadRegionsBuilder.h"
-#include "llvm/ThreadRegions/include/Graphs/GraphBuilder.h"
+#include "llvm/ThreadRegions/Graphs/ThreadRegionsBuilder.h"
+#include "llvm/ThreadRegions/Graphs/GraphBuilder.h"
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"

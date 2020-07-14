@@ -1,5 +1,5 @@
 #include "ThreadRegion.h"
-#include "Node.h"
+#include "llvm/ThreadRegions/Nodes/Node.h"
 
 #include <iostream>
 

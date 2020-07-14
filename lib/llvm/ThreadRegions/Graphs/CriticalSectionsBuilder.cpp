@@ -1,5 +1,5 @@
 #include "CriticalSectionsBuilder.h"
-#include "Nodes.h"
+#include "llvm/ThreadRegions/Nodes/Nodes.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)

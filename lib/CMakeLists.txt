@@ -103,11 +103,30 @@ target_link_libraries(dgllvmdda
 			PUBLIC dgdda
 			PUBLIC dgllvmforkjoin)
 
-add_library(dgllvmthreadregions SHARED "")
-include(${CMAKE_CURRENT_SOURCE_DIR}/llvm/ThreadRegions/CMakeLists.txt)
+add_library(dgllvmthreadregions SHARED
+            llvm/ThreadRegions/Nodes/Node.cpp
+            llvm/ThreadRegions/Nodes/GeneralNode.cpp
+            llvm/ThreadRegions/Nodes/ForkNode.cpp
+            llvm/ThreadRegions/Nodes/JoinNode.cpp
+            llvm/ThreadRegions/Nodes/LockNode.cpp
+            llvm/ThreadRegions/Nodes/UnlockNode.cpp
+            llvm/ThreadRegions/Nodes/EntryNode.cpp
+            llvm/ThreadRegions/Nodes/ExitNode.cpp
+            llvm/ThreadRegions/Nodes/CallNode.cpp
+            llvm/ThreadRegions/Nodes/CallFuncPtrNode.cpp
+            llvm/ThreadRegions/Nodes/CallReturnNode.cpp
+            llvm/ThreadRegions/Nodes/ReturnNode.cpp
+            llvm/ThreadRegions/Nodes/NodeIterator.cpp
+            llvm/ThreadRegions/Graphs/BlockGraph.cpp
+            llvm/ThreadRegions/Graphs/FunctionGraph.cpp
+            llvm/ThreadRegions/Graphs/GraphBuilder.cpp
+            llvm/ThreadRegions/Graphs/ThreadRegionsBuilder.cpp
+            llvm/ThreadRegions/Graphs/CriticalSectionsBuilder.cpp
+            llvm/ThreadRegions/Graphs/ControlFlowGraph.cpp
+	    llvm/ThreadRegions/ThreadRegion.cpp
+            llvm/ThreadRegions/MayHappenInParallel.cpp)
 target_include_directories(dgllvmthreadregions
-        PUBLIC
-            ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
+        PUBLIC ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
 target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta
                                           PRIVATE dgllvmforkjoin)
 
