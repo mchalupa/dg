@@ -298,6 +298,13 @@ static void dumpFunStats(const llvm::Function& F) {
     std::cout << "  DFS max depth: " << maxdepth << "\n";
 }
 
+static inline std::unique_ptr<LLVMControlDependenceAnalysis>
+createAnalysis(llvm::Module *M, const LLVMControlDependenceAnalysisOptions& opts) {
+    return std::unique_ptr<LLVMControlDependenceAnalysis>(
+	new LLVMControlDependenceAnalysis(M, opts)
+    );
+}
+
 int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
@@ -335,43 +342,43 @@ int main(int argc, char *argv[])
                           std::unique_ptr<LLVMControlDependenceAnalysis>,
                           size_t>> analyses;
 
-    clock_t start, end, elapsed, total = 0;
+    clock_t start, end, elapsed;
     auto& opts = options.dgOptions.CDAOptions;
     if (scd) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
-        analyses.emplace_back("scd", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("scd", createAnalysis(M.get(), opts), 0);
     }
     if (ntscd) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD;
-        analyses.emplace_back("ntscd", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("ntscd", createAnalysis(M.get(), opts), 0);
     }
     if (ntscd2) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD2;
-        analyses.emplace_back("ntscd2", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("ntscd2", createAnalysis(M.get(), opts), 0);
     }
     if (ntscd_ranganath) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_RANGANATH;
-        analyses.emplace_back("ntscd-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("ntscd-ranganath", createAnalysis(M.get(), opts), 0);
     }
     if (ntscd_legacy) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_LEGACY;
-        analyses.emplace_back("ntscd-legacy", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("ntscd-legacy", createAnalysis(M.get(), opts), 0);
     }
     if (dod) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD;
-        analyses.emplace_back("dod", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("dod", createAnalysis(M.get(), opts), 0);
     }
     if (dod_ranganath) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DOD_RANGANATH;
-        analyses.emplace_back("dod-ranganath", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("dod-ranganath", createAnalysis(M.get(), opts), 0);
     }
     if (dod_ntscd) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::DODNTSCD;
-        analyses.emplace_back("dod+ntscd", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("dod+ntscd", createAnalysis(M.get(), opts), 0);
     }
     if (scc) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::STRONG_CC;
-        analyses.emplace_back("scc", new LLVMControlDependenceAnalysis(M.get(), opts), 0);
+        analyses.emplace_back("scc", createAnalysis(M.get(), opts), 0);
     }
 
     if (analyses.empty()) {
