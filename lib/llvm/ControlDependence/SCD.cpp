@@ -31,7 +31,7 @@ namespace llvmdg {
 
 class PostDominanceFrontiers {
     using BBlockT = llvm::BasicBlock;
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
+#if (LLVM_VERSION_MAJOR < 5)
     using DomSetMapType = typename llvm::DominanceFrontierBase<llvm::BasicBlock>::DomSetMapType;
     using DomSetType = typename llvm::DominanceFrontierBase<llvm::BasicBlock>::DomSetType;
 #else
