@@ -1,4 +1,4 @@
-# The experience of compiling DG on Ubuntu Trusty
+# The experience with compiling DG on Ubuntu Trusty
 
 This is my experience with compiling DG on (a clean installation of) Ubuntu Xenial for different versions of LLVM.
 Compiling DG with LLVM built from sources should work fine, so here I focus only on the compilation
@@ -28,7 +28,8 @@ only option is to build LLVM from sources or use our CI package
 
 ## LLVM >= 3.9
 
-Compiling DG with system LLVM 3.9 and higher should work out of the box.
+Compiling DG with system LLVM 3.9 and higher (Xenial has packages
+for LLVM 3.9, 4.0, 5.0, 6.0, and 8.0) should work out of the box.
 After the installation of prerequisities, just install LLVM, configure DG
 and compile (replace `-3.9` with the desired version of LLVM):
 

@@ -1,4 +1,4 @@
-# The experience of compiling DG on Ubuntu Trusty
+# The experience with compiling DG on Ubuntu Trusty
 
 This is my experience with compiling DG on (a clean installation of) Ubuntu Trusty for different versions of LLVM.
 To summarize, compiling DG with a custom build of LLVM goes fine on Ubuntu Trusty.
