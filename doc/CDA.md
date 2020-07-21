@@ -1,10 +1,13 @@
 # Control Dependence Analysis
 
-In DG, we implemented two algorithms for the computation of control dependencies.
-The first is the standard (SCD) algorithm due to Ferrante et al. [1] and the other
-is an algorithm that computes Non-termination sensitive control dependence (NTSCD) as
-defined by Ranangath et al.[2]. However, we do not use their algorithm, but our own
-that is described in the master thesis of [Lukáš Tomovič](https://is.muni.cz/th/o1s3u/).
+In DG, we implemented several algorithms for the computation of different control dependencies.
+These  control dependencies are:
+
+ - Standard (SCD) control dependence (Ferrante et al. [1])
+ - Non-termination sensitive control dependence (NTSCD) (Ranangath et al.[2])
+ - Decisive order dependence (DOD) (Ranangath et al.[2])
+ - [experimental/WIP] Strong control closures (Strong CC) (Danicic et al.[3])
+ 
 
 ## Public API
 
@@ -34,6 +37,9 @@ The public API of `LLVMControlDependenceAnalysis` contains several methods:
    
 * `getNoReturns()` return possibly no-returning points of the given function (those are usually calls to functions
   that may not return). If interprocedural analysis is disabled, returns always an empty vector.
+  
+Then there are methods for closure-based algorithms, but these are mostly unimplemented (in fact, the Strong CC algorithm
+works, just these getter methods are not implemented yet).
 
 ## Interprocedural dependencies
 
@@ -61,7 +67,30 @@ object).
 ## Tools
 
 There is the `llvm-cda-dump` tool that dumps the results of control dependence analysis.
-There is also a tool `llvm-ntscd-dump` specialized for showing internals and results of the NTSCD analysis.
+By default, it shows the results directly on LLVM bitcode. You can you the `-ir`switch to see the internal
+representation from the analyses. To select the analysis to run, use the `-cda` switch with one of these options:
+
+|opt             | description                           |
+|----------------|---------------------------------------|
+|`scd`             | standard CD (the default)             |
+|`standard`        | an alias for stanard                  |
+|`classic`         | an alias for standard                 |
+|`ntscd`           | non-termination sensitive CD          |
+|`ntscd2`          | NTSCD (a different implementation)    |
+|`ntscd-ranganath` | Ranganath et al's algorithm for NTSCD (warning: it is incorrect) |
+|`dod`             | Standalone DOD computation            |
+|`dod-ranganath`   | Ranganath et al's algorithm (the original algorithm was incorrect, this is a fixed version) |
+|`dod+ntscd`       | NTSCD + DOD                           |
+|`scc`             | Strong control closures               |
+
+
+Note that `llvm-slicer` takes the very same options.
+
+There are also tools `llvm-ntscd-dump` specialized for showing internals and results of the NTSCD analysis,
+`llvm-cda-bench` that benchmarks a given list of analyses (the list is given without the `-cda` switch,
+e.g., `-ntscd -ntscd2 -dod`, see the help message) on a given program, and `llvm-cda-stress`
+that works like `llvm-cda-bench` with the difference that it generates and uses a random control flow graph
+and it works with only a subset of analyses (all except SCD).
 
 ## Other notes
 
@@ -76,3 +105,5 @@ as we heavily rely on LLVM in computation of post dominators.
 
 [2] Venkatesh Prasad Ranganath, Torben Amtoft, Anindya Banerjee, Matthew B. Dwyer, John Hatcliff:
     A New Foundation for Control-Dependence and Slicing for Modern Program Structures. ESOP 2005: 77-93
+    
+[3] Sebastian Danicic, Richard W.Barraclough, Mark Harman, John D.Howroyd, Ákos Kiss, Michael R.Laurence: A unifying theory of control dependence and its application to arbitrary program structures. Theoretical Computer Science, Volume 412, Issue 49, 2011, Pages 6809-6842
