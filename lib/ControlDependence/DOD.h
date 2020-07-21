@@ -318,9 +318,9 @@ private:
 
         assert(endB && "Do not have (temporary) blue end");
         assert(startR && "Did not find a red node");
-       //if (startB == startR) {
-       //    return; // no DOD
-       //}
+        if (startB == startR) {
+            return; // no DOD
+        }
 
         // now the red sequence
         while (cur != startB) {
