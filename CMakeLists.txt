@@ -89,8 +89,13 @@ if (SVF_DIR)
 
 	if (SVF_INCLUDE)
 	else()
-		# suppose out-of-source build
-		set(SVF_INCLUDE ${SVF_DIR}/../include)
+		if (EXISTS "${SVF_DIR}/include/WPA/Andersen.h")
+			set(SVF_INCLUDE ${SVF_DIR}/include)
+		elseif (EXISTS "${SVF_DIR}/../include/WPA/Andersen.h")
+			set(SVF_INCLUDE ${SVF_DIR}/../include)
+		else()
+			message(FATAL_ERROR "Did not find the directory with SVF headers")
+		endif()
 	endif()
 
 	set(SVF_LIBS Svf Cudd)
