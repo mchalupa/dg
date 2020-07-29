@@ -16,6 +16,7 @@
 
 #include "WPA/Andersen.h" // Andersen analysis from SVF
 #include "SVF-FE/LLVMModule.h" // LLVMModuleSet
+#include "SVF-FE/PAGBuilder.h" // PAGBuilder
 
 #if (__clang__)
 #pragma clang diagnostic push
@@ -186,8 +187,12 @@ public:
 
         auto moduleset = LLVMModuleSet::getLLVMModuleSet();
         _svfModule = moduleset->buildSVFModule(*const_cast<llvm::Module*>(_module));
-		_pta.reset(new Andersen());
-        _pta->analyze(_svfModule);
+
+        PAGBuilder builder;
+        PAG* pag = builder.build(_svfModule);
+
+        _pta.reset(new Andersen(pag));
+        _pta->analyze();
 
         DBG_SECTION_END(pta, "Done running SVF pointer analysis (Andersen)");
         return true;
