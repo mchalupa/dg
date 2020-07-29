@@ -49,6 +49,10 @@ namespace dg {
 
 using pta::Pointer;
 
+using SVF::PAG;
+using SVF::LLVMModuleSet;
+using SVF::PointsTo;
+
 /// Implementation of LLVMPointsToSet that iterates
 //  over the DG's points-to set
 class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
@@ -112,8 +116,8 @@ public:
 // Integration of pointer analysis from SVF
 class SVFPointerAnalysis : public LLVMPointerAnalysis {
     const llvm::Module *_module{nullptr};
-    SVFModule *_svfModule;
-    std::unique_ptr<PointerAnalysis> _pta{};
+    SVF::SVFModule *_svfModule;
+    std::unique_ptr<SVF::PointerAnalysis> _pta{};
 
     PointsTo& getUnknownPTSet() const {
         static PointsTo _unknownPTSet;
@@ -176,6 +180,8 @@ public:
     }
 
     bool run() override {
+        using namespace SVF;
+
         DBG_SECTION_BEGIN(pta, "Running SVF pointer analysis (Andersen)");
 
         auto moduleset = LLVMModuleSet::getLLVMModuleSet();
