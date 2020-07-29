@@ -180,8 +180,9 @@ public:
 
         auto moduleset = LLVMModuleSet::getLLVMModuleSet();
         _svfModule = moduleset->buildSVFModule(*const_cast<llvm::Module*>(_module));
-		_pta.reset(new Andersen());
-        _pta->analyze(_svfModule);
+		PAG* pag = _pta->getPAG();
+		_pta.reset(new Andersen(pag));
+        _pta->analyze();
 
         DBG_SECTION_END(pta, "Done running SVF pointer analysis (Andersen)");
         return true;
