@@ -48,6 +48,7 @@
 namespace dg {
 
 using pta::Pointer;
+using namespace SVF;
 
 /// Implementation of LLVMPointsToSet that iterates
 //  over the DG's points-to set
