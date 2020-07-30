@@ -37,6 +37,18 @@ struct LLVMPointer {
     : value(val), offset(o) {
         assert(val && "nullptr passed as value");
     }
+
+    bool operator==(const LLVMPointer& rhs) const {
+        return value == rhs.value && offset == rhs.offset;
+    }
+
+    ///
+    // Memory locations described by this pointer cover
+    // (are a supperset) the memory locations of the rhs pointer.
+    bool covers(const LLVMPointer& rhs) const {
+        return value == rhs.value &&
+                (offset.isUnknown() || offset == rhs.offset);
+    }
 };
 
 

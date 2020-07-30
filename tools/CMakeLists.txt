@@ -111,10 +111,18 @@ endif (HAVE_SVF)
 	add_executable(llvm-pta-compare llvm-pta-compare.cpp)
 	target_link_libraries(llvm-pta-compare PRIVATE dgllvmpta)
 	target_link_libraries(llvm-pta-compare
+                                PRIVATE dgllvmslicer
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support})
+if (HAVE_SVF)
+	target_link_libraries(llvm-pta-compare PRIVATE ${SVF_LIBS}
+                                               PRIVATE ${llvm_bitwriter}
+                                               PRIVATE ${llvm_transformutils})
+endif (HAVE_SVF)
+
+
 
 	add_executable(llvm-dda-dump llvm-dda-dump.cpp)
 	target_link_libraries(llvm-dda-dump PRIVATE dgllvmdda)
