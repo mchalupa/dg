@@ -83,9 +83,10 @@ class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
         while ((it != PTSet.end())) {
             if (_pag->getPAGNode(*it)->hasValue()) {
                 break;
-            } else {
-                llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
             }
+           //else {
+           //    llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
+           //}
             ++it;
             ++_position;
         }
@@ -130,7 +131,7 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
     PointsTo& getUnknownPTSet() const {
         static PointsTo _unknownPTSet;
         if (_unknownPTSet.empty())
-            _unknownPTSet.set(_pta->getPAG()->getBlkPtr());
+            _unknownPTSet.set(_pta->getPAG()->getBlackHoleNode());
         return _unknownPTSet;
     }
 

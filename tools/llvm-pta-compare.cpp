@@ -51,6 +51,20 @@ llvm::cl::opt<bool> enable_debug("dbg",
     llvm::cl::desc("Enable debugging messages (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> uoff_covers("uoff-covers",
+    llvm::cl::desc("Pointers with unknown offset cover pointers with concrete"
+                   "offsets.(default=true)."),
+    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> unknown_covers("unknown-covers",
+    llvm::cl::desc("Unknown pointers cover all concrete pointers (default=true)."),
+    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> strict("strict",
+    llvm::cl::desc("Compare points-to sets by element by element."
+                   "I.e., uoff-covers=false and unknown-covers=false (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<bool> fi("fi",
     llvm::cl::desc("Run flow-insensitive PTA."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
@@ -70,40 +84,27 @@ llvm::cl::opt<bool> svf("svf",
 #endif
 
 
-static std::string getInstName(const llvm::Value *val) {
+static std::string valToStr(const llvm::Value *val) {
+    using namespace llvm;
+
     std::ostringstream ostr;
-    llvm::raw_os_ostream ro(ostr);
+    raw_os_ostream ro(ostr);
 
-    assert(val);
-    ro << *val;
-    ro.flush();
-
-    // break the string if it is too long
-    return ostr.str();
-}
-
-static void printName(PSNode *node) {
-    if (!node->getUserData<llvm::Value>()) {
-        printf("%p", static_cast<void*>(node));
-        return;
-    }
-
-    std::string nm = getInstName(node->getUserData<llvm::Value>());
-    const char *name = nm.c_str();
-
-    // escape the " character
-    for (int i = 0; name[i] != '\0'; ++i) {
-        // crop long names
-        if (i >= 70) {
-            printf(" ...");
-            break;
+    if (auto *F = dyn_cast<Function>(val)) {
+        ro << "fun '" << F->getName().str() << "'";
+    } else {
+        if (auto *I = dyn_cast<Instruction>(val)) {
+            ro << I->getParent()->getParent()->getName().str();
+            ro << "::";
         }
 
-        if (name[i] == '"')
-            putchar('\\');
-
-        putchar(name[i]);
+        assert(val);
+        ro << *val;
     }
+
+    ro.flush();
+
+    return ostr.str();
 }
 
 static bool verify_ptsets(const llvm::Value *val,
@@ -116,32 +117,44 @@ static bool verify_ptsets(const llvm::Value *val,
     auto ptset1 = A1->getLLVMPointsTo(val);
     auto ptset2 = A2->getLLVMPointsTo(val);
 
+   //llvm::errs() << "Points-to for: " << *val << "\n";
+   //for (const auto& ptr : ptset1) {
+   //    llvm::errs() << "  " << N1 << *ptr.value << "\n";
+   //}
+   //if (ptset1.hasUnknown()) {
+   //    llvm::errs() << N1 << "  unknown\n";
+   //}
+
+   //for (const auto& ptr : ptset2) {
+   //    llvm::errs() << "  " << N2 << *ptr.value << "\n";
+   //}
+   //if (ptset2.hasUnknown()) {
+   //    llvm::errs() << N2 << "  unknown\n";
+   //}
+
     for (const auto& ptr : ptset1) {
         bool found = false;
-        for (const auto& ptr2 : ptset2) {
-            if (ptr == ptr2) {
-                found = true;
-                break;
+        if (unknown_covers && ptset2.hasUnknown()) {
+            found = true;
+        } else {
+            for (const auto& ptr2 : ptset2) {
+                if (ptr == ptr2) {
+                    found = true;
+                    break;
+                } else if (uoff_covers &&
+                           ptr.value == ptr2.value &&
+                           ptr2.offset.isUnknown()) {
+                        found = true;
+                        break;
+                }
             }
-#if 0
-            // either the pointer is there or
-            // FS has (target, offset) and FI has (target, Offset::UNKNOWN),
-            // than everything is fine.
-            if ((ptr2.target->getUserData<llvm::Value>()
-                == ptr.target->getUserData<llvm::Value>())
-                && (ptr2.offset == ptr.offset ||
-                    ptr2.offset.isUnknown()
-                    /* || ptr.offset.isUnknown()*/)) {
-                found = true;
-                break;
-            }
-#endif
         }
 
         if (!found) {
                 llvm::errs() << N1 << " has a pointer that " << N2
                              << " does not:\n";
-                llvm::errs() << "  " << *val <<  " -> " << *ptr.value << "\n";
+                llvm::errs() << "  " << valToStr(val)
+                             <<  " -> " << valToStr(ptr.value) << "\n";
                 ret = false;
         }
     }
@@ -155,6 +168,10 @@ static bool verify_ptsets(llvm::Module *M,
                           LLVMPointerAnalysis *A1,
                           LLVMPointerAnalysis *A2) {
     using namespace llvm;
+
+    if (A1 == A2)
+        return true;
+
     bool ret = true;
 
     for (Function& F : *M) {
@@ -183,7 +200,7 @@ std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
 #endif
 
     if (!M) {
-        SMD.print("llvm-cda-bench", llvm::errs());
+        SMD.print("llvm-pta-compare", llvm::errs());
     }
 
     return M;
@@ -222,6 +239,11 @@ int main(int argc, char *argv[])
         DBG_ENABLE();
     }
 
+    if (strict) {
+        uoff_covers = false;
+        unknown_covers = false;
+    }
+
     llvm::LLVMContext context;
     std::unique_ptr<llvm::Module> M = parseModule(context, options);
     if (!M) {
@@ -237,21 +259,25 @@ int main(int argc, char *argv[])
     auto& opts = options.dgOptions.PTAOptions;
 
     if (fi) {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi,
-        analyses.emplace_back("fi", createAnalysis<DGLLVMPointerAnalysis>(M.get(), opts), 0);
+        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
+        analyses.emplace_back("DG FI",
+                              createAnalysis<DGLLVMPointerAnalysis>(M.get(), opts), 0);
     }
     if (fs) {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fs,
-        analyses.emplace_back("fs", createAnalysis<DGLLVMPointerAnalysis>(M.get(), opts), 0);
+        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fs;
+        analyses.emplace_back("DG FS",
+                              createAnalysis<DGLLVMPointerAnalysis>(M.get(), opts), 0);
     }
     if (fsinv) {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::inv,
-        analyses.emplace_back("fs inv", createAnalysis<DGLLVMPointerAnalysis>(M.get(), opts), 0);
+        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::inv;
+        analyses.emplace_back("DG FSinv",
+                              createAnalysis<DGLLVMPointerAnalysis>(M.get(), opts), 0);
     }
 #ifdef HAVE_SVF
     if (svf) {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::svf,
-        analyses.emplace_back("SVF (Andersen)", createAnalysis<SVFPointerAnalysis>(M.get(), opts), 0);
+        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::svf;
+        analyses.emplace_back("SVF (Andersen)",
+                              createAnalysis<SVFPointerAnalysis>(M.get(), opts), 0);
     }
 #endif
 
