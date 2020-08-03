@@ -107,6 +107,12 @@ static std::string valToStr(const llvm::Value *val) {
     return ostr.str();
 }
 
+static std::string offToStr(const Offset& off) {
+    if (off.isUnknown())
+        return "?";
+    return std::to_string(*off);
+}
+
 static bool verify_ptsets(const llvm::Value *val,
                           const std::string& N1,
                           const std::string& N2,
@@ -154,7 +160,8 @@ static bool verify_ptsets(const llvm::Value *val,
                 llvm::errs() << N1 << " has a pointer that " << N2
                              << " does not:\n";
                 llvm::errs() << "  " << valToStr(val)
-                             <<  " -> " << valToStr(ptr.value) << "\n";
+                             << " -> " << valToStr(ptr.value)
+                             << " + " << offToStr(ptr.offset) << "\n";
                 ret = false;
         }
     }
