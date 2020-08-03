@@ -103,13 +103,41 @@ llvm::cl::opt<bool> _stats("statistics",
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> todot("dot",
-    llvm::cl::desc("Dump to graphviz format (default=false)."),
+    llvm::cl::desc("Dump IR to graphviz format (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dump_ir("ir",
+    llvm::cl::desc("Dump IR of the analysis (DG analyses only) (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 static std::vector<const llvm::Function *> display_only_func;
 
 std::unique_ptr<LLVMPointerAnalysis> PA;
 
+static std::string valToStr(const llvm::Value *val) {
+    using namespace llvm;
+
+    std::ostringstream ostr;
+    raw_os_ostream ro(ostr);
+
+    if (auto *F = dyn_cast<Function>(val)) {
+        ro << "fun '" << F->getName().str() << "'";
+    } else {
+        if (auto *I = dyn_cast<Instruction>(val)) {
+            ro << I->getParent()->getParent()->getName().str();
+            ro << "::";
+        }
+
+        assert(val);
+        ro << *val;
+    }
+
+    ro.flush();
+
+    return ostr.str();
+}
+
+// FIXME: get rid of this...
 static std::string getInstName(const llvm::Value *val) {
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
@@ -810,6 +838,61 @@ int main(int argc, char *argv[]) {
     TimeMeasure tm;
     auto& opts = options.dgOptions.PTAOptions;
 
+#ifdef HAVE_SVF
+    if (opts.isSVF()) {
+        assert(dump_iteration == 0 && "SVF does not support -iteration");
+        assert(!dump_graph_only && "SVF does not support -dump_graph_only");
+        assert(!dump_graph_only && "SVF does not support -statistics yet");
+    }
+#endif
+
+    if (!dump_ir) {
+        std::unique_ptr<LLVMPointerAnalysis> llvmpta;
+
+#ifdef HAVE_SVF
+        if (opts.isSVF())
+            llvmpta.reset(new SVFPointerAnalysis(M.get(), opts));
+        else
+#endif
+            llvmpta.reset(new DGLLVMPointerAnalysis(M.get(), opts));
+
+        tm.start();
+        llvmpta->run();
+        tm.stop();
+        tm.report("INFO: Pointer analysis took");
+
+        for (auto& F: *M.get()) {
+            for (auto& B : F) {
+                for (auto& I : B) {
+                    if (!I.getType()->isPointerTy() &&
+                        !I.getType()->isIntegerTy()) {
+                        continue;
+                    }
+
+                    std::cout << valToStr(&I) << "\n";
+                    auto pts = llvmpta->getLLVMPointsTo(&I);
+                    for (const auto& ptr: pts) {
+                        std::cout << "  -> " << valToStr(ptr.value) << "\n";
+                    }
+                    if (pts.hasUnknown()) {
+                        std::cout << "  -> unknown\n";
+                    }
+                    if (pts.hasNull()) {
+                        std::cout << "  -> null\n";
+                    }
+                    if (pts.hasInvalidated()) {
+                        std::cout << "  -> invalidated\n";
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+
+    ///
+    // Dumping the IR of pointer analysis
+    //
     DGLLVMPointerAnalysis PTA(M.get(), opts);
 
     tm.start();
@@ -817,6 +900,8 @@ int main(int argc, char *argv[]) {
     PTA.initialize();
 
     if (dump_graph_only) {
+        tm.stop();
+        tm.report("INFO: Pointer analysis (building graph) took");
         dumpPointerGraph(&PTA, opts.analysisType);
         return 0;
     }

@@ -75,7 +75,7 @@ Possible options are:
 
 Option                | Values      | Description
 ----------------------|-------------|-------------
-`-pta`                | fi, fs, inv  | Type of analysis - flow-insensitive, flow-sensitive,                                     flow-sensitive with tracking invalidated memory
+`-pta`                | fi, fs, inv, svf | Type of analysis - flow-insensitive, flow-sensitive,                                     flow-sensitive with tracking invalidated memory, and SVF (if available)
 `-pta-field-sensitive` | BYTES       | Set field sensitivity: how many bytes to track on each object
 `-callgraph`          |             | Dump also call graph
 `-callgraph-only`     |             | Dump only call graph
@@ -84,6 +84,8 @@ Option                | Values      | Description
 `-stats`              |             | Dump statistics
 `-entry`              | FUN         | Set entry function to FUN
 `-dbg`                |             | Show debugging messages
+`-ir`                 |             | Dump internal representation of the analysis
+`-dot`                |             | Dump IR and results of the analysis to .dot file
 `-v` `-vv`            |             | Verbose output
 
-Further, there is the tool `llvm-pta-ben` for evaulation of files annotated according to the [PTABen](https://github.com/SVF-tools/PTABen) project, and `llvm-pta-compare` that compares results of FS and FI PTA analyses.
+Further, there is the tool `llvm-pta-ben` for evaulation of files annotated according to the [PTABen](https://github.com/SVF-tools/PTABen) project, and `llvm-pta-compare` that compares results different pointer analyses.
