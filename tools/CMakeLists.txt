@@ -46,14 +46,15 @@ if (LLVM_DG)
 	add_executable(llvm-cg-dump llvm-cg-dump.cpp)
 	target_link_libraries(llvm-cg-dump PRIVATE dgllvmslicer
 					    PRIVATE dgllvmpta
-					    PRIVATE ${SVF_LIBS}
 					    PRIVATE ${llvm_support}
 					    PRIVATE ${llvm_analysis}
 					    PRIVATE ${llvm_irreader}
 					    PRIVATE ${llvm_core}
 					    )
 if (HAVE_SVF)
-	target_link_libraries(llvm-cg-dump PRIVATE ${llvm_bitwriter}
+	target_link_libraries(llvm-cg-dump
+                                           PRIVATE ${SVF_LIBS}
+                                           PRIVATE ${llvm_bitwriter}
                                            PRIVATE ${llvm_transformutils})
 endif (HAVE_SVF)
 
