@@ -5,61 +5,61 @@ DG project contains a static slicer for LLVM bitcode. The slicer supports backwa
 ### Using the llvm-slicer
 
 The compiled `llvm-slicer` can be found in the `tools/` subdirectory. First, you need to compile your
-program into LLVM IR (make sure you are using the correct version of LLVM binaries if you have more of them):
+program into LLVM IR (make sure you are using the correct version of LLVM binaries if you have more than one):
 
 ```
 clang -c -emit-llvm source.c -o bitecode.bc
 ```
 
 If the program is split into more source files (exactly one of them must contain main),
-you must compile all of them separately (as above) and then link the bitcodes together using `llvm-link`:
+you must compile each of them separately (as above) and then link the bitcodes together using `llvm-link`:
 
 ```
 llvm-link bitecode1.bc bitecode2.bc ... -o bitecode.bc
 ```
 
-Now you're ready to slice the program:
+Now, you're ready to slice the program:
 
 ```
 ./llvm-slicer -c slicing_criterion bitecode.bc
 ```
 
-The `slicing_criterion` is a call-site of some function or `ret` to slice
-with respect to the return value of the main function. Alternatively, if the program was compiled with `-g` option,
-you can also use `line:variable` as slicing criterion. Slicer then will try finding a use of the variable
-on the provided line and marks this use as slicing criterion (if found).
+The `slicing_criterion` is either a call-site of a function or `ret` to slice
+with respect to the return value of the main function. Alternatively, if the program was compiled with the `-g` option,
+you can also use `line:variable` as slicing criterion. Slicer will then try to find a use of the variable
+on the provided line and mark this use, if found, as a slicing criterion.
 If no line is provided (e.g. `:x`), then the variable is considered to be global variable.
 You can provide a comma-separated list of slicing criterions, e.g.: `-c crit1,crit2,crit3`.
-More about specifying slicing criteria can be faound later in this document.
+More about specifying slicing criteria can be found [later](#slicing-criteria) in this document.
 
 You can view the dependence graph that was used to slice the bitcode by exporting it into .dot file.
-To achieve this, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool
+To achieve this, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool like
 `llvm-dg-dump` (this one is deprecated, but should still work):
 
 ```
 ./llvm-dg-dump bitecode.bc > file.dot
 ```
 
-You can highligh nodes from the dependence graph that will be in the slice using `-mark` switch:
+You can highlight nodes from the dependence graph that will be in the slice using the `-mark` switch:
 
 ```
 ./llvm-dg-dump -mark slicing_criterion bitecode.bc > file.dot
 ```
 
 When using `-dump-dg` with `llvm-slicer`, the nodes should be already highlighted.
-Also a .dot file with the sliced dependence graph is generated (similar behviour
+Also a .dot file with the sliced dependence graph is generated (similar behaviour
 can be achieved with `llvm-dg-dump` using the `-slice` switch).
 
 If the dependence graph is too big to be displayed using .dot files, you can debug/see the slice right from
-the LLVM. Just pass `-annotate` option to the `llvm-slicer` and it will store readable annotated LLVM in `file-debug.ll`
-(where `file.bc` is the name of file being sliced). There are more options (try `llvm-slicer -help` for all of them),
+the LLVM language. Just pass `-annotate` option to the `llvm-slicer` and it will store readable annotated LLVM in `file-debug.ll`
+(where `file.bc` is the name of file being sliced). There are more options (try `llvm-slicer -help` for show all of them),
 but the most interesting is probably the `-annotate slice`:
 
 ```
 ./llvm-slicer -c crit -annotate slice code.bc
 ```
 
-The content of code-debug.ll will look like this:
+The content of `code-debug.ll` will look like this:
 
 ```LLVM
 ; <label>:25                                      ; preds = %20
@@ -83,7 +83,7 @@ The content of code-debug.ll will look like this:
 
 Other options for `-annotate` are `pta`, `dd`, `cd`, `memacc` to annotate points-to information,
 data dependencies, control dependencies or memory accessed by instructions.
-You can provide comma-separated list of more options (`-annotate cd,slice,dd`)
+You can provide comma-separated list of multiple options (`-annotate cd,slice,dd`)
 
 ### Example
 
@@ -115,7 +115,7 @@ int main(void)
 }
 ```
 
-Let's say the program is stored in a file `fact.c`. We translate it into LLVM bitcode and then slice:
+Let's say the program is stored in a file `fact.c`. We translate it into LLVM bitcode and then slice it:
 
 ```
 $ cd tools
@@ -123,7 +123,7 @@ $ clang -c -emit-llvm fact.c -o fact.bc
 $ ./llvm-slicer -c __assert_fail fact.bc
 ```
 
-The output is in fact.sliced, we can look at the result using `llvm-dis` or `sliced-diff.sh` script:
+The output is in `fact.sliced`, we can look at the result using `llvm-dis` or `sliced-diff.sh` script:
 
 ```LLVM
 ; Function Attrs: nounwind uwtable
@@ -153,10 +153,10 @@ safe_return:                                      ; preds = %1
 
 ### Slicing criteria
 
-The `slicing_criterion` is a call-site of some function or `ret` to slice
-with respect to the return value of the entry function. Alternatively, if the program was compiled with `-g` option,
-you can also use `line:variable` as slicing criterion. Slicer then will try finding a use of the variable
-on the provided line and marks this use as slicing criterion (if found). `llvm-slicer` should then inform you
+The `slicing_criterion` is either a call-site of a function or `ret` to slice
+with respect to the return value of the main function. Alternatively, if the program was compiled with the `-g` option,
+you can also use `line:variable` as slicing criterion. Slicer will then try to find a use of the variable
+on the provided line and mark this use, if found, as a slicing criterion. `llvm-slicer` should then inform you
 that it matched a slicing criterion with a given instruction.
 If no line is provided (e.g. `:x`), then the variable is considered to be a global variable.
 You can provide a comma-separated list of slicing criteria, e.g.: `-c crit1,crit2,crit3`.
@@ -173,8 +173,7 @@ For example, consider this program:
 8.   print(a)
 }
 ```
-
-You can say that the slicing criteria are calls to function `check` (`-c check`),
+Assuming that the slicing criteria are calls to function `check` (`-c check`),
 therefore the slicer will detect the calls to `check` and slice the code w.r.t. these calls
 (including their arguments, as the arguments are used by the calls).
 Therefore, the slice w.r.t. `-c check` would correspond to (if mapped back to C):
@@ -189,7 +188,7 @@ Therefore, the slice w.r.t. `-c check` would correspond to (if mapped back to C)
 }
 ```
 
-The same way you can say that the slicing criteria are calls to `check2`, in which case the slice would be just:
+The same way you can specify the slicing criteria are calls to `check2`, in which case the slice would be just:
 ```C
 7. check2();
 ```
