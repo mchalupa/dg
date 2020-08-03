@@ -93,7 +93,8 @@ endif (HAVE_SVF)
 	add_dependencies(llvm-slicer gitversion)
 
 	add_executable(llvm-pta-dump llvm-pta-dump.cpp)
-	target_link_libraries(llvm-pta-dump PRIVATE dgllvmpta)
+	target_link_libraries(llvm-pta-dump PRIVATE dgllvmpta
+                                            PRIVATE dgllvmslicer)
 	target_link_libraries(llvm-pta-dump
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
