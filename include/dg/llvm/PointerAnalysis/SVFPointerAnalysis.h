@@ -124,7 +124,7 @@ public:
 // Integration of pointer analysis from SVF
 class SVFPointerAnalysis : public LLVMPointerAnalysis {
     const llvm::Module *_module{nullptr};
-    SVF::SVFModule *_svfModule;
+    SVF::SVFModule *_svfModule{nullptr};
     std::unique_ptr<SVF::PointerAnalysis> _pta{};
 
     PointsTo& getUnknownPTSet() const {
@@ -200,6 +200,7 @@ public:
         PAG* pag = builder.build(_svfModule);
 
         _pta.reset(new Andersen(pag));
+        _pta->disablePrintStat();
         _pta->analyze();
 
         DBG_SECTION_END(pta, "Done running SVF pointer analysis (Andersen)");
