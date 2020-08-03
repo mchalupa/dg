@@ -1,13 +1,28 @@
 #ifndef DG_SVF_POINTER_ANALYSIS_H_
 #define DG_SVF_POINTER_ANALYSIS_H_
 
-// ignore unused parameters in LLVM libraries
+#ifndef HAVE_SVF
+#error "Do not have SVF"
+#endif
+
 #if (__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreorder"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-qualifiers"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
 #else
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Woverloaded-virtual"
 #endif
 
 #include <llvm/IR/Function.h>
@@ -19,19 +34,15 @@
 #include "SVF-FE/PAGBuilder.h" // PAGBuilder
 
 #if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreorder"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-qualifiers"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#pragma clang diagnostic pop // ignore -Wunused-parameter
+#pragma clang diagnostic pop // ignore -Wreorder
+#pragma clang diagnostic pop // ignore -ignored-qualifiers
+#pragma clang diagnostic pop // ignore -Woverloaded-virtual
 #else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreorder"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-qualifiers"
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
 #endif
 
 #include "dg/PointerAnalysis/Pointer.h"
@@ -41,10 +52,6 @@
 #include "dg/llvm/PointerAnalysis/LLVMPointsToSet.h"
 
 #include "dg/util/debug.h"
-
-#ifndef HAVE_SVF
-#error "Do not have SVF"
-#endif
 
 namespace dg {
 
@@ -187,6 +194,7 @@ public:
 
         auto moduleset = LLVMModuleSet::getLLVMModuleSet();
         _svfModule = moduleset->buildSVFModule(*const_cast<llvm::Module*>(_module));
+        assert(_svfModule && "Failed building SVF module");
 
         PAGBuilder builder;
         PAG* pag = builder.build(_svfModule);
