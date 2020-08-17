@@ -296,7 +296,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
         return true;
 
     if (func->size() == 0) {
-        if (opts.getAllocationFunction(func->getName())
+        if (opts.getAllocationFunction(func->getName().str())
             != AllocationFunction::NONE)
             // we need memory allocations
             return true;

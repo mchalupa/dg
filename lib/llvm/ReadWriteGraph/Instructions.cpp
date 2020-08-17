@@ -259,10 +259,10 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
 
     if (func->size() == 0) {
         // we have a model for this function
-        if (opts.getFunctionModel(func->getName()))
+        if (opts.getFunctionModel(func->getName().str()))
             return true;
         // memory allocation
-        if (opts.isAllocationFunction(func->getName()))
+        if (opts.isAllocationFunction(func->getName().str()))
             return true;
 
         if (func->isIntrinsic()) {
