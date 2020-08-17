@@ -284,7 +284,11 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
         return false;
 
     const CallInst *CInst = cast<CallInst>(Inst);
+#if LLVM_VERSION_MAJOR >= 8
+    const Value *calledVal = CInst->getCalledOperand()->stripPointerCasts();
+#else
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+#endif
     const Function *func = dyn_cast<Function>(calledVal);
 
     if (!func)

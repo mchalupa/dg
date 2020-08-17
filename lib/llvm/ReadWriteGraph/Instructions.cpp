@@ -205,7 +205,11 @@ NodesSeq<RWNode>
 LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
     using namespace llvm;
     const CallInst *CInst = cast<CallInst>(Inst);
+#if LLVM_VERSION_MAJOR >= 8
+    const Value *calledVal = CInst->getCalledOperand()->stripPointerCasts();
+#else
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+#endif
     static bool warned_inline_assembly = false;
 
     if (CInst->isInlineAsm()) {
@@ -242,7 +246,11 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
         return false;
 
     const CallInst *CInst = cast<CallInst>(Inst);
+#if LLVM_VERSION_MAJOR >= 8
+    const Value *calledVal = CInst->getCalledOperand()->stripPointerCasts();
+#else
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+#endif
     const Function *func = dyn_cast<Function>(calledVal);
 
     if (!func)

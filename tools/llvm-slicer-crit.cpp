@@ -303,7 +303,11 @@ static bool isCallTo(LLVMNode *callNode, const std::set<std::string>& names)
     // but is not called via function pointer
     if (!callNode->hasSubgraphs()) {
         const CallInst *callInst = cast<CallInst>(callNode->getValue());
+#if LLVM_VERSION_MAJOR >= 8
+        const Value *calledValue = callInst->getCalledOperand();
+#else
         const Value *calledValue = callInst->getCalledValue();
+#endif
         const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
         // in the case we haven't run points-to analysis
         if (!func)

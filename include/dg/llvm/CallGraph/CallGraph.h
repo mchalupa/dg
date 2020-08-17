@@ -130,7 +130,11 @@ class LLVMCallGraphImpl : public CallGraphImpl {
                        ADT::SetQueue<QueueFIFO<const llvm::Function*>>& queue) {
         for (auto& I : B) {
             if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
+#if LLVM_VERSION_MAJOR >= 8
+                auto pts = _pta->getLLVMPointsTo(C->getCalledOperand());
+#else
                 auto pts = _pta->getLLVMPointsTo(C->getCalledValue());
+#endif
                 for (const auto& ptr : pts) {
                     auto *F = llvm::dyn_cast<llvm::Function>(ptr.value);
                     if (!F)

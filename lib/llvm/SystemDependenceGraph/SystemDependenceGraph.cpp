@@ -23,7 +23,11 @@ struct SDGBuilder {
     }
 
     sdg::DGNode& buildCallNode(sdg::DependenceGraph& dg, llvm::CallInst *CI) {
+#if LLVM_VERSION_MAJOR >= 8
+        auto *CV = CI->getCalledOperand()->stripPointerCasts();
+#else
         auto *CV = CI->getCalledValue()->stripPointerCasts();
+#endif
         if (!CV) {
             assert(false && "funcptr not implemnted yet");
             abort();
