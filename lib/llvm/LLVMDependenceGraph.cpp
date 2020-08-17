@@ -439,7 +439,11 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
     using namespace llvm;
 
     if (CallInst *CInst = dyn_cast<CallInst>(val)) {
+#if LLVM_VERSION_MAJOR >= 8
+        Value *strippedValue = CInst->getCalledOperand()->stripPointerCasts();
+#else
         Value *strippedValue = CInst->getCalledValue()->stripPointerCasts();
+#endif
         Function *func = dyn_cast<Function>(strippedValue);
         // if func is nullptr, then this is indirect call
         // via function pointer. If we have the points-to information,
@@ -858,7 +862,11 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
     // but is not called via function pointer
     if (!callNode->hasSubgraphs()) {
         const CallInst *callInst = cast<CallInst>(callNode->getValue());
+#if LLVM_VERSION_MAJOR >= 8
+        const Value *calledValue = callInst->getCalledOperand();
+#else
         const Value *calledValue = callInst->getCalledValue();
+#endif
         const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
         // in the case we haven't run points-to analysis
         if (!func)
@@ -893,7 +901,11 @@ static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::strin
     // but is not called via function pointer
     if (!callNode->hasSubgraphs()) {
         const CallInst *callInst = cast<CallInst>(callNode->getValue());
+#if LLVM_VERSION_MAJOR >= 8
+        const Value *calledValue = callInst->getCalledOperand();
+#else
         const Value *calledValue = callInst->getCalledValue();
+#endif
         const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
         // in the case we haven't run points-to analysis
         if (!func)

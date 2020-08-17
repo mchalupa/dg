@@ -76,7 +76,12 @@ LLVMInterprocCD::computeFuncInfo(const llvm::Function *fun,
                 continue;
             }
 
-            for (auto *calledFun : getCalledFunctions(C->getCalledValue())) {
+#if LLVM_VERSION_MAJOR >= 8
+            auto *val = C->getCalledOperand();
+#else
+            auto *val = C->getCalledValue();
+#endif
+            for (auto *calledFun : getCalledFunctions(val)) {
                 if (calledFun->isDeclaration())
                     continue;
 
@@ -125,7 +130,12 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
             }
 
             bool maynoret = false;
-            for (auto *calledFun : getCalledFunctions(C->getCalledValue())) {
+#if LLVM_VERSION_MAJOR >= 8
+            auto *val = C->getCalledOperand();
+#else
+            auto *val = C->getCalledValue();
+#endif
+            for (auto *calledFun : getCalledFunctions(val)) {
                 if (calledFun->isDeclaration())
                     continue;
 

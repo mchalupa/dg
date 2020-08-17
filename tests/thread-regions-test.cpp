@@ -489,7 +489,11 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
             for (auto & instruction : block) {
                 if (isa<llvm::CallInst>(instruction)) {
                     auto callInst = dyn_cast<llvm::CallInst>(&instruction);
+#if LLVM_VERSION_MAJOR >= 8
+                    auto calledValue = callInst->getCalledOperand();
+#else
                     auto calledValue = callInst->getCalledValue();
+#endif
                     if (isa<llvm::Function>(calledValue)) {
                         auto function = dyn_cast<llvm::Function>(calledValue);
                         if (function->getName().equals("pthread_exit")) {
@@ -527,7 +531,11 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
 
         for (auto instruction : callInstruction) {
             auto callInst = dyn_cast<llvm::CallInst>(instruction);
+#if LLVM_VERSION_MAJOR >= 8
+            auto calledValue = callInst->getCalledOperand();
+#else
             auto calledValue = callInst->getCalledValue();
+#endif
             if (!isa<llvm::Function>(calledValue)) {
                 funcPtrCall = callInst;
             }

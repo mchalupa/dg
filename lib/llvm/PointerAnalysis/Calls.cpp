@@ -12,7 +12,12 @@ LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst) {
     using namespace llvm;
 
     const CallInst *CInst = cast<CallInst>(Inst);
+
+#if LLVM_VERSION_MAJOR >= 8
+    const Value *calledVal = CInst->getCalledOperand()->stripPointerCasts();
+#else
     const Value *calledVal = CInst->getCalledValue()->stripPointerCasts();
+#endif
 
     if (CInst->isInlineAsm()) {
         return createAsm(Inst);

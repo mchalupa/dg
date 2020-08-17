@@ -196,7 +196,12 @@ void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction,
                                          bool &createBlock,
                                          bool &createCallReturn) {
     auto * callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
-    auto llvmFunctions = getCalledFunctions(callInst->getCalledValue());
+#if LLVM_VERSION_MAJOR >= 8
+    auto * val = callInst->getCalledOperand();
+#else
+    auto * val = callInst->getCalledValue();
+#endif
+    auto llvmFunctions = getCalledFunctions(val);
 
     for (auto llvmFunction : llvmFunctions) {
         if (llvmFunction->size() > 0) {

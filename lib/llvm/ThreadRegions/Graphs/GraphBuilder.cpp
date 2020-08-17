@@ -483,7 +483,11 @@ GraphBuilder::NodeSequence GraphBuilder::insertFunction(const Function *function
 }
 
 GraphBuilder::NodeSequence GraphBuilder::insertFunctionPointerCall(const CallInst *callInstruction) {
-    auto calledValue = callInstruction->getCalledValue();
+#if LLVM_VERSION_MAJOR >= 8
+    auto *calledValue = callInstruction->getCalledOperand();
+#else
+    auto *calledValue = callInstruction->getCalledValue();
+#endif
     auto functions = getCalledFunctions(calledValue, pointsToAnalysis_);
 
     auto callFuncPtrNode = addNode(createNode<NodeType::CALL_FUNCPTR>(callInstruction));
