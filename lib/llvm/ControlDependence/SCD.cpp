@@ -48,7 +48,13 @@ public:
 
         llvm::BasicBlock *BB = Node->getBlock();
         auto &S = frontiers[BB];
-        if (DT.getRoots().empty())
+
+#if LLVM_VERSION_MAJOR >= 11
+        bool empty_roots = DT.root_size() == 0;
+#else
+        bool empty_roots = DT.getRoots().empty();
+#endif
+        if (empty_roots)
             return S;
 
         // calculate DFlocal[Node]
