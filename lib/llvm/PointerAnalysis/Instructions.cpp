@@ -103,9 +103,13 @@ LLVMPointerGraphBuilder::createSelect(const llvm::Instruction *Inst) {
 Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
                            const llvm::DataLayout& DL) {
     Offset off{0};
+#if LLVM_VERSION_MAJOR >= 11
+    llvm::Type *type = EV->getAggregateOperand()->getType();
+#else
     llvm::CompositeType *type
         = llvm::dyn_cast<llvm::CompositeType>(EV->getAggregateOperand()->getType());
     assert(type && "Don't have composite type in extractvalue");
+#endif
 
     for (unsigned idx : EV->getIndices()) {
         assert(type->indexValid(idx) && "Invalid index");
@@ -114,12 +118,19 @@ Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
             off += SL->getElementOffset(idx);
         } else {
             // array or vector, so just move in the array
-            auto seqTy = llvm::cast<llvm::SequentialType>(type);
-            off += idx + DL.getTypeAllocSize(seqTy->getElementType());
+            if (auto *arrTy = llvm::dyn_cast<llvm::ArrayType>(type))
+                off += idx + DL.getTypeAllocSize(arrTy->getElementType());
+            else {
+                auto *vecTy = llvm::cast<llvm::VectorType>(type);
+                off += idx + DL.getTypeAllocSize(vecTy->getElementType());
+            }
         }
 
-        type = llvm::dyn_cast<llvm::CompositeType>(type->getTypeAtIndex(idx));
-        if (!type)
+#if LLVM_VERSION_MAJOR >= 11
+        if (!llvm::GetElementPtrInst::getTypeAtIndex(type, idx))
+#else
+        if (!llvm::dyn_cast<llvm::CompositeType>(type->getTypeAtIndex(idx)))
+#endif
             break; // we're done
     }
 
