@@ -386,7 +386,7 @@ GraphBuilder::NodeSequence GraphBuilder::buildGeneralCallInstruction(const CallI
 }
 
 GraphBuilder::NodeSequence GraphBuilder::insertUndefinedFunction(const Function *function, const CallInst *callInstruction) {
-    std::string funcName = function->getName();
+    std::string funcName = function->getName().str();
 
     if (funcName == "pthread_create") {
         return insertPthreadCreate(callInstruction);

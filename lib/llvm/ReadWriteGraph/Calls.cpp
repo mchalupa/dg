@@ -73,7 +73,7 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(
             continue;
         }
 
-        if (auto model = _options.getFunctionModel(F->getName())) {
+        if (auto model = _options.getFunctionModel(F->getName().str())) {
             called_values.push_back(funcFromModel(model, CInst));
         } else if (F->isDeclaration()) {
             called_values.push_back(createCallToUndefinedFunction(F, CInst));
@@ -353,7 +353,7 @@ LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(const llvm::Function *f
         */
     }
 
-    auto type = _options.getAllocationFunction(function->getName());
+    auto type = _options.getAllocationFunction(function->getName().str());
     if (type != AllocationFunction::NONE) {
         if (type == AllocationFunction::REALLOC)
             return createRealloc(CInst);

@@ -56,7 +56,7 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const l
     // 'malloc' etc.
     if (func->size() == 0) {
         /// memory allocation (malloc, calloc, etc.)
-        auto type =_options.getAllocationFunction(func->getName());
+        auto type =_options.getAllocationFunction(func->getName().str());
         if (type != AllocationFunction::NONE) {
             return createDynamicMemAlloc(CInst, type);
         } else if (func->isIntrinsic()) {
