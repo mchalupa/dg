@@ -128,6 +128,7 @@ add_dependencies(check llvm-dg-test)
 # slicing tests
 # --------------------------------------------------
 add_subdirectory(slicing)
+add_dependencies(check llvm-slicer)
 
 # --------------------------------------------------
 # benchmarking
