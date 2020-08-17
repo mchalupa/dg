@@ -44,9 +44,7 @@ void LLVMPointerGraphBuilder::FuncGraph::blockAddSuccessors(std::set<const llvm:
                                                             LLVMPointerGraphBuilder::PSNodesBlock& blk,
                                                             const llvm::BasicBlock& block) {
 
-    for (llvm::succ_const_iterator
-         S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
-
+    for (auto S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
          // we already processed this block? Then don't try to add the edges again
          if (!found_blocks.insert(*S).second)
             continue;
