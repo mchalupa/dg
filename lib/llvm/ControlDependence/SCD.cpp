@@ -8,12 +8,11 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Function.h>
+#include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/Analysis/PostDominators.h>
 //#include "llvm/Analysis/IteratedDominanceFrontier.h"
 
-#include "llvm/Analysis/DominanceFrontier.h"
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
