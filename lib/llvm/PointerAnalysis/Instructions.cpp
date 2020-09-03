@@ -112,16 +112,18 @@ Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
 #endif
 
     for (unsigned idx : EV->getIndices()) {
-        assert(type->indexValid(idx) && "Invalid index");
         if (llvm::StructType *STy = llvm::dyn_cast<llvm::StructType>(type)) {
+            assert(STy->indexValid(idx) && "Invalid index");
             const llvm::StructLayout *SL = DL.getStructLayout(STy);
             off += SL->getElementOffset(idx);
         } else {
             // array or vector, so just move in the array
-            if (auto *arrTy = llvm::dyn_cast<llvm::ArrayType>(type))
+            if (auto *arrTy = llvm::dyn_cast<llvm::ArrayType>(type)) {
+                assert(idx < arrTy->getNumElements() && "Invalid index");
                 off += idx + DL.getTypeAllocSize(arrTy->getElementType());
-            else {
+            } else {
                 auto *vecTy = llvm::cast<llvm::VectorType>(type);
+                assert(idx < vecTy->getNumElements() && "Invalid index");
                 off += idx + DL.getTypeAllocSize(vecTy->getElementType());
             }
         }
