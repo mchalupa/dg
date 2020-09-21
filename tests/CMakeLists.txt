@@ -118,6 +118,7 @@ add_dependencies(check thread-regions-test)
 add_executable(llvm-dg-test llvm-dg-test.cpp)
 target_link_libraries(llvm-dg-test
 			PRIVATE dgllvmdg
+			PRIVATE ${llvm_core}
 			PRIVATE ${llvm_irreader}
 			PRIVATE ${llvm_analysis})
 

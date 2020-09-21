@@ -41,7 +41,7 @@ int main(int argc, const char *argv[]) {
                                          cl::Required,
                                          cl::desc("<input file>"),
                                          cl::init(""));
-    llvm::cl::opt<bool> threads("threads",
+    llvm::cl::opt<bool> threads("consider-threads",
                                 llvm::cl::desc("Consider threads are in input file (default=false)."),
                                 llvm::cl::init(false));
 
