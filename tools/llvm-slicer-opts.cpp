@@ -165,7 +165,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
         llvm::cl::desc("Perform forward slicing\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<bool> threads("threads",
+    llvm::cl::opt<bool> threads("consider-threads",
         llvm::cl::desc("Consider threads are in input file (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
