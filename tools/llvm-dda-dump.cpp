@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <cassert>
+#include <cinttypes>
 #include <cstdio>
 
 // ignore unused parameters in LLVM libraries
@@ -147,12 +148,12 @@ static void printInterval(T& I, const char *pref = nullptr,
     if (I.start.isUnknown())
         printf("[? - ");
     else
-        printf("[%lu - ", *I.start);
+        printf("[%" PRIu64 " - ", *I.start);
 
     if (I.end.isUnknown())
         printf("?]");
     else
-        printf("%lu]", *I.end);
+        printf("%" PRIu64 "]", *I.end);
 
     if (suff)
         printf("%s", suff);
@@ -224,7 +225,7 @@ protected:
         printf("</tr>\n");
 
         if (node->getSize() > 0) {
-              printf("<tr><td></td><td>size: %lu</td></tr>\n", node->getSize());
+              printf("<tr><td></td><td>size: %zu</td></tr>\n", node->getSize());
         }
 
         if (verbose) {
@@ -363,7 +364,7 @@ public:
         }
         printName(n);
         if (n->getSize() > 0)
-            printf(" [size: %lu]", n->getSize());
+            printf(" [size: %zu]", n->getSize());
         putchar('\n');
     }
 
@@ -502,12 +503,12 @@ private:
                 if (def.offset.isUnknown())
                     printf(" [? - ");
                 else
-                    printf(" [%lu - ", *def.offset);
+                    printf(" [%" PRIu64 " - ", *def.offset);
 
                 if (def.len.isUnknown())
                     printf("?]");
                 else
-                    printf("%lu]", *def.offset + (*def.len - 1));
+                    printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
             puts("</td></tr>\n");
         }
     }
@@ -545,12 +546,12 @@ class MemorySSADumper : public Dumper {
                 if (def.offset.isUnknown())
                     printf(" [? - ");
                 else
-                    printf(" [%lu - ", *def.offset);
+                    printf(" [%" PRIu64 " - ", *def.offset);
 
                 if (def.len.isUnknown())
                     printf("?]");
                 else
-                    printf("%lu]", *def.offset + (*def.len - 1));
+                    printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
             puts("</td></tr>\n");
         }
     }

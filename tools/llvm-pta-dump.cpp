@@ -9,6 +9,7 @@
 #include <sstream>
 #include <fstream>
 #include <cassert>
+#include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 
@@ -236,7 +237,7 @@ static void dumpPointer(const Pointer& ptr, bool dot) {
     if (ptr.offset.isUnknown())
         printf(" + UNKNOWN");
     else
-        printf(" + %lu", *ptr.offset);
+        printf(" + %" PRIu64, *ptr.offset);
 }
 
 static void dumpMemoryObject(MemoryObject *mo, int ind, bool dot) {
@@ -253,7 +254,7 @@ static void dumpMemoryObject(MemoryObject *mo, int ind, bool dot) {
                 if (it.first.isUnknown())
                     width = printf("[??]");
                 else
-                    width = printf("[%lu]", *it.first);
+                    width = printf("[%" PRIu64 "]", *it.first);
 
                 // print a new line if there are multiple items
                 if (dot &&
@@ -357,10 +358,10 @@ dumpPSNode(PSNode *n, PTType type) {
     PSNodeAlloc *alloc = PSNodeAlloc::get(n);
     if (alloc &&
         (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
-        printf(" [size: %lu, heap: %u, zeroed: %u]",
+        printf(" [size: %zu, heap: %u, zeroed: %u]",
                alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
 
-    printf(" (points-to size: %lu)\n", n->pointsTo.size());
+    printf(" (points-to size: %zu)\n", n->pointsTo.size());
 
     for (const Pointer& ptr : n->pointsTo) {
         printf("    -> ");
@@ -368,7 +369,7 @@ dumpPSNode(PSNode *n, PTType type) {
         if (ptr.offset.isUnknown())
             puts(" + Offset::UNKNOWN");
         else
-            printf(" + %lu\n", *ptr.offset);
+            printf(" + %" PRIu64 "\n", *ptr.offset);
     }
     if (verbose) {
         dumpPointerGraphData(n, type);
@@ -385,7 +386,7 @@ dumpNodeToDot(PSNode *node, PTType type) {
 
     PSNodeAlloc *alloc = PSNodeAlloc::get(node);
     if (alloc && (alloc->getSize() || alloc->isHeap() || alloc->isZeroInitialized()))
-        printf("\\n[size: %lu, heap: %u, zeroed: %u]",
+        printf("\\n[size: %zu, heap: %u, zeroed: %u]",
            alloc->getSize(), alloc->isHeap(), alloc->isZeroInitialized());
     if (verbose) {
        if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
@@ -427,7 +428,7 @@ dumpNodeToDot(PSNode *node, PTType type) {
         if (ptr.offset.isUnknown())
             printf("Offset::UNKNOWN");
         else
-            printf("%lu", *ptr.offset);
+            printf("%" PRIu64, *ptr.offset);
     }
 
     if (verbose) {
@@ -609,7 +610,7 @@ dumpPointerGraph(DGLLVMPointerAnalysis *pta, PTType type) {
 
 static void dumpStats(DGLLVMPointerAnalysis *pta) {
     const auto& nodes = pta->getNodes();
-    printf("Pointer subgraph size: %lu\n", nodes.size()-1);
+    printf("Pointer subgraph size: %zu\n", nodes.size()-1);
 
     size_t nonempty_size = 0; // number of nodes with non-empty pt-set
     size_t maximum = 0; // maximum pt-set size
@@ -715,15 +716,15 @@ static void dumpStats(DGLLVMPointerAnalysis *pta) {
         }
     }
 
-    printf("Allocations: %lu\n", allocation_num);
-    printf("Allocations with known size: %lu\n", has_known_size);
-    printf("Nodes with non-empty pt-set: %lu\n", nonempty_size);
-    printf("Pointers pointing only to known-size allocations: %lu\n",
+    printf("Allocations: %zu\n", allocation_num);
+    printf("Allocations with known size: %zu\n", has_known_size);
+    printf("Nodes with non-empty pt-set: %zu\n", nonempty_size);
+    printf("Pointers pointing only to known-size allocations: %zu\n",
             points_to_only_known_size);
-    printf("Pointers pointing only to known-size allocations with known offset: %lu\n",
+    printf("Pointers pointing only to known-size allocations with known offset: %zu\n",
            known_size_known_offset);
-    printf("Pointers pointing only to valid targets: %lu\n", only_valid_target);
-    printf("Pointers pointing only to valid targets and some known size+offset: %lu\n", only_valid_and_some_known);
+    printf("Pointers pointing only to valid targets: %zu\n", only_valid_target);
+    printf("Pointers pointing only to valid targets and some known size+offset: %zu\n", only_valid_and_some_known);
 
     double avg_ptset_size = 0;
     double avg_nonempty_ptset_size = 0; // avg over non-empty sets only
@@ -750,17 +751,17 @@ static void dumpStats(DGLLVMPointerAnalysis *pta) {
                                     static_cast<double>(nonempty_size));
     printf("Average pt-set size: %6.3f\n", avg_ptset_size);
     printf("Average non-empty pt-set size: %6.3f\n", avg_nonempty_ptset_size);
-    printf("Pointing to singleton: %lu\n", singleton_count);
-    printf("Non-constant pointing to singleton: %lu\n", singleton_nonconst_count);
-    printf("Pointing to unknown: %lu\n", pointing_to_unknown);
-    printf("Pointing to unknown singleton: %lu\n", pointing_only_to_unknown );
-    printf("Pointing to invalidated: %lu\n", pointing_to_invalidated);
-    printf("Pointing to invalidated singleton: %lu\n", pointing_only_to_invalidated);
-    printf("Pointing to heap: %lu\n", pointing_to_heap);
-    printf("Pointing to global: %lu\n", pointing_to_global);
-    printf("Pointing to stack: %lu\n", pointing_to_stack);
-    printf("Pointing to function: %lu\n", pointing_to_function);
-    printf("Maximum pt-set size: %lu\n", maximum);
+    printf("Pointing to singleton: %zu\n", singleton_count);
+    printf("Non-constant pointing to singleton: %zu\n", singleton_nonconst_count);
+    printf("Pointing to unknown: %zu\n", pointing_to_unknown);
+    printf("Pointing to unknown singleton: %zu\n", pointing_only_to_unknown );
+    printf("Pointing to invalidated: %zu\n", pointing_to_invalidated);
+    printf("Pointing to invalidated singleton: %zu\n", pointing_only_to_invalidated);
+    printf("Pointing to heap: %zu\n", pointing_to_heap);
+    printf("Pointing to global: %zu\n", pointing_to_global);
+    printf("Pointing to stack: %zu\n", pointing_to_stack);
+    printf("Pointing to function: %zu\n", pointing_to_function);
+    printf("Maximum pt-set size: %zu\n", maximum);
 }
 
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
