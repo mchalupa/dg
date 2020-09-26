@@ -3,18 +3,20 @@
 
 #include <map>
 #include <cassert>
+#include <cstdint>
 
 namespace dg {
 namespace ADT {
 
-template <typename BitsT = uint64_t, typename ShiftT = uint64_t, size_t SCALE = 1>
+template <typename BitsT = uint64_t, typename ShiftT = uint64_t,
+          typename IndexT = uint64_t, size_t SCALE = 1>
 class SparseBitvectorImpl {
     // mapping from shift to bits
     using BitsContainerT = std::map<ShiftT, BitsT>;
     BitsContainerT _bits{};
 
     static size_t _bitsNum() { return sizeof(BitsT) * 8; }
-    static ShiftT _shift(size_t i) { return i - (i % _bitsNum()); }
+    static ShiftT _shift(IndexT i) { return i - (i % _bitsNum()); }
 
     static size_t _countBits(BitsT bits) {
         size_t num = 0;
@@ -28,17 +30,17 @@ class SparseBitvectorImpl {
         return num;
     }
 
-    void _addBits(size_t i) {
+    void _addBit(IndexT i) {
         // for now we just push it back,
         // but we would rather do it somehow
         // more smartly (probably not using the vector)
         auto sft = _shift(i);
-        _bits.emplace(sft, (1UL << (i - sft)));
+        _bits.emplace(sft, BitsT{1} << (i - sft));
     }
 
 public:
     SparseBitvectorImpl() = default;
-    SparseBitvectorImpl(size_t i) { set(i); } // singleton ctor
+    SparseBitvectorImpl(IndexT i) { _addBit(i); } // singleton ctor
 
     SparseBitvectorImpl(const SparseBitvectorImpl&) = default;
     SparseBitvectorImpl(SparseBitvectorImpl&&) = default;
@@ -47,7 +49,7 @@ public:
     bool empty() const { return _bits.empty(); }
     void swap(SparseBitvectorImpl& oth) { _bits.swap(oth._bits); }
 
-    bool get(size_t i) const {
+    bool get(IndexT i) const {
         auto sft = _shift(i);
         assert(sft % _bitsNum() == 0);
 
@@ -56,20 +58,20 @@ public:
             return false;
         }
 
-        return (it->second & (1UL << (i - sft)));
+        return (it->second & (BitsT{1} << (i - sft)));
     }
 
     // returns the previous value of the i-th bit
-    bool set(size_t i) {
+    bool set(IndexT i) {
         auto sft = _shift(i);
         auto it = _bits.find(sft);
         if (it == _bits.end()) {
-            _addBits(i);
+            _addBit(i);
             return false;
         }
 
-        bool prev = (it->second & (1UL << (i - sft)));
-        it->second |= (1UL << (i - sft));
+        bool prev = it->second & (BitsT{1} << (i - sft));
+        it->second |= BitsT{1} << (i - sft);
 
         return prev;
     }
@@ -81,21 +83,21 @@ public:
             auto& B = _bits[pair.first];
             auto old = B;
             B |= pair.second;
-            changed |= (old != B);
+            changed |= old != B;
         }
 
         return changed;
     }
 
     // returns the previous value of the i-th bit
-    bool unset(size_t i) {
+    bool unset(IndexT i) {
         auto sft = _shift(i);
         auto it = _bits.find(sft);
         if (it == _bits.end()) {
             return false;
         }
 
-        it->second &= ~(1UL << (i - sft));
+        it->second &= ~(BitsT{1} << (i - sft));
         if (it->second == 0) {
             _bits.erase(it);
         }
@@ -128,7 +130,7 @@ public:
 
         void _findClosestBit() {
             assert(pos < (sizeof(BitsT)*8));
-            while (!(container_it->second & (1UL << pos))) {
+            while (!(container_it->second & (BitsT{1} << pos))) {
                 if (++pos == sizeof(BitsT)*8)
                     return;
             }
@@ -157,7 +159,7 @@ public:
                 if (tmp & 0x1) {
                     pos += i;
                     assert(pos < (sizeof(BitsT)*8));
-                    assert(container_it->second & (1UL << pos));
+                    assert(container_it->second & (BitsT{1} << pos));
                     return;
                 }
 
@@ -169,7 +171,7 @@ public:
                         if (tmp & 0x2) {
                             pos += i + 1;
                             assert(pos < (sizeof(BitsT)*8));
-                            assert(container_it->second & (1UL << pos));
+                            assert(container_it->second & (BitsT{1} << pos));
                             return;
                         } else {
                             assert(!(tmp & 0x3));
@@ -217,12 +219,12 @@ public:
             return tmp;
         }
 
-        size_t operator*() const {
+        IndexT operator*() const {
             return container_it->first + pos;
         }
 
         bool operator==(const const_iterator& rhs) const {
-            return pos == rhs.pos && (container_it == rhs.container_it);
+            return pos == rhs.pos && container_it == rhs.container_it;
         }
 
         bool operator!=(const const_iterator& rhs) const {
@@ -238,7 +240,7 @@ public:
     friend class const_iterator;
 };
 
-using SparseBitvector = SparseBitvectorImpl<uint64_t, uint64_t, 1>;
+using SparseBitvector = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1>;
 
 } // namespace ADT
 } // namespace dg
