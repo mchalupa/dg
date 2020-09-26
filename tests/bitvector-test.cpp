@@ -10,7 +10,7 @@ using dg::ADT::SparseBitvector;
 TEST_CASE("Querying empty set", "SparseBitvector") {
     SparseBitvector B;
 
-   for (uint64_t i = 1; i < (1UL << 63); i *= 2) {
+   for (uint64_t i = 1; i < uint64_t{1} << 63U; i *= 2) {
        REQUIRE(B.get(i) == false);
    }
 }
@@ -41,12 +41,12 @@ TEST_CASE("Extreme values", "SparseBitvector") {
     REQUIRE(B.get(0) == false);
 
     for (unsigned int i = 0; i < 64; ++i) {
-        REQUIRE(B.get(1UL << i) == false);
-        REQUIRE(B.set(1UL << i) == false);
+        REQUIRE(B.get(uint64_t{1} << i) == false);
+        REQUIRE(B.set(uint64_t{1} << i) == false);
     }
 
     for (unsigned int i = 0; i < 64; ++i) {
-        REQUIRE(B.get(1UL << i) == true);
+        REQUIRE(B.get(uint64_t{1} << i) == true);
     }
 }
 
@@ -94,7 +94,7 @@ TEST_CASE("Iterator test", "SparseBitvector") {
     auto et = B.end();
 
     for (; it != et; ++it) {
-        size_t i = *it;
+        auto i = *it;
         REQUIRE((i == 0 || i == 1 || i == 10 || i == 1000 || i == 100000));
         ++n;
     }
@@ -122,9 +122,9 @@ TEST_CASE("Random", "SparseBitvector") {
 
 #define NUM 10000
 
-    std::set<size_t> numbers;
+    std::set<uint64_t> numbers;
     std::default_random_engine generator;
-    std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0));
+    std::uniform_int_distribution<uint64_t> distribution(0, ~uint64_t{0});
 
 SECTION("Generating random numbers and putting them to bitvector") {
     for (int i = 0; i < NUM; ++i) {
@@ -158,13 +158,13 @@ SECTION("Checking random numbers") {
 
 TEST_CASE("Regression 1", "SparseBitvector") {
     SparseBitvector B;
-    REQUIRE(B.get(~static_cast<uint64_t>(0)) == false);
-    REQUIRE(B.set(~static_cast<uint64_t>(0)) == false);
-    REQUIRE(B.get(~static_cast<uint64_t>(0)) == true);
+    REQUIRE(B.get(~uint64_t{0}) == false);
+    REQUIRE(B.set(~uint64_t{0}) == false);
+    REQUIRE(B.get(~uint64_t{0}) == true);
     auto it = B.begin();
     auto et = B.end();
     REQUIRE(it != et);
-    REQUIRE(*it == ~static_cast<uint64_t>(0));
+    REQUIRE(*it == ~uint64_t{0});
     ++it;
     REQUIRE(it == et);
 }
@@ -182,7 +182,7 @@ TEST_CASE("Merge random bitvectors (union)", "SparseBitvector") {
 
 
     std::default_random_engine generator;
-    std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0));
+    std::uniform_int_distribution<uint64_t> distribution(0, ~uint64_t{0});
 
 #undef NUM
 #define NUM 100
