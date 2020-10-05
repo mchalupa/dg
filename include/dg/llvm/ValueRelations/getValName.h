@@ -17,8 +17,28 @@ inline std::string getValName(const llvm::Value *val) {
     ro << *val;
     ro.flush();
 
+    std::string result = ostr.str();
+    size_t start = result.find_first_not_of(" ");
+    assert (start != std::string::npos);
+
     // break the string if it is too long
-    return ostr.str();
+    return result.substr(start);
+}
+
+inline std::string getTypeName(const llvm::Type* type) {
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
+    assert(type);
+    ro << *type;
+    ro.flush();
+
+    std::string result = ostr.str();
+    size_t start = result.find_first_not_of(" ");
+    assert (start != std::string::npos);
+
+    // break the string if it is too long
+    return result.substr(start);
 }
 
 } // namespace debug
