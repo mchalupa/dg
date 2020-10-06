@@ -25,10 +25,10 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *S = PS.create(PSNodeType::STORE, A, B);
-        PSNode *L = PS.create(PSNodeType::LOAD, B);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *S = PS.create<PSNodeType::STORE>(A, B);
+        PSNode *L = PS.create<PSNodeType::LOAD>(B);
 
         A->addSuccessor(B);
         B->addSuccessor(S);
@@ -46,14 +46,14 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *C = PS.create(PSNodeType::ALLOC);
-        PSNode *S1 = PS.create(PSNodeType::STORE, A, B);
-        PSNode *S2 = PS.create(PSNodeType::STORE, C, B);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, B);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, B);
-        PSNode *L3 = PS.create(PSNodeType::LOAD, B);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *C = PS.create<PSNodeType::ALLOC>();
+        PSNode *S1 = PS.create<PSNodeType::STORE>(A, B);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(C, B);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(B);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(B);
+        PSNode *L3 = PS.create<PSNodeType::LOAD>(B);
 
         /*
          *        A
@@ -92,13 +92,13 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *C = PS.create(PSNodeType::ALLOC);
-        PSNode *S1 = PS.create(PSNodeType::STORE, A, B);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, B);
-        PSNode *S2 = PS.create(PSNodeType::STORE, C, B);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, B);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *C = PS.create<PSNodeType::ALLOC>();
+        PSNode *S1 = PS.create<PSNodeType::STORE>(A, B);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(B);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(C, B);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(B);
 
         A->addSuccessor(B);
         B->addSuccessor(C);
@@ -120,15 +120,15 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(8);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *C = PS.create(PSNodeType::ALLOC);
-        PSNode *GEP = PS.create(PSNodeType::GEP, A, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP, B);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, B);
-        PSNode *S2 = PS.create(PSNodeType::STORE, C, B);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, B);
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *C = PS.create<PSNodeType::ALLOC>();
+        PSNode *GEP = PS.create<PSNodeType::GEP>(A, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP, B);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(B);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(C, B);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(B);
 
         A->addSuccessor(B);
         B->addSuccessor(C);
@@ -151,18 +151,18 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(8);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
         B->setSize(16);
-        PSNode *C = PS.create(PSNodeType::ALLOC);
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 4);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, 8);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, GEP2);
-        PSNode *GEP3 = PS.create(PSNodeType::GEP, B, 8);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, GEP3);
-        PSNode *S2 = PS.create(PSNodeType::STORE, C, B);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, B);
+        PSNode *C = PS.create<PSNodeType::ALLOC>();
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 4);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(B, 8);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, GEP2);
+        PSNode *GEP3 = PS.create<PSNodeType::GEP>(B, 8);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(GEP3);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(C, B);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(B);
 
         A->addSuccessor(B);
         B->addSuccessor(C);
@@ -187,15 +187,15 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         // we must set size, so that GEP won't
         // make the offset UNKNOWN
         A->setSize(8);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 4);
-        PSNode *S = PS.create(PSNodeType::STORE, B, GEP1);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, A, 4);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP2);
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 4);
+        PSNode *S = PS.create<PSNodeType::STORE>(B, GEP1);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(A, 4);
+        PSNode *L = PS.create<PSNodeType::LOAD>(GEP2);
 
         A->addSuccessor(B);
         B->addSuccessor(GEP1);
@@ -217,14 +217,14 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(16);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 4);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, GEP1, 4);
-        PSNode *S = PS.create(PSNodeType::STORE, B, GEP2);
-        PSNode *GEP3 = PS.create(PSNodeType::GEP, A, 8);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP3);
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 4);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(GEP1, 4);
+        PSNode *S = PS.create<PSNodeType::STORE>(B, GEP2);
+        PSNode *GEP3 = PS.create<PSNodeType::GEP>(A, 8);
+        PSNode *L = PS.create<PSNodeType::LOAD>(GEP3);
 
         A->addSuccessor(B);
         B->addSuccessor(GEP1);
@@ -249,18 +249,18 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *ARRAY = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *ARRAY = PS.create<PSNodeType::ALLOC>();
         ARRAY->setSize(40);
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, ARRAY, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, A, GEP1);
-        PSNode *S2 = PS.create(PSNodeType::STORE, B, GEP2);
-        PSNode *GEP3 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *GEP4 = PS.create(PSNodeType::GEP, ARRAY, 4);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, GEP3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, GEP4);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(ARRAY, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(A, GEP1);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(B, GEP2);
+        PSNode *GEP3 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *GEP4 = PS.create<PSNodeType::GEP>(ARRAY, 4);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(GEP3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(GEP4);
 
         A->addSuccessor(B);
         B->addSuccessor(ARRAY);
@@ -286,18 +286,18 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNodeAlloc *ARRAY = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNodeAlloc *ARRAY = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         ARRAY->setSize(40);
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, ARRAY, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, A, GEP1);
-        PSNode *S2 = PS.create(PSNodeType::STORE, B, GEP2);
-        PSNode *GEP3 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *GEP4 = PS.create(PSNodeType::GEP, ARRAY, 4);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, GEP3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, GEP4);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(ARRAY, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(A, GEP1);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(B, GEP2);
+        PSNode *GEP3 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *GEP4 = PS.create<PSNodeType::GEP>(ARRAY, 4);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(GEP3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(GEP4);
 
         A->addSuccessor(B);
         B->addSuccessor(ARRAY);
@@ -327,21 +327,21 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *ARRAY = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *ARRAY = PS.create<PSNodeType::ALLOC>();
         ARRAY->setSize(20);
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, ARRAY, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, A, GEP1);
-        PSNode *S2 = PS.create(PSNodeType::STORE, B, GEP2);
-        PSNode *GEP3 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *GEP4 = PS.create(PSNodeType::GEP, ARRAY, 4);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, GEP3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, GEP4);
-        PSNode *GEP5 = PS.create(PSNodeType::GEP, ARRAY, 0);
-        PSNode *S3 = PS.create(PSNodeType::STORE, B, GEP5);
-        PSNode *L3 = PS.create(PSNodeType::LOAD, GEP5);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(ARRAY, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(A, GEP1);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(B, GEP2);
+        PSNode *GEP3 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *GEP4 = PS.create<PSNodeType::GEP>(ARRAY, 4);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(GEP3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(GEP4);
+        PSNode *GEP5 = PS.create<PSNodeType::GEP>(ARRAY, 0);
+        PSNode *S3 = PS.create<PSNodeType::STORE>(B, GEP5);
+        PSNode *L3 = PS.create<PSNodeType::LOAD>(GEP5);
 
         A->addSuccessor(B);
         B->addSuccessor(ARRAY);
@@ -376,9 +376,9 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *B = PS.create(PSNodeType::ALLOC);
-        PSNode *S = PS.create(PSNodeType::STORE, pta::NULLPTR, B);
-        PSNode *L = PS.create(PSNodeType::LOAD, B);
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
+        PSNode *S = PS.create<PSNodeType::STORE>(pta::NULLPTR, B);
+        PSNode *L = PS.create<PSNodeType::LOAD>(B);
 
         B->addSuccessor(S);
         S->addSuccessor(L);
@@ -395,13 +395,13 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
         B->setSize(16);
-        PSNode *C = PS.create(PSNodeType::CONSTANT, B, 4);
-        PSNode *S = PS.create(PSNodeType::STORE, A, C);
-        PSNode *GEP = PS.create(PSNodeType::GEP, B, 4);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP);
+        PSNode *C = PS.create<PSNodeType::CONSTANT>(B, 4);
+        PSNode *S = PS.create<PSNodeType::STORE>(A, C);
+        PSNode *GEP = PS.create<PSNodeType::GEP>(B, 4);
+        PSNode *L = PS.create<PSNodeType::LOAD>(GEP);
 
         A->addSuccessor(B);
         B->addSuccessor(S);
@@ -420,9 +420,9 @@ public:
     {
 
         PointerGraph PS;
-        PSNodeAlloc *B = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNodeAlloc *B = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         B->setZeroInitialized();
-        PSNode *L = PS.create(PSNodeType::LOAD, B);
+        PSNode *L = PS.create<PSNodeType::LOAD>(B);
 
         B->addSuccessor(L);
 
@@ -438,13 +438,13 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
         B->setSize(20);
-        PSNode *GEP = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
-        PSNode *S = PS.create(PSNodeType::STORE, A, GEP);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, 4);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP2); // load from B + 4
+        PSNode *GEP = PS.create<PSNodeType::GEP>(B, Offset::UNKNOWN);
+        PSNode *S = PS.create<PSNodeType::STORE>(A, GEP);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(B, 4);
+        PSNode *L = PS.create<PSNodeType::LOAD>(GEP2); // load from B + 4
 
         A->addSuccessor(B);
         B->addSuccessor(GEP);
@@ -466,13 +466,13 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
         B->setSize(20);
-        PSNode *GEP = PS.create(PSNodeType::GEP, B, 4);
-        PSNode *S = PS.create(PSNodeType::STORE, A, GEP);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP2); // load from B + Offset::UNKNOWN
+        PSNode *GEP = PS.create<PSNodeType::GEP>(B, 4);
+        PSNode *S = PS.create<PSNodeType::STORE>(A, GEP);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(B, Offset::UNKNOWN);
+        PSNode *L = PS.create<PSNodeType::LOAD>(GEP2); // load from B + Offset::UNKNOWN
 
         A->addSuccessor(B);
         B->addSuccessor(GEP);
@@ -494,13 +494,13 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
-        PSNode *B = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
+        PSNode *B = PS.create<PSNodeType::ALLOC>();
         B->setSize(20);
-        PSNode *GEP = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
-        PSNode *S = PS.create(PSNodeType::STORE, A, GEP);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, B, Offset::UNKNOWN);
-        PSNode *L = PS.create(PSNodeType::LOAD, GEP2);
+        PSNode *GEP = PS.create<PSNodeType::GEP>(B, Offset::UNKNOWN);
+        PSNode *S = PS.create<PSNodeType::STORE>(A, GEP);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(B, Offset::UNKNOWN);
+        PSNode *L = PS.create<PSNodeType::LOAD>(GEP2);
 
         A->addSuccessor(B);
         B->addSuccessor(GEP);
@@ -520,34 +520,34 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(20);
-        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        PSNode *SRC = PS.create<PSNodeType::ALLOC>();
         SRC->setSize(16);
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3 and A + 12
          * at offsets 4 and 8 */
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, A, 12);
-        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
-        PSNode *G2 = PS.create(PSNodeType::GEP, SRC, 8);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
-        PSNode *S2 = PS.create(PSNodeType::STORE, GEP2, G2);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(A, 12);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(SRC, 4);
+        PSNode *G2 = PS.create<PSNodeType::GEP>(SRC, 8);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, G1);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(GEP2, G2);
 
         /* copy the memory,
          * after this node dest should point to
          * A + 3 and A + 12 at offsets 4 and 8 */
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
-                                Offset::UNKNOWN /* len = all */);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(
+                              SRC, DEST, Offset::UNKNOWN /* len = all */);
 
         /* load from the dest memory */
-        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 8);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 4);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 8);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G4);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -576,34 +576,34 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(20);
-        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        PSNode *SRC = PS.create<PSNodeType::ALLOC>();
         SRC->setSize(16);
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3 and A + 12
          * at offsets 4 and 8 */
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, A, 12);
-        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
-        PSNode *G2 = PS.create(PSNodeType::GEP, SRC, 8);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
-        PSNode *S2 = PS.create(PSNodeType::STORE, GEP2, G2);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(A, 12);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(SRC, 4);
+        PSNode *G2 = PS.create<PSNodeType::GEP>(SRC, 8);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, G1);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(GEP2, G2);
 
         /* copy first 8 bytes from the memory,
          * after this node dest should point to
-         * A + 3 at offset 4  = PS.create(8 is 9th byte,
+         * A + 3 at offset 4  = PS.create<8 is 9th byte,
          * so it should not be included) */
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST, 8 /* len*/);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(SRC, DEST, 8 /* len*/);
 
         /* load from the dest memory */
-        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 8);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 4);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 8);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G4);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -632,34 +632,34 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(20);
-        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        PSNode *SRC = PS.create<PSNodeType::ALLOC>();
         SRC->setSize(16);
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
         /* initialize SRC, so that
          * it will point to A + 3 and A + 12
          * at offsets 4 and 8 */
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *GEP2 = PS.create(PSNodeType::GEP, A, 12);
-        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
-        PSNode *G2 = PS.create(PSNodeType::GEP, SRC, 8);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
-        PSNode *S2 = PS.create(PSNodeType::STORE, GEP2, G2);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *GEP2 = PS.create<PSNodeType::GEP>(A, 12);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(SRC, 4);
+        PSNode *G2 = PS.create<PSNodeType::GEP>(SRC, 8);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, G1);
+        PSNode *S2 = PS.create<PSNodeType::STORE>(GEP2, G2);
 
         /* copy memory from 8 bytes and further
          * after this node dest should point to
          * A + 12 at offset 0 */
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, G2, DEST,
-                                Offset::UNKNOWN /* len*/);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(
+                              G2, DEST, Offset::UNKNOWN /* len*/);
 
         /* load from the dest memory */
-        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 0);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 4);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 0);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G4);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -688,29 +688,29 @@ public:
     {
 
         PointerGraph PS;
-        PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNodeAlloc *A = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         A->setSize(20);
-        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         SRC->setSize(16);
         SRC->setZeroInitialized();
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
         /* initialize SRC, so that it will point to A + 3 at offset 4 */
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(SRC, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, G1);
 
         /* copy memory from 8 bytes and further after this node dest should
          * point to NULL */
-        PSNode *G3 = PS.create(PSNodeType::GEP, SRC, 8);
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, G3, DEST,
-                                Offset::UNKNOWN /* len*/);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(SRC, 8);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(
+                              G3, DEST, Offset::UNKNOWN /* len*/);
 
         /* load from the dest memory */
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 0);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 0);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G3);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G4);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -736,25 +736,25 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(20);
-        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        PSNode *SRC = PS.create<PSNodeType::ALLOC>();
         SRC->setSize(16);
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(SRC, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, G1);
 
         // copy the only pointer to dest + 0
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, G1, DEST, 1);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(G1, DEST, 1);
 
         /* load from the dest memory */
-        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 0);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 1);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G4);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 0);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G3);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 1);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G4);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -780,23 +780,23 @@ public:
     {
 
         PointerGraph PS;
-        PSNode *A = PS.create(PSNodeType::ALLOC);
+        PSNode *A = PS.create<PSNodeType::ALLOC>();
         A->setSize(20);
-        PSNode *SRC = PS.create(PSNodeType::ALLOC);
+        PSNode *SRC = PS.create<PSNodeType::ALLOC>();
         SRC->setSize(16);
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *G1 = PS.create(PSNodeType::GEP, SRC, 4);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, G1);
-        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 5);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 1);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(SRC, 4);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, G1);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 5);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 1);
 
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, G4, 8);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(SRC, G4, 8);
 
         /* load from the dest memory */
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G3);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G3);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -820,25 +820,25 @@ public:
     {
 
         PointerGraph PS;
-        PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
-        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNodeAlloc *A = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
+        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
 
         A->setSize(20);
         SRC->setSize(16);
         SRC->setZeroInitialized();
         DEST->setSize(16);
 
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST,
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(SRC, DEST,
                                 Offset::UNKNOWN /* len*/);
 
         /* load from the dest memory */
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 0);
-        PSNode *G5 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G6 = PS.create(PSNodeType::GEP, DEST, Offset::UNKNOWN);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G4);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G5);
-        PSNode *L3 = PS.create(PSNodeType::LOAD, G6);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 0);
+        PSNode *G5 = PS.create<PSNodeType::GEP>(DEST, 4);
+        PSNode *G6 = PS.create<PSNodeType::GEP>(DEST, Offset::UNKNOWN);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G4);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G5);
+        PSNode *L3 = PS.create<PSNodeType::LOAD>(G6);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -864,27 +864,27 @@ public:
     {
 
         PointerGraph PS;
-        PSNodeAlloc *A = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNodeAlloc *A = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         A->setSize(20);
-        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         SRC->setSize(16);
         SRC->setZeroInitialized();
-        PSNode *DEST = PS.create(PSNodeType::ALLOC);
+        PSNode *DEST = PS.create<PSNodeType::ALLOC>();
         DEST->setSize(16);
 
         /* initialize SRC, so that it will point to A + 3 at offset 0 */
-        PSNode *GEP1 = PS.create(PSNodeType::GEP, A, 3);
-        PSNode *S1 = PS.create(PSNodeType::STORE, GEP1, SRC);
+        PSNode *GEP1 = PS.create<PSNodeType::GEP>(A, 3);
+        PSNode *S1 = PS.create<PSNodeType::STORE>(GEP1, SRC);
 
-        PSNode *CPY = PS.create(PSNodeType::MEMCPY, SRC, DEST, 10);
+        PSNode *CPY = PS.create<PSNodeType::MEMCPY>(SRC, DEST, 10);
 
         /* load from the dest memory */
-        PSNode *G1 = PS.create(PSNodeType::GEP, DEST, 0);
-        PSNode *G3 = PS.create(PSNodeType::GEP, DEST, 4);
-        PSNode *G4 = PS.create(PSNodeType::GEP, DEST, 8);
-        PSNode *L1 = PS.create(PSNodeType::LOAD, G1);
-        PSNode *L2 = PS.create(PSNodeType::LOAD, G3);
-        PSNode *L3 = PS.create(PSNodeType::LOAD, G4);
+        PSNode *G1 = PS.create<PSNodeType::GEP>(DEST, 0);
+        PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 4);
+        PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 8);
+        PSNode *L1 = PS.create<PSNodeType::LOAD>(G1);
+        PSNode *L2 = PS.create<PSNodeType::LOAD>(G3);
+        PSNode *L3 = PS.create<PSNodeType::LOAD>(G4);
 
         A->addSuccessor(SRC);
         SRC->addSuccessor(DEST);
@@ -966,8 +966,8 @@ public:
     {
         using namespace dg::pta;
         PointerGraph PS;
-        PSNode *N1 = PS.create(PSNodeType::ALLOC);
-        PSNode *N2 = PS.create(PSNodeType::LOAD, N1);
+        PSNode *N1 = PS.create<PSNodeType::ALLOC>();
+        PSNode *N2 = PS.create<PSNodeType::LOAD>(N1);
 
         N2->addPointsTo(N1, 1);
         N2->addPointsTo(N1, 2);

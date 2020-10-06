@@ -6,7 +6,7 @@ namespace pta {
 
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
-    PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+    PSNodeAlloc *node = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
 
     const llvm::AllocaInst *AI = llvm::dyn_cast<llvm::AllocaInst>(Inst);
     if (AI)
@@ -18,7 +18,7 @@ LLVMPointerGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst) {
     PSNode *op1 = getOperand(Inst->getOperand(1));
-    PSNode *node = PS.create(PSNodeType::INVALIDATE_OBJECT, op1);
+    PSNode *node = PS.create<PSNodeType::INVALIDATE_OBJECT>(op1);
 
 
     assert(node);
@@ -31,7 +31,7 @@ LLVMPointerGraphBuilder::createStore(const llvm::Instruction *Inst) {
 
     PSNode *op1 = getOperand(valOp);
     PSNode *op2 = getOperand(Inst->getOperand(1));
-    PSNode *node = PS.create(PSNodeType::STORE, op1, op2);
+    PSNode *node = PS.create<PSNodeType::STORE>(op1, op2);
 
     assert(node);
     return addNode(Inst, node);
@@ -42,7 +42,7 @@ LLVMPointerGraphBuilder::createLoad(const llvm::Instruction *Inst) {
     const llvm::Value *op = Inst->getOperand(0);
 
     PSNode *op1 = getOperand(op);
-    PSNode *node = PS.create(PSNodeType::LOAD, op1);
+    PSNode *node = PS.create<PSNodeType::LOAD>(op1);
     assert(node);
 
     return addNode(Inst, node);
@@ -67,7 +67,7 @@ LLVMPointerGraphBuilder::createGEP(const llvm::Instruction *Inst) {
             // is 0 < offset < field_sensitivity ?
             uint64_t off = offset.getLimitedValue(*_options.fieldSensitivity);
             if (off == 0 || off < *_options.fieldSensitivity)
-                node = PS.create(PSNodeType::GEP, op, offset.getZExtValue());
+                node = PS.create<PSNodeType::GEP>(op, offset.getZExtValue());
         } else
             errs() << "WARN: GEP offset greater than " << bitwidth << "-bit";
             // fall-through to Offset::UNKNOWN in this case
@@ -77,7 +77,7 @@ LLVMPointerGraphBuilder::createGEP(const llvm::Instruction *Inst) {
     // in which case we are supposed to create a node
     // with Offset::UNKNOWN
     if (!node)
-        node = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
+        node = PS.create<PSNodeType::GEP>(op, Offset::UNKNOWN);
 
     assert(node);
 
@@ -94,7 +94,7 @@ LLVMPointerGraphBuilder::createSelect(const llvm::Instruction *Inst) {
     PSNode *op2 = getOperand(Inst->getOperand(2));
 
     // select works as a PHI in points-to analysis
-    PSNode *node = PS.create(PSNodeType::PHI, op1, op2, nullptr);
+    PSNode *node = PS.create<PSNodeType::PHI>(op1, op2);
     assert(node);
 
     return addNode(Inst, node);
@@ -148,9 +148,9 @@ LLVMPointerGraphBuilder::createExtract(const llvm::Instruction *Inst)
 
     // extract <agg> <idx> {<idx>, ...}
     PSNode *op1 = getOperand(EI->getAggregateOperand());
-    PSNode *G = PS.create(PSNodeType::GEP, op1,
+    PSNode *G = PS.create<PSNodeType::GEP>(op1,
                           accumulateEVOffsets(EI, M->getDataLayout()));
-    PSNode *L = PS.create(PSNodeType::LOAD, G);
+    PSNode *L = PS.create<PSNodeType::LOAD>(G);
 
     // FIXME: add this later with all edges
     G->addSuccessor(L);
@@ -161,7 +161,7 @@ LLVMPointerGraphBuilder::createExtract(const llvm::Instruction *Inst)
 
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createPHI(const llvm::Instruction *Inst) {
-    PSNode *node = PS.create(PSNodeType::PHI, nullptr);
+    PSNode *node = PS.create<PSNodeType::PHI>();
     assert(node);
 
     // NOTE: we didn't add operands to PHI node here, but after building
@@ -175,7 +175,7 @@ LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createCast(const llvm::Instruction *Inst) {
     const llvm::Value *op = Inst->getOperand(0);
     PSNode *op1 = getOperand(op);
-    PSNode *node = PS.create(PSNodeType::CAST, op1);
+    PSNode *node = PS.create<PSNodeType::CAST>(op1);
     assert(node);
     return addNode(Inst, node);
 }
@@ -191,7 +191,7 @@ LLVMPointerGraphBuilder::createPtrToInt(const llvm::Instruction *Inst) {
     // this way we cover any shift of the pointer due to arithmetic
     // operations
     // PSNode *node = PS.create(PSNodeType::CAST, op1);
-    PSNode *node = PS.create(PSNodeType::GEP, op1, 0);
+    PSNode *node = PS.create<PSNodeType::GEP>(op1, 0);
     return addNode(Inst, node);
 }
 
@@ -209,7 +209,7 @@ LLVMPointerGraphBuilder::createIntToPtr(const llvm::Instruction *Inst) {
     } else
         op1 = getOperand(op);
 
-    PSNode *node = PS.create(PSNodeType::CAST, op1);
+    PSNode *node = PS.create<PSNodeType::CAST>(op1);
     assert(node);
 
     return addNode(Inst, node);
@@ -247,7 +247,7 @@ LLVMPointerGraphBuilder::createAdd(const llvm::Instruction *Inst) {
     if (val)
         off = llvmutils::getConstantValue(val);
 
-    node = PS.create(PSNodeType::GEP, op, off);
+    node = PS.create<PSNodeType::GEP>(op, off);
     assert(node);
 
     return addNode(Inst, node);
@@ -281,7 +281,7 @@ LLVMPointerGraphBuilder::createArithmetic(const llvm::Instruction *Inst) {
 
     // we don't know what the operation does,
     // so set unknown offset
-    node = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
+    node = PS.create<PSNodeType::GEP>(op, Offset::UNKNOWN);
     assert(node);
 
     return addNode(Inst, node);
@@ -337,7 +337,8 @@ LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst) {
     assert((op1 || !retVal || !retVal->getType()->isPointerTy())
            && "Don't have an operand for ReturnInst with pointer");
 
-    PSNode *node = PS.create(PSNodeType::RETURN, op1, nullptr);
+
+    PSNode *node = op1 ? PS.create<PSNodeType::RETURN>(op1) : PS.create<PSNodeType::RETURN>();
     assert(node);
 
     return addNode(Inst, node);
@@ -350,7 +351,7 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     PSNodesSeq seq;
 
     if (llvm::isa<llvm::UndefValue>(Inst->getOperand(0))) {
-        tempAlloc = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        tempAlloc = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         tempAlloc->setIsTemporary();
         seq.append(tempAlloc);
         lastNode = tempAlloc;
@@ -359,15 +360,15 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
         assert(fromTempAlloc);
         assert(fromTempAlloc->isTemporary());
 
-        tempAlloc = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+        tempAlloc = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
         tempAlloc->setIsTemporary();
         assert(tempAlloc);
         seq.append(tempAlloc);
 
         // copy old temporary allocation to the new temp allocation
         // (this is how insertelem works)
-        auto cpy = PS.create(PSNodeType::MEMCPY, fromTempAlloc,
-                             tempAlloc, Offset::UNKNOWN);
+        auto cpy = PS.create<PSNodeType::MEMCPY>(fromTempAlloc, tempAlloc,
+                                                 Offset::UNKNOWN);
         seq.append(cpy);
         lastNode = cpy;
     }
@@ -386,8 +387,8 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     // also, set the size of the temporary allocation
     tempAlloc->setSize(llvmutils::getAllocatedSize(Ty, &M->getDataLayout()));
 
-    auto GEP = PS.create(PSNodeType::GEP, tempAlloc, elemSize*idx);
-    auto S = PS.create(PSNodeType::STORE, ptr, GEP);
+    auto GEP = PS.create<PSNodeType::GEP>(tempAlloc, elemSize*idx);
+    auto S = PS.create<PSNodeType::STORE>(ptr, GEP);
 
     seq.append(GEP);
     seq.append(S);
@@ -413,8 +414,8 @@ LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     auto Ty = llvm::cast<llvm::ExtractElementInst>(Inst)->getVectorOperandType();
     auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0), &M->getDataLayout());
 
-    auto GEP = PS.create(PSNodeType::GEP, op, elemSize*idx);
-    auto L = PS.create(PSNodeType::LOAD, GEP);
+    auto GEP = PS.create<PSNodeType::GEP>(op, elemSize*idx);
+    auto L = PS.create<PSNodeType::LOAD>(GEP);
 
     GEP->addSuccessor(L);
 

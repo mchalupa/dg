@@ -71,20 +71,20 @@ LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C
         }
     } else if (C->getType()->isPointerTy()) {
         PSNode *op = getOperand(C);
-        PSNode *target = PS.createGlobal(PSNodeType::CONSTANT, node, offset);
-        PS.createGlobal(PSNodeType::STORE, op, target);
+        PSNode *target = PS.createGlobal<PSNodeType::CONSTANT>(node, offset);
+        PS.createGlobal<PSNodeType::STORE>(op, target);
     } else if (isa<ConstantExpr>(C)
                 || isa<Function>(C)
                 || C->getType()->isPointerTy()) {
        if (C->getType()->isPointerTy()) {
            PSNode *value = getOperand(C);
            assert(value->pointsTo.size() == 1 && "BUG: We should have constant");
-           PS.createGlobal(PSNodeType::STORE, value, node);
+           PS.createGlobal<PSNodeType::STORE>(value, node);
        }
     } else if (isa<UndefValue>(C)) {
         // undef value means unknown memory
-        PSNode *target = PS.createGlobal(PSNodeType::CONSTANT, node, offset);
-        PS.createGlobal(PSNodeType::STORE, UNKNOWN_MEMORY, target);
+        PSNode *target = PS.createGlobal<PSNodeType::CONSTANT>(node, offset);
+        PS.createGlobal<PSNodeType::STORE>(UNKNOWN_MEMORY, target);
     } else if (!isa<ConstantInt>(C) && !isa<ConstantFP>(C)) {
         llvm::errs() << *C << "\n";
         llvm::errs() << "ERROR: ^^^ global variable initializer not handled\n";
@@ -107,7 +107,7 @@ void LLVMPointerGraphBuilder::buildGlobals()
     // create PointerGraph nodes
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         // every global node is like memory allocation
-        PSNodeAlloc *nd = PSNodeAlloc::get(PS.createGlobal(PSNodeType::ALLOC));
+        PSNodeAlloc *nd = PSNodeAlloc::get(PS.createGlobal<PSNodeType::ALLOC>());
         nd->setIsGlobal();
         addNode(&*I, nd);
     }
@@ -130,7 +130,7 @@ void LLVMPointerGraphBuilder::buildGlobals()
         } else {
             // without initializer we can not do anything else than
             // assume that it can point everywhere
-            PS.createGlobal(PSNodeType::STORE, UNKNOWN_MEMORY, node);
+            PS.createGlobal<PSNodeType::STORE>(UNKNOWN_MEMORY, node);
         }
     }
 }

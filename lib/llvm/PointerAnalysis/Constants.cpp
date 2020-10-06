@@ -210,7 +210,7 @@ Pointer LLVMPointerGraphBuilder::getConstantExprPointer(const llvm::ConstantExpr
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createConstantExpr(const llvm::ConstantExpr *CE) {
     Pointer ptr = getConstantExprPointer(CE);
-    PSNode *node = PS.create(PSNodeType::CONSTANT, ptr.target, ptr.offset);
+    PSNode *node = PS.create<PSNodeType::CONSTANT>(ptr.target, ptr.offset);
 
 
     return addNode(CE, node);
@@ -222,7 +222,7 @@ LLVMPointerGraphBuilder::createUnknown(const llvm::Value *val) {
     // completely change the value of pointer...
 
     // FIXME: or there's enough unknown offset? Check it out!
-    PSNode *node = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, Offset::UNKNOWN);
+    PSNode *node = PS.create<PSNodeType::CONSTANT>(UNKNOWN_MEMORY, Offset::UNKNOWN);
     assert(node);
 
     return addNode(val, node);

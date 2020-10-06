@@ -149,59 +149,50 @@ class PointerGraph
 
     NodesT _globals;
 
-    PSNode *_create(PSNodeType t, va_list args) {
-        PSNode *node = nullptr;
+    // check for correct count of variadic arguments
+    template<PSNodeType type, size_t actual_size>
+    constexpr static ssize_t expected_args_size() {
+        // C++14 TODO: replace this atrocity with a switch
+        return type == PSNodeType::NOOP ||
+               type == PSNodeType::ENTRY ||
+               type == PSNodeType::FUNCTION ||
+               type == PSNodeType::FORK ||
+               type == PSNodeType::JOIN ? 0 :
+               type == PSNodeType::CAST ||
+               type == PSNodeType::LOAD ||
+               type == PSNodeType::INVALIDATE_OBJECT ||
+               type == PSNodeType::INVALIDATE_LOCALS ||
+               type == PSNodeType::FREE ? 1 :
+               type == PSNodeType::STORE ||
+               type == PSNodeType::CONSTANT ? 2 :
+               type == PSNodeType::CALL ||
+               type == PSNodeType::CALL_FUNCPTR ||
+               type == PSNodeType::CALL_RETURN ||
+               type == PSNodeType::PHI ||
+               type == PSNodeType::RETURN ? actual_size : -1;
+    }
 
-        switch (t) {
-            case PSNodeType::ALLOC:
-                node = new PSNodeAlloc(getNewNodeId());
-                break;
-            case PSNodeType::GEP:
-                node = new PSNodeGep(getNewNodeId(),
-                                     va_arg(args, PSNode *),
-                                     va_arg(args, Offset::type));
-                break;
-            case PSNodeType::MEMCPY:
-                node = new PSNodeMemcpy(getNewNodeId(),
-                                        va_arg(args, PSNode *),
-                                        va_arg(args, PSNode *),
-                                        va_arg(args, Offset::type));
-                break;
-            case PSNodeType::CONSTANT:
-                node = new PSNode(getNewNodeId(), PSNodeType::CONSTANT,
-                                  va_arg(args, PSNode *),
-                                  va_arg(args, Offset::type));
-                break;
-            case PSNodeType::ENTRY:
-                node = new PSNodeEntry(getNewNodeId());
-                break;
-            case PSNodeType::CALL:
-                node = new PSNodeCall(t, getNewNodeId());
-                break;
-            case PSNodeType::CALL_FUNCPTR:
-                node = new PSNodeCall(t, getNewNodeId());
-                node->addOperand(va_arg(args, PSNode *));
-                break;
-            case PSNodeType::FORK:
-                node = new PSNodeFork(getNewNodeId());
-                node->addOperand(va_arg(args, PSNode *));
-                break;
-            case PSNodeType::JOIN:
-                node = new PSNodeJoin(getNewNodeId());
-                break;
-            case PSNodeType::RETURN:
-                node = new PSNodeRet(getNewNodeId(), args);
-                break;
-            case PSNodeType::CALL_RETURN:
-                node = new PSNodeCallRet(getNewNodeId(), args);
-                break;
-            default:
-                node = new PSNode(getNewNodeId(), t, args);
-                break;
-        }
+    // C++17 TODO:
+    //   * replace the two definitions of nodeFactory with one using
+    //     `if constexpr (needs_type)`
+    //   * replace GetNodeType with a chain of `if constexpr` expressions
+    template<PSNodeType Type, typename... Args,
+             typename Node = typename GetNodeType<Type>::type>
+    typename std::enable_if<!std::is_same<Node, PSNode>::value, Node*>::type
+    nodeFactory(Args&&... args) {
+        return new Node(getNewNodeId(), std::forward<Args>(args)...);
+    }
 
-        assert(node && "Didn't created node");
-        return node;
+    // we need to check that the number of arguments is correct with general
+    // PSNode
+    template<PSNodeType Type, typename... Args,
+             typename Node = typename GetNodeType<Type>::type>
+    typename std::enable_if<std::is_same<Node, PSNode>::value, Node*>::type
+    nodeFactory(Args&&... args) {
+        static_assert(
+                expected_args_size<Type, sizeof...(args)>() == sizeof...(args),
+                "Incorrect number of arguments");
+        return new Node(getNewNodeId(), Type, std::forward<Args>(args)...);
     }
 
 public:
@@ -220,14 +211,10 @@ public:
         return _subgraphs.back().get();
     }
 
-    PSNode *create(PSNodeType t, ...) {
-        va_list args;
-
-        va_start(args, t);
-        PSNode *n = _create(t, args);
-        va_end(args);
-
-        nodes.emplace_back(n);
+    template<PSNodeType Type, typename... Args>
+    PSNode *create(Args&&... args) {
+        PSNode *n = nodeFactory<Type>(std::forward<Args>(args)...);
+        nodes.emplace_back(n); // C++17 returns a referece
         return n;
     }
 
@@ -235,14 +222,10 @@ public:
     // in the same order in which they are created.
     // The global nodes are processed only once before the
     // analysis starts.
-    PSNode *createGlobal(PSNodeType t, ...) {
-        va_list args;
-
-        va_start(args, t);
-        PSNode *n = _create(t, args);
-        va_end(args);
-
-        _globals.emplace_back(n);
+    template<PSNodeType Type,  typename... Args>
+    PSNode *createGlobal(Args&&... args) {
+        PSNode *n = nodeFactory<Type>(std::forward<Args>(args)...);
+        _globals.emplace_back(n); // C++17 returns a referece
         return n;
     }
 
