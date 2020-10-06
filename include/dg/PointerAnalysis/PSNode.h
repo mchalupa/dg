@@ -171,7 +171,6 @@ protected:
     //               when building it)
     // CALL_FUNCPTR: call via function pointer. The argument is the node that
     //               bears the pointers.
-    //               FIXME: use more nodes (null-terminated list of pointer nodes)
     // CALL_RETURN:  site where given call returns. Bears the pointers
     //               returned from the subprocedure. Works like PHI
     // RETURN:       represents returning value from a subprocedure,
@@ -198,72 +197,11 @@ protected:
         }
     }
 
-    // ctor for memcpy
-    PSNode(unsigned id, PSNodeType t, PSNode *op1, PSNode *op2)
-    : PSNode(id, t)
-    {
-        assert(t == PSNodeType::MEMCPY);
-        addOperand(op1);
-        addOperand(op2);
-    }
-
-    // ctor for gep
-    PSNode(unsigned id, PSNodeType t, PSNode *op1)
-    : PSNode(id, t)
-    {
-        assert(t == PSNodeType::GEP);
-        addOperand(op1);
-    }
-
-    // ctor of constant
-    PSNode(unsigned id, PSNodeType t, PSNode *op, Offset offset)
-    : PSNode(id, t)
-    {
-        assert(t == PSNodeType::CONSTANT);
-        // this is to correctly track def-use chains
-        addOperand(op);
-        pointsTo.add(Pointer(op, offset));
-    }
-
-    PSNode(unsigned id, PSNodeType t, va_list args)
-    : PSNode(id, t) {
-        PSNode *op;
-
-        switch(type) {
-            case PSNodeType::NOOP:
-            case PSNodeType::ENTRY:
-            case PSNodeType::FUNCTION:
-            case PSNodeType::FORK:
-            case PSNodeType::JOIN:
-                // no operands (and FUNCTION has been set up
-                // in the super ctor)
-                break;
-            case PSNodeType::CAST:
-            case PSNodeType::LOAD:
-            case PSNodeType::CALL_FUNCPTR:
-            case PSNodeType::INVALIDATE_OBJECT:
-            case PSNodeType::INVALIDATE_LOCALS:
-            case PSNodeType::FREE:
-                addOperand(va_arg(args, PSNode *));
-                break;
-            case PSNodeType::STORE:
-                addOperand(va_arg(args, PSNode *));
-                addOperand(va_arg(args, PSNode *));
-                break;
-            case PSNodeType::CALL_RETURN:
-            case PSNodeType::PHI:
-            case PSNodeType::RETURN:
-            case PSNodeType::CALL:
-                op = va_arg(args, PSNode *);
-                // the operands are null terminated
-                while (op) {
-                    addOperand(op);
-                    op = va_arg(args, PSNode *);
-                }
-                break;
-            default:
-                assert(0 && "Unknown type");
-        }
+    // Unfortunately, constructors cannot use enums in templates
+    template<typename... Args>
+    PSNode(unsigned id, PSNodeType type, Args&&... args)
+    : PSNode(id, type) {
+        addOperand(std::forward<Args>(args)...);
     }
 
 public:
@@ -440,6 +378,26 @@ class PSNodeTemporaryAlloc : public PSNodeAlloc {
 };
 #endif
 
+class PSNodeConstant : public PSNode {
+    Offset len;
+
+public:
+    PSNodeConstant(unsigned id, PSNode *op, Offset offset)
+    : PSNode(id, PSNodeType::CONSTANT, op), len(offset) {
+        addPointsTo(op, offset);
+    }
+
+    static PSNodeConstant *get(PSNode *n) {
+        return isa<PSNodeType::CONSTANT>(n) ? static_cast<PSNodeConstant *>(n)
+                                            : nullptr;
+    }
+
+    static PSNodeConstant *cast(PSNode *n) { return _cast<PSNodeConstant>(n); }
+
+    PSNode *getDestination() const { return getOperand(0); }
+    Offset getLength() const { return len; }
+};
+
 class PSNodeMemcpy : public PSNode {
     Offset len;
 
@@ -517,9 +475,11 @@ class PSNodeCall : public PSNode {
     PSNode *callReturn{nullptr};
 
 public:
-    PSNodeCall(PSNodeType t, unsigned id) :PSNode(id, t) {
-        assert(t == PSNodeType::CALL || t == PSNodeType::CALL_FUNCPTR);
-    }
+    PSNodeCall(unsigned id)
+    :PSNode(id, PSNodeType::CALL) {}
+
+    PSNodeCall(unsigned id, PSNode* op)
+    :PSNode(id, PSNodeType::CALL_FUNCPTR, op) {}
 
     static PSNodeCall *get(PSNode *n) {
         return (isa<PSNodeType::CALL>(n) || isa<PSNodeType::CALL_FUNCPTR>(n)) ?
@@ -573,8 +533,9 @@ class PSNodeCallRet : public PSNode {
     PSNode *call;
 
 public:
-    PSNodeCallRet(unsigned id, va_list args)
-    :PSNode(id, PSNodeType::CALL_RETURN, args) {}
+    template<typename... Args>
+    PSNodeCallRet(unsigned id, Args&&... args)
+    :PSNode(id, PSNodeType::CALL_RETURN, std::forward<Args>(args)...) {}
 
     static PSNodeCallRet *get(PSNode *n) {
         return isa<PSNodeType::CALL_RETURN>(n) ?
@@ -623,8 +584,9 @@ class PSNodeRet : public PSNode {
     std::vector<PSNode *> returns;
 
 public:
-    PSNodeRet(unsigned id, va_list args)
-    :PSNode(id, PSNodeType::RETURN, args) {}
+    template<typename... Args>
+    PSNodeRet(unsigned id, Args&&... args)
+    :PSNode(id, PSNodeType::RETURN, std::forward<Args>(args)...) {}
 
     static PSNodeRet *get(PSNode *n) {
         return isa<PSNodeType::RETURN>(n) ?
@@ -672,8 +634,8 @@ class PSNodeFork : public PSNode {
     std::set<PSNode *> functions_;
 
 public:
-    PSNodeFork(unsigned id)
-        :PSNode(id, PSNodeType::FORK) {}
+    PSNodeFork(unsigned id, PSNode* from)
+        :PSNode(id, PSNodeType::FORK, from) {}
 
     static PSNodeFork *get(PSNode *n) {
         return isa<PSNodeType::FORK>(n) ?
@@ -743,6 +705,76 @@ public:
 
     friend class PSNodeFork;
 };
+
+template<PSNodeType Type, typename = void>
+struct GetNodeType
+{
+    using type = PSNode;
+};
+
+template<>
+struct GetNodeType<PSNodeType::ALLOC>
+{
+    using type = PSNodeAlloc;
+};
+
+template<>
+struct GetNodeType<PSNodeType::CONSTANT>
+{
+    using type = PSNodeConstant;
+};
+
+template<>
+struct GetNodeType<PSNodeType::GEP>
+{
+    using type = PSNodeGep;
+};
+
+template<>
+struct GetNodeType<PSNodeType::MEMCPY>
+{
+    using type = PSNodeMemcpy;
+};
+
+
+template<>
+struct GetNodeType<PSNodeType::ENTRY>
+{
+    using type = PSNodeEntry;
+};
+
+template<PSNodeType Type>
+struct GetNodeType<Type,
+    typename std::enable_if<Type == PSNodeType::CALL || Type == PSNodeType::CALL_FUNCPTR>
+                           ::type>
+{
+    using type = PSNodeCall;
+};
+
+template<>
+struct GetNodeType<PSNodeType::FORK>
+{
+    using type = PSNodeFork;
+};
+
+template<>
+struct GetNodeType<PSNodeType::JOIN>
+{
+    using type = PSNodeJoin;
+};
+
+template<>
+struct GetNodeType<PSNodeType::RETURN>
+{
+    using type = PSNodeRet;
+};
+
+template<>
+struct GetNodeType<PSNodeType::CALL_RETURN>
+{
+    using type = PSNodeCallRet;
+};
+
 
 } // namespace pta
 } // namespace dg

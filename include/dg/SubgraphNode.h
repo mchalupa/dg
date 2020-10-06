@@ -123,7 +123,20 @@ public:
         operands.clear();
     }
 
-    size_t addOperand(NodeT *n) {
+public:
+    template<typename NodePtr, typename... Args>
+    size_t addOperand(NodePtr node, Args&&... args) {
+        addOperand(node);
+        return addOperand(std::forward<Args>(args)...);
+    }
+
+    template<typename NodePtr,
+             typename Node_plain = typename std::remove_pointer<NodePtr>::type>
+    size_t addOperand(NodePtr n) {
+        static_assert(std::is_pointer<NodePtr>::value &&
+                      std::is_base_of<NodeT, Node_plain>::value,
+                      "Argument is not a pointer or is not derived from this "
+                      "class.");
         assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         n->addUser(static_cast<NodeT *>(this));
