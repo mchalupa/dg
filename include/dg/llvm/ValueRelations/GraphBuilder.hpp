@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
-#define _DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
+#ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
+#define DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
@@ -181,4 +181,4 @@ struct GraphBuilder {
 } // namespace vr
 } // namespace dg
 
-#endif // _DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
+#endif // DG_LLVM_VALUE_RELATIONS_GRAPH_BUILDER_HPP_
