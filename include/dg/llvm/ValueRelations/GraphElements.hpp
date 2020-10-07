@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
-#define _DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
+#ifndef DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
+#define DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
 
 #include <list>
 #include <llvm/IR/Instructions.h>
@@ -240,4 +240,4 @@ struct VRBBlock {
 } // namespace vr
 } // namespace dg
 
-#endif //_DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_
+#endif //DG_LLVM_VALUE_RELATIONS_GRAPH_ELEMENTS_HPP_

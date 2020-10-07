@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_GET_VAL_NAME_H_
-#define _DG_LLVM_GET_VAL_NAME_H_
+#ifndef DG_LLVM_GET_VAL_NAME_H_
+#define DG_LLVM_GET_VAL_NAME_H_
 
 #include <iostream>
 #include <sstream>
@@ -44,4 +44,4 @@ inline std::string getTypeName(const llvm::Type* type) {
 } // namespace debug
 } // namespace dg
 
-#endif // _DG_LLVM_GET_VAL_NAME_H_
+#endif // DG_LLVM_GET_VAL_NAME_H_

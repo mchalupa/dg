@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_RELATIONS_MAP_H_
-#define _DG_LLVM_RELATIONS_MAP_H_
+#ifndef DG_LLVM_RELATIONS_MAP_H_
+#define DG_LLVM_RELATIONS_MAP_H_
 
 #include <set>
 #include <map>
@@ -1810,4 +1810,4 @@ public:
 } // namespace vr
 } // namespace dg
 
-#endif // _DG_LLVM_RELATIONS_MAP_H_
+#endif // DG_LLVM_RELATIONS_MAP_H_
