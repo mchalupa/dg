@@ -90,8 +90,7 @@ public:
     // If the analysis works on demand, calling this method
     // will trigger the computation for the given function
     // or the whole module if the function is nullptr.
-    // (so you don't want to call that if you want
-    //  on demand)
+    // (so you don't want to call that if you want on demand)
     void compute(const llvm::Function *F = nullptr) {
         _impl->compute(F);
         if (getOptions().interproceduralCD())

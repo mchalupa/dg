@@ -117,7 +117,7 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
     using namespace llvm;
     DBG_SECTION_BEGIN(cda, "Computing interprocedural CD for function " << fun->getName().str());
 
-    // (1) initialize information about blocks
+    // (1) initialize information about calls in basic blocks
     // FIXME: we could do that in computeFuncInfo (add this mapping to FuncInfo)
     std::unordered_map<const llvm::BasicBlock *, BlkInfo> blkInfos;
     blkInfos.reserve(fun->size());
@@ -136,8 +136,11 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
             auto *val = C->getCalledValue();
 #endif
             for (auto *calledFun : getCalledFunctions(val)) {
-                if (calledFun->isDeclaration())
+                if (calledFun->isDeclaration()) {
+                    // TODO: what if this is a stdlib function
+                    // that may not return?
                     continue;
+                }
 
                 auto *fi = getFuncInfo(calledFun);
                 assert(fi && "Do not have func info for a defined function");
@@ -146,8 +149,10 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
                     break;
                 }
             }
-            if (maynoret)
+            if (maynoret) {
+                // some call in this basic block may not return
                 blkInfos[&B].noret.push_back(const_cast<Instruction*>(&I));
+            }
         }
     }
 
@@ -169,14 +174,17 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
         auto *block = queue.pop();
         bool changed = false;
         for (auto *pred : predecessors(block)) {
-            // merge previously computed info
+            // merge noreturn points from predecessors,
+            // from both previously computed info and
+            // their own noreturn points.
+            // (no return points from predecessors are
+            // no return points also for this block)
             auto cit = cds.find(pred);
             if (cit != cds.end()) {
                 for (auto *nr : cit->second) {
                     changed |= cds[block].insert(nr).second;
                 }
             }
-            // merge info from blkInfos
             auto bit = blkInfos.find(pred);
             if (bit != blkInfos.end()) {
                 for (auto *nr : bit->second.noret) {
@@ -194,6 +202,11 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
 
     // (3) compute control dependencies
     for (auto& it : cds) {
+        // forward (dependent) edges
+        for (auto *val : it.second) {
+            _revInstrCD(val).insert(it.first);
+        }
+        // backward (depends) edges
         _blockCD[it.first] = std::move(it.second);
     }
     for (auto& it : blkInfos) {
@@ -201,8 +214,12 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
         auto& norets = it.second.noret;
 
         for (auto& I : *it.first) {
+            // this instruction is dependent on
+            // all noretpoints in this block
+            // up to this instruction
             for (unsigned i = 0; i < noretsidx; ++i) {
                 _instrCD[&I].insert(norets[i]);
+                _revInstrCD(norets[i]).insert(&I);
             }
             if (noretsidx < norets.size() &&
                 &I == norets[noretsidx]) {
