@@ -24,11 +24,12 @@ if (LLVM_DG)
 	add_library(dgllvmslicer SHARED
 		    llvm-slicer-opts.cpp include/dg/tools/llvm-slicer-opts.h
 		    llvm-slicer-utils.cpp include/dg/tools/llvm-slicer-utils.h
+		    llvm-slicer-crit.cpp
 		    include/dg/tools/llvm-slicer.h)
-	#target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
+	target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
 	add_dependencies(dgllvmslicer gitversion)
 
-	add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
+	add_executable(llvm-slicer llvm-slicer.cpp)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
 					  PRIVATE dgllvmdg
 					  PRIVATE ${SVF_LIBS})
