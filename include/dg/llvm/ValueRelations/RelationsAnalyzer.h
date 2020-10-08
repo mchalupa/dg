@@ -26,9 +26,9 @@
 #include <algorithm>
 #include <string>
 
-#include "GraphElements.hpp"
-#include "ValueRelations.hpp"
-#include "StructureAnalyzer.hpp"
+#include "GraphElements.h"
+#include "ValueRelations.h"
+#include "StructureAnalyzer.h"
 
 #ifndef NDEBUG
 #include "getValName.h"

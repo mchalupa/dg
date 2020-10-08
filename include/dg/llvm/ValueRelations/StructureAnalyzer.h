@@ -25,7 +25,7 @@
 #include <algorithm>
 
 #include "dg/AnalysisOptions.h"
-#include "GraphElements.hpp"
+#include "GraphElements.h"
 
 #ifndef NDEBUG
 #include "getValName.h"
