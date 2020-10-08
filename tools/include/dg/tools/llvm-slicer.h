@@ -85,6 +85,8 @@ public:
     const dg::LLVMDependenceGraph& getDG() const { return *_dg.get(); }
     dg::LLVMDependenceGraph& getDG() { return *_dg.get(); }
 
+    const SlicerOptions& getOptions() const { return _options; }
+
     // Mirror LLVM to nodes of dependence graph,
     // No dependence edges are added here unless the
     // 'compute_deps' parameter is set to true.
