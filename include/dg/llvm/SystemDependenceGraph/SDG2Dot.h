@@ -47,7 +47,8 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 }
 */
 
-static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
+namespace {
+static inline std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;
@@ -93,6 +94,7 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
 
     return os;
 }
+} // anonymous namespace
 
 static std::ostream& operator<<(std::ostream& os, const sdg::DGElement& nd) {
     os << "elem" << nd.getDG().getID() << "_" << nd.getID();
