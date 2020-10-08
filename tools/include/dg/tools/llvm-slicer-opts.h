@@ -51,7 +51,10 @@ struct SlicerOptions {
 
 ///
 // Return filled SlicerOptions structure.
-SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit = false, bool inputFileRequired = true);
+SlicerOptions
+parseSlicerOptions(int argc, char *argv[],
+                   bool requireCrit = false,
+                   bool inputFileRequired = true);
 
 bool getSlicingCriteriaNodes(dg::LLVMDependenceGraph& dg,
                              const std::string& slicingCriteria,
