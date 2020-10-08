@@ -50,7 +50,7 @@
 #include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
 
-#include "TimeMeasure.h"
+#include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
 using llvm::errs;

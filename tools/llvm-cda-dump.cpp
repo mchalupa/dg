@@ -16,9 +16,9 @@
 #error "Unsupported version of LLVM"
 #endif
 
-#include "llvm-slicer.h"
-#include "llvm-slicer-opts.h"
-#include "llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer.h"
+#include "dg/tools/llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)

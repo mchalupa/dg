@@ -41,7 +41,7 @@
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-opts.h"
 
 using namespace dg;
 using namespace dg::pta;

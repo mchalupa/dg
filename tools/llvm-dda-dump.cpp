@@ -44,10 +44,8 @@
 #include "dg/llvm/DataDependence/DataDependence.h"
 
 #include "dg/util/debug.h"
-#include "TimeMeasure.h"
-
-#include "llvm-slicer-opts.h"
-#include "llvm-slicer-utils.h"
+#include "dg/tools/TimeMeasure.h"
+#include "dg/tools/llvm-slicer-opts.h"
 
 using namespace dg;
 using namespace dg::dda;

@@ -50,10 +50,8 @@
 //#include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
 #include "dg/PointerAnalysis/Pointer.h"
 
-#include "llvm-slicer-opts.h"
-#include "llvm-slicer-utils.h"
-
-#include "TimeMeasure.h"
+#include "dg/tools/llvm-slicer-opts.h"
+#include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
 using namespace dg::pta;

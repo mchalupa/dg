@@ -22,8 +22,8 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm-slicer.h"
-#include "llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 #include "git-version.h"
 
