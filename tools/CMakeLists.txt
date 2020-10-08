@@ -1,6 +1,6 @@
 include_directories(${CMAKE_SOURCE_DIR}/include)
 # these tools can access the private headers
-include_directories(${CMAKE_SOURCE_DIR}/lib)
+include_directories(${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/tools/include)
 
 if (LLVM_DG)
 	# generate a git-version.h with a HEAD commit hash tag
@@ -22,9 +22,9 @@ if (LLVM_DG)
 				PRIVATE ${llvm_core})
 
 	add_library(dgllvmslicer SHARED
-		    llvm-slicer-opts.cpp llvm-slicer-opts.h
-		    llvm-slicer-utils.cpp llvm-slicer-utils.h
-		    llvm-slicer.h)
+		    llvm-slicer-opts.cpp include/dg/tools/llvm-slicer-opts.h
+		    llvm-slicer-utils.cpp include/dg/tools/llvm-slicer-utils.h
+		    include/dg/tools/llvm-slicer.h)
 	#target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
 	add_dependencies(dgllvmslicer gitversion)
 
@@ -174,9 +174,7 @@ endif (HAVE_SVF)
 	install(TARGETS dgllvmslicer
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-	install(FILES llvm-slicer.h llvm-slicer-opts.h llvm-slicer-utils.h
-		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
+        install(DIRECTORY include/
+	        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif (LLVM_DG)
-
-include_directories(../src)
 

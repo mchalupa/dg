@@ -20,7 +20,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-opts.h"
 
 #include "dg/util/debug.h"
 #include "dg/ADT/Queue.h"

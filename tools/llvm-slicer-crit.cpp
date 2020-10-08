@@ -34,7 +34,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer-utils.h"
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/ADT/Queue.h"
