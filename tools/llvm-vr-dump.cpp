@@ -41,9 +41,9 @@
 #endif
 
 #undef NDEBUG // we need dump methods
-#include "dg/llvm/ValueRelations/GraphBuilder.hpp"
-#include "dg/llvm/ValueRelations/StructureAnalyzer.hpp"
-#include "dg/llvm/ValueRelations/RelationsAnalyzer.hpp"
+#include "dg/llvm/ValueRelations/GraphBuilder.h"
+#include "dg/llvm/ValueRelations/StructureAnalyzer.h"
+#include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
 
 #include "dg/tools/TimeMeasure.h"

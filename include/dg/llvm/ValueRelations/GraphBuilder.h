@@ -6,7 +6,7 @@
 #include "llvm/IR/Constants.h"
 #include <llvm/IR/CFG.h>
 
-#include "GraphElements.hpp"
+#include "GraphElements.h"
 
 #ifndef NDEBUG
 #include "getValName.h"
