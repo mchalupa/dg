@@ -2,6 +2,7 @@
 #define _DG_TOOL_LLVM_SLICER_H_
 
 #include <ctime>
+#include <fstream>
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -15,6 +16,13 @@
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
 
+#if LLVM_VERSION_MAJOR >= 4
+#include <llvm/Bitcode/BitcodeReader.h>
+#include <llvm/Bitcode/BitcodeWriter.h>
+#else
+#include <llvm/Bitcode/ReaderWriter.h>
+#endif
+
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
 #else
@@ -26,7 +34,10 @@
 #include "dg/llvm/LLVMSlicer.h"
 
 #include "dg/llvm/LLVMDGAssemblyAnnotationWriter.h"
+
 #include "llvm-slicer-opts.h"
+#include "llvm-slicer-utils.h"
+
 #include "TimeMeasure.h"
 
 /// --------------------------------------------------------------------
@@ -226,5 +237,172 @@ public:
         return true;
     }
 };
+
+class ModuleWriter {
+    const SlicerOptions& options;
+    llvm::Module *M;
+
+public:
+    ModuleWriter(const SlicerOptions& o,
+                 llvm::Module *m)
+    : options(o), M(m) {}
+
+    int cleanAndSaveModule(bool should_verify_module = true) {
+        // remove unneeded parts of the module
+        removeUnusedFromModule();
+
+        // fix linkage of declared functions (if needs to be fixed)
+        makeDeclarationsExternal();
+
+        return saveModule(should_verify_module);
+    }
+
+    int saveModule(bool should_verify_module = true)
+    {
+        if (should_verify_module)
+            return verifyAndWriteModule();
+        else
+            return writeModule();
+    }
+
+    void removeUnusedFromModule()
+    {
+        bool fixpoint;
+
+        do {
+            fixpoint = _removeUnusedFromModule();
+        } while (fixpoint);
+    }
+
+    // after we slice the LLVM, we somethimes have troubles
+    // with function declarations:
+    //
+    //   Global is external, but doesn't have external or dllimport or weak linkage!
+    //   i32 (%struct.usbnet*)* @always_connected
+    //   invalid linkage type for function declaration
+    //
+    // This function makes the declarations external
+    void makeDeclarationsExternal()
+    {
+        using namespace llvm;
+
+        // iterate over all functions in module
+        for (auto& F : *M) {
+            if (F.size() == 0) {
+                // this will make sure that the linkage has right type
+                F.deleteBody();
+            }
+        }
+    }
+
+private:
+    bool writeModule() {
+        // compose name if not given
+        std::string fl;
+        if (!options.outputFile.empty()) {
+            fl = options.outputFile;
+        } else {
+            fl = options.inputFile;
+            replace_suffix(fl, ".sliced");
+        }
+
+        // open stream to write to
+        std::ofstream ofs(fl);
+        llvm::raw_os_ostream ostream(ofs);
+
+        // write the module
+        llvm::errs() << "[llvm-slicer] saving sliced module to: " << fl.c_str() << "\n";
+
+    #if (LLVM_VERSION_MAJOR > 6)
+        llvm::WriteBitcodeToFile(*M, ostream);
+    #else
+        llvm::WriteBitcodeToFile(M, ostream);
+    #endif
+
+        return true;
+    }
+
+    bool verifyModule()
+    {
+        // the verifyModule function returns false if there
+        // are no errors
+
+#if ((LLVM_VERSION_MAJOR >= 4) || (LLVM_VERSION_MINOR >= 5))
+        return !llvm::verifyModule(*M, &llvm::errs());
+#else
+       return !llvm::verifyModule(*M, llvm::PrintMessageAction);
+#endif
+    }
+
+
+    int verifyAndWriteModule()
+    {
+        if (!verifyModule()) {
+            llvm::errs() << "[llvm-slicer] ERROR: Verifying module failed, the IR is not valid\n";
+            llvm::errs() << "[llvm-slicer] Saving anyway so that you can check it\n";
+            return 1;
+        }
+
+        if (!writeModule()) {
+            llvm::errs() << "Saving sliced module failed\n";
+            return 1;
+        }
+
+        // exit code
+        return 0;
+    }
+
+    bool _removeUnusedFromModule()
+    {
+        using namespace llvm;
+        // do not slice away these functions no matter what
+        // FIXME do it a vector and fill it dynamically according
+        // to what is the setup (like for sv-comp or general..)
+        const char *keep[] = {options.dgOptions.entryFunction.c_str()};
+
+        // when erasing while iterating the slicer crashes
+        // so set the to be erased values into container
+        // and then erase them
+        std::set<Function *> funs;
+        std::set<GlobalVariable *> globals;
+        std::set<GlobalAlias *> aliases;
+
+        for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+            Function *func = &*I;
+            if (array_match(func->getName(), keep))
+                continue;
+
+            // if the function is unused or we haven't constructed it
+            // at all in dependence graph, we can remove it
+            // (it may have some uses though - like when one
+            // unused func calls the other unused func
+            if (func->hasNUses(0))
+                funs.insert(func);
+        }
+
+        for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
+            GlobalVariable *gv = &*I;
+            if (gv->hasNUses(0))
+                globals.insert(gv);
+        }
+
+        for (GlobalAlias& ga : M->getAliasList()) {
+            if (ga.hasNUses(0))
+                aliases.insert(&ga);
+        }
+
+        for (Function *f : funs)
+            f->eraseFromParent();
+        for (GlobalVariable *gv : globals)
+            gv->eraseFromParent();
+        for (GlobalAlias *ga : aliases)
+            ga->eraseFromParent();
+
+        return (!funs.empty() || !globals.empty() || !aliases.empty());
+    }
+
+};
+
+
 
 #endif // _DG_TOOL_LLVM_SLICER_H_
