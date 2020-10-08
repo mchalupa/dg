@@ -232,9 +232,33 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
 #endif // LLVM > 3.6
 }
 
-std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
-                                             const std::string& slicingCriteria)
-{
+static std::set<LLVMNode *> _mapToNextInstr(LLVMDependenceGraph&,
+                                            const std::set<LLVMNode *>& callsites) {
+    std::set<LLVMNode *> nodes;
+
+    for (LLVMNode *cs: callsites) {
+        llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(cs->getValue());
+        assert(I && "Callsite is not an instruction");
+        llvm::Instruction *succ = I->getNextNode();
+        if (!succ) {
+            llvm::errs() << *I << "has no successor that could be criterion\n";
+            // abort for now
+            abort();
+        }
+
+        LLVMDependenceGraph *local_dg = cs->getDG();
+        LLVMNode *node = local_dg->getNode(succ);
+        assert(node && "DG does not have such node");
+        nodes.insert(node);
+    }
+
+    return nodes;
+}
+
+static
+std::set<LLVMNode *> getPrimarySlicingCriteriaNodes(LLVMDependenceGraph& dg,
+                                                    const std::string& slicingCriteria,
+                                                    bool criteria_are_next_instr) {
     std::set<LLVMNode *> nodes;
     std::vector<std::string> criteria = splitList(slicingCriteria);
     assert(!criteria.empty() && "Did not get slicing criteria");
@@ -266,10 +290,18 @@ std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
     if (!line_criteria.empty())
         getLineCriteriaNodes(dg, line_criteria, nodes);
 
+    if (criteria_are_next_instr && !nodes.empty()) {
+        // the given criteria are just markers for the
+        // next instruction, so map the criteria to
+        // the next instructions
+        auto mappedNodes = _mapToNextInstr(dg, nodes);
+        nodes.swap(mappedNodes);
+    }
+
     return nodes;
 }
 
-std::pair<std::set<std::string>, std::set<std::string>>
+static std::pair<std::set<std::string>, std::set<std::string>>
 parseSecondarySlicingCriteria(const std::string& slicingCriteria)
 {
     std::vector<std::string> criteria = splitList(slicingCriteria);
@@ -346,6 +378,7 @@ void checkSecondarySlicingCrit(std::set<LLVMNode *>& criteria_nodes,
 }
 
 // mark nodes that are going to be in the slice
+static
 bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
                                   const std::set<std::string>& secondaryControlCriteria,
                                   const std::set<std::string>& secondaryDataCriteria)
@@ -406,6 +439,37 @@ bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
             if (visited.insert(pred).second)
                 queue.push(pred);
         }
+    }
+
+    return true;
+}
+
+bool getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
+                             const std::string& slicingCriteria,
+                             const std::string& secondarySlicingCriteria,
+                             std::set<LLVMNode *>& criteria_nodes,
+                             bool criteria_are_next_instr) {
+
+    auto nodes = getPrimarySlicingCriteriaNodes(dg,
+                                                slicingCriteria,
+                                                criteria_are_next_instr);
+    if (nodes.empty()) {
+        return true; // no criteria found
+    }
+
+    criteria_nodes.swap(nodes);
+
+    auto secondaryCriteria
+        = parseSecondarySlicingCriteria(secondarySlicingCriteria);
+    const auto& secondaryControlCriteria = secondaryCriteria.first;
+    const auto& secondaryDataCriteria = secondaryCriteria.second;
+
+    // mark nodes that are going to be in the slice
+    if (!findSecondarySlicingCriteria(criteria_nodes,
+                                      secondaryControlCriteria,
+                                      secondaryDataCriteria)) {
+        llvm::errs() << "Finding secondary slicing criteria nodes failed\n";
+        return false;
     }
 
     return true;

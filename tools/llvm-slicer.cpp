@@ -86,6 +86,15 @@ llvm::cl::opt<bool> dump_bb_only("dump-bb-only",
                    " (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> criteria_are_next_instr("criteria-are-next-instr",
+    llvm::cl::desc("Assume that slicing criteria are not the call-sites\n"
+                   "of the given function, but the instructions that\n"
+                   "follow the call. I.e. the call is used just to mark\n"
+                   "the instruction.\n"
+                   "E.g. for 'crit' being set as the criterion, slicing critera "
+                   "are all instructions that follow any call of 'crit'.\n"),
+                   llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<std::string> annotationOpts("annotate",
     llvm::cl::desc("Save annotated version of module as a text (.ll).\n"
                    "Options:\n"
@@ -192,10 +201,6 @@ void setupStackTraceOnError(int argc, char *argv[])
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
-// defined in llvm-slicer-crit.cpp
-std::set<LLVMNode *> getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
-                                             const std::string& slicingCriteria);
-
 std::pair<std::set<std::string>, std::set<std::string>>
 parseSecondarySlicingCriteria(const std::string& slicingCriteria);
 
@@ -257,34 +262,38 @@ int main(int argc, char *argv[])
     ModuleAnnotator annotator(options, &slicer.getDG(),
                               parseAnnotationOptions(annotationOpts));
 
-    auto criteria_nodes = getSlicingCriteriaNodes(slicer.getDG(),
-                                                  options.slicingCriteria);
+    std::set<LLVMNode *> criteria_nodes;
+    if (!getSlicingCriteriaNodes(slicer.getDG(),
+                                 options.slicingCriteria,
+                                 options.secondarySlicingCriteria,
+                                 criteria_nodes,
+                                 criteria_are_next_instr)) {
+        llvm::errs() << "ERROR: Failed finding slicing criteria: '"
+                     << options.slicingCriteria << "'\n";
+
+        if (annotator.shouldAnnotate()) {
+            slicer.computeDependencies();
+            annotator.annotate();
+        }
+
+        return 1;
+    }
+
     if (criteria_nodes.empty()) {
-        llvm::errs() << "Did not find slicing criteria: '"
+        llvm::errs() << "No reachable slicing criteria: '"
                      << options.slicingCriteria << "'\n";
         if (annotator.shouldAnnotate()) {
             slicer.computeDependencies();
             annotator.annotate();
         }
 
-        if (!slicer.createEmptyMain())
+        if (!slicer.createEmptyMain()) {
+            llvm::errs() << "ERROR: failed creating an empty main\n";
             return 1;
+        }
 
         maybe_print_statistics(M.get(), "Statistics after ");
         return writer.cleanAndSaveModule(should_verify_module);
-    }
-
-    auto secondaryCriteria
-        = parseSecondarySlicingCriteria(options.secondarySlicingCriteria);
-    const auto& secondaryControlCriteria = secondaryCriteria.first;
-    const auto& secondaryDataCriteria = secondaryCriteria.second;
-
-    // mark nodes that are going to be in the slice
-    if (!findSecondarySlicingCriteria(criteria_nodes,
-                                      secondaryControlCriteria,
-                                      secondaryDataCriteria)) {
-        llvm::errs() << "Finding secondary slicing criteria nodes failed\n";
-        return 1;
     }
 
     // mark nodes that are going to be in the slice
