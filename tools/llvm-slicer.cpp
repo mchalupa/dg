@@ -154,7 +154,7 @@ public:
         else
             replace_suffix(fl, ".dot");
 
-        errs() << "[llvm-slicer] Dumping DG to to " << fl << "\n";
+        errs() << "[llvm-slicer] Dumping DG to " << fl << "\n";
 
         if (bb_only) {
             debug::LLVMDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
