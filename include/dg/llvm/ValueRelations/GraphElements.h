@@ -4,7 +4,7 @@
 #include <list>
 #include <llvm/IR/Instructions.h>
 
-#include "ValueRelations.hpp"
+#include "ValueRelations.h"
 
 #ifndef NDEBUG
 #include "getValName.h"
