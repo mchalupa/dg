@@ -105,7 +105,9 @@ class CDGraph {
 public:
     CDGraph(const std::string& name = "") : _name(name) {}
     CDGraph(const CDGraph& rhs) = delete;
-    CDGraph(CDGraph&& rhs) = default;
+    CDGraph& operator=(const CDGraph&) = delete;
+    CDGraph(CDGraph&&) = default;
+    CDGraph& operator=(CDGraph&&) = default;
 
     CDNode& createNode() {
         auto *nd = new CDNode(_nodes.size() + 1);
