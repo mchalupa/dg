@@ -64,6 +64,12 @@ Results of the interprocedural analysis are returned by `getDependencies` and `g
 results of the intraprocedural analysis (of course, only if interprocedural analysis is enabled by the options
 object).
 
+Also, NTSCD and DOD algorithms can be executed on interprocedural (inlined) CFG (ICFG).
+That is, a one big CFG that contains nodes for all basic blocks/instructions of the
+program and there are regular intraprocedural edges and also interprocedural
+edges going between calls and entry blocks/instructions and from returns to return-sites.
+For this functionality, use -cda-icfg.
+
 ## Tools
 
 There is the `llvm-cda-dump` tool that dumps the results of control dependence analysis.
