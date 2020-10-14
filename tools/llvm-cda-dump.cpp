@@ -254,12 +254,38 @@ static void dumpCda(LLVMControlDependenceAnalysis& cda) {
     std::cout << "}\n";
 }
 
+static void dump_graph(CDGraph *graph) {
+    assert(graph);
+    // dump nodes
+    for (const auto *nd : *graph) {
+        std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"";
+        if (graph->isPredicate(*nd)) {
+            std::cout << " color=blue";
+        }
+        std::cout << "]\n";
+    }
+
+    // dump edges
+    for (const auto *nd : *graph) {
+        for (const auto *succ : nd->successors()) {
+            std::cout << " ND" << nd->getID() << " -> ND" << succ->getID() << "\n";
+        }
+    }
+}
+
 static void dumpIr(LLVMControlDependenceAnalysis& cda) {
     const auto *m = cda.getModule();
     auto *impl = cda.getImpl();
 
     std::cout << "digraph ControlDependencies {\n";
     std::cout << "  compound=true;\n";
+
+    if (cda.getOptions().ICFG()) {
+        cda.compute();
+        dump_graph(impl->getGraph(nullptr));
+        std::cout << "}\n";
+        return;
+    }
 
     // dump nodes
     for (const auto& f : *m) {
@@ -270,21 +296,7 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
         std::cout << "subgraph cluster_f_" << f.getName().str() << " {\n";
         std::cout << "label=\"" << f.getName().str() << "\"\n";
 
-        // dump nodes
-        for (const auto *nd : *graph) {
-            std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"";
-            if (graph->isPredicate(*nd)) {
-                std::cout << " color=blue";
-            }
-            std::cout << "]\n";
-        }
-
-        // dump edges
-        for (const auto *nd : *graph) {
-            for (const auto *succ : nd->successors()) {
-                std::cout << " ND" << nd->getID() << " -> ND" << succ->getID() << "\n";
-            }
-        }
+        dump_graph(graph);
 
         if (cda.getOptions().ntscdCD() || cda.getOptions().ntscd2CD() ||
             cda.getOptions().ntscdRanganathCD()) {
