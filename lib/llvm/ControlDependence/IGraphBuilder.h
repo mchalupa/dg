@@ -16,6 +16,22 @@
 namespace dg {
 namespace llvmdg {
 
+namespace {
+    const llvm::Instruction *
+    getNextNonDebugInstruction(const llvm::Instruction *I) {
+#if LLVM_VERSION_MAJOR >= 7
+    return I->getNextNonDebugInstruction();
+#else
+    // this is the implementation of Instruction::getNextNonDebugInstruction()
+    // from LLVM 12 (adjusted)
+    for (const auto *I = getNextNode(); I; I = I->getNextNode())
+      if (!llvm::isa<llvm::DbgInfoIntrinsic>(I))
+        return I;
+    return nullptr;
+#endif
+    }
+}
+
 ///
 // Whole-program graph for interprocedural analysis.
 // Note that control dependencies include separate interprocedural analysis
@@ -88,7 +104,7 @@ class ICDGraphBuilder {
                 graph.addNodeSuccessor(*cnode, *entrynode);
 
                 // return edges
-                auto *retsite = C->getNextNonDebugInstruction();
+                auto *retsite = getNextNonDebugInstruction(C);
                 assert(retsite);
                 auto *retsitenode = getNode(retsite);
                 assert(retsitenode);
