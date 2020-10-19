@@ -86,7 +86,7 @@ class ICDGraphBuilder {
 
     CDGraph buildInstructions(const llvm::Module *M) {
         DBG_SECTION_BEGIN(cda, "Building ICFG (of instructions) for the whole module");
-        CDGraph graph(M->getName().str());
+        CDGraph graph("ICFG");
 
         for (auto& F : *M) {
             buildInstructions(graph, F);
@@ -185,7 +185,7 @@ class ICDGraphBuilder {
 
     CDGraph buildBlocks(const llvm::Module *M) {
         DBG_SECTION_BEGIN(cda, "Building ICFG (of blocks) for the whole module");
-        CDGraph graph(M->getName().str());
+        CDGraph graph("ICFG");
 
         for (auto& F : *M) {
             buildBlocks(graph, F);
@@ -259,6 +259,9 @@ class ICDGraphBuilder {
     }
 
 public:
+
+    ICDGraphBuilder(LLVMPointerAnalysis *pta = nullptr, CallGraph *cg = nullptr):
+        _pta(pta), _cg(cg) {}
 
     // \param instructions  true if we should build nodes for the instructions
     //                      instead of for basic blocks?

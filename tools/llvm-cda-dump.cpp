@@ -98,6 +98,11 @@ llvm::cl::opt<bool> dump_c_lines("c-lines",
                    "Requires metadata in the bitcode (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> use_pta("use-pta",
+    llvm::cl::desc("Use pointer analysis to build call graph. "
+                   "Makes sense only with -cda-icfg switch (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
 VariablesMapTy allocasToVars(const llvm::Module& M);
 VariablesMapTy valuesToVars;
