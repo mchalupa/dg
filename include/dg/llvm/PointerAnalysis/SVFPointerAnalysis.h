@@ -106,6 +106,11 @@ public:
         return PTSet.test(_pag->getNullPtr());
     }
 
+    bool hasNullWithOffset() const override {
+        // we are field-insensitive now...
+        return hasNull();
+    }
+
     bool hasInvalidated() const override { return false; }
     size_t size() const override { return PTSet.count(); }
 

@@ -906,6 +906,9 @@ int main(int argc, char *argv[]) {
                     if (pts.hasNull()) {
                         std::cout << "  -> null\n";
                     }
+                    if (pts.hasNullWithOffset()) {
+                        std::cout << "  -> null + ?\n";
+                    }
                     if (pts.hasInvalidated()) {
                         std::cout << "  -> invalidated\n";
                     }
