@@ -58,7 +58,7 @@ if (HAVE_SVF)
                                            PRIVATE ${llvm_transformutils})
 endif (HAVE_SVF)
 
-	add_executable(llvm-cda-dump llvm-cda-dump.cpp)
+	add_executable(llvm-cda-dump llvm-cda-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-cda-dump PRIVATE dgllvmslicer
                                             PRIVATE dganalysis
                                             PRIVATE dgllvmcda
