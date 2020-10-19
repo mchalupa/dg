@@ -455,10 +455,10 @@ static AnnotationOptsT parseAnnotationOptions(const std::string& annot)
     for (const std::string& opt : lst) {
         if (opt == "dd")
             opts |= AnnotationOptsT::ANNOTATE_DD;
-        else if (opt == "cd")
+        else if (opt == "cd" || opt == "cda")
             opts |= AnnotationOptsT::ANNOTATE_CD;
-        else if (opt == "rd")
-            opts |= AnnotationOptsT::ANNOTATE_DU;
+        else if (opt == "dda" || opt == "du")
+            opts |= AnnotationOptsT::ANNOTATE_DEF;
         else if (opt == "pta")
             opts |= AnnotationOptsT::ANNOTATE_PTR;
         else if (opt == "memacc")

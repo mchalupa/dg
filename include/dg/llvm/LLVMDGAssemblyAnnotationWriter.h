@@ -48,7 +48,7 @@ public:
         // points-to information
         ANNOTATE_PTR                = 1 << 3,
         // reaching definitions
-        ANNOTATE_DU                 = 1 << 4,
+        ANNOTATE_DEF                 = 1 << 4,
         // post-dominators
         ANNOTATE_POSTDOM            = 1 << 5,
         // comment out nodes that will be sliced
@@ -159,7 +159,7 @@ private:
     {
         using namespace llvm;
 
-        if (opts & ANNOTATE_DU) {
+        if (opts & ANNOTATE_DEF) {
             assert(DDA && "No data dependence analysis");
             if (DDA->isUse(node->getValue())) {
                 for (auto *def : DDA->getLLVMDefinitions(node->getValue())) {
@@ -267,7 +267,7 @@ public:
         : opts(o), PTA(pta), DDA(dda), criteria(criteria)
     {
         assert(!(opts & ANNOTATE_PTR) || PTA);
-        assert(!(opts & ANNOTATE_DU) || DDA);
+        assert(!(opts & ANNOTATE_DEF) || DDA);
     }
 
     void emitModuleComment(const std::string& comment) {
