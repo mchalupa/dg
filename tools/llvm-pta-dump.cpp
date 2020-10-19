@@ -50,6 +50,7 @@
 #include "dg/PointerAnalysis/Pointer.h"
 
 #include "llvm-slicer-opts.h"
+#include "llvm-slicer-utils.h"
 
 #include "TimeMeasure.h"
 
@@ -112,6 +113,15 @@ llvm::cl::opt<bool> dump_ir("ir",
     llvm::cl::desc("Dump IR of the analysis (DG analyses only) (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> dump_c_lines("c-lines",
+    llvm::cl::desc("Dump output as C lines (line:column where possible)."
+                   "Requires metadata in the bitcode (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
+VariablesMapTy allocasToVars(const llvm::Module& M);
+VariablesMapTy valuesToVars;
+
 static std::vector<const llvm::Function *> display_only_func;
 
 std::unique_ptr<LLVMPointerAnalysis> PA;
@@ -125,13 +135,29 @@ static std::string valToStr(const llvm::Value *val) {
     if (auto *F = dyn_cast<Function>(val)) {
         ro << "fun '" << F->getName().str() << "'";
     } else {
-        if (auto *I = dyn_cast<Instruction>(val)) {
-            ro << I->getParent()->getParent()->getName().str();
-            ro << "::";
-        }
+        auto *I = dyn_cast<Instruction>(val);
+        if (dump_c_lines) {
+            if (I) {
+                auto& DL = I->getDebugLoc();
+                if (DL) {
+                    ro << DL.getLine() << ":" << DL.getCol();
+                } else {
+                    auto Vit = valuesToVars.find(I);
+                    if (Vit != valuesToVars.end()) {
+                        auto& decl = Vit->second;
+                        ro << decl.line << ":" << decl.col;
+                    }
+                }
+            }
+        } else {
+            if (I) {
+                ro << I->getParent()->getParent()->getName().str();
+                ro << "::";
+            }
 
-        assert(val);
-        ro << *val;
+            assert(val);
+            ro << *val;
+        }
     }
 
     ro.flush();
@@ -496,30 +522,6 @@ dumpToDot(const ContT& nodes, PTType type) {
     }
 }
 
-
-static std::vector<std::string> splitList(const std::string& opt, char sep = ',')
-{
-    std::vector<std::string> ret;
-    if (opt.empty())
-        return ret;
-
-    size_t old_pos = 0;
-    size_t pos = 0;
-    while (true) {
-        old_pos = pos;
-
-        pos = opt.find(sep, pos);
-        ret.push_back(opt.substr(old_pos, pos - old_pos));
-
-        if (pos == std::string::npos)
-            break;
-        else
-            ++pos;
-    }
-
-    return ret;
-}
-
 static void
 dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type) {
 
@@ -863,6 +865,18 @@ int main(int argc, char *argv[]) {
         tm.stop();
         tm.report("INFO: Pointer analysis took");
 
+        if (dump_c_lines) {
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+    llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
+#else
+            valuesToVars = allocasToVars(*M);
+#endif // LLVM > 3.6
+            if (valuesToVars.empty()) {
+                llvm::errs() << "WARNING: No debugging information found, "
+                             << "the C lines output will be corrupted\n";
+            }
+        }
+
         for (auto& F: *M.get()) {
             for (auto& B : F) {
                 for (auto& I : B) {
@@ -871,9 +885,19 @@ int main(int argc, char *argv[]) {
                         continue;
                     }
 
-                    std::cout << valToStr(&I) << "\n";
+                    if (dump_c_lines && llvm::isa<llvm::AllocaInst>(&I)) {
+                        // do not dump I->I for alloca, it makes no sense for C
+                        continue;
+                    }
+
                     auto pts = llvmpta->getLLVMPointsTo(&I);
-                    for (const auto& ptr: pts) {
+                    if (pts.isUnknownSingleton()) {
+                        // do not dump the "no-information"
+                        continue;
+                    }
+
+                    std::cout << valToStr(&I) << "\n";
+                    for (const auto& ptr : pts) {
                         std::cout << "  -> " << valToStr(ptr.value) << "\n";
                     }
                     if (pts.hasUnknown()) {
