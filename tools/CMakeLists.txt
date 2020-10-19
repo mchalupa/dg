@@ -133,7 +133,7 @@ endif (HAVE_SVF)
 
 
 
-	add_executable(llvm-dda-dump llvm-dda-dump.cpp)
+	add_executable(llvm-dda-dump llvm-dda-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-dda-dump PRIVATE dgllvmdda)
 	target_link_libraries(llvm-dda-dump
                                 PRIVATE dgllvmslicer

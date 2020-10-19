@@ -46,6 +46,7 @@
 #include "TimeMeasure.h"
 
 #include "llvm-slicer-opts.h"
+#include "llvm-slicer-utils.h"
 
 using namespace dg;
 using namespace dg::dda;
@@ -66,6 +67,15 @@ llvm::cl::opt<bool> graph_only("graph-only",
 llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Output in graphviz format (forced atm.)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dump_c_lines("c-lines",
+    llvm::cl::desc("Dump output as C lines (line:column where possible)."
+                   "Requires metadata in the bitcode (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
+VariablesMapTy allocasToVars(const llvm::Module& M);
+VariablesMapTy valuesToVars;
 
 static inline size_t count_ws(const std::string& str) {
     size_t n = 0;
@@ -89,7 +99,27 @@ getInstName(const llvm::Value *val) {
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
 
-    ro << *val;
+
+    if (dump_c_lines) {
+        if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            auto& DL = I->getDebugLoc();
+            if (DL) {
+                ro << DL.getLine() << ":" << DL.getCol();
+            } else {
+                auto Vit = valuesToVars.find(I);
+                if (Vit != valuesToVars.end()) {
+                    auto& decl = Vit->second;
+                    ro << decl.line << ":" << decl.col;
+                } else {
+                    ro << "(no dbg) ";
+                    ro << *val;
+                }
+            }
+        }
+    } else {
+        ro << *val;
+    }
+
     ro.flush();
 
     auto str = ostr.str();
@@ -97,6 +127,9 @@ getInstName(const llvm::Value *val) {
     auto m = trim_name_idx(str);
     if (n > 0)
         str = str.substr(n, m);
+
+    if (dump_c_lines)
+        return str;
 
     if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
         const auto& fun = I->getParent()->getParent()->getName();
@@ -690,6 +723,18 @@ int main(int argc, char *argv[])
     }
     tm.stop();
     tm.report("INFO: Data dependence analysis took");
+
+    if (dump_c_lines) {
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+        llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
+#else
+        valuesToVars = allocasToVars(*M);
+#endif // LLVM > 3.6
+        if (valuesToVars.empty()) {
+            llvm::errs() << "WARNING: No debugging information found, "
+                         << "the C lines output will be corrupted\n";
+        }
+    }
 
     dumpDefs(&DDA, todot);
 
