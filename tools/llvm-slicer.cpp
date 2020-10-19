@@ -108,9 +108,6 @@ llvm::cl::opt<std::string> annotationOpts("annotate",
     llvm::cl::cat(SlicingOpts));
 
 
-// mapping of AllocaInst to the names of C variables
-std::map<const llvm::Value *, std::string> valuesToVariables;
-
 class ModuleWriter {
     const SlicerOptions& options;
     llvm::Module *M;
