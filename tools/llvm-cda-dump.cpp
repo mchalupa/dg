@@ -165,7 +165,7 @@ getInstName(const llvm::Value *val) {
         }
         ro.flush();
         return ostr.str();
-    } 
+    }
 
     if (llvm::isa<llvm::Function>(val))
         ro << val->getName().data();
@@ -323,12 +323,12 @@ static void dumpCda(LLVMControlDependenceAnalysis& cda) {
     }
 }
 
-
 static void dump_graph(CDGraph *graph) {
     assert(graph);
     // dump nodes
     for (const auto *nd : *graph) {
-        std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"";
+        std::cout << " " << graph->getName() << "_" << nd->getID()
+                  << " [label=\"" << graph->getName() << ":" << nd->getID() << "\"";
         if (graph->isPredicate(*nd)) {
             std::cout << " color=blue";
         }
@@ -338,7 +338,8 @@ static void dump_graph(CDGraph *graph) {
     // dump edges
     for (const auto *nd : *graph) {
         for (const auto *succ : nd->successors()) {
-            std::cout << " ND" << nd->getID() << " -> ND" << succ->getID() << "\n";
+            std::cout << " " << graph->getName() << "_" << nd->getID()
+                      << " -> " << graph->getName() << "_" << succ->getID() << "\n";
         }
     }
 }
@@ -379,7 +380,10 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                         continue;
 
                     for (const auto *dep : it->second) {
-                        std::cout << " ND" << dep->getID() << " -> ND" << nd->getID()
+                        // FIXME: for interproc CD this will not work as the nodes
+                        // would be in a different graph
+                        std::cout << " " << graph->getName() << "_" << dep->getID()
+                                  << " -> " << graph->getName() << "_" << nd->getID()
                                   << " [ color=red ]\n";
                     }
                 }
@@ -396,7 +400,8 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                         continue;
 
                     for (const auto *dep : it->second) {
-                        std::cout << " ND" << dep->getID() << " -> ND" << nd->getID()
+                        std::cout << " " << graph->getName() << "_" << dep->getID()
+                                  << " -> " << graph->getName() << "_" << nd->getID()
                                   << " [ color=red ]\n";
                     }
                 }
