@@ -227,8 +227,10 @@ public:
     // Computing intraprocedural CD + interprocedural CD
     // separately is more efficient.
     InterproceduralDOD(const llvm::Module *module,
-                       const LLVMControlDependenceAnalysisOptions& opts = {})
-        : LLVMControlDependenceAnalysisImpl(module, opts) {}
+                       const LLVMControlDependenceAnalysisOptions& opts = {},
+                       LLVMPointerAnalysis *pta = nullptr,
+                       CallGraph *cg = nullptr)
+        : LLVMControlDependenceAnalysisImpl(module, opts), igraphBuilder(pta, cg) {}
 
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *I) override {
