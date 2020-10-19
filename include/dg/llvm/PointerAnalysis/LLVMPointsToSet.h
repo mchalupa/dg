@@ -381,6 +381,9 @@ public:
                                     && !_impl->hasNull()
                                     && !_impl->hasInvalidated(); }
 
+    // matches {unknown}
+    bool isUnknownSingleton() const { return isSingleton() && hasUnknown(); }
+
     LLVMPointer getKnownSingleton() const { return _impl->getKnownSingleton(); }
 
     const_iterator begin() const { return const_iterator(_impl.get());}
