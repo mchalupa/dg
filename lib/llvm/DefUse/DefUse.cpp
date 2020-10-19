@@ -50,21 +50,19 @@ static void handleOperands(const Instruction *Inst, LLVMNode *node) {
     assert(Inst == node->getKey());
 
     for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
-        if (auto op = dg->getNode(*I)) {
-            // 'node' uses 'op', so we want to add edge 'op'-->'node',
-            // that is, 'op' is used in 'node' ('node' is a user of 'op')
-            op->addUseDependence(node);
+        auto op = dg->getNode(*I);
+        if (!op)
+            continue;
+        const auto& subs = op->getSubgraphs();
+        if (subs.size() > 0 && !op->isVoidTy()){
+            for (auto *s : subs) {
+                s->getExit()->addDataDependence(node);
+            }
         }
+        // 'node' uses 'op', so we want to add edge 'op'-->'node',
+        // that is, 'op' is used in 'node' ('node' is a user of 'op')
+        op->addUseDependence(node);
     }
-}
-
-static void addReturnEdge(LLVMNode *callNode, LLVMDependenceGraph *subgraph)
-{
-    // FIXME we may loose some accuracy here and
-    // this edges causes that we'll go into subprocedure
-    // even with summary edges
-    if (!callNode->isVoidTy())
-        subgraph->getExit()->addDataDependence(callNode);
 }
 
 LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
@@ -75,15 +73,6 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
       dg(dg), RD(rd), PTA(pta), DL(new DataLayout(dg->getModule())) {
     assert(PTA && "Need points-to information");
     assert(RD && "Need reaching definitions");
-}
-
-
-void LLVMDefUseAnalysis::handleCallInst(LLVMNode *node)
-{
-    // add edges from the return nodes of subprocedure
-    // to the call (if the call returns something)
-    for (LLVMDependenceGraph *subgraph : node->getSubgraphs())
-        addReturnEdge(node, subgraph);
 }
 
 void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
@@ -126,10 +115,6 @@ bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *)
     // just add direct def-use edges to every instruction
     if (auto I = dyn_cast<Instruction>(val))
         handleOperands(I, node);
-
-    if (isa<CallInst>(val)) {
-        handleCallInst(node); // return edges and so...
-    }
 
     if (RD->isUse(val)) {
         addDataDependencies(node);
