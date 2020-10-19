@@ -160,41 +160,19 @@ private:
         using namespace llvm;
 
         if (opts & ANNOTATE_DU) {
-            assert(DDA && "No reaching definitions analysis");
-            /*
+            assert(DDA && "No data dependence analysis");
+            if (DDA->isUse(node->getValue())) {
+                for (auto *def : DDA->getLLVMDefinitions(node->getValue())) {
+                    os << "  ; DEF: ";
 
-            // FIXME
+                    if (def->hasName())
+                        os << def->getName();
+                    else
+                        os << *def;
 
-            LLVMDGParameters *params = node->getParameters();
-            // don't dump params when we use new analyses (DDA is not null)
-            // because there we don't add definitions with new analyses
-            if (params) {
-                for (auto& it : *params) {
-                    os << "  ; PARAMS: in " << it.second.in
-                       << ", out " << it.second.out << "\n";
-
-                    // dump edges for parameters
-                    os <<"  ; in edges\n";
-                    emitNodeAnnotations(it.second.in, os);
-                    os << "  ; out edges\n";
-                    emitNodeAnnotations(it.second.out, os);
-                    os << "\n";
-                }
-
-                for (auto it = params->global_begin(), et = params->global_end();
-                     it != et; ++it) {
-                    os << "  ; PARAM GL: in " << it->second.in
-                       << ", out " << it->second.out << "\n";
-
-                    // dump edges for parameters
-                    os << "  ; in edges\n";
-                    emitNodeAnnotations(it->second.in, os);
-                    os << "  ; out edges\n";
-                    emitNodeAnnotations(it->second.out, os);
-                    os << "\n";
+                    os << "(" << def << ")\n";
                 }
             }
-            */
         }
 
         if (opts & ANNOTATE_DD) {
@@ -244,6 +222,9 @@ private:
                         }
                         if (ps.hasNull()) {
                             os << "  ; null\n";
+                        }
+                        if (ps.hasNullWithOffset()) {
+                            os << "  ; null + ?\n";
                         }
                         if (ps.hasUnknown()) {
                             os << "  ; unknown\n";
