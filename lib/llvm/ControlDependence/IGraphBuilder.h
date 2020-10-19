@@ -24,9 +24,9 @@ namespace {
 #else
     // this is the implementation of Instruction::getNextNonDebugInstruction()
     // from LLVM 12 (adjusted)
-    for (const auto *I = getNextNode(); I; I = I->getNextNode())
-      if (!llvm::isa<llvm::DbgInfoIntrinsic>(I))
-        return I;
+    for (const auto *NI = I->getNextNode(); NI; NI = NI->getNextNode())
+      if (!llvm::isa<llvm::DbgInfoIntrinsic>(NI))
+        return NI;
     return nullptr;
 #endif
     }
