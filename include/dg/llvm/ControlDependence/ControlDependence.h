@@ -97,6 +97,8 @@ public:
             _interprocImpl->compute(F);
     }
 
+    ///
+    // Get all instructions on which is 'v' dependent.
     ValVec getDependencies(const llvm::Instruction *v) { return _getDependencies(v); }
     ValVec getDependent(const llvm::Instruction *v) { return _getDependent(v); }
 

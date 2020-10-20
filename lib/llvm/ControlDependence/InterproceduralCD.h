@@ -2,6 +2,7 @@
 #define DG_LLVM_INTERPROC_CD_H_
 
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Instruction.h>
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
 
@@ -144,11 +145,11 @@ public:
         if (instrIt != _revInstrCD.end()) {
             for (auto *val : instrIt->second) {
                 if (auto *B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
-                    for (auto *binst : *B) {
-                        ret.insert(binst);
+                    for (auto& binst : *B) {
+                        ret.push_back(&binst);
                     }
                 } else {
-                    ret.insert(val);
+                    ret.push_back(val);
                 }
 
             }

@@ -204,7 +204,9 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
     for (auto& it : cds) {
         // forward (dependent) edges
         for (auto *val : it.second) {
-            _revInstrCD(val).insert(it.first);
+            _revInstrCD[cast<llvm::Instruction>(val)].insert(
+                const_cast<llvm::BasicBlock *>(it.first)
+            );
         }
         // backward (depends) edges
         _blockCD[it.first] = std::move(it.second);
@@ -219,7 +221,9 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
             // up to this instruction
             for (unsigned i = 0; i < noretsidx; ++i) {
                 _instrCD[&I].insert(norets[i]);
-                _revInstrCD(norets[i]).insert(&I);
+                _revInstrCD[llvm::cast<llvm::Instruction>(norets[i])].insert(
+                    const_cast<llvm::Instruction *>(&I)
+                );
             }
             if (noretsidx < norets.size() &&
                 &I == norets[noretsidx]) {
