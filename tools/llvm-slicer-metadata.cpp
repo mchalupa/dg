@@ -19,7 +19,7 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 using MapTy = std::map<const llvm::Value *, CVariableDecl>;
 

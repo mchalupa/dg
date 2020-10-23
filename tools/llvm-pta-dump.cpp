@@ -45,11 +45,9 @@
 #endif
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-//#include "dg/PointerAnalysis/PointerAnalysisFI.h"
-//#include "dg/PointerAnalysis/PointerAnalysisFS.h"
-//#include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
 #include "dg/PointerAnalysis/Pointer.h"
 
+#include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/TimeMeasure.h"
 
