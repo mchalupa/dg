@@ -140,7 +140,7 @@ class LLVMMemoryRegionSet {
             l = len;
         }
 
-        return {o, l};
+        return std::make_pair(o, l);
     }
 
     const std::vector<OffsetPair> *_get(llvm::Value *v) const {
