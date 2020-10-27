@@ -4,8 +4,21 @@ You can obtain pre-compiled DG project in several forms.
 
 ## Docker image
 
-You can download the image from [Docker Hub](https://hub.docker.com/r/mchalupa/dg). The image
-contains, apart from DG, also vim and emacs editors and clang, so you can try dg out!
+You can download the image from [Docker Hub](https://hub.docker.com/r/mchalupa/dg).
+The image contains, apart from DG, also vim and emacs editors and clang,
+so you can try dg out! (This image is not updated regularly).
+
+Alternatively, you can build the image locally from the provided Docker file.
+Just go into the top-level project's directory (the one containing
+Dockerfile) and run:
+
+```
+docker build .
+```
+
+Note that this image does not contain anything else apart from DG
+(i.e., no vim, emacs or so).
+
 
 ## Binary Packages
 
