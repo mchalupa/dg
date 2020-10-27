@@ -41,24 +41,21 @@
 #endif
 
 #undef NDEBUG // we need dump methods
-#include "dg/llvm/ValueRelations/ValueRelations.h"
+#include "dg/llvm/ValueRelations/GraphBuilder.h"
+#include "dg/llvm/ValueRelations/StructureAnalyzer.h"
+#include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
 
 #include "dg/tools/TimeMeasure.h"
 
-using namespace dg::analysis;
+using namespace dg::vr;
 using llvm::errs;
-
-/*
-static bool verbose = false;
-static const char *entryFunc = "main";
-*/
 
 llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Dump graph in grahviz format"), llvm::cl::init(false));
 
 llvm::cl::opt<unsigned> max_iter("max-iter",
-    llvm::cl::desc("Maximal number of iterations"), llvm::cl::init(0));
+    llvm::cl::desc("Maximal number of iterations"), llvm::cl::init(100));
 
 llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
     llvm::cl::desc("<input file>"), llvm::cl::init(""));
@@ -92,13 +89,22 @@ int main(int argc, char *argv[])
 
     dg::debug::TimeMeasure tm;
 
-
-    LLVMValueRelations VR(M);
-
     tm.start();
 
-    VR.build();
-    VR.compute(max_iter);
+    // perform preparations and analysis
+    std::map<const llvm::Instruction*, VRLocation*> locationMapping;
+    std::map<const llvm::BasicBlock*, std::unique_ptr<VRBBlock>> blockMapping;
+
+    GraphBuilder gb(*M, locationMapping, blockMapping);
+    gb.build();
+
+    StructureAnalyzer structure(*M, locationMapping, blockMapping);
+    structure.analyzeBeforeRelationsAnalysis();
+
+    RelationsAnalyzer ra(*M, locationMapping, blockMapping, structure);
+    ra.analyze(max_iter);
+    // call to analyzeAfterRelationsAnalysis is unnecessary
+    // end analysis
 
     tm.stop();
     tm.report("INFO: Value Relations analysis took");
@@ -107,58 +113,34 @@ int main(int argc, char *argv[])
 
     if (todot) {
         std::cout << "digraph VR {\n";
-        for (const auto& block : VR.getBlocks()) {
+        for (const auto& block : blockMapping) {
             for (const auto& loc : block.second->locations) {
                 std::cout << "  NODE" << loc->id;
                 std::cout << "[label=\"";
-                std::cout << "\\n";
-                loc->dump();
-                std::cout << "\\n------ REL ------\\n";
+                std::cout << "LOCATION " << loc->id << "\\n";
                 loc->relations.dump();
-                std::cout << "\\n------ EQ ------\\n";
-                loc->equalities.dump();
-                std::cout << "\\n----- READS -----\\n";
-                loc->reads.dump();
                 std::cout << "\"];\n";
             }
         }
 
-        for (const auto& block : VR.getBlocks()) {
+        unsigned dummyIndex = 0;
+        for (const auto& block : blockMapping) {
             for (const auto& loc : block.second->locations) {
                 for (const auto& succ : loc->successors) {
-                    std::cout << "  NODE" << loc->id
-                              << " -> NODE" << succ->target->id
-                              << " [label=\"";
+                    if (succ->target)
+                        std::cout << "  NODE" << loc->id << " -> NODE" << succ->target->id;
+                    else {
+                        std::cout << "DUMMY_NODE" << ++dummyIndex << std::endl;
+                        std::cout << "  NODE" << loc->id << " -> DUMMY_NODE" << dummyIndex;
+                    }
+                    std::cout << " [label=\"";
                     succ->op->dump();
                     std::cout << "\"];\n";
                 }
             }
         }
-
         std::cout << "}\n";
-    } else {
-        for (auto& F : *M) {
-            for (auto& B : F) {
-                for (auto& I : B) {
-                    auto loc = VR.getMapping(&I);
-                    if (!loc)
-                        continue;
-
-                    std::cout << "==============================================\n";
-                    std::cout << dg::debug::getValName(&I) << "\n";
-                    std::cout << "==============================================";
-                    std::cout << "\n------ REL ------\n";
-                    loc->relations.dump();
-                    std::cout << "\n------ EQ ------\n";
-                    loc->equalities.dump();
-                    std::cout << "\n----- READS -----\n";
-                    loc->reads.dump();
-                    std::cout << "\n";
-                }
-            }
-        }
     }
-
 
     return 0;
 }

@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_GET_VAL_NAME_H_
-#define _DG_LLVM_GET_VAL_NAME_H_
+#ifndef DG_LLVM_GET_VAL_NAME_H_
+#define DG_LLVM_GET_VAL_NAME_H_
 
 #include <iostream>
 #include <sstream>
@@ -17,11 +17,31 @@ inline std::string getValName(const llvm::Value *val) {
     ro << *val;
     ro.flush();
 
+    std::string result = ostr.str();
+    size_t start = result.find_first_not_of(" ");
+    assert (start != std::string::npos);
+
     // break the string if it is too long
-    return ostr.str();
+    return result.substr(start);
+}
+
+inline std::string getTypeName(const llvm::Type* type) {
+    std::ostringstream ostr;
+    llvm::raw_os_ostream ro(ostr);
+
+    assert(type);
+    ro << *type;
+    ro.flush();
+
+    std::string result = ostr.str();
+    size_t start = result.find_first_not_of(" ");
+    assert (start != std::string::npos);
+
+    // break the string if it is too long
+    return result.substr(start);
 }
 
 } // namespace debug
 } // namespace dg
 
-#endif // _DG_LLVM_GET_VAL_NAME_H_
+#endif // DG_LLVM_GET_VAL_NAME_H_
