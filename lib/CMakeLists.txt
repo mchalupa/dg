@@ -179,7 +179,7 @@ if(APPLE)
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
-  set_target_properties(dgllvmsdg PROPERTIES
+  set_target_properties(dgllvmdg PROPERTIES
     LINK_FLAGS "-undefined dynamic_lookup"
   )
 
