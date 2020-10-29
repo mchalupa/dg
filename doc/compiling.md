@@ -29,6 +29,22 @@ dnf install git cmake make zlib-devel llvm-devel gcc-c++ ncurses-devel
 
 You can use also LLVM compiled from sources (see below).
 
+## Building docker image
+
+The DG repository contains a prepared Dockerfile that
+builds DG under Ubuntu 20.04. To build the docker image,
+go into the top-level project's directory (the one containing
+Dockerfile) and run:
+
+```
+docker build . --tag dg:latest
+docker run -ti dg:latest
+```
+
+The Dockerfile installs only the prerequisities for dg.
+If you need anything else to try out dg (e.g., vim or emacs), you must install
+it manually inside the image.
+
 ## Compiling DG
 
 The first step is to clone the repository to your machine:
