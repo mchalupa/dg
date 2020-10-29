@@ -45,6 +45,20 @@ auto findPtr(const std::vector<std::unique_ptr<T>>& haystack,
 }
 
 template <typename T>
+auto findPtr(std::vector<std::unique_ptr<T>>& haystack,
+			 const T* const needle) -> decltype(haystack.begin()) {
+	auto it = haystack.begin();
+	
+	while (it != haystack.end()) {
+		if (it->get() == needle)
+			return it;
+		++it;
+	}
+
+	return it;
+}
+
+template <typename T>
 void eraseUniquePtr(std::vector<std::unique_ptr<T>>& set, const T* const value) {
 	auto ite = findPtr(set, value);
 	assert(ite != set.end());
