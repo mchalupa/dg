@@ -152,7 +152,7 @@ struct GraphBuilder {
         auto block = new VRBBlock();
         assert(block);
 
-        blockMapping.emplace(B, block);
+        blockMapping.emplace(B, std::unique_ptr<VRBBlock>(block));
         return block;
     }
 
