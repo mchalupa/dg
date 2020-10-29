@@ -172,6 +172,34 @@ add_library(dgllvmdg SHARED
 	llvm/DefUse/DefUse.h
 )
 
+add_library(dgsdg SHARED
+	SystemDependenceGraph/DependenceGraph.cpp
+
+	#${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGElement.h
+        ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DepDGElement.h
+        ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGArgumentPair.h
+	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGBBlock.h
+)
+target_link_libraries(dgsdg
+		      PUBLIC dgpta
+		      PUBLIC dgdda)
+
+add_library(dgllvmsdg SHARED
+	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
+	llvm/SystemDependenceGraph/Dependencies.cpp
+
+	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
+)
+target_link_libraries(dgllvmsdg
+		      PUBLIC dgsdg
+		      PUBLIC dgllvmpta
+		      PUBLIC dgllvmdda
+		      PUBLIC dgllvmcda)
+
 # Get proper shared-library behavior (where symbols are not necessarily
 # resolved when the shared library is linked) on OS X.
 if(APPLE)
@@ -214,34 +242,6 @@ else()
 				PUBLIC dgllvmthreadregions
 				PUBLIC dgllvmcda)
 endif(APPLE)
-
-add_library(dgsdg SHARED
-	SystemDependenceGraph/DependenceGraph.cpp
-
-	#${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
-	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/SystemDependenceGraph.h
-	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DependenceGraph.h
-	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGElement.h
-        ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DepDGElement.h
-        ${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGNode.h
-	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGArgumentPair.h
-	${CMAKE_SOURCE_DIR}/include/dg/SystemDependenceGraph/DGBBlock.h
-)
-target_link_libraries(dgsdg
-		      PUBLIC dgpta
-		      PUBLIC dgdda)
-
-add_library(dgllvmsdg SHARED
-	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
-	llvm/SystemDependenceGraph/Dependencies.cpp
-
-	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
-)
-target_link_libraries(dgllvmsdg
-		      PUBLIC dgsdg
-		      PUBLIC dgllvmpta
-		      PUBLIC dgllvmdda
-		      PUBLIC dgllvmcda)
 
 install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
                 dgllvmpta dgllvmdda dgpta dgdda dganalysis
