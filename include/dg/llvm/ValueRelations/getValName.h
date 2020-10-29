@@ -30,7 +30,7 @@ inline std::string getTypeName(const llvm::Type* type) {
     llvm::raw_os_ostream ro(ostr);
 
     assert(type);
-#if LLVM_VERSION_MAJOR < 4
+#if LLVM_VERSION_MAJOR <= 4
     ro << *const_cast<llvm::Type*>(type);
 #else
     ro << *type;
