@@ -31,22 +31,11 @@ bool contains(const std::set<Val>& set, const Val& val) {
 }
 
 template <typename T>
-auto findPtr(const std::vector<std::unique_ptr<T>>& haystack,
-								const T* const needle) -> decltype(haystack.begin()) {
-	auto it = haystack.begin();
-	
-	while (it != haystack.end()) {
-		if (it->get() == needle)
-			return it;
-		++it;
-	}
-
-	return it;
-}
-
-template <typename T>
 void eraseUniquePtr(std::vector<std::unique_ptr<T>>& set, const T* const value) {
-	auto ite = findPtr(set, value);
+	auto ite = std::find_if(set.begin(), set.end(),
+                            [&value](std::unique_ptr<T>& ptr) -> bool {
+                                return ptr.get() == value;
+                             });
 	assert(ite != set.end());
 	set.erase(ite);
 }
