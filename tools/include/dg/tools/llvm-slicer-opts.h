@@ -43,8 +43,13 @@ struct SlicerOptions {
     // do we perform forward slicing?
     bool forwardSlicing{false};
 
+    // string describing the slicing criteria
     std::string slicingCriteria{};
-    std::string secondarySlicingCriteria{};
+    // SC string in the old format
+    std::string legacySlicingCriteria{};
+    // legacy secondary SC
+    std::string legacySecondarySlicingCriteria{};
+
     std::string inputFile{};
     std::string outputFile{};
 };
@@ -58,7 +63,8 @@ parseSlicerOptions(int argc, char *argv[],
 
 bool getSlicingCriteriaNodes(dg::LLVMDependenceGraph& dg,
                              const std::string& slicingCriteria,
-                             const std::string& secondarySlicingCriteria,
+                             const std::string& legacySlicingCriteria,
+                             const std::string& legacySecondarySlicingCriteria,
                              std::set<dg::LLVMNode *>& criteria_nodes,
                              bool criteria_are_next_instr = false);
 

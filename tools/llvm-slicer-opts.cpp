@@ -80,7 +80,14 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
         inputFile.setNumOccurrencesFlag(llvm::cl::Required);
     }
 
-    llvm::cl::opt<std::string> slicingCriteria("c",
+    llvm::cl::opt<std::string> slicingCriteria("sc",
+        llvm::cl::desc("Slicing criterion\n"
+                       "S ::= file1,file2#line1,line2#[var1,fun1],[var2,fun2]\n"
+                       "S[&S];S[&S]\n"),
+                       llvm::cl::value_desc("crit"),
+                       llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
+    llvm::cl::opt<std::string> legacySlicingCriteria("c",
         llvm::cl::desc("Slice with respect to the call-sites of a given function\n"
                        "i. e.: '-c foo' or '-c __assert_fail'. Special value is a 'ret'\n"
                        "in which case the slice is taken with respect to the return value\n"
@@ -91,11 +98,8 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
                        "You can use comma-separated list of more slicing criteria,\n"
                        "e.g. -c foo,5:x,:glob\n"), llvm::cl::value_desc("crit"),
                        llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
-    if (requireCrit) {
-        slicingCriteria.setNumOccurrencesFlag(llvm::cl::Required);
-    }
 
-    llvm::cl::opt<std::string> secondarySlicingCriteria("2c",
+    llvm::cl::opt<std::string> legacySecondarySlicingCriteria("2c",
         llvm::cl::desc("Set secondary slicing criterion. The criterion is a call\n"
                        "to a given function. If just a name of the function is\n"
                        "given, it is a 'control' slicing criterion. If there is ()\n"
@@ -271,13 +275,22 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
 #endif
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
+    if (requireCrit) {
+        if (slicingCriteria.getNumOccurrences() +
+            legacySlicingCriteria.getNumOccurrences() == 0) {
+            llvm::errs() << "No slicing criteria specified (-sc or -c option)\n";
+            std::exit(1);
+        }
+    }
+
     /// Fill the structure
     SlicerOptions options;
 
     options.inputFile = inputFile;
     options.outputFile = outputFile;
     options.slicingCriteria = slicingCriteria;
-    options.secondarySlicingCriteria = secondarySlicingCriteria;
+    options.legacySlicingCriteria = legacySlicingCriteria;
+    options.legacySecondarySlicingCriteria = legacySecondarySlicingCriteria;
     options.preservedFunctions = splitList(preservedFuns);
     options.removeSlicingCriteria = removeSlicingCriteria;
     options.forwardSlicing = forwardSlicing;

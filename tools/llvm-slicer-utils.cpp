@@ -3,8 +3,7 @@
 
 #include "dg/tools/llvm-slicer-utils.h"
 
-std::vector<std::string> splitList(const std::string& opt, char sep)
-{
+std::vector<std::string> splitList(const std::string& opt, char sep) {
     std::vector<std::string> ret;
     if (opt.empty())
         return ret;
