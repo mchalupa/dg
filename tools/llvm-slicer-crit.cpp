@@ -48,15 +48,21 @@ using llvm::errs;
 static std::map<const llvm::Value *, std::string> valuesToVariables;
 
 static bool usesTheVariable(LLVMDependenceGraph& dg,
-                            const llvm::Value *v,
+                            const llvm::Instruction& I,
                             const std::string& var)
 {
-    auto pts = dg.getPTA()->getLLVMPointsTo(v);
-    if (pts.empty() || pts.hasUnknown())
-        return true; // it may be a definition of the variable, we do not know
+    if (!I.mayReadOrWriteMemory())
+        return false;
 
-    for (const auto& ptr : pts) {
-        auto name = valuesToVariables.find(ptr.value);
+    auto memacc  =dg.getPTA()->getAccessedMemory(&I);
+    if (memacc.first) {
+        // PTA has no information, it may be a definition of the variable,
+        // we do not know
+        return true;
+    }
+
+    for (const auto& region : memacc.second) {
+        auto name = valuesToVariables.find(region.pointer.value);
         if (name != valuesToVariables.end()) {
             if (name->second == var)
                 return true;
@@ -64,33 +70,6 @@ static bool usesTheVariable(LLVMDependenceGraph& dg,
     }
 
     return false;
-}
-
-template <typename InstT>
-static bool useOfTheVar(LLVMDependenceGraph& dg,
-                        const llvm::Instruction& I,
-                        const std::string& var)
-{
-    // check that we store to that variable
-    const InstT *tmp = llvm::dyn_cast<InstT>(&I);
-    if (!tmp)
-        return false;
-
-    return usesTheVariable(dg, tmp->getPointerOperand(), var);
-}
-
-static bool isStoreToTheVar(LLVMDependenceGraph& dg,
-                            const llvm::Instruction& I,
-                            const std::string& var)
-{
-    return useOfTheVar<llvm::StoreInst>(dg, I, var);
-}
-
-static bool isLoadOfTheVar(LLVMDependenceGraph& dg,
-                           const llvm::Instruction& I,
-                           const std::string& var)
-{
-    return useOfTheVar<llvm::LoadInst>(dg, I, var);
 }
 
 
@@ -111,8 +90,7 @@ static bool instMatchesCrit(LLVMDependenceGraph& dg,
         if (static_cast<int>(Loc.getLine()) != c.first)
             continue;
 
-        if (isStoreToTheVar(dg, I, c.second) ||
-            isLoadOfTheVar(dg, I, c.second)) {
+        if (usesTheVariable(dg, I, c.second)) {
             llvm::errs() << "Matched line " << c.first << " with variable "
                          << c.second << " to:\n" << I << "\n";
             return true;
