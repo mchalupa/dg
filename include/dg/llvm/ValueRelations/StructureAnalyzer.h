@@ -123,22 +123,26 @@ public:
             auto c2 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(1));
 
             if (c1 && c2) {
-                llvm::APInt newCount;
-                llvm::APInt newSize;
+                uint64_t newCount;
+                uint64_t newSize;
                 switch (op->getOpcode()) {
 
                     case llvm::Instruction::Add:
-                        newCount = c1->getValue() + c2->getValue();
+                        // XXX can these overflow?
+                        newCount = c1->getValue().getZExtValue()
+                                    + c2->getValue().getZExtValue();
                         result.emplace_back(llvm::ConstantInt::get(c1->getType(), newCount), size);
                         break;
 
                     case llvm::Instruction::Mul:
-                        newSize = c1->getValue() * size;
-                        result.emplace_back(c2, newSize.getZExtValue());
-                        newSize = c2->getValue() * size;
-                        result.emplace_back(c1, newSize.getZExtValue());
+                        // XXX can these overflow?
+                        newSize = c1->getValue().getZExtValue() * size;
+                        result.emplace_back(c2, newSize);
+                        newSize = c2->getValue().getZExtValue() * size;
+                        result.emplace_back(c1, newSize);
 
-                        newCount = c1->getValue() * c2->getValue();
+                        newCount = c1->getValue().getZExtValue()
+                                    * c2->getValue().getZExtValue();
                         result.emplace_back(llvm::ConstantInt::get(c1->getType(), newCount), size);
                         break;
 
