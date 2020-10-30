@@ -25,6 +25,7 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
     using namespace llvm;
 
     LLVMPointsToSet PTSet;
+    LLVMPointsToSet PTSet2; // memmove and such use two ptsets
     LLVMMemoryRegionSet regions;
     Offset len;
 
@@ -46,6 +47,16 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
             case Intrinsic::lifetime_end:
                 PTSet = getLLVMPointsTo(I->getOperand(1));
                 len = llvmutils::getConstantValue(II->getOperand(0));
+                break;
+            case Intrinsic::memset:
+                PTSet = getLLVMPointsTo(I->getOperand(0));
+                len = llvmutils::getConstantValue(II->getOperand(2));
+                break;
+            case Intrinsic::memmove:
+            case Intrinsic::memcpy:
+                PTSet = getLLVMPointsTo(I->getOperand(0));
+                PTSet2 = getLLVMPointsTo(I->getOperand(1));
+                len = llvmutils::getConstantValue(II->getOperand(2));
                 break;
             default:
                 llvm::errs() << "ERROR: Unhandled intrinsic\n"
@@ -86,6 +97,9 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
 
     // translate to regions
     for (const auto& ptr : PTSet) {
+        regions.add(ptr.value, ptr.offset, len);
+    }
+    for (const auto& ptr : PTSet2) {
         regions.add(ptr.value, ptr.offset, len);
     }
 
