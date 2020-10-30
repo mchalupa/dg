@@ -304,6 +304,58 @@ static void getCriteriaInstructions(LLVMDependenceGraph& dg,
         return;
     }
 
+    // try match globals
+    if (fun == "") {
+        for (auto& G : dg.getModule()->globals()) {
+            if (file != "" && !fileMatch(file, G))
+                continue;
+            if (globalMatchesCrit(G, line, obj)) {
+                result.insert(&G);
+            }
+        }
+    }
+
+    // map line criteria to nodes
+    for (auto& it : getConstructedFunctions()) {
+        for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
+            if (file != "" && !fileMatch(file, I))
+                continue;
+
+            if (instMatchesCrit(dg, I, fun, line, obj)) {
+                result.insert(&I);
+            }
+        }
+    }
+}
+
+struct SlicingCriteriaSet {
+    std::set<const llvm::Value *> primary;
+    std::set<const llvm::Value *> secondary;
+
+    SlicingCriteriaSet() = default;
+    SlicingCriteriaSet(SlicingCriteriaSet&&) = default;
+};
+
+static std::set<const llvm::Value *>
+mapToNextInstr(const std::set<const::llvm::Value *>& vals) {
+    std::set<const llvm::Value *> newset;
+    for (const auto *val : vals) {
+        auto *I = llvm::dyn_cast<llvm::Instruction>(val);
+        I = I ? I->getNextNode() : nullptr;
+        if (!I) {
+            llvm::errs() << "WARNING: unable to get next instr for "
+                         << *val << "\n";
+            continue;
+        }
+        newset.insert(I);
+    }
+    return newset;
+}
+
+static void initDebugInfo(LLVMDependenceGraph& dg) {
+    if (!valuesToVariables.empty())
+        return;
+
 #if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
     llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
     llvm::errs() << "WARNING: The slicing criteria with variables names will not work\n";
@@ -333,55 +385,9 @@ static void getCriteriaInstructions(LLVMDependenceGraph& dg,
     for (const auto& GV : dg.getModule()->globals()) {
         valuesToVariables[&GV] = GV.getName().str();
     }
-
-    // try match globals
-    if (fun == "") {
-        for (auto& G : dg.getModule()->globals()) {
-            if (file != "" && !fileMatch(file, G))
-                continue;
-            if (globalMatchesCrit(G, line, obj)) {
-                result.insert(&G);
-            }
-        }
-    }
-
-    // map line criteria to nodes
-    for (auto& it : getConstructedFunctions()) {
-        for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
-            if (file != "" && !fileMatch(file, I))
-                continue;
-
-            if (instMatchesCrit(dg, I, fun, line, obj)) {
-                result.insert(&I);
-            }
-        }
-    }
 #endif // LLVM > 3.6
 }
 
-struct SlicingCriteriaSet {
-    std::set<const llvm::Value *> primary;
-    std::set<const llvm::Value *> secondary;
-
-    SlicingCriteriaSet() = default;
-    SlicingCriteriaSet(SlicingCriteriaSet&&) = default;
-};
-
-static std::set<const llvm::Value *>
-mapToNextInstr(const std::set<const::llvm::Value *>& vals) {
-    std::set<const llvm::Value *> newset;
-    for (const auto *val : vals) {
-        auto *I = llvm::dyn_cast<llvm::Instruction>(val);
-        I = I ? I->getNextNode() : nullptr;
-        if (!I) {
-            llvm::errs() << "WARNING: unable to get next instr for "
-                         << *val << "\n";
-            continue;
-        }
-        newset.insert(I);
-    }
-    return newset;
-}
 
 static std::vector<SlicingCriteriaSet>
 getSlicingCriteriaInstructions(LLVMDependenceGraph& dg,
@@ -579,6 +585,8 @@ bool getSlicingCriteriaNodes(LLVMDependenceGraph& dg,
                              std::set<LLVMNode *>& criteria_nodes,
                              bool criteria_are_next_instr) {
 
+    initDebugInfo(dg);
+
     auto crits = getSlicingCriteriaInstructions(dg,
                                                 slicingCriteria,
                                                 criteria_are_next_instr);
@@ -685,35 +693,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
 
     assert(!parsedCrit.empty() && "Failed parsing criteria");
 
-#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
-    llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
-    llvm::errs() << "WARNING: The slicing criteria with variables names will not work\n";
-#else
-    // create the mapping from LLVM values to C variable names
-    for (auto& it : getConstructedFunctions()) {
-        for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
-            if (const llvm::DbgDeclareInst *DD = llvm::dyn_cast<llvm::DbgDeclareInst>(&I)) {
-                auto val = DD->getAddress();
-                valuesToVariables[val] = DD->getVariable()->getName().str();
-            } else if (const llvm::DbgValueInst *DV
-                        = llvm::dyn_cast<llvm::DbgValueInst>(&I)) {
-                auto val = DV->getValue();
-                valuesToVariables[val] = DV->getVariable()->getName().str();
-            }
-        }
-    }
-
-    bool no_dbg = valuesToVariables.empty();
-    if (no_dbg) {
-        llvm::errs() << "No debugging information found in program,\n"
-                     << "slicing criteria with lines and variables will work\n"
-                     << "only for global variables.\n"
-                     << "You can still use the criteria based on call sites ;)\n";
-    }
-
-    for (const auto& GV : dg.getModule()->globals()) {
-        valuesToVariables[&GV] = GV.getName().str();
-    }
+    initDebugInfo(dg);
 
     // try match globals
     for (auto& G : dg.getModule()->globals()) {
@@ -725,7 +705,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
     }
 
     // we do not have any mapping, we will not match anything
-    if (no_dbg) {
+    if (valuesToVariables.empty()) {
         return;
     }
 
@@ -739,7 +719,6 @@ static void getLineCriteriaNodes(LLVMDependenceGraph& dg,
             }
         }
     }
-#endif // LLVM > 3.6
 }
 
 static std::set<LLVMNode *> _mapToNextInstr(LLVMDependenceGraph&,
