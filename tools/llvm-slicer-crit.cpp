@@ -72,6 +72,32 @@ static bool usesTheVariable(LLVMDependenceGraph& dg,
     return false;
 }
 
+static bool instIsCallOf(LLVMDependenceGraph& dg,
+                         const llvm::Instruction& I,
+                         const std::string& name) {
+    auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
+    if (!C)
+        return false;
+
+    auto *fun = C->getCalledFunction();
+    if (fun) {
+        return name == fun->getName().str();
+    }
+
+    auto pts = dg.getPTA()->getLLVMPointsTo(C->getCalledValue()->stripPointerCasts());
+    if (pts.empty()) {
+        return true; // may be, we do not know...
+    }
+
+    for (const auto& ptr : pts) {
+        fun = llvm::cast<llvm::Function>(ptr.value);
+        if (name == fun->getName().str())
+            return true;
+    }
+
+    return false;
+}
+
 
 static bool instMatchesCrit(LLVMDependenceGraph& dg,
                             const llvm::Instruction& I,
@@ -89,6 +115,12 @@ static bool instMatchesCrit(LLVMDependenceGraph& dg,
 
         if (static_cast<int>(Loc.getLine()) != c.first)
             continue;
+
+        if (instIsCallOf(dg, I, c.second)) {
+            llvm::errs() << "Matched line " << c.first << " with call of "
+                         << c.second << " to:\n" << I << "\n";
+            return true;
+        } // else fall through to check the vars
 
         if (usesTheVariable(dg, I, c.second)) {
             llvm::errs() << "Matched line " << c.first << " with variable "
