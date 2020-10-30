@@ -72,10 +72,10 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
         bool hasUnknown = false;
         for (unsigned i = 0; i < CI->getNumArgOperands(); ++i) {
             if (hasPointsTo(CI->getArgOperand(i))) {
-                auto tmp = getLLVMPointsTo(CI->getArgOperand(i));
-                hasUnknown |= tmp.hasUnknown();
+                auto tmp = getLLVMPointsToChecked(CI->getArgOperand(i));
+                hasUnknown |= tmp.first;
                 // translate to regions
-                for (const auto& ptr : tmp) {
+                for (const auto& ptr : tmp.second) {
                     regions.add(ptr.value, Offset::UNKNOWN, Offset::UNKNOWN);
                 }
             }
