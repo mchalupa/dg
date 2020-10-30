@@ -201,13 +201,6 @@ void setupStackTraceOnError(int argc, char *argv[])
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
-std::pair<std::set<std::string>, std::set<std::string>>
-parseSecondarySlicingCriteria(const std::string& slicingCriteria);
-
-bool findSecondarySlicingCriteria(std::set<LLVMNode *>& criteria_nodes,
-                                  const std::set<std::string>& secondaryControlCriteria,
-                                  const std::set<std::string>& secondaryDataCriteria);
-
 
 int main(int argc, char *argv[])
 {
@@ -265,7 +258,8 @@ int main(int argc, char *argv[])
     std::set<LLVMNode *> criteria_nodes;
     if (!getSlicingCriteriaNodes(slicer.getDG(),
                                  options.slicingCriteria,
-                                 options.secondarySlicingCriteria,
+                                 options.legacySlicingCriteria,
+                                 options.legacySecondarySlicingCriteria,
                                  criteria_nodes,
                                  criteria_are_next_instr)) {
         llvm::errs() << "ERROR: Failed finding slicing criteria: '"
