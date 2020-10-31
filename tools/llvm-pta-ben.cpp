@@ -46,7 +46,7 @@
 #include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
 #include "dg/PointerAnalysis/Pointer.h"
 
-#include "TimeMeasure.h"
+#include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
 using namespace dg::pta;

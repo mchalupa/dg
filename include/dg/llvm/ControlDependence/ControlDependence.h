@@ -26,6 +26,12 @@
 namespace dg {
 //namespace cda {
 
+class LLVMPointerAnalysis;
+
+namespace llvmdg {
+  class CallGraph;
+}
+
 class LLVMControlDependenceAnalysis {
 public:
     using ValVec = std::vector<llvm::Value *>;
@@ -36,7 +42,8 @@ private:
     std::unique_ptr<LLVMControlDependenceAnalysisImpl> _impl{nullptr};
     std::unique_ptr<LLVMControlDependenceAnalysisImpl> _interprocImpl{nullptr};
 
-    void initializeImpl();
+    void initializeImpl(LLVMPointerAnalysis *pta = nullptr,
+                        llvmdg::CallGraph *cg = nullptr);
 
     template <typename ValT>
     ValVec _getDependencies(ValT v) {

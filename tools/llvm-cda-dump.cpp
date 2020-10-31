@@ -16,9 +16,9 @@
 #error "Unsupported version of LLVM"
 #endif
 
-#include "llvm-slicer.h"
-#include "llvm-slicer-opts.h"
-#include "llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer.h"
+#include "dg/tools/llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
@@ -89,6 +89,24 @@ llvm::cl::opt<bool> quiet("q",
                    "(e.g., for performance analysis) (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> todot("dot",
+    llvm::cl::desc("Output in graphviz format (forced atm.)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dump_c_lines("c-lines",
+    llvm::cl::desc("Dump output as C lines (line:column where possible)."
+                   "Requires metadata in the bitcode (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> use_pta("use-pta",
+    llvm::cl::desc("Use pointer analysis to build call graph. "
+                   "Makes sense only with -cda-icfg switch (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
+VariablesMapTy allocasToVars(const llvm::Module& M);
+VariablesMapTy valuesToVars;
+
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
                                           const SlicerOptions& options)
 {
@@ -127,14 +145,33 @@ void setupStackTraceOnError(int, char **) {}
 
 static std::string
 getInstName(const llvm::Value *val) {
+    assert(val);
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
 
-    //if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
-    //    ro << I->getParent()->getParent()->getName().data() << ":";
-    //}
+    if (dump_c_lines) {
+        if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            auto& DL = I->getDebugLoc();
+            if (DL) {
+                ro << DL.getLine() << ":" << DL.getCol();
+            } else {
+                auto Vit = valuesToVars.find(I);
+                if (Vit != valuesToVars.end()) {
+                    auto& decl = Vit->second;
+                    ro << decl.line << ":" << decl.col;
+                } else {
+                    ro << "(no dbg) ";
+                    ro << *val;
+                }
+            }
+        } else {
+            ro << "(no inst) ";
+            ro << *val;
+        }
+        ro.flush();
+        return ostr.str();
+    }
 
-    assert(val);
     if (llvm::isa<llvm::Function>(val))
         ro << val->getName().data();
     else
@@ -187,8 +224,7 @@ static inline void dumpEdge(const llvm::Value *from,
     std::cout << "\n";
 }
 
-static void dumpCda(LLVMControlDependenceAnalysis& cda) {
-    const auto *m = cda.getModule();
+static void dumpCdaToDot(LLVMControlDependenceAnalysis& cda, const llvm::Module *m) {
     std::cout << "digraph ControlDependencies {\n";
     std::cout << "  compound=true;\n";
 
@@ -254,12 +290,78 @@ static void dumpCda(LLVMControlDependenceAnalysis& cda) {
     std::cout << "}\n";
 }
 
+static void dumpCda(LLVMControlDependenceAnalysis& cda) {
+    const auto *m = cda.getModule();
+
+    if (dump_c_lines) {
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+        llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
+#else
+        valuesToVars = allocasToVars(*m);
+#endif // LLVM > 3.6
+        if (valuesToVars.empty()) {
+            llvm::errs() << "WARNING: No debugging information found, "
+                         << "the C lines output will be corrupted\n";
+        }
+    }
+
+    if (todot) {
+        dumpCdaToDot(cda, m);
+        return;
+    }
+
+    for (auto& F : *m) {
+        for (auto& B : F) {
+            for (auto& I : B) {
+                for (auto *dep : cda.getDependencies(&B)) {
+                    auto *depB = llvm::cast<llvm::BasicBlock>(dep);
+                    std::cout << getInstName(&I) << " -> "
+                              << getInstName(depB->getTerminator()) << "\n";
+                }
+
+                for (auto *dep : cda.getDependencies(&I)) {
+                    std::cout << getInstName(&I) << " -> "
+                              << getInstName(dep) << "\n";
+                }
+            }
+        }
+    }
+}
+
+static void dump_graph(CDGraph *graph) {
+    assert(graph);
+    // dump nodes
+    for (const auto *nd : *graph) {
+        std::cout << " " << graph->getName() << "_" << nd->getID()
+                  << " [label=\"" << graph->getName() << ":" << nd->getID() << "\"";
+        if (graph->isPredicate(*nd)) {
+            std::cout << " color=blue";
+        }
+        std::cout << "]\n";
+    }
+
+    // dump edges
+    for (const auto *nd : *graph) {
+        for (const auto *succ : nd->successors()) {
+            std::cout << " " << graph->getName() << "_" << nd->getID()
+                      << " -> " << graph->getName() << "_" << succ->getID() << "\n";
+        }
+    }
+}
+
 static void dumpIr(LLVMControlDependenceAnalysis& cda) {
     const auto *m = cda.getModule();
     auto *impl = cda.getImpl();
 
     std::cout << "digraph ControlDependencies {\n";
     std::cout << "  compound=true;\n";
+
+    if (cda.getOptions().ICFG()) {
+        cda.compute();
+        dump_graph(impl->getGraph(nullptr));
+        std::cout << "}\n";
+        return;
+    }
 
     // dump nodes
     for (const auto& f : *m) {
@@ -270,21 +372,7 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
         std::cout << "subgraph cluster_f_" << f.getName().str() << " {\n";
         std::cout << "label=\"" << f.getName().str() << "\"\n";
 
-        // dump nodes
-        for (const auto *nd : *graph) {
-            std::cout << " ND" << nd->getID() << " [label=\"" << nd->getID() << "\"";
-            if (graph->isPredicate(*nd)) {
-                std::cout << " color=blue";
-            }
-            std::cout << "]\n";
-        }
-
-        // dump edges
-        for (const auto *nd : *graph) {
-            for (const auto *succ : nd->successors()) {
-                std::cout << " ND" << nd->getID() << " -> ND" << succ->getID() << "\n";
-            }
-        }
+        dump_graph(graph);
 
         if (cda.getOptions().ntscdCD() || cda.getOptions().ntscd2CD() ||
             cda.getOptions().ntscdRanganathCD()) {
@@ -297,7 +385,10 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                         continue;
 
                     for (const auto *dep : it->second) {
-                        std::cout << " ND" << dep->getID() << " -> ND" << nd->getID()
+                        // FIXME: for interproc CD this will not work as the nodes
+                        // would be in a different graph
+                        std::cout << " " << graph->getName() << "_" << dep->getID()
+                                  << " -> " << graph->getName() << "_" << nd->getID()
                                   << " [ color=red ]\n";
                     }
                 }
@@ -314,7 +405,8 @@ static void dumpIr(LLVMControlDependenceAnalysis& cda) {
                         continue;
 
                     for (const auto *dep : it->second) {
-                        std::cout << " ND" << dep->getID() << " -> ND" << nd->getID()
+                        std::cout << " " << graph->getName() << "_" << dep->getID()
+                                  << " -> " << graph->getName() << "_" << nd->getID()
                                   << " [ color=red ]\n";
                     }
                 }

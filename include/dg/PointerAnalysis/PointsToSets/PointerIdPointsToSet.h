@@ -29,6 +29,11 @@ class PointerIdPointsToSet {
         return ids.emplace_hint(it, ptr, ids.size() + 1)->second;
     }
 
+    const Pointer& getPointer(size_t id) const {
+        assert(id - 1 < idVector.size());
+        return idVector[id - 1];
+    }
+
     bool addWithUnknownOffset(PSNode* node) {
         removeAny(node);
         return !pointers.set(getPointerID({node, Offset::UNKNOWN}));
@@ -105,8 +110,9 @@ public:
     }
 
     bool pointsToTarget(PSNode *target) const {
-        for(const auto& kv : ids) {
-            if(kv.first.target == target && pointers.get(kv.second)) {
+        for (auto ptrid : pointers) {
+            auto& ptr = getPointer(ptrid);
+            if (ptr.target == target) {
                 return true;
             }
         }
@@ -136,6 +142,17 @@ public:
     bool hasNull() const {
         return pointsToTarget(NULLPTR);
 
+    }
+
+    bool hasNullWithOffset() const {
+        for (auto ptrid : pointers) {
+            auto& ptr = getPointer(ptrid);
+            if (ptr.target == NULLPTR && *ptr.offset != 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     bool hasInvalidated() const {

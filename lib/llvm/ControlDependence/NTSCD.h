@@ -5,6 +5,7 @@
 
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "GraphBuilder.h"
+#include "IGraphBuilder.h"
 
 #include "ControlDependence/NTSCD.h"
 
@@ -197,6 +198,141 @@ private:
             info.controlDependence = std::move(result.first);
             info.revControlDependence = std::move(result.second);
         }
+   }
+};
+
+class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
+    ICDGraphBuilder igraphBuilder{};
+    CDGraph graph;
+
+    using CDResultT =  std::map<CDNode *, std::set<CDNode *>>;
+    // forward edges (from branchings to dependent blocks)
+    CDResultT controlDependence{};
+    // reverse edges (from dependent blocks to branchings)
+    CDResultT revControlDependence{};
+    bool _computed{false};
+
+public:
+    using ValVec = LLVMControlDependenceAnalysis::ValVec;
+
+    ///
+    // Note: use this only when you know what you want.
+    // Computing intraprocedural CD + interprocedural CD
+    // separately is more efficient.
+    InterproceduralNTSCD(const llvm::Module *module,
+                         const LLVMControlDependenceAnalysisOptions& opts = {},
+                         LLVMPointerAnalysis *pta = nullptr,
+                         CallGraph *cg = nullptr)
+        : LLVMControlDependenceAnalysisImpl(module, opts), igraphBuilder(pta, cg) {}
+
+    /// Getters of dependencies for a value
+    ValVec getDependencies(const llvm::Instruction *I) override {
+        if (!getOptions().nodePerInstruction()) {
+            return {};
+        }
+
+        _compute();
+
+        auto *node = igraphBuilder.getNode(I);
+        if (!node) {
+            return {};
+        }
+
+        assert(_computed && "CD is not computed");
+        auto dit = controlDependence.find(node);
+        if (dit == controlDependence.end())
+            return {};
+
+        std::set<llvm::Value *> ret;
+        for (auto *dep : dit->second) {
+            auto *val = igraphBuilder.getValue(dep);
+            assert(val && "Invalid value");
+            ret.insert(const_cast<llvm::Value*>(val));
+        }
+
+        return ValVec{ret.begin(), ret.end()};
+    }
+
+    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+
+    /// Getters of dependencies for a basic block
+    ValVec getDependencies(const llvm::BasicBlock *b) override {
+        if (getOptions().nodePerInstruction()) {
+            return {};
+        }
+
+        _compute();
+
+        auto *block = igraphBuilder.getNode(b);
+        if (!block) {
+            return {};
+        }
+
+        assert(_computed && "Did not compute CD");
+        auto dit = controlDependence.find(block);
+        if (dit == controlDependence.end())
+            return {};
+
+        std::set<llvm::Value *> ret;
+        for (auto *dep : dit->second) {
+            auto *val = igraphBuilder.getValue(dep);
+            assert(val && "Invalid value");
+            ret.insert(const_cast<llvm::Value*>(val));
+        }
+
+        return ValVec{ret.begin(), ret.end()};
+    }
+
+    ValVec getDependent(const llvm::BasicBlock *) override {
+        assert(false && "Not supported");
+        abort();
+    }
+
+    // We run on demand but this method can trigger the computation
+    void compute(const llvm::Function *) override {
+        _compute();
+    }
+
+    /// Getter for noreturn nodes in function (for interprocedural analysis)
+    ValVec getNoReturns(const llvm::Function *) const override {
+        assert(false && "Unsupported"); abort();
+    }
+
+    CDGraph *getGraph(const llvm::Function *) override { return &graph; }
+    const CDGraph *getGraph(const llvm::Function *) const override { return &graph; }
+
+private:
+
+   void _compute() {
+       if (_computed)
+           return;
+
+        DBG(cda, "Triggering computation of interprocedural NTSCD");
+
+        graph = igraphBuilder.build(getModule(),
+                                    getOptions().nodePerInstruction());
+
+        if (getOptions().ntscd2CD()) {
+            DBG(cda, "Using the NTSCD 2 algorithm");
+            dg::NTSCD2 ntscd;
+            auto result = ntscd.compute(graph);
+            controlDependence = std::move(result.first);
+            revControlDependence = std::move(result.second);
+        } else if (getOptions().ntscdRanganathCD()) {
+            DBG(cda, "Using the NTSCD Ranganath algorithm");
+            dg::NTSCDRanganath ntscd;
+            auto result = ntscd.compute(graph);
+            controlDependence = std::move(result.first);
+            revControlDependence = std::move(result.second);
+        } else {
+            assert(getOptions().ntscdCD() && "Wrong analysis type");
+            dg::NTSCD ntscd;
+            auto result = ntscd.compute(graph);
+            controlDependence = std::move(result.first);
+            revControlDependence = std::move(result.second);
+        }
+
+        _computed = true;
    }
 };
 

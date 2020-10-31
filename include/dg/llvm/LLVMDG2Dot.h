@@ -1,3 +1,6 @@
+#ifndef DG_LLVMDG2DOT_H_
+#define DG_LLVMDG2DOT_H_
+
 #include <iostream>
 #include <ostream>
 #include <sstream>
@@ -43,8 +46,8 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 }
 */
 
-static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
-{
+namespace {
+static inline std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;
@@ -90,6 +93,7 @@ static std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val)
 
     return os;
 }
+} // anonymous namespace
 
 class LLVMDG2Dot : public debug::DG2Dot<LLVMNode>
 {
@@ -337,3 +341,5 @@ private:
 };
 } /* namespace debug */
 } /* namespace dg */
+
+#endif

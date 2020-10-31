@@ -140,7 +140,7 @@ class LLVMMemoryRegionSet {
             l = len;
         }
 
-        return {o, l};
+        return std::make_pair(o, l);
     }
 
     const std::vector<OffsetPair> *_get(llvm::Value *v) const {
@@ -278,6 +278,7 @@ public:
     // NOTE: this may not be O(1) operation
     virtual bool hasUnknown() const = 0;
     virtual bool hasNull() const = 0;
+    virtual bool hasNullWithOffset() const = 0;
     virtual bool hasInvalidated() const = 0;
     virtual size_t size() const = 0;
 
@@ -371,6 +372,7 @@ public:
     // NOTE: this may not be O(1) operation
     bool hasUnknown() const { return _impl->hasUnknown(); }
     bool hasNull() const { return _impl->hasNull(); }
+    bool hasNullWithOffset() const { return _impl->hasNullWithOffset(); }
     bool hasInvalidated() const { return _impl->hasInvalidated(); }
     bool empty() const { return _impl->size() == 0; }
     size_t size() const { return _impl->size(); }
@@ -380,6 +382,9 @@ public:
                                     && !_impl->hasUnknown()
                                     && !_impl->hasNull()
                                     && !_impl->hasInvalidated(); }
+
+    // matches {unknown}
+    bool isUnknownSingleton() const { return isSingleton() && hasUnknown(); }
 
     LLVMPointer getKnownSingleton() const { return _impl->getKnownSingleton(); }
 
@@ -463,6 +468,7 @@ public:
     // NOTE: this may not be O(1) operation
     bool hasUnknown() const override { return PTSet.hasUnknown(); }
     bool hasNull() const override { return PTSet.hasNull(); }
+    bool hasNullWithOffset() const override { return PTSet.hasNullWithOffset(); }
     bool hasInvalidated() const override { return PTSet.hasInvalidated(); }
     size_t size() const override { return PTSet.size(); }
 

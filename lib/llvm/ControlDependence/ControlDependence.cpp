@@ -8,26 +8,42 @@
 
 namespace dg {
 
-void LLVMControlDependenceAnalysis::initializeImpl() {
+void LLVMControlDependenceAnalysis::initializeImpl(LLVMPointerAnalysis *pta, 
+                                                   llvmdg::CallGraph *cg) {
+    bool icfg = getOptions().ICFG();
+
     if (getOptions().standardCD()) {
+        if (icfg) {
+            assert(false && "SCD does not support ICFG");
+            abort();
+        }
         _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD() || getOptions().ntscd2CD() ||
                getOptions().ntscdRanganathCD()) {
-        _impl.reset(new llvmdg::NTSCD(_module, _options));
+        if (icfg) {
+            _impl.reset(new llvmdg::InterproceduralNTSCD(_module, _options, pta, cg));
+        } else {
+            _impl.reset(new llvmdg::NTSCD(_module, _options));
+        }
     } else if (getOptions().strongCC()) {
         _impl.reset(new llvmdg::StrongControlClosure(_module, _options));
     } else if (getOptions().ntscdLegacyCD()) {
+        // legacy NTSCD is ICFG always...
         _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
     } else if (getOptions().dodCD() || getOptions().dodRanganathCD() ||
                getOptions().dodntscdCD()) {
         // DOD on itself makes no sense, but allow it due to debugging
-        _impl.reset(new llvmdg::DOD(_module, _options));
+        if (icfg) {
+            _impl.reset(new llvmdg::InterproceduralDOD(_module, _options, pta, cg));
+        } else {
+            _impl.reset(new llvmdg::DOD(_module, _options));
+        }
     } else {
         assert(false && "Unhandled analysis type");
         abort();
     }
 
-    _interprocImpl.reset(new llvmdg::LLVMInterprocCD(_module, _options));
+    _interprocImpl.reset(new llvmdg::LLVMInterprocCD(_module, _options, pta, cg));
 }
 
 } // namespace dg

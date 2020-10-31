@@ -22,8 +22,8 @@
 #pragma GCC diagnostic pop
 #endif
 
-#include "llvm-slicer.h"
-#include "llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 #include "git-version.h"
 
@@ -127,6 +127,12 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
                        "is per basic block)\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> icfgCD("cda-icfg",
+        llvm::cl::desc("Compute control dependencies on interprocedural CFG.\n"
+                       "Default: false (interprocedral CD are computed by\n"
+                       "a separate analysis.\n"),
+                       llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<uint64_t> ptaFieldSensitivity("pta-field-sensitive",
         llvm::cl::desc("Make PTA field sensitive/insensitive. The offset in a pointer\n"
                        "is cropped to Offset::UNKNOWN when it is greater than N bytes.\n"
@@ -165,7 +171,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
         llvm::cl::desc("Perform forward slicing\n"),
                        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-    llvm::cl::opt<bool> threads("threads",
+    llvm::cl::opt<bool> threads("consider-threads",
         llvm::cl::desc("Consider threads are in input file (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
@@ -243,6 +249,11 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
         llvm::cl::aliasopt(cdAlgorithm),
         llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::alias cdaInterprocAlias("cda-interproc",
+        llvm::cl::desc("Alias to interproc-cd"),
+        llvm::cl::aliasopt(interprocCd),
+        llvm::cl::cat(SlicingOpts));
+
     ////////////////////////////////////
     // ===-- End of the options --=== //
     ////////////////////////////////////
@@ -281,6 +292,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
 
     CDAOptions.algorithm = cdAlgorithm;
     CDAOptions.interprocedural = interprocCd;
+    CDAOptions._icfg = icfgCD;
     CDAOptions.setNodePerInstruction(cdaPerInstr);
 
     addAllocationFuns(dgOptions, allocationFuns);

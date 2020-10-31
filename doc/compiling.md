@@ -24,10 +24,26 @@ pacman -S git cmake make llvm clang gcc python
 On CentOS/RHEL/Fedora, the command for installing the dependencies is the following:
 
 ```
-dnf install git cmake make zlib-devel llvm-devel llvm-static gcc-c++ ncurses-devel
+dnf install git cmake make zlib-devel llvm-devel gcc-c++ ncurses-devel
 ```
 
 You can use also LLVM compiled from sources (see below).
+
+## Building docker image
+
+The DG repository contains a prepared Dockerfile that
+builds DG under Ubuntu 20.04. To build the docker image,
+go into the top-level project's directory (the one containing
+Dockerfile) and run:
+
+```
+docker build . --tag dg:latest
+docker run -ti dg:latest
+```
+
+The Dockerfile installs only the prerequisities for dg.
+If you need anything else to try out dg (e.g., vim or emacs), you must install
+it manually inside the image.
 
 ## Compiling DG
 
@@ -81,10 +97,14 @@ work:
 cmake -DLLVM_SRC_PATH=/home/user/llvm-src -DLLVM_BUILD_PATH=/home/user/llvm-build -DLLVM_DIR=/home/user/llvm-build/share/llvm/cmake .
 ```
 
+The LLVM is linked dynamically by default. This behaviour can be toggled by
+turning the `LLVM_LINK_DYLIB` option `OFF`. Note that some additional packages
+might be required than those listed above when linking statically.
+
 If you want to build the project with debugging information and assertions, you
 may specify the build type by adding `-DCMAKE_BUILD_TYPE=Debug` during
 configuration. Also, you may enable building with sanitizers by adding
-`-DUSE_SANITIZERS`.
+`-DUSE_SANITIZERS=ON`.
 
 After configuring the project, usual `make` takes place:
 
@@ -110,6 +130,7 @@ for SVF](SVF.md).
 
 ## Testing
 
-You can run tests with `make check`. The command runs unit tests and also tests of slicing LLVM bitcode
-in several different configurations, so it may take a while. If the project is configured with `TESTING_ENABLE_FUZZING`
-cmake variable, also tests using libFuzzer are compiled and run.
+You can run tests with `make check`. The command runs unit tests and also tests
+of slicing LLVM bitcode in several different configurations, so it may take a
+while. If your compiler supports `libFuzzer`, fuzzing tests are compiled and
+run as well.

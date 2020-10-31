@@ -37,4 +37,16 @@ bool array_match(llvm::StringRef name, const T& names) {
     return false;
 }
 
+// The description of a C variable
+struct CVariableDecl {
+    const std::string name;
+    unsigned line;
+    unsigned col;
+
+    CVariableDecl(const std::string& n, unsigned l = 0, unsigned c = 0):
+        name(n), line(l), col(c) {}
+    CVariableDecl(CVariableDecl&&) = default;
+    CVariableDecl(const CVariableDecl&) = default;
+};
+
 #endif // _DG_LLVM_SLICER_UTILS_H_

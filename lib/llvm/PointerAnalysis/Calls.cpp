@@ -75,8 +75,8 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const ll
     // when the pointers are resolved during analysis, the graph
     // will be dynamically created and it will replace these nodes
     PSNode *op = getOperand(calledVal);
-    PSNode *call_funcptr = PS.create(PSNodeType::CALL_FUNCPTR, op);
-    PSNode *ret_call = PS.create(PSNodeType::CALL_RETURN, nullptr);
+    PSNode *call_funcptr = PS.create<PSNodeType::CALL_FUNCPTR>(op);
+    PSNode *ret_call = PS.create<PSNodeType::CALL_RETURN>();
 
     ret_call->setPairedNode(call_funcptr);
     call_funcptr->setPairedNode(ret_call);
@@ -92,7 +92,7 @@ LLVMPointerGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
     // inside bitcast - it defaults to int, but is bitcased
     // to pointer
     //assert(CInst->getType()->isPointerTy());
-    PSNode *call = PS.create(PSNodeType::CALL, nullptr);
+    PSNode *call = PS.create<PSNodeType::CALL>();
     call->setPairedNode(call);
 
     // the only thing that the node will point at
@@ -121,8 +121,7 @@ LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
 
     PSNode *destNode = getOperand(dest);
     PSNode *srcNode = getOperand(src);
-    PSNode *node = PS.create(PSNodeType::MEMCPY,
-                              srcNode, destNode, lenVal);
+    PSNode *node = PS.create<PSNodeType::MEMCPY>(srcNode, destNode, lenVal);
 
     return addNode(I, node);
 }
@@ -139,8 +138,8 @@ LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst) {
 
     PSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
     // we need to make unknown offsets
-    PSNode *G = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
-    PSNode *S = PS.create(PSNodeType::STORE, val, G);
+    PSNode *G = PS.create<PSNodeType::GEP>(op, Offset::UNKNOWN);
+    PSNode *S = PS.create<PSNodeType::STORE>(val, G);
 
     PSNodesSeq ret(G);
     ret.append(S);
@@ -168,7 +167,7 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst) {
     // vastart will be node that will keep the memory
     // with pointers, its argument is the alloca, that
     // alloca will keep pointer to vastart
-    PSNode *vastart = PS.create(PSNodeType::ALLOC);
+    PSNode *vastart = PS.create<PSNodeType::ALLOC>();
 
     // vastart has only one operand which is the struct
     // it uses for storing the va arguments. Strip it so that we'll
@@ -181,10 +180,10 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst) {
     // get node with the same pointer, but with Offset::UNKNOWN
     // FIXME: we're leaking it
     // make the memory in alloca point to our memory in vastart
-    PSNode *ptr = PS.create(PSNodeType::GEP, op, Offset::UNKNOWN);
-    PSNode *S1 = PS.create(PSNodeType::STORE, vastart, ptr);
+    PSNode *ptr = PS.create<PSNodeType::GEP>(op, Offset::UNKNOWN);
+    PSNode *S1 = PS.create<PSNodeType::STORE>(vastart, ptr);
     // and also make vastart point to the vararg args
-    PSNode *S2 = PS.create(PSNodeType::STORE, arg, vastart);
+    PSNode *S2 = PS.create<PSNodeType::STORE>(arg, vastart);
 
     ret.append(vastart);
     ret.append(ptr);
@@ -238,7 +237,7 @@ LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst) {
         warned = true;
     }
 
-    PSNode *n = PS.create(PSNodeType::CONSTANT, UNKNOWN_MEMORY, Offset::UNKNOWN);
+    PSNode *n = PS.create<PSNodeType::CONSTANT>(UNKNOWN_MEMORY, Offset::UNKNOWN);
     // it is call that returns pointer, so we'd like to have
     // a 'return' node that contains that pointer
     n->setPairedNode(n);
@@ -249,7 +248,7 @@ LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst) {
 
     PSNode *op1 = getOperand(Inst->getOperand(0));
-    PSNode *node = PS.create(PSNodeType::FREE, op1);
+    PSNode *node = PS.create<PSNodeType::FREE>(op1);
 
     return addNode(Inst, node);
 }
@@ -261,7 +260,7 @@ LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
 
     const Value *op;
     uint64_t size = 0, size2 = 0;
-    PSNodeAlloc *node = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+    PSNodeAlloc *node = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
     node->setIsHeap();
 
     switch (type) {
@@ -306,14 +305,14 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
 
     // we create new allocation node and memcpy old pointers there
     PSNode *orig_mem = getOperand(CInst->getOperand(0));
-    PSNodeAlloc *reall = PSNodeAlloc::get(PS.create(PSNodeType::ALLOC));
+    PSNodeAlloc *reall = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
     reall->setIsHeap();
     reall->setUserData(const_cast<llvm::CallInst *>(CInst));
 
     // copy everything that is in orig_mem to reall
-    PSNode *mcp = PS.create(PSNodeType::MEMCPY, orig_mem, reall, Offset::UNKNOWN);
+    PSNode *mcp = PS.create<PSNodeType::MEMCPY>(orig_mem, reall, Offset::UNKNOWN);
     // we need the pointer in the last node that we return
-    PSNode *ptr = PS.create(PSNodeType::CONSTANT, reall, 0);
+    PSNode *ptr = PS.create<PSNodeType::CONSTANT>(reall, 0);
 
     reall->setIsHeap();
     reall->setSize(llvmutils::getConstantSizeValue(CInst->getOperand(1)));

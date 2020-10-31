@@ -1,6 +1,6 @@
 include_directories(${CMAKE_SOURCE_DIR}/include)
 # these tools can access the private headers
-include_directories(${CMAKE_SOURCE_DIR}/lib)
+include_directories(${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/tools/include)
 
 if (LLVM_DG)
 	# generate a git-version.h with a HEAD commit hash tag
@@ -22,13 +22,14 @@ if (LLVM_DG)
 				PRIVATE ${llvm_core})
 
 	add_library(dgllvmslicer SHARED
-		    llvm-slicer-opts.cpp llvm-slicer-opts.h
-		    llvm-slicer-utils.cpp llvm-slicer-utils.h
-		    llvm-slicer.h)
-	#target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
+		    llvm-slicer-opts.cpp include/dg/tools/llvm-slicer-opts.h
+		    llvm-slicer-utils.cpp include/dg/tools/llvm-slicer-utils.h
+		    llvm-slicer-crit.cpp
+		    include/dg/tools/llvm-slicer.h)
+	target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
 	add_dependencies(dgllvmslicer gitversion)
 
-	add_executable(llvm-slicer llvm-slicer.cpp llvm-slicer-crit.cpp)
+	add_executable(llvm-slicer llvm-slicer.cpp)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
 					  PRIVATE dgllvmdg
 					  PRIVATE ${SVF_LIBS})
@@ -58,7 +59,7 @@ if (HAVE_SVF)
                                            PRIVATE ${llvm_transformutils})
 endif (HAVE_SVF)
 
-	add_executable(llvm-cda-dump llvm-cda-dump.cpp)
+	add_executable(llvm-cda-dump llvm-cda-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-cda-dump PRIVATE dgllvmslicer
                                             PRIVATE dganalysis
                                             PRIVATE dgllvmcda
@@ -93,7 +94,7 @@ endif (HAVE_SVF)
 				PRIVATE ${llvm_core})
 	add_dependencies(llvm-slicer gitversion)
 
-	add_executable(llvm-pta-dump llvm-pta-dump.cpp)
+	add_executable(llvm-pta-dump llvm-pta-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-pta-dump PRIVATE dgllvmpta
                                             PRIVATE dgllvmslicer)
 if (HAVE_SVF)
@@ -133,7 +134,7 @@ endif (HAVE_SVF)
 
 
 
-	add_executable(llvm-dda-dump llvm-dda-dump.cpp)
+	add_executable(llvm-dda-dump llvm-dda-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-dda-dump PRIVATE dgllvmdda)
 	target_link_libraries(llvm-dda-dump
                                 PRIVATE dgllvmslicer
@@ -174,9 +175,7 @@ endif (HAVE_SVF)
 	install(TARGETS dgllvmslicer
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
-	install(FILES llvm-slicer.h llvm-slicer-opts.h llvm-slicer-utils.h
-		DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dg/tools)
+        install(DIRECTORY include/
+	        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif (LLVM_DG)
-
-include_directories(../src)
 

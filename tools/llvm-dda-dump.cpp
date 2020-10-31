@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <cassert>
+#include <cinttypes>
 #include <cstdio>
 
 // ignore unused parameters in LLVM libraries
@@ -43,9 +44,9 @@
 #include "dg/llvm/DataDependence/DataDependence.h"
 
 #include "dg/util/debug.h"
-#include "TimeMeasure.h"
-
-#include "llvm-slicer-opts.h"
+#include "dg/tools/TimeMeasure.h"
+#include "dg/tools/llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer-opts.h"
 
 using namespace dg;
 using namespace dg::dda;
@@ -66,6 +67,15 @@ llvm::cl::opt<bool> graph_only("graph-only",
 llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Output in graphviz format (forced atm.)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> dump_c_lines("c-lines",
+    llvm::cl::desc("Dump output as C lines (line:column where possible)."
+                   "Requires metadata in the bitcode (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
+VariablesMapTy allocasToVars(const llvm::Module& M);
+VariablesMapTy valuesToVars;
 
 static inline size_t count_ws(const std::string& str) {
     size_t n = 0;
@@ -89,7 +99,27 @@ getInstName(const llvm::Value *val) {
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
 
-    ro << *val;
+
+    if (dump_c_lines) {
+        if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            auto& DL = I->getDebugLoc();
+            if (DL) {
+                ro << DL.getLine() << ":" << DL.getCol();
+            } else {
+                auto Vit = valuesToVars.find(I);
+                if (Vit != valuesToVars.end()) {
+                    auto& decl = Vit->second;
+                    ro << decl.line << ":" << decl.col;
+                } else {
+                    ro << "(no dbg) ";
+                    ro << *val;
+                }
+            }
+        }
+    } else {
+        ro << *val;
+    }
+
     ro.flush();
 
     auto str = ostr.str();
@@ -97,6 +127,9 @@ getInstName(const llvm::Value *val) {
     auto m = trim_name_idx(str);
     if (n > 0)
         str = str.substr(n, m);
+
+    if (dump_c_lines)
+        return str;
 
     if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
         const auto& fun = I->getParent()->getParent()->getName();
@@ -147,12 +180,12 @@ static void printInterval(T& I, const char *pref = nullptr,
     if (I.start.isUnknown())
         printf("[? - ");
     else
-        printf("[%lu - ", *I.start);
+        printf("[%" PRIu64 " - ", *I.start);
 
     if (I.end.isUnknown())
         printf("?]");
     else
-        printf("%lu]", *I.end);
+        printf("%" PRIu64 "]", *I.end);
 
     if (suff)
         printf("%s", suff);
@@ -224,7 +257,7 @@ protected:
         printf("</tr>\n");
 
         if (node->getSize() > 0) {
-              printf("<tr><td></td><td>size: %lu</td></tr>\n", node->getSize());
+              printf("<tr><td></td><td>size: %zu</td></tr>\n", node->getSize());
         }
 
         if (verbose) {
@@ -363,7 +396,7 @@ public:
         }
         printName(n);
         if (n->getSize() > 0)
-            printf(" [size: %lu]", n->getSize());
+            printf(" [size: %zu]", n->getSize());
         putchar('\n');
     }
 
@@ -502,12 +535,12 @@ private:
                 if (def.offset.isUnknown())
                     printf(" [? - ");
                 else
-                    printf(" [%lu - ", *def.offset);
+                    printf(" [%" PRIu64 " - ", *def.offset);
 
                 if (def.len.isUnknown())
                     printf("?]");
                 else
-                    printf("%lu]", *def.offset + (*def.len - 1));
+                    printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
             puts("</td></tr>\n");
         }
     }
@@ -545,12 +578,12 @@ class MemorySSADumper : public Dumper {
                 if (def.offset.isUnknown())
                     printf(" [? - ");
                 else
-                    printf(" [%lu - ", *def.offset);
+                    printf(" [%" PRIu64 " - ", *def.offset);
 
                 if (def.len.isUnknown())
                     printf("?]");
                 else
-                    printf("%lu]", *def.offset + (*def.len - 1));
+                    printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
             puts("</td></tr>\n");
         }
     }
@@ -690,6 +723,18 @@ int main(int argc, char *argv[])
     }
     tm.stop();
     tm.report("INFO: Data dependence analysis took");
+
+    if (dump_c_lines) {
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+        llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
+#else
+        valuesToVars = allocasToVars(*M);
+#endif // LLVM > 3.6
+        if (valuesToVars.empty()) {
+            llvm::errs() << "WARNING: No debugging information found, "
+                         << "the C lines output will be corrupted\n";
+        }
+    }
 
     dumpDefs(&DDA, todot);
 

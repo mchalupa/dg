@@ -50,7 +50,7 @@
 #include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
 
-#include "TimeMeasure.h"
+#include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
 using llvm::errs;
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-mark") == 0) {
             mark_only = true;
             slicing_criterion = argv[++i];
-        } else if (strcmp(argv[i], "-threads") == 0) {
+        } else if (strcmp(argv[i], "-consider-threads") == 0) {
             threads = true;
         } else if (strcmp(argv[i], "-entry") == 0) {
             entry_func = argv[++i];

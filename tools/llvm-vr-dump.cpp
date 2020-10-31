@@ -46,7 +46,7 @@
 #include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
 
-#include "TimeMeasure.h"
+#include "dg/tools/TimeMeasure.h"
 
 using namespace dg::vr;
 using llvm::errs;

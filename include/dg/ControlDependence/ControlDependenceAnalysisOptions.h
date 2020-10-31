@@ -33,6 +33,15 @@ struct ControlDependenceAnalysisOptions : AnalysisOptions {
     bool dodntscdCD() const { return algorithm == CDAlgorithm::DODNTSCD; }
     bool strongCC() const { return algorithm == CDAlgorithm::STRONG_CC; }
     bool interproceduralCD() const { return interprocedural; }
+
+    ///
+    // Return true if the computed control dependencies
+    // contain NTSCD dependencies
+    bool isNonterminationSensitive() const {
+        // DOD is for infinite loops, but it is not what we
+        // want when asking for non-termination sensitive...
+        return !standardCD() && !dodCD() && !dodRanganathCD();
+    }
 };
 
 } // namespace dg
