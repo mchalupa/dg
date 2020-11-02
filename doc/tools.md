@@ -44,6 +44,9 @@ All these programs take as an input llvm bitcode, for example:
 will show the pointer state subgraph for code.bc and the results of points-to analysis.
 Some useful switches for all programs are `-pta fs` and `-pta fi` that switch between flow-sensitive
 and flow-insensitive points-to analysis within all these programs that use points-to analysis.
+Some of these tools support the `-c-lines` switch that dumps the output on the level of
+C file (where an instruction is represented as the line:column pair). For this switch to work,
+the program must be compiled with debugging information (`-g`).
 
 ### dgtool
 
