@@ -12,6 +12,7 @@
 #include <cassert>
 
 #include <llvm/IR/Value.h>
+#include <llvm/IR/Constants.h>
 
 #ifndef NDEBUG
     #include <iostream>
