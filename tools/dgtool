@@ -165,7 +165,7 @@ if passes:
     bitcode = newname
 
 ###
-# Run to tool
+# Run the tool
 if not cc_mode:
     cmd.append(bitcode)
     printcmd(cmd)
