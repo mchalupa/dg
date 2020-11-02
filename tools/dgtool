@@ -37,14 +37,17 @@ bcfiles=[]
 yamlfiles=[]
 
 def get_tool(prog):
-    if isfile(prog):
-        prog= './{0}'.format(prog)
+    # try to use the binaries from the tools/ directory
+    path=f"./{prog}"
+    if isfile(path):
+        prog = abspath(path)
     else:
-        d = dirname(argv[0])
-        p = join(d, prog)
-        if isfile(p):
-            prog = p
-    return abspath(prog)
+        path = join(dirname(argv[0]), prog)
+        if isfile(path):
+            prog = abspath(path)
+        # else keep prog untouched,
+        # maybe it is in PATH var
+    return prog
 
 ###
 # Build the commands
