@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!DOCTYPE benchmark PUBLIC "+//IDN sosy-lab.org//DTD BenchExec benchmark 1.9//EN" "https://www.sosy-lab.org/benchexec/benchmark-1.9.dtd">
+<benchmark tool="dgtool" timelimit="20 s" memlimit="6 GB" cpuCores="1">
+
+<option name="llvm-slicer"/>
+<option name="-c">test_assert</option>
+
+<rundefinition name="slicer-tests">
+  <tasks name="BenchmarkingSlicingTests">
+    <includesfile>slicing-tests.set</includesfile>
+  </tasks>
+</rundefinition>
+
+</benchmark>
