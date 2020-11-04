@@ -224,5 +224,8 @@ tests = {
     'unknown-interproc2-a': Test('unknown-interproc2-a.c',
                                   linkafter=['glob_ptr-a.c']),
     'unknown-interproc3'  : Test('unknown-interproc3.c',
-                                  linkafter=['a_ptr.c'])
+                                  linkafter=['a_ptr.c']),
+    'atomic1'             : Test('atomic1.c'),
+    'atomic2'             : Test('atomic2.c'),
+    'atomic3'             : Test('atomic3.c'),
 }
