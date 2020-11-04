@@ -102,7 +102,13 @@ static bool instIsCallOf(LLVMDependenceGraph& dg,
         return name == fun->getName().str();
     }
 
-    auto pts = dg.getPTA()->getLLVMPointsTo(C->getCalledValue()->stripPointerCasts());
+#if LLVM_VERSION_MAJOR >= 8
+    auto *V = C->getCalledOperand()->stripPointerCasts();
+#else
+    auto *V = C->getCalledValue()->stripPointerCasts();
+#endif
+
+    auto pts = dg.getPTA()->getLLVMPointsTo(V);
     if (pts.empty()) {
         return true; // may be, we do not know...
     }
@@ -510,8 +516,13 @@ getCalledFunctions(LLVMDependenceGraph& dg, const llvm::CallInst *C) {
     if (fun)
         return {fun};
 
-    return dg::getCalledFunctions(C->getCalledValue()->stripPointerCasts(),
-                                  dg.getPTA());
+#if LLVM_VERSION_MAJOR >= 8
+    auto *V = C->getCalledOperand()->stripPointerCasts();
+#else
+    auto *V = C->getCalledValue()->stripPointerCasts();
+#endif
+
+    return dg::getCalledFunctions(V, dg.getPTA());
 }
 
 // WHOO, this is horrible. Refactor it into a class...
