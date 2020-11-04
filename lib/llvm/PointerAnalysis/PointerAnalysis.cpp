@@ -41,6 +41,12 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
     } else if (isa<VAArgInst>(I)) {
         PTSet = getLLVMPointsTo(I->getOperand(0));
         len = Offset::UNKNOWN;
+    } else if (isa<AtomicCmpXchgInst>(I)) {
+        PTSet = getLLVMPointsTo(I->getOperand(0));
+        len = llvmutils::getAllocatedSize(I->getOperand(2)->getType(), &DL);
+    } else if (isa<AtomicRMWInst>(I)) {
+        PTSet = getLLVMPointsTo(I->getOperand(0));
+        len = llvmutils::getAllocatedSize(I->getOperand(1)->getType(), &DL);
     } else if (auto II = dyn_cast<IntrinsicInst>(I)) {
         switch(II->getIntrinsicID()) {
             // lifetime start/end do not access the memory,
