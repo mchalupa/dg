@@ -108,7 +108,9 @@ static bool instIsCallOf(LLVMDependenceGraph& dg,
     }
 
     for (const auto& ptr : pts) {
-        fun = llvm::cast<llvm::Function>(ptr.value);
+        fun = llvm::dyn_cast<llvm::Function>(ptr.value);
+        if (!fun)
+            continue;
         if (name == fun->getName().str())
             return true;
     }
@@ -376,9 +378,9 @@ static void initDebugInfo(LLVMDependenceGraph& dg) {
 
     bool no_dbg = valuesToVariables.empty();
     if (no_dbg) {
-        llvm::errs() << "No debugging information found in program,\n"
+        llvm::errs() << "No debugging information found in program, "
                      << "slicing criteria with lines and variables will work\n"
-                     << "only for global variables.\n"
+                     << "only for global variables. "
                      << "You can still use the criteria based on call sites ;)\n";
     }
 
