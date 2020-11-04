@@ -9,6 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
+OPTION(NO_EXCEPTIONS "Compile with -fno-exceptions (ON by default)" ON)
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
@@ -158,6 +159,9 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti -Wall -Wextra")
+if (NO_EXCEPTIONS)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
+endif()
 
 if (USE_CLANG_SANITIZERS)
 	message(WARNING "USE_CLANG_SANITIZERS has been renamed to USE_SANITIZERS")
