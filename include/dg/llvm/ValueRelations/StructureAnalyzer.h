@@ -83,7 +83,7 @@ public:
     }
 
     AllocatedArea(const llvm::CallInst* call): ptr(call) {
-        const std::string& name = call->getCalledFunction()->getName();
+        const std::string& name = call->getCalledFunction()->getName().str();
         AnalysisOptions options;
 
         if (options.getAllocationFunction(name) == AllocationFunction::ALLOCA
@@ -429,8 +429,8 @@ class StructureAnalyzer {
         auto function = call->getCalledFunction();
 
         AnalysisOptions options;
-        return function && options.isAllocationFunction(function->getName())
-            && (options.getAllocationFunction(function->getName()) != AllocationFunction::CALLOC
+        return function && options.isAllocationFunction(function->getName().str())
+            && (options.getAllocationFunction(function->getName().str()) != AllocationFunction::CALLOC
                 || llvm::isa<llvm::ConstantInt>(call->getOperand(1)));
 
     }
@@ -507,7 +507,7 @@ class StructureAnalyzer {
                 return;
 
             AnalysisOptions options;
-            if (options.getAllocationFunction(function->getName()) == AllocationFunction::REALLOC) {
+            if (options.getAllocationFunction(function->getName().str()) == AllocationFunction::REALLOC) {
                 // if realloc of memory occured, the reallocated memory cannot be considered valid
                 // until the realloc is proven unsuccessful
                 std::tie(index, area) = getEqualArea(location->relations, call->getOperand(0));

@@ -104,7 +104,7 @@ class RelationsAnalyzer {
 
         if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
             auto function = call->getCalledFunction();
-            if (function && safeFunctions.find(function->getName()) != safeFunctions.end())
+            if (function && safeFunctions.find(function->getName().str()) != safeFunctions.end())
                 return std::set<std::pair<const llvm::Value*, unsigned>>();
         }
 
