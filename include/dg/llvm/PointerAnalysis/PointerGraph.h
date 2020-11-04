@@ -335,6 +335,7 @@ private:
     PSNodesSeq& createAsm(const llvm::Instruction *Inst);
     PSNodesSeq& createInsertElement(const llvm::Instruction *Inst);
     PSNodesSeq& createExtractElement(const llvm::Instruction *Inst);
+    PSNodesSeq& createAtomicRMW(const llvm::Instruction *Inst);
     PSNodesSeq& createConstantExpr(const llvm::ConstantExpr *CE);
 
     PSNodesSeq& createIrrelevantInst(const llvm::Value *,
