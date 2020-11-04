@@ -201,6 +201,42 @@ RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst) {
     return &node;
 }
 
+RWNode *LLVMReadWriteGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
+    auto *RMW = llvm::cast<llvm::AtomicRMWInst>(Inst);
+    RWNode& node = create(RWNodeType::STORE);
+
+    uint64_t size = llvmutils::getAllocatedSize(RMW->getValOperand()->getType(),
+                                                getDataLayout());
+    if (size == 0)
+        size = Offset::UNKNOWN;
+
+    auto defSites = mapPointers(RMW, RMW->getPointerOperand(), size);
+
+    // strong update is possible only with must aliases that point
+    // to the last instance of the memory object. Since detecting that
+    // is not that easy, do strong updates only on must aliases
+    // of local and global variables (and, of course, we must know the offsets)
+    // FIXME: ALLOCAs in recursive procedures can also yield only weak update
+    bool strong_update = false;
+    if (defSites.size() == 1) {
+        const auto& ds = *(defSites.begin());
+        strong_update = (ds.target->isAlloc() || ds.target->isGlobal()) &&
+                        !ds.offset.isUnknown() && !ds.len.isUnknown();
+    }
+
+    for (const auto& ds : defSites) {
+        node.addDef(ds, strong_update);
+    }
+
+    // RMW is also use
+    for (const auto& ds : defSites) {
+        node.addUse(ds);
+    }
+
+    return &node;
+}
+
+
 NodesSeq<RWNode>
 LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
     using namespace llvm;
@@ -305,6 +341,8 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
              return {createAlloc(I)};
          case Instruction::Store:
              return {createStore(I)};
+         case Instruction::AtomicRMW:
+             return {createAtomicRMW(I)};
          case Instruction::Load:
              if (buildUses) {
                  return {createLoad(I)};
