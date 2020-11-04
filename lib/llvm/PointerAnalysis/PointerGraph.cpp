@@ -411,6 +411,8 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
             return createInsertElement(&Inst);
         case Instruction::ExtractElement:
             return createExtractElement(&Inst);
+        case Instruction::AtomicRMW:
+            return createAtomicRMW(&Inst);
         case Instruction::ShuffleVector:
             llvm::errs() << "ShuffleVector instruction is not supported, loosing precision\n";
             seq = &createUnknown(&Inst);

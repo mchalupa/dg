@@ -27,9 +27,24 @@ LLVMPointerGraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst) {
 
 LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createStore(const llvm::Instruction *Inst) {
-    const llvm::Value *valOp = Inst->getOperand(0);
+    using namespace llvm;
+    const Value *valOp = Inst->getOperand(0);
 
-    PSNode *op1 = getOperand(valOp);
+    PSNode *op1;
+    if (isa<AtomicRMWInst>(valOp)) {
+        // we store the old value of AtomicRMW
+        auto it = nodes_map.find(valOp);
+        if (it == nodes_map.end()) {
+            op1 = UNKNOWN_MEMORY;
+        } else {
+            op1 = it->second.getFirst();
+            assert(op1->getType() == PSNodeType::LOAD
+                   && "Invalid AtomicRMW nodes seq");
+        }
+    } else {
+        op1 = getOperand(valOp);
+    }
+
     PSNode *op2 = getOperand(Inst->getOperand(1));
     PSNode *node = PS.create<PSNodeType::STORE>(op1, op2);
 
@@ -420,6 +435,56 @@ LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     GEP->addSuccessor(L);
 
     PSNodesSeq ret({GEP, L});
+    return addNode(Inst, ret);
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
+    using namespace llvm;
+
+    auto *RMW = dyn_cast<AtomicRMWInst>(Inst);
+    assert(RMW && "Wrong instruction");
+
+    auto operation = RMW->getOperation();
+    if (operation != AtomicRMWInst::Xchg &&
+        operation != AtomicRMWInst::Add &&
+        operation != AtomicRMWInst::Sub) {
+        return createUnknown(Inst);
+    }
+
+    auto *ptr = getOperand(RMW->getPointerOperand());
+    Offset cval = Offset::UNKNOWN;
+
+    auto *R = PS.create<PSNodeType::LOAD>(ptr);
+
+    PSNode *M = nullptr;
+    switch (operation) {
+        case AtomicRMWInst::Xchg:
+            M = getOperand(RMW->getValOperand());
+            break;
+        case AtomicRMWInst::Add:
+            cval = Offset(llvmutils::getConstantValue(RMW->getValOperand()));
+            M = PS.create<PSNodeType::GEP>(ptr, cval);
+            R->addSuccessor(M);
+            break;
+        case AtomicRMWInst::Sub: break;
+            cval = Offset(0) - Offset(llvmutils::getConstantValue(RMW->getValOperand()));
+            M = PS.create<PSNodeType::GEP>(ptr, cval);
+            R->addSuccessor(M);
+            break;
+        default:
+            assert(false && "Invalid operation");
+            abort();
+    }
+    assert(M);
+
+    auto *W = PS.create<PSNodeType::STORE>(M, ptr);
+    if (operation == AtomicRMWInst::Add ||
+        operation == AtomicRMWInst::Sub) {
+        M->addSuccessor(W);
+    }
+
+    PSNodesSeq ret({R, W});
     return addNode(Inst, ret);
 }
 
