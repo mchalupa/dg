@@ -85,6 +85,7 @@ Option                | Values      | Description
 `-entry`              | FUN         | Set entry function to FUN
 `-dbg`                |             | Show debugging messages
 `-ir`                 |             | Dump internal representation of the analysis
+`-c-lines`            |             | Dump output on the level of C lines (needs debug info)
 `-dot`                |             | Dump IR and results of the analysis to .dot file
 `-v` `-vv`            |             | Verbose output
 
