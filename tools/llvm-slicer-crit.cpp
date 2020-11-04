@@ -130,6 +130,9 @@ static bool fileMatch(const std::string& file,
 
 static bool fileMatch(const std::string& file,
                       const llvm::GlobalVariable& G) {
+#if LLVM_VERSION_MAJOR < 4
+    return true;
+#else
     llvm::SmallVector<llvm::DIGlobalVariableExpression *, 2> GVs;
     G.getDebugInfo(GVs);
     bool has_match = false;
@@ -141,6 +144,7 @@ static bool fileMatch(const std::string& file,
         }
     }
     return has_match;
+#endif
 }
 
 static bool instMatchesCrit(LLVMDependenceGraph& dg,
@@ -220,6 +224,9 @@ static bool globalMatchesCrit(const llvm::GlobalVariable& G,
         return false;
     }
 
+#if LLVM_VERSION_MAJOR < 4
+    return true;
+#else
     if (line > 0) {
         llvm::SmallVector<llvm::DIGlobalVariableExpression *, 2> GVs;
         G.getDebugInfo(GVs);
@@ -234,10 +241,9 @@ static bool globalMatchesCrit(const llvm::GlobalVariable& G,
         if (!has_match)
             return false;
     }
+#endif // LLVM >= 4
 
     return true;
-
-    return false;
 }
 
 static unsigned parseLine(const std::vector<std::string>& parts) {
@@ -361,7 +367,11 @@ static void initDebugInfo(LLVMDependenceGraph& dg) {
 #if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
     llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
     llvm::errs() << "WARNING: The slicing criteria with variables names will not work\n";
-#else
+#else // LLVM >= 3.8
+#if (LLVM_VERSION_MAJOR < 4)
+    llvm::errs() << "WARNING: Function/global names matching is not supported for LLVM older than 4\n";
+    llvm::errs() << "WARNING: The slicing criteria with variables names will not work well\n";
+#endif
     // create the mapping from LLVM values to C variable names
     for (auto& it : getConstructedFunctions()) {
         for (auto& I : llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
