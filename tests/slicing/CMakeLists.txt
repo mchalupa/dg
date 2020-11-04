@@ -161,4 +161,7 @@ add_test(unknown-interproc      ${RUNNER} unknown-interproc)
 add_test(unknown-interproc2     ${RUNNER} unknown-interproc2)
 add_test(unknown-interproc2-a   ${RUNNER} unknown-interproc2-a)
 add_test(unknown-interproc3     ${RUNNER} unknown-interproc3)
+add_test(atomic1                 ${RUNNER} atomic1)
+add_test(atomic2                 ${RUNNER} atomic2)
+add_test(atomic3                 ${RUNNER} atomic3)
 
