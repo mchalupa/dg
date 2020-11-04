@@ -165,7 +165,8 @@ public:
         assert(!o.isUnknown());
 
         for (auto& interval : R) {
-            if (interval.extends(o, l)) {
+            if (interval.offset.isUnknown() ||
+                interval.extends(o, l)) {
                 return; // nothing to be done
             }
         }
