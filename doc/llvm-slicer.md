@@ -151,7 +151,7 @@ safe_return:                                      ; preds = %1
 
 ```
 
-### Slicing criteria
+### Slicing criteria (the -c and -2c options)
 
 The `slicing_criterion` is either a call-site of a function or `ret` to slice
 with respect to the return value of the main function. Alternatively, if the program was compiled with the `-g` option,
@@ -237,6 +237,37 @@ Further, we can specify that a secondary slicing criterion is a _data_ secondary
 that it is considered as a slicing criterion only if it is on a path into a regular slicing criterion and
 at the same time it uses the same memory as the regular slicing criterion. In `llvm-slicer`, we do that by adding
 `()` after the secondary slicing criterion, e.g., `-2c assume()`.
+
+### Slicing criteria (the -sc option)
+
+`llvm-slicer` supports specifying slicing criteria also with `-sc` option, which is designed for further extensions
+for C++ and allows to bind a secondary slicing criterion to every primary slicing criterion.
+`-sc` takes a list of semi-colon-separated slicing criteria pairs, i.e., 
+`-sc 'S;S;S;...'` where `S` describes a primary-secondary slicing criteria pair. A pair is divided by `|`, i.e.
+the pair is in the form: `X|Y`. Either the primary or the secondary criterion can be empty (not both, though).
+If the primary criterion is empty, the secondary slicing criterion is attached to all primary slicing criteria.
+
+Finally, `X` and `Y` are in the form `file#function#line#obj`.
+The fields `file`, `function`, `line`, and `obj` can be empty and the prefix of `###..` can be left out.
+The `obj` field matches either a call of a function or a use of a variable (given that the program is
+compiled with debugging information) and can be further specified to be a (global) variable or a function call:
+`[&][@]obj[()]`. For example, `&x` means variable `x`, `fun()` means call of `fun` and `@g` (or `&@g`) means
+global variable `g`.
+
+Examples:
+
+```
+'fun()|&x'           -- matches calls of fun() as primary SC and instructions using variable x as secondary SC
+'x|f'                -- matches calls of function x or uses of variable x as primary SC and the same with f as secondary SC
+'file.c###fun()|&x'  -- matches calls of fun() in file file.c as primary SC and instructions using variable x as secondary SC
+'#8#|main#7#'        -- matches all instruction on line 8 (in any file) as primary SC and instructions in (any)
+                        function main on line 7 as secondary SC
+'foo();boo();|fun()' -- matches calls of functions foo and boo as primary SC and calls of fun as secondary SC for both foo and boo
+'foo();boo()|fun()'  -- matches calls of functions foo as primary SC and boo as primary SC with calls of fun as secondary SC
+```
+
+Note that the matching is performed in approximation manner, i.e., if the slicer lacks information about an instruction,
+it assume it matches the slicing criterion.
 
 ## Options
 
