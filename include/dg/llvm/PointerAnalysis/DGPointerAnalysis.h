@@ -225,7 +225,6 @@ public:
             abort();
         }
 
-/*
         analysis::pta::PointerGraphOptimizer optimizer(PS);
         optimizer.run();
 
@@ -244,7 +243,6 @@ public:
             abort();
         }
 #endif // NDEBUG
-*/
 
     }
 
