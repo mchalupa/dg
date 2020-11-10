@@ -69,12 +69,34 @@ void PointerGraph::setEntry(PointerSubgraph *e) {
     _entry = e;
 }
 
+void PointerSubgraph::computeLoops() {
+    // FIXME: remember just that a node is on loop, not the whole loops
+ 
+    assert(root);
+    assert(!computedLoops() && "computeLoops() called repeatedly");
+    _computed_loops = true;
 
+    DBG(pta, "Computing information about loops");
 
+    // compute the strongly connected components
+    auto SCCs = SCC<PSNode>().compute(root);
+    for (auto& scc : SCCs) {
+        if (scc.size() < 1)
+            continue;
+        // self-loop is also loop
+        if (scc.size() == 1 &&
+            scc[0]->getSingleSuccessorOrNull() != scc[0])
+            continue;
 
+        _loops.push_back(std::move(scc));
+        assert(scc.empty() && "We wanted to move the scc");
 
-
-
+        for (auto nd : _loops.back()) {
+            assert(_node_to_loop.find(nd) == _node_to_loop.end());
+            _node_to_loop[nd] = _loops.size() - 1;
+        }
+    }
+}
 
 
 } // namespace pta
