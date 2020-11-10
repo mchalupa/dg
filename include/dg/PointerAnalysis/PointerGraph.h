@@ -270,23 +270,7 @@ public:
         _entry = e;
     }
 
-    void remove(PSNode *nd) {
-        assert(nd && "nullptr passed as nd");
-        // the node must be isolated
-        assert(nd->successors().empty() && "The node is still in graph");
-        assert(nd->predecessors().empty() && "The node is still in graph");
-        assert(nd->getID() < size() && "Invalid ID");
-        assert(nd->getID() > 0 && "Invalid ID");
-        assert(nd->users.empty() && "This node is used by other nodes");
-        // if the node has operands, it means that the operands
-        // have a reference (an user edge to this node).
-        // We do not want to create dangling references.
-        assert(nd->operands.empty() && "This node uses other nodes");
-        assert(nodes[nd->getID()].get() == nd && "Inconsistency in nodes");
-
-        // clear the nodes entry
-        nodes[nd->getID()].reset();
-    }
+    void remove(PSNode *nd);
 
     // get nodes in BFS order and store them into
     // the container
