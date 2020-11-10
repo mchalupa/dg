@@ -228,7 +228,7 @@ public:
     unsigned run() {
         removeNoops();
         //removeEquivalentNodes();
-        //removeUnknowns();
+        removeUnknowns();
         // need to call this once more because
         // the optimizations may have created
         // the same operands in a phi nodes,
