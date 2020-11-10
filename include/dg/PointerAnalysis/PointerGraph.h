@@ -134,19 +134,9 @@ class PointerGraph
 
     // Take care of assigning ids to new nodes
     unsigned int last_node_id = 0;
-    unsigned int getNewNodeId() {
-        return ++last_node_id;
-    }
+    unsigned int getNewNodeId() { return ++last_node_id; }
 
     GenericCallGraph<PSNode *> callGraph;
-
-    void initStaticNodes() {
-        NULLPTR->pointsTo.clear();
-        UNKNOWN_MEMORY->pointsTo.clear();
-        NULLPTR->pointsTo.add(Pointer(NULLPTR, 0));
-        UNKNOWN_MEMORY->pointsTo.add(Pointer(UNKNOWN_MEMORY, Offset::UNKNOWN));
-    }
-
     NodesT _globals;
 
     // check for correct count of variadic arguments
@@ -202,6 +192,8 @@ public:
         initStaticNodes();
     }
 
+    void initStaticNodes();
+
     PointerSubgraph *createSubgraph(PSNode *root,
                                     PSNode *vararg = nullptr) {
         // NOTE: id of the subgraph is always index in _subgraphs + 1
@@ -241,14 +233,7 @@ public:
     const NodesT& getGlobals() const { return _globals; }
     size_t size() const { return nodes.size() + _globals.size(); }
 
-    void computeLoops() {
-        DBG(pta, "Computing information about loops for the whole graph");
-
-        for (auto& it : _subgraphs) {
-            if (!it->computedLoops())
-                it->computeLoops();
-        }
-    }
+    void computeLoops();
 
     PointerGraph(PointerGraph&&) = default;
     PointerGraph& operator=(PointerGraph&&) = default;
@@ -256,19 +241,7 @@ public:
     PointerGraph operator=(const PointerGraph&) = delete;
 
     PointerSubgraph *getEntry() const { return _entry; }
-    void setEntry(PointerSubgraph *e) {
-#if DEBUG_ENABLED
-        bool found = false;
-        for (auto& n : _subgraphs) {
-            if (n.get() == e) {
-                found = true;
-                break;
-            }
-        }
-        assert(found && "The entry is not a subgraph of the graph");
-#endif
-        _entry = e;
-    }
+    void setEntry(PointerSubgraph *e);
 
     void remove(PSNode *nd);
 

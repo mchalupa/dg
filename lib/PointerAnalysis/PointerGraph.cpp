@@ -3,6 +3,8 @@
 #include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PSNode.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace pta {
 
@@ -36,6 +38,42 @@ void PointerGraph::remove(PSNode *nd) {
     // clear the nodes entry
     nodes[nd->getID()].reset();
 }
+
+void PointerGraph::initStaticNodes() {
+    NULLPTR->pointsTo.clear();
+    UNKNOWN_MEMORY->pointsTo.clear();
+    NULLPTR->pointsTo.add(Pointer(NULLPTR, 0));
+    UNKNOWN_MEMORY->pointsTo.add(Pointer(UNKNOWN_MEMORY, Offset::UNKNOWN));
+}
+
+void PointerGraph::computeLoops() {
+    DBG(pta, "Computing information about loops for the whole graph");
+
+    for (auto& it : _subgraphs) {
+        if (!it->computedLoops())
+            it->computeLoops();
+    }
+}
+
+void PointerGraph::setEntry(PointerSubgraph *e) {
+#if DEBUG_ENABLED
+    bool found = false;
+    for (auto& n : _subgraphs) {
+        if (n.get() == e) {
+            found = true;
+            break;
+        }
+    }
+    assert(found && "The entry is not a subgraph of the graph");
+#endif
+    _entry = e;
+}
+
+
+
+
+
+
 
 
 
