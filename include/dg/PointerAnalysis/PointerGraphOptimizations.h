@@ -227,13 +227,13 @@ public:
 
     unsigned run() {
         removeNoops();
-        //removeEquivalentNodes();
+        removeEquivalentNodes();
         removeUnknowns();
         // need to call this once more because
         // the optimizations may have created
         // the same operands in a phi nodes,
         // which breaks the validity of the graph
-        //removeEquivalentNodes();
+        removeEquivalentNodes();
 
         return removed;
     }
