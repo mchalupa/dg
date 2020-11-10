@@ -26,6 +26,7 @@ add_library(dgpta SHARED
 
 	PointerAnalysis/Pointer.cpp
 	PointerAnalysis/PointerAnalysis.cpp
+	PointerAnalysis/PointerGraph.cpp
 	PointerAnalysis/PointerGraphValidator.cpp
 	PointerAnalysis/PointsToSet.cpp
 )
