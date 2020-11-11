@@ -38,9 +38,6 @@ namespace pta {
 class LLVMPointerGraphBuilder
 {
     PointerGraph PS{};
-    // mapping from llvm values to PSNodes that contain
-    // the points-to information
-    PointsToMapping<const llvm::Value *> mapping;
 
     const llvm::Module *M;
     LLVMPointerAnalysisOptions _options;
@@ -261,9 +258,10 @@ public:
         this->invalidate_nodes = value;
     }
 
-    void composeMapping(PointsToMapping<PSNode *>&& rhs) {
-        mapping.compose(std::move(rhs));
-    }
+    ///
+    // If we removed some nodes from the graph, we need to
+    // remove them from the builder structures too
+    void remapNodes(const PointsToMapping<PSNode::IDType>&);
 
     PointerSubgraph *getSubgraph(const llvm::Function *);
 
@@ -277,12 +275,7 @@ private:
     createCallToFunction(const llvm::CallInst *, const llvm::Function *);
 
     PSNode *getPointsToNodeOrNull(const llvm::Value *val) {
-        // if we have a mapping for this node (e.g. the original
-        // node was optimized away and replaced by mapping),
-        // return it
-        if (auto mp = mapping.get(val))
-            return mp;
-        else if (auto nds = getNodes(val)) {
+        if (auto nds = getNodes(val)) {
             // otherwise get the representant of the built nodes
             return nds->getRepresentant();
         }

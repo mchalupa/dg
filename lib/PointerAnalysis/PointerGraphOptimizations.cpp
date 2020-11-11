@@ -40,6 +40,11 @@ void removeNode(PointerGraph *G, PSNode *nd) {
     G->remove(nd);
 }
 
+template <typename MappingT>
+void remapNode(MappingT& mapping, PSNode *n, PSNode *to) {
+    mapping.add(n->getID(), to->getID());
+}
+
 void PSUnknownsReducer::processAllocs() {
     for (const auto& nd : G->getNodes()) {
         if (!nd)
@@ -57,7 +62,7 @@ void PSUnknownsReducer::processAllocs() {
                         // replace the uses of the load value by unknown
                         // (this is what would happen in the analysis)
                         user->replaceAllUsesWith(UNKNOWN_MEMORY);
-                        mapping.add(user, UNKNOWN_MEMORY);
+                        remapNode(mapping, user, UNKNOWN_MEMORY);
                     }
                     // store can be removed directly
                     removeNode(G, user);
@@ -72,7 +77,7 @@ void PSUnknownsReducer::processAllocs() {
             for (PSNode *user : tmp) {
                 // replace the uses of this value with unknown
                 user->replaceAllUsesWith(UNKNOWN_MEMORY);
-                mapping.add(user, UNKNOWN_MEMORY);
+                remapNode(mapping, user, UNKNOWN_MEMORY);
 
                 // store can be removed directly
                 removeNode(G, user);
@@ -128,7 +133,7 @@ void PSEquivalentNodesMerger::merge(PSNode *node1, PSNode *node2) {
     removeNode(G, node1);
 
     // update the mapping
-    mapping.add(node1, node2);
+    remapNode(mapping, node1, node2);
 
     ++merged_nodes_num;
 }

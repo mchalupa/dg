@@ -211,6 +211,8 @@ public:
     const GenericCallGraph<PSNode *>& getCallGraph() const { return callGraph; }
     const SubgraphsT& getSubgraphs() const { return _subgraphs; }
 
+    const PSNode *getNode(PSNode::IDType id) const { return nodes[id].get(); }
+    PSNode *getNode(PSNode::IDType id) { return nodes[id].get(); }
     const NodesT& getNodes() const { return nodes; }
     const GlobalNodesT& getGlobals() const { return _globals; }
     size_t size() const { return nodes.size() + _globals.size(); }

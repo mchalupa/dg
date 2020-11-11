@@ -308,7 +308,7 @@ public:
         optimizer.run();
 
         if (optimizer.getNumOfRemovedNodes() > 0)
-            _builder->composeMapping(std::move(optimizer.getMapping()));
+            _builder->remapNodes(optimizer.getMapping());
 
         llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
         */

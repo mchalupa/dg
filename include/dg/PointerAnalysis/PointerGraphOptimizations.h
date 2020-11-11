@@ -17,7 +17,7 @@ public:
 // loads and stores of unknown memory
 // (these usually correspond to integers)
 class PSUnknownsReducer {
-    using MappingT = PointsToMapping<PSNode *>;
+    using MappingT = PointsToMapping<PSNode::IDType>;
 
     PointerGraph *G;
     MappingT mapping;
@@ -40,7 +40,7 @@ public:
 
 class PSEquivalentNodesMerger {
 public:
-    using MappingT = PointsToMapping<PSNode *>;
+    using MappingT = PointsToMapping<PSNode::IDType>;
 
     PSEquivalentNodesMerger(PointerGraph *g)
     : G(g), merged_nodes_num(0) {
@@ -76,7 +76,7 @@ private:
 };
 
 class PointerGraphOptimizer {
-    using MappingT = PointsToMapping<PSNode *>;
+    using MappingT = PointsToMapping<PSNode::IDType>;
 
     PointerGraph *G;
     MappingT mapping;

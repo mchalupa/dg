@@ -103,5 +103,6 @@ void PointerSubgraph::computeLoops() {
 }
 
 
+
 } // namespace pta
 } // namespace dg

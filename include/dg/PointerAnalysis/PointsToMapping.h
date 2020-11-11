@@ -11,9 +11,9 @@ namespace pta {
 // is supposed to keep mapping of program values
 // to pointer analysis nodes that are actually not
 // created (or that are removed later by an analysis).
-template <typename ValT>
+template <typename KeyT, typename ValT = PSNode::IDType>
 class PointsToMapping {
-    using MappingT = std::unordered_map<ValT, PSNode *>;
+    using MappingT = std::unordered_map<KeyT, ValT>;
     using iterator = typename MappingT::iterator;
     using const_iterator = typename MappingT::const_iterator;
 
@@ -25,21 +25,26 @@ public:
 
     size_t size() const { return mapping.size(); }
 
-    PSNode *get(ValT val) const {
+    bool has(KeyT val) const {
+        auto it = mapping.find(val);
+        return it != mapping.end();
+    }
+
+    ValT get(KeyT val) const {
         auto it = mapping.find(val);
         if (it == mapping.end())
-            return nullptr;
+            return ValT{0};
 
         return it->second;
     }
 
-    void add(ValT val, PSNode *nd) {
+    void add(KeyT val, ValT nd) {
         auto it = mapping.find(val);
         assert(it == mapping.end());
         mapping.emplace_hint(it, val, nd);
     }
 
-    void set(ValT val, PSNode *nd) {
+    void set(KeyT val, ValT nd) {
         mapping[val] = nd;
     }
 
@@ -56,11 +61,11 @@ public:
     }
 
     // compose this mapping with some other mapping:
-    // (PSNode * -> PSNode *) o (ValT -> PSNode *)
-    // leads to (ValT -> PSNode *).
-    void compose(PointsToMapping<PSNode *>&& rhs) {
+    // (ValT* -> ValT) o (KeyT -> ValT)
+    // leads to (KeyT -> ValT).
+    void compose(PointsToMapping&& rhs) {
         for (auto& it : mapping) {
-            if (PSNode *rhs_node = rhs.get(it.second)) {
+            if (auto rhs_node = rhs.get(it.second)) {
                 it.second = rhs_node;
             }
         }

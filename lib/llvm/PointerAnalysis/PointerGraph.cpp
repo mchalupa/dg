@@ -718,5 +718,17 @@ LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
     return ret;
 }
 
+void LLVMPointerGraphBuilder::remapNodes(const PointsToMapping<PSNode::IDType>& mapping) {
+    // NOTE: maybe it would be more efficient if we added a reverse mapping,
+    // but let's optimize only if this turns out to be a bottle neck
+    for (auto& ndit : nodes_map) {
+        for (auto *nd : ndit.second) {
+            if (auto newid = mapping.get(nd->getID())) {
+            }
+        }
+    }
+}
+
+
 } // namespace pta
 } // namespace dg
