@@ -5,7 +5,7 @@
 #include <set>
 
 #include "dg/ADT/Queue.h"
-#include "dg/ADT/HashMap.h"
+#include "dg/ADT/STLHashMap.h"
 
 namespace dg {
 
