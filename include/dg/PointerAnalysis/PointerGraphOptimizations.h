@@ -7,41 +7,11 @@ namespace dg {
 namespace pta {
 
 class PSNoopRemover {
-    PointerGraph *PS;
+    PointerGraph *G;
 public:
-    PSNoopRemover(PointerGraph *PS) : PS(PS) {}
-
-    unsigned run() {
-        unsigned removed = 0;
-        for (const auto& nd : PS->getNodes()) {
-            if (!nd)
-                continue;
-
-            if (nd->getType() == PSNodeType::NOOP) {
-                nd->isolate();
-                // this should not break the iterator
-                nd->removeAllOperands();
-                PS->remove(nd.get());
-                ++removed;
-            }
-        }
-        return removed;
-    };
+    PSNoopRemover(PointerGraph *g) : G(g) {}
+    unsigned run();
 };
-
-static inline bool allOperandsAreSame(PSNode *nd) {
-    auto opNum = nd->getOperandsNum();
-    if (opNum < 1)
-        return true;
-
-    PSNode *op0 = nd->getOperand(0);
-    for (decltype(opNum) i = 1; i < opNum; ++i) {
-        if (op0 != nd->getOperand(i))
-            return false;
-    }
-
-    return true;
-}
 
 // try to remove loads/stores that are provably
 // loads and stores of unknown memory
@@ -49,7 +19,7 @@ static inline bool allOperandsAreSame(PSNode *nd) {
 class PSUnknownsReducer {
     using MappingT = PointsToMapping<PSNode *>;
 
-    PointerGraph *PS;
+    PointerGraph *G;
     MappingT mapping;
 
     unsigned removed = 0;
@@ -57,7 +27,7 @@ class PSUnknownsReducer {
     void processAllocs();
 
 public:
-    PSUnknownsReducer(PointerGraph *PS) : PS(PS) {}
+    PSUnknownsReducer(PointerGraph *g) : G(g) {}
 
     MappingT& getMapping() { return mapping; }
     const MappingT& getMapping() const { return mapping; }
@@ -72,8 +42,8 @@ class PSEquivalentNodesMerger {
 public:
     using MappingT = PointsToMapping<PSNode *>;
 
-    PSEquivalentNodesMerger(PointerGraph *S)
-    : PS(S), merged_nodes_num(0) {
+    PSEquivalentNodesMerger(PointerGraph *g)
+    : G(g), merged_nodes_num(0) {
         mapping.reserve(32);
     }
 
@@ -98,7 +68,7 @@ private:
     // mapping will be set to  node1 -> node2)
     void merge(PSNode *node1, PSNode *node2);
 
-    PointerGraph *PS;
+    PointerGraph *G;
     // map nodes to its equivalent representant
     MappingT mapping;
 
@@ -108,20 +78,20 @@ private:
 class PointerGraphOptimizer {
     using MappingT = PointsToMapping<PSNode *>;
 
-    PointerGraph *PS;
+    PointerGraph *G;
     MappingT mapping;
 
     unsigned removed = 0;
 public:
-    PointerGraphOptimizer(PointerGraph *PS) : PS(PS) {}
+    PointerGraphOptimizer(PointerGraph *g) : G(g) {}
 
     void removeNoops() {
-        PSNoopRemover remover(PS);
+        PSNoopRemover remover(G);
         removed += remover.run();
     }
 
     void removeUnknowns() {
-        PSUnknownsReducer reducer(PS);
+        PSUnknownsReducer reducer(G);
         if (auto r = reducer.run()) {
             mapping.merge(std::move(reducer.getMapping()));
             removed += r;
@@ -129,7 +99,7 @@ public:
     }
 
     void removeEquivalentNodes() {
-        PSEquivalentNodesMerger merger(PS);
+        PSEquivalentNodesMerger merger(G);
         if (auto r = merger.run()) {
                 mapping.merge(std::move(merger.getMapping()));
                 removed += r;

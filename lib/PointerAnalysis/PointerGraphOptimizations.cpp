@@ -1,8 +1,6 @@
 #include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerGraphOptimizations.h"
 
-#include <llvm/Support/raw_os_ostream.h>
-
 namespace dg {
 namespace pta {
 
@@ -29,7 +27,7 @@ static inline bool usersImplyUnknown(PSNode *alloc) {
 }
 
 void removeNode(PointerGraph *G, PSNode *nd) {
-    llvm::errs() << "Remove node " << nd->getID() << "\n";
+    //llvm::errs() << "Remove node " << nd->getID() << "\n";
     nd->dump();
 
     assert(nd->getUsers().empty() && "Removing node that has users");
@@ -43,7 +41,7 @@ void removeNode(PointerGraph *G, PSNode *nd) {
 }
 
 void PSUnknownsReducer::processAllocs() {
-    for (const auto& nd : PS->getNodes()) {
+    for (const auto& nd : G->getNodes()) {
         if (!nd)
             continue;
 
@@ -59,11 +57,10 @@ void PSUnknownsReducer::processAllocs() {
                         // replace the uses of the load value by unknown
                         // (this is what would happen in the analysis)
                         user->replaceAllUsesWith(UNKNOWN_MEMORY);
-                        llvm::errs() << user->getID() << " -> unknown\n";
                         mapping.add(user, UNKNOWN_MEMORY);
                     }
                     // store can be removed directly
-                    removeNode(PS, user);
+                    removeNode(G, user);
                     ++removed;
                 }
 
@@ -75,23 +72,37 @@ void PSUnknownsReducer::processAllocs() {
             for (PSNode *user : tmp) {
                 // replace the uses of this value with unknown
                 user->replaceAllUsesWith(UNKNOWN_MEMORY);
-                llvm::errs() << user->getID() << " -> unknown\n";
                 mapping.add(user, UNKNOWN_MEMORY);
 
                 // store can be removed directly
-                removeNode(PS, user);
+                removeNode(G, user);
                 ++removed;
             }
 
-            removeNode(PS, nd.get());
+            removeNode(G, nd.get());
             ++removed;
         }
     }
 }
 
+static inline bool allOperandsAreSame(PSNode *nd) {
+    auto opNum = nd->getOperandsNum();
+    if (opNum < 1)
+        return true;
+
+    PSNode *op0 = nd->getOperand(0);
+    for (decltype(opNum) i = 1; i < opNum; ++i) {
+        if (op0 != nd->getOperand(i))
+            return false;
+    }
+
+    return true;
+}
+
+
 // get rid of all casts
 void PSEquivalentNodesMerger::mergeCasts() {
-    for (const auto& nodeptr : PS->getNodes()) {
+    for (const auto& nodeptr : G->getNodes()) {
         if (!nodeptr)
             continue;
 
@@ -112,15 +123,29 @@ void PSEquivalentNodesMerger::mergeCasts() {
 }
 
 void PSEquivalentNodesMerger::merge(PSNode *node1, PSNode *node2) {
-    llvm::errs() << node1->getID() << " -> " << node2->getID() << "\n";
     // remove node1
     node1->replaceAllUsesWith(node2);
-    removeNode(PS, node1);
+    removeNode(G, node1);
 
     // update the mapping
     mapping.add(node1, node2);
 
     ++merged_nodes_num;
+}
+
+unsigned PSNoopRemover::run() {
+    unsigned removed = 0;
+    for (const auto& nd : G->getNodes()) {
+        if (!nd)
+            continue;
+
+        if (nd->getType() == PSNodeType::NOOP) {
+            // this should not break the iterator
+            removeNode(G, nd.get());
+            ++removed;
+        }
+    }
+    return removed;
 }
 
 
