@@ -293,8 +293,7 @@ public:
     LLVMPointerGraphBuilder *getBuilder() { return _builder.get(); }
     const LLVMPointerGraphBuilder *getBuilder() const { return _builder.get(); }
 
-    void buildSubgraph()
-    {
+    void buildSubgraph() {
         // run the analysis itself
         assert(_builder && "Incorrectly constructed PTA, missing builder");
 
@@ -304,7 +303,7 @@ public:
             abort();
         }
 
-/*
+        /*
         pta::PointerGraphOptimizer optimizer(PS);
         optimizer.run();
 
@@ -312,19 +311,7 @@ public:
             _builder->composeMapping(std::move(optimizer.getMapping()));
 
         llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
-
-#ifndef NDEBUG
-        pta::debug::LLVMPointerGraphValidator validator(_builder->getPS());
-        if (validator.validate()) {
-            llvm::errs() << "Pointer Subgraph is broken!\n";
-            llvm::errs() << "This happend after optimizing the graph.";
-            assert(!validator.getErrors().empty());
-            llvm::errs() << validator.getErrors();
-            abort();
-        }
-#endif // NDEBUG
-*/
-
+        */
     }
 
     void initialize() {
