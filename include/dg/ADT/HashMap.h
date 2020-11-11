@@ -7,30 +7,22 @@ namespace dg {
 
 namespace {
 template <typename Key, typename Val, typename Impl>
-class HashMapImpl {
-    Impl _map;
-
+class HashMapImpl : public Impl {
 public:
     using iterator = typename Impl::iterator;
     using const_iterator = typename Impl::const_iterator;
 
-    bool insert(const Key& k, Val& v) {
-        auto it = _map.insert(k, v);
+    bool put(const Key& k, const Val& v) {
+        auto it = this->insert(std::make_pair(k, v));
         return it.second;
     }
 
-    Val& operator[](const Key& k) { return _map[k]; }
     Val *get(const Key& k) {
-        auto it = _map.find(k);
-        if (it != _map.end())
+        auto it = find(k);
+        if (it != this->end())
             return &it->second;
         return nullptr;
     }
-
-    auto begin() -> decltype(_map.begin()) { return _map.begin(); }
-    auto end() -> decltype(_map.end()) { return _map.end(); }
-    auto begin() const -> decltype(_map.begin()) { return _map.begin(); }
-    auto end() const -> decltype(_map.end()) { return _map.end(); }
 };
 }
 
@@ -97,13 +89,13 @@ public:
     
 } // namespace dg
 
-#ifdef HAS_GOOGLE_HASH
+#ifdef HAVE_GOOGLE_SPARSEHASH
 #include <sparsehash/sparse_hash_map>
 
 namespace dg {
 
 template <typename Key, typename Val>
-class SparseHash {
+class SparseHashMap : public HashMapImpl<Key, Val, google::sparse_hash_map<Key, Val>> {
 };
 
 } // namespace dg
@@ -111,9 +103,9 @@ class SparseHash {
 
 namespace dg {
 
-#ifdef HAS_GOOGLE_HASH
+#ifdef HAVE_GOOGLE_SPARSEHASH
 template <typename Key, typename Val>
-using HashMap = SparseHash<Key, Val>;
+using HashMap = SparseHashMap<Key, Val>;
 #else
 template <typename Key, typename Val>
 using HashMap = STLHashMap<Key, Val>;
