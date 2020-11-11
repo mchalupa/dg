@@ -135,7 +135,7 @@ private:
 
     unsigned int dfsid = 0;
 
-public:
+protected:
     ///
     // Construct a PSNode
     // \param t     type of the node
@@ -193,6 +193,9 @@ public:
                 // (they points to the node where the memory was allocated)
                 addPointsTo(this, 0);
                 break;
+            case PSNodeType::CALL:
+                // the call without arguments
+                break;
             default:
                 break;
         }
@@ -203,6 +206,26 @@ public:
     PSNode(IDType id, PSNodeType type, Args&&... args)
     : PSNode(id, type) {
         addOperand(std::forward<Args>(args)...);
+    }
+
+public:
+
+    PSNode(PSNodeType t)
+    : PSNode(0, t)
+    {
+        switch(t) {
+            case PSNodeType::INVALIDATED:
+                break;
+            case PSNodeType::NULL_ADDR:
+                break;
+            case PSNodeType::UNKNOWN_MEM:
+                // UNKNOWN_MEMLOC points to itself
+                break;
+            default:
+                // this constructor is for the above mentioned types only
+                assert(0 && "Invalid type");
+                abort();
+        }
     }
 
     virtual ~PSNode() = default;
