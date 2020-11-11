@@ -114,8 +114,12 @@ inline const char *PSNodeTypeToCString(enum PSNodeType type)
 class PointerGraph;
 class PointerSubgraph;
 
-class PSNode : public SubgraphNode<PSNode>
-{
+class PSNode : public SubgraphNode<PSNode> {
+
+public:
+    using IDType = SubgraphNode<PSNode>::IDType;
+
+private:
     PSNodeType type;
 
     // in some cases some nodes are kind of paired - like formal and actual
@@ -180,7 +184,7 @@ protected:
     //               invalidates memory after returning from a function
     // FREE:         invalidates memory after calling free function on a pointer
 
-    PSNode(unsigned id, PSNodeType t)
+    PSNode(IDType id, PSNodeType t)
     : SubgraphNode<PSNode>(id), type(t) {
         switch(type) {
             case PSNodeType::ALLOC:
@@ -199,7 +203,7 @@ protected:
 
     // Unfortunately, constructors cannot use enums in templates
     template<typename... Args>
-    PSNode(unsigned id, PSNodeType type, Args&&... args)
+    PSNode(IDType id, PSNodeType type, Args&&... args)
     : PSNode(id, type) {
         addOperand(std::forward<Args>(args)...);
     }
@@ -337,7 +341,7 @@ class PSNodeAlloc : public PSNode {
     bool is_temporary = false;
 
 public:
-    PSNodeAlloc(unsigned id, bool isTemp = false)
+    PSNodeAlloc(IDType id, bool isTemp = false)
     : PSNode(id, PSNodeType::ALLOC), is_temporary(isTemp) {
     }
 
@@ -364,7 +368,7 @@ public:
 
 #if 0
 class PSNodeTemporaryAlloc : public PSNodeAlloc {
-    PSNodeTemporaryAlloc(unsigned id)
+    PSNodeTemporaryAlloc(IDType id)
     : PSNodeAlloc(id, PSNodeType::ALLOC, /* isTemp */ true) {}
 
     static PSNodeTemporaryAlloc *get(PSNode *n) {
@@ -382,7 +386,7 @@ class PSNodeConstant : public PSNode {
     Offset len;
 
 public:
-    PSNodeConstant(unsigned id, PSNode *op, Offset offset)
+    PSNodeConstant(IDType id, PSNode *op, Offset offset)
     : PSNode(id, PSNodeType::CONSTANT, op), len(offset) {
         addPointsTo(op, offset);
     }
@@ -402,7 +406,7 @@ class PSNodeMemcpy : public PSNode {
     Offset len;
 
 public:
-    PSNodeMemcpy(unsigned id, PSNode *src, PSNode *dest, Offset len)
+    PSNodeMemcpy(IDType id, PSNode *src, PSNode *dest, Offset len)
     :PSNode(id, PSNodeType::MEMCPY, src, dest), len(len) {}
 
     static PSNodeMemcpy *get(PSNode *n) {
@@ -420,7 +424,7 @@ class PSNodeGep : public PSNode {
     Offset offset;
 
 public:
-    PSNodeGep(unsigned id, PSNode *src, Offset o)
+    PSNodeGep(IDType id, PSNode *src, Offset o)
     :PSNode(id, PSNodeType::GEP, src), offset(o) {}
 
     static PSNodeGep *get(PSNode *n) {
@@ -441,7 +445,7 @@ class PSNodeEntry : public PSNode {
     std::vector<PSNode *> callers;
 
 public:
-    PSNodeEntry(unsigned id, const std::string& name = "not-known")
+    PSNodeEntry(IDType id, const std::string& name = "not-known")
     :PSNode(id, PSNodeType::ENTRY), functionName(name) {}
 
     static PSNodeEntry *get(PSNode *n) {
@@ -475,10 +479,10 @@ class PSNodeCall : public PSNode {
     PSNode *callReturn{nullptr};
 
 public:
-    PSNodeCall(unsigned id)
+    PSNodeCall(IDType id)
     :PSNode(id, PSNodeType::CALL) {}
 
-    PSNodeCall(unsigned id, PSNode* op)
+    PSNodeCall(IDType id, PSNode* op)
     :PSNode(id, PSNodeType::CALL_FUNCPTR, op) {}
 
     static PSNodeCall *get(PSNode *n) {
@@ -534,7 +538,7 @@ class PSNodeCallRet : public PSNode {
 
 public:
     template<typename... Args>
-    PSNodeCallRet(unsigned id, Args&&... args)
+    PSNodeCallRet(IDType id, Args&&... args)
     :PSNode(id, PSNodeType::CALL_RETURN, std::forward<Args>(args)...) {}
 
     static PSNodeCallRet *get(PSNode *n) {
@@ -585,7 +589,7 @@ class PSNodeRet : public PSNode {
 
 public:
     template<typename... Args>
-    PSNodeRet(unsigned id, Args&&... args)
+    PSNodeRet(IDType id, Args&&... args)
     :PSNode(id, PSNodeType::RETURN, std::forward<Args>(args)...) {}
 
     static PSNodeRet *get(PSNode *n) {
@@ -634,7 +638,7 @@ class PSNodeFork : public PSNode {
     std::set<PSNode *> functions_;
 
 public:
-    PSNodeFork(unsigned id, PSNode* from)
+    PSNodeFork(IDType id, PSNode* from)
         :PSNode(id, PSNodeType::FORK, from) {}
 
     static PSNodeFork *get(PSNode *n) {
@@ -669,7 +673,7 @@ class PSNodeJoin : public PSNode {
     std::set<PSNodeFork *> forks_;
     std::set<PSNode *> functions_;
 public:
-    PSNodeJoin(unsigned id)
+    PSNodeJoin(IDType id)
     :PSNode(id, PSNodeType::JOIN) {}
 
     static PSNodeJoin *get(PSNode *n) {
