@@ -13,31 +13,34 @@ class PointerIDLookupTable {
 public:
     using IDTy = size_t;
     using Pointer = pta::Pointer;
+    using PSNode = pta::PSNode;
 
     // this will get a new ID for the pointer if not present
     IDTy getOrCreate(const Pointer& ptr) {
-        auto it = _ptrToID.find(ptr);
-        if (it != _ptrToID.end()) {
-            return it->second;
-        }
-        auto res = _ptrToID.size() + 1;
-        assert(_idToPtr.size() == res - 1);
+        auto res = get(ptr);
+        if (res != 0)
+            return res;
 
         _idToPtr.push_back(ptr);
-        bool r = _ptrToID.put(ptr, res);
-        assert(r && "Duplicated ID!");
+        res = _idToPtr.size();
+        bool r = _ptrToID[ptr.target].put(ptr.offset, res);
 
+        assert(r && "Duplicated ID!");
         assert(get(res) == ptr);
         assert(res == get(ptr));
+        assert(res > 0 && "ID must always be greater than 0");
         return res;
     }
 
     IDTy get(const Pointer& ptr) const {
-        auto it = _ptrToID.find(ptr);
-        if (it != _ptrToID.end()) {
-            return it->second;
+        auto it = _ptrToID.find(ptr.target);
+        if (it == _ptrToID.end()) {
+            return 0; // invalid ID
         }
-        return 0; // invalid ID
+        auto it2 = it->second.find(ptr.offset);
+        if (it2 == it->second.end())
+            return 0;
+        return it2->second;
     }
 
     const Pointer& get(IDTy id) const {
@@ -46,7 +49,14 @@ public:
     }
 
 private:
-    dg::HashMap<Pointer, IDTy> _ptrToID;
+    // PSNode -> (Offset -> id)
+    // Not space efficient, but we need mainly the time efficiency here...
+    // NOTE: unfortunately, atm, we cannot use the id of the target for hashing
+    // because it would break repeated runs of the analysis
+    // as multiple graphs will contain nodes with the same id
+    // (and resetting the state is really painful, I tried that,
+    // but just didn't succeed).
+    dg::HashMap<PSNode *, dg::HashMap<Offset, IDTy>> _ptrToID;
     std::vector<Pointer> _idToPtr; //starts from 0 (pointer = idVector[id - 1])
 };
 
