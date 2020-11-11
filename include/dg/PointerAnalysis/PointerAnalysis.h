@@ -97,8 +97,8 @@ public:
 
     void queue_globals() {
         assert(to_process.empty());
-        for (auto& it : PG->getGlobals()) {
-            to_process.push_back(it.get());
+        for (auto *g : PG->getGlobals()) {
+            to_process.push_back(g);
         }
     }
 
