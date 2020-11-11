@@ -12,11 +12,13 @@ namespace pta {
 
 // nodes representing NULL, unknown memory
 // and invalidated memory
-PSNode NULLPTR_LOC(PSNodeType::NULL_ADDR);
+// FIXME: make them have non-0 ID
+PSNode NULLPTR_LOC(PointerGraphReservedIDs::ID_NULL, PSNodeType::NULL_ADDR);
+PSNode UNKNOWN_MEMLOC(PointerGraphReservedIDs::ID_UNKNOWN, PSNodeType::UNKNOWN_MEM);
+PSNode INVALIDATED_LOC(PointerGraphReservedIDs::ID_INVALIDATED, PSNodeType::INVALIDATED);
+
 PSNode *NULLPTR = &NULLPTR_LOC;
-PSNode UNKNOWN_MEMLOC(PSNodeType::UNKNOWN_MEM);
 PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
-PSNode INVALIDATED_LOC(PSNodeType::INVALIDATED);
 PSNode *INVALIDATED = &INVALIDATED_LOC;
 
 // pointers to those memory
