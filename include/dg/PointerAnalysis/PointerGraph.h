@@ -98,10 +98,10 @@ class PointerGraph
     unsigned int dfsnum{0};
 
     // root of the pointer state subgraph
-    // FIXME: this should be PointerSubgraph, not PSNode...
     PointerSubgraph *_entry{nullptr};
 
     using NodesT = std::vector<std::unique_ptr<PSNode>>;
+    using GlobalNodesT = std::vector<PSNode *>;
     using SubgraphsT = std::vector<std::unique_ptr<PointerSubgraph>>;
 
     NodesT nodes;
@@ -112,7 +112,7 @@ class PointerGraph
     unsigned int getNewNodeId() { return ++last_node_id; }
 
     GenericCallGraph<PSNode *> callGraph;
-    NodesT _globals;
+    GlobalNodesT _globals;
 
     // check for correct count of variadic arguments
     template<PSNodeType type, size_t actual_size>
@@ -191,8 +191,8 @@ public:
     // analysis starts.
     template<PSNodeType Type,  typename... Args>
     PSNode *createGlobal(Args&&... args) {
-        PSNode *n = nodeFactory<Type>(std::forward<Args>(args)...);
-        _globals.emplace_back(n); // C++17 returns a referece
+        PSNode *n = create<Type>(std::forward<Args>(args)...);
+        _globals.push_back(n); // C++17 returns a referece
         return n;
     }
 
@@ -205,7 +205,7 @@ public:
     const SubgraphsT& getSubgraphs() const { return _subgraphs; }
 
     const NodesT& getNodes() const { return nodes; }
-    const NodesT& getGlobals() const { return _globals; }
+    const GlobalNodesT& getGlobals() const { return _globals; }
     size_t size() const { return nodes.size() + _globals.size(); }
 
     void computeLoops();
