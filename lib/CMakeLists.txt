@@ -15,6 +15,7 @@ add_library(dganalysis SHARED
 
 add_library(dgpta SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/SubgraphNode.h
+    ${CMAKE_SOURCE_DIR}/include/dg/PointerAnalysis/PointsToSets/LookupTable.h
 	${CMAKE_SOURCE_DIR}/include/dg/PointerAnalysis/Pointer.h
 	${CMAKE_SOURCE_DIR}/include/dg/PointerAnalysis/PointsToSet.h
 	${CMAKE_SOURCE_DIR}/include/dg/PointerAnalysis/MemoryObject.h
