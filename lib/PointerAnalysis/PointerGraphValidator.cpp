@@ -92,9 +92,9 @@ bool PointerGraphValidator::checkOperands() {
     std::set<const PSNode *> known_nodes;
     const auto& nodes = PS->getNodes();
 
-    for (const auto& nd :PS->getGlobals()) {
-        if (!known_nodes.insert(nd.get()).second)
-            invalid |= reportInvalNode(nd.get(), "Node multiple times in the graph");
+    for (const auto *g :PS->getGlobals()) {
+        if (!known_nodes.insert(g).second)
+            invalid |= reportInvalNode(g, "Node multiple times in the graph");
     }
 
     for (const auto& nd : nodes) {
