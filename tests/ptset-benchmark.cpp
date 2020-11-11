@@ -3,7 +3,7 @@
 #include <random>
 
 #include "dg/PointerAnalysis/PointsToSet.h"
-#include "../tools/TimeMeasure.h"
+#include "../tools/include/dg/tools/TimeMeasure.h"
 
 using namespace dg::pta;
 

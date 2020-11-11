@@ -136,5 +136,5 @@ add_dependencies(check llvm-slicer)
 # benchmarking
 # --------------------------------------------------
 add_executable(ptset-benchmark ptset-benchmark.cpp)
-target_link_libraries(ptset-benchmark PRIVATE dganalysis)
+target_link_libraries(ptset-benchmark PRIVATE dganalysis dgpta)
 
