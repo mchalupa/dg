@@ -3,6 +3,7 @@
 
 #include "dg/PointerAnalysis/Pointer.h"
 #include "dg/ADT/Bitvector.h"
+#include "dg/ADT/HashMap.h"
 
 #include <map>
 #include <vector>
@@ -16,7 +17,7 @@ class PSNode;
 class PointerIdPointsToSet {
 
     ADT::SparseBitvector pointers;
-    static std::map<Pointer, size_t> ids; //pointers are numbered 1, 2, ...
+    static HashMap<Pointer, size_t> ids; //pointers are numbered 1, 2, ...
     static std::vector<Pointer> idVector; //starts from 0 (pointer = idVector[id - 1])
 
     //if the pointer doesn't have ID, it's assigned one
@@ -26,7 +27,7 @@ class PointerIdPointsToSet {
             return it->second;
         }
         idVector.push_back(ptr);
-        return ids.emplace_hint(it, ptr, ids.size() + 1)->second;
+        return ids.put(ptr, ids.size() + 1);
     }
 
     const Pointer& getPointer(size_t id) const {

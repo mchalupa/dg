@@ -141,6 +141,20 @@ if (GOOGLE_SPARSEHASH_DIR)
     endif()
 endif()
 
+if (TSL_HOPSCOTCH_DIR)
+    set(HOPSCOTCH_DIR ${TSL_HOPSCOTCH_DIR}/include/)
+    if (EXISTS "${HOPSCOTCH_DIR}/tsl/hopscotch_map.h")
+        include_directories("${HOPSCOTCH_DIR}" )
+        message(STATUS "Found Tessil Hopscotch map in ${HOPSCOTCH_DIR}" )
+        message(STATUS "Adding include dir ${HOPSCOTCH_DIR}")
+        add_definitions(-DHAVE_TSL_HOPSCOTCH)
+    else()
+        message(WARNING "Tessil hopscotch map NOT FOUND in ${TSL_HOPSCOTCH_DIR}" )
+    endif()
+endif()
+
+
+
 if (ENABLE_CFG)
 	add_definitions(-DENABLE_CFG)
 endif()

@@ -3,6 +3,8 @@
 
 #include "dg/PointerAnalysis/PointsToSet.h"
 
+#include "dg/ADT/HashMap.h"
+
 #include <vector>
 #include <map>
 
@@ -14,7 +16,7 @@ namespace pta {
     std::vector<PSNode*> AlignedSmallOffsetsPointsToSet::idVector;
     std::vector<Pointer> AlignedPointerIdPointsToSet::idVector;
     std::map<PSNode*,size_t> SeparateOffsetsPointsToSet::ids;
-    std::map<Pointer,size_t> PointerIdPointsToSet::ids;
+    dg::HashMap<Pointer,size_t> PointerIdPointsToSet::ids;
     std::map<PSNode*,size_t> SmallOffsetsPointsToSet::ids;
     std::map<PSNode*,size_t> AlignedSmallOffsetsPointsToSet::ids;
     std::map<Pointer,size_t> AlignedPointerIdPointsToSet::ids;
