@@ -1,6 +1,8 @@
 #include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerGraphOptimizations.h"
 
+#include "dg/util/debug.h"
+
 namespace dg {
 namespace pta {
 
@@ -28,7 +30,6 @@ static inline bool usersImplyUnknown(PSNode *alloc) {
 
 void removeNode(PointerGraph *G, PSNode *nd) {
     //llvm::errs() << "Remove node " << nd->getID() << "\n";
-    nd->dump();
 
     assert(nd->getUsers().empty() && "Removing node that has users");
     // remove from CFG
@@ -42,7 +43,8 @@ void removeNode(PointerGraph *G, PSNode *nd) {
 
 template <typename MappingT>
 void remapNode(MappingT& mapping, PSNode *n, PSNode *to) {
-    mapping.add(n->getID(), to->getID());
+    //llvm::errs() << "Mapping node " << n->getID() << " to " << to->getID() << "\n";
+    mapping.add(n, to);
 }
 
 void PSUnknownsReducer::processAllocs() {
@@ -128,17 +130,19 @@ void PSEquivalentNodesMerger::mergeCasts() {
 }
 
 void PSEquivalentNodesMerger::merge(PSNode *node1, PSNode *node2) {
+    // update the mapping
+    remapNode(mapping, node1, node2);
+
     // remove node1
     node1->replaceAllUsesWith(node2);
     removeNode(G, node1);
-
-    // update the mapping
-    remapNode(mapping, node1, node2);
 
     ++merged_nodes_num;
 }
 
 unsigned PSNoopRemover::run() {
+    DBG_SECTION_BEGIN(pta, "Removing noop nodes");
+
     unsigned removed = 0;
     for (const auto& nd : G->getNodes()) {
         if (!nd)
@@ -151,6 +155,8 @@ unsigned PSNoopRemover::run() {
         }
     }
     return removed;
+
+    DBG_SECTION_END(pta, "Removing noop nodes done");
 }
 
 

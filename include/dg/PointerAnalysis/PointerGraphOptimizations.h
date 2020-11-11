@@ -2,6 +2,7 @@
 #define DG_POINTER_SUBGRAPH_OPTIMIZATIONS_H_
 
 #include "PointsToMapping.h"
+#include "dg/util/debug.h"
 
 namespace dg {
 namespace pta {
@@ -17,7 +18,7 @@ public:
 // loads and stores of unknown memory
 // (these usually correspond to integers)
 class PSUnknownsReducer {
-    using MappingT = PointsToMapping<PSNode::IDType>;
+    using MappingT = PointsToMapping<PSNode*>;
 
     PointerGraph *G;
     MappingT mapping;
@@ -33,14 +34,16 @@ public:
     const MappingT& getMapping() const { return mapping; }
 
     unsigned run() {
+        DBG_SECTION_BEGIN(pta, "Reducing stores of unknown");
         processAllocs();
+        DBG_SECTION_END(pta, "Reducing stores of unknown done");
         return removed;
     };
 };
 
 class PSEquivalentNodesMerger {
 public:
-    using MappingT = PointsToMapping<PSNode::IDType>;
+    using MappingT = PointsToMapping<PSNode*>;
 
     PSEquivalentNodesMerger(PointerGraph *g)
     : G(g), merged_nodes_num(0) {
@@ -55,7 +58,9 @@ public:
     }
 
     unsigned run() {
+        DBG_SECTION_BEGIN(pta, "Merging equivalent nodes");
         mergeCasts();
+        DBG_SECTION_END(pta, "Merging equivalent nodes done");
         return merged_nodes_num;
     }
 
@@ -76,7 +81,7 @@ private:
 };
 
 class PointerGraphOptimizer {
-    using MappingT = PointsToMapping<PSNode::IDType>;
+    using MappingT = PointsToMapping<PSNode*>;
 
     PointerGraph *G;
     MappingT mapping;
@@ -107,6 +112,8 @@ public:
     }
 
     unsigned run() {
+        DBG_SECTION_BEGIN(pta, "Optimizing pointer graph");
+
         removeNoops();
         removeEquivalentNodes();
         removeUnknowns();
@@ -115,6 +122,8 @@ public:
         // the same operands in a phi nodes,
         // which breaks the validity of the graph
         removeEquivalentNodes();
+
+        DBG_SECTION_BEGIN(pta, "Optimizing pointer graph done");
 
         return removed;
     }

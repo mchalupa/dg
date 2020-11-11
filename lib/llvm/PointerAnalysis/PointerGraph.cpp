@@ -718,13 +718,36 @@ LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
     return ret;
 }
 
-void LLVMPointerGraphBuilder::remapNodes(const PointsToMapping<PSNode::IDType>& mapping) {
+template <typename SeqT>
+bool hasRemappedNode(SeqT& seq, const PointsToMapping<PSNode *>& mapping) {
+    for (auto *nd : seq) {
+        if (mapping.get(nd))
+            return true;
+    }
+    return false;
+}
+
+void LLVMPointerGraphBuilder::remapNodes(const PointsToMapping<PSNode*>& mapping) {
     // NOTE: maybe it would be more efficient if we added a reverse mapping,
     // but let's optimize only if this turns out to be a bottle neck
     for (auto& ndit : nodes_map) {
-        for (auto *nd : ndit.second) {
-            if (auto newid = mapping.get(nd->getID())) {
+        if (hasRemappedNode(ndit.second, mapping)) {
+            // create a remapped sequence
+            PSNodesSeq newseq;
+            for (auto *nd : ndit.second) {
+                if (auto *newnode = mapping.get(nd)) {
+                    newseq.append(newnode);
+                } else {
+                    newseq.append(nd);
+                }
             }
+            // put the new sequence in place of the old sequence
+            auto rep = ndit.second.getRepresentant();
+            if (auto *newrep = mapping.get(rep)) {
+                rep = newrep;
+            }
+            newseq.setRepresentant(rep);
+            ndit.second.swap(newseq);
         }
     }
 }

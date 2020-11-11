@@ -2,16 +2,17 @@
 #define DG_POINTS_TO_MAPPING_H_
 
 #include <unordered_map>
-#include "PSNode.h"
 
 namespace dg {
 namespace pta {
+
+class PSNode;
 
 // this is a wrapper around a map that
 // is supposed to keep mapping of program values
 // to pointer analysis nodes that are actually not
 // created (or that are removed later by an analysis).
-template <typename KeyT, typename ValT = PSNode::IDType>
+template <typename KeyT, typename ValT = PSNode*>
 class PointsToMapping {
     using MappingT = std::unordered_map<KeyT, ValT>;
     using iterator = typename MappingT::iterator;

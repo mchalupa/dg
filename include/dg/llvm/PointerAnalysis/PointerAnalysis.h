@@ -303,7 +303,6 @@ public:
             abort();
         }
 
-        /*
         pta::PointerGraphOptimizer optimizer(PS);
         optimizer.run();
 
@@ -311,7 +310,6 @@ public:
             _builder->remapNodes(optimizer.getMapping());
 
         llvm::errs() << "PS optimization removed " << optimizer.getNumOfRemovedNodes() << " nodes\n";
-        */
     }
 
     void initialize() {

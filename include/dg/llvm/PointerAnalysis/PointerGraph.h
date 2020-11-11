@@ -68,6 +68,8 @@ class LLVMPointerGraphBuilder
                 _nodes.push_back(n);
         }
 
+        void swap(PSNodesSeq& rhs) { _nodes.swap(rhs._nodes); _repr = rhs._repr; }
+
         void setRepresentant(PSNode *r) { _repr = r; }
         PSNode *getRepresentant() { return _repr ? _repr : _nodes.back(); }
         const PSNode *getRepresentant() const { return _repr ? _repr : _nodes.back(); }
@@ -261,7 +263,7 @@ public:
     ///
     // If we removed some nodes from the graph, we need to
     // remove them from the builder structures too
-    void remapNodes(const PointsToMapping<PSNode::IDType>&);
+    void remapNodes(const PointsToMapping<PSNode*>&);
 
     PointerSubgraph *getSubgraph(const llvm::Function *);
 
