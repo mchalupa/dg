@@ -89,6 +89,13 @@ public:
     void computeLoops();
 };
 
+// IDs of special nodes
+enum PointerGraphReservedIDs {
+    ID_UNKNOWN = 1,
+    ID_NULL = 2,
+    ID_INVALIDATED = 3,
+    LAST_RESERVED_ID = 3
+};
 
 ///
 // Basic graph for pointer analysis
@@ -108,7 +115,7 @@ class PointerGraph
     SubgraphsT _subgraphs;
 
     // Take care of assigning ids to new nodes
-    unsigned int last_node_id = 0;
+    unsigned int last_node_id = PointerGraphReservedIDs::LAST_RESERVED_ID;
     unsigned int getNewNodeId() { return ++last_node_id; }
 
     GenericCallGraph<PSNode *> callGraph;
@@ -164,6 +171,12 @@ public:
     PointerGraph() {
         // nodes[0] represents invalid node (the node with id 0)
         nodes.emplace_back(nullptr);
+        // the first several nodes are special nodes. For now, we just replace
+        // them with nullptr, as those are created statically <-- FIXME!
+        nodes.emplace_back(nullptr);
+        nodes.emplace_back(nullptr);
+        nodes.emplace_back(nullptr);
+        assert(nodes.size() - 1 == PointerGraphReservedIDs::LAST_RESERVED_ID);
         initStaticNodes();
     }
 
@@ -182,6 +195,7 @@ public:
     PSNode *create(Args&&... args) {
         PSNode *n = nodeFactory<Type>(std::forward<Args>(args)...);
         nodes.emplace_back(n); // C++17 returns a referece
+        assert(n->getID() == nodes.size() - 1);
         return n;
     }
 
@@ -193,6 +207,7 @@ public:
     PSNode *createGlobal(Args&&... args) {
         PSNode *n = create<Type>(std::forward<Args>(args)...);
         _globals.push_back(n); // C++17 returns a referece
+        assert(n->getID() == nodes.size() - 1);
         return n;
     }
 
