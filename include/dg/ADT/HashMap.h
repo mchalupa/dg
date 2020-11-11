@@ -5,6 +5,39 @@
 
 namespace dg {
 
+namespace {
+template <typename Key, typename Val, typename Impl>
+class HashMapImpl {
+    Impl _map;
+
+public:
+    using iterator = typename Impl::iterator;
+    using const_iterator = typename Impl::const_iterator;
+
+    bool insert(const Key& k, Val& v) {
+        auto it = _map.insert(k, v);
+        return it.second;
+    }
+
+    Val& operator[](const Key& k) { return _map[k]; }
+    Val *get(const Key& k) {
+        auto it = _map.find(k);
+        if (it != _map.end())
+            return &it->second;
+        return nullptr;
+    }
+
+    auto begin() -> decltype(_map.begin()) { return _map.begin(); }
+    auto end() -> decltype(_map.end()) { return _map.end(); }
+    auto begin() const -> decltype(_map.begin()) { return _map.begin(); }
+    auto end() const -> decltype(_map.end()) { return _map.end(); }
+};
+}
+
+template <typename Key, typename Val>
+class STLHashMap : public HashMapImpl<Key, Val, std::unordered_map<Key, Val>> {};
+
+
 // unordered_map that caches last several accesses
 // XXX: use a different implementation than std::unordered_map
 template <typename Key, typename T, unsigned CACHE_SIZE=4U>
@@ -62,6 +95,30 @@ public:
     }
 };
     
+} // namespace dg
+
+#ifdef HAS_GOOGLE_HASH
+#include <sparsehash/sparse_hash_map>
+
+namespace dg {
+
+template <typename Key, typename Val>
+class SparseHash {
+};
+
+} // namespace dg
+#endif
+
+namespace dg {
+
+#ifdef HAS_GOOGLE_HASH
+template <typename Key, typename Val>
+using HashMap = SparseHash<Key, Val>;
+#else
+template <typename Key, typename Val>
+using HashMap = STLHashMap<Key, Val>;
+#endif
+
 } // namespace dg
 
 #endif
