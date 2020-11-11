@@ -1,6 +1,8 @@
 #include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerGraphOptimizations.h"
 
+#include <llvm/Support/raw_os_ostream.h>
+
 namespace dg {
 namespace pta {
 
@@ -10,15 +12,34 @@ static inline bool isStoreOfUnknown(PSNode *S, PSNode *to) {
             S->getOperand(0)->isUnknownMemory());
 }
 
-static inline bool usersImplyUnknown(PSNode *nd) {
-    for (PSNode *user : nd->getUsers()) {
+static inline bool usersImplyUnknown(PSNode *alloc) {
+    assert(alloc->getType() == PSNodeType::ALLOC);
+
+    for (PSNode *user : alloc->getUsers()) {
         // we store only unknown to this memory
-        if (!isStoreOfUnknown(user, nd) &&
-            user->getType() != PSNodeType::LOAD)
+        // and the only other thing that we do is that
+        // we load from it
+        if ((user->getType() != PSNodeType::LOAD) &&
+            // 'user' is not store of 'unknown' to 'nd'
+            !isStoreOfUnknown(user, alloc))
             return false;
     }
 
     return true;
+}
+
+void removeNode(PointerGraph *G, PSNode *nd) {
+    llvm::errs() << "Remove node " << nd->getID() << "\n";
+    nd->dump();
+
+    assert(nd->getUsers().empty() && "Removing node that has users");
+    // remove from CFG
+    nd->isolate();
+    // clear its operands (so that the operands do not
+    // have a dangling reference to this node in 'users')
+    nd->removeAllOperands();
+    // delete it from the graph
+    G->remove(nd);
 }
 
 void PSUnknownsReducer::processAllocs() {
@@ -31,17 +52,18 @@ void PSUnknownsReducer::processAllocs() {
             // (and its address is not stored anywhere) and there are only loads
             // from this memory (that must result to unknown)
             if (usersImplyUnknown(nd.get())) {
-                for (PSNode *user : nd->getUsers()) {
+                // create a copy of users, as we will modify the container
+                auto tmp = nd->getUsers();
+                for (PSNode *user : tmp) {
                     if (user->getType() == PSNodeType::LOAD) {
                         // replace the uses of the load value by unknown
                         // (this is what would happen in the analysis)
                         user->replaceAllUsesWith(UNKNOWN_MEMORY);
+                        llvm::errs() << user->getID() << " -> unknown\n";
                         mapping.add(user, UNKNOWN_MEMORY);
                     }
                     // store can be removed directly
-                    user->isolate();
-                    user->removeAllOperands();
-                    PS->remove(user);
+                    removeNode(PS, user);
                     ++removed;
                 }
 
@@ -49,25 +71,56 @@ void PSUnknownsReducer::processAllocs() {
                 // pointer to itself and may be queried for this pointer
             }
         } else if (nd->getType() == PSNodeType::PHI && nd->getOperandsNum() == 0) {
-            for (PSNode *user : nd->getUsers()) {
+            auto tmp = nd->getUsers();
+            for (PSNode *user : tmp) {
                 // replace the uses of this value with unknown
                 user->replaceAllUsesWith(UNKNOWN_MEMORY);
+                llvm::errs() << user->getID() << " -> unknown\n";
                 mapping.add(user, UNKNOWN_MEMORY);
 
                 // store can be removed directly
-                user->isolate();
-                user->removeAllOperands();
-                PS->remove(user);
+                removeNode(PS, user);
                 ++removed;
             }
 
-            nd->isolate();
-            nd->removeAllOperands();
-            PS->remove(nd.get());
-            assert(nd.get() == nullptr);
+            removeNode(PS, nd.get());
             ++removed;
         }
     }
+}
+
+// get rid of all casts
+void PSEquivalentNodesMerger::mergeCasts() {
+    for (const auto& nodeptr : PS->getNodes()) {
+        if (!nodeptr)
+            continue;
+
+        PSNode *node = nodeptr.get();
+
+        // cast is always 'a proxy' to the real value,
+        // it does not change the pointers
+        if (node->getType() == PSNodeType::CAST)
+            merge(node, node->getOperand(0));
+        else if (PSNodeGep *GEP = PSNodeGep::get(node)) {
+            if (GEP->getOffset().isZero()) // GEP with 0 offest is cast
+                merge(node, GEP->getSource());
+        } else if (node->getType() == PSNodeType::PHI &&
+                   node->getOperandsNum() > 0 && allOperandsAreSame(node)) {
+            merge(node, node->getOperand(0));
+        }
+    }
+}
+
+void PSEquivalentNodesMerger::merge(PSNode *node1, PSNode *node2) {
+    llvm::errs() << node1->getID() << " -> " << node2->getID() << "\n";
+    // remove node1
+    node1->replaceAllUsesWith(node2);
+    removeNode(PS, node1);
+
+    // update the mapping
+    mapping.add(node1, node2);
+
+    ++merged_nodes_num;
 }
 
 

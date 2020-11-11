@@ -323,7 +323,7 @@ public:
         _predecessors.clear();
     }
 
-    void replaceAllUsesWith(NodeT *nd, bool removeDupl = false) {
+    void replaceAllUsesWith(NodeT *nd, bool removeDupl = true) {
         assert(nd != this && "Replacing uses of 'this' with 'this'");
 
         // Replace 'this' in every user with 'nd'.
