@@ -89,6 +89,13 @@ public:
     void computeLoops();
 };
 
+// IDs of special nodes
+enum PointerGraphReservedIDs {
+    ID_UNKNOWN = 1,
+    ID_NULL = 2,
+    ID_INVALIDATED = 3,
+    LAST_SPECIAL_ID = 3
+};
 
 ///
 // Basic graph for pointer analysis
@@ -108,7 +115,7 @@ class PointerGraph
     SubgraphsT _subgraphs;
 
     // Take care of assigning ids to new nodes
-    unsigned int last_node_id = 0;
+    unsigned int last_node_id = PointerGraphReservedIDs::LAST_SPECIAL_ID;
     unsigned int getNewNodeId() { return ++last_node_id; }
 
     GenericCallGraph<PSNode *> callGraph;
