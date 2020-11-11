@@ -3,7 +3,7 @@
 
 #include "dg/PointerAnalysis/Pointer.h"
 #include "dg/ADT/Bitvector.h"
-#include "dg/ADT/HashMap.h"
+#include "LookupTable.h"
 
 #include <map>
 #include <vector>
@@ -15,24 +15,17 @@ namespace pta {
 class PSNode;
 
 class PointerIdPointsToSet {
+    static PointerIDLookupTable lookupTable;
 
     ADT::SparseBitvector pointers;
-    static HashMap<Pointer, size_t> ids; //pointers are numbered 1, 2, ...
-    static std::vector<Pointer> idVector; //starts from 0 (pointer = idVector[id - 1])
 
     //if the pointer doesn't have ID, it's assigned one
     size_t getPointerID(const Pointer& ptr) const {
-        auto it = ids.find(ptr);
-        if(it != ids.end()) {
-            return it->second;
-        }
-        idVector.push_back(ptr);
-        return ids.put(ptr, ids.size() + 1);
+        return lookupTable.getOrCreate(ptr);
     }
 
     const Pointer& getPointer(size_t id) const {
-        assert(id - 1 < idVector.size());
-        return idVector[id - 1];
+        return lookupTable.get(id);
     }
 
     bool addWithUnknownOffset(PSNode* node) {
@@ -81,7 +74,7 @@ public:
     bool removeAny(PSNode *target) {
         std::vector<size_t> toRemove;
         for (const auto& ptrID : pointers) {
-            if(idVector[ptrID - 1].target == target) {
+            if (lookupTable.get(ptrID).target == target) {
                 toRemove.push_back(ptrID);
             }
         }
@@ -188,7 +181,7 @@ public:
         }
 
         Pointer operator*() const {
-            return Pointer(idVector[*container_it - 1]);
+            return Pointer(lookupTable.get(*container_it));
         }
 
         bool operator==(const const_iterator& rhs) const {
