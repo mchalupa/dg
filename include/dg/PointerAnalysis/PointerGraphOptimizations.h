@@ -20,6 +20,7 @@ public:
             if (nd->getType() == PSNodeType::NOOP) {
                 nd->isolate();
                 // this should not break the iterator
+                nd->removeAllOperands();
                 PS->remove(nd.get());
                 ++removed;
             }
@@ -90,41 +91,12 @@ public:
 
 private:
     // get rid of all casts
-    void mergeCasts() {
-        for (const auto& nodeptr : PS->getNodes()) {
-            if (!nodeptr)
-                continue;
-
-            PSNode *node = nodeptr.get();
-
-            // cast is always 'a proxy' to the real value,
-            // it does not change the pointers
-            if (node->getType() == PSNodeType::CAST)
-                merge(node, node->getOperand(0));
-            else if (PSNodeGep *GEP = PSNodeGep::get(node)) {
-                if (GEP->getOffset().isZero()) // GEP with 0 offest is cast
-                    merge(node, GEP->getSource());
-            } else if (node->getType() == PSNodeType::PHI &&
-                        node->getOperandsNum() > 0 && allOperandsAreSame(node)) {
-                merge(node, node->getOperand(0));
-            }
-        }
-    }
+    void mergeCasts();
 
     // merge node1 and node2 (node2 will be
     // the representant and node1 will be removed,
     // mapping will be set to  node1 -> node2)
-    void merge(PSNode *node1, PSNode *node2) {
-        // remove node1
-        node1->replaceAllUsesWith(node2);
-        node1->isolate();
-        PS->remove(node1);
-
-        // update the mapping
-        mapping.add(node1, node2);
-
-        ++merged_nodes_num;
-    }
+    void merge(PSNode *node1, PSNode *node2);
 
     PointerGraph *PS;
     // map nodes to its equivalent representant

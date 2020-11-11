@@ -5,6 +5,8 @@
 
 #include "dg/util/debug.h"
 
+#include <llvm/Support/raw_os_ostream.h>
+
 namespace dg {
 namespace pta {
 
