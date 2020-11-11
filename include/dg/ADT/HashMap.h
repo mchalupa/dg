@@ -5,7 +5,6 @@
 
 namespace dg {
 
-namespace {
 template <typename Key, typename Val, typename Impl>
 class HashMapImpl : public Impl {
 public:
@@ -24,7 +23,6 @@ public:
         return nullptr;
     }
 };
-}
 
 template <typename Key, typename Val>
 class STLHashMap : public HashMapImpl<Key, Val, std::unordered_map<Key, Val>> {};
@@ -89,6 +87,20 @@ public:
     
 } // namespace dg
 
+#ifdef HAVE_TSL_HOPSCOTCH
+#include <tsl/hopscotch_map.h>
+
+namespace dg {
+
+template <typename Key, typename Val>
+class HopscotchHashMap : public HashMapImpl<Key, Val, tsl::hopscotch_map<Key, Val>> {
+};
+
+} // namespace dg
+#endif // TSL_HOPSCOTCH
+
+
+
 #ifdef HAVE_GOOGLE_SPARSEHASH
 #include <sparsehash/sparse_hash_map>
 
@@ -103,12 +115,17 @@ class SparseHashMap : public HashMapImpl<Key, Val, google::sparse_hash_map<Key, 
 
 namespace dg {
 
+#ifdef HAVE_TSL_HOPSCOTCH
+template <typename Key, typename Val>
+using HashMap = HopscotchHashMap<Key, Val>;
+#else
 #ifdef HAVE_GOOGLE_SPARSEHASH
 template <typename Key, typename Val>
 using HashMap = SparseHashMap<Key, Val>;
 #else
 template <typename Key, typename Val>
 using HashMap = STLHashMap<Key, Val>;
+#endif
 #endif
 
 } // namespace dg
