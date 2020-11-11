@@ -20,5 +20,12 @@ namespace pta {
     std::map<PSNode*,size_t> SmallOffsetsPointsToSet::ids;
     std::map<PSNode*,size_t> AlignedSmallOffsetsPointsToSet::ids;
     std::map<Pointer,size_t> AlignedPointerIdPointsToSet::ids;
+
 } // namespace pta
-} // namespace debug
+
+PointerIDLookupTable::IDTy
+PointerIDLookupTable::pointerToID(const Pointer& ptr) const {
+    return ptr.target->getID();
+}
+
+} // namespace pta
