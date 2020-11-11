@@ -20,8 +20,13 @@ namespace dda {class RWNode; }
 
 template <typename NodeT>
 class SubgraphNode {
+public:
+    using IDType = unsigned;
+    using NodesVec = std::vector<NodeT *>;
+
+private:
     // id of the node. Every node from a graph has a unique ID;
-    unsigned int id = 0;
+    IDType id = 0;
 
     // data that can an analysis store in node
     // for its own needs
@@ -39,9 +44,6 @@ class SubgraphNode {
     // id of scc component
     unsigned int scc_id{0};
 
-public:
-    using NodesVec = std::vector<NodeT *>;
-
 protected:
     // XXX: make those private!
     NodesVec _successors;
@@ -56,7 +58,7 @@ protected:
 
 public:
 
-    SubgraphNode(unsigned id) : id(id) {}
+    SubgraphNode(IDType id) : id(id) {}
 #ifndef NDEBUG
     // in debug mode, we have virtual dump methods
     // and then we want virtual dtor. Otherwise,
@@ -65,7 +67,7 @@ public:
     virtual ~SubgraphNode() = default;
 #endif
 
-    unsigned int getID() const { return id; }
+    IDType getID() const { return id; }
 
     void setSize(size_t s) { size = s; }
     size_t getSize() const { return size; }
