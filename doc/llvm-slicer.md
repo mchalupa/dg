@@ -8,20 +8,20 @@ The compiled `llvm-slicer` can be found in the `tools/` subdirectory. First, you
 program into LLVM IR (make sure you are using the correct version of LLVM binaries if you have more than one):
 
 ```
-clang -c -emit-llvm source.c -o bitecode.bc
+clang -c -emit-llvm source.c -o bitcode.bc
 ```
 
 If the program is split into more source files (exactly one of them must contain main),
 you must compile each of them separately (as above) and then link the bitcodes together using `llvm-link`:
 
 ```
-llvm-link bitecode1.bc bitecode2.bc ... -o bitecode.bc
+llvm-link bitcode1.bc bitcode2.bc ... -o bitcode.bc
 ```
 
 Now, you're ready to slice the program:
 
 ```
-./llvm-slicer -c slicing_criterion bitecode.bc
+./llvm-slicer -c slicing_criterion bitcode.bc
 ```
 
 The `slicing_criterion` is either a call-site of a function or `ret` to slice
@@ -37,13 +37,13 @@ To achieve this, use `-dump-dg` switch with `llvm-slicer` or a stand-alone tool 
 `llvm-dg-dump` (this one is deprecated, but should still work):
 
 ```
-./llvm-dg-dump bitecode.bc > file.dot
+./llvm-dg-dump bitcode.bc > file.dot
 ```
 
 You can highlight nodes from the dependence graph that will be in the slice using the `-mark` switch:
 
 ```
-./llvm-dg-dump -mark slicing_criterion bitecode.bc > file.dot
+./llvm-dg-dump -mark slicing_criterion bitcode.bc > file.dot
 ```
 
 When using `-dump-dg` with `llvm-slicer`, the nodes should be already highlighted.

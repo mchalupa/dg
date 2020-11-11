@@ -1,7 +1,7 @@
 ## Tools
 
 In the `tools/` directory, there are a few scripts for convenient manipulation
-with sliced bitecode. First is a `sliced-diff.sh`. This script takes file and shows
+with sliced bitcode. First is a `sliced-diff.sh`. This script takes file and shows
 differences after slicing. It uses `meld` or `kompare` or just `diff` program
 to display the results (the first that is available on the system, in this order)
 
