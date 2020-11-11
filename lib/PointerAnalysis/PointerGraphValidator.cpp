@@ -94,8 +94,11 @@ bool PointerGraphValidator::checkOperands() {
 
     for (const auto *g :PS->getGlobals()) {
         if (!known_nodes.insert(g).second)
-            invalid |= reportInvalNode(g, "Node multiple times in the graph");
+            invalid |= reportInvalNode(g, "Global node multiple times in the graph");
     }
+
+    // globals are also normal nodes, so we must forget them now
+    known_nodes.clear();
 
     for (const auto& nd : nodes) {
         if (!nd)
