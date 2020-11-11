@@ -154,6 +154,8 @@ struct Offset
 
 } // namespace dg
 
+#include <functional>
+
 namespace std {
 template <> struct hash<dg::Offset> {
     size_t operator()(const dg::Offset& o) const { return *o; }
