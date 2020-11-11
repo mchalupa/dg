@@ -9,17 +9,25 @@ public:
     using iterator = typename Impl::iterator;
     using const_iterator = typename Impl::const_iterator;
 
-    bool put(const Key& k, const Val& v) {
+    bool put(const Key& k, Val v) {
         auto it = this->insert(std::make_pair(k, v));
         return it.second;
     }
 
-    Val *get(const Key& k) {
-        auto it = find(k);
+    const Val *get(const Key& k) const {
+        auto it = this->find(k);
         if (it != this->end())
             return &it->second;
         return nullptr;
     }
+
+    Val *get(Key& k) {
+        auto it = this->find(k);
+        if (it != this->end())
+            return &it->second;
+        return nullptr;
+    }
+
 };
 
 } // namespace dg
