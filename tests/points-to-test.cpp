@@ -1,6 +1,5 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
-#include "test-dg.h"
 
 #include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
