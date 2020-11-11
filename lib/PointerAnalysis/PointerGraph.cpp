@@ -5,14 +5,11 @@
 
 #include "dg/util/debug.h"
 
-#include <llvm/Support/raw_os_ostream.h>
-
 namespace dg {
 namespace pta {
 
 // nodes representing NULL, unknown memory
 // and invalidated memory
-// FIXME: make them have non-0 ID
 PSNode NULLPTR_LOC(PointerGraphReservedIDs::ID_NULL, PSNodeType::NULL_ADDR);
 PSNode UNKNOWN_MEMLOC(PointerGraphReservedIDs::ID_UNKNOWN, PSNodeType::UNKNOWN_MEM);
 PSNode INVALIDATED_LOC(PointerGraphReservedIDs::ID_INVALIDATED, PSNodeType::INVALIDATED);
