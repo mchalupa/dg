@@ -360,11 +360,11 @@ class PSNodeTemporaryAlloc : public PSNodeAlloc {
 #endif
 
 class PSNodeConstant : public PSNode {
-    Offset len;
+    Offset offset;
 
 public:
     PSNodeConstant(IDType id, PSNode *op, Offset offset)
-    : PSNode(id, PSNodeType::CONSTANT, op), len(offset) {
+    : PSNode(id, PSNodeType::CONSTANT, op), offset(offset) {
         addPointsTo(op, offset);
     }
 
@@ -375,8 +375,7 @@ public:
 
     static PSNodeConstant *cast(PSNode *n) { return _cast<PSNodeConstant>(n); }
 
-    PSNode *getDestination() const { return getOperand(0); }
-    Offset getLength() const { return len; }
+    Pointer getPointer() const { return Pointer(getOperand(0), offset); }
 };
 
 class PSNodeMemcpy : public PSNode {
