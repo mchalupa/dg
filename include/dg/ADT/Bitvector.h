@@ -5,14 +5,16 @@
 #include <cassert>
 #include <cstdint>
 
+#include "HashMap.h"
+
 namespace dg {
 namespace ADT {
 
 template <typename BitsT = uint64_t, typename ShiftT = uint64_t,
-          typename IndexT = uint64_t, size_t SCALE = 1>
+          typename IndexT = uint64_t, size_t SCALE = 1,
+          typename BitsContainerT = std::map<ShiftT, BitsT>>
 class SparseBitvectorImpl {
     // mapping from shift to bits
-    using BitsContainerT = std::map<ShiftT, BitsT>;
     BitsContainerT _bits{};
 
     static size_t _bitsNum() { return sizeof(BitsT) * 8; }
@@ -49,6 +51,10 @@ public:
     bool empty() const { return _bits.empty(); }
     void swap(SparseBitvectorImpl& oth) { _bits.swap(oth._bits); }
 
+    // only for hash, do not use if you do not know what implementation you use.
+    // TODO: use SFINAE to define empty body if std::map is used...
+    void reserve(size_t n) { _bits.reserve(n); }
+
     bool get(IndexT i) const {
         auto sft = _shift(i);
         assert(sft % _bitsNum() == 0);
@@ -64,14 +70,10 @@ public:
     // returns the previous value of the i-th bit
     bool set(IndexT i) {
         auto sft = _shift(i);
-        auto it = _bits.find(sft);
-        if (it == _bits.end()) {
-            _addBit(i);
-            return false;
-        }
+        auto& B = _bits[sft];
 
-        bool prev = it->second & (BitsT{1} << (i - sft));
-        it->second |= BitsT{1} << (i - sft);
+        bool prev = B & (BitsT{1} << (i - sft));
+        B |= BitsT{1} << (i - sft);
 
         return prev;
     }
@@ -97,9 +99,14 @@ public:
             return false;
         }
 
-        it->second &= ~(BitsT{1} << (i - sft));
-        if (it->second == 0) {
+        // FIXME: use this implementation only for hash map
+        // which returns read-only object and
+        // modify directly it->second in other cases (for std::map)
+        auto res = it->second & ~(BitsT{1} << (i - sft));
+        if (res == 0) {
             _bits.erase(it);
+        } else {
+            _bits[sft] = res;
         }
 
         return true;
@@ -240,7 +247,10 @@ public:
     friend class const_iterator;
 };
 
-using SparseBitvector = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1>;
+using SparseBitvectorMapImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1>;
+using SparseBitvectorHashImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
+                                                    dg::HashMap<uint64_t, uint64_t>>;
+using SparseBitvector = SparseBitvectorMapImpl;
 
 } // namespace ADT
 } // namespace dg
