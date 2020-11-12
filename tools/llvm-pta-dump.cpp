@@ -102,6 +102,10 @@ llvm::cl::opt<bool> _stats("statistics",
     llvm::cl::desc("Dump statistics (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> _quiet("q",
+    llvm::cl::desc("Quite mode - no output (for benchmarking) (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Dump IR to graphviz format (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
@@ -862,6 +866,19 @@ int main(int argc, char *argv[]) {
         tm.stop();
         tm.report("INFO: Pointer analysis took");
 
+        if (_stats) {
+            if (opts.isSVF()) {
+                llvm::errs() << "SVF analysis does not support stats dumping\n";
+            } else {
+                dumpStats(static_cast<DGLLVMPointerAnalysis*>(llvmpta.get()));
+            }
+            return 0;
+        }
+
+        if (_quiet) {
+            return 0;
+        }
+
         if (dump_c_lines) {
 #if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
     llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
@@ -956,8 +973,10 @@ int main(int argc, char *argv[]) {
 
     if (_stats) {
         dumpStats(&PTA);
-        return 0;
     }
+
+    if (_quiet)
+        return 0;
 
     dumpPointerGraph(&PTA, opts.analysisType);
 
