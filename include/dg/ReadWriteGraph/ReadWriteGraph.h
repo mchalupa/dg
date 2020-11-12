@@ -69,6 +69,20 @@ public:
         removeUselessNodes();
     }
 
+    RWNode *getNode(unsigned id) {
+        assert(id - 1 < _nodes.size());
+        auto *n = _nodes[id - 1].get();
+        assert(n->getID() == id);
+        return n;
+    }
+
+    const RWNode *getNode(unsigned id) const {
+        assert(id - 1 < _nodes.size());
+        auto *n = _nodes[id - 1].get();
+        assert(n->getID() == id);
+        return n;
+    }
+
     RWNode& create(RWNodeType t) {
       if (t == RWNodeType::CALL) {
         _nodes.emplace_back(new RWNodeCall(++lastNodeID));

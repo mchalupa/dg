@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "dg/MemorySSA/MemorySSA.h"
+#include "dg/ADT/Bitvector.h"
 //#include "dg/BBlocksBuilder.h"
 
 #include "dg/util/debug.h"
@@ -772,19 +773,21 @@ RWNode *MemorySSATransformation::insertUse(RWNode *where, RWNode *mem,
 }
 
 static void recGatherNonPhisDefs(RWNode *phi,
-                                 std::set<RWNode *>& phis,
-                                 std::set<RWNode *>& ret,
+                                 dg::ADT::SparseBitvectorHashImpl& phis,
+                                 dg::ADT::SparseBitvectorHashImpl& ret,
                                  bool intraproc = false) {
     assert(phi->isPhi());
-    if (!phis.insert(phi).second)
+    // set returns the previous value, so if its 'true',
+    // we already had the phi
+    if (phis.set(phi->getID()))
         return; // we already visited this phi
 
     for (auto n : phi->defuse) {
         if (!n->isPhi()) {
-            ret.insert(n);
+            ret.set(n->getID());
         } else {
             if (intraproc && n->isInOut()) {
-                ret.insert(n);
+                ret.set(n->getID());
             } else {
                 recGatherNonPhisDefs(n, phis, ret, intraproc);
             }
@@ -794,24 +797,32 @@ static void recGatherNonPhisDefs(RWNode *phi,
 
 // recursivelu replace all phi values with its non-phi definitions
 template <typename ContT>
-std::vector<RWNode *> gatherNonPhisDefs(const ContT& nodes,
+std::vector<RWNode *> gatherNonPhisDefs(ReadWriteGraph *graph,
+                                        const ContT& nodes,
                                         bool intraproc = false) {
-    std::set<RWNode *> ret; // use set to get rid of duplicates
-    std::set<RWNode *> phis; // set of visited phi nodes - to check the fixpoint
+    dg::ADT::SparseBitvectorHashImpl ret;   // use set to get rid of duplicates
+    dg::ADT::SparseBitvectorHashImpl phis;  // set of visited phi nodes - to check the fixpoint
 
     for (auto n : nodes) {
         if (!n->isPhi()) {
-            ret.insert(n);
+            assert(n->getID() > 0);
+            ret.set(n->getID());
         } else {
             if (intraproc && n->isInOut()) {
-                ret.insert(n);
+                assert(n->getID() > 0);
+                ret.set(n->getID());
             } else {
                 recGatherNonPhisDefs(n, phis, ret, intraproc);
             }
         }
     }
 
-    return std::vector<RWNode *>(ret.begin(), ret.end());
+    std::vector<RWNode *> retval;
+    retval.reserve(ret.size());
+    for (auto i : ret) {
+        retval.push_back(graph->getNode(i));
+    }
+    return retval;
 }
 
 std::vector<RWNode *>
@@ -821,7 +832,7 @@ MemorySSATransformation::getDefinitions(RWNode *use) {
         use->addDefUse(findDefinitions(use));
         assert(use->defuse.initialized());
     }
-    return gatherNonPhisDefs(use->defuse);
+    return gatherNonPhisDefs(getGraph(), use->defuse);
 }
 
 // return the reaching definitions of ('mem', 'off', 'len')
