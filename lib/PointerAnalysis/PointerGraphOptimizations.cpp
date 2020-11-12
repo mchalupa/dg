@@ -28,7 +28,6 @@ static inline bool usersImplyUnknown(PSNode *alloc) {
 
 void removeNode(PointerGraph *G, PSNode *nd) {
     //llvm::errs() << "Remove node " << nd->getID() << "\n";
-    nd->dump();
 
     assert(nd->getUsers().empty() && "Removing node that has users");
     // remove from CFG
