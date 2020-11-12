@@ -68,6 +68,10 @@ llvm::cl::opt<bool> todot("dot",
     llvm::cl::desc("Output in graphviz format (forced atm.)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> quiet("q",
+    llvm::cl::desc("No output (for benchmarking)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<bool> dump_c_lines("c-lines",
     llvm::cl::desc("Dump output as C lines (line:column where possible)."
                    "Requires metadata in the bitcode (default=false)."),
@@ -654,6 +658,9 @@ dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot)
         auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
         if (!graph_only)
             SSA->computeAllDefinitions();
+
+        if (quiet)
+            return;
 
         MemorySSADumper dumper(DDA, todot);
         dumper.dump();
