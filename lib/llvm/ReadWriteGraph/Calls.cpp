@@ -223,7 +223,7 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
 
     auto pts = PTA->getLLVMPointsToChecked(dest);
     if (!pts.first) {
-        llvm::errs() << "[RD] Error: No points-to information for destination in\n";
+        llvm::errs() << "[RWG] Error: No points-to information for destination in\n";
         llvm::errs() << ValInfo(I) << "\n";
         // continue, the points-to set is {unknown}
     }
@@ -258,8 +258,8 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
             // ... and we don't flood the terminal that way
             static std::set<const llvm::Value *> warned;
             if (warned.insert(ptr.value).second) {
-                llvm::errs() << "[RD] error at " << ValInfo(CInst) << "\n"
-                             << "[RD] error: Haven't created node for: "
+                llvm::errs() << "[RWG] error at " << ValInfo(CInst) << "\n"
+                             << "[RWG] error: Haven't created node for: "
                              << ValInfo(ptr.value) << "\n";
             }
             target = UNKNOWN_MEMORY;
@@ -379,7 +379,7 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
 
     for (const Function *function : functions) {
         if (function->isDeclaration()) {
-            llvm::errs() << "[RD] error: phtread_create spawns undefined function: "
+            llvm::errs() << "[RWG] error: phtread_create spawns undefined function: "
                          << function->getName() << "\n";
             continue;
         }

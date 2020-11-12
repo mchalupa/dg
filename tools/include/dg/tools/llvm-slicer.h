@@ -120,7 +120,7 @@ public:
 
         const auto& stats = _builder.getStatistics();
         llvm::errs() << "[llvm-slicer] CPU time of pointer analysis: " << double(stats.ptaTime) / CLOCKS_PER_SEC << " s\n";
-        llvm::errs() << "[llvm-slicer] CPU time of reaching definitions analysis: " << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
+        llvm::errs() << "[llvm-slicer] CPU time of data dependence analysis: " << double(stats.rdaTime) / CLOCKS_PER_SEC << " s\n";
         llvm::errs() << "[llvm-slicer] CPU time of control dependence analysis: " << double(stats.cdaTime) / CLOCKS_PER_SEC << " s\n";
     }
 

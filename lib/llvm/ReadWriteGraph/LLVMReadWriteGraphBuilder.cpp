@@ -78,7 +78,7 @@ LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
     if (!psn.first) {
         result.push_back(DefSite(UNKNOWN_MEMORY));
 #ifndef NDEBUG
-        llvm::errs() << "[RD] warning at: " << ValInfo(where) << "\n";
+        llvm::errs() << "[RWG] warning at: " << ValInfo(where) << "\n";
         llvm::errs() << "No points-to set for: " << ValInfo(val) << "\n";
 #endif
         // don't have points-to information for used pointer
@@ -87,7 +87,7 @@ LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
 
     if (psn.second.empty()) {
 #ifndef NDEBUG
-        llvm::errs() << "[RD] warning at: " << ValInfo(where) << "\n";
+        llvm::errs() << "[RWG] warning at: " << ValInfo(where) << "\n";
         llvm::errs() << "Empty points-to set for: " << ValInfo(val) << "\n";
 #endif
         // this may happen on invalid reads and writes to memory,
@@ -119,9 +119,9 @@ LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
             // ... and we don't flood the terminal that way
             static std::set<const llvm::Value *> warned;
             if (warned.insert(ptr.value).second) {
-                llvm::errs() << "[RD] error at "  << ValInfo(where) << "\n";
-                llvm::errs() << "[RD] error for " << ValInfo(val) << "\n";
-                llvm::errs() << "[RD] error: Cannot find node for "
+                llvm::errs() << "[RWG] error at "  << ValInfo(where) << "\n";
+                llvm::errs() << "[RWG] error for " << ValInfo(val) << "\n";
+                llvm::errs() << "[RWG] error: Cannot find node for "
                              << ValInfo(ptr.value) << "\n";
             }
             continue;
