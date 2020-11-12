@@ -3,6 +3,7 @@
 
 #include <set>
 #include <vector>
+#include <unordered_map>
 #ifndef NDEBUG
 #include <iostream>
 #endif
@@ -27,7 +28,7 @@ public:
     using IntervalT = typename OffsetsT::IntervalT;
 
 private:
-    std::map<NodeT *, OffsetsT> _definitions{};
+    std::unordered_map<NodeT *, OffsetsT> _definitions{};
 
     // transform (offset, lenght) from a DefSite into the interval
     static std::pair<Offset, Offset> getInterval(const DefSite& ds) {

@@ -1,7 +1,6 @@
 #ifndef DG_HASH_MAP_H_
 #define DG_HASH_MAP_H_
 
-
 #ifdef HAVE_TSL_HOPSCOTCH
 #include "TslHopscotchHashMap.h"
 namespace dg {
