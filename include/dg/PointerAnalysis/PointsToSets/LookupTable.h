@@ -23,7 +23,10 @@ public:
 
         _idToPtr.push_back(ptr);
         res = _idToPtr.size();
-        bool r = _ptrToID[ptr.target].put(ptr.offset, res);
+#ifndef NDEBUG
+        bool r =
+#endif
+        _ptrToID[ptr.target].put(ptr.offset, res);
 
         assert(r && "Duplicated ID!");
         assert(get(res) == ptr);

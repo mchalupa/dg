@@ -17,7 +17,8 @@ class PSNode;
 class PointerIdPointsToSet {
     static PointerIDLookupTable lookupTable;
 
-    ADT::SparseBitvector pointers;
+    using PointersT = ADT::SparseBitvectorHashImpl;
+    PointersT pointers;
 
     //if the pointer doesn't have ID, it's assigned one
     size_t getPointerID(const Pointer& ptr) const {
@@ -72,17 +73,17 @@ public:
     }
 
     bool removeAny(PSNode *target) {
-        std::vector<size_t> toRemove;
+        decltype(pointers) tmp;
+        tmp.reserve(pointers.size());
         for (const auto& ptrID : pointers) {
-            if (lookupTable.get(ptrID).target == target) {
-                toRemove.push_back(ptrID);
+            if (lookupTable.get(ptrID).target != target) {
+                tmp.set(ptrID);
             }
         }
 
-        for (auto ptrID : toRemove)  {
-            pointers.unset(ptrID);
-        }
-        return !toRemove.empty();
+        tmp.swap(pointers);
+
+        return !pointers.empty();
     }
 
     void clear() {
@@ -163,9 +164,9 @@ public:
 
     class const_iterator {
 
-        typename ADT::SparseBitvector::const_iterator container_it;
+        typename PointersT::const_iterator container_it;
 
-        const_iterator(const ADT::SparseBitvector& pointers, bool end = false) :
+        const_iterator(const PointersT& pointers, bool end = false) :
         container_it(end ? pointers.end() : pointers.begin()) {}
 
     public:
