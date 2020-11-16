@@ -21,6 +21,20 @@ static inline bool canBeDereferenced(const Pointer& ptr)
     return true;
 }
 
+static bool funHasAddressTaken(PSNode *node) {
+    if (node->getType() != PSNodeType::FUNCTION)
+        return false;
+
+    for (auto *user : node->getUsers()) {
+        if (node->getType() != PSNodeType::CALL ||
+                // call but is not called
+            node->getOperand(0) != user) {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool PointerAnalysis::processLoad(PSNode *node)
 {
     bool changed = false;
@@ -359,7 +373,11 @@ bool PointerAnalysis::processNode(PSNode *node)
                 if (!options.invalidateNodes
                     && ptr.target->getType() != PSNodeType::FUNCTION)
                     continue;
-
+                // Functions that have not address taken cannot
+                // be called via a pointer
+                if (!funHasAddressTaken(ptr.target)) {
+                    continue;
+                }
                 if (node->addPointsTo(ptr)) {
                     changed = true;
 
