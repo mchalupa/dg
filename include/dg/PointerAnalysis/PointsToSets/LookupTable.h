@@ -1,9 +1,14 @@
 #ifndef DG_PTSETS_LOOKUPTABLE_H_
 #define DG_PTSETS_LOOKUPTABLE_H_
 
-#include "dg/ADT/HashMap.h"
 #include <map>
 #include <vector>
+
+#ifdef HAVE_TSL_HOPSCOTCH
+#include "dg/ADT/HashMap.h"
+#else
+#include "dg/ADT/Map.h"
+#endif
 
 #include "dg/PointerAnalysis/Pointer.h"
 
@@ -14,6 +19,14 @@ public:
     using IDTy = size_t;
     using Pointer = pta::Pointer;
     using PSNode = pta::PSNode;
+#ifdef HAVE_TSL_HOPSCOTCH
+    using PtrToIDMap = dg::HashMap<PSNode *, dg::HashMap<Offset, IDTy>>;
+#else
+    // we create the lookup table statically and there is a bug in GCC
+    // that breaks statically created std::unordered_map.
+    // So if we have not Hopscotch map, use std::map instead.
+    using PtrToIDMap = dg::Map<PSNode *, dg::Map<Offset, IDTy>>;
+#endif
 
     // this will get a new ID for the pointer if not present
     IDTy getOrCreate(const Pointer& ptr) {
@@ -59,7 +72,7 @@ private:
     // as multiple graphs will contain nodes with the same id
     // (and resetting the state is really painful, I tried that,
     // but just didn't succeed).
-    dg::HashMap<PSNode *, dg::HashMap<Offset, IDTy>> _ptrToID;
+    PtrToIDMap _ptrToID;
     std::vector<Pointer> _idToPtr; //starts from 0 (pointer = idVector[id - 1])
 };
 

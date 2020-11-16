@@ -17,7 +17,11 @@ class PSNode;
 class PointerIdPointsToSet {
     static PointerIDLookupTable lookupTable;
 
+#ifdef HAVE_TSL_HOPSCOTCH
     using PointersT = ADT::SparseBitvectorHashImpl;
+#else
+    using PointersT = ADT::SparseBitvector;
+#endif
     PointersT pointers;
 
     //if the pointer doesn't have ID, it's assigned one

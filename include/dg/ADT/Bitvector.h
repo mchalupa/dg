@@ -1,18 +1,18 @@
 #ifndef _DG_SPARSE_BITVECTOR_H_
 #define _DG_SPARSE_BITVECTOR_H_
 
-#include <map>
 #include <cassert>
 #include <cstdint>
 
 #include "HashMap.h"
+#include "Map.h"
 
 namespace dg {
 namespace ADT {
 
 template <typename BitsT = uint64_t, typename ShiftT = uint64_t,
           typename IndexT = uint64_t, size_t SCALE = 1,
-          typename BitsContainerT = std::map<ShiftT, BitsT>>
+          typename BitsContainerT = dg::Map<ShiftT, BitsT>>
 class SparseBitvectorImpl {
     // mapping from shift to bits
     BitsContainerT _bits{};
@@ -51,8 +51,8 @@ public:
     bool empty() const { return _bits.empty(); }
     void swap(SparseBitvectorImpl& oth) { _bits.swap(oth._bits); }
 
-    // only for hash, do not use if you do not know what implementation you use.
-    // TODO: use SFINAE to define empty body if std::map is used...
+    // TODO: use SFINAE to define empty body if a class without
+    // reserve() is used...
     void reserve(size_t n) { _bits.reserve(n); }
 
     bool get(IndexT i) const {
@@ -247,7 +247,8 @@ public:
     friend class const_iterator;
 };
 
-using SparseBitvectorMapImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1>;
+using SparseBitvectorMapImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
+                                                   dg::Map<uint64_t, uint64_t>>;
 using SparseBitvectorHashImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
                                                     dg::HashMap<uint64_t, uint64_t>>;
 using SparseBitvector = SparseBitvectorMapImpl;
