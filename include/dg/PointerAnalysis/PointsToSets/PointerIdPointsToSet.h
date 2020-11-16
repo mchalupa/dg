@@ -30,8 +30,12 @@ class PointerIdPointsToSet {
     }
 
     bool addWithUnknownOffset(PSNode* node) {
-        removeAny(node);
-        return !pointers.set(getPointerID({node, Offset::UNKNOWN}));
+        auto ptrid = getPointerID({node, Offset::UNKNOWN});
+        if (!pointers.get(ptrid)) {
+            removeAny(node);
+            return !pointers.set(ptrid);
+        }
+        return false; // we already had it
     }
 
 public:
