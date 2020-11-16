@@ -75,15 +75,18 @@ public:
     bool removeAny(PSNode *target) {
         decltype(pointers) tmp;
         tmp.reserve(pointers.size());
+        bool removed = false;
         for (const auto& ptrID : pointers) {
             if (lookupTable.get(ptrID).target != target) {
                 tmp.set(ptrID);
+            } else {
+                removed = true;
             }
         }
 
         tmp.swap(pointers);
 
-        return !pointers.empty();
+        return removed;
     }
 
     void clear() {
