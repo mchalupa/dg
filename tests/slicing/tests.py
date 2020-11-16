@@ -228,4 +228,5 @@ tests = {
     'atomic1'             : Test('atomic1.c'),
     'atomic2'             : Test('atomic2.c'),
     'atomic3'             : Test('atomic3.c'),
+    'cyclic-realloc'      : Test('cyclic-realloc.c'),
 }
