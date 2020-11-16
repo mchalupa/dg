@@ -26,7 +26,7 @@ size_t Pointer::hash() const {
     // into one uint64_t should not have much collisions... we'll see.
     constexpr unsigned mask = 0xffffffff;
     constexpr unsigned short shift = 32;
-    return (static_cast<uint64_t>(target->getID()) << shift) | (*offset && mask);
+    return (static_cast<uint64_t>(target->getID()) << shift) | (*offset & mask);
 }
 
 } // namespace pta
