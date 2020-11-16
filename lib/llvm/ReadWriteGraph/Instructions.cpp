@@ -143,14 +143,73 @@ RWNode *LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst) 
 
     if (buildUses) {
         // realloc copies the memory
-        auto defSites = mapPointers(Inst, Inst->getOperand(0), size);
-        for (const auto& ds : defSites) {
-            node.addUse(ds);
-        }
+        // NOTE: do not use mapPointers, it could lead to infinite
+        // recursion as realloc may use itself and the 'node' is not
+        // in the map yet
+        addReallocUses(Inst, node, size);
     }
-
     return &node;
 }
+
+void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
+                                               RWNode& node,
+                                               uint64_t size) {
+    auto psn = PTA->getLLVMPointsToChecked(Inst->getOperand(0));
+    if (!psn.first) {
+#ifndef NDEBUG
+        llvm::errs() << "[RWG] warning at: " << ValInfo(Inst) << "\n";
+        llvm::errs() << "No points-to set for: "
+                     << ValInfo(Inst->getOperand(0)) << "\n";
+#endif
+        node.addUse(UNKNOWN_MEMORY);
+        return;
+    }
+
+    if (psn.second.empty()) {
+#ifndef NDEBUG
+        llvm::errs() << "[RWG] warning at: " << ValInfo(Inst) << "\n";
+        llvm::errs() << "Empty points-to set for: "
+                     << ValInfo(Inst->getOperand(0)) << "\n";
+#endif
+        node.addUse(UNKNOWN_MEMORY);
+        return;
+    }
+
+    if (psn.second.hasUnknown()) {
+        node.addUse(UNKNOWN_MEMORY);
+    }
+
+    for (const auto& ptr: psn.second) {
+        // realloc may be only from other dynamic allocation
+        if (!llvm::isa<llvm::CallInst>(ptr.value))
+            continue;
+
+        //llvm::errs() << "Realloc ptr: " << *ptr.value << "\n";
+        RWNode *ptrNode = nullptr;
+        if (ptr.value == Inst) {
+            // the realloc reallocates itself
+            ptrNode = &node;
+        } else {
+            ptrNode = getOperand(ptr.value);
+        }
+        if (!ptrNode) {
+            static std::set<const llvm::Value *> warned;
+            if (warned.insert(ptr.value).second) {
+                llvm::errs() << "[RWG] error at "  << ValInfo(Inst) << "\n";
+                llvm::errs() << "[RWG] error for "
+                             << ValInfo(Inst->getOperand(0)) << "\n";
+                llvm::errs() << "[RWG] error: Cannot find node for "
+                             << ValInfo(ptr.value) << "\n";
+            }
+            continue;
+        }
+
+        node.addUse(ptrNode, ptr.offset,
+                    ptr.offset.isUnknown() ?  Offset::UNKNOWN : size);
+    }
+}
+
+
 
 RWNode *LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction *) {
     return &create(RWNodeType::RETURN);

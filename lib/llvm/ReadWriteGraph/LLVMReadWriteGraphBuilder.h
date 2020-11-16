@@ -113,6 +113,9 @@ public:
     RWNode *createRealloc(const llvm::Instruction *Inst);
     RWNode *createReturn(const llvm::Instruction *Inst);
 
+    void addReallocUses(const llvm::Instruction *Inst,
+                        RWNode& node, uint64_t size);
+
     RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
 
     NodesSeq<RWNode> createCall(const llvm::Instruction *Inst);
