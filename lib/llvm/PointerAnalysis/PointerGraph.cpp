@@ -196,9 +196,7 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
         auto *retval = callsite->getPairedNode();
         seq.getLast()->addSuccessor(retval);
 
-        if (!seq.getRepresentant()->pointsTo.empty()) {
-            retval->addPointsTo(seq.getRepresentant(), 0);
-        }
+        retval->addOperand(seq.getRepresentant());
         return;
     }
 
