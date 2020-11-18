@@ -376,6 +376,9 @@ public:
     static PSNodeConstant *cast(PSNode *n) { return _cast<PSNodeConstant>(n); }
 
     Pointer getPointer() const { return Pointer(getOperand(0), offset); }
+    Offset getOffset() const { return offset; }
+    PSNode *getTarget() { return getOperand(0); }
+    const PSNode *getTarget() const { return getOperand(0); }
 };
 
 class PSNodeMemcpy : public PSNode {
