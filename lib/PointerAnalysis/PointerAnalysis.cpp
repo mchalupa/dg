@@ -179,21 +179,34 @@ bool PointerAnalysis::processMemcpy(PSNode *node)
     return changed;
 }
 
+static Pointer unwrapConstants(const Pointer& ptr) {
+    Offset offset = ptr.offset;
+    PSNode *target = ptr.target;
+    while (auto *C = PSNodeConstant::get(target)) {
+        target = C->getTarget();
+        offset += C->getOffset();
+    }
+    return Pointer(target, offset);
+}
+
 bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *>& srcObjects,
                                     std::vector<MemoryObject *>& destObjects,
                                     const Pointer& sptr, const Pointer& dptr,
                                     Offset len)
 {
+    assert(len > 0 && "Memcpy of length 0");
+
     bool changed = false;
-    Offset srcOffset = sptr.offset;
-    Offset destOffset = dptr.offset;
 
-    assert(*len > 0 && "Memcpy of length 0");
+    Pointer tmp = unwrapConstants(sptr);
+    Offset srcOffset = tmp.offset;
+    PSNodeAlloc *sourceAlloc = PSNodeAlloc::get(tmp.target);
+    assert(sourceAlloc && "Source in memcpy is invalid");
 
-    PSNodeAlloc *sourceAlloc = PSNodeAlloc::get(sptr.target);
-    assert(sourceAlloc && "Pointer's target in memcpy is not an allocation");
-    PSNodeAlloc *destAlloc = PSNodeAlloc::get(dptr.target);
-    assert(destAlloc && "Pointer's target in memcpy is not an allocation");
+    tmp = unwrapConstants(dptr);
+    Offset destOffset = tmp.offset;
+    PSNodeAlloc *destAlloc = PSNodeAlloc::get(tmp.target);
+    assert(destAlloc && "Destination in memcpy is invalid");
 
     // set to true if the contents of destination memory
     // can contain null
