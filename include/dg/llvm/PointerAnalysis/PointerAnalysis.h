@@ -126,7 +126,6 @@ public:
                     return true;
                 }
             }
-            return callsite->getPairedNode()->addPointsTo(UnknownPointer);
         }
 
         if (!LLVMPointerGraphBuilder::callIsCompatible(callsite, called)) {

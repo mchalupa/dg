@@ -321,8 +321,8 @@ private:
     bool isRelevantInstruction(const llvm::Instruction& Inst);
 
     PSNodesSeq& createAlloc(const llvm::Instruction *Inst);
-    PSNodesSeq& createDynamicAlloc(const llvm::CallInst *CInst,
-                                   AllocationFunction type);
+    PSNode *createDynamicAlloc(const llvm::CallInst *CInst,
+                               AllocationFunction type);
     PSNodesSeq& createStore(const llvm::Instruction *Inst);
     PSNodesSeq& createLoad(const llvm::Instruction *Inst);
     PSNodesSeq& createGEP(const llvm::Instruction *Inst);
@@ -403,9 +403,9 @@ private:
 
     PSNodesSeq& createMemTransfer(const llvm::IntrinsicInst *Inst);
     PSNodesSeq& createMemSet(const llvm::Instruction *);
-    PSNodesSeq& createDynamicMemAlloc(const llvm::CallInst *CInst,
+    PSNodesSeq createDynamicMemAlloc(const llvm::CallInst *CInst,
                                      AllocationFunction type);
-    PSNodesSeq& createRealloc(const llvm::CallInst *CInst);
+    PSNodesSeq createRealloc(const llvm::CallInst *CInst);
     PSNodesSeq& createUnknownCall(const llvm::CallInst *CInst);
     PSNodesSeq& createIntrinsic(const llvm::Instruction *Inst);
     PSNodesSeq& createVarArg(const llvm::IntrinsicInst *Inst);
