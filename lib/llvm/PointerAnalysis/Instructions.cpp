@@ -16,16 +16,6 @@ LLVMPointerGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst) {
-    PSNode *op1 = getOperand(Inst->getOperand(1));
-    PSNode *node = PS.create<PSNodeType::INVALIDATE_OBJECT>(op1);
-
-
-    assert(node);
-    return addNode(Inst, node);
-}
-
-LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createStore(const llvm::Instruction *Inst) {
     using namespace llvm;
     const Value *valOp = Inst->getOperand(0);
@@ -52,15 +42,20 @@ LLVMPointerGraphBuilder::createStore(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createLoad(const llvm::Instruction *Inst) {
+PSNode *
+LLVMPointerGraphBuilder::createInternalLoad(const llvm::Instruction *Inst) {
     const llvm::Value *op = Inst->getOperand(0);
 
     PSNode *op1 = getOperand(op);
     PSNode *node = PS.create<PSNodeType::LOAD>(op1);
     assert(node);
 
-    return addNode(Inst, node);
+    return node;
+}
+
+LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::createLoad(const llvm::Instruction *Inst) {
+    return addNode(Inst, createInternalLoad(Inst));
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq&
