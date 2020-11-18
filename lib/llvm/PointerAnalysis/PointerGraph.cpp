@@ -185,6 +185,10 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
     if (F->isDeclaration()) {
         /// memory allocation (malloc, calloc, etc.)
         auto seq = createUndefFunctionCall(CI, F);
+        // we must manually set the data of representant,
+        // as we didn't call addNode
+        auto *repr = seq.getRepresentant();
+        repr->setUserData(const_cast<llvm::CallInst*>(CI));
         // add internal successors
         PSNodesSequenceAddSuccessors(seq);
 
