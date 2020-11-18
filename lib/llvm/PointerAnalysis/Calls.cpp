@@ -32,8 +32,8 @@ LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst) {
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const llvm::Function *func)
-{
+LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst,
+                                            const llvm::Function *func) {
     // is it a call to free? If so, create invalidate node instead.
     if(invalidate_nodes && func->getName().equals("free")) {
         return createFree(CInst);
@@ -58,7 +58,8 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst, const l
         /// memory allocation (malloc, calloc, etc.)
         auto type =_options.getAllocationFunction(func->getName().str());
         if (type != AllocationFunction::NONE) {
-            return createDynamicMemAlloc(CInst, type);
+            auto seq = createDynamicMemAlloc(CInst, type);
+            return addNode(CInst, seq);
         } else if (func->isIntrinsic()) {
             return createIntrinsic(CInst);
         } else
@@ -253,7 +254,7 @@ LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+PSNode *
 LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
                                             AllocationFunction type) {
     using namespace llvm;
@@ -294,10 +295,10 @@ LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
     }
 
     node->setSize(size);
-    return addNode(CInst, node);
+    return node;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
     using namespace llvm;
 
@@ -322,20 +323,22 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
     ret.append(ptr);
     ret.setRepresentant(ptr);
 
-    return addNode(CInst, ret);
+    return ret;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
                                                AllocationFunction type) {
     assert(type != AllocationFunction::NONE
             && "BUG: creating dyn. memory node for NONMEM");
 
+    PSNodesSeq seq;
     if (type == AllocationFunction::REALLOC) {
-        return createRealloc(CInst);
+        seq = createRealloc(CInst);
     } else {
-        return createDynamicAlloc(CInst, type);
+        seq = {createDynamicAlloc(CInst, type)};
     }
+    return seq;
 }
 
 

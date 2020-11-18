@@ -144,7 +144,6 @@ LLVMPointerGraphBuilder::PSNodesSeq&
 LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
                                               const llvm::Function *F) {
     PSNodeCall *callNode = PSNodeCall::get(PS.create<PSNodeType::CALL>());
-
     auto& subg = getAndConnectSubgraph(F, CInst, callNode);
 
     // the operands to the return node (which works as a phi node)
@@ -182,6 +181,18 @@ void
 LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) { 
     const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
     const llvm::Function *F = called->getUserData<llvm::Function>();
+
+    if (F->isDeclaration()) {
+        /// memory allocation (malloc, calloc, etc.)
+        auto type =_options.getAllocationFunction(F->getName().str());
+        if (type != AllocationFunction::NONE) {
+            auto seq = createDynamicMemAlloc(CI, type);
+            callsite->addSuccessor(seq.getFirst());
+            auto *retval = callsite->getPairedNode();
+            retval->addPointsTo(seq.getRepresentant(), 0);
+        }
+        return;
+    }
 
     PointerSubgraph& subg = getAndConnectSubgraph(F, CI, callsite);
 
