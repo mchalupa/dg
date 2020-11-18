@@ -138,7 +138,7 @@ public:
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *,
+    uint32_t slice(LLVMDependenceGraph *dg,
                    LLVMNode *start, uint32_t sl_id = 0)
     {
         // mark nodes for slicing
@@ -146,14 +146,28 @@ public:
         if (start)
             sl_id = mark(start, sl_id);
 
-        // take every subgraph and slice it intraprocedurally
-        // this includes the main graph
-        for (auto& it : constructedFunctions) {
-            if (dontTouch(it.first->getName()))
+
+        std::vector<llvm::Function *> to_erase;
+        for (auto& F : *dg->getModule()) {
+            if (dontTouch(F.getName()))
                 continue;
 
-            LLVMDependenceGraph *subdg = it.second;
-            sliceGraph(subdg, sl_id);
+            auto it = constructedFunctions.find(&F);
+            if (it == constructedFunctions.end()) {
+                // remove (defined) functions that we didn't even constructed,
+                // those are irrelevant in the slice
+                if (!F.isDeclaration()) {
+                    to_erase.push_back(&F);
+                }
+            } else {
+                LLVMDependenceGraph *subdg = it->second;
+                sliceGraph(subdg, sl_id);
+            }
+        }
+        for (auto *F : to_erase) {
+            F->replaceAllUsesWith(llvm::UndefValue::get(F->getType()));
+            F->deleteBody();
+            F->eraseFromParent();
         }
 
         return sl_id;
