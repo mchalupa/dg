@@ -24,19 +24,23 @@ LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst) {
     }
 
     if (const Function *func = dyn_cast<Function>(calledVal)) {
-        return createFunctionCall(CInst, func);
+        if (func->isDeclaration()) {
+            return addNode(CInst, createUndefFunctionCall(CInst, func));
+        }
+        return createCallToFunction(CInst, func);
     } else {
         // this is a function pointer call
         return createFuncptrCall(CInst, calledVal);
     }
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst,
-                                            const llvm::Function *func) {
+LLVMPointerGraphBuilder::PSNodesSeq
+LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
+                                                 const llvm::Function *func) {
+    assert(func->size() == 0);
     // is it a call to free? If so, create invalidate node instead.
     if(invalidate_nodes && func->getName().equals("free")) {
-        return createFree(CInst);
+        return {createFree(CInst)};
     } else if (threads_) {
         if (func->getName().equals("pthread_create")) {
            return createPthreadCreate(CInst);
@@ -46,27 +50,15 @@ LLVMPointerGraphBuilder::createFunctionCall(const llvm::CallInst *CInst,
            return createPthreadExit(CInst);
         }
     }
-
-    // is function undefined? If so it can be
-    // intrinsic, memory allocation (malloc, calloc,...)
-    // or just undefined function
-    // NOTE: we first need to check whether the function
-    // is undefined and after that if it is memory allocation,
-    // because some programs may define function named
-    // 'malloc' etc.
-    if (func->size() == 0) {
-        /// memory allocation (malloc, calloc, etc.)
-        auto type =_options.getAllocationFunction(func->getName().str());
-        if (type != AllocationFunction::NONE) {
-            auto seq = createDynamicMemAlloc(CInst, type);
-            return addNode(CInst, seq);
-        } else if (func->isIntrinsic()) {
-            return createIntrinsic(CInst);
-        } else
-            return createUnknownCall(CInst);
+    /// memory allocation (malloc, calloc, etc.)
+    auto type =_options.getAllocationFunction(func->getName().str());
+    if (type != AllocationFunction::NONE) {
+        return createDynamicMemAlloc(CInst, type);
+    } else if (func->isIntrinsic()) {
+        return createIntrinsic(CInst);
     }
 
-    return createCallToFunction(CInst, func);
+    return {createUnknownCall()};
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq&
@@ -87,8 +79,8 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const ll
     return addNode(CInst, {call_funcptr, ret_call});
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
+PSNode *
+LLVMPointerGraphBuilder::createUnknownCall() {
     // This assertion must not hold if the call is wrapped
     // inside bitcast - it defaults to int, but is bitcased
     // to pointer
@@ -99,10 +91,10 @@ LLVMPointerGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
     // the only thing that the node will point at
     call->addPointsTo(UnknownPointer);
 
-    return addNode(CInst, call);
+    return call;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+PSNode *
 LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
     using namespace llvm;
     const Value *dest, *src;//, *lenVal;
@@ -124,10 +116,10 @@ LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
     PSNode *srcNode = getOperand(src);
     PSNode *node = PS.create<PSNodeType::MEMCPY>(srcNode, destNode, lenVal);
 
-    return addNode(I, node);
+    return node;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst) {
     PSNode *val;
     if (llvmutils::memsetIsZeroInitialization(llvm::cast<llvm::IntrinsicInst>(Inst)))
@@ -146,10 +138,10 @@ LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst) {
     ret.append(S);
     // no representant here...
 
-    return addNode(Inst, ret);
+    return ret;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst) {
     // just store all the pointers from vararg argument
     // to the memory given in vastart() on Offset::UNKNOWN.
@@ -193,10 +185,17 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst) {
 
     ret.setRepresentant(vastart);
 
-    return addNode(Inst, ret);
+    return ret;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+PSNode *
+LLVMPointerGraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst) {
+    PSNode *op1 = getOperand(Inst->getOperand(1));
+    return PS.create<PSNodeType::INVALIDATE_OBJECT>(op1);
+}
+
+
+LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst) {
     using namespace llvm;
 
@@ -213,11 +212,11 @@ LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst) {
         case Intrinsic::stacksave:
             errs() << "WARNING: Saving stack may yield unsound results!: "
                    << *Inst << "\n";
-            return createAlloc(Inst);
+            return {PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>())};
         case Intrinsic::stackrestore:
-            return createLoad(Inst);
+            return {createInternalLoad(Inst)};
         case Intrinsic::lifetime_end:
-            return createLifetimeEnd(Inst);
+            return {createLifetimeEnd(Inst)};
         default:
             errs() << *Inst << "\n";
             errs() << "Unhandled intrinsic ^^\n";
@@ -245,13 +244,13 @@ LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst) {
     return addNode(Inst, n);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+PSNode *
 LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst) {
 
     PSNode *op1 = getOperand(Inst->getOperand(0));
     PSNode *node = PS.create<PSNodeType::FREE>(op1);
 
-    return addNode(Inst, node);
+    return node;
 }
 
 PSNode *

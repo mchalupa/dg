@@ -184,11 +184,15 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
 
     if (F->isDeclaration()) {
         /// memory allocation (malloc, calloc, etc.)
-        auto type =_options.getAllocationFunction(F->getName().str());
-        if (type != AllocationFunction::NONE) {
-            auto seq = createDynamicMemAlloc(CI, type);
-            callsite->addSuccessor(seq.getFirst());
-            auto *retval = callsite->getPairedNode();
+        auto seq = createUndefFunctionCall(CI, F);
+        // add internal successors
+        PSNodesSequenceAddSuccessors(seq);
+
+        callsite->addSuccessor(seq.getFirst());
+        auto *retval = callsite->getPairedNode();
+        seq.getLast()->addSuccessor(retval);
+
+        if (!seq.getRepresentant()->pointsTo.empty()) {
             retval->addPointsTo(seq.getRepresentant(), 0);
         }
         return;
