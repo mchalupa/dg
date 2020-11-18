@@ -19,7 +19,7 @@ public:
     using IDTy = size_t;
     using Pointer = pta::Pointer;
     using PSNode = pta::PSNode;
-#ifdef HAVE_TSL_HOPSCOTCH
+#if defined(HAVE_TSL_HOPSCOTCH) || (__clang__)
     using PtrToIDMap = dg::HashMap<PSNode *, dg::HashMap<Offset, IDTy>>;
 #else
     // we create the lookup table statically and there is a bug in GCC
