@@ -246,7 +246,7 @@ else()
 				PUBLIC dgllvmcda)
 endif(APPLE)
 
-install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
+install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda dgcda
                 dgllvmpta dgllvmdda dgpta dgdda dganalysis
                 dgllvmforkjoin dgsdg dgllvmsdg
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
