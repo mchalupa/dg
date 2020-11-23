@@ -1,0 +1,66 @@
+---
+name: macOS CI
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: macOS
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [Debug, RelWithDebInfo]
+
+    runs-on: macos-latest
+    env:
+      # for colours in ninja
+      CLICOLOR_FORCE: 1
+
+    steps:
+      - name: Checkout DG
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: brew install ninja ccache
+
+      - name: Set environment
+        id: env
+        run: |
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESS=true" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESSLEVEL=6" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=400M" >> $GITHUB_ENV
+
+          echo "/usr/local/opt/ccache/libexec" >> $GITHUB_PATH
+
+          echo "::set-output name=timestamp::$(date -u +%Y-%m-%dT%H:%M:%S%z)"
+
+      - name: Set-up ccache
+        uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{matrix.os}}-${{matrix.build}}-${{steps.env.outputs.timestamp}}
+          restore-keys: ${{matrix.os}}-${{matrix.build}}
+
+      - name: Configure CMake project
+        run: |
+          cmake -S. \
+                -B_build \
+                -GNinja \
+                -DCMAKE_BUILD_TYPE:STRING=${{matrix.build}} \
+                -DUSE_SANITIZERS:BOOL=ON \
+                -DLLVM_DIR:PATH="$($(brew --prefix llvm)/bin/llvm-config --cmakedir)"
+        env:
+          # for coloured output
+          CFLAGS: -fcolor-diagnostics
+          CXXFLAGS: -fcolor-diagnostics
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Run tests
+        # TODO: turn off the detection of leaks, we're working on it
+        run: ASAN_OPTIONS=detect_leaks=0 cmake --build _build --target check
+
+      - name: ccache statistics
+        run: ccache -s
