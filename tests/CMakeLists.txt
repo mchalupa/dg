@@ -34,6 +34,49 @@ macro(add_catch_test TEST_FILE)
 endmacro()
 
 # --------------------------------------------------
+# find compatible clang, lli, llvm-link and opt
+# --------------------------------------------------
+
+# clang binary uses only major version as suffix since 7.0
+if(${LLVM_PACKAGE_VERSION} VERSION_LESS "7.0")
+    set(CLANG_BINARY clang-${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR})
+else()
+    set(CLANG_BINARY clang-${LLVM_VERSION_MAJOR})
+endif()
+
+# REQUIRED available with CMake 3.18+
+find_program(LLVMCC ${CLANG_BINARY} HINTS ${LLVM_TOOLS_BINARY_DIR}
+                                    # do not use ccache
+                                    NO_SYSTEM_ENVIRONMENT_PATH)
+if(NOT LLVMCC)
+    message(FATAL_ERROR "Bitcode compiler: version compatible with \
+                         LLVM ${LLVM_PACKAGE_VERSION} not found")
+endif()
+message(STATUS "Bitcode compiler: ${LLVMCC}")
+
+foreach(TOOL LLVM-LINK LLI OPT)
+    string(TOLOWER ${TOOL} TOOL_LOWER)
+
+    # REQUIRED available only with CMake 3.18+
+    find_program(${TOOL} ${TOOL_LOWER} PATHS ${LLVM_TOOLS_BINARY_DIR}
+                                       NO_DEFAULT_PATH)
+    if(NOT ${TOOL})
+        message(FATAL_ERROR "${TOOL_LOWER}: version compatible with \
+                             LLVM ${LLVM_PACKAGE_VERSION} not found")
+    endif()
+    message(STATUS "${TOOL_LOWER}: ${${TOOL}}")
+endforeach()
+
+# FIXME:
+# This is a rather ugly hack to always use the correct path in test-runner.py.
+# Using configure_file to generate the correct script would probably be much
+# nicer.
+
+# all tools have the same dirname
+set(LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}" CACHE PATH
+                   "contains lli ${LLVM_PACKAGE_VERSION}, etc." FORCE)
+
+# --------------------------------------------------
 # points-to-test
 # --------------------------------------------------
 add_catch_test(points-to-test.cpp)
@@ -90,8 +133,8 @@ endif()
 # --------------------------------------------------
 
 add_custom_command(OUTPUT simple.ll pthread_exit.ll
-                   COMMAND clang -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c
-                   COMMAND clang -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c
+                   COMMAND ${LLVMCC} -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c
+                   COMMAND ${LLVMCC} -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c
                    DEPENDS ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c
                            ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c)
 

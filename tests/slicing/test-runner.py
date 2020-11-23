@@ -12,6 +12,8 @@ have_svf = False
 # going to be (possibly) re-set in set_environment()
 TOOLSDIR = "../../tools/"
 SOURCESDIR = "../sources/"
+LLVMCC = "clang"
+LLVM_TOOLS_DIR = ""
 
 # RUNDIR=getcwd()
 
@@ -29,6 +31,14 @@ def parse_cmake_cache(cmakecache):
                 parts = line.split('=')
                 global TOOLSDIR
                 TOOLSDIR = abspath(join(parts[1].strip(), 'tools/'))
+            elif line.startswith('LLVMCC'):
+                parts = line.split('=')
+                global LLVMCC
+                LLVMCC = parts[1].strip()
+            elif line.startswith('LLVM_TOOLS_DIR'):
+                parts = line.split('=')
+                global LLVM_TOOLS_DIR
+                LLVM_TOOLS_DIR = parts[1].strip()
 
 
 configs = {
@@ -90,10 +100,10 @@ def compile(source, output=None, params=[]):
     if output is None:
         output = _getbcname(source)
 
-    ret = command(["clang", "-include", join(SOURCESDIR, '..', "test_assert.h"),
+    ret = command([LLVMCC, "-include", join(SOURCESDIR, '..', "test_assert.h"),
                    "-emit-llvm", "-c", source, "-o", output] + params)
     if ret != 0:
-        error('Failed executing clang')
+        error('Failed executing ' + LLVMCC)
 
     return output
 
@@ -113,10 +123,12 @@ def slice(bccode, args):
 def link(bccode, codes, output=None):
     if output is None:
         output = bccode + ".linked"
-    cmd = ["llvm-link", bccode, "-o", output] + codes
+
+    llvm_link = join(LLVM_TOOLS_DIR, "llvm-link")
+    cmd = [llvm_link, bccode, "-o", output] + codes
 
     if command(cmd) != 0:
-        error('Failed executing llvm-link')
+        error('Failed executing ' + llvm-link)
 
     return output
 
@@ -124,10 +136,12 @@ def link(bccode, codes, output=None):
 def opt(bccode, passes, output=None):
     if output is None:
         output = bccode + ".opt"
-    cmd = ["opt", bccode, "-o", output] + passes
+
+    opt = join(LLVM_TOOLS_DIR, "opt")
+    cmd = [opt, bccode, "-o", output] + passes
 
     if command(cmd) != 0:
-        error('Failed executing opt')
+        error('Failed executing ' + opt)
 
     return output
 
@@ -165,7 +179,8 @@ def check_output(out, expout):
 
 
 def execute(bccode, expout=None):
-    out, err, exitcode = command_output(["lli", bccode])
+    lli = join(LLVM_TOOLS_DIR, "lli")
+    out, err, exitcode = command_output([lli, bccode])
     if debug:
         print("--- stdout ---")
         print(out.decode())
