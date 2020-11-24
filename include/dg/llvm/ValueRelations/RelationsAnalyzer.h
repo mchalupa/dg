@@ -688,7 +688,8 @@ class RelationsAnalyzer {
     void processAssumeEqual(ValueRelations& newGraph, VRAssumeEqual* assume) const {
         const llvm::Value* val1 = assume->getValue();
         const llvm::Value* val2 = assume->getAssumption();
-        newGraph.setEqual(val1, val2);
+        if (!newGraph.hasConflictingRelation(val1, val2, Relation::EQ))
+            newGraph.setEqual(val1, val2);
     }
 
     bool relatesInAll(const std::vector<VRLocation*>& locations,
