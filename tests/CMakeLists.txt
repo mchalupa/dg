@@ -81,9 +81,9 @@ add_catch_test(nodes-walk-test.cpp)
 # --------------------------------------------------
 # fuzzing tests
 # --------------------------------------------------
-if (TESTING_ENABLE_FUZZING)
-	add_subdirectory(fuzzing)
-endif(TESTING_ENABLE_FUZZING)
+if(TESTING_ENABLE_FUZZING)
+    add_subdirectory(fuzzing)
+endif()
 
 # --------------------------------------------------
 # ThreadRegions test
@@ -92,7 +92,8 @@ endif(TESTING_ENABLE_FUZZING)
 add_custom_command(OUTPUT simple.ll pthread_exit.ll
                    COMMAND clang -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c
                    COMMAND clang -S -emit-llvm ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c
-                   DEPENDS ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c )
+                   DEPENDS ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/simple.c
+                           ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test-files/pthread_exit.c)
 
 add_custom_target(thread-regions-test-file DEPENDS simple.ll)
 
@@ -129,4 +130,3 @@ add_dependencies(check llvm-slicer)
 # --------------------------------------------------
 add_executable(ptset-benchmark ptset-benchmark.cpp)
 target_link_libraries(ptset-benchmark PRIVATE dganalysis dgpta)
-
