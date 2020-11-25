@@ -1,7 +1,7 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include <random>
+#include <set>
 
 #include "dg/ADT/Bitvector.h"
 

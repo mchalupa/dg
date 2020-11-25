@@ -18,66 +18,65 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS}
                         USES_TERMINAL)
 
 # --------------------------------------------------
+# precompile Catch2 main
+# -------------------------------------------------
+add_library(catch-main OBJECT catch-main.cpp)
+
+macro(add_catch_test TEST_FILE)
+    if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${TEST_FILE}")
+        message(FATAL_ERROR "Test '${TEST_FILE}' does not exist!")
+    endif()
+    get_filename_component(TEST ${TEST_FILE} NAME_WE)
+
+    add_executable(${TEST} ${TEST_FILE} $<TARGET_OBJECTS:catch-main>)
+    add_test(${TEST} ${TEST})
+    add_dependencies(check ${TEST})
+endmacro()
+
+# --------------------------------------------------
 # points-to-test
 # --------------------------------------------------
-add_executable(points-to-test points-to-test.cpp)
-add_test(points-to-test points-to-test)
-add_dependencies(check points-to-test)
+add_catch_test(points-to-test.cpp)
 target_link_libraries(points-to-test PRIVATE dgpta)
 
 # --------------------------------------------------
-# read write graph test
+# readwritegraph-test
 # --------------------------------------------------
-add_executable(readwritegraph-test readwritegraph-test.cpp)
-add_test(readwritegraph-test readwritegraph-test)
-add_dependencies(check readwritegraph-test)
+add_catch_test(readwritegraph-test.cpp)
 target_link_libraries(readwritegraph-test PRIVATE dgdda)
 
 # --------------------------------------------------
 # adt-test
 # --------------------------------------------------
-add_executable(adt-test adt-test.cpp)
+add_catch_test(adt-test.cpp)
 target_link_libraries(adt-test PRIVATE dganalysis)
-add_test(adt-test adt-test)
-add_dependencies(check adt-test)
 
 # --------------------------------------------------
 # bitvector-test
 # --------------------------------------------------
-add_executable(bitvector-test bitvector-test.cpp)
-add_test(bitvector-test bitvector-test)
-add_dependencies(check bitvector-test)
+add_catch_test(bitvector-test.cpp)
 
 # --------------------------------------------------
 # numbers-set-test
 # --------------------------------------------------
-add_executable(numbers-set-test numbers-set-test.cpp)
-add_test(numbers-set-test numbers-set-test)
-add_dependencies(check numbers-set-test)
+add_catch_test(numbers-set-test.cpp)
 
 # --------------------------------------------------
 # points-to-set-test
 # --------------------------------------------------
-add_executable(points-to-set-test points-to-set-test.cpp)
+add_catch_test(points-to-set-test.cpp)
 target_link_libraries(points-to-set-test PRIVATE dganalysis dgpta)
-add_test(points-to-set-test points-to-set-test)
-add_dependencies(check points-to-set-test)
 
 # --------------------------------------------------
 # disjunctive-intervals-map-test
 # --------------------------------------------------
-add_executable(disjunctive-intervals-map-test disjunctive-intervals-map-test.cpp)
+add_catch_test(disjunctive-intervals-map-test.cpp)
 target_link_libraries(disjunctive-intervals-map-test PRIVATE dganalysis)
-add_test(disjunctive-intervals-map-test disjunctive-intervals-map-test)
-add_dependencies(check disjunctive-intervals-map-test)
-target_include_directories(disjunctive-intervals-map-test PRIVATE ${CMAKE_SOURCE_DIR}/lib)
 
 # --------------------------------------------------
 # nodes-walk-test
 # --------------------------------------------------
-add_executable(nodes-walk-test nodes-walk-test.cpp)
-add_test(nodes-walk-test nodes-walk-test)
-add_dependencies(check nodes-walk-test)
+add_catch_test(nodes-walk-test.cpp)
 
 # --------------------------------------------------
 # fuzzing tests
@@ -97,8 +96,7 @@ add_custom_command(OUTPUT simple.ll pthread_exit.ll
 
 add_custom_target(thread-regions-test-file DEPENDS simple.ll)
 
-add_executable(thread-regions-test ${CMAKE_CURRENT_LIST_DIR}/catch-main.cpp
-                                  ${CMAKE_CURRENT_LIST_DIR}/thread-regions-test.cpp)
+add_catch_test(thread-regions-test.cpp)
 add_dependencies(thread-regions-test thread-regions-test-file)
 
 target_compile_definitions(thread-regions-test
@@ -110,21 +108,15 @@ target_link_libraries(thread-regions-test PRIVATE dgllvmthreadregions
                                           PRIVATE ${llvm_core}
                                           PRIVATE ${llvm_irreader}
                                           PRIVATE ${llvm_support})
-add_test(thread-regions-test thread-regions-test)
-add_dependencies(check thread-regions-test)
 
 # --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
-add_executable(llvm-dg-test llvm-dg-test.cpp)
-target_link_libraries(llvm-dg-test
-			PRIVATE dgllvmdg
-			PRIVATE ${llvm_core}
-			PRIVATE ${llvm_irreader}
-			PRIVATE ${llvm_analysis})
-
-add_test(llvm-dg-test llvm-dg-test)
-add_dependencies(check llvm-dg-test)
+add_catch_test(llvm-dg-test.cpp)
+target_link_libraries(llvm-dg-test PRIVATE dgllvmdg
+                                   PRIVATE ${llvm_core}
+                                   PRIVATE ${llvm_irreader}
+                                   PRIVATE ${llvm_analysis})
 
 # --------------------------------------------------
 # slicing tests

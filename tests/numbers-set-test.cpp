@@ -1,5 +1,6 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
+
+#include <set>
 
 #include "dg/ADT/NumberSet.h"
 

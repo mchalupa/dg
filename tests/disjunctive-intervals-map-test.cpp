@@ -1,8 +1,7 @@
-#define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
 #include <random>
-#include <cassert>
+#include <sstream>
 #include <vector>
 
 #undef NDEBUG
