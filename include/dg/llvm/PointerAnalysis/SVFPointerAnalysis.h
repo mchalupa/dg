@@ -14,6 +14,8 @@
 #pragma clang diagnostic ignored "-Wignored-qualifiers"
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
 #else
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -23,6 +25,10 @@
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Woverloaded-virtual"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
 #include <llvm/IR/Function.h>
@@ -38,11 +44,14 @@
 #pragma clang diagnostic pop // ignore -Wreorder
 #pragma clang diagnostic pop // ignore -ignored-qualifiers
 #pragma clang diagnostic pop // ignore -Woverloaded-virtual
+#pragma clang diagnostic pop // ignore -Wunused-variable
 #else
 #pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
+#pragma GCC diagnostic pop
+#pragma GCC diagnostic pop // ignore -Wunused-but-set-variable
 #endif
 
 #include "dg/PointerAnalysis/Pointer.h"
