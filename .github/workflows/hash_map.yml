@@ -1,0 +1,94 @@
+---
+name: DG + External Hash Maps
+on: [push, pull_request]
+
+jobs:
+  Ubuntu:
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        hashmap: [tsl-hopscotch]
+
+    runs-on: ubuntu-20.04
+    env:
+      # for colours in ninja
+      CLICOLOR_FORCE: 1
+
+    steps:
+      - name: Checkout DG
+        uses: actions/checkout@v2
+
+      - name: Checkout TSL Hopscotch
+        uses: actions/checkout@v2
+        with:
+          repository: Tessil/hopscotch-map
+          path: tsl-hopscotch
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install ccache cmake ninja-build clang-10 llvm-10-dev
+
+      - name: Set environment
+        id: env
+        run: |
+          # set expected name of selected hashmap
+          case "${{matrix.hashmap}}" in
+            "tsl-hopscotch") echo "HASHMAP=TSL_HOPSCOTCH_DIR" >> $GITHUB_ENV;;
+            *) echo "Unknown hashmap selected." && exit 1;;
+          esac
+
+          if [[ "${{matrix.compiler}}" = "clang" ]]; then
+            echo "CC=clang-10" >> $GITHUB_ENV
+            echo "CXX=clang++-10" >> $GITHUB_ENV
+
+            # force coloured output
+            echo "CFLAGS=$CFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
+            echo "CXXFLAGS=$CXXFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
+          else
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+
+            # force coloured output
+            echo "CFLAGS=$CFLAGS -fdiagnostics-color=always" >> $GITHUB_ENV
+            echo "CXXFLAGS=$CXXFLAGS -fdiagnostics-color=always" >> $GITHUB_ENV
+          fi
+
+          # set up ccache
+          sudo /usr/sbin/update-ccache-symlinks
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESS=true" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESSLEVEL=6" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=400M" >> $GITHUB_ENV
+
+          echo "::set-output name=timestamp::$(date -u -Iseconds)"
+
+      - name: Set up ccache
+        uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ubuntu-20.04-${{matrix.hashmap}}-${{matrix.compiler}}-${{steps.env.outputs.timestamp}}
+          restore-keys: ubuntu-20.04-${{matrix.hashmap}}-${{matrix.compiler}}
+
+      - name: Configure CMake project
+        run: |
+          cmake -S. \
+                -B_build \
+                -GNinja \
+                -DUSE_SANITIZERS:BOOL=ON \
+                -DLLVM_DIR:PATH="$(llvm-config-10 --cmakedir)" \
+                -D${HASHMAP}:PATH="$GITHUB_WORKSPACE/${{matrix.hashmap}}"
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Run tests
+        # TODO: turn off the detection of leaks, we're working on it
+        run: ASAN_OPTIONS=detect_leaks=0 cmake --build _build --target check
+
+      - name: ccache statistics
+        run: ccache -s
