@@ -1,0 +1,212 @@
+---
+name: Linux CI
+on: [push, pull_request]
+
+jobs:
+  build64:
+    name: Ubuntu 64-bit
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # LLVM 3.4 is not available
+          # LLVM 3.{5,6} are not compatible at the moment
+
+          # Linux with GCC
+          # - {os: ubuntu-16.04, llvm: '3.5', compiler: gcc}
+          # - {os: ubuntu-16.04, llvm: '3.6', compiler: gcc}
+          - {os: ubuntu-16.04, llvm: '3.7', compiler: gcc}
+          - {os: ubuntu-16.04, llvm: '3.8', compiler: gcc}
+          - {os: ubuntu-16.04, llvm: '3.9', compiler: gcc}
+          - {os: ubuntu-16.04, llvm: '4.0', compiler: gcc}
+          - {os: ubuntu-18.04, llvm: '5.0', compiler: gcc}
+          - {os: ubuntu-18.04, llvm: '6.0', compiler: gcc}
+          - {os: ubuntu-18.04, llvm: 7, compiler: gcc}
+          - {os: ubuntu-18.04, llvm: 8, compiler: gcc}
+          - {os: ubuntu-18.04, llvm: 9, compiler: gcc}
+          - {os: ubuntu-20.04, llvm: 10, compiler: gcc}
+          - {os: ubuntu-20.04, llvm: 11, compiler: gcc}
+          - {os: ubuntu-20.04, llvm: 12, compiler: gcc}
+          - {os: ubuntu-20.04, llvm: 12, compiler: gcc, type: Debug}
+
+          # Linux with Clang
+          # - {os: ubuntu-16.04, llvm: '3.5', compiler: clang}
+          # - {os: ubuntu-16.04, llvm: '3.6', compiler: clang}
+          - {os: ubuntu-16.04, llvm: '3.7', compiler: clang}
+          - {os: ubuntu-16.04, llvm: '3.8', compiler: clang}
+          - {os: ubuntu-16.04, llvm: '3.9', compiler: clang}
+          - {os: ubuntu-16.04, llvm: '4.0', compiler: clang}
+          - {os: ubuntu-18.04, llvm: '5.0', compiler: clang}
+          - {os: ubuntu-18.04, llvm: '6.0', compiler: clang}
+          - {os: ubuntu-18.04, llvm: 7, compiler: clang}
+          - {os: ubuntu-18.04, llvm: 8, compiler: clang}
+          - {os: ubuntu-18.04, llvm: 9, compiler: clang}
+          - {os: ubuntu-20.04, llvm: 10, compiler: clang}
+          - {os: ubuntu-20.04, llvm: 11, compiler: clang}
+          - {os: ubuntu-20.04, llvm: 12, compiler: clang}
+          - {os: ubuntu-20.04, llvm: 12, compiler: clang, type: Debug}
+
+    runs-on: ${{matrix.os}}
+    env:
+      # for colours in ninja
+      CLICOLOR_FORCE: 1
+
+    steps:
+      - name: Checkout DG
+        uses: actions/checkout@v2
+
+      - name: '[LLVM 11] Add repositories'
+        if: matrix.llvm == 11
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-11 main"
+
+      - name: '[LLVM 12] Add repositories'
+        if: matrix.llvm == 12
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo apt-add-repository "deb http://apt.llvm.org/focal/ llvm-toolchain-focal-12 main"
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install ccache cmake ninja-build clang-${{matrix.llvm}} \
+                           llvm-${{matrix.llvm}}-dev
+
+      - name: '[Xenial + LLVM 3.8] Fix installation'
+        if: matrix.os == 'ubuntu-16.04' && matrix.llvm == '3.8'
+        run: |
+          # patch LLVMConfig.cmake + LLVMExports-relwithdebinfo.cmake
+          sudo patch -d/ -p0 < .github/workflows/xenial-llvm3.8/cmake.patch
+
+          # fix paths to libraries and headers
+          sudo ln -s /usr/include/llvm-c-3.8/llvm-c /usr/include/llvm-3.8/llvm-c
+          sudo cp -P /usr/lib/llvm-3.8/lib/libLLVM-3.8.so /usr/lib/llvm-3.8/lib/libLLVM-3.8.so.1
+
+      - name: Get LLVM CMake directory
+        run: |
+          # older releases do not have (usable) llvm-config
+          if [[ "${{matrix.llvm}}" =~ ^3\.[0-8] ]]; then
+            echo "LLVM_CMAKE_DIR='/usr/share/llvm-${{matrix.llvm}}/cmake'" \
+                  >> $GITHUB_ENV
+          else
+            echo "LLVM_CMAKE_DIR='/usr/lib/llvm-${{matrix.llvm}}/lib/cmake/llvm'" \
+                  >> $GITHUB_ENV
+          fi
+
+      - name: Set environment
+        id: env
+        run: |
+          if [[ "${{matrix.compiler}}" = "clang" ]]; then
+            echo "CC=clang-${{matrix.llvm}}" >> $GITHUB_ENV
+            echo "CXX=clang++-${{matrix.llvm}}" >> $GITHUB_ENV
+
+            # force coloured output
+            echo "CFLAGS=$CFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
+            echo "CXXFLAGS=$CXXFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
+          else
+            echo "CC=gcc" >> $GITHUB_ENV
+            echo "CXX=g++" >> $GITHUB_ENV
+
+            # force coloured output
+            echo "CFLAGS=$CFLAGS -fdiagnostics-color=always" >> $GITHUB_ENV
+            echo "CXXFLAGS=$CXXFLAGS -fdiagnostics-color=always" >> $GITHUB_ENV
+          fi
+
+          # set up ccache
+          sudo /usr/sbin/update-ccache-symlinks
+          echo "/usr/lib/ccache" >> $GITHUB_PATH
+
+          # Xenial and Bionic do not create symlinks to versioned clang
+          sudo ln -sfr /usr/bin/ccache /usr/lib/ccache/clang-${{matrix.llvm}}
+          sudo ln -sfr /usr/bin/ccache /usr/lib/ccache/clang++-${{matrix.llvm}}
+
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "CCACHE_DIR=$GITHUB_WORKSPACE/.ccache" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESS=true" >> $GITHUB_ENV
+          echo "CCACHE_COMPRESSLEVEL=6" >> $GITHUB_ENV
+          echo "CCACHE_MAXSIZE=400M" >> $GITHUB_ENV
+
+          echo "::set-output name=timestamp::$(date -u -Iseconds)"
+
+      - name: Set up ccache
+        uses: actions/cache@v2
+        with:
+          path: .ccache
+          key: ${{matrix.os}}-${{matrix.llvm}}-${{matrix.compiler}}-${{matrix.type}}-${{steps.env.outputs.timestamp}}
+          restore-keys: ${{matrix.os}}-${{matrix.llvm}}-${{matrix.compiler}}-${{matrix.type}}
+
+      - name: Configure CMake project
+        run: |
+          cmake -S. \
+                -B_build \
+                -GNinja \
+                -DCMAKE_BUILD_TYPE:STRING="${{matrix.type}}" \
+                -DUSE_SANITIZERS:BOOL=ON \
+                -DLLVM_DIR:PATH="$LLVM_CMAKE_DIR"
+
+      - name: Build
+        run: cmake --build _build
+
+      - name: Run tests
+        # TODO: turn off the detection of leaks, we're working on it
+        run: ASAN_OPTIONS=detect_leaks=0 cmake --build _build --target check
+
+      - name: ccache statistics
+        run: ccache -s
+
+# Warning: untested and incomplete
+#
+#  build32:
+#    name: Ubuntu 32-bit
+#    runs-on: ubuntu-20.04
+#    container: ubuntu:latest
+#
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        compiler: [gcc, clang]
+#        build_type: [Debug, Release]
+#
+#    steps:
+#      - uses: actions/checkout@v2
+#      - name: Install dependencies
+#        run: |
+#          dpkg --add-architecture i386
+#          apt update
+#          apt install -y cmake ninja-build clang:i386 llvm-dev:i386 libc-dev:i386
+#
+#      - name: Set environment
+#        run: |
+#          CFLAGS="$CFLAGS -m32"
+#          CXXFLAGS="$CXXFLAGS -m32"
+#
+#          if [[ "${{matrix.compiler}}" = "clang" ]]; then
+#            echo "CC=clang" >> $GITHUB_ENV
+#            echo "CXX=clang++" >> $GITHUB_ENV
+#
+#            # force coloured output
+#            echo "CFLAGS=$CFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
+#            echo "CXXFLAGS=$CXXFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
+#          else
+#            echo "CC=gcc" >> $GITHUB_ENV
+#            echo "CXX=g++" >> $GITHUB_ENV
+#
+#            # force coloured output
+#            echo "CFLAGS=$CFLAGS -fdiagnostics-color" >> $GITHUB_ENV
+#            echo "CXXFLAGS=$CXXFLAGS -fdiagnostics-color" >> $GITHUB_ENV
+#          fi
+#
+#      - name: Configure CMake project
+#        run: |
+#          cmake -Bbuild -S. \
+#                -GNinja \
+#                -DUSE_SANITIZERS=ON \
+#                -DCMAKE_BUILD_TYPE='${{matrix.build_type}}'
+#
+#      - name: Build
+#        run: ninja -C build
+#
+#      - name: Run tests
+#        # TODO: turn off the detection of leaks, we're working on it
+#        run: ASAN_OPTIONS=detect_leaks=0 ninja check -C build
