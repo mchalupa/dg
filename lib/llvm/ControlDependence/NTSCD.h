@@ -294,7 +294,7 @@ public:
     }
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
-    ValVec getNoReturns(const llvm::Function *) const override {
+    ValVec getNoReturns(const llvm::Function *) override {
         assert(false && "Unsupported"); abort();
     }
 

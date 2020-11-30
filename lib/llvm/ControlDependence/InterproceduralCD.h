@@ -71,12 +71,17 @@ public:
                     CallGraph *cg = nullptr)
         : LLVMControlDependenceAnalysisImpl(module, opts), PTA(pta), _cg(cg) {}
 
-    ValVec getNoReturns(const llvm::Function *F) const override {
+    ValVec getNoReturns(const llvm::Function *fun) override {
         ValVec ret;
-        if (auto *fi = getFuncInfo(F)) {
-            for (auto *val : fi->noret)
-                ret.push_back(const_cast<llvm::Value *>(val));
+        auto *fi = getFuncInfo(fun);
+        if (!fi) {
+            computeFuncInfo(fun);
         }
+        fi = getFuncInfo(fun);
+        assert(fi && "BUG in computeFuncInfo");
+
+        for (auto *val : fi->noret)
+            ret.push_back(const_cast<llvm::Value *>(val));
         return ret;
     }
 

@@ -104,7 +104,7 @@ public:
     ValVec getDependencies(const llvm::BasicBlock *b) { return _getDependencies(b); }
     ValVec getDependent(const llvm::BasicBlock *b) { return _getDependent(b); }
 
-    ValVec getNoReturns(const llvm::Function *F) const {
+    ValVec getNoReturns(const llvm::Function *F) {
         if (_interprocImpl)
             return _interprocImpl->getNoReturns(F);
         return {};
