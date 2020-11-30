@@ -974,7 +974,8 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
 
 void LLVMDependenceGraph::computeNTSCD(const LLVMControlDependenceAnalysisOptions& opts) {
     DBG_SECTION_BEGIN(llvmdg, "Filling in CDA edges (NTSCD)");
-    dg::llvmdg::NTSCD ntscd(this->module, opts);
+    dg::LLVMControlDependenceAnalysis ntscd(this->module, opts);
+    assert(opts.ntscdCD());
 
     for (auto& it : getConstructedFunctions()) {
         auto& blocks = it.second->getBlocks();
@@ -985,6 +986,16 @@ void LLVMDependenceGraph::computeNTSCD(const LLVMControlDependenceAnalysisOption
                 auto *depbb = blocks[dep];
                 assert(depbb);
                 depbb->addControlDependence(bb);
+            }
+
+            for (auto& I : BB) {
+                for (auto *dep : ntscd.getDependencies(&I)) {
+                    auto *depnd = it.second->getNode(dep);
+                    assert(depnd);
+                    auto *ind = it.second->getNode(&I);
+                    assert(ind);
+                    depnd->addControlDependence(ind);
+                }
             }
         }
     }

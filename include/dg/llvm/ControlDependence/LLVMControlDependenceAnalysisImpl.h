@@ -54,7 +54,7 @@ public:
     virtual ValVec getDependent(const llvm::BasicBlock *) = 0;
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
-    virtual ValVec getNoReturns(const llvm::Function *) const {
+    virtual ValVec getNoReturns(const llvm::Function *) {
         assert(false && "Unsupported"); abort();
     }
 
