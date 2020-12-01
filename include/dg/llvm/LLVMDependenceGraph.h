@@ -122,19 +122,7 @@ public:
     void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
     void addNoreturnDependencies();
 
-    void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts) {
-        if (opts.standardCD()) {
-            computePostDominators(true);
-        } else if (opts.ntscdLegacyCD()) {
-            computeNonTerminationControlDependencies();
-        } else if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdRanganathCD()) {
-            computeNTSCD(opts);
-        } else
-            abort();
-
-        if (opts.interproceduralCD())
-            addNoreturnDependencies();
-    }
+    void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts);
 
     bool verify() const;
 

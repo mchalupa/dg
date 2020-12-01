@@ -976,7 +976,7 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
 void LLVMDependenceGraph::computeNTSCD(const LLVMControlDependenceAnalysisOptions& opts) {
     DBG_SECTION_BEGIN(llvmdg, "Filling in CDA edges (NTSCD)");
     dg::LLVMControlDependenceAnalysis ntscd(this->module, opts);
-    assert(opts.ntscdCD());
+    assert(opts.ntscdCD() || opts.ntscd2CD());
 
     for (auto& it : getConstructedFunctions()) {
         auto& blocks = it.second->getBlocks();
@@ -1182,6 +1182,27 @@ LLVMDependenceGraph::getInstructionsOfType(const unsigned opCode,
     }
     return instructions;
 }
+void LLVMDependenceGraph::computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts) {
+    if (opts.standardCD()) {
+        computePostDominators(true);
+    } else if (opts.ntscdLegacyCD()) {
+        computeNonTerminationControlDependencies();
+        // the legacy implementation contains a bug, we workaroudn it by running
+        // also the intraprocedural version of new NTSCD
+        auto tmpopts = opts;
+        tmpopts.interprocedural = false;
+        tmpopts.algorithm = ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD2;
+        computeNTSCD(tmpopts);
+    } else if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdRanganathCD()) {
+        computeNTSCD(opts);
+    } else
+        abort();
+
+    if (opts.interproceduralCD())
+        addNoreturnDependencies();
+}
+
+
 
 void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from) {
     std::set<LLVMBBlock *> visited;
