@@ -46,6 +46,7 @@
 // !FIXME
 #include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
 #include "../lib/llvm/ControlDependence/NTSCD.h"
+#include "../lib/llvm/ControlDependence/InterproceduralCD.h"
 
 #include "llvm/LLVMDGVerifier.h"
 #include "llvm-utils.h"
@@ -1208,6 +1209,31 @@ void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *f
 
 void LLVMDependenceGraph::addNoreturnDependencies()
 {
+    llvmdg::LLVMInterprocCD interprocCD(this->module);
+    for (auto& F : getConstructedFunctions()) {
+        auto *dg = F.second;
+        auto *fun = llvm::cast<llvm::Function>(F.first);
+        for (auto *noreti : interprocCD.getNoReturns(fun)) {
+            // create noret params if not yet
+            auto *fnoret = dg->getOrCreateNoReturn();
+            for (auto *caller : dg->getCallers()) {
+                caller->getOrCreateParameters(); // create params if not created
+                auto actnoret = dg->getOrCreateNoReturn(caller);
+                fnoret->addControlDependence(actnoret);
+            }
+
+            // add edge from function's noret to instruction's nodes
+            auto *nd = dg->getNode(noreti);
+            assert(nd);
+            // if this is a call, add the dependence to noret param
+            if (llvm::isa<llvm::CallInst>(nd->getValue())) {
+                nd = getOrCreateNoReturn(nd);
+            }
+            nd->addControlDependence(fnoret);
+        }
+    }
+
+    // in theory, we should not need this one, but it does not work right now
     for (auto& F : getConstructedFunctions()) {
         auto& blocks = F.second->getBlocks();
 
@@ -1220,6 +1246,7 @@ void LLVMDependenceGraph::addNoreturnDependencies()
                     nrt->addControlDependence(node);
                 }
 
+                // is this a call with a noreturn parameter?
                 if (auto params = node->getParameters()) {
                     if (auto noret = params->getNoReturn()) {
                         // process the rest of the block

@@ -329,16 +329,16 @@ private:
             // NOTE: do this before the next action, to rename the label if needed
             if (BB->successorsNum() == 2
                 && BB->getLastNode()->getSlice() != slice_id
-                && !BB->successorsAreSame()) {
+                && !BB->successorsAreSame() && BB->hasSuccessor(BB)) {
 
-#ifndef NDEBUG
-                bool found =
-#endif
-                BB->removeSuccessorsTarget(BB);
+                bool found = BB->removeSuccessorsTarget(BB);
                 // we have two different successors, none of them
                 // is self-loop and we're slicing away the brach inst?
                 // This should not happen...
-                assert(found && "This should not happen...");
+                if (!found) {
+                    assert(found && "Self loop did not have self loop...");
+                    abort();
+                }
                 assert(BB->successorsNum() == 1 && "Should have only one successor");
 
                 // continue here to rename the only label if needed
@@ -545,8 +545,11 @@ private:
             }
 
             if (create_return) {
-                assert(BB->successorsNum() == 0
-                        && "Creating return to BBlock that has successors");
+                if (BB->successorsNum() != 0) {
+                    assert(BB->successorsNum() == 0
+                            && "Creating return to BBlock that has successors");
+                    abort();
+                }
 
                 if (F->getReturnType()->isVoidTy())
                     ReturnInst::Create(Ctx, llvmBB);
