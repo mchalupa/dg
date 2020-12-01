@@ -135,6 +135,20 @@ public:
         return true;
     }
 
+    // return true if all successors point
+    // to the same basic block (not considering labels,
+    // just the targets)
+    bool hasSuccessor(BBlock<NodeT> *B) const
+    {
+        for (auto& succB : successors()) {
+            if (succB.target == B) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     // remove all edges from/to this BB and reconnect them to
     // other nodes
     void isolate()
