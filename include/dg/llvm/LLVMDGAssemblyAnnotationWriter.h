@@ -162,15 +162,20 @@ private:
         if (opts & ANNOTATE_DEF) {
             assert(DDA && "No data dependence analysis");
             if (DDA->isUse(node->getValue())) {
-                for (auto *def : DDA->getLLVMDefinitions(node->getValue())) {
-                    os << "  ; DEF: ";
+                os << "  ; DEF: ";
+                const auto& defs = DDA->getLLVMDefinitions(node->getValue());
+                if (defs.empty()) {
+                    os << "none (or global)\n";
+                } else {
+                    for (auto *def : defs) {
 
-                    if (def->hasName())
-                        os << def->getName();
-                    else
-                        os << *def;
+                        if (def->hasName())
+                            os << def->getName();
+                        else
+                            os << *def;
 
-                    os << "(" << def << ")\n";
+                        os << "(" << def << ")\n";
+                    }
                 }
             }
         }
