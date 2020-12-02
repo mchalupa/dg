@@ -358,7 +358,7 @@ LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn() {
 }
 
 LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn(LLVMNode *call) {
-    LLVMDGParameters *params = call->getParameters();
+    LLVMDGParameters *params = getOrCreateParameters();
     assert(params);
 
     LLVMNode *noret = params->getNoReturn();
@@ -1199,7 +1199,7 @@ void LLVMDependenceGraph::computeControlDependencies(const LLVMControlDependence
         abort();
 
     if (opts.interproceduralCD())
-        addNoreturnDependencies();
+        addNoreturnDependencies(opts);
 }
 
 
@@ -1228,29 +1228,31 @@ void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *f
     }
 }
 
-void LLVMDependenceGraph::addNoreturnDependencies()
+void LLVMDependenceGraph::addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions& opts)
 {
-    llvmdg::LLVMInterprocCD interprocCD(this->module);
-    for (auto& F : getConstructedFunctions()) {
-        auto *dg = F.second;
-        auto *fun = llvm::cast<llvm::Function>(F.first);
-        for (auto *noreti : interprocCD.getNoReturns(fun)) {
-            // create noret params if not yet
-            auto *fnoret = dg->getOrCreateNoReturn();
-            for (auto *caller : dg->getCallers()) {
-                caller->getOrCreateParameters(); // create params if not created
-                auto actnoret = dg->getOrCreateNoReturn(caller);
-                fnoret->addControlDependence(actnoret);
-            }
+    if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdLegacyCD()) {
+        llvmdg::LLVMInterprocCD interprocCD(this->module);
+        for (auto& F : getConstructedFunctions()) {
+            auto *dg = F.second;
+            auto *fun = llvm::cast<llvm::Function>(F.first);
+            for (auto *noreti : interprocCD.getNoReturns(fun)) {
+                // create noret params if not yet
+                auto *fnoret = dg->getOrCreateNoReturn();
+                for (auto *caller : dg->getCallers()) {
+                    caller->getOrCreateParameters(); // create params if not created
+                    auto actnoret = dg->getOrCreateNoReturn(caller);
+                    fnoret->addControlDependence(actnoret);
+                }
 
-            // add edge from function's noret to instruction's nodes
-            auto *nd = dg->getNode(noreti);
-            assert(nd);
-            // if this is a call, add the dependence to noret param
-            if (llvm::isa<llvm::CallInst>(nd->getValue())) {
-                nd = getOrCreateNoReturn(nd);
+                // add edge from function's noret to instruction's nodes
+                auto *nd = dg->getNode(noreti);
+                assert(nd);
+                // if this is a call, add the dependence to noret param
+                if (llvm::isa<llvm::CallInst>(nd->getValue())) {
+                    nd = getOrCreateNoReturn(nd);
+                }
+                nd->addControlDependence(fnoret);
             }
-            nd->addControlDependence(fnoret);
         }
     }
 
