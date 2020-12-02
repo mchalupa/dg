@@ -14,6 +14,6 @@ Further, DG contains an implementation of dependence graphs and a [static progra
 
 ------------------------------------------------
 
-You can find a high-level description of DG in [DG: a program analysis library](https://doi.org/10.1016/j.simpa.2020.100038) or [DG: slicing of LLVM bitcode and more](fi.muni.cz/~xchalup4/dg_atva20_preprint.pdf) papers. More detailed information about dg is in the doc/ folder or in my [master thesis](http://is.muni.cz/th/396236/fi_m/thesis.pdf).
+You can find a high-level description of DG in [DG: a program analysis library](https://doi.org/10.1016/j.simpa.2020.100038) or [DG: Analysis and slicing of LLVM bitcode](https://www.fi.muni.cz/~xchalup4/dg_atva20_preprint.pdf) papers. More detailed information about dg is in the doc/ folder or in my [master thesis](http://is.muni.cz/th/396236/fi_m/thesis.pdf).
 
 You can write e-mails with issues to <mchqwerty@gmail.com> (or file issue in github).
