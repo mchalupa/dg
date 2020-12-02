@@ -120,7 +120,7 @@ public:
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
-    void addNoreturnDependencies();
+    void addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions& opts);
 
     void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts);
 
