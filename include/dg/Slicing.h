@@ -29,7 +29,7 @@ public:
     WalkAndMark(bool forward_slc = false)
         : legacy::NodesWalk<NodeT, Queue>(
             forward_slc ?
-                (legacy::NODES_WALK_CD | legacy::NODES_WALK_DD |
+                (legacy::NODES_WALK_DD |
                  legacy::NODES_WALK_USE | legacy::NODES_WALK_ID) :
                 (legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
                  legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
@@ -190,24 +190,26 @@ public:
 
         ///
         // If we are performing forward slicing,
-        // we are missing the control dependencies now.
-        // So gather all control dependencies of the nodes that
-        // we want to have in the slice and perform normal backward
-        // slicing w.r.t these nodes.
+        // we must do the slice executable as we now just
+        // marked the nodes that are data dependent on the
+        // slicing criterion. We do that by using these
+        // nodes as slicing criteria in normal backward slicing.
         if (forward_slice) {
-            std::set<NodeT *> branchings;
+            std::set<NodeT *> inslice;
             for (auto *BB : wm.getMarkedBlocks()) {
 #if ENABLE_CFG
-               for (auto cBB : BB->revControlDependence()) {
-                   assert(cBB->successorsNum() > 1);
-                   branchings.insert(cBB->getLastNode());
-               }
+                for (auto *nd : BB->getNodes()) {
+                    if (nd->getSlice() == sl_id) {
+                        inslice.insert(nd);
+                    }
+                }
 #endif
             }
 
-            if (!branchings.empty()) {
+            // do backward slicing to make the slice executable
+            if (!inslice.empty()) {
                 WalkAndMark<NodeT> wm2;
-                wm2.mark(branchings, sl_id);
+                wm2.mark(inslice, sl_id);
             }
         }
 
