@@ -19,6 +19,7 @@ enum NodesWalkFlags {
     NODES_WALK_REV_DD                   = 1 << 4,
     NODES_WALK_USE                      = 1 << 5,
     NODES_WALK_USER                     = 1 << 6,
+    // interference dependencies
     NODES_WALK_ID                       = 1 << 7,
     NODES_WALK_REV_ID                   = 1 << 8,
     // Add to queue all first nodes of
