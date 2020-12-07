@@ -29,7 +29,7 @@ public:
     WalkAndMark(bool forward_slc = false)
         : legacy::NodesWalk<NodeT, Queue>(
             forward_slc ?
-                (legacy::NODES_WALK_DD |
+                (legacy::NODES_WALK_DD  | // legacy::NODES_WALK_CD  NOTE: we handle CD separately
                  legacy::NODES_WALK_USE | legacy::NODES_WALK_ID) :
                 (legacy::NODES_WALK_REV_CD | legacy::NODES_WALK_REV_DD |
                  legacy::NODES_WALK_USER | legacy::NODES_WALK_ID |
@@ -83,8 +83,27 @@ private:
         // the basic block - if there are basic blocks
         if (BBlock<NodeT> *B = n->getBBlock()) {
             B->setSlice(slice_id);
-            if (data->markedBlocks)
+            if (data->markedBlocks) {
                 data->markedBlocks->insert(B);
+            }
+
+            // if this node has CDs, enque them
+            if (data->analysis->isForward()) {
+                for (auto it = n->control_begin(), et = n->control_end();
+                        it != et; ++it) {
+                    data->analysis->enqueue(*it);
+                }
+
+                // if this node is a jump instruction,
+                // add also nodes that control depend on this jump
+                if (n == B->getLastNode()) {
+                    for (BBlock<NodeT> *CD : B->controlDependence()) {
+                        for (auto *cdnd : CD->getNodes()) {
+                            data->analysis->enqueue(cdnd);
+                        }
+                    }
+                }
+            }
         }
 #endif
 
