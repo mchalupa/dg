@@ -358,7 +358,7 @@ LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn() {
 }
 
 LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn(LLVMNode *call) {
-    LLVMDGParameters *params = getOrCreateParameters();
+    LLVMDGParameters *params = call->getOrCreateParameters();
     assert(params);
 
     LLVMNode *noret = params->getNoReturn();
