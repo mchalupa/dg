@@ -57,8 +57,17 @@ llvm::cl::opt<bool> enable_debug(
         "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
-                                          const SlicerOptions &options) {
+llvm::cl::opt<bool> usepta("use-pta",
+    llvm::cl::desc("Use points analysis to build CG."),
+    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> lazy("lazy-cg",
+    llvm::cl::desc("Use the LazyLLVMCallGraph."),
+    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
+                                          const SlicerOptions& options)
+{
     llvm::SMDiagnostic SMD;
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
@@ -125,22 +134,39 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    auto &ptaopts = options.dgOptions.PTAOptions;
+    if (usepta) {
+        auto& ptaopts = options.dgOptions.PTAOptions;
 #ifdef HAVE_SVF
-    if (ptaopts.isSVF()) {
-        SVFPointerAnalysis PTA(M.get(), ptaopts);
-        PTA.run();
+        if (ptaopts.isSVF()) {
+            SVFPointerAnalysis PTA(M.get(), ptaopts);
+            PTA.run();
 
-        llvmdg::CallGraph CG(M.get(), &PTA);
-        dumpCallGraph(CG);
-    } else
+            llvmdg::CallGraph CG(M.get(), &PTA, lazy);
+            dumpCallGraph(CG);
+        } else
 #endif // HAVE_SVF
-    {
-        DGLLVMPointerAnalysis PTA(M.get(), ptaopts);
-        PTA.run();
+        {
+            DGLLVMPointerAnalysis PTA(M.get(), ptaopts);
+            PTA.run();
 
-        // llvmdg::CallGraph CG(M.get(), &PTA);
-        llvmdg::CallGraph CG(PTA.getPTA()->getPG()->getCallGraph());
+            if (lazy) {
+                llvmdg::CallGraph CG(M.get(), &PTA, lazy);
+                CG.build();
+                dumpCallGraph(CG);
+            } else {
+                // re-use the call-graph from PTA
+                llvmdg::CallGraph CG(PTA.getPTA()->getPG()->getCallGraph());
+                dumpCallGraph(CG);
+            }
+        }
+    } else {
+        if (!lazy) {
+            llvm::errs() << "Can build CG without PTA only with -lazy option\n";
+            return 1;
+        }
+
+        llvmdg::CallGraph CG(M.get());
+        CG.build();
         dumpCallGraph(CG);
     }
 
