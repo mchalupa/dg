@@ -263,8 +263,17 @@ int main(int argc, char *argv[]) {
                                          options.legacySecondarySlicingCriteria,
                                          criteria_are_next_instr);
         if (csvalues.empty()) {
-            llvm::errs() << "Failed mapping slicing criteria to values\n";
-            return 1;
+            llvm::errs() << "No reachable slicing criteria: '"
+                        << options.slicingCriteria << "' '"
+                        << options.legacySlicingCriteria << "'\n";
+            ::Slicer slicer(M.get(), options);
+            if (!slicer.createEmptyMain()) {
+                llvm::errs() << "ERROR: failed creating an empty main\n";
+                return 1;
+            }
+
+            maybe_print_statistics(M.get(), "Statistics after ");
+            return writer.cleanAndSaveModule(should_verify_module);
         }
 
         DBG(llvm - slicer, "Cutting off diverging branches");
@@ -304,7 +313,8 @@ int main(int argc, char *argv[]) {
 
     if (criteria_nodes.empty()) {
         llvm::errs() << "No reachable slicing criteria: '"
-                     << options.slicingCriteria << "'\n";
+                     << options.slicingCriteria << "' '"
+                     << options.legacySlicingCriteria << "'\n";
         if (annotator.shouldAnnotate()) {
             slicer.computeDependencies();
             annotator.annotate();

@@ -159,6 +159,8 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
 #endif
     exitF->addFnAttr(Attribute::NoReturn);
 
+    size_t removed = 0;
+    size_t cutoff = 0;
     for (auto& F : M) {
         std::vector<llvm::BasicBlock *> irrelevant;
         for (auto& B : F) {
@@ -176,11 +178,18 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
                 new UnreachableInst(Ctx, newB);
                 // we cannot do the replacement here, we would break the iterator
                 B->replaceAllUsesWith(newB);
-            } // else just erase it
+                ++cutoff;
+            } else {
+                // else just erase it
+                ++removed;
+            }
             B->dropAllReferences();
             B->eraseFromParent();
         }
     }
+
+    llvm::errs() << "[llvm-slicer] cutoff " << cutoff << " diverging blocks and "
+                 << removed << " completely removed\n";
 
     return true;
 }
