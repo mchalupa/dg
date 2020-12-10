@@ -49,6 +49,17 @@ static inline bool isNumber(const std::string &s) {
 
     return true;
 }
+
+static inline bool isTheVar(const llvm::Value *val, const std::string &var) {
+    auto name = valuesToVariables.find(val);
+    if (name != valuesToVariables.end()) {
+        if (name->second == var) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
                             bool isglobal = false,
                             LLVMPointerAnalysis *pta = nullptr) {
@@ -56,7 +67,19 @@ static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
         return false;
 
     if (!pta) {
-        // FIXME: try basic cases that we can decide without PTA
+        // try basic cases that we can decide without PTA
+        using namespace llvm;
+        if (auto *S = dyn_cast<StoreInst>(&I)) {
+            auto *A = S->getPointerOperand()->stripPointerCasts();
+            if (isa<AllocaInst>(A) && !isTheVar(A, var)) {
+                return false;
+            }
+        } else if (auto *L = dyn_cast<LoadInst>(&I)) {
+            auto *A = L->getPointerOperand()->stripPointerCasts();
+            if (isa<AllocaInst>(A) && !isTheVar(A, var)) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -74,15 +97,54 @@ static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
             !llvm::isa<llvm::GlobalVariable>(region.pointer.value)) {
             continue;
         }
-        auto name = valuesToVariables.find(region.pointer.value);
-        if (name != valuesToVariables.end()) {
-            if (name->second == var) {
-                return true;
-            }
+        if (isTheVar(region.pointer.value, var)) {
+            return true;
         }
     }
 
     return false;
+}
+
+static bool funHasAddrTaken(const llvm::Function *fun) {
+    using namespace llvm;
+
+    for (auto use_it = fun->use_begin(), use_end = fun->use_end();
+         use_it != use_end; ++use_it) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        Value *user = *use_it;
+#else
+        Value *user = use_it->getUser();
+#endif
+        if (auto *C = dyn_cast<CallInst>(user)) {
+            // FIXME: use getCalledOperand() and strip the casts
+            if (fun != C->getCalledFunction()) {
+                return true;
+            }
+        } else if (auto *S = dyn_cast<StoreInst>(user)) {
+            if (S->getValueOperand()->stripPointerCasts() == fun) {
+                return true;
+            } else {
+                llvm::errs() << "Unhandled function use: " << *user << "\n";
+                return true;
+            }
+            // FIXME: the function can be in a cast instruction that is just
+            // used in call,
+            //   we can detect that
+        } else {
+            llvm::errs() << "Unhandled function use: " << *user << "\n";
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool funHasAddrTaken(const llvm::Module *M, const std::string &name) {
+    const auto *fun = M->getFunction(name);
+    if (!fun) {
+        // the module does not have this function
+        return false;
+    }
+    return funHasAddrTaken(fun);
 }
 
 static bool instIsCallOf(const llvm::Instruction &I, const std::string &name,
@@ -102,13 +164,15 @@ static bool instIsCallOf(const llvm::Instruction &I, const std::string &name,
     auto *V = C->getCalledValue()->stripPointerCasts();
 #endif
 
-    // FIXME: we can check whether the call of "name" is taken even without PTA
-    if (!pta)
-        return true; // may be, we do not know...
+    if (!pta) {
+        auto *M = I.getParent()->getParent()->getParent();
+        return funHasAddrTaken(M, name);
+    }
 
     auto pts = pta->getLLVMPointsTo(V);
     if (pts.empty()) {
-        return true; // may be, we do not know...
+        auto *M = I.getParent()->getParent()->getParent();
+        return funHasAddrTaken(M, name);
     }
 
     for (const auto &ptr : pts) {
@@ -420,7 +484,7 @@ static void initDebugInfo(LLVMDependenceGraph &dg) {
 
 static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
         llvm::Module &M, const std::string &slicingCriteria,
-        bool criteria_are_next_instr, LLVMPointerAnalysis *pta) {
+        bool criteria_are_next_instr, LLVMPointerAnalysis *pta = nullptr) {
     std::vector<std::string> criteria = splitList(slicingCriteria, ';');
     assert(!criteria.empty() && "Did not get slicing criteria");
 
@@ -569,9 +633,9 @@ findSecondarySlicingCriteria(LLVMDependenceGraph &dg,
                              const std::set<const llvm::Value *> &primary,
                              const std::set<const llvm::Value *> &secondary) {
     std::set<const llvm::Value *> result;
-
     std::set<const llvm::BasicBlock *> visited;
     ADT::QueueLIFO<const llvm::BasicBlock *> queue;
+
     for (auto *c : primary) {
         auto *I = llvm::dyn_cast<llvm::Instruction>(c);
         // the criterion instr may be a global variable and in that
@@ -580,7 +644,6 @@ findSecondarySlicingCriteria(LLVMDependenceGraph &dg,
         if (!I)
             continue;
 
-        // FIXME: don't fuck with the type system... rewrite the whole code...
         processBlock(dg, I->getParent(), visited, queue, secondary, result, I);
 
         // queue local predecessors
