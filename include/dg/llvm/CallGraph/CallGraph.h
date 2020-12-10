@@ -117,6 +117,67 @@ class DGCallGraphImpl : public CallGraphImpl {
     };
 };
 
+// FIXME: copied from llvm-utils.h
+namespace {
+inline bool isPointerOrIntegerTy(const llvm::Type *Ty) {
+    return Ty->isPointerTy() || Ty->isIntegerTy();
+}
+
+// can the given function be called by the given call inst?
+enum class CallCompatibility {
+    STRICT,       // require full compatibility
+    LOOSE,        // ignore some incompatible patterns that usually work
+                  // in practice, e.g., calling a function of 2 arguments
+                  // with 3 arguments.
+    MATCHING_ARGS // check only that matching arguments are compatible,
+                  // ignore the number of arguments, etc.
+};
+
+inline bool
+callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI,
+                 CallCompatibility policy = CallCompatibility::LOOSE) {
+    using namespace llvm;
+
+    if (policy != CallCompatibility::MATCHING_ARGS) {
+        if (F->isVarArg()) {
+            if (F->arg_size() > CI->getNumArgOperands()) {
+                return false;
+            }
+        } else if (F->arg_size() != CI->getNumArgOperands()) {
+            if (policy == CallCompatibility::STRICT ||
+                F->arg_size() > CI->getNumArgOperands()) {
+                // too few arguments
+                return false;
+            }
+        }
+
+        if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType())) {
+            // it showed up that the loosless bitcast is too strict
+            // alternative since we can use the constexpr castings
+            if (!(isPointerOrIntegerTy(F->getReturnType()) &&
+                  isPointerOrIntegerTy(CI->getType()))) {
+                return false;
+            }
+        }
+    }
+
+    size_t idx = 0;
+    auto max_idx = CI->getNumArgOperands();
+    for (auto A = F->arg_begin(), E = F->arg_end(); idx < max_idx && A != E;
+         ++A, ++idx) {
+        Type *CTy = CI->getArgOperand(idx)->getType();
+        Type *ATy = A->getType();
+
+        if (!(isPointerOrIntegerTy(CTy) && isPointerOrIntegerTy(ATy)))
+            if (!CTy->canLosslesslyBitCastTo(ATy)) {
+                return false;
+            }
+    }
+
+    return true;
+}
+} // anonymous namespace
+
 ///
 /// Callgraph that is built based on the results of pointer analysis.
 /// This class has been superseeded by LazyLLVMCallGraph.
@@ -138,7 +199,7 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
 #endif
                 for (const auto &ptr : pts) {
                     auto *F = llvm::dyn_cast<llvm::Function>(ptr.value);
-                    if (!F)
+                    if (!F || !callIsCompatible(F, C))
                         continue;
 
                     _cg.addCall(parent, F);
@@ -224,67 +285,6 @@ inline bool funHasAddressTaken(const llvm::Function *fun) {
     }
     return false;
 }
-
-// FIXME: copied from llvm-utils.h
-namespace {
-inline bool isPointerOrIntegerTy(const llvm::Type *Ty) {
-    return Ty->isPointerTy() || Ty->isIntegerTy();
-}
-
-// can the given function be called by the given call inst?
-enum class CallCompatibility {
-    STRICT,       // require full compatibility
-    LOOSE,        // ignore some incompatible patterns that usually work
-                  // in practice, e.g., calling a function of 2 arguments
-                  // with 3 arguments.
-    MATCHING_ARGS // check only that matching arguments are compatible,
-                  // ignore the number of arguments, etc.
-};
-
-inline bool
-callIsCompatible(const llvm::Function *F, const llvm::CallInst *CI,
-                 CallCompatibility policy = CallCompatibility::LOOSE) {
-    using namespace llvm;
-
-    if (policy != CallCompatibility::MATCHING_ARGS) {
-        if (F->isVarArg()) {
-            if (F->arg_size() > CI->getNumArgOperands()) {
-                return false;
-            }
-        } else if (F->arg_size() != CI->getNumArgOperands()) {
-            if (policy == CallCompatibility::STRICT ||
-                F->arg_size() > CI->getNumArgOperands()) {
-                // too few arguments
-                return false;
-            }
-        }
-
-        if (!F->getReturnType()->canLosslesslyBitCastTo(CI->getType())) {
-            // it showed up that the loosless bitcast is too strict
-            // alternative since we can use the constexpr castings
-            if (!(isPointerOrIntegerTy(F->getReturnType()) &&
-                  isPointerOrIntegerTy(CI->getType()))) {
-                return false;
-            }
-        }
-    }
-
-    size_t idx = 0;
-    auto max_idx = CI->getNumArgOperands();
-    for (auto A = F->arg_begin(), E = F->arg_end(); idx < max_idx && A != E;
-         ++A, ++idx) {
-        Type *CTy = CI->getArgOperand(idx)->getType();
-        Type *ATy = A->getType();
-
-        if (!(isPointerOrIntegerTy(CTy) && isPointerOrIntegerTy(ATy)))
-            if (!CTy->canLosslesslyBitCastTo(ATy)) {
-                return false;
-            }
-    }
-
-    return true;
-}
-} // anonymous namespace
 
 ///
 /// \brief The LazyLLVMCallGraph class
@@ -398,14 +398,17 @@ class LazyLLVMCallGraph : public CallGraphImpl {
                 auto pts = _pta->getLLVMPointsTo(_getCalledValue(C));
                 for (const auto &ptr : pts) {
                     if (auto *F = llvm::dyn_cast<llvm::Function>(ptr.value)) {
-                        _cg.addCall(parent, F);
-                        queue.push(F);
+                        if (callIsCompatible(F, C)) {
+                            _cg.addCall(parent, F);
+                            queue.push(F);
+                        }
                     }
                 }
             }
         }
     }
 
+    // FIXME: if we have _pta, use the callgraph from _pta if available
     const std::vector<const llvm::CallInst *> &
     getCallsOfAddressTaken(const llvm::Function *F) {
         assert(funHasAddressTaken(F));
