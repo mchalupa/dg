@@ -12,6 +12,9 @@
 #endif
 
 #include <llvm/ADT/StringRef.h>
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
+#include <llvm/IR/InstIterator.h>
+#endif
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
@@ -36,6 +39,19 @@ bool array_match(llvm::StringRef name, const T& names) {
 
     return false;
 }
+
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
+namespace llvm {
+class Function;
+static inline iterator_range<inst_iterator> instructions(Function &F) {
+    return make_range(inst_begin(F), inst_end(F));
+}
+
+static inline iterator_range<const_inst_iterator> instructions(const Function &F) {
+    return make_range(inst_begin(F), inst_end(F));
+}
+} // llvm
+#endif
 
 // The description of a C variable
 struct CVariableDecl {
