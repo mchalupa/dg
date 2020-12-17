@@ -36,7 +36,9 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
 
-//#include <llvm/IR/LLVMContext.h>
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
+#include <llvm/IR/LLVMContext.h>
+#endif
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>

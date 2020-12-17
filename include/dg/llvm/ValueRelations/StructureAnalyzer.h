@@ -790,10 +790,14 @@ public:
     }
 
     const std::vector<CallRelation>& getCallRelationsFor(const llvm::Instruction* inst) const {
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
+        const llvm::Function* function = inst->getParent()->getParent();
+#else
         const llvm::Function* function = inst->getFunction();
+#endif
         assert(function);
         return callRelationsMap.at(function);
-	}
+    }
 };
 
 } // namespace vr

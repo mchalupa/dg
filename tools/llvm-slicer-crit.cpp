@@ -22,12 +22,16 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/CFG.h>
-#include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IR/DebugInfoMetadata.h>
+#include <llvm/IR/InstIterator.h>
+#include <llvm/IR/Instructions.h>
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
+#include <llvm/IR/LLVMContext.h>
+#endif
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 #if (__clang__)
 #pragma clang diagnostic pop // ignore -Wunused-parameter
@@ -126,12 +130,13 @@ static bool instIsCallOf(LLVMDependenceGraph& dg,
 
 static bool fileMatch(const std::string& file,
                       const llvm::Instruction& I) {
-     auto *subprog = I.getParent()->getParent()->getSubprogram();
-     if (subprog->getFile()->getFilename() != file) {
-         return false;
-     }
-
-    return true;
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
+    const auto *F = I.getParent()->getParent();
+    const auto *subprog = llvm::cast<llvm::DISubprogram>(F->getMetadata(llvm::LLVMContext::MD_dbg));
+#else
+    const auto *subprog = I.getFunction()->getSubprogram();
+#endif
+    return subprog->getFile()->getFilename() == file;
 }
 
 static bool fileMatch(const std::string& file,
