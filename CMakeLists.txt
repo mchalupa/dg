@@ -1,11 +1,12 @@
-cmake_minimum_required(VERSION 2.8)
-project(dg)
+cmake_minimum_required(VERSION 3.1)
+project(dg CXX)
 
 include(CTest)
 
 # we need at least C++11 standard
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED on)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
