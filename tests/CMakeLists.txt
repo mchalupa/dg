@@ -104,6 +104,16 @@ set(LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}" CACHE PATH
                    "contains lli ${LLVM_PACKAGE_VERSION}, etc." FORCE)
 
 # --------------------------------------------------
+# cmd-arguments-tests
+# --------------------------------------------------
+
+# TODO: It's not possible to add dependency on all so that we test every
+# buildable binary. (https://gitlab.kitware.com/cmake/cmake/-/issues/8438)
+add_test(NAME cmd-arguments-test
+         COMMAND "${CMAKE_CURRENT_LIST_DIR}/cmd-args.py"
+         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/tools")
+
+# --------------------------------------------------
 # points-to-test
 # --------------------------------------------------
 add_catch_test(points-to-test.cpp)
