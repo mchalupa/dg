@@ -40,7 +40,7 @@ configs = {
 
 def command(cmd):
     if debug:
-        print("> " + "  ".join(cmd))
+        print("> " + "  ".join(cmd), flush=True)
         p = Popen(cmd)
     else:
         p = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
