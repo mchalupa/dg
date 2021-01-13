@@ -58,6 +58,20 @@ LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
         return createIntrinsic(CInst);
     }
 
+    // mempy/memmove
+    const auto& funname = func->getName();
+    if (funname.equals("memcpy") ||
+        funname.equals("__memcpy_chk") ||
+        funname.equals("memove")) {
+
+        auto dest = CInst->getOperand(0);
+        auto src = CInst->getOperand(1);
+        auto lenVal = llvmutils::getConstantValue(CInst->getOperand(2));
+        return PS.create<PSNodeType::MEMCPY>(getOperand(src),
+                                             getOperand(dest),
+                                             lenVal);
+    }
+
     return {createUnknownCall()};
 }
 
