@@ -21,6 +21,8 @@ struct LLVMDataDependenceAnalysisOptions :
         // to the offset given by the operand 2
         functionModelAddDef("memcpy", {0, Offset(0), 2});
         functionModelAddUse("memcpy", {1, Offset(0), 2});
+        functionModelAddDef("__memcpy_chk", {0, Offset(0), 2});
+        functionModelAddUse("__memcpy_chk", {1, Offset(0), 2});
         functionModelAddDef("llvm.memcpy.p0i8.p0i8.i64", {0, Offset(0), 2});
         functionModelAddUse("llvm.memcpy.p0i8.p0i8.i64", {1, Offset(0), 2});
         functionModelAddDef("llvm.memcpy.p0i8.p0i8.i32", {0, Offset(0), 2});
