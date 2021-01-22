@@ -179,20 +179,27 @@ private:
 
         auto& info = it.first->second;
 
-        if (getOptions().ntscd2CD()) {
+        const auto& opts = getOptions();
+        if (opts.ntscd2CD()) {
             DBG(cda, "Using the NTSCD 2 algorithm");
             dg::NTSCD2 ntscd;
             auto result = ntscd.compute(info.graph);
             info.controlDependence = std::move(result.first);
             info.revControlDependence = std::move(result.second);
-        } else if (getOptions().ntscdRanganathCD()) {
+        } else if (opts.ntscdRanganathCD() || opts.ntscdRanganathOrigCD()) {
             DBG(cda, "Using the NTSCD Ranganath algorithm");
             dg::NTSCDRanganath ntscd;
-            auto result = ntscd.compute(info.graph);
-            info.controlDependence = std::move(result.first);
-            info.revControlDependence = std::move(result.second);
+	        if (opts.ntscdRanganathOrigCD()) {
+                auto result = ntscd.compute(info.graph, /* doFixpoint= */ false);
+                info.controlDependence = std::move(result.first);
+                info.revControlDependence = std::move(result.second);
+	        } else {
+                auto result = ntscd.compute(info.graph);
+                info.controlDependence = std::move(result.first);
+                info.revControlDependence = std::move(result.second);
+	        }
         } else {
-            assert(getOptions().ntscdCD() && "Wrong analysis type");
+            assert(opts.ntscdCD() && "Wrong analysis type");
             dg::NTSCD ntscd;
             auto result = ntscd.compute(info.graph);
             info.controlDependence = std::move(result.first);
