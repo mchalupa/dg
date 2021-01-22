@@ -57,6 +57,7 @@ tags
 *.i
 
 tests/*-test
+tests/fuzzing/regressions/
 
 # clang
 .clangd

@@ -19,7 +19,7 @@ void LLVMControlDependenceAnalysis::initializeImpl(LLVMPointerAnalysis *pta,
         }
         _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD() || getOptions().ntscd2CD() ||
-               getOptions().ntscdRanganathCD()) {
+               getOptions().ntscdRanganathCD() || getOptions().ntscdRanganathOrigCD()) {
         if (icfg) {
             _impl.reset(new llvmdg::InterproceduralNTSCD(_module, _options, pta, cg));
         } else {
