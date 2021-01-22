@@ -187,9 +187,15 @@ private:
         } else if (getOptions().ntscdRanganathCD()) {
             DBG(cda, "Using the NTSCD Ranganath algorithm");
             dg::NTSCDRanganath ntscd;
-            auto result = ntscd.compute(info.graph);
-            info.controlDependence = std::move(result.first);
-            info.revControlDependence = std::move(result.second);
+	    if (getOptions().ntscdRanganathOrigCD()) {
+                auto result = ntscd.compute(info.graph, /* doFixpoint= */ false);
+                info.controlDependence = std::move(result.first);
+                info.revControlDependence = std::move(result.second);
+	    } else {
+                auto result = ntscd.compute(info.graph);
+                info.controlDependence = std::move(result.first);
+                info.revControlDependence = std::move(result.second);
+	    }
         } else {
             assert(getOptions().ntscdCD() && "Wrong analysis type");
             dg::NTSCD ntscd;

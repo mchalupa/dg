@@ -180,13 +180,14 @@ int main(int argc, char *argv[])
     if (dod) {
         dg::DOD dod;
         start = clock();
-        dod.compute(G);
+        auto rel = dod.compute(G);
         end = clock();
         elapsed = end - start;
 
         std::cout << "dod: "
                   << static_cast<float>(elapsed) / CLOCKS_PER_SEC << " s ("
                   << elapsed << " ticks)\n";
+	std::cout << "dod size: " << rel.first.size() << "\n";
     }
     if (dod_ranganath) {
         dg::DODRanganath ntscd;
