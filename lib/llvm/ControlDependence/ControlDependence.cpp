@@ -12,7 +12,7 @@ void LLVMControlDependenceAnalysis::initializeImpl() {
     if (getOptions().standardCD()) {
         _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD() || getOptions().ntscd2CD() ||
-               getOptions().ntscdRanganathCD()) {
+               getOptions().ntscdRanganathCD() || getOptions().ntscdRanganathOrigCD()) {
         _impl.reset(new llvmdg::NTSCD(_module, _options));
     } else if (getOptions().strongCC()) {
         _impl.reset(new llvmdg::StrongControlClosure(_module, _options));
