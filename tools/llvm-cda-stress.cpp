@@ -100,8 +100,11 @@ llvm::cl::opt<unsigned> En("edges",
     llvm::cl::init(0), llvm::cl::cat(SlicingOpts));
 
 void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
-    if (Enum == 0 || Enum > 2*Vnum)
+    // restrict only to graphs that have at most 2 successors
+    if (Enum == 0)
         Enum = Vnum;
+    if (Enum > 2*Vnum)
+        Enum = 2*Vnum;
 
     std::vector<CDNode*> nodes;
     nodes.push_back(nullptr);
@@ -116,16 +119,31 @@ void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> ids(1,Vnum);
 
-    unsigned n = 0;
-    while (Enum > 0 && ++n < 10*Enum) {
+   //unsigned n = 0;
+   //while (Enum > 0 && ++n < 10*Enum) {
+   //    auto id1 = ids(rng);
+   //    if (nodes[id1]->successors().size() > 1)
+   //        continue;
+   //    auto id2 = ids(rng);
+   //    G.addNodeSuccessor(*nodes[id1], *nodes[id2]);
+   //    //std::cout << id1 << " -> " << id2 << "\n";
+   //    --Enum;
+   //}
+
+    while (Enum > 0) {
         auto id1 = ids(rng);
-        if (nodes[id1]->successors().size() > 1)
+        while (nodes[id1]->successors().size() > 1) {
+            ++id1;
+            if (id1 > Vnum)
+                id1 = 1;
             continue;
+        }
         auto id2 = ids(rng);
         G.addNodeSuccessor(*nodes[id1], *nodes[id2]);
         //std::cout << id1 << " -> " << id2 << "\n";
         --Enum;
     }
+
 }
 
 int main(int argc, char *argv[])
