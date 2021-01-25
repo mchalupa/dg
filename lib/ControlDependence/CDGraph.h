@@ -126,6 +126,13 @@ public:
         }
     }
 
+    void removeNodeSuccessor(CDNode& nd, CDNode& succ) {
+        nd.removeSuccessor(&succ);
+        if (nd.successors().size() < 2) {
+            _predicates.erase(&nd);
+        }
+    }
+
     node_iterator begin() { return node_iterator(_nodes.begin()); }
     node_iterator end() { return node_iterator(_nodes.end()); }
     nodes_range nodes() { return nodes_range(_nodes); }

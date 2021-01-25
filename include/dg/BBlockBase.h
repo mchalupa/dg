@@ -53,6 +53,29 @@ public:
         s->_predecessors.push_back(static_cast<ElemT*>(this));
     }
 
+    void removeSuccessor(ElemT *s) {
+        for (unsigned idx = 0; idx < _successors.size(); ++idx) {
+            if (_successors[idx] == s) {
+                // remove this node from sucessor's predecessors
+                for (unsigned idx2 = 0; idx2 < s->_predecessors.size(); ++idx2) {
+                    if (s->_predecessors[idx2] == this) {
+                        s->_predecessors[idx2] = s->_predecessors.back();
+                        s->_predecessors.pop_back();
+                        break;
+                    }
+                }
+
+                _successors[idx] = _successors.back();
+                _successors.pop_back();
+                break;
+            }
+        }
+
+        s->_predecessors.push_back(static_cast<ElemT*>(this));
+    }
+
+
+
     ElemT *getSinglePredecessor() {
         return _predecessors.size() == 1 ? _predecessors.back() : nullptr;
     }
