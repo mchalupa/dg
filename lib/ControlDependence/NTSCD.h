@@ -176,10 +176,9 @@ public:
 };
 
 /// Implementation of the original algorithm for the computation of NTSCD
-/// that is due to Ranganath et al. This algorithm is imprecise and
-/// can compute over-approximation of NTSCD (it behaves differently when
+/// that is due to Ranganath et al. This algorithm is wrong and
+/// can compute incorrect results (it behaves differently when
 /// LIFO or FIFO or some other type of queue is used).
-/// However, the algorithm should be correct AFAIK.
 class NTSCDRanganath {
     using ResultT = std::map<CDNode *, std::set<CDNode *>>;
 
@@ -262,6 +261,7 @@ public:
 
         // (2) calculate all-path reachability
         if (doFixpoint) {
+	    DBG(cda, "Performing fixpoint of Ranganath's algorithm")
             bool changed;
             do {
                 changed = false;
@@ -270,6 +270,7 @@ public:
                 }
             } while (changed);
         } else {
+	    DBG(cda, "Running the original (wrong) Ranganath's algorithm")
             while (!workbag.empty()) {
                 auto *n = workbag.pop();
                 //DBG(cda, "Processing node: " << n->getID());
