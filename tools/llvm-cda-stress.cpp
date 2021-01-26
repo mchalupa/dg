@@ -136,8 +136,12 @@ void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
     // restrict only to graphs that have at most 2 successors
     if (Enum == 0)
         Enum = Vnum;
-    if (Enum > 2*Vnum)
+    if (Enum > 2*Vnum) {
         Enum = 2*Vnum;
+        std::cerr << "Number of edges too big for " << Vnum
+                  << " nodes (each node can have at most two successors."
+                  << " Decreasing to " << Enum << "\n";
+    }
 
     std::vector<CDNode*> nodes;
     nodes.push_back(nullptr);
@@ -168,14 +172,27 @@ void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
 
 }
 
-void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1, unsigned Vnum = 100, unsigned Enum = 0) {
+void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1,
+                                    unsigned Vnum = 100, unsigned Enum = 0) {
     // restrict only to graphs that have at most 2 successors
-    if (Vnum < 3*irredcores)
+    if (Enum == 0)
+        Enum = 100;
+    if (Vnum < 3*irredcores) {
         Vnum = 3*irredcores;
-    if (Enum > 2*Vnum)
+        std::cerr << "Number of nodes too low for " << irredcores
+                  << " irreducible cores. Increasing to " << Vnum << "\n";
+    }
+    if (Enum > 2*Vnum) {
         Enum = 2*Vnum;
-    if (Enum < 4*irredcores)
-        Enum = 4*irredcores;
+        std::cerr << "Number of edges too big for " << Vnum
+                  << " nodes (each node can have at most two successors."
+                  << " Decreasing to " << Enum << "\n";
+    }
+    if (Enum < 4*irredcores) {
+        Enum = 6*irredcores;
+        std::cerr << "Number of edges too low for " << irredcores
+                  << " irreducible cores. Increasing to " << Enum << "\n";
+    }
 
     std::vector<CDNode*> nodes;
     std::vector<std::pair<CDNode*,CDNode *>> edges;
