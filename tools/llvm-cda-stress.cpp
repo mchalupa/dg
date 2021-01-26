@@ -114,6 +114,11 @@ llvm::cl::opt<unsigned> En("edges",
     llvm::cl::desc("The number of edges (default=1.5*nodes)."),
     llvm::cl::init(0), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> noselfloops("no-self-loops",
+    llvm::cl::desc("Forbid generating self-loops (default=false)."),
+    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+
 static void dumpToDot(CDGraph& G, const std::string& path) {
     std::ofstream out;
     out.open(path);
@@ -219,6 +224,8 @@ void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
             continue;
         }
         auto id2 = ids(rng);
+        if (noselfloops && id2 == id1)
+            continue;
         G.addNodeSuccessor(*nodes[id1], *nodes[id2]);
         //std::cout << id1 << " -> " << id2 << "\n";
         --Enum;
@@ -342,6 +349,8 @@ void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1,
             while (true) {
                 if (nodes[id1]->successors().size() < 2) {
                     auto id2 = (ids(rngid) % nodesnum) + 1;
+                    if (noselfloops && id1 == id2)
+                        continue;
                     G.addNodeSuccessor(*nodes[id1], *nodes[id2]);
                     //std::cout << id1 << " -> " << id2 << "\n";
                     assert(Enum != 0);
@@ -430,13 +439,14 @@ int main(int argc, char *argv[])
     if (dod) {
         dg::DOD dod;
         start = clock();
-        dod.compute(G);
+        const auto& result = dod.compute(G);
         end = clock();
         elapsed = end - start;
 
         std::cout << "dod: "
                   << static_cast<float>(elapsed) / CLOCKS_PER_SEC << " s ("
                   << elapsed << " ticks)\n";
+        std::cout << "dod size: " << result.first.size() << "\n";
     }
     if (dod_ranganath) {
         dg::DODRanganath ntscd;
