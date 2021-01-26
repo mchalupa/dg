@@ -1,5 +1,6 @@
 #include <cassert>
 #include <iostream>
+#include <fstream>
 #include <ctime>
 #include <random>
 
@@ -48,6 +49,10 @@ llvm::cl::opt<unsigned> irrcores("irreducible-cores",
                    "The resulting graph is going to be irreducible if N > 0\n"
                    "with hight probability (default=0)."),
     llvm::cl::init(0), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<std::string> todot("dot",
+    llvm::cl::desc("Dump the generated graph to dot."),
+    llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> total_only("total-only",
     llvm::cl::desc("Do not generate output other than the total time (default=false)."),
@@ -104,6 +109,28 @@ llvm::cl::opt<unsigned> Vn("nodes",
 llvm::cl::opt<unsigned> En("edges",
     llvm::cl::desc("The number of edges (default=1.5*nodes)."),
     llvm::cl::init(0), llvm::cl::cat(SlicingOpts));
+
+static void dumpToDot(CDGraph& G, const std::string& path) {
+    std::ofstream out;
+    out.open(path);
+
+    out << "digraph CD_graph {\n";
+
+    // dump nodes
+    for (auto *node : G) {
+        out << "  N" << node->getID() << "\n";
+    }
+
+    // dump edges
+    for (auto *node : G) {
+        for (auto *succ : node->successors()) {
+            out << "  N" << node->getID() << " -> " << "N" << succ->getID() << "\n";
+        }
+    }
+
+    out << "}\n";
+    out.close();
+}
 
 void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
     // restrict only to graphs that have at most 2 successors
@@ -269,6 +296,10 @@ int main(int argc, char *argv[])
         generateRandomIrreducibleGraph(G, irrcores, Vn, En);
     } else {
         generateRandomGraph(G, Vn, En);
+    }
+
+    if (todot != "") {
+        dumpToDot(G, todot);
     }
 
     clock_t start, end, elapsed;
