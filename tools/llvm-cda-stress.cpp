@@ -293,12 +293,13 @@ void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1,
 
     while (Enum > 0 || Vnum > 0) {
         auto op = randop(rngop);
-        std::cout << op << " " << Enum << " " << Vnum << std::endl;
         if (op == 1 && Vnum > 0 && Enum > 0) { // split edge
             auto eid = eids(rnge) % edges.size();
+            auto edge = edges[eid];
+
             auto& nd = G.createNode();
             nodes.push_back(&nd);
-            auto edge = edges[eid];
+
             assert(edge.first->hasSuccessor(edge.second));
             assert(edge.second->hasPredecessor(edge.first));
             G.removeNodeSuccessor(*edge.first, *edge.second);
@@ -306,6 +307,7 @@ void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1,
             assert(!edge.second->hasPredecessor(edge.first));
             G.addNodeSuccessor(*edge.first, nd);
             G.addNodeSuccessor(nd, *edge.second);
+
             edges[eid] = {edge.first, &nd};
             edges.emplace_back(&nd, edge.second);
             assert(Enum != 0);
@@ -334,18 +336,24 @@ void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1,
                     id = 1;
             }
         } else if (Enum > 0) {
-            auto nodesnum = (nodes.size() - 1);
-            auto id1 = (ids(rngid) % nodesnum) + 1;
-            while (nodes[id1]->successors().size() > 1) {
+            auto nodesnum = nodes.size() - 1;
+            auto id1 = (ids(rngid) % (nodesnum)) + 1;
+            auto maxid = id1 - 1 > 0 ? id1 - 1 : nodesnum;
+            while (true) {
+                if (nodes[id1]->successors().size() < 2) {
+                    auto id2 = (ids(rngid) % nodesnum) + 1;
+                    G.addNodeSuccessor(*nodes[id1], *nodes[id2]);
+                    //std::cout << id1 << " -> " << id2 << "\n";
+                    assert(Enum != 0);
+                    --Enum;
+                    break;
+                }
+                if (id1 == maxid)
+                    break;
                 ++id1;
                 if (id1 > nodesnum)
                     id1 = 1;
             }
-            auto id2 = (ids(rngid) % nodesnum) + 1;
-            G.addNodeSuccessor(*nodes[id1], *nodes[id2]);
-            //std::cout << id1 << " -> " << id2 << "\n";
-            assert(Enum != 0);
-            --Enum;
         } else if (Vnum > 0) {
             assert(Enum == 0);
             auto& nd = G.createNode();
