@@ -47,6 +47,8 @@ private:
             assert(data[node].colors.get(target->getID()) && "A non-colored node in queue");
 
             for (auto *pred : node->predecessors()) {
+                if (pred == target)
+                    continue;
                 auto& D = data[pred];
                 --D.counter;
                 if (D.counter == 0) {
