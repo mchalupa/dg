@@ -298,7 +298,12 @@ void generateRandomIrreducibleGraph(CDGraph& G, unsigned irredcores = 1,
             auto eid = eids(rnge) % edges.size();
             auto& nd = G.createNode();
             nodes.push_back(&nd);
+            auto& edge = edges[eid];
+            assert(edge.first->hasSuccessor(edge.second));
+            assert(edge.second->hasPredecessor(edge.first));
             G.removeNodeSuccessor(*edges[eid].first, *edges[eid].second);
+            assert(!edge.first->hasSuccessor(edge.second));
+            assert(!edge.second->hasPredecessor(edge.first));
             G.addNodeSuccessor(*edges[eid].first, nd);
             G.addNodeSuccessor(nd, *edges[eid].second);
             edges[eid] = {edges[eid].first, &nd};
@@ -364,6 +369,7 @@ int main(int argc, char *argv[])
     if (fromdot != "") {
         std::cout << "Loading the graph from " << fromdot << "\n";
         loadFromDot(G, fromdot);
+        std::cout << "Loaded graph with " << G.size() << " nodes\n";
     } else {
         if (En == 0)
             En = (unsigned)1.5*Vn;
