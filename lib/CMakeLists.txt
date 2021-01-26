@@ -96,7 +96,8 @@ add_library(dgllvmpta SHARED
 	llvm/PointerAnalysis/Calls.cpp
 	llvm/PointerAnalysis/Threads.cpp
 )
-target_link_libraries(dgllvmpta PUBLIC dgpta)
+target_link_libraries(dgllvmpta PUBLIC dgpta
+                                PUBLIC ${llvm}) # only for shared LLVM
 
 add_library(dgllvmforkjoin SHARED
 	llvm/ForkJoin/ForkJoin.h
@@ -145,7 +146,7 @@ add_library(dgllvmthreadregions SHARED
             llvm/ThreadRegions/MayHappenInParallel.cpp)
 target_include_directories(dgllvmthreadregions
         PUBLIC ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
-target_link_libraries(dgllvmthreadregions INTERFACE dgllvmpta
+target_link_libraries(dgllvmthreadregions PUBLIC dgllvmpta
                                           PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmcda SHARED
@@ -165,9 +166,9 @@ add_library(dgllvmcda SHARED
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/ControlDependence.h
             ${CMAKE_SOURCE_DIR}/include/dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h
             )
-target_link_libraries(dgllvmcda INTERFACE dgllvmpta
-				INTERFACE ${llvm_analysis}
+target_link_libraries(dgllvmcda PUBLIC dgllvmpta
                                 PUBLIC dgcda
+                                INTERFACE ${llvm_analysis} # only for static LLVM
                                 PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED
@@ -189,6 +190,11 @@ add_library(dgllvmdg SHARED
 	llvm/DefUse/DefUse.cpp
 	llvm/DefUse/DefUse.h
 )
+target_link_libraries(dgllvmdg
+			PUBLIC dgllvmpta
+			PUBLIC dgllvmdda
+			PUBLIC dgllvmthreadregions
+			PUBLIC dgllvmcda)
 
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
@@ -196,54 +202,10 @@ add_library(dgllvmsdg SHARED
 
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 )
-target_link_libraries(dgllvmsdg
-		      PUBLIC dgsdg
-		      PUBLIC dgllvmpta
-		      PUBLIC dgllvmdda
-		      PUBLIC dgllvmcda)
-
-# Get proper shared-library behavior (where symbols are not necessarily
-# resolved when the shared library is linked) on OS X.
-if(APPLE)
-  set_target_properties(dgllvmdg PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-
-  set_target_properties(dgllvmsdg PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-
-  set_target_properties(dgllvmpta PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-
-  set_target_properties(dgllvmdda PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-
-  set_target_properties(dgllvmcda PROPERTIES
-    LINK_FLAGS "-undefined dynamic_lookup"
-  )
-endif(APPLE)
-
-if (APPLE)
-	target_link_libraries(dgllvmdg
-				PUBLIC dgllvmpta
-				PUBLIC dgllvmdda
-				PUBLIC dgllvmthreadregions
-				PUBLIC dgllvmcda
-				PRIVATE ${llvm_support}
-				PRIVATE ${llvm_analysis}
-				PRIVATE ${llvm_irreader}
-				PRIVATE ${llvm_bitwriter}
-				PRIVATE ${llvm_core})
-else()
-	target_link_libraries(dgllvmdg
-				PUBLIC dgllvmpta
-				PUBLIC dgllvmdda
-				PUBLIC dgllvmthreadregions
-				PUBLIC dgllvmcda)
-endif(APPLE)
+target_link_libraries(dgllvmsdg PUBLIC dgsdg
+                                PUBLIC dgllvmpta
+                                PUBLIC dgllvmdda
+                                PUBLIC dgllvmcda)
 
 install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda dgcda
                 dgllvmpta dgllvmdda dgpta dgdda dganalysis

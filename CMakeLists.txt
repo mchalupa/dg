@@ -12,7 +12,13 @@ OPTION(LLVM_DG "Support for LLVM Dependency graph" ON)
 OPTION(ENABLE_CFG "Add support for CFG edges to the graph" ON)
 OPTION(NO_EXCEPTIONS "Compile with -fno-exceptions (ON by default)" ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+    message(STATUS "Build type not set. Setting default.")
+    set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE STRING "" FORCE)
+endif()
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "RelWithDebInfo"
+                                                     "MinSizeRel" "Release")
 
 if (LLVM_DG)
 	# for llvm dg we need cfg and postdom edges
@@ -67,10 +73,10 @@ if (LLVM_DG)
 	if (LLVM_LINK_DYLIB)
 		message(STATUS "LLVM linking: dynamic")
 		if (${LLVM_PACKAGE_VERSION} VERSION_LESS "3.8")
-			set(llvm_core LLVM-${LLVM_PACKAGE_VERSION})
+			set(llvm LLVM-${LLVM_PACKAGE_VERSION})
 		else()
 			# only LLVM 3.8+ provide unversioned library
-			set(llvm_core LLVM)
+			set(llvm LLVM)
 		endif()
 	else()
 		message(STATUS "LLVM linking: static")
