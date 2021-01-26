@@ -208,11 +208,6 @@ if (NO_EXCEPTIONS)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 endif()
 
-if (USE_CLANG_SANITIZERS)
-	message(WARNING "USE_CLANG_SANITIZERS has been renamed to USE_SANITIZERS")
-	set(USE_SANITIZERS on)
-endif()
-
 if (USE_SANITIZERS)
 	set(CMAKE_REQUIRED_FLAGS "-fsanitize=undefined,address") # for linker
 	check_cxx_compiler_flag("-fsanitize=undefined,address" sanitizers_work)
