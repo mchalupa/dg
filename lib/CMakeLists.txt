@@ -76,6 +76,9 @@ add_library(dgsdg SHARED
 target_link_libraries(dgsdg PUBLIC dgpta
                             PUBLIC dgdda)
 
+install(TARGETS dganalysis dgcda dgpta dgdda dgsdg
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
 if (LLVM_DG)
 
 add_library(dgllvmpta SHARED
@@ -207,9 +210,8 @@ target_link_libraries(dgllvmsdg PUBLIC dgsdg
                                 PUBLIC dgllvmdda
                                 PUBLIC dgllvmcda)
 
-install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda dgcda
-                dgllvmpta dgllvmdda dgpta dgdda dganalysis
-                dgllvmforkjoin dgsdg dgllvmsdg
+install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
+                dgllvmpta dgllvmdda dgllvmforkjoin dgllvmsdg
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endif(LLVM_DG)
