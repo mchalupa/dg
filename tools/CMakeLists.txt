@@ -145,6 +145,9 @@ endif (HAVE_SVF)
 
 	add_executable(llvm-vr-dump llvm-vr-dump.cpp)
 	target_link_libraries(llvm-vr-dump
+				# dynamic LLVM
+				PRIVATE ${llvm}
+				# static LLVM
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}
@@ -152,6 +155,9 @@ endif (HAVE_SVF)
 
 	add_executable(llvm-to-source llvm-to-source.cpp)
 	target_link_libraries(llvm-to-source
+				# dynamic LLVM
+				PRIVATE ${llvm}
+				# static LLVM
 				PRIVATE ${llvm_core}
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_support})
