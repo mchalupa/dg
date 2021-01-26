@@ -19,7 +19,7 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS}
 
 # --------------------------------------------------
 # precompile Catch2 main
-# -------------------------------------------------
+# --------------------------------------------------
 add_library(catch-main OBJECT catch-main.cpp)
 
 macro(add_catch_test TEST_FILE)

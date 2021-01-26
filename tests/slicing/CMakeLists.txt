@@ -1,5 +1,5 @@
 # Debug runner will print output when a test fails
-set(RUNNER "${CMAKE_SOURCE_DIR}/tests/slicing/test-runner-debug.py")
+set(RUNNER "${CMAKE_CURRENT_LIST_DIR}/test-runner-debug.py")
 
 add_test(test1                  ${RUNNER} test1)
 add_test(test2                  ${RUNNER} test2)
@@ -162,7 +162,7 @@ add_test(unknown-interproc      ${RUNNER} unknown-interproc)
 add_test(unknown-interproc2     ${RUNNER} unknown-interproc2)
 add_test(unknown-interproc2-a   ${RUNNER} unknown-interproc2-a)
 add_test(unknown-interproc3     ${RUNNER} unknown-interproc3)
-add_test(atomic1                 ${RUNNER} atomic1)
-add_test(atomic2                 ${RUNNER} atomic2)
-add_test(atomic3                 ${RUNNER} atomic3)
+add_test(atomic1                ${RUNNER} atomic1)
+add_test(atomic2                ${RUNNER} atomic2)
+add_test(atomic3                ${RUNNER} atomic3)
 

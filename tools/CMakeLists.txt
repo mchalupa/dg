@@ -33,6 +33,7 @@ if (LLVM_DG)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
 					  PRIVATE dgllvmdg
 					  PRIVATE ${SVF_LIBS})
+
 	add_executable(llvm-sdg-dump llvm-sdg-dump.cpp)
 	target_link_libraries(llvm-sdg-dump PRIVATE dgllvmslicer
 					    PRIVATE dgllvmsdg
@@ -184,4 +185,3 @@ endif (HAVE_SVF)
         install(DIRECTORY include/
 	        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif (LLVM_DG)
-
