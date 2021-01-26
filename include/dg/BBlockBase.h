@@ -1,6 +1,7 @@
 #ifndef DG_BBLOCK_BASE_H_
 #define DG_BBLOCK_BASE_H_
 
+#include <cassert>
 #include <vector>
 #include <list>
 
@@ -38,43 +39,65 @@ public:
     bool hasSuccessors() const { return !_successors.empty(); }
     bool hasPredecessors() const { return !_predecessors.empty(); }
 
-    void addSuccessor(ElemT *s) {
-        for (auto *succ : _successors) {
+    bool hasSuccessor(ElemT *s) const {
+        for (const auto *succ : _successors) {
             if (succ == s)
-                return;
+                return true;
+        }
+        return false;
+    }
+
+    bool hasPredecessor(ElemT *s) const {
+        for (auto *pred : _predecessors) {
+            if (pred == s)
+                return true;
+        }
+        return false;
+    }
+
+    void addSuccessor(ElemT *s) {
+        if (hasSuccessor(s)) {
+            assert(s->hasPredecessor(static_cast<ElemT*>(this)));
+            return;
         }
 
         _successors.push_back(s);
 
-        for (auto *pred : s->_predecessors) {
-            if (pred == this)
-                return;
-        }
+        if (s->hasPredecessor(static_cast<ElemT*>(this)))
+            return;
         s->_predecessors.push_back(static_cast<ElemT*>(this));
+
+        assert(hasSuccessor(s));
+        assert(s->hasPredecessor(static_cast<ElemT*>(this)));
     }
 
     void removeSuccessor(ElemT *s) {
         for (unsigned idx = 0; idx < _successors.size(); ++idx) {
             if (_successors[idx] == s) {
                 // remove this node from sucessor's predecessors
-                for (unsigned idx2 = 0; idx2 < s->_predecessors.size(); ++idx2) {
-                    if (s->_predecessors[idx2] == this) {
-                        s->_predecessors[idx2] = s->_predecessors.back();
-                        s->_predecessors.pop_back();
+                auto& preds = s->_predecessors;
+                bool found = false;
+                for (unsigned idx2 = 0; idx2 < preds.size(); ++idx2) {
+                    if (preds[idx2] == this) {
+                        found = true;
+                        preds[idx2] = preds.back();
+                        preds.pop_back();
                         break;
                     }
                 }
+                assert(!s->hasPredecessor(static_cast<ElemT*>(this)) &&
+                        "Did not remove the predecessor");
+                assert(found && "Did not find 'this' in predecessors");
 
                 _successors[idx] = _successors.back();
                 _successors.pop_back();
+                // use the assumption that we have only one successor
                 break;
             }
         }
 
-        s->_predecessors.push_back(static_cast<ElemT*>(this));
+        assert(!hasSuccessor(s) && "Did not remove the successor");
     }
-
-
 
     ElemT *getSinglePredecessor() {
         return _predecessors.size() == 1 ? _predecessors.back() : nullptr;
