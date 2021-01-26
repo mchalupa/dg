@@ -106,7 +106,6 @@ add_library(dgllvmforkjoin SHARED
 	llvm/ForkJoin/ForkJoin.h
 	llvm/ForkJoin/ForkJoin.cpp
 )
-
 target_link_libraries(dgllvmforkjoin PRIVATE dgllvmpta)
 
 add_library(dgllvmdda SHARED
