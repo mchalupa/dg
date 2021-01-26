@@ -54,6 +54,10 @@ llvm::cl::opt<std::string> todot("dot",
     llvm::cl::desc("Dump the generated graph to dot."),
     llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<std::string> fromdot("fromdot",
+    llvm::cl::desc("Load a graph from the given dot file"),
+    llvm::cl::init(""), llvm::cl::cat(SlicingOpts));
+
 llvm::cl::opt<bool> total_only("total-only",
     llvm::cl::desc("Do not generate output other than the total time (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
@@ -130,6 +134,56 @@ static void dumpToDot(CDGraph& G, const std::string& path) {
 
     out << "}\n";
     out.close();
+}
+
+static unsigned getID(const std::string& n) {
+    assert(n.size() >= 2);
+    return atoi(n.c_str() + 1);
+}
+
+static void loadFromDot(CDGraph& G, const std::string& path) {
+    std::string cur;
+    unsigned lastid = 0;
+    std::ifstream in(path);
+    if (!in.is_open()) {
+        std::cerr << "Failed opening file " << path << "\n";
+        return;
+    }
+
+    std::vector<std::pair<unsigned, unsigned>> edges;
+
+    unsigned maxid = 0;
+    bool edge = false;
+    while (in.good()) {
+      in >> cur;
+      if (cur.size() >= 2) {
+          if (cur[0] == 'N') {
+              auto id = getID(cur);
+              maxid = std::max(id, maxid);
+              if (edge) {
+                  edges.emplace_back(lastid, id);
+                  edge = false;
+              }
+              lastid = id;
+          } else if (cur[0] == '-' && cur[1] == '>') {
+              edge = true;
+          }
+      }
+    }
+    in.close();
+
+    std::vector<CDNode*> nodes;
+    nodes.push_back(nullptr);
+    nodes.reserve(maxid + 1);
+    for (unsigned i = 0; i < maxid; ++i) {
+        auto& nd = G.createNode();
+        nodes.push_back(&nd);
+        assert(nodes.size() - 1 == nd.getID());
+    }
+
+    for (const auto& e : edges) {
+        G.addNodeSuccessor(*nodes[e.first], *nodes[e.second]);
+    }
 }
 
 void generateRandomGraph(CDGraph& G, unsigned Vnum = 100, unsigned Enum = 0) {
@@ -307,12 +361,17 @@ int main(int argc, char *argv[])
     }
 
     CDGraph G;
-    if (En == 0)
-        En = (unsigned)1.5*Vn;
-    if (irrcores > 0) {
-        generateRandomIrreducibleGraph(G, irrcores, Vn, En);
+    if (fromdot != "") {
+        std::cout << "Loading the graph from " << fromdot << "\n";
+        loadFromDot(G, fromdot);
     } else {
-        generateRandomGraph(G, Vn, En);
+        if (En == 0)
+            En = (unsigned)1.5*Vn;
+        if (irrcores > 0) {
+            generateRandomIrreducibleGraph(G, irrcores, Vn, En);
+        } else {
+            generateRandomGraph(G, Vn, En);
+        }
     }
 
     if (todot != "") {
