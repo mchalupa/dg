@@ -85,9 +85,6 @@ def set_environment():
         # the test-runner.py from everywhere
         chdir(dirname(argv[0]))
 
-    from os import environ
-    environ['PATH'] += ":" + abspath(TOOLSDIR)
-
 
 def _getbcname(name):
     if name[-2:] != '.c':
@@ -110,10 +107,9 @@ def compile(source, output=None, params=[]):
 
 def slice(bccode, args):
     output = bccode + ".sliced"
-    cmd = ["llvm-slicer", "-c", "test_assert"] + args
-    cmd.append(bccode)
-    cmd += ["-o", output]
+    slicer = join(TOOLSDIR, "llvm-slicer")
 
+    cmd = [slicer, "-c", "test_assert"] + args + [bccode, "-o", output]
     if command(cmd) != 0:
         error('Failed executing llvm-slicer')
 
