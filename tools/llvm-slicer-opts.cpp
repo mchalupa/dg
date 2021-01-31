@@ -268,11 +268,6 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit, bool 
       || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR >= 7)))
     llvm::cl::HideUnrelatedOptions(SlicingOpts);
 #endif
-# if ((LLVM_VERSION_MAJOR >= 6))
-    llvm::cl::SetVersionPrinter([](llvm::raw_ostream&){ printf("%s\n", GIT_VERSION); });
-#else
-    llvm::cl::SetVersionPrinter([](){ printf("%s\n", GIT_VERSION); });
-#endif
     llvm::cl::ParseCommandLineOptions(argc, argv);
 
     if (requireCrit) {

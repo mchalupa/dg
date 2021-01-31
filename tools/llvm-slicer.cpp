@@ -15,6 +15,7 @@
 #error "Unsupported version of LLVM"
 #endif
 
+#include "git-version.h"
 #include "dg/tools/llvm-slicer.h"
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
@@ -207,6 +208,12 @@ void setupStackTraceOnError(int, char **) {}
 int main(int argc, char *argv[])
 {
     setupStackTraceOnError(argc, argv);
+
+# if ((LLVM_VERSION_MAJOR >= 6))
+    llvm::cl::SetVersionPrinter([](llvm::raw_ostream&){ printf("%s\n", GIT_VERSION); });
+#else
+    llvm::cl::SetVersionPrinter([](){ printf("%s\n", GIT_VERSION); });
+#endif
 
     SlicerOptions options = parseSlicerOptions(argc, argv, true /* require crit*/);
 
