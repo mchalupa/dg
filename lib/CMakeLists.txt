@@ -205,9 +205,7 @@ add_library(dgllvmsdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h
 )
 target_link_libraries(dgllvmsdg PUBLIC dgsdg
-                                PUBLIC dgllvmpta
-                                PUBLIC dgllvmdda
-                                PUBLIC dgllvmcda)
+                                PRIVATE dgllvmdda)
 
 install(TARGETS dgllvmdg dgllvmthreadregions dgllvmcda
                 dgllvmpta dgllvmdda dgllvmforkjoin dgllvmsdg
