@@ -3,6 +3,7 @@
 
 #include "dg/Offset.h"
 #include <cassert>
+#include <cstddef>
 
 namespace dg {
 namespace pta {
