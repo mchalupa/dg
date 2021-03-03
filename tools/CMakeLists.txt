@@ -3,12 +3,23 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/lib ${CMAKE_SOURCE_DIR}/tools/include)
 
 if (LLVM_DG)
-	# generate a git-version.h with a HEAD commit hash tag
-	# (if it changed)
-	add_custom_target(
-		gitversion ALL sh ${CMAKE_CURRENT_SOURCE_DIR}/git-version.sh
-	)
-	include_directories(${CMAKE_CURRENT_BINARY_DIR})
+
+    # generate a git-version.h with a HEAD commit hash tag (if it changed)
+    find_package(Git)
+    if (NOT Git_FOUND OR NOT EXISTS ${CMAKE_SOURCE_DIR}/.git AND NOT GIT_VERSION)
+        set(GIT_VERSION "unknown")
+    else()
+        execute_process(COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+                        OUTPUT_STRIP_TRAILING_WHITESPACE
+                        OUTPUT_VARIABLE NEW_GIT_VERSION)
+        if (NOT "${GIT_VERSION}" STREQUAL "${NEW_GIT_VERSION}")
+            set(GIT_VERSION ${NEW_GIT_VERSION})
+        endif()
+    endif()
+
+    set(GIT_VERSION ${GIT_VERSION} CACHE STRING "Git version hash" FORCE)
+    configure_file(git-version.h.in git-version.h @ONLY)
+    include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
 	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
 	target_link_libraries(llvm-dg-dump
@@ -27,7 +38,6 @@ if (LLVM_DG)
 		    llvm-slicer-crit.cpp
 		    include/dg/tools/llvm-slicer.h)
 	target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
-	add_dependencies(dgllvmslicer gitversion)
 
 	add_executable(llvm-slicer llvm-slicer.cpp)
 	target_link_libraries(llvm-slicer PRIVATE dgllvmslicer
@@ -91,7 +101,6 @@ endif (HAVE_SVF)
 				PRIVATE ${llvm_support}
 				PRIVATE ${llvm_transformutils}
 				PRIVATE ${llvm_core})
-	add_dependencies(llvm-slicer gitversion)
 
 	add_executable(llvm-pta-dump llvm-pta-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-pta-dump PRIVATE dgllvmpta
