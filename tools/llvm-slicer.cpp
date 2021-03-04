@@ -20,15 +20,8 @@
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
 
-// ignore unused parameters in LLVM libraries
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
+#include <dg/util/SilenceLLVMWarnings.h>
+SILENCE_LLVM_WARNINGS_PUSH
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
 #include <llvm/IR/LLVMContext.h>
 #endif
@@ -40,12 +33,7 @@
 #include <llvm/Support/PrettyStackTrace.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/IR/InstIterator.h>
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
-#else
-#pragma GCC diagnostic pop
-#endif
+SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ADT/Queue.h"
 #include "dg/util/debug.h"

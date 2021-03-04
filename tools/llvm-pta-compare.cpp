@@ -8,15 +8,8 @@
 #include <fstream>
 #include <string>
 
-// ignore unused parameters in LLVM libraries
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
+#include <dg/util/SilenceLLVMWarnings.h>
+SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
@@ -32,12 +25,7 @@
 #else
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
-#else
-#pragma GCC diagnostic pop
-#endif
+SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 

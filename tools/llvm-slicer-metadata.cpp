@@ -1,23 +1,11 @@
-// ignore unused parameters in LLVM libraries
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
+#include <dg/util/SilenceLLVMWarnings.h>
+SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/DebugInfoMetadata.h>
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
-#else
-#pragma GCC diagnostic pop
-#endif
+SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/tools/llvm-slicer-utils.h"
 
