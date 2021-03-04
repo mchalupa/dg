@@ -10,15 +10,8 @@
 #error "This code needs LLVM enabled"
 #endif
 
-// ignore unused parameters in LLVM libraries
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
+#include <dg/util/SilenceLLVMWarnings.h>
+SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
@@ -32,12 +25,7 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
-#else
-#pragma GCC diagnostic pop
-#endif
+SILENCE_LLVM_WARNINGS_POP
 
 using namespace llvm;
 

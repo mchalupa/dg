@@ -1,15 +1,8 @@
 #ifndef DG_LLVM_SDG2DOT_H_
 #define DG_LLVM_SDG2DOT_H_
 
-// ignore unused parameters in LLVM libraries
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
+#include <dg/util/SilenceLLVMWarnings.h>
+SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/Instructions.h"
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
@@ -17,12 +10,7 @@
 #else
 #include "llvm/IR/DebugInfo.h"     //DIScope
 #endif
-
-#if (__clang__)
-#pragma clang diagnostic pop // ignore -Wunused-parameter
-#else
-#pragma GCC diagnostic pop
-#endif
+SILENCE_LLVM_WARNINGS_POP
 
 #include <iostream>
 #include <sstream>
