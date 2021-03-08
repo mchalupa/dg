@@ -117,7 +117,7 @@ public:
     ValVec getDependent(const llvm::Instruction *) override { return {}; }
 
     /// Getters of dependencies for a basic block
-    ValVec getDependencies(const llvm::BasicBlock *b) override { return {}; }
+    ValVec getDependencies(const llvm::BasicBlock *) override { return {}; }
     ValVec getDependent(const llvm::BasicBlock *) override { return {}; }
 
     void compute(const llvm::Function *F = nullptr) override {
