@@ -15,9 +15,6 @@ namespace dg {
 namespace dda {
 
 class ReadWriteGraph {
-    // FIXME: get rid of this
-    unsigned int dfsnum{1};
-
     size_t lastNodeID{0};
     using NodesT = std::vector<std::unique_ptr<RWNode>>;
     using SubgraphsT = std::vector<std::unique_ptr<RWSubgraph>>;

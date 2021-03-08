@@ -25,7 +25,7 @@ class CallGraph;
 
 class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
     LLVMPointerAnalysis *PTA{nullptr};
-    CallGraph *_cg{nullptr};
+    // CallGraph *_cg{nullptr};
 
     struct FuncInfo {
         // points that may abort the program
@@ -68,8 +68,9 @@ public:
     LLVMInterprocCD(const llvm::Module *module,
                     const LLVMControlDependenceAnalysisOptions& opts = {},
                     LLVMPointerAnalysis *pta = nullptr,
-                    CallGraph *cg = nullptr)
-        : LLVMControlDependenceAnalysisImpl(module, opts), PTA(pta), _cg(cg) {}
+                    CallGraph * /* cg */  = nullptr)
+        : LLVMControlDependenceAnalysisImpl(module, opts), PTA(pta)
+          /*, _cg(cg) */ {}
 
     ValVec getNoReturns(const llvm::Function *fun) override {
         ValVec ret;

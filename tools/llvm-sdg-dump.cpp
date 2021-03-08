@@ -62,14 +62,14 @@ class SDGDumper {
     const SlicerOptions& options;
     llvmdg::SystemDependenceGraph *dg;
     bool bb_only{false};
-    uint32_t dump_opts{0};//{debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID};
+    // uint32_t dump_opts{0};//{debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID};
 
 public:
     SDGDumper(const SlicerOptions& opts,
               llvmdg::SystemDependenceGraph *dg,
               bool bb_only = false,
-              uint32_t dump_opts = 0)
-    : options(opts), dg(dg), bb_only(bb_only), dump_opts(dump_opts) {}
+              uint32_t /* dump_opts */ = 0)
+    : options(opts), dg(dg), bb_only(bb_only) /*, dump_opts(dump_opts) */ {}
 
     void dumpToDot(const char *suffix = nullptr) {
         // compose new name
