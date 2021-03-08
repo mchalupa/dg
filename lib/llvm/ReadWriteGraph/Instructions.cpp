@@ -73,6 +73,7 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
         } else if (auto *I = dyn_cast<Instruction>(Inst)) {
             assert(!I->mayWriteToMemory() &&
                    "Unhandled memory-writing instruction");
+            (void) I; // c++17 TODO: replace with [[maybe_unused]]
         }
     }
 

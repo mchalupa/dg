@@ -210,6 +210,8 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
         // disconnect call-return nodes
         auto callReturnNode = PSNodeCallRet::cast(callNode->getPairedNode());
         assert(callReturnNode && callNode != callReturnNode);
+        (void) callReturnNode; // c++17 TODO: replace with [[maybe_unused]]
+
         if (callNode->successorsNum() != 0) {
             assert(callNode->getSingleSuccessor() == callReturnNode);
             callNode->removeSingleSuccessor();
