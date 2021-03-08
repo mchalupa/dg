@@ -248,10 +248,7 @@ static void dumpFunStats(const llvm::Function& F) {
         assert(*it == si.next_succ);
         // can have multiple same successors
         auto sit = on_stack.find(*it);
-        bool is_on_stack = false;
-        if (sit != on_stack.end()) {
-            is_on_stack = sit->second;
-        }
+
         while (it != et && *it == si.next_succ) {
             // XXX: we may loose some back/forward edges here
             // (we do not count the multiplicity)
