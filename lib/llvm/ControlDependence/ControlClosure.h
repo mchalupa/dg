@@ -48,7 +48,7 @@ public:
     }
 
     /// Getters of dependencies for a value
-    ValVec getDependencies(const llvm::Instruction *I) override {
+    ValVec getDependencies(const llvm::Instruction *) override {
         assert(false && "Not supported");
         abort();
     }
@@ -59,7 +59,7 @@ public:
     }
 
     /// Getters of dependencies for a basic block
-    ValVec getDependencies(const llvm::BasicBlock *b) override {
+    ValVec getDependencies(const llvm::BasicBlock *) override {
         assert(false && "Not supported");
         abort();
     }

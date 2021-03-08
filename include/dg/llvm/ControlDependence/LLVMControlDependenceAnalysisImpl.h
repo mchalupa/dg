@@ -58,7 +58,7 @@ public:
         assert(false && "Unsupported"); abort();
     }
 
-    virtual ValVec getClosure(const llvm::Function *F, const std::set<llvm::Value *>& vals) {
+    virtual ValVec getClosure(const llvm::Function *, const std::set<llvm::Value *>&) {
         assert(false && "Unsupported"); abort();
     }
 };
