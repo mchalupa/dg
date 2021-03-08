@@ -653,6 +653,8 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     PointerSubgraph& subg = buildFunction(*F);
     PSNode *root = subg.root;
     assert(root != nullptr);
+    (void) root; // c++17 TODO: replace with [[maybe_unused]]
+
     // fill in the CFG edges
     addProgramStructure();
 

@@ -290,6 +290,7 @@ private:
 
             bool notseen = visited.insert(cur).second;
             assert(notseen && "Visited a node twice");
+            (void) notseen; // c++17 TODO: replace with [[maybe_unused]]
 
             cur = cur->getSingleSuccessor();
             assert(cur && "Node on the cycle does not have a unique successor");

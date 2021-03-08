@@ -327,6 +327,7 @@ LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst) {
             op1 = getOperand(retVal);
             if (auto alloc = PSNodeAlloc::get(op1)) {
                 assert(alloc->isTemporary());
+                (void) alloc; // c++17 TODO: replace with [[maybe_unused]]
             } else {
                 llvm::errs() << "WARN: Unsupported return of a vector\n";
                 llvm::errs() << *Inst << "\n";

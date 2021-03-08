@@ -50,7 +50,7 @@ struct SDGDependenciesBuilder {
             } else {
                 auto *opnode = sdg::DGNode::get(opnd);
                 assert(opnode && "Wrong type of node");
-                sdg::DGNode::get(nd)->addUses(*sdg::DGNode::get(opnd));
+                sdg::DGNode::get(nd)->addUses(*opnode);
             }
         }
     }
@@ -124,7 +124,7 @@ struct SDGDependenciesBuilder {
             } else {
                 auto *opnode = sdg::DGNode::get(opnd);
                 assert(opnode && "Wrong type of node");
-                sdg::DGNode::get(nd)->addMemoryDep(*sdg::DGNode::get(opnd));
+                sdg::DGNode::get(nd)->addMemoryDep(*opnode);
             }
         }
     }
