@@ -1,6 +1,8 @@
-#include <set>
+#undef NDEBUG
+
 #include <cassert>
 #include <cstdint>
+#include <set>
 
 #include "dg/ADT/Bitvector.h"
 
