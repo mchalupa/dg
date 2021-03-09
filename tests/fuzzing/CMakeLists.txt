@@ -19,4 +19,3 @@ add_executable(disjunctive-map1 disjunctive-map1.cpp)
 add_dependencies(check disjunctive-map1)
 add_test(disjunctive-map1-fuzzing disjunctive-map1
     ${CMAKE_CURRENT_SOURCE_DIR}/regressions/disjunctive-map1 -runs=20000)
-
