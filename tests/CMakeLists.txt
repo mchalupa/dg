@@ -123,7 +123,7 @@ add_catch_test(nodes-walk-test.cpp)
 # --------------------------------------------------
 # fuzzing tests
 # --------------------------------------------------
-if(TESTING_ENABLE_FUZZING)
+if(ENABLE_FUZZING)
     add_subdirectory(fuzzing)
 endif()
 

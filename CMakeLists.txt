@@ -176,21 +176,20 @@ endif()
 
 message(STATUS "Using compiler: ${CMAKE_CXX_COMPILER}")
 
+# --------------------------------------------------
 # Fuzzing
+# --------------------------------------------------
 include(CheckCXXCompilerFlag)
 set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer")
 check_cxx_source_compiles(
-	"#include <cstddef>
-	extern \"C\"
-	int LLVMFuzzerTestOneInput(const void * /*d*/, size_t /*s*/) { return 0; }"
-	fuzzer_works)
+   "#include <cstddef>
+    extern \"C\" int LLVMFuzzerTestOneInput(const void *, size_t) { return 0; }"
+    HAS_FUZZER)
 set(CMAKE_REQUIRED_FLAGS "")
 
-if (fuzzer_works)
-	option(TESTING_ENABLE_FUZZING "Enable fuzzing tests" ON)
-	message(STATUS "Will build fuzzing tests")
-else()
-	message(STATUS "Will NOT build fuzzing tests (available only with Clang 6 or newer)")
+option(ENABLE_FUZZING "Enable fuzzing tests" ${HAS_FUZZER})
+if(NOT ENABLE_FUZZING)
+    message(STATUS "Will NOT build fuzzing tests (requires Clang 6 or newer)")
 endif()
 
 # explicitly add -std=c++11 (-std=c++14) and -fno-rtti
