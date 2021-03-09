@@ -19,7 +19,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     const int *numbers = reinterpret_cast<const int *>(data);
     for (unsigned i = 0; i < elems - 1; i += 2) {
-        int a = numbers[i], b = numbers[i+1];
+        int a = numbers[i], b = numbers[i + 1];
         if (a > b)
             std::swap(a, b);
         assert(a <= b);
@@ -32,4 +32,3 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
     return 0;
 }
-
