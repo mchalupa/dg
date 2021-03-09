@@ -1,8 +1,7 @@
-# use assertions in tests
-string(REGEX REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fsanitize=address,undefined,fuzzer")
-
-include_directories(${CMAKE_SOURCE_DIR}/include)
+# --------------------------------------------------
+# use sanitizers in fuzzing tests
+# --------------------------------------------------
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,undefined,fuzzer")
 
 # --------------------------------------------------
 # fuzzing tests
