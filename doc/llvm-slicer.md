@@ -242,7 +242,7 @@ at the same time it uses the same memory as the regular slicing criterion. In `l
 
 `llvm-slicer` supports specifying slicing criteria also with `-sc` option, which is designed for further extensions
 for C++ and allows to bind a secondary slicing criterion to every primary slicing criterion.
-`-sc` takes a list of semi-colon-separated slicing criteria pairs, i.e., 
+`-sc` takes a list of semi-colon-separated slicing criteria pairs, i.e.,
 `-sc 'S;S;S;...'` where `S` describes a primary-secondary slicing criteria pair. A pair is divided by `|`, i.e.
 the pair is in the form: `X|Y`. Either the primary or the secondary criterion can be empty (not both, though).
 If the primary criterion is empty, the secondary slicing criterion is attached to all primary slicing criteria.
