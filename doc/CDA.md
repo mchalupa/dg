@@ -7,7 +7,7 @@ These  control dependencies are:
  - Non-termination sensitive control dependence (NTSCD) (Ranangath et al.[2])
  - Decisive order dependence (DOD) (Ranangath et al.[2])
  - [experimental/WIP] Strong control closures (Strong CC) (Danicic et al.[3])
- 
+
 
 ## Public API
 
@@ -27,17 +27,17 @@ The public API of `LLVMControlDependenceAnalysis` contains several methods:
    block. `getDependencies` for instruction then returns additional dependencies, e.g., interprocedural.
    Therefore, if you want _all_ dependencies for an instruction, you should always query both, `getDependencies`
    for the instruction and also `getDependencies` for the basic block of the instruction.
-   Note that the return value may be either an instruction or a basic block.   
+   Note that the return value may be either an instruction or a basic block.
    If a basic block is returned as a dependence, it means that the queried value depends on the terminator
    instruction of the returned basic block.
-   
+
 * `getDependent()` methods return values (instructions and blocks) that depend on the given instruction (block).
    They work similarly as `getDependencies` methods, just return dependent values instead of dependencies.
    If a block is returned, then all instructions of the block depend on the given value.
-   
+
 * `getNoReturns()` return possibly no-returning points of the given function (those are usually calls to functions
   that may not return). If interprocedural analysis is disabled, returns always an empty vector.
-  
+
 Then there are methods for closure-based algorithms, but these are mostly unimplemented (in fact, the Strong CC algorithm
 works, just these getter methods are not implemented yet).
 
@@ -111,5 +111,5 @@ as we heavily rely on LLVM in computation of post dominators.
 
 [2] Venkatesh Prasad Ranganath, Torben Amtoft, Anindya Banerjee, Matthew B. Dwyer, John Hatcliff:
     A New Foundation for Control-Dependence and Slicing for Modern Program Structures. ESOP 2005: 77-93
-    
+
 [3] Sebastian Danicic, Richard W.Barraclough, Mark Harman, John D.Howroyd, Ákos Kiss, Michael R.Laurence: A unifying theory of control dependence and its application to arbitrary program structures. Theoretical Computer Science, Volume 412, Issue 49, 2011, Pages 6809-6842
