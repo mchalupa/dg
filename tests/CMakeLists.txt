@@ -17,6 +17,13 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS}
                         USES_TERMINAL)
 
 # --------------------------------------------------
+# cmd-arguments-tests
+# --------------------------------------------------
+add_test(NAME cmd-arguments-test
+         COMMAND "${CMAKE_CURRENT_LIST_DIR}/cmd-args.py"
+         WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/tools")
+
+# --------------------------------------------------
 # precompile Catch2 main
 # --------------------------------------------------
 add_library(catch-main OBJECT catch-main.cpp)
