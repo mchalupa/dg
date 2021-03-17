@@ -95,6 +95,13 @@ for x in argv[1:]:
 
 if 'debug' in options or 'dbg' in options:
     debug=True
+if 'tmpdir' in options:
+    ###
+    # Create temporary directory
+    wd = mkdtemp(suffix='dgtool')
+    printcmd(["chdir", wd])
+    chdir(wd)
+
 ###
 # Try to find the right path to the program
 if not cmd and not cc_mode:
@@ -121,13 +128,6 @@ def repl_suffix(fl):
 
 if len(files) < 1 and len(bcfiles) < 1:
     err('No input files given')
-
-###
-# Create temporary directory
-if not cc_mode:
-    wd = mkdtemp(suffix='dgtool')
-    printcmd(["chdir", wd])
-    chdir(wd)
 
 ###
 # Issue clang to compile sources to bitcode(s)
@@ -177,8 +177,11 @@ if not cc_mode:
     except OSError as e:
             err('command failed: {0}'.format(str(e)))
 
+##
+# remove working directory if we were in it
 if wd:
     chdir(olddir);
+    # copy the created files here
     printcmd(["rmtree", wd])
     rmtree(wd)
 exit(0)
