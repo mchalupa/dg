@@ -135,7 +135,7 @@ void hashMapTest() {
 // create an object for testing hashing function collision
 struct MyInt {
     int x;
-    MyInt() : x(0) {} // google sparsehash needs default ctor
+    MyInt() : x(0) {}
     MyInt(int y) : x(y) {}
     bool operator==(const MyInt& rhs) const { return x == rhs.x; }
 };
@@ -173,18 +173,6 @@ TEST_CASE("STL hashmap test", "HashMap") {
 TEST_CASE("STL hashmap collision test", "HashMap") {
     hashCollisionTest<dg::STLHashMap<MyInt, int>>();
 }
-
-#ifdef HAVE_GOOGLE_SPARSEHASH
-#include "dg/ADT/GoogleHashMap.h"
-
-TEST_CASE("Google sparsehash test", "HashMap") {
-    hashMapTest<dg::SparseHashMap<int, int>>();
-}
-
-TEST_CASE("Google sparehash collision test", "HashMap") {
-    hashCollisionTest<dg::SparseHashMap<MyInt, int>>();
-}
-#endif
 
 #ifdef HAVE_TSL_HOPSCOTCH
 #include "dg/ADT/TslHopscotchHashMap.h"

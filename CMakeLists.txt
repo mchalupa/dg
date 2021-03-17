@@ -140,22 +140,6 @@ if (SVF_DIR)
 	message(STATUS "SVF libs: ${SVF_LIBS}")
 endif(SVF_DIR)
 
-if (GOOGLE_SPARSEHASH_DIR)
-    if (NO_EXCEPTIONS)
-        message(FATAL_ERROR "Google sparsehash needs -fexceptions, but exceptions are disabled (use -DNO_EXCEPTIONS:BOOL=off)")
-    endif()
-
-    set(SPARSEHASH_DIR ${GOOGLE_SPARSEHASH_DIR}/src/)
-    if (NOT EXISTS "${SPARSEHASH_DIR}/sparsehash/sparse_hash_map")
-        message(FATAL_ERROR "Google sparsehash NOT FOUND in ${GOOGLE_SPARSEHASH_DIR}" )
-    endif()
-
-    include_directories("${SPARSEHASH_DIR}")
-    message(STATUS "Found Google sparsehash in ${SPARSEHASH_DIR}" )
-    message(STATUS "Adding include dir ${SPARSEHASH_DIR}")
-    add_definitions(-DHAVE_GOOGLE_SPARSEHASH)
-endif()
-
 if (TSL_HOPSCOTCH_DIR)
     set(HOPSCOTCH_DIR ${TSL_HOPSCOTCH_DIR}/include/)
     if (NOT EXISTS "${HOPSCOTCH_DIR}/tsl/hopscotch_map.h")
