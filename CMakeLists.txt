@@ -176,6 +176,19 @@ if(NOT ENABLE_FUZZING)
     message(STATUS "Will NOT build fuzzing tests (requires Clang 6 or newer)")
 endif()
 
+# --------------------------------------------------
+# clang-tidy
+# --------------------------------------------------
+option(USE_CLANG_TIDY "Enable clang-tidy checks" OFF)
+if(USE_CLANG_TIDY)
+    message(STATUS "Clang-tidy build enabled")
+    # read config from .clang-tidy
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;--config=")
+endif()
+
+# --------------------------------------------------
+# Compiler flags
+# --------------------------------------------------
 # explicitly add -std=c++11 (-std=c++14) and -fno-rtti
 # we have CMAKE_CXX_STANDARD, but for some reason it does not
 # put the -std=c++11 (-std=c++14) or -std=gnu++11 (-std=gnu++14)
