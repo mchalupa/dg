@@ -52,7 +52,6 @@ add_library(dgdda SHARED
 target_link_libraries(dgdda PUBLIC dganalysis)
 
 add_library(dgcda SHARED
-	${CMAKE_SOURCE_DIR}/include/dg/ControlDependence/ControlDependence.h
 	${CMAKE_SOURCE_DIR}/include/dg/ControlDependence/ControlDependenceAnalysisOptions.h
         ControlDependence/CDGraph.h
         ControlDependence/NTSCD.h
