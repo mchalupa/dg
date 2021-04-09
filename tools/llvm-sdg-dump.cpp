@@ -42,7 +42,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/SystemDependenceGraph/SDG2Dot.h"
-#include "dg/llvm/SystemDependenceGraph/AnnotationWriter.h"
 #include "dg/util/debug.h"
 
 using namespace dg;
