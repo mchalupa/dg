@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch2/catch.hpp>
 
 #include "dg/ADT/Queue.h"
 #include "dg/ADT/Bitvector.h"
