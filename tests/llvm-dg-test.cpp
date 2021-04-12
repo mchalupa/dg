@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch2/catch.hpp>
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/DFS.h"

@@ -17,9 +17,33 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} ${CTEST_OPTS}
                         USES_TERMINAL)
 
 # --------------------------------------------------
-# precompile Catch2 main
+# Catch2
 # --------------------------------------------------
+
+# version of bundled Catch2
+set(CATCH_VERSION 2.13.5)
+
+# Catch2 main
 add_library(catch-main OBJECT catch-main.cpp)
+
+# If we can find the same version or newer, use it as it may contain
+# additional fixes relevant to the given OS
+find_package(Catch2 ${CATCH_VERSION} QUIET CONFIG)
+if(Catch2_FOUND)
+    message(STATUS "Found Catch2 (found version \"${Catch2_VERSION}\")")
+    # Issue a warning if there is a newer version, so that we will be notified
+    # to update the bundled one.
+    if(${CATCH_VERSION} VERSION_GREATER ${Catch2_FOUND})
+        message(WARNING
+            "The bundled Catch2 seems to be outdated: \"${CATCH_VERSION}\"\n"
+            "Please report this to our issue tracker. Thank you!")
+    endif()
+
+    # use correct include directories
+    target_link_libraries(catch-main PRIVATE Catch2::Catch2)
+else()
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+endif()
 
 macro(add_catch_test TEST_FILE)
     if (NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/${TEST_FILE}")
@@ -30,6 +54,10 @@ macro(add_catch_test TEST_FILE)
     add_executable(${TEST} ${TEST_FILE} $<TARGET_OBJECTS:catch-main>)
     add_test(${TEST} ${TEST})
     add_dependencies(check ${TEST})
+
+    if(Catch2_FOUND)
+        target_link_libraries(${TEST} PRIVATE Catch2::Catch2)
+    endif()
 endmacro()
 
 # --------------------------------------------------

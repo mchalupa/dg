@@ -1,4 +1,4 @@
-#include "catch.hpp"
+#include <catch2/catch.hpp>
 
 #include "dg/PointerAnalysis/PSNode.h"
 #include "dg/PointerAnalysis/PointerGraph.h"
