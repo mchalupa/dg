@@ -324,7 +324,7 @@ private:
     }
 
     void computeDOD(ColoredAp& CAp, CDNode *p, ResultT& CD, ResultT& revCD,
-                    bool asTernary = false) {
+                    bool asTernary = true) {
         assert(checkAp(CAp.Ap)); // sanity check
 
         CDNode *b1 = nullptr, *b2 = nullptr, *b3 = nullptr;
