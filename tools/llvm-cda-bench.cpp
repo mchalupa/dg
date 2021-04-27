@@ -88,7 +88,7 @@ llvm::cl::opt<bool> ntscd_ranganath("ntscd-ranganath",
     llvm::cl::desc("Benchmark NTSCD (Ranganath algorithm) (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> ntscd_ranganath_orig("ntscd-ranganath-orig",
+llvm::cl::opt<bool> ntscd_ranganath_wrong("ntscd-ranganath-wrong",
     llvm::cl::desc("Benchmark NTSCD (Ranganath original - wrong - algorithm) (default=false)."),
     llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_RANGANATH;
         analyses.emplace_back("ntscd-ranganath", createAnalysis(M.get(), opts), 0);
     }
-    if (ntscd_ranganath_orig) {
+    if (ntscd_ranganath_wrong) {
         opts.algorithm = dg::ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD_RANGANATH_ORIG;
         analyses.emplace_back("ntscd-ranganath-wrong", createAnalysis(M.get(), opts), 0);
     }
