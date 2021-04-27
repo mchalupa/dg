@@ -79,8 +79,10 @@ class DOD {
 public:
     //using ResultT = std::map<CDNode *, std::set<std::pair<CDNode *, CDNode *>>>;
     // NOTE: although DOD is a ternary relation, we treat it as binary
-    // by breaking a->(b, c) to (a, b) and (a, c). It has no effect
-    // on the results of slicing.
+    // by breaking a->(b, c) to (a, b) and (a, c). It over-approximates
+    // the ternary relation. However, the effect on the results of slicing
+    // is usually small. There is a flag that computes the relation
+    // as ternary.
     using ResultT = std::map<CDNode *, std::set<CDNode *>>;
     using ColoringT = ADT::SparseBitvector;
 
