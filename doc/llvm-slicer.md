@@ -1,6 +1,9 @@
 # llvm-slicer
 
 DG project contains a static slicer for LLVM bitcode. The slicer supports backward and forward (experimental) slicing.
+It is designed and tested on slicing code generated from sequential C programs. However, there is an experimental
+support for parallel programs and it should handle bitcode generated from other languages in many cases.
+There is a section on using the slicer with bitcode generated from C++ at the end of this file.
 
 ### Using the llvm-slicer
 
@@ -269,7 +272,7 @@ Examples:
 Note that the matching is performed in approximation manner, i.e., if the slicer lacks information about an instruction,
 it assume it matches the slicing criterion.
 
-## Options
+### Options
 
 A set of useful options is:
 
@@ -289,3 +292,14 @@ Option             | Arguments        | Description
 `-undefined-funs`   | {read,write}-{args,any}, pure | Set how to handle calls to undefined functions
 `-o`               | FILE             | Output the sliced bitcode into FILE
 `-help`            |                  | Show all possible options
+
+
+## Using slicer on C++ bitcode
+
+DG is not made for analysing C++ bitcode. At least not yet. However, in many cases it should be able to sucessfully analyze and slice
+such a bitcode. Unsupported are instructions like `invoke` and `landingpad` that are used in code that uses exceptions.
+In some cases, you can use `-lowerinvoke` pass to get rid of these.
+
+Another issue is names mangling. C++ compilers mangle the names, so for example it changes the name of function `f` with the type `void (*)(int *, int)`
+to `_Z1fPii`. This can be confusing when specifying slicing criteria. Instead of `-sc 'f##x'` to slice w.r.t uses of `x` in function `f` one must use
+`-sc '_Z1fPii##x'`.
