@@ -1,13 +1,13 @@
 #include <catch2/catch.hpp>
 
-#include <random>
 #include <cassert>
+#include <random>
 #include <vector>
 
 #undef NDEBUG
 
-#include "dg/ReachingDefinitions/ReachingDefinitions.h"
 #include "dg/ReachingDefinitions/RDMap.h"
+#include "dg/ReachingDefinitions/ReachingDefinitions.h"
 
 using namespace dg::analysis;
 
@@ -112,5 +112,3 @@ TEST_CASE("iterator", "DisjunctiveIntervalMap") {
     REQUIRE(it != M.begin());
 }
 */
-
-

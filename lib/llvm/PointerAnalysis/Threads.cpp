@@ -6,19 +6,19 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <llvm/IR/Dominators.h>
@@ -37,13 +37,15 @@ namespace dg {
 namespace pta {
 
 void LLVMPointerGraphBuilder::insertPthreadCreateByPtrCall(PSNode *callsite) {
-    auto fork = createForkNode(callsite->getUserData<llvm::CallInst>(), callsite);
+    auto fork =
+            createForkNode(callsite->getUserData<llvm::CallInst>(), callsite);
     fork->setCallInst(callsite);
     callsite->addSuccessor(fork);
 }
 
 void LLVMPointerGraphBuilder::insertPthreadJoinByPtrCall(PSNode *callsite) {
-    auto join = createJoinNode(callsite->getUserData<llvm::CallInst>(), callsite);
+    auto join =
+            createJoinNode(callsite->getUserData<llvm::CallInst>(), callsite);
     join->setCallInst(callsite);
     join->insertAfter(callsite);
 }
@@ -57,14 +59,16 @@ LLVMPointerGraphBuilder::findJoin(const llvm::CallInst *callInst) const {
     return nullptr;
 }
 
-bool LLVMPointerGraphBuilder::addFunctionToFork(PSNode *function, 
+bool LLVMPointerGraphBuilder::addFunctionToFork(PSNode *function,
                                                 PSNodeFork *forkNode) {
-    const llvm::CallInst *CInst = forkNode->callInst()->getUserData<llvm::CallInst>();
-    const llvm::Function *F = function->getUserData<llvm::Function>(); 
+    const llvm::CallInst *CInst =
+            forkNode->callInst()->getUserData<llvm::CallInst>();
+    const llvm::Function *F = function->getUserData<llvm::Function>();
 
-    DBG(pta, "Function '" << F->getName().str() << "' can be spawned via thread");
+    DBG(pta,
+        "Function '" << F->getName().str() << "' can be spawned via thread");
 
-    PointerSubgraph& subgraph = createOrGetSubgraph(F);
+    PointerSubgraph &subgraph = createOrGetSubgraph(F);
     addInterproceduralPthreadOperands(F, CInst);
     // FIXME: create fork and join edges
     forkNode->addSuccessor(subgraph.root);
@@ -73,9 +77,9 @@ bool LLVMPointerGraphBuilder::addFunctionToFork(PSNode *function,
     return true;
 }
 
-bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function, 
-                                                PSNodeJoin * joinNode) {
-    PSNode * CInst = joinNode->getPairedNode();
+bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function,
+                                                PSNodeJoin *joinNode) {
+    PSNode *CInst = joinNode->getPairedNode();
     joinNode->addFunction(function);
     const llvm::Function *F = function->getUserData<llvm::Function>();
 
@@ -83,11 +87,12 @@ bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function,
         PointerSubgraph *subgraph = getSubgraph(F);
         assert(subgraph && "Did not build the subgraph for thread");
 
-        DBG(pta, "Found a new join point for function '" << F->getName().str() << "'");
+        DBG(pta, "Found a new join point for function '" << F->getName().str()
+                                                         << "'");
         if (!CInst->getOperand(1)->isNull()) {
             PSNode *phi = PS.create<PSNodeType::PHI>();
-            PSNode *store = PS.create<PSNodeType::STORE>(phi,
-                                                         CInst->getOperand(1));
+            PSNode *store =
+                    PS.create<PSNodeType::STORE>(phi, CInst->getOperand(1));
             phi->addSuccessor(store);
             store->addSuccessor(joinNode);
             for (PSNode *ret : subgraph->returnNodes) {
@@ -124,10 +129,8 @@ LLVMPointerGraphBuilder::createPthreadJoin(const llvm::CallInst *CInst) {
     return {callNode, joinNode};
 }
 
-PSNodeFork *
-LLVMPointerGraphBuilder::createForkNode(const llvm::CallInst *CInst,
-                                        PSNode *callNode) {
-
+PSNodeFork *LLVMPointerGraphBuilder::createForkNode(const llvm::CallInst *CInst,
+                                                    PSNode *callNode) {
     using namespace llvm;
     PSNodeFork *forkNode = PSNodeFork::get(
             PS.create<PSNodeType::FORK>(getOperand(CInst->getArgOperand(2))));
@@ -147,9 +150,8 @@ LLVMPointerGraphBuilder::createForkNode(const llvm::CallInst *CInst,
     return forkNode;
 }
 
-PSNodeJoin *
-LLVMPointerGraphBuilder::createJoinNode(const llvm::CallInst *CInst,
-                                        PSNode *callNode) {
+PSNodeJoin *LLVMPointerGraphBuilder::createJoinNode(const llvm::CallInst *CInst,
+                                                    PSNode *callNode) {
     using namespace llvm;
 
     PSNodeJoin *joinNode = PSNodeJoin::get(PS.create<PSNodeType::JOIN>());
@@ -172,8 +174,8 @@ LLVMPointerGraphBuilder::createPthreadExit(const llvm::CallInst *CInst) {
     addArgumentOperands(*CInst, *callNode);
     auto pthread_exit_operand = callNode->getOperand(0);
 
-    PSNodeRet *returnNode = PSNodeRet::get(
-            PS.create<PSNodeType::RETURN>(pthread_exit_operand));
+    PSNodeRet *returnNode =
+            PSNodeRet::get(PS.create<PSNodeType::RETURN>(pthread_exit_operand));
     callNode->setPairedNode(returnNode);
     returnNode->setPairedNode(callNode);
     callNode->addSuccessor(returnNode);
@@ -195,24 +197,25 @@ bool LLVMPointerGraphBuilder::matchJoinToRightCreate(PSNode *joinNode) {
         auto createThreadHandlePtr = pthreadCreateCall->getOperand(0);
 
         std::set<PSNode *> threadHandleIntersection;
-        for (const auto& createPointsTo : createThreadHandlePtr->pointsTo) {
-            for (const auto& joinPointsTo : joinThreadHandlePtr->pointsTo) {
+        for (const auto &createPointsTo : createThreadHandlePtr->pointsTo) {
+            for (const auto &joinPointsTo : joinThreadHandlePtr->pointsTo) {
                 if (createPointsTo.target == joinPointsTo.target) {
                     threadHandleIntersection.insert(createPointsTo.target);
                 }
             }
         }
 
-
-        if (!threadHandleIntersection.empty()) {//TODO refactor this into method for finding new functions
+        if (!threadHandleIntersection
+                     .empty()) { // TODO refactor this into method for finding
+                                 // new functions
             PSNode *func = pthreadCreateCall->getOperand(2);
             const llvm::Value *V = func->getUserData<llvm::Value>();
-            auto pointsToFunctions = getPointsToFunctions(V); 
+            auto pointsToFunctions = getPointsToFunctions(V);
 
             auto oldFunctions = join->functions();
             for (auto function : pointsToFunctions) {
                 if (join->functions().count(function) == 0) {
-                    changed |= addFunctionToJoin(function, join); 
+                    changed |= addFunctionToJoin(function, join);
                 }
             }
             if (changed) {

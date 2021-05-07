@@ -5,10 +5,8 @@ namespace dg {
 namespace legacy {
 
 // data for analyses, stored in nodes
-struct AnalysesAuxiliaryData
-{
-    AnalysesAuxiliaryData()
-        : lastwalkid(0), dfsorder(0), bfsorder(0) {}
+struct AnalysesAuxiliaryData {
+    AnalysesAuxiliaryData() : lastwalkid(0), dfsorder(0), bfsorder(0) {}
 
     // last id of walk (DFS/BFS) that ran on this node
     // ~~> marker if it has been processed
@@ -21,10 +19,8 @@ struct AnalysesAuxiliaryData
 };
 
 // gather statistics about a run
-struct AnalysisStatistics
-{
-    AnalysisStatistics()
-        : processedBlocks(0), processedNodes(0) {};
+struct AnalysisStatistics {
+    AnalysisStatistics() : processedBlocks(0), processedNodes(0){};
 
     uint64_t processedBlocks;
     uint64_t processedNodes;
@@ -37,20 +33,15 @@ struct AnalysisStatistics
 //  - Analyses using nodes
 /// --------------------------------------------------------
 template <typename NodeT>
-class Analysis
-{
-public:
-    AnalysesAuxiliaryData& getAnalysisData(NodeT *n)
-    {
+class Analysis {
+  public:
+    AnalysesAuxiliaryData &getAnalysisData(NodeT *n) {
         return n->analysisAuxData;
     }
 
-    const AnalysisStatistics& getStatistics() const
-    {
-        return statistics;
-    }
+    const AnalysisStatistics &getStatistics() const { return statistics; }
 
-protected:
+  protected:
     AnalysisStatistics statistics;
 };
 
@@ -60,7 +51,8 @@ protected:
 namespace dg {
 
 // forward declaration of BBlock
-template <typename NodeT> class BBlock;
+template <typename NodeT>
+class BBlock;
 
 namespace legacy {
 
@@ -68,17 +60,14 @@ namespace legacy {
 //  - BBlocks analysis
 /// --------------------------------------------------------
 template <typename NodeT>
-class BBlockAnalysis : public Analysis<BBlock<NodeT>>
-{
-public:
+class BBlockAnalysis : public Analysis<BBlock<NodeT>> {
+  public:
     using BBlockPtrT = BBlock<NodeT> *;
 
-    AnalysesAuxiliaryData& getAnalysisData(BBlockPtrT BB)
-    {
+    AnalysesAuxiliaryData &getAnalysisData(BBlockPtrT BB) {
         return BB->analysisAuxData;
     }
 };
-
 
 } // namespace legacy
 } // namespace dg

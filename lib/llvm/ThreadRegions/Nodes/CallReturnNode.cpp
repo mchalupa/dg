@@ -1,4 +1,3 @@
 #include "CallReturnNode.h"
 
-CallReturnNode::CallReturnNode():Node(NodeType::CALL_RETURN)
-{}
+CallReturnNode::CallReturnNode() : Node(NodeType::CALL_RETURN) {}

@@ -1,14 +1,14 @@
 #ifndef DG_MEMORY_OBJECT_H_
 #define DG_MEMORY_OBJECT_H_
 
-#include <map>
-#include <unordered_map>
-#include <set>
 #include <cassert>
+#include <map>
+#include <set>
+#include <unordered_map>
 
 #ifndef NDEBUG
-#include <iostream>
 #include "dg/PointerAnalysis/PSNode.h"
+#include <iostream>
 #endif // not NDEBUG
 
 #include "PointsToSet.h"
@@ -16,23 +16,20 @@
 namespace dg {
 namespace pta {
 
-struct MemoryObject
-{
+struct MemoryObject {
     using PointsToMapT = std::map<Offset, PointsToSetT>;
 
-    MemoryObject(/*uint64_t s = 0, bool isheap = false, */PSNode *n = nullptr)
-        : node(n) /*, is_heap(isheap), size(s)*/ {}
+    MemoryObject(/*uint64_t s = 0, bool isheap = false, */ PSNode *n = nullptr)
+            : node(n) /*, is_heap(isheap), size(s)*/ {}
 
     // where was this memory allocated? for debugging
     PSNode *node;
     // possible pointers stored in this memory object
     PointsToMapT pointsTo;
 
-    PointsToSetT& getPointsTo(const Offset off) { return pointsTo[off]; }
+    PointsToSetT &getPointsTo(const Offset off) { return pointsTo[off]; }
 
-    PointsToMapT::iterator find(const Offset off) {
-        return pointsTo.find(off);
-    }
+    PointsToMapT::iterator find(const Offset off) { return pointsTo.find(off); }
 
     PointsToMapT::const_iterator find(const Offset off) const {
         return pointsTo.find(off);
@@ -43,9 +40,9 @@ struct MemoryObject
     PointsToMapT::const_iterator begin() const { return pointsTo.begin(); }
     PointsToMapT::const_iterator end() const { return pointsTo.end(); }
 
-    bool merge(const MemoryObject& rhs) {
+    bool merge(const MemoryObject &rhs) {
         bool changed = false;
-        for (auto& rit : rhs.pointsTo) {
+        for (auto &rit : rhs.pointsTo) {
             if (rit.second.empty())
                 continue;
             changed |= pointsTo[rit.first].add(rit.second);
@@ -54,24 +51,21 @@ struct MemoryObject
         return changed;
     }
 
-    bool addPointsTo(const Offset& off, const Pointer& ptr)
-    {
-        assert(ptr.target != nullptr
-               && "Cannot have NULL target, use unknown instead");
+    bool addPointsTo(const Offset &off, const Pointer &ptr) {
+        assert(ptr.target != nullptr &&
+               "Cannot have NULL target, use unknown instead");
 
         return pointsTo[off].add(ptr);
     }
 
-    bool addPointsTo(const Offset& off, const PointsToSetT& pointers)
-    {
+    bool addPointsTo(const Offset &off, const PointsToSetT &pointers) {
         if (pointers.empty())
             return false;
         return pointsTo[off].add(pointers);
     }
 
-    bool addPointsTo(const Offset& off,
-                     std::initializer_list<Pointer> pointers)
-    {
+    bool addPointsTo(const Offset &off,
+                     std::initializer_list<Pointer> pointers) {
         if (pointers.size() == 0)
             return false;
         return pointsTo[off].add(pointers);
@@ -80,16 +74,16 @@ struct MemoryObject
 #ifndef NDEBUG
     void dump() const {
         std::cout << "MO [" << this << "] for ";
-        node->dump(); 
+        node->dump();
     }
 
     void dumpv() const {
         dump();
-        for (const auto& it : pointsTo) {
+        for (const auto &it : pointsTo) {
             std::cout << "[";
             it.first.dump();
             std::cout << "]";
-            for (const auto& ptr : it.second) {
+            for (const auto &ptr : it.second) {
                 std::cout << "  -> ";
                 ptr.dump();
                 std::cout << "\n";

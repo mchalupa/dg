@@ -1,37 +1,37 @@
 #ifndef _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
 #define _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
 
-#include <string>
 #include <ctime> // std::clock
+#include <string>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "dg/llvm/LLVMDependenceGraph.h"
-#include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/DataDependence/DataDependence.h"
-#include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
+#include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #ifdef HAVE_SVF
 #include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
 #endif
+#include "dg/Offset.h"
+#include "dg/PointerAnalysis/Pointer.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/PointerAnalysis/PointerAnalysisFS.h"
 #include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
-#include "dg/PointerAnalysis/Pointer.h"
-#include "dg/Offset.h"
 
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 
 namespace llvm {
-    class Module;
-    class Function;
-}
+class Module;
+class Function;
+} // namespace llvm
 
 namespace dg {
 namespace llvmdg {
@@ -46,8 +46,7 @@ struct LLVMDependenceGraphOptions {
 
     std::string entryFunction{"main"};
 
-    void addAllocationFunction(const std::string& name,
-                               AllocationFunction F) {
+    void addAllocationFunction(const std::string &name, AllocationFunction F) {
         PTAOptions.addAllocationFunction(name, F);
         DDAOptions.addAllocationFunction(name, F);
     }
@@ -120,25 +119,27 @@ class LLVMDependenceGraphBuilder {
         _statistics.critsecTime = _timerEnd();
     }
 
-    bool verify() const {
-        return _dg->verify();
-    }
+    bool verify() const { return _dg->verify(); }
 
-public:
+  public:
     LLVMDependenceGraphBuilder(llvm::Module *M)
-    : LLVMDependenceGraphBuilder(M, {}) {}
+            : LLVMDependenceGraphBuilder(M, {}) {}
 
     LLVMDependenceGraphBuilder(llvm::Module *M,
-                               const LLVMDependenceGraphOptions& opts)
-    : _M(M), _options(opts),
-      _PTA(createPTA()),
-      _DDA(new LLVMDataDependenceAnalysis(M, _PTA.get(),
-                                          _options.DDAOptions)),
-      _CDA(new LLVMControlDependenceAnalysis(M, _options.CDAOptions)),
-      _dg(new LLVMDependenceGraph(opts.threads)),
-      _controlFlowGraph(_options.threads && !_options.PTAOptions.isSVF() ? // check SVF due to the static cast...
-            new ControlFlowGraph(static_cast<DGLLVMPointerAnalysis*>(_PTA.get())) : nullptr),
-      _entryFunction(M->getFunction(_options.entryFunction)) {
+                               const LLVMDependenceGraphOptions &opts)
+            : _M(M), _options(opts), _PTA(createPTA()),
+              _DDA(new LLVMDataDependenceAnalysis(M, _PTA.get(),
+                                                  _options.DDAOptions)),
+              _CDA(new LLVMControlDependenceAnalysis(M, _options.CDAOptions)),
+              _dg(new LLVMDependenceGraph(opts.threads)),
+              _controlFlowGraph(
+                      _options.threads && !_options.PTAOptions.isSVF()
+                              ? // check SVF due to the static cast...
+                              new ControlFlowGraph(
+                                      static_cast<DGLLVMPointerAnalysis *>(
+                                              _PTA.get()))
+                              : nullptr),
+              _entryFunction(M->getFunction(_options.entryFunction)) {
         assert(_entryFunction && "The entry function not found");
     }
 
@@ -154,10 +155,10 @@ public:
     LLVMPointerAnalysis *getPTA() { return _PTA.get(); }
     LLVMDataDependenceAnalysis *getDDA() { return _DDA.get(); }
 
-    const Statistics& getStatistics() const { return _statistics; }
+    const Statistics &getStatistics() const { return _statistics; }
 
     // construct the whole graph with all edges
-    std::unique_ptr<LLVMDependenceGraph>&& build() {
+    std::unique_ptr<LLVMDependenceGraph> &&build() {
         // compute data dependencies
         _runPointerAnalysis();
         _runDataDependenceAnalysis();
@@ -173,7 +174,8 @@ public:
 
         if (_options.threads) {
             if (_options.PTAOptions.isSVF()) {
-                assert(0 && "Threading needs the DG pointer analysis, SVF is not supported yet");
+                assert(0 && "Threading needs the DG pointer analysis, SVF is "
+                            "not supported yet");
                 abort();
             }
             _controlFlowGraph->buildFunction(_entryFunction);
@@ -197,7 +199,7 @@ public:
     // later.
     // NOTE: this function still runs pointer analysis as it is needed
     // for sound construction of CFG in the presence of function pointer calls.
-    std::unique_ptr<LLVMDependenceGraph>&& constructCFGOnly() {
+    std::unique_ptr<LLVMDependenceGraph> &&constructCFGOnly() {
         // data dependencies
         _runPointerAnalysis();
 
@@ -222,8 +224,8 @@ public:
     // This function takes the dg (returned from the constructCFGOnly)
     // and retains its ownership until it computes the edges.
     // Then it returns the ownership back to the caller.
-    std::unique_ptr<LLVMDependenceGraph>&&
-    computeDependencies(std::unique_ptr<LLVMDependenceGraph>&& dg) {
+    std::unique_ptr<LLVMDependenceGraph> &&
+    computeDependencies(std::unique_ptr<LLVMDependenceGraph> &&dg) {
         // get the ownership
         _dg = std::move(dg);
 
@@ -242,7 +244,6 @@ public:
 
         return std::move(_dg);
     }
-
 };
 
 } // namespace llvmdg

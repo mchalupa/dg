@@ -2,8 +2,8 @@
 #define DG_SYSTEM_DEPENDENCE_GRAPH_H_
 
 #include <memory>
-#include <vector>
 #include <set>
+#include <vector>
 
 #include "dg/SystemDependenceGraph/DependenceGraph.h"
 
@@ -18,31 +18,32 @@ class DGNode;
 class SystemDependenceGraph {
     std::set<DGNode *> _globals;
     std::vector<std::unique_ptr<DependenceGraph>> _graphs;
-    DependenceGraph* _entry{nullptr};
+    DependenceGraph *_entry{nullptr};
 
     // wrapper around graphs iterator that unwraps the unique_ptr
     struct graphs_iterator : public decltype(_graphs.begin()) {
         using OrigItType = decltype(_graphs.begin());
 
         graphs_iterator() = default;
-        graphs_iterator(const graphs_iterator& I) = default;
-        graphs_iterator(const OrigItType& I) : OrigItType(I) {}
+        graphs_iterator(const graphs_iterator &I) = default;
+        graphs_iterator(const OrigItType &I) : OrigItType(I) {}
 
-        DependenceGraph* operator*() { return OrigItType::operator*().get(); }
-        //DependenceGraph* operator->() { return OrigItType::operator*().get(); }
+        DependenceGraph *operator*() { return OrigItType::operator*().get(); }
+        // DependenceGraph* operator->() { return OrigItType::operator*().get();
+        // }
     };
 
-public:
+  public:
     DependenceGraph *getEntry() { return _entry; }
     const DependenceGraph *getEntry() const { return _entry; }
     void setEntry(DependenceGraph *g) { _entry = g; }
 
-    DependenceGraph& createGraph() {
+    DependenceGraph &createGraph() {
         _graphs.emplace_back(new DependenceGraph(_graphs.size() + 1, *this));
         return *_graphs.back().get();
     }
 
-    DependenceGraph& createGraph(const std::string& name) {
+    DependenceGraph &createGraph(const std::string &name) {
         auto &g = createGraph();
         g.setName(name);
         return g;

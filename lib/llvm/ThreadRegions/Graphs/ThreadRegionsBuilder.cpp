@@ -1,15 +1,12 @@
 #include "ThreadRegionsBuilder.h"
 
-#include "llvm/ThreadRegions/Nodes/Nodes.h"
 #include "ThreadRegion.h"
+#include "llvm/ThreadRegions/Nodes/Nodes.h"
 
-ThreadRegionsBuilder::ThreadRegionsBuilder(std::size_t size):visitedNodeToRegionMap(size),
-    examinedNodeToRegionMap(size)
-{}
+ThreadRegionsBuilder::ThreadRegionsBuilder(std::size_t size)
+        : visitedNodeToRegionMap(size), examinedNodeToRegionMap(size) {}
 
-ThreadRegionsBuilder::~ThreadRegionsBuilder() {
-    clear();
-}
+ThreadRegionsBuilder::~ThreadRegionsBuilder() { clear(); }
 
 void ThreadRegionsBuilder::build(Node *node) {
     auto threadRegion = new ThreadRegion(node);
@@ -17,7 +14,7 @@ void ThreadRegionsBuilder::build(Node *node) {
     this->visitedNodeToRegionMap.emplace(node, threadRegion);
 
     visit(node);
-//    visitRightNode(node);
+    //    visitRightNode(node);
     populateThreadRegions();
     clearComputingData();
 }
@@ -47,7 +44,7 @@ void ThreadRegionsBuilder::visit(Node *node) {
         } else if (examined(region(successor))) {
             region(node)->addSuccessor(region(successor));
         } else {
-            ThreadRegion * successorRegion = nullptr;
+            ThreadRegion *successorRegion = nullptr;
             if (shouldCreateNewRegion(node, successor)) {
                 successorRegion = new ThreadRegion(successor);
                 threadRegions_.insert(successorRegion);
@@ -138,10 +135,11 @@ ThreadRegion *ThreadRegionsBuilder::regionOfExaminedNode(Node *node) const {
     return nullptr;
 }
 
-bool ThreadRegionsBuilder::shouldCreateNewRegion(Node *caller, Node *successor) const {
-    return caller->getType() == NodeType::EXIT      ||
-           caller->getType() == NodeType::FORK      ||
-           successor->getType() == NodeType::ENTRY  ||
-           successor->getType() == NodeType::JOIN   ||
+bool ThreadRegionsBuilder::shouldCreateNewRegion(Node *caller,
+                                                 Node *successor) const {
+    return caller->getType() == NodeType::EXIT ||
+           caller->getType() == NodeType::FORK ||
+           successor->getType() == NodeType::ENTRY ||
+           successor->getType() == NodeType::JOIN ||
            successor->predecessorsNumber() > 1;
 }

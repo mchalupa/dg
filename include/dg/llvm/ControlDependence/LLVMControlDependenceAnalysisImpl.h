@@ -1,30 +1,29 @@
 #ifndef LLVM_DG_CDA_IMPL_H_
 #define LLVM_DG_CDA_IMPL_H_
 
-
 #include <set>
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 namespace llvm {
-    class Module;
-    class Value;
-    class Function;
-};
+class Module;
+class Value;
+class Function;
+}; // namespace llvm
 
 namespace dg {
 
 class CDGraph;
 
 class LLVMControlDependenceAnalysisImpl {
-
     const llvm::Module *_module;
     const LLVMControlDependenceAnalysisOptions _options;
 
-public:
-    LLVMControlDependenceAnalysisImpl(const llvm::Module *module,
-                                      const LLVMControlDependenceAnalysisOptions& opts)
-        : _module(module), _options(opts) {}
+  public:
+    LLVMControlDependenceAnalysisImpl(
+            const llvm::Module *module,
+            const LLVMControlDependenceAnalysisOptions &opts)
+            : _module(module), _options(opts) {}
 
     virtual ~LLVMControlDependenceAnalysisImpl() = default;
 
@@ -32,10 +31,14 @@ public:
 
     // public API
     const llvm::Module *getModule() const { return _module; }
-    const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
+    const LLVMControlDependenceAnalysisOptions &getOptions() const {
+        return _options;
+    }
 
     virtual CDGraph *getGraph(const llvm::Function *) { return nullptr; }
-    virtual const CDGraph *getGraph(const llvm::Function *) const { return nullptr; }
+    virtual const CDGraph *getGraph(const llvm::Function *) const {
+        return nullptr;
+    }
 
     // Compute control dependencies for all functions.
     // If the analysis works on demand, calling this method
@@ -55,11 +58,14 @@ public:
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
     virtual ValVec getNoReturns(const llvm::Function *) {
-        assert(false && "Unsupported"); abort();
+        assert(false && "Unsupported");
+        abort();
     }
 
-    virtual ValVec getClosure(const llvm::Function *, const std::set<llvm::Value *>&) {
-        assert(false && "Unsupported"); abort();
+    virtual ValVec getClosure(const llvm::Function *,
+                              const std::set<llvm::Value *> &) {
+        assert(false && "Unsupported");
+        abort();
     }
 };
 

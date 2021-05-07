@@ -1,8 +1,8 @@
 #ifndef DG_DATA_FLOW_ANALYSIS_H_
 #define DG_DATA_FLOW_ANALYSIS_H_
 
-#include <utility>
 #include <set>
+#include <utility>
 
 #include "dg/legacy/Analysis.h"
 #include "dg/legacy/DFS.h"
@@ -16,7 +16,7 @@ namespace legacy {
 
 struct DataFlowStatistics : public AnalysisStatistics {
     DataFlowStatistics()
-        : AnalysisStatistics(), bblocksNum(0), iterationsNum(0) {}
+            : AnalysisStatistics(), bblocksNum(0), iterationsNum(0) {}
 
     uint64_t bblocksNum;
     uint64_t iterationsNum;
@@ -26,32 +26,28 @@ struct DataFlowStatistics : public AnalysisStatistics {
 };
 
 enum DataFlowAnalysisFlags {
-    DATAFLOW_INTERPROCEDURAL    = 1 << 0,
-    DATAFLOW_BB_NO_CALLSITES    = 1 << 1,
+    DATAFLOW_INTERPROCEDURAL = 1 << 0,
+    DATAFLOW_BB_NO_CALLSITES = 1 << 1,
 };
 
 // ordering of nodes with respect to DFS order
 // works for both nodes and blocks
-template<typename T>
-struct DFSOrderLess
-{
-    bool operator()(T a, T b) const
-    {
+template <typename T>
+struct DFSOrderLess {
+    bool operator()(T a, T b) const {
         return a->getDFSOrder() < b->getDFSOrder();
     }
 };
 
 template <typename NodeT>
-class BBlockDataFlowAnalysis : public Analysis<NodeT>
-{
-public:
+class BBlockDataFlowAnalysis : public Analysis<NodeT> {
+  public:
     BBlockDataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB, uint32_t fl = 0)
-        :entryBB(entryBB), flags(fl), changed(false) {}
+            : entryBB(entryBB), flags(fl), changed(false) {}
 
     virtual bool runOnBlock(BBlock<NodeT> *BB) = 0;
 
-    void run()
-    {
+    void run() {
         uint32_t flg = DFS_BB_CFG;
 
         assert(entryBB && "entry basic block is nullptr");
@@ -81,8 +77,7 @@ public:
         // first iteration (the DFS), the loop will never run
         while (changed) {
             changed = false;
-            for (auto I = blocks.rbegin(), E = blocks.rend();
-                 I != E; ++I) {
+            for (auto I = blocks.rbegin(), E = blocks.rend(); I != E; ++I) {
                 changed |= runOnBlock(*I);
                 ++statistics.processedBlocks;
             }
@@ -93,13 +88,9 @@ public:
 
     uint32_t getFlags() const { return flags; }
 
-    const DataFlowStatistics& getStatistics() const
-    {
-        return statistics;
-    }
+    const DataFlowStatistics &getStatistics() const { return statistics; }
 
-    bool addBB(BBlock<NodeT> *BB)
-    {
+    bool addBB(BBlock<NodeT> *BB) {
         changed |= runOnBlock(BB);
         bool ret = blocks.insert(BB).second;
         if (ret)
@@ -109,27 +100,25 @@ public:
         return ret;
     }
 
-private:
+  private:
     // define set of blocks to be ordered in dfs order
     // FIXME if we use dfs order, then addBB does not work,
     // because the BB's newly added does have dfsorder unset
     // and the BlocksSet thinks it already contains it, so
     // it is not added
-    using BlocksSetT = std::set<BBlock<NodeT> * /*,
-                     DFSOrderLess<BBlock<NodeT> *>*/>;
-    struct DFSDataT
-    {
-        DFSDataT(BlocksSetT& b, bool& c, BBlockDataFlowAnalysis<NodeT> *r)
-            :blocks(b), changed(c), ref(r) {}
+    using BlocksSetT = std::set<BBlock<
+            NodeT> * /*,
+DFSOrderLess<BBlock<NodeT> *>*/>;
+    struct DFSDataT {
+        DFSDataT(BlocksSetT &b, bool &c, BBlockDataFlowAnalysis<NodeT> *r)
+                : blocks(b), changed(c), ref(r) {}
 
-        BlocksSetT& blocks;
-        bool& changed;
+        BlocksSetT &blocks;
+        bool &changed;
         BBlockDataFlowAnalysis<NodeT> *ref;
     };
 
-    static void dfs_proc_bb(BBlock<NodeT> *BB,
-                            DFSDataT& data)
-    {
+    static void dfs_proc_bb(BBlock<NodeT> *BB, DFSDataT &data) {
         data.changed |= data.ref->runOnBlock(BB);
         data.blocks.insert(BB);
     }
@@ -141,17 +130,14 @@ private:
     DataFlowStatistics statistics;
 };
 
-
 template <typename NodeT>
-class DataFlowAnalysis : public BBlockDataFlowAnalysis<NodeT>
-{
-public:
+class DataFlowAnalysis : public BBlockDataFlowAnalysis<NodeT> {
+  public:
     DataFlowAnalysis<NodeT>(BBlock<NodeT> *entryBB, uint32_t fl = 0)
-        : BBlockDataFlowAnalysis<NodeT>(entryBB, fl) {};
+            : BBlockDataFlowAnalysis<NodeT>(entryBB, fl){};
 
     /* virtual */
-    bool runOnBlock(BBlock<NodeT> *B)
-    {
+    bool runOnBlock(BBlock<NodeT> *B) {
         bool changed = false;
         NodeT *prev = nullptr;
 

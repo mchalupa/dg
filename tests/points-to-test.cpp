@@ -1,15 +1,14 @@
 #include <catch2/catch.hpp>
 
-#include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/PointerAnalysis/PointerAnalysisFS.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
 
 using namespace dg::pta;
 using dg::Offset;
 
 template <typename PTStoT>
 void store_load() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -30,7 +29,6 @@ void store_load() {
 
 template <typename PTStoT>
 void store_load2() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -76,7 +74,6 @@ void store_load2() {
 
 template <typename PTStoT>
 void store_load3() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -104,7 +101,6 @@ void store_load3() {
 
 template <typename PTStoT>
 void store_load4() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(8);
@@ -135,7 +131,6 @@ void store_load4() {
 
 template <typename PTStoT>
 void store_load5() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(8);
@@ -171,7 +166,6 @@ void store_load5() {
 
 template <typename PTStoT>
 void gep1() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     // we must set size, so that GEP won't
@@ -201,7 +195,6 @@ void gep1() {
 
 template <typename PTStoT>
 void gep2() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(16);
@@ -230,7 +223,6 @@ void gep2() {
 
 template <typename PTStoT>
 void gep3() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -267,7 +259,6 @@ void gep3() {
 
 template <typename PTStoT>
 void gep4() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -308,7 +299,6 @@ void gep4() {
 
 template <typename PTStoT>
 void gep5() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -357,7 +347,6 @@ void gep5() {
 
 template <typename PTStoT>
 void nulltest() {
-
     PointerGraph PS;
     PSNode *B = PS.create<PSNodeType::ALLOC>();
     PSNode *S = PS.create<PSNodeType::STORE>(NULLPTR, B);
@@ -376,7 +365,6 @@ void nulltest() {
 
 template <typename PTStoT>
 void constant_store() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -401,7 +389,6 @@ void constant_store() {
 
 template <typename PTStoT>
 void load_from_zeroed() {
-
     PointerGraph PS;
     PSNodeAlloc *B = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
     B->setZeroInitialized();
@@ -419,7 +406,6 @@ void load_from_zeroed() {
 
 template <typename PTStoT>
 void load_from_unknown_offset() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -447,7 +433,6 @@ void load_from_unknown_offset() {
 
 template <typename PTStoT>
 void load_from_unknown_offset2() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -455,7 +440,8 @@ void load_from_unknown_offset2() {
     PSNode *GEP = PS.create<PSNodeType::GEP>(B, 4);
     PSNode *S = PS.create<PSNodeType::STORE>(A, GEP);
     PSNode *GEP2 = PS.create<PSNodeType::GEP>(B, Offset::UNKNOWN);
-    PSNode *L = PS.create<PSNodeType::LOAD>(GEP2); // load from B + Offset::UNKNOWN
+    PSNode *L =
+            PS.create<PSNodeType::LOAD>(GEP2); // load from B + Offset::UNKNOWN
 
     A->addSuccessor(B);
     B->addSuccessor(GEP);
@@ -475,7 +461,6 @@ void load_from_unknown_offset2() {
 
 template <typename PTStoT>
 void load_from_unknown_offset3() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     PSNode *B = PS.create<PSNodeType::ALLOC>();
@@ -501,7 +486,6 @@ void load_from_unknown_offset3() {
 
 template <typename PTStoT>
 void memcpy_test() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(20);
@@ -524,7 +508,7 @@ void memcpy_test() {
      * after this node dest should point to
      * A + 3 and A + 12 at offsets 4 and 8 */
     PSNode *CPY = PS.create<PSNodeType::MEMCPY>(
-                          SRC, DEST, Offset::UNKNOWN /* len = all */);
+            SRC, DEST, Offset::UNKNOWN /* len = all */);
 
     /* load from the dest memory */
     PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 4);
@@ -557,7 +541,6 @@ void memcpy_test() {
 
 template <typename PTStoT>
 void memcpy_test2() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(20);
@@ -613,7 +596,6 @@ void memcpy_test2() {
 
 template <typename PTStoT>
 void memcpy_test3() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(20);
@@ -635,8 +617,8 @@ void memcpy_test3() {
     /* copy memory from 8 bytes and further
      * after this node dest should point to
      * A + 12 at offset 0 */
-    PSNode *CPY = PS.create<PSNodeType::MEMCPY>(
-                          G2, DEST, Offset::UNKNOWN /* len*/);
+    PSNode *CPY =
+            PS.create<PSNodeType::MEMCPY>(G2, DEST, Offset::UNKNOWN /* len*/);
 
     /* load from the dest memory */
     PSNode *G3 = PS.create<PSNodeType::GEP>(DEST, 4);
@@ -669,7 +651,6 @@ void memcpy_test3() {
 
 template <typename PTStoT>
 void memcpy_test4() {
-
     PointerGraph PS;
     PSNodeAlloc *A = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
     A->setSize(20);
@@ -687,8 +668,8 @@ void memcpy_test4() {
     /* copy memory from 8 bytes and further after this node dest should
      * point to NULL */
     PSNode *G3 = PS.create<PSNodeType::GEP>(SRC, 8);
-    PSNode *CPY = PS.create<PSNodeType::MEMCPY>(
-                          G3, DEST, Offset::UNKNOWN /* len*/);
+    PSNode *CPY =
+            PS.create<PSNodeType::MEMCPY>(G3, DEST, Offset::UNKNOWN /* len*/);
 
     /* load from the dest memory */
     PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 0);
@@ -717,7 +698,6 @@ void memcpy_test4() {
 
 template <typename PTStoT>
 void memcpy_test5() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(20);
@@ -761,7 +741,6 @@ void memcpy_test5() {
 
 template <typename PTStoT>
 void memcpy_test6() {
-
     PointerGraph PS;
     PSNode *A = PS.create<PSNodeType::ALLOC>();
     A->setSize(20);
@@ -801,7 +780,6 @@ void memcpy_test6() {
 
 template <typename PTStoT>
 void memcpy_test7() {
-
     PointerGraph PS;
     PSNodeAlloc *A = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
     PSNodeAlloc *SRC = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
@@ -812,8 +790,8 @@ void memcpy_test7() {
     SRC->setZeroInitialized();
     DEST->setSize(16);
 
-    PSNode *CPY = PS.create<PSNodeType::MEMCPY>(SRC, DEST,
-                            Offset::UNKNOWN /* len*/);
+    PSNode *CPY =
+            PS.create<PSNodeType::MEMCPY>(SRC, DEST, Offset::UNKNOWN /* len*/);
 
     /* load from the dest memory */
     PSNode *G4 = PS.create<PSNodeType::GEP>(DEST, 0);
@@ -845,7 +823,6 @@ void memcpy_test7() {
 
 template <typename PTStoT>
 void memcpy_test8() {
-
     PointerGraph PS;
     PSNodeAlloc *A = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
     A->setSize(20);
@@ -959,4 +936,3 @@ TEST_CASE("PSNode test", "PSNode") {
     REQUIRE(N2->pointsTo.size() == 1);
     REQUIRE(N2->addPointsTo(N1, 3) == false);
 }
-

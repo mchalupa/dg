@@ -1,36 +1,33 @@
 #ifndef DG_LEGACY_DFS_H_
 #define DG_LEGACY_DFS_H_
 
-#include "dg/legacy/NodesWalk.h"
 #include "dg/ADT/Queue.h"
+#include "dg/legacy/NodesWalk.h"
 
 namespace dg {
 namespace legacy {
 
 enum DFSFlags {
-    DFS_INTERPROCEDURAL         = 1 << 0,
-    DFS_PARAMS                  = 1 << 1,
-    DFS_CD                      = 1 << 2,
-    DFS_DD                      = 1 << 3,
-    DFS_REV_CD                  = 1 << 4,
-    DFS_REV_DD                  = 1 << 5,
-    DFS_USE                     = 1 << 6,
-    DFS_USER                    = 1 << 7,
+    DFS_INTERPROCEDURAL = 1 << 0,
+    DFS_PARAMS = 1 << 1,
+    DFS_CD = 1 << 2,
+    DFS_DD = 1 << 3,
+    DFS_REV_CD = 1 << 4,
+    DFS_REV_DD = 1 << 5,
+    DFS_USE = 1 << 6,
+    DFS_USER = 1 << 7,
     // go through CFG edges between
     // basic blocks (enqueue first
     // nodes of BB successors for _every_ node)
-    DFS_BB_CFG                  = 1 << 8,
-    DFS_BB_REV_CFG              = 1 << 9,
-    DFS_BB_POSTDOM              = 1 << 10,
-    DFS_BB_POSTDOM_FRONTIERS    = 1 << 11,
+    DFS_BB_CFG = 1 << 8,
+    DFS_BB_REV_CFG = 1 << 9,
+    DFS_BB_POSTDOM = 1 << 10,
+    DFS_BB_POSTDOM_FRONTIERS = 1 << 11,
 
-    DFS_BB_NO_CALLSITES         = 1 << 12,
+    DFS_BB_NO_CALLSITES = 1 << 12,
 };
 
-
-static inline
-uint32_t convertFlags(uint32_t opts)
-{
+static inline uint32_t convertFlags(uint32_t opts) {
     uint32_t ret = 0;
 
     if (opts & DFS_INTERPROCEDURAL)
@@ -65,43 +62,38 @@ uint32_t convertFlags(uint32_t opts)
 }
 
 template <typename NodeT>
-class DFS : public NodesWalk<NodeT, ADT::QueueLIFO<NodeT *>>
-{
-public:
+class DFS : public NodesWalk<NodeT, ADT::QueueLIFO<NodeT *>> {
+  public:
     DFS<NodeT>(uint32_t opts)
-        : NodesWalk<NodeT, ADT::QueueLIFO<NodeT *>>(convertFlags(opts)),
-          dfsorder(0), flags(opts) {}
+            : NodesWalk<NodeT, ADT::QueueLIFO<NodeT *>>(convertFlags(opts)),
+              dfsorder(0), flags(opts) {}
 
     template <typename FuncT, typename DataT>
-    void run(NodeT *entry, FuncT func, DataT data)
-    {
+    void run(NodeT *entry, FuncT func, DataT data) {
         this->walk(entry, func, data);
     }
 
     template <typename FuncT, typename DataT>
-    void operator()(NodeT *entry, FuncT func, DataT data)
-    {
+    void operator()(NodeT *entry, FuncT func, DataT data) {
         run(entry, func, data);
     }
 
-protected:
+  protected:
     /* virtual */
-    void prepare(NodeT *BB)
-    {
+    void prepare(NodeT *BB) {
         // set dfs order number
-        AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
+        AnalysesAuxiliaryData &aad = this->getAnalysisData(BB);
         aad.dfsorder = ++dfsorder;
     }
-private:
+
+  private:
     unsigned int dfsorder;
     uint32_t flags;
 };
 
 #ifdef ENABLE_CFG
 
-static uint32_t inline
-convertBBFlags(uint32_t flags)
-{
+static uint32_t inline convertBBFlags(uint32_t flags) {
     uint32_t ret = 0; // for BBs we always have CFG
 
     if (flags & DFS_INTERPROCEDURAL)
@@ -117,38 +109,36 @@ convertBBFlags(uint32_t flags)
 }
 
 template <typename NodeT>
-class BBlockDFS : public BBlockWalk<NodeT,
-                                    ADT::QueueLIFO<BBlock<NodeT> *> >
-{
-public:
+class BBlockDFS : public BBlockWalk<NodeT, ADT::QueueLIFO<BBlock<NodeT> *>> {
+  public:
     using BBlockPtrT = BBlock<NodeT> *;
 
     BBlockDFS<NodeT>(uint32_t fl = DFS_BB_CFG)
-        : BBlockWalk<NodeT, ADT::QueueLIFO<BBlock<NodeT> *>>(convertBBFlags(fl)),
-          dfsorder(0), flags(fl) {}
+            : BBlockWalk<NodeT, ADT::QueueLIFO<BBlock<NodeT> *>>(
+                      convertBBFlags(fl)),
+              dfsorder(0), flags(fl) {}
 
     template <typename FuncT, typename DataT>
-    void run(BBlockPtrT entry, FuncT func, DataT data)
-    {
+    void run(BBlockPtrT entry, FuncT func, DataT data) {
         this->walk(entry, func, data);
     }
 
     template <typename FuncT, typename DataT>
-    void operator()(BBlockPtrT entry, FuncT func, DataT data)
-    {
+    void operator()(BBlockPtrT entry, FuncT func, DataT data) {
         run(entry, func, data);
     }
 
     uint32_t getFlags() const { return flags; }
-protected:
+
+  protected:
     /* virtual */
-    void prepare(BBlockPtrT BB)
-    {
+    void prepare(BBlockPtrT BB) {
         // set dfs order number
-        AnalysesAuxiliaryData& aad = this->getAnalysisData(BB);
+        AnalysesAuxiliaryData &aad = this->getAnalysisData(BB);
         aad.dfsorder = ++dfsorder;
     }
-private:
+
+  private:
     unsigned int dfsorder;
     uint32_t flags;
 };

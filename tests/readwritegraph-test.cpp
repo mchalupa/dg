@@ -4,9 +4,7 @@
 
 using namespace dg::dda;
 
-TEST_CASE("empty ctor", "[RWBBlock]") {
-    RWBBlock block;
-}
+TEST_CASE("empty ctor", "[RWBBlock]") { RWBBlock block; }
 
 TEST_CASE("subgraph ctor", "[RWBBlock]") {
     RWSubgraph subg;
@@ -91,4 +89,3 @@ TEST_CASE("split around in middle", "[RWBBlock]") {
     CHECK(blks.first->getSingleSuccessor() == blks.second.get());
     CHECK(blks.second->getSingleSuccessor() == &succ);
 }
-

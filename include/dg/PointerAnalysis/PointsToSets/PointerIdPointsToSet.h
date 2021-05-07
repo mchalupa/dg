@@ -1,13 +1,13 @@
 #ifndef SINGLEBITVECTORPOINTSTOSET_H
 #define SINGLEBITVECTORPOINTSTOSET_H
 
-#include "dg/PointerAnalysis/Pointer.h"
-#include "dg/ADT/Bitvector.h"
 #include "LookupTable.h"
+#include "dg/ADT/Bitvector.h"
+#include "dg/PointerAnalysis/Pointer.h"
 
+#include <cassert>
 #include <map>
 #include <vector>
-#include <cassert>
 
 namespace dg {
 namespace pta {
@@ -24,16 +24,14 @@ class PointerIdPointsToSet {
 #endif
     PointersT pointers;
 
-    //if the pointer doesn't have ID, it's assigned one
-    size_t getPointerID(const Pointer& ptr) const {
+    // if the pointer doesn't have ID, it's assigned one
+    size_t getPointerID(const Pointer &ptr) const {
         return lookupTable.getOrCreate(ptr);
     }
 
-    const Pointer& getPointer(size_t id) const {
-        return lookupTable.get(id);
-    }
+    const Pointer &getPointer(size_t id) const { return lookupTable.get(id); }
 
-    bool addWithUnknownOffset(PSNode* node) {
+    bool addWithUnknownOffset(PSNode *node) {
         auto ptrid = getPointerID({node, Offset::UNKNOWN});
         if (!pointers.get(ptrid)) {
             removeAny(node);
@@ -42,49 +40,47 @@ class PointerIdPointsToSet {
         return false; // we already had it
     }
 
-public:
+  public:
     PointerIdPointsToSet() = default;
-    explicit PointerIdPointsToSet(const std::initializer_list<Pointer>& elems) { add(elems); }
-
-    bool add(PSNode *target, Offset off) {
-        return add(Pointer(target,off));
+    explicit PointerIdPointsToSet(const std::initializer_list<Pointer> &elems) {
+        add(elems);
     }
 
-    bool add(const Pointer& ptr) {
-        if(has({ptr.target, Offset::UNKNOWN})) {
+    bool add(PSNode *target, Offset off) { return add(Pointer(target, off)); }
+
+    bool add(const Pointer &ptr) {
+        if (has({ptr.target, Offset::UNKNOWN})) {
             return false;
         }
-        if(ptr.offset.isUnknown()) {
+        if (ptr.offset.isUnknown()) {
             return addWithUnknownOffset(ptr.target);
         }
         return !pointers.set(getPointerID(ptr));
     }
 
     template <typename ContainerTy>
-    bool add(const ContainerTy& C) {
+    bool add(const ContainerTy &C) {
         bool changed = false;
-        for (const auto& ptr : C)
+        for (const auto &ptr : C)
             changed |= add(ptr);
         return changed;
     }
 
-    bool add(const PointerIdPointsToSet& S) {
-        return pointers.set(S.pointers);
-    }
+    bool add(const PointerIdPointsToSet &S) { return pointers.set(S.pointers); }
 
-    bool remove(const Pointer& ptr) {
+    bool remove(const Pointer &ptr) {
         return pointers.unset(getPointerID(ptr));
     }
 
     bool remove(PSNode *target, Offset offset) {
-        return remove(Pointer(target,offset));
+        return remove(Pointer(target, offset));
     }
 
     bool removeAny(PSNode *target) {
         decltype(pointers) tmp;
         tmp.reserve(pointers.size());
         bool removed = false;
-        for (const auto& ptrID : pointers) {
+        for (const auto &ptrID : pointers) {
             if (lookupTable.get(ptrID).target != target) {
                 tmp.set(ptrID);
             } else {
@@ -97,27 +93,24 @@ public:
         return removed;
     }
 
-    void clear() {
-        pointers.reset();
-    }
+    void clear() { pointers.reset(); }
 
-    bool pointsTo(const Pointer& ptr) const {
+    bool pointsTo(const Pointer &ptr) const {
         return pointers.get(getPointerID(ptr));
     }
 
-    bool mayPointTo(const Pointer& ptr) const {
-        return pointsTo(ptr)
-                || pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
+    bool mayPointTo(const Pointer &ptr) const {
+        return pointsTo(ptr) || pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
     }
 
-    bool mustPointTo(const Pointer& ptr) const {
+    bool mustPointTo(const Pointer &ptr) const {
         assert(!ptr.offset.isUnknown() && "Makes no sense");
         return pointsTo(ptr) && isSingleton();
     }
 
     bool pointsToTarget(PSNode *target) const {
         for (auto ptrid : pointers) {
-            auto& ptr = getPointer(ptrid);
+            auto &ptr = getPointer(ptrid);
             if (ptr.target == target) {
                 return true;
             }
@@ -125,34 +118,21 @@ public:
         return false;
     }
 
-    bool isSingleton() const {
-        return pointers.size() == 1;
-    }
+    bool isSingleton() const { return pointers.size() == 1; }
 
-    bool empty() const {
-        return pointers.empty();
-    }
+    bool empty() const { return pointers.empty(); }
 
-    size_t count(const Pointer& ptr) const {
-        return pointsTo(ptr);
-    }
+    size_t count(const Pointer &ptr) const { return pointsTo(ptr); }
 
-    bool has(const Pointer& ptr) const {
-        return count(ptr) > 0;
-    }
+    bool has(const Pointer &ptr) const { return count(ptr) > 0; }
 
-    bool hasUnknown() const {
-        return pointsToTarget(UNKNOWN_MEMORY);
-    }
+    bool hasUnknown() const { return pointsToTarget(UNKNOWN_MEMORY); }
 
-    bool hasNull() const {
-        return pointsToTarget(NULLPTR);
-
-    }
+    bool hasNull() const { return pointsToTarget(NULLPTR); }
 
     bool hasNullWithOffset() const {
         for (auto ptrid : pointers) {
-            auto& ptr = getPointer(ptrid);
+            auto &ptr = getPointer(ptrid);
             if (ptr.target == NULLPTR && *ptr.offset != 0) {
                 return true;
             }
@@ -161,27 +141,20 @@ public:
         return false;
     }
 
-    bool hasInvalidated() const {
-        return pointsToTarget(INVALIDATED);
-    }
+    bool hasInvalidated() const { return pointsToTarget(INVALIDATED); }
 
-    size_t size() const {
-        return pointers.size();
-    }
+    size_t size() const { return pointers.size(); }
 
-    void swap(PointerIdPointsToSet& rhs) {
-        pointers.swap(rhs.pointers);
-    }
+    void swap(PointerIdPointsToSet &rhs) { pointers.swap(rhs.pointers); }
 
     class const_iterator {
-
         typename PointersT::const_iterator container_it;
 
-        const_iterator(const PointersT& pointers, bool end = false) :
-        container_it(end ? pointers.end() : pointers.begin()) {}
+        const_iterator(const PointersT &pointers, bool end = false)
+                : container_it(end ? pointers.end() : pointers.begin()) {}
 
-    public:
-        const_iterator& operator++() {
+      public:
+        const_iterator &operator++() {
             container_it++;
             return *this;
         }
@@ -196,11 +169,11 @@ public:
             return Pointer(lookupTable.get(*container_it));
         }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             return container_it == rhs.container_it;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
 
@@ -208,7 +181,9 @@ public:
     };
 
     const_iterator begin() const { return const_iterator(pointers); }
-    const_iterator end() const { return const_iterator(pointers, true /* end */); }
+    const_iterator end() const {
+        return const_iterator(pointers, true /* end */);
+    }
 
     friend class const_iterator;
 };

@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "dg/ReadWriteGraph/RWNode.h"
 #include "dg/BBlockBase.h"
+#include "dg/ReadWriteGraph/RWNode.h"
 
 namespace dg {
 namespace dda {
@@ -15,8 +15,7 @@ class RWNode;
 class RWBBlock : public BBlockBase<RWBBlock, RWNode> {
     RWSubgraph *subgraph{nullptr};
 
-public:
-
+  public:
     using NodeT = RWNode;
 
     RWBBlock() = default;
@@ -36,8 +35,7 @@ public:
     // Return newly created basic blocks (there are at most two of them).
     std::pair<std::unique_ptr<RWBBlock>, std::unique_ptr<RWBBlock>>
     splitAround(NodeT *node) {
-        assert(node->getBBlock() == this
-               && "Spliting a block on invalid node");
+        assert(node->getBBlock() == this && "Spliting a block on invalid node");
 
         RWBBlock *withnode = nullptr;
         RWBBlock *after = nullptr;
@@ -84,10 +82,9 @@ public:
         }
 
         assert(!withnode || withnode->size() == 1);
-        assert(((getNodes().size() +
-                (withnode ? withnode->size() : 0) +
-                (after ? after->size() : 0)) == old_size)
-               && "Bug in splitting nodes");
+        assert(((getNodes().size() + (withnode ? withnode->size() : 0) +
+                 (after ? after->size() : 0)) == old_size) &&
+               "Bug in splitting nodes");
 
         // reconnect edges
         RWBBlock *bbwithsuccessors = after;
@@ -96,7 +93,7 @@ public:
 
         assert(bbwithsuccessors);
         for (auto *s : this->_successors) {
-            for (auto& p : s->_predecessors) {
+            for (auto &p : s->_predecessors) {
                 if (p == this) {
                     p = bbwithsuccessors;
                 }
@@ -119,7 +116,6 @@ public:
                 std::unique_ptr<RWBBlock>(after)};
     }
 
-
     bool isReturnBBlock() const {
         if (auto *last = getLast()) {
             return last->isRet();
@@ -130,10 +126,9 @@ public:
 #ifndef NDEBUG
     void dump() const;
 #endif
-
 };
 
 } // namespace dda
 } // namespace dg
 
-#endif //DG_RWBBLOCK_H_
+#endif // DG_RWBBLOCK_H_

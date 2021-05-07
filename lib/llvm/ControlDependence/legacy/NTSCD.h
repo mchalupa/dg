@@ -6,16 +6,15 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "GraphBuilder.h"
+#include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"
 
-#include <set>
 #include <map>
+#include <set>
 #include <unordered_map>
 
 #include "Block.h"
-
 
 namespace llvm {
 class Function;
@@ -29,7 +28,7 @@ namespace llvmdg {
 namespace legacy {
 
 class NTSCD : public LLVMControlDependenceAnalysisImpl {
-public:
+  public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
     struct NodeInfo {
@@ -39,14 +38,15 @@ public:
     };
 
     NTSCD(const llvm::Module *module,
-          const LLVMControlDependenceAnalysisOptions& opts = {},
+          const LLVMControlDependenceAnalysisOptions &opts = {},
           LLVMPointerAnalysis *pointsToAnalysis = nullptr);
 
-    void dump(std::ostream & ostream) const;
-    void dumpDependencies(std::ostream & ostream) const;
+    void dump(std::ostream &ostream) const;
+    void dumpDependencies(std::ostream &ostream) const;
 
-    const std::map<Block *, std::set<Block *>>&
-    controlDependencies() const { return controlDependency; }
+    const std::map<Block *, std::set<Block *>> &controlDependencies() const {
+        return controlDependency;
+    }
 
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *) override { return {}; }
@@ -56,7 +56,7 @@ public:
     ValVec getDependencies(const llvm::BasicBlock *b) override {
         if (_computed.insert(b->getParent()).second) {
             /// FIXME: get rid of the const cast
-            computeOnDemand(const_cast<llvm::Function*>(b->getParent()));
+            computeOnDemand(const_cast<llvm::Function *>(b->getParent()));
         }
 
         auto *block = graphBuilder.mapBlock(b);
@@ -70,7 +70,7 @@ public:
         std::set<llvm::Value *> ret;
         for (auto *dep : it->second) {
             assert(dep->llvmBlock() && "Do not have LLVM block");
-            ret.insert(const_cast<llvm::BasicBlock*>(dep->llvmBlock()));
+            ret.insert(const_cast<llvm::BasicBlock *>(dep->llvmBlock()));
         }
 
         return ValVec{ret.begin(), ret.end()};
@@ -81,17 +81,16 @@ public:
         abort();
     }
 
-
     // We run on demand. However, you may use manually computeDependencies()
     // to compute all dependencies in the interprocedural CFG.
     void compute(const llvm::Function *F = nullptr) override {
         DBG(cda, "Triggering computation of all dependencies");
         if (F && !F->isDeclaration() && _computed.insert(F).second) {
-            computeOnDemand(const_cast<llvm::Function*>(F));
+            computeOnDemand(const_cast<llvm::Function *>(F));
         } else {
-            for (auto& f : *getModule()) {
+            for (auto &f : *getModule()) {
                 if (!f.isDeclaration() && _computed.insert(&f).second) {
-                    computeOnDemand(const_cast<llvm::Function*>(&f));
+                    computeOnDemand(const_cast<llvm::Function *>(&f));
                 }
             }
         }
@@ -100,7 +99,7 @@ public:
     // Compute dependencies for the whole ICFG (used in legacy code)
     void computeDependencies();
 
-private:
+  private:
     GraphBuilder graphBuilder;
 
     // forward edges (from branchings to dependent blocks)
@@ -119,10 +118,10 @@ private:
     // a is CD on b
     void addControlDependence(Block *a, Block *b);
 
-    void visitInitialNode(Block * node);
-    void visit(Block * node);
+    void visitInitialNode(Block *node);
+    void visit(Block *node);
 
-    bool hasRedAndNonRedSuccessor(Block * node);
+    bool hasRedAndNonRedSuccessor(Block *node);
 };
 
 } // namespace legacy

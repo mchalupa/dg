@@ -1,15 +1,15 @@
 #include <string>
 
-#include "dg/PointerAnalysis/PointsToSet.h"
 #include "dg/PointerAnalysis/PointerGraphValidator.h"
+#include "dg/PointerAnalysis/PointsToSet.h"
 
 namespace dg {
 namespace pta {
 
-static void dumpNode(const PSNode *nd, std::string& errors) {
-  errors +=  std::string(PSNodeTypeToCString(nd->getType())) + " with ID " +
-             std::to_string(nd->getID()) + "\n  - operands: [";
-    for (unsigned i = 0, e =  nd->getOperandsNum(); i < e; ++i) {
+static void dumpNode(const PSNode *nd, std::string &errors) {
+    errors += std::string(PSNodeTypeToCString(nd->getType())) + " with ID " +
+              std::to_string(nd->getID()) + "\n  - operands: [";
+    for (unsigned i = 0, e = nd->getOperandsNum(); i < e; ++i) {
         const PSNode *op = nd->getOperand(i);
         errors += std::to_string(op->getID()) += " ";
         errors += std::string(PSNodeTypeToCString(op->getType()));
@@ -19,14 +19,15 @@ static void dumpNode(const PSNode *nd, std::string& errors) {
     errors += "]\n";
 }
 
-bool PointerGraphValidator::warn(const PSNode *nd, const std::string& warning) {
+bool PointerGraphValidator::warn(const PSNode *nd, const std::string &warning) {
     warnings += "Warning: " + warning + "\n";
     dumpNode(nd, warnings);
 
     return true;
 }
 
-bool PointerGraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
+bool PointerGraphValidator::reportInvalOperands(const PSNode *nd,
+                                                const std::string &user_err) {
     errors += "Invalid operands:\n";
     dumpNode(nd, errors);
 
@@ -36,7 +37,8 @@ bool PointerGraphValidator::reportInvalOperands(const PSNode *nd, const std::str
     return true;
 }
 
-bool PointerGraphValidator::reportInvalEdges(const PSNode *nd, const std::string& user_err) {
+bool PointerGraphValidator::reportInvalEdges(const PSNode *nd,
+                                             const std::string &user_err) {
     errors += "Invalid number of edges:\n";
     dumpNode(nd, errors);
 
@@ -45,7 +47,8 @@ bool PointerGraphValidator::reportInvalEdges(const PSNode *nd, const std::string
     return true;
 }
 
-bool PointerGraphValidator::reportInvalNode(const PSNode *nd, const std::string& user_err) {
+bool PointerGraphValidator::reportInvalNode(const PSNode *nd,
+                                            const std::string &user_err) {
     errors += "Invalid node:\n";
     dumpNode(nd, errors);
     if (!user_err.empty())
@@ -59,8 +62,7 @@ bool PointerGraphValidator::reportUnreachableNode(const PSNode *nd) {
     return true;
 }
 
-static bool hasDuplicateOperand(const PSNode *nd)
-{
+static bool hasDuplicateOperand(const PSNode *nd) {
     std::set<const PSNode *> ops;
     for (const PSNode *op : nd->getOperands()) {
         if (!ops.insert(op).second)
@@ -70,8 +72,7 @@ static bool hasDuplicateOperand(const PSNode *nd)
     return false;
 }
 
-static bool hasNonpointerOperand(const PSNode *nd)
-{
+static bool hasNonpointerOperand(const PSNode *nd) {
     for (const PSNode *op : nd->getOperands()) {
         if (op->getType() == PSNodeType::NOOP ||
             op->getType() == PSNodeType::FREE ||
@@ -90,25 +91,27 @@ bool PointerGraphValidator::checkOperands() {
     bool invalid = false;
 
     std::set<const PSNode *> known_nodes;
-    const auto& nodes = PS->getNodes();
+    const auto &nodes = PS->getNodes();
 
-    for (const auto *g :PS->getGlobals()) {
+    for (const auto *g : PS->getGlobals()) {
         if (!known_nodes.insert(g).second)
-            invalid |= reportInvalNode(g, "Global node multiple times in the graph");
+            invalid |= reportInvalNode(
+                    g, "Global node multiple times in the graph");
     }
 
     // globals are also normal nodes, so we must forget them now
     known_nodes.clear();
 
-    for (const auto& nd : nodes) {
+    for (const auto &nd : nodes) {
         if (!nd)
             continue;
 
         if (!known_nodes.insert(nd.get()).second)
-            invalid |= reportInvalNode(nd.get(), "Node multiple times in the graph");
+            invalid |= reportInvalNode(nd.get(),
+                                       "Node multiple times in the graph");
     }
 
-    for (const auto& ndptr : nodes) {
+    for (const auto &ndptr : nodes) {
         if (!ndptr)
             continue;
 
@@ -116,55 +119,62 @@ bool PointerGraphValidator::checkOperands() {
         for (const PSNode *op : nd->getOperands()) {
             if (op != NULLPTR && op != UNKNOWN_MEMORY && op != INVALIDATED &&
                 known_nodes.count(op) == 0) {
-                invalid |= reportInvalOperands(nd, "Node has unknown (maybe dangling) operand");
+                invalid |= reportInvalOperands(
+                        nd, "Node has unknown (maybe dangling) operand");
             }
         }
 
         switch (nd->getType()) {
-            case PSNodeType::PHI:
-                if (nd->getOperandsNum() == 0) {
-                    // this may not be always an error
-                    // (say this is a phi of an uninitialized pointer
-                    // for which we do not have any points to)
-                    warn(nd, "Empty PHI");
-                } else if (hasDuplicateOperand(nd)) {
-                    // this is not an error, but warn the user
-                    // as this is redundant
-                    warn(nd, "PHI Node contains duplicated operand");
-                } else if (hasNonpointerOperand(nd)) {
-                    invalid |= reportInvalOperands(nd, "PHI Node contains non-pointer operand");
-                }
-                break;
-            case PSNodeType::NULL_ADDR:
-            case PSNodeType::UNKNOWN_MEM:
-            case PSNodeType::NOOP:
-            case PSNodeType::FUNCTION:
-                if (nd->getOperandsNum() != 0) {
-                    invalid |= reportInvalOperands(nd, "Should not have an operand");
-                }
-                break;
-            case PSNodeType::GEP:
-            case PSNodeType::LOAD:
-            case PSNodeType::CAST:
-            case PSNodeType::INVALIDATE_OBJECT:
-            case PSNodeType::CONSTANT:
-            case PSNodeType::FREE:
-                if (hasNonpointerOperand(nd)) {
-                    invalid |= reportInvalOperands(nd, "Node has non-pointer operand");
-                }
-                if (nd->getOperandsNum() != 1) {
-                    invalid |= reportInvalOperands(nd, "Should have exactly one operand");
-                }
-                break;
-            case PSNodeType::STORE:
-            case PSNodeType::MEMCPY:
-                if (hasNonpointerOperand(nd)) {
-                    invalid |= reportInvalOperands(nd, "Node has non-pointer operand");
-                }
-                if (nd->getOperandsNum() != 2) {
-                    invalid |= reportInvalOperands(nd, "Should have exactly two operands");
-                }
-                break;
+        case PSNodeType::PHI:
+            if (nd->getOperandsNum() == 0) {
+                // this may not be always an error
+                // (say this is a phi of an uninitialized pointer
+                // for which we do not have any points to)
+                warn(nd, "Empty PHI");
+            } else if (hasDuplicateOperand(nd)) {
+                // this is not an error, but warn the user
+                // as this is redundant
+                warn(nd, "PHI Node contains duplicated operand");
+            } else if (hasNonpointerOperand(nd)) {
+                invalid |= reportInvalOperands(
+                        nd, "PHI Node contains non-pointer operand");
+            }
+            break;
+        case PSNodeType::NULL_ADDR:
+        case PSNodeType::UNKNOWN_MEM:
+        case PSNodeType::NOOP:
+        case PSNodeType::FUNCTION:
+            if (nd->getOperandsNum() != 0) {
+                invalid |=
+                        reportInvalOperands(nd, "Should not have an operand");
+            }
+            break;
+        case PSNodeType::GEP:
+        case PSNodeType::LOAD:
+        case PSNodeType::CAST:
+        case PSNodeType::INVALIDATE_OBJECT:
+        case PSNodeType::CONSTANT:
+        case PSNodeType::FREE:
+            if (hasNonpointerOperand(nd)) {
+                invalid |=
+                        reportInvalOperands(nd, "Node has non-pointer operand");
+            }
+            if (nd->getOperandsNum() != 1) {
+                invalid |= reportInvalOperands(
+                        nd, "Should have exactly one operand");
+            }
+            break;
+        case PSNodeType::STORE:
+        case PSNodeType::MEMCPY:
+            if (hasNonpointerOperand(nd)) {
+                invalid |=
+                        reportInvalOperands(nd, "Node has non-pointer operand");
+            }
+            if (nd->getOperandsNum() != 2) {
+                invalid |= reportInvalOperands(
+                        nd, "Should have exactly two operands");
+            }
+            break;
         }
     }
 
@@ -172,7 +182,7 @@ bool PointerGraphValidator::checkOperands() {
 }
 
 static inline bool isInPredecessors(const PSNode *nd, const PSNode *of) {
-    for (const PSNode *pred: of->predecessors()) {
+    for (const PSNode *pred : of->predecessors()) {
         if (pred == nd)
             return true;
     }
@@ -219,21 +229,25 @@ bool PointerGraphValidator::checkEdges() {
     bool invalid = false;
 
     // check incoming/outcoming edges of all nodes
-    const auto& nodes = PS->getNodes();
-    for (const auto& nd : nodes) {
+    const auto &nodes = PS->getNodes();
+    for (const auto &nd : nodes) {
         if (!nd)
             continue;
 
         if (!no_connectivity) {
-            if (nd->predecessorsNum() == 0 && nd.get()
-                && nd->getType() != PSNodeType::ENTRY && !canBeOutsideGraph(nd.get())) {
-                invalid |= reportInvalEdges(nd.get(), "Non-entry node has no predecessors");
+            if (nd->predecessorsNum() == 0 && nd.get() &&
+                nd->getType() != PSNodeType::ENTRY &&
+                !canBeOutsideGraph(nd.get())) {
+                invalid |= reportInvalEdges(
+                        nd.get(), "Non-entry node has no predecessors");
             }
         }
 
         for (const PSNode *succ : nd->successors()) {
             if (!isInPredecessors(nd.get(), succ))
-                invalid |= reportInvalEdges(nd.get(), "Node not set as a predecessor of some of its successors");
+                invalid |= reportInvalEdges(nd.get(),
+                                            "Node not set as a predecessor of "
+                                            "some of its successors");
         }
     }
 
@@ -263,7 +277,5 @@ bool PointerGraphValidator::validate() {
     return invalid;
 }
 
-
 } // namespace pta
 } // namespace dg
-

@@ -2,8 +2,8 @@
 #define DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
 
 #include <cassert>
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "PointerAnalysis.h"
 
@@ -13,12 +13,10 @@ namespace pta {
 ///
 // Flow-insensitive inclusion-based pointer analysis
 //
-class PointerAnalysisFI : public PointerAnalysis
-{
+class PointerAnalysisFI : public PointerAnalysis {
     std::vector<std::unique_ptr<MemoryObject>> memory_objects;
 
-    void preprocessGEPs()
-    {
+    void preprocessGEPs() {
         // if a node is in a loop (a scc that has more than one node),
         // then every GEP that is also stored to the same memory afterwards
         // in the loop will end up with Offset::UNKNOWN after some
@@ -26,8 +24,8 @@ class PointerAnalysisFI : public PointerAnalysis
         // and save iterations
 
         assert(getPG() && "Must have PG");
-        for (auto& sg : getPG()->getSubgraphs()) {
-            for (auto& loop : sg->getLoops()) {
+        for (auto &sg : getPG()->getSubgraphs()) {
+            for (auto &loop : sg->getLoops()) {
                 for (PSNode *n : loop) {
                     if (PSNodeGep *gep = PSNodeGep::get(n))
                         gep->setOffset(Offset::UNKNOWN);
@@ -36,13 +34,13 @@ class PointerAnalysisFI : public PointerAnalysis
         }
     }
 
-public:
-
+  public:
     PointerAnalysisFI(PointerGraph *ps) : PointerAnalysisFI(ps, {}) {}
 
-    PointerAnalysisFI(PointerGraph *ps, const PointerAnalysisOptions& opts)
-    : PointerAnalysis(ps, opts) {
-        memory_objects.reserve(std::max(ps->size() / 100, static_cast<size_t>(8)));
+    PointerAnalysisFI(PointerGraph *ps, const PointerAnalysisOptions &opts)
+            : PointerAnalysis(ps, opts) {
+        memory_objects.reserve(
+                std::max(ps->size() / 100, static_cast<size_t>(8)));
     }
 
     void preprocess() override {
@@ -50,9 +48,8 @@ public:
             preprocessGEPs();
     }
 
-    void getMemoryObjects(PSNode *where, const Pointer& pointer,
-                          std::vector<MemoryObject *>& objects) override
-    {
+    void getMemoryObjects(PSNode *where, const Pointer &pointer,
+                          std::vector<MemoryObject *> &objects) override {
         // irrelevant in flow-insensitive
         (void) where;
         PSNode *n = pointer.target;
@@ -68,8 +65,8 @@ public:
         if (n->getType() == PSNodeType::FUNCTION)
             return;
 
-        assert(n->getType() == PSNodeType::ALLOC
-               || n->getType() == PSNodeType::UNKNOWN_MEM);
+        assert(n->getType() == PSNodeType::ALLOC ||
+               n->getType() == PSNodeType::UNKNOWN_MEM);
 
         MemoryObject *mo = n->getData<MemoryObject>();
         if (!mo) {
@@ -86,4 +83,3 @@ public:
 } // namespace dg
 
 #endif // DG_ANALYSIS_POINTS_TO_FLOW_INSENSITIVE_H_
-

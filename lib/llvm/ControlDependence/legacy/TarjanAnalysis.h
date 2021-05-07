@@ -1,13 +1,13 @@
 #ifndef DG_LEGACY_NTSCD_TARJANANALYSIS_H
 #define DG_LEGACY_NTSCD_TARJANANALYSIS_H
 
-#include <vector>
-#include <set>
-#include <unordered_set>
-#include <unordered_map>
-#include <stack>
-#include <queue>
 #include <algorithm>
+#include <queue>
+#include <set>
+#include <stack>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 namespace dg {
 namespace llvmdg {
@@ -15,19 +15,18 @@ namespace legacy {
 
 // FIXME: we've got this and SCC, unify it
 template <typename T>
-class TarjanAnalysis
-{
-public:
-    class StronglyConnectedComponent
-    {
-    private:
+class TarjanAnalysis {
+  public:
+    class StronglyConnectedComponent {
+      private:
         static int idCounter;
-    public:
-        StronglyConnectedComponent():id_(++idCounter) {}
 
-        void addNode(T * node) { nodes_.push_back(node); }
+      public:
+        StronglyConnectedComponent() : id_(++idCounter) {}
 
-        bool addSuccessor(StronglyConnectedComponent * successor) {
+        void addNode(T *node) { nodes_.push_back(node); }
+
+        bool addSuccessor(StronglyConnectedComponent *successor) {
             if (!successor) {
                 return false;
             }
@@ -35,7 +34,7 @@ public:
             return successor->predecessors_.insert(this).second;
         }
 
-        bool addPredecessor(StronglyConnectedComponent * predecessor) {
+        bool addPredecessor(StronglyConnectedComponent *predecessor) {
             if (!predecessor) {
                 return false;
             }
@@ -43,18 +42,23 @@ public:
             return predecessor->successors_.insert(this).second;
         }
 
-        int id() const {return id_; }
+        int id() const { return id_; }
 
-        const std::vector<T *> & nodes() const {return nodes_; }
+        const std::vector<T *> &nodes() const { return nodes_; }
 
-        const std::set<StronglyConnectedComponent *> & predecessors() const { return predecessors_; }
+        const std::set<StronglyConnectedComponent *> &predecessors() const {
+            return predecessors_;
+        }
 
-        const std::set<StronglyConnectedComponent *> & successors() const { return successors_; }
-    private:
+        const std::set<StronglyConnectedComponent *> &successors() const {
+            return successors_;
+        }
+
+      private:
         int id_;
         std::vector<T *> nodes_;
-        std::set <StronglyConnectedComponent *> successors_;
-        std::set <StronglyConnectedComponent *> predecessors_;
+        std::set<StronglyConnectedComponent *> successors_;
+        std::set<StronglyConnectedComponent *> predecessors_;
     };
 
     // this we have to remember for each node
@@ -62,10 +66,10 @@ public:
         int dfsId{0};
         int lowLink{0};
         bool onStack{false};
-        StronglyConnectedComponent * component{nullptr};
+        StronglyConnectedComponent *component{nullptr};
     };
 
-    TarjanAnalysis(std::size_t size = 0):nodeInfo(size) {}
+    TarjanAnalysis(std::size_t size = 0) : nodeInfo(size) {}
 
     ~TarjanAnalysis() {
         for (auto component : components_) {
@@ -73,7 +77,7 @@ public:
         }
     }
 
-    void compute(T * currentNode) {
+    void compute(T *currentNode) {
         ++index;
         nodeInfo[currentNode].dfsId = index;
         nodeInfo[currentNode].lowLink = index;
@@ -84,11 +88,13 @@ public:
         for (auto successor : currentNode->successors()) {
             if (!visited(successor)) {
                 compute(successor);
-                nodeInfo[currentNode].lowLink = std::min(nodeInfo[currentNode].lowLink,
-                                                         nodeInfo[successor].lowLink);
+                nodeInfo[currentNode].lowLink =
+                        std::min(nodeInfo[currentNode].lowLink,
+                                 nodeInfo[successor].lowLink);
             } else if (nodeInfo[successor].onStack) {
-                nodeInfo[currentNode].lowLink = std::min(nodeInfo[currentNode].lowLink,
-                                                         nodeInfo[successor].dfsId);
+                nodeInfo[currentNode].lowLink =
+                        std::min(nodeInfo[currentNode].lowLink,
+                                 nodeInfo[successor].dfsId);
             }
         }
 
@@ -96,7 +102,7 @@ public:
             auto component = new StronglyConnectedComponent();
             components_.insert(component);
 
-            T * node;
+            T *node;
             while (nodeInfo[stack.top()].dfsId >= nodeInfo[currentNode].dfsId) {
                 node = stack.top();
                 stack.pop();
@@ -115,15 +121,18 @@ public:
         for (auto component : components_) {
             for (auto node : component->nodes()) {
                 for (auto successor : node->successors()) {
-                    if (nodeInfo[node].component != nodeInfo[successor].component) {
-                        nodeInfo[node].component->addSuccessor(nodeInfo[successor].component);
+                    if (nodeInfo[node].component !=
+                        nodeInfo[successor].component) {
+                        nodeInfo[node].component->addSuccessor(
+                                nodeInfo[successor].component);
                     }
                 }
             }
         }
     }
 
-    std::set<StronglyConnectedComponent *> computeBackWardReachability(T * node) {
+    std::set<StronglyConnectedComponent *>
+    computeBackWardReachability(T *node) {
         std::set<StronglyConnectedComponent *> visitedComponents;
         std::queue<StronglyConnectedComponent *> queue;
 
@@ -139,7 +148,8 @@ public:
             auto component = queue.front();
             queue.pop();
             for (auto predecessor : component->predecessors()) {
-                if (visitedComponents.find(predecessor) == visitedComponents.end()) {
+                if (visitedComponents.find(predecessor) ==
+                    visitedComponents.end()) {
                     visitedComponents.insert(predecessor);
                     queue.push(predecessor);
                 }
@@ -148,10 +158,11 @@ public:
         return visitedComponents;
     }
 
-    const std::set<StronglyConnectedComponent *> & components() const { return components_; }
+    const std::set<StronglyConnectedComponent *> &components() const {
+        return components_;
+    }
 
-    private:
-
+  private:
     int index{0};
 
     std::stack<T *> stack;
@@ -160,16 +171,15 @@ public:
 
     std::set<StronglyConnectedComponent *> components_;
 
-    private:
-
-    bool visited(T * node) { return nodeInfo[node].dfsId > 0; }
+  private:
+    bool visited(T *node) { return nodeInfo[node].dfsId > 0; }
 };
 
 template <typename T>
 int TarjanAnalysis<T>::StronglyConnectedComponent::idCounter = 0;
 
-}
-}
-}
+} // namespace legacy
+} // namespace llvmdg
+} // namespace dg
 
 #endif // DG_LLVM_TARJANANALYSIS_H

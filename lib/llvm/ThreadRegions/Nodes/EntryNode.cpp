@@ -3,7 +3,7 @@
 
 using namespace std;
 
-EntryNode::EntryNode():Node(NodeType::ENTRY){}
+EntryNode::EntryNode() : Node(NodeType::ENTRY) {}
 
 bool EntryNode::addForkPredecessor(ForkNode *forkNode) {
     if (!forkNode) {
@@ -21,13 +21,11 @@ bool EntryNode::removeForkPredecessor(ForkNode *forkNode) {
     return forkNode->forkSuccessors_.erase(this);
 }
 
-const set<ForkNode *> & EntryNode::forkPredecessors() const {
+const set<ForkNode *> &EntryNode::forkPredecessors() const {
     return forkPredecessors_;
 }
 
-std::set<ForkNode *> EntryNode::forkPredecessors() {
-    return forkPredecessors_;
-}
+std::set<ForkNode *> EntryNode::forkPredecessors() { return forkPredecessors_; }
 
 size_t EntryNode::predecessorsNumber() const {
     return predecessors().size() + forkPredecessors_.size();

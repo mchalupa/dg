@@ -9,9 +9,7 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace dda {
 
-LLVMDataDependenceAnalysis::~LLVMDataDependenceAnalysis() {
-    delete builder;
-}
+LLVMDataDependenceAnalysis::~LLVMDataDependenceAnalysis() { delete builder; }
 
 LLVMReadWriteGraphBuilder *LLVMDataDependenceAnalysis::createBuilder() {
     assert(m && pta);
@@ -30,20 +28,19 @@ RWNode *LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) {
     return builder->getNode(val);
 }
 
-const RWNode *LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) const {
+const RWNode *
+LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) const {
     return builder->getNode(val);
 }
 
-const llvm::Value *LLVMDataDependenceAnalysis::getValue(const RWNode *node) const {
+const llvm::Value *
+LLVMDataDependenceAnalysis::getValue(const RWNode *node) const {
     return builder->getValue(node);
 }
 
-std::vector<llvm::Value *>
-LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
-                                               llvm::Value *mem,
-                                               const Offset& off,
-                                               const Offset& len) {
-
+std::vector<llvm::Value *> LLVMDataDependenceAnalysis::getLLVMDefinitions(
+        llvm::Instruction *where, llvm::Value *mem, const Offset &off,
+        const Offset &len) {
     std::vector<llvm::Value *> defs;
 
     auto whereN = getNode(where);
@@ -64,10 +61,11 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
         auto *GV = llvm::dyn_cast<llvm::GlobalVariable>(mem);
         if (!GV || GV->isExternallyInitialized()) {
             // the memory is global and initialised, no need to worry
-            static std::set<std::pair<const llvm::Value *, const llvm::Value *>> reported;
+            static std::set<std::pair<const llvm::Value *, const llvm::Value *>>
+                    reported;
             if (reported.insert({where, mem}).second) {
-                llvm::errs() << "[DDA] warn: no definition for: "
-                             << *mem << "at " << *where << "\n";
+                llvm::errs() << "[DDA] warn: no definition for: " << *mem
+                             << "at " << *where << "\n";
             }
         }
     }
@@ -87,7 +85,6 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Instruction *where,
 // the value 'use' must be an instruction that reads from memory
 std::vector<llvm::Value *>
 LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
-
     std::vector<llvm::Value *> defs;
 
     auto loc = getNode(use);
@@ -103,8 +100,8 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
     }
 
     if (!llvm::isa<llvm::LoadInst>(use) && !llvm::isa<llvm::CallInst>(use)) {
-        llvm::errs() << "[DDA] error: the queried value is not a use: "
-                     << *use << "\n";
+        llvm::errs() << "[DDA] error: the queried value is not a use: " << *use
+                     << "\n";
     }
 
     auto rdDefs = getDefinitions(loc);
@@ -113,19 +110,19 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
         if (!loc->usesOnlyGlobals()) {
             static std::set<const llvm::Value *> reported;
             if (reported.insert(use).second) {
-                llvm::errs() << "[DDA] warn: no definitions for: "
-                             << *use << "\n";
+                llvm::errs()
+                        << "[DDA] warn: no definitions for: " << *use << "\n";
             }
         }
     }
 #endif // NDEBUG
 
-    //map the values
+    // map the values
     for (RWNode *nd : rdDefs) {
         assert(nd->getType() != RWNodeType::PHI);
         auto llvmvalue = getValue(nd);
         assert(llvmvalue && "Have no value for a node");
-        defs.push_back(const_cast<llvm::Value*>(llvmvalue));
+        defs.push_back(const_cast<llvm::Value *>(llvmvalue));
     }
 
     return defs;
@@ -133,4 +130,3 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
 
 } // namespace dda
 } // namespace dg
-

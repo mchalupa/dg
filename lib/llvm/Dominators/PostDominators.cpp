@@ -1,7 +1,7 @@
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Function.h>
 #include <llvm/Analysis/PostDominators.h>
+#include <llvm/IR/Function.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/BFS.h"
@@ -12,21 +12,22 @@ SILENCE_LLVM_WARNINGS_POP
 
 namespace dg {
 
-void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
-{
-    DBG_SECTION_BEGIN(llvmdg, "Computing post-dominator frontiers (control deps.)");
+void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers) {
+    DBG_SECTION_BEGIN(llvmdg,
+                      "Computing post-dominator frontiers (control deps.)");
     using namespace llvm;
     // iterate over all functions
-    for (auto& F : getConstructedFunctions()) {
+    for (auto &F : getConstructedFunctions()) {
         legacy::PostDominanceFrontiers<LLVMNode, LLVMBBlock> pdfrontiers;
 
         // root of post-dominator tree
         LLVMBBlock *root = nullptr;
         Value *val = const_cast<Value *>(F.first);
-        Function& f = *cast<Function>(val);
+        Function &f = *cast<Function>(val);
         PostDominatorTree *pdtree;
 
-        DBG_SECTION_BEGIN(llvmdg, "Computing control deps. for " << f.getName().str());
+        DBG_SECTION_BEGIN(llvmdg,
+                          "Computing control deps. for " << f.getName().str());
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
         pdtree = new PostDominatorTree();
@@ -42,9 +43,9 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
 #endif
 
         // add immediate post-dominator edges
-        auto& our_blocks = F.second->getBlocks();
+        auto &our_blocks = F.second->getBlocks();
         bool built = false;
-        for (auto& it : our_blocks) {
+        for (auto &it : our_blocks) {
             LLVMBBlock *BB = it.second;
             BasicBlock *B = cast<BasicBlock>(const_cast<Value *>(it.first));
             DomTreeNode *N = pdtree->getNode(B);
@@ -63,10 +64,10 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
                 LLVMBBlock *pb = our_blocks[idomBB];
                 assert(pb && "Do not have constructed BB");
                 BB->setIPostDom(pb);
-                assert(cast<BasicBlock>(BB->getKey())->getParent()
-                        == cast<BasicBlock>(pb->getKey())->getParent()
-                        && "BBs are from diferent functions");
-            // if we do not have idomBB, then the idomBB is a root BB
+                assert(cast<BasicBlock>(BB->getKey())->getParent() ==
+                               cast<BasicBlock>(pb->getKey())->getParent() &&
+                       "BBs are from diferent functions");
+                // if we do not have idomBB, then the idomBB is a root BB
             } else {
                 // PostDominatorTree may has special root without BB set
                 // or it is the node without immediate post-dominator
@@ -81,12 +82,12 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         }
 
         // well, if we haven't built the pdtree, this is probably infinite loop
-        // that has no pdtree. Until we have anything better, just add sound control
-        // edges that are not so precise - to predecessors.
+        // that has no pdtree. Until we have anything better, just add sound
+        // control edges that are not so precise - to predecessors.
         if (!built && addPostDomFrontiers) {
-            for (auto& it : our_blocks) {
+            for (auto &it : our_blocks) {
                 LLVMBBlock *BB = it.second;
-                for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
+                for (const LLVMBBlock::BBlockEdge &succ : BB->successors()) {
                     // in this case we add only the control dependencies,
                     // since we have no pd frontiers
                     BB->addControlDependence(succ.target);
@@ -97,15 +98,18 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers)
         if (addPostDomFrontiers) {
             // assert(root && "BUG: must have root");
             if (root)
-                pdfrontiers.compute(root, true /* store also control depend. */);
+                pdfrontiers.compute(root,
+                                    true /* store also control depend. */);
         }
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
         delete pdtree;
 #endif
-        DBG_SECTION_END(llvmdg, "Done computing control deps. for " << f.getName().str());
+        DBG_SECTION_END(llvmdg, "Done computing control deps. for "
+                                        << f.getName().str());
     }
-    DBG_SECTION_END(llvmdg, "Done computing post-dominator frontiers (control deps.)");
+    DBG_SECTION_END(llvmdg,
+                    "Done computing post-dominator frontiers (control deps.)");
 }
 
 } // namespace dg

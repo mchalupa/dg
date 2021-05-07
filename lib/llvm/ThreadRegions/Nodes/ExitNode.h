@@ -7,19 +7,19 @@
 
 class JoinNode;
 
-class ExitNode : public Node
-{
-private:
+class ExitNode : public Node {
+  private:
     std::set<JoinNode *> joinSuccessors_;
-public:
+
+  public:
     ExitNode();
 
     bool addJoinSuccessor(JoinNode *joinNode);
 
     bool removeJoinSuccessor(JoinNode *joinNode);
 
-    const std::set<JoinNode *> & joinSuccessors() const;
-          std::set<JoinNode *>   joinSuccessors();
+    const std::set<JoinNode *> &joinSuccessors() const;
+    std::set<JoinNode *> joinSuccessors();
 
     std::size_t successorsNumber() const override;
 

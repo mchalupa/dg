@@ -5,9 +5,9 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/Support/raw_ostream.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
 namespace dg {
@@ -16,13 +16,9 @@ namespace legacy {
 
 int Block::traversalCounter = 0;
 
-const std::set<Block *> &Block::predecessors() const{
-    return predecessors_;
-}
+const std::set<Block *> &Block::predecessors() const { return predecessors_; }
 
-const std::set<Block *> &Block::successors() const {
-    return successors_;
-}
+const std::set<Block *> &Block::successors() const { return successors_; }
 
 bool Block::addPredecessor(Block *predecessor) {
     if (!predecessor) {
@@ -104,34 +100,24 @@ const std::map<const llvm::Function *, Function *> &Block::forks() const {
     return forks_;
 }
 
-std::map<const llvm::Function *, Function *> Block::forks() {
-    return forks_;
-}
+std::map<const llvm::Function *, Function *> Block::forks() { return forks_; }
 
 const std::map<const llvm::Function *, Function *> &Block::joins() const {
     return joins_;
 }
 
-std::map<const llvm::Function *, Function *> Block::joins() {
-    return joins_;
-}
+std::map<const llvm::Function *, Function *> Block::joins() { return joins_; }
 
 bool Block::isCall() const {
-    return !llvmInstructions_.empty() && llvmInstructions_.back()->getOpcode() == llvm::Instruction::Call;
+    return !llvmInstructions_.empty() &&
+           llvmInstructions_.back()->getOpcode() == llvm::Instruction::Call;
 }
 
-bool Block::isArtificial() const {
-    return llvmInstructions_.empty();
-}
+bool Block::isArtificial() const { return llvmInstructions_.empty(); }
 
-bool Block::isCallReturn() const {
-    return isArtificial()           &&
-           callReturn;
-}
+bool Block::isCallReturn() const { return isArtificial() && callReturn; }
 
-bool Block::isExit() const {
-    return isArtificial() && !isCallReturn();
-}
+bool Block::isExit() const { return isArtificial() && !isCallReturn(); }
 
 std::string Block::dotName() const {
     std::stringstream stream;
@@ -185,19 +171,23 @@ void Block::dumpEdges(std::ostream &ostream) const {
     }
 
     for (auto callee : callees_) {
-        ostream << this->dotName() << " -> " << callee.second->entry()->dotName() << " [style=dashed, constraint=false]\n";
-        ostream << callee.second->exit()->dotName() << " -> " << this->dotName() << " [style=dashed, constraint=false]\n";
+        ostream << this->dotName() << " -> "
+                << callee.second->entry()->dotName()
+                << " [style=dashed, constraint=false]\n";
+        ostream << callee.second->exit()->dotName() << " -> " << this->dotName()
+                << " [style=dashed, constraint=false]\n";
     }
 
     for (auto fork : forks_) {
-        ostream << this->dotName() << " -> " << fork.second->entry()->dotName() << " [style=dotted, constraint=false]\n";
+        ostream << this->dotName() << " -> " << fork.second->entry()->dotName()
+                << " [style=dotted, constraint=false]\n";
     }
 
     for (auto join : joins_) {
-        ostream << join.second->exit()->dotName() << " -> " << this->dotName() << " [style=dotted, constraint=false]\n";
+        ostream << join.second->exit()->dotName() << " -> " << this->dotName()
+                << " [style=dotted, constraint=false]\n";
     }
 }
-
 
 } // namespace legacy
 } // namespace llvmdg

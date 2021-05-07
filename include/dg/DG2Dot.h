@@ -1,42 +1,40 @@
 #ifndef DG_2_DOT_H_
 #define DG_2_DOT_H_
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <set>
 
-#include "dg/DependenceGraph.h"
 #include "dg/DFS.h"
+#include "dg/DependenceGraph.h"
 
 namespace dg {
 namespace debug {
 
 enum dg2dot_options {
-    PRINT_NONE      = 0, // print no edges
-    PRINT_CFG       = 1 << 0,
-    PRINT_REV_CFG   = 1 << 1,
-    PRINT_DD        = 1 << 2,
-    PRINT_REV_DD    = 1 << 3,
-    PRINT_USE       = 1 << 4,
-    PRINT_USER      = 1 << 5,
-    PRINT_CD        = 1 << 6,
-    PRINT_REV_CD    = 1 << 7,
-    PRINT_ID        = 1 << 8,
-    PRINT_REV_ID    = 1 << 9,
-    PRINT_CALL      = 1 << 10,
-    PRINT_POSTDOM   = 1 << 11,
-    PRINT_ALL       = 0xfff
+    PRINT_NONE = 0, // print no edges
+    PRINT_CFG = 1 << 0,
+    PRINT_REV_CFG = 1 << 1,
+    PRINT_DD = 1 << 2,
+    PRINT_REV_DD = 1 << 3,
+    PRINT_USE = 1 << 4,
+    PRINT_USER = 1 << 5,
+    PRINT_CD = 1 << 6,
+    PRINT_REV_CD = 1 << 7,
+    PRINT_ID = 1 << 8,
+    PRINT_REV_ID = 1 << 9,
+    PRINT_CALL = 1 << 10,
+    PRINT_POSTDOM = 1 << 11,
+    PRINT_ALL = 0xfff
 };
 
-struct Indent
-{
+struct Indent {
     int ind;
-    Indent(int ind = 1):ind(ind) {}
-    friend std::ostream& operator <<(std::ostream& os, const Indent& ind);
+    Indent(int ind = 1) : ind(ind) {}
+    friend std::ostream &operator<<(std::ostream &os, const Indent &ind);
 };
 
-std::ostream& operator <<(std::ostream& os, const Indent& ind)
-{
+std::ostream &operator<<(std::ostream &os, const Indent &ind) {
     for (int i = 0; i < ind.ind; ++i)
         os << "\t";
 
@@ -44,65 +42,57 @@ std::ostream& operator <<(std::ostream& os, const Indent& ind)
 }
 
 template <typename NodeT>
-class DG2Dot
-{
-    std::set<const typename DependenceGraph<NodeT>::ContainerType *> dumpedGlobals;
+class DG2Dot {
+    std::set<const typename DependenceGraph<NodeT>::ContainerType *>
+            dumpedGlobals;
     // slicing criteria
     std::set<NodeT *> criteria;
-public:
+
+  public:
     using KeyT = typename NodeT::KeyType;
 
     DG2Dot<NodeT>(DependenceGraph<NodeT> *dg,
                   uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE,
                   const char *file = NULL)
-        : options(opts), dg(dg), file(file)
-    {
+            : options(opts), dg(dg), file(file) {
         // if a graph has no global nodes, this will forbid trying to print them
         dumpedGlobals.insert(nullptr);
         reopen(file);
     }
 
-    void setSlicingCriteria(const std::set<NodeT *>& crit) {
-        criteria = crit;
-    }
+    void setSlicingCriteria(const std::set<NodeT *> &crit) { criteria = crit; }
 
-    bool open(const char *new_file)
-    {
+    bool open(const char *new_file) {
         if (out.is_open()) {
-            std::cerr << "File already opened (" << file << ")"
-                      << std::endl;
+            std::cerr << "File already opened (" << file << ")" << std::endl;
             return false;
         } else
             reopen(new_file);
     }
 
-    virtual std::ostream& printKey(std::ostream& os, KeyT key)
-    {
+    virtual std::ostream &printKey(std::ostream &os, KeyT key) {
         os << key;
         return os;
     }
 
     // \return - error state: true if there's an error, false otherwise
-    virtual bool checkNode(std::ostream& os, NodeT *node)
-    {
-	    bool err = false;
+    virtual bool checkNode(std::ostream &os, NodeT *node) {
+        bool err = false;
 
-	    if (!node->getBBlock()) {
-	        err = true;
-	        os << "\\nERR: no BB";
-	    }
+        if (!node->getBBlock()) {
+            err = true;
+            os << "\\nERR: no BB";
+        }
 
-	    return err;
+        return err;
     }
 
-    bool ensureFile(const char *fl)
-    {
+    bool ensureFile(const char *fl) {
         if (fl)
             reopen(fl);
 
         if (!out.is_open()) {
-            std::cerr << "File '" << file << "' not opened"
-                      << std::endl;
+            std::cerr << "File '" << file << "' not opened" << std::endl;
             return false;
         }
 
@@ -110,8 +100,7 @@ public:
     }
 
     virtual bool dump(const char *new_file = nullptr,
-                      const char *only_functions = nullptr)
-    {
+                      const char *only_functions = nullptr) {
         (void) only_functions;
 
         if (!ensureFile(new_file))
@@ -137,7 +126,6 @@ public:
             dump_subgraph(sub);
         }
 
-
         end();
 
         out.close();
@@ -146,25 +134,20 @@ public:
 
     /* if user want's manual printing, he/she can */
 
-    void start()
-    {
+    void start() {
         out << "digraph \"DependenceGraph\" {\n";
-        out << "\tcompound=true label=\"Graph " << dg
-            << " has " << dg->size() << " nodes\\n\n"
+        out << "\tcompound=true label=\"Graph " << dg << " has " << dg->size()
+            << " nodes\\n\n"
             << "\tdd edges color: " << dd_color << "\n"
             << "\tuse edges color: " << use_color << ", dashed\n"
             << "\tcd edges color: " << cd_color << "\n"
             << "\tcfg edges color: " << cfg_color << "\"\n\n";
     }
 
-    void end()
-    {
-        out << "}\n";
-    }
+    void end() { out << "}\n"; }
 
     void dumpSubgraphStart(DependenceGraph<NodeT> *sub,
-                           const char *name = nullptr)
-    {
+                           const char *name = nullptr) {
         out << "\t/* subgraph " << sub << " nodes */\n";
         out << "\tsubgraph cluster_" << sub << " {\n";
         out << "\t\tstyle=\"filled, rounded\" fillcolor=gray95\n";
@@ -177,28 +160,26 @@ public:
 
         uint64_t slice_id = sub->getSlice();
         if (slice_id != 0)
-            out << "\\nslice: "<< slice_id;
+            out << "\\nslice: " << slice_id;
 
         out << "\"\n";
-
 
         // dump BBs of the formal parameters
         dump_parameters(sub, 2);
     }
 
-    void dumpSubgraphEnd(DependenceGraph<NodeT> *sub, bool with_nodes = true)
-    {
+    void dumpSubgraphEnd(DependenceGraph<NodeT> *sub, bool with_nodes = true) {
         if (with_nodes) {
             // dump all nodes, to get it without BBlocks
             // (we may not have BBlocks or we just don't want
             // to print them
-            for (auto& I : *sub) {
+            for (auto &I : *sub) {
                 dump_node(I.second, 2);
                 dump_node_edges(I.second, 2);
             }
 
             if (dumpedGlobals.insert(sub->getGlobalNodes().get()).second) {
-                for (auto& I : *sub->getGlobalNodes()) {
+                for (auto &I : *sub->getGlobalNodes()) {
                     dump_node(I.second, 2, "GLOB");
                     dump_node_edges(I.second, 2);
                 }
@@ -208,28 +189,22 @@ public:
         out << "\t}\n";
     }
 
-    void dumpSubgraph(DependenceGraph<NodeT> *sub)
-    {
+    void dumpSubgraph(DependenceGraph<NodeT> *sub) {
         dumpSubgraphStart(sub);
         dumpSubgraphEnd(sub);
     }
 
-    void dumpBBlock(BBlock<NodeT> *BB, int ind = 2)
-    {
-        dumpBB(BB, ind);
-    }
+    void dumpBBlock(BBlock<NodeT> *BB, int ind = 2) { dumpBB(BB, ind); }
 
-    void dumpBBlockEdges(BBlock<NodeT> *BB, int ind = 1)
-    {
+    void dumpBBlockEdges(BBlock<NodeT> *BB, int ind = 1) {
         dumpBBedges(BB, ind);
     }
 
-private:
+  private:
     // what all to print?
     uint32_t options;
 
-    void reopen(const char *new_file)
-    {
+    void reopen(const char *new_file) {
         if (!new_file)
             new_file = "/dev/stdout";
 
@@ -240,8 +215,7 @@ private:
         file = new_file;
     }
 
-    void dumpBB(const BBlock<NodeT> *BB, int indent)
-    {
+    void dumpBB(const BBlock<NodeT> *BB, int indent) {
         Indent Ind(indent);
 
         out << Ind << "/* Basic Block ";
@@ -256,25 +230,24 @@ private:
 
         unsigned int dfsorder = BB->getDFSOrder();
         if (dfsorder != 0)
-            out << Ind << "\\ndfs order: "<< dfsorder;
+            out << Ind << "\\ndfs order: " << dfsorder;
 
         uint64_t slice_id = BB->getSlice();
         if (slice_id != 0)
-            out << "\\nslice: "<< slice_id;
+            out << "\\nslice: " << slice_id;
 
         out << "\"\n";
 
         for (NodeT *n : BB->getNodes()) {
             // print nodes in BB, edges will be printed later
-            out << Ind << "\tNODE" << n
-                << " [shape=rect label=\"" << n->getKey() << "\"]\n";
+            out << Ind << "\tNODE" << n << " [shape=rect label=\""
+                << n->getKey() << "\"]\n";
         }
 
         out << Ind << "} /* cluster_bb_" << BB << " */\n\n";
     }
 
-    void dumpBBedges(BBlock<NodeT> *BB, int indent)
-    {
+    void dumpBBedges(BBlock<NodeT> *BB, int indent) {
         Indent Ind(indent);
 
         if (options & PRINT_CFG) {
@@ -282,13 +255,12 @@ private:
                 NodeT *lastNode = BB->getLastNode();
                 NodeT *firstNode = S.target->getFirstNode();
 
-                out << Ind
-                    << "NODE" << lastNode << " -> "
-                    <<   "NODE" << firstNode
-                    << " [penwidth=2 label=\"" << static_cast<int>(S.label) << "\""
-                    << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S.target
-                    << "  color=\"" << cfg_color << "\"" << "]\n";
+                out << Ind << "NODE" << lastNode << " -> "
+                    << "NODE" << firstNode << " [penwidth=2 label=\""
+                    << static_cast<int>(S.label) << "\""
+                    << "  ltail=cluster_bb_" << BB << "  lhead=cluster_bb_"
+                    << S.target << "  color=\"" << cfg_color << "\""
+                    << "]\n";
             }
         }
 
@@ -297,12 +269,11 @@ private:
                 NodeT *lastNode = S->getLastNode();
                 NodeT *firstNode = BB->getFirstNode();
 
-                out << Ind
-                    << "NODE" << firstNode << " -> "
-                    <<   "NODE" << lastNode
-                    << " [penwidth=2 color=\"" << cfg_color << "\" dashed"
-                    << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S << " constraint=false]\n";
+                out << Ind << "NODE" << firstNode << " -> "
+                    << "NODE" << lastNode << " [penwidth=2 color=\""
+                    << cfg_color << "\" dashed"
+                    << "  ltail=cluster_bb_" << BB << "  lhead=cluster_bb_" << S
+                    << " constraint=false]\n";
             }
         }
 
@@ -311,25 +282,21 @@ private:
                 NodeT *lastNode = BB->getLastNode();
                 NodeT *firstNode = S->getFirstNode();
 
-                out << Ind
-                    << "NODE" << lastNode << " -> "
-                    <<   "NODE" << firstNode
-                    << " [penwidth=2 color=blue"
-                    << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S << "]\n";
+                out << Ind << "NODE" << lastNode << " -> "
+                    << "NODE" << firstNode << " [penwidth=2 color=blue"
+                    << "  ltail=cluster_bb_" << BB << "  lhead=cluster_bb_" << S
+                    << "]\n";
             }
 
             for (BBlock<NodeT> *S : BB->getPostDomFrontiers()) {
                 NodeT *start = BB->getFirstNode();
                 NodeT *end = S->getLastNode();
 
-                out << Ind
-                    << "/* post-dominance frontiers */\n"
+                out << Ind << "/* post-dominance frontiers */\n"
                     << "NODE" << start << " -> "
-                    <<   "NODE" << end
-                    << " [penwidth=3 color=green"
-                    << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << S << " constraint=false]\n";
+                    << "NODE" << end << " [penwidth=3 color=green"
+                    << "  ltail=cluster_bb_" << BB << "  lhead=cluster_bb_" << S
+                    << " constraint=false]\n";
             }
         }
 
@@ -339,18 +306,15 @@ private:
                 NodeT *firstNode = BB->getFirstNode();
                 NodeT *lastNode = ipd->getLastNode();
 
-                out << Ind
-                    << "NODE" << lastNode << " -> "
-                    <<   "NODE" << firstNode
-                    << " [penwidth=3 color=purple"
-                    << "  ltail=cluster_bb_" << BB
-                    << "  lhead=cluster_bb_" << ipd << " constraint=false]\n";
+                out << Ind << "NODE" << lastNode << " -> "
+                    << "NODE" << firstNode << " [penwidth=3 color=purple"
+                    << "  ltail=cluster_bb_" << BB << "  lhead=cluster_bb_"
+                    << ipd << " constraint=false]\n";
             }
         }
     }
 
-    void dump_parameters(NodeT *node, int ind)
-    {
+    void dump_parameters(NodeT *node, int ind) {
         DGParameters<NodeT> *params = node->getParameters();
 
         if (params) {
@@ -358,8 +322,7 @@ private:
         }
     }
 
-    void dump_parameters(DependenceGraph<NodeT> *g, int ind)
-    {
+    void dump_parameters(DependenceGraph<NodeT> *g, int ind) {
         DGParameters<NodeT> *params = g->getParameters();
 
         if (params) {
@@ -367,8 +330,7 @@ private:
         }
     }
 
-    void dump_parameters(DGParameters<NodeT> *params, int ind, bool formal)
-    {
+    void dump_parameters(DGParameters<NodeT> *params, int ind, bool formal) {
         Indent Ind(ind);
 
         // FIXME
@@ -379,7 +341,7 @@ private:
 
         // dump all the nodes again to get the names
         for (auto it : *params) {
-            auto& p = it.second;
+            auto &p = it.second;
             if (p.in) {
                 dump_node(p.in, ind, formal ? "[f] IN ARG" : "IN ARG");
                 dump_node_edges(p.in, ind);
@@ -393,9 +355,9 @@ private:
                 out << "NO OUT ARG";
         }
 
-        for (auto I = params->global_begin(), E = params->global_end();
-             I != E; ++I) {
-            auto& p = I->second;
+        for (auto I = params->global_begin(), E = params->global_end(); I != E;
+             ++I) {
+            auto &p = I->second;
             if (p.in) {
                 dump_node(p.in, ind, formal ? "[f] GLOB IN" : "GLOB IN");
                 dump_node_edges(p.in, ind);
@@ -430,8 +392,7 @@ private:
         }
     }
 
-    void dump_subgraph(DependenceGraph<NodeT> *sub)
-    {
+    void dump_subgraph(DependenceGraph<NodeT> *sub) {
         dumpSubgraphStart(sub);
 
 #ifdef ENABLE_CFG
@@ -441,17 +402,16 @@ private:
 
         // dump all nodes again, if there is any that is
         // not in any BB
-        for (auto& I : *sub)
+        for (auto &I : *sub)
             dump_node(I.second, 2);
         // dump edges between nodes
-        for (auto& I : *sub)
+        for (auto &I : *sub)
             dump_node_edges(I.second, 2);
 
         dumpSubgraphEnd(sub);
     }
 
-    void dumpBBs(DependenceGraph<NodeT> *graph, int ind = 1)
-    {
+    void dumpBBs(DependenceGraph<NodeT> *graph, int ind = 1) {
         for (auto it : graph->getBlocks())
             dumpBB(it.second, ind);
 
@@ -463,16 +423,14 @@ private:
         }
     }
 
-    void dump_node(NodeT *node, int ind = 1, const char *prefix = nullptr)
-    {
+    void dump_node(NodeT *node, int ind = 1, const char *prefix = nullptr) {
         bool err = false;
         unsigned int dfsorder = node->getDFSOrder();
         unsigned int bfsorder = node->getDFSOrder();
         uint32_t slice_id = node->getSlice();
         Indent Ind(ind);
 
-        out << Ind
-            << "NODE" << node << " [label=\"";
+        out << Ind << "NODE" << node << " [label=\"";
 
         if (prefix)
             out << prefix << " ";
@@ -482,12 +440,12 @@ private:
         if (node->hasSubgraphs())
             out << "\\nsubgraphs: " << node->subgraphsNum();
         if (dfsorder != 0)
-            out << "\\ndfs order: "<< dfsorder;
+            out << "\\ndfs order: " << dfsorder;
         if (bfsorder != 0)
-            out << "\\nbfs order: "<< bfsorder;
+            out << "\\nbfs order: " << bfsorder;
 
         if (slice_id != 0)
-            out << "\\nslice: "<< slice_id;
+            out << "\\nslice: " << slice_id;
 
         // check if the node is OK, and if not
         // highlight it
@@ -511,20 +469,17 @@ private:
         if (node->hasSubgraphs() && (options & PRINT_CALL)) {
             // add call-site to callee edges
             for (auto subgraph : node->getSubgraphs()) {
-                out << Ind
-                    << "NODE" << node
-                    << " -> NODE" << subgraph->getEntry()
-                    << " [label=\"call\""
+                out << Ind << "NODE" << node << " -> NODE"
+                    << subgraph->getEntry() << " [label=\"call\""
                     << "  lhead=cluster_" << subgraph
                     << " penwidth=3 style=dashed]\n";
             }
         }
     }
 
-    void dump_nodes()
-    {
+    void dump_nodes() {
         out << "\t/* nodes */\n";
-        for (auto& I : *dg) {
+        for (auto &I : *dg) {
             auto node = I.second;
 
             dump_node(node);
@@ -535,23 +490,21 @@ private:
         }
 
         if (dumpedGlobals.insert(dg->getGlobalNodes().get()).second)
-            for (auto& I : *dg->getGlobalNodes())
+            for (auto &I : *dg->getGlobalNodes())
                 dump_node(I.second, 1, "GL");
     }
 
-    void dump_edges()
-    {
-        for (auto& I : *dg) {
+    void dump_edges() {
+        for (auto &I : *dg) {
             dump_node_edges(I.second);
         }
 
         if (dumpedGlobals.insert(dg->getGlobalNodes().get()).second)
-            for (auto& I : *dg->getGlobalNodes())
+            for (auto &I : *dg->getGlobalNodes())
                 dump_node_edges(I.second);
     }
 
-    void dump_node_edges(NodeT *n, int ind = 1)
-    {
+    void dump_node_edges(NodeT *n, int ind = 1) {
         Indent Ind(ind);
 
         out << Ind << "/* -- node " << n->getKey() << "\n"
@@ -559,51 +512,47 @@ private:
 
         if (options & PRINT_DD) {
             out << Ind << "/* DD edges */\n";
-            for (auto II = n->data_begin(), EE = n->data_end();
-                 II != EE; ++II)
-                out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << dd_color << "\" rank=max]\n";
+            for (auto II = n->data_begin(), EE = n->data_end(); II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II << " [color=\""
+                    << dd_color << "\" rank=max]\n";
         }
 
         if (options & PRINT_REV_DD) {
             out << Ind << "/* reverse DD edges */\n";
             for (auto II = n->rev_data_begin(), EE = n->rev_data_end();
                  II != EE; ++II)
-                out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << dd_color << "\" style=\"dashed\"  constraint=false]\n";
+                out << Ind << "NODE" << n << " -> NODE" << *II << " [color=\""
+                    << dd_color << "\" style=\"dashed\"  constraint=false]\n";
         }
 
         if (options & PRINT_USE) {
             out << Ind << "/* USE edges */\n";
-            for (auto II = n->use_begin(), EE = n->use_end();
-                 II != EE; ++II)
-                out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << use_color << "\" rank=max style=\"dashed\"]\n";
+            for (auto II = n->use_begin(), EE = n->use_end(); II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II << " [color=\""
+                    << use_color << "\" rank=max style=\"dashed\"]\n";
         }
 
         if (options & PRINT_USER) {
             out << Ind << "/* user edges */\n";
-            for (auto II = n->user_begin(), EE = n->user_end();
-                 II != EE; ++II)
-                out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << use_color << "\" style=\"dashed\"  constraint=false]\n";
+            for (auto II = n->user_begin(), EE = n->user_end(); II != EE; ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II << " [color=\""
+                    << use_color << "\" style=\"dashed\"  constraint=false]\n";
         }
-
 
         if (options & PRINT_CD) {
             out << Ind << "/* CD edges */\n";
-            for (auto II = n->control_begin(), EE = n->control_end();
-                 II != EE; ++II)
-                out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << cd_color << "\"]\n";
+            for (auto II = n->control_begin(), EE = n->control_end(); II != EE;
+                 ++II)
+                out << Ind << "NODE" << n << " -> NODE" << *II << " [color=\""
+                    << cd_color << "\"]\n";
         }
 
         if (options & PRINT_REV_CD) {
             out << Ind << "/* reverse CD edges */\n";
             for (auto II = n->rev_control_begin(), EE = n->rev_control_end();
                  II != EE; ++II)
-                out << Ind << "NODE" << n << " -> NODE" << *II
-                    << " [color=\"" << cd_color << "\" style=\"dashed\" constraint=false]\n";
+                out << Ind << "NODE" << n << " -> NODE" << *II << " [color=\""
+                    << cd_color << "\" style=\"dashed\" constraint=false]\n";
         }
 
         if (options & PRINT_ID) {
@@ -616,7 +565,8 @@ private:
 
         if (options & PRINT_REV_ID) {
             out << Ind << "/* reverse ID edges */\n";
-            for (auto II = n->rev_interference_begin(), EE = n->rev_interference_end();
+            for (auto II = n->rev_interference_begin(),
+                      EE = n->rev_interference_end();
                  II != EE; ++II)
                 out << Ind << "NODE" << n << " -> NODE" << *II
                     << " [color=\"orange\" constraint=false]\n";
@@ -632,12 +582,11 @@ private:
     const char *file;
     std::set<DependenceGraph<NodeT> *> subgraphs;
 
-protected:
+  protected:
     std::ofstream out;
 };
 
-} // debug
+} // namespace debug
 } // namespace dg
 
 #endif // DG_2_DOT_H_
-

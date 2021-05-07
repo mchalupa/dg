@@ -1,16 +1,16 @@
-#include <vector>
 #include <cassert>
+#include <vector>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -22,10 +22,9 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace dda {
 
-static void reportIncompatibleCalls(const std::set<const llvm::Function *>& incompatibleCalls,
-                                    const llvm::CallInst *CInst,
-                                    size_t tried_num) {
-
+static void reportIncompatibleCalls(
+        const std::set<const llvm::Function *> &incompatibleCalls,
+        const llvm::CallInst *CInst, size_t tried_num) {
     if (incompatibleCalls.empty()) {
         return;
     }
@@ -41,15 +40,14 @@ static void reportIncompatibleCalls(const std::set<const llvm::Function *>& inco
 #endif
     if (incompatibleCalls.size() == tried_num) {
         llvm::errs() << "[RWG] error: did not find any compatible function "
-                        "pointer for " << ValInfo(CInst) << "\n";
+                        "pointer for "
+                     << ValInfo(CInst) << "\n";
     }
 }
 
-NodesSeq<RWNode>
-LLVMReadWriteGraphBuilder::createCallToFunctions(
-                            const std::vector<const llvm::Function *> &functions,
-                            const llvm::CallInst *CInst) {
-
+NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createCallToFunctions(
+        const std::vector<const llvm::Function *> &functions,
+        const llvm::CallInst *CInst) {
     assert(!functions.empty() && "No functions to call");
 
     std::set<const llvm::Function *> incompatibleCalls;
@@ -88,7 +86,8 @@ LLVMReadWriteGraphBuilder::createCallToFunctions(
     }
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
+RWNode *
+LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst) {
     using namespace llvm;
 
     RWNode *node = &create(RWNodeType::GENERIC);
@@ -137,7 +136,7 @@ RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst
         if (!pts.first)
             continue;
 
-        for (const auto& ptr : pts.second) {
+        for (const auto &ptr : pts.second) {
             if (llvm::isa<llvm::Function>(ptr.value))
                 // function may not be redefined
                 continue;
@@ -146,16 +145,17 @@ RWNode *LLVMReadWriteGraphBuilder::createUnknownCall(const llvm::CallInst *CInst
             assert(target && "Don't have pointer target for call argument");
 
             // this call may use and define this memory
-            if (_options.undefinedFunsWriteArgs() && !_options.undefinedFunsWriteAny())
+            if (_options.undefinedFunsWriteArgs() &&
+                !_options.undefinedFunsWriteAny())
                 node->addDef(target, Offset::UNKNOWN, Offset::UNKNOWN);
-            if (_options.undefinedFunsReadArgs() && !_options.undefinedFunsReadAny())
+            if (_options.undefinedFunsReadArgs() &&
+                !_options.undefinedFunsReadAny())
                 node->addUse(target, Offset::UNKNOWN, Offset::UNKNOWN);
         }
     }
 
     return node;
 }
-
 
 /*
 void LLVMReadWriteGraphBuilder::matchForksAndJoins()
@@ -178,8 +178,8 @@ void LLVMReadWriteGraphBuilder::matchForksAndJoins()
 }
 */
 
-RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CInst)
-{
+RWNode *
+LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CInst) {
     using namespace llvm;
 
     const IntrinsicInst *I = cast<IntrinsicInst>(CInst);
@@ -187,31 +187,31 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
     const Value *lenVal;
 
     RWNode *ret;
-    switch (I->getIntrinsicID())
-    {
-        case Intrinsic::memmove:
-        case Intrinsic::memcpy:
-        case Intrinsic::memset:
-            // memcpy/set <dest>, <src/val>, <len>
-            dest = I->getOperand(0);
-            lenVal = I->getOperand(2);
-            break;
-        case Intrinsic::vastart:
-            // we create this node because this nodes works
-            // as ALLOC in points-to, so we can have
-            // reaching definitions to that
-            ret = &create(RWNodeType::ALLOC);
-            ret->addDef(ret, 0, Offset::UNKNOWN);
-            return ret;
-        default:
-            return createUnknownCall(CInst);
+    switch (I->getIntrinsicID()) {
+    case Intrinsic::memmove:
+    case Intrinsic::memcpy:
+    case Intrinsic::memset:
+        // memcpy/set <dest>, <src/val>, <len>
+        dest = I->getOperand(0);
+        lenVal = I->getOperand(2);
+        break;
+    case Intrinsic::vastart:
+        // we create this node because this nodes works
+        // as ALLOC in points-to, so we can have
+        // reaching definitions to that
+        ret = &create(RWNodeType::ALLOC);
+        ret->addDef(ret, 0, Offset::UNKNOWN);
+        return ret;
+    default:
+        return createUnknownCall(CInst);
     }
 
     ret = &create(RWNodeType::GENERIC);
 
     auto pts = PTA->getLLVMPointsToChecked(dest);
     if (!pts.first) {
-        llvm::errs() << "[RWG] Error: No points-to information for destination in\n";
+        llvm::errs()
+                << "[RWG] Error: No points-to information for destination in\n";
         llvm::errs() << ValInfo(I) << "\n";
         // continue, the points-to set is {unknown}
     }
@@ -220,7 +220,7 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
     if (const ConstantInt *C = dyn_cast<ConstantInt>(lenVal))
         len = C->getLimitedValue();
 
-    for (const auto& ptr : pts.second) {
+    for (const auto &ptr : pts.second) {
         if (llvm::isa<llvm::Function>(ptr.value))
             continue;
 
@@ -240,7 +240,7 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
             to = Offset::UNKNOWN;
 
         RWNode *target = getOperand(ptr.value);
-        //assert(target && "Don't have pointer target for intrinsic call");
+        // assert(target && "Don't have pointer target for intrinsic call");
         if (!target) {
             // keeping such set is faster then printing it all to terminal
             // ... and we don't flood the terminal that way
@@ -254,7 +254,8 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
         }
 
         // add the definition
-        ret->addDef(target, from, to, !from.isUnknown() && !to.isUnknown() /* strong update */);
+        ret->addDef(target, from, to,
+                    !from.isUnknown() && !to.isUnknown() /* strong update */);
     }
 
     return ret;
@@ -263,18 +264,19 @@ RWNode *LLVMReadWriteGraphBuilder::createIntrinsicCall(const llvm::CallInst *CIn
 template <typename T>
 std::pair<Offset, Offset> getFromTo(const llvm::CallInst *CInst, T what) {
     auto from = what->from.isOperand()
-                ? llvmutils::getConstantValue(CInst->getArgOperand(what->from.getOperand()))
-                  : what->from.getOffset();
+                        ? llvmutils::getConstantValue(
+                                  CInst->getArgOperand(what->from.getOperand()))
+                        : what->from.getOffset();
     auto to = what->to.isOperand()
-                ? llvmutils::getConstantValue(CInst->getArgOperand(what->to.getOperand()))
-                  : what->to.getOffset();
+                      ? llvmutils::getConstantValue(
+                                CInst->getArgOperand(what->to.getOperand()))
+                      : what->to.getOffset();
 
     return {from, to};
 }
 
 RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
                                                  const llvm::CallInst *CInst) {
-
     RWNode *node = &create(RWNodeType::GENERIC);
 
     for (unsigned int i = 0; i < CInst->getNumArgOperands(); ++i) {
@@ -287,12 +289,14 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
         // relevant instruction. We must do it this way
         // instead of type checking, due to the inttoptr.
         if (!pts.first) {
-            llvm::errs() << "[Warning]: did not find pt-set for modeled function\n";
-            llvm::errs() << "           Func: " << model->name << ", operand " << i << "\n";
+            llvm::errs()
+                    << "[Warning]: did not find pt-set for modeled function\n";
+            llvm::errs() << "           Func: " << model->name << ", operand "
+                         << i << "\n";
             continue;
         }
 
-        for (const auto& ptr : pts.second) {
+        for (const auto &ptr : pts.second) {
             if (llvm::isa<llvm::Function>(ptr.value))
                 // functions may not be redefined
                 continue;
@@ -310,7 +314,8 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
                                    !(ptr.offset + to).isUnknown() &&
                                    !llvm::isa<llvm::CallInst>(ptr.value);
                 // FIXME: what about vars in recursive functions?
-                node->addDef(target, ptr.offset + from, ptr.offset + to, strong_updt);
+                node->addDef(target, ptr.offset + from, ptr.offset + to,
+                             strong_updt);
             }
             if (auto uses = model->uses(i)) {
                 std::tie(from, to) = getFromTo(CInst, uses);
@@ -322,9 +327,8 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
 
     return node;
 }
-RWNode *
-LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(const llvm::Function *function,
-                                                         const llvm::CallInst *CInst) {
+RWNode *LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(
+        const llvm::Function *function, const llvm::CallInst *CInst) {
     if (function->isIntrinsic()) {
         return createIntrinsicCall(CInst);
     }
@@ -356,8 +360,8 @@ LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(const llvm::Function *f
 }
 
 /*
-RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst *CInst) {
-    using namespace llvm;
+RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
+*CInst) { using namespace llvm;
 
     RWNode *rootNode = &create(RWNodeType::FORK);
     threadCreateCalls.emplace(CInst, rootNode);
@@ -367,7 +371,8 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
 
     for (const Function *function : functions) {
         if (function->isDeclaration()) {
-            llvm::errs() << "[RWG] error: phtread_create spawns undefined function: "
+            llvm::errs() << "[RWG] error: phtread_create spawns undefined
+function: "
                          << function->getName() << "\n";
             continue;
         }
@@ -375,7 +380,8 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
     return rootNode;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst
+*CInst)
 {
     // TODO later change this to create join node and set data correctly
     // we need just to create one node;
@@ -385,12 +391,12 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadJoinCall(const llvm::CallInst *C
     return node;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createPthreadExitCall(const llvm::CallInst *CInst)
+RWNode *LLVMReadWriteGraphBuilder::createPthreadExitCall(const llvm::CallInst
+*CInst)
 {
     return createReturn(CInst);
 }
 */
-
 
 } // namespace dda
 } // namespace dg

@@ -3,8 +3,8 @@
 
 #include <assert.h>
 
-#include "DepDGElement.h"
 #include "DGNode.h"
+#include "DepDGElement.h"
 
 namespace dg {
 namespace sdg {
@@ -20,16 +20,17 @@ class DGBBlock : public DepDGElement {
     using NodesTy = std::vector<DGNode *>;
 
     NodesTy _nodes;
-    DGBBlock(DependenceGraph& g) : DepDGElement(g, DGElementType::BBLOCK) { }
+    DGBBlock(DependenceGraph &g) : DepDGElement(g, DGElementType::BBLOCK) {}
 
-public:
+  public:
     static DGBBlock *get(DGElement *elem) {
-        return elem->getType() == DGElementType::BBLOCK ?
-                    static_cast<DGBBlock*>(elem) : nullptr;
+        return elem->getType() == DGElementType::BBLOCK
+                       ? static_cast<DGBBlock *>(elem)
+                       : nullptr;
     }
 
-    NodesTy& getNodes() { return _nodes; }
-    const NodesTy& getNodes() const { return _nodes; }
+    NodesTy &getNodes() { return _nodes; }
+    const NodesTy &getNodes() const { return _nodes; }
 
     void append(DGNode *n) {
         assert(n && "nullptr passed as node");

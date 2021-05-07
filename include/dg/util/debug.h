@@ -2,9 +2,9 @@
 #define DG_UTIL_DEBUG_H_
 
 #ifdef DEBUG_ENABLED
-#include <iostream>
-#include <ctime>
 #include <cassert>
+#include <ctime>
+#include <iostream>
 #endif
 
 namespace dg {
@@ -16,21 +16,13 @@ extern unsigned _debug_lvl;
 extern unsigned _ind;
 
 namespace {
-static inline unsigned& _getDebugLvl() {
-    return _debug_lvl;
-}
+static inline unsigned &_getDebugLvl() { return _debug_lvl; }
 
-static inline void _setDebugLvl(unsigned int x) {
-    _getDebugLvl() = x;
-}
+static inline void _setDebugLvl(unsigned int x) { _getDebugLvl() = x; }
 
-static inline unsigned& _getInd() {
-    return _ind;
-}
+static inline unsigned &_getInd() { return _ind; }
 
-static inline std::ostream& _stream() {
-    return std::cerr;
-}
+static inline std::ostream &_stream() { return std::cerr; }
 
 static void _dump_ind() {
     auto ind = _getInd();
@@ -50,7 +42,7 @@ static void _dump_prefix(const char *domain, const char *add = nullptr) {
         _stream() << add;
     }
 }
-}
+} // namespace
 
 /*
 static inline bool dbg_should_print(unsigned int x) {
@@ -58,48 +50,53 @@ static inline bool dbg_should_print(unsigned int x) {
 }
 */
 
-inline void dbg_enable() {
-    _setDebugLvl(1);
-}
+inline void dbg_enable() { _setDebugLvl(1); }
 
-inline bool dbg_is_enabled() {
-    return _getDebugLvl() > 0;
-}
+inline bool dbg_is_enabled() { return _getDebugLvl() > 0; }
 
-inline std::ostream& dbg_section_begin(const char *domain = nullptr) {
+inline std::ostream &dbg_section_begin(const char *domain = nullptr) {
     _dump_prefix(domain, "-> ");
     _getInd() += 3;
     return _stream();
 }
 
-inline std::ostream& dbg_section_end(const char *domain = nullptr) {
+inline std::ostream &dbg_section_end(const char *domain = nullptr) {
     assert(_getInd() >= 3);
     _getInd() -= 3;
     _dump_prefix(domain, "<- ");
     return _stream();
 }
 
-inline std::ostream& dbg(const char *domain = nullptr) {
+inline std::ostream &dbg(const char *domain = nullptr) {
     _dump_prefix(domain);
     return _stream();
 }
 
-#define DBG_ENABLE() do { ::dg::debug::dbg_enable(); } while(0)
+#define DBG_ENABLE()                                                           \
+    do {                                                                       \
+        ::dg::debug::dbg_enable();                                             \
+    } while (0)
 
-#define DBG_SECTION_BEGIN(dom, S)\
-  do { if (::dg::debug::dbg_is_enabled()) {\
-         ::dg::debug::dbg_section_begin((#dom)) << S << "\n"; }\
-  } while(0)
+#define DBG_SECTION_BEGIN(dom, S)                                              \
+    do {                                                                       \
+        if (::dg::debug::dbg_is_enabled()) {                                   \
+            ::dg::debug::dbg_section_begin((#dom)) << S << "\n";               \
+        }                                                                      \
+    } while (0)
 
-#define DBG_SECTION_END(dom, S)\
-  do { if (::dg::debug::dbg_is_enabled()) {\
-         ::dg::debug::dbg_section_end((#dom)) << S << "\n"; }\
-  } while(0)
+#define DBG_SECTION_END(dom, S)                                                \
+    do {                                                                       \
+        if (::dg::debug::dbg_is_enabled()) {                                   \
+            ::dg::debug::dbg_section_end((#dom)) << S << "\n";                 \
+        }                                                                      \
+    } while (0)
 
-#define DBG(dom, S)\
-  do { if (::dg::debug::dbg_is_enabled()) {\
-         ::dg::debug::dbg((#dom)) << S << "\n"; }\
-  } while(0)
+#define DBG(dom, S)                                                            \
+    do {                                                                       \
+        if (::dg::debug::dbg_is_enabled()) {                                   \
+            ::dg::debug::dbg((#dom)) << S << "\n";                             \
+        }                                                                      \
+    } while (0)
 
 #else // not DEBUG_ENABLED
 
@@ -112,6 +109,5 @@ inline std::ostream& dbg(const char *domain = nullptr) {
 
 } // namespace debug
 } // namespace dg
-
 
 #endif // DG_UTIL_DEBUG_H_

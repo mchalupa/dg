@@ -2,34 +2,34 @@
 #define BLOCKGRAPH_H
 
 #include <map>
-#include <set>
 #include <ostream>
+#include <set>
 
 namespace llvm {
-    class BasicBlock;
+class BasicBlock;
 }
 
 class Node;
 
-class BlockGraph
-{
-private:
-    const llvm::BasicBlock * llvmBlock_     = nullptr;
+class BlockGraph {
+  private:
+    const llvm::BasicBlock *llvmBlock_ = nullptr;
 
-    Node * firstNode_                       = nullptr;
-    Node * lastNode_                        = nullptr;
+    Node *firstNode_ = nullptr;
+    Node *lastNode_ = nullptr;
 
-public:
-    BlockGraph(const llvm::BasicBlock *llvmBlock, Node * firstNode, Node * lastNode);
+  public:
+    BlockGraph(const llvm::BasicBlock *llvmBlock, Node *firstNode,
+               Node *lastNode);
 
     BlockGraph(const BlockGraph &) = delete;
 
-    BlockGraph & operator==(const BlockGraph &) = delete;
+    BlockGraph &operator==(const BlockGraph &) = delete;
 
-    const llvm::BasicBlock * llvmBlock() const;
+    const llvm::BasicBlock *llvmBlock() const;
 
-    Node * firstNode() const;
-    Node * lastNode() const;
+    Node *firstNode() const;
+    Node *lastNode() const;
 };
 
 #endif // BLOCKGRAPH_H

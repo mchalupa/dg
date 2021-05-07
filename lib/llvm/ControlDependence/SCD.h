@@ -9,10 +9,9 @@ SILENCE_LLVM_WARNINGS_POP
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"
 
-#include <set>
 #include <map>
+#include <set>
 #include <unordered_map>
-
 
 namespace llvm {
 class Function;
@@ -29,25 +28,26 @@ namespace llvmdg {
 // This class uses purely LLVM, no internal representation
 // like the other classes (we use the post-dominance computation from LLVM).
 class SCD : public LLVMControlDependenceAnalysisImpl {
+    void computePostDominators(llvm::Function &F);
 
-    void computePostDominators(llvm::Function& F);
-
-    std::unordered_map<const llvm::BasicBlock *, std::set<llvm::BasicBlock *>> dependentBlocks;
-    std::unordered_map<const llvm::BasicBlock *, std::set<llvm::BasicBlock *>> dependencies;
+    std::unordered_map<const llvm::BasicBlock *, std::set<llvm::BasicBlock *>>
+            dependentBlocks;
+    std::unordered_map<const llvm::BasicBlock *, std::set<llvm::BasicBlock *>>
+            dependencies;
     std::set<const llvm::Function *> _computed;
 
     void computeOnDemand(const llvm::Function *F) {
         if (_computed.insert(F).second) {
-            computePostDominators(*const_cast<llvm::Function*>(F));
+            computePostDominators(*const_cast<llvm::Function *>(F));
         }
     }
 
-public:
+  public:
     using ValVec = LLVMControlDependenceAnalysis::ValVec;
 
     SCD(const llvm::Module *module,
-        const LLVMControlDependenceAnalysisOptions& opts = {})
-        : LLVMControlDependenceAnalysisImpl(module, opts) {}
+        const LLVMControlDependenceAnalysisOptions &opts = {})
+            : LLVMControlDependenceAnalysisImpl(module, opts) {}
 
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *) override { return {}; }
@@ -73,7 +73,7 @@ public:
         if (F && !F->isDeclaration()) {
             computeOnDemand(F);
         } else {
-            for (auto& f : *getModule()) {
+            for (auto &f : *getModule()) {
                 if (f.isDeclaration()) {
                     continue;
                 }

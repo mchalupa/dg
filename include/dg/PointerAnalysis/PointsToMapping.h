@@ -1,8 +1,8 @@
 #ifndef DG_POINTS_TO_MAPPING_H_
 #define DG_POINTS_TO_MAPPING_H_
 
-#include <unordered_map>
 #include "PSNode.h"
+#include <unordered_map>
 
 namespace dg {
 namespace pta {
@@ -18,10 +18,9 @@ class PointsToMapping {
     using const_iterator = typename MappingT::const_iterator;
 
     MappingT mapping;
-public:
-    void reserve(size_t s) {
-        mapping.reserve(s);
-    }
+
+  public:
+    void reserve(size_t s) { mapping.reserve(s); }
 
     size_t size() const { return mapping.size(); }
 
@@ -39,15 +38,13 @@ public:
         mapping.emplace_hint(it, val, nd);
     }
 
-    void set(ValT val, PSNode *nd) {
-        mapping[val] = nd;
-    }
+    void set(ValT val, PSNode *nd) { mapping[val] = nd; }
 
     // merge some other points-to mapping to this one
     // (destroying the other one). If there are
     // duplicates values, than the ones from 'rhs'
     // are used
-    void merge(PointsToMapping&& rhs) {
+    void merge(PointsToMapping &&rhs) {
         // merge values from this map to rhs (making preference for
         // duplicate rhs values).
         rhs.mapping.insert(mapping.begin(), mapping.end());
@@ -58,8 +55,8 @@ public:
     // compose this mapping with some other mapping:
     // (PSNode * -> PSNode *) o (ValT -> PSNode *)
     // leads to (ValT -> PSNode *).
-    void compose(PointsToMapping<PSNode *>&& rhs) {
-        for (auto& it : mapping) {
+    void compose(PointsToMapping<PSNode *> &&rhs) {
+        for (auto &it : mapping) {
             if (PSNode *rhs_node = rhs.get(it.second)) {
                 it.second = rhs_node;
             }
@@ -71,7 +68,6 @@ public:
     const_iterator begin() const { return mapping.begin(); }
     const_iterator end() const { return mapping.end(); }
 };
-
 
 } // namespace pta
 } // namespace dg

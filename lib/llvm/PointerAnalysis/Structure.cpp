@@ -6,19 +6,19 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -28,13 +28,15 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace pta {
 
-void LLVMPointerGraphBuilder::FuncGraph::blockAddSuccessors(std::set<const llvm::BasicBlock *>& found_blocks,
-                                                            LLVMPointerGraphBuilder::PSNodesBlock& blk,
-                                                            const llvm::BasicBlock& block) {
-
-    for (auto S = llvm::succ_begin(&block), SE = llvm::succ_end(&block); S != SE; ++S) {
-         // we already processed this block? Then don't try to add the edges again
-         if (!found_blocks.insert(*S).second)
+void LLVMPointerGraphBuilder::FuncGraph::blockAddSuccessors(
+        std::set<const llvm::BasicBlock *> &found_blocks,
+        LLVMPointerGraphBuilder::PSNodesBlock &blk,
+        const llvm::BasicBlock &block) {
+    for (auto S = llvm::succ_begin(&block), SE = llvm::succ_end(&block);
+         S != SE; ++S) {
+        // we already processed this block? Then don't try to add the edges
+        // again
+        if (!found_blocks.insert(*S).second)
             continue;
 
         auto it = llvmBlocks.find(*S);
@@ -52,7 +54,7 @@ void LLVMPointerGraphBuilder::FuncGraph::blockAddSuccessors(std::set<const llvm:
 }
 
 LLVMPointerGraphBuilder::PSNodesBlock
-LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F) {
+LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function &F) {
     PSNodesBlock blk;
 
     int idx = 0;
@@ -61,7 +63,7 @@ LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F) {
         if (it == nodes_map.end())
             continue;
 
-        PSNodesSeq& cur = it->second;
+        PSNodesSeq &cur = it->second;
         assert(cur.getFirst() == cur.getLast());
 
         blk.append(&cur);
@@ -74,17 +76,17 @@ LLVMPointerGraphBuilder::buildArgumentsStructure(const llvm::Function& F) {
 }
 
 void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
-                                                  PointerSubgraph& subg) {
+                                                  PointerSubgraph &subg) {
     assert(subg.root && "Subgraph has no root");
 
     assert(_funcInfo.find(F) != _funcInfo.end());
-    auto& finfo = _funcInfo[F];
+    auto &finfo = _funcInfo[F];
 
     // with function pointer calls it may happen that we try
     // to add structure more times, so bail out in that case
     if (finfo.has_structure) {
-        DBG(pta, "Already got structure for function '" << F->getName().str() <<
-                 "', bailing out");
+        DBG(pta, "Already got structure for function '" << F->getName().str()
+                                                        << "', bailing out");
         return;
     }
 
@@ -93,7 +95,7 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
     assert(lastNode && "Did not connect arguments of a function correctly");
 
     // add successors in each one basic block
-    for (auto& it : finfo.llvmBlocks) {
+    for (auto &it : finfo.llvmBlocks) {
         PSNodesBlockAddSuccessors(it.second, true);
     }
 
@@ -104,10 +106,9 @@ void LLVMPointerGraphBuilder::addProgramStructure(const llvm::Function *F,
     finfo.has_structure = true;
 }
 
-PSNode *
-LLVMPointerGraphBuilder::connectArguments(const llvm::Function *F,
-                                          PSNodesBlock& argsBlk,
-                                          PointerSubgraph& subg) {
+PSNode *LLVMPointerGraphBuilder::connectArguments(const llvm::Function *F,
+                                                  PSNodesBlock &argsBlk,
+                                                  PointerSubgraph &subg) {
     PSNode *lastNode = nullptr;
 
     // make arguments the entry block of the subgraphs (if there
@@ -135,10 +136,9 @@ LLVMPointerGraphBuilder::connectArguments(const llvm::Function *F,
     return lastNode;
 }
 
-void
-LLVMPointerGraphBuilder::addCFGEdges(const llvm::Function *F,
-                                     LLVMPointerGraphBuilder::FuncGraph& finfo,
-                                     PSNode *lastNode) {
+void LLVMPointerGraphBuilder::addCFGEdges(
+        const llvm::Function *F, LLVMPointerGraphBuilder::FuncGraph &finfo,
+        PSNode *lastNode) {
     // check whether we created the entry block. If not, we would
     // have a problem while adding successors, so fake that
     // the entry block is the root or the last argument
@@ -159,8 +159,8 @@ LLVMPointerGraphBuilder::addCFGEdges(const llvm::Function *F,
         finfo.blockAddSuccessors(found_blocks, blk, *entry);
     }
 
-    for (auto& it : finfo.llvmBlocks) {
-        auto& blk = it.second;
+    for (auto &it : finfo.llvmBlocks) {
+        auto &blk = it.second;
         assert(!blk.empty() && "Has empty block between built blocks");
 
         // add successors to this block (skipping the empty blocks).

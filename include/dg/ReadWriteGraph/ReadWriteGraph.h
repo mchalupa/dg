@@ -1,12 +1,12 @@
 #ifndef DG_READ_WRITE_GRAPH_H_
 #define DG_READ_WRITE_GRAPH_H_
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "dg/BFS.h"
-#include "dg/ReadWriteGraph/RWNode.h"
 #include "dg/ReadWriteGraph/RWBBlock.h"
+#include "dg/ReadWriteGraph/RWNode.h"
 #include "dg/ReadWriteGraph/RWSubgraph.h"
 
 #include "dg/util/debug.h"
@@ -26,13 +26,11 @@ class ReadWriteGraph {
     // iterator over the bsubgraphs that returns the bsubgraph,
     // not the unique_ptr to the bsubgraph
     struct subgraph_iterator : public SubgraphsT::iterator {
-        using ContainedType
-            = std::remove_reference<
-                decltype(*(std::declval<SubgraphsT::iterator>()->get()))
-                                   >::type;
+        using ContainedType = std::remove_reference<decltype(
+                *(std::declval<SubgraphsT::iterator>()->get()))>::type;
 
-        subgraph_iterator(const SubgraphsT::iterator& it)
-        : SubgraphsT::iterator(it) {}
+        subgraph_iterator(const SubgraphsT::iterator &it)
+                : SubgraphsT::iterator(it) {}
 
         ContainedType *operator*() {
             return (SubgraphsT::iterator::operator*()).get();
@@ -43,18 +41,19 @@ class ReadWriteGraph {
     };
 
     struct subgraphs_range {
-        SubgraphsT& subgraphs;
-        subgraphs_range(SubgraphsT& b) : subgraphs(b) {}
+        SubgraphsT &subgraphs;
+        subgraphs_range(SubgraphsT &b) : subgraphs(b) {}
 
-        subgraph_iterator begin() { return subgraph_iterator(subgraphs.begin()); }
+        subgraph_iterator begin() {
+            return subgraph_iterator(subgraphs.begin());
+        }
         subgraph_iterator end() { return subgraph_iterator(subgraphs.end()); }
     };
 
-
-public:
+  public:
     ReadWriteGraph() = default;
-    ReadWriteGraph(ReadWriteGraph&&) = default;
-    ReadWriteGraph& operator=(ReadWriteGraph&&) = default;
+    ReadWriteGraph(ReadWriteGraph &&) = default;
+    ReadWriteGraph &operator=(ReadWriteGraph &&) = default;
 
     RWSubgraph *getEntry() { return _entry; }
     const RWSubgraph *getEntry() const { return _entry; }
@@ -62,9 +61,7 @@ public:
 
     void removeUselessNodes();
 
-    void optimize() {
-        removeUselessNodes();
-    }
+    void optimize() { removeUselessNodes(); }
 
     RWNode *getNode(unsigned id) {
         assert(id - 1 < _nodes.size());
@@ -80,18 +77,18 @@ public:
         return n;
     }
 
-    RWNode& create(RWNodeType t) {
-      if (t == RWNodeType::CALL) {
-        _nodes.emplace_back(new RWNodeCall(++lastNodeID));
-      } else {
-        _nodes.emplace_back(new RWNode(++lastNodeID, t));
-      }
-      return *_nodes.back().get();
+    RWNode &create(RWNodeType t) {
+        if (t == RWNodeType::CALL) {
+            _nodes.emplace_back(new RWNodeCall(++lastNodeID));
+        } else {
+            _nodes.emplace_back(new RWNode(++lastNodeID, t));
+        }
+        return *_nodes.back().get();
     }
 
-    RWSubgraph& createSubgraph() {
-      _subgraphs.emplace_back(new RWSubgraph());
-      return *_subgraphs.back().get();
+    RWSubgraph &createSubgraph() {
+        _subgraphs.emplace_back(new RWSubgraph());
+        return *_subgraphs.back().get();
     }
 
     // Build blocks for the nodes. If 'dce' is set to true,
@@ -105,7 +102,7 @@ public:
     */
 
     void splitBBlocksOnCalls() {
-        for (auto& s : _subgraphs) {
+        for (auto &s : _subgraphs) {
             s->splitBBlocksOnCalls();
         }
     }
@@ -119,7 +116,9 @@ public:
 
     subgraphs_range subgraphs() { return subgraphs_range(_subgraphs); }
 
-    auto size() const -> decltype(_subgraphs.size()) { return _subgraphs.size(); }
+    auto size() const -> decltype(_subgraphs.size()) {
+        return _subgraphs.size();
+    }
 };
 
 } // namespace dda

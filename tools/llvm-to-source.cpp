@@ -1,9 +1,9 @@
-#include <set>
-#include <iostream>
 #include <fstream>
-#include <sstream>
+#include <iostream>
 #include <limits>
 #include <map>
+#include <set>
+#include <sstream>
 #include <stack>
 
 #ifndef HAVE_LLVM
@@ -15,16 +15,16 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/DebugInfo.h>
+#include <llvm/DebugInfo.h>
 #else
- #include <llvm/DebugInfo/DIContext.h>
+#include <llvm/DebugInfo/DIContext.h>
 #endif
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IRReader/IRReader.h>
 SILENCE_LLVM_WARNINGS_POP
 
 using namespace llvm;
@@ -34,16 +34,15 @@ std::vector<std::pair<unsigned, unsigned>> matching_braces;
 // mapping line->index in matching_braces
 std::map<unsigned, unsigned> nesting_structure;
 
-static void get_lines_from_module(const Module *M, std::set<unsigned>& lines)
-{
+static void get_lines_from_module(const Module *M, std::set<unsigned> &lines) {
     // iterate over all instructions
-    for (const Function& F : *M) {
-        for (const BasicBlock& B : F) {
-            for (const Instruction& I : B) {
-                const DebugLoc& Loc = I.getDebugLoc();
-                //Make sure that the llvm istruction has corresponding dbg LOC
-#if ((LLVM_VERSION_MAJOR > 3)\
-      || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 6)))
+    for (const Function &F : *M) {
+        for (const BasicBlock &B : F) {
+            for (const Instruction &I : B) {
+                const DebugLoc &Loc = I.getDebugLoc();
+                // Make sure that the llvm istruction has corresponding dbg LOC
+#if ((LLVM_VERSION_MAJOR > 3) ||                                               \
+     ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 6)))
                 if (Loc)
 #else
                 if (Loc.getLine() > 0)
@@ -62,8 +61,7 @@ static void get_lines_from_module(const Module *M, std::set<unsigned>& lines)
     */
 }
 
-static void get_nesting_structure(const char *source)
-{
+static void get_nesting_structure(const char *source) {
     std::ifstream ifs(source);
     if (!ifs.is_open() || ifs.bad()) {
         errs() << "Failed opening given source file: " << source << "\n";
@@ -75,7 +73,7 @@ static void get_nesting_structure(const char *source)
     unsigned idx;
     std::stack<unsigned> nesting;
     while (ifs.get(ch)) {
-        switch(ch) {
+        switch (ch) {
         case '\n':
             ++cur_line;
             if (!nesting.empty())
@@ -100,8 +98,7 @@ static void get_nesting_structure(const char *source)
     ifs.close();
 }
 
-static void print_lines(std::ifstream& ifs, std::set<unsigned>& lines)
-{
+static void print_lines(std::ifstream &ifs, std::set<unsigned> &lines) {
     char buf[1024];
     unsigned cur_line = 1;
     while (!ifs.eof()) {
@@ -121,14 +118,12 @@ static void print_lines(std::ifstream& ifs, std::set<unsigned>& lines)
     }
 }
 
-static void print_lines_numbers(std::set<unsigned>& lines)
-{
+static void print_lines_numbers(std::set<unsigned> &lines) {
     for (unsigned ln : lines)
         std::cout << ln << "\n";
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     llvm::Module *M;
     LLVMContext context;
     SMDiagnostic SMD;
@@ -136,7 +131,7 @@ int main(int argc, char *argv[])
     const char *source = nullptr;
     const char *module = nullptr;
 
-    if (argc < 2 || argc > 3 ) {
+    if (argc < 2 || argc > 3) {
         errs() << "Usage: module [source_code]\n";
         return 1;
     }
@@ -180,14 +175,14 @@ int main(int argc, char *argv[])
                 new_lines.insert(i);
                 auto it = nesting_structure.find(i);
                 if (it != nesting_structure.end()) {
-                    auto& pr = matching_braces[it->second];
+                    auto &pr = matching_braces[it->second];
                     new_lines.insert(pr.first);
                     new_lines.insert(pr.second);
                 }
             }
 
             lines.swap(new_lines);
-        } while(lines.size() > old_size);
+        } while (lines.size() > old_size);
 
         std::ifstream ifs(source);
         if (!ifs.is_open() || ifs.bad()) {
@@ -195,7 +190,7 @@ int main(int argc, char *argv[])
             return 1;
         }
 
-        //print_lines_numbers(lines);
+        // print_lines_numbers(lines);
         print_lines(ifs, lines);
         ifs.close();
     }

@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/DFS.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
 
 TEST_CASE("reference counting test", "LLVM DG") {
     using namespace dg;
@@ -43,4 +43,3 @@ TEST_CASE("reference counting test", "LLVM DG") {
     delete entryBB1;
     delete entryBB2;
 }
-

@@ -15,23 +15,23 @@ class BitvectorNumberSet {
     using ContainerT = SparseBitvectorImpl<uint64_t, NumT>;
 
     ContainerT _bitvector;
-public:
+
+  public:
     using const_iterator = typename ContainerT::const_iterator;
 
     BitvectorNumberSet() = default;
-    BitvectorNumberSet(size_t n) :_bitvector(n) {};
-    BitvectorNumberSet(BitvectorNumberSet&&) = default;
+    BitvectorNumberSet(size_t n) : _bitvector(n){};
+    BitvectorNumberSet(BitvectorNumberSet &&) = default;
 
     bool add(NumT n) { return !_bitvector.set(n); }
     bool has(NumT n) const { return _bitvector.get(n); }
     bool empty() const { return _bitvector.empty(); }
     size_t size() const { return _bitvector.size(); }
-    void swap(BitvectorNumberSet& oth) { oth._bitvector.swap(_bitvector); }
+    void swap(BitvectorNumberSet &oth) { oth._bitvector.swap(_bitvector); }
 
     const_iterator begin() const { return _bitvector.begin(); }
     const_iterator end() const { return _bitvector.end(); }
 };
-
 
 // This class is a container for a set of numbers
 // that is optimized for holding small values
@@ -70,7 +70,7 @@ class SmallNumberSet {
         is_small = false;
     }
 
-public:
+  public:
     ~SmallNumberSet() {
         // if we used the big set, call its destructor
         // (for smalls set there's nothing to do)
@@ -112,9 +112,9 @@ public:
             ~ItT() {}
         } _it;
 
-    public:
-        const_iterator(const SmallNumberSet& S, bool end = false)
-        : is_small(S.is_small) {
+      public:
+        const_iterator(const SmallNumberSet &S, bool end = false)
+                : is_small(S.is_small) {
             if (is_small) {
                 if (end)
                     _it.small_it = S._set.small.end();
@@ -128,9 +128,9 @@ public:
             }
         }
 
-        const_iterator(const const_iterator&) = default;
+        const_iterator(const const_iterator &) = default;
 
-        const_iterator& operator++() {
+        const_iterator &operator++() {
             if (is_small)
                 ++_it.small_it;
             else
@@ -152,7 +152,7 @@ public:
                 return *_it.big_it;
         }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             if (is_small != rhs.is_small)
                 return false;
 
@@ -162,7 +162,7 @@ public:
                 return _it.big_it == rhs._it.big_it;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
     };

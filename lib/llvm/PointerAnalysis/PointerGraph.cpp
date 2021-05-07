@@ -6,19 +6,19 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <llvm/IR/Dominators.h>
@@ -36,15 +36,14 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace pta {
 
-PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val)
-{
-    if (llvm::isa<llvm::ConstantPointerNull>(val)
-        || llvmutils::isConstantZero(val)) {
+PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val) {
+    if (llvm::isa<llvm::ConstantPointerNull>(val) ||
+        llvmutils::isConstantZero(val)) {
         return NULLPTR;
     } else if (llvm::isa<llvm::UndefValue>(val)) {
         return UNKNOWN_MEMORY;
-    } else if (const llvm::ConstantExpr *CE
-                    = llvm::dyn_cast<llvm::ConstantExpr>(val)) {
+    } else if (const llvm::ConstantExpr *CE =
+                       llvm::dyn_cast<llvm::ConstantExpr>(val)) {
         return createConstantExpr(CE).getRepresentant();
     } else if (llvm::isa<llvm::Function>(val)) {
         PSNode *ret = PS.create<PSNodeType::FUNCTION>();
@@ -58,8 +57,7 @@ PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val)
 }
 
 // try get operand, return null if no such value has been constructed
-PSNode *LLVMPointerGraphBuilder::tryGetOperand(const llvm::Value *val)
-{
+PSNode *LLVMPointerGraphBuilder::tryGetOperand(const llvm::Value *val) {
     auto it = nodes_map.find(val);
     PSNode *op = nullptr;
 
@@ -94,8 +92,7 @@ PSNode *LLVMPointerGraphBuilder::tryGetOperand(const llvm::Value *val)
     return op;
 }
 
-PSNode *LLVMPointerGraphBuilder::getOperand(const llvm::Value *val)
-{
+PSNode *LLVMPointerGraphBuilder::getOperand(const llvm::Value *val) {
     PSNode *op = tryGetOperand(val);
     if (!op) {
         if (isInvalid(val, invalidate_nodes))
@@ -107,13 +104,14 @@ PSNode *LLVMPointerGraphBuilder::getOperand(const llvm::Value *val)
         return op;
 }
 
-PointerSubgraph&
+PointerSubgraph &
 LLVMPointerGraphBuilder::getAndConnectSubgraph(const llvm::Function *F,
                                                const llvm::CallInst *CInst,
                                                PSNode *callNode) {
     // find or build the subgraph for the function F
-    PointerSubgraph& subg = createOrGetSubgraph(F);
-    assert(subg.root); // we took the subg by reference, so it should be filled now
+    PointerSubgraph &subg = createOrGetSubgraph(F);
+    assert(subg.root); // we took the subg by reference, so it should be filled
+                       // now
 
     // setup call edges
     PSNodeCall::cast(callNode)->addCallee(&subg);
@@ -123,21 +121,22 @@ LLVMPointerGraphBuilder::getAndConnectSubgraph(const llvm::Function *F,
     // update callgraph
     auto *callerF = CInst->getParent()->getParent();
     PS.registerCall(getPointsToNode(callerF), getPointsToNode(F));
-    DBG(pta, "CallGraph: " << callerF->getName().str() << " -> " << F->getName().str());
+    DBG(pta, "CallGraph: " << callerF->getName().str() << " -> "
+                           << F->getName().str());
 
     return subg;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
                                               const llvm::Function *F) {
     PSNodeCall *callNode = PSNodeCall::get(PS.create<PSNodeType::CALL>());
-    auto& subg = getAndConnectSubgraph(F, CInst, callNode);
+    auto &subg = getAndConnectSubgraph(F, CInst, callNode);
 
     // the operands to the return node (which works as a phi node)
     // are going to be added when the subgraph is built
-    PSNodeCallRet *returnNode
-        = PSNodeCallRet::get(PS.create<PSNodeType::CALL_RETURN>());
+    PSNodeCallRet *returnNode =
+            PSNodeCallRet::get(PS.create<PSNodeType::CALL_RETURN>());
 
     returnNode->setPairedNode(callNode);
     callNode->setPairedNode(returnNode);
@@ -154,19 +153,17 @@ LLVMPointerGraphBuilder::createCallToFunction(const llvm::CallInst *CInst,
     return addNode(CInst, seq);
 }
 
-bool
-LLVMPointerGraphBuilder::callIsCompatible(PSNode *call,
-                                          PSNode *func) {
+bool LLVMPointerGraphBuilder::callIsCompatible(PSNode *call, PSNode *func) {
     const llvm::CallInst *CI = call->getUserData<llvm::CallInst>();
     const llvm::Function *F = func->getUserData<llvm::Function>();
     assert(CI && "No user data in call node");
     assert(F && "No user data in function node");
     // incompatible prototypes, skip it...
     return llvmutils::callIsCompatible(F, CI);
-} 
+}
 
-void
-LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) { 
+void LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite,
+                                                 PSNode *called) {
     const llvm::CallInst *CI = callsite->getUserData<llvm::CallInst>();
     const llvm::Function *F = called->getUserData<llvm::Function>();
 
@@ -176,7 +173,7 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
         // we must manually set the data of representant,
         // as we didn't call addNode
         auto *repr = seq.getRepresentant();
-        repr->setUserData(const_cast<llvm::CallInst*>(CI));
+        repr->setUserData(const_cast<llvm::CallInst *>(CI));
         // add internal successors
         PSNodesSequenceAddSuccessors(seq);
 
@@ -188,7 +185,7 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
         return;
     }
 
-    PointerSubgraph& subg = getAndConnectSubgraph(F, CI, callsite);
+    PointerSubgraph &subg = getAndConnectSubgraph(F, CI, callsite);
 
     // remove the CFG edge and keep only the call edge
     if (callsite->successorsNum() == 1 &&
@@ -202,8 +199,7 @@ LLVMPointerGraphBuilder::insertFunctionCall(PSNode *callsite, PSNode *called) {
 }
 
 std::vector<PSNode *>
-LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
-{
+LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue) {
     using namespace llvm;
     std::vector<PSNode *> functions;
     if (isa<Function>(calledValue)) {
@@ -224,23 +220,21 @@ LLVMPointerGraphBuilder::getPointsToFunctions(const llvm::Value *calledValue)
         return functions;
     }
 
-    for (const auto& pointer : operand->pointsTo) {
-        if (pointer.isValid()
-                && !pointer.isInvalidated()
-                && isa<Function>(pointer.target->getUserData<Value>())) {
+    for (const auto &pointer : operand->pointsTo) {
+        if (pointer.isValid() && !pointer.isInvalidated() &&
+            isa<Function>(pointer.target->getUserData<Value>())) {
             functions.push_back(pointer.target);
         }
     }
     return functions;
 }
 
-PointerSubgraph&
-LLVMPointerGraphBuilder::createOrGetSubgraph(const llvm::Function *F)
-{
+PointerSubgraph &
+LLVMPointerGraphBuilder::createOrGetSubgraph(const llvm::Function *F) {
     auto it = subgraphs_map.find(F);
     if (it == subgraphs_map.end()) {
         // create a new subgraph
-        PointerSubgraph& subg = buildFunction(*F);
+        PointerSubgraph &subg = buildFunction(*F);
         assert(subg.root != nullptr);
 
         if (ad_hoc_building) {
@@ -254,9 +248,7 @@ LLVMPointerGraphBuilder::createOrGetSubgraph(const llvm::Function *F)
     return *it->second;
 }
 
-PointerSubgraph*
-LLVMPointerGraphBuilder::getSubgraph(const llvm::Function *F)
-{
+PointerSubgraph *LLVMPointerGraphBuilder::getSubgraph(const llvm::Function *F) {
     auto it = subgraphs_map.find(F);
     if (it == subgraphs_map.end()) {
         return nullptr;
@@ -266,9 +258,8 @@ LLVMPointerGraphBuilder::getSubgraph(const llvm::Function *F)
     return it->second;
 }
 
-
-void LLVMPointerGraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *PHI)
-{
+void LLVMPointerGraphBuilder::addPHIOperands(PSNode *node,
+                                             const llvm::PHINode *PHI) {
     for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
         if (PSNode *op = tryGetOperand(PHI->getIncomingValue(i))) {
             // do not add duplicate operands
@@ -280,8 +271,7 @@ void LLVMPointerGraphBuilder::addPHIOperands(PSNode *node, const llvm::PHINode *
 
 template <typename OptsT>
 static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
-                           const OptsT& opts)
-{
+                           const OptsT &opts) {
     using namespace llvm;
 
     // we don't care about debugging stuff
@@ -301,8 +291,8 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
         return true;
 
     if (func->size() == 0) {
-        if (opts.getAllocationFunction(func->getName().str())
-            != AllocationFunction::NONE)
+        if (opts.getAllocationFunction(func->getName().str()) !=
+            AllocationFunction::NONE)
             // we need memory allocations
             return true;
 
@@ -326,106 +316,107 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
     assert(0 && "We should not reach this");
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction &Inst) {
     using namespace llvm;
 
     PSNodesSeq *seq{nullptr};
 
-    switch(Inst.getOpcode()) {
-        case Instruction::Alloca:
-            seq = &createAlloc(&Inst);
-            break;
-        case Instruction::Store:
-            seq = &createStore(&Inst);
-            break;
-        case Instruction::Load:
-            seq = &createLoad(&Inst);
-            break;
-        case Instruction::GetElementPtr:
-            seq = &createGEP(&Inst);
-            break;
-        case Instruction::ExtractValue:
-            return createExtract(&Inst);
-        case Instruction::Select:
-            seq = &createSelect(&Inst);
-            break;
-        case Instruction::PHI:
-            seq = &createPHI(&Inst);
-            break;
-        case Instruction::BitCast:
-        case Instruction::SExt:
-        case Instruction::ZExt:
-            seq = &createCast(&Inst);
-            break;
-        case Instruction::PtrToInt:
-            seq = &createPtrToInt(&Inst);
-            break;
-        case Instruction::IntToPtr:
-            seq = &createIntToPtr(&Inst);
-            break;
-        case Instruction::Ret:
-            seq = &createReturn(&Inst);
-            break;
-        case Instruction::Call:
-            return createCall(&Inst);
-        case Instruction::And:
-        case Instruction::Or:
-        case Instruction::Trunc:
-        case Instruction::Shl:
-        case Instruction::LShr:
-        case Instruction::AShr:
-        case Instruction::Xor:
-        case Instruction::FSub:
-        case Instruction::FAdd:
-        case Instruction::FDiv:
-        case Instruction::FMul:
-        case Instruction::UDiv:
-        case Instruction::SDiv:
-        case Instruction::URem:
-        case Instruction::SRem:
-        case Instruction::FRem:
-        case Instruction::FPTrunc:
-        case Instruction::FPExt:
+    switch (Inst.getOpcode()) {
+    case Instruction::Alloca:
+        seq = &createAlloc(&Inst);
+        break;
+    case Instruction::Store:
+        seq = &createStore(&Inst);
+        break;
+    case Instruction::Load:
+        seq = &createLoad(&Inst);
+        break;
+    case Instruction::GetElementPtr:
+        seq = &createGEP(&Inst);
+        break;
+    case Instruction::ExtractValue:
+        return createExtract(&Inst);
+    case Instruction::Select:
+        seq = &createSelect(&Inst);
+        break;
+    case Instruction::PHI:
+        seq = &createPHI(&Inst);
+        break;
+    case Instruction::BitCast:
+    case Instruction::SExt:
+    case Instruction::ZExt:
+        seq = &createCast(&Inst);
+        break;
+    case Instruction::PtrToInt:
+        seq = &createPtrToInt(&Inst);
+        break;
+    case Instruction::IntToPtr:
+        seq = &createIntToPtr(&Inst);
+        break;
+    case Instruction::Ret:
+        seq = &createReturn(&Inst);
+        break;
+    case Instruction::Call:
+        return createCall(&Inst);
+    case Instruction::And:
+    case Instruction::Or:
+    case Instruction::Trunc:
+    case Instruction::Shl:
+    case Instruction::LShr:
+    case Instruction::AShr:
+    case Instruction::Xor:
+    case Instruction::FSub:
+    case Instruction::FAdd:
+    case Instruction::FDiv:
+    case Instruction::FMul:
+    case Instruction::UDiv:
+    case Instruction::SDiv:
+    case Instruction::URem:
+    case Instruction::SRem:
+    case Instruction::FRem:
+    case Instruction::FPTrunc:
+    case Instruction::FPExt:
 #if LLVM_VERSION_MAJOR >= 8
-        case Instruction::FNeg:
+    case Instruction::FNeg:
 #endif
-            // these instructions reinterpert the pointer,
-            // nothing better we can do here (I think?)
-            seq = &createUnknown(&Inst);
-            break;
-        case Instruction::Add:
-            seq = &createAdd(&Inst);
-            break;
-        case Instruction::Sub:
-        case Instruction::Mul:
-            seq = &createArithmetic(&Inst);
-            break;
-        case Instruction::UIToFP:
-        case Instruction::SIToFP:
+        // these instructions reinterpert the pointer,
+        // nothing better we can do here (I think?)
+        seq = &createUnknown(&Inst);
+        break;
+    case Instruction::Add:
+        seq = &createAdd(&Inst);
+        break;
+    case Instruction::Sub:
+    case Instruction::Mul:
+        seq = &createArithmetic(&Inst);
+        break;
+    case Instruction::UIToFP:
+    case Instruction::SIToFP:
+        seq = &createCast(&Inst);
+        break;
+    case Instruction::FPToUI:
+    case Instruction::FPToSI:
+        if (llvmutils::typeCanBePointer(&M->getDataLayout(), Inst.getType()))
             seq = &createCast(&Inst);
-            break;
-        case Instruction::FPToUI:
-        case Instruction::FPToSI:
-            if (llvmutils::typeCanBePointer(&M->getDataLayout(), Inst.getType()))
-                seq = &createCast(&Inst);
-            else
-                seq = &createUnknown(&Inst);
-            break;
-        case Instruction::InsertElement:
-            return createInsertElement(&Inst);
-        case Instruction::ExtractElement:
-            return createExtractElement(&Inst);
-        case Instruction::AtomicRMW:
-            return createAtomicRMW(&Inst);
-        case Instruction::ShuffleVector:
-            llvm::errs() << "ShuffleVector instruction is not supported, loosing precision\n";
+        else
             seq = &createUnknown(&Inst);
-            break;
-        default:
-            llvm::errs() << Inst << "\n";
-            assert(0 && "Unhandled instruction");
-            seq = &createUnknown(&Inst);
+        break;
+    case Instruction::InsertElement:
+        return createInsertElement(&Inst);
+    case Instruction::ExtractElement:
+        return createExtractElement(&Inst);
+    case Instruction::AtomicRMW:
+        return createAtomicRMW(&Inst);
+    case Instruction::ShuffleVector:
+        llvm::errs() << "ShuffleVector instruction is not supported, loosing "
+                        "precision\n";
+        seq = &createUnknown(&Inst);
+        break;
+    default:
+        llvm::errs() << Inst << "\n";
+        assert(0 && "Unhandled instruction");
+        seq = &createUnknown(&Inst);
     }
 
     assert(seq && "Did not create instruction");
@@ -433,35 +424,34 @@ LLVMPointerGraphBuilder::buildInstruction(const llvm::Instruction& Inst) {
 }
 
 // is the instruction relevant to points-to analysis?
-bool LLVMPointerGraphBuilder::isRelevantInstruction(const llvm::Instruction& Inst)
-{
+bool LLVMPointerGraphBuilder::isRelevantInstruction(
+        const llvm::Instruction &Inst) {
     using namespace llvm;
 
-    switch(Inst.getOpcode()) {
-        case Instruction::ICmp:
-        case Instruction::FCmp:
-        case Instruction::Br:
-        case Instruction::Switch:
-        case Instruction::Unreachable:
-            return false;
-        case Instruction::Call:
-            return isRelevantCall(&Inst, invalidate_nodes, _options);
-        default:
-            return true;
+    switch (Inst.getOpcode()) {
+    case Instruction::ICmp:
+    case Instruction::FCmp:
+    case Instruction::Br:
+    case Instruction::Switch:
+    case Instruction::Unreachable:
+        return false;
+    case Instruction::Call:
+        return isRelevantCall(&Inst, invalidate_nodes, _options);
+    default:
+        return true;
     }
 
     assert(0 && "Not to be reached");
 }
 
 // create a formal argument
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createArgument(const llvm::Argument *farg) {
     PSNode *arg = PS.create<PSNodeType::PHI>();
     return addNode(farg, arg);
 }
 
-void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
-{
+void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst) {
     using namespace llvm;
 
     if (!llvmutils::memsetIsZeroInitialization(cast<IntrinsicInst>(Inst))) {
@@ -492,21 +482,22 @@ void LLVMPointerGraphBuilder::checkMemSet(const llvm::Instruction *Inst)
     }
 }
 
-// Get llvm BasicBlock's in levels of Dominator Tree (BFS order through the dominator tree)
-std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Function& F)
-{
+// Get llvm BasicBlock's in levels of Dominator Tree (BFS order through the
+// dominator tree)
+std::vector<const llvm::BasicBlock *>
+getBasicBlocksInDominatorOrder(llvm::Function &F) {
     std::vector<const llvm::BasicBlock *> blocks;
     blocks.reserve(F.size());
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
-        llvm::DominatorTree DTree;
-        DTree.recalculate(F);
+    llvm::DominatorTree DTree;
+    DTree.recalculate(F);
 #else
-        llvm::DominatorTreeWrapperPass wrapper;
-        wrapper.runOnFunction(F);
-        auto& DTree = wrapper.getDomTree();
+    llvm::DominatorTreeWrapperPass wrapper;
+    wrapper.runOnFunction(F);
+    auto &DTree = wrapper.getDomTree();
 #ifndef NDEBUG
-        wrapper.verifyAnalysis();
+    wrapper.verifyAnalysis();
 #endif
 #endif
 
@@ -534,9 +525,8 @@ std::vector<const llvm::BasicBlock *> getBasicBlocksInDominatorOrder(llvm::Funct
     return blocks;
 }
 
-void LLVMPointerGraphBuilder::buildArguments(const llvm::Function& F,
-                                             PointerSubgraph *parent)
-{
+void LLVMPointerGraphBuilder::buildArguments(const llvm::Function &F,
+                                             PointerSubgraph *parent) {
     for (auto A = F.arg_begin(), E = F.arg_end(); A != E; ++A) {
 #ifndef NDEBUG
         PSNode *a = tryGetOperand(&*A);
@@ -544,14 +534,13 @@ void LLVMPointerGraphBuilder::buildArguments(const llvm::Function& F,
         // (or it is a number or irelevant value)
         assert(a == nullptr || a == UNKNOWN_MEMORY);
 #endif
-        auto& arg = createArgument(&*A);
+        auto &arg = createArgument(&*A);
         arg.getSingleNode()->setParent(parent);
     }
 }
 
-PointerSubgraph&
-LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
-{
+PointerSubgraph &
+LLVMPointerGraphBuilder::buildFunction(const llvm::Function &F) {
     DBG_SECTION_BEGIN(pta, "building function '" << F.getName().str() << "'");
 
     assert(!getSubgraph(&F) && "We already built this function");
@@ -587,9 +576,9 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
         vararg->setParent(subg);
 
     assert(_funcInfo.find(&F) == _funcInfo.end());
-    auto& finfo = _funcInfo[&F];
+    auto &finfo = _funcInfo[&F];
     auto llvmBlocks =
-        getBasicBlocksInDominatorOrder(const_cast<llvm::Function&>(F));
+            getBasicBlocksInDominatorOrder(const_cast<llvm::Function &>(F));
 
     // build the instructions from blocks
     for (const llvm::BasicBlock *block : llvmBlocks) {
@@ -599,8 +588,8 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
             continue;
         }
 
-        assert(finfo.llvmBlocks.find(block) == finfo.llvmBlocks.end()
-                && "Already have this block");
+        assert(finfo.llvmBlocks.find(block) == finfo.llvmBlocks.end() &&
+               "Already have this block");
 
         // gather all return nodes
         if ((blk.getLastNode()->getType() == PSNodeType::RETURN)) {
@@ -615,14 +604,14 @@ LLVMPointerGraphBuilder::buildFunction(const llvm::Function& F)
     addPHIOperands(F);
 
     assert(getSubgraph(&F)->root != nullptr);
-    DBG_SECTION_END(pta, "building function '" << F.getName().str() << "' done");
+    DBG_SECTION_END(pta,
+                    "building function '" << F.getName().str() << "' done");
     return *subg;
 }
 
-void LLVMPointerGraphBuilder::addProgramStructure()
-{
+void LLVMPointerGraphBuilder::addProgramStructure() {
     // form intraprocedural program structure (CFG edges)
-    for (auto& it : subgraphs_map) {
+    for (auto &it : subgraphs_map) {
         const llvm::Function *F = it.first;
         PointerSubgraph *subg = it.second;
         assert(subg && "Subgraph was nullptr");
@@ -635,14 +624,14 @@ void LLVMPointerGraphBuilder::addProgramStructure()
     }
 }
 
-PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
-{
+PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph() {
     DBG_SECTION_BEGIN(pta, "building pointer graph");
 
     // get entry function
     llvm::Function *F = M->getFunction(_options.entryFunction);
     if (!F) {
-        llvm::errs() << "Did not find " << _options.entryFunction << " function in module\n";
+        llvm::errs() << "Did not find " << _options.entryFunction
+                     << " function in module\n";
         abort();
     }
 
@@ -650,7 +639,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     buildGlobals();
 
     // now we can build rest of the graph
-    PointerSubgraph& subg = buildFunction(*F);
+    PointerSubgraph &subg = buildFunction(*F);
     PSNode *root = subg.root;
     assert(root != nullptr);
     (void) root; // c++17 TODO: replace with [[maybe_unused]]
@@ -667,7 +656,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     PS.getCallGraph().createNode(getPointsToNode(F));
 
 #ifndef NDEBUG
-    for (const auto& subg : PS.getSubgraphs()) {
+    for (const auto &subg : PS.getSubgraphs()) {
         assert(subg->root && "No root in a subgraph");
     }
 
@@ -678,7 +667,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
         llvm::errs() << "Pointer Subgraph is broken (right after building)!\n";
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();
-        //return nullptr;
+        // return nullptr;
     } else {
         llvm::errs() << validator.getWarnings();
     }
@@ -697,9 +686,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph()
     return &PS;
 }
 
-
-bool LLVMPointerGraphBuilder::validateSubgraph(bool no_connectivity) const
-{
+bool LLVMPointerGraphBuilder::validateSubgraph(bool no_connectivity) const {
     LLVMPointerGraphValidator validator(getPS(), no_connectivity);
     if (validator.validate()) {
         assert(!validator.getErrors().empty());
@@ -711,13 +698,13 @@ bool LLVMPointerGraphBuilder::validateSubgraph(bool no_connectivity) const
 }
 
 std::vector<PSNode *>
-LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const
-{
+LLVMPointerGraphBuilder::getFunctionNodes(const llvm::Function *F) const {
     auto it = subgraphs_map.find(F);
     if (it == subgraphs_map.end())
         return {};
 
-    auto nodes = getReachableNodes(it->second->root, nullptr, false /* interproc */);
+    auto nodes =
+            getReachableNodes(it->second->root, nullptr, false /* interproc */);
     std::vector<PSNode *> ret;
     ret.reserve(nodes.size());
     std::copy(nodes.begin(), nodes.end(), std::back_inserter(ret));

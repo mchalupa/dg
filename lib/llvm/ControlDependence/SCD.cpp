@@ -2,9 +2,9 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Function.h>
 #include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/Analysis/PostDominators.h>
+#include <llvm/IR/Function.h>
 //#include "llvm/Analysis/IteratedDominanceFrontier.h"
 SILENCE_LLVM_WARNINGS_POP
 
@@ -19,21 +19,25 @@ namespace llvmdg {
 class PostDominanceFrontiers {
     using BBlockT = llvm::BasicBlock;
 #if (LLVM_VERSION_MAJOR < 5)
-    using DomSetMapType = typename llvm::DominanceFrontierBase<llvm::BasicBlock>::DomSetMapType;
-    using DomSetType = typename llvm::DominanceFrontierBase<llvm::BasicBlock>::DomSetType;
+    using DomSetMapType = typename llvm::DominanceFrontierBase<
+            llvm::BasicBlock>::DomSetMapType;
+    using DomSetType =
+            typename llvm::DominanceFrontierBase<llvm::BasicBlock>::DomSetType;
 #else
-    using DomSetMapType = typename llvm::DominanceFrontierBase<llvm::BasicBlock, true>::DomSetMapType;
-    using DomSetType = typename llvm::DominanceFrontierBase<llvm::BasicBlock, true>::DomSetType;
+    using DomSetMapType =
+            typename llvm::DominanceFrontierBase<llvm::BasicBlock,
+                                                 true>::DomSetMapType;
+    using DomSetType = typename llvm::DominanceFrontierBase<llvm::BasicBlock,
+                                                            true>::DomSetType;
 #endif
 
     DomSetMapType frontiers;
 
-public:
+  public:
     // based on the code from giri project by @liuml07,
     // https://github.com/liuml07/giri
-    DomSetType& calculate(const llvm::PostDominatorTree &DT,
+    DomSetType &calculate(const llvm::PostDominatorTree &DT,
                           const llvm::DomTreeNode *Node) {
-
         llvm::BasicBlock *BB = Node->getBlock();
         auto &S = frontiers[BB];
 
@@ -47,33 +51,33 @@ public:
 
         // calculate DFlocal[Node]
         if (BB) {
-          for (auto *P : predecessors(BB)) {
-            // Does Node immediately dominate this predecessor?
-            auto *SINode = DT[P];
-            if (SINode && SINode->getIDom() != Node)
-              S.insert(P);
-          }
+            for (auto *P : predecessors(BB)) {
+                // Does Node immediately dominate this predecessor?
+                auto *SINode = DT[P];
+                if (SINode && SINode->getIDom() != Node)
+                    S.insert(P);
+            }
         }
 
         // At this point, S is DFlocal.  Now we union in DFup's of our children.
-        // Loop through and visit the nodes that Node immediately dominates (Node's
-        // children in the IDomTree)
+        // Loop through and visit the nodes that Node immediately dominates
+        // (Node's children in the IDomTree)
         for (auto IDominee : *Node) {
-          const auto &ChildDF = calculate(DT, IDominee);
+            const auto &ChildDF = calculate(DT, IDominee);
 
-          for (auto *cdfi : ChildDF) {
-            if (!DT.properlyDominates(Node, DT[cdfi]))
-              S.insert(cdfi);
-          }
+            for (auto *cdfi : ChildDF) {
+                if (!DT.properlyDominates(Node, DT[cdfi]))
+                    S.insert(cdfi);
+            }
         }
 
         return S;
     }
 };
 
-void SCD::computePostDominators(llvm::Function& F) {
+void SCD::computePostDominators(llvm::Function &F) {
     DBG_SECTION_BEGIN(cda, "Computing post dominators for function "
-                           << F.getName().str());
+                                   << F.getName().str());
     using namespace llvm;
 
     PostDominatorTree *pdtree = nullptr;
@@ -81,7 +85,8 @@ void SCD::computePostDominators(llvm::Function& F) {
     DBG(cda, "Computing post dominator tree");
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
 
-    auto pdtreeptr = std::unique_ptr<PostDominatorTree>(new PostDominatorTree());
+    auto pdtreeptr =
+            std::unique_ptr<PostDominatorTree>(new PostDominatorTree());
     pdtree = pdtreeptr.get();
     pdtree->runOnFunction(F); // compute post-dominator tree for this function
 
@@ -117,10 +122,10 @@ void SCD::computePostDominators(llvm::Function& F) {
 
     PostDominanceFrontiers PDF;
 
-    for (auto& B : F) {
+    for (auto &B : F) {
         auto *pdtreenode = pdtree->getNode(&B);
         assert(pdtreenode && "Do not have a node in post-dom tree");
-        auto& pdfrontiers = PDF.calculate(*pdtree, pdtreenode);
+        auto &pdfrontiers = PDF.calculate(*pdtree, pdtreenode);
         for (auto *pdf : pdfrontiers) {
             dependencies[&B].insert(pdf);
             dependentBlocks[pdf].insert(&B);
@@ -129,9 +134,9 @@ void SCD::computePostDominators(llvm::Function& F) {
 
 #endif // LLVM < 3.9
 
-    DBG_SECTION_END(cda, "Done computing post dominators for function " << F.getName().str());
+    DBG_SECTION_END(cda, "Done computing post dominators for function "
+                                 << F.getName().str());
 }
-
 
 } // namespace llvmdg
 } // namespace dg

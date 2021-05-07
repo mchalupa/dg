@@ -1,23 +1,39 @@
 #ifndef NODE_H
 #define NODE_H
 
-#include <set>
 #include <iosfwd>
+#include <set>
 #include <string>
 
 #include "NodeIterator.h"
 
 namespace llvm {
-    class CallInst;
-    class Instruction;
-}
+class CallInst;
+class Instruction;
+} // namespace llvm
 
-enum class NodeType { GENERAL, FORK, JOIN, LOCK, UNLOCK, ENTRY, EXIT, CALL, CALL_FUNCPTR, CALL_RETURN, RETURN };
+enum class NodeType {
+    GENERAL,
+    FORK,
+    JOIN,
+    LOCK,
+    UNLOCK,
+    ENTRY,
+    EXIT,
+    CALL,
+    CALL_FUNCPTR,
+    CALL_RETURN,
+    RETURN
+};
 
-inline std::string nodeTypeToString(enum NodeType type)
-{
-#define ELEM(t) case t: do {return (#t); }while(0); break;
-    switch(type) {
+inline std::string nodeTypeToString(enum NodeType type) {
+#define ELEM(t)                                                                \
+    case t:                                                                    \
+        do {                                                                   \
+            return (#t);                                                       \
+        } while (0);                                                           \
+        break;
+    switch (type) {
         ELEM(NodeType::GENERAL)
         ELEM(NodeType::FORK)
         ELEM(NodeType::JOIN)
@@ -34,20 +50,20 @@ inline std::string nodeTypeToString(enum NodeType type)
     return "undefined";
 }
 
-class Node
-{
-private:
-    const int                   id_;
-    const NodeType              nodeType_;
-    const llvm::Instruction *   llvmInstruction_;
-    const llvm::CallInst *      callInstruction_;
-    std::set<Node *>            predecessors_;
-    std::set<Node *>            successors_;
+class Node {
+  private:
+    const int id_;
+    const NodeType nodeType_;
+    const llvm::Instruction *llvmInstruction_;
+    const llvm::CallInst *callInstruction_;
+    std::set<Node *> predecessors_;
+    std::set<Node *> successors_;
 
     static int lastId;
 
-public:
-    Node(NodeType type, const llvm::Instruction * instruction = nullptr, const llvm::CallInst * callInst = nullptr);
+  public:
+    Node(NodeType type, const llvm::Instruction *instruction = nullptr,
+         const llvm::CallInst *callInst = nullptr);
 
     virtual ~Node() = default;
 
@@ -67,8 +83,8 @@ public:
     bool removePredecessor(Node *);
     bool removeSuccessor(Node *);
 
-    const std::set<Node *> & predecessors() const;
-    const std::set<Node *> & successors() const;
+    const std::set<Node *> &predecessors() const;
+    const std::set<Node *> &successors() const;
 
     virtual std::size_t predecessorsNumber() const;
     virtual std::size_t successorsNumber() const;
@@ -77,16 +93,13 @@ public:
 
     const llvm::Instruction *llvmInstruction() const;
 
-    const llvm::CallInst * callInstruction() const;
+    const llvm::CallInst *callInstruction() const;
 
     std::string dump() const;
 
     std::string label() const;
 
-    virtual void printOutcomingEdges(std::ostream & ostream) const;
+    virtual void printOutcomingEdges(std::ostream &ostream) const;
 };
-
-
-
 
 #endif // NODE_H

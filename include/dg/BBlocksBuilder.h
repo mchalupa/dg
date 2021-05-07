@@ -21,7 +21,7 @@ class BBlocksBuilder {
     ADT::QueueFIFO<NodeT *> _queue;
 
     bool enqueue(NodeT *n) {
-        //the id 0 is reserved for invalid nodes
+        // the id 0 is reserved for invalid nodes
         assert(n->getID() != 0 && "Queued invalid node");
 
         if (_processed.insert(n->getID()).second == false)
@@ -45,7 +45,7 @@ class BBlocksBuilder {
     }
 
     void setBlock(NodeT *cur) {
-        if (cur->predecessorsNum() == 0 // root node
+        if (cur->predecessorsNum() == 0      // root node
             || cur->predecessorsNum() > 1) { // join
             setNewBlock(cur);
             return;
@@ -65,7 +65,7 @@ class BBlocksBuilder {
         addToBlock(cur, cur->getSinglePredecessor()->getBBlock());
     }
 
-public:
+  public:
     void buildBlocks(NodeT *root) {
         enqueue(root);
 
@@ -82,10 +82,9 @@ public:
         }
     }
 
-    std::vector<std::unique_ptr<BBlockT>>& getBlocks() { return _blocks; }
+    std::vector<std::unique_ptr<BBlockT>> &getBlocks() { return _blocks; }
 
-    std::vector<std::unique_ptr<BBlockT>>&&
-    buildAndGetBlocks(NodeT *root) {
+    std::vector<std::unique_ptr<BBlockT>> &&buildAndGetBlocks(NodeT *root) {
         buildBlocks(root);
         return std::move(_blocks);
     }

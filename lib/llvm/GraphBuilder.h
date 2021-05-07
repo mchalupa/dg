@@ -3,41 +3,37 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Constants.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "dg/llvm/CallGraph/CallGraph.h"
 #include "dg/ADT/SetQueue.h"
+#include "dg/llvm/CallGraph/CallGraph.h"
 
 namespace dg {
 
 template <typename NodeT>
 class NodesSeq {
     // we can optimize this later...
-    std::vector<NodeT*> nodes;
+    std::vector<NodeT *> nodes;
     NodeT *representant{nullptr};
 
-public:
-    NodesSeq(const std::initializer_list<NodeT*>& lst) {
+  public:
+    NodesSeq(const std::initializer_list<NodeT *> &lst) {
         if (lst.size() > 0) {
             nodes.insert(nodes.end(), lst.begin(), lst.end());
             representant = *lst.begin();
         }
     }
 
-    NodesSeq(NodesSeq&&) = default;
-    NodesSeq(const NodesSeq&) = default;
+    NodesSeq(NodesSeq &&) = default;
+    NodesSeq(const NodesSeq &) = default;
 
-    NodeT *setRepresentant(NodeT *r) {
-        representant = r;
-    }
+    NodeT *setRepresentant(NodeT *r) { representant = r; }
 
-    NodeT *getRepresentant() const {
-        return representant;
-    }
+    NodeT *getRepresentant() const { return representant; }
 
     bool empty() const { return nodes.empty(); }
 
@@ -47,25 +43,27 @@ public:
     auto end() const -> decltype(nodes.end()) { return nodes.end(); }
 };
 
-
 template <typename NodeT, typename BBlockT, typename SubgraphT>
 class GraphBuilder {
     struct SubgraphInfo {
-        using BlocksMappingT
-            = std::unordered_map<const llvm::BasicBlock *, BBlockT *>;
+        using BlocksMappingT =
+                std::unordered_map<const llvm::BasicBlock *, BBlockT *>;
 
-        SubgraphT& subgraph;
+        SubgraphT &subgraph;
         BlocksMappingT blocks{};
 
-        SubgraphInfo(SubgraphT& s) : subgraph(s) {}
-        SubgraphInfo(SubgraphInfo&&) = default;
-        SubgraphInfo(const SubgraphInfo&) = delete;
+        SubgraphInfo(SubgraphT &s) : subgraph(s) {}
+        SubgraphInfo(SubgraphInfo &&) = default;
+        SubgraphInfo(const SubgraphInfo &) = delete;
     };
 
     using GlobalsT = std::vector<NodeT *>;
-    using NodesMappingT = std::unordered_map<const llvm::Value *, NodesSeq<NodeT>>;
-    using ValuesMappingT = std::unordered_map<const NodeT *, const llvm::Value *>;
-    using SubgraphsMappingT = std::unordered_map<const llvm::Function *, SubgraphInfo>;
+    using NodesMappingT =
+            std::unordered_map<const llvm::Value *, NodesSeq<NodeT>>;
+    using ValuesMappingT =
+            std::unordered_map<const NodeT *, const llvm::Value *>;
+    using SubgraphsMappingT =
+            std::unordered_map<const llvm::Function *, SubgraphInfo>;
 
     const llvm::Module *_module;
 
@@ -74,15 +72,15 @@ class GraphBuilder {
     ValuesMappingT _nodeToValue;
     GlobalsT _globals;
 
-    void buildCFG(SubgraphInfo& subginfo) {
-        for (auto& it : subginfo.blocks) {
+    void buildCFG(SubgraphInfo &subginfo) {
+        for (auto &it : subginfo.blocks) {
             auto llvmblk = it.first;
             auto bblock = it.second;
 
             for (auto *succ : successors(llvmblk)) {
                 auto succit = subginfo.blocks.find(succ);
-                assert((succit != subginfo.blocks.end())
-                       && "Do not have the block built");
+                assert((succit != subginfo.blocks.end()) &&
+                       "Do not have the block built");
 
                 bblock->addSuccessor(succit->second);
             }
@@ -92,7 +90,7 @@ class GraphBuilder {
     void buildGlobals() {
         DBG_SECTION_BEGIN(dg, "Building globals");
 
-        for (auto& G : _module->globals()) {
+        for (auto &G : _module->globals()) {
             // every global node is like memory allocation
             auto cur = buildNode(&G);
             _globals.insert(_globals.end(), cur.begin(), cur.end());
@@ -101,37 +99,35 @@ class GraphBuilder {
         DBG_SECTION_END(dg, "Building globals done");
     }
 
-
-protected:
-
+  protected:
     NodesSeq<NodeT> buildNode(const llvm::Value *val) {
         auto it = _nodes.find(val);
         if (it != _nodes.end()) {
             return it->second;
         }
 
-        const auto& nds = createNode(val);
-        assert((nds.getRepresentant() || nds.empty())
-                && "Built node sequence has no representant");
+        const auto &nds = createNode(val);
+        assert((nds.getRepresentant() || nds.empty()) &&
+               "Built node sequence has no representant");
 
         if (auto *repr = nds.getRepresentant()) {
             _nodes.emplace(val, std::move(nds));
 
-            assert((_nodeToValue.find(repr) == _nodeToValue.end())
-                    && "Mapping a node that we already have");
+            assert((_nodeToValue.find(repr) == _nodeToValue.end()) &&
+                   "Mapping a node that we already have");
             _nodeToValue[repr] = val;
         }
 
         return nds;
     }
 
-    BBlockT& buildBBlock(const llvm::BasicBlock& B, SubgraphInfo& subginfo) {
-        auto& bblock = createBBlock(&B, subginfo.subgraph);
-        assert(subginfo.blocks.find(&B) == subginfo.blocks.end()
-                && "Already have this basic block");
+    BBlockT &buildBBlock(const llvm::BasicBlock &B, SubgraphInfo &subginfo) {
+        auto &bblock = createBBlock(&B, subginfo.subgraph);
+        assert(subginfo.blocks.find(&B) == subginfo.blocks.end() &&
+               "Already have this basic block");
         subginfo.blocks[&B] = &bblock;
 
-        for (auto& I : B) {
+        for (auto &I : B) {
             for (auto *node : buildNode(&I)) {
                 bblock.append(node);
             }
@@ -140,14 +136,15 @@ protected:
         return bblock;
     }
 
-    void buildSubgraph(const llvm::Function& F) {
+    void buildSubgraph(const llvm::Function &F) {
         using namespace llvm;
 
-        DBG_SECTION_BEGIN(dg, "Building the subgraph for " << F.getName().str());
+        DBG_SECTION_BEGIN(dg,
+                          "Building the subgraph for " << F.getName().str());
         auto subgit = _subgraphs.find(&F);
         assert(subgit != _subgraphs.end() && "Do not have that subgraph");
 
-        auto& subginfo = subgit->second;
+        auto &subginfo = subgit->second;
 
         DBG(dg, "Building basic blocks of " << F.getName().str());
         // do a walk through basic blocks such that all predecessors of
@@ -175,18 +172,18 @@ protected:
 
     void buildAllFuns() {
         DBG(dg, "Building all functions from LLVM module");
-        for (auto& F : *_module) {
+        for (auto &F : *_module) {
             if (F.isDeclaration()) {
                 continue;
             }
-            assert(_subgraphs.find(&F) == _subgraphs.end()
-                   && "Already have that subgraph");
-            auto& subg = createSubgraph(&F);
+            assert(_subgraphs.find(&F) == _subgraphs.end() &&
+                   "Already have that subgraph");
+            auto &subg = createSubgraph(&F);
             _subgraphs.emplace(&F, subg);
         }
 
         // now do the real thing
-        for (auto& F : *_module) {
+        for (auto &F : *_module) {
             if (!F.isDeclaration()) {
                 buildSubgraph(F);
             }
@@ -194,47 +191,42 @@ protected:
     }
 
     void buildFunsFromCG(llvmdg::CallGraph *cg) {
-        const auto& funs = cg->functions();
+        const auto &funs = cg->functions();
         // we should have at least the entry fun
         assert(!funs.empty() && "No function in call graph");
 
         for (auto *F : funs) {
             DBG(dg, "Building functions based on call graph information");
-            assert(_subgraphs.find(F) == _subgraphs.end()
-                   && "Already have that subgraph");
-            auto& subg = createSubgraph(F);
+            assert(_subgraphs.find(F) == _subgraphs.end() &&
+                   "Already have that subgraph");
+            auto &subg = createSubgraph(F);
             _subgraphs.emplace(F, subg);
         }
 
         // now do the real thing
         for (auto *F : funs) {
-           if (!F->isDeclaration()) {
-               buildSubgraph(*F);
-           }
+            if (!F->isDeclaration()) {
+                buildSubgraph(*F);
+            }
         }
     }
 
-
-public:
+  public:
     GraphBuilder(const llvm::Module *m) : _module(m) {}
     virtual ~GraphBuilder() = default;
 
     const llvm::Module *getModule() const { return _module; }
-    const llvm::DataLayout *getDataLayout() const { return &_module->getDataLayout(); }
-
-    const GlobalsT& getGlobals() const { return _globals; }
-
-    const NodesMappingT& getNodesMapping() const {
-        return _nodes;
+    const llvm::DataLayout *getDataLayout() const {
+        return &_module->getDataLayout();
     }
 
-    const ValuesMappingT& getValuesMapping() const {
-        return _nodeToValue;
-    }
+    const GlobalsT &getGlobals() const { return _globals; }
 
-    const SubgraphsMappingT& getSubgraphsMapping() const {
-        return _subgraphs;
-    }
+    const NodesMappingT &getNodesMapping() const { return _nodes; }
+
+    const ValuesMappingT &getValuesMapping() const { return _nodeToValue; }
+
+    const SubgraphsMappingT &getSubgraphsMapping() const { return _subgraphs; }
 
     NodeT *getNode(const llvm::Value *v) {
         auto it = _nodes.find(v);
@@ -262,8 +254,8 @@ public:
     }
 
     virtual NodesSeq<NodeT> createNode(const llvm::Value *) = 0;
-    virtual BBlockT& createBBlock(const llvm::BasicBlock *, SubgraphT&) = 0;
-    virtual SubgraphT& createSubgraph(const llvm::Function *) = 0;
+    virtual BBlockT &createBBlock(const llvm::BasicBlock *, SubgraphT &) = 0;
+    virtual SubgraphT &createSubgraph(const llvm::Function *) = 0;
 
     void buildFromLLVM(llvmdg::CallGraph *cg = nullptr) {
         assert(_module && "Do not have the LLVM module");

@@ -3,9 +3,8 @@
 
 #include "Node.h"
 
-class CallReturnNode : public Node
-{
-public:
+class CallReturnNode : public Node {
+  public:
     CallReturnNode();
 };
 

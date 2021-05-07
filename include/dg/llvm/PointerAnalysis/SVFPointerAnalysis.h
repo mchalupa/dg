@@ -22,13 +22,13 @@
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 
-#include <llvm/IR/Function.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "WPA/Andersen.h" // Andersen analysis from SVF
 #include "SVF-FE/LLVMModule.h" // LLVMModuleSet
 #include "SVF-FE/PAGBuilder.h" // PAGBuilder
+#include "WPA/Andersen.h"      // Andersen analysis from SVF
 
 #if (__clang__)
 #pragma clang diagnostic pop
@@ -39,8 +39,8 @@
 #include "dg/PointerAnalysis/Pointer.h"
 
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/PointerAnalysis/LLVMPointsToSet.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "dg/util/debug.h"
 
@@ -48,8 +48,8 @@ namespace dg {
 
 using pta::Pointer;
 
-using SVF::PAG;
 using SVF::LLVMModuleSet;
+using SVF::PAG;
 using SVF::PointsTo;
 
 /// Implementation of LLVMPointsToSet that iterates
@@ -59,15 +59,15 @@ class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
     size_t _position{0};
 
     llvm::Value *_getValue(unsigned id) const {
-	    auto pagnode = _pag->getPAGNode(id);
-	    if (pagnode->hasValue()) {
-	    	return const_cast<llvm::Value*>(pagnode->getValue());
-	    } else {
-	    	// for debuggin right now
-	    	llvm::errs() << "[SVF] No value in PAG NODE\n";
-	    	llvm::errs() << *pagnode << "\n";
+        auto pagnode = _pag->getPAGNode(id);
+        if (pagnode->hasValue()) {
+            return const_cast<llvm::Value *>(pagnode->getValue());
+        } else {
+            // for debuggin right now
+            llvm::errs() << "[SVF] No value in PAG NODE\n";
+            llvm::errs() << *pagnode << "\n";
             return nullptr;
-	    }
+        }
     }
 
     void _findNextReal() override {
@@ -75,17 +75,17 @@ class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
             if (_pag->getPAGNode(*it)->hasValue()) {
                 break;
             }
-           //else {
-           //    llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
-           //}
+            // else {
+            //    llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
+            //}
             ++it;
             ++_position;
         }
     }
 
-public:
-    SvfLLVMPointsToSet(PointsTo& S, PAG *pag)
-    : LLVMPointsToSetImplTemplate(std::move(S)), _pag(pag) {
+  public:
+    SvfLLVMPointsToSet(PointsTo &S, PAG *pag)
+            : LLVMPointsToSetImplTemplate(std::move(S)), _pag(pag) {
         initialize_iterator();
     }
 
@@ -93,9 +93,7 @@ public:
         return PTSet.test(_pag->getBlackHoleNode());
     }
 
-    bool hasNull() const override {
-        return PTSet.test(_pag->getNullPtr());
-    }
+    bool hasNull() const override { return PTSet.test(_pag->getNullPtr()); }
 
     bool hasNullWithOffset() const override {
         // we are field-insensitive now...
@@ -116,7 +114,6 @@ public:
     }
 };
 
-
 ///
 // Integration of pointer analysis from SVF
 class SVFPointerAnalysis : public LLVMPointerAnalysis {
@@ -124,14 +121,14 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
     SVF::SVFModule *_svfModule{nullptr};
     std::unique_ptr<SVF::PointerAnalysis> _pta{};
 
-    PointsTo& getUnknownPTSet() const {
+    PointsTo &getUnknownPTSet() const {
         static PointsTo _unknownPTSet;
         if (_unknownPTSet.empty())
             _unknownPTSet.set(_pta->getPAG()->getBlackHoleNode());
         return _unknownPTSet;
     }
 
-    LLVMPointsToSet mapSVFPointsTo(PointsTo& S, PAG *pag) {
+    LLVMPointsToSet mapSVFPointsTo(PointsTo &S, PAG *pag) {
         SvfLLVMPointsToSet *pts;
         if (S.empty()) {
             pts = new SvfLLVMPointsToSet(getUnknownPTSet(), pag);
@@ -141,11 +138,10 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
         return pts->toLLVMPointsToSet();
     }
 
-
-public:
+  public:
     SVFPointerAnalysis(const llvm::Module *M,
-                       const LLVMPointerAnalysisOptions& opts)
-        : LLVMPointerAnalysis(opts), _module(M) {}
+                       const LLVMPointerAnalysisOptions &opts)
+            : LLVMPointerAnalysis(opts), _module(M) {}
 
     ~SVFPointerAnalysis() {
         // _svfModule overtook the ovenership of llvm::Module,
@@ -154,8 +150,8 @@ public:
     }
 
     bool hasPointsTo(const llvm::Value *val) override {
-		PAG* pag = _pta->getPAG();
-		auto pts = _pta->getPts(pag->getValueNode(val));
+        PAG *pag = _pta->getPAG();
+        auto pts = _pta->getPts(pag->getValueNode(val));
         return !pts.empty();
     }
 
@@ -167,8 +163,8 @@ public:
     // and hasNull() that reflect whether the points-to set of the
     // LLVM value contains unknown element of null.
     LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
-		PAG* pag = _pta->getPAG();
-		auto pts = _pta->getPts(pag->getValueNode(val));
+        PAG *pag = _pta->getPAG();
+        auto pts = _pta->getPts(pag->getValueNode(val));
         return mapSVFPointsTo(pts, pag);
     }
 
@@ -179,8 +175,8 @@ public:
     // unknown element when the node does not exists)
     std::pair<bool, LLVMPointsToSet>
     getLLVMPointsToChecked(const llvm::Value *val) override {
-		PAG* pag = _pta->getPAG();
-		auto pts = _pta->getPts(pag->getValueNode(val));
+        PAG *pag = _pta->getPAG();
+        auto pts = _pta->getPts(pag->getValueNode(val));
         return {!pts.empty(), mapSVFPointsTo(pts, pag)};
     }
 
@@ -190,11 +186,12 @@ public:
         DBG_SECTION_BEGIN(pta, "Running SVF pointer analysis (Andersen)");
 
         auto moduleset = LLVMModuleSet::getLLVMModuleSet();
-        _svfModule = moduleset->buildSVFModule(*const_cast<llvm::Module*>(_module));
+        _svfModule =
+                moduleset->buildSVFModule(*const_cast<llvm::Module *>(_module));
         assert(_svfModule && "Failed building SVF module");
 
         PAGBuilder builder;
-        PAG* pag = builder.build(_svfModule);
+        PAG *pag = builder.build(_svfModule);
 
         _pta.reset(new Andersen(pag));
         _pta->disablePrintStat();

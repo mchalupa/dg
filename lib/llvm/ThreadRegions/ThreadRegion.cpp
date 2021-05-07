@@ -5,13 +5,9 @@
 
 int ThreadRegion::lastId = 0;
 
-ThreadRegion::ThreadRegion(Node *node):id_(lastId++),
-                                       foundingNode_(node)
-{}
+ThreadRegion::ThreadRegion(Node *node) : id_(lastId++), foundingNode_(node) {}
 
-int ThreadRegion::id() const {
-    return id_;
-}
+int ThreadRegion::id() const { return id_; }
 
 bool ThreadRegion::addPredecessor(ThreadRegion *predecessor) {
     predecessors_.insert(predecessor);
@@ -43,17 +39,13 @@ const std::set<ThreadRegion *> &ThreadRegion::predecessors() const {
     return predecessors_;
 }
 
-std::set<ThreadRegion *> ThreadRegion::predecessors() {
-    return predecessors_;
-}
+std::set<ThreadRegion *> ThreadRegion::predecessors() { return predecessors_; }
 
 const std::set<ThreadRegion *> &ThreadRegion::successors() const {
     return successors_;
 }
 
-std::set<ThreadRegion *> ThreadRegion::successors() {
-    return successors_;
-}
+std::set<ThreadRegion *> ThreadRegion::successors() { return successors_; }
 
 bool ThreadRegion::insertNode(Node *node) {
     nodes_.insert(node);
@@ -65,17 +57,11 @@ bool ThreadRegion::removeNode(Node *node) {
     return false;
 }
 
-Node *ThreadRegion::foundingNode() const {
-    return foundingNode_;
-}
+Node *ThreadRegion::foundingNode() const { return foundingNode_; }
 
-const std::set<Node *> &ThreadRegion::nodes() const {
-    return nodes_;
-}
+const std::set<Node *> &ThreadRegion::nodes() const { return nodes_; }
 
-std::set<Node *> ThreadRegion::nodes() {
-    return nodes_;
-}
+std::set<Node *> ThreadRegion::nodes() { return nodes_; }
 
 void ThreadRegion::printNodes(std::ostream &ostream) {
     ostream << "subgraph " << dotName() << " {\n";
@@ -88,8 +74,7 @@ void ThreadRegion::printNodes(std::ostream &ostream) {
 
 void ThreadRegion::printEdges(std::ostream &ostream) {
     for (const auto &successor : successors_) {
-        ostream << (*this->nodes_.begin())->dotName()
-                << " -> "
+        ostream << (*this->nodes_.begin())->dotName() << " -> "
                 << (*successor->nodes_.begin())->dotName()
                 << " [ltail = " << this->dotName()
                 << " lhead = " << successor->dotName()
@@ -97,9 +82,7 @@ void ThreadRegion::printEdges(std::ostream &ostream) {
     }
 }
 
-std::string ThreadRegion::dotName() {
-    return "cluster" + std::to_string(id_);
-}
+std::string ThreadRegion::dotName() { return "cluster" + std::to_string(id_); }
 
 std::set<const llvm::Instruction *> ThreadRegion::llvmInstructions() const {
     std::set<const llvm::Instruction *> llvmValues;

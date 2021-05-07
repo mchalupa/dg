@@ -1,9 +1,9 @@
 #ifndef DG_INTERVALS_LIST_H_
 #define DG_INTERVALS_LIST_H_
 
-#include <list>
-#include <cassert>
 #include "dg/Offset.h"
+#include <cassert>
+#include <list>
 
 namespace dg {
 namespace dda {
@@ -17,9 +17,10 @@ class IntervalsList {
             assert(start <= end);
         }
 
-        Interval(const std::pair<Offset, Offset>& I) : Interval(I.first, I.second) {}
+        Interval(const std::pair<Offset, Offset> &I)
+                : Interval(I.first, I.second) {}
 
-        bool overlaps(const Interval& I) const {
+        bool overlaps(const Interval &I) const {
             return start <= I.end && end >= I.start;
         }
         Offset length() const { return end - start + 1; }
@@ -28,7 +29,7 @@ class IntervalsList {
     std::list<Interval> intervals;
 
     template <typename Iterator>
-    void _replace_overlapping(const Interval& I, Iterator it, Iterator to) {
+    void _replace_overlapping(const Interval &I, Iterator it, Iterator to) {
         assert(it->overlaps(I) && to->overlaps(I));
         assert(it != intervals.end());
         assert(to != intervals.end());
@@ -38,7 +39,7 @@ class IntervalsList {
         ++it;
         ++to;
         if (it != intervals.end()) {
-                intervals.erase(it, to);
+            intervals.erase(it, to);
         } else {
             assert(to == intervals.end());
         }
@@ -60,13 +61,10 @@ class IntervalsList {
     }
 #endif // NDEBUG
 
-public:
+  public:
+    void add(Offset start, Offset end) { add({start, end}); }
 
-    void add(Offset start, Offset end) {
-        add({start, end});
-    }
-
-    void add(const Interval& I) {
+    void add(const Interval &I) {
         if (intervals.empty())
             intervals.push_back(I);
 
@@ -74,22 +72,22 @@ public:
         auto end = intervals.end();
 
         while (it != end) {
-           if (I.overlaps(*it)) {
-               auto to = ++it;
-               while (to != end && I.overlaps(*to)) {
-                   ++to;
-               }
-               if (to == end) {
-                   --to;
-               }
-               _replace_overlapping(I, it, to);
-               break;
-           } else if (it->start > I.end) {
-               intervals.insert(it, I);
-               break;
-           }
+            if (I.overlaps(*it)) {
+                auto to = ++it;
+                while (to != end && I.overlaps(*to)) {
+                    ++to;
+                }
+                if (to == end) {
+                    --to;
+                }
+                _replace_overlapping(I, it, to);
+                break;
+            } else if (it->start > I.end) {
+                intervals.insert(it, I);
+                break;
+            }
 
-           ++it;
+            ++it;
         }
 
         if (it == end) {
@@ -98,12 +96,12 @@ public:
         assert(_check());
     }
 
-    IntervalsList& intersectWith(const IntervalsList& rhs) {
+    IntervalsList &intersectWith(const IntervalsList &rhs) {
         if (intervals.empty())
             return *this;
 
         auto it = intervals.begin();
-        for (auto& RI : rhs.intervals) {
+        for (auto &RI : rhs.intervals) {
             while (it->end < RI.start) {
                 auto tmp = it++;
                 intervals.erase(tmp);
@@ -120,10 +118,12 @@ public:
         return *this;
     }
 
-    auto begin() -> decltype (intervals.begin()) { return intervals.begin(); }
-    auto begin() const -> decltype (intervals.begin()) { return intervals.begin(); }
-    auto end() -> decltype (intervals.end()) { return intervals.end(); }
-    auto end()const  -> decltype (intervals.end()) { return intervals.end(); }
+    auto begin() -> decltype(intervals.begin()) { return intervals.begin(); }
+    auto begin() const -> decltype(intervals.begin()) {
+        return intervals.begin();
+    }
+    auto end() -> decltype(intervals.end()) { return intervals.end(); }
+    auto end() const -> decltype(intervals.end()) { return intervals.end(); }
 };
 
 } // namespace dda

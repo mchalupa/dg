@@ -2,10 +2,10 @@
 #error "This code needs LLVM enabled"
 #endif
 
-#include <set>
-#include <iostream>
-#include <sstream>
 #include <fstream>
+#include <iostream>
+#include <set>
+#include <sstream>
 #include <string>
 
 #include <cassert>
@@ -13,12 +13,12 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Module.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IRReader/IRReader.h>
 
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -28,23 +28,22 @@ SILENCE_LLVM_WARNINGS_PUSH
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/PointerAnalysis/PointerAnalysisFS.h"
+#include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
-#include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-#include "dg/PointerAnalysis/PointerAnalysisFS.h"
-#include "dg/PointerAnalysis/PointerAnalysisFI.h"
-#include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
-#include "dg/llvm/DataDependence/DataDependence.h"
 
 #include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
 using llvm::errs;
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
@@ -57,7 +56,7 @@ int main(int argc, char *argv[])
     const char *pts = "fi";
     const char *entry_func = "main";
     LLVMControlDependenceAnalysisOptions::CDAlgorithm cd_alg =
-        LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
+            LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
 
     using namespace debug;
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
@@ -70,10 +69,10 @@ int main(int argc, char *argv[])
             opts &= ~PRINT_USE;
         } else if (strcmp(argv[i], "-pta") == 0) {
             pts = argv[++i];
-        /*
-        } else if (strcmp(argv[i], "-dda") == 0) {
-            dda = argv[++i];
-        */
+            /*
+            } else if (strcmp(argv[i], "-dda") == 0) {
+                dda = argv[++i];
+            */
         } else if (strcmp(argv[i], "-no-data") == 0) {
             opts &= ~PRINT_DD;
         } else if (strcmp(argv[i], "-no-cfg") == 0) {
@@ -101,13 +100,17 @@ int main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-cd-alg") == 0) {
             const char *arg = argv[++i];
             if (strcmp(arg, "standard") == 0)
-                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
+                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::
+                        STANDARD;
             else if (strcmp(arg, "classic") == 0)
-                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
+                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::
+                        STANDARD;
             else if (strcmp(arg, "ntscd") == 0)
-                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::NTSCD;
+                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::
+                        NTSCD;
             else {
-                errs() << "Invalid control dependencies algorithm, try: classic, ce\n";
+                errs() << "Invalid control dependencies algorithm, try: "
+                          "classic, ce\n";
                 abort();
             }
 
@@ -144,14 +147,14 @@ int main(int argc, char *argv[])
     options.PTAOptions.entryFunction = entry_func;
     options.DDAOptions.entryFunction = entry_func;
     if (strcmp(pts, "fs") == 0) {
-        options.PTAOptions.analysisType
-            = LLVMPointerAnalysisOptions::AnalysisType::fs;
+        options.PTAOptions.analysisType =
+                LLVMPointerAnalysisOptions::AnalysisType::fs;
     } else if (strcmp(pts, "fi") == 0) {
-        options.PTAOptions.analysisType
-            = LLVMPointerAnalysisOptions::AnalysisType::fi;
+        options.PTAOptions.analysisType =
+                LLVMPointerAnalysisOptions::AnalysisType::fi;
     } else if (strcmp(pts, "inv") == 0) {
-        options.PTAOptions.analysisType
-            = LLVMPointerAnalysisOptions::AnalysisType::inv;
+        options.PTAOptions.analysisType =
+                LLVMPointerAnalysisOptions::AnalysisType::inv;
     } else {
         llvm::errs() << "Unknown points to analysis, try: fs, fi, inv\n";
         abort();
@@ -160,14 +163,9 @@ int main(int argc, char *argv[])
     llvmdg::LLVMDependenceGraphBuilder builder(M, options);
     auto dg = builder.build();
 
-
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
-        const char *sc[] = {
-            slicing_criterion,
-            "klee_assume",
-            NULL
-        };
+        const char *sc[] = {slicing_criterion, "klee_assume", NULL};
 
         dg->getCallSites(sc, &callsites);
 
@@ -190,7 +188,7 @@ int main(int argc, char *argv[])
                 slid = slicer.mark(start, slid);
 
             if (!mark_only)
-               slicer.slice(dg.get(), nullptr, slid);
+                slicer.slice(dg.get(), nullptr, slid);
         }
 
         if (!mark_only) {
@@ -199,9 +197,9 @@ int main(int argc, char *argv[])
             std::ofstream ofs(fl);
             llvm::raw_os_ostream output(ofs);
 
-            SlicerStatistics& st = slicer.getStatistics();
-            errs() << "INFO: Sliced away " << st.nodesRemoved
-                   << " from " << st.nodesTotal << " nodes\n";
+            SlicerStatistics &st = slicer.getStatistics();
+            errs() << "INFO: Sliced away " << st.nodesRemoved << " from "
+                   << st.nodesTotal << " nodes\n";
 
 #if (LLVM_VERSION_MAJOR > 6)
             llvm::WriteBitcodeToFile(*M, output);

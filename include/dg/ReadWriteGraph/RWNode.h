@@ -19,41 +19,41 @@ class ReachingDefinitionsAnalysis;
 // here the types are for type-checking (optional - user can do it
 // when building the graph) and for later optimizations
 enum class RWNodeType {
-        // invalid type of node
-        NONE,
-        // these are nodes that just represent memory allocation sites
-        // we need to have them even in reaching definitions analysis,
-        // so that we can use them as targets in DefSites
-        ALLOC,
-        DYN_ALLOC,
-        GLOBAL,
-        // nodes that write the memory
-        STORE,
-        // nodes that use the memory
-        LOAD,
-        // merging information from several locations
-        PHI,
-        ////  PHIs used to pass information between procedures
-        // PHIs on the side of procedure (formal arguments)
-        INARG,
-        OUTARG,
-        // PHIs on the side of call (actual arguments)
-        CALLIN,
-        CALLOUT,
-        // artificial use (load)
-        MU,
-        // return from the subprocedure
-        RETURN,
-        // call node
-        CALL,
-        FORK,
-        JOIN,
-        // node that may define/use memory but does
-        // not fall into any of these categories
-        // (e.g., it represents an undefined call for which we have a model)
-        GENERIC,
-        // dummy nodes
-        NOOP
+    // invalid type of node
+    NONE,
+    // these are nodes that just represent memory allocation sites
+    // we need to have them even in reaching definitions analysis,
+    // so that we can use them as targets in DefSites
+    ALLOC,
+    DYN_ALLOC,
+    GLOBAL,
+    // nodes that write the memory
+    STORE,
+    // nodes that use the memory
+    LOAD,
+    // merging information from several locations
+    PHI,
+    ////  PHIs used to pass information between procedures
+    // PHIs on the side of procedure (formal arguments)
+    INARG,
+    OUTARG,
+    // PHIs on the side of call (actual arguments)
+    CALLIN,
+    CALLOUT,
+    // artificial use (load)
+    MU,
+    // return from the subprocedure
+    RETURN,
+    // call node
+    CALL,
+    FORK,
+    JOIN,
+    // node that may define/use memory but does
+    // not fall into any of these categories
+    // (e.g., it represents an undefined call for which we have a model)
+    GENERIC,
+    // dummy nodes
+    NOOP
 };
 
 extern RWNode *UNKNOWN_MEMORY;
@@ -73,7 +73,7 @@ class RWNode : public SubgraphNode<RWNode> {
         // definitions
         bool _init{false};
 
-    public:
+      public:
         bool add(RWNode *d) {
             _init = true;
             for (auto x : defuse) {
@@ -86,7 +86,7 @@ class RWNode : public SubgraphNode<RWNode> {
         }
 
         template <typename Cont>
-        bool add(const Cont& C) {
+        bool add(const Cont &C) {
             _init = true;
             bool changed = false;
             for (RWNode *n : C)
@@ -104,8 +104,7 @@ class RWNode : public SubgraphNode<RWNode> {
         T::const_iterator end() const { return defuse.end(); }
     };
 
-public:
-
+  public:
     ///
     /// Gathers information about the node
     /// - what memory it accesses and whether it writes it or reads it.
@@ -118,20 +117,20 @@ public:
         // this is set of variables used in this node
         DefSiteSetT uses;
 
-        DefSiteSetT& getDefines() { return defs; }
-        DefSiteSetT& getOverwrites() { return overwrites; }
-        DefSiteSetT& getUses() { return uses; }
-        const DefSiteSetT& getDefines() const { return defs; }
-        const DefSiteSetT& getOverwrites() const { return overwrites; }
-        const DefSiteSetT& getUses() const { return uses; }
+        DefSiteSetT &getDefines() { return defs; }
+        DefSiteSetT &getOverwrites() { return overwrites; }
+        DefSiteSetT &getUses() { return uses; }
+        const DefSiteSetT &getDefines() const { return defs; }
+        const DefSiteSetT &getOverwrites() const { return overwrites; }
+        const DefSiteSetT &getUses() const { return uses; }
     } annotations;
 
     // for invalid nodes like UNKNOWN_MEMLOC
     RWNode(RWNodeType t = RWNodeType::NONE)
-    : SubgraphNode<RWNode>(0), type(t) {}
+            : SubgraphNode<RWNode>(0), type(t) {}
 
     RWNode(unsigned id, RWNodeType t = RWNodeType::NONE)
-    : SubgraphNode<RWNode>(id), type(t) {}
+            : SubgraphNode<RWNode>(id), type(t) {}
 
     RWNodeType getType() const { return type; }
 
@@ -155,39 +154,44 @@ public:
     bool addDefUse(RWNode *n) { return defuse.add(n); }
 
     template <typename C>
-    bool addDefUse(const C& c) {
+    bool addDefUse(const C &c) {
         return defuse.add(c);
     }
 
-    virtual Annotations& getAnnotations() { return annotations; }
-    virtual const Annotations& getAnnotations() const { return annotations; }
+    virtual Annotations &getAnnotations() { return annotations; }
+    virtual const Annotations &getAnnotations() const { return annotations; }
 
-    DefSiteSetT& getDefines() { return getAnnotations().getDefines(); }
-    DefSiteSetT& getOverwrites() { return getAnnotations().getOverwrites(); }
-    DefSiteSetT& getUses() { return getAnnotations().getUses(); }
-    const DefSiteSetT& getDefines() const { return getAnnotations().getDefines(); }
-    const DefSiteSetT& getOverwrites() const { return getAnnotations().getOverwrites(); }
-    const DefSiteSetT& getUses() const { return getAnnotations().getUses(); }
+    DefSiteSetT &getDefines() { return getAnnotations().getDefines(); }
+    DefSiteSetT &getOverwrites() { return getAnnotations().getOverwrites(); }
+    DefSiteSetT &getUses() { return getAnnotations().getUses(); }
+    const DefSiteSetT &getDefines() const {
+        return getAnnotations().getDefines();
+    }
+    const DefSiteSetT &getOverwrites() const {
+        return getAnnotations().getOverwrites();
+    }
+    const DefSiteSetT &getUses() const { return getAnnotations().getUses(); }
 
-    bool defines(const RWNode *target, const Offset& off = Offset::UNKNOWN) const {
+    bool defines(const RWNode *target,
+                 const Offset &off = Offset::UNKNOWN) const {
         // FIXME: this is not efficient implementation,
         // use the ordering on the nodes
         if (off.isUnknown()) {
-            for (const DefSite& ds : getDefines())
+            for (const DefSite &ds : getDefines())
                 if (ds.target == target)
                     return true;
-            for (const DefSite& ds : getOverwrites())
+            for (const DefSite &ds : getOverwrites())
                 if (ds.target == target)
                     return true;
         } else {
-            for (const DefSite& ds : getDefines())
-                if (ds.target == target
-                    && off.inRange(*ds.offset, *ds.offset + *ds.len))
+            for (const DefSite &ds : getDefines())
+                if (ds.target == target &&
+                    off.inRange(*ds.offset, *ds.offset + *ds.len))
                     return true;
 
-            for (const DefSite& ds : getOverwrites())
-                if (ds.target == target
-                    && off.inRange(*ds.offset, *ds.offset + *ds.len))
+            for (const DefSite &ds : getOverwrites())
+                if (ds.target == target &&
+                    off.inRange(*ds.offset, *ds.offset + *ds.len))
                     return true;
         }
 
@@ -195,7 +199,7 @@ public:
     }
 
     bool usesUnknown() const {
-        for (auto& ds : getUses()) {
+        for (auto &ds : getUses()) {
             if (ds.target->isUnknown())
                 return true;
         }
@@ -203,7 +207,7 @@ public:
     }
 
     bool usesOnlyGlobals() const {
-        for (auto& ds : getUses()) {
+        for (auto &ds : getUses()) {
             if (!ds.target->isGlobal())
                 return false;
         }
@@ -213,17 +217,16 @@ public:
     // add uses to annotations of 'this' object
     // (call objects can have several annotations as they are
     //  composed of several nodes)
-    void addUse(const DefSite& ds) { annotations.getUses().insert(ds); }
+    void addUse(const DefSite &ds) { annotations.getUses().insert(ds); }
 
-    void addUse(RWNode *target,
-                const Offset& off = Offset::UNKNOWN,
-                const Offset& len = Offset::UNKNOWN) {
+    void addUse(RWNode *target, const Offset &off = Offset::UNKNOWN,
+                const Offset &len = Offset::UNKNOWN) {
         addUse(DefSite(target, off, len));
     }
 
     template <typename T>
-    void addUses(T&& u) {
-        for (auto& ds : u) {
+    void addUses(T &&u) {
+        for (auto &ds : u) {
             annotations.getUses().insert(ds);
         }
     }
@@ -231,7 +234,7 @@ public:
     // add definitions to annotations of 'this' object
     // (call objects can have several annotations as they are
     //  composed of several nodes)
-    void addDef(const DefSite& ds, bool strong_update = false) {
+    void addDef(const DefSite &ds, bool strong_update = false) {
         if (strong_update)
             annotations.getOverwrites().insert(ds);
         else
@@ -242,38 +245,40 @@ public:
     // register that the node defines the memory 'target'
     // at offset 'off' of length 'len', i.e. it writes
     // to memory 'target' to bytes [off, off + len].
-    void addDef(RWNode *target,
-                const Offset& off = Offset::UNKNOWN,
-                const Offset& len = Offset::UNKNOWN,
+    void addDef(RWNode *target, const Offset &off = Offset::UNKNOWN,
+                const Offset &len = Offset::UNKNOWN,
                 bool strong_update = false) {
         addDef(DefSite(target, off, len), strong_update);
     }
 
     template <typename T>
-    void addDefs(T&& defs) {
-        for (auto& ds : defs) {
+    void addDefs(T &&defs) {
+        for (auto &ds : defs) {
             addDef(ds);
         }
     }
 
-    void addOverwrites(RWNode *target,
-                       const Offset& off = Offset::UNKNOWN,
-                       const Offset& len = Offset::UNKNOWN) {
+    void addOverwrites(RWNode *target, const Offset &off = Offset::UNKNOWN,
+                       const Offset &len = Offset::UNKNOWN) {
         addOverwrites(DefSite(target, off, len));
     }
 
-    void addOverwrites(const DefSite& ds) {
+    void addOverwrites(const DefSite &ds) {
         annotations.getOverwrites().insert(ds);
     }
 
     bool isUnknown() const { return this == UNKNOWN_MEMORY; }
     bool isUse() const { return !getUses().empty(); }
-    bool isDef() const { return !getDefines().empty() || !getOverwrites().empty(); }
+    bool isDef() const {
+        return !getDefines().empty() || !getOverwrites().empty();
+    }
 
-    bool isInOut() const { return getType() == RWNodeType::INARG ||
-                                  getType() == RWNodeType::OUTARG ||
-                                  getType() == RWNodeType::CALLIN ||
-                                  getType() == RWNodeType::CALLOUT; }
+    bool isInOut() const {
+        return getType() == RWNodeType::INARG ||
+               getType() == RWNodeType::OUTARG ||
+               getType() == RWNodeType::CALLIN ||
+               getType() == RWNodeType::CALLOUT;
+    }
     bool isPhi() const { return getType() == RWNodeType::PHI || isInOut(); }
     bool isGlobal() const { return getType() == RWNodeType::GLOBAL; }
     bool isCall() const { return getType() == RWNodeType::CALL; }
@@ -300,7 +305,7 @@ class RWCalledValue {
     RWSubgraph *subgraph{nullptr};
     RWNode *calledValue{nullptr};
 
-public:
+  public:
     RWCalledValue(RWSubgraph *s) : subgraph(s) {}
     RWCalledValue(RWNode *c) : calledValue(c) {}
 
@@ -310,7 +315,6 @@ public:
     RWNode *getCalledValue() { return calledValue; }
     const RWSubgraph *getSubgraph() const { return subgraph; }
     const RWNode *getCalledValue() const { return calledValue; }
-
 };
 
 class RWNodeCall : public RWNode {
@@ -334,7 +338,7 @@ class RWNodeCall : public RWNode {
     void _summarizeAnnotation() const {
         if (callees.size() > 1) {
             std::vector<const RWNode *> undefined;
-            for (auto& cv : callees) {
+            for (auto &cv : callees) {
                 if (auto *uc = cv.getCalledValue()) {
                     undefined.push_back(uc);
                 }
@@ -342,11 +346,12 @@ class RWNodeCall : public RWNode {
 
             if (undefined.size() == 1) {
                 annotations = undefined[0]->annotations;
-            } else if (undefined.size() > 1){
+            } else if (undefined.size() > 1) {
                 auto kills = undefined[0]->annotations.overwrites.intersect(
-                                undefined[1]->annotations.overwrites);
+                        undefined[1]->annotations.overwrites);
                 for (size_t i = 2; i < undefined.size(); ++i) {
-                    kills = kills.intersect(undefined[i]->annotations.overwrites);
+                    kills = kills.intersect(
+                            undefined[i]->annotations.overwrites);
                 }
 
                 annotations.overwrites = kills;
@@ -359,17 +364,15 @@ class RWNodeCall : public RWNode {
         _annotations_summarized = true;
     }
 
-public:
+  public:
     RWNodeCall(unsigned id) : RWNode(id, RWNodeType::CALL) {}
 
     static RWNodeCall *get(RWNode *n) {
-        return n->isCall() ?
-            static_cast<RWNodeCall*>(n) : nullptr;
+        return n->isCall() ? static_cast<RWNodeCall *>(n) : nullptr;
     }
 
     static const RWNodeCall *get(const RWNode *n) {
-        return n->isCall() ?
-            static_cast<const RWNodeCall*>(n) : nullptr;
+        return n->isCall() ? static_cast<const RWNodeCall *>(n) : nullptr;
     }
 
     RWNode *getUnknownPhi() { return unknownInput; }
@@ -396,12 +399,10 @@ public:
         return cv ? cv->getCalledValue() : nullptr;
     }
 
-    bool callsOneUndefined() const {
-        return getSingleUndefined() != nullptr;
-    }
+    bool callsOneUndefined() const { return getSingleUndefined() != nullptr; }
 
     bool callsDefined() const {
-        for (auto& c : callees) {
+        for (auto &c : callees) {
             if (c.getSubgraph()) {
                 return true;
             }
@@ -410,7 +411,7 @@ public:
     }
 
     bool callsUndefined() const {
-        for (auto& c : callees) {
+        for (auto &c : callees) {
             if (c.getCalledValue()) {
                 return true;
             }
@@ -418,21 +419,21 @@ public:
         return false;
     }
 
-    const CalleesT& getCallees() const { return callees; }
-    CalleesT& getCallees() { return callees; }
+    const CalleesT &getCallees() const { return callees; }
+    CalleesT &getCallees() { return callees; }
 
-    void addCallee(const RWCalledValue& cv) { callees.push_back(cv); }
+    void addCallee(const RWCalledValue &cv) { callees.push_back(cv); }
     void addCallee(RWNode *n) { callees.emplace_back(n); }
     void addCallee(RWSubgraph *s);
 
-    Annotations& getAnnotations() override {
+    Annotations &getAnnotations() override {
         if (auto *uc = getSingleUndefined())
             return uc->annotations;
         if (!_annotations_summarized)
             _summarizeAnnotation();
         return annotations;
     }
-    const Annotations& getAnnotations() const override {
+    const Annotations &getAnnotations() const override {
         if (auto *uc = getSingleUndefined())
             return uc->annotations;
         if (!_annotations_summarized)
@@ -440,13 +441,16 @@ public:
         return annotations;
     }
 
-    void addOutput(RWNode *n) { assert(n->isPhi()); outputs.push_back(n); }
-    const OutputsT& getOutputs() const { return outputs; }
+    void addOutput(RWNode *n) {
+        assert(n->isPhi());
+        outputs.push_back(n);
+    }
+    const OutputsT &getOutputs() const { return outputs; }
 
     void addInput(RWNode *n) {
         assert(n->isPhi());
         inputs.push_back(n);
-   }
+    }
 
     void addUnknownInput(RWNode *n) {
         assert(unknownInput == nullptr);
@@ -454,8 +458,7 @@ public:
         inputs.push_back(n);
         unknownInput = n;
     }
-    const InputsT& getInputs() const { return inputs; }
-
+    const InputsT &getInputs() const { return inputs; }
 
 #ifndef NDEBUG
     void dump() const override;

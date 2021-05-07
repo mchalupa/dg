@@ -6,8 +6,8 @@
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Instructions.h"
 
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/CallGraph/CallGraph.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "ControlDependence/CDGraph.h"
 #include "GraphBuilder.h"
@@ -17,20 +17,20 @@ namespace dg {
 namespace llvmdg {
 
 namespace {
-    const llvm::Instruction *
-    getNextNonDebugInstruction(const llvm::Instruction *I) {
+const llvm::Instruction *
+getNextNonDebugInstruction(const llvm::Instruction *I) {
 #if LLVM_VERSION_MAJOR >= 7
     return I->getNextNonDebugInstruction();
 #else
     // this is the implementation of Instruction::getNextNonDebugInstruction()
     // from LLVM 12 (adjusted)
     for (const auto *NI = I->getNextNode(); NI; NI = NI->getNextNode())
-      if (!llvm::isa<llvm::DbgInfoIntrinsic>(NI))
-        return NI;
+        if (!llvm::isa<llvm::DbgInfoIntrinsic>(NI))
+            return NI;
     return nullptr;
 #endif
-    }
 }
+} // namespace
 
 ///
 // Whole-program graph for interprocedural analysis.
@@ -44,9 +44,10 @@ class ICDGraphBuilder {
         // called functions
         std::vector<const llvm::Function *> funs;
 
-        CallInfo(std::vector<const llvm::Function *>&& f) : funs(std::move(f)) {}
-        CallInfo(CallInfo&&) = default;
-        CallInfo(const CallInfo&) = delete;
+        CallInfo(std::vector<const llvm::Function *> &&f)
+                : funs(std::move(f)) {}
+        CallInfo(CallInfo &&) = default;
+        CallInfo(const CallInfo &) = delete;
     };
 
     std::unordered_map<const llvm::Value *, CDNode *> _nodes;
@@ -56,7 +57,8 @@ class ICDGraphBuilder {
     LLVMPointerAnalysis *_pta{nullptr};
     CallGraph *_cg{nullptr};
 
-    std::vector<const llvm::Function *> getCalledFunctions(const llvm::CallInst *C) {
+    std::vector<const llvm::Function *>
+    getCalledFunctions(const llvm::CallInst *C) {
         auto *f = C->getCalledFunction();
         if (f) {
             if (f->isDeclaration()) {
@@ -85,10 +87,11 @@ class ICDGraphBuilder {
     }
 
     CDGraph buildInstructions(const llvm::Module *M) {
-        DBG_SECTION_BEGIN(cda, "Building ICFG (of instructions) for the whole module");
+        DBG_SECTION_BEGIN(
+                cda, "Building ICFG (of instructions) for the whole module");
         CDGraph graph("ICFG");
 
-        for (auto& F : *M) {
+        for (auto &F : *M) {
             buildInstructions(graph, F);
         }
 
@@ -108,8 +111,9 @@ class ICDGraphBuilder {
                 assert(retsite);
                 auto *retsitenode = getNode(retsite);
                 assert(retsitenode);
-                for (auto& B : *f) {
-                    if (auto *R = llvm::dyn_cast<llvm::ReturnInst>(B.getTerminator())) {
+                for (auto &B : *f) {
+                    if (auto *R = llvm::dyn_cast<llvm::ReturnInst>(
+                                B.getTerminator())) {
                         auto *rnode = getNode(R);
                         graph.addNodeSuccessor(*rnode, *retsitenode);
                     }
@@ -122,7 +126,7 @@ class ICDGraphBuilder {
         return graph;
     }
 
-    void buildInstructions(CDGraph& graph, const llvm::Function& F) {
+    void buildInstructions(CDGraph &graph, const llvm::Function &F) {
         struct BBlock {
             std::vector<CDNode *> nodes;
         };
@@ -131,18 +135,18 @@ class ICDGraphBuilder {
         //_mapping.reserve(F->size());
 
         // create nodes for instructions
-        for (auto& BB : F) {
+        for (auto &BB : F) {
             auto it = _mapping.emplace(&BB, BBlock());
-            BBlock& block = it.first->second;
+            BBlock &block = it.first->second;
             block.nodes.reserve(BB.size());
-            for (auto& I : BB) {
+            for (auto &I : BB) {
                 if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
                     auto funs = getCalledFunctions(C);
                     if (!funs.empty())
                         calls.emplace(C, CallInfo(std::move(funs)));
                 }
 
-                auto& nd = graph.createNode();
+                auto &nd = graph.createNode();
                 _rev_mapping[&nd] = &I;
                 _nodes[&I] = &nd;
                 block.nodes.push_back(&nd);
@@ -150,11 +154,11 @@ class ICDGraphBuilder {
         }
 
         // add intraprocedural successor edges
-        for (auto& BB : F) {
-            auto& bblock = _mapping[&BB];
+        for (auto &BB : F) {
+            auto &bblock = _mapping[&BB];
             CDNode *last = nullptr;
             // successors inside the block
-            for (auto* nd : bblock.nodes) {
+            for (auto *nd : bblock.nodes) {
                 if (last)
                     graph.addNodeSuccessor(*last, *nd);
                 auto *C = llvm::dyn_cast<llvm::CallInst>(getValue(nd));
@@ -172,7 +176,7 @@ class ICDGraphBuilder {
 
             // successors between blocks
             for (auto *bbsucc : successors(&BB)) {
-                auto& succblk = _mapping[bbsucc];
+                auto &succblk = _mapping[bbsucc];
                 if (succblk.nodes.empty()) {
                     assert(bbsucc->size() == 0);
                     continue;
@@ -184,22 +188,23 @@ class ICDGraphBuilder {
     }
 
     CDGraph buildBlocks(const llvm::Module *M) {
-        DBG_SECTION_BEGIN(cda, "Building ICFG (of blocks) for the whole module");
+        DBG_SECTION_BEGIN(cda,
+                          "Building ICFG (of blocks) for the whole module");
         CDGraph graph("ICFG");
 
-        for (auto& F : *M) {
+        for (auto &F : *M) {
             buildBlocks(graph, F);
         }
 
         // add successor edges
         for (auto &F : *M) {
-            for (auto& BB : F) {
+            for (auto &BB : F) {
                 auto *nd = getNode(&BB);
                 assert(nd && "BUG: creating nodes for bblocks");
                 auto *blknd = nd;
 
                 // add interprocedural edges
-                for (auto& I : BB) {
+                for (auto &I : BB) {
                     auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
                     if (!C) {
                         continue;
@@ -207,11 +212,11 @@ class ICDGraphBuilder {
 
                     // create a block that represents the rest of the block
                     // and add an edge from the returns of f
-                    const auto& funs = getCalledFunctions(C);
+                    const auto &funs = getCalledFunctions(C);
                     if (funs.empty())
                         continue;
 
-                    auto& retsite = graph.createNode();
+                    auto &retsite = graph.createNode();
 
                     // call inst
                     for (auto *f : getCalledFunctions(C)) {
@@ -220,8 +225,9 @@ class ICDGraphBuilder {
                         graph.addNodeSuccessor(*blknd, *entrynode);
 
                         // return edges
-                        for (auto& B : *f) {
-                            if (llvm::isa<llvm::ReturnInst>(B.getTerminator())) {
+                        for (auto &B : *f) {
+                            if (llvm::isa<llvm::ReturnInst>(
+                                        B.getTerminator())) {
                                 // the block returns
                                 auto *rnode = getNode(&B);
                                 assert(rnode);
@@ -245,23 +251,24 @@ class ICDGraphBuilder {
         return graph;
     }
 
-    void buildBlocks(CDGraph& graph, const llvm::Function& F) {
-        DBG_SECTION_BEGIN(cda, "Building ICFG (of blocks) for " << F.getName().str());
+    void buildBlocks(CDGraph &graph, const llvm::Function &F) {
+        DBG_SECTION_BEGIN(cda, "Building ICFG (of blocks) for "
+                                       << F.getName().str());
 
         // create nodes for blocks
-        for (auto& BB : F) {
-            auto& nd = graph.createNode();
+        for (auto &BB : F) {
+            auto &nd = graph.createNode();
             _nodes[&BB] = &nd;
             _rev_mapping[&nd] = &BB;
         }
 
-        DBG_SECTION_END(cda, "Done building graph for function " << F.getName().str());
+        DBG_SECTION_END(cda, "Done building graph for function "
+                                     << F.getName().str());
     }
 
-public:
-
-    ICDGraphBuilder(LLVMPointerAnalysis *pta = nullptr, CallGraph *cg = nullptr):
-        _pta(pta), _cg(cg) {}
+  public:
+    ICDGraphBuilder(LLVMPointerAnalysis *pta = nullptr, CallGraph *cg = nullptr)
+            : _pta(pta), _cg(cg) {}
 
     // \param instructions  true if we should build nodes for the instructions
     //                      instead of for basic blocks?
@@ -287,7 +294,6 @@ public:
         auto it = _rev_mapping.find(n);
         return it == _rev_mapping.end() ? nullptr : it->second;
     }
-
 };
 
 } // namespace llvmdg

@@ -1,16 +1,16 @@
 #include "NTSCD.h"
-#include "Function.h"
 #include "Block.h"
+#include "Function.h"
 
 namespace llvm {
-    class Function;
+class Function;
 }
 
 #include <algorithm>
 #include <functional>
+#include <ostream>
 #include <queue>
 #include <unordered_set>
-#include <ostream>
 
 #include "dg/util/debug.h"
 
@@ -21,10 +21,10 @@ namespace llvmdg {
 namespace legacy {
 
 NTSCD::NTSCD(const llvm::Module *module,
-             const LLVMControlDependenceAnalysisOptions& opts,
+             const LLVMControlDependenceAnalysisOptions &opts,
              dg::LLVMPointerAnalysis *pointsToAnalysis)
-    : LLVMControlDependenceAnalysisImpl(module, opts), graphBuilder(pointsToAnalysis)
-{}
+        : LLVMControlDependenceAnalysisImpl(module, opts),
+          graphBuilder(pointsToAnalysis) {}
 
 // a is CD on b
 void NTSCD::addControlDependence(Block *a, Block *b) {
@@ -36,14 +36,12 @@ void NTSCD::addControlDependence(Block *a, Block *b) {
 void NTSCD::computeInterprocDependencies(Function *function) {
     DBG_SECTION_BEGIN(cda, "Computing interprocedural CD");
 
-    const auto& nodes = function->nodes();
+    const auto &nodes = function->nodes();
     for (auto node : nodes) {
         if (!node->callees().empty() || !node->joins().empty()) {
-            auto iterator = std::find_if(node->successors().begin(),
-                                         node->successors().end(),
-                                         [](const Block *block){
-                                                return block->isCallReturn();
-                                         });
+            auto iterator = std::find_if(
+                    node->successors().begin(), node->successors().end(),
+                    [](const Block *block) { return block->isCallReturn(); });
             if (iterator != node->successors().end()) {
                 for (auto callee : node->callees()) {
                     addControlDependence(*iterator, callee.second->exit());
@@ -59,7 +57,7 @@ void NTSCD::computeInterprocDependencies(Function *function) {
         std::queue<Block *> q;
         std::unordered_set<Block *> visited(nodes.size());
         visited.insert(node);
-        for(auto successor : node->successors()) {
+        for (auto successor : node->successors()) {
             if (visited.find(successor) == visited.end()) {
                 q.push(successor);
                 visited.insert(successor);
@@ -67,7 +65,7 @@ void NTSCD::computeInterprocDependencies(Function *function) {
         }
         while (!q.empty()) {
             addControlDependence(q.front(), node);
-            for(auto successor : q.front()->successors()) {
+            for (auto successor : q.front()->successors()) {
                 if (visited.find(successor) == visited.end()) {
                     q.push(successor);
                     visited.insert(successor);
@@ -80,7 +78,7 @@ void NTSCD::computeInterprocDependencies(Function *function) {
 }
 
 void NTSCD::computeIntraprocDependencies(Function *function) {
-    const auto& nodes = function->nodes();
+    const auto &nodes = function->nodes();
     DBG_SECTION_BEGIN(cda, "Computing intraprocedural CD");
     for (auto node : nodes) {
         // (1) initialize
@@ -125,8 +123,8 @@ void NTSCD::computeDependencies() {
     DBG_SECTION_BEGIN(cda, "Computing CD for the whole module");
     auto *entryFunction = getModule()->getFunction(getOptions().entryFunction);
     if (!entryFunction) {
-        llvm::errs() << "Missing entry function: "
-                     << getOptions().entryFunction << "\n";
+        llvm::errs() << "Missing entry function: " << getOptions().entryFunction
+                     << "\n";
         return;
     }
 
@@ -135,7 +133,7 @@ void NTSCD::computeDependencies() {
 
     entryFunc->entry()->visit();
 
-    for (auto& it : graphBuilder.functions()) {
+    for (auto &it : graphBuilder.functions()) {
         computeDependencies(it.second);
     }
     DBG_SECTION_END(cda, "Finished computing CD for the whole module");
@@ -151,10 +149,9 @@ void NTSCD::computeOnDemand(llvm::Function *F) {
 
     computeIntraprocDependencies(function);
 
-    DBG_SECTION_END(cda, "Done computing CD for function " << F->getName().str());
+    DBG_SECTION_END(cda,
+                    "Done computing CD for function " << F->getName().str());
 }
-
-
 
 void NTSCD::dump(ostream &ostream) const {
     ostream << "digraph \"BlockGraph\" {\n";
@@ -167,7 +164,8 @@ void NTSCD::dump(ostream &ostream) const {
 void NTSCD::dumpDependencies(ostream &ostream) const {
     for (auto keyValue : controlDependency) {
         for (auto dependent : keyValue.second) {
-            ostream << keyValue.first->dotName() << " -> " << dependent->dotName()
+            ostream << keyValue.first->dotName() << " -> "
+                    << dependent->dotName()
                     << " [color=blue, constraint=false]\n";
         }
     }

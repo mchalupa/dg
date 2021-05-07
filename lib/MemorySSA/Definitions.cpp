@@ -25,7 +25,7 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
         defnode = node;
 
     // possible definitions
-    for (auto& ds : node->getDefines()) {
+    for (auto &ds : node->getDefines()) {
         if (ds.target->isUnknown()) {
             // this makes all lastDefs into possibleDefs,
             // since we do not know if it was defined here or there
@@ -38,9 +38,10 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
     }
 
     // definitive definitions
-    for (auto& ds : node->getOverwrites()) {
+    for (auto &ds : node->getOverwrites()) {
         assert((defnode->isPhi() || // we allow ? for PHI nodes
-               !ds.offset.isUnknown()) && "Update on unknown offset");
+                !ds.offset.isUnknown()) &&
+               "Update on unknown offset");
         assert(!ds.target->isUnknown() && "Update on unknown memory");
 
         kills.add(ds, defnode);
@@ -53,13 +54,13 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
     }
 }
 
-void Definitions::join(const Definitions& rhs) {
+void Definitions::join(const Definitions &rhs) {
     definitions.add(rhs.definitions);
     kills = kills.intersect(rhs.kills);
-    unknownWrites.insert(unknownWrites.end(),
-                        rhs.unknownWrites.begin(), rhs.unknownWrites.end());
-    unknownReads.insert(unknownReads.end(),
-                        rhs.unknownReads.begin(), rhs.unknownReads.end());
+    unknownWrites.insert(unknownWrites.end(), rhs.unknownWrites.begin(),
+                         rhs.unknownWrites.end());
+    unknownReads.insert(unknownReads.end(), rhs.unknownReads.begin(),
+                        rhs.unknownReads.end());
 }
 
 #ifndef NDEBUG

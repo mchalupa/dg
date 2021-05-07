@@ -1,14 +1,14 @@
 #include "Function.h"
 #include "Block.h"
 
-#include <ostream>
 #include <algorithm>
+#include <ostream>
 
 namespace dg {
 namespace llvmdg {
 namespace legacy {
 
-Function::Function(): lastBlock(new Block(nullptr)) {
+Function::Function() : lastBlock(new Block(nullptr)) {
     blocks.insert(lastBlock);
 }
 
@@ -18,13 +18,9 @@ Function::~Function() {
     }
 }
 
-Block *Function::entry() const {
-    return firstBlock;
-}
+Block *Function::entry() const { return firstBlock; }
 
-Block *Function::exit() const {
-    return lastBlock;
-}
+Block *Function::exit() const { return lastBlock; }
 
 bool Function::addBlock(Block *block) {
     if (!block) {
@@ -36,18 +32,15 @@ bool Function::addBlock(Block *block) {
     return blocks.insert(block).second;
 }
 
-std::set<Block *> Function::nodes() const {
-    return blocks;
-}
+std::set<Block *> Function::nodes() const { return blocks; }
 
 std::set<Block *> Function::condNodes() const {
     std::set<Block *> condNodes_;
 
-    std::copy_if(blocks.begin(), blocks.end(),
-                 std::inserter(condNodes_, condNodes_.end()),
-                 [] (const Block * block) {
-                        return block->successors().size() > 1;
-                    });
+    std::copy_if(
+            blocks.begin(), blocks.end(),
+            std::inserter(condNodes_, condNodes_.end()),
+            [](const Block *block) { return block->successors().size() > 1; });
 
     return condNodes_;
 }
@@ -57,9 +50,7 @@ std::set<Block *> Function::callReturnNodes() const {
 
     std::copy_if(blocks.begin(), blocks.end(),
                  std::inserter(callReturnNodes_, callReturnNodes_.end()),
-                 [] (const Block * block) {
-                        return block->isCallReturn();
-                    });
+                 [](const Block *block) { return block->isCallReturn(); });
 
     return callReturnNodes_;
 }
@@ -77,6 +68,6 @@ void Function::dumpEdges(std::ostream &ostream) {
     }
 }
 
-}
-}
-}
+} // namespace legacy
+} // namespace llvmdg
+} // namespace dg

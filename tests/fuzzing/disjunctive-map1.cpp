@@ -9,8 +9,7 @@
 
 #include "dg/ADT/DisjunctiveIntervalMap.h"
 
-extern "C"
-int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     dg::ADT::DisjunctiveIntervalMap<int, int> M;
 
     const auto elems = size / sizeof(int);

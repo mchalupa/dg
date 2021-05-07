@@ -21,23 +21,21 @@ namespace dg {
 //
 // R. Cytron, J. Ferrante, B. K. Rosen, M. N. Wegman, and F. K. Zadeck. 1989.
 // An efficient method of computing static single assignment form.
-// In Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of programming languages (POPL '89),
-// CORPORATE New York, NY Association for Computing Machinery (Ed.). ACM, New York, NY, USA, 25-35.
+// In Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of
+// programming languages (POPL '89), CORPORATE New York, NY Association for
+// Computing Machinery (Ed.). ACM, New York, NY, USA, 25-35.
 // DOI=http://dx.doi.org/10.1145/75277.75280
 //
 template <typename NodeT>
-class DominanceFrontiers
-{
+class DominanceFrontiers {
     static void queueDomBBs(BBlock<NodeT> *BB,
-                            std::vector<BBlock<NodeT> *> *blocks)
-    {
+                            std::vector<BBlock<NodeT> *> *blocks) {
         blocks->push_back(BB);
     }
 
-    void computeDFrontiers(BBlock<NodeT> *X)
-    {
+    void computeDFrontiers(BBlock<NodeT> *X) {
         // DF_local
-        for (const auto& edge : X->successors()) {
+        for (const auto &edge : X->successors()) {
             BBlock<NodeT> *Y = edge.target;
             if (Y->getIDom() != X) {
                 X->addDomFrontier(Y);
@@ -54,9 +52,8 @@ class DominanceFrontiers
         }
     }
 
-public:
-    void compute(BBlock<NodeT> *root)
-    {
+  public:
+    void compute(BBlock<NodeT> *root) {
         std::vector<BBlock<NodeT> *> blocks;
         BBlockBFS<NodeT> bfs(BFS_BB_DOM);
 

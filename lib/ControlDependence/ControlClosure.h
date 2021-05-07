@@ -1,23 +1,21 @@
 #ifndef CD_CONTROL_CLOSURE_H_
 #define CD_CONTROL_CLOSURE_H_
 
-#include <vector>
 #include <set>
+#include <vector>
 
 #include "CDGraph.h"
 
-#include "dg/ADT/SetQueue.h"
 #include "dg/ADT/Queue.h"
+#include "dg/ADT/SetQueue.h"
 
 namespace dg {
 
 class StrongControlClosure {
-
     // this is basically the \Theta function from the paper
     template <typename Nodes, typename FunT>
-    void foreachFirstReachable(const Nodes& nodes,
-                               CDNode *from,
-                               const FunT& fun) {
+    void foreachFirstReachable(const Nodes &nodes, CDNode *from,
+                               const FunT &fun) {
         ADT::SetQueue<ADT::QueueLIFO<CDNode *>> queue;
         for (auto *s : from->successors()) {
             queue.push(s);
@@ -37,14 +35,14 @@ class StrongControlClosure {
 
     // this is the \Gamma function from the paper
     // (a bit different implementation)
-    std::set<CDNode *>
-    gamma(CDGraph& graph, const std::set<CDNode *>& targets) {
+    std::set<CDNode *> gamma(CDGraph &graph,
+                             const std::set<CDNode *> &targets) {
         struct Info {
             unsigned colored{false};
             unsigned short counter;
         };
 
-        std::unordered_map<CDNode*, Info> data;
+        std::unordered_map<CDNode *, Info> data;
         data.reserve(graph.size());
         ADT::QueueLIFO<CDNode *> queue;
 
@@ -67,7 +65,7 @@ class StrongControlClosure {
             assert(data[node].colored && "A non-colored node in queue");
 
             for (auto *pred : node->predecessors()) {
-                auto& D = data[pred];
+                auto &D = data[pred];
                 --D.counter;
                 if (D.counter == 0) {
                     D.colored = true;
@@ -85,23 +83,20 @@ class StrongControlClosure {
         return retval;
     }
 
-    std::set<CDNode *> theta(const std::set<CDNode *>& X, CDNode *n) {
+    std::set<CDNode *> theta(const std::set<CDNode *> &X, CDNode *n) {
         std::set<CDNode *> retval;
         if (X.count(n) > 0) {
             retval.insert(n);
             return retval;
         }
-        foreachFirstReachable(X, n, [&](CDNode *cur) {
-            retval.insert(cur);
-        });
+        foreachFirstReachable(X, n, [&](CDNode *cur) { retval.insert(cur); });
         return retval;
     }
 
-
-public:
+  public:
     using ValVecT = std::vector<CDNode *>;
 
-    void closeSet(CDGraph& G, std::set<CDNode *>& X) {
+    void closeSet(CDGraph &G, std::set<CDNode *> &X) {
         while (true) {
             ADT::SetQueue<ADT::QueueLIFO<CDNode *>> queue;
             for (auto *n : X) {
@@ -116,7 +111,8 @@ public:
                 auto *p = queue.pop();
                 for (auto *r : p->successors()) {
                     assert(toadd == nullptr);
-                    //DBG(cda, "Checking edge " << p->getID() << "->" << r->getID());
+                    // DBG(cda, "Checking edge " << p->getID() << "->" <<
+                    // r->getID());
                     // (a)
                     if (theta(X, r).size() != 1)
                         continue;
@@ -131,7 +127,8 @@ public:
                         continue;
 
                     // all conditions met, we got our edge
-                    //DBG(cda, "Found edge " << p->getID() << "->" << r->getID());
+                    // DBG(cda, "Found edge " << p->getID() << "->" <<
+                    // r->getID());
                     assert(toadd == nullptr);
                     toadd = p;
                     break;
@@ -146,9 +143,9 @@ public:
             }
 
             if (toadd) {
-                //DBG(cda, "Adding " << toadd->getID() << " to closure");
+                // DBG(cda, "Adding " << toadd->getID() << " to closure");
                 X.insert(toadd);
-                 continue;
+                continue;
             } else {
                 // no other edge to process
                 break;
@@ -156,7 +153,7 @@ public:
         }
     }
 
-    ValVecT getClosure(CDGraph& G, const std::set<CDNode *>& nodes) {
+    ValVecT getClosure(CDGraph &G, const std::set<CDNode *> &nodes) {
         auto X = nodes;
         closeSet(G, X);
         return {X.begin(), X.end()};

@@ -10,11 +10,12 @@ class SubgraphBase {
     // iterator over the bblocks that returns the bblock,
     // not the unique_ptr to the bblock
     struct block_iterator : public BBlocksVecT::iterator {
-        using ContainedType
-            = typename std::remove_reference<decltype(*(std::declval<BBlocksVecT::iterator>()->get()))>::type;
+        using ContainedType = typename std::remove_reference<decltype(
+                *(std::declval<BBlocksVecT::iterator>()->get()))>::type;
 
-        block_iterator(const typename BBlocksVecT::iterator& it) : BBlocksVecT::iterator(it) {}
-        block_iterator(const block_iterator&) = default;
+        block_iterator(const typename BBlocksVecT::iterator &it)
+                : BBlocksVecT::iterator(it) {}
+        block_iterator(const block_iterator &) = default;
         block_iterator() = default;
 
         ContainedType *operator*() {
@@ -28,28 +29,28 @@ class SubgraphBase {
     BBlocksVecT _bblocks;
 
     struct blocks_range {
-        BBlocksVecT& blocks;
-        blocks_range(BBlocksVecT& b) : blocks(b) {}
+        BBlocksVecT &blocks;
+        blocks_range(BBlocksVecT &b) : blocks(b) {}
 
         block_iterator begin() { return block_iterator(blocks.begin()); }
         block_iterator end() { return block_iterator(blocks.end()); }
     };
 
-    //std::vector<typename BBlockT::NodeType *> _callers;
+    // std::vector<typename BBlockT::NodeType *> _callers;
 
     // for debugging
     std::string name;
 
-public:
+  public:
     SubgraphBase() = default;
-    SubgraphBase(SubgraphBase&&) = default;
-    SubgraphBase& operator=(SubgraphBase&&) = default;
+    SubgraphBase(SubgraphBase &&) = default;
+    SubgraphBase &operator=(SubgraphBase &&) = default;
 
-    void setName(const std::string& nm) { name = nm; }
-    const std::string& getName() const { return name; }
+    void setName(const std::string &nm) { name = nm; }
+    const std::string &getName() const { return name; }
 
-    BBlockT& createBBlock() {
-        _bblocks.emplace_back(new BBlockT(static_cast<SubgraphT*>(this)));
+    BBlockT &createBBlock() {
+        _bblocks.emplace_back(new BBlockT(static_cast<SubgraphT *>(this)));
         return *_bblocks.back().get();
     }
 
@@ -67,7 +68,7 @@ public:
     const std::vector<RWNode *>& getCallers() const { return _callers; }
     */
 
-    const BBlocksVecT& getBBlocks() const { return _bblocks; }
+    const BBlocksVecT &getBBlocks() const { return _bblocks; }
 
     block_iterator bblocks_begin() { return block_iterator(_bblocks.begin()); }
     block_iterator bblocks_end() { return block_iterator(_bblocks.end()); }
@@ -76,7 +77,6 @@ public:
 
     auto size() const -> decltype(_bblocks.size()) { return _bblocks.size(); }
 };
-
 
 } // namespace dg
 

@@ -12,29 +12,23 @@ namespace dg {
 // just a wrapper around uint64_t to
 // handle Offset::UNKNOWN somehow easily
 // maybe later we'll make it a range
-struct Offset
-{
+struct Offset {
     using type = uint64_t;
 
     // the value used for the unknown offset
     static const type UNKNOWN;
 
-    static Offset getUnknown() {
-        return Offset(Offset::UNKNOWN);
-    }
+    static Offset getUnknown() { return Offset(Offset::UNKNOWN); }
 
-    static Offset getZero() {
-        return Offset(0);
-    }
+    static Offset getZero() { return Offset(0); }
 
     // cast to type
-    //operator type() { return offset; }
+    // operator type() { return offset; }
 
     Offset(type o = UNKNOWN) : offset(o) {}
-    Offset(const Offset&) = default;
+    Offset(const Offset &) = default;
 
-    Offset operator+(const Offset o) const
-    {
+    Offset operator+(const Offset o) const {
         if (offset == UNKNOWN || o.offset == UNKNOWN ||
             offset >= UNKNOWN - o.offset) {
             return UNKNOWN;
@@ -43,8 +37,7 @@ struct Offset
         return Offset(offset + o.offset);
     }
 
-    Offset& operator+=(const Offset o)
-    {
+    Offset &operator+=(const Offset o) {
         if (offset == UNKNOWN || o.offset == UNKNOWN ||
             offset >= UNKNOWN - o.offset) {
             offset = UNKNOWN;
@@ -55,26 +48,21 @@ struct Offset
         return *this;
     }
 
-    Offset& operator=(const Offset o)
-    {
+    Offset &operator=(const Offset o) {
         offset = o.offset;
         return *this;
     }
 
-    Offset operator-(const Offset& o) const
-    {
-        if (offset == UNKNOWN || o.offset == UNKNOWN ||
-            offset < o.offset) {
+    Offset operator-(const Offset &o) const {
+        if (offset == UNKNOWN || o.offset == UNKNOWN || offset < o.offset) {
             return Offset(UNKNOWN);
         }
 
         return Offset(offset - o.offset);
     }
 
-    Offset& operator-(const Offset& o)
-    {
-        if (offset == UNKNOWN || o.offset == UNKNOWN ||
-            offset < o.offset) {
+    Offset &operator-(const Offset &o) {
+        if (offset == UNKNOWN || o.offset == UNKNOWN || offset < o.offset) {
             offset = UNKNOWN;
         } else {
             offset -= o.offset;
@@ -82,16 +70,14 @@ struct Offset
         return *this;
     }
 
-    Offset& operator~()
-    {
+    Offset &operator~() {
         if (offset != UNKNOWN) {
             offset = ~offset;
         }
         return *this;
     }
 
-    Offset operator~() const
-    {
+    Offset operator~() const {
         if (offset != UNKNOWN) {
             return Offset(~offset);
         }
@@ -100,29 +86,17 @@ struct Offset
 
     // strict comparision (no 'maybe' comparions
     // that arises due to UNKNOWN)
-    bool operator<(const Offset& o) const {
-        return offset < o.offset;
-    }
+    bool operator<(const Offset &o) const { return offset < o.offset; }
 
-    bool operator>(const Offset& o) const {
-        return offset > o.offset;
-    }
+    bool operator>(const Offset &o) const { return offset > o.offset; }
 
-    bool operator<=(const Offset& o) const {
-        return offset <= o.offset;
-    }
+    bool operator<=(const Offset &o) const { return offset <= o.offset; }
 
-    bool operator>=(const Offset& o) const {
-        return offset >= o.offset;
-    }
+    bool operator>=(const Offset &o) const { return offset >= o.offset; }
 
-    bool operator==(const Offset& o) const {
-        return offset == o.offset;
-    }
+    bool operator==(const Offset &o) const { return offset == o.offset; }
 
-    bool operator!=(const Offset& o) const {
-        return offset != o.offset;
-    }
+    bool operator!=(const Offset &o) const { return offset != o.offset; }
 
     bool inRange(type from, type to) const {
         return (offset >= from && offset <= to);
@@ -135,7 +109,7 @@ struct Offset
     const type *operator->() const { return &offset; }
 
 #ifndef NDEBUG
-    friend std::ostream& operator<<(std::ostream& os, const Offset& o) {
+    friend std::ostream &operator<<(std::ostream &os, const Offset &o) {
         if (o.isUnknown())
             os << "?";
         else
@@ -143,11 +117,8 @@ struct Offset
         return os;
     }
 
-    void dump() const {
-        std::cout << *this << "\n";
-    }
+    void dump() const { std::cout << *this << "\n"; }
 #endif // not NDEBUG
-
 
     type offset;
 };
@@ -157,8 +128,9 @@ struct Offset
 #include <functional>
 
 namespace std {
-template <> struct hash<dg::Offset> {
-    size_t operator()(const dg::Offset& o) const { return *o; }
+template <>
+struct hash<dg::Offset> {
+    size_t operator()(const dg::Offset &o) const { return *o; }
 };
 } // namespace std
 

@@ -1,8 +1,8 @@
 #ifndef _DG_SPARSE_BITS_H_
 #define _DG_SPARSE_BITS_H_
 
-#include <cstddef> // size_t
 #include <cassert>
+#include <cstddef> // size_t
 #include <cstdint>
 
 namespace dg {
@@ -11,18 +11,19 @@ namespace ADT {
 // an element that holds a sequence of bits (up to 64 bits usually)
 // along with offset. So this class can represent a sequence
 // of [S, S(+sizeof(InnerT)*8)] bits. (E.g. 100th, 101th, ..., 163th bit)
-template <typename InnerT = uint64_t,
-          typename ShiftT = uint64_t>
+template <typename InnerT = uint64_t, typename ShiftT = uint64_t>
 class ShiftedBits {
     InnerT _bits{0};
     ShiftT _shift;
 
-public:
-    ShiftedBits(ShiftT shift): _shift(shift) {}
+  public:
+    ShiftedBits(ShiftT shift) : _shift(shift) {}
 
     static size_t bitsNum() { return sizeof(InnerT) * 8; }
-    bool operator==(const ShiftedBits& rhs) const { return _bits == rhs._bits && _shift == rhs._shift; }
-    bool operator!=(const ShiftedBits& rhs) const { return !operator==(rhs); }
+    bool operator==(const ShiftedBits &rhs) const {
+        return _bits == rhs._bits && _shift == rhs._shift;
+    }
+    bool operator!=(const ShiftedBits &rhs) const { return !operator==(rhs); }
 
     bool mayContain(size_t i) const {
         return i >= _shift && i - _shift < bitsNum();
@@ -59,9 +60,7 @@ public:
         const ShiftedBits *bits{nullptr};
         size_t pos{0};
 
-        bool isEnd() const {
-            return pos == ShiftedBits::bitsNum();
-        }
+        bool isEnd() const { return pos == ShiftedBits::bitsNum(); }
 
         void _findNext() {
             assert(pos < ShiftedBits::bitsNum());
@@ -74,19 +73,19 @@ public:
         }
 
         const_iterator(const ShiftedBits *bits, size_t pos = 0)
-        :bits(bits), pos(pos) {
+                : bits(bits), pos(pos) {
             assert(bits && "No bits given");
             // start at the first element
             if (!isEnd() && !(bits->_bits & 1))
                 operator++();
         }
 
-    public:
+      public:
         const_iterator() = default;
-        const_iterator(const const_iterator&) = default;
-        const_iterator& operator=(const const_iterator&) = default;
+        const_iterator(const const_iterator &) = default;
+        const_iterator &operator=(const const_iterator &) = default;
 
-        const_iterator& operator++() {
+        const_iterator &operator++() {
             ++pos;
             if (!isEnd())
                 _findNext();
@@ -105,11 +104,11 @@ public:
             return bits->_shift + pos;
         }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             return pos == rhs.pos && bits == rhs.bits;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
 
@@ -128,10 +127,10 @@ template <typename InnerT = uint64_t>
 class Bits {
     InnerT _bits{0};
 
-public:
+  public:
     static size_t bitsNum() { return sizeof(InnerT) * 8; }
-    bool operator==(const Bits& rhs) const { return _bits == rhs._bits; }
-    bool operator!=(const Bits& rhs) const { return !operator==(rhs); }
+    bool operator==(const Bits &rhs) const { return _bits == rhs._bits; }
+    bool operator!=(const Bits &rhs) const { return !operator==(rhs); }
 
     bool empty() const { return _bits == 0; }
     bool mayContain(size_t i) const { return i < bitsNum(); }
@@ -165,9 +164,7 @@ public:
         const Bits *bits{nullptr};
         size_t pos{0};
 
-        bool isEnd() const {
-            return pos == Bits::bitsNum();
-        }
+        bool isEnd() const { return pos == Bits::bitsNum(); }
 
         void _findNext() {
             assert(pos < Bits::bitsNum());
@@ -180,19 +177,19 @@ public:
         }
 
         const_iterator(const Bits *bits, size_t pos = 0)
-        :bits(bits), pos(pos) {
+                : bits(bits), pos(pos) {
             assert(bits && "No bits given");
             // start at the first element
             if (!isEnd() && !(bits->_bits & 1))
                 operator++();
         }
 
-    public:
+      public:
         const_iterator() = default;
-        const_iterator(const const_iterator&) = default;
-        const_iterator& operator=(const const_iterator&) = default;
+        const_iterator(const const_iterator &) = default;
+        const_iterator &operator=(const const_iterator &) = default;
 
-        const_iterator& operator++() {
+        const_iterator &operator++() {
             ++pos;
             if (!isEnd())
                 _findNext();
@@ -211,11 +208,11 @@ public:
             return pos;
         }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             return pos == rhs.pos && bits == rhs.bits;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
 
@@ -227,8 +224,6 @@ public:
 
     friend class const_iterator;
 };
-
-
 
 } // namespace ADT
 } // namespace dg

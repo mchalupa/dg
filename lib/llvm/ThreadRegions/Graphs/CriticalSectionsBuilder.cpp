@@ -6,10 +6,7 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 SILENCE_LLVM_WARNINGS_POP
 
-
-
-CriticalSectionsBuilder::CriticalSectionsBuilder()
-{}
+CriticalSectionsBuilder::CriticalSectionsBuilder() {}
 
 CriticalSectionsBuilder::~CriticalSectionsBuilder() {
     for (auto iterator : criticalSections_) {
@@ -35,7 +32,8 @@ bool CriticalSectionsBuilder::buildCriticalSection(LockNode *lock) {
 }
 
 bool CriticalSectionsBuilder::populateCriticalSection() {
-    return criticalSections_[currentLock->callInstruction()]->insertNodes(examined_);
+    return criticalSections_[currentLock->callInstruction()]->insertNodes(
+            examined_);
 }
 
 void CriticalSectionsBuilder::visitNode(Node *node) {
@@ -53,7 +51,8 @@ std::set<const llvm::CallInst *> CriticalSectionsBuilder::locks() const {
     return llvmLocks;
 }
 
-std::set<const llvm::Instruction *> CriticalSectionsBuilder::correspondingNodes(const llvm::CallInst *lock) const {
+std::set<const llvm::Instruction *>
+CriticalSectionsBuilder::correspondingNodes(const llvm::CallInst *lock) const {
     if (!lock) {
         return {};
     }
@@ -64,7 +63,8 @@ std::set<const llvm::Instruction *> CriticalSectionsBuilder::correspondingNodes(
     return {};
 }
 
-std::set<const llvm::CallInst *> CriticalSectionsBuilder::correspondingUnlocks(const llvm::CallInst *lock) const {
+std::set<const llvm::CallInst *> CriticalSectionsBuilder::correspondingUnlocks(
+        const llvm::CallInst *lock) const {
     if (!lock) {
         return {};
     }
@@ -115,8 +115,7 @@ bool CriticalSectionsBuilder::examined(Node *node) const {
     return false;
 }
 
-CriticalSection::CriticalSection(LockNode *lock):lock_(lock)
-{}
+CriticalSection::CriticalSection(LockNode *lock) : lock_(lock) {}
 
 const llvm::CallInst *CriticalSection::lock() const {
     return this->lock_->callInstruction();

@@ -1,10 +1,10 @@
 #ifndef DG_DG_NODE_CALL_H_
 #define DG_DG_NODE_CALL_H_
 
-#include <cassert>
-#include <set>
 #include "DGNode.h"
 #include "DGParameters.h"
+#include <cassert>
+#include <set>
 
 namespace dg {
 namespace sdg {
@@ -19,20 +19,20 @@ class DGNodeCall : public DGNode {
     CalleesTy _callees;
     DGParameters _parameters;
 
-public:
-    DGNodeCall(DependenceGraph& g)
-    : DGNode(g, DGElementType::ND_CALL), _parameters(g) {}
+  public:
+    DGNodeCall(DependenceGraph &g)
+            : DGNode(g, DGElementType::ND_CALL), _parameters(g) {}
 
     static DGNodeCall *get(DGElement *n) {
-        return isa<DGElementType::ND_CALL>(n) ?
-            static_cast<DGNodeCall *>(n) : nullptr;
+        return isa<DGElementType::ND_CALL>(n) ? static_cast<DGNodeCall *>(n)
+                                              : nullptr;
     }
 
-    const CalleesTy& getCallees() const { return _callees; }
-    bool addCallee(DependenceGraph& g);
+    const CalleesTy &getCallees() const { return _callees; }
+    bool addCallee(DependenceGraph &g);
 
-    DGParameters& getParameters() { return _parameters; }
-    const DGParameters& getParameters() const { return _parameters; }
+    DGParameters &getParameters() { return _parameters; }
+    const DGParameters &getParameters() const { return _parameters; }
 };
 
 } // namespace sdg

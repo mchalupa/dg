@@ -11,25 +11,25 @@ enum NodesWalkFlags {
     // do not walk any edges, user will
     // use enqueue method to decide which nodes
     // will be processed
-    NODES_WALK_NONE_EDGES               = 0,
-    NODES_WALK_INTERPROCEDURAL          = 1 << 0,
-    NODES_WALK_CD                       = 1 << 1,
-    NODES_WALK_DD                       = 1 << 2,
-    NODES_WALK_REV_CD                   = 1 << 3,
-    NODES_WALK_REV_DD                   = 1 << 4,
-    NODES_WALK_USE                      = 1 << 5,
-    NODES_WALK_USER                     = 1 << 6,
+    NODES_WALK_NONE_EDGES = 0,
+    NODES_WALK_INTERPROCEDURAL = 1 << 0,
+    NODES_WALK_CD = 1 << 1,
+    NODES_WALK_DD = 1 << 2,
+    NODES_WALK_REV_CD = 1 << 3,
+    NODES_WALK_REV_DD = 1 << 4,
+    NODES_WALK_USE = 1 << 5,
+    NODES_WALK_USER = 1 << 6,
     // interference dependencies
-    NODES_WALK_ID                       = 1 << 7,
-    NODES_WALK_REV_ID                   = 1 << 8,
+    NODES_WALK_ID = 1 << 7,
+    NODES_WALK_REV_ID = 1 << 8,
     // Add to queue all first nodes of
     // node's BB successors
-    NODES_WALK_BB_CFG                   = 1 << 9,
+    NODES_WALK_BB_CFG = 1 << 9,
     // Add to queue all last nodes of
     // node's BB predecessors
-    NODES_WALK_BB_REV_CFG               = 1 << 10,
-    NODES_WALK_BB_POSTDOM               = 1 << 11,
-    NODES_WALK_BB_POSTDOM_FRONTIERS     = 1 << 12,
+    NODES_WALK_BB_REV_CFG = 1 << 10,
+    NODES_WALK_BB_POSTDOM = 1 << 11,
+    NODES_WALK_BB_POSTDOM_FRONTIERS = 1 << 12,
 };
 
 // this is a base class for nodes walk, it contains
@@ -38,9 +38,8 @@ enum NodesWalkFlags {
 // NodeT+QueueT instantiation, which we don't want to,
 // because then BFS and DFS would collide
 template <typename NodeT>
-class NodesWalkBase : public Analysis<NodeT>
-{
-protected:
+class NodesWalkBase : public Analysis<NodeT> {
+  protected:
     // this counter will increase each time we run
     // NodesWalk, so it can be used as an indicator
     // that we queued a node in a particular run or not
@@ -48,15 +47,13 @@ protected:
 };
 
 // counter definition
-template<typename NodeT>
+template <typename NodeT>
 unsigned int NodesWalkBase<NodeT>::walk_run_counter = 0;
 
 template <typename NodeT, typename QueueT>
-class NodesWalk : public NodesWalkBase<NodeT>
-{
-public:
-    NodesWalk<NodeT, QueueT>(uint32_t opts = 0)
-        : options(opts) {}
+class NodesWalk : public NodesWalkBase<NodeT> {
+  public:
+    NodesWalk<NodeT, QueueT>(uint32_t opts = 0) : options(opts) {}
 
     template <typename FuncT, typename DataT>
     void walk(NodeT *entry, FuncT func, DataT data) {
@@ -64,8 +61,7 @@ public:
     }
 
     template <typename FuncT, typename DataT>
-    void walk(const std::set<NodeT *>& entry, FuncT func, DataT data)
-    {
+    void walk(const std::set<NodeT *> &entry, FuncT func, DataT data) {
         run_id = ++NodesWalk<NodeT, QueueT>::walk_run_counter;
 
         assert(!entry.empty() && "Need entry node for traversing nodes");
@@ -117,7 +113,8 @@ public:
                 processEdges(n->interference_begin(), n->interference_end());
 
             if (options & NODES_WALK_REV_ID)
-                processEdges(n->rev_interference_begin(), n->rev_interference_end());
+                processEdges(n->rev_interference_begin(),
+                             n->rev_interference_end());
 
 #ifdef ENABLE_CFG
             if (options & NODES_WALK_BB_CFG)
@@ -140,32 +137,27 @@ public:
     // They can also say that they don't want to process
     // any edges and take care of pushing the right nodes
     // on their own
-    void enqueue(NodeT *n)
-    {
-            AnalysesAuxiliaryData& aad = this->getAnalysisData(n);
+    void enqueue(NodeT *n) {
+        AnalysesAuxiliaryData &aad = this->getAnalysisData(n);
 
-            if (aad.lastwalkid == run_id)
-                return;
+        if (aad.lastwalkid == run_id)
+            return;
 
-            // mark node as visited
-            aad.lastwalkid = run_id;
-            queue.push(n);
+        // mark node as visited
+        aad.lastwalkid = run_id;
+        queue.push(n);
     }
 
-protected:
+  protected:
     // function that will be called for all the nodes,
     // but is defined by the analysis framework, not
     // by the analysis itself. For example it may
     // assign DFS order numbers
-    virtual void prepare(NodeT *n)
-    {
-        (void) n;
-    }
+    virtual void prepare(NodeT *n) { (void) n; }
 
-private:
-       template <typename IT>
-    void processEdges(IT begin, IT end)
-    {
+  private:
+    template <typename IT>
+    void processEdges(IT begin, IT end) {
         for (IT I = begin; I != end; ++I) {
             enqueue(*I);
         }
@@ -173,8 +165,7 @@ private:
 
 #ifdef ENABLE_CFG
     // we can have control dependencies in BBlocks
-    void processBBlockRevCDs(NodeT *n)
-    {
+    void processBBlockRevCDs(NodeT *n) {
         // push terminator nodes of all blocks that are
         // control dependent
         BBlock<NodeT> *BB = n->getBBlock();
@@ -185,8 +176,7 @@ private:
             enqueue(CD->getLastNode());
     }
 
-    void processBBlockCDs(NodeT *n)
-    {
+    void processBBlockCDs(NodeT *n) {
         BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
@@ -195,19 +185,16 @@ private:
             enqueue(CD->getFirstNode());
     }
 
-
-    void processBBlockCFG(NodeT *n)
-    {
+    void processBBlockCFG(NodeT *n) {
         BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
 
-        for (auto& E : BB->successors())
+        for (auto &E : BB->successors())
             enqueue(E.target->getFirstNode());
     }
 
-    void processBBlockRevCFG(NodeT *n)
-    {
+    void processBBlockRevCFG(NodeT *n) {
         BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
@@ -216,8 +203,7 @@ private:
             enqueue(S->getLastNode());
     }
 
-    void processBBlockPostDomFrontieres(NodeT *n)
-    {
+    void processBBlockPostDomFrontieres(NodeT *n) {
         BBlock<NodeT> *BB = n->getBBlock();
         if (!BB)
             return;
@@ -235,19 +221,19 @@ private:
 
 enum BBlockWalkFlags {
     // recurse into procedures
-    BBLOCK_WALK_INTERPROCEDURAL     = 1 << 0,
+    BBLOCK_WALK_INTERPROCEDURAL = 1 << 0,
     // walk even through params
-    BBLOCK_WALK_PARAMS              = 1 << 1,
+    BBLOCK_WALK_PARAMS = 1 << 1,
     // walk post-dominator tree edges
-    BBLOCK_WALK_POSTDOM             = 1 << 2,
+    BBLOCK_WALK_POSTDOM = 1 << 2,
     // walk normal CFG edges
-    BBLOCK_WALK_CFG                 = 1 << 3,
+    BBLOCK_WALK_CFG = 1 << 3,
     // need to go through the nodes once
     // because bblocks does not keep information
     // about call-sites
-    BBLOCK_NO_CALLSITES             = 1 << 4,
+    BBLOCK_NO_CALLSITES = 1 << 4,
     // walk dominator tree edges
-    BBLOCK_WALK_DOM                 = 1 << 5,
+    BBLOCK_WALK_DOM = 1 << 5,
 };
 
 // this is a base class for bblock walk, it contains
@@ -256,9 +242,8 @@ enum BBlockWalkFlags {
 // NodeT+QueueT instantiation, which we don't want to,
 // because then BFS and DFS would collide
 template <typename NodeT>
-class BBlockWalkBase : public BBlockAnalysis<NodeT>
-{
-protected:
+class BBlockWalkBase : public BBlockAnalysis<NodeT> {
+  protected:
     // this counter will increase each time we run
     // NodesWalk, so it can be used as an indicator
     // that we queued a node in a particular run or not
@@ -266,27 +251,24 @@ protected:
 };
 
 // counter definition
-template<typename NodeT>
+template <typename NodeT>
 unsigned int BBlockWalkBase<NodeT>::walk_run_counter = 0;
 
 #ifdef ENABLE_CFG
 template <typename NodeT, typename QueueT>
-class BBlockWalk : public BBlockWalkBase<NodeT>
-{
-public:
+class BBlockWalk : public BBlockWalkBase<NodeT> {
+  public:
     using BBlockPtrT = dg::BBlock<NodeT> *;
 
-    BBlockWalk<NodeT, QueueT>(uint32_t fl = BBLOCK_WALK_CFG)
-        : flags(fl) {}
+    BBlockWalk<NodeT, QueueT>(uint32_t fl = BBLOCK_WALK_CFG) : flags(fl) {}
 
     template <typename FuncT, typename DataT>
-    void walk(BBlockPtrT entry, FuncT func, DataT data)
-    {
+    void walk(BBlockPtrT entry, FuncT func, DataT data) {
         queue.push(entry);
 
         // set up the value of new walk and set it to entry node
         runid = ++BBlockWalk<NodeT, QueueT>::walk_run_counter;
-        AnalysesAuxiliaryData& aad = this->getAnalysisData(entry);
+        AnalysesAuxiliaryData &aad = this->getAnalysisData(entry);
         aad.lastwalkid = runid;
 
         while (!queue.empty()) {
@@ -300,12 +282,12 @@ public:
 
             // should and can we go into subgraph?
             if ((flags & BBLOCK_WALK_INTERPROCEDURAL)) {
-                if ((flags & BBLOCK_NO_CALLSITES)
-                    && BB->getCallSitesNum() == 0) {
+                if ((flags & BBLOCK_NO_CALLSITES) &&
+                    BB->getCallSitesNum() == 0) {
                     // get callsites if bblocks does not keep them
                     for (NodeT *n : BB->getNodes()) {
                         if (n->hasSubgraphs())
-                                BB->addCallsite(n);
+                            BB->addCallsite(n);
                     }
                 }
 
@@ -325,31 +307,26 @@ public:
 
             // queue sucessors of this BB
             if (flags & BBLOCK_WALK_CFG)
-                for (auto& E : BB->successors())
+                for (auto &E : BB->successors())
                     enqueue(E.target);
         }
     }
 
     uint32_t getFlags() const { return flags; }
 
-    void enqueue(BBlockPtrT BB)
-    {
-        AnalysesAuxiliaryData& sad = this->getAnalysisData(BB);
+    void enqueue(BBlockPtrT BB) {
+        AnalysesAuxiliaryData &sad = this->getAnalysisData(BB);
         if (sad.lastwalkid != runid) {
             sad.lastwalkid = runid;
             queue.push(BB);
         }
     }
 
-protected:
-    virtual void prepare(BBlockPtrT BB)
-    {
-        (void) BB;
-    }
+  protected:
+    virtual void prepare(BBlockPtrT BB) { (void) BB; }
 
-private:
-    void queueSubgraphsBBs(BBlockPtrT BB)
-    {
+  private:
+    void queueSubgraphsBBs(BBlockPtrT BB) {
         DGParameters<NodeT> *params;
 
         // iterate over call-site nodes
@@ -393,7 +370,7 @@ private:
 
 #endif
 
-} // legacy
+} // namespace legacy
 } // namespace dg
 
 #endif

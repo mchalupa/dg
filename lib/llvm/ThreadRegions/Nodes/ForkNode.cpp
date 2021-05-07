@@ -1,16 +1,17 @@
 #include "ForkNode.h"
+#include "ControlFlowGraph.h"
 #include "EntryNode.h"
 #include "JoinNode.h"
-#include "ControlFlowGraph.h"
 
 #include <iostream>
 
 using namespace std;
 
-ForkNode::ForkNode(const llvm::Instruction *instruction, const llvm::CallInst *callInst)
-    :Node(NodeType::FORK, instruction, callInst) {}
+ForkNode::ForkNode(const llvm::Instruction *instruction,
+                   const llvm::CallInst *callInst)
+        : Node(NodeType::FORK, instruction, callInst) {}
 
-bool ForkNode::addCorrespondingJoin(JoinNode *joinNode){
+bool ForkNode::addCorrespondingJoin(JoinNode *joinNode) {
     if (!joinNode) {
         return false;
     }
@@ -38,9 +39,7 @@ const std::set<EntryNode *> &ForkNode::forkSuccessors() const {
     return forkSuccessors_;
 }
 
-std::set<EntryNode *> ForkNode::forkSuccessors() {
-    return forkSuccessors_;
-}
+std::set<EntryNode *> ForkNode::forkSuccessors() { return forkSuccessors_; }
 
 size_t ForkNode::successorsNumber() const {
     return successors().size() + forkSuccessors_.size();
@@ -54,10 +53,10 @@ std::set<JoinNode *> ForkNode::correspondingJoins() {
     return correspondingJoins_;
 }
 
-
 void ForkNode::printOutcomingEdges(ostream &ostream) const {
     Node::printOutcomingEdges(ostream);
     for (const auto &forkSuccessor : forkSuccessors_) {
-        ostream << this->dotName() << " -> " << forkSuccessor->dotName() << " [style=dashed]\n";
+        ostream << this->dotName() << " -> " << forkSuccessor->dotName()
+                << " [style=dashed]\n";
     }
 }

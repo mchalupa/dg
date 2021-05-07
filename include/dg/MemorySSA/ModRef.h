@@ -6,7 +6,6 @@
 #include "dg/MemorySSA/DefinitionsMap.h"
 #include "dg/ReadWriteGraph/RWNode.h"
 
-
 namespace dg {
 namespace dda {
 
@@ -15,7 +14,8 @@ namespace dda {
 class ModRefInfo {
     // to distinguish between empty and non-computed modref information
     bool _initialized{false};
-public:
+
+  public:
     // the set of memory that is defined in this procedure
     // and is external to the subgraph or is local but its address is taken
     // In other words, memory whose definitions can be "visible"
@@ -30,43 +30,43 @@ public:
     // (on every path through the procedure)
     DefinitionsMap<RWNode> mustdef;
 
-    void addMayDef(const DefSite& ds, RWNode *def) {
+    void addMayDef(const DefSite &ds, RWNode *def) {
         // FIXME: do not store def, it is useless. Just takes memory...
         maydef.add(ds, def);
     }
 
     template <typename C>
-    void addMayDef(const C& c, RWNode *def) {
-        for (auto& ds : c) {
-                maydef.add(ds, def);
+    void addMayDef(const C &c, RWNode *def) {
+        for (auto &ds : c) {
+            maydef.add(ds, def);
         }
     }
 
-    void addMayRef(const DefSite& ds, RWNode *ref) {
+    void addMayRef(const DefSite &ds, RWNode *ref) {
         // FIXME: do not store ref, it is useless. Just takes memory...
         mayref.add(ds, ref);
     }
 
     template <typename C>
-    void addMayRef(const C& c, RWNode *ref) {
-        for (auto& ds : c) {
-                mayref.add(ds, ref);
+    void addMayRef(const C &c, RWNode *ref) {
+        for (auto &ds : c) {
+            mayref.add(ds, ref);
         }
     }
 
-    void addMustDef(const DefSite& ds, RWNode *def) {
+    void addMustDef(const DefSite &ds, RWNode *def) {
         // FIXME: do not store def, it is useless. Just takes memory...
         mustdef.add(ds, def);
     }
 
     template <typename C>
-    void addMustDef(const C& c, RWNode *def) {
-        for (auto& ds : c) {
-                mustdef.add(ds, def);
+    void addMustDef(const C &c, RWNode *def) {
+        for (auto &ds : c) {
+            mustdef.add(ds, def);
         }
     }
 
-    void add(const ModRefInfo& oth) {
+    void add(const ModRefInfo &oth) {
         maydef.add(oth.maydef);
         mayref.add(oth.mayref);
         mustdef.add(oth.mustdef);
@@ -90,8 +90,8 @@ public:
     }
 
     void setInitialized() { _initialized = true; }
-    bool isInitialized() const { return _initialized  ; }
-}; 
+    bool isInitialized() const { return _initialized; }
+};
 
 } // namespace dda
 } // namespace dg

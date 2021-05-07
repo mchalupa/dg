@@ -13,28 +13,24 @@ namespace pta {
 ///
 // Flow-sensitive pointer analysis
 //
-class PointerAnalysisFS : public PointerAnalysis
-{
-public:
-    //using MemoryObjectsSetT = std::set<MemoryObject *>;
+class PointerAnalysisFS : public PointerAnalysis {
+  public:
+    // using MemoryObjectsSetT = std::set<MemoryObject *>;
     using MemoryMapT = std::map<PSNode *, std::unique_ptr<MemoryObject>>;
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointerAnalysisFS(PointerGraph *ps,
-                      PointerAnalysisOptions opts)
-    : PointerAnalysis(ps, opts.setPreprocessGeps(false))
-    {
-        assert(opts.preprocessGeps == false
-               && "Preprocessing GEPs does not work correctly for FS analysis");
+    PointerAnalysisFS(PointerGraph *ps, PointerAnalysisOptions opts)
+            : PointerAnalysis(ps, opts.setPreprocessGeps(false)) {
+        assert(opts.preprocessGeps == false &&
+               "Preprocessing GEPs does not work correctly for FS analysis");
         memoryMaps.reserve(ps->size() / 5);
         ps->computeLoops();
     }
 
     PointerAnalysisFS(PointerGraph *ps) : PointerAnalysisFS(ps, {}) {}
 
-    bool beforeProcessed(PSNode *n) override
-    {
+    bool beforeProcessed(PSNode *n) override {
         MemoryMapT *mm = n->getData<MemoryMapT>();
         if (mm)
             return false;
@@ -67,8 +63,7 @@ public:
         return true;
     }
 
-    bool afterProcessed(PSNode *n) override
-    {
+    bool afterProcessed(PSNode *n) override {
         bool changed = false;
         PointsToSetT *overwritten = nullptr;
 
@@ -124,9 +119,8 @@ public:
         return false;
     }
 
-    void getMemoryObjects(PSNode *where, const Pointer& pointer,
-                          std::vector<MemoryObject *>& objects) override
-    {
+    void getMemoryObjects(PSNode *where, const Pointer &pointer,
+                          std::vector<MemoryObject *> &objects) override {
         MemoryMapT *mm = where->getData<MemoryMapT>();
         assert(mm && "Node does not have memory map");
 
@@ -145,45 +139,41 @@ public:
         }
     }
 
-protected:
-
+  protected:
     static bool canChangeMM(PSNode *n) {
         switch (n->getType()) {
-            case PSNodeType::STORE:
-            case PSNodeType::MEMCPY:
-            case PSNodeType::CALL_FUNCPTR:
-                // a call via function pointer needs to
-                // have its own memory map as we dont know
-                // how the graph will look like after the
-                // call yet
-                return true;
-            case PSNodeType::CALL_RETURN:
-                // return from function that was called via function
-                // pointer must have its own memory map from the
-                // same reason why CALL_FUNCPTR nodes need its
-                // own memory map
-                assert(n->getPairedNode());
-                return n->getPairedNode()->getType() == PSNodeType::CALL_FUNCPTR;
-            default:
-                return false;
-            }
-
+        case PSNodeType::STORE:
+        case PSNodeType::MEMCPY:
+        case PSNodeType::CALL_FUNCPTR:
+            // a call via function pointer needs to
+            // have its own memory map as we dont know
+            // how the graph will look like after the
+            // call yet
+            return true;
+        case PSNodeType::CALL_RETURN:
+            // return from function that was called via function
+            // pointer must have its own memory map from the
+            // same reason why CALL_FUNCPTR nodes need its
+            // own memory map
+            assert(n->getPairedNode());
+            return n->getPairedNode()->getType() == PSNodeType::CALL_FUNCPTR;
+        default:
             return false;
+        }
+
+        return false;
     }
 
-    static bool mergeObjects(PSNode *node,
-                             MemoryObject *to,
-                             MemoryObject *from,
+    static bool mergeObjects(PSNode *node, MemoryObject *to, MemoryObject *from,
                              PointsToSetT *overwritten) {
         bool changed = false;
 
-        for (auto& fromIt : from->pointsTo) {
-            if (overwritten &&
-                overwritten->count(Pointer(node, fromIt.first)))
+        for (auto &fromIt : from->pointsTo) {
+            if (overwritten && overwritten->count(Pointer(node, fromIt.first)))
                 continue;
 
-            auto& S = to->pointsTo[fromIt.first];
-            for (const auto& ptr : fromIt.second)
+            auto &S = to->pointsTo[fromIt.first];
+            for (const auto &ptr : fromIt.second)
                 changed |= S.add(ptr);
         }
 
@@ -195,14 +185,14 @@ protected:
     static bool mergeMaps(MemoryMapT *mm, MemoryMapT *from,
                           PointsToSetT *overwritten) {
         bool changed = false;
-        for (auto& it : *from) {
+        for (auto &it : *from) {
             PSNode *fromTarget = it.first;
-            std::unique_ptr<MemoryObject>& toMo = (*mm)[fromTarget];
+            std::unique_ptr<MemoryObject> &toMo = (*mm)[fromTarget];
             if (toMo == nullptr)
                 toMo.reset(new MemoryObject(fromTarget));
 
-            changed |= mergeObjects(fromTarget, toMo.get(),
-                                    it.second.get(), overwritten);
+            changed |= mergeObjects(fromTarget, toMo.get(), it.second.get(),
+                                    overwritten);
         }
 
         return changed;
@@ -216,12 +206,11 @@ protected:
 
     bool isOnLoop(const PSNode *n) const {
         // if the scc's size > 1, the node is in loop
-        return n->getParent() ?
-                (n->getParent()->getLoop(n) != nullptr) : false;
+        return n->getParent() ? (n->getParent()->getLoop(n) != nullptr) : false;
     }
 
     bool pointsToAllocationInLoop(PSNode *n) const {
-        for (const auto& ptr : n->pointsTo) {
+        for (const auto &ptr : n->pointsTo) {
             // skip invalidated, null and unknown memory
             if (!ptr.isValid() || ptr.isInvalidated())
                 continue;
@@ -230,26 +219,25 @@ protected:
                 return true;
         }
         return false;
-
     }
 
     static inline bool needsMerge(PSNode *n) {
         return n->predecessorsNum() > 1 ||
-               n->predecessorsNum() == 0 || // root node
+               n->predecessorsNum() == 0 ||               // root node
                n->getType() == PSNodeType::CALL_RETURN || // call return is join
                canChangeMM(n);
     }
 
-    void mergeGlobalsState(MemoryMapT *mm, decltype(PG->getGlobals())& globals) {
-        for (auto& glob : globals) {
+    void mergeGlobalsState(MemoryMapT *mm,
+                           decltype(PG->getGlobals()) &globals) {
+        for (auto &glob : globals) {
             if (MemoryMapT *globmm = glob->getData<MemoryMapT>()) {
                 mergeMaps(mm, globmm, nullptr);
             }
         }
     }
 
-private:
-
+  private:
     // keep all the maps in order to free the memory
     std::vector<std::unique_ptr<MemoryMapT>> memoryMaps;
 };

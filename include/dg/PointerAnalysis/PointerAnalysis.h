@@ -4,11 +4,11 @@
 #include <cassert>
 #include <vector>
 
-#include "dg/PointerAnalysis/Pointer.h"
-#include "dg/PointerAnalysis/MemoryObject.h"
-#include "dg/PointerAnalysis/PointerGraph.h"
-#include "dg/PointerAnalysis/PointerAnalysisOptions.h"
 #include "dg/ADT/Queue.h"
+#include "dg/PointerAnalysis/MemoryObject.h"
+#include "dg/PointerAnalysis/Pointer.h"
+#include "dg/PointerAnalysis/PointerAnalysisOptions.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
 
 namespace dg {
 namespace pta {
@@ -19,13 +19,10 @@ extern PSNode *UNKNOWN_MEMORY;
 extern const Pointer NullPointer;
 extern const Pointer UnknownPointer;
 
-class PointerAnalysis
-{
-    void initPointerAnalysis() {
-        assert(PG && "Need PointerGraph object");
-    }
+class PointerAnalysis {
+    void initPointerAnalysis() { assert(PG && "Need PointerGraph object"); }
 
-protected:
+  protected:
     // a set of changed nodes that are going to be
     // processed by the analysis
     std::vector<PSNode *> to_process;
@@ -36,11 +33,9 @@ protected:
 
     const PointerAnalysisOptions options{};
 
-public:
-
-    PointerAnalysis(PointerGraph *ps,
-                    const PointerAnalysisOptions& opts)
-    : PG(ps), options(opts) {
+  public:
+    PointerAnalysis(PointerGraph *ps, const PointerAnalysisOptions &opts)
+            : PG(ps), options(opts) {
         initPointerAnalysis();
     }
 
@@ -53,8 +48,8 @@ public:
     // and fills into the vector the objects that are relevant
     // for the PSNode 'what' (valid memory states for of this PSNode)
     // on location 'where' in PointerGraph
-    virtual void getMemoryObjects(PSNode *where, const Pointer& pointer,
-                                  std::vector<MemoryObject *>& objects) = 0;
+    virtual void getMemoryObjects(PSNode *where, const Pointer &pointer,
+                                  std::vector<MemoryObject *> &objects) = 0;
 
     /*
     virtual bool addEdge(MemoryObject *from, MemoryObject *to,
@@ -67,24 +62,16 @@ public:
     /* hooks for analysis - optional. The analysis may do everything
      * in getMemoryObjects, but spliting it into before-get-after sequence
      * is more readable */
-    virtual bool beforeProcessed(PSNode *) {
-        return false;
-    }
+    virtual bool beforeProcessed(PSNode *) { return false; }
 
-    virtual bool afterProcessed(PSNode *) {
-        return false;
-    }
+    virtual bool afterProcessed(PSNode *) { return false; }
 
     PointerGraph *getPG() { return PG; }
     const PointerGraph *getPG() const { return PG; }
 
+    virtual void enqueue(PSNode *n) { changed.push_back(n); }
 
-    virtual void enqueue(PSNode *n)
-    {
-        changed.push_back(n);
-    }
-
-    virtual void preprocess() { }
+    virtual void preprocess() {}
 
     void initialize_queue() {
         assert(to_process.empty());
@@ -141,8 +128,7 @@ public:
     // generic error
     // @msg - message for the user
     // XXX: maybe create some enum that will represent the error
-    virtual bool error(PSNode * /*at*/, const char * /*msg*/)
-    {
+    virtual bool error(PSNode * /*at*/, const char * /*msg*/) {
         // let this on the user - in flow-insensitive analysis this is
         // no error, but in flow sensitive it is ...
         return false;
@@ -151,8 +137,7 @@ public:
     // handle specific situation (error) in the analysis
     // @return whether the function changed the some points-to set
     //  (e. g. added pointer to unknown memory)
-    virtual bool errorEmptyPointsTo(PSNode * /*from*/, PSNode * /*to*/)
-    {
+    virtual bool errorEmptyPointsTo(PSNode * /*from*/, PSNode * /*to*/) {
         // let this on the user - in flow-insensitive analysis this is
         // no error, but in flow sensitive it is ...
         return false;
@@ -161,8 +146,7 @@ public:
     // adjust the PointerGraph on function pointer call
     // @ where is the callsite
     // @ what is the function that is being called
-    virtual bool functionPointerCall(PSNode * /*where*/, PSNode * /*what*/)
-    {
+    virtual bool functionPointerCall(PSNode * /*where*/, PSNode * /*what*/) {
         return false;
     }
 
@@ -179,8 +163,7 @@ public:
     // we do not need to pass this to the LLVM part...
     virtual bool handleJoin(PSNode *) { return false; }
 
-private:
-
+  private:
     // check the sanity of results of pointer analysis
     void sanityCheck();
 
@@ -188,10 +171,9 @@ private:
     bool processLoad(PSNode *node);
     bool processGep(PSNode *node);
     bool processMemcpy(PSNode *node);
-    bool processMemcpy(std::vector<MemoryObject *>& srcObjects,
-                       std::vector<MemoryObject *>& destObjects,
-                       const Pointer& sptr, const Pointer& dptr,
-                       Offset len);
+    bool processMemcpy(std::vector<MemoryObject *> &srcObjects,
+                       std::vector<MemoryObject *> &destObjects,
+                       const Pointer &sptr, const Pointer &dptr, Offset len);
 };
 
 } // namespace pta

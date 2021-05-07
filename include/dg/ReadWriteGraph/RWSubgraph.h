@@ -1,8 +1,8 @@
 #ifndef DG_READ_WRITE_SUBRAPH_H_
 #define DG_READ_WRITE_SUBRAPH_H_
 
-#include <vector>
 #include <memory>
+#include <vector>
 
 #include "RWBBlock.h"
 
@@ -14,18 +14,19 @@ class RWNode;
 
 class RWSubgraph {
     // FIXME: get rid of this
-    //unsigned int dfsnum{1};
+    // unsigned int dfsnum{1};
 
     using BBlocksVecT = std::vector<std::unique_ptr<RWBBlock>>;
 
     // iterator over the bblocks that returns the bblock,
     // not the unique_ptr to the bblock
     struct block_iterator : public BBlocksVecT::iterator {
-        using ContainedType
-            = std::remove_reference<decltype(*(std::declval<BBlocksVecT::iterator>()->get()))>::type;
+        using ContainedType = std::remove_reference<decltype(
+                *(std::declval<BBlocksVecT::iterator>()->get()))>::type;
 
-        block_iterator(const BBlocksVecT::iterator& it) : BBlocksVecT::iterator(it) {}
-        block_iterator(const block_iterator&) = default;
+        block_iterator(const BBlocksVecT::iterator &it)
+                : BBlocksVecT::iterator(it) {}
+        block_iterator(const block_iterator &) = default;
         block_iterator() = default;
 
         ContainedType *operator*() {
@@ -39,8 +40,8 @@ class RWSubgraph {
     BBlocksVecT _bblocks;
 
     struct blocks_range {
-        BBlocksVecT& blocks;
-        blocks_range(BBlocksVecT& b) : blocks(b) {}
+        BBlocksVecT &blocks;
+        blocks_range(BBlocksVecT &b) : blocks(b) {}
 
         block_iterator begin() { return block_iterator(blocks.begin()); }
         block_iterator end() { return block_iterator(blocks.end()); }
@@ -57,18 +58,18 @@ class RWSubgraph {
     // for debugging
     std::string name;
 
-public:
+  public:
     RWSubgraph() = default;
-    RWSubgraph(RWSubgraph&&) = default;
-    RWSubgraph& operator=(RWSubgraph&&) = default;
+    RWSubgraph(RWSubgraph &&) = default;
+    RWSubgraph &operator=(RWSubgraph &&) = default;
 
     RWNode *getRoot() { return _bblocks.front()->getFirst(); }
     const RWNode *getRoot() const { return _bblocks.front()->getFirst(); }
 
-    void setName(const std::string& nm) { name = nm; }
-    const std::string& getName() const { return name; }
+    void setName(const std::string &nm) { name = nm; }
+    const std::string &getName() const { return name; }
 
-    RWBBlock& createBBlock() {
+    RWBBlock &createBBlock() {
         _bblocks.emplace_back(new RWBBlock(this));
         return *_bblocks.back().get();
     }
@@ -83,10 +84,10 @@ public:
         _callers.push_back(c);
     }
 
-    std::vector<RWNode *>& getCallers() { return _callers; }
-    const std::vector<RWNode *>& getCallers() const { return _callers; }
+    std::vector<RWNode *> &getCallers() { return _callers; }
+    const std::vector<RWNode *> &getCallers() const { return _callers; }
 
-    const BBlocksVecT& getBBlocks() const { return _bblocks; }
+    const BBlocksVecT &getBBlocks() const { return _bblocks; }
 
     block_iterator bblocks_begin() { return block_iterator(_bblocks.begin()); }
     block_iterator bblocks_end() { return block_iterator(_bblocks.end()); }
@@ -98,7 +99,5 @@ public:
 
 } // namespace dda
 } // namespace dg
-
-
 
 #endif

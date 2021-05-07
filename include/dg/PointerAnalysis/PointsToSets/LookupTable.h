@@ -15,7 +15,7 @@
 namespace dg {
 
 class PointerIDLookupTable {
-public:
+  public:
     using IDTy = size_t;
     using Pointer = pta::Pointer;
     using PSNode = pta::PSNode;
@@ -29,7 +29,7 @@ public:
 #endif
 
     // this will get a new ID for the pointer if not present
-    IDTy getOrCreate(const Pointer& ptr) {
+    IDTy getOrCreate(const Pointer &ptr) {
         auto res = get(ptr);
         if (res != 0)
             return res;
@@ -39,7 +39,7 @@ public:
 #ifndef NDEBUG
         bool r =
 #endif
-        _ptrToID[ptr.target].put(ptr.offset, res);
+                _ptrToID[ptr.target].put(ptr.offset, res);
 
         assert(r && "Duplicated ID!");
         assert(get(res) == ptr);
@@ -48,7 +48,7 @@ public:
         return res;
     }
 
-    IDTy get(const Pointer& ptr) const {
+    IDTy get(const Pointer &ptr) const {
         auto it = _ptrToID.find(ptr.target);
         if (it == _ptrToID.end()) {
             return 0; // invalid ID
@@ -59,12 +59,12 @@ public:
         return it2->second;
     }
 
-    const Pointer& get(IDTy id) const {
+    const Pointer &get(IDTy id) const {
         assert(id - 1 < _idToPtr.size());
         return _idToPtr[id - 1];
     }
 
-private:
+  private:
     // PSNode -> (Offset -> id)
     // Not space efficient, but we need mainly the time efficiency here...
     // NOTE: unfortunately, atm, we cannot use the id of the target for hashing
@@ -73,7 +73,7 @@ private:
     // (and resetting the state is really painful, I tried that,
     // but just didn't succeed).
     PtrToIDMap _ptrToID;
-    std::vector<Pointer> _idToPtr; //starts from 0 (pointer = idVector[id - 1])
+    std::vector<Pointer> _idToPtr; // starts from 0 (pointer = idVector[id - 1])
 };
 
 /*

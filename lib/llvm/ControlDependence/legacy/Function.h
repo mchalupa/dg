@@ -1,8 +1,8 @@
 #ifndef DG_LEGACY_NTSCD_FUNCTION_H
 #define DG_LEGACY_NTSCD_FUNCTION_H
 
-#include <set>
 #include <iosfwd>
+#include <set>
 
 namespace dg {
 namespace llvmdg {
@@ -11,8 +11,7 @@ namespace legacy {
 class Block;
 
 class Function {
-public:
-
+  public:
     Function();
     ~Function();
 
@@ -25,18 +24,17 @@ public:
     std::set<Block *> condNodes() const;
     std::set<Block *> callReturnNodes() const;
 
-    void dumpBlocks(std::ostream& ostream);
-    void dumpEdges(std::ostream& ostream);
+    void dumpBlocks(std::ostream &ostream);
+    void dumpEdges(std::ostream &ostream);
 
-private:
-
+  private:
     Block *firstBlock = nullptr;
-    Block *lastBlock  = nullptr;
+    Block *lastBlock = nullptr;
     std::set<Block *> blocks;
 };
 
-}
-}
-}
+} // namespace legacy
+} // namespace llvmdg
+} // namespace dg
 
 #endif

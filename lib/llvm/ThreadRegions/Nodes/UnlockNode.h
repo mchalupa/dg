@@ -3,10 +3,10 @@
 
 #include "Node.h"
 
-class UnlockNode : public Node
-{
-public:
-    UnlockNode(const llvm::Instruction * instruction = nullptr, const llvm::CallInst * callInst = nullptr);
+class UnlockNode : public Node {
+  public:
+    UnlockNode(const llvm::Instruction *instruction = nullptr,
+               const llvm::CallInst *callInst = nullptr);
 };
 
 #endif // UNLOCKNODE_H

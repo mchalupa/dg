@@ -72,5 +72,5 @@ Node *NodeIterator::operator*() const {
             return *joinSuccessorsIterator;
         }
     }
-    return  *successorsIterator;
+    return *successorsIterator;
 }

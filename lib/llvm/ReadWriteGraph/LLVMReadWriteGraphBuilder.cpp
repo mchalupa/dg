@@ -1,30 +1,30 @@
-#include <set>
 #include <cassert>
+#include <set>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <llvm/IR/Dominators.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "dg/llvm/PointerAnalysis/PointerGraph.h"
 #include "dg/ADT/Queue.h"
+#include "dg/llvm/PointerAnalysis/PointerGraph.h"
 
 #include "llvm/ForkJoin/ForkJoin.h"
 #include "llvm/ReadWriteGraph/LLVMReadWriteGraphBuilder.h"
@@ -33,15 +33,13 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace dda {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi) {
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const ValInfo &vi) {
     using namespace llvm;
 
     if (auto I = dyn_cast<Instruction>(vi.v)) {
-        os << I->getParent()->getParent()->getName()
-               << ":: " << *I;
+        os << I->getParent()->getParent()->getName() << ":: " << *I;
     } else if (auto A = dyn_cast<Argument>(vi.v)) {
-        os << A->getParent()->getParent()->getName()
-               << ":: (arg) " << *A;
+        os << A->getParent()->getParent()->getName() << ":: (arg) " << *A;
     } else if (auto F = dyn_cast<Function>(vi.v)) {
         os << "(func) " << F->getName();
     } else {
@@ -57,9 +55,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi) {
 // \param size is the number of bytes used from the memory
 std::vector<DefSite>
 LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
-                                       const llvm::Value *val,
-                                       Offset size)
-{
+                                       const llvm::Value *val, Offset size) {
     std::vector<DefSite> result;
 
     auto psn = PTA->getLLVMPointsToChecked(val);
@@ -97,7 +93,7 @@ LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
         result.push_back(DefSite(UNKNOWN_MEMORY));
     }
 
-    for (const auto& ptr: psn.second) {
+    for (const auto &ptr : psn.second) {
         if (llvm::isa<llvm::Function>(ptr.value))
             continue;
 
@@ -107,7 +103,7 @@ LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
             // ... and we don't flood the terminal that way
             static std::set<const llvm::Value *> warned;
             if (warned.insert(ptr.value).second) {
-                llvm::errs() << "[RWG] error at "  << ValInfo(where) << "\n";
+                llvm::errs() << "[RWG] error at " << ValInfo(where) << "\n";
                 llvm::errs() << "[RWG] error for " << ValInfo(val) << "\n";
                 llvm::errs() << "[RWG] error: Cannot find node for "
                              << ValInfo(ptr.value) << "\n";
@@ -115,12 +111,13 @@ LLVMReadWriteGraphBuilder::mapPointers(const llvm::Value *where,
             continue;
         }
 
-        // FIXME: we should pass just size to the DefSite ctor, but the old code relies
-        // on the behavior that when offset is unknown, the length is also unknown.
-        // So for now, mimic the old code. Remove it once we fix the old code.
-        result.push_back(DefSite(ptrNode, ptr.offset,
-                                 ptr.offset.isUnknown() ?
-                                    Offset::UNKNOWN : size));
+        // FIXME: we should pass just size to the DefSite ctor, but the old code
+        // relies on the behavior that when offset is unknown, the length is
+        // also unknown. So for now, mimic the old code. Remove it once we fix
+        // the old code.
+        result.push_back(
+                DefSite(ptrNode, ptr.offset,
+                        ptr.offset.isUnknown() ? Offset::UNKNOWN : size));
     }
 
     return result;
@@ -138,8 +135,8 @@ RWNode *LLVMReadWriteGraphBuilder::getOperand(const llvm::Value *val) {
         }
 
         if (!op) {
-            llvm::errs() << "[RWG] error: cannot find an operand: "
-                         << *val << "\n";
+            llvm::errs() << "[RWG] error: cannot find an operand: " << *val
+                         << "\n";
             abort();
         }
     }
@@ -149,4 +146,3 @@ RWNode *LLVMReadWriteGraphBuilder::getOperand(const llvm::Value *val) {
 
 } // namespace dda
 } // namespace dg
-

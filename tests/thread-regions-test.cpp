@@ -1,22 +1,22 @@
 #include <catch2/catch.hpp>
 
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
-#include "dg/llvm/ThreadRegions/ThreadRegion.h"
 #include "../lib/llvm/ThreadRegions/Graphs/GraphBuilder.h"
 #include "../lib/llvm/ThreadRegions/Nodes/Nodes.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
+#include "dg/llvm/ThreadRegions/ThreadRegion.h"
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Module.h>
 #include <llvm/IR/Function.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IRReader/IRReader.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include <memory>
@@ -32,11 +32,7 @@ TEST_CASE("Test of node class methods", "[node]") {
     REQUIRE(node0->isArtificial());
     REQUIRE(node0->getType() == NodeType::GENERAL);
 
-
-
-    SECTION("Incrementing Ids") {
-        REQUIRE(node0->id() < node1->id());
-    }
+    SECTION("Incrementing Ids") { REQUIRE(node0->id() < node1->id()); }
 
     SECTION("createNode creates the rightNode") {
         NodePtr General(createNode<NodeType::GENERAL>()),
@@ -109,9 +105,9 @@ TEST_CASE("Test of node class methods", "[node]") {
         }
     }
 
-
     SECTION("Removing node1 from successors of node0"
-            " decreases size of successors of node0 and predecessors of node1") {
+            " decreases size of successors of node0 and predecessors of "
+            "node1") {
         REQUIRE(node0->successors().empty());
         REQUIRE(node0->addSuccessor(node1.get()));
         auto foundNodeIterator = node0->successors().find(node1.get());
@@ -139,7 +135,8 @@ TEST_CASE("Test of node class methods", "[node]") {
         REQUIRE(node0->predecessors().size() == 1);
         REQUIRE(node1->successors().size() == 1);
 
-        SECTION("adding the same predecessor for the second time does nothing") {
+        SECTION("adding the same predecessor for the second time does "
+                "nothing") {
             REQUIRE_FALSE(node0->addPredecessor(node1.get()));
             REQUIRE(node0->predecessors().size() == 1);
             REQUIRE(node1->successors().size() == 1);
@@ -147,7 +144,8 @@ TEST_CASE("Test of node class methods", "[node]") {
     }
 
     SECTION("Removing node1 from predecessors of node0"
-            " decreases size of successors of node0 and predecessors of node1") {
+            " decreases size of successors of node0 and predecessors of "
+            "node1") {
         REQUIRE(node0->successors().empty());
         REQUIRE(node0->addPredecessor(node1.get()));
         auto foundNodeIterator = node0->predecessors().find(node1.get());
@@ -198,7 +196,7 @@ TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
             node1(createNode<NodeType::GENERAL>());
 
     std::unique_ptr<ThreadRegion> threadRegion0(new ThreadRegion(node0.get())),
-                                  threadRegion1(new ThreadRegion(node1.get()));
+            threadRegion1(new ThreadRegion(node1.get()));
 
     REQUIRE(threadRegion0->successors().empty());
     REQUIRE(threadRegion1->successors().empty());
@@ -343,7 +341,6 @@ TEST_CASE("Test of JoinNode class methods", "[JoinNode]") {
     std::unique_ptr<ForkNode> forkNode(createNode<NodeType::FORK>());
     std::unique_ptr<ExitNode> exitNode(createNode<NodeType::EXIT>());
 
-
     SECTION("Add corresponding fork") {
         REQUIRE(joinNode->addCorrespondingFork(forkNode.get()));
         REQUIRE(joinNode->correspondingForks().size() == 1);
@@ -393,22 +390,25 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
     LLVMContext context;
     SMDiagnostic SMD;
     std::unique_ptr<Module> M = parseIRFile(SIMPLE_FILE, SMD, context);
-    const Function * function = M->getFunction("sum");
-    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::Offset::UNKNOWN, true);
+    const Function *function = M->getFunction("sum");
+    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main",
+                                               dg::Offset::UNKNOWN, true);
     pointsToAnalysis.run();
-    std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
+    std::unique_ptr<GraphBuilder> graphBuilder(
+            new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Test of buildInstruction and findInstruction") {
         auto inst = graphBuilder->buildInstruction(nullptr);
         REQUIRE(inst.first == nullptr);
         REQUIRE(inst.second == nullptr);
         REQUIRE_FALSE(graphBuilder->findInstruction(nullptr));
-        for (auto & block : *function) {
-            for (auto & instruction : block) {
+        for (auto &block : *function) {
+            for (auto &instruction : block) {
                 inst = graphBuilder->buildInstruction(&instruction);
                 REQUIRE_FALSE(inst.first == nullptr);
                 REQUIRE_FALSE(inst.second == nullptr);
-                auto instructionNode = graphBuilder->findInstruction(&instruction);
+                auto instructionNode =
+                        graphBuilder->findInstruction(&instruction);
                 REQUIRE_FALSE(instructionNode == nullptr);
                 inst = graphBuilder->buildInstruction(&instruction);
                 REQUIRE(inst.first == nullptr);
@@ -422,7 +422,7 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
         REQUIRE_FALSE(graphBuilder->findBlock(nullptr));
         REQUIRE(nodeSeq.first == nullptr);
         REQUIRE(nodeSeq.second == nullptr);
-        for (auto & block : *function) {
+        for (auto &block : *function) {
             nodeSeq = graphBuilder->buildBlock(&block);
             REQUIRE_FALSE(nodeSeq.first == nullptr);
             REQUIRE_FALSE(nodeSeq.second == nullptr);
@@ -440,7 +440,7 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
         REQUIRE(nodeSeq.second == nullptr);
         REQUIRE_FALSE(graphBuilder->findFunction(nullptr));
 
-        for (auto & function : M->getFunctionList()) {
+        for (auto &function : M->getFunctionList()) {
             nodeSeq = graphBuilder->buildFunction(&function);
             REQUIRE_FALSE(nodeSeq.first == nullptr);
             REQUIRE_FALSE(nodeSeq.second == nullptr);
@@ -457,10 +457,12 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
     using namespace llvm;
     LLVMContext context;
     SMDiagnostic SMD;
-    std::unique_ptr<Module> M = parseIRFile(PTHREAD_EXIT_FILE, SMD, context); 
-    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::Offset::UNKNOWN, true);
+    std::unique_ptr<Module> M = parseIRFile(PTHREAD_EXIT_FILE, SMD, context);
+    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main",
+                                               dg::Offset::UNKNOWN, true);
     pointsToAnalysis.run();
-    std::unique_ptr<GraphBuilder> graphBuilder(new GraphBuilder(&pointsToAnalysis));
+    std::unique_ptr<GraphBuilder> graphBuilder(
+            new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Undefined function which is not really important for us") {
         auto function = M->getFunction("free");
@@ -472,9 +474,9 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
         auto function = M->getFunction("func");
         std::set<const llvm::Instruction *> callInstruction;
 
-        const llvm::CallInst * pthreadExitCall = nullptr;
-        for (auto & block : *function) {
-            for (auto & instruction : block) {
+        const llvm::CallInst *pthreadExitCall = nullptr;
+        for (auto &block : *function) {
+            for (auto &instruction : block) {
                 if (isa<llvm::CallInst>(instruction)) {
                     auto callInst = dyn_cast<llvm::CallInst>(&instruction);
 #if LLVM_VERSION_MAJOR >= 8
@@ -500,22 +502,23 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
         REQUIRE(nodeSeq.second->isArtificial());
         REQUIRE(nodeSeq.first->successors().size() == 1);
         REQUIRE(nodeSeq.second->predecessors().size() == 1);
-        REQUIRE(nodeSeq.first->successors().find(nodeSeq.second) != nodeSeq.first->successors().end());
+        REQUIRE(nodeSeq.first->successors().find(nodeSeq.second) !=
+                nodeSeq.first->successors().end());
     }
 
     SECTION("Func pointer call") {
         auto function = M->getFunction("main");
         std::set<const llvm::Instruction *> callInstruction;
 
-        for (auto & block : *function) {
-            for (auto & instruction : block) {
+        for (auto &block : *function) {
+            for (auto &instruction : block) {
                 if (isa<llvm::CallInst>(instruction)) {
                     callInstruction.insert(&instruction);
                 }
             }
         }
-        
-        const llvm::CallInst * funcPtrCall = nullptr;
+
+        const llvm::CallInst *funcPtrCall = nullptr;
 
         for (auto instruction : callInstruction) {
             auto callInst = dyn_cast<llvm::CallInst>(instruction);
@@ -528,7 +531,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
                 funcPtrCall = callInst;
             }
         }
-        
+
         REQUIRE(funcPtrCall != nullptr);
 
         auto nodeSeq = graphBuilder->buildInstruction(funcPtrCall);
@@ -550,7 +553,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
         visited.insert(*fork->forkSuccessors().begin());
         queue.push(*fork->forkSuccessors().begin());
         while (!queue.empty()) {
-            Node * currentNode = queue.front();
+            Node *currentNode = queue.front();
             queue.pop();
             for (auto successor : currentNode->successors()) {
                 if (visited.find(successor) == visited.end()) {
@@ -579,7 +582,8 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
 
         int i = 0;
 
-        for (auto it = forkNode->begin(), end = forkNode->end(); it != end; ++it) {
+        for (auto it = forkNode->begin(), end = forkNode->end(); it != end;
+             ++it) {
             ++i;
         }
 

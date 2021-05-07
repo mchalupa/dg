@@ -3,28 +3,28 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
+#include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
 namespace dg {
-//namespace cda {
+// namespace cda {
 
 class LLVMPointerAnalysis;
 
 namespace llvmdg {
-  class CallGraph;
+class CallGraph;
 }
 
 class LLVMControlDependenceAnalysis {
-public:
+  public:
     using ValVec = std::vector<llvm::Value *>;
 
-private:
+  private:
     const llvm::Module *_module;
     const LLVMControlDependenceAnalysisOptions _options;
     std::unique_ptr<LLVMControlDependenceAnalysisImpl> _impl{nullptr};
@@ -59,20 +59,24 @@ private:
         return ret;
     }
 
-
-public:
-    LLVMControlDependenceAnalysis(const llvm::Module *module,
-                                  const LLVMControlDependenceAnalysisOptions& opts)
-        : _module(module), _options(opts) {
+  public:
+    LLVMControlDependenceAnalysis(
+            const llvm::Module *module,
+            const LLVMControlDependenceAnalysisOptions &opts)
+            : _module(module), _options(opts) {
         initializeImpl();
     }
 
     // public API
     const llvm::Module *getModule() const { return _module; }
-    const LLVMControlDependenceAnalysisOptions& getOptions() const { return _options; }
+    const LLVMControlDependenceAnalysisOptions &getOptions() const {
+        return _options;
+    }
 
     LLVMControlDependenceAnalysisImpl *getImpl() { return _impl.get(); }
-    const LLVMControlDependenceAnalysisImpl *getImpl() const { return _impl.get(); }
+    const LLVMControlDependenceAnalysisImpl *getImpl() const {
+        return _impl.get();
+    }
 
     // Compute control dependencies for all functions.
     // If the analysis works on demand, calling this method
@@ -86,10 +90,14 @@ public:
             _interprocImpl->compute(F);
     }
 
-    ValVec getDependencies(const llvm::Instruction *v) { return _getDependencies(v); }
+    ValVec getDependencies(const llvm::Instruction *v) {
+        return _getDependencies(v);
+    }
     ValVec getDependent(const llvm::Instruction *v) { return _getDependent(v); }
 
-    ValVec getDependencies(const llvm::BasicBlock *b) { return _getDependencies(b); }
+    ValVec getDependencies(const llvm::BasicBlock *b) {
+        return _getDependencies(b);
+    }
     ValVec getDependent(const llvm::BasicBlock *b) { return _getDependent(b); }
 
     ValVec getNoReturns(const llvm::Function *F) {
@@ -100,18 +108,20 @@ public:
 
     // A getter for results of closure-based algorithms.
     // The method may abort if used with non-closure-based analysis.
-    ValVec getClosure(const llvm::Function *F, const std::set<llvm::Value *>& vals) {
+    ValVec getClosure(const llvm::Function *F,
+                      const std::set<llvm::Value *> &vals) {
         return _impl->getClosure(F, vals);
     }
     /// XXX TBD
-   //// A getter for iterative building of results of closure-based algorithms.
-   //void startClosure(const llvm::Function *F, const std::set<llvm::Value *>& startSet) {
-   //    return _impl->startClosure(F, startSet);
-   //}
-   //// A getter for iterative building of results of closure-based algorithms.
-   //void closeSet(const std::set<llvm::Value *>& nodesset) {
-   //    return _impl->closeSet(nodesset);
-   //}
+    //// A getter for iterative building of results of closure-based algorithms.
+    // void startClosure(const llvm::Function *F, const std::set<llvm::Value *>&
+    // startSet) {
+    //    return _impl->startClosure(F, startSet);
+    //}
+    //// A getter for iterative building of results of closure-based algorithms.
+    // void closeSet(const std::set<llvm::Value *>& nodesset) {
+    //    return _impl->closeSet(nodesset);
+    //}
 
     // FIXME: add also API that return just iterators
 };

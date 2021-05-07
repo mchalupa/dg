@@ -1,10 +1,10 @@
-#include <cstdio>
 #include <cstdarg>
+#include <cstdio>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Function.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -14,8 +14,7 @@ SILENCE_LLVM_WARNINGS_POP
 
 namespace dg {
 
-void LLVMDGVerifier::fault(const char *fmt, ...)
-{
+void LLVMDGVerifier::fault(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     fprintf(stderr, "ERR dg-verify: ");
@@ -28,35 +27,30 @@ void LLVMDGVerifier::fault(const char *fmt, ...)
     ++faults;
 }
 
-bool LLVMDGVerifier::verify()
-{
+bool LLVMDGVerifier::verify() {
     checkMainProc();
 
-    extern std::map<llvm::Value *,
-                    LLVMDependenceGraph *> constructedFunctions;
-    for (auto& it : constructedFunctions)
+    extern std::map<llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+    for (auto &it : constructedFunctions)
         checkGraph(llvm::cast<llvm::Function>(it.first), it.second);
 
     fflush(stderr);
     return faults == 0;
 }
 
-void LLVMDGVerifier::checkMainProc()
-{
+void LLVMDGVerifier::checkMainProc() {
     if (!dg->module)
         fault("has no module set");
 
     // all the subgraphs must have the same global nodes
-    extern std::map<llvm::Value *,
-                    LLVMDependenceGraph *> constructedFunctions;
-    for (auto& it : constructedFunctions) {
+    extern std::map<llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
+    for (auto &it : constructedFunctions) {
         if (it.second->global_nodes != dg->global_nodes)
             fault("subgraph has different global nodes than main proc");
     }
 }
 
-void LLVMDGVerifier::checkNode(const llvm::Value *val, LLVMNode *node)
-{
+void LLVMDGVerifier::checkNode(const llvm::Value *val, LLVMNode *node) {
     if (!node->getBBlock()) {
         fault("node has no value set");
         llvm::errs() << "  -> " << *val << "\n";
@@ -65,12 +59,12 @@ void LLVMDGVerifier::checkNode(const llvm::Value *val, LLVMNode *node)
     // FIXME if this is a call-size, check that the parameters match
 }
 
-void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB, LLVMBBlock *BB)
-{
+void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB,
+                                 LLVMBBlock *BB) {
     using namespace llvm;
     auto BBIT = BB->getNodes().begin();
 
-    for (const Instruction& I : *llvmBB) {
+    for (const Instruction &I : *llvmBB) {
         LLVMNode *node = *BBIT;
 
         // check if we have the CFG edges set
@@ -84,8 +78,7 @@ void LLVMDGVerifier::checkBBlock(const llvm::BasicBlock *llvmBB, LLVMBBlock *BB)
     // FIXME: check successors and predecessors
 }
 
-void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g)
-{
+void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g) {
     using namespace llvm;
 
     LLVMNode *entry = g->getEntry();
@@ -104,9 +97,10 @@ void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g)
     a = g->getBlocks().size();
     b = func->size();
     if (a != b)
-        fault("have constructed %lu BBlocks but function has %lu basic blocks", a, b);
+        fault("have constructed %lu BBlocks but function has %lu basic blocks",
+              a, b);
 
-    for (BasicBlock& llvmBB : *F) {
+    for (BasicBlock &llvmBB : *F) {
         LLVMBBlock *BB = g->getBlocks()[&llvmBB];
         if (!BB) {
             fault("missing BasicBlock");
@@ -116,4 +110,4 @@ void LLVMDGVerifier::checkGraph(llvm::Function *F, LLVMDependenceGraph *g)
     }
 }
 
-};
+}; // namespace dg

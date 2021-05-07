@@ -1,14 +1,13 @@
 #ifndef DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
 #define DG_ANALYSIS_POINTS_TO_WITH_INVALIDATE_H_
 
-#include <cassert>
 #include "PointerAnalysisFS.h"
+#include <cassert>
 
 namespace dg {
 namespace pta {
 
-class PointerAnalysisFSInv : public PointerAnalysisFS
-{
+class PointerAnalysisFSInv : public PointerAnalysisFS {
     static bool canInvalidateMM(PSNode *n) {
         return isa<PSNodeType::FREE>(n) ||
                isa<PSNodeType::INVALIDATE_OBJECT>(n) ||
@@ -20,7 +19,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS
     }
 
     static MemoryObject *getOrCreateMO(MemoryMapT *mm, PSNode *target) {
-        std::unique_ptr<MemoryObject>& moptr = (*mm)[target];
+        std::unique_ptr<MemoryObject> &moptr = (*mm)[target];
         if (!moptr)
             moptr.reset(new MemoryObject(target));
 
@@ -28,21 +27,19 @@ class PointerAnalysisFSInv : public PointerAnalysisFS
         return moptr.get();
     }
 
-public:
+  public:
     using MemoryMapT = PointerAnalysisFS::MemoryMapT;
 
     // this is an easy but not very efficient implementation,
     // works for testing
-    PointerAnalysisFSInv(PointerGraph *ps,
-                           PointerAnalysisOptions opts)
-    : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
+    PointerAnalysisFSInv(PointerGraph *ps, PointerAnalysisOptions opts)
+            : PointerAnalysisFS(ps, opts.setInvalidateNodes(true)) {}
 
     // default options
     PointerAnalysisFSInv(PointerGraph *ps) : PointerAnalysisFSInv(ps, {}) {}
 
     // NOTE: we must override this method as it is using our "needsMerge"
-    bool beforeProcessed(PSNode *n) override
-    {
+    bool beforeProcessed(PSNode *n) override {
         MemoryMapT *mm = n->getData<MemoryMapT>();
         if (mm)
             return false;
@@ -75,8 +72,7 @@ public:
         return true;
     }
 
-    bool afterProcessed(PSNode *n) override
-    {
+    bool afterProcessed(PSNode *n) override {
         if (n->getType() == PSNodeType::INVALIDATE_LOCALS)
             return handleInvalidateLocals(n);
         if (n->getType() == PSNodeType::INVALIDATE_OBJECT)
@@ -93,11 +89,11 @@ public:
 
     static bool isLocal(PSNodeAlloc *alloc, PSNode *where) {
         return !alloc->isHeap() && !alloc->isGlobal() &&
-                alloc->getParent() == where->getParent();
+               alloc->getParent() == where->getParent();
     }
 
-    bool containsRemovableLocals(PSNode *where, PointsToSetT& S) {
-        for (const auto& ptr : S) {
+    bool containsRemovableLocals(PSNode *where, PointsToSetT &S) {
+        for (const auto &ptr : S) {
             if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
                 continue;
 
@@ -111,10 +107,10 @@ public:
     }
 
     // not very efficient
-    void replaceLocalsWithInv(PSNode *where, PointsToSetT& S1) {
+    void replaceLocalsWithInv(PSNode *where, PointsToSetT &S1) {
         PointsToSetT S;
 
-        for (const auto& ptr : S1) {
+        for (const auto &ptr : S1) {
             if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
                 continue;
 
@@ -131,10 +127,9 @@ public:
         S1.swap(S);
     }
 
-    static inline bool isInvalidTarget(const PSNode * const target) {
-        return  target == INVALIDATED ||
-                target == UNKNOWN_MEMORY ||
-                target == NULLPTR;
+    static inline bool isInvalidTarget(const PSNode *const target) {
+        return target == INVALIDATED || target == UNKNOWN_MEMORY ||
+               target == NULLPTR;
     }
 
     bool handleInvalidateLocals(PSNode *node) {
@@ -145,8 +140,7 @@ public:
         return changed;
     }
 
-    bool handleInvalidateLocals(PSNode *node, PSNode *pred)
-    {
+    bool handleInvalidateLocals(PSNode *node, PSNode *pred) {
         MemoryMapT *pmm = pred->getData<MemoryMapT>();
         if (!pmm) {
             // predecessor was not processed yet
@@ -157,7 +151,7 @@ public:
         assert(mm && "Node does not have a memory map");
 
         bool changed = false;
-        for (auto& I : *pmm) {
+        for (auto &I : *pmm) {
             if (isInvalidTarget(I.first))
                 continue;
 
@@ -166,7 +160,7 @@ public:
             MemoryObject *mo = getOrCreateMO(mm, I.first);
             MemoryObject *pmo = I.second.get();
 
-            for (auto& it : *mo) {
+            for (auto &it : *mo) {
                 // remove pointers to locals from the points-to set
                 if (containsRemovableLocals(node, it.second)) {
                     replaceLocalsWithInv(node, it.second);
@@ -175,17 +169,17 @@ public:
                 }
             }
 
-            for (auto& it : *pmo) {
-                PointsToSetT& predS = it.second;
+            for (auto &it : *pmo) {
+                PointsToSetT &predS = it.second;
                 if (predS.empty())
                     continue;
 
-                PointsToSetT& S = mo->pointsTo[it.first];
+                PointsToSetT &S = mo->pointsTo[it.first];
 
                 // merge pointers from the previous states
                 // but do not include the pointers
                 // that _must_ point to destroyed memory
-                for (const auto& ptr : predS) {
+                for (const auto &ptr : predS) {
                     PSNodeAlloc *alloc = PSNodeAlloc::get(ptr.target);
                     if (alloc && isLocal(alloc, node) && knownInstance(alloc)) {
                         changed |= S.add(INVALIDATED, 0);
@@ -200,9 +194,9 @@ public:
         return changed;
     }
 
-    static void replaceTargetWithInv(PointsToSetT& S1, PSNode *target) {
+    static void replaceTargetWithInv(PointsToSetT &S1, PSNode *target) {
         PointsToSetT S;
-        for (const auto& ptr : S1) {
+        for (const auto &ptr : S1) {
             if (ptr.target != target)
                 S.add(ptr);
         }
@@ -230,9 +224,7 @@ public:
     // return true if we know the instance of the object
     // (allocations in loop or recursive calls may have
     // multiple instances)
-    bool knownInstance(const PSNode *node) const {
-        return !isOnLoop(node);
-    }
+    bool knownInstance(const PSNode *node) const { return !isOnLoop(node); }
 
     bool invStrongUpdate(const PSNode *operand) const {
         // If we are freeing memory through node that
@@ -246,9 +238,9 @@ public:
         if (operand->pointsTo.size() != 1)
             return false;
 
-        const auto& ptr  = *(operand->pointsTo.begin());
-        return !ptr.offset.isUnknown()
-                && !isInvalidTarget(ptr.target) && knownInstance(ptr.target);
+        const auto &ptr = *(operand->pointsTo.begin());
+        return !ptr.offset.isUnknown() && !isInvalidTarget(ptr.target) &&
+               knownInstance(ptr.target);
     }
 
     ///
@@ -288,7 +280,7 @@ public:
         // we can set it to invalidated
         auto mo = getOrCreateMO(mm, target);
         if (mo->pointsTo.size() == 1) {
-            auto& S = mo->pointsTo[0];
+            auto &S = mo->pointsTo[0];
             if (S.size() == 1 && (*S.begin()).target == INVALIDATED) {
                 return false; // no update
             }
@@ -299,9 +291,7 @@ public:
         return true;
     }
 
-    bool invalidateMemory(PSNode *node, PSNode *pred,
-                          bool is_free = false)
-    {
+    bool invalidateMemory(PSNode *node, PSNode *pred, bool is_free = false) {
         MemoryMapT *pmm = pred->getData<MemoryMapT>();
         if (!pmm) {
             // predecessor was not processed yet
@@ -325,7 +315,7 @@ public:
                 changed |= overwriteMOFromFree(mm, strong_update);
         }
 
-        for (auto& I : *pmm) {
+        for (auto &I : *pmm) {
             assert(I.first && "nullptr as target");
 
             if (isInvalidTarget(I.first))
@@ -344,9 +334,9 @@ public:
             // Otherwise, add the invalidated pointer to the points-to sets
             // (strong vs. weak update) as we do not know which
             // object is actually being invalidated.
-            for (auto& it : *mo) {
+            for (auto &it : *mo) {
                 if (invStrongUpdate(operand)) { // strong update
-                    const auto& ptr = *(operand->pointsTo.begin());
+                    const auto &ptr = *(operand->pointsTo.begin());
                     if (ptr.isUnknown())
                         changed |= it.second.add(INVALIDATED, 0);
                     else if (ptr.isNull() || ptr.isInvalidated())
@@ -357,13 +347,14 @@ public:
                         changed = true;
                     }
                 } else { // weak update
-                    for (const auto& ptr : operand->pointsTo) {
+                    for (const auto &ptr : operand->pointsTo) {
                         if (ptr.isNull() || ptr.isInvalidated())
                             continue;
 
                         // invalidate on unknown memory yields invalidate for
                         // each element
-                        if (ptr.isUnknown() || it.second.pointsToTarget(ptr.target)) {
+                        if (ptr.isUnknown() ||
+                            it.second.pointsToTarget(ptr.target)) {
                             changed |= it.second.add(INVALIDATED, 0);
                         }
                     }
@@ -372,18 +363,18 @@ public:
 
             // merge pointers from pmo to mo, but skip
             // the pointers that may point to the freed memory
-            for (auto& it : *pmo) {
-                PointsToSetT& predS = it.second;
+            for (auto &it : *pmo) {
+                PointsToSetT &predS = it.second;
                 if (predS.empty()) // keep the map clean
                     continue;
 
-                PointsToSetT& S = mo->pointsTo[it.first];
+                PointsToSetT &S = mo->pointsTo[it.first];
 
                 // merge pointers from the previous states
                 // but do not include the pointers
                 // that may point to freed memory.
                 // These must be replaced with invalidated.
-                for (const auto& ptr : predS) {
+                for (const auto &ptr : predS) {
                     if (ptr.isValid() && // if the ptr is null or unkown,
                                          // we want to copy it
                         operand->pointsTo.pointsToTarget(ptr.target)) {

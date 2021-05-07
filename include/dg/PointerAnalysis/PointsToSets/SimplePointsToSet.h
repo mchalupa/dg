@@ -1,11 +1,11 @@
 #ifndef SIMPLEPOINTSTOSET_H
 #define SIMPLEPOINTSTOSET_H
 
-#include "dg/PointerAnalysis/Pointer.h"
 #include "dg/ADT/Bitvector.h"
+#include "dg/PointerAnalysis/Pointer.h"
 
-#include <set>
 #include <cassert>
+#include <set>
 
 namespace dg {
 namespace pta {
@@ -23,7 +23,7 @@ class SimplePointsToSet {
             return false;
 
         ContainerT tmp;
-        for (const auto& ptr : pointers) {
+        for (const auto &ptr : pointers) {
             if (ptr.target != target)
                 tmp.insert(ptr);
         }
@@ -32,7 +32,7 @@ class SimplePointsToSet {
         return pointers.insert({target, Offset::UNKNOWN}).second;
     }
 
-public:
+  public:
     SimplePointsToSet() = default;
     SimplePointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
 
@@ -50,15 +50,13 @@ public:
         return pointers.emplace(target, off).second;
     }
 
-    bool add(const Pointer& ptr) {
-        return add(ptr.target, ptr.offset);
-    }
+    bool add(const Pointer &ptr) { return add(ptr.target, ptr.offset); }
 
     // make union of the two sets and store it
     // into 'this' set (i.e. merge rhs to this set)
-    bool add(const SimplePointsToSet& rhs) {
+    bool add(const SimplePointsToSet &rhs) {
         bool changed = false;
-        for (const auto& ptr : rhs.pointers) {
+        for (const auto &ptr : rhs.pointers) {
             changed |= pointers.insert(ptr).second;
         }
 
@@ -67,15 +65,13 @@ public:
 
     bool add(std::initializer_list<Pointer> elems) {
         bool changed = false;
-        for (const auto& e : elems) {
+        for (const auto &e : elems) {
             changed |= add(e);
         }
         return changed;
     }
 
-    bool remove(const Pointer& ptr) {
-        return pointers.erase(ptr) != 0;
-    }
+    bool remove(const Pointer &ptr) { return pointers.erase(ptr) != 0; }
 
     ///
     // Remove pointer to this target with this offset.
@@ -90,7 +86,7 @@ public:
     bool removeAny(PSNode *target) {
         if (pointsToTarget(target)) {
             SimplePointsToSet tmp;
-            for (const auto& ptr : pointers) {
+            for (const auto &ptr : pointers) {
                 if (ptr.target == target) {
                     continue;
                 }
@@ -105,44 +101,39 @@ public:
 
     void clear() { pointers.clear(); }
 
-    bool pointsTo(const Pointer& ptr) const {
-        return pointers.count(ptr) > 0;
-    }
+    bool pointsTo(const Pointer &ptr) const { return pointers.count(ptr) > 0; }
 
     // points to the pointer or the the same target
     // with unknown offset? Note: we do not count
     // unknown memory here...
-    bool mayPointTo(const Pointer& ptr) const {
-        return pointsTo(ptr) ||
-                pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
+    bool mayPointTo(const Pointer &ptr) const {
+        return pointsTo(ptr) || pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
     }
 
-    bool mustPointTo(const Pointer& ptr) const {
+    bool mustPointTo(const Pointer &ptr) const {
         assert(!ptr.offset.isUnknown() && "Makes no sense");
         return pointsTo(ptr) && isSingleton();
     }
 
     bool pointsToTarget(PSNode *target) const {
-        for (const auto& ptr : pointers) {
+        for (const auto &ptr : pointers) {
             if (ptr.target == target)
                 return true;
         }
         return false;
     }
 
-    bool isSingleton() const {
-        return pointers.size() == 1;
-    }
+    bool isSingleton() const { return pointers.size() == 1; }
 
-    size_t count(const Pointer& ptr) { return pointers.count(ptr); }
+    size_t count(const Pointer &ptr) { return pointers.count(ptr); }
     size_t size() const { return pointers.size(); }
     bool empty() const { return pointers.empty(); }
-    bool has(const Pointer& ptr) { return count(ptr) > 0; }
+    bool has(const Pointer &ptr) { return count(ptr) > 0; }
     bool hasUnknown() const { return pointsToTarget(UNKNOWN_MEMORY); }
     bool hasNull() const { return pointsToTarget(NULLPTR); }
     bool hasInvalidated() const { return pointsToTarget(INVALIDATED); }
 
-    void swap(SimplePointsToSet& rhs) { pointers.swap(rhs.pointers); }
+    void swap(SimplePointsToSet &rhs) { pointers.swap(rhs.pointers); }
 
     const_iterator begin() const { return pointers.begin(); }
     const_iterator end() const { return pointers.end(); }
@@ -151,6 +142,4 @@ public:
 } // namespace pta
 } // namespace dg
 
-
 #endif /* SIMPLEPOINTSTOSET_H */
-

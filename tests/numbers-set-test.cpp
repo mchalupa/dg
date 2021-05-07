@@ -90,7 +90,7 @@ TEST_CASE("Iterate few elements", "SmallNumberSet") {
     REQUIRE(B.add(0));
     REQUIRE(B.add(1));
     REQUIRE(B.add(10));
-    S.insert({0,1,10});
+    S.insert({0, 1, 10});
 
     REQUIRE(B.size() == 3);
     for (auto x : B) {
@@ -102,7 +102,7 @@ TEST_CASE("Iterate big elements", "SmallNumberSet") {
     BitvectorNumberSet B;
     std::set<uint64_t> S;
 
-    S.insert({100,100000,1000000000000000});
+    S.insert({100, 100000, 1000000000000000});
     for (auto x : S)
         REQUIRE(B.add(x));
 
@@ -116,7 +116,7 @@ TEST_CASE("Iterate mixed elements", "SmallNumberSet") {
     BitvectorNumberSet B;
     std::set<uint64_t> S;
 
-    S.insert({0, 1, 10, 63, 64, 100,100000,1000000000000000});
+    S.insert({0, 1, 10, 63, 64, 100, 100000, 1000000000000000});
     for (auto x : S)
         REQUIRE(B.add(x));
 
@@ -128,4 +128,3 @@ TEST_CASE("Iterate mixed elements", "SmallNumberSet") {
     for (auto x : S)
         REQUIRE(B.has(x));
 }
-

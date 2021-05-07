@@ -1,8 +1,8 @@
 #ifndef DG_TOOLS_LLVM_SLICER_OPTS_H_
 #define DG_TOOLS_LLVM_SLICER_OPTS_H_
 
-#include <vector>
 #include <set>
+#include <vector>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -44,17 +44,15 @@ struct SlicerOptions {
 
 ///
 // Return filled SlicerOptions structure.
-SlicerOptions
-parseSlicerOptions(int argc, char *argv[],
-                   bool requireCrit = false,
-                   bool inputFileRequired = true);
+SlicerOptions parseSlicerOptions(int argc, char *argv[],
+                                 bool requireCrit = false,
+                                 bool inputFileRequired = true);
 
-bool getSlicingCriteriaNodes(dg::LLVMDependenceGraph& dg,
-                             const std::string& slicingCriteria,
-                             const std::string& legacySlicingCriteria,
-                             const std::string& legacySecondarySlicingCriteria,
-                             std::set<dg::LLVMNode *>& criteria_nodes,
+bool getSlicingCriteriaNodes(dg::LLVMDependenceGraph &dg,
+                             const std::string &slicingCriteria,
+                             const std::string &legacySlicingCriteria,
+                             const std::string &legacySecondarySlicingCriteria,
+                             std::set<dg::LLVMNode *> &criteria_nodes,
                              bool criteria_are_next_instr = false);
 
-#endif  // DG_TOOLS_LLVM_SLICER_OPTS_H_
-
+#endif // DG_TOOLS_LLVM_SLICER_OPTS_H_

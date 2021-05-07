@@ -2,8 +2,8 @@
 #define DG_LLVM_CDGRAPH_H_
 
 #include <cassert>
-#include <set>
 #include <memory>
+#include <set>
 #include <string>
 
 #include "dg/BBlockBase.h"
@@ -26,7 +26,7 @@ class CDNode : public ElemWithEdges<CDNode> {
     unsigned _id;
     CDNode(unsigned id) : _id(id) {}
 
-public:
+  public:
     unsigned getID() const { return _id; }
 };
 
@@ -37,22 +37,23 @@ public:
 /////
 class CDGraph {
     using NodesVecT = std::vector<std::unique_ptr<CDNode>>;
-    //using NodesPtrVecT = ADT::SparseBitvector;
+    // using NodesPtrVecT = ADT::SparseBitvector;
     // FIXME ^^
     using PredicatesT = std::set<CDNode *>;
 
     std::string _name;
     NodesVecT _nodes;
-    //NodesPtrVecT _predicates;
+    // NodesPtrVecT _predicates;
     PredicatesT _predicates;
 
     // iterator over the subgraphs that unwraps the unique_ptr
     struct node_iterator : public NodesVecT::iterator {
-        using ContainedType
-            = typename std::remove_reference<decltype(*(std::declval<NodesVecT::iterator>()->get()))>::type;
+        using ContainedType = typename std::remove_reference<decltype(
+                *(std::declval<NodesVecT::iterator>()->get()))>::type;
 
-        node_iterator(const typename NodesVecT::iterator& it) : NodesVecT::iterator(it) {}
-        node_iterator(const node_iterator&) = default;
+        node_iterator(const typename NodesVecT::iterator &it)
+                : NodesVecT::iterator(it) {}
+        node_iterator(const node_iterator &) = default;
         node_iterator() = default;
 
         ContainedType *operator*() {
@@ -64,8 +65,8 @@ class CDGraph {
     };
 
     struct nodes_range {
-        NodesVecT& nodes;
-        nodes_range(NodesVecT& b) : nodes(b) {}
+        NodesVecT &nodes;
+        nodes_range(NodesVecT &b) : nodes(b) {}
 
         node_iterator begin() { return node_iterator(nodes.begin()); }
         node_iterator end() { return node_iterator(nodes.end()); }
@@ -76,9 +77,9 @@ class CDGraph {
     struct predicate_iterator : public NodesPtrVecT::const_iterator {
         NodesVecT& _nodes;
 
-        predicate_iterator(NodesVecT& nodes, const typename NodesPtrVecT::const_iterator& it)
-            : NodesPtrVecT::const_iterator(it), _nodes(nodes) {}
-        predicate_iterator(const predicate_iterator&) = default;
+        predicate_iterator(NodesVecT& nodes, const typename
+    NodesPtrVecT::const_iterator& it) : NodesPtrVecT::const_iterator(it),
+    _nodes(nodes) {} predicate_iterator(const predicate_iterator&) = default;
 
         CDNode *operator*() {
             auto id = NodesPtrVecT::const_iterator::operator*();
@@ -95,31 +96,33 @@ class CDGraph {
     struct predicates_range {
         NodesVecT& nodes;
         NodesPtrVecT& predicates;
-        predicates_range(NodesVecT& n, NodesPtrVecT& b) : nodes(n), predicates(b) {}
+        predicates_range(NodesVecT& n, NodesPtrVecT& b) : nodes(n),
+    predicates(b) {}
 
-        predicate_iterator begin() { return predicate_iterator(nodes, predicates.begin()); }
-        predicate_iterator end() { return predicate_iterator(nodes, predicates.end()); }
+        predicate_iterator begin() { return predicate_iterator(nodes,
+    predicates.begin()); } predicate_iterator end() { return
+    predicate_iterator(nodes, predicates.end()); }
     };
     */
 
-public:
-    CDGraph(const std::string& name = "") : _name(name) {}
-    CDGraph(const CDGraph& rhs) = delete;
-    CDGraph& operator=(const CDGraph&) = delete;
-    CDGraph(CDGraph&&) = default;
-    CDGraph& operator=(CDGraph&&) = default;
+  public:
+    CDGraph(const std::string &name = "") : _name(name) {}
+    CDGraph(const CDGraph &rhs) = delete;
+    CDGraph &operator=(const CDGraph &) = delete;
+    CDGraph(CDGraph &&) = default;
+    CDGraph &operator=(CDGraph &&) = default;
 
-    CDNode& createNode() {
+    CDNode &createNode() {
         auto *nd = new CDNode(_nodes.size() + 1);
         _nodes.emplace_back(nd);
-        assert(_nodes.back()->getID() == _nodes.size()
-               && "BUG: we rely on the ordering by ids");
+        assert(_nodes.back()->getID() == _nodes.size() &&
+               "BUG: we rely on the ordering by ids");
         return *nd;
     }
 
     // add an edge between two nodes in the graph.
     // This method registers also what nodes have more than successor
-    void addNodeSuccessor(CDNode& nd, CDNode& succ) {
+    void addNodeSuccessor(CDNode &nd, CDNode &succ) {
         nd.addSuccessor(&succ);
         if (nd.successors().size() > 1) {
             _predicates.insert(&nd);
@@ -144,17 +147,24 @@ public:
     bool empty() const { return _nodes.empty(); }
 
     /*
-    predicate_iterator predicates_begin() { return predicate_iterator(_nodes, _predicates.begin()); }
-    predicate_iterator predicates_end() { return predicate_iterator(_nodes, _predicates.end()); }
-    predicates_range predicates() { return predicates_range(_nodes, _predicates); }
+    predicate_iterator predicates_begin() { return predicate_iterator(_nodes,
+    _predicates.begin()); } predicate_iterator predicates_end() { return
+    predicate_iterator(_nodes, _predicates.end()); } predicates_range
+    predicates() { return predicates_range(_nodes, _predicates); }
     */
 
-    decltype(_predicates.begin()) predicates_begin() { return _predicates.begin(); }
+    decltype(_predicates.begin()) predicates_begin() {
+        return _predicates.begin();
+    }
     decltype(_predicates.end()) predicates_end() { return _predicates.end(); }
-    decltype(_predicates.begin()) predicates_begin() const { return _predicates.begin(); }
-    decltype(_predicates.end()) predicates_end() const { return _predicates.end(); }
-    PredicatesT& predicates() { return _predicates; }
-    const PredicatesT& predicates() const { return _predicates; }
+    decltype(_predicates.begin()) predicates_begin() const {
+        return _predicates.begin();
+    }
+    decltype(_predicates.end()) predicates_end() const {
+        return _predicates.end();
+    }
+    PredicatesT &predicates() { return _predicates; }
+    const PredicatesT &predicates() const { return _predicates; }
 
     /*
     bool isPredicate(const CDNode& nd) const {
@@ -162,11 +172,11 @@ public:
     }
     */
 
-    bool isPredicate(const CDNode& nd) const {
+    bool isPredicate(const CDNode &nd) const {
         return _predicates.count(const_cast<CDNode *>(&nd)) > 0;
     }
 
-    const std::string& getName() const { return _name; }
+    const std::string &getName() const { return _name; }
 };
 
 } // namespace dg

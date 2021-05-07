@@ -7,8 +7,9 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 SILENCE_LLVM_WARNINGS_POP
 
-JoinNode::JoinNode(const llvm::Instruction *value, const llvm::CallInst *callInst)
-    :Node(NodeType::JOIN, value, callInst){}
+JoinNode::JoinNode(const llvm::Instruction *value,
+                   const llvm::CallInst *callInst)
+        : Node(NodeType::JOIN, value, callInst) {}
 
 bool JoinNode::addCorrespondingFork(ForkNode *forkNode) {
     if (!forkNode) {

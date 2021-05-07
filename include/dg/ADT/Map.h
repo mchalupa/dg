@@ -8,23 +8,23 @@ namespace dg {
 // an ordered map with a unified API
 template <typename Key, typename Val, typename Impl>
 class MapImpl : public Impl {
-public:
+  public:
     using iterator = typename Impl::iterator;
     using const_iterator = typename Impl::const_iterator;
 
-    bool put(const Key& k, Val v) {
+    bool put(const Key &k, Val v) {
         auto it = this->insert(std::make_pair(k, v));
         return it.second;
     }
 
-    const Val *get(const Key& k) const {
+    const Val *get(const Key &k) const {
         auto it = this->find(k);
         if (it != this->end())
             return &it->second;
         return nullptr;
     }
 
-    Val *get(Key& k) {
+    Val *get(Key &k) {
         auto it = this->find(k);
         if (it != this->end())
             return &it->second;

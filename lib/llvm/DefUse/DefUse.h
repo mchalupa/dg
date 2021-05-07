@@ -5,9 +5,9 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
+#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/DataLayout.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/legacy/DataFlowAnalysis.h"
@@ -16,32 +16,31 @@ SILENCE_LLVM_WARNINGS_POP
 using dg::dda::LLVMDataDependenceAnalysis;
 
 namespace llvm {
-    class DataLayout;
-    class ConstantExpr;
-};
+class DataLayout;
+class ConstantExpr;
+}; // namespace llvm
 
 namespace dg {
 
 class LLVMDependenceGraph;
 class LLVMNode;
 
-class LLVMDefUseAnalysis : public legacy::DataFlowAnalysis<LLVMNode>
-{
+class LLVMDefUseAnalysis : public legacy::DataFlowAnalysis<LLVMNode> {
     LLVMDependenceGraph *dg;
     LLVMDataDependenceAnalysis *RD;
     LLVMPointerAnalysis *PTA;
     const llvm::DataLayout *DL;
 
-public:
-    LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
-                       LLVMDataDependenceAnalysis *rd,
+  public:
+    LLVMDefUseAnalysis(LLVMDependenceGraph *dg, LLVMDataDependenceAnalysis *rd,
                        LLVMPointerAnalysis *pta);
 
     ~LLVMDefUseAnalysis() { delete DL; }
 
     /* virtual */
     bool runOnNode(LLVMNode *node, LLVMNode *prev);
-private:
+
+  private:
     void addDataDependencies(LLVMNode *node);
 
     void handleLoadInst(llvm::LoadInst *, LLVMNode *);

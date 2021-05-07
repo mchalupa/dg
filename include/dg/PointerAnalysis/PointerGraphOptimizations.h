@@ -8,7 +8,8 @@ namespace pta {
 
 class PSNoopRemover {
     PointerGraph *G;
-public:
+
+  public:
     PSNoopRemover(PointerGraph *g) : G(g) {}
     unsigned run();
 };
@@ -26,11 +27,11 @@ class PSUnknownsReducer {
 
     void processAllocs();
 
-public:
+  public:
     PSUnknownsReducer(PointerGraph *g) : G(g) {}
 
-    MappingT& getMapping() { return mapping; }
-    const MappingT& getMapping() const { return mapping; }
+    MappingT &getMapping() { return mapping; }
+    const MappingT &getMapping() const { return mapping; }
 
     unsigned run() {
         processAllocs();
@@ -39,27 +40,24 @@ public:
 };
 
 class PSEquivalentNodesMerger {
-public:
+  public:
     using MappingT = PointsToMapping<PSNode *>;
 
-    PSEquivalentNodesMerger(PointerGraph *g)
-    : G(g), merged_nodes_num(0) {
+    PSEquivalentNodesMerger(PointerGraph *g) : G(g), merged_nodes_num(0) {
         mapping.reserve(32);
     }
 
-    MappingT& getMapping() { return mapping; }
-    const MappingT& getMapping() const { return mapping; }
+    MappingT &getMapping() { return mapping; }
+    const MappingT &getMapping() const { return mapping; }
 
-    unsigned getNumOfMergedNodes() const {
-        return merged_nodes_num;
-    }
+    unsigned getNumOfMergedNodes() const { return merged_nodes_num; }
 
     unsigned run() {
         mergeCasts();
         return merged_nodes_num;
     }
 
-private:
+  private:
     // get rid of all casts
     void mergeCasts();
 
@@ -82,7 +80,8 @@ class PointerGraphOptimizer {
     MappingT mapping;
 
     unsigned removed = 0;
-public:
+
+  public:
     PointerGraphOptimizer(PointerGraph *g) : G(g) {}
 
     void removeNoops() {
@@ -101,8 +100,8 @@ public:
     void removeEquivalentNodes() {
         PSEquivalentNodesMerger merger(G);
         if (auto r = merger.run()) {
-                mapping.merge(std::move(merger.getMapping()));
-                removed += r;
+            mapping.merge(std::move(merger.getMapping()));
+            removed += r;
         }
     }
 
@@ -120,10 +119,9 @@ public:
     }
 
     unsigned getNumOfRemovedNodes() const { return removed; }
-    MappingT& getMapping() { return mapping; }
-    const MappingT& getMapping() const { return mapping; }
+    MappingT &getMapping() { return mapping; }
+    const MappingT &getMapping() const { return mapping; }
 };
-
 
 } // namespace pta
 } // namespace dg

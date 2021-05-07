@@ -12,50 +12,51 @@
 #include <map>
 #include <unordered_map>
 
-#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
-
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 
 // forward declaration of llvm classes
 namespace llvm {
-    class Module;
-    class Value;
-    class Function;
+class Module;
+class Value;
+class Function;
 } // namespace llvm
 
-#include "dg/llvm/LLVMNode.h"
 #include "dg/DependenceGraph.h"
+#include "dg/llvm/LLVMNode.h"
 
 namespace dg {
 
 class LLVMPointerAnalysis;
 
-//namespace llvmdg {
-//class LLVMControlDependenceAnalysis;
+// namespace llvmdg {
+// class LLVMControlDependenceAnalysis;
 //}
-
 
 // FIXME: why PTA is only in the namespace dg
 // and this is that nested? Make it consistent...
 
-namespace dda { class LLVMDataDependenceAnalysis; }
+namespace dda {
+class LLVMDataDependenceAnalysis;
+}
 
 using dda::LLVMDataDependenceAnalysis;
-//using llvmdg::LLVMControlDependenceAnalysis;
+// using llvmdg::LLVMControlDependenceAnalysis;
 
 using LLVMBBlock = dg::BBlock<LLVMNode>;
 
 /// ------------------------------------------------------------------
 //  -- LLVMDependenceGraph
 /// ------------------------------------------------------------------
-class LLVMDependenceGraph : public DependenceGraph<LLVMNode>
-{
+class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // our artificial unified exit block
     std::unique_ptr<LLVMBBlock> unifiedExitBB{};
     llvm::Function *entryFunction{nullptr};
-public:
+
+  public:
     LLVMDependenceGraph(bool threads = false)
-        : gather_callsites(nullptr), threads(threads), module(nullptr), PTA(nullptr) {}
+            : gather_callsites(nullptr), threads(threads), module(nullptr),
+              PTA(nullptr) {}
 
     // free all allocated memory and unref subgraphs
     ~LLVMDependenceGraph();
@@ -66,8 +67,7 @@ public:
     // NOTE: this methods does not compute the dependence edges.
     // For that functionality check the LLVMDependenceGraphBuilder.
     bool build(llvm::Module *m, llvm::Function *entry = nullptr);
-    bool build(llvm::Module *m,
-               LLVMPointerAnalysis *pts = nullptr,
+    bool build(llvm::Module *m, LLVMPointerAnalysis *pts = nullptr,
                LLVMDataDependenceAnalysis *rda = nullptr,
                llvm::Function *entry = nullptr);
 
@@ -94,8 +94,7 @@ public:
     // later. This can handle only direct-calls though. If the
     // function is called via pointer, it won't be covered by this
     // function
-    void gatherCallsites(const char *name, std::set<LLVMNode *> *callSites)
-    {
+    void gatherCallsites(const char *name, std::set<LLVMNode *> *callSites) {
         gather_callsites = name;
         gatheredCallsites = callSites;
     }
@@ -106,31 +105,34 @@ public:
     bool getCallSites(const char *name, std::set<LLVMNode *> *callsites);
     // this method takes NULL-terminated array of names
     bool getCallSites(const char *names[], std::set<LLVMNode *> *callsites);
-    bool getCallSites(const std::vector<std::string>& names, std::set<LLVMNode *> *callsites);
+    bool getCallSites(const std::vector<std::string> &names,
+                      std::set<LLVMNode *> *callsites);
 
     // FIXME we need remove the callsite from here if we slice away
     // the callsite
-    const std::set<LLVMNode *>& getCallNodes() const { return callNodes; }
-    std::set<LLVMNode *>& getCallNodes() { return callNodes; }
+    const std::set<LLVMNode *> &getCallNodes() const { return callNodes; }
+    std::set<LLVMNode *> &getCallNodes() { return callNodes; }
     bool addCallNode(LLVMNode *c) { return callNodes.insert(c).second; }
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
-    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *, bool fork = false);
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *,
+                                       bool fork = false);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
     void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
-    void addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions& opts);
+    void
+    addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions &opts);
 
-    void computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts);
+    void computeControlDependencies(
+            const LLVMControlDependenceAnalysisOptions &opts);
 
     bool verify() const;
 
     void setThreads(bool threads);
 
     /* virtual */
-    void setSlice(uint64_t sid)
-    {
+    void setSlice(uint64_t sid) {
         DependenceGraph<LLVMNode>::setSlice(sid);
         LLVMNode *entry = getEntry();
         assert(entry);
@@ -146,22 +148,27 @@ public:
     LLVMNode *findNode(llvm::Value *value) const;
 
     void addDefUseEdges();
-    void computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph);
-    void computeForkJoinDependencies(ControlFlowGraph * controlFlowGraph);
-    void computeCriticalSections(ControlFlowGraph * controlFlowGraph);
-private:
+    void computeInterferenceDependentEdges(ControlFlowGraph *controlFlowGraph);
+    void computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph);
+    void computeCriticalSections(ControlFlowGraph *controlFlowGraph);
+
+  private:
     void computePostDominators(bool addPostDomFrontiers = false);
     void computeNonTerminationControlDependencies();
-    void computeNTSCD(const LLVMControlDependenceAnalysisOptions& opts);
+    void computeNTSCD(const LLVMControlDependenceAnalysisOptions &opts);
 
-    void computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
-                                           const std::set<const llvm::Instruction *> &stores);
+    void computeInterferenceDependentEdges(
+            const std::set<const llvm::Instruction *> &loads,
+            const std::set<const llvm::Instruction *> &stores);
 
-    std::set<const llvm::Instruction *> getLoadInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const;
-    std::set<const llvm::Instruction *> getStoreInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    std::set<const llvm::Instruction *> getLoadInstructions(
+            const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    std::set<const llvm::Instruction *> getStoreInstructions(
+            const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
-    std::set<const llvm::Instruction *> getInstructionsOfType(const unsigned opCode,
-                                                              const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    std::set<const llvm::Instruction *> getInstructionsOfType(
+            const unsigned opCode,
+            const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
@@ -170,13 +177,14 @@ private:
     // take action specific to given instruction (while building
     // the graph). This is like if the value is a call-site,
     // then build subgraph or similar
-    void handleInstruction(llvm::Value *val, LLVMNode *node, LLVMNode *prevNode);
+    void handleInstruction(llvm::Value *val, LLVMNode *node,
+                           LLVMNode *prevNode);
 
     // convert llvm basic block to our basic block
     // That includes creating all the nodes and adding them
     // to this graph and creating the basic block and
     // setting first and last instructions
-    LLVMBBlock *build(llvm::BasicBlock& BB);
+    LLVMBBlock *build(llvm::BasicBlock &BB);
 
     // gather call-sites of functions with given name
     // when building the graph
@@ -196,20 +204,19 @@ private:
     // analyses needed for building the graph
     LLVMPointerAnalysis *PTA;
     LLVMDataDependenceAnalysis *DDA;
-    //LLVMControlDependenceAnalysis *CDA;
+    // LLVMControlDependenceAnalysis *CDA;
 
     // verifier needs access to private elements
     friend class LLVMDGVerifier;
 };
 
-const std::map<llvm::Value *,
-               LLVMDependenceGraph *>& getConstructedFunctions();
+const std::map<llvm::Value *, LLVMDependenceGraph *> &getConstructedFunctions();
 
-LLVMNode *
-findInstruction(llvm::Instruction * instruction, 
-                const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions);
+LLVMNode *findInstruction(llvm::Instruction *instruction,
+                          const std::map<llvm::Value *, LLVMDependenceGraph *>
+                                  &constructedFunctions);
 
-llvm::Instruction * castToLLVMInstruction(const llvm::Value * value);
+llvm::Instruction *castToLLVMInstruction(const llvm::Value *value);
 } // namespace dg
 
 #endif // _DEPENDENCE_GRAPH_H_

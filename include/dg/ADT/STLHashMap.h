@@ -8,18 +8,18 @@
 namespace dg {
 
 template <typename Key, typename Val>
-class STLHashMap : public HashMapImpl<Key, Val, std::unordered_map<Key, Val>> {};
-
+class STLHashMap : public HashMapImpl<Key, Val, std::unordered_map<Key, Val>> {
+};
 
 // unordered_map that caches last several accesses
 // XXX: use a different implementation than std::unordered_map
-template <typename Key, typename T, unsigned CACHE_SIZE=4U>
+template <typename Key, typename T, unsigned CACHE_SIZE = 4U>
 class CachingHashMap : public std::unordered_map<Key, T> {
-    std::pair<Key, T*> _cache[CACHE_SIZE];
+    std::pair<Key, T *> _cache[CACHE_SIZE];
     unsigned _insert_pos{0};
     unsigned _last{0};
 
-    T *_get_from_cache(const Key& key) {
+    T *_get_from_cache(const Key &key) {
         if (_last > 0) {
             for (unsigned i = 0; i < _last; ++i) {
                 if (_cache[i].first == key)
@@ -29,7 +29,7 @@ class CachingHashMap : public std::unordered_map<Key, T> {
         return nullptr;
     }
 
-    void _insert_to_cache(const Key& key, T *v) {
+    void _insert_to_cache(const Key &key, T *v) {
         _last = std::min(_last + 1, CACHE_SIZE);
         _cache[_insert_pos] = {key, v};
         _insert_pos = (_insert_pos + 1) % CACHE_SIZE;
@@ -43,16 +43,16 @@ class CachingHashMap : public std::unordered_map<Key, T> {
         _insert_pos = 0;
     }
 
-public:
+  public:
     using iterator = typename std::unordered_map<Key, T>::iterator;
     using const_iterator = typename std::unordered_map<Key, T>::const_iterator;
 
-    T& operator[](const Key& key) {
+    T &operator[](const Key &key) {
         if (auto *v = _get_from_cache(key)) {
             return *v;
         }
 
-        auto& ret = std::unordered_map<Key, T>::operator[](key);
+        auto &ret = std::unordered_map<Key, T>::operator[](key);
         _insert_to_cache(key, &ret);
         return ret;
     }

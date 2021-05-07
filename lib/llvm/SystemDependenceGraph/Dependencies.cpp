@@ -1,6 +1,6 @@
-#include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
-#include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/ControlDependence/ControlDependence.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/util/debug.h"
 
 namespace dg {
@@ -9,17 +9,17 @@ namespace llvmdg {
 ///
 // Fill in dependence edges into SDG
 struct SDGDependenciesBuilder {
-    llvmdg::SystemDependenceGraph& _sdg;
+    llvmdg::SystemDependenceGraph &_sdg;
     dda::LLVMDataDependenceAnalysis *DDA;
     LLVMControlDependenceAnalysis *CDA;
 
-    SDGDependenciesBuilder(llvmdg::SystemDependenceGraph& g,
+    SDGDependenciesBuilder(llvmdg::SystemDependenceGraph &g,
                            dda::LLVMDataDependenceAnalysis *dda,
                            LLVMControlDependenceAnalysis *cda)
-        : _sdg(g), DDA(dda), CDA(cda) {}
+            : _sdg(g), DDA(dda), CDA(cda) {}
 
-    void addUseDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
-        for (auto& op : I.operands()) {
+    void addUseDependencies(sdg::DGElement *nd, llvm::Instruction &I) {
+        for (auto &op : I.operands()) {
             auto *val = &*op;
             if (llvm::isa<llvm::ConstantExpr>(val)) {
                 val = val->stripPointerCasts();
@@ -66,7 +66,8 @@ struct SDGDependenciesBuilder {
             assert(depnd && "Do not have the node");
 
             if (auto *C = sdg::DGNodeCall::get(depnd)) {
-                // this is 'noret' dependence (we have no other control deps for calls)
+                // this is 'noret' dependence (we have no other control deps for
+                // calls)
                 auto *noret = C->getParameters().getNoReturn();
                 if (!noret)
                     noret = &C->getParameters().createNoReturn();
@@ -85,29 +86,30 @@ struct SDGDependenciesBuilder {
         }
     }
 
-    void addControlDependencies(sdg::DepDGElement *elem, llvm::Instruction& I) {
+    void addControlDependencies(sdg::DepDGElement *elem, llvm::Instruction &I) {
         assert(elem);
         for (auto *dep : CDA->getDependencies(&I)) {
             addControlDep(elem, dep);
         }
     }
 
-    void addControlDependencies(sdg::DGBBlock *block, llvm::BasicBlock& B) {
+    void addControlDependencies(sdg::DGBBlock *block, llvm::BasicBlock &B) {
         assert(block);
         for (auto *dep : CDA->getDependencies(&B)) {
             addControlDep(block, dep);
         }
     }
 
-    void addDataDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
+    void addDataDependencies(sdg::DGElement *nd, llvm::Instruction &I) {
         addInterprocDataDependencies(nd, I);
     }
 
-    void addInterprocDataDependencies(sdg::DGElement *nd, llvm::Instruction& I) {
+    void addInterprocDataDependencies(sdg::DGElement *nd,
+                                      llvm::Instruction &I) {
         if (!DDA->isUse(&I))
             return;
 
-        for (auto& op : DDA->getLLVMDefinitions(&I)) {
+        for (auto &op : DDA->getLLVMDefinitions(&I)) {
             auto *val = &*op;
             auto *opnd = _sdg.getNode(val);
             if (!opnd) {
@@ -129,7 +131,7 @@ struct SDGDependenciesBuilder {
         }
     }
 
-    void processInstr(llvm::Instruction& I) {
+    void processInstr(llvm::Instruction &I) {
         auto *nd = sdg::DepDGElement::get(_sdg.getNode(&I));
         assert(nd && "Do not have node");
 
@@ -145,12 +147,12 @@ struct SDGDependenciesBuilder {
         addControlDependencies(nd, I);
     }
 
-    void processDG(llvm::Function& F) {
+    void processDG(llvm::Function &F) {
         auto *dg = _sdg.getDG(&F);
         assert(dg && "Do not have dg");
 
-        for (auto& B : F) {
-            for (auto& I : B) {
+        for (auto &B : F) {
+            for (auto &I : B) {
                 processInstr(I);
             }
 
@@ -176,12 +178,11 @@ struct SDGDependenciesBuilder {
             } else {
                 noret->addControlDep(*nd);
             }
-
         }
     }
 
     void processFuns() {
-        for (auto& F : *_sdg.getModule()) {
+        for (auto &F : *_sdg.getModule()) {
             if (F.isDeclaration()) {
                 continue;
             }

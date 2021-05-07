@@ -1,13 +1,13 @@
 #ifndef DG_LLVM_POINTER_ANALYSIS_OPTIONS_H_
 #define DG_LLVM_POINTER_ANALYSIS_OPTIONS_H_
 
-#include "dg/llvm/LLVMAnalysisOptions.h"
 #include "dg/PointerAnalysis/PointerAnalysisOptions.h"
+#include "dg/llvm/LLVMAnalysisOptions.h"
 
 namespace dg {
 
-struct LLVMPointerAnalysisOptions : public LLVMAnalysisOptions, PointerAnalysisOptions
-{
+struct LLVMPointerAnalysisOptions : public LLVMAnalysisOptions,
+                                    PointerAnalysisOptions {
     enum class AnalysisType { fi, fs, inv, svf } analysisType{AnalysisType::fi};
 
     bool threads{false};

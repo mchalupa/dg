@@ -6,19 +6,19 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -27,11 +27,8 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace pta {
 
-void
-LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C,
-                                                         PSNodeAlloc *node,
-                                                         uint64_t offset)
-{
+void LLVMPointerGraphBuilder::handleGlobalVariableInitializer(
+        const llvm::Constant *C, PSNodeAlloc *node, uint64_t offset) {
     using namespace llvm;
 
     // if the global is zero initialized, just set the zeroInitialized flag
@@ -61,14 +58,14 @@ LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C
         PSNode *op = getOperand(C);
         PSNode *target = PS.createGlobal<PSNodeType::CONSTANT>(node, offset);
         PS.createGlobal<PSNodeType::STORE>(op, target);
-    } else if (isa<ConstantExpr>(C)
-                || isa<Function>(C)
-                || C->getType()->isPointerTy()) {
-       if (C->getType()->isPointerTy()) {
-           PSNode *value = getOperand(C);
-           assert(value->pointsTo.size() == 1 && "BUG: We should have constant");
-           PS.createGlobal<PSNodeType::STORE>(value, node);
-       }
+    } else if (isa<ConstantExpr>(C) || isa<Function>(C) ||
+               C->getType()->isPointerTy()) {
+        if (C->getType()->isPointerTy()) {
+            PSNode *value = getOperand(C);
+            assert(value->pointsTo.size() == 1 &&
+                   "BUG: We should have constant");
+            PS.createGlobal<PSNodeType::STORE>(value, node);
+        }
     } else if (isa<UndefValue>(C)) {
         // undef value means unknown memory
         PSNode *target = PS.createGlobal<PSNodeType::CONSTANT>(node, offset);
@@ -81,21 +78,20 @@ LLVMPointerGraphBuilder::handleGlobalVariableInitializer(const llvm::Constant *C
 }
 
 static uint64_t getAllocatedSize(const llvm::GlobalVariable *GV,
-                                 const llvm::DataLayout *DL)
-{
+                                 const llvm::DataLayout *DL) {
     llvm::Type *Ty = GV->getType()->getContainedType(0);
     if (!Ty->isSized())
-            return 0;
+        return 0;
 
     return DL->getTypeAllocSize(Ty);
 }
 
-void LLVMPointerGraphBuilder::buildGlobals()
-{
+void LLVMPointerGraphBuilder::buildGlobals() {
     // create PointerGraph nodes
     for (auto I = M->global_begin(), E = M->global_end(); I != E; ++I) {
         // every global node is like memory allocation
-        PSNodeAlloc *nd = PSNodeAlloc::get(PS.createGlobal<PSNodeType::ALLOC>());
+        PSNodeAlloc *nd =
+                PSNodeAlloc::get(PS.createGlobal<PSNodeType::ALLOC>());
         nd->setIsGlobal();
         addNode(&*I, nd);
     }

@@ -1,7 +1,7 @@
-#include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/llvm/SystemDependenceGraph/SDG2Dot.h"
+#include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 
-std::ostream& operator<<(std::ostream& os, const llvm::Value *val) {
+std::ostream &operator<<(std::ostream &os, const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;
@@ -47,4 +47,3 @@ std::ostream& operator<<(std::ostream& os, const llvm::Value *val) {
 
     return os;
 }
-

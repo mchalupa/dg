@@ -7,7 +7,7 @@ namespace pta {
 // create subgraph or add edges to already existing subgraph,
 // return the CALL node (the first) and the RETURN node (the second),
 // so that we can connect them into the PointerGraph
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst) {
     using namespace llvm;
 
@@ -39,19 +39,19 @@ LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
                                                  const llvm::Function *func) {
     assert(func->size() == 0);
     // is it a call to free? If so, create invalidate node instead.
-    if(invalidate_nodes && func->getName().equals("free")) {
+    if (invalidate_nodes && func->getName().equals("free")) {
         return {createFree(CInst)};
     } else if (threads_) {
         if (func->getName().equals("pthread_create")) {
-           return createPthreadCreate(CInst);
+            return createPthreadCreate(CInst);
         } else if (func->getName().equals("pthread_join")) {
-           return createPthreadJoin(CInst);
+            return createPthreadJoin(CInst);
         } else if (func->getName().equals("pthread_exit")) {
-           return createPthreadExit(CInst);
+            return createPthreadExit(CInst);
         }
     }
     /// memory allocation (malloc, calloc, etc.)
-    auto type =_options.getAllocationFunction(func->getName().str());
+    auto type = _options.getAllocationFunction(func->getName().str());
     if (type != AllocationFunction::NONE) {
         return createDynamicMemAlloc(CInst, type);
     } else if (func->isIntrinsic()) {
@@ -59,25 +59,22 @@ LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
     }
 
     // mempy/memmove
-    const auto& funname = func->getName();
-    if (funname.equals("memcpy") ||
-        funname.equals("__memcpy_chk") ||
+    const auto &funname = func->getName();
+    if (funname.equals("memcpy") || funname.equals("__memcpy_chk") ||
         funname.equals("memove")) {
-
         auto dest = CInst->getOperand(0);
         auto src = CInst->getOperand(1);
         auto lenVal = llvmutils::getConstantValue(CInst->getOperand(2));
-        return PS.create<PSNodeType::MEMCPY>(getOperand(src),
-                                             getOperand(dest),
+        return PS.create<PSNodeType::MEMCPY>(getOperand(src), getOperand(dest),
                                              lenVal);
     }
 
     return {createUnknownCall()};
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const llvm::Value *calledVal)
-{
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst,
+                                           const llvm::Value *calledVal) {
     // just the call_funcptr and call_return nodes are created and
     // when the pointers are resolved during analysis, the graph
     // will be dynamically created and it will replace these nodes
@@ -93,12 +90,11 @@ LLVMPointerGraphBuilder::createFuncptrCall(const llvm::CallInst *CInst, const ll
     return addNode(CInst, {call_funcptr, ret_call});
 }
 
-PSNode *
-LLVMPointerGraphBuilder::createUnknownCall() {
+PSNode *LLVMPointerGraphBuilder::createUnknownCall() {
     // This assertion must not hold if the call is wrapped
     // inside bitcast - it defaults to int, but is bitcased
     // to pointer
-    //assert(CInst->getType()->isPointerTy());
+    // assert(CInst->getType()->isPointerTy());
     PSNode *call = PS.create<PSNodeType::CALL>();
     call->setPairedNode(call);
 
@@ -111,19 +107,19 @@ LLVMPointerGraphBuilder::createUnknownCall() {
 PSNode *
 LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
     using namespace llvm;
-    const Value *dest, *src;//, *lenVal;
+    const Value *dest, *src; //, *lenVal;
     uint64_t lenVal = Offset::UNKNOWN;
 
     switch (I->getIntrinsicID()) {
-        case Intrinsic::memmove:
-        case Intrinsic::memcpy:
-            dest = I->getOperand(0);
-            src = I->getOperand(1);
-            lenVal = llvmutils::getConstantValue(I->getOperand(2));
-            break;
-        default:
-            errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
-            abort();
+    case Intrinsic::memmove:
+    case Intrinsic::memcpy:
+        dest = I->getOperand(0);
+        src = I->getOperand(1);
+        lenVal = llvmutils::getConstantValue(I->getOperand(2));
+        break;
+    default:
+        errs() << "ERR: unhandled mem transfer intrinsic" << *I << "\n";
+        abort();
     }
 
     PSNode *destNode = getOperand(dest);
@@ -136,7 +132,8 @@ LLVMPointerGraphBuilder::createMemTransfer(const llvm::IntrinsicInst *I) {
 LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createMemSet(const llvm::Instruction *Inst) {
     PSNode *val;
-    if (llvmutils::memsetIsZeroInitialization(llvm::cast<llvm::IntrinsicInst>(Inst)))
+    if (llvmutils::memsetIsZeroInitialization(
+                llvm::cast<llvm::IntrinsicInst>(Inst)))
         val = NULLPTR;
     else
         // if the memset is not 0-initialized, it does some
@@ -182,8 +179,9 @@ LLVMPointerGraphBuilder::createVarArg(const llvm::IntrinsicInst *Inst) {
     PSNode *op = getOperand(Inst->getOperand(0)->stripInBoundsOffsets());
     // the argument is usually an alloca, but it may be a load
     // in the case the code was transformed by -reg2mem
-    assert((op->getType() == PSNodeType::ALLOC || op->getType() == PSNodeType::LOAD)
-           && "Argument of vastart is invalid");
+    assert((op->getType() == PSNodeType::ALLOC ||
+            op->getType() == PSNodeType::LOAD) &&
+           "Argument of vastart is invalid");
     // get node with the same pointer, but with Offset::UNKNOWN
     // FIXME: we're leaking it
     // make the memory in alloca point to our memory in vastart
@@ -208,7 +206,6 @@ LLVMPointerGraphBuilder::createLifetimeEnd(const llvm::Instruction *Inst) {
     return PS.create<PSNodeType::INVALIDATE_OBJECT>(op1);
 }
 
-
 LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst) {
     using namespace llvm;
@@ -221,24 +218,24 @@ LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst) {
     }
 
     switch (I->getIntrinsicID()) {
-        case Intrinsic::vastart:
-            return createVarArg(I);
-        case Intrinsic::stacksave:
-            errs() << "WARNING: Saving stack may yield unsound results!: "
-                   << *Inst << "\n";
-            return {PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>())};
-        case Intrinsic::stackrestore:
-            return {createInternalLoad(Inst)};
-        case Intrinsic::lifetime_end:
-            return {createLifetimeEnd(Inst)};
-        default:
-            errs() << *Inst << "\n";
-            errs() << "Unhandled intrinsic ^^\n";
-            abort();
+    case Intrinsic::vastart:
+        return createVarArg(I);
+    case Intrinsic::stacksave:
+        errs() << "WARNING: Saving stack may yield unsound results!: " << *Inst
+               << "\n";
+        return {PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>())};
+    case Intrinsic::stackrestore:
+        return {createInternalLoad(Inst)};
+    case Intrinsic::lifetime_end:
+        return {createLifetimeEnd(Inst)};
+    default:
+        errs() << *Inst << "\n";
+        errs() << "Unhandled intrinsic ^^\n";
+        abort();
     }
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst) {
     // we filter irrelevant calls in isRelevantCall()
     // and we don't have assembler there at all. If
@@ -247,29 +244,28 @@ LLVMPointerGraphBuilder::createAsm(const llvm::Instruction *Inst) {
     // In this case return an unknown pointer
     static bool warned = false;
     if (!warned) {
-        llvm::errs() << "PTA: Inline assembly found, analysis  may be unsound\n";
+        llvm::errs()
+                << "PTA: Inline assembly found, analysis  may be unsound\n";
         warned = true;
     }
 
-    PSNode *n = PS.create<PSNodeType::CONSTANT>(UNKNOWN_MEMORY, Offset::UNKNOWN);
+    PSNode *n =
+            PS.create<PSNodeType::CONSTANT>(UNKNOWN_MEMORY, Offset::UNKNOWN);
     // it is call that returns pointer, so we'd like to have
     // a 'return' node that contains that pointer
     n->setPairedNode(n);
     return addNode(Inst, n);
 }
 
-PSNode *
-LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst) {
-
+PSNode *LLVMPointerGraphBuilder::createFree(const llvm::Instruction *Inst) {
     PSNode *op1 = getOperand(Inst->getOperand(0));
     PSNode *node = PS.create<PSNodeType::FREE>(op1);
 
     return node;
 }
 
-PSNode *
-LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
-                                            AllocationFunction type) {
+PSNode *LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
+                                                    AllocationFunction type) {
     using namespace llvm;
 
     const Value *op;
@@ -278,22 +274,22 @@ LLVMPointerGraphBuilder::createDynamicAlloc(const llvm::CallInst *CInst,
     node->setIsHeap();
 
     switch (type) {
-        case AllocationFunction::MALLOC:
-            node->setIsHeap();
-            /* fallthrough */
-        case AllocationFunction::ALLOCA:
-            op = CInst->getOperand(0);
-            break;
-        case AllocationFunction::CALLOC:
-            node->setIsHeap();
-            node->setZeroInitialized();
-            op = CInst->getOperand(1);
-            break;
-        default:
-            errs() << *CInst << "\n";
-            assert(0 && "unknown memory allocation type");
-            // for NDEBUG
-            abort();
+    case AllocationFunction::MALLOC:
+        node->setIsHeap();
+        /* fallthrough */
+    case AllocationFunction::ALLOCA:
+        op = CInst->getOperand(0);
+        break;
+    case AllocationFunction::CALLOC:
+        node->setIsHeap();
+        node->setZeroInitialized();
+        op = CInst->getOperand(1);
+        break;
+    default:
+        errs() << *CInst << "\n";
+        assert(0 && "unknown memory allocation type");
+        // for NDEBUG
+        abort();
     };
 
     // infer allocated size
@@ -324,7 +320,8 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
     reall->setUserData(const_cast<llvm::CallInst *>(CInst));
 
     // copy everything that is in orig_mem to reall
-    PSNode *mcp = PS.create<PSNodeType::MEMCPY>(orig_mem, reall, Offset::UNKNOWN);
+    PSNode *mcp =
+            PS.create<PSNodeType::MEMCPY>(orig_mem, reall, Offset::UNKNOWN);
     // we need the pointer in the last node that we return
     PSNode *ptr = PS.create<PSNodeType::CONSTANT>(reall, 0);
 
@@ -342,8 +339,8 @@ LLVMPointerGraphBuilder::createRealloc(const llvm::CallInst *CInst) {
 LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
                                                AllocationFunction type) {
-    assert(type != AllocationFunction::NONE
-            && "BUG: creating dyn. memory node for NONMEM");
+    assert(type != AllocationFunction::NONE &&
+           "BUG: creating dyn. memory node for NONMEM");
 
     PSNodesSeq seq;
     if (type == AllocationFunction::REALLOC) {
@@ -354,8 +351,5 @@ LLVMPointerGraphBuilder::createDynamicMemAlloc(const llvm::CallInst *CInst,
     return seq;
 }
 
-
-
 } // namespace pta
 } // namespace dg
-

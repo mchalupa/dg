@@ -3,8 +3,8 @@
 
 #include <cassert>
 
-#include "dg/Offset.h"
 #include "dg/DataDependence/DataDependenceAnalysisOptions.h"
+#include "dg/Offset.h"
 #include "dg/ReadWriteGraph/ReadWriteGraph.h"
 
 #include "dg/util/debug.h"
@@ -16,20 +16,20 @@ namespace dda {
 // when building the graph) and for later optimizations
 
 class DataDependenceAnalysisImpl {
-protected:
+  protected:
     ReadWriteGraph graph;
 
     const DataDependenceAnalysisOptions options;
 
-public:
-    DataDependenceAnalysisImpl(ReadWriteGraph&& graph,
-                               const DataDependenceAnalysisOptions& opts)
-    : graph(std::move(graph)), options(opts) {
+  public:
+    DataDependenceAnalysisImpl(ReadWriteGraph &&graph,
+                               const DataDependenceAnalysisOptions &opts)
+            : graph(std::move(graph)), options(opts) {
         assert(graph.getEntry() && "Graph has no entry");
     }
 
-    DataDependenceAnalysisImpl(ReadWriteGraph&& graph)
-    : DataDependenceAnalysisImpl(std::move(graph), {}) {}
+    DataDependenceAnalysisImpl(ReadWriteGraph &&graph)
+            : DataDependenceAnalysisImpl(std::move(graph), {}) {}
 
     virtual ~DataDependenceAnalysisImpl() = default;
 
@@ -37,17 +37,16 @@ public:
     const ReadWriteGraph *getGraph() const { return &graph; }
     const RWSubgraph *getEntry() const { return graph.getEntry(); }
     // FIXME: rename to getEntryNode();
-    //RWNode *getRoot() { return graph.getEntry()->getRoot(); }
+    // RWNode *getRoot() { return graph.getEntry()->getRoot(); }
     const RWNode *getRoot() const { return graph.getEntry()->getRoot(); }
 
     virtual void run() = 0;
 
     // return the reaching definitions of ('mem', 'off', 'len')
     // at the location 'where'
-    virtual std::vector<RWNode *>
-    getDefinitions(RWNode *where, RWNode *mem,
-                   const Offset& off,
-                   const Offset& len) = 0;
+    virtual std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
+                                                 const Offset &off,
+                                                 const Offset &len) = 0;
 
     // return reaching definitions of a node that represents
     // the given use

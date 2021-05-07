@@ -1,7 +1,7 @@
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/Support/raw_ostream.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include <iostream>
@@ -14,31 +14,20 @@ using namespace llvm;
 
 int Node::lastId = 0;
 
-Node::Node(NodeType type, const Instruction *instruction, const CallInst *callInst):id_(lastId++),
-                                                    nodeType_(type),
-                                                    llvmInstruction_(instruction),
-                                                    callInstruction_(callInst)
-{}
+Node::Node(NodeType type, const Instruction *instruction,
+           const CallInst *callInst)
+        : id_(lastId++), nodeType_(type), llvmInstruction_(instruction),
+          callInstruction_(callInst) {}
 
-NodeIterator Node::begin() const {
-    return NodeIterator(this, true);
-}
+NodeIterator Node::begin() const { return NodeIterator(this, true); }
 
-NodeIterator Node::end() const {
-    return NodeIterator(this, false);
-}
+NodeIterator Node::end() const { return NodeIterator(this, false); }
 
-int Node::id() const {
-    return id_;
-}
+int Node::id() const { return id_; }
 
-NodeType Node::getType() const {
-    return nodeType_;
-}
+NodeType Node::getType() const { return nodeType_; }
 
-string Node::dotName() const {
-    return "NODE" + to_string(id_);
-}
+string Node::dotName() const { return "NODE" + to_string(id_); }
 
 bool Node::addPredecessor(Node *node) {
     if (!node) {
@@ -72,29 +61,17 @@ bool Node::removeSuccessor(Node *node) {
     return node->predecessors_.erase(this);
 }
 
-const set<Node *> &Node::predecessors() const {
-    return predecessors_;
-}
+const set<Node *> &Node::predecessors() const { return predecessors_; }
 
-const set<Node *> &Node::successors() const {
-    return successors_;
-}
+const set<Node *> &Node::successors() const { return successors_; }
 
-size_t Node::predecessorsNumber() const {
-    return predecessors_.size();
-}
+size_t Node::predecessorsNumber() const { return predecessors_.size(); }
 
-size_t Node::successorsNumber() const {
-    return predecessors_.size();
-}
+size_t Node::successorsNumber() const { return predecessors_.size(); }
 
-bool Node::isArtificial() const {
-    return llvmInstruction_ == nullptr;
-}
+bool Node::isArtificial() const { return llvmInstruction_ == nullptr; }
 
-const Instruction * Node::llvmInstruction() const {
-    return llvmInstruction_;
-}
+const Instruction *Node::llvmInstruction() const { return llvmInstruction_; }
 
 const CallInst *Node::callInstruction() const {
     if (callInstruction_) {
@@ -111,7 +88,8 @@ string Node::dump() const {
 }
 
 string Node::label() const {
-    std::string label_ = "[label=\"<" + std::to_string(this->id()) + "> " + nodeTypeToString(this->getType());
+    std::string label_ = "[label=\"<" + std::to_string(this->id()) + "> " +
+                         nodeTypeToString(this->getType());
     if (!isArtificial()) {
         string llvmTemporaryString;
         raw_string_ostream llvmStream(llvmTemporaryString);

@@ -1,16 +1,16 @@
-#include <vector>
 #include <cassert>
+#include <vector>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/Constant.h>
 #include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -25,13 +25,13 @@ namespace dda {
 
 static inline llvm::Value *getMemIntrinsicValueOp(llvm::MemIntrinsic *MI) {
     switch (MI->getIntrinsicID()) {
-        case llvm::Intrinsic::memmove:
-        case llvm::Intrinsic::memcpy:
-        case llvm::Intrinsic::memset:
-            return MI->getOperand(1);
-            break;
-        default:
-            assert(false && "Unsupported intrinsic");
+    case llvm::Intrinsic::memmove:
+    case llvm::Intrinsic::memcpy:
+    case llvm::Intrinsic::memset:
+        return MI->getOperand(1);
+        break;
+    default:
+        assert(false && "Unsupported intrinsic");
     }
     return nullptr;
 }
@@ -39,7 +39,7 @@ static inline llvm::Value *getMemIntrinsicValueOp(llvm::MemIntrinsic *MI) {
 RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
     using namespace llvm;
 
-    RWNode& node = create(RWNodeType::ALLOC);
+    RWNode &node = create(RWNodeType::ALLOC);
 
     // check if the address of this alloca is taken
     for (auto I = Inst->use_begin(), E = Inst->use_end(); I != E; ++I) {
@@ -83,24 +83,24 @@ RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst,
                                                   AllocationFunction type) {
     using namespace llvm;
 
-    RWNode& node = create(RWNodeType::DYN_ALLOC);
+    RWNode &node = create(RWNodeType::DYN_ALLOC);
     const CallInst *CInst = cast<CallInst>(Inst);
     const Value *op;
     uint64_t size = 0, size2 = 0;
 
     switch (type) {
-        case AllocationFunction::MALLOC:
-        case AllocationFunction::ALLOCA:
-            op = CInst->getOperand(0);
-            break;
-        case AllocationFunction::CALLOC:
-            op = CInst->getOperand(1);
-            break;
-        default:
-            errs() << *CInst << "\n";
-            assert(0 && "unknown memory allocation type");
-            // for NDEBUG
-            abort();
+    case AllocationFunction::MALLOC:
+    case AllocationFunction::ALLOCA:
+        op = CInst->getOperand(0);
+        break;
+    case AllocationFunction::CALLOC:
+        op = CInst->getOperand(1);
+        break;
+    default:
+        errs() << *CInst << "\n";
+        assert(0 && "unknown memory allocation type");
+        // for NDEBUG
+        abort();
     };
 
     // infer allocated size
@@ -117,8 +117,9 @@ RWNode *LLVMReadWriteGraphBuilder::createDynAlloc(const llvm::Instruction *Inst,
     return &node;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst) {
-    RWNode& node = create(RWNodeType::DYN_ALLOC);
+RWNode *
+LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst) {
+    RWNode &node = create(RWNodeType::DYN_ALLOC);
 
     uint64_t size = llvmutils::getConstantValue(Inst->getOperand(1));
     if (size == 0)
@@ -141,14 +142,13 @@ RWNode *LLVMReadWriteGraphBuilder::createRealloc(const llvm::Instruction *Inst) 
 }
 
 void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
-                                               RWNode& node,
-                                               uint64_t size) {
+                                               RWNode &node, uint64_t size) {
     auto psn = PTA->getLLVMPointsToChecked(Inst->getOperand(0));
     if (!psn.first) {
 #ifndef NDEBUG
         llvm::errs() << "[RWG] warning at: " << ValInfo(Inst) << "\n";
-        llvm::errs() << "No points-to set for: "
-                     << ValInfo(Inst->getOperand(0)) << "\n";
+        llvm::errs() << "No points-to set for: " << ValInfo(Inst->getOperand(0))
+                     << "\n";
 #endif
         node.addUse(UNKNOWN_MEMORY);
         return;
@@ -168,12 +168,12 @@ void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
         node.addUse(UNKNOWN_MEMORY);
     }
 
-    for (const auto& ptr: psn.second) {
+    for (const auto &ptr : psn.second) {
         // realloc may be only from other dynamic allocation
         if (!llvm::isa<llvm::CallInst>(ptr.value))
             continue;
 
-        //llvm::errs() << "Realloc ptr: " << *ptr.value << "\n";
+        // llvm::errs() << "Realloc ptr: " << *ptr.value << "\n";
         RWNode *ptrNode = nullptr;
         if (ptr.value == Inst) {
             // the realloc reallocates itself
@@ -184,7 +184,7 @@ void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
         if (!ptrNode) {
             static std::set<const llvm::Value *> warned;
             if (warned.insert(ptr.value).second) {
-                llvm::errs() << "[RWG] error at "  << ValInfo(Inst) << "\n";
+                llvm::errs() << "[RWG] error at " << ValInfo(Inst) << "\n";
                 llvm::errs() << "[RWG] error for "
                              << ValInfo(Inst->getOperand(0)) << "\n";
                 llvm::errs() << "[RWG] error: Cannot find node for "
@@ -194,18 +194,16 @@ void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
         }
 
         node.addUse(ptrNode, ptr.offset,
-                    ptr.offset.isUnknown() ?  Offset::UNKNOWN : size);
+                    ptr.offset.isUnknown() ? Offset::UNKNOWN : size);
     }
 }
-
-
 
 RWNode *LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction *) {
     return &create(RWNodeType::RETURN);
 }
 
 RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst) {
-    RWNode& node = create(RWNodeType::STORE);
+    RWNode &node = create(RWNodeType::STORE);
 
     uint64_t size = llvmutils::getAllocatedSize(Inst->getOperand(0)->getType(),
                                                 getDataLayout());
@@ -221,12 +219,12 @@ RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst) {
     // FIXME: ALLOCAs in recursive procedures can also yield only weak update
     bool strong_update = false;
     if (defSites.size() == 1) {
-        const auto& ds = *(defSites.begin());
+        const auto &ds = *(defSites.begin());
         strong_update = (ds.target->isAlloc() || ds.target->isGlobal()) &&
                         !ds.offset.isUnknown() && !ds.len.isUnknown();
     }
 
-    for (const auto& ds : defSites) {
+    for (const auto &ds : defSites) {
         node.addDef(ds, strong_update);
     }
 
@@ -234,24 +232,25 @@ RWNode *LLVMReadWriteGraphBuilder::createStore(const llvm::Instruction *Inst) {
 }
 
 RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst) {
-    RWNode& node = create(RWNodeType::LOAD);
+    RWNode &node = create(RWNodeType::LOAD);
 
-    uint64_t size = llvmutils::getAllocatedSize(Inst->getType(),
-                                                getDataLayout());
+    uint64_t size =
+            llvmutils::getAllocatedSize(Inst->getType(), getDataLayout());
     if (size == 0)
         size = Offset::UNKNOWN;
 
     auto defSites = mapPointers(Inst, Inst->getOperand(0), size);
-    for (const auto& ds : defSites) {
+    for (const auto &ds : defSites) {
         node.addUse(ds);
     }
 
     return &node;
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
+RWNode *
+LLVMReadWriteGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
     auto *RMW = llvm::cast<llvm::AtomicRMWInst>(Inst);
-    RWNode& node = create(RWNodeType::STORE);
+    RWNode &node = create(RWNodeType::STORE);
 
     uint64_t size = llvmutils::getAllocatedSize(RMW->getValOperand()->getType(),
                                                 getDataLayout());
@@ -267,23 +266,22 @@ RWNode *LLVMReadWriteGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst
     // FIXME: ALLOCAs in recursive procedures can also yield only weak update
     bool strong_update = false;
     if (defSites.size() == 1) {
-        const auto& ds = *(defSites.begin());
+        const auto &ds = *(defSites.begin());
         strong_update = (ds.target->isAlloc() || ds.target->isGlobal()) &&
                         !ds.offset.isUnknown() && !ds.len.isUnknown();
     }
 
-    for (const auto& ds : defSites) {
+    for (const auto &ds : defSites) {
         node.addDef(ds, strong_update);
     }
 
     // RMW is also use
-    for (const auto& ds : defSites) {
+    for (const auto &ds : defSites) {
         node.addUse(ds);
     }
 
     return &node;
 }
-
 
 NodesSeq<RWNode>
 LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
@@ -308,8 +306,7 @@ LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
         return createCallToFunctions({function}, CInst);
     }
 
-
-    const auto& functions = getCalledFunctions(calledVal, PTA);
+    const auto &functions = getCalledFunctions(calledVal, PTA);
     if (functions.empty()) {
         llvm::errs() << "[RWG] error: could not determine the called function "
                         "in a call via pointer: \n"
@@ -320,9 +317,7 @@ LLVMReadWriteGraphBuilder::createCall(const llvm::Instruction *Inst) {
 }
 
 template <typename OptsT>
-static bool isRelevantCall(const llvm::Instruction *Inst,
-                           OptsT& opts)
-{
+static bool isRelevantCall(const llvm::Instruction *Inst, OptsT &opts) {
     using namespace llvm;
 
     // we don't care about debugging stuff
@@ -351,13 +346,13 @@ static bool isRelevantCall(const llvm::Instruction *Inst,
 
         if (func->isIntrinsic()) {
             switch (func->getIntrinsicID()) {
-                case Intrinsic::memmove:
-                case Intrinsic::memcpy:
-                case Intrinsic::memset:
-                case Intrinsic::vastart:
-                    return true;
-                default:
-                    return false;
+            case Intrinsic::memmove:
+            case Intrinsic::memcpy:
+            case Intrinsic::memset:
+            case Intrinsic::vastart:
+                return true;
+            default:
+                return false;
             }
         }
 
@@ -383,28 +378,28 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
         return {};
 
     // we may created this node when searching for an operand
-    switch(I->getOpcode()) {
-         case Instruction::Alloca:
-             // we need alloca's as target to DefSites
-             return {createAlloc(I)};
-         case Instruction::Store:
-             return {createStore(I)};
-         case Instruction::AtomicRMW:
-             return {createAtomicRMW(I)};
-         case Instruction::Load:
-             if (buildUses) {
-                 return {createLoad(I)};
-             }
-             break;
-         case Instruction::Ret:
-             // we need create returns, since
-             // these modify CFG and thus data-flow
-             return {createReturn(I)};
-         case Instruction::Call:
-             if (!isRelevantCall(I, _options))
-                 break;
+    switch (I->getOpcode()) {
+    case Instruction::Alloca:
+        // we need alloca's as target to DefSites
+        return {createAlloc(I)};
+    case Instruction::Store:
+        return {createStore(I)};
+    case Instruction::AtomicRMW:
+        return {createAtomicRMW(I)};
+    case Instruction::Load:
+        if (buildUses) {
+            return {createLoad(I)};
+        }
+        break;
+    case Instruction::Ret:
+        // we need create returns, since
+        // these modify CFG and thus data-flow
+        return {createReturn(I)};
+    case Instruction::Call:
+        if (!isRelevantCall(I, _options))
+            break;
 
-             return createCall(I);
+        return createCall(I);
     }
 
     return {};
@@ -412,4 +407,3 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
 
 } // namespace dda
 } // namespace dg
-

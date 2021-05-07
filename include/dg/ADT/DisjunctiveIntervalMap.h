@@ -1,11 +1,11 @@
 #ifndef DG_DISJUNCTIVE_INTERVAL_MAP_H_
 #define DG_DISJUNCTIVE_INTERVAL_MAP_H_
 
+#include <algorithm>
 #include <cassert>
 #include <map>
 #include <set>
 #include <vector>
-#include <algorithm>
 
 #ifndef NDEBUG
 #include <iostream>
@@ -36,23 +36,19 @@ struct DiscreteInterval {
     // total order on intervals so that we can insert them
     // to std containers. We want to compare them only
     // according to the start value.
-    bool operator<(const DiscreteInterval& I) const {
-        return start < I.start;
-    }
+    bool operator<(const DiscreteInterval &I) const { return start < I.start; }
 
-    bool operator==(const DiscreteInterval& I) const {
+    bool operator==(const DiscreteInterval &I) const {
         return start == I.start && end == I.end;
     }
 
-    bool operator!=(const DiscreteInterval& I) const {
-        return !operator==(I);
-    }
+    bool operator!=(const DiscreteInterval &I) const { return !operator==(I); }
 
-    bool overlaps(const DiscreteInterval& I) const {
+    bool overlaps(const DiscreteInterval &I) const {
         return (start <= I.start && end >= I.start) || I.end >= start;
     }
 
-    bool covers(const DiscreteInterval& I) const {
+    bool covers(const DiscreteInterval &I) const {
         return (start <= I.start && end >= I.end);
     }
 
@@ -69,13 +65,12 @@ struct DiscreteInterval {
 #endif
 };
 
-
 ///
 // Mapping of disjunctive discrete intervals of values
 // to sets of ValueT.
 template <typename ValueT, typename IntervalValueT = Offset>
 class DisjunctiveIntervalMap {
-public:
+  public:
     using IntervalT = DiscreteInterval<IntervalValueT>;
     using ValuesT = std::set<ValueT>;
     using MappingT = std::map<IntervalT, ValuesT>;
@@ -86,45 +81,45 @@ public:
     // Return true if the mapping is updated anyhow
     // (intervals split, value added).
     bool add(const IntervalValueT start, const IntervalValueT end,
-             const ValueT& val) {
+             const ValueT &val) {
         return add(IntervalT(start, end), val);
     }
 
-    bool add(const IntervalT& I, const ValueT& val) {
+    bool add(const IntervalT &I, const ValueT &val) {
         return _add(I, val, false);
     }
 
     template <typename ContT>
-    bool add(const IntervalT& I, const ContT& vals) {
+    bool add(const IntervalT &I, const ContT &vals) {
         bool changed = false;
-        for (const ValueT& val : vals) {
+        for (const ValueT &val : vals) {
             changed |= _add(I, val, false);
         }
         return changed;
     }
 
     bool update(const IntervalValueT start, const IntervalValueT end,
-                const ValueT& val) {
+                const ValueT &val) {
         return update(IntervalT(start, end), val);
     }
 
-    bool update(const IntervalT& I, const ValueT& val) {
+    bool update(const IntervalT &I, const ValueT &val) {
         return _add(I, val, true);
     }
 
     template <typename ContT>
-    bool update(const IntervalT& I, const ContT& vals) {
+    bool update(const IntervalT &I, const ContT &vals) {
         bool changed = false;
-        for (const ValueT& val : vals) {
+        for (const ValueT &val : vals) {
             changed |= _add(I, val, true);
         }
         return changed;
     }
 
     // add the value 'val' to all intervals
-    bool addAll(const ValueT& val) {
+    bool addAll(const ValueT &val) {
         bool changed = false;
-        for (auto& it : _mapping) {
+        for (auto &it : _mapping) {
             changed |= it.second.insert(val).second;
         }
         return changed;
@@ -132,7 +127,7 @@ public:
 
     // return true if some intervals from the map
     // has a overlap with I
-    bool overlaps(const IntervalT& I) const {
+    bool overlaps(const IntervalT &I) const {
         if (_mapping.empty())
             return false;
 
@@ -151,7 +146,7 @@ public:
 
     // return true if the map has an entry for
     // each single byte from the interval I
-    bool overlapsFull(const IntervalT& I) const {
+    bool overlapsFull(const IntervalT &I) const {
         if (_mapping.empty()) {
             return false;
         }
@@ -192,11 +187,12 @@ public:
         return overlapsFull(IntervalT(start, end));
     }
 
-    DisjunctiveIntervalMap intersection(const DisjunctiveIntervalMap& rhs) const {
+    DisjunctiveIntervalMap
+    intersection(const DisjunctiveIntervalMap &rhs) const {
         DisjunctiveIntervalMap tmp;
         // FIXME: this could be done more efficiently
         auto it = _mapping.begin();
-        for (auto& rhsit : rhs._mapping) {
+        for (auto &rhsit : rhs._mapping) {
             while (it->first.end < rhsit.first.start) {
                 if (it == _mapping.end()) {
                     return tmp;
@@ -221,7 +217,7 @@ public:
         return gather(IntervalT(start, end));
     }
 
-    std::set<ValueT> gather(const IntervalT& I) const {
+    std::set<ValueT> gather(const IntervalT &I) const {
         std::set<ValueT> ret;
 
         auto it = le(I);
@@ -237,11 +233,12 @@ public:
         return ret;
     }
 
-    std::vector<IntervalT> uncovered(IntervalValueT start, IntervalValueT end) const {
+    std::vector<IntervalT> uncovered(IntervalValueT start,
+                                     IntervalValueT end) const {
         return uncovered(IntervalT(start, end));
     }
 
-    std::vector<IntervalT> uncovered(const IntervalT& I) const {
+    std::vector<IntervalT> uncovered(const IntervalT &I) const {
         if (_mapping.empty())
             return {I};
 
@@ -274,8 +271,7 @@ public:
 
         while (true) {
             assert(cur.start <= it->first.start);
-            if (cur.start != it->first.start &&
-                cur.start < it->first.start) {
+            if (cur.start != it->first.start && cur.start < it->first.start) {
                 assert(it->first.start != 0 && "Underflow");
                 ret.push_back(IntervalT{cur.start, it->first.start - 1});
             }
@@ -283,8 +279,8 @@ public:
             if (it->first.end >= I.end)
                 break;
 
-            assert(it->first.end != (~static_cast<IntervalValueT>(0))
-                    && "Overflow");
+            assert(it->first.end != (~static_cast<IntervalValueT>(0)) &&
+                   "Overflow");
             cur.start = it->first.end + 1;
             assert(cur.end == I.end);
 
@@ -308,18 +304,17 @@ public:
     iterator end() { return _mapping.end(); }
     const_iterator end() const { return _mapping.end(); }
 
-    bool operator==(const DisjunctiveIntervalMap<ValueT, IntervalValueT>& rhs) const {
+    bool operator==(
+            const DisjunctiveIntervalMap<ValueT, IntervalValueT> &rhs) const {
         return _mapping == rhs._mapping;
     }
 
     // return the iterator to an element that is the first
     // that overlaps the interval I or end() if there is
     // no such interval
-    iterator le(const IntervalT& I) {
-        return _shift_le(_find_ge(I), I);
-    }
+    iterator le(const IntervalT &I) { return _shift_le(_find_ge(I), I); }
 
-    const_iterator le(const IntervalT& I) const {
+    const_iterator le(const IntervalT &I) const {
         return _shift_le(_find_ge(I), I);
     }
 
@@ -327,14 +322,17 @@ public:
         return le(IntervalT(start, end));
     }
 
-    const_iterator le(const IntervalValueT start, const IntervalValueT end) const {
+    const_iterator le(const IntervalValueT start,
+                      const IntervalValueT end) const {
         return le(IntervalT(start, end));
     }
 
 #ifndef NDEBUG
-    friend std::ostream& operator<<(std::ostream& os, const DisjunctiveIntervalMap<ValueT, IntervalValueT>& map) {
+    friend std::ostream &
+    operator<<(std::ostream &os,
+               const DisjunctiveIntervalMap<ValueT, IntervalValueT> &map) {
         os << "{";
-        for (const auto& pair : map) {
+        for (const auto &pair : map) {
             if (pair.second.empty())
                 continue;
 
@@ -368,13 +366,12 @@ public:
 
 #endif
 
-private:
-
+  private:
     // shift the iterator such that it will point to the
     // first element that overlaps with I, or to end
     // if there is no such interval
     template <typename IteratorT>
-    IteratorT _shift_le(const IteratorT& startge, const IntervalT& I) const {
+    IteratorT _shift_le(const IteratorT &startge, const IntervalT &I) const {
         // find the element that starts at the same value
         // as I or later (i.e. I.start >= it.start)
         if (startge == end()) {
@@ -423,21 +420,21 @@ private:
         auto values = std::move(I->second);
 
         assert(interval.start != interval.end && "Cannot split such interval");
-        assert(interval.start <= where && where <= interval.end
-               && "Value 'where' must lie inside the interval");
+        assert(interval.start <= where && where <= interval.end &&
+               "Value 'where' must lie inside the interval");
         assert(where < interval.end && "The second interval would be empty");
 
         // remove the original interval and replace it with
         // two splitted intervals
         _mapping.erase(I);
-        auto ret =
-        _mapping.emplace_hint(hint, IntervalT(interval.start, where), values);
+        auto ret = _mapping.emplace_hint(hint, IntervalT(interval.start, where),
+                                         values);
         _mapping.emplace_hint(hint, IntervalT(where + 1, interval.end),
                               std::move(values));
         return ret;
     }
 
-    bool splitExtBorders(const IntervalT& I) {
+    bool splitExtBorders(const IntervalT &I) {
         assert(!_mapping.empty());
 
         auto ge = _mapping.lower_bound(I);
@@ -498,7 +495,7 @@ private:
 #ifndef NDEBUG
                     auto check =
 #endif
-                    splitIntervalHint(ge, I.end, _mapping.end());
+                            splitIntervalHint(ge, I.end, _mapping.end());
                     assert(check->first == I);
                     changed = true;
                 }
@@ -526,18 +523,18 @@ private:
 
     // If the boolean 'update' is set to true, the value
     // is not added, but rewritten
-    bool _add(const IntervalT& I, const ValueT& val, bool update = false) {
+    bool _add(const IntervalT &I, const ValueT &val, bool update = false) {
         if (_mapping.empty()) {
             _mapping.emplace(I, ValuesT{val});
             return true;
         }
 
         // fast path
-       //auto fastit = _mapping.lower_bound(I);
-       //if (fastit != _mapping.end() &&
-       //    fastit->first == I) {
-       //    return _addValue(fastit, val, update);
-       //}
+        // auto fastit = _mapping.lower_bound(I);
+        // if (fastit != _mapping.end() &&
+        //    fastit->first == I) {
+        //    return _addValue(fastit, val, update);
+        //}
 
         // XXX: pass the lower_bound iterator from the fast path
         // so that we do not search the mapping again
@@ -556,8 +553,7 @@ private:
         assert(!changed || it != _mapping.end());
 
         // we do not have any overlapping interval
-        if (it == _mapping.end()
-            || I.end < it->first.start) {
+        if (it == _mapping.end() || I.end < it->first.start) {
             assert(!overlaps(I) && "Bug in add() or in overlaps()");
             _mapping.emplace(I, ValuesT{val});
             return true;
@@ -568,8 +564,9 @@ private:
         while (it != _mapping.end()) {
             if (rest.start < it->first.start) {
                 // add the gap interval
-                _mapping.emplace_hint(it, IntervalT(rest.start, it->first.start - 1),
-                                      ValuesT{val});
+                _mapping.emplace_hint(
+                        it, IntervalT(rest.start, it->first.start - 1),
+                        ValuesT{val});
                 rest.start = it->first.start;
                 changed = true;
             } else {
@@ -585,8 +582,7 @@ private:
 
                 // our interval spans to the right
                 // after the last covered interval
-                if (it == _mapping.end()
-                    || it->first.start > rest.end) {
+                if (it == _mapping.end() || it->first.start > rest.end) {
                     _mapping.emplace_hint(it, rest, ValuesT{val});
                     changed = true;
                     break;
@@ -600,12 +596,12 @@ private:
 
     // find the elements starting at
     // or right to the interval
-    typename MappingT::iterator _find_ge(const IntervalT& I) {
+    typename MappingT::iterator _find_ge(const IntervalT &I) {
         // lower_bound = lower upper bound
         return _mapping.lower_bound(I);
     }
 
-    typename MappingT::const_iterator _find_ge(const IntervalT& I) const {
+    typename MappingT::const_iterator _find_ge(const IntervalT &I) const {
         return _mapping.lower_bound(I);
     }
 
@@ -640,7 +636,6 @@ private:
 
     MappingT _mapping;
 };
-
 
 } // namespace ADT
 } // namespace dg

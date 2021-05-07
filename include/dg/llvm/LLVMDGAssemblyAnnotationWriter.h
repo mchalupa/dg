@@ -1,63 +1,59 @@
 #ifndef _LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
 #define _LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
 
-
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/FormattedStream.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Assembly/AssemblyAnnotationWriter.h>
- #include <llvm/Analysis/Verifier.h>
+#include <llvm/Analysis/Verifier.h>
+#include <llvm/Assembly/AssemblyAnnotationWriter.h>
 #else // >= 3.5
- #include <llvm/IR/AssemblyAnnotationWriter.h>
- #include <llvm/IR/Verifier.h>
+#include <llvm/IR/AssemblyAnnotationWriter.h>
+#include <llvm/IR/Verifier.h>
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
+#include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-#include "dg/llvm/DataDependence/DataDependence.h"
 
 namespace dg {
 namespace debug {
 
-class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter
-{
+class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
     using LLVMDataDependenceAnalysis = dg::dda::LLVMDataDependenceAnalysis;
-public:
+
+  public:
     enum AnnotationOptsT {
         // data dependencies
-        ANNOTATE_DD                 = 1 << 0,
+        ANNOTATE_DD = 1 << 0,
         // forward data dependencies
-        ANNOTATE_FORWARD_DD         = 1 << 1,
+        ANNOTATE_FORWARD_DD = 1 << 1,
         // control dependencies
-        ANNOTATE_CD                 = 1 << 2,
+        ANNOTATE_CD = 1 << 2,
         // points-to information
-        ANNOTATE_PTR                = 1 << 3,
+        ANNOTATE_PTR = 1 << 3,
         // reaching definitions
-        ANNOTATE_DEF                 = 1 << 4,
+        ANNOTATE_DEF = 1 << 4,
         // post-dominators
-        ANNOTATE_POSTDOM            = 1 << 5,
+        ANNOTATE_POSTDOM = 1 << 5,
         // comment out nodes that will be sliced
-        ANNOTATE_SLICE              = 1 << 6,
+        ANNOTATE_SLICE = 1 << 6,
         // annotate memory accesses (like ANNOTATE_PTR,
         // but with byte intervals)
-        ANNOTATE_MEMORYACC          = 1 << 7,
+        ANNOTATE_MEMORYACC = 1 << 7,
     };
 
-private:
-
+  private:
     AnnotationOptsT opts;
     LLVMPointerAnalysis *PTA;
     LLVMDataDependenceAnalysis *DDA;
     const std::set<LLVMNode *> *criteria;
     std::string module_comment{};
 
-    void printValue(const llvm::Value *val,
-                    llvm::formatted_raw_ostream& os,
-                    bool nl = false)
-    {
+    void printValue(const llvm::Value *val, llvm::formatted_raw_ostream &os,
+                    bool nl = false) {
         if (val->hasName())
             os << val->getName().data();
         else
@@ -67,8 +63,7 @@ private:
             os << "\n";
     }
 
-    void printPointer(const LLVMPointer& ptr,
-                      llvm::formatted_raw_ostream& os,
+    void printPointer(const LLVMPointer &ptr, llvm::formatted_raw_ostream &os,
                       const char *prefix = "PTR: ", bool nl = true) {
         os << "  ; ";
         if (prefix)
@@ -86,10 +81,8 @@ private:
             os << "\n";
     }
 
-    void printDefSite(const dda::DefSite& ds,
-                      llvm::formatted_raw_ostream& os,
-                      const char *prefix = nullptr, bool nl = false)
-    {
+    void printDefSite(const dda::DefSite &ds, llvm::formatted_raw_ostream &os,
+                      const char *prefix = nullptr, bool nl = false) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -109,19 +102,17 @@ private:
             if (ds.len.isUnknown())
                 os << " - ?|";
             else
-                os << " - " <<  *ds.offset + *ds.len- 1 << "|";
+                os << " - " << *ds.offset + *ds.len - 1 << "|";
         } else
             os << "target is null!";
 
         if (nl)
             os << "\n";
-
     }
 
-    void printMemRegion(const LLVMMemoryRegion& R,
-                        llvm::formatted_raw_ostream& os,
-                        const char *prefix = nullptr,
-                        bool nl = false) {
+    void printMemRegion(const LLVMMemoryRegion &R,
+                        llvm::formatted_raw_ostream &os,
+                        const char *prefix = nullptr, bool nl = false) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -137,26 +128,24 @@ private:
         if (R.len.isUnknown())
             os << " - ?]";
         else
-            os << " - " <<  *R.pointer.offset + *R.len - 1 << "]";
+            os << " - " << *R.pointer.offset + *R.len - 1 << "]";
 
         if (nl)
             os << "\n";
     }
 
-    void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream& os)
-    {
+    void emitNodeAnnotations(LLVMNode *node, llvm::formatted_raw_ostream &os) {
         using namespace llvm;
 
         if (opts & ANNOTATE_DEF) {
             assert(DDA && "No data dependence analysis");
             if (DDA->isUse(node->getValue())) {
                 os << "  ; DEF: ";
-                const auto& defs = DDA->getLLVMDefinitions(node->getValue());
+                const auto &defs = DDA->getLLVMDefinitions(node->getValue());
                 if (defs.empty()) {
                     os << "none (or global)\n";
                 } else {
                     for (auto *def : defs) {
-
                         if (def->hasName())
                             os << def->getName();
                         else
@@ -184,15 +173,16 @@ private:
         }
 
         if (opts & ANNOTATE_FORWARD_DD) {
-            for (auto I = node->data_begin(), E = node->data_end();
-                 I != E; ++I) {
+            for (auto I = node->data_begin(), E = node->data_end(); I != E;
+                 ++I) {
                 const llvm::Value *d = (*I)->getKey();
                 os << "  ; fDD: " << *d << "(" << d << ")\n";
             }
         }
 
         if (opts & ANNOTATE_CD) {
-            for (auto I = node->rev_control_begin(), E = node->rev_control_end();
+            for (auto I = node->rev_control_begin(),
+                      E = node->rev_control_end();
                  I != E; ++I) {
                 const llvm::Value *d = (*I)->getKey();
                 os << "  ; rCD: ";
@@ -208,9 +198,9 @@ private:
             if (PTA) {
                 llvm::Type *Ty = node->getKey()->getType();
                 if (Ty->isPointerTy() || Ty->isIntegerTy()) {
-                    const auto& ps = PTA->getLLVMPointsTo(node->getKey());
+                    const auto &ps = PTA->getLLVMPointsTo(node->getKey());
                     if (!ps.empty()) {
-                        for (const auto& llvmptr : ps) {
+                        for (const auto &llvmptr : ps) {
                             printPointer(llvmptr, os);
                         }
                         if (ps.hasNull()) {
@@ -235,9 +225,9 @@ private:
                 if (I->mayReadOrWriteMemory()) {
                     auto regions = PTA->getAccessedMemory(I);
                     if (regions.first) {
-                            os << "  ; unknown region\n";
+                        os << "  ; unknown region\n";
                     }
-                    for (const auto& mem : regions.second) {
+                    for (const auto &mem : regions.second) {
                         printMemRegion(mem, os, nullptr, true);
                     }
                 }
@@ -252,28 +242,27 @@ private:
         }
     }
 
-public:
-    LLVMDGAssemblyAnnotationWriter(AnnotationOptsT o = ANNOTATE_SLICE,
-                                   LLVMPointerAnalysis *pta = nullptr,
-                                   LLVMDataDependenceAnalysis *dda = nullptr,
-                                   const std::set<LLVMNode *>* criteria = nullptr)
-        : opts(o), PTA(pta), DDA(dda), criteria(criteria)
-    {
+  public:
+    LLVMDGAssemblyAnnotationWriter(
+            AnnotationOptsT o = ANNOTATE_SLICE,
+            LLVMPointerAnalysis *pta = nullptr,
+            LLVMDataDependenceAnalysis *dda = nullptr,
+            const std::set<LLVMNode *> *criteria = nullptr)
+            : opts(o), PTA(pta), DDA(dda), criteria(criteria) {
         assert(!(opts & ANNOTATE_PTR) || PTA);
         assert(!(opts & ANNOTATE_DEF) || DDA);
     }
 
-    void emitModuleComment(const std::string& comment) {
+    void emitModuleComment(const std::string &comment) {
         module_comment = comment;
     }
 
-    void emitModuleComment(std::string&& comment) {
+    void emitModuleComment(std::string &&comment) {
         module_comment = std::move(comment);
     }
 
-    void emitFunctionAnnot (const llvm::Function *,
-                            llvm::formatted_raw_ostream &os) override
-    {
+    void emitFunctionAnnot(const llvm::Function *,
+                           llvm::formatted_raw_ostream &os) override {
         // dump the slicer's setting to the file
         // for easier comprehension
         static bool didit = false;
@@ -284,13 +273,12 @@ public:
     }
 
     void emitInstructionAnnot(const llvm::Instruction *I,
-                              llvm::formatted_raw_ostream& os) override
-    {
+                              llvm::formatted_raw_ostream &os) override {
         if (opts == 0)
             return;
 
         LLVMNode *node = nullptr;
-        for (auto& it : getConstructedFunctions()) {
+        for (auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             node = sub->getNode(const_cast<llvm::Instruction *>(I));
             if (node)
@@ -304,14 +292,13 @@ public:
     }
 
     void emitBasicBlockStartAnnot(const llvm::BasicBlock *B,
-                                  llvm::formatted_raw_ostream& os) override
-    {
+                                  llvm::formatted_raw_ostream &os) override {
         if (opts == 0)
             return;
 
-        for (auto& it : getConstructedFunctions()) {
+        for (auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
-            auto& cb = sub->getBlocks();
+            auto &cb = sub->getBlocks();
             auto I = cb.find(const_cast<llvm::BasicBlock *>(B));
             if (I != cb.end()) {
                 LLVMBBlock *BB = I->second;
@@ -341,23 +328,20 @@ public:
 
 // allow combinations of annotation options
 inline dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT
-operator |(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT a,
-           dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
-
-  using AnT = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
-  using T = std::underlying_type<AnT>::type;
-  return static_cast<AnT>(static_cast<T>(a) | static_cast<T>(b));
+operator|(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT a,
+          dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
+    using AnT = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+    using T = std::underlying_type<AnT>::type;
+    return static_cast<AnT>(static_cast<T>(a) | static_cast<T>(b));
 }
 
 inline dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT
-operator |=(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT& a,
+operator|=(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT &a,
            dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT b) {
-
-  using AnT = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
-  using T = std::underlying_type<AnT>::type;
-  a = static_cast<AnT>(static_cast<T>(a) | static_cast<T>(b));
-  return a;
+    using AnT = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+    using T = std::underlying_type<AnT>::type;
+    a = static_cast<AnT>(static_cast<T>(a) | static_cast<T>(b));
+    return a;
 }
 
 #endif // _LLVM_DG_ANNOTATION_WRITER_H_
-

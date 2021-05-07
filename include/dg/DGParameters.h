@@ -9,20 +9,16 @@
 
 namespace dg {
 
-
 template <typename NodeT>
-struct DGParameterPair
-{
-    DGParameterPair<NodeT>(NodeT *v1, NodeT *v2)
-        : in(v1), out(v2) {}
+struct DGParameterPair {
+    DGParameterPair<NodeT>(NodeT *v1, NodeT *v2) : in(v1), out(v2) {}
 
     // input value of parameter
     NodeT *in;
     // output value of parameter
     NodeT *out;
 
-    void removeIn()
-    {
+    void removeIn() {
         if (in) {
             in->isolate();
             delete in;
@@ -30,8 +26,7 @@ struct DGParameterPair
         }
     }
 
-    void removeOut()
-    {
+    void removeOut() {
         if (out) {
             out->isolate();
             delete out;
@@ -50,27 +45,25 @@ struct DGParameterPair
 //  so that the parameters can be used in BBlock analysis
 // --------------------------------------------------------
 template <typename NodeT>
-class DGParameters
-{
-public:
+class DGParameters {
+  public:
     using KeyT = typename NodeT::KeyType;
     using ContainerType = std::map<KeyT, DGParameterPair<NodeT>>;
     using iterator = typename ContainerType::iterator;
     using const_iterator = typename ContainerType::const_iterator;
 
     DGParameters<NodeT>(NodeT *cs = nullptr)
-    : BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs){}
+            : BBIn(new BBlock<NodeT>), BBOut(new BBlock<NodeT>), callSite(cs) {}
 
-    ~DGParameters<NodeT>()
-    {
+    ~DGParameters<NodeT>() {
         // delete the parameters itself
-        for (const auto& par : *this) {
+        for (const auto &par : *this) {
             delete par.second.in;
             delete par.second.out;
         }
 
         // delete globals parameters
-        for (const auto& gl : globals) {
+        for (const auto &gl : globals) {
             delete gl.second.in;
             delete gl.second.out;
         }
@@ -86,8 +79,7 @@ public:
     const DGParameterPair<NodeT> *operator[](KeyT k) const { return find(k); }
 
     template <typename... Args>
-    std::pair<NodeT *, NodeT *>
-    construct(KeyT k, Args... args) {
+    std::pair<NodeT *, NodeT *> construct(KeyT k, Args... args) {
         auto in = new NodeT(args...);
         auto out = new NodeT(args...);
         add(k, in, out, &params);
@@ -95,26 +87,18 @@ public:
     }
 
     template <typename... Args>
-    std::pair<NodeT *, NodeT *>
-    constructGlobal(KeyT k, Args... args) {
+    std::pair<NodeT *, NodeT *> constructGlobal(KeyT k, Args... args) {
         auto in = new NodeT(args...);
         auto out = new NodeT(args...);
         add(k, in, out, &globals);
         return {in, out};
     }
 
-    DGParameterPair<NodeT> *findGlobal(KeyT k)
-    {
-        return find(k, &globals);
-    }
+    DGParameterPair<NodeT> *findGlobal(KeyT k) { return find(k, &globals); }
 
-    DGParameterPair<NodeT> *findParameter(KeyT k)
-    {
-        return find(k, &params);
-    }
+    DGParameterPair<NodeT> *findParameter(KeyT k) { return find(k, &params); }
 
-    DGParameterPair<NodeT> *find(KeyT k)
-    {
+    DGParameterPair<NodeT> *find(KeyT k) {
         auto ret = findParameter(k);
         if (!ret)
             return findGlobal(k);
@@ -122,21 +106,18 @@ public:
         return ret;
     }
 
-    const DGParameterPair<NodeT> *findParameter(KeyT k) const
-    {
+    const DGParameterPair<NodeT> *findParameter(KeyT k) const {
         return findParameter(k);
     }
 
-    const DGParameterPair<NodeT> *findGlobal(KeyT k) const { return findGlobal(k); }
+    const DGParameterPair<NodeT> *findGlobal(KeyT k) const {
+        return findGlobal(k);
+    }
     const DGParameterPair<NodeT> *find(KeyT k) const { return find(k); }
 
-    void remove(KeyT k)
-    {
-        params.erase(k);
-    }
+    void remove(KeyT k) { params.erase(k); }
 
-    void removeIn(KeyT k)
-    {
+    void removeIn(KeyT k) {
         auto p = find(k);
         if (!p)
             return;
@@ -148,8 +129,7 @@ public:
             params.erase(k);
     }
 
-    void removeOut(KeyT k)
-    {
+    void removeOut(KeyT k) {
         auto p = find(k);
         if (!p)
             return;
@@ -180,20 +160,18 @@ public:
     BBlock<NodeT> *getBBIn() { return BBIn; }
     BBlock<NodeT> *getBBOut() { return BBOut; }
 
-    DGParameterPair<NodeT>* getVarArg() { return vararg.get(); }
-    const DGParameterPair<NodeT>* getVarArg() const { return vararg.get(); }
-    bool setVarArg(NodeT *in, NodeT *out)
-    {
+    DGParameterPair<NodeT> *getVarArg() { return vararg.get(); }
+    const DGParameterPair<NodeT> *getVarArg() const { return vararg.get(); }
+    bool setVarArg(NodeT *in, NodeT *out) {
         assert(!vararg && "Already has a vararg parameter");
 
         vararg.reset(new DGParameterPair<NodeT>(in, out));
         return true;
     }
 
-    NodeT* getNoReturn() { return noret.get(); }
-    const NodeT* getNoReturn() const { return noret.get(); }
-    bool addNoReturn(NodeT *n)
-    {
+    NodeT *getNoReturn() { return noret.get(); }
+    const NodeT *getNoReturn() const { return noret.get(); }
+    bool addNoReturn(NodeT *n) {
         assert(!noret && "Already has the noret parameter");
 
         noret.reset(n);
@@ -204,7 +182,7 @@ public:
     NodeT *getCallSite() { return callSite; }
     void setCallSite(NodeT *n) { return callSite = n; }
 
-private:
+  private:
     // globals represented as a parameter
     ContainerType globals;
     // usual parameters
@@ -222,8 +200,7 @@ private:
     BBlock<NodeT> *BBOut;
     NodeT *callSite;
 
-    DGParameterPair<NodeT> *find(KeyT k, ContainerType *C)
-    {
+    DGParameterPair<NodeT> *find(KeyT k, ContainerType *C) {
         iterator it = C->find(k);
         if (it == C->end())
             return nullptr;
@@ -231,8 +208,7 @@ private:
         return &(it->second);
     }
 
-    bool add(KeyT k, NodeT *val_in, NodeT *val_out, ContainerType *C)
-    {
+    bool add(KeyT k, NodeT *val_in, NodeT *val_out, ContainerType *C) {
         auto v = std::make_pair(k, DGParameterPair<NodeT>(val_in, val_out));
         if (!C->insert(v).second)
             // we already has param with this key

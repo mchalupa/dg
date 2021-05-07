@@ -1,20 +1,20 @@
-#include <set>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
 #include <cassert>
 #include <cinttypes>
 #include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <string>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
+#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IRReader/IRReader.h>
 
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -24,52 +24,54 @@ SILENCE_LLVM_WARNINGS_PUSH
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
+#include "dg/PointerAnalysis/Pointer.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/PointerAnalysis/PointerAnalysisFS.h"
-#include "dg/PointerAnalysis/Pointer.h"
 
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/DataDependence/DataDependence.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "dg/util/debug.h"
 #include "dg/tools/TimeMeasure.h"
-#include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-utils.h"
+#include "dg/util/debug.h"
 
 using namespace dg;
 using namespace dg::dda;
 using llvm::errs;
 
-llvm::cl::opt<bool> enable_debug("dbg",
-    llvm::cl::desc("Enable debugging messages (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> enable_debug(
+        "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> verbose("v",
-    llvm::cl::desc("Verbose output (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+                            llvm::cl::desc("Verbose output (default=false)."),
+                            llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> graph_only("graph-only",
-    llvm::cl::desc("Dump only graph, do not run any analysis (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> graph_only(
+        "graph-only",
+        llvm::cl::desc(
+                "Dump only graph, do not run any analysis (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> todot("dot",
-    llvm::cl::desc("Output in graphviz format (forced atm.)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool>
+        todot("dot", llvm::cl::desc("Output in graphviz format (forced atm.)."),
+              llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> quiet("q",
-    llvm::cl::desc("No output (for benchmarking)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> quiet("q", llvm::cl::desc("No output (for benchmarking)."),
+                          llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> dump_c_lines("c-lines",
-    llvm::cl::desc("Dump output as C lines (line:column where possible)."
-                   "Requires metadata in the bitcode (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> dump_c_lines(
+        "c-lines",
+        llvm::cl::desc("Dump output as C lines (line:column where possible)."
+                       "Requires metadata in the bitcode (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
-VariablesMapTy allocasToVars(const llvm::Module& M);
+VariablesMapTy allocasToVars(const llvm::Module &M);
 VariablesMapTy valuesToVars;
 
-static inline size_t count_ws(const std::string& str) {
+static inline size_t count_ws(const std::string &str) {
     size_t n = 0;
     while (isspace(str[n])) {
         ++n;
@@ -77,7 +79,7 @@ static inline size_t count_ws(const std::string& str) {
     return n;
 }
 
-static inline size_t trim_name_idx(const std::string& str) {
+static inline size_t trim_name_idx(const std::string &str) {
     // skip, e.g., align attributes, etc.
     auto m = str.rfind(", align");
     if (m == std::string::npos)
@@ -85,22 +87,20 @@ static inline size_t trim_name_idx(const std::string& str) {
     return m - 1;
 }
 
-static std::string
-getInstName(const llvm::Value *val) {
+static std::string getInstName(const llvm::Value *val) {
     assert(val);
     std::ostringstream ostr;
     llvm::raw_os_ostream ro(ostr);
 
-
     if (dump_c_lines) {
         if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
-            auto& DL = I->getDebugLoc();
+            auto &DL = I->getDebugLoc();
             if (DL) {
                 ro << DL.getLine() << ":" << DL.getCol();
             } else {
                 auto Vit = valuesToVars.find(I);
                 if (Vit != valuesToVars.end()) {
-                    auto& decl = Vit->second;
+                    auto &decl = Vit->second;
                     ro << decl.line << ":" << decl.col;
                 } else {
                     ro << "(no dbg) ";
@@ -124,7 +124,7 @@ getInstName(const llvm::Value *val) {
         return str;
 
     if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
-        const auto& fun = I->getParent()->getParent()->getName();
+        const auto &fun = I->getParent()->getParent()->getName();
         auto funstr = fun.str();
         if (funstr.length() > 15)
             funstr = funstr.substr(0, 15);
@@ -137,8 +137,13 @@ getInstName(const llvm::Value *val) {
 }
 
 static void printRWNodeType(enum RWNodeType type) {
-#define ELEM(t) case(t): do {printf("%s", #t); }while(0); break;
-    switch(type) {
+#define ELEM(t)                                                                \
+    case (t):                                                                  \
+        do {                                                                   \
+            printf("%s", #t);                                                  \
+        } while (0);                                                           \
+        break;
+    switch (type) {
         ELEM(RWNodeType::ALLOC)
         ELEM(RWNodeType::DYN_ALLOC)
         ELEM(RWNodeType::GLOBAL)
@@ -157,14 +162,14 @@ static void printRWNodeType(enum RWNodeType type) {
         ELEM(RWNodeType::NOOP)
         ELEM(RWNodeType::GENERIC)
         ELEM(RWNodeType::NONE)
-        default:
-            printf("!unknown RWNodeType!");
+    default:
+        printf("!unknown RWNodeType!");
     };
 #undef ELEM
 }
 
 template <typename T>
-static void printInterval(T& I, const char *pref = nullptr,
+static void printInterval(T &I, const char *pref = nullptr,
                           const char *suff = nullptr) {
     if (pref)
         printf("%s", pref);
@@ -184,7 +189,7 @@ static void printInterval(T& I, const char *pref = nullptr,
 }
 
 class Dumper {
-protected:
+  protected:
     LLVMDataDependenceAnalysis *DDA;
     bool dot{false};
 
@@ -241,7 +246,7 @@ protected:
         if (!_dumped.insert(node).second) // already dumped
             return;
 
-        printf("\tNODE%p ", static_cast<const void*>(node));
+        printf("\tNODE%p ", static_cast<const void *>(node));
         printf("[label=<<table border=\"0\"><tr><td>(%u)</td> ", node->getID());
         printf("<td><font color=\"#af0000\">");
         printName(node);
@@ -249,14 +254,15 @@ protected:
         printf("</tr>\n");
 
         if (node->getSize() > 0) {
-              printf("<tr><td></td><td>size: %zu</td></tr>\n", node->getSize());
+            printf("<tr><td></td><td>size: %zu</td></tr>\n", node->getSize());
         }
 
         if (verbose) {
             printf("<tr><td>type:</td><td>");
             printRWNodeType(node->getType());
             printf("</td></tr>\n");
-            printf("<tr><td colspan=\"2\">bblock: %p</td></tr>\n", node->getBBlock());
+            printf("<tr><td colspan=\"2\">bblock: %p</td></tr>\n",
+                   node->getBBlock());
             dumpDefines(node);
             dumpOverwrites(node);
             dumpUses(node);
@@ -265,9 +271,10 @@ protected:
         // dumped data for undefined functions
         // (call edges will be dumped with other edges)
         if (auto *C = RWNodeCall::get(node)) {
-            for (auto& cv : C->getCallees()) {
+            for (auto &cv : C->getCallees()) {
                 if (const RWNode *undef = cv.getCalledValue()) {
-                    printf("<tr><td></td><td>------ undef call ------</td></tr>\n");
+                    printf("<tr><td></td><td>------ undef call "
+                           "------</td></tr>\n");
                     dumpDefines(undef);
                     dumpOverwrites(undef);
                     dumpUses(undef);
@@ -287,44 +294,47 @@ protected:
         if (verbose || node->isPhi()) {
             for (RWNode *def : node->defuse) {
                 printf("\tNODE%p->NODE%p [style=dotted constraint=false]\n",
-                       static_cast<void*>(def), static_cast<void*>(node));
+                       static_cast<void *>(def), static_cast<void *>(node));
             }
         }
         if (!graph_only && node->isUse()) {
             for (RWNode *def : DDA->getDefinitions(node)) {
                 nodeToDot(def);
-                printf("\tNODE%p->NODE%p [style=dotted constraint=false color=blue]\n",
-                       static_cast<void*>(def), static_cast<void*>(node));
+                printf("\tNODE%p->NODE%p [style=dotted constraint=false "
+                       "color=blue]\n",
+                       static_cast<void *>(def), static_cast<void *>(node));
             }
         }
         if (auto *C = RWNodeCall::get(node)) {
-            for (auto& cv : C->getCallees()) {
+            for (auto &cv : C->getCallees()) {
                 if (auto *s = cv.getSubgraph()) {
                     assert(s->getRoot() && "Subgraph has no root");
                     printf("\tNODE%p->NODE%p "
                            "[penwidth=4 color=blue "
                            "ltail=cluster_subg_%p]\n",
-                           static_cast<void*>(C),
-                           static_cast<const void*>(s->getRoot()), s);
+                           static_cast<void *>(C),
+                           static_cast<const void *>(s->getRoot()), s);
                 } else {
-                    printf("\tNODE%p->NODE%p [style=dashed constraint=false color=blue]\n",
-                           static_cast<void*>(C), static_cast<void*>(cv.getCalledValue()));
+                    printf("\tNODE%p->NODE%p [style=dashed constraint=false "
+                           "color=blue]\n",
+                           static_cast<void *>(C),
+                           static_cast<void *>(cv.getCalledValue()));
                 }
             }
         }
     }
 
-public:
+  public:
     Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = false)
-    : DDA(DDA), dot(todot) {}
+            : DDA(DDA), dot(todot) {}
 
     void dumpBBlockEdges(RWBBlock *block) {
         // dump CFG edges between nodes in one block
         RWNode *last = nullptr;
-        for(RWNode *node : block->getNodes()) {
+        for (RWNode *node : block->getNodes()) {
             if (last) { // successor edge
                 printf("\tNODE%p->NODE%p [constraint=true]\n",
-                       static_cast<void*>(last), static_cast<void*>(node));
+                       static_cast<void *>(last), static_cast<void *>(node));
             }
             last = node;
         }
@@ -338,8 +348,8 @@ public:
         printf("    color=\"black\";\n");
 
         puts("label=<<table border=\"0\">");
-        printf("<tr><td colspan=\"4\">bblock %u (%p)</td></tr>",
-               block->getID(), block);
+        printf("<tr><td colspan=\"4\">bblock %u (%p)</td></tr>", block->getID(),
+               block);
         dumpBBlockDefinitions(block);
         printf("</table>>\nlabelloc=b\n");
 
@@ -348,13 +358,13 @@ public:
             // if the block is empty, create at least a
             // dummy node so that we can draw CFG edges to it
             printf("\tNODE%p [label=\"empty blk\"]\n",
-                   static_cast<void*>(block));
+                   static_cast<void *>(block));
         } else {
-            for(RWNode *node : block->getNodes()) {
+            for (RWNode *node : block->getNodes()) {
                 nodeToDot(node);
 
                 if (auto *C = RWNodeCall::get(node)) {
-                    for (auto& cv : C->getCallees()) {
+                    for (auto &cv : C->getCallees()) {
                         if (auto *val = cv.getCalledValue())
                             nodeToDot(val);
                     }
@@ -371,7 +381,6 @@ public:
 
         printf("}\n");
     }
-
 
     void dump() {
         if (dot)
@@ -393,9 +402,9 @@ public:
     }
 
     void dumpToTty() {
-
         for (auto *subg : DDA->getGraph()->subgraphs()) {
-            printf("=========== fun: %s ===========\n", subg->getName().c_str());
+            printf("=========== fun: %s ===========\n",
+                   subg->getName().c_str());
             for (auto *bb : subg->bblocks()) {
                 printf("<<< bblock: %u >>>\n", bb->getID());
                 for (auto *node : bb->getNodes()) {
@@ -418,7 +427,6 @@ public:
         printf("digraph \"Data Dependencies Graph\" {\n");
         printf("  compound=true;\n\n");
 
-
         /*
         for (auto *global : DDA->getGraph()->getGlobals()) {
             nodeToDot(global);
@@ -434,16 +442,17 @@ public:
             dumpSubgraphLabel(subg);
 
             // dump summary nodes
-            auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+            auto SSA = static_cast<MemorySSATransformation *>(
+                    DDA->getDDA()->getImpl());
             const auto *summary = SSA->getSummary(subg);
             if (summary) {
-                for (auto& i : summary->inputs) {
-                    for (auto& it : i.second)
+                for (auto &i : summary->inputs) {
+                    for (auto &it : i.second)
                         for (auto *nd : it.second)
                             nodeToDot(nd);
                 }
-                for (auto& o : summary->outputs) {
-                    for (auto& it : o.second)
+                for (auto &o : summary->outputs) {
+                    for (auto &it : o.second)
                         for (auto *nd : it.second)
                             nodeToDot(nd);
                 }
@@ -457,16 +466,17 @@ public:
 
         for (auto *subg : DDA->getGraph()->subgraphs()) {
             // dump summary nodes edges
-            auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+            auto SSA = static_cast<MemorySSATransformation *>(
+                    DDA->getDDA()->getImpl());
             const auto *summary = SSA->getSummary(subg);
             if (summary) {
-                for (auto& i : summary->inputs) {
-                    for (auto& it : i.second)
+                for (auto &i : summary->inputs) {
+                    for (auto &it : i.second)
                         for (auto *nd : it.second)
                             dumpNodeEdges(nd);
                 }
-                for (auto& o : summary->outputs) {
-                    for (auto& it : o.second)
+                for (auto &o : summary->outputs) {
+                    for (auto &it : o.second)
                         for (auto *nd : it.second)
                             dumpNodeEdges(nd);
                 }
@@ -481,12 +491,14 @@ public:
                            "[penwidth=2 constraint=true"
                            " lhead=\"cluster_bb_%p\""
                            " ltail=\"cluster_bb_%p\"]\n",
-                           bblock->empty() ? static_cast<void*>(bblock) :
-                                             static_cast<void*>(bblock->getLast()),
-                           succ->empty() ? static_cast<void*>(succ) :
-                                           static_cast<void*>(succ->getFirst()),
-                           static_cast<void*>(bblock),
-                           static_cast<void*>(succ));
+                           bblock->empty()
+                                   ? static_cast<void *>(bblock)
+                                   : static_cast<void *>(bblock->getLast()),
+                           succ->empty()
+                                   ? static_cast<void *>(succ)
+                                   : static_cast<void *>(succ->getFirst()),
+                           static_cast<void *>(bblock),
+                           static_cast<void *>(succ));
                 }
             }
 
@@ -508,31 +520,26 @@ public:
         printf("}\n");
     }
 
+  private:
+    void printId(const RWNode *node) { printf(" [%u]", node->getID()); }
 
-private:
-
-    void printId(const RWNode *node) {
-        printf(" [%u]", node->getID());
-    }
-
-    void _dumpDefSites(const std::set<DefSite>& defs,
-                       const char *kind) {
+    void _dumpDefSites(const std::set<DefSite> &defs, const char *kind) {
         if (defs.empty())
             return;
 
         printf("<tr><td></td><td>------ %s ------</td></tr>\n", kind);
-        for (const DefSite& def : defs) {
+        for (const DefSite &def : defs) {
             puts("<tr><td></td><td>");
             printName(def.target);
-                if (def.offset.isUnknown())
-                    printf(" [? - ");
-                else
-                    printf(" [%" PRIu64 " - ", *def.offset);
+            if (def.offset.isUnknown())
+                printf(" [? - ");
+            else
+                printf(" [%" PRIu64 " - ", *def.offset);
 
-                if (def.len.isUnknown())
-                    printf("?]");
-                else
-                    printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
+            if (def.len.isUnknown())
+                printf("?]");
+            else
+                printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
             puts("</td></tr>\n");
         }
     }
@@ -557,48 +564,48 @@ private:
 };
 
 class MemorySSADumper : public Dumper {
-
-    void _dumpDefSites(RWNode *n, const std::set<DefSite>& defs) {
+    void _dumpDefSites(RWNode *n, const std::set<DefSite> &defs) {
         if (defs.empty())
             return;
 
-        for (const DefSite& def : defs) {
-            printf("<tr><td>at (%u): </td><td>(%u)</td><td>",
-                   n->getID(), def.target->getID());
+        for (const DefSite &def : defs) {
+            printf("<tr><td>at (%u): </td><td>(%u)</td><td>", n->getID(),
+                   def.target->getID());
             printName(def.target);
             printf("</td><td>");
-                if (def.offset.isUnknown())
-                    printf(" [? - ");
-                else
-                    printf(" [%" PRIu64 " - ", *def.offset);
+            if (def.offset.isUnknown())
+                printf(" [? - ");
+            else
+                printf(" [%" PRIu64 " - ", *def.offset);
 
-                if (def.len.isUnknown())
-                    printf("?]");
-                else
-                    printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
+            if (def.len.isUnknown())
+                printf("?]");
+            else
+                printf("%" PRIu64 "]", *def.offset + (*def.len - 1));
             puts("</td></tr>\n");
         }
     }
 
-    void dumpDDIMap(const DefinitionsMap<RWNode>& map) {
-        for (const auto& it : map) {
-           for (auto& it2 : it.second) {
+    void dumpDDIMap(const DefinitionsMap<RWNode> &map) {
+        for (const auto &it : map) {
+            for (auto &it2 : it.second) {
                 printf("<tr><td align=\"left\" colspan=\"4\">");
                 printName(it.first);
                 printf("</td></tr>");
-               for (auto where : it2.second) {
-                printf("<tr><td>&nbsp;&nbsp;</td><td>");
-                printInterval(it2.first);
-                printf("</td><td>@</td><td>");
-                   printName(where);
-                puts("</td></tr>");
-               }
-           }
+                for (auto where : it2.second) {
+                    printf("<tr><td>&nbsp;&nbsp;</td><td>");
+                    printInterval(it2.first);
+                    printf("</td><td>@</td><td>");
+                    printName(where);
+                    puts("</td></tr>");
+                }
+            }
         }
     }
 
     void dumpBBlockDefinitions(RWBBlock *block) override {
-        auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+        auto SSA = static_cast<MemorySSATransformation *>(
+                DDA->getDDA()->getImpl());
         auto *D = SSA->getDefinitions(block);
         if (!D)
             return;
@@ -609,20 +616,22 @@ class MemorySSADumper : public Dumper {
     }
 
     void dumpSubgraphLabel(RWSubgraph *subgraph) override {
-        auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+        auto SSA = static_cast<MemorySSATransformation *>(
+                DDA->getDDA()->getImpl());
         const auto *summary = SSA->getSummary(subgraph);
 
         if (!summary) {
             printf("  label=<<table cellborder=\"0\">\n"
-                                   "<tr><td>subgraph %s(%p)</td></tr>\n"
-                                   "<tr><td>no summary</td></tr></table>>;\n",
-                                   subgraph->getName().c_str(), subgraph);
+                   "<tr><td>subgraph %s(%p)</td></tr>\n"
+                   "<tr><td>no summary</td></tr></table>>;\n",
+                   subgraph->getName().c_str(), subgraph);
             return;
         }
 
-        printf("  label=<<table cellborder=\"0\"><tr><td colspan=\"4\">subgraph %s (%p)</td></tr>\n"
-                               "<tr><td colspan=\"4\">-- summary -- </td></tr>\n",
-                               subgraph->getName().c_str(), subgraph);
+        printf("  label=<<table cellborder=\"0\"><tr><td "
+               "colspan=\"4\">subgraph %s (%p)</td></tr>\n"
+               "<tr><td colspan=\"4\">-- summary -- </td></tr>\n",
+               subgraph->getName().c_str(), subgraph);
         printf("<tr><td colspan=\"4\">==  inputs ==</td></tr>");
         dumpDDIMap(summary->inputs);
         printf("<tr><td colspan=\"4\">==  outputs ==</td></tr>");
@@ -630,20 +639,17 @@ class MemorySSADumper : public Dumper {
         printf("</table>>;\n");
     }
 
-
-public:
+  public:
     MemorySSADumper(LLVMDataDependenceAnalysis *DDA, bool todot)
-    : Dumper(DDA, todot) {}
-
+            : Dumper(DDA, todot) {}
 };
 
-static void
-dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot)
-{
+static void dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot) {
     assert(DDA);
 
     if (DDA->getOptions().isSSA()) {
-        auto SSA = static_cast<MemorySSATransformation*>(DDA->getDDA()->getImpl());
+        auto SSA = static_cast<MemorySSATransformation *>(
+                DDA->getDDA()->getImpl());
         if (!graph_only)
             SSA->computeAllDefinitions();
 
@@ -658,9 +664,8 @@ dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot)
     }
 }
 
-std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
-                                          const SlicerOptions& options)
-{
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
+                                          const SlicerOptions &options) {
     llvm::SMDiagnostic SMD;
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
@@ -678,8 +683,7 @@ std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
     return M;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     SlicerOptions options = parseSlicerOptions(argc, argv);
 
     if (enable_debug) {
@@ -721,7 +725,8 @@ int main(int argc, char *argv[])
 
     if (dump_c_lines) {
 #if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
-        llvm::errs() << "WARNING: Variables names matching is not supported for LLVM older than 3.7\n";
+        llvm::errs() << "WARNING: Variables names matching is not supported "
+                        "for LLVM older than 3.7\n";
 #else
         valuesToVars = allocasToVars(*M);
 #endif // LLVM > 3.6

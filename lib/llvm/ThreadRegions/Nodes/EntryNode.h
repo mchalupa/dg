@@ -7,19 +7,19 @@
 
 class ForkNode;
 
-class EntryNode : public Node
-{
-private:
+class EntryNode : public Node {
+  private:
     std::set<ForkNode *> forkPredecessors_;
-public:
+
+  public:
     EntryNode();
 
     bool addForkPredecessor(ForkNode *forkNode);
 
     bool removeForkPredecessor(ForkNode *forkNode);
 
-    const std::set<ForkNode *> & forkPredecessors() const;
-          std::set<ForkNode *>   forkPredecessors();
+    const std::set<ForkNode *> &forkPredecessors() const;
+    std::set<ForkNode *> forkPredecessors();
 
     std::size_t predecessorsNumber() const override;
 

@@ -8,8 +8,8 @@
 namespace dg {
 
 template <typename Key, typename Val>
-class HopscotchHashMap : public HashMapImpl<Key, Val, tsl::hopscotch_map<Key, Val>> {
-};
+class HopscotchHashMap
+        : public HashMapImpl<Key, Val, tsl::hopscotch_map<Key, Val>> {};
 
 } // namespace dg
 

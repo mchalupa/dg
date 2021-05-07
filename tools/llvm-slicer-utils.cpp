@@ -1,9 +1,9 @@
-#include <vector>
 #include <string>
+#include <vector>
 
 #include "dg/tools/llvm-slicer-utils.h"
 
-std::vector<std::string> splitList(const std::string& opt, char sep) {
+std::vector<std::string> splitList(const std::string &opt, char sep) {
     std::vector<std::string> ret;
     if (opt.empty())
         return ret;
@@ -26,13 +26,12 @@ std::vector<std::string> splitList(const std::string& opt, char sep) {
 }
 
 std::pair<std::vector<std::string>, std::vector<std::string>>
-splitStringVector(std::vector<std::string>& vec,
-                  std::function<bool(std::string&)> cmpFunc)
-{
+splitStringVector(std::vector<std::string> &vec,
+                  std::function<bool(std::string &)> cmpFunc) {
     std::vector<std::string> part1;
     std::vector<std::string> part2;
 
-    for (auto& str : vec) {
+    for (auto &str : vec) {
         if (cmpFunc(str)) {
             part1.push_back(std::move(str));
         } else {
@@ -43,7 +42,7 @@ splitStringVector(std::vector<std::string>& vec,
     return {part1, part2};
 }
 
-void replace_suffix(std::string& fl, const std::string& with) {
+void replace_suffix(std::string &fl, const std::string &with) {
     if (fl.size() > 2) {
         if (fl.compare(fl.size() - 2, 2, ".o") == 0)
             fl.replace(fl.end() - 2, fl.end(), with);
@@ -55,4 +54,3 @@ void replace_suffix(std::string& fl, const std::string& with) {
         fl += with;
     }
 }
-

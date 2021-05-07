@@ -1,8 +1,8 @@
 #include "LockNode.h"
 
-LockNode::LockNode(const llvm::Instruction * instruction, const llvm::CallInst *callInst)
-    :Node(NodeType::LOCK, instruction, callInst)
-{}
+LockNode::LockNode(const llvm::Instruction *instruction,
+                   const llvm::CallInst *callInst)
+        : Node(NodeType::LOCK, instruction, callInst) {}
 
 bool LockNode::addCorrespondingUnlock(UnlockNode *unlockNode) {
     if (!unlockNode) {

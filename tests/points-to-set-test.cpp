@@ -1,56 +1,56 @@
 #include <catch2/catch.hpp>
 
 #include "dg/PointerAnalysis/PSNode.h"
-#include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/Pointer.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
 
 using namespace dg::pta;
 
-template<typename PTSetT>
+template <typename PTSetT>
 void queryingEmptySet() {
     PTSetT B;
     REQUIRE(B.empty());
     REQUIRE(B.size() == 0);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void addAnElement() {
     PTSetT B;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
     B.add(Pointer(A, 0));
     REQUIRE(*(B.begin()) == Pointer(A, 0));
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void addFewElements() {
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.add(Pointer(A, 20)) == true);
     REQUIRE(S.add(Pointer(A, 120)) == true);
     REQUIRE(S.add(Pointer(A, 1240)) == true);
     REQUIRE(S.add(Pointer(A, 235235)) == true);
     REQUIRE(S.add(Pointer(A, 22332435235)) == true);
-    for (const auto& ptr : S)
-    REQUIRE(ptr.target == A);
+    for (const auto &ptr : S)
+        REQUIRE(ptr.target == A);
     REQUIRE(S.size() == 6);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void addFewElements2() {
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.add(Pointer(A, 20)) == true);
     REQUIRE(S.add(Pointer(A, 120)) == true);
     REQUIRE(S.add(Pointer(A, 1240)) == true);
     REQUIRE(S.add(Pointer(A, 235235)) == true);
     REQUIRE(S.add(Pointer(A, 22332435235)) == true);
-    for (const auto& ptr : S)
+    for (const auto &ptr : S)
         REQUIRE((ptr.target == A || ptr.target == B));
 
     REQUIRE(S.size() == 6);
@@ -65,13 +65,13 @@ void addFewElements2() {
     REQUIRE(S.size() == 6);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void mergePointsToSets() {
     PTSetT S1;
     PTSetT S2;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
 
     REQUIRE(S1.add({A, 0}));
     REQUIRE(S2.add({B, 0}));
@@ -83,11 +83,11 @@ void mergePointsToSets() {
     REQUIRE(S1.size() == 2);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void removeElement() {
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
 
     REQUIRE(S.add({A, 0}) == true);
     REQUIRE(S.size() == 1);
@@ -96,12 +96,12 @@ void removeElement() {
     REQUIRE(S.size() == 0);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void removeFewElements() {
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
 
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.add(Pointer(A, 16)) == true);
@@ -115,12 +115,12 @@ void removeFewElements() {
     REQUIRE(S.size() == 3);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void removeAnyTest() {
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
 
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.add(Pointer(A, 16)) == true);
@@ -136,12 +136,12 @@ void removeAnyTest() {
     REQUIRE(S.removeAny(B) == false);
 }
 
-template<typename PTSetT>
+template <typename PTSetT>
 void pointsToTest() {
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
     S.add(Pointer(A, 0));
     REQUIRE(S.pointsTo(Pointer(A, 0)) == true);
     REQUIRE(S.mayPointTo(Pointer(A, 0)) == true);
@@ -154,25 +154,26 @@ void pointsToTest() {
     REQUIRE(S.mustPointTo(Pointer(A, 0)) == false);
     REQUIRE(S.pointsTo(Pointer(A, 64)) == true);
     REQUIRE(S.mayPointTo(Pointer(A, 64)) == true);
-    REQUIRE(S.mustPointTo(Pointer(A, 64)) == false);   
+    REQUIRE(S.mustPointTo(Pointer(A, 64)) == false);
     REQUIRE(S.pointsTo(Pointer(B, 123)) == true);
     REQUIRE(S.mayPointTo(Pointer(B, 123)) == true);
     REQUIRE(S.mustPointTo(Pointer(B, 123)) == false);
-    REQUIRE(S.mayPointTo(Pointer(A,10000)) == false);
-    REQUIRE(S.mustPointTo(Pointer(A,10000)) == false);
-    REQUIRE(S.pointsTo(Pointer(A,10000)) == false);
+    REQUIRE(S.mayPointTo(Pointer(A, 10000)) == false);
+    REQUIRE(S.mustPointTo(Pointer(A, 10000)) == false);
+    REQUIRE(S.pointsTo(Pointer(A, 10000)) == false);
     S.add(Pointer(A, dg::Offset::UNKNOWN));
     REQUIRE(S.pointsTo(Pointer(A, 0)) == false);
     REQUIRE(S.mayPointTo(Pointer(A, 0)) == true);
     REQUIRE(S.mustPointTo(Pointer(A, 0)) == false);
 }
 
-template<typename PTSetT>
-void testAlignedOverflowBehavior() { //only works for aligned PTSets using overflow Set
+template <typename PTSetT>
+void testAlignedOverflowBehavior() { // only works for aligned PTSets using
+                                     // overflow Set
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
     REQUIRE(S.getMultiplier() > 1);
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.size() == 1);
@@ -206,12 +207,12 @@ void testAlignedOverflowBehavior() { //only works for aligned PTSets using overf
     REQUIRE(S.overflowSetSize() == 0);
 }
 
-template<typename PTSetT>
-void testSmallOverflowBehavior() { //only works for SmallOffsetsPTSet
+template <typename PTSetT>
+void testSmallOverflowBehavior() { // only works for SmallOffsetsPTSet
     PTSetT S;
     PointerGraph PS;
-    PSNode* A = PS.create<PSNodeType::ALLOC>();
-    PSNode* B = PS.create<PSNodeType::ALLOC>();
+    PSNode *A = PS.create<PSNodeType::ALLOC>();
+    PSNode *B = PS.create<PSNodeType::ALLOC>();
     REQUIRE(S.add(Pointer(A, 0)) == true);
     REQUIRE(S.size() == 1);
     REQUIRE(S.overflowSetSize() == 0);
@@ -294,16 +295,20 @@ TEST_CASE("Merge points-to sets", "PointsToSet") {
     mergePointsToSets<AlignedPointerIdPointsToSet>();
 }
 
-TEST_CASE("Remove element", "PointsToSet") { //SeparateOffsetsPointsToSet has different remove behavior, it isn't tested here
+TEST_CASE("Remove element",
+          "PointsToSet") { // SeparateOffsetsPointsToSet has different remove
+                           // behavior, it isn't tested here
     removeElement<OffsetsSetPointsToSet>();
     removeElement<SimplePointsToSet>();
     removeElement<PointerIdPointsToSet>();
     removeElement<SmallOffsetsPointsToSet>();
     removeElement<AlignedSmallOffsetsPointsToSet>();
-    removeElement<AlignedPointerIdPointsToSet>();   
+    removeElement<AlignedPointerIdPointsToSet>();
 }
 
-TEST_CASE("Remove few elements", "PointsToSet") { //SeparateOffsetsPointsToSet has different remove behavior, it isn't tested here
+TEST_CASE("Remove few elements",
+          "PointsToSet") { // SeparateOffsetsPointsToSet has different remove
+                           // behavior, it isn't tested here
     removeFewElements<OffsetsSetPointsToSet>();
     removeFewElements<SimplePointsToSet>();
     removeFewElements<PointerIdPointsToSet>();
@@ -312,7 +317,9 @@ TEST_CASE("Remove few elements", "PointsToSet") { //SeparateOffsetsPointsToSet h
     removeFewElements<AlignedPointerIdPointsToSet>();
 }
 
-TEST_CASE("Remove all elements pointing to a target", "PointsToSet") { //SeparateOffsetsPointsToSet has different behavior, it isn't tested here
+TEST_CASE("Remove all elements pointing to a target",
+          "PointsToSet") { // SeparateOffsetsPointsToSet has different behavior,
+                           // it isn't tested here
     removeAnyTest<OffsetsSetPointsToSet>();
     removeAnyTest<SimplePointsToSet>();
     removeAnyTest<PointerIdPointsToSet>();

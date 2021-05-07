@@ -1,14 +1,14 @@
 #ifndef DG_DOD_H_
 #define DG_DOD_H_
 
-#include <map>
-#include <unordered_map>
-#include <set>
 #include <functional>
+#include <map>
+#include <set>
+#include <unordered_map>
 
+#include <dg/ADT/Bitvector.h>
 #include <dg/ADT/Queue.h>
 #include <dg/ADT/SetQueue.h>
-#include <dg/ADT/Bitvector.h>
 
 #include "CDGraph.h"
 
@@ -18,19 +18,18 @@ namespace dg {
 // (for all nodes). It is basically the same as NTSCD class
 // but we remember the results of calls to compute()
 class AllMaxPath {
-public:
-    using ResultT = std::map<CDNode *, const ADT::SparseBitvector&>;
+  public:
+    using ResultT = std::map<CDNode *, const ADT::SparseBitvector &>;
 
-private:
+  private:
     struct Info {
         ADT::SparseBitvector colors;
         unsigned short counter;
     };
 
-    std::unordered_map<CDNode*, Info> data;
+    std::unordered_map<CDNode *, Info> data;
 
-    void compute(CDGraph& graph, CDNode *target) {
-
+    void compute(CDGraph &graph, CDNode *target) {
         // initialize nodes
         for (auto *nd : graph) {
             data[nd].counter = nd->successors().size();
@@ -44,10 +43,11 @@ private:
         // search!
         while (!queue.empty()) {
             auto *node = queue.pop();
-            assert(data[node].colors.get(target->getID()) && "A non-colored node in queue");
+            assert(data[node].colors.get(target->getID()) &&
+                   "A non-colored node in queue");
 
             for (auto *pred : node->predecessors()) {
-                auto& D = data[pred];
+                auto &D = data[pred];
                 --D.counter;
                 if (D.counter == 0) {
                     D.colors.set(target->getID());
@@ -57,10 +57,10 @@ private:
         }
     }
 
-public:
-
-    // returns mapping CDNode -> Set of CDNodes (where the set is implemented as a bitvector)
-    ResultT compute(CDGraph& graph) {
+  public:
+    // returns mapping CDNode -> Set of CDNodes (where the set is implemented as
+    // a bitvector)
+    ResultT compute(CDGraph &graph) {
         ResultT res;
 
         data.reserve(graph.size());
@@ -74,10 +74,10 @@ public:
     }
 };
 
-
 class DOD {
-public:
-    //using ResultT = std::map<CDNode *, std::set<std::pair<CDNode *, CDNode *>>>;
+  public:
+    // using ResultT = std::map<CDNode *, std::set<std::pair<CDNode *, CDNode
+    // *>>>;
     // NOTE: although DOD is a ternary relation, we treat it as binary
     // by breaking a->(b, c) to (a, b) and (a, c). It over-approximates
     // the ternary relation. However, the effect on the results of slicing
@@ -86,7 +86,7 @@ public:
     using ResultT = std::map<CDNode *, std::set<CDNode *>>;
     using ColoringT = ADT::SparseBitvector;
 
-private:
+  private:
     struct ColoredAp {
         CDGraph Ap;
         ColoringT blues;
@@ -115,19 +115,18 @@ private:
         }
 
         ColoredAp() = default;
-        ColoredAp(CDGraph&& g, ColoringT&& b, ColoringT&& r)
-            : Ap(std::move(g)), blues(std::move(b)), reds(std::move(r)) {}
-        ColoredAp(ColoredAp&&) = default;
-        ColoredAp(const ColoredAp&) = delete;
+        ColoredAp(CDGraph &&g, ColoringT &&b, ColoringT &&r)
+                : Ap(std::move(g)), blues(std::move(b)), reds(std::move(r)) {}
+        ColoredAp(ColoredAp &&) = default;
+        ColoredAp(const ColoredAp &) = delete;
 
         bool isBlue(CDNode *n) const { return blues.get(n->getID()); }
         bool isRed(CDNode *n) const { return reds.get(n->getID()); }
     };
 
     template <typename Nodes, typename FunT>
-    void foreachFirstReachable(const Nodes& nodes,
-                               CDNode *from,
-                               const FunT& fun) {
+    void foreachFirstReachable(const Nodes &nodes, CDNode *from,
+                               const FunT &fun) {
         // FIXME: this breaks the complexity (it uses std::set)
         ADT::SetQueue<ADT::QueueLIFO<CDNode *>> queue;
         for (auto *s : from->successors()) {
@@ -147,22 +146,24 @@ private:
     }
 
     // Create the Ap graph (nodes and edges)
-    ColoredAp createAp(const ADT::SparseBitvector& nodes, CDGraph& graph, CDNode *node) {
+    ColoredAp createAp(const ADT::SparseBitvector &nodes, CDGraph &graph,
+                       CDNode *node) {
         ColoredAp CAp;
-        CDGraph& Ap = CAp.Ap;
+        CDGraph &Ap = CAp.Ap;
 
         // create nodes of graph
         for (auto *n : graph) {
             if (nodes.get(n->getID())) {
                 CAp.createNode(n);
-                //DBG(cda, "  - Ap has node " << n->getID() << " (which is " << nd->getID() << " in Ap)");
+                // DBG(cda, "  - Ap has node " << n->getID() << " (which is " <<
+                // nd->getID() << " in Ap)");
             }
         }
 
         assert(CAp.getNode(node) != nullptr);
 
         if (CAp.Ap.size() < 3) {
-            return {};   // no DOD possible, bail out early
+            return {}; // no DOD possible, bail out early
         }
 
         // Add edges. FIXME: we can use a better implementation
@@ -173,7 +174,8 @@ private:
                 auto *apn = CAp.getNode(cur);
                 assert(apn);
                 n->addSuccessor(apn);
-                //DBG(cda, "  - Ap edge " << gn->getID() << " -> " << cur->getID());
+                // DBG(cda, "  - Ap edge " << gn->getID() << " -> " <<
+                // cur->getID());
             });
         }
 
@@ -186,12 +188,13 @@ private:
     }
 
     // create the Ap graph (calls createAp) and color the nodes in the Ap graph
-    ColoredAp createColoredAp(AllMaxPath::ResultT& allpaths, CDGraph& graph, CDNode *node) {
+    ColoredAp createColoredAp(AllMaxPath::ResultT &allpaths, CDGraph &graph,
+                              CDNode *node) {
         auto it = allpaths.find(node);
         if (it == allpaths.end()) {
             return {};
         }
-        const auto& nodes = it->second;
+        const auto &nodes = it->second;
 
         ColoredAp CAp = createAp(nodes, graph, node);
         if (CAp.Ap.empty()) {
@@ -199,31 +202,31 @@ private:
         }
 
         // initialize the colors
-        assert(node->successors().size() == 2
-               && "Node is not the right predicate");
+        assert(node->successors().size() == 2 &&
+               "Node is not the right predicate");
 
         // FIXME: refactor...
         // color nodes
-        auto& succs = node->successors();
+        auto &succs = node->successors();
         auto sit = succs.begin();
         CDNode *bluesucc = *sit;
         CDNode *redsucc = *(++sit);
-       //DBG(cda, "Blue successor: " << bluesucc->getID());
-       //DBG(cda, "Red successor: " << redsucc->getID());
+        // DBG(cda, "Blue successor: " << bluesucc->getID());
+        // DBG(cda, "Red successor: " << redsucc->getID());
         assert(++sit == succs.end());
 
         if (nodes.get(bluesucc->getID())) { // is blue successor in Ap?
             auto *apn = CAp.getNode(bluesucc);
             assert(apn);
             CAp.blues.set(apn->getID());
-            //DBG(cda, "  - Ap blue: " << apn->getID() << " ("
+            // DBG(cda, "  - Ap blue: " << apn->getID() << " ("
             //                         << bluesucc->getID() << " in original)");
         } else {
             foreachFirstReachable(nodes, bluesucc, [&](CDNode *cur) {
                 auto *apn = CAp.getNode(cur);
                 assert(apn);
                 CAp.blues.set(apn->getID());
-                //DBG(cda, "  - Ap blue: " << apn->getID() << " ("
+                // DBG(cda, "  - Ap blue: " << apn->getID() << " ("
                 //                         << cur->getID() << " in original)");
             });
         }
@@ -236,7 +239,7 @@ private:
                 twocolors = true;
             }
             CAp.reds.set(apn->getID());
-            //DBG(cda, "  - Ap red: " << redsucc->getID());
+            // DBG(cda, "  - Ap red: " << redsucc->getID());
         } else {
             foreachFirstReachable(nodes, redsucc, [&](CDNode *cur) {
                 auto *apn = CAp.getNode(cur);
@@ -245,7 +248,7 @@ private:
                 if (CAp.blues.get(apn->getID())) {
                     twocolors = true;
                 }
-                //DBG(cda, "  - Ap red: " << apn->getID() << " ("
+                // DBG(cda, "  - Ap red: " << apn->getID() << " ("
                 //                        << cur->getID() << " in original)");
             });
         }
@@ -257,16 +260,18 @@ private:
         return CAp;
     }
 
-    static bool checkAp(CDGraph& Ap) {
-       //for (auto *nd : CAp.Ap) {
-       //      DBG(tmp, ">> Ap: " << nd->getID() << " b: " << CAp.blues.get(nd->getID())
-       //                                        << " r: " << CAp.reds.get(nd->getID()));
-       //}
-       //for (auto *nd : CAp.Ap) {
-       //    for (auto *succ: nd->successors()) {
-       //      DBG(tmp, ">> Ap:   " << nd->getID() << " -> " << succ->getID());
-       //    }
-       //}
+    static bool checkAp(CDGraph &Ap) {
+        // for (auto *nd : CAp.Ap) {
+        //      DBG(tmp, ">> Ap: " << nd->getID() << " b: " <<
+        //      CAp.blues.get(nd->getID())
+        //                                        << " r: " <<
+        //                                        CAp.reds.get(nd->getID()));
+        //}
+        // for (auto *nd : CAp.Ap) {
+        //    for (auto *succ: nd->successors()) {
+        //      DBG(tmp, ">> Ap:   " << nd->getID() << " -> " << succ->getID());
+        //    }
+        //}
 
         // we can have only a single node with multiple successors
         CDNode *p = nullptr;
@@ -298,14 +303,14 @@ private:
             assert(cur && "Node on the cycle does not have a unique successor");
         } while (cur != n);
 
-        assert(visited.size() == Ap.size() - 1
-                && "Cycle does not contain all the nodes except p");
+        assert(visited.size() == Ap.size() - 1 &&
+               "Cycle does not contain all the nodes except p");
         return true;
     }
 
     template <typename Pred1, typename Pred2>
     std::pair<CDNode *, CDNode *> find(CDNode *start, CDNode *end,
-                                       const Pred1& P1, const Pred2& P2) {
+                                       const Pred1 &P1, const Pred2 &P2) {
         CDNode *n1 = nullptr, *n2 = nullptr;
         CDNode *n = start;
         do {
@@ -323,7 +328,7 @@ private:
         return {n1, n2};
     }
 
-    void computeDOD(ColoredAp& CAp, CDNode *p, ResultT& CD, ResultT& revCD,
+    void computeDOD(ColoredAp &CAp, CDNode *p, ResultT &CD, ResultT &revCD,
                     bool asTernary = false) {
         assert(checkAp(CAp.Ap)); // sanity check
 
@@ -332,12 +337,11 @@ private:
 
         // get some blue node to have a starting point
         auto bid = *(CAp.blues.begin());
-        //DBG(tmp, "Blue node with id " << bid);
+        // DBG(tmp, "Blue node with id " << bid);
         b1 = CAp.Ap.getNode(bid);
         assert(b1 && "The blue node is not on Ap");
-        //DBG(tmp, "Starting from blue: " << b1->getID());
+        // DBG(tmp, "Starting from blue: " << b1->getID());
         assert(CAp.isBlue(b1));
-
 
         auto isblue = [&](CDNode *x) -> bool { return CAp.isBlue(x); };
         auto isred = [&](CDNode *x) -> bool { return CAp.isRed(x); };
@@ -360,17 +364,14 @@ private:
         assert(r2);
 
         if (asTernary) {
-            constructTernaryRelation(CAp, p, CD, revCD,
-                                     b2, b3, r1, r2);
+            constructTernaryRelation(CAp, p, CD, revCD, b2, b3, r1, r2);
         } else { // break into binary relation
-            constructBinaryRelation(CAp, p, CD, revCD,
-                                    b2, b3, r1, r2);
-       }
+            constructBinaryRelation(CAp, p, CD, revCD, b2, b3, r1, r2);
+        }
     }
 
-    void constructTernaryRelation(ColoredAp& CAp, CDNode *p,
-                                  ResultT& CD, ResultT& revCD,
-                                  CDNode *b2, CDNode *b3,
+    void constructTernaryRelation(ColoredAp &CAp, CDNode *p, ResultT &CD,
+                                  ResultT &revCD, CDNode *b2, CDNode *b3,
                                   CDNode *r1, CDNode *r2) {
         auto *cur = b2;
         do {
@@ -381,8 +382,9 @@ private:
             do {
                 auto *gncur = CAp.getGNode(ncur);
                 assert(gncur);
-               //DBG(cda, p->getID() << " - dod -> {" << gcur->getID() << ", "
-               //                                     << gncur->getID() << "}");
+                // DBG(cda, p->getID() << " - dod -> {" << gcur->getID() << ", "
+                //                                     << gncur->getID() <<
+                //                                     "}");
 
                 CD[gcur].insert(p);
                 CD[gncur].insert(p);
@@ -391,16 +393,17 @@ private:
 
                 ncur = ncur->getSingleSuccessor();
             } while (!(CAp.isBlue(ncur) || CAp.isRed(ncur)));
-            assert(ncur == b3); (void) b3;
+            assert(ncur == b3);
+            (void) b3;
 
             cur = cur->getSingleSuccessor();
         } while (!(CAp.isBlue(cur) || CAp.isRed(cur)));
-        assert(cur == r1); (void) r1;
+        assert(cur == r1);
+        (void) r1;
     }
 
-    void constructBinaryRelation(ColoredAp& CAp, CDNode *p,
-                                 ResultT& CD, ResultT& revCD,
-                                 CDNode *b2, CDNode *b3,
+    void constructBinaryRelation(ColoredAp &CAp, CDNode *p, ResultT &CD,
+                                 ResultT &revCD, CDNode *b2, CDNode *b3,
                                  CDNode *r1, CDNode *r2) {
         auto *cur = b2;
         do {
@@ -408,10 +411,11 @@ private:
             assert(gcur);
             CD[gcur].insert(p);
             revCD[p].insert(gcur);
-            //DBG(cda, p->getID() << " - dod -> " << gcur->getID());
+            // DBG(cda, p->getID() << " - dod -> " << gcur->getID());
             cur = cur->getSingleSuccessor();
         } while (!(CAp.isBlue(cur) || CAp.isRed(cur)));
-        assert(cur == r1); (void)r1;
+        assert(cur == r1);
+        (void) r1;
 
         cur = r2;
         do {
@@ -419,22 +423,24 @@ private:
             assert(gcur);
             CD[gcur].insert(p);
             revCD[p].insert(gcur);
-            //DBG(cda, p->getID() << " - dod -> " << gcur->getID());
+            // DBG(cda, p->getID() << " - dod -> " << gcur->getID());
             cur = cur->getSingleSuccessor();
         } while (!(CAp.isBlue(cur) || CAp.isRed(cur)));
-        assert(cur == b3); (void) b3;
+        assert(cur == b3);
+        (void) b3;
     }
 
-protected:
+  protected:
     // make this public, so that we can use it in NTSCD+DOD algorithm
     template <typename OnAllPaths>
-    void computeDOD(CDNode *p, CDGraph& graph,
-                    OnAllPaths& allpaths,
-                    ResultT& CD, ResultT& revCD) {
-        assert(p->successors().size() == 2 && "We work with at most 2 successors");
+    void computeDOD(CDNode *p, CDGraph &graph, OnAllPaths &allpaths,
+                    ResultT &CD, ResultT &revCD) {
+        assert(p->successors().size() == 2 &&
+               "We work with at most 2 successors");
 
-        DBG_SECTION_BEGIN(cda, "Creating Ap graph for fun " << graph.getName() <<
-                               " node " << p->getID());
+        DBG_SECTION_BEGIN(cda, "Creating Ap graph for fun " << graph.getName()
+                                                            << " node "
+                                                            << p->getID());
         auto res = createColoredAp(allpaths, graph, p);
         DBG_SECTION_END(cda, "Done creating Ap graph");
         if (res.Ap.empty()) {
@@ -447,19 +453,22 @@ protected:
         computeDOD(res, p, CD, revCD);
     }
 
-public:
-
-    std::pair<ResultT, ResultT> compute(CDGraph& graph) {
+  public:
+    std::pair<ResultT, ResultT> compute(CDGraph &graph) {
         ResultT CD;
         ResultT revCD;
 
         DBG_SECTION_BEGIN(cda, "Computing DOD for all predicates");
 
         AllMaxPath allmaxpath;
-        DBG_SECTION_BEGIN(cda, "Coputing nodes that are on all max paths from nodes for fun "
-                                << graph.getName());
+        DBG_SECTION_BEGIN(
+                cda,
+                "Coputing nodes that are on all max paths from nodes for fun "
+                        << graph.getName());
         auto allpaths = allmaxpath.compute(graph);
-        DBG_SECTION_END(cda, "Done computing nodes that are on all max paths from nodes");
+        DBG_SECTION_END(
+                cda,
+                "Done computing nodes that are on all max paths from nodes");
 
         for (auto *p : graph.predicates()) {
             computeDOD(p, graph, allpaths, CD, revCD);
@@ -470,9 +479,9 @@ public:
     }
 };
 
-
 class DODRanganath {
-    //using ResultT = std::map<CDNode *, std::set<std::pair<CDNode *, CDNode *>>>;
+    // using ResultT = std::map<CDNode *, std::set<std::pair<CDNode *, CDNode
+    // *>>>;
     // NOTE: although DOD is a ternary relation, we treat it as binary
     // by breaking a->(b, c) to (a, b) and (a, c). It is less precise,
     // but our API is not prepared for the ternary relation.
@@ -483,11 +492,11 @@ class DODRanganath {
         Color color{Color::UNCOLORED};
     };
 
-    std::unordered_map<CDNode*, Info> data;
+    std::unordered_map<CDNode *, Info> data;
 
-    void coloredDAG(CDGraph& graph, CDNode *n, std::set<CDNode *>& visited) {
+    void coloredDAG(CDGraph &graph, CDNode *n, std::set<CDNode *> &visited) {
         if (visited.insert(n).second) {
-            auto& successors = n->successors();
+            auto &successors = n->successors();
             if (successors.empty())
                 return;
 
@@ -506,7 +515,7 @@ class DODRanganath {
         }
     }
 
-    bool dependence(CDNode *n, CDNode *m, CDNode *p, CDGraph& G) {
+    bool dependence(CDNode *n, CDNode *m, CDNode *p, CDGraph &G) {
         for (auto *n : G) {
             data[n].color = Color::UNCOLORED;
         }
@@ -551,16 +560,20 @@ class DODRanganath {
         return false;
     }
 
-    bool onallpaths(CDNode *from, CDNode *n, CDGraph& G) {
+    bool onallpaths(CDNode *from, CDNode *n, CDGraph &G) {
         if (from == n) // fast path
             return true;
 
-        struct NodeInf { bool onstack{false}; bool visited{false}; };
+        struct NodeInf {
+            bool onstack{false};
+            bool visited{false};
+        };
         std::unordered_map<CDNode *, NodeInf> data;
 
         data.reserve(G.size());
 
-        const std::function<bool(CDNode*, CDNode*)> onallpths = [&](CDNode *node, CDNode *target) -> bool {
+        const std::function<bool(CDNode *, CDNode *)> onallpths =
+                [&](CDNode *node, CDNode *target) -> bool {
             if (node == target)
                 return true;
 
@@ -585,12 +598,13 @@ class DODRanganath {
         };
 
         data[from].onstack = true;
-        //DBG(tmp, "on all paths:" << from->getID() << ", " << n->getID() << ": " << r );
+        // DBG(tmp, "on all paths:" << from->getID() << ", " << n->getID() << ":
+        // " << r );
         return onallpths(from, n);
     }
 
-public:
-    std::pair<ResultT, ResultT> compute(CDGraph& graph) {
+  public:
+    std::pair<ResultT, ResultT> compute(CDGraph &graph) {
         ResultT CD;
         ResultT revCD;
 
@@ -607,8 +621,9 @@ public:
 
                     if (onallpaths(m, p, graph) && onallpaths(p, m, graph) &&
                         dependence(n, p, m, graph)) {
-                        //DBG(cda, "DOD: " << n->getID() << " -> {"
-                        //                 << p->getID() << ", " << m->getID() << "}");
+                        // DBG(cda, "DOD: " << n->getID() << " -> {"
+                        //                 << p->getID() << ", " << m->getID()
+                        //                 << "}");
                         CD[m].insert(n);
                         CD[p].insert(n);
                         revCD[n].insert(m);
@@ -622,6 +637,6 @@ public:
     }
 };
 
-};
+}; // namespace dg
 
 #endif

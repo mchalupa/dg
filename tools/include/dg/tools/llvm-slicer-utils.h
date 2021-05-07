@@ -1,5 +1,5 @@
 #ifndef _DG_LLVM_SLICER_UTILS_H_
-#define  _DG_LLVM_SLICER_UTILS_H_
+#define _DG_LLVM_SLICER_UTILS_H_
 
 #include <functional>
 
@@ -11,17 +11,17 @@ SILENCE_LLVM_WARNINGS_PUSH
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
-std::vector<std::string> splitList(const std::string& opt, char sep = ',');
+std::vector<std::string> splitList(const std::string &opt, char sep = ',');
 
 std::pair<std::vector<std::string>, std::vector<std::string>>
-splitStringVector(std::vector<std::string>& vec,
-                  std::function<bool(std::string&)> cmpFunc);
+splitStringVector(std::vector<std::string> &vec,
+                  std::function<bool(std::string &)> cmpFunc);
 
-void replace_suffix(std::string& fl, const std::string& with);
+void replace_suffix(std::string &fl, const std::string &with);
 
 template <typename T>
-bool array_match(llvm::StringRef name, const T& names) {
-    for (auto& n : names) {
+bool array_match(llvm::StringRef name, const T &names) {
+    for (auto &n : names) {
         if (name.equals(n))
             return true;
     }
@@ -36,10 +36,11 @@ static inline iterator_range<inst_iterator> instructions(Function &F) {
     return make_range(inst_begin(F), inst_end(F));
 }
 
-static inline iterator_range<const_inst_iterator> instructions(const Function &F) {
+static inline iterator_range<const_inst_iterator>
+instructions(const Function &F) {
     return make_range(inst_begin(F), inst_end(F));
 }
-} // llvm
+} // namespace llvm
 #endif
 
 // The description of a C variable
@@ -48,10 +49,10 @@ struct CVariableDecl {
     unsigned line;
     unsigned col;
 
-    CVariableDecl(const std::string& n, unsigned l = 0, unsigned c = 0):
-        name(n), line(l), col(c) {}
-    CVariableDecl(CVariableDecl&&) = default;
-    CVariableDecl(const CVariableDecl&) = default;
+    CVariableDecl(const std::string &n, unsigned l = 0, unsigned c = 0)
+            : name(n), line(l), col(c) {}
+    CVariableDecl(CVariableDecl &&) = default;
+    CVariableDecl(const CVariableDecl &) = default;
 };
 
 #endif // _DG_LLVM_SLICER_UTILS_H_

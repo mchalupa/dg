@@ -21,24 +21,22 @@ struct LLVMPointer {
     llvm::Value *value;
     Offset offset;
 
-    LLVMPointer(llvm::Value *val, Offset o)
-    : value(val), offset(o) {
+    LLVMPointer(llvm::Value *val, Offset o) : value(val), offset(o) {
         assert(val && "nullptr passed as value");
     }
 
-    bool operator==(const LLVMPointer& rhs) const {
+    bool operator==(const LLVMPointer &rhs) const {
         return value == rhs.value && offset == rhs.offset;
     }
 
     ///
     // Memory locations described by this pointer cover
     // (are a supperset) the memory locations of the rhs pointer.
-    bool covers(const LLVMPointer& rhs) const {
+    bool covers(const LLVMPointer &rhs) const {
         return value == rhs.value &&
-                (offset.isUnknown() || offset == rhs.offset);
+               (offset.isUnknown() || offset == rhs.offset);
     }
 };
-
 
 ///
 // LLVM memory region
@@ -47,11 +45,11 @@ struct LLVMMemoryRegion {
     LLVMPointer pointer;
     Offset len;
 
-    LLVMMemoryRegion(const LLVMPointer& ptr, const Offset l)
-    : pointer(ptr), len(l) {}
+    LLVMMemoryRegion(const LLVMPointer &ptr, const Offset l)
+            : pointer(ptr), len(l) {}
 
     LLVMMemoryRegion(llvm::Value *val, const Offset off, const Offset l)
-    : pointer(val, off), len(l) {}
+            : pointer(val, off), len(l) {}
 };
 
 ///
@@ -63,9 +61,8 @@ class LLVMMemoryRegionSet {
         const Offset len{0};
 
         OffsetPair() = default;
-        OffsetPair(const OffsetPair& rhs) = default;
-        OffsetPair(const Offset o, const Offset l)
-            : offset(o), len(l) {}
+        OffsetPair(const OffsetPair &rhs) = default;
+        OffsetPair(const Offset o, const Offset l) : offset(o), len(l) {}
 
         bool overlaps(const OffsetPair interval) const {
             return overlaps(interval.offset, interval.len);
@@ -86,7 +83,7 @@ class LLVMMemoryRegionSet {
             return false;
         }
 
-        bool coveredBy(const OffsetPair& rhs)  const {
+        bool coveredBy(const OffsetPair &rhs) const {
             return coveredBy(rhs.offset, rhs.len);
         }
 
@@ -94,12 +91,11 @@ class LLVMMemoryRegionSet {
             assert(!o.isUnknown() && !offset.isUnknown());
             // we allow len == UNKNOWN and treat it as infinity
 
-            return (o <= offset &&
-                    ((l.isUnknown() && len.isUnknown()) ||
-                     l.isUnknown() || l >= len));
+            return (o <= offset && ((l.isUnknown() && len.isUnknown()) ||
+                                    l.isUnknown() || l >= len));
         }
 
-        bool extends(const OffsetPair& rhs)  const {
+        bool extends(const OffsetPair &rhs) const {
             return rhs.coveredBy(*this);
         }
 
@@ -115,7 +111,7 @@ class LLVMMemoryRegionSet {
     MappingT _regions;
 
     std::pair<Offset, Offset> _extend(const OffsetPair interval,
-                       const Offset off, const Offset len) {
+                                      const Offset off, const Offset len) {
         assert(interval.overlaps(off, len));
         assert(!off.isUnknown());
 
@@ -136,13 +132,13 @@ class LLVMMemoryRegionSet {
         return it == _regions.end() ? nullptr : &it->second;
     }
 
-public:
+  public:
     // Add a memory region to this set
     //
     // not very efficient, but we will use it only
     // for transfering the results, so it should be fine
     void add(llvm::Value *mem, const Offset o, const Offset l) {
-        auto& R = _regions[mem];
+        auto &R = _regions[mem];
         // we do not know the bytes in this region
         if (o.isUnknown()) {
             R.clear();
@@ -152,18 +148,16 @@ public:
 
         assert(!o.isUnknown());
 
-        for (auto& interval : R) {
-            if (interval.offset.isUnknown() ||
-                interval.extends(o, l)) {
+        for (auto &interval : R) {
+            if (interval.offset.isUnknown() || interval.extends(o, l)) {
                 return; // nothing to be done
             }
         }
 
-
         // join all overlapping intervals
         Offset newO = o;
         Offset newL = l;
-        for (auto& interval : R) {
+        for (auto &interval : R) {
             if (interval.overlaps(newO, newL)) {
                 std::tie(newO, newL) = _extend(interval, newO, newL);
             }
@@ -172,12 +166,10 @@ public:
         std::vector<OffsetPair> tmp;
         tmp.reserve(R.size());
 
-        for (auto& interval : R) {
+        for (auto &interval : R) {
             // get rid of covered intervals
             if (interval.coveredBy(newO, newL))
                 continue;
-
-
 
             // if intervals overlap, join them,
             // otherwise keep the original interval
@@ -189,24 +181,24 @@ public:
         tmp.swap(R);
 
 #ifndef NDEBUG
-        for (auto& interval : R) {
+        for (auto &interval : R) {
             assert(((interval.offset == newO && interval.len == newL) ||
-                     !interval.overlaps(newO, newL))
-                    && "Joined intervals incorrectly");
+                    !interval.overlaps(newO, newL)) &&
+                   "Joined intervals incorrectly");
         }
 #endif // NDEBUG
     }
 
     // XXX: inefficient
-    bool overlaps(const LLVMMemoryRegionSet& rhs) const {
-        for (auto& it : rhs._regions) {
+    bool overlaps(const LLVMMemoryRegionSet &rhs) const {
+        for (auto &it : rhs._regions) {
             auto *our = _get(it.first);
             if (!our) {
                 continue;
             }
 
-            for (auto& interval : *our) {
-                for (auto& interval2 : it.second) {
+            for (auto &interval : *our) {
+                for (auto &interval2 : it.second) {
                     if (interval.overlaps(interval2))
                         return true;
                 }
@@ -222,14 +214,13 @@ public:
 
         const_iterator(const MappingT::const_iterator I) : it(I) {}
 
-    public:
+      public:
         LLVMMemoryRegion operator*() const {
-            return LLVMMemoryRegion{it->first,
-                                    it->second[pos].offset,
+            return LLVMMemoryRegion{it->first, it->second[pos].offset,
                                     it->second[pos].len};
         }
 
-        const_iterator& operator++() {
+        const_iterator &operator++() {
             ++pos;
             if (pos >= it->second.size()) {
                 ++it;
@@ -244,11 +235,11 @@ public:
             return tmp;
         }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             return it == rhs.it && pos == rhs.pos;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
 
@@ -262,7 +253,7 @@ public:
 ///
 // Implementation of LLVMPointsToSet
 class LLVMPointsToSetImpl {
-public:
+  public:
     ///
     // NOTE: this may not be O(1) operation
     virtual bool hasUnknown() const = 0;
@@ -271,13 +262,13 @@ public:
     virtual bool hasInvalidated() const = 0;
     virtual size_t size() const = 0;
 
-    virtual LLVMPointer getKnownSingleton() const  = 0;
+    virtual LLVMPointer getKnownSingleton() const = 0;
 
     // for iterator implementation
     // XXX: merge position() and end()?
-    virtual int position() const = 0; // for comparision
-    virtual bool end() const = 0; // have done iteration?
-    virtual void shift() = 0;  // iterate
+    virtual int position() const = 0;    // for comparision
+    virtual bool end() const = 0;        // have done iteration?
+    virtual void shift() = 0;            // iterate
     virtual LLVMPointer get() const = 0; // dereference
 
     virtual ~LLVMPointsToSetImpl() = default;
@@ -298,7 +289,7 @@ public:
 class LLVMPointsToSet {
     std::unique_ptr<LLVMPointsToSetImpl> _impl{};
 
-public:
+  public:
     class const_iterator {
         LLVMPointsToSetImpl *impl{nullptr};
 
@@ -317,8 +308,8 @@ public:
                 _check_end();
         }
 
-    public:
-        const_iterator& operator++() {
+      public:
+        const_iterator &operator++() {
             impl->shift();
             _check_end();
             return *this;
@@ -330,32 +321,34 @@ public:
             return tmp;
         }
 
-        LLVMPointer operator*() const {
-            return impl->get();
-        }
+        LLVMPointer operator*() const { return impl->get(); }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             if (!impl)
                 return !rhs.impl;
             if (!rhs.impl)
                 return !impl;
 
             assert(!impl->end() && rhs.impl->end());
-            assert(impl == rhs.impl && "Compared unrelated iterators"); // catch bugs
-            llvm::errs() << "CMP" << impl << "+" << impl->position() << " == "
-                                  << rhs.impl << "+" << rhs.impl->position() << "\n";
+            assert(impl == rhs.impl &&
+                   "Compared unrelated iterators"); // catch bugs
+            llvm::errs() << "CMP" << impl << "+" << impl->position()
+                         << " == " << rhs.impl << "+" << rhs.impl->position()
+                         << "\n";
             return impl == rhs.impl && impl->position() == rhs.impl->position();
         }
 
-        bool operator!=(const const_iterator& rhs) const { return !operator==(rhs);}
+        bool operator!=(const const_iterator &rhs) const {
+            return !operator==(rhs);
+        }
 
         friend class LLVMPointsToSet;
     };
 
     LLVMPointsToSet(LLVMPointsToSetImpl *impl) : _impl(impl) {}
     LLVMPointsToSet() = default;
-    LLVMPointsToSet(LLVMPointsToSet&&) = default;
-    LLVMPointsToSet& operator=(LLVMPointsToSet&&) = default;
+    LLVMPointsToSet(LLVMPointsToSet &&) = default;
+    LLVMPointsToSet &operator=(LLVMPointsToSet &&) = default;
 
     ///
     // NOTE: this may not be O(1) operation
@@ -367,25 +360,24 @@ public:
     size_t size() const { return _impl->size(); }
 
     bool isSingleton() const { return _impl->size() == 1; }
-    bool isKnownSingleton() const { return isSingleton()
-                                    && !_impl->hasUnknown()
-                                    && !_impl->hasNull()
-                                    && !_impl->hasInvalidated(); }
+    bool isKnownSingleton() const {
+        return isSingleton() && !_impl->hasUnknown() && !_impl->hasNull() &&
+               !_impl->hasInvalidated();
+    }
 
     // matches {unknown}
     bool isUnknownSingleton() const { return isSingleton() && hasUnknown(); }
 
     LLVMPointer getKnownSingleton() const { return _impl->getKnownSingleton(); }
 
-    const_iterator begin() const { return const_iterator(_impl.get());}
+    const_iterator begin() const { return const_iterator(_impl.get()); }
     const_iterator end() const { return const_iterator(nullptr); }
 };
-
 
 /// Auxiliary template that may be used when implementing LLVMPointsToSetImpl
 template <typename PTSetT>
 class LLVMPointsToSetImplTemplate : public LLVMPointsToSetImpl {
-protected:
+  protected:
     PTSetT PTSet;
     decltype(PTSet.begin()) it;
     size_t _position{0};
@@ -396,9 +388,10 @@ protected:
         return it != PTSet.end() && ++it == PTSet.end();
     }
 
-    bool isKnownSingleton() const { return issingleton()
-                                    && !hasUnknown() && !hasNull()
-                                    && !hasInvalidated(); }
+    bool isKnownSingleton() const {
+        return issingleton() && !hasUnknown() && !hasNull() &&
+               !hasInvalidated();
+    }
 
     // find next node that has associated llvm::Value
     // (i.e. skip null, unknown, etc.)
@@ -410,13 +403,11 @@ protected:
             _findNextReal();
     }
 
-public:
+  public:
     // NOTE: the child constructor must call initialize_iterator().
     // We cannot call it here since you can't call virtual
     // functions in ctor/dtor
-    LLVMPointsToSetImplTemplate(PTSetT S)
-    : PTSet(S), it(PTSet.begin()) {
-    }
+    LLVMPointsToSetImplTemplate(PTSetT S) : PTSet(S), it(PTSet.begin()) {}
 
     void shift() override {
         assert(it != PTSet.end() && "Tried to shift end() iterator");
@@ -430,16 +421,13 @@ public:
 
     // NOTE: LLVMPointsToSet will overtake the ownership of this
     // object and will delete it on destruction.
-    LLVMPointsToSet toLLVMPointsToSet() {
-        return LLVMPointsToSet(this);
-    }
+    LLVMPointsToSet toLLVMPointsToSet() { return LLVMPointsToSet(this); }
 };
-
 
 /// Implementation of LLVMPointsToSet that iterates
 //  over the DG's points-to set
-class DGLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsToSetT&> {
-
+class DGLLVMPointsToSet
+        : public LLVMPointsToSetImplTemplate<const PointsToSetT &> {
     void _findNextReal() override {
         while (it != PTSet.end() &&
                (!(*it).isValid() || (*it).isInvalidated())) {
@@ -448,8 +436,8 @@ class DGLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsToSetT&
         }
     }
 
-public:
-    DGLLVMPointsToSet(const PointsToSetT& S) : LLVMPointsToSetImplTemplate(S) {
+  public:
+    DGLLVMPointsToSet(const PointsToSetT &S) : LLVMPointsToSetImplTemplate(S) {
         initialize_iterator();
     }
 
@@ -457,20 +445,22 @@ public:
     // NOTE: this may not be O(1) operation
     bool hasUnknown() const override { return PTSet.hasUnknown(); }
     bool hasNull() const override { return PTSet.hasNull(); }
-    bool hasNullWithOffset() const override { return PTSet.hasNullWithOffset(); }
+    bool hasNullWithOffset() const override {
+        return PTSet.hasNullWithOffset();
+    }
     bool hasInvalidated() const override { return PTSet.hasInvalidated(); }
     size_t size() const override { return PTSet.size(); }
 
     LLVMPointer getKnownSingleton() const override {
         assert(isKnownSingleton());
         auto ptr = (*(PTSet.begin()));
-        return LLVMPointer(ptr.target->getUserData<llvm::Value>(),
-                           ptr.offset);
+        return LLVMPointer(ptr.target->getUserData<llvm::Value>(), ptr.offset);
     }
 
     LLVMPointer get() const override {
         assert((it != PTSet.end()) && "Dereferenced end() iterator");
-        return LLVMPointer{(*it).target->getUserData<llvm::Value>(), (*it).offset};
+        return LLVMPointer{(*it).target->getUserData<llvm::Value>(),
+                           (*it).offset};
     }
 };
 

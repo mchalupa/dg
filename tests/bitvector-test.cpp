@@ -10,9 +10,9 @@ using dg::ADT::SparseBitvector;
 TEST_CASE("Querying empty set", "SparseBitvector") {
     SparseBitvector B;
 
-   for (uint64_t i = 1; i < uint64_t{1} << 63U; i *= 2) {
-       REQUIRE(B.get(i) == false);
-   }
+    for (uint64_t i = 1; i < uint64_t{1} << 63U; i *= 2) {
+        REQUIRE(B.get(i) == false);
+    }
 }
 
 TEST_CASE("Set few elements", "SparseBitvector") {
@@ -126,34 +126,35 @@ TEST_CASE("Random", "SparseBitvector") {
     std::default_random_engine generator;
     std::uniform_int_distribution<uint64_t> distribution(0, ~uint64_t{0});
 
-SECTION("Generating random numbers and putting them to bitvector") {
-    for (int i = 0; i < NUM; ++i) {
-        auto x = distribution(generator);
-        B.set(x);
-        numbers.insert(x);
+    SECTION("Generating random numbers and putting them to bitvector") {
+        for (int i = 0; i < NUM; ++i) {
+            auto x = distribution(generator);
+            B.set(x);
+            numbers.insert(x);
+        }
     }
-}
 
-SECTION("Checking that each generated number is in bitvector") {
-    for (auto x : numbers) {
-        REQUIRE(B.get(x) == true);
-    }
-}
-
-SECTION("Checking that each generated number is in bitvector using iterator") {
-    // try iterators
-    for (auto x : B) {
-        REQUIRE(numbers.count(x) > 0);
-    }
-}
-
-SECTION("Checking random numbers") {
-    for (int i = 0; i < NUM; ++i) {
-        auto x = distribution(generator);
-        if (numbers.count(x) > 0)
+    SECTION("Checking that each generated number is in bitvector") {
+        for (auto x : numbers) {
             REQUIRE(B.get(x) == true);
+        }
     }
-}
+
+    SECTION("Checking that each generated number is in bitvector using "
+            "iterator") {
+        // try iterators
+        for (auto x : B) {
+            REQUIRE(numbers.count(x) > 0);
+        }
+    }
+
+    SECTION("Checking random numbers") {
+        for (int i = 0; i < NUM; ++i) {
+            auto x = distribution(generator);
+            if (numbers.count(x) > 0)
+                REQUIRE(B.get(x) == true);
+        }
+    }
 }
 
 TEST_CASE("Regression 1", "SparseBitvector") {
@@ -180,7 +181,6 @@ TEST_CASE("Merge random bitvectors (union)", "SparseBitvector") {
     SparseBitvector B1;
     SparseBitvector B2;
 
-
     std::default_random_engine generator;
     std::uniform_int_distribution<uint64_t> distribution(0, ~uint64_t{0});
 
@@ -202,6 +202,6 @@ TEST_CASE("Merge random bitvectors (union)", "SparseBitvector") {
         REQUIRE(B1.get(x));
     }
 
-//    B2.merge(B1);
-//    REQUIRE(B1 == B2);
+    //    B2.merge(B1);
+    //    REQUIRE(B1 == B2);
 }

@@ -5,10 +5,9 @@
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
 
-#include <set>
 #include <map>
+#include <set>
 #include <unordered_map>
-
 
 namespace llvm {
 class Function;
@@ -21,7 +20,6 @@ class LLVMPointerAnalysis;
 namespace llvmdg {
 
 class CallGraph;
-
 
 class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
     LLVMPointerAnalysis *PTA{nullptr};
@@ -36,8 +34,10 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         bool hasCD = false;
     };
 
-    std::unordered_map<const llvm::Instruction *, std::set<llvm::Value *>> _instrCD;
-    std::unordered_map<const llvm::BasicBlock *, std::set<llvm::Value *>> _blockCD;
+    std::unordered_map<const llvm::Instruction *, std::set<llvm::Value *>>
+            _instrCD;
+    std::unordered_map<const llvm::BasicBlock *, std::set<llvm::Value *>>
+            _blockCD;
     std::unordered_map<const llvm::Function *, FuncInfo> _funcInfos;
 
     FuncInfo *getFuncInfo(const llvm::Function *F) {
@@ -50,27 +50,28 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         return it == _funcInfos.end() ? nullptr : &it->second;
     }
 
-
     bool hasFuncInfo(const llvm::Function *fun) const {
-       return _funcInfos.find(fun) != _funcInfos.end();
+        return _funcInfos.find(fun) != _funcInfos.end();
     }
 
-    // recursively compute function info, 'stack' is there to detect recursive calls
+    // recursively compute function info, 'stack' is there to detect recursive
+    // calls
     void computeFuncInfo(const llvm::Function *fun,
                          std::set<const llvm::Function *> stack = {});
     void computeCD(const llvm::Function *fun);
 
-    std::vector<const llvm::Function *> getCalledFunctions(const llvm::Value *v);
+    std::vector<const llvm::Function *>
+    getCalledFunctions(const llvm::Value *v);
 
-public:
+  public:
     using ValVec = LLVMControlDependenceAnalysisImpl::ValVec;
 
     LLVMInterprocCD(const llvm::Module *module,
-                    const LLVMControlDependenceAnalysisOptions& opts = {},
+                    const LLVMControlDependenceAnalysisOptions &opts = {},
                     LLVMPointerAnalysis *pta = nullptr,
-                    CallGraph * /* cg */  = nullptr)
-        : LLVMControlDependenceAnalysisImpl(module, opts), PTA(pta)
-          /*, _cg(cg) */ {}
+                    CallGraph * /* cg */ = nullptr)
+            : LLVMControlDependenceAnalysisImpl(module, opts), PTA(pta)
+    /*, _cg(cg) */ {}
 
     ValVec getNoReturns(const llvm::Function *fun) override {
         ValVec ret;
@@ -104,7 +105,8 @@ public:
         ValVec ret;
         auto instrIt = _instrCD.find(I);
         if (instrIt != _instrCD.end()) {
-            ret.insert(ret.end(), instrIt->second.begin(), instrIt->second.end());
+            ret.insert(ret.end(), instrIt->second.begin(),
+                       instrIt->second.end());
         }
 
         auto blkIt = _blockCD.find(I->getParent());
@@ -127,13 +129,12 @@ public:
                 computeFuncInfo(F);
             }
         } else {
-            for (auto& f : *getModule()) {
+            for (auto &f : *getModule()) {
                 if (!f.isDeclaration() && !hasFuncInfo(&f)) {
                     computeFuncInfo(&f);
                 }
             }
         }
-
     }
 };
 

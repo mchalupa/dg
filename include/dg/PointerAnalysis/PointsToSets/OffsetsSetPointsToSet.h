@@ -1,11 +1,11 @@
 #ifndef ORIGINALPOINTSTOSET_H
 #define ORIGINALPOINTSTOSET_H
 
-#include "dg/PointerAnalysis/Pointer.h"
 #include "dg/ADT/Bitvector.h"
+#include "dg/PointerAnalysis/Pointer.h"
 
-#include <map>
 #include <cassert>
+#include <map>
 
 namespace dg {
 namespace pta {
@@ -36,7 +36,7 @@ class OffsetsSetPointsToSet {
         return !pointers[target].set(Offset::UNKNOWN);
     }
 
-public:
+  public:
     OffsetsSetPointsToSet() = default;
     OffsetsSetPointsToSet(std::initializer_list<Pointer> elems) { add(elems); }
 
@@ -60,14 +60,12 @@ public:
         }
     }
 
-    bool add(const Pointer& ptr) {
-        return add(ptr.target, ptr.offset);
-    }
+    bool add(const Pointer &ptr) { return add(ptr.target, ptr.offset); }
 
     // union (unite S into this set)
-    bool add(const OffsetsSetPointsToSet& S) {
+    bool add(const OffsetsSetPointsToSet &S) {
         bool changed = false;
-        for (auto& it : S.pointers) {
+        for (auto &it : S.pointers) {
             changed |= pointers[it.first].set(it.second);
         }
         return changed;
@@ -75,15 +73,13 @@ public:
 
     bool add(std::initializer_list<Pointer> elems) {
         bool changed = false;
-        for (const auto& e : elems) {
+        for (const auto &e : elems) {
             changed |= add(e);
         }
         return changed;
     }
 
-    bool remove(const Pointer& ptr) {
-        return remove(ptr.target, ptr.offset);
-    }
+    bool remove(const Pointer &ptr) { return remove(ptr.target, ptr.offset); }
 
     ///
     // Remove pointer to this target with this offset.
@@ -112,7 +108,7 @@ public:
 
     void clear() { pointers.clear(); }
 
-    bool pointsTo(const Pointer& ptr) const {
+    bool pointsTo(const Pointer &ptr) const {
         auto it = pointers.find(ptr.target);
         if (it == pointers.end())
             return false;
@@ -122,12 +118,11 @@ public:
     // points to the pointer or the the same target
     // with unknown offset? Note: we do not count
     // unknown memory here...
-    bool mayPointTo(const Pointer& ptr) const {
-        return pointsTo(ptr) ||
-                pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
+    bool mayPointTo(const Pointer &ptr) const {
+        return pointsTo(ptr) || pointsTo(Pointer(ptr.target, Offset::UNKNOWN));
     }
 
-    bool mustPointTo(const Pointer& ptr) const {
+    bool mustPointTo(const Pointer &ptr) const {
         assert(!ptr.offset.isUnknown() && "Makes no sense");
         return pointsTo(ptr) && isSingleton();
     }
@@ -136,13 +131,11 @@ public:
         return pointers.find(target) != pointers.end();
     }
 
-    bool isSingleton() const {
-        return pointers.size() == 1;
-    }
+    bool isSingleton() const { return pointers.size() == 1; }
 
     bool empty() const { return pointers.empty(); }
 
-    size_t count(const Pointer& ptr) const {
+    size_t count(const Pointer &ptr) const {
         auto it = pointers.find(ptr.target);
         if (it != pointers.end()) {
             return it->second.get(*ptr.offset);
@@ -151,9 +144,7 @@ public:
         return 0;
     }
 
-    bool has(const Pointer& ptr) const {
-        return count(ptr) > 0;
-    }
+    bool has(const Pointer &ptr) const { return count(ptr) > 0; }
 
     bool hasUnknown() const { return pointsToTarget(UNKNOWN_MEMORY); }
     bool hasNull() const { return pointsToTarget(NULLPTR); }
@@ -161,28 +152,30 @@ public:
 
     size_t size() const {
         size_t num = 0;
-        for (auto& it : pointers) {
+        for (auto &it : pointers) {
             num += it.second.size();
         }
 
         return num;
     }
 
-    void swap(OffsetsSetPointsToSet& rhs) { pointers.swap(rhs.pointers); }
+    void swap(OffsetsSetPointsToSet &rhs) { pointers.swap(rhs.pointers); }
 
     class const_iterator {
         typename ContainerT::const_iterator container_it;
         typename ContainerT::const_iterator container_end;
         typename ADT::SparseBitvector::const_iterator innerIt;
 
-        const_iterator(const ContainerT& cont, bool end = false)
-        : container_it(end ? cont.end() : cont.begin()), container_end(cont.end()) {
+        const_iterator(const ContainerT &cont, bool end = false)
+                : container_it(end ? cont.end() : cont.begin()),
+                  container_end(cont.end()) {
             if (container_it != container_end) {
                 innerIt = container_it->second.begin();
             }
         }
-    public:
-        const_iterator& operator++() {
+
+      public:
+        const_iterator &operator++() {
             ++innerIt;
             if (innerIt == container_it->second.end()) {
                 ++container_it;
@@ -204,11 +197,11 @@ public:
             return Pointer(container_it->first, *innerIt);
         }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             return container_it == rhs.container_it && innerIt == rhs.innerIt;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
 
@@ -216,7 +209,9 @@ public:
     };
 
     const_iterator begin() const { return const_iterator(pointers); }
-    const_iterator end() const { return const_iterator(pointers, true /* end */); }
+    const_iterator end() const {
+        return const_iterator(pointers, true /* end */);
+    }
 
     friend class const_iterator;
 };
@@ -224,6 +219,4 @@ public:
 } // namespace pta
 } // namespace dg
 
-
 #endif /* ORIGINALPOINTSTOSET_H */
-

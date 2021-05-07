@@ -1,29 +1,28 @@
 #ifndef _LLVM_DG_RD_H_
 #define _LLVM_DG_RD_H_
 
-#include <unordered_map>
 #include <memory>
 #include <type_traits>
+#include <unordered_map>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/DataDependence/DataDependence.h"
 
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 namespace dg {
 namespace dda {
 
 class LLVMReadWriteGraphBuilder;
 
-class LLVMDataDependenceAnalysis
-{
+class LLVMDataDependenceAnalysis {
     const llvm::Module *m;
     dg::LLVMPointerAnalysis *pta;
     const LLVMDataDependenceAnalysisOptions _options;
@@ -33,12 +32,11 @@ class LLVMDataDependenceAnalysis
     LLVMReadWriteGraphBuilder *createBuilder();
     DataDependenceAnalysis *createDDA();
 
-public:
-
-    LLVMDataDependenceAnalysis(const llvm::Module *m,
-                               dg::LLVMPointerAnalysis *pta,
-                               const LLVMDataDependenceAnalysisOptions& opts = {})
-    : m(m), pta(pta), _options(opts), builder(createBuilder()) {}
+  public:
+    LLVMDataDependenceAnalysis(
+            const llvm::Module *m, dg::LLVMPointerAnalysis *pta,
+            const LLVMDataDependenceAnalysisOptions &opts = {})
+            : m(m), pta(pta), _options(opts), builder(createBuilder()) {}
 
     ~LLVMDataDependenceAnalysis();
 
@@ -58,7 +56,9 @@ public:
         DDA->run();
     }
 
-    const LLVMDataDependenceAnalysisOptions& getOptions() const { return _options; }
+    const LLVMDataDependenceAnalysisOptions &getOptions() const {
+        return _options;
+    }
 
     ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
@@ -76,7 +76,7 @@ public:
     }
 
     std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
-                                         const Offset& off, const Offset& len) {
+                                         const Offset &off, const Offset &len) {
         return DDA->getDefinitions(where, mem, off, len);
     }
 
@@ -84,8 +84,9 @@ public:
         return DDA->getDefinitions(use);
     }
 
-    std::vector<RWNode *> getDefinitions(llvm::Instruction *where, llvm::Value *mem,
-                                         const Offset& off, const Offset& len) {
+    std::vector<RWNode *> getDefinitions(llvm::Instruction *where,
+                                         llvm::Value *mem, const Offset &off,
+                                         const Offset &len) {
         auto whereN = getNode(where);
         assert(whereN);
         auto memN = getNode(mem);
@@ -104,13 +105,12 @@ public:
     std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use);
     std::vector<llvm::Value *> getLLVMDefinitions(llvm::Instruction *where,
                                                   llvm::Value *mem,
-                                                  const Offset& off,
-                                                  const Offset& len);
+                                                  const Offset &off,
+                                                  const Offset &len);
 
     DataDependenceAnalysis *getDDA() { return DDA.get(); }
     const DataDependenceAnalysis *getDDA() const { return DDA.get(); }
 };
-
 
 } // namespace dda
 } // namespace dg

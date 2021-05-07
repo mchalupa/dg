@@ -1,18 +1,18 @@
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/CFG.h>
 #include <llvm/Analysis/LoopInfo.h>
+#include <llvm/IR/CFG.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Pass.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "llvm/ForkJoin/ForkJoin.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "llvm/ForkJoin/ForkJoin.h"
 
-#include "GraphBuilder.h"
-#include "Function.h"
 #include "Block.h"
+#include "Function.h"
+#include "GraphBuilder.h"
 #include "TarjanAnalysis.h"
 
 using dg::ForkJoinAnalysis;
@@ -22,8 +22,9 @@ namespace llvmdg {
 namespace legacy {
 
 GraphBuilder::GraphBuilder(dg::LLVMPointerAnalysis *pointsToAnalysis)
-    :pointsToAnalysis_(pointsToAnalysis),
-     threads(pointsToAnalysis ? pointsToAnalysis->getOptions().threads : false) {}
+        : pointsToAnalysis_(pointsToAnalysis),
+          threads(pointsToAnalysis ? pointsToAnalysis->getOptions().threads
+                                   : false) {}
 
 GraphBuilder::~GraphBuilder() {
     for (auto function : _functions) {
@@ -31,7 +32,8 @@ GraphBuilder::~GraphBuilder() {
     }
 }
 
-bool isExit(const TarjanAnalysis<Block>::StronglyConnectedComponent * component, const Function * function) {
+bool isExit(const TarjanAnalysis<Block>::StronglyConnectedComponent *component,
+            const Function *function) {
     bool ret = component->nodes().size() == 1;
     if (!ret) {
         return false;
@@ -49,17 +51,17 @@ Function *GraphBuilder::buildFunction(const llvm::Function *llvmFunction,
         return nullptr;
     }
     iterator = _functions.emplace(llvmFunction, new Function()).first;
-    Function * function = iterator->second;
+    Function *function = iterator->second;
 
     std::map<const llvm::Instruction *, Block *> instToBlockMap;
-    Block * lastBlock = nullptr;
-    for (auto & llvmBlock : *llvmFunction) {
+    Block *lastBlock = nullptr;
+    for (auto &llvmBlock : *llvmFunction) {
         if (!isReachable(&llvmBlock)) {
             continue;
         }
 
         bool createBlock = true;
-        for (auto& llvmInst : llvmBlock) {
+        for (auto &llvmInst : llvmBlock) {
             if (createBlock) {
                 auto tmpBlock = new Block(&llvmBlock);
                 _mapping[&llvmBlock].push_back(tmpBlock);
@@ -73,8 +75,10 @@ Function *GraphBuilder::buildFunction(const llvm::Function *llvmFunction,
                 createBlock = false;
             }
             bool createCallReturn = false;
-            if (recursively && llvmInst.getOpcode() == llvm::Instruction::Call) {
-                handleCallInstruction(&llvmInst, lastBlock, createBlock, createCallReturn);
+            if (recursively &&
+                llvmInst.getOpcode() == llvm::Instruction::Call) {
+                handleCallInstruction(&llvmInst, lastBlock, createBlock,
+                                      createCallReturn);
             }
             lastBlock->addInstruction(&llvmInst);
             instToBlockMap.emplace(&llvmInst, lastBlock);
@@ -90,10 +94,11 @@ Function *GraphBuilder::buildFunction(const llvm::Function *llvmFunction,
         }
     }
 
-    for (auto & llvmBlock : *llvmFunction) {
+    for (auto &llvmBlock : *llvmFunction) {
         if (isReachable(&llvmBlock)) {
             auto block = instToBlockMap[&llvmBlock.back()];
-            for (auto succ = llvm::succ_begin(&llvmBlock); succ != llvm::succ_end(&llvmBlock); ++succ) {
+            for (auto succ = llvm::succ_begin(&llvmBlock);
+                 succ != llvm::succ_end(&llvmBlock); ++succ) {
                 auto succ_block = instToBlockMap[&succ->front()];
                 block->addSuccessor(succ_block);
             }
@@ -106,21 +111,24 @@ Function *GraphBuilder::buildFunction(const llvm::Function *llvmFunction,
     TarjanAnalysis<Block> tarjan(function->nodes().size());
     tarjan.compute(function->entry());
     tarjan.computeCondensation();
-    const auto & componentss = tarjan.components();
+    const auto &componentss = tarjan.components();
     for (const auto component : componentss) {
-        if (!isExit(component, function) && component->successors().size() == 0) {
+        if (!isExit(component, function) &&
+            component->successors().size() == 0) {
             component->nodes().back()->addSuccessor(function->exit());
         }
     }
 
-//    auto components = tarjan.computeBackWardReachability(function->exit());
+    //    auto components =
+    //    tarjan.computeBackWardReachability(function->exit());
 
-//    for (auto component : components) {
-//        if (component->nodes().size() > 1 ||
-//            component->successors().find(component) != component->successors().end()) {
-//            component->nodes().back()->addSuccessor(function->exit());
-//        }
-//    }
+    //    for (auto component : components) {
+    //        if (component->nodes().size() > 1 ||
+    //            component->successors().find(component) !=
+    //            component->successors().end()) {
+    //            component->nodes().back()->addSuccessor(function->exit());
+    //        }
+    //    }
 
     return function;
 }
@@ -136,7 +144,8 @@ Function *GraphBuilder::findFunction(const llvm::Function *llvmFunction) {
     return nullptr;
 }
 
-Function *GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) {
+Function *
+GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) {
     if (!llvmFunction) {
         return nullptr;
     }
@@ -144,14 +153,13 @@ Function *GraphBuilder::createOrGetFunction(const llvm::Function *llvmFunction) 
     if (!function) {
         function = buildFunction(llvmFunction);
     }
-    return  function;
+    return function;
 }
 
 void GraphBuilder::dumpNodes(std::ostream &ostream) const {
     for (auto function : _functions) {
         function.second->dumpBlocks(ostream);
     }
-
 }
 
 void GraphBuilder::dumpEdges(std::ostream &ostream) const {
@@ -169,7 +177,7 @@ void GraphBuilder::dump(std::ostream &ostream) const {
 
 std::vector<const llvm::Function *>
 GraphBuilder::getCalledFunctions(const llvm::Value *v) {
-    if (auto* F = llvm::dyn_cast<llvm::Function>(v)) {
+    if (auto *F = llvm::dyn_cast<llvm::Function>(v)) {
         return {F};
     }
 
@@ -180,14 +188,13 @@ GraphBuilder::getCalledFunctions(const llvm::Value *v) {
 }
 
 void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction,
-                                         Block *lastBlock,
-                                         bool &createBlock,
+                                         Block *lastBlock, bool &createBlock,
                                          bool &createCallReturn) {
-    auto * callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
+    auto *callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
 #if LLVM_VERSION_MAJOR >= 8
-    auto * val = callInst->getCalledOperand();
+    auto *val = callInst->getCalledOperand();
 #else
-    auto * val = callInst->getCalledValue();
+    auto *val = callInst->getCalledValue();
 #endif
     auto llvmFunctions = getCalledFunctions(val);
 
@@ -206,11 +213,12 @@ void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction,
     }
 }
 
-bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst, Block *lastBlock) {
+bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst,
+                                       Block *lastBlock) {
     bool createBlock = false;
     llvm::Value *calledValue = callInst->getArgOperand(2);
     auto forkFunctions = getCalledFunctions(calledValue);
-    std::vector <const llvm::Function *> forkFunctionsWithBlock;
+    std::vector<const llvm::Function *> forkFunctionsWithBlock;
     for (auto forkFunction : forkFunctions) {
         if (forkFunction->size() > 0) {
             forkFunctionsWithBlock.push_back(forkFunction);
@@ -224,11 +232,13 @@ bool GraphBuilder::createPthreadCreate(const llvm::CallInst *callInst, Block *la
     return createBlock;
 }
 
-bool GraphBuilder::createPthreadJoin(const llvm::CallInst *callInst, Block *lastBlock) {
+bool GraphBuilder::createPthreadJoin(const llvm::CallInst *callInst,
+                                     Block *lastBlock) {
     bool createCallReturn = false;
 
     // FIXME: create this as attibute so that we perform the analysis only once
-    // (now we do not care as we just forward the results of PTA, but in the future...)
+    // (now we do not care as we just forward the results of PTA, but in the
+    // future...)
     ForkJoinAnalysis FJA{pointsToAnalysis_};
     auto joinFunctions = FJA.joinFunctions(callInst);
     for (auto joinFunction : joinFunctions) {

@@ -1,12 +1,12 @@
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/Support/SourceMgr.h>
-#include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -15,31 +15,26 @@ SILENCE_LLVM_WARNINGS_PUSH
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
-#include "llvm/ThreadRegions/Graphs/ThreadRegionsBuilder.h"
-#include "llvm/ThreadRegions/Graphs/GraphBuilder.h"
-#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
+#include "llvm/ThreadRegions/Graphs/GraphBuilder.h"
+#include "llvm/ThreadRegions/Graphs/ThreadRegionsBuilder.h"
 
 #include <iostream>
 
 using namespace std;
 
-int main(int argc, const char *argv[])
-{
+int main(int argc, const char *argv[]) {
     using namespace llvm;
 
-    cl::opt<string> OutputFilename("o",
-                                   cl::desc("Specify output filename"),
-                                   cl::value_desc("filename"),
-                                   cl::init(""));
-    cl::opt<std::string> inputFile(cl::Positional,
-                                   cl::Required,
-                                   cl::desc("<input file>"),
-                                   cl::init(""));
+    cl::opt<string> OutputFilename("o", cl::desc("Specify output filename"),
+                                   cl::value_desc("filename"), cl::init(""));
+    cl::opt<std::string> inputFile(cl::Positional, cl::Required,
+                                   cl::desc("<input file>"), cl::init(""));
 
     cl::ParseCommandLineOptions(argc, argv);
 
@@ -57,7 +52,8 @@ int main(int argc, const char *argv[])
         return 1;
     }
 
-    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main", dg::Offset::UNKNOWN, true);
+    dg::DGLLVMPointerAnalysis pointsToAnalysis(M.get(), "main",
+                                               dg::Offset::UNKNOWN, true);
     pointsToAnalysis.run();
 
     ControlFlowGraph controlFlowGraph(&pointsToAnalysis);
@@ -72,4 +68,3 @@ int main(int argc, const char *argv[])
 
     return 0;
 }
-

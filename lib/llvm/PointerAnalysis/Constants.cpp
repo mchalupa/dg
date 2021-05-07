@@ -6,21 +6,21 @@ namespace pta {
 
 extern const Pointer UnknownPointer;
 
-Pointer LLVMPointerGraphBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I)
-{
+Pointer
+LLVMPointerGraphBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I) {
     using namespace llvm;
 
     const Value *llvmOp = P2I->getOperand(0);
     // (possibly recursively) get the operand of this bit-cast
     PSNode *op = getOperand(llvmOp);
-    assert(op->pointsTo.size() == 1
-           && "Constant PtrToInt with not only one pointer");
+    assert(op->pointsTo.size() == 1 &&
+           "Constant PtrToInt with not only one pointer");
 
     return *op->pointsTo.begin();
 }
 
-Pointer LLVMPointerGraphBuilder::handleConstantIntToPtr(const llvm::IntToPtrInst *I2P)
-{
+Pointer
+LLVMPointerGraphBuilder::handleConstantIntToPtr(const llvm::IntToPtrInst *I2P) {
     using namespace llvm;
 
     const Value *llvmOp = I2P->getOperand(0);
@@ -31,14 +31,14 @@ Pointer LLVMPointerGraphBuilder::handleConstantIntToPtr(const llvm::IntToPtrInst
 
     // (possibly recursively) get the operand of this bit-cast
     PSNode *op = getOperand(llvmOp);
-    assert(op->pointsTo.size() == 1
-           && "Constant PtrToInt with not only one pointer");
+    assert(op->pointsTo.size() == 1 &&
+           "Constant PtrToInt with not only one pointer");
 
     return *op->pointsTo.begin();
 }
 
-Pointer LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst)
-{
+Pointer
+LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst) {
     using namespace llvm;
 
     PSNode *op;
@@ -58,7 +58,7 @@ Pointer LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst
             op = tryGetOperand(Inst->getOperand(1));
 
         if (!op) {
-            auto& unk = createUnknown(Inst);
+            auto &unk = createUnknown(Inst);
             return Pointer{unk.getSingleNode(), Offset::UNKNOWN};
         }
     }
@@ -67,8 +67,8 @@ Pointer LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst
     if (val)
         off = llvmutils::getConstantValue(val);
 
-    assert(op->pointsTo.size() == 1
-           && "Constant add with not only one pointer");
+    assert(op->pointsTo.size() == 1 &&
+           "Constant add with not only one pointer");
 
     Pointer ptr = *op->pointsTo.begin();
     if (off.isUnknown())
@@ -77,8 +77,8 @@ Pointer LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst
         return Pointer(ptr.target, ptr.offset + off);
 }
 
-Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(const llvm::Instruction *Inst)
-{
+Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(
+        const llvm::Instruction *Inst) {
     using namespace llvm;
 
     PSNode *op;
@@ -93,24 +93,25 @@ Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(const llvm::Instructio
             op = tryGetOperand(Inst->getOperand(1));
 
         if (!op)
-            return Pointer{createUnknown(Inst).getSingleNode(), Offset::UNKNOWN};
+            return Pointer{createUnknown(Inst).getSingleNode(),
+                           Offset::UNKNOWN};
     }
 
     assert(op && "Don't have operand for add");
-    assert(op->pointsTo.size() == 1
-           && "Constant add with not only one pointer");
+    assert(op->pointsTo.size() == 1 &&
+           "Constant add with not only one pointer");
 
     Pointer ptr = *op->pointsTo.begin();
     return Pointer(ptr.target, Offset::UNKNOWN);
 }
 
-Pointer LLVMPointerGraphBuilder::handleConstantBitCast(const llvm::BitCastInst *BC)
-{
+Pointer
+LLVMPointerGraphBuilder::handleConstantBitCast(const llvm::BitCastInst *BC) {
     using namespace llvm;
 
     if (!BC->isLosslessCast()) {
-        errs() << "WARN: Not a loss less cast unhandled ConstExpr"
-               << *BC << "\n";
+        errs() << "WARN: Not a loss less cast unhandled ConstExpr" << *BC
+               << "\n";
         abort();
         return UnknownPointer;
     }
@@ -118,14 +119,14 @@ Pointer LLVMPointerGraphBuilder::handleConstantBitCast(const llvm::BitCastInst *
     const Value *llvmOp = BC->stripPointerCasts();
     // (possibly recursively) get the operand of this bit-cast
     PSNode *op = getOperand(llvmOp);
-    assert(op->pointsTo.size() == 1
-           && "Constant BitCast with not only one pointer");
+    assert(op->pointsTo.size() == 1 &&
+           "Constant BitCast with not only one pointer");
 
     return *op->pointsTo.begin();
 }
 
-Pointer LLVMPointerGraphBuilder::handleConstantGep(const llvm::GetElementPtrInst *GEP)
-{
+Pointer
+LLVMPointerGraphBuilder::handleConstantGep(const llvm::GetElementPtrInst *GEP) {
     using namespace llvm;
 
     const Value *op = GEP->getPointerOperand();
@@ -134,8 +135,8 @@ Pointer LLVMPointerGraphBuilder::handleConstantGep(const llvm::GetElementPtrInst
     // get operand PSNode (this may result in recursive call,
     // if this gep is recursively defined)
     PSNode *opNode = getOperand(op);
-    assert(opNode->pointsTo.size() == 1
-           && "Constant node has more that 1 pointer");
+    assert(opNode->pointsTo.size() == 1 &&
+           "Constant node has more that 1 pointer");
     pointer = *(opNode->pointsTo.begin());
 
     unsigned bitwidth = llvmutils::getPointerBitwidth(&M->getDataLayout(), op);
@@ -146,57 +147,57 @@ Pointer LLVMPointerGraphBuilder::handleConstantGep(const llvm::GetElementPtrInst
         if (offset.isIntN(bitwidth) && !pointer.offset.isUnknown())
             pointer.offset = offset.getZExtValue();
         else
-            errs() << "WARN: Offset greater than "
-                   << bitwidth << "-bit" << *GEP << "\n";
+            errs() << "WARN: Offset greater than " << bitwidth << "-bit" << *GEP
+                   << "\n";
     }
 
     return pointer;
 }
 
-Pointer LLVMPointerGraphBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE)
-{
+Pointer
+LLVMPointerGraphBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE) {
     using namespace llvm;
 
     Pointer pointer(UNKNOWN_MEMORY, Offset::UNKNOWN);
-    Instruction *Inst = const_cast<ConstantExpr*>(CE)->getAsInstruction();
+    Instruction *Inst = const_cast<ConstantExpr *>(CE)->getAsInstruction();
 
-    switch(Inst->getOpcode()) {
-        case Instruction::GetElementPtr:
-            pointer = handleConstantGep(cast<GetElementPtrInst>(Inst));
-            break;
-        //case Instruction::ExtractValue:
-        //case Instruction::Select:
-            break;
-        case Instruction::BitCast:
-        case Instruction::SExt:
-        case Instruction::ZExt:
-            pointer = handleConstantBitCast(cast<BitCastInst>(Inst));
-            break;
-        case Instruction::PtrToInt:
-            pointer = handleConstantPtrToInt(cast<PtrToIntInst>(Inst));
-            break;
-        case Instruction::IntToPtr:
-            pointer = handleConstantIntToPtr(cast<IntToPtrInst>(Inst));
-            break;
-        case Instruction::Add:
-            pointer = handleConstantAdd(Inst);
-            break;
-        case Instruction::And:
-        case Instruction::Or:
-        case Instruction::Trunc:
-        case Instruction::Shl:
-        case Instruction::LShr:
-        case Instruction::AShr:
-            pointer = UnknownPointer;
-            break;
-        case Instruction::Sub:
-        case Instruction::Mul:
-        case Instruction::SDiv:
-            pointer = handleConstantArithmetic(Inst);
-            break;
-        default:
-            errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
-            abort();
+    switch (Inst->getOpcode()) {
+    case Instruction::GetElementPtr:
+        pointer = handleConstantGep(cast<GetElementPtrInst>(Inst));
+        break;
+        // case Instruction::ExtractValue:
+        // case Instruction::Select:
+        break;
+    case Instruction::BitCast:
+    case Instruction::SExt:
+    case Instruction::ZExt:
+        pointer = handleConstantBitCast(cast<BitCastInst>(Inst));
+        break;
+    case Instruction::PtrToInt:
+        pointer = handleConstantPtrToInt(cast<PtrToIntInst>(Inst));
+        break;
+    case Instruction::IntToPtr:
+        pointer = handleConstantIntToPtr(cast<IntToPtrInst>(Inst));
+        break;
+    case Instruction::Add:
+        pointer = handleConstantAdd(Inst);
+        break;
+    case Instruction::And:
+    case Instruction::Or:
+    case Instruction::Trunc:
+    case Instruction::Shl:
+    case Instruction::LShr:
+    case Instruction::AShr:
+        pointer = UnknownPointer;
+        break;
+    case Instruction::Sub:
+    case Instruction::Mul:
+    case Instruction::SDiv:
+        pointer = handleConstantArithmetic(Inst);
+        break;
+    default:
+        errs() << "ERR: Unsupported ConstantExpr " << *CE << "\n";
+        abort();
     }
 
 #if LLVM_VERSION_MAJOR < 5
@@ -207,22 +208,22 @@ Pointer LLVMPointerGraphBuilder::getConstantExprPointer(const llvm::ConstantExpr
     return pointer;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createConstantExpr(const llvm::ConstantExpr *CE) {
     Pointer ptr = getConstantExprPointer(CE);
     PSNode *node = PS.create<PSNodeType::CONSTANT>(ptr.target, ptr.offset);
 
-
     return addNode(CE, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createUnknown(const llvm::Value *val) {
     // nothing better we can do, these operations
     // completely change the value of pointer...
 
     // FIXME: or there's enough unknown offset? Check it out!
-    PSNode *node = PS.create<PSNodeType::CONSTANT>(UNKNOWN_MEMORY, Offset::UNKNOWN);
+    PSNode *node =
+            PS.create<PSNodeType::CONSTANT>(UNKNOWN_MEMORY, Offset::UNKNOWN);
     assert(node);
 
     return addNode(val, node);
@@ -230,4 +231,3 @@ LLVMPointerGraphBuilder::createUnknown(const llvm::Value *val) {
 
 } // namespace pta
 } // namespace dg
-

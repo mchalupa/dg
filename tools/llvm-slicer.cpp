@@ -1,9 +1,9 @@
-#include <set>
-#include <vector>
-#include <string>
 #include <cassert>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <set>
+#include <string>
+#include <vector>
 
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
@@ -15,24 +15,24 @@
 #error "Unsupported version of LLVM"
 #endif
 
-#include "git-version.h"
-#include "dg/tools/llvm-slicer.h"
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer.h"
+#include "git-version.h"
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
 #include <llvm/IR/LLVMContext.h>
 #endif
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/PrettyStackTrace.h>
+#include <llvm/Support/Signals.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/Signals.h>
-#include <llvm/Support/PrettyStackTrace.h>
-#include <llvm/Support/CommandLine.h>
-#include <llvm/IR/InstIterator.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ADT/Queue.h"
@@ -40,67 +40,75 @@ SILENCE_LLVM_WARNINGS_POP
 
 using namespace dg;
 
-using llvm::errs;
-using dg::LLVMPointerAnalysisOptions;
 using dg::LLVMDataDependenceAnalysisOptions;
+using dg::LLVMPointerAnalysisOptions;
+using llvm::errs;
 
-using AnnotationOptsT
-    = dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
+using AnnotationOptsT =
+        dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT;
 
-llvm::cl::opt<bool> enable_debug("dbg",
-    llvm::cl::desc("Enable debugging messages (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> enable_debug(
+        "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> should_verify_module("dont-verify",
-    llvm::cl::desc("Verify sliced module (default=true)."),
-    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> should_verify_module(
+        "dont-verify", llvm::cl::desc("Verify sliced module (default=true)."),
+        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> remove_unused_only("remove-unused-only",
-    llvm::cl::desc("Only remove unused parts of module (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> remove_unused_only(
+        "remove-unused-only",
+        llvm::cl::desc("Only remove unused parts of module (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> statistics("statistics",
-    llvm::cl::desc("Print statistics about slicing (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> statistics(
+        "statistics",
+        llvm::cl::desc("Print statistics about slicing (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> dump_dg("dump-dg",
-    llvm::cl::desc("Dump dependence graph to dot (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool>
+        dump_dg("dump-dg",
+                llvm::cl::desc("Dump dependence graph to dot (default=false)."),
+                llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> dump_dg_only("dump-dg-only",
-    llvm::cl::desc("Only dump dependence graph to dot,"
-                   " do not slice the module (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> dump_dg_only(
+        "dump-dg-only",
+        llvm::cl::desc("Only dump dependence graph to dot,"
+                       " do not slice the module (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> dump_bb_only("dump-bb-only",
-    llvm::cl::desc("Only dump basic blocks of dependence graph to dot"
-                   " (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> dump_bb_only(
+        "dump-bb-only",
+        llvm::cl::desc("Only dump basic blocks of dependence graph to dot"
+                       " (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> criteria_are_next_instr("criteria-are-next-instr",
-    llvm::cl::desc("Assume that slicing criteria are not the call-sites\n"
-                   "of the given function, but the instructions that\n"
-                   "follow the call. I.e. the call is used just to mark\n"
-                   "the instruction.\n"
-                   "E.g. for 'crit' being set as the criterion, slicing critera "
-                   "are all instructions that follow any call of 'crit'.\n"),
-                   llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> criteria_are_next_instr(
+        "criteria-are-next-instr",
+        llvm::cl::desc(
+                "Assume that slicing criteria are not the call-sites\n"
+                "of the given function, but the instructions that\n"
+                "follow the call. I.e. the call is used just to mark\n"
+                "the instruction.\n"
+                "E.g. for 'crit' being set as the criterion, slicing critera "
+                "are all instructions that follow any call of 'crit'.\n"),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<std::string> annotationOpts("annotate",
-    llvm::cl::desc("Save annotated version of module as a text (.ll).\n"
-                   "Options:\n"
-                    "  dd: data dependencies,\n"
-                    "  cd:control dependencies,\n"
-                    "  pta: points-to information,\n"
-                    "  memacc: memory accesses of instructions,\n"
-                    "  slice: comment out what is going to be sliced away).\n"
-                    "for more options, use comma separated list"),
-    llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
-    llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<std::string> annotationOpts(
+        "annotate",
+        llvm::cl::desc(
+                "Save annotated version of module as a text (.ll).\n"
+                "Options:\n"
+                "  dd: data dependencies,\n"
+                "  cd:control dependencies,\n"
+                "  pta: points-to information,\n"
+                "  memacc: memory accesses of instructions,\n"
+                "  slice: comment out what is going to be sliced away).\n"
+                "for more options, use comma separated list"),
+        llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
+        llvm::cl::cat(SlicingOpts));
 
-
-static void maybe_print_statistics(llvm::Module *M, const char *prefix = nullptr)
-{
+static void maybe_print_statistics(llvm::Module *M,
+                                   const char *prefix = nullptr) {
     if (!statistics)
         return;
 
@@ -115,7 +123,7 @@ static void maybe_print_statistics(llvm::Module *M, const char *prefix = nullptr
 
         ++fnum;
 
-        for (const BasicBlock& B : *I) {
+        for (const BasicBlock &B : *I) {
             ++bnum;
             inum += B.size();
         }
@@ -127,18 +135,17 @@ static void maybe_print_statistics(llvm::Module *M, const char *prefix = nullptr
     if (prefix)
         errs() << prefix;
 
-    errs() << "Globals/Functions/Blocks/Instr.: "
-           << gnum << " " << fnum << " " << bnum << " " << inum << "\n";
+    errs() << "Globals/Functions/Blocks/Instr.: " << gnum << " " << fnum << " "
+           << bnum << " " << inum << "\n";
 }
 
-static AnnotationOptsT parseAnnotationOptions(const std::string& annot)
-{
+static AnnotationOptsT parseAnnotationOptions(const std::string &annot) {
     if (annot.empty())
         return {};
 
     AnnotationOptsT opts{};
     std::vector<std::string> lst = splitList(annot);
-    for (const std::string& opt : lst) {
+    for (const std::string &opt : lst) {
         if (opt == "dd")
             opts |= AnnotationOptsT::ANNOTATE_DD;
         else if (opt == "cd" || opt == "cda")
@@ -156,9 +163,8 @@ static AnnotationOptsT parseAnnotationOptions(const std::string& annot)
     return opts;
 }
 
-std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
-                                          const SlicerOptions& options)
-{
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
+                                          const SlicerOptions &options) {
     llvm::SMDiagnostic SMD;
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
@@ -177,33 +183,30 @@ std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
 }
 
 #ifndef USING_SANITIZERS
-void setupStackTraceOnError(int argc, char *argv[])
-{
-
+void setupStackTraceOnError(int argc, char *argv[]) {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
     llvm::sys::PrintStackTraceOnErrorSignal();
 #else
     llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
 #endif
     llvm::PrettyStackTraceProgram X(argc, argv);
-
 }
 #else
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
-
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     setupStackTraceOnError(argc, argv);
 
-# if ((LLVM_VERSION_MAJOR >= 6))
-    llvm::cl::SetVersionPrinter([](llvm::raw_ostream&){ printf("%s\n", GIT_VERSION); });
+#if ((LLVM_VERSION_MAJOR >= 6))
+    llvm::cl::SetVersionPrinter(
+            [](llvm::raw_ostream &) { printf("%s\n", GIT_VERSION); });
 #else
-    llvm::cl::SetVersionPrinter([](){ printf("%s\n", GIT_VERSION); });
+    llvm::cl::SetVersionPrinter([]() { printf("%s\n", GIT_VERSION); });
 #endif
 
-    SlicerOptions options = parseSlicerOptions(argc, argv, true /* require crit*/);
+    SlicerOptions options =
+            parseSlicerOptions(argc, argv, true /* require crit*/);
 
     if (enable_debug) {
         DBG_ENABLE();
@@ -253,12 +256,10 @@ int main(int argc, char *argv[])
                               parseAnnotationOptions(annotationOpts));
 
     std::set<LLVMNode *> criteria_nodes;
-    if (!getSlicingCriteriaNodes(slicer.getDG(),
-                                 options.slicingCriteria,
+    if (!getSlicingCriteriaNodes(slicer.getDG(), options.slicingCriteria,
                                  options.legacySlicingCriteria,
                                  options.legacySecondarySlicingCriteria,
-                                 criteria_nodes,
-                                 criteria_are_next_instr)) {
+                                 criteria_nodes, criteria_are_next_instr)) {
         llvm::errs() << "ERROR: Failed finding slicing criteria: '"
                      << options.slicingCriteria << "'\n";
 

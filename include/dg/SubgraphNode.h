@@ -8,23 +8,27 @@
 #include <iostream>
 #endif // not NDEBUG
 
-#include <vector>
-#include <set>
 #include <algorithm>
 #include <cassert>
+#include <set>
+#include <vector>
 
 namespace dg {
 
-namespace pta { class PSNode; }
-namespace dda {class RWNode; }
+namespace pta {
+class PSNode;
+}
+namespace dda {
+class RWNode;
+}
 
 template <typename NodeT>
 class SubgraphNode {
-public:
+  public:
     using IDType = unsigned;
     using NodesVec = std::vector<NodeT *>;
 
-private:
+  private:
     // id of the node. Every node from a graph has a unique ID;
     IDType id = 0;
 
@@ -44,7 +48,7 @@ private:
     // id of scc component
     unsigned int scc_id{0};
 
-protected:
+  protected:
     // XXX: make those private!
     NodesVec _successors;
     NodesVec _predecessors;
@@ -56,8 +60,7 @@ protected:
     // size of the memory
     size_t size{0};
 
-public:
-
+  public:
     SubgraphNode(IDType id) : id(id) {}
 #ifndef NDEBUG
     // in debug mode, we have virtual dump methods
@@ -76,9 +79,13 @@ public:
 
     // getters & setters for analysis's data in the node
     template <typename T>
-    T* getData() { return static_cast<T *>(data); }
+    T *getData() {
+        return static_cast<T *>(data);
+    }
     template <typename T>
-    const T* getData() const { return static_cast<T *>(data); }
+    const T *getData() const {
+        return static_cast<T *>(data);
+    }
 
     template <typename T>
     void *setData(T *newdata) {
@@ -89,9 +96,13 @@ public:
 
     // getters & setters for user's data in the node
     template <typename T>
-    T* getUserData() { return static_cast<T *>(user_data); }
+    T *getUserData() {
+        return static_cast<T *>(user_data);
+    }
     template <typename T>
-    const T* getUserData() const { return static_cast<T *>(user_data); }
+    const T *getUserData() const {
+        return static_cast<T *>(user_data);
+    }
 
     template <typename T>
     void *setUserData(T *newdata) {
@@ -101,22 +112,20 @@ public:
     }
 
     NodeT *getOperand(int idx) const {
-        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size()
-               && "Operand index out of range");
+        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size() &&
+               "Operand index out of range");
 
         return operands[idx];
     }
 
     void setOperand(int idx, NodeT *nd) {
-        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size()
-               && "Operand index out of range");
+        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size() &&
+               "Operand index out of range");
 
         operands[idx] = nd;
     }
 
-    size_t getOperandsNum() const {
-        return operands.size();
-    }
+    size_t getOperandsNum() const { return operands.size(); }
 
     void removeAllOperands() {
         for (auto o : operands) {
@@ -125,18 +134,18 @@ public:
         operands.clear();
     }
 
-public:
-    template<typename NodePtr, typename... Args>
-    size_t addOperand(NodePtr node, Args&&... args) {
+  public:
+    template <typename NodePtr, typename... Args>
+    size_t addOperand(NodePtr node, Args &&...args) {
         addOperand(node);
         return addOperand(std::forward<Args>(args)...);
     }
 
-    template<typename NodePtr,
-             typename Node_plain = typename std::remove_pointer<NodePtr>::type>
+    template <typename NodePtr,
+              typename Node_plain = typename std::remove_pointer<NodePtr>::type>
     size_t addOperand(NodePtr n) {
         static_assert(std::is_pointer<NodePtr>::value &&
-                      std::is_base_of<NodeT, Node_plain>::value,
+                              std::is_base_of<NodeT, Node_plain>::value,
                       "Argument is not a pointer or is not derived from this "
                       "class.");
         assert(n && "Passed nullptr as the operand");
@@ -165,10 +174,10 @@ public:
 
     // return const only, so that we cannot change them
     // other way then addSuccessor()
-    const NodesVec& successors() const { return _successors; }
-    const NodesVec& predecessors() const { return _predecessors; }
-    const NodesVec& getOperands() const { return operands; }
-    const NodesVec& getUsers() const { return users; }
+    const NodesVec &successors() const { return _successors; }
+    const NodesVec &predecessors() const { return _predecessors; }
+    const NodesVec &getOperands() const { return operands; }
+    const NodesVec &getUsers() const { return users; }
 
     void replaceSingleSuccessor(NodeT *succ) {
         assert(succ && "Passed nullptr as the successor");
@@ -186,7 +195,6 @@ public:
         // remove the successor
         _successors.clear();
     }
-
 
     // get the successor when we know there's only one of them
     NodeT *getSingleSuccessor() const {
@@ -263,7 +271,7 @@ public:
     }
 
     // insert a sequence before this node in PointerGraph
-    void insertSequenceBefore(std::pair<NodeT *, NodeT *>& seq) {
+    void insertSequenceBefore(std::pair<NodeT *, NodeT *> &seq) {
         assert(seq.first && seq.second && "Passed nullptr in the sequence");
         // the sequence must not be inserted in any PointerGraph
         assert(seq.first->predecessorsNum() == 0);
@@ -345,31 +353,22 @@ public:
         users.clear();
     }
 
-    size_t predecessorsNum() const {
-        return _predecessors.size();
-    }
+    size_t predecessorsNum() const { return _predecessors.size(); }
 
-    size_t successorsNum() const {
-        return _successors.size();
-    }
+    size_t successorsNum() const { return _successors.size(); }
 
 #ifndef NDEBUG
-    virtual void dump() const {
-        std::cout << "SubgraphNode <" << getID();
-    }
+    virtual void dump() const { std::cout << "SubgraphNode <" << getID(); }
 
     virtual void print() const {
         dump();
         std::cout << "\n";
     }
 
-    virtual void dumpv() const {
-        print();
-    }
+    virtual void dumpv() const { print(); }
 #endif
 
-private:
-
+  private:
     void _removeThisFromSuccessorsPredecessors(NodeT *succ) {
         std::vector<NodeT *> tmp;
         tmp.reserve(succ->predecessorsNum());
@@ -422,6 +421,6 @@ private:
     }
 };
 
-} // dg
+} // namespace dg
 
 #endif

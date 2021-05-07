@@ -3,50 +3,50 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Function.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/analysis/PointsTo/Pointer.h"
-#include "dg/analysis/PointsTo/PointerGraph.h"
 #include "dg/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/analysis/PointsTo/PointerGraphOptimizations.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFI.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFS.h"
 #include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
+#include "dg/analysis/PointsTo/PointerGraph.h"
+#include "dg/analysis/PointsTo/PointerGraphOptimizations.h"
 
 #include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
+#include "dg/llvm/analysis/PointsTo/LLVMPointsToSet.h"
 #include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
 #include "dg/llvm/analysis/PointsTo/PointerGraph.h"
-#include "dg/llvm/analysis/PointsTo/LLVMPointsToSet.h"
 
 namespace dg {
 
 using analysis::LLVMPointerAnalysisOptions;
-using analysis::pta::PointerGraph;
-using analysis::pta::PSNode;
+using analysis::Offset;
 using analysis::pta::LLVMPointerGraphBuilder;
 using analysis::pta::Pointer;
-using analysis::Offset;
+using analysis::pta::PointerGraph;
+using analysis::pta::PSNode;
 
 template <typename PTType>
 class DGLLVMPointerAnalysisImpl : public PTType {
     LLVMPointerGraphBuilder *builder;
 
-public:
+  public:
     DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
-    : PTType(PS), builder(b) {}
+            : PTType(PS), builder(b) {}
 
     DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b,
-                              const LLVMPointerAnalysisOptions& opts)
-    : PTType(PS, opts), builder(b) {}
+                              const LLVMPointerAnalysisOptions &opts)
+            : PTType(PS, opts), builder(b) {}
 
     // build new subgraphs on calls via pointer
     bool functionPointerCall(PSNode *callsite, PSNode *called) override {
         using namespace analysis::pta;
-        const llvm::Function *F
-            = llvm::dyn_cast<llvm::Function>(called->getUserData<llvm::Value>());
+        const llvm::Function *F = llvm::dyn_cast<llvm::Function>(
+                called->getUserData<llvm::Value>());
         // with vararg it may happen that we get pointer that
         // is not to function, so just bail out here in that case
         if (!F)
@@ -62,7 +62,8 @@ public:
                     return true;
                 }
             }
-            return callsite->getPairedNode()->addPointsTo(analysis::pta::UnknownPointer);
+            return callsite->getPairedNode()->addPointsTo(
+                    analysis::pta::UnknownPointer);
         }
 
         if (!LLVMPointerGraphBuilder::callIsCompatible(callsite, called)) {
@@ -79,8 +80,9 @@ public:
         // because we can call a function that will disconnect the graph
         if (!builder->validateSubgraph(true)) {
             llvm::errs() << "Pointer Subgraph is broken!\n";
-            llvm::errs() << "This happend after building this function called via pointer: "
-                         <<  F->getName() << "\n";
+            llvm::errs() << "This happend after building this function called "
+                            "via pointer: "
+                         << F->getName() << "\n";
             abort();
         }
 #endif // NDEBUG
@@ -92,8 +94,8 @@ public:
         using namespace llvm;
         using namespace dg::analysis::pta;
 
-        assert(called->getType() == PSNodeType::FUNCTION
-                && "The called value is not a function");
+        assert(called->getType() == PSNodeType::FUNCTION &&
+               "The called value is not a function");
 
         PSNodeFork *fork = PSNodeFork::get(forkNode);
         builder->addFunctionToFork(called, fork);
@@ -102,11 +104,12 @@ public:
         // check the graph after rebuilding, but do not check for connectivity,
         // because we can call a function that will disconnect the graph
         if (!builder->validateSubgraph(true)) {
-            const llvm::Function *F
-                = llvm::cast<llvm::Function>(called->getUserData<llvm::Value>());
+            const llvm::Function *F = llvm::cast<llvm::Function>(
+                    called->getUserData<llvm::Value>());
             llvm::errs() << "Pointer Subgraph is broken!\n";
-            llvm::errs() << "This happend after building this function spawned in a thread: "
-                         <<  F->getName() << "\n";
+            llvm::errs() << "This happend after building this function spawned "
+                            "in a thread: "
+                         << F->getName() << "\n";
             abort();
         }
 #endif // NDEBUG
@@ -125,8 +128,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
 
     LLVMPointerAnalysisOptions createOptions(const char *entry_func,
                                              uint64_t field_sensitivity,
-                                             bool threads = false)
-    {
+                                             bool threads = false) {
         LLVMPointerAnalysisOptions opts;
         opts.threads = threads;
         opts.setFieldSensitivity(field_sensitivity);
@@ -134,22 +136,25 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
         return opts;
     }
 
-    const PointsToSetT& getUnknownPTSet() const {
-        static const PointsToSetT _unknownPTSet
-            = PointsToSetT({Pointer{analysis::pta::UNKNOWN_MEMORY, 0}});
+    const PointsToSetT &getUnknownPTSet() const {
+        static const PointsToSetT _unknownPTSet =
+                PointsToSetT({Pointer{analysis::pta::UNKNOWN_MEMORY, 0}});
         return _unknownPTSet;
     }
 
-public:
-
+  public:
     DGLLVMPointerAnalysis(const llvm::Module *m,
                           const char *entry_func = "main",
                           uint64_t field_sensitivity = Offset::UNKNOWN,
                           bool threads = false)
-        : DGLLVMPointerAnalysis(m, createOptions(entry_func, field_sensitivity, threads)) {}
+            : DGLLVMPointerAnalysis(
+                      m,
+                      createOptions(entry_func, field_sensitivity, threads)) {}
 
-    DGLLVMPointerAnalysis(const llvm::Module *m, const LLVMPointerAnalysisOptions opts)
-        : LLVMPointerAnalysis(opts), _builder(new LLVMPointerGraphBuilder(m, opts)) {}
+    DGLLVMPointerAnalysis(const llvm::Module *m,
+                          const LLVMPointerAnalysisOptions opts)
+            : LLVMPointerAnalysis(opts),
+              _builder(new LLVMPointerGraphBuilder(m, opts)) {}
 
     ///
     // Get the node from pointer analysis that holds the points-to set.
@@ -187,8 +192,7 @@ public:
             return {false, LLVMPointsToSet(getUnknownPTSet())};
     }
 
-    const std::vector<std::unique_ptr<PSNode>>& getNodes()
-    {
+    const std::vector<std::unique_ptr<PSNode>> &getNodes() {
         return PS->getNodes();
     }
 
@@ -202,7 +206,6 @@ public:
     LLVMPointerGraphBuilder *getBuilder() { return _builder.get(); }
     const LLVMPointerGraphBuilder *getBuilder() const { return _builder.get(); }
 
-
     bool run() override {
         if (options.isFSInv())
             _builder->setInvalidateNodesFlag(true);
@@ -212,13 +215,16 @@ public:
         bool ret = false;
         if (options.isFS()) {
             // FIXME: make a interface with run() method
-            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFS> PTA(PS, _builder.get());
+            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFS> PTA(
+                    PS, _builder.get());
             ret = PTA.run();
         } else if (options.isFI()) {
-            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFI> PTA(PS, _builder.get());
+            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFI> PTA(
+                    PS, _builder.get());
             ret = PTA.run();
         } else if (options.isFSInv()) {
-            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(PS, _builder.get());
+            DGLLVMPointerAnalysisImpl<analysis::pta::PointerAnalysisFSInv> PTA(
+                    PS, _builder.get());
             ret = PTA.run();
         } else {
             assert(0 && "Wrong pointer analysis");
@@ -233,8 +239,7 @@ public:
     // the analysis data as the run() (like memory objects and so on).
     // run() preserves only PointerGraph and the builder
     template <typename PTType>
-    analysis::pta::PointerAnalysis *createPTA()
-    {
+    analysis::pta::PointerAnalysis *createPTA() {
         buildSubgraph();
         return new DGLLVMPointerAnalysisImpl<PTType>(PS, _builder.get());
     }

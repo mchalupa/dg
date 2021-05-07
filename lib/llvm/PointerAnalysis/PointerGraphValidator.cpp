@@ -1,7 +1,7 @@
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "llvm/PointerAnalysis/PointerGraphValidator.h"
@@ -13,7 +13,8 @@ static const llvm::Value *getValue(const PSNode *nd) {
     return nd->getUserData<llvm::Value>();
 }
 
-bool LLVMPointerGraphValidator::reportInvalOperands(const PSNode *nd, const std::string& user_err) {
+bool LLVMPointerGraphValidator::reportInvalOperands(
+        const PSNode *nd, const std::string &user_err) {
     // just check whether the PHI is a pointer type. If it is a number,
     // we do not know whether it is an error.
     if (nd->getType() == PSNodeType::PHI) {
@@ -34,7 +35,5 @@ bool LLVMPointerGraphValidator::reportInvalOperands(const PSNode *nd, const std:
     return PointerGraphValidator::reportInvalOperands(nd, user_err);
 }
 
-
 } // namespace pta
 } // namespace dg
-

@@ -6,9 +6,9 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/Instructions.h"
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
-#include "llvm/DebugInfo.h"     //DIScope
+#include "llvm/DebugInfo.h" //DIScope
 #else
-#include "llvm/IR/DebugInfo.h"     //DIScope
+#include "llvm/IR/DebugInfo.h" //DIScope
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
@@ -16,8 +16,8 @@ SILENCE_LLVM_WARNINGS_POP
 #include <sstream>
 #include <string>
 
-#include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/SystemDependenceGraph/DGNodeCall.h"
+#include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
 
 namespace dg {
 namespace llvmdg {
@@ -36,7 +36,8 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 */
 
 namespace {
-static inline std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
+static inline std::ostream &printLLVMVal(std::ostream &os,
+                                         const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;
@@ -84,26 +85,25 @@ static inline std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *va
 }
 } // anonymous namespace
 
-static std::ostream& operator<<(std::ostream& os, const sdg::DGElement& nd) {
+static std::ostream &operator<<(std::ostream &os, const sdg::DGElement &nd) {
     os << "elem" << nd.getDG().getID() << "_" << nd.getID();
     return os;
 }
 
-
 class SDG2Dot {
-    SystemDependenceGraph* _llvmsdg;
+    SystemDependenceGraph *_llvmsdg;
 
     // keep track of dumped nodes for checking that we dumped all
     mutable std::set<sdg::DGNode *> dumpedNodes;
 
-    void dumpNode(std::ostream& out, sdg::DGNode& nd,
+    void dumpNode(std::ostream &out, sdg::DGNode &nd,
                   const llvm::Value *v = nullptr,
                   const char *descr = nullptr) const {
         assert(sdg::DGNode::get(&nd) && "Wrong type");
 
-        auto& dg = nd.getDG();
-        out << "      " << nd <<
-               " [label=\"[" << dg.getID() << "." << nd.getID() << "] ";
+        auto &dg = nd.getDG();
+        out << "      " << nd << " [label=\"[" << dg.getID() << "."
+            << nd.getID() << "] ";
         if (v) {
             // this node is associated to this value
             printLLVMVal(out, v);
@@ -116,14 +116,13 @@ class SDG2Dot {
         out << "\"]\n";
     }
 
-    void dumpParams(std::ostream& out,
-                    sdg::DGParameters& params,
-                    const std::string& name) const {
+    void dumpParams(std::ostream &out, sdg::DGParameters &params,
+                    const std::string &name) const {
         /// input parameters
         out << "    subgraph cluster_params_in_" << &params << " {\n";
         out << "      label=\"" << name << " (input)\"\n";
-        for (auto& param : params) {
-            auto& nd = param.getInputArgument();
+        for (auto &param : params) {
+            auto &nd = param.getInputArgument();
             dumpedNodes.insert(&nd);
             dumpNode(out, nd, _llvmsdg->getValue(&param));
         }
@@ -132,8 +131,8 @@ class SDG2Dot {
         /// output parameters
         out << "    subgraph cluster_params_out_" << &params << " {\n";
         out << "      label=\"" << name << " (output)\"\n";
-        for (auto& param : params) {
-            auto& nd = param.getOutputArgument();
+        for (auto &param : params) {
+            auto &nd = param.getOutputArgument();
             dumpedNodes.insert(&nd);
             dumpNode(out, nd, _llvmsdg->getValue(&param));
         }
@@ -148,12 +147,11 @@ class SDG2Dot {
         out << "    }\n";
     }
 
-    void bindParamsToCall(std::ostream& out,
-                          sdg::DGParameters& params,
+    void bindParamsToCall(std::ostream &out, sdg::DGParameters &params,
                           sdg::DGNode *call) const {
         /// input parameters
-        for (auto& param : params) {
-            auto& nd = param.getOutputArgument();
+        for (auto &param : params) {
+            auto &nd = param.getOutputArgument();
             out << "      " << *call << " -> " << nd << "[style=dashed]\n";
         }
 
@@ -165,10 +163,10 @@ class SDG2Dot {
         }
     }
 
-public:
+  public:
     SDG2Dot(SystemDependenceGraph *sdg) : _llvmsdg(sdg) {}
 
-    void dump(const std::string& file) const {
+    void dump(const std::string &file) const {
         std::ofstream out(file);
         std::set<sdg::DGNodeCall *> calls;
 
@@ -182,7 +180,8 @@ public:
             out << "    color=black;\n";
             out << "    style=filled;\n";
             out << "    fillcolor=grey95;\n";
-            out << "    label=\"" << dg->getName() << " (id " << dg->getID() << ")\";\n";
+            out << "    label=\"" << dg->getName() << " (id " << dg->getID()
+                << ")\";\n";
             out << "\n";
 
             ///
@@ -195,17 +194,19 @@ public:
             // Basic blocks
             for (auto *blk : dg->getBBlocks()) {
                 out << "    subgraph cluster_dg_" << dg->getID() << "_bb_"
-                                                  << blk->getID() << " {\n";
+                    << blk->getID() << " {\n";
                 out << "      label=\"bblock #" << blk->getID() << "\"\n";
                 for (auto *nd : blk->getNodes()) {
                     dumpedNodes.insert(nd);
                     dumpNode(out, *nd);
 
                     if (auto *C = sdg::DGNodeCall::get(nd)) {
-                        // store the node for later use (dumping of call edges etc.)
+                        // store the node for later use (dumping of call edges
+                        // etc.)
                         calls.insert(C);
                         // dump actual parameters
-                        dumpParams(out, C->getParameters(), "actual parameters");
+                        dumpParams(out, C->getParameters(),
+                                   "actual parameters");
                     }
                 }
                 out << "    }\n";
@@ -237,10 +238,12 @@ public:
                     }
 
                     out << "[color=blue penwidth=2 "
-                        << " ltail=cluster_dg_" << dg->getID() << "_bb_" << blk->getID();
+                        << " ltail=cluster_dg_" << dg->getID() << "_bb_"
+                        << blk->getID();
 
                     if (ctrl->getType() == sdg::DGElementType::BBLOCK) {
-                        out << " lhead=cluster_dg_" << dg->getID() << "_bb_" << ctrl->getID();
+                        out << " lhead=cluster_dg_" << dg->getID() << "_bb_"
+                            << ctrl->getID();
                     }
                     out << "]\n";
                 }
@@ -260,10 +263,9 @@ public:
         for (auto *C : calls) {
             bindParamsToCall(out, C->getParameters(), C);
             for (auto *dg : C->getCallees()) {
-                out << "  " << *C
-                    << " -> " << *dg->getFirstNode()
-                    << "[lhead=cluster_dg_" << dg->getID()
-                    << " label=\"call '" << dg->getName()<< "'\""
+                out << "  " << *C << " -> " << *dg->getFirstNode()
+                    << "[lhead=cluster_dg_" << dg->getID() << " label=\"call '"
+                    << dg->getName() << "'\""
                     << " style=dashed penwidth=3]\n";
             }
         }

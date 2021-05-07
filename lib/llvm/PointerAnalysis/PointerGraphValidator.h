@@ -11,19 +11,18 @@ namespace pta {
  * Take PointerGraph instance and check whether it is not broken
  */
 class LLVMPointerGraphValidator : public PointerGraphValidator {
-    bool reportInvalOperands(const PSNode *n, const std::string& user_err) override;
+    bool reportInvalOperands(const PSNode *n,
+                             const std::string &user_err) override;
 
-public:
+  public:
     LLVMPointerGraphValidator(const PointerGraph *ps,
-                                 bool no_connectivity = false)
-    : PointerGraphValidator(ps, no_connectivity) {}
+                              bool no_connectivity = false)
+            : PointerGraphValidator(ps, no_connectivity) {}
 
     ~LLVMPointerGraphValidator() = default;
 };
 
 } // namespace pta
 } // namespace dg
-
-
 
 #endif

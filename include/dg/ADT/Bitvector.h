@@ -40,16 +40,16 @@ class SparseBitvectorImpl {
         _bits.emplace(sft, BitsT{1} << (i - sft));
     }
 
-public:
+  public:
     SparseBitvectorImpl() = default;
     SparseBitvectorImpl(IndexT i) { _addBit(i); } // singleton ctor
 
-    SparseBitvectorImpl(const SparseBitvectorImpl&) = default;
-    SparseBitvectorImpl(SparseBitvectorImpl&&) = default;
+    SparseBitvectorImpl(const SparseBitvectorImpl &) = default;
+    SparseBitvectorImpl(SparseBitvectorImpl &&) = default;
 
     void reset() { _bits.clear(); }
     bool empty() const { return _bits.empty(); }
-    void swap(SparseBitvectorImpl& oth) { _bits.swap(oth._bits); }
+    void swap(SparseBitvectorImpl &oth) { _bits.swap(oth._bits); }
 
     // TODO: use SFINAE to define empty body if a class without
     // reserve() is used...
@@ -70,7 +70,7 @@ public:
     // returns the previous value of the i-th bit
     bool set(IndexT i) {
         auto sft = _shift(i);
-        auto& B = _bits[sft];
+        auto &B = _bits[sft];
 
         bool prev = B & (BitsT{1} << (i - sft));
         B |= BitsT{1} << (i - sft);
@@ -79,10 +79,10 @@ public:
     }
 
     // union operation
-    bool set(const SparseBitvectorImpl& rhs) {
+    bool set(const SparseBitvectorImpl &rhs) {
         bool changed = false;
-        for (auto& pair : rhs._bits) {
-            auto& B = _bits[pair.first];
+        for (auto &pair : rhs._bits) {
+            auto &B = _bits[pair.first];
             auto old = B;
             B |= pair.second;
             changed |= old != B;
@@ -116,7 +116,7 @@ public:
     // in a variable, to avoid this search...
     size_t size() const {
         size_t num = 0;
-        for (auto& it : _bits)
+        for (auto &it : _bits)
             num += _countBits(it.second);
 
         return num;
@@ -127,18 +127,18 @@ public:
         typename BitsContainerT::const_iterator container_end;
         size_t pos{0};
 
-        const_iterator(const BitsContainerT& cont, bool end = false)
-        :container_it(end ? cont.end() : cont.begin()),
-         container_end(cont.end()) {
+        const_iterator(const BitsContainerT &cont, bool end = false)
+                : container_it(end ? cont.end() : cont.begin()),
+                  container_end(cont.end()) {
             // set-up the initial position
             if (!end && !cont.empty())
                 _findClosestBit();
         }
 
         void _findClosestBit() {
-            assert(pos < (sizeof(BitsT)*8));
+            assert(pos < (sizeof(BitsT) * 8));
             while (!(container_it->second & (BitsT{1} << pos))) {
-                if (++pos == sizeof(BitsT)*8)
+                if (++pos == sizeof(BitsT) * 8)
                     return;
             }
         }
@@ -200,11 +200,11 @@ public:
         }
         */
 
-    public:
+      public:
         const_iterator() = default;
-        const_iterator& operator++() {
+        const_iterator &operator++() {
             // shift to the next bit in the current bits
-            assert(pos < (sizeof(BitsT)*8));
+            assert(pos < (sizeof(BitsT) * 8));
             assert(container_it != container_end && "operator++ called on end");
             if (++pos != 64)
                 _findClosestBit();
@@ -213,7 +213,8 @@ public:
                 ++container_it;
                 pos = 0;
                 if (container_it != container_end) {
-                    assert(container_it->second != 0 && "Empty bucket in a bitvector");
+                    assert(container_it->second != 0 &&
+                           "Empty bucket in a bitvector");
                     _findClosestBit();
                 }
             }
@@ -226,15 +227,13 @@ public:
             return tmp;
         }
 
-        IndexT operator*() const {
-            return container_it->first + pos;
-        }
+        IndexT operator*() const { return container_it->first + pos; }
 
-        bool operator==(const const_iterator& rhs) const {
+        bool operator==(const const_iterator &rhs) const {
             return pos == rhs.pos && container_it == rhs.container_it;
         }
 
-        bool operator!=(const const_iterator& rhs) const {
+        bool operator!=(const const_iterator &rhs) const {
             return !operator==(rhs);
         }
 
@@ -247,10 +246,12 @@ public:
     friend class const_iterator;
 };
 
-using SparseBitvectorMapImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
-                                                   dg::Map<uint64_t, uint64_t>>;
-using SparseBitvectorHashImpl = SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
-                                                    dg::HashMap<uint64_t, uint64_t>>;
+using SparseBitvectorMapImpl =
+        SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
+                            dg::Map<uint64_t, uint64_t>>;
+using SparseBitvectorHashImpl =
+        SparseBitvectorImpl<uint64_t, uint64_t, uint64_t, 1,
+                            dg::HashMap<uint64_t, uint64_t>>;
 using SparseBitvector = SparseBitvectorMapImpl;
 
 } // namespace ADT

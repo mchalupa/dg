@@ -18,8 +18,14 @@ struct PointerAnalysisOptions : AnalysisOptions {
     // INVALIDATED object.
     bool invalidateNodes{false};
 
-    PointerAnalysisOptions& setInvalidateNodes(bool b) { invalidateNodes = b; return *this;}
-    PointerAnalysisOptions& setPreprocessGeps(bool b)  { preprocessGeps = b; return *this;}
+    PointerAnalysisOptions &setInvalidateNodes(bool b) {
+        invalidateNodes = b;
+        return *this;
+    }
+    PointerAnalysisOptions &setPreprocessGeps(bool b) {
+        preprocessGeps = b;
+        return *this;
+    }
 
     // Perform maximally this number of iterations.
     // If exceeded, the analysis is terminated and points-to sets

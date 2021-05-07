@@ -1,30 +1,30 @@
 #ifndef HAVE_LLVM
-# error "Need LLVM for LLVMDependenceGraph"
+#error "Need LLVM for LLVMDependenceGraph"
 #endif
 
 #ifndef ENABLE_CFG
- #error "Need CFG enabled for building LLVM Dependence Graph"
+#error "Need CFG enabled for building LLVM Dependence Graph"
 #endif
 
-#include <utility>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Function.h>
 #include <llvm/IR/DataLayout.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -32,13 +32,13 @@ SILENCE_LLVM_WARNINGS_POP
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 // !FIXME
-#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
-#include "../lib/llvm/ControlDependence/NTSCD.h"
 #include "../lib/llvm/ControlDependence/InterproceduralCD.h"
+#include "../lib/llvm/ControlDependence/NTSCD.h"
+#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
 
-#include "llvm/LLVMDGVerifier.h"
-#include "llvm-utils.h"
 #include "dg/util/debug.h"
+#include "llvm-utils.h"
+#include "llvm/LLVMDGVerifier.h"
 
 #include "dg/ADT/Queue.h"
 
@@ -59,14 +59,12 @@ namespace dg {
 // map of all constructed functions
 std::map<llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
 
-const std::map<llvm::Value *,
-               LLVMDependenceGraph *>& getConstructedFunctions()
-{
+const std::map<llvm::Value *, LLVMDependenceGraph *> &
+getConstructedFunctions() {
     return constructedFunctions;
 }
 
-LLVMDependenceGraph::~LLVMDependenceGraph()
-{
+LLVMDependenceGraph::~LLVMDependenceGraph() {
     // delete nodes
     for (auto I = begin(), E = end(); I != E; ++I) {
         LLVMNode *node = I->second;
@@ -78,15 +76,14 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
                 // Because of recursive calls, graph can be its
                 // own subgraph. In that case we're in the destructor
                 // already, so do not delete it
-                    subgraph->unref(subgraph != this);
+                subgraph->unref(subgraph != this);
             }
 
             // delete parameters (on null it is no op)
             delete node->getParameters();
 
 #ifdef DEBUG_ENABLED
-            if (!node->getBBlock()
-                && !llvm::isa<llvm::Function>(*I->first))
+            if (!node->getBBlock() && !llvm::isa<llvm::Function>(*I->first))
                 llvmutils::printerr("Had no BB assigned", I->first);
 #endif
 
@@ -100,7 +97,7 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
 
     // delete global nodes if this is the last graph holding them
     if (global_nodes && global_nodes.use_count() == 1) {
-        for (auto& it : *global_nodes)
+        for (auto &it : *global_nodes)
             delete it.second;
     }
 
@@ -111,8 +108,7 @@ LLVMDependenceGraph::~LLVMDependenceGraph()
     delete getPostDominatorTreeRoot();
 }
 
-static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
-{
+static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg) {
     DBG_SECTION_BEGIN(llvmdg, "Building globals");
     // create a container for globals,
     // it will be inherited to subgraphs
@@ -123,17 +119,14 @@ static void addGlobals(llvm::Module *m, LLVMDependenceGraph *dg)
     DBG_SECTION_END(llvmdg, "Done building globals");
 }
 
-bool LLVMDependenceGraph::verify() const
-{
+bool LLVMDependenceGraph::verify() const {
     LLVMDGVerifier verifier(this);
     return verifier.verify();
 }
 
-void LLVMDependenceGraph::setThreads(bool threads) {
-    this->threads = threads;
-}
+void LLVMDependenceGraph::setThreads(bool threads) { this->threads = threads; }
 
-LLVMNode *LLVMDependenceGraph::findNode(llvm::Value * value) const {
+LLVMNode *LLVMDependenceGraph::findNode(llvm::Value *value) const {
     auto iterator = nodes.find(value);
     if (iterator != nodes.end()) {
         return iterator->second;
@@ -149,7 +142,6 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry) {
         entryFunction = entry;
     else
         entryFunction = m->getFunction("main");
-
 
     if (!entryFunction) {
         errs() << "No entry function found/given\n";
@@ -168,9 +160,7 @@ bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry) {
     return true;
 };
 
-LLVMDependenceGraph *
-LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
-{
+LLVMDependenceGraph *LLVMDependenceGraph::buildSubgraph(LLVMNode *node) {
     using namespace llvm;
 
     Value *val = node->getValue();
@@ -182,8 +172,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node)
 }
 
 // FIXME don't duplicate the code
-bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
-{
+bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val) {
     // add the same formal parameters
     LLVMDGParameters *params = getOrCreateParameters();
     assert(params);
@@ -204,8 +193,7 @@ bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
     // if these are the formal parameters of the main
     // function, add control dependence also between the
     // global as the formal input parameter representing this global
-    if (llvm::Function *F
-            = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
+    if (llvm::Function *F = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
         if (F == entryFunction) {
             auto gnode = getGlobalNode(val);
             assert(gnode);
@@ -217,15 +205,14 @@ bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val)
 }
 
 static bool addSubgraphGlobParams(LLVMDependenceGraph *parentdg,
-                                  LLVMDGParameters *params)
-{
+                                  LLVMDGParameters *params) {
     bool changed = false;
-    for (auto it = params->global_begin(), et = params->global_end();
-         it != et; ++it)
+    for (auto it = params->global_begin(), et = params->global_end(); it != et;
+         ++it)
         changed |= parentdg->addFormalGlobal(it->first);
 
     // and add heap-allocated variables
-    for (const auto& it : *params) {
+    for (const auto &it : *params) {
         if (llvm::isa<llvm::CallInst>(it.first))
             changed |= parentdg->addFormalParameter(it.first);
     }
@@ -233,8 +220,8 @@ static bool addSubgraphGlobParams(LLVMDependenceGraph *parentdg,
     return changed;
 }
 
-void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph)
-{
+void LLVMDependenceGraph::addSubgraphGlobalParameters(
+        LLVMDependenceGraph *subgraph) {
     LLVMDGParameters *params = subgraph->getParameters();
     if (!params)
         return;
@@ -255,8 +242,8 @@ void LLVMDependenceGraph::addSubgraphGlobalParameters(LLVMDependenceGraph *subgr
 }
 
 LLVMDependenceGraph *
-LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc, bool fork)
-{
+LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc,
+                                   bool fork) {
     using namespace llvm;
 
     LLVMBBlock *BB;
@@ -281,7 +268,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc, boo
 #ifndef NDEBUG
         bool ret =
 #endif
-        subgraph->build(callFunc);
+                subgraph->build(callFunc);
 
 #ifndef NDEBUG
         // at least for now use just assert, if we'll
@@ -320,15 +307,12 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc, boo
     return subgraph;
 }
 
-static bool
-is_func_defined(const llvm::Function *func)
-{
+static bool is_func_defined(const llvm::Function *func) {
     if (!func || func->size() == 0)
         return false;
 
     return true;
 }
-
 
 LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn() {
     // add the same formal parameters
@@ -370,9 +354,7 @@ LLVMDGParameters *LLVMDependenceGraph::getOrCreateParameters() {
     return params;
 }
 
-bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
-{
-
+bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val) {
     // add the same formal parameters
     LLVMDGParameters *params = getOrCreateParameters();
 
@@ -394,8 +376,8 @@ bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
     // add control dependence also between the global
     // and the formal input parameter representing this global
     if (llvm::isa<llvm::GlobalVariable>(val)) {
-        if (llvm::Function *F
-                = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
+        if (llvm::Function *F =
+                    llvm::dyn_cast<llvm::Function>(entry->getValue())) {
             if (F == entryFunction) {
                 auto gnode = getGlobalNode(val);
                 assert(gnode);
@@ -409,22 +391,20 @@ bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val)
 
 // FIXME copied from PointsTo.cpp, don't duplicate,
 // add it to analysis generic
-static bool isMemAllocationFunc(const llvm::Function *func)
-{
+static bool isMemAllocationFunc(const llvm::Function *func) {
     if (!func || !func->hasName())
         return false;
 
-    const llvm::StringRef& name = func->getName();
-    if (name.equals("malloc") || name.equals("calloc") || name.equals("realloc"))
+    const llvm::StringRef &name = func->getName();
+    if (name.equals("malloc") || name.equals("calloc") ||
+        name.equals("realloc"))
         return true;
 
     return false;
 }
 
-void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
-                                            LLVMNode *node,
-                                            LLVMNode *prevNode)
-{
+void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
+                                            LLVMNode *prevNode) {
     using namespace llvm;
 
     if (CallInst *CInst = dyn_cast<CallInst>(val)) {
@@ -443,7 +423,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
             if (pts.empty()) {
                 llvmutils::printerr("Had no PTA node", strippedValue);
             }
-            for (const LLVMPointer& ptr : pts) {
+            for (const LLVMPointer &ptr : pts) {
                 // vararg may introduce imprecision here, so we
                 // must check that it is really pointer to a function
                 Function *F = dyn_cast<Function>(ptr.value);
@@ -452,14 +432,14 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
 
                 if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst)) {
                     if (threads && F && F->getName() == "pthread_create") {
-                        auto possibleFunctions
-                            = getCalledFunctions(CInst->getArgOperand(2), PTA);
+                        auto possibleFunctions = getCalledFunctions(
+                                CInst->getArgOperand(2), PTA);
                         for (auto &function : possibleFunctions) {
                             if (function->size() > 0) {
-                                LLVMDependenceGraph *subg
-                                    = buildSubgraph(node,
-                                                    const_cast<llvm::Function *>(function),
-                                                    true /*this is fork*/);
+                                LLVMDependenceGraph *subg = buildSubgraph(
+                                        node,
+                                        const_cast<llvm::Function *>(function),
+                                        true /*this is fork*/);
                                 node->addSubgraph(subg);
                             }
                         }
@@ -494,12 +474,12 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
             addFormalParameter(val);
 
         if (threads && func && func->getName() == "pthread_create") {
-            auto possibleFunctions
-                = getCalledFunctions(CInst->getArgOperand(2), PTA);
+            auto possibleFunctions =
+                    getCalledFunctions(CInst->getArgOperand(2), PTA);
             for (auto &function : possibleFunctions) {
-                auto *subg = buildSubgraph(node,
-                                           const_cast<llvm::Function *>(function),
-                                           true /*this is fork*/);
+                auto *subg = buildSubgraph(
+                        node, const_cast<llvm::Function *>(function),
+                        true /*this is fork*/);
                 node->addSubgraph(subg);
             }
         }
@@ -518,8 +498,8 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
     } else if (Instruction *Inst = dyn_cast<Instruction>(val)) {
         if (isa<LoadInst>(val) || isa<GetElementPtrInst>(val)) {
             Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
-             if (isa<GlobalVariable>(op))
-                 addFormalGlobal(op);
+            if (isa<GlobalVariable>(op))
+                addFormalGlobal(op);
         } else if (isa<StoreInst>(val)) {
             Value *op = Inst->getOperand(0)->stripInBoundsOffsets();
             if (isa<GlobalVariable>(op))
@@ -532,8 +512,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val,
     }
 }
 
-LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
-{
+LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock &llvmBB) {
     DBG(llvmdg, "Building basic block");
     using namespace llvm;
 
@@ -544,7 +523,7 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
     BB->setKey(&llvmBB);
 
     // iterate over the instruction and create node for every single one of them
-    for (Instruction& Inst : llvmBB) {
+    for (Instruction &Inst : llvmBB) {
         prevNode = node;
 
         Value *val = &Inst;
@@ -578,8 +557,7 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
         LLVMNode *ext = getExit();
         if (!ext) {
             // we need new llvm value, so that the nodes won't collide
-            ReturnInst *phonyRet
-                = ReturnInst::Create(termval->getContext());
+            ReturnInst *phonyRet = ReturnInst::Create(termval->getContext());
             if (!phonyRet) {
                 errs() << "ERR: Failed creating phony return value "
                        << "for exit node\n";
@@ -594,8 +572,8 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
             LLVMBBlock *retBB = new LLVMBBlock(ext);
             retBB->deleteNodesOnDestruction();
             setExitBB(retBB);
-            assert(!unifiedExitBB
-                   && "We should not have it assinged yet (or again) here");
+            assert(!unifiedExitBB &&
+                   "We should not have it assinged yet (or again) here");
             unifiedExitBB = std::unique_ptr<LLVMBBlock>(retBB);
         }
 
@@ -614,10 +592,9 @@ LLVMBBlock *LLVMDependenceGraph::build(llvm::BasicBlock& llvmBB)
     return BB;
 }
 
-static LLVMBBlock *createSingleExitBB(LLVMDependenceGraph *graph)
-{
-    llvm::UnreachableInst *ui
-        = new llvm::UnreachableInst(graph->getModule()->getContext());
+static LLVMBBlock *createSingleExitBB(LLVMDependenceGraph *graph) {
+    llvm::UnreachableInst *ui =
+            new llvm::UnreachableInst(graph->getModule()->getContext());
     LLVMNode *exit = new LLVMNode(ui, true);
     graph->addNode(exit);
     graph->setExit(exit);
@@ -629,14 +606,12 @@ static LLVMBBlock *createSingleExitBB(LLVMDependenceGraph *graph)
     return exitBB;
 }
 
-static void
-addControlDepsToPHI(LLVMDependenceGraph *graph,
-                    LLVMNode *node, const llvm::PHINode *phi)
-{
+static void addControlDepsToPHI(LLVMDependenceGraph *graph, LLVMNode *node,
+                                const llvm::PHINode *phi) {
     using namespace llvm;
 
     const BasicBlock *this_block = phi->getParent();
-    auto& CB = graph->getBlocks();
+    auto &CB = graph->getBlocks();
 
     for (auto I = phi->block_begin(), E = phi->block_end(); I != E; ++I) {
         BasicBlock *B = *I;
@@ -650,9 +625,7 @@ addControlDepsToPHI(LLVMDependenceGraph *graph,
     }
 }
 
-static void
-addControlDepsToPHIs(LLVMDependenceGraph *graph)
-{
+static void addControlDepsToPHIs(LLVMDependenceGraph *graph) {
     // some phi nodes just work like this
     //
     //  ; <label>:0
@@ -682,8 +655,7 @@ addControlDepsToPHIs(LLVMDependenceGraph *graph)
     }
 }
 
-bool LLVMDependenceGraph::build(llvm::Function *func)
-{
+bool LLVMDependenceGraph::build(llvm::Function *func) {
     using namespace llvm;
 
     assert(func && "Passed no func");
@@ -707,8 +679,8 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     addFormalParameters();
 
     // iterate over basic blocks
-    BBlocksMapT& blocks = getBlocks();
-    for (llvm::BasicBlock& llvmBB : *func) {
+    BBlocksMapT &blocks = getBlocks();
+    for (llvm::BasicBlock &llvmBB : *func) {
         LLVMBBlock *BB = build(llvmBB);
         blocks[&llvmBB] = BB;
 
@@ -717,12 +689,11 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
             setEntryBB(BB);
     }
 
-    assert(blocks.size() == func->size()
-            && "Did not created all blocks");
+    assert(blocks.size() == func->size() && "Did not created all blocks");
 
     DBG(llvmdg, "Adding CFG structure to function " << func->getName().str());
     // add CFG edges
-    for (auto& it : blocks) {
+    for (auto &it : blocks) {
         BasicBlock *llvmBB = cast<BasicBlock>(it.first);
         LLVMBBlock *BB = it.second;
         BB->setDG(this);
@@ -769,18 +740,15 @@ bool LLVMDependenceGraph::build(llvm::Function *func)
     return true;
 }
 
-bool LLVMDependenceGraph::build(llvm::Module *m,
-                                LLVMPointerAnalysis *pts,
+bool LLVMDependenceGraph::build(llvm::Module *m, LLVMPointerAnalysis *pts,
                                 LLVMDataDependenceAnalysis *rda,
-                                llvm::Function *entry)
-{
+                                llvm::Function *entry) {
     this->PTA = pts;
     this->DDA = rda;
     return build(m, entry);
 }
 
-void LLVMDependenceGraph::addFormalParameters()
-{
+void LLVMDependenceGraph::addFormalParameters() {
     using namespace llvm;
 
     LLVMNode *entryNode = getEntry();
@@ -788,7 +756,7 @@ void LLVMDependenceGraph::addFormalParameters()
 
     Function *func = dyn_cast<Function>(entryNode->getValue());
     assert(func && "entry node value is not a function");
-    //assert(func->arg_size() != 0 && "This function is undefined?");
+    // assert(func->arg_size() != 0 && "This function is undefined?");
     if (func->arg_size() == 0)
         return;
 
@@ -821,10 +789,9 @@ void LLVMDependenceGraph::addFormalParameters()
     }
 }
 
-static bool array_match(llvm::StringRef name, const char *names[])
-{
+static bool array_match(llvm::StringRef name, const char *names[]) {
     unsigned idx = 0;
-    while(names[idx]) {
+    while (names[idx]) {
         if (name.equals(names[idx]))
             return true;
         ++idx;
@@ -833,9 +800,9 @@ static bool array_match(llvm::StringRef name, const char *names[])
     return false;
 }
 
-static bool array_match(llvm::StringRef name, const std::vector<std::string>& names)
-{
-    for (const auto& nm : names) {
+static bool array_match(llvm::StringRef name,
+                        const std::vector<std::string> &names) {
+    for (const auto &nm : names) {
         if (name == nm)
             return true;
     }
@@ -843,8 +810,7 @@ static bool array_match(llvm::StringRef name, const std::vector<std::string>& na
     return false;
 }
 
-static bool match_callsite_name(LLVMNode *callNode, const char *names[])
-{
+static bool match_callsite_name(LLVMNode *callNode, const char *names[]) {
     using namespace llvm;
 
     // if the function is undefined, it has no subgraphs,
@@ -856,7 +822,8 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
 #else
         const Value *calledValue = callInst->getCalledValue();
 #endif
-        const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
+        const Function *func =
+                dyn_cast<Function>(calledValue->stripPointerCasts());
         // in the case we haven't run points-to analysis
         if (!func)
             return false;
@@ -871,8 +838,8 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
             LLVMNode *entry = dg->getEntry();
             assert(entry && "No entry node in graph");
 
-            const Function *func
-                = cast<Function>(entry->getValue()->stripPointerCasts());
+            const Function *func =
+                    cast<Function>(entry->getValue()->stripPointerCasts());
             if (array_match(func->getName(), names)) {
                 return true;
             }
@@ -882,8 +849,8 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[])
     return false;
 }
 
-static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::string>& names)
-{
+static bool match_callsite_name(LLVMNode *callNode,
+                                const std::vector<std::string> &names) {
     using namespace llvm;
 
     // if the function is undefined, it has no subgraphs,
@@ -895,7 +862,8 @@ static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::strin
 #else
         const Value *calledValue = callInst->getCalledValue();
 #endif
-        const Function *func = dyn_cast<Function>(calledValue->stripPointerCasts());
+        const Function *func =
+                dyn_cast<Function>(calledValue->stripPointerCasts());
         // in the case we haven't run points-to analysis
         if (!func)
             return false;
@@ -908,8 +876,8 @@ static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::strin
             LLVMNode *entry = dg->getEntry();
             assert(entry && "No entry node in graph");
 
-            const Function *func
-                = cast<Function>(entry->getValue()->stripPointerCasts());
+            const Function *func =
+                    cast<Function>(entry->getValue()->stripPointerCasts());
             if (array_match(func->getName(), names)) {
                 return true;
             }
@@ -919,17 +887,16 @@ static bool match_callsite_name(LLVMNode *callNode, const std::vector<std::strin
     return false;
 }
 
-bool LLVMDependenceGraph::getCallSites(const char *name, std::set<LLVMNode *> *callsites)
-{
+bool LLVMDependenceGraph::getCallSites(const char *name,
+                                       std::set<LLVMNode *> *callsites) {
     const char *names[] = {name, NULL};
     return getCallSites(names, callsites);
 }
 
 bool LLVMDependenceGraph::getCallSites(const char *names[],
-                                       std::set<LLVMNode *> *callsites)
-{
-    for (auto& F : constructedFunctions) {
-        for (auto& I : F.second->getBlocks()) {
+                                       std::set<LLVMNode *> *callsites) {
+    for (auto &F : constructedFunctions) {
+        for (auto &I : F.second->getBlocks()) {
             LLVMBBlock *BB = I.second;
             for (LLVMNode *n : BB->getNodes()) {
                 if (llvm::isa<llvm::CallInst>(n->getValue())) {
@@ -943,11 +910,10 @@ bool LLVMDependenceGraph::getCallSites(const char *names[],
     return callsites->size() != 0;
 }
 
-bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
-                                       std::set<LLVMNode *> *callsites)
-{
-    for (const auto& F : constructedFunctions) {
-        for (const auto& I : F.second->getBlocks()) {
+bool LLVMDependenceGraph::getCallSites(const std::vector<std::string> &names,
+                                       std::set<LLVMNode *> *callsites) {
+    for (const auto &F : constructedFunctions) {
+        for (const auto &I : F.second->getBlocks()) {
             LLVMBBlock *BB = I.second;
             for (LLVMNode *n : BB->getNodes()) {
                 if (llvm::isa<llvm::CallInst>(n->getValue())) {
@@ -961,14 +927,15 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string>& names,
     return callsites->size() != 0;
 }
 
-void LLVMDependenceGraph::computeNTSCD(const LLVMControlDependenceAnalysisOptions& opts) {
+void LLVMDependenceGraph::computeNTSCD(
+        const LLVMControlDependenceAnalysisOptions &opts) {
     DBG_SECTION_BEGIN(llvmdg, "Filling in CDA edges (NTSCD)");
     dg::LLVMControlDependenceAnalysis ntscd(this->module, opts);
     assert(opts.ntscdCD() || opts.ntscd2CD());
 
-    for (auto& it : getConstructedFunctions()) {
-        auto& blocks = it.second->getBlocks();
-        for (auto& BB : *llvm::cast<llvm::Function>(it.first)) {
+    for (auto &it : getConstructedFunctions()) {
+        auto &blocks = it.second->getBlocks();
+        for (auto &BB : *llvm::cast<llvm::Function>(it.first)) {
             auto *bb = blocks[&BB];
             assert(bb);
             for (auto *dep : ntscd.getDependencies(&BB)) {
@@ -977,7 +944,7 @@ void LLVMDependenceGraph::computeNTSCD(const LLVMControlDependenceAnalysisOption
                 depbb->addControlDependence(bb);
             }
 
-            for (auto& I : BB) {
+            for (auto &I : BB) {
                 for (auto *dep : ntscd.getDependencies(&I)) {
                     auto *depnd = it.second->getNode(dep);
                     assert(depnd);
@@ -996,30 +963,38 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
     DBG_SECTION_BEGIN(llvmdg, "Computing NTSCD");
     llvmdg::legacy::NTSCD ntscdAnalysis(this->module, {}, PTA);
     ntscdAnalysis.computeDependencies();
-    auto& dependencies = ntscdAnalysis.controlDependencies();
+    auto &dependencies = ntscdAnalysis.controlDependencies();
 
-    for (const auto& dep : dependencies) {
+    for (const auto &dep : dependencies) {
         if (dep.first->isArtificial()) {
             continue;
         }
 
-        auto lastInstruction = findInstruction(castToLLVMInstruction(dep.first->lastInstruction()),
-                                               getConstructedFunctions());
+        auto lastInstruction = findInstruction(
+                castToLLVMInstruction(dep.first->lastInstruction()),
+                getConstructedFunctions());
         for (const auto dependant : dep.second) {
             for (const auto instruction : dependant->llvmInstructions()) {
-                auto dgInstruction = findInstruction(castToLLVMInstruction(instruction), getConstructedFunctions());
+                auto dgInstruction =
+                        findInstruction(castToLLVMInstruction(instruction),
+                                        getConstructedFunctions());
                 if (lastInstruction && dgInstruction) {
                     lastInstruction->addControlDependence(dgInstruction);
                 } else {
                     static std::set<std::pair<LLVMNode *, LLVMNode *>> reported;
-                    if (reported.insert({lastInstruction, dgInstruction}).second) {
-                        llvm::errs() << "[CD] error: CD could not be set up, some instruction was not found:\n";
+                    if (reported.insert({lastInstruction, dgInstruction})
+                                .second) {
+                        llvm::errs() << "[CD] error: CD could not be set up, "
+                                        "some instruction was not found:\n";
                         if (lastInstruction)
-                            llvm::errs() << "[CD] last instruction: " << *lastInstruction->getValue() << "\n";
+                            llvm::errs()
+                                    << "[CD] last instruction: "
+                                    << *lastInstruction->getValue() << "\n";
                         else
                             llvm::errs() << "[CD] No last instruction\n";
                         if (dgInstruction)
-                            llvm::errs() << "[CD] current instruction: " << *dgInstruction->getValue() << "\n";
+                            llvm::errs() << "[CD] current instruction: "
+                                         << *dgInstruction->getValue() << "\n";
                         else
                             llvm::errs() << "[CD] No current instruction\n";
                     }
@@ -1030,70 +1005,84 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
                 auto noret = dg->getOrCreateNoReturn();
                 lastInstruction->addControlDependence(noret);
 
-                // we added the formal noreturn, now add the noreturn to every callnode
+                // we added the formal noreturn, now add the noreturn to every
+                // callnode
                 for (auto *caller : dg->getCallers()) {
-                    caller->getOrCreateParameters(); // create params if not created
+                    caller->getOrCreateParameters(); // create params if not
+                                                     // created
                     auto actnoret = dg->getOrCreateNoReturn(caller);
                     noret->addControlDependence(actnoret);
                 }
             }
         }
-
     }
     DBG_SECTION_END(llvmdg, "Done computing NTSCD");
 }
 
-void LLVMDependenceGraph::computeInterferenceDependentEdges(ControlFlowGraph * controlFlowGraph)
-{
+void LLVMDependenceGraph::computeInterferenceDependentEdges(
+        ControlFlowGraph *controlFlowGraph) {
     auto regions = controlFlowGraph->threadRegions();
     MayHappenInParallel mayHappenInParallel(regions);
 
     for (const auto &currentRegion : regions) {
-        auto llvmValuesForCurrentRegion     = currentRegion->llvmInstructions();
-        auto currentRegionLoads             = getLoadInstructions(llvmValuesForCurrentRegion);
-        auto currentRegionStores            = getStoreInstructions(llvmValuesForCurrentRegion);
-        auto parallelRegions                = mayHappenInParallel.parallelRegions(currentRegion);
+        auto llvmValuesForCurrentRegion = currentRegion->llvmInstructions();
+        auto currentRegionLoads =
+                getLoadInstructions(llvmValuesForCurrentRegion);
+        auto currentRegionStores =
+                getStoreInstructions(llvmValuesForCurrentRegion);
+        auto parallelRegions =
+                mayHappenInParallel.parallelRegions(currentRegion);
         for (const auto &parallelRegion : parallelRegions) {
-            auto llvmInstructionsForParallelRegion      = parallelRegion->llvmInstructions();
-            auto parallelRegionLoads                    = getLoadInstructions(llvmInstructionsForParallelRegion);
-            auto parallelRegionStores                   = getStoreInstructions(llvmInstructionsForParallelRegion);
-                computeInterferenceDependentEdges(currentRegionLoads, parallelRegionStores);
-                computeInterferenceDependentEdges(parallelRegionLoads, currentRegionStores);
+            auto llvmInstructionsForParallelRegion =
+                    parallelRegion->llvmInstructions();
+            auto parallelRegionLoads =
+                    getLoadInstructions(llvmInstructionsForParallelRegion);
+            auto parallelRegionStores =
+                    getStoreInstructions(llvmInstructionsForParallelRegion);
+            computeInterferenceDependentEdges(currentRegionLoads,
+                                              parallelRegionStores);
+            computeInterferenceDependentEdges(parallelRegionLoads,
+                                              currentRegionStores);
         }
     }
 }
 
-void LLVMDependenceGraph::computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph) {
+void LLVMDependenceGraph::computeForkJoinDependencies(
+        ControlFlowGraph *controlFlowGraph) {
     auto joins = controlFlowGraph->getJoins();
     for (const auto &join : joins) {
-        auto joinNode = findInstruction(castToLLVMInstruction(join), constructedFunctions);
+        auto joinNode = findInstruction(castToLLVMInstruction(join),
+                                        constructedFunctions);
         for (const auto &fork : controlFlowGraph->getCorrespondingForks(join)) {
-            auto forkNode = findInstruction(castToLLVMInstruction(fork), constructedFunctions);
+            auto forkNode = findInstruction(castToLLVMInstruction(fork),
+                                            constructedFunctions);
             joinNode->addControlDependence(forkNode);
         }
     }
 }
 
-void LLVMDependenceGraph::computeCriticalSections(ControlFlowGraph *controlFlowGraph) {
+void LLVMDependenceGraph::computeCriticalSections(
+        ControlFlowGraph *controlFlowGraph) {
     auto locks = controlFlowGraph->getLocks();
     for (auto lock : locks) {
         auto callLockInst = castToLLVMInstruction(lock);
         auto lockNode = findInstruction(callLockInst, constructedFunctions);
-        auto correspondingNodes = controlFlowGraph->getCorrespondingCriticalSection(lock);
+        auto correspondingNodes =
+                controlFlowGraph->getCorrespondingCriticalSection(lock);
         for (auto correspondingNode : correspondingNodes) {
             auto node = castToLLVMInstruction(correspondingNode);
             auto dependentNode = findInstruction(node, constructedFunctions);
             if (dependentNode) {
                 lockNode->addControlDependence(dependentNode);
             } else {
-                llvm::errs() << "Instruction "
-                             << *dependentNode->getValue()
+                llvm::errs() << "Instruction " << *dependentNode->getValue()
                              << " was not found, cannot setup"
                              << " control depency on lock\n";
             }
         }
 
-        auto correspondingUnlocks = controlFlowGraph->getCorrespongingUnlocks(lock);
+        auto correspondingUnlocks =
+                controlFlowGraph->getCorrespongingUnlocks(lock);
         for (auto unlock : correspondingUnlocks) {
             auto node = castToLLVMInstruction(unlock);
             auto unlockNode = findInstruction(node, constructedFunctions);
@@ -1104,12 +1093,13 @@ void LLVMDependenceGraph::computeCriticalSections(ControlFlowGraph *controlFlowG
     }
 }
 
-void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const llvm::Instruction *> &loads,
-                                                            const std::set<const llvm::Instruction *> &stores) {
-
-    for (const auto &load :loads) {
+void LLVMDependenceGraph::computeInterferenceDependentEdges(
+        const std::set<const llvm::Instruction *> &loads,
+        const std::set<const llvm::Instruction *> &stores) {
+    for (const auto &load : loads) {
         auto *loadInst = const_cast<llvm::Instruction *>(load);
-        auto loadFunction = constructedFunctions.find(const_cast<llvm::Function *>(load->getParent()->getParent()));
+        auto loadFunction = constructedFunctions.find(
+                const_cast<llvm::Function *>(load->getParent()->getParent()));
         if (loadFunction == constructedFunctions.end())
             continue;
         auto loadNode = loadFunction->second->findNode(loadInst);
@@ -1118,7 +1108,9 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const
 
         for (const auto &store : stores) {
             auto *storeInst = const_cast<llvm::Instruction *>(store);
-            auto storeFunction = constructedFunctions.find(const_cast<llvm::Function *>(store->getParent()->getParent()));
+            auto storeFunction =
+                    constructedFunctions.find(const_cast<llvm::Function *>(
+                            store->getParent()->getParent()));
             if (storeFunction == constructedFunctions.end())
                 continue;
             auto storeNode = storeFunction->second->findNode(storeInst);
@@ -1127,13 +1119,12 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const
 
             auto loadPts = PTA->getLLVMPointsTo(load->getOperand(0));
             auto storePts = PTA->getLLVMPointsTo(store->getOperand(1));
-            for (const auto& pointerLoad : loadPts) {
-                for (const auto& pointerStore : storePts) {
+            for (const auto &pointerLoad : loadPts) {
+                for (const auto &pointerStore : storePts) {
                     if (pointerLoad.value == pointerStore.value &&
-                        (pointerLoad.offset.isUnknown()  ||
+                        (pointerLoad.offset.isUnknown() ||
                          pointerStore.offset.isUnknown() ||
                          pointerLoad.offset == pointerStore.offset)) {
-
                         storeNode->addInterferenceDependence(loadNode);
                     }
                 }
@@ -1146,23 +1137,24 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(const std::set<const
     }
 }
 
-std::set<const llvm::Instruction *>
-LLVMDependenceGraph::getLoadInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const {
+std::set<const llvm::Instruction *> LLVMDependenceGraph::getLoadInstructions(
+        const std::set<const llvm::Instruction *> &llvmInstructions) const {
     return getInstructionsOfType(llvm::Instruction::Load, llvmInstructions);
 }
 
-std::set<const llvm::Instruction *>
-LLVMDependenceGraph::getStoreInstructions(const std::set<const llvm::Instruction *> &llvmInstructions) const {
+std::set<const llvm::Instruction *> LLVMDependenceGraph::getStoreInstructions(
+        const std::set<const llvm::Instruction *> &llvmInstructions) const {
     return getInstructionsOfType(llvm::Instruction::Store, llvmInstructions);
 }
 
-std::set<const llvm::Instruction *>
-LLVMDependenceGraph::getInstructionsOfType(const unsigned opCode,
-                                           const std::set<const llvm::Instruction *> &llvmInstructions) const {
+std::set<const llvm::Instruction *> LLVMDependenceGraph::getInstructionsOfType(
+        const unsigned opCode,
+        const std::set<const llvm::Instruction *> &llvmInstructions) const {
     std::set<const llvm::Instruction *> instructions;
     for (const auto &llvmValue : llvmInstructions) {
         if (llvm::isa<llvm::Instruction>(llvmValue)) {
-            const llvm::Instruction *instruction = static_cast<const llvm::Instruction *>(llvmValue);
+            const llvm::Instruction *instruction =
+                    static_cast<const llvm::Instruction *>(llvmValue);
             if (instruction->getOpcode() == opCode) {
                 instructions.insert(instruction);
             }
@@ -1170,7 +1162,8 @@ LLVMDependenceGraph::getInstructionsOfType(const unsigned opCode,
     }
     return instructions;
 }
-void LLVMDependenceGraph::computeControlDependencies(const LLVMControlDependenceAnalysisOptions& opts) {
+void LLVMDependenceGraph::computeControlDependencies(
+        const LLVMControlDependenceAnalysisOptions &opts) {
     if (opts.standardCD()) {
         computePostDominators(true);
     } else if (opts.ntscdLegacyCD()) {
@@ -1179,7 +1172,8 @@ void LLVMDependenceGraph::computeControlDependencies(const LLVMControlDependence
         // also the intraprocedural version of new NTSCD
         auto tmpopts = opts;
         tmpopts.interprocedural = false;
-        tmpopts.algorithm = ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD2;
+        tmpopts.algorithm =
+                ControlDependenceAnalysisOptions::CDAlgorithm::NTSCD2;
         computeNTSCD(tmpopts);
     } else if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdRanganathCD()) {
         computeNTSCD(opts);
@@ -1190,13 +1184,12 @@ void LLVMDependenceGraph::computeControlDependencies(const LLVMControlDependence
         addNoreturnDependencies(opts);
 }
 
-
-
-void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from) {
+void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret,
+                                                  LLVMBBlock *from) {
     std::set<LLVMBBlock *> visited;
     ADT::QueueLIFO<LLVMBBlock *> queue;
 
-    for (auto& succ : from->successors()) {
+    for (auto &succ : from->successors()) {
         if (visited.insert(succ.target).second)
             queue.push(succ.target);
     }
@@ -1209,25 +1202,26 @@ void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *f
             noret->addControlDependence(node);
 
         // queue successors
-        for (auto& succ : cur->successors()) {
+        for (auto &succ : cur->successors()) {
             if (visited.insert(succ.target).second)
                 queue.push(succ.target);
         }
     }
 }
 
-void LLVMDependenceGraph::addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions& opts)
-{
+void LLVMDependenceGraph::addNoreturnDependencies(
+        const LLVMControlDependenceAnalysisOptions &opts) {
     if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdLegacyCD()) {
         llvmdg::LLVMInterprocCD interprocCD(this->module);
-        for (auto& F : getConstructedFunctions()) {
+        for (auto &F : getConstructedFunctions()) {
             auto *dg = F.second;
             auto *fun = llvm::cast<llvm::Function>(F.first);
             for (auto *noreti : interprocCD.getNoReturns(fun)) {
                 // create noret params if not yet
                 auto *fnoret = dg->getOrCreateNoReturn();
                 for (auto *caller : dg->getCallers()) {
-                    caller->getOrCreateParameters(); // create params if not created
+                    caller->getOrCreateParameters(); // create params if not
+                                                     // created
                     auto actnoret = dg->getOrCreateNoReturn(caller);
                     fnoret->addControlDependence(actnoret);
                 }
@@ -1245,10 +1239,10 @@ void LLVMDependenceGraph::addNoreturnDependencies(const LLVMControlDependenceAna
     }
 
     // in theory, we should not need this one, but it does not work right now
-    for (auto& F : getConstructedFunctions()) {
-        auto& blocks = F.second->getBlocks();
+    for (auto &F : getConstructedFunctions()) {
+        auto &blocks = F.second->getBlocks();
 
-        for (auto& it : blocks) {
+        for (auto &it : blocks) {
             LLVMBBlock *B = it.second;
             std::set<LLVMNode *> noreturns;
             for (auto node : B->getNodes()) {
@@ -1277,16 +1271,20 @@ void LLVMDependenceGraph::addDefUseEdges() {
     DUA.run();
 }
 
-LLVMNode *findInstruction(llvm::Instruction * instruction, const std::map<llvm::Value *, LLVMDependenceGraph *> & constructedFunctions) {
-    auto valueKey = constructedFunctions.find(instruction->getParent()->getParent());
+LLVMNode *findInstruction(llvm::Instruction *instruction,
+                          const std::map<llvm::Value *, LLVMDependenceGraph *>
+                                  &constructedFunctions) {
+    auto valueKey =
+            constructedFunctions.find(instruction->getParent()->getParent());
     if (valueKey != constructedFunctions.end()) {
         return valueKey->second->findNode(instruction);
     }
     return nullptr;
 }
 
-llvm::Instruction * castToLLVMInstruction(const llvm::Value * value) {
-    return const_cast<llvm::Instruction *>(static_cast<const llvm::Instruction *> (value));
+llvm::Instruction *castToLLVMInstruction(const llvm::Value *value) {
+    return const_cast<llvm::Instruction *>(
+            static_cast<const llvm::Instruction *>(value));
 }
 
 } // namespace dg

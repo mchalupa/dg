@@ -1,8 +1,8 @@
 #ifndef DG_DEPENDENCIES_ELEM_H_
 #define DG_DEPENDENCIES_ELEM_H_
 
-#include "dg/ADT/DGContainer.h"
 #include "DGElement.h"
+#include "dg/ADT/DGContainer.h"
 
 namespace dg {
 namespace sdg {
@@ -33,20 +33,22 @@ class DepDGElement : public DGElement {
 
     class edges_range {
         friend class DepDGElement;
-        EdgesContainer<DepDGElement>& _C;
+        EdgesContainer<DepDGElement> &_C;
 
-        edges_range(EdgesContainer<DepDGElement>& C) : _C(C) {}
-    public:
+        edges_range(EdgesContainer<DepDGElement> &C) : _C(C) {}
+
+      public:
         edge_iterator begin() { return _C.begin(); }
         edge_iterator end() { return _C.end(); }
     };
 
     class const_edges_range {
         friend class DepDGElement;
-        const EdgesContainer<DepDGElement>& _C;
+        const EdgesContainer<DepDGElement> &_C;
 
-        const_edges_range(const EdgesContainer<DepDGElement>& C) : _C(C) {}
-    public:
+        const_edges_range(const EdgesContainer<DepDGElement> &C) : _C(C) {}
+
+      public:
         const_edge_iterator begin() const { return _C.begin(); }
         const_edge_iterator end() const { return _C.end(); }
     };
@@ -54,45 +56,40 @@ class DepDGElement : public DGElement {
     // FIXME: add data deps iterator = use + memory
     //
 
-protected:
-    DepDGElement(DependenceGraph& g, DGElementType type) : DGElement(g, type) {}
+  protected:
+    DepDGElement(DependenceGraph &g, DGElementType type) : DGElement(g, type) {}
 
-public:
-
+  public:
     static DepDGElement *get(DGElement *elem) {
         if (elem->getType() == DGElementType::BBLOCK ||
-                elem->getType() >= DGElementType::NODE)
-            return static_cast<DepDGElement*>(elem);
+            elem->getType() >= DGElementType::NODE)
+            return static_cast<DepDGElement *>(elem);
         return nullptr;
     }
 
     /// add user of this node (edge 'this'->'nd')
-    void addUser(DepDGElement& nd) {
+    void addUser(DepDGElement &nd) {
         _use_deps.insert(&nd);
         nd._rev_use_deps.insert(this);
     }
 
     /// this node uses nd (the edge 'nd'->'this')
-    void addUses(DepDGElement& nd) {
-        nd.addUser(*this);
-    }
+    void addUses(DepDGElement &nd) { nd.addUser(*this); }
 
     // this node reads values from 'nd' (the edge 'nd' -> 'this')
-    void addMemoryDep(DepDGElement& nd) {
+    void addMemoryDep(DepDGElement &nd) {
         _memory_deps.insert(&nd);
         nd._rev_memory_deps.insert(this);
     }
 
     // this node is control dependent on 'nd' (the edge 'nd' -> 'this')
-    void addControlDep(DepDGElement& nd) {
+    void addControlDep(DepDGElement &nd) {
         _control_deps.insert(&nd);
         nd._rev_control_deps.insert(this);
     }
 
     // this node controls 'nd' (the edge 'this' -> 'nd')
-    void addControls(DepDGElement& nd) {
-        nd.addControlDep(*this);
-    }
+    void addControls(DepDGElement &nd) { nd.addControlDep(*this); }
 
     // use dependencies
     edge_iterator uses_begin() { return _use_deps.begin(); }
@@ -116,13 +113,19 @@ public:
     edge_iterator rev_memdep_end() { return _rev_memory_deps.end(); }
     const_edge_iterator memdep_begin() const { return _memory_deps.begin(); }
     const_edge_iterator memdep_end() const { return _memory_deps.end(); }
-    const_edge_iterator rev_memdep_begin() const { return _rev_memory_deps.begin(); }
-    const_edge_iterator rev_memdep_end() const { return _rev_memory_deps.end(); }
+    const_edge_iterator rev_memdep_begin() const {
+        return _rev_memory_deps.begin();
+    }
+    const_edge_iterator rev_memdep_end() const {
+        return _rev_memory_deps.end();
+    }
 
     edges_range memdep() { return edges_range(_memory_deps); }
     const_edges_range memdep() const { return const_edges_range(_memory_deps); }
     edges_range rev_memdep() { return edges_range(_rev_memory_deps); }
-    const_edges_range rev_memdep() const { return const_edges_range(_rev_memory_deps); }
+    const_edges_range rev_memdep() const {
+        return const_edges_range(_rev_memory_deps);
+    }
 
     // FIXME: add datadep iterator = memdep + uses
 
@@ -131,15 +134,23 @@ public:
     edge_iterator control_dep_end() { return _control_deps.end(); }
     edge_iterator controls_begin() { return _rev_control_deps.begin(); }
     edge_iterator controls_dep_end() { return _rev_control_deps.end(); }
-    const_edge_iterator control_dep_begin() const { return _control_deps.begin(); }
+    const_edge_iterator control_dep_begin() const {
+        return _control_deps.begin();
+    }
     const_edge_iterator control_dep_end() const { return _control_deps.end(); }
-    const_edge_iterator controls_begin() const { return _rev_control_deps.begin(); }
+    const_edge_iterator controls_begin() const {
+        return _rev_control_deps.begin();
+    }
     const_edge_iterator controls_end() const { return _rev_control_deps.end(); }
 
     edges_range control_deps() { return edges_range(_control_deps); }
-    const_edges_range control_deps() const { return const_edges_range(_control_deps); }
+    const_edges_range control_deps() const {
+        return const_edges_range(_control_deps);
+    }
     edges_range controls() { return edges_range(_rev_control_deps); }
-    const_edges_range controls() const { return const_edges_range(_rev_control_deps); }
+    const_edges_range controls() const {
+        return const_edges_range(_rev_control_deps);
+    }
 };
 
 } // namespace sdg

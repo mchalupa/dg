@@ -1,7 +1,7 @@
 #include <assert.h>
 
-#include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PSNode.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
 
 #include "dg/util/debug.h"
 
@@ -11,8 +11,10 @@ namespace pta {
 // nodes representing NULL, unknown memory
 // and invalidated memory
 PSNode NULLPTR_LOC(PointerGraphReservedIDs::ID_NULL, PSNodeType::NULL_ADDR);
-PSNode UNKNOWN_MEMLOC(PointerGraphReservedIDs::ID_UNKNOWN, PSNodeType::UNKNOWN_MEM);
-PSNode INVALIDATED_LOC(PointerGraphReservedIDs::ID_INVALIDATED, PSNodeType::INVALIDATED);
+PSNode UNKNOWN_MEMLOC(PointerGraphReservedIDs::ID_UNKNOWN,
+                      PSNodeType::UNKNOWN_MEM);
+PSNode INVALIDATED_LOC(PointerGraphReservedIDs::ID_INVALIDATED,
+                       PSNodeType::INVALIDATED);
 
 PSNode *NULLPTR = &NULLPTR_LOC;
 PSNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
@@ -50,7 +52,7 @@ void PointerGraph::initStaticNodes() {
 void PointerGraph::computeLoops() {
     DBG(pta, "Computing information about loops for the whole graph");
 
-    for (auto& it : _subgraphs) {
+    for (auto &it : _subgraphs) {
         if (!it->computedLoops())
             it->computeLoops();
     }
@@ -59,7 +61,7 @@ void PointerGraph::computeLoops() {
 void PointerGraph::setEntry(PointerSubgraph *e) {
 #if DEBUG_ENABLED
     bool found = false;
-    for (auto& n : _subgraphs) {
+    for (auto &n : _subgraphs) {
         if (n.get() == e) {
             found = true;
             break;
@@ -72,7 +74,7 @@ void PointerGraph::setEntry(PointerSubgraph *e) {
 
 void PointerSubgraph::computeLoops() {
     // FIXME: remember just that a node is on loop, not the whole loops
- 
+
     assert(root);
     assert(!computedLoops() && "computeLoops() called repeatedly");
     _computed_loops = true;
@@ -81,12 +83,11 @@ void PointerSubgraph::computeLoops() {
 
     // compute the strongly connected components
     auto SCCs = SCC<PSNode>().compute(root);
-    for (auto& scc : SCCs) {
+    for (auto &scc : SCCs) {
         if (scc.size() < 1)
             continue;
         // self-loop is also loop
-        if (scc.size() == 1 &&
-            scc[0]->getSingleSuccessorOrNull() != scc[0])
+        if (scc.size() == 1 && scc[0]->getSingleSuccessorOrNull() != scc[0])
             continue;
 
         _loops.push_back(std::move(scc));
@@ -98,7 +99,6 @@ void PointerSubgraph::computeLoops() {
         }
     }
 }
-
 
 } // namespace pta
 } // namespace dg

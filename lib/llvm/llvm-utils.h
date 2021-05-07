@@ -2,8 +2,8 @@
 #define _DG_LLVM_UTILS_H_
 
 #include <llvm/IR/Function.h>
-#include <llvm/IR/Type.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Type.h>
 
 namespace dg {
 namespace llvmutils {
@@ -13,11 +13,8 @@ using namespace llvm;
 /* ----------------------------------------------
  * -- PRINTING
  * ---------------------------------------------- */
-inline void print(const Value *val,
-                  raw_ostream& os,
-                  const char *prefix=nullptr,
-                  bool newline = false)
-{
+inline void print(const Value *val, raw_ostream &os,
+                  const char *prefix = nullptr, bool newline = false) {
     if (prefix)
         os << prefix;
 
@@ -30,32 +27,30 @@ inline void print(const Value *val,
         os << "\n";
 }
 
-inline void printerr(const char *msg, const Value *val, bool newline = true)
-{
+inline void printerr(const char *msg, const Value *val, bool newline = true) {
     print(val, errs(), msg, newline);
 }
 
 /* ----------------------------------------------
  * -- CASTING
  * ---------------------------------------------- */
-inline bool isPointerOrIntegerTy(const Type *Ty)
-{
+inline bool isPointerOrIntegerTy(const Type *Ty) {
     return Ty->isPointerTy() || Ty->isIntegerTy();
 }
 
 // can the given function be called by the given call inst?
 enum class CallCompatibility {
-    STRICT, // require full compatibility
-    LOOSE,  // ignore some incompatible patterns that usually work
-            // in practice, e.g., calling a function of 2 arguments
-            // with 3 arguments.
-    MATCHING_ARGS    // check only that matching arguments are compatible,
-                     // ignore the number of arguments, etc.
+    STRICT,       // require full compatibility
+    LOOSE,        // ignore some incompatible patterns that usually work
+                  // in practice, e.g., calling a function of 2 arguments
+                  // with 3 arguments.
+    MATCHING_ARGS // check only that matching arguments are compatible,
+                  // ignore the number of arguments, etc.
 };
 
-inline bool callIsCompatible(const Function *F, const CallInst *CI,
-                             CallCompatibility policy = CallCompatibility::LOOSE)
-{
+inline bool
+callIsCompatible(const Function *F, const CallInst *CI,
+                 CallCompatibility policy = CallCompatibility::LOOSE) {
     using namespace llvm;
 
     if (policy != CallCompatibility::MATCHING_ARGS) {
@@ -83,8 +78,8 @@ inline bool callIsCompatible(const Function *F, const CallInst *CI,
 
     size_t idx = 0;
     auto max_idx = CI->getNumArgOperands();
-    for (auto A = F->arg_begin(), E = F->arg_end();
-         idx < max_idx && A != E; ++A, ++idx) {
+    for (auto A = F->arg_begin(), E = F->arg_end(); idx < max_idx && A != E;
+         ++A, ++idx) {
         Type *CTy = CI->getArgOperand(idx)->getType();
         Type *ATy = A->getType();
 
@@ -102,20 +97,17 @@ inline bool callIsCompatible(const Function *F, const CallInst *CI,
  * ---------------------------------------------- */
 
 inline unsigned getPointerBitwidth(const llvm::DataLayout *DL,
-                                          const llvm::Value *ptr)
+                                   const llvm::Value *ptr)
 
 {
     const llvm::Type *Ty = ptr->getType();
     return DL->getPointerSizeInBits(Ty->getPointerAddressSpace());
 }
 
-
-
-inline uint64_t getConstantValue(const llvm::Value *op)
-{
+inline uint64_t getConstantValue(const llvm::Value *op) {
     using namespace llvm;
 
-    //FIXME: we should get rid of this dependency
+    // FIXME: we should get rid of this dependency
     static_assert(sizeof(Offset::type) == sizeof(uint64_t),
                   "The code relies on Offset::type having 8 bytes");
 
@@ -127,7 +119,6 @@ inline uint64_t getConstantValue(const llvm::Value *op)
     // size is ~((uint64_t)0) if it is unknown
     return size;
 }
-
 
 // get size of memory allocation argument
 inline uint64_t getConstantSizeValue(const llvm::Value *op) {
@@ -141,29 +132,27 @@ inline uint64_t getConstantSizeValue(const llvm::Value *op) {
 }
 
 inline uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
-                                 const llvm::DataLayout *DL)
-{
+                                 const llvm::DataLayout *DL) {
     llvm::Type *Ty = AI->getAllocatedType();
     if (!Ty->isSized())
-            return 0;
+        return 0;
 
     if (AI->isArrayAllocation()) {
-        return getConstantSizeValue(AI->getArraySize()) * DL->getTypeAllocSize(Ty);
+        return getConstantSizeValue(AI->getArraySize()) *
+               DL->getTypeAllocSize(Ty);
     } else
         return DL->getTypeAllocSize(Ty);
 }
 
-inline uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL)
-{
+inline uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL) {
     // Type can be i8 *null or similar
     if (!Ty->isSized())
-            return 0;
+        return 0;
 
     return DL->getTypeAllocSize(Ty);
 }
 
-inline bool isConstantZero(const llvm::Value *val)
-{
+inline bool isConstantZero(const llvm::Value *val) {
     using namespace llvm;
 
     if (const ConstantInt *C = dyn_cast<ConstantInt>(val))
@@ -175,18 +164,15 @@ inline bool isConstantZero(const llvm::Value *val)
 /* ----------------------------------------------
  * -- pointer analysis helpers
  * ---------------------------------------------- */
-inline bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I)
-{
+inline bool memsetIsZeroInitialization(const llvm::IntrinsicInst *I) {
     return isConstantZero(I->getOperand(1));
 }
 
 // recursively find out if type contains a pointer type as a subtype
 // (or if it is a pointer type itself)
-inline bool tyContainsPointer(const llvm::Type *Ty)
-{
+inline bool tyContainsPointer(const llvm::Type *Ty) {
     if (Ty->isAggregateType()) {
-        for (auto I = Ty->subtype_begin(), E = Ty->subtype_end();
-             I != E; ++I) {
+        for (auto I = Ty->subtype_begin(), E = Ty->subtype_end(); I != E; ++I) {
             if (tyContainsPointer(*I))
                 return true;
         }
@@ -196,14 +182,13 @@ inline bool tyContainsPointer(const llvm::Type *Ty)
     return false;
 }
 
-inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty)
-{
+inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty) {
     if (Ty->isPointerTy())
         return true;
 
     if (Ty->isIntegerTy() && Ty->isSized())
-        return DL->getTypeSizeInBits(Ty)
-                >= DL->getPointerSizeInBits(/*Ty->getPointerAddressSpace()*/);
+        return DL->getTypeSizeInBits(Ty) >=
+               DL->getPointerSizeInBits(/*Ty->getPointerAddressSpace()*/);
 
     return false;
 }
@@ -212,4 +197,3 @@ inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty)
 } // namespace dg
 
 #endif //  _DG_LLVM_UTILS_H_
-

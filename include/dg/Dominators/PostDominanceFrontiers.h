@@ -22,13 +22,13 @@ namespace legacy {
 //
 // R. Cytron, J. Ferrante, B. K. Rosen, M. N. Wegman, and F. K. Zadeck. 1989.
 // An efficient method of computing static single assignment form.
-// In Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of programming languages (POPL '89),
-// CORPORATE New York, NY Association for Computing Machinery (Ed.). ACM, New York, NY, USA, 25-35.
+// In Proceedings of the 16th ACM SIGPLAN-SIGACT symposium on Principles of
+// programming languages (POPL '89), CORPORATE New York, NY Association for
+// Computing Machinery (Ed.). ACM, New York, NY, USA, 25-35.
 // DOI=http://dx.doi.org/10.1145/75277.75280
 //
 template <typename NodeT, typename BBlockT>
 class PostDominanceFrontiers {
-
     void computePDFrontiers(BBlockT *BB, bool add_cd) {
         // compute DFlocal
         for (auto *pred : BB->predecessors()) {
@@ -55,15 +55,15 @@ class PostDominanceFrontiers {
         }
     }
 
-public:
-    void compute(BBlockT *root, bool add_cd = false)
-    {
-        std::vector<BBlockT*> blocks;
+  public:
+    void compute(BBlockT *root, bool add_cd = false) {
+        std::vector<BBlockT *> blocks;
 
         struct EdgeChooser {
             class range {
                 BBlockT *_blk;
-            public:
+
+              public:
                 range(BBlockT *blk) : _blk(blk) {}
 
                 auto begin() -> decltype(_blk->getPostDominators().begin()) {

@@ -14,41 +14,34 @@ namespace dg {
 //     Basic block structure for dependence graph
 /// ------------------------------------------------------------------
 template <typename NodeT>
-class BBlock
-{
-public:
+class BBlock {
+  public:
     using KeyT = typename NodeT::KeyType;
     using DependenceGraphT = typename NodeT::DependenceGraphType;
 
     struct BBlockEdge {
-        BBlockEdge(BBlock<NodeT>* t, uint8_t label = 0)
-            : target(t), label(label) {}
+        BBlockEdge(BBlock<NodeT> *t, uint8_t label = 0)
+                : target(t), label(label) {}
 
         BBlock<NodeT> *target;
         // we'll have just numbers as labels now.
         // We can change it if there's a need
         uint8_t label;
 
-        bool operator==(const BBlockEdge& oth) const
-        {
+        bool operator==(const BBlockEdge &oth) const {
             return target == oth.target && label == oth.label;
         }
 
-        bool operator!=(const BBlockEdge& oth) const
-        {
-            return operator==(oth);
-        }
+        bool operator!=(const BBlockEdge &oth) const { return operator==(oth); }
 
-        bool operator<(const BBlockEdge& oth) const
-        {
-            return target == oth.target ?
-                        label < oth.label : target < oth.target;
+        bool operator<(const BBlockEdge &oth) const {
+            return target == oth.target ? label < oth.label
+                                        : target < oth.target;
         }
     };
 
     BBlock<NodeT>(NodeT *head = nullptr, DependenceGraphT *dg = nullptr)
-        : key(KeyT()), dg(dg), ipostdom(nullptr), slice_id(0)
-    {
+            : key(KeyT()), dg(dg), ipostdom(nullptr), slice_id(0) {
         if (head) {
             append(head);
             assert(!dg || head->getDG() == nullptr || dg == head->getDG());
@@ -67,19 +60,21 @@ public:
     using PredContainerT = EdgesContainer<BBlock<NodeT>>;
     using SuccContainerT = DGContainer<BBlockEdge>;
 
-    SuccContainerT& successors() { return nextBBs; }
-    const SuccContainerT& successors() const { return nextBBs; }
+    SuccContainerT &successors() { return nextBBs; }
+    const SuccContainerT &successors() const { return nextBBs; }
 
-    PredContainerT& predecessors() { return prevBBs; }
-    const PredContainerT& predecessors() const { return prevBBs; }
+    PredContainerT &predecessors() { return prevBBs; }
+    const PredContainerT &predecessors() const { return prevBBs; }
 
-    const BBlockContainerT& controlDependence() const { return controlDeps; }
-    const BBlockContainerT& revControlDependence() const { return revControlDeps; }
+    const BBlockContainerT &controlDependence() const { return controlDeps; }
+    const BBlockContainerT &revControlDependence() const {
+        return revControlDeps;
+    }
 
     // similary to nodes, basic blocks can have keys
     // they are not stored anywhere, it is more due to debugging
-    void setKey(const KeyT& k) { key = k; }
-    const KeyT& getKey() const { return key; }
+    void setKey(const KeyT &k) { key = k; }
+    const KeyT &getKey() const { return key; }
 
     // XXX we should do it a common base with node
     // to not duplicate this - something like
@@ -87,37 +82,31 @@ public:
     void setDG(DependenceGraphT *d) { dg = d; }
     DependenceGraphT *getDG() const { return dg; }
 
-    const std::list<NodeT *>& getNodes() const { return nodes; }
-    std::list<NodeT *>& getNodes() { return nodes; }
+    const std::list<NodeT *> &getNodes() const { return nodes; }
+    std::list<NodeT *> &getNodes() { return nodes; }
     bool empty() const { return nodes.empty(); }
     size_t size() const { return nodes.size(); }
 
-    void append(NodeT *n)
-    {
+    void append(NodeT *n) {
         assert(n && "Cannot add null node to BBlock");
 
         n->setBasicBlock(this);
         nodes.push_back(n);
     }
 
-    void prepend(NodeT *n)
-    {
+    void prepend(NodeT *n) {
         assert(n && "Cannot add null node to BBlock");
 
         n->setBasicBlock(this);
         nodes.push_front(n);
     }
 
-    bool hasControlDependence() const
-    {
-        return !controlDeps.empty();
-    }
+    bool hasControlDependence() const { return !controlDeps.empty(); }
 
     // return true if all successors point
     // to the same basic block (not considering labels,
     // just the targets)
-    bool successorsAreSame() const
-    {
+    bool successorsAreSame() const {
         if (nextBBs.size() < 2)
             return true;
 
@@ -138,9 +127,8 @@ public:
     // return true if all successors point
     // to the same basic block (not considering labels,
     // just the targets)
-    bool hasSuccessor(BBlock<NodeT> *B) const
-    {
-        for (auto& succB : successors()) {
+    bool hasSuccessor(BBlock<NodeT> *B) const {
+        for (auto &succB : successors()) {
             if (succB.target == B) {
                 return true;
             }
@@ -151,8 +139,7 @@ public:
 
     // remove all edges from/to this BB and reconnect them to
     // other nodes
-    void isolate()
-    {
+    void isolate() {
         // take every predecessor and reconnect edges from it
         // to successors
         for (BBlock<NodeT> *pred : prevBBs) {
@@ -160,17 +147,19 @@ public:
             // and create new edges to all successors. The new edges
             // will have the same label as the found one
             DGContainer<BBlockEdge> new_edges;
-            for (auto I = pred->nextBBs.begin(),E = pred->nextBBs.end(); I != E;) {
+            for (auto I = pred->nextBBs.begin(), E = pred->nextBBs.end();
+                 I != E;) {
                 auto cur = I++;
                 if (cur->target == this) {
                     // create edges that will go from the predecessor
                     // to every successor of this node
-                    for (const BBlockEdge& succ : nextBBs) {
-                        // we cannot create an edge to this bblock (we're isolating _this_ bblock),
-                        // that would be incorrect. It can occur when we're isolatin a bblock
-                        // with self-loop
+                    for (const BBlockEdge &succ : nextBBs) {
+                        // we cannot create an edge to this bblock (we're
+                        // isolating _this_ bblock), that would be incorrect. It
+                        // can occur when we're isolatin a bblock with self-loop
                         if (succ.target != this)
-                            new_edges.insert(BBlockEdge(succ.target, cur->label));
+                            new_edges.insert(
+                                    BBlockEdge(succ.target, cur->label));
                     }
 
                     // remove the edge from predecessor
@@ -179,9 +168,9 @@ public:
             }
 
             // add newly created edges to predecessor
-            for (const BBlockEdge& edge : new_edges) {
-                assert(edge.target != this
-                       && "Adding an edge to a block that is being isolated");
+            for (const BBlockEdge &edge : new_edges) {
+                assert(edge.target != this &&
+                       "Adding an edge to a block that is being isolated");
                 pred->addSuccessor(edge);
             }
         }
@@ -215,8 +204,7 @@ public:
         controlDeps.clear();
     }
 
-    void remove(bool with_nodes = true)
-    {
+    void remove(bool with_nodes = true) {
         // do not leave any dangling reference
         isolate();
 
@@ -224,7 +212,7 @@ public:
 #ifndef NDEBUG
             bool ret =
 #endif
-            dg->removeBlock(key);
+                    dg->removeBlock(key);
             assert(ret && "BUG: block was not in DG");
             if (dg->getEntryBB() == this)
                 dg->setEntryBB(nullptr);
@@ -257,23 +245,20 @@ public:
     size_t successorsNum() const { return nextBBs.size(); }
     size_t predecessorsNum() const { return prevBBs.size(); }
 
-    bool addSuccessor(const BBlockEdge& edge)
-    {
+    bool addSuccessor(const BBlockEdge &edge) {
         bool ret = nextBBs.insert(edge);
         edge.target->prevBBs.insert(this);
 
         return ret;
     }
 
-    bool addSuccessor(BBlock<NodeT> *b, uint8_t label = 0)
-    {
+    bool addSuccessor(BBlock<NodeT> *b, uint8_t label = 0) {
         return addSuccessor(BBlockEdge(b, label));
     }
 
-    void removeSuccessors()
-    {
+    void removeSuccessors() {
         // remove references to this node from successors
-        for (const BBlockEdge& succ : nextBBs) {
+        for (const BBlockEdge &succ : nextBBs) {
             // This assertion does not hold anymore, since if we have
             // two edges with different labels to the same successor,
             // and we remove the successor, then we remove 'this'
@@ -287,23 +272,18 @@ public:
         nextBBs.clear();
     }
 
-    bool hasSelfLoop()
-    {
-        return nextBBs.contains(this);
-    }
+    bool hasSelfLoop() { return nextBBs.contains(this); }
 
-    void removeSuccessor(const BBlockEdge& succ)
-    {
+    void removeSuccessor(const BBlockEdge &succ) {
         succ.target->prevBBs.erase(this);
         nextBBs.erase(succ);
     }
 
-    unsigned removeSuccessorsTarget(BBlock<NodeT> *target)
-    {
+    unsigned removeSuccessorsTarget(BBlock<NodeT> *target) {
         unsigned removed = 0;
         SuccContainerT tmp;
         // approx
-        for (auto& edge : nextBBs) {
+        for (auto &edge : nextBBs) {
             if (edge.target != target)
                 tmp.insert(edge);
             else
@@ -314,16 +294,14 @@ public:
         return removed;
     }
 
-    void removePredecessors()
-    {
+    void removePredecessors() {
         for (BBlock<NodeT> *BB : prevBBs)
             BB->nextBBs.erase(this);
 
         prevBBs.clear();
     }
 
-    bool addControlDependence(BBlock<NodeT> *b)
-    {
+    bool addControlDependence(BBlock<NodeT> *b) {
         bool ret;
 #ifndef NDEBUG
         bool ret2;
@@ -333,7 +311,7 @@ public:
 #ifndef NDEBUG
         ret2 =
 #endif
-        b->revControlDeps.insert(this);
+                b->revControlDeps.insert(this);
 
         // we either have both edges or none
         assert(ret == ret2);
@@ -343,8 +321,7 @@ public:
 
     // get first node from bblock
     // or nullptr if the block is empty
-    NodeT *getFirstNode() const
-    {
+    NodeT *getFirstNode() const {
         if (nodes.empty())
             return nullptr;
 
@@ -353,8 +330,7 @@ public:
 
     // get last node from block
     // or nullptr if the block is empty
-    NodeT *getLastNode() const
-    {
+    NodeT *getLastNode() const {
         if (nodes.empty())
             return nullptr;
 
@@ -362,24 +338,21 @@ public:
     }
 
     // XXX: do this optional?
-    BBlockContainerT& getPostDomFrontiers() { return postDomFrontiers; }
-    const BBlockContainerT& getPostDomFrontiers() const { return postDomFrontiers; }
+    BBlockContainerT &getPostDomFrontiers() { return postDomFrontiers; }
+    const BBlockContainerT &getPostDomFrontiers() const {
+        return postDomFrontiers;
+    }
 
-    bool addPostDomFrontier(BBlock<NodeT> *BB)
-    {
+    bool addPostDomFrontier(BBlock<NodeT> *BB) {
         return postDomFrontiers.insert(BB);
     }
 
-    bool addDomFrontier(BBlock<NodeT> *DF)
-    {
-        return domFrontiers.insert(DF);
-    }
+    bool addDomFrontier(BBlock<NodeT> *DF) { return domFrontiers.insert(DF); }
 
-    BBlockContainerT& getDomFrontiers() { return domFrontiers; }
-    const BBlockContainerT& getDomFrontiers() const { return domFrontiers; }
+    BBlockContainerT &getDomFrontiers() { return domFrontiers; }
+    const BBlockContainerT &getDomFrontiers() const { return domFrontiers; }
 
-    void setIPostDom(BBlock<NodeT> *BB)
-    {
+    void setIPostDom(BBlock<NodeT> *BB) {
         assert(!ipostdom && "Already has the immedate post-dominator");
         ipostdom = BB;
         BB->postDominators.insert(this);
@@ -388,73 +361,54 @@ public:
     BBlock<NodeT> *getIPostDom() { return ipostdom; }
     const BBlock<NodeT> *getIPostDom() const { return ipostdom; }
 
-    BBlockContainerT& getPostDominators() { return postDominators; }
-    const BBlockContainerT& getPostDominators() const { return postDominators; }
+    BBlockContainerT &getPostDominators() { return postDominators; }
+    const BBlockContainerT &getPostDominators() const { return postDominators; }
 
-    void setIDom(BBlock<NodeT>* BB)
-    {
+    void setIDom(BBlock<NodeT> *BB) {
         assert(!idom && "Already has immediate dominator");
         idom = BB;
         BB->addDominator(this);
     }
 
-    void addDominator(BBlock<NodeT>* BB)
-    {
-        assert( BB && "need dominator bblock" );
+    void addDominator(BBlock<NodeT> *BB) {
+        assert(BB && "need dominator bblock");
         dominators.insert(BB);
     }
 
     BBlock<NodeT> *getIDom() { return idom; }
     const BBlock<NodeT> *getIDom() const { return idom; }
 
-    BBlockContainerT& getDominators() { return dominators; }
-    const BBlockContainerT& getDominators() const { return dominators; }
+    BBlockContainerT &getDominators() { return dominators; }
+    const BBlockContainerT &getDominators() const { return dominators; }
 
-    unsigned int getDFSOrder() const
-    {
-        return analysisAuxData.dfsorder;
-    }
+    unsigned int getDFSOrder() const { return analysisAuxData.dfsorder; }
 
     // in order to fasten up interprocedural analyses,
     // we register all the call sites in the BBlock
-    unsigned int getCallSitesNum() const
-    {
-        return callSites.size();
-    }
+    unsigned int getCallSitesNum() const { return callSites.size(); }
 
-    const std::set<NodeT *>& getCallSites()
-    {
-        return callSites;
-    }
+    const std::set<NodeT *> &getCallSites() { return callSites; }
 
-    bool addCallsite(NodeT *n)
-    {
-        assert(n->getBBlock() == this
-               && "Cannot add callsite from different BB");
+    bool addCallsite(NodeT *n) {
+        assert(n->getBBlock() == this &&
+               "Cannot add callsite from different BB");
 
         return callSites.insert(n).second;
     }
 
-    bool removeCallSite(NodeT *n)
-    {
-        assert(n->getBBlock() == this
-               && "Removing callsite from different BB");
+    bool removeCallSite(NodeT *n) {
+        assert(n->getBBlock() == this && "Removing callsite from different BB");
 
         return callSites.erase(n) != 0;
     }
 
-    void setSlice(uint64_t sid)
-    {
-        slice_id = sid;
-    }
+    void setSlice(uint64_t sid) { slice_id = sid; }
 
     uint64_t getSlice() const { return slice_id; }
 
-    void deleteNodesOnDestruction(bool v = true) {
-        delete_nodes_on_destr = v;
-    }
+    void deleteNodesOnDestruction(bool v = true) { delete_nodes_on_destr = v; }
 
-private:
+  private:
     // optional key
     KeyT key;
 

@@ -3,9 +3,9 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
 #include <llvm/IR/Instructions.h>
@@ -19,8 +19,7 @@ namespace dg {
 namespace pta {
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
-                                                     PSNode *arg, int idx)
-{
+                                                  PSNode *arg, int idx) {
     assert(idx < static_cast<int>(CI->getNumArgOperands()));
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
     if (op && !arg->hasOperand(op)) {
@@ -31,8 +30,8 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
     }
 }
 
-void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst &CI, PSNode &node)
-{
+void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst &CI,
+                                                  PSNode &node) {
     auto sentinel = CI.getNumArgOperands();
     for (unsigned i = 0; i < sentinel; ++i) {
         PSNode *operand = tryGetOperand(CI.getArgOperand(i));
@@ -43,8 +42,7 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst &CI, PSNo
 }
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::Function *F,
-                                                     PSNode *arg, int idx)
-{
+                                                  PSNode *arg, int idx) {
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
@@ -60,35 +58,32 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::Function *F,
 }
 
 void LLVMPointerGraphBuilder::addArgumentsOperands(const llvm::Function *F,
-                                                      const llvm::CallInst *CI, int index)
-{
+                                                   const llvm::CallInst *CI,
+                                                   int index) {
     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++index) {
         auto it = nodes_map.find(&*A);
         assert(it != nodes_map.end());
-        PSNodesSeq& cur = it->second;
+        PSNodesSeq &cur = it->second;
 
         if (CI) {
             // with func ptr call we know from which
             // call we should take the values
             addArgumentOperands(CI, cur.getSingleNode(), index);
         } else {
-             // with regular call just use all calls
+            // with regular call just use all calls
             addArgumentOperands(F, cur.getSingleNode(), index);
         }
     }
 }
 
-void LLVMPointerGraphBuilder::addVariadicArgumentOperands(const llvm::Function *F,
-                                                             const llvm::CallInst *CI,
-                                                             PSNode *arg)
-{
+void LLVMPointerGraphBuilder::addVariadicArgumentOperands(
+        const llvm::Function *F, const llvm::CallInst *CI, PSNode *arg) {
     for (unsigned idx = F->arg_size() - 1; idx < CI->getNumArgOperands(); ++idx)
         addArgumentOperands(CI, arg, idx);
 }
 
-void LLVMPointerGraphBuilder::addVariadicArgumentOperands(const llvm::Function *F,
-                                                             PSNode *arg)
-{
+void LLVMPointerGraphBuilder::addVariadicArgumentOperands(
+        const llvm::Function *F, PSNode *arg) {
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
@@ -106,9 +101,8 @@ void LLVMPointerGraphBuilder::addVariadicArgumentOperands(const llvm::Function *
 }
 
 void LLVMPointerGraphBuilder::addReturnNodesOperands(const llvm::Function *F,
-                                                     PointerSubgraph& subg,
-                                                     PSNode *callNode)
-{
+                                                     PointerSubgraph &subg,
+                                                     PSNode *callNode) {
     using namespace llvm;
 
     for (PSNode *r : subg.returnNodes) {
@@ -123,7 +117,8 @@ void LLVMPointerGraphBuilder::addReturnNodesOperands(const llvm::Function *F,
     }
 }
 
-void LLVMPointerGraphBuilder::addReturnNodeOperand(PSNode *callNode, PSNode *ret) {
+void LLVMPointerGraphBuilder::addReturnNodeOperand(PSNode *callNode,
+                                                   PSNode *ret) {
     assert(PSNodeRet::get(ret));
     auto callReturn = PSNodeCallRet::cast(callNode->getPairedNode());
     // the function must be defined, since we have the return node,
@@ -141,9 +136,8 @@ void LLVMPointerGraphBuilder::addReturnNodeOperand(PSNode *callNode, PSNode *ret
     callReturn->addReturn(ret);
 }
 
-
-void LLVMPointerGraphBuilder::addReturnNodeOperand(const llvm::Function *F, PSNode *op)
-{
+void LLVMPointerGraphBuilder::addReturnNodeOperand(const llvm::Function *F,
+                                                   PSNode *op) {
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
@@ -167,17 +161,16 @@ void LLVMPointerGraphBuilder::addReturnNodeOperand(const llvm::Function *F, PSNo
     }
 }
 
-void LLVMPointerGraphBuilder::addInterproceduralPthreadOperands(const llvm::Function *F, const llvm::CallInst *CI)
-{
-    // last argument (with index 3) is argument to function pthread_create will call
+void LLVMPointerGraphBuilder::addInterproceduralPthreadOperands(
+        const llvm::Function *F, const llvm::CallInst *CI) {
+    // last argument (with index 3) is argument to function pthread_create will
+    // call
     addArgumentsOperands(F, CI, 3);
 }
 
-void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F,
-                                                         PointerSubgraph& subg,
-                                                         const llvm::CallInst *CI,
-                                                         PSNode *callNode)
-{
+void LLVMPointerGraphBuilder::addInterproceduralOperands(
+        const llvm::Function *F, PointerSubgraph &subg,
+        const llvm::CallInst *CI, PSNode *callNode) {
     assert((!CI || callNode) && (!callNode || CI));
 
     // add operands to arguments' PHI nodes
@@ -209,8 +202,6 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(const llvm::Function *F
         }
     }
 }
-
-
 
 } // namespace pta
 } // namespace dg

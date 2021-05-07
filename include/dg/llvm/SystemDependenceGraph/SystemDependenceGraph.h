@@ -4,21 +4,20 @@
 #include <map>
 
 #include "dg/SystemDependenceGraph/SystemDependenceGraph.h"
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-#include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/ControlDependence/ControlDependence.h"
+#include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/LLVMAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 namespace llvm {
-    class Module;
-    class Value;
-}
+class Module;
+class Value;
+} // namespace llvm
 
 namespace dg {
 namespace llvmdg {
 
-class SystemDependenceGraphOptions : public LLVMAnalysisOptions {
-};
+class SystemDependenceGraphOptions : public LLVMAnalysisOptions {};
 
 /* FIXME: hide this from the world */
 struct SDGBuilder;
@@ -31,7 +30,7 @@ class SystemDependenceGraph {
     dda::LLVMDataDependenceAnalysis *_dda{nullptr};
     LLVMControlDependenceAnalysis *_cda{nullptr};
 
-    //SystemDependenceGraphBuilder _builder;
+    // SystemDependenceGraphBuilder _builder;
     // FIXME: do this unordered maps
     std::map<const llvm::Value *, sdg::DGElement *> _mapping;
     std::map<const sdg::DGElement *, llvm::Value *> _rev_mapping;
@@ -44,61 +43,60 @@ class SystemDependenceGraph {
     void buildSDG();
 
     void addMapping(llvm::Value *v, sdg::DGElement *n) {
-        assert(_mapping.find(v) == _mapping.end() &&
-                "Already have this value");
+        assert(_mapping.find(v) == _mapping.end() && "Already have this value");
         _mapping[v] = n;
         _rev_mapping[n] = v;
     }
 
     void addFunMapping(llvm::Function *F, sdg::DependenceGraph *g) {
         assert(_mapping.find(F) == _mapping.end() &&
-                "Already have this function");
+               "Already have this function");
         _fun_mapping[F] = g;
     }
 
     void addBlkMapping(llvm::BasicBlock *b, sdg::DGBBlock *dgb) {
         assert(_blk_mapping.find(b) == _blk_mapping.end() &&
-                "Already have this block");
+               "Already have this block");
         _blk_mapping[b] = dgb;
     }
 
     friend struct SDGBuilder;
 
-public:
-    SystemDependenceGraph(llvm::Module *M,
-                          LLVMPointerAnalysis *PTA,
+  public:
+    SystemDependenceGraph(llvm::Module *M, LLVMPointerAnalysis *PTA,
                           dda::LLVMDataDependenceAnalysis *DDA,
                           LLVMControlDependenceAnalysis *CDA,
-                          const SystemDependenceGraphOptions& opts = {})
-    :  _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA), _cda(CDA) {
+                          const SystemDependenceGraphOptions &opts = {})
+            : _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA),
+              _cda(CDA) {
         buildSDG();
     }
 
     llvm::Module *getModule() { return _module; }
     const llvm::Module *getModule() const { return _module; }
 
-    sdg::DGElement* getNode(const llvm::Value *v) const {
+    sdg::DGElement *getNode(const llvm::Value *v) const {
         auto it = _mapping.find(v);
         return it == _mapping.end() ? nullptr : it->second;
     }
 
-    sdg::DGBBlock* getBBlock(const llvm::BasicBlock *b) const {
+    sdg::DGBBlock *getBBlock(const llvm::BasicBlock *b) const {
         auto it = _blk_mapping.find(b);
         return it == _blk_mapping.end() ? nullptr : it->second;
     }
 
-    llvm::Value* getValue(const sdg::DGElement *n) const {
+    llvm::Value *getValue(const sdg::DGElement *n) const {
         auto it = _rev_mapping.find(n);
         return it == _rev_mapping.end() ? nullptr : it->second;
     }
 
-    sdg::DependenceGraph* getDG(const llvm::Function *F) const {
+    sdg::DependenceGraph *getDG(const llvm::Function *F) const {
         auto it = _fun_mapping.find(F);
         return it == _fun_mapping.end() ? nullptr : it->second;
     }
 
-    sdg::SystemDependenceGraph& getSDG() { return _sdg; }
-    const sdg::SystemDependenceGraph& getSDG() const { return _sdg; }
+    sdg::SystemDependenceGraph &getSDG() { return _sdg; }
+    const sdg::SystemDependenceGraph &getSDG() const { return _sdg; }
 };
 
 } // namespace llvmdg

@@ -4,7 +4,7 @@
 namespace dg {
 namespace pta {
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
     PSNodeAlloc *node = PSNodeAlloc::get(PS.create<PSNodeType::ALLOC>());
 
@@ -15,7 +15,7 @@ LLVMPointerGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createStore(const llvm::Instruction *Inst) {
     using namespace llvm;
     const Value *valOp = Inst->getOperand(0);
@@ -28,8 +28,8 @@ LLVMPointerGraphBuilder::createStore(const llvm::Instruction *Inst) {
             op1 = UNKNOWN_MEMORY;
         } else {
             op1 = it->second.getFirst();
-            assert(op1->getType() == PSNodeType::LOAD
-                   && "Invalid AtomicRMW nodes seq");
+            assert(op1->getType() == PSNodeType::LOAD &&
+                   "Invalid AtomicRMW nodes seq");
         }
     } else {
         op1 = getOperand(valOp);
@@ -53,25 +53,26 @@ LLVMPointerGraphBuilder::createInternalLoad(const llvm::Instruction *Inst) {
     return node;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createLoad(const llvm::Instruction *Inst) {
     return addNode(Inst, createInternalLoad(Inst));
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createGEP(const llvm::Instruction *Inst) {
     using namespace llvm;
 
     const GetElementPtrInst *GEP = cast<GetElementPtrInst>(Inst);
     const Value *ptrOp = GEP->getPointerOperand();
-    unsigned bitwidth = llvmutils::getPointerBitwidth(&M->getDataLayout(), ptrOp);
+    unsigned bitwidth =
+            llvmutils::getPointerBitwidth(&M->getDataLayout(), ptrOp);
     APInt offset(bitwidth, 0);
 
     PSNode *node = nullptr;
     PSNode *op = getOperand(ptrOp);
 
-    if (*_options.fieldSensitivity > 0
-        && GEP->accumulateConstantOffset(M->getDataLayout(), offset)) {
+    if (*_options.fieldSensitivity > 0 &&
+        GEP->accumulateConstantOffset(M->getDataLayout(), offset)) {
         // is offset in given bitwidth?
         if (offset.isIntN(bitwidth)) {
             // is 0 < offset < field_sensitivity ?
@@ -80,7 +81,7 @@ LLVMPointerGraphBuilder::createGEP(const llvm::Instruction *Inst) {
                 node = PS.create<PSNodeType::GEP>(op, offset.getZExtValue());
         } else
             errs() << "WARN: GEP offset greater than " << bitwidth << "-bit";
-            // fall-through to Offset::UNKNOWN in this case
+        // fall-through to Offset::UNKNOWN in this case
     }
 
     // we didn't create the node with concrete offset,
@@ -94,10 +95,11 @@ LLVMPointerGraphBuilder::createGEP(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createSelect(const llvm::Instruction *Inst) {
     // with ptrtoint/inttoptr it may not be a pointer
-    // assert(Inst->getType()->isPointerTy() && "BUG: This select is not a pointer");
+    // assert(Inst->getType()->isPointerTy() && "BUG: This select is not a
+    // pointer");
 
     // select <cond> <op1> <op2>
     PSNode *op1 = getOperand(Inst->getOperand(1));
@@ -111,13 +113,13 @@ LLVMPointerGraphBuilder::createSelect(const llvm::Instruction *Inst) {
 }
 
 Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
-                           const llvm::DataLayout& DL) {
+                           const llvm::DataLayout &DL) {
     Offset off{0};
 #if LLVM_VERSION_MAJOR >= 11
     llvm::Type *type = EV->getAggregateOperand()->getType();
 #else
-    llvm::CompositeType *type
-        = llvm::dyn_cast<llvm::CompositeType>(EV->getAggregateOperand()->getType());
+    llvm::CompositeType *type = llvm::dyn_cast<llvm::CompositeType>(
+            EV->getAggregateOperand()->getType());
     assert(type && "Don't have composite type in extractvalue");
 #endif
 
@@ -149,17 +151,16 @@ Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
     return off;
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
-LLVMPointerGraphBuilder::createExtract(const llvm::Instruction *Inst)
-{
+LLVMPointerGraphBuilder::PSNodesSeq &
+LLVMPointerGraphBuilder::createExtract(const llvm::Instruction *Inst) {
     using namespace llvm;
 
     const ExtractValueInst *EI = cast<ExtractValueInst>(Inst);
 
     // extract <agg> <idx> {<idx>, ...}
     PSNode *op1 = getOperand(EI->getAggregateOperand());
-    PSNode *G = PS.create<PSNodeType::GEP>(op1,
-                          accumulateEVOffsets(EI, M->getDataLayout()));
+    PSNode *G = PS.create<PSNodeType::GEP>(
+            op1, accumulateEVOffsets(EI, M->getDataLayout()));
     PSNode *L = PS.create<PSNodeType::LOAD>(G);
 
     // FIXME: add this later with all edges
@@ -169,7 +170,7 @@ LLVMPointerGraphBuilder::createExtract(const llvm::Instruction *Inst)
     return addNode(Inst, ret);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createPHI(const llvm::Instruction *Inst) {
     PSNode *node = PS.create<PSNodeType::PHI>();
     assert(node);
@@ -181,7 +182,7 @@ LLVMPointerGraphBuilder::createPHI(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createCast(const llvm::Instruction *Inst) {
     const llvm::Value *op = Inst->getOperand(0);
     PSNode *op1 = getOperand(op);
@@ -191,7 +192,7 @@ LLVMPointerGraphBuilder::createCast(const llvm::Instruction *Inst) {
 }
 
 // ptrToInt work just as a bitcast
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createPtrToInt(const llvm::Instruction *Inst) {
     const llvm::Value *op = Inst->getOperand(0);
 
@@ -205,14 +206,14 @@ LLVMPointerGraphBuilder::createPtrToInt(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createIntToPtr(const llvm::Instruction *Inst) {
     const llvm::Value *op = Inst->getOperand(0);
     PSNode *op1;
 
     if (llvm::isa<llvm::Constant>(op)) {
-        llvm::errs() << "PTA warning: IntToPtr with constant: "
-                     << *Inst << "\n";
+        llvm::errs() << "PTA warning: IntToPtr with constant: " << *Inst
+                     << "\n";
         // if this is inttoptr with constant, just make the pointer
         // unknown
         op1 = UNKNOWN_MEMORY;
@@ -225,7 +226,7 @@ LLVMPointerGraphBuilder::createIntToPtr(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createAdd(const llvm::Instruction *Inst) {
     using namespace llvm;
 
@@ -263,7 +264,7 @@ LLVMPointerGraphBuilder::createAdd(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createArithmetic(const llvm::Instruction *Inst) {
     using namespace llvm;
 
@@ -297,7 +298,7 @@ LLVMPointerGraphBuilder::createArithmetic(const llvm::Instruction *Inst) {
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst) {
     PSNode *op1 = nullptr;
     // is nullptr if this is 'ret void'
@@ -319,7 +320,8 @@ LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst) {
             }
 
             if (!op1) {
-                llvm::errs() << "WARN: Unsupported return of an aggregate type\n";
+                llvm::errs()
+                        << "WARN: Unsupported return of an aggregate type\n";
                 llvm::errs() << *Inst << "\n";
                 op1 = UNKNOWN_MEMORY;
             }
@@ -335,27 +337,28 @@ LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst) {
             }
         }
 
-        if (llvm::isa<llvm::ConstantPointerNull>(retVal)
-            || llvmutils::isConstantZero(retVal))
+        if (llvm::isa<llvm::ConstantPointerNull>(retVal) ||
+            llvmutils::isConstantZero(retVal))
             op1 = NULLPTR;
-        else if (llvmutils::typeCanBePointer(&M->getDataLayout(), retVal->getType()) &&
-                  (!isInvalid(retVal->stripPointerCasts(), invalidate_nodes) ||
-                   llvm::isa<llvm::ConstantExpr>(retVal) ||
-                   llvm::isa<llvm::UndefValue>(retVal)))
+        else if (llvmutils::typeCanBePointer(&M->getDataLayout(),
+                                             retVal->getType()) &&
+                 (!isInvalid(retVal->stripPointerCasts(), invalidate_nodes) ||
+                  llvm::isa<llvm::ConstantExpr>(retVal) ||
+                  llvm::isa<llvm::UndefValue>(retVal)))
             op1 = getOperand(retVal);
     }
 
-    assert((op1 || !retVal || !retVal->getType()->isPointerTy())
-           && "Don't have an operand for ReturnInst with pointer");
+    assert((op1 || !retVal || !retVal->getType()->isPointerTy()) &&
+           "Don't have an operand for ReturnInst with pointer");
 
-
-    PSNode *node = op1 ? PS.create<PSNodeType::RETURN>(op1) : PS.create<PSNodeType::RETURN>();
+    PSNode *node = op1 ? PS.create<PSNodeType::RETURN>(op1)
+                       : PS.create<PSNodeType::RETURN>();
     assert(node);
 
     return addNode(Inst, node);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     PSNodeAlloc *tempAlloc = nullptr;
     PSNode *lastNode = nullptr;
@@ -394,11 +397,12 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
     auto Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
-    auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0), &M->getDataLayout());
+    auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0),
+                                                &M->getDataLayout());
     // also, set the size of the temporary allocation
     tempAlloc->setSize(llvmutils::getAllocatedSize(Ty, &M->getDataLayout()));
 
-    auto GEP = PS.create<PSNodeType::GEP>(tempAlloc, elemSize*idx);
+    auto GEP = PS.create<PSNodeType::GEP>(tempAlloc, elemSize * idx);
     auto S = PS.create<PSNodeType::STORE>(ptr, GEP);
 
     seq.append(GEP);
@@ -414,7 +418,7 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
     return addNode(Inst, seq);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     auto op = getOperand(Inst->getOperand(0));
     assert(op && "Do not have the operand 0");
@@ -422,10 +426,12 @@ LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     auto idx = llvmutils::getConstantValue(Inst->getOperand(1));
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
-    auto Ty = llvm::cast<llvm::ExtractElementInst>(Inst)->getVectorOperandType();
-    auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0), &M->getDataLayout());
+    auto Ty =
+            llvm::cast<llvm::ExtractElementInst>(Inst)->getVectorOperandType();
+    auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0),
+                                                &M->getDataLayout());
 
-    auto GEP = PS.create<PSNodeType::GEP>(op, elemSize*idx);
+    auto GEP = PS.create<PSNodeType::GEP>(op, elemSize * idx);
     auto L = PS.create<PSNodeType::LOAD>(GEP);
 
     GEP->addSuccessor(L);
@@ -434,7 +440,7 @@ LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
     return addNode(Inst, ret);
 }
 
-LLVMPointerGraphBuilder::PSNodesSeq&
+LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
     using namespace llvm;
 
@@ -442,8 +448,7 @@ LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
     assert(RMW && "Wrong instruction");
 
     auto operation = RMW->getOperation();
-    if (operation != AtomicRMWInst::Xchg &&
-        operation != AtomicRMWInst::Add &&
+    if (operation != AtomicRMWInst::Xchg && operation != AtomicRMWInst::Add &&
         operation != AtomicRMWInst::Sub) {
         return createUnknown(Inst);
     }
@@ -455,28 +460,29 @@ LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
 
     PSNode *M = nullptr;
     switch (operation) {
-        case AtomicRMWInst::Xchg:
-            M = getOperand(RMW->getValOperand());
-            break;
-        case AtomicRMWInst::Add:
-            cval = Offset(llvmutils::getConstantValue(RMW->getValOperand()));
-            M = PS.create<PSNodeType::GEP>(ptr, cval);
-            R->addSuccessor(M);
-            break;
-        case AtomicRMWInst::Sub: break;
-            cval = Offset(0) - Offset(llvmutils::getConstantValue(RMW->getValOperand()));
-            M = PS.create<PSNodeType::GEP>(ptr, cval);
-            R->addSuccessor(M);
-            break;
-        default:
-            assert(false && "Invalid operation");
-            abort();
+    case AtomicRMWInst::Xchg:
+        M = getOperand(RMW->getValOperand());
+        break;
+    case AtomicRMWInst::Add:
+        cval = Offset(llvmutils::getConstantValue(RMW->getValOperand()));
+        M = PS.create<PSNodeType::GEP>(ptr, cval);
+        R->addSuccessor(M);
+        break;
+    case AtomicRMWInst::Sub:
+        break;
+        cval = Offset(0) -
+               Offset(llvmutils::getConstantValue(RMW->getValOperand()));
+        M = PS.create<PSNodeType::GEP>(ptr, cval);
+        R->addSuccessor(M);
+        break;
+    default:
+        assert(false && "Invalid operation");
+        abort();
     }
     assert(M);
 
     auto *W = PS.create<PSNodeType::STORE>(M, ptr);
-    if (operation == AtomicRMWInst::Add ||
-        operation == AtomicRMWInst::Sub) {
+    if (operation == AtomicRMWInst::Add || operation == AtomicRMWInst::Sub) {
         M->addSuccessor(W);
     }
 
@@ -486,4 +492,3 @@ LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
 
 } // namespace pta
 } // namespace dg
-

@@ -19,8 +19,8 @@ class CDGraphBuilder {
     std::unordered_map<const CDNode *, const llvm::Value *> _rev_mapping;
 
     CDGraph buildInstructions(const llvm::Function *F) {
-
-        DBG_SECTION_BEGIN(cda, "Building graph (of instructions) for " << F->getName().str());
+        DBG_SECTION_BEGIN(cda, "Building graph (of instructions) for "
+                                       << F->getName().str());
 
         CDGraph graph(F->getName().str());
 
@@ -32,12 +32,12 @@ class CDGraphBuilder {
         _mapping.reserve(F->size());
 
         // create nodes for blocks
-        for (auto& BB : *F) {
+        for (auto &BB : *F) {
             auto it = _mapping.emplace(&BB, BBlock());
-            BBlock& block = it.first->second;
+            BBlock &block = it.first->second;
             block.nodes.reserve(BB.size());
-            for (auto& I : BB) {
-                auto& nd = graph.createNode();
+            for (auto &I : BB) {
+                auto &nd = graph.createNode();
                 _rev_mapping[&nd] = &I;
                 _nodes[&I] = &nd;
                 block.nodes.push_back(&nd);
@@ -45,11 +45,11 @@ class CDGraphBuilder {
         }
 
         // add successor edges
-        for (auto& BB : *F) {
-            auto& bblock = _mapping[&BB];
+        for (auto &BB : *F) {
+            auto &bblock = _mapping[&BB];
             CDNode *last = nullptr;
             // successors inside the block
-            for (auto* nd : bblock.nodes) {
+            for (auto *nd : bblock.nodes) {
                 if (last)
                     graph.addNodeSuccessor(*last, *nd);
                 last = nd;
@@ -61,7 +61,7 @@ class CDGraphBuilder {
 
             // successors between blocks
             for (auto *bbsucc : successors(&BB)) {
-                auto& succblk = _mapping[bbsucc];
+                auto &succblk = _mapping[bbsucc];
                 if (succblk.nodes.empty()) {
                     assert(bbsucc->size() == 0);
                     continue;
@@ -77,8 +77,8 @@ class CDGraphBuilder {
     }
 
     CDGraph buildBlocks(const llvm::Function *F) {
-
-        DBG_SECTION_BEGIN(cda, "Building graph (of blocks) for " << F->getName().str());
+        DBG_SECTION_BEGIN(cda, "Building graph (of blocks) for "
+                                       << F->getName().str());
 
         CDGraph graph(F->getName().str());
 
@@ -88,15 +88,15 @@ class CDGraphBuilder {
         _rev_mapping.reserve(F->size() + _rev_mapping.size());
 
         // create nodes for blocks
-        for (auto& BB : *F) {
-            auto& nd = graph.createNode();
+        for (auto &BB : *F) {
+            auto &nd = graph.createNode();
             _mapping[&BB] = &nd;
             _nodes[&BB] = &nd;
             _rev_mapping[&nd] = &BB;
         }
 
         // add successor edges
-        for (auto& BB : *F) {
+        for (auto &BB : *F) {
             auto *nd = _mapping[&BB];
             assert(nd && "BUG: creating nodes for bblocks");
 
@@ -107,13 +107,13 @@ class CDGraphBuilder {
             }
         }
 
-        DBG_SECTION_END(cda, "Done building graph for function " << F->getName().str());
+        DBG_SECTION_END(cda, "Done building graph for function "
+                                     << F->getName().str());
 
         return graph;
     }
 
-public:
-
+  public:
     // \param instructions  true if we should build nodes for the instructions
     //                      instead of for basic blocks?
     CDGraph build(const llvm::Function *F, bool instructions = false) {
@@ -138,7 +138,6 @@ public:
         auto it = _rev_mapping.find(n);
         return it == _rev_mapping.end() ? nullptr : it->second;
     }
-
 };
 
 } // namespace llvmdg

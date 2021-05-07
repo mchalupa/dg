@@ -10,22 +10,22 @@ namespace dg {
 // and which threads are joined by joins.
 class ForkJoinAnalysis {
     LLVMPointerAnalysis *_PTA{nullptr};
-    //const llvm::Module *_M{nullptr};
+    // const llvm::Module *_M{nullptr};
 
-public:
-    ForkJoinAnalysis(//const llvm::Module *M,
-                     LLVMPointerAnalysis *PTA)
-    : _PTA(PTA)/*, _M(M)*/ {};
+  public:
+    ForkJoinAnalysis( // const llvm::Module *M,
+            LLVMPointerAnalysis *PTA)
+            : _PTA(PTA) /*, _M(M)*/ {};
 
     /// Take llvm::Value which is a call to pthread_join
     //  and return a vector of values that (may) spawn a thread
     //  that may be joined by this join.
-    std::vector<const llvm::Value*> matchJoin(const llvm::Value*);
+    std::vector<const llvm::Value *> matchJoin(const llvm::Value *);
 
     /// Take llvm::Value which is a call to pthread_join
     //  and return a vector of functions that may have been joined
     //  by this join.
-    std::vector<const llvm::Value*> joinFunctions(const llvm::Value*);
+    std::vector<const llvm::Value *> joinFunctions(const llvm::Value *);
 };
 
 } // namespace dg

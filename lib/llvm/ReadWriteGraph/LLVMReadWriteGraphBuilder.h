@@ -1,22 +1,22 @@
 #ifndef LLVM_DG_RWG_BUILDER_H
 #define LLVM_DG_RWG_BUILDER_H
 
-#include <unordered_map>
-#include <set>
 #include <memory>
+#include <set>
+#include <unordered_map>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/Constants.h>
 #include <llvm/IR/CFG.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/Support/raw_os_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ReadWriteGraph/ReadWriteGraph.h"
-#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-#include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 #include "dg/llvm/CallGraph/CallGraph.h"
+#include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "llvm/GraphBuilder.h"
 
@@ -24,12 +24,12 @@ SILENCE_LLVM_WARNINGS_POP
 #include "dg/util/debug.h"
 #endif // NDEBUG
 
-
 namespace dg {
 namespace dda {
 
-class LLVMReadWriteGraphBuilder : public GraphBuilder<RWNode, RWBBlock, RWSubgraph> {
-    const LLVMDataDependenceAnalysisOptions& _options;
+class LLVMReadWriteGraphBuilder
+        : public GraphBuilder<RWNode, RWBBlock, RWSubgraph> {
+    const LLVMDataDependenceAnalysisOptions &_options;
     // points-to information
     dg::LLVMPointerAnalysis *PTA;
     // even the data-flow analysis needs uses to have the mapping of llvm values
@@ -42,14 +42,15 @@ class LLVMReadWriteGraphBuilder : public GraphBuilder<RWNode, RWBBlock, RWSubgra
 
     ReadWriteGraph graph;
 
-    //RWNode& getOperand(const llvm::Value *) override;
+    // RWNode& getOperand(const llvm::Value *) override;
     NodesSeq<RWNode> createNode(const llvm::Value *) override;
-    RWBBlock& createBBlock(const llvm::BasicBlock *, RWSubgraph& subg) override {
+    RWBBlock &createBBlock(const llvm::BasicBlock *,
+                           RWSubgraph &subg) override {
         return subg.createBBlock();
     }
 
-    RWSubgraph& createSubgraph(const llvm::Function *F) override {
-        auto& subg = graph.createSubgraph();
+    RWSubgraph &createSubgraph(const llvm::Function *F) override {
+        auto &subg = graph.createSubgraph();
         subg.setName(F->getName().str());
         return subg;
     }
@@ -62,15 +63,14 @@ class LLVMReadWriteGraphBuilder : public GraphBuilder<RWNode, RWBBlock, RWSubgra
     std::map<std::pair<RWNode *, RWNode *>, std::set<Subgraph *>> calls;
     */
 
-    RWNode& create(RWNodeType t) { return graph.create(t); }
+    RWNode &create(RWNodeType t) { return graph.create(t); }
 
-public:
-    LLVMReadWriteGraphBuilder(const llvm::Module *m,
-                              dg::LLVMPointerAnalysis *p,
-                              const LLVMDataDependenceAnalysisOptions& opts)
-        : GraphBuilder(m), _options(opts), PTA(p) {}
+  public:
+    LLVMReadWriteGraphBuilder(const llvm::Module *m, dg::LLVMPointerAnalysis *p,
+                              const LLVMDataDependenceAnalysisOptions &opts)
+            : GraphBuilder(m), _options(opts), PTA(p) {}
 
-    ReadWriteGraph&& build() {
+    ReadWriteGraph &&build() {
         // FIXME: this is a bit of a hack
         if (!PTA->getOptions().isSVF()) {
             auto dgpta = static_cast<DGLLVMPointerAnalysis *>(PTA);
@@ -79,7 +79,7 @@ public:
         } else {
             buildFromLLVM();
         }
-        
+
         auto *entry = getModule()->getFunction(_options.entryFunction);
         assert(entry && "Did not find the entry function");
         graph.setEntry(getSubgraph(entry));
@@ -90,19 +90,19 @@ public:
     RWNode *getOperand(const llvm::Value *val);
 
     std::vector<DefSite> mapPointers(const llvm::Value *where,
-                                     const llvm::Value *val,
-                                     Offset size);
+                                     const llvm::Value *val, Offset size);
 
     RWNode *createStore(const llvm::Instruction *Inst);
     RWNode *createLoad(const llvm::Instruction *Inst);
     RWNode *createAtomicRMW(const llvm::Instruction *Inst);
     RWNode *createAlloc(const llvm::Instruction *Inst);
-    RWNode *createDynAlloc(const llvm::Instruction *Inst, AllocationFunction type);
+    RWNode *createDynAlloc(const llvm::Instruction *Inst,
+                           AllocationFunction type);
     RWNode *createRealloc(const llvm::Instruction *Inst);
     RWNode *createReturn(const llvm::Instruction *Inst);
 
-    void addReallocUses(const llvm::Instruction *Inst,
-                        RWNode& node, uint64_t size);
+    void addReallocUses(const llvm::Instruction *Inst, RWNode &node,
+                        uint64_t size);
 
     RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
 
@@ -122,7 +122,7 @@ public:
     RWNode *createIntrinsicCall(const llvm::CallInst *CInst);
     RWNode *createUnknownCall(const llvm::CallInst *CInst);
 
-    //void matchForksAndJoins();
+    // void matchForksAndJoins();
 };
 
 struct ValInfo {
@@ -130,8 +130,7 @@ struct ValInfo {
     ValInfo(const llvm::Value *val) : v(val) {}
 };
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ValInfo& vi);
-
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const ValInfo &vi);
 
 } // namespace dda
 } // namespace dg

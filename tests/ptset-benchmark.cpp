@@ -1,29 +1,31 @@
-#include <vector>
-#include <string>
 #include <random>
+#include <string>
+#include <vector>
 
-#include "dg/PointerAnalysis/PointsToSet.h"
 #include "../tools/include/dg/tools/TimeMeasure.h"
+#include "dg/PointerAnalysis/PointsToSet.h"
 
 using namespace dg::pta;
 
 std::default_random_engine generator;
-std::uniform_int_distribution<uint64_t> distribution(0, ~static_cast<uint64_t>(0));
+std::uniform_int_distribution<uint64_t> distribution(0,
+                                                     ~static_cast<uint64_t>(0));
 
-#define run(func, msg) do { \
-    std::cout << "Running " << msg << "\n"; \
-    dg::debug::TimeMeasure tm; \
-    tm.start(); \
-    for (int i = 0; i < times; ++i) \
-        func<PointsToSetT>(); \
-    tm.stop(); \
-    tm.report(" -- PointsToSet bitvector took"); \
-    tm.start(); \
-    for (int i = 0; i < times; ++i) \
-        func<SimplePointsToSet>(); \
-    tm.stop(); \
-    tm.report(" -- PointsToSet std::set took"); \
-    } while(0);
+#define run(func, msg)                                                         \
+    do {                                                                       \
+        std::cout << "Running " << msg << "\n";                                \
+        dg::debug::TimeMeasure tm;                                             \
+        tm.start();                                                            \
+        for (int i = 0; i < times; ++i)                                        \
+            func<PointsToSetT>();                                              \
+        tm.stop();                                                             \
+        tm.report(" -- PointsToSet bitvector took");                           \
+        tm.start();                                                            \
+        for (int i = 0; i < times; ++i)                                        \
+            func<SimplePointsToSet>();                                         \
+        tm.stop();                                                             \
+        tm.report(" -- PointsToSet std::set took");                            \
+    } while (0);
 
 template <typename PTSetT>
 void test1() {
@@ -50,19 +52,15 @@ void test3() {
     std::set<size_t> numbers;
 
     PTSetT S;
-    PSNode * pointers[] {
-        reinterpret_cast<PSNode *>(0x1),
-        reinterpret_cast<PSNode *>(0x2),
-        reinterpret_cast<PSNode *>(0x3),
-        reinterpret_cast<PSNode *>(0x4),
-        reinterpret_cast<PSNode *>(0x5),
-        reinterpret_cast<PSNode *>(0x6),
-        reinterpret_cast<PSNode *>(0x7)
-    };
+    PSNode *pointers[]{
+            reinterpret_cast<PSNode *>(0x1), reinterpret_cast<PSNode *>(0x2),
+            reinterpret_cast<PSNode *>(0x3), reinterpret_cast<PSNode *>(0x4),
+            reinterpret_cast<PSNode *>(0x5), reinterpret_cast<PSNode *>(0x6),
+            reinterpret_cast<PSNode *>(0x7)};
 
     for (int i = 0; i < 1000; ++i) {
         auto x = distribution(generator);
-        S.add(pointers[x % (sizeof(pointers)/sizeof(*pointers))], x);
+        S.add(pointers[x % (sizeof(pointers) / sizeof(*pointers))], x);
     }
 }
 
@@ -86,9 +84,7 @@ void test5() {
     }
 }
 
-
-int main()
-{
+int main() {
     int times;
     times = 100000;
     run(test1, "Adding three elements");

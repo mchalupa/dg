@@ -1,7 +1,7 @@
 #include <catch2/catch.hpp>
 
-#include "dg/ADT/Queue.h"
 #include "dg/ADT/Bitvector.h"
+#include "dg/ADT/Queue.h"
 #include "dg/ReadWriteGraph/DefSite.h"
 
 using namespace dg::ADT;
@@ -47,8 +47,7 @@ struct mycomp {
     bool operator()(int a, int b) const { return a > b; }
 };
 
-TEST_CASE("Priority queue basic manimp", "Priority Queue") 
-{
+TEST_CASE("Priority queue basic manimp", "Priority Queue") {
     PrioritySet<int, mycomp> queue;
     REQUIRE(queue.empty());
 
@@ -131,22 +130,20 @@ void hashMapTest() {
     REQUIRE(*y == 6);
 }
 
-
 // create an object for testing hashing function collision
 struct MyInt {
     int x;
     MyInt() : x(0) {}
     MyInt(int y) : x(y) {}
-    bool operator==(const MyInt& rhs) const { return x == rhs.x; }
+    bool operator==(const MyInt &rhs) const { return x == rhs.x; }
 };
 
 namespace std {
-template <> struct hash<MyInt> {
-    size_t operator()(const MyInt& mi) const {
-        return mi.x % 2;
-    }
+template <>
+struct hash<MyInt> {
+    size_t operator()(const MyInt &mi) const { return mi.x % 2; }
 };
-}
+} // namespace std
 
 template <typename MapT>
 void hashCollisionTest() {
@@ -185,5 +182,3 @@ TEST_CASE("TSL Hopscotch collision test", "HashMap") {
     hashCollisionTest<dg::HopscotchHashMap<MyInt, int>>();
 }
 #endif
-
-

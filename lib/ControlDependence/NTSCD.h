@@ -1,10 +1,10 @@
 #ifndef DG_NTSCD_H
 #define DG_NTSCD_H
 
-#include <vector>
-#include <set>
 #include <map>
+#include <set>
 #include <unordered_map>
+#include <vector>
 
 #include "CDGraph.h"
 #include "dg/ADT/Queue.h"
@@ -20,10 +20,9 @@ class NTSCD {
         unsigned short counter;
     };
 
-    std::unordered_map<CDNode*, Info> data;
+    std::unordered_map<CDNode *, Info> data;
 
-    void compute(CDGraph& graph, CDNode *target) {
-
+    void compute(CDGraph &graph, CDNode *target) {
         // initialize nodes
         for (auto *nd : graph) {
             auto &D = data[nd];
@@ -42,7 +41,7 @@ class NTSCD {
             assert(data[node].colored && "A non-colored node in queue");
 
             for (auto *pred : node->predecessors()) {
-                auto& D = data[pred];
+                auto &D = data[pred];
                 --D.counter;
                 if (D.counter == 0) {
                     D.colored = true;
@@ -52,10 +51,9 @@ class NTSCD {
         }
     }
 
-public:
-
+  public:
     // returns control dependencies and reverse control dependencies
-    std::pair<ResultT, ResultT> compute(CDGraph& graph) {
+    std::pair<ResultT, ResultT> compute(CDGraph &graph) {
         ResultT CD;
         ResultT revCD;
 
@@ -85,7 +83,6 @@ public:
     }
 };
 
-
 class NTSCD2 {
     using ResultT = std::map<CDNode *, std::set<CDNode *>>;
 
@@ -93,9 +90,9 @@ class NTSCD2 {
         unsigned color{0};
     };
 
-    std::unordered_map<CDNode*, Info> data;
+    std::unordered_map<CDNode *, Info> data;
 
-    void compute(CDGraph& graph, CDNode *target, ResultT& CD, ResultT& revCD) {
+    void compute(CDGraph &graph, CDNode *target, ResultT &CD, ResultT &revCD) {
         std::set<CDNode *> frontier;
         std::set<CDNode *> new_frontier;
 
@@ -158,10 +155,9 @@ class NTSCD2 {
         }
     }
 
-public:
-
+  public:
     // returns control dependencies and reverse control dependencies
-    std::pair<ResultT, ResultT> compute(CDGraph& graph) {
+    std::pair<ResultT, ResultT> compute(CDGraph &graph) {
         ResultT CD;
         ResultT revCD;
 
@@ -184,47 +180,51 @@ class NTSCDRanganath {
 
     // symbol t_{mn}
     struct Symbol : public std::pair<CDNode *, CDNode *> {
-        Symbol(CDNode *a, CDNode *b) : std::pair<CDNode*, CDNode*>(a, b) {}
+        Symbol(CDNode *a, CDNode *b) : std::pair<CDNode *, CDNode *>(a, b) {}
     };
 
-    std::unordered_map<CDNode *,
-                       std::unordered_map<CDNode *, std::set<Symbol>>> S;
+    std::unordered_map<CDNode *, std::unordered_map<CDNode *, std::set<Symbol>>>
+            S;
 
     ADT::SetQueue<ADT::QueueFIFO<CDNode *>> workbag;
 
-    bool processNode(CDGraph&graph, CDNode *n) {
+    bool processNode(CDGraph &graph, CDNode *n) {
         bool changed = false;
         auto *s = n->getSingleSuccessor();
         if (s && s != n) { // (2.1) single successor case
             for (auto *p : graph.predicates()) {
-                auto& Ssp = S[s][p];
-                for (const Symbol& symb : S[n][p]) {
+                auto &Ssp = S[s][p];
+                for (const Symbol &symb : S[n][p]) {
                     if (Ssp.insert(symb).second) {
                         DBG(tmp, "(1) S[" << s->getID() << ", " << p->getID()
-                                          << "] <- t(" << symb.first->getID() << ", "
-                                          << symb.second->getID() << ")");
+                                          << "] <- t(" << symb.first->getID()
+                                          << ", " << symb.second->getID()
+                                          << ")");
                         DBG(tmp, "(2.1) queuing node: " << s->getID());
                         changed = true;
                         workbag.push(s);
                     }
                 }
             }
-        } else if (n->successors().size() > 1) { // (2.2) multiple successors case
+        } else if (n->successors().size() >
+                   1) { // (2.2) multiple successors case
             for (auto *m : graph) {
-                auto& Smn = S[m][n];
+                auto &Smn = S[m][n];
                 if (Smn.size() == n->successors().size()) {
                     for (auto *p : graph.predicates()) {
                         if (p == n) {
                             continue;
                         }
-                        auto& Smp = S[m][p];
-                        for (const Symbol& symb : S[n][p]) {
+                        auto &Smp = S[m][p];
+                        for (const Symbol &symb : S[n][p]) {
                             if (Smp.insert(symb).second) {
                                 changed = true;
                                 workbag.push(m);
-                                DBG(tmp, "(1) S[" << m->getID() << ", " << p->getID()
-                                                  << "] <- t(" << symb.first->getID() << ", "
-                                                  << symb.second->getID() << ")");
+                                DBG(tmp, "(1) S[" << m->getID() << ", "
+                                                  << p->getID() << "] <- t("
+                                                  << symb.first->getID() << ", "
+                                                  << symb.second->getID()
+                                                  << ")");
                                 DBG(tmp, "(2.2) queuing node: " << m->getID());
                             }
                         }
@@ -236,32 +236,33 @@ class NTSCDRanganath {
         return changed;
     }
 
-public:
-
+  public:
     // returns control dependencies and reverse control dependencies
     // doFixpoint turns on the fix of the ranganath's algorithm
     // XXX: we should create a new fixed algorithm completely, as we do not need
     // the workbag and so on.
-    std::pair<ResultT, ResultT> compute(CDGraph& graph, bool doFixpoint = true) {
+    std::pair<ResultT, ResultT> compute(CDGraph &graph,
+                                        bool doFixpoint = true) {
         ResultT CD;
         ResultT revCD;
 
-        S.reserve(2*graph.predicates().size());
+        S.reserve(2 * graph.predicates().size());
 
         // (1) initialize
         for (auto *p : graph.predicates()) {
             for (auto *n : p->successors()) {
                 S[n][p].insert(Symbol{p, n});
-               //DBG(tmp, "(1) S[" << n->getID() << ", " << p->getID()
-               //                  << "] <- t(" << p->getID() << ", " << n->getID() << ")");
-               //DBG(tmp, "(1) queuing node: " << n->getID());
+                // DBG(tmp, "(1) S[" << n->getID() << ", " << p->getID()
+                //                  << "] <- t(" << p->getID() << ", " <<
+                //                  n->getID() << ")");
+                // DBG(tmp, "(1) queuing node: " << n->getID());
                 workbag.push(n);
             }
         }
 
         // (2) calculate all-path reachability
         if (doFixpoint) {
-	    DBG(cda, "Performing fixpoint of Ranganath's algorithm");
+            DBG(cda, "Performing fixpoint of Ranganath's algorithm");
             bool changed;
             do {
                 changed = false;
@@ -270,10 +271,10 @@ public:
                 }
             } while (changed);
         } else {
-	    DBG(cda, "Running the original (wrong) Ranganath's algorithm");
+            DBG(cda, "Running the original (wrong) Ranganath's algorithm");
             while (!workbag.empty()) {
                 auto *n = workbag.pop();
-                //DBG(cda, "Processing node: " << n->getID());
+                // DBG(cda, "Processing node: " << n->getID());
                 processNode(graph, n);
             }
         }
@@ -281,11 +282,12 @@ public:
         // (3) compute NTSCD
         for (auto *n : graph) {
             for (auto *p : graph.predicates()) {
-                auto& Snp = S[n][p];
+                auto &Snp = S[n][p];
 
-                //DBG(tmp, "(1) S[" << n->getID() << ", " << p->getID() << "] =");
-                //for (auto & symb : Snp) {
-                //    DBG(tmp, "  t(" << symb.first->getID() << ", " << symb.second->getID() << ")");
+                // DBG(tmp, "(1) S[" << n->getID() << ", " << p->getID() << "]
+                // ="); for (auto & symb : Snp) {
+                //    DBG(tmp, "  t(" << symb.first->getID() << ", " <<
+                //    symb.second->getID() << ")");
                 //}
                 if (Snp.size() > 0 && Snp.size() < p->successors().size()) {
                     CD[n].insert(p);
@@ -297,8 +299,6 @@ public:
         return {CD, revCD};
     }
 };
-
-
 
 } // namespace dg
 

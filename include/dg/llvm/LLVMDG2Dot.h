@@ -12,9 +12,9 @@
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
-#include "llvm/DebugInfo.h"     //DIScope
+#include "llvm/DebugInfo.h" //DIScope
 #else
-#include "llvm/IR/DebugInfo.h"     //DIScope
+#include "llvm/IR/DebugInfo.h" //DIScope
 #endif
 SILENCE_LLVM_WARNINGS_POP
 
@@ -35,7 +35,8 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 */
 
 namespace {
-static inline std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *val) {
+static inline std::ostream &printLLVMVal(std::ostream &os,
+                                         const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;
@@ -83,25 +84,22 @@ static inline std::ostream& printLLVMVal(std::ostream& os, const llvm::Value *va
 }
 } // anonymous namespace
 
-class LLVMDG2Dot : public debug::DG2Dot<LLVMNode>
-{
-public:
-
+class LLVMDG2Dot : public debug::DG2Dot<LLVMNode> {
+  public:
     // FIXME: make dg const
     LLVMDG2Dot(LLVMDependenceGraph *dg,
-               uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD,
+               uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD |
+                               debug::PRINT_CD,
                const char *file = NULL)
-        : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
+            : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual */
-    std::ostream& printKey(std::ostream& os, llvm::Value *val)
-    {
+    std::ostream &printKey(std::ostream &os, llvm::Value *val) {
         return printLLVMVal(os, val);
     }
 
     /* virtual */
-    bool checkNode(std::ostream& os, LLVMNode *node)
-    {
+    bool checkNode(std::ostream &os, LLVMNode *node) {
         bool err = false;
         const llvm::Value *val = node->getKey();
 
@@ -110,48 +108,50 @@ public:
             return true;
         }
 
-        if (!node->getBBlock()
-            && !llvm::isa<llvm::Function>(val)
-            && !llvm::isa<llvm::GlobalVariable>(val)) {
+        if (!node->getBBlock() && !llvm::isa<llvm::Function>(val) &&
+            !llvm::isa<llvm::GlobalVariable>(val)) {
             err = true;
             os << "\\nERR: no BB";
         }
 
-        //Print Location in source file. Print it only for LLVM 3.6 and higher.
+        // Print Location in source file. Print it only for LLVM 3.6 and higher.
         // The versions before 3.6 had different API, so this is quite
         // a workaround, not a real fix. If anybody needs this functionality
         // on those versions, fix this :)
-        if (const llvm::Instruction *I = llvm::dyn_cast<llvm::Instruction>(val)) {
-            const llvm::DebugLoc& Loc = I->getDebugLoc();
-#if ((LLVM_VERSION_MAJOR > 3)\
-      || ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 6)))
-            if(Loc) {
+        if (const llvm::Instruction *I =
+                    llvm::dyn_cast<llvm::Instruction>(val)) {
+            const llvm::DebugLoc &Loc = I->getDebugLoc();
+#if ((LLVM_VERSION_MAJOR > 3) ||                                               \
+     ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 6)))
+            if (Loc) {
                 os << "\" labelURL=\"";
                 llvm::raw_os_ostream ross(os);
                 Loc.print(ross);
 #else
-            if(Loc.getLine() > 0) {
+            if (Loc.getLine() > 0) {
                 os << "\" labelURL=\"";
                 llvm::raw_os_ostream ross(os);
-                //Loc.print(I->getParent()->getContext(), ross);
+                // Loc.print(I->getParent()->getContext(), ross);
                 const llvm::DebugLoc *tmpLoc = &Loc;
                 int nclosingBrack = 0;
                 while (tmpLoc) {
-                    llvm::DIScope Scope(tmpLoc->getScope(I->getParent()->getContext()));
+                    llvm::DIScope Scope(
+                            tmpLoc->getScope(I->getParent()->getContext()));
                     ross << Scope.getFilename();
                     ross << ':' << tmpLoc->getLine();
                     if (tmpLoc->getCol() != 0)
                         ross << ':' << tmpLoc->getCol();
 
-                    llvm::MDNode *inlineMN =  tmpLoc->getInlinedAt(I->getParent()->getContext());
+                    llvm::MDNode *inlineMN =
+                            tmpLoc->getInlinedAt(I->getParent()->getContext());
                     if (inlineMN) {
-                        llvm::DebugLoc InlinedAtDL = llvm::DebugLoc::getFromDILocation(inlineMN);
+                        llvm::DebugLoc InlinedAtDL =
+                                llvm::DebugLoc::getFromDILocation(inlineMN);
                         if (!InlinedAtDL.isUnknown()) {
                             ross << " @[ ";
                             tmpLoc = &InlinedAtDL;
                             nclosingBrack++;
-                        }
-                        else {
+                        } else {
                             tmpLoc = nullptr;
                         }
                     } else {
@@ -171,18 +171,17 @@ public:
     }
 
     bool dump(const char *new_file = nullptr,
-              const char *dump_func_only = nullptr)
-    {
+              const char *dump_func_only = nullptr) {
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;
 
-        const std::map<llvm::Value *,
-                       LLVMDependenceGraph *>& CF = getConstructedFunctions();
+        const std::map<llvm::Value *, LLVMDependenceGraph *> &CF =
+                getConstructedFunctions();
 
         start();
 
-        for (auto& F : CF) {
+        for (auto &F : CF) {
             if (dump_func_only && !F.first->getName().equals(dump_func_only))
                 continue;
 
@@ -194,17 +193,15 @@ public:
         return true;
     }
 
-private:
-
-    void dumpSubgraph(LLVMDependenceGraph *graph, const char *name)
-    {
+  private:
+    void dumpSubgraph(LLVMDependenceGraph *graph, const char *name) {
         dumpSubgraphStart(graph, name);
 
-        for (auto& B : graph->getBlocks()) {
+        for (auto &B : graph->getBlocks()) {
             dumpBBlock(B.second);
         }
 
-        for (auto& B : graph->getBlocks()) {
+        for (auto &B : graph->getBlocks()) {
             dumpBBlockEdges(B.second);
         }
 
@@ -212,14 +209,13 @@ private:
     }
 };
 
-class LLVMDGDumpBlocks : public debug::DG2Dot<LLVMNode>
-{
-public:
-
+class LLVMDGDumpBlocks : public debug::DG2Dot<LLVMNode> {
+  public:
     LLVMDGDumpBlocks(LLVMDependenceGraph *dg,
-                  uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD | debug::PRINT_CD,
-                  const char *file = NULL)
-        : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
+                     uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD |
+                                     debug::PRINT_CD,
+                     const char *file = NULL)
+            : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual
     std::ostream& printKey(std::ostream& os, llvm::Value *val)
@@ -229,24 +225,22 @@ public:
     */
 
     /* virtual */
-    bool checkNode(std::ostream&, LLVMNode *)
-    {
+    bool checkNode(std::ostream &, LLVMNode *) {
         return false; // no error
     }
 
     bool dump(const char *new_file = nullptr,
-              const char *dump_func_only = nullptr)
-    {
+              const char *dump_func_only = nullptr) {
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;
 
-        const std::map<llvm::Value *,
-                       LLVMDependenceGraph *>& CF = getConstructedFunctions();
+        const std::map<llvm::Value *, LLVMDependenceGraph *> &CF =
+                getConstructedFunctions();
 
         start();
 
-        for (auto& F : CF) {
+        for (auto &F : CF) {
             // XXX: this is inefficient, we can get the dump_func_only function
             // from the module (F.getParent()->getModule()->getFunction(...)
             if (dump_func_only && !F.first->getName().equals(dump_func_only))
@@ -260,25 +254,22 @@ public:
         return true;
     }
 
-private:
-
-    void dumpSubgraph(LLVMDependenceGraph *graph, const char *name)
-    {
+  private:
+    void dumpSubgraph(LLVMDependenceGraph *graph, const char *name) {
         dumpSubgraphStart(graph, name);
 
-        for (auto& B : graph->getBlocks()) {
+        for (auto &B : graph->getBlocks()) {
             dumpBlock(B.second);
         }
 
-        for (auto& B : graph->getBlocks()) {
+        for (auto &B : graph->getBlocks()) {
             dumpBlockEdges(B.second);
         }
 
         dumpSubgraphEnd(graph, false);
     }
 
-    void dumpBlock(LLVMBBlock *blk)
-    {
+    void dumpBlock(LLVMBBlock *blk) {
         out << "NODE" << blk << " [label=\"";
 
         std::ostringstream ostr;
@@ -305,7 +296,7 @@ private:
 
         unsigned int slice_id = blk->getSlice();
         if (slice_id != 0)
-            out << "\\nslice: "<< slice_id << "\\n";
+            out << "\\nslice: " << slice_id << "\\n";
         out << str << "\"";
 
         if (slice_id != 0)
@@ -314,11 +305,11 @@ private:
         out << "]\n";
     }
 
-    void dumpBlockEdges(LLVMBBlock *blk)
-    {
-        for (const LLVMBBlock::BBlockEdge& edge : blk->successors()) {
+    void dumpBlockEdges(LLVMBBlock *blk) {
+        for (const LLVMBBlock::BBlockEdge &edge : blk->successors()) {
             out << "NODE" << blk << " -> NODE" << edge.target
-                << " [penwidth=2 label=\""<< static_cast<int>(edge.label) << "\"] \n";
+                << " [penwidth=2 label=\"" << static_cast<int>(edge.label)
+                << "\"] \n";
         }
 
         for (const LLVMBBlock *pdf : blk->controlDependence()) {

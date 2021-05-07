@@ -1,14 +1,14 @@
 #include <catch2/catch.hpp>
 
-#include <dg/NodesWalk.h>
 #include <dg/ADT/Queue.h>
+#include <dg/NodesWalk.h>
 #include <set>
 
 using namespace dg;
 
 struct Node {
     std::vector<Node *> _successors;
-    const std::vector<Node *>& successors() const { return _successors; }
+    const std::vector<Node *> &successors() const { return _successors; }
     void addSuccessor(Node *s) { _successors.push_back(s); }
 };
 
@@ -19,7 +19,7 @@ TEST_CASE("NodesWalk1", "NodesWalk") {
     B.addSuccessor(&C);
     C.addSuccessor(&D);
 
-    NodesWalk<Node, dg::ADT::QueueLIFO<Node*>> walk;
+    NodesWalk<Node, dg::ADT::QueueLIFO<Node *>> walk;
 
     std::set<Node *> nodes;
     walk.run(&A, [&nodes](Node *n) {
@@ -41,7 +41,7 @@ TEST_CASE("NodesWalk-branch", "NodesWalk") {
     B.addSuccessor(&D);
     C.addSuccessor(&D);
 
-    NodesWalk<Node, dg::ADT::QueueLIFO<Node*>> walk;
+    NodesWalk<Node, dg::ADT::QueueLIFO<Node *>> walk;
 
     std::set<Node *> nodes;
     walk.run(&A, [&nodes](Node *n) {
@@ -64,7 +64,7 @@ TEST_CASE("NodesWalk-cycle", "NodesWalk") {
     C.addSuccessor(&D);
     D.addSuccessor(&A);
 
-    NodesWalk<Node, dg::ADT::QueueLIFO<Node*>> walk;
+    NodesWalk<Node, dg::ADT::QueueLIFO<Node *>> walk;
 
     std::set<Node *> nodes;
     walk.run(&A, [&nodes](Node *n) {
@@ -88,7 +88,7 @@ TEST_CASE("NodesWalk-cycle2", "NodesWalk") {
     C.addSuccessor(&D);
     D.addSuccessor(&A);
 
-    NodesWalk<Node, dg::ADT::QueueLIFO<Node*>> walk;
+    NodesWalk<Node, dg::ADT::QueueLIFO<Node *>> walk;
 
     std::set<Node *> nodes;
     walk.run(&pA, [&nodes](Node *n) {
@@ -103,7 +103,6 @@ TEST_CASE("NodesWalk-cycle2", "NodesWalk") {
     REQUIRE(nodes.count(&D) > 0);
 }
 
-
 TEST_CASE("NodesWalk-disconnected", "NodesWalk") {
     Node A, B, C, D;
 
@@ -111,7 +110,7 @@ TEST_CASE("NodesWalk-disconnected", "NodesWalk") {
     A.addSuccessor(&C);
     D.addSuccessor(&A);
 
-    NodesWalk<Node, dg::ADT::QueueLIFO<Node*>> walk;
+    NodesWalk<Node, dg::ADT::QueueLIFO<Node *>> walk;
 
     std::set<Node *> nodes;
     walk.run(&A, [&nodes](Node *n) {
@@ -132,7 +131,7 @@ TEST_CASE("NodesWalk-disconnected2", "NodesWalk") {
     C.addSuccessor(&D);
     D.addSuccessor(&A);
 
-    NodesWalk<Node, dg::ADT::QueueLIFO<Node*>> walk;
+    NodesWalk<Node, dg::ADT::QueueLIFO<Node *>> walk;
 
     std::set<Node *> nodes;
     walk.run(&A, [&nodes](Node *n) {
@@ -145,8 +144,6 @@ TEST_CASE("NodesWalk-disconnected2", "NodesWalk") {
     REQUIRE(nodes.count(&C) == 0);
     REQUIRE(nodes.count(&D) == 0);
 }
-
-
 
 #include <dg/BFS.h>
 
@@ -182,9 +179,7 @@ TEST_CASE("BFS-order", "BFS") {
     BFS<Node> bfs;
 
     std::vector<Node *> nodes;
-    bfs.run(&A, [&nodes](Node *n) {
-        nodes.push_back(n);
-    });
+    bfs.run(&A, [&nodes](Node *n) { nodes.push_back(n); });
 
     // here we know that the successors are processed
     // from left-to-right
@@ -203,9 +198,7 @@ TEST_CASE("BFS-order2", "BFS") {
     BFS<Node> bfs;
 
     std::vector<Node *> nodes;
-    bfs.run(&A, [&nodes](Node *n) {
-        nodes.push_back(n);
-    });
+    bfs.run(&A, [&nodes](Node *n) { nodes.push_back(n); });
 
     // here we know that the successors are processed
     // from left-to-right
@@ -224,17 +217,12 @@ TEST_CASE("BFS-order3", "BFS") {
     BFS<Node> bfs;
 
     std::vector<Node *> nodes;
-    bfs.run(&A, [&nodes](Node *n) {
-        nodes.push_back(n);
-    });
+    bfs.run(&A, [&nodes](Node *n) { nodes.push_back(n); });
 
     // here we know that the successors are processed
     // from left-to-right
     REQUIRE(nodes == decltype(nodes){&A, &B, &C, &D, &F, &E});
 }
-
-
-
 
 #include <dg/DFS.h>
 
@@ -270,9 +258,7 @@ TEST_CASE("DFS-order", "DFS") {
     DFS<Node> dfs;
 
     std::vector<Node *> nodes;
-    dfs.run(&A, [&nodes](Node *n) {
-        nodes.push_back(n);
-    });
+    dfs.run(&A, [&nodes](Node *n) { nodes.push_back(n); });
 
     // here we know that the successors are processed
     // from right-to-left
@@ -291,9 +277,7 @@ TEST_CASE("DFS-order2", "DFS") {
     DFS<Node> dfs;
 
     std::vector<Node *> nodes;
-    dfs.run(&A, [&nodes](Node *n) {
-        nodes.push_back(n);
-    });
+    dfs.run(&A, [&nodes](Node *n) { nodes.push_back(n); });
 
     // here we know that the successors are processed
     // from right-to-left
@@ -313,9 +297,7 @@ TEST_CASE("DFS-order3", "DFS") {
     DFS<Node> dfs;
 
     std::vector<Node *> nodes;
-    dfs.run(&A, [&nodes](Node *n) {
-        nodes.push_back(n);
-    });
+    dfs.run(&A, [&nodes](Node *n) { nodes.push_back(n); });
 
     // here we know that the successors are processed
     // from right-to-left

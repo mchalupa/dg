@@ -1,12 +1,11 @@
-#include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerGraphOptimizations.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
 
 namespace dg {
 namespace pta {
 
 static inline bool isStoreOfUnknown(PSNode *S, PSNode *to) {
-    return (S->getType() == PSNodeType::STORE &&
-            S->getOperand(1) == to &&
+    return (S->getType() == PSNodeType::STORE && S->getOperand(1) == to &&
             S->getOperand(0)->isUnknownMemory());
 }
 
@@ -27,7 +26,7 @@ static inline bool usersImplyUnknown(PSNode *alloc) {
 }
 
 void removeNode(PointerGraph *G, PSNode *nd) {
-    //llvm::errs() << "Remove node " << nd->getID() << "\n";
+    // llvm::errs() << "Remove node " << nd->getID() << "\n";
 
     assert(nd->getUsers().empty() && "Removing node that has users");
     // remove from CFG
@@ -40,14 +39,14 @@ void removeNode(PointerGraph *G, PSNode *nd) {
 }
 
 void PSUnknownsReducer::processAllocs() {
-    for (const auto& nd : G->getNodes()) {
+    for (const auto &nd : G->getNodes()) {
         if (!nd)
             continue;
 
         if (nd->getType() == PSNodeType::ALLOC) {
-            // this is an allocation that has only stores of unknown memory to it
-            // (and its address is not stored anywhere) and there are only loads
-            // from this memory (that must result to unknown)
+            // this is an allocation that has only stores of unknown memory to
+            // it (and its address is not stored anywhere) and there are only
+            // loads from this memory (that must result to unknown)
             if (usersImplyUnknown(nd.get())) {
                 // create a copy of users, as we will modify the container
                 auto tmp = nd->getUsers();
@@ -66,7 +65,8 @@ void PSUnknownsReducer::processAllocs() {
                 // NOTE: keep the alloca, as it contains the
                 // pointer to itself and may be queried for this pointer
             }
-        } else if (nd->getType() == PSNodeType::PHI && nd->getOperandsNum() == 0) {
+        } else if (nd->getType() == PSNodeType::PHI &&
+                   nd->getOperandsNum() == 0) {
             auto tmp = nd->getUsers();
             for (PSNode *user : tmp) {
                 // replace the uses of this value with unknown
@@ -98,10 +98,9 @@ static inline bool allOperandsAreSame(PSNode *nd) {
     return true;
 }
 
-
 // get rid of all casts
 void PSEquivalentNodesMerger::mergeCasts() {
-    for (const auto& nodeptr : G->getNodes()) {
+    for (const auto &nodeptr : G->getNodes()) {
         if (!nodeptr)
             continue;
 
@@ -134,7 +133,7 @@ void PSEquivalentNodesMerger::merge(PSNode *node1, PSNode *node2) {
 
 unsigned PSNoopRemover::run() {
     unsigned removed = 0;
-    for (const auto& nd : G->getNodes()) {
+    for (const auto &nd : G->getNodes()) {
         if (!nd)
             continue;
 
@@ -146,7 +145,6 @@ unsigned PSNoopRemover::run() {
     }
     return removed;
 }
-
 
 } // namespace pta
 } // namespace dg

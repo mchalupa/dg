@@ -3,9 +3,9 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
 #include <llvm/IR/Instructions.h>
@@ -18,10 +18,9 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace pta {
 
-void LLVMPointerGraphBuilder::addPHIOperands(const llvm::Function &F)
-{
-    for (const llvm::BasicBlock& B : F) {
-        for (const llvm::Instruction& I : B) {
+void LLVMPointerGraphBuilder::addPHIOperands(const llvm::Function &F) {
+    for (const llvm::BasicBlock &B : F) {
+        for (const llvm::Instruction &I : B) {
             if (const llvm::PHINode *PHI = llvm::dyn_cast<llvm::PHINode>(&I)) {
                 if (PSNode *node = getNodes(PHI)->getSingleNode())
                     addPHIOperands(node, PHI);
@@ -32,12 +31,11 @@ void LLVMPointerGraphBuilder::addPHIOperands(const llvm::Function &F)
 
 // return first and last nodes of the block
 LLVMPointerGraphBuilder::PSNodesBlock
-LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
-                                                PointerSubgraph *parent)
-{
+LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock &block,
+                                                PointerSubgraph *parent) {
     PSNodesBlock blk;
 
-    for (const llvm::Instruction& Inst : block) {
+    for (const llvm::Instruction &Inst : block) {
         if (!isRelevantInstruction(Inst)) {
             // check if it is a zeroing of memory,
             // if so, set the corresponding memory to zeroed
@@ -47,9 +45,8 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock& block,
             continue;
         }
 
-        assert(nodes_map.count(&Inst) == 0
-                && "Already built this instruction");
-        auto& seq = buildInstruction(Inst);
+        assert(nodes_map.count(&Inst) == 0 && "Already built this instruction");
+        auto &seq = buildInstruction(Inst);
 
         // set parent to the new nodes
         for (auto nd : seq) {

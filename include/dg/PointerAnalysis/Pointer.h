@@ -15,12 +15,10 @@ extern PSNode *NULLPTR;
 extern PSNode *UNKNOWN_MEMORY;
 extern PSNode *INVALIDATED;
 
-struct Pointer
-{
+struct Pointer {
     Pointer() : target(nullptr) {}
 
-    Pointer(PSNode *n, Offset off) : target(n), offset(off)
-    {
+    Pointer(PSNode *n, Offset off) : target(n), offset(off) {
         assert(n && "Cannot have a pointer with nullptr as target");
     }
 
@@ -29,13 +27,11 @@ struct Pointer
     // offset into the memory it points to
     Offset offset;
 
-    bool operator<(const Pointer& oth) const
-    {
+    bool operator<(const Pointer &oth) const {
         return target == oth.target ? offset < oth.offset : target < oth.target;
     }
 
-    bool operator==(const Pointer& oth) const
-    {
+    bool operator==(const Pointer &oth) const {
         return target == oth.target && offset == oth.offset;
     }
 
@@ -50,8 +46,6 @@ struct Pointer
     void dump() const;
     void print() const;
 #endif // not NDEBUG
-
-
 };
 
 extern const Pointer UnknownPointer;
@@ -60,12 +54,11 @@ extern const Pointer NullPointer;
 } // namespace pta
 } // namespace dg
 
-namespace std{
-template<> struct hash<dg::pta::Pointer> {
-    size_t operator() (const dg::pta::Pointer& p) const {
-        return p.hash();
-    }
+namespace std {
+template <>
+struct hash<dg::pta::Pointer> {
+    size_t operator()(const dg::pta::Pointer &p) const { return p.hash(); }
 };
-}
+} // namespace std
 
 #endif

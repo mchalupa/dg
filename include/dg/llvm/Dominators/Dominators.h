@@ -3,8 +3,8 @@
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
-#include <llvm/IR/Function.h>
 #include <llvm/IR/Dominators.h>
+#include <llvm/IR/Function.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "BBlock.h"
@@ -13,30 +13,28 @@ SILENCE_LLVM_WARNINGS_POP
 namespace dg {
 namespace analysis {
 
-
 /**
  * Calculates dominators using LLVM framework
  * Template parameters:
  *  NodeT
  *  CalculateDF = should dominance frontiers be calculated, too?
  */
-template <typename NodeT, bool CalculateDF=true>
-class Dominators
-{
-private:
+template <typename NodeT, bool CalculateDF = true>
+class Dominators {
+  private:
     using BlockT = BBlock<dg::analysis::rd::RWNode>;
-    using CFMapT = std::unordered_map<const llvm::Function *, std::map<const llvm::BasicBlock *, BlockT *>>;
-    using BMapT = std::unordered_map<const llvm::Value *, std::unique_ptr<BlockT>>;
+    using CFMapT =
+            std::unordered_map<const llvm::Function *,
+                               std::map<const llvm::BasicBlock *, BlockT *>>;
+    using BMapT =
+            std::unordered_map<const llvm::Value *, std::unique_ptr<BlockT>>;
 
-public:
-    void calculate(CFMapT& functions_blocks, const BMapT& all_blocks)
-    {
+  public:
+    void calculate(CFMapT &functions_blocks, const BMapT &all_blocks) {
         using namespace llvm;
 
-
-        for (auto& pair : functions_blocks){
-
-            Function& f = *const_cast<Function *>(pair.first);
+        for (auto &pair : functions_blocks) {
+            Function &f = *const_cast<Function *>(pair.first);
 
             DominatorTree dt;
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 9))
@@ -46,10 +44,10 @@ public:
             dt.recalculate(f);
 #endif
             auto it = all_blocks.find(dt.getRoot());
-            assert( it != all_blocks.end() && "root block must exist");
+            assert(it != all_blocks.end() && "root block must exist");
             BlockT *root = it->second.get();
-            auto& blocks = pair.second;
-            for (auto& block : blocks) {
+            auto &blocks = pair.second;
+            for (auto &block : blocks) {
                 BasicBlock *llvm_block = const_cast<BasicBlock *>(block.first);
                 BlockT *basic_block = block.second;
 
@@ -60,18 +58,22 @@ public:
                 DomTreeNode *idom = N->getIDom();
                 BasicBlock *idomBB = idom ? idom->getBlock() : nullptr;
 
-                for (const auto& dom : N->getChildren()) {
+                for (const auto &dom : N->getChildren()) {
                     const BasicBlock *dom_llvm_block = dom->getBlock();
-                    const auto it = all_blocks.find(static_cast<const llvm::Value *>(dom_llvm_block));
-                    assert( it != all_blocks.end() && "Do not have constructed domBB" );
+                    const auto it = all_blocks.find(
+                            static_cast<const llvm::Value *>(dom_llvm_block));
+                    assert(it != all_blocks.end() &&
+                           "Do not have constructed domBB");
                     const BlockT *dom_block = it->second.get();
                     if (dom_block != root)
-                        basic_block->addDominator(const_cast<BlockT *>(dom_block));
+                        basic_block->addDominator(
+                                const_cast<BlockT *>(dom_block));
                 }
 
                 if (idomBB) {
                     auto it = all_blocks.find(idomBB);
-                    assert( it != all_blocks.end() && "Do not have constructed BB" );
+                    assert(it != all_blocks.end() &&
+                           "Do not have constructed BB");
                     BlockT *db = it->second.get();
                     basic_block->setIDom(db);
                 } else {
@@ -89,7 +91,7 @@ public:
     }
 };
 
-}
-}
+} // namespace analysis
+} // namespace dg
 
 #endif /* _DG_DOMINATORS_H_ */

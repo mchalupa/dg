@@ -4,9 +4,9 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 
 namespace llvm {
-    class Function;
-    class BasicBlock;
-}
+class Function;
+class BasicBlock;
+} // namespace llvm
 
 namespace dg {
 
@@ -22,11 +22,12 @@ class LLVMDGVerifier {
     void checkGraph(llvm::Function *, LLVMDependenceGraph *);
     void checkBBlock(const llvm::BasicBlock *, LLVMBBlock *);
     void checkNode(const llvm::Value *, LLVMNode *);
-public:
+
+  public:
     LLVMDGVerifier(const LLVMDependenceGraph *g) : dg(g), faults(0) {}
     bool verify();
 };
 
-}
+} // namespace dg
 
 #endif // _LLVM_DG_VERIFIER_H_

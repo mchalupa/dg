@@ -4,7 +4,7 @@
 
 namespace dg {
 
-std::vector<const llvm::Value*>
+std::vector<const llvm::Value *>
 ForkJoinAnalysis::matchJoin(const llvm::Value *joinVal) {
     using namespace llvm;
 
@@ -13,7 +13,7 @@ ForkJoinAnalysis::matchJoin(const llvm::Value *joinVal) {
         abort();
     }
 
-    auto dgPTA = static_cast<DGLLVMPointerAnalysis*>(_PTA);
+    auto dgPTA = static_cast<DGLLVMPointerAnalysis *>(_PTA);
     std::vector<const llvm::Value *> threads;
 
     const auto builder = dgPTA->getBuilder();
@@ -27,19 +27,18 @@ ForkJoinAnalysis::matchJoin(const llvm::Value *joinVal) {
 
     return threads;
 
+    // const auto calledVal = joinCall->getCalledValue();
+    // if (const auto joinF = dyn_cast<Function>(calledVal)) {
+    //    assert(joinF->getName().equals("pthread_join")
+    //            && "Invalid function taken as pthread join");
 
-   //const auto calledVal = joinCall->getCalledValue();
-   //if (const auto joinF = dyn_cast<Function>(calledVal)) {
-   //    assert(joinF->getName().equals("pthread_join")
-   //            && "Invalid function taken as pthread join");
-
-   //} else {
-   //    errs() << "Join via function call not implemented yet\n";
-   //    abort();
-   //}
+    //} else {
+    //    errs() << "Join via function call not implemented yet\n";
+    //    abort();
+    //}
 }
 
-std::vector<const llvm::Value*>
+std::vector<const llvm::Value *>
 ForkJoinAnalysis::joinFunctions(const llvm::Value *joinVal) {
     using namespace llvm;
 
@@ -48,7 +47,7 @@ ForkJoinAnalysis::joinFunctions(const llvm::Value *joinVal) {
         abort();
     }
 
-    auto dgPTA = static_cast<DGLLVMPointerAnalysis*>(_PTA);
+    auto dgPTA = static_cast<DGLLVMPointerAnalysis *>(_PTA);
     std::vector<const llvm::Value *> threads;
 
     const auto builder = dgPTA->getBuilder();

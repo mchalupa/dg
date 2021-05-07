@@ -2,23 +2,23 @@
 #error "This code needs LLVM enabled"
 #endif
 
-#include <set>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-#include <string>
 #include <cassert>
 #include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <set>
+#include <sstream>
+#include <string>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/Support/SourceMgr.h>
-#include <llvm/Support/raw_os_ostream.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
+#include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_os_ostream.h>
 
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -30,8 +30,8 @@ SILENCE_LLVM_WARNINGS_POP
 
 #undef NDEBUG // we need dump methods
 #include "dg/llvm/ValueRelations/GraphBuilder.h"
-#include "dg/llvm/ValueRelations/StructureAnalyzer.h"
 #include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
+#include "dg/llvm/ValueRelations/StructureAnalyzer.h"
 #include "dg/llvm/ValueRelations/getValName.h"
 
 #include "dg/tools/TimeMeasure.h"
@@ -39,17 +39,18 @@ SILENCE_LLVM_WARNINGS_POP
 using namespace dg::vr;
 using llvm::errs;
 
-llvm::cl::opt<bool> todot("dot",
-    llvm::cl::desc("Dump graph in grahviz format"), llvm::cl::init(false));
+llvm::cl::opt<bool> todot("dot", llvm::cl::desc("Dump graph in grahviz format"),
+                          llvm::cl::init(false));
 
 llvm::cl::opt<unsigned> max_iter("max-iter",
-    llvm::cl::desc("Maximal number of iterations"), llvm::cl::init(100));
+                                 llvm::cl::desc("Maximal number of iterations"),
+                                 llvm::cl::init(100));
 
 llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
-    llvm::cl::desc("<input file>"), llvm::cl::init(""));
+                                     llvm::cl::desc("<input file>"),
+                                     llvm::cl::init(""));
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     llvm::Module *M;
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
@@ -80,8 +81,8 @@ int main(int argc, char *argv[])
     tm.start();
 
     // perform preparations and analysis
-    std::map<const llvm::Instruction*, VRLocation*> locationMapping;
-    std::map<const llvm::BasicBlock*, std::unique_ptr<VRBBlock>> blockMapping;
+    std::map<const llvm::Instruction *, VRLocation *> locationMapping;
+    std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>> blockMapping;
 
     GraphBuilder gb(*M, locationMapping, blockMapping);
     gb.build();
@@ -101,8 +102,8 @@ int main(int argc, char *argv[])
 
     if (todot) {
         std::cout << "digraph VR {\n";
-        for (const auto& block : blockMapping) {
-            for (const auto& loc : block.second->locations) {
+        for (const auto &block : blockMapping) {
+            for (const auto &loc : block.second->locations) {
                 std::cout << "  NODE" << loc->id;
                 std::cout << "[label=\"";
                 std::cout << "LOCATION " << loc->id << "\\n";
@@ -112,14 +113,16 @@ int main(int argc, char *argv[])
         }
 
         unsigned dummyIndex = 0;
-        for (const auto& block : blockMapping) {
-            for (const auto& loc : block.second->locations) {
-                for (const auto& succ : loc->successors) {
+        for (const auto &block : blockMapping) {
+            for (const auto &loc : block.second->locations) {
+                for (const auto &succ : loc->successors) {
                     if (succ->target)
-                        std::cout << "  NODE" << loc->id << " -> NODE" << succ->target->id;
+                        std::cout << "  NODE" << loc->id << " -> NODE"
+                                  << succ->target->id;
                     else {
                         std::cout << "DUMMY_NODE" << ++dummyIndex << std::endl;
-                        std::cout << "  NODE" << loc->id << " -> DUMMY_NODE" << dummyIndex;
+                        std::cout << "  NODE" << loc->id << " -> DUMMY_NODE"
+                                  << dummyIndex;
                     }
                     std::cout << " [label=\"";
                     succ->op->dump();

@@ -5,14 +5,14 @@
 
 #include "ThreadRegion.h"
 
-class MayHappenInParallel
-{
-private:
+class MayHappenInParallel {
+  private:
     std::set<ThreadRegion *> threadRegions_;
-public:
+
+  public:
     MayHappenInParallel(std::set<ThreadRegion *> threadRegions);
 
-    std::set<ThreadRegion *> parallelRegions(ThreadRegion * threadRegion);
+    std::set<ThreadRegion *> parallelRegions(ThreadRegion *threadRegion);
 };
 
 #endif // MAYHAPPENINPARALLEL_H

@@ -1,6 +1,6 @@
-#include <utility>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <utility>
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
@@ -27,26 +27,24 @@ class SummaryEdgesComputation {
     std::set<NodeT *> actualOutVertices;
     std::set<NodeT *> formalInVertices;
 
-    void propagate(const Edge& e) {
+    void propagate(const Edge &e) {
         if (pathEdge.insert(e).second) {
             workList.push(e);
         }
     }
 
-    void propagate(NodeT* n1, NodeT *n2) {
-        propagate({n1, n2});
-    }
+    void propagate(NodeT *n1, NodeT *n2) { propagate({n1, n2}); }
 
     void initialize() {
         // collect all actual out and formal in vertices,
         // as we need to check whether a node is of this type
-        for (auto& it : getConstructedFunctions()) {
+        for (auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *dg = it.second;
             assert(dg && "null as dg");
 
             // formal parameters of this dg
             if (auto params = dg->getParameters()) {
-                for (auto& paramIt : *params) {
+                for (auto &paramIt : *params) {
                     // Initialize the worklist (using formal out params).
                     propagate({paramIt.second.out, paramIt.second.out});
                     // Gather formal in params.
@@ -59,7 +57,7 @@ class SummaryEdgesComputation {
             for (auto callNode : dg->getCallNodes()) {
                 // gather actual-out vertices
                 if (auto params = callNode->getParameters()) {
-                    for (auto& paramIt : *params) {
+                    for (auto &paramIt : *params) {
                         actualOutVertices.insert(paramIt.second.out);
                     }
 
@@ -72,33 +70,36 @@ class SummaryEdgesComputation {
     bool isActualOut(NodeT *n) const { return actualOutVertices.count(n) > 0; }
     bool isFormalIn(NodeT *n) const { return formalInVertices.count(n) > 0; }
 
-    void handleActualOut(const Edge& e) {
+    void handleActualOut(const Edge &e) {
         for (auto I = e.first->rev_control_begin(),
-                  E = e.first->rev_control_end(); I != E; ++I) {
+                  E = e.first->rev_control_end();
+             I != E; ++I) {
             propagate(*I, e.second);
         }
         for (auto I = e.first->rev_summary_begin(),
-                  E = e.first->rev_summary_end(); I != E; ++I) {
+                  E = e.first->rev_summary_end();
+             I != E; ++I) {
             propagate(*I, e.second);
         }
     }
 
-    void handleGenericEdge(const Edge& e) {
+    void handleGenericEdge(const Edge &e) {
         for (auto I = e.first->rev_control_begin(),
-                  E = e.first->rev_control_end(); I != E; ++I) {
+                  E = e.first->rev_control_end();
+             I != E; ++I) {
             propagate(*I, e.second);
         }
-        for (auto I = e.first->rev_data_begin(),
-                  E = e.first->rev_data_end(); I != E; ++I) {
+        for (auto I = e.first->rev_data_begin(), E = e.first->rev_data_end();
+             I != E; ++I) {
             propagate(*I, e.second);
         }
-        for (auto I = e.first->user_begin(),
-                  E = e.first->user_end(); I != E; ++I) {
+        for (auto I = e.first->user_begin(), E = e.first->user_end(); I != E;
+             ++I) {
             propagate(*I, e.second);
         }
     }
 
-    void handleFormalIn(const Edge& e) {
+    void handleFormalIn(const Edge &e) {
         using namespace llvm;
 
         // the edge 'e' is a summary edge between formal parameters,
@@ -106,14 +107,17 @@ class SummaryEdgesComputation {
         assert(e.first->getDG());
         assert(e.second->getDG());
 
-        auto params = LLVMDGFormalParameters::get(e.second->getDG()->getParameters());
+        auto params =
+                LLVMDGFormalParameters::get(e.second->getDG()->getParameters());
         assert(params);
-        assert(params->formalToActual.find(e.second) != params->formalToActual.end()
-                && "Cannot find formal -> actual parameter mapping");
-        for (auto& it : params->formalToActual[e.second]) {
+        assert(params->formalToActual.find(e.second) !=
+                       params->formalToActual.end() &&
+               "Cannot find formal -> actual parameter mapping");
+        for (auto &it : params->formalToActual[e.second]) {
             // it = pair of (call-site, actual (out) param)
             // get the actual in param too }
-            assert(params->formalToActual.find(e.first) != params->formalToActual.end());
+            assert(params->formalToActual.find(e.first) !=
+                   params->formalToActual.end());
             auto actIn = params->formalToActual[e.first][it.first];
             assert(actIn && "Do not have actual in param");
 
@@ -121,7 +125,7 @@ class SummaryEdgesComputation {
             actIn->addSummaryEdge(it.second);
 
             // XXX: very inefficient
-            for (auto& pe : pathEdge) {
+            for (auto &pe : pathEdge) {
                 if (pe.first == it.second) {
                     propagate(actIn, pe.second);
                 }
@@ -129,7 +133,7 @@ class SummaryEdgesComputation {
         }
     }
 
-   public:
+  public:
     void computeSummaryEdges() {
         initialize();
 

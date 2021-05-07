@@ -5,16 +5,17 @@
 
 class UnlockNode;
 
-class LockNode : public Node
-{
-    std::set<UnlockNode *>      correspondingUnlocks_;
-public:
-    LockNode(const llvm::Instruction * instruction = nullptr, const llvm::CallInst * callInst = nullptr);
+class LockNode : public Node {
+    std::set<UnlockNode *> correspondingUnlocks_;
 
-    bool addCorrespondingUnlock(UnlockNode * unlockNode);
+  public:
+    LockNode(const llvm::Instruction *instruction = nullptr,
+             const llvm::CallInst *callInst = nullptr);
 
-    const std::set<UnlockNode *> & correspondingUnlocks() const;
-          std::set<UnlockNode *>   correspondingUnlocks();
+    bool addCorrespondingUnlock(UnlockNode *unlockNode);
+
+    const std::set<UnlockNode *> &correspondingUnlocks() const;
+    std::set<UnlockNode *> correspondingUnlocks();
 };
 
 #endif // LOCKNODE_H

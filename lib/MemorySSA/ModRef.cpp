@@ -7,13 +7,13 @@ namespace dda {
 static inline bool canBeOutput(const RWNode *node, RWSubgraph *subg) {
     // can escape or already escaped
     return node->canEscape() ||
-            (!node->getBBlock() || node->getBBlock()->getSubgraph() != subg);
+           (!node->getBBlock() || node->getBBlock()->getSubgraph() != subg);
 }
 
 template <typename MR, typename C>
-static void modRefAdd(MR& modref, const C& c, RWNode *node, RWSubgraph *subg) {
+static void modRefAdd(MR &modref, const C &c, RWNode *node, RWSubgraph *subg) {
     assert(node && "Node the definion node");
-    for (const DefSite& ds : c) {
+    for (const DefSite &ds : c) {
         // can escape
         if (canBeOutput(ds.target, subg)) {
             modref.add(ds, node);
@@ -21,9 +21,8 @@ static void modRefAdd(MR& modref, const C& c, RWNode *node, RWSubgraph *subg) {
     }
 }
 
-
-void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) {
-
+void MemorySSATransformation::computeModRef(RWSubgraph *subg,
+                                            SubgraphInfo &si) {
     if (si.modref.isInitialized()) {
         return;
     }
@@ -36,13 +35,13 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
     // iterate over the blocks (note: not over the infos, those
     // may not be created if the block was not used yet
     for (auto *b : subg->bblocks()) {
-        auto& bi = si.getBBlockInfo(b);
+        auto &bi = si.getBBlockInfo(b);
         if (bi.isCallBlock()) {
             auto *C = bi.getCall();
-            for (auto& callee : C->getCallees()) {
+            for (auto &callee : C->getCallees()) {
                 auto *csubg = callee.getSubgraph();
                 if (csubg) {
-                    auto& callsi = getSubgraphInfo(csubg);
+                    auto &callsi = getSubgraphInfo(csubg);
                     computeModRef(csubg, callsi);
                     assert(callsi.modref.isInitialized());
 
@@ -50,14 +49,12 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
                 } else {
                     // undefined function
                     modRefAdd(si.modref.maydef,
-                              callee.getCalledValue()->getDefines(),
-                              C, csubg);
+                              callee.getCalledValue()->getDefines(), C, csubg);
                     modRefAdd(si.modref.maydef,
-                              callee.getCalledValue()->getOverwrites(),
-                              C, csubg);
+                              callee.getCalledValue()->getOverwrites(), C,
+                              csubg);
                     modRefAdd(si.modref.mayref,
-                              callee.getCalledValue()->getUses(),
-                              C, csubg);
+                              callee.getCalledValue()->getUses(), C, csubg);
                 }
             }
         } else {
@@ -69,7 +66,8 @@ void MemorySSATransformation::computeModRef(RWSubgraph *subg, SubgraphInfo& si) 
             }
         }
     }
-    DBG_SECTION_END(dda, "Computing modref for subgraph " << subg->getName() << " done");
+    DBG_SECTION_END(dda, "Computing modref for subgraph " << subg->getName()
+                                                          << " done");
 }
 
 } // namespace dda

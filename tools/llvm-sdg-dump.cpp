@@ -1,9 +1,9 @@
-#include <set>
-#include <vector>
-#include <string>
 #include <cassert>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <set>
+#include <string>
+#include <vector>
 
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
@@ -15,9 +15,9 @@
 #error "Unsupported version of LLVM"
 #endif
 
-#include "dg/tools/llvm-slicer.h"
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer.h"
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -31,14 +31,14 @@ SILENCE_LLVM_WARNINGS_PUSH
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
 #include <llvm/IR/LLVMContext.h>
 #endif
+#include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/CommandLine.h>
+#include <llvm/Support/PrettyStackTrace.h>
+#include <llvm/Support/Signals.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-#include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/Signals.h>
-#include <llvm/Support/PrettyStackTrace.h>
-#include <llvm/Support/CommandLine.h>
-#include <llvm/IR/InstIterator.h>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/SystemDependenceGraph/SDG2Dot.h"
@@ -48,27 +48,28 @@ using namespace dg;
 
 using llvm::errs;
 
-llvm::cl::opt<bool> enable_debug("dbg",
-    llvm::cl::desc("Enable debugging messages (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> enable_debug(
+        "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
-llvm::cl::opt<bool> dump_bb_only("dump-bb-only",
-    llvm::cl::desc("Only dump basic blocks of dependence graph to dot"
-                   " (default=false)."),
-    llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+llvm::cl::opt<bool> dump_bb_only(
+        "dump-bb-only",
+        llvm::cl::desc("Only dump basic blocks of dependence graph to dot"
+                       " (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 class SDGDumper {
-    const SlicerOptions& options;
+    const SlicerOptions &options;
     llvmdg::SystemDependenceGraph *dg;
     bool bb_only{false};
-    // uint32_t dump_opts{0};//{debug::PRINT_DD | debug::PRINT_CD | debug::PRINT_USE | debug::PRINT_ID};
+    // uint32_t dump_opts{0};//{debug::PRINT_DD | debug::PRINT_CD |
+    // debug::PRINT_USE | debug::PRINT_ID};
 
-public:
-    SDGDumper(const SlicerOptions& opts,
-              llvmdg::SystemDependenceGraph *dg,
-              bool bb_only = false,
-              uint32_t /* dump_opts */ = 0)
-    : options(opts), dg(dg), bb_only(bb_only) /*, dump_opts(dump_opts) */ {}
+  public:
+    SDGDumper(const SlicerOptions &opts, llvmdg::SystemDependenceGraph *dg,
+              bool bb_only = false, uint32_t /* dump_opts */ = 0)
+            : options(opts), dg(dg),
+              bb_only(bb_only) /*, dump_opts(dump_opts) */ {}
 
     void dumpToDot(const char *suffix = nullptr) {
         // compose new name
@@ -82,8 +83,8 @@ public:
 
         if (bb_only) {
             assert(false && "Not implemented");
-            //SDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
-            //dumper.dump();
+            // SDGDumpBlocks dumper(dg, dump_opts, fl.c_str());
+            // dumper.dump();
         } else {
             llvmdg::SDG2Dot dumper(dg);
             dumper.dump(fl.c_str());
@@ -91,10 +92,8 @@ public:
     }
 };
 
-
-std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
-                                          const SlicerOptions& options)
-{
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
+                                          const SlicerOptions &options) {
     llvm::SMDiagnostic SMD;
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
@@ -113,23 +112,19 @@ std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
 }
 
 #ifndef USING_SANITIZERS
-void setupStackTraceOnError(int argc, char *argv[])
-{
-
+void setupStackTraceOnError(int argc, char *argv[]) {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
     llvm::sys::PrintStackTraceOnErrorSignal();
 #else
     llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
 #endif
     llvm::PrettyStackTraceProgram X(argc, argv);
-
 }
 #else
 void setupStackTraceOnError(int, char **) {}
 #endif // not USING_SANITIZERS
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
     setupStackTraceOnError(argc, argv);
 
     SlicerOptions options = parseSlicerOptions(argc, argv,

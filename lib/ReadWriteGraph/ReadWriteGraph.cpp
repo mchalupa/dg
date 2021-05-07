@@ -1,8 +1,8 @@
 #include <set>
 #include <vector>
 
-#include "dg/ReadWriteGraph/ReadWriteGraph.h"
 #include "dg/BBlocksBuilder.h"
+#include "dg/ReadWriteGraph/ReadWriteGraph.h"
 
 namespace dg {
 namespace dda {
@@ -11,38 +11,36 @@ RWNode UNKNOWN_MEMLOC;
 RWNode *UNKNOWN_MEMORY = &UNKNOWN_MEMLOC;
 
 #ifndef NDEBUG
-void RWNode::dump() const {
-       std::cout << getID() << "\n";
-}
+void RWNode::dump() const { std::cout << getID() << "\n"; }
 
 void RWNodeCall::dump() const {
-       std::cout << getID() << " calls [";
-       unsigned n = 0;
-       for (auto& cv : callees) {
-           if (n++ > 0) {
-               std::cout << ", ";
-           }
+    std::cout << getID() << " calls [";
+    unsigned n = 0;
+    for (auto &cv : callees) {
+        if (n++ > 0) {
+            std::cout << ", ";
+        }
 
-           if (auto *subg = cv.getSubgraph()) {
-                const auto& nm = subg->getName();
-                if (nm.empty()) {
-                    std::cout << subg;
-                } else {
-                    std::cout << nm;
-                }
-           } else {
-               std::cout << cv.getCalledValue()->getID();
-           }
-       }
-       std::cout << "]\n";
+        if (auto *subg = cv.getSubgraph()) {
+            const auto &nm = subg->getName();
+            if (nm.empty()) {
+                std::cout << subg;
+            } else {
+                std::cout << nm;
+            }
+        } else {
+            std::cout << cv.getCalledValue()->getID();
+        }
+    }
+    std::cout << "]\n";
 }
 
 void RWBBlock::dump() const {
-       std::cout << "bblock " << getID() << "(" << this << ")\n";
-       for (auto *n : getNodes()) {
-           std::cout << "  ";
-           n->dump();
-       }
+    std::cout << "bblock " << getID() << "(" << this << ")\n";
+    for (auto *n : getNodes()) {
+        std::cout << "  ";
+        n->dump();
+    }
 }
 
 #endif
@@ -52,7 +50,7 @@ bool RWNode::isDynAlloc() const {
         return true;
 
     if (auto *C = RWNodeCall::get(this)) {
-        for (auto& cv : C->getCallees()) {
+        for (auto &cv : C->getCallees()) {
             if (auto *val = cv.getCalledValue()) {
                 if (val->getType() == RWNodeType::DYN_ALLOC) {
                     return true;
@@ -65,12 +63,11 @@ bool RWNode::isDynAlloc() const {
 }
 
 void RWNodeCall::addCallee(RWSubgraph *s) {
-        callees.emplace_back(s);
-        s->addCaller(this);
+    callees.emplace_back(s);
+    s->addCaller(this);
 }
 
-void ReadWriteGraph::removeUselessNodes() {
-}
+void ReadWriteGraph::removeUselessNodes() {}
 
 void RWSubgraph::buildBBlocks(bool /*dce*/) {
     assert(getRoot() && "No root node");
@@ -102,7 +99,7 @@ void RWSubgraph::buildBBlocks(bool /*dce*/) {
 // (or nullptr if there's nothing else to do)
 static RWBBlock *
 splitBlockOnFirstCall(RWBBlock *block,
-                      std::vector<std::unique_ptr<RWBBlock>>& newblocks) {
+                      std::vector<std::unique_ptr<RWBBlock>> &newblocks) {
     for (auto *node : block->getNodes()) {
         if (auto *call = RWNodeCall::get(node)) {
             if (call->callsOneUndefined()) {
@@ -138,19 +135,19 @@ void RWSubgraph::splitBBlocksOnCalls() {
 
     std::vector<std::unique_ptr<RWBBlock>> newblocks;
 
-    for (auto& bblock : _bblocks) {
+    for (auto &bblock : _bblocks) {
         auto *cur = bblock.get();
-        while(cur) {
+        while (cur) {
             cur = splitBlockOnFirstCall(cur, newblocks);
         }
     }
 
-    for (auto& bblock : newblocks) {
+    for (auto &bblock : newblocks) {
         _bblocks.push_back(std::move(bblock));
     }
 
-    assert(entry == _bblocks[0].get()
-            && "splitBBlocksOnCalls() changed the entry");
+    assert(entry == _bblocks[0].get() &&
+           "splitBBlocksOnCalls() changed the entry");
     DBG_SECTION_END(dda, "Splitting basic blocks on calls finished");
 }
 

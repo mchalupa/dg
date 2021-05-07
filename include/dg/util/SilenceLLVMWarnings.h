@@ -5,30 +5,26 @@
 
 #ifndef SILENCE_LLVM_WARNINGS_PUSH
 #if defined(_MSC_VER)
-#define SILENCE_LLVM_WARNINGS_PUSH                          \
-_Pragma("warning(push)");
+#define SILENCE_LLVM_WARNINGS_PUSH _Pragma("warning(push)");
 // TODO
 #elif defined(__clang__)
-#define SILENCE_LLVM_WARNINGS_PUSH                          \
-_Pragma("clang diagnostic push");                           \
-_Pragma("clang diagnostic ignored \"-Wunused-parameter\"");
+#define SILENCE_LLVM_WARNINGS_PUSH                                             \
+    _Pragma("clang diagnostic push");                                          \
+    _Pragma("clang diagnostic ignored \"-Wunused-parameter\"");
 #else // GCC
-#define SILENCE_LLVM_WARNINGS_PUSH                          \
-_Pragma("GCC diagnostic push");                             \
-_Pragma("GCC diagnostic ignored \"-Wunused-parameter\"");
+#define SILENCE_LLVM_WARNINGS_PUSH                                             \
+    _Pragma("GCC diagnostic push");                                            \
+    _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"");
 #endif
 #endif
 
 #ifndef SILENCE_LLVM_WARNINGS_POP
 #if defined(_MSC_VER)
-#define SILENCE_LLVM_WARNINGS_POP \
-_Pragma("warning(pop)");
+#define SILENCE_LLVM_WARNINGS_POP _Pragma("warning(pop)");
 #elif defined(__clang__)
-#define SILENCE_LLVM_WARNINGS_POP \
-_Pragma("clang diagnostic pop");
+#define SILENCE_LLVM_WARNINGS_POP _Pragma("clang diagnostic pop");
 #else // GCC
-#define SILENCE_LLVM_WARNINGS_POP \
-_Pragma("GCC diagnostic pop");
+#define SILENCE_LLVM_WARNINGS_POP _Pragma("GCC diagnostic pop");
 #endif
 #endif
 

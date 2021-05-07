@@ -3,10 +3,9 @@
 
 #include "Node.h"
 
-class ReturnNode : public Node
-{
-public:
-    ReturnNode(const llvm::Instruction * instruction = nullptr);
+class ReturnNode : public Node {
+  public:
+    ReturnNode(const llvm::Instruction *instruction = nullptr);
 };
 
 #endif // RETURNNODE_H

@@ -10,12 +10,12 @@ class cow_shared_ptr : public std::shared_ptr<T> {
     // am I the owner of the copy?
     bool owner{true};
 
-    public:
+  public:
     cow_shared_ptr() = default;
     cow_shared_ptr(T *p) : std::shared_ptr<T>(p) {}
-    cow_shared_ptr(cow_shared_ptr&&) = delete;
-    cow_shared_ptr(const cow_shared_ptr& rhs)
-        : std::shared_ptr<T>(rhs), owner(false) {}
+    cow_shared_ptr(cow_shared_ptr &&) = delete;
+    cow_shared_ptr(const cow_shared_ptr &rhs)
+            : std::shared_ptr<T>(rhs), owner(false) {}
 
     void reset(T *p) {
         owner = true;
@@ -77,4 +77,4 @@ class cow_shared_ptr {
 };
 */
 
-#endif  // _COW_SHARED_PTR_H_
+#endif // _COW_SHARED_PTR_H_

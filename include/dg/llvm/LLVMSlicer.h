@@ -5,16 +5,16 @@
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
- #include <llvm/Support/CFG.h>
+#include <llvm/Support/CFG.h>
 #else
- #include <llvm/IR/CFG.h>
+#include <llvm/IR/CFG.h>
 #endif
 
 #include <llvm/IR/Constants.h>
-#include <llvm/IR/Value.h>
-#include <llvm/IR/Instruction.h>
 #include <llvm/IR/GlobalVariable.h>
+#include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
@@ -26,14 +26,13 @@ namespace dg {
 
 class LLVMNode;
 
-extern std::map<const llvm::Value *,
-                LLVMDependenceGraph *> constructedFunctions;
+extern std::map<const llvm::Value *, LLVMDependenceGraph *>
+        constructedFunctions;
 
 namespace llvmdg {
 
 template <typename Val>
-static void dropAllUses(Val *V)
-{
+static void dropAllUses(Val *V) {
     for (auto I = V->use_begin(), E = V->use_end(); I != E; ++I) {
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
         llvm::Value *use = *I;
@@ -41,24 +40,18 @@ static void dropAllUses(Val *V)
         llvm::Value *use = I->getUser();
 #endif
 
-       // drop the reference to this value
-       llvm::cast<llvm::Instruction>(use)->replaceUsesOfWith(V, nullptr);
-   }
+        // drop the reference to this value
+        llvm::cast<llvm::Instruction>(use)->replaceUsesOfWith(V, nullptr);
+    }
 }
 
+class LLVMSlicer : public Slicer<LLVMNode> {
+  public:
+    LLVMSlicer() {}
 
-class LLVMSlicer : public Slicer<LLVMNode>
-{
-public:
-    LLVMSlicer(){}
+    void keepFunctionUntouched(const char *n) { dont_touch.insert(n); }
 
-    void keepFunctionUntouched(const char *n)
-    {
-        dont_touch.insert(n);
-    }
-
-    bool removeNode(LLVMNode *node) override
-    {
+    bool removeNode(LLVMNode *node) override {
         using namespace llvm;
 
         Value *val = node->getKey();
@@ -78,8 +71,7 @@ public:
         return true;
     }
 
-    bool removeBlock(LLVMBBlock *block) override
-    {
+    bool removeBlock(LLVMBBlock *block) override {
         assert(block);
 
         llvm::Value *val = block->getKey();
@@ -87,7 +79,7 @@ public:
             return true;
 
         llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(val);
-        for (auto& succ : block->successors()) {
+        for (auto &succ : block->successors()) {
             if (succ.label == 255)
                 continue;
 
@@ -108,7 +100,7 @@ public:
         // we also must drop refrences to instructions that are in
         // this block (or we would need to delete the blocks in
         // post-dominator order), see #101
-        for (llvm::Instruction& Inst : *blk)
+        for (llvm::Instruction &Inst : *blk)
             dropAllUses(&Inst);
 
         // finally, erase the block per se
@@ -117,8 +109,7 @@ public:
     }
 
     // override slice method
-    uint32_t slice(LLVMNode *start, uint32_t sl_id = 0)
-    {
+    uint32_t slice(LLVMNode *start, uint32_t sl_id = 0) {
         (void) sl_id;
         (void) start;
 
@@ -126,17 +117,15 @@ public:
         return 0;
     }
 
-    uint32_t slice(LLVMDependenceGraph *dg,
-                   LLVMNode *start, uint32_t sl_id = 0)
-    {
+    uint32_t slice(LLVMDependenceGraph *dg, LLVMNode *start,
+                   uint32_t sl_id = 0) {
         // mark nodes for slicing
         assert(start || sl_id != 0);
         if (start)
             sl_id = mark(start, sl_id);
 
-
         std::vector<llvm::Function *> to_erase;
-        for (auto& F : *dg->getModule()) {
+        for (auto &F : *dg->getModule()) {
             if (dontTouch(F.getName()))
                 continue;
 
@@ -161,38 +150,36 @@ public:
         return sl_id;
     }
 
-private:
-        /*
-    void sliceCallNode(LLVMNode *callNode,
-                       LLVMDependenceGraph *graph, uint32_t slice_id)
-    {
-        LLVMDGParameters *actualparams = callNode->getParameters();
-        LLVMDGParameters *formalparams = graph->getParameters();
+  private:
+    /*
+void sliceCallNode(LLVMNode *callNode,
+                   LLVMDependenceGraph *graph, uint32_t slice_id)
+{
+    LLVMDGParameters *actualparams = callNode->getParameters();
+    LLVMDGParameters *formalparams = graph->getParameters();
 
-        if (!actualparams) {
-            assert(!formalparams && "Have only one of params");
-            return; // no params - nothing to do
-        }
-
-        assert(formalparams && "Have only one of params");
-        assert(formalparams->size() == actualparams->size());
-
-        // FIXME slice arguments away
+    if (!actualparams) {
+        assert(!formalparams && "Have only one of params");
+        return; // no params - nothing to do
     }
 
-    void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
-    {
-        for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
-            sliceCallNode(callNode, subgraph, slice_id);
-    }
-        */
+    assert(formalparams && "Have only one of params");
+    assert(formalparams->size() == actualparams->size());
 
-    static void
-    adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk)
-    {
+    // FIXME slice arguments away
+}
+
+void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
+{
+    for (LLVMDependenceGraph *subgraph : callNode->getSubgraphs())
+        sliceCallNode(callNode, subgraph, slice_id);
+}
+    */
+
+    static void adjustPhiNodes(llvm::BasicBlock *pred, llvm::BasicBlock *blk) {
         using namespace llvm;
 
-        for(Instruction& I : *pred) {
+        for (Instruction &I : *pred) {
             PHINode *phi = dyn_cast<PHINode>(&I);
             if (phi) {
                 // don't try remove block that we already removed
@@ -214,35 +201,32 @@ private:
         }
     }
 
-    static inline bool shouldSliceInst(const llvm::Value *val)
-    {
+    static inline bool shouldSliceInst(const llvm::Value *val) {
         using namespace llvm;
         const Instruction *Inst = dyn_cast<Instruction>(val);
         if (!Inst)
             return true;
 
         switch (Inst->getOpcode()) {
-            case Instruction::Unreachable:
+        case Instruction::Unreachable:
 #if 0
             case Instruction::Br:
             case Instruction::Switch:
             case Instruction::Ret:
 #endif
-                return false;
-            default:
-                return true;
+            return false;
+        default:
+            return true;
         }
     }
 
-    static LLVMBBlock *
-    createNewExitBB(LLVMDependenceGraph *graph)
-    {
+    static LLVMBBlock *createNewExitBB(LLVMDependenceGraph *graph) {
         using namespace llvm;
 
         LLVMBBlock *exitBB = new LLVMBBlock();
 
         Module *M = graph->getModule();
-        LLVMContext& Ctx = M->getContext();
+        LLVMContext &Ctx = M->getContext();
         BasicBlock *block = BasicBlock::Create(Ctx, "safe_return");
 
         Value *fval = graph->getEntry()->getKey();
@@ -256,12 +240,10 @@ private:
         else if (F->getName().equals("main"))
             // if this is main, than the safe exit equals to returning 0
             // (it is just for convenience, we wouldn't need to do this)
-            RI = ReturnInst::Create(Ctx,
-                                    ConstantInt::get(Type::getInt32Ty(Ctx), 0),
-                                    block);
+            RI = ReturnInst::Create(
+                    Ctx, ConstantInt::get(Type::getInt32Ty(Ctx), 0), block);
         else
-            RI = ReturnInst::Create(Ctx,
-                                    UndefValue::get(F->getReturnType()),
+            RI = ReturnInst::Create(Ctx, UndefValue::get(F->getReturnType()),
                                     block);
 
         LLVMNode *newRet = new LLVMNode(RI);
@@ -274,8 +256,7 @@ private:
         return exitBB;
     }
 
-    static LLVMBBlock* addNewExitBB(LLVMDependenceGraph *graph)
-    {
+    static LLVMBBlock *addNewExitBB(LLVMDependenceGraph *graph) {
         // FIXME: don't create new one, create it
         // when creating graph and just use that one
         LLVMBBlock *newExitBB = createNewExitBB(graph);
@@ -292,16 +273,15 @@ private:
     // when we sliced away a branch of CFG, we need to reconnect it
     // to exit block, since on this path we would silently terminate
     // (this path won't have any effect on the property anymore)
-    void adjustBBlocksSucessors(LLVMDependenceGraph *graph, uint32_t slice_id)
-    {
+    void adjustBBlocksSucessors(LLVMDependenceGraph *graph, uint32_t slice_id) {
         LLVMBBlock *oldExitBB = graph->getExitBB();
         assert(oldExitBB && "Don't have exit BB");
 
         LLVMBBlock *newExitBB = nullptr;
 
-        for (auto& it : graph->getBlocks()) {
-            const llvm::BasicBlock *llvmBB
-                = llvm::cast<llvm::BasicBlock>(it.first);
+        for (auto &it : graph->getBlocks()) {
+            const llvm::BasicBlock *llvmBB =
+                    llvm::cast<llvm::BasicBlock>(it.first);
             const auto tinst = llvmBB->getTerminator();
             LLVMBBlock *BB = it.second;
 
@@ -314,11 +294,11 @@ private:
             // that created the self-loop has no meaning to the sliced
             // program and this is going to be an unconditional jump
             // to the other branch
-            // NOTE: do this before the next action, to rename the label if needed
-            if (BB->successorsNum() == 2
-                && BB->getLastNode()->getSlice() != slice_id
-                && !BB->successorsAreSame() && BB->hasSuccessor(BB)) {
-
+            // NOTE: do this before the next action, to rename the label if
+            // needed
+            if (BB->successorsNum() == 2 &&
+                BB->getLastNode()->getSlice() != slice_id &&
+                !BB->successorsAreSame() && BB->hasSuccessor(BB)) {
                 bool found = BB->removeSuccessorsTarget(BB);
                 // we have two different successors, none of them
                 // is self-loop and we're slicing away the brach inst?
@@ -327,7 +307,8 @@ private:
                     assert(found && "Self loop did not have self loop...");
                     abort();
                 }
-                assert(BB->successorsNum() == 1 && "Should have only one successor");
+                assert(BB->successorsNum() == 1 &&
+                       "Should have only one successor");
 
                 // continue here to rename the only label if needed
             }
@@ -336,14 +317,14 @@ private:
             // instruction is going to be sliced away, it means that
             // this is going to be an unconditional jump,
             // so just make the label 0
-            if (BB->successorsNum() == 1
-                && BB->getLastNode()->getSlice() != slice_id) {
+            if (BB->successorsNum() == 1 &&
+                BB->getLastNode()->getSlice() != slice_id) {
                 auto edge = *(BB->successors().begin());
 
                 // modify the edge
                 edge.label = 0;
                 if (edge.target == oldExitBB) {
-                     if (!newExitBB)
+                    if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
 
                     edge.target = newExitBB;
@@ -364,7 +345,7 @@ private:
             // from edges that go from this BB. Also if there's
             // a jump to return block, replace it with new
             // return block
-            for (const auto& succ : BB->successors()) {
+            for (const auto &succ : BB->successors()) {
                 // skip artificial return basic block.
                 if (succ.label == 255 || succ.target == oldExitBB)
                     continue;
@@ -376,13 +357,13 @@ private:
             // no gaps, so jump to safe exit under missing labels
             for (uint8_t i = 0; i < tinst->getNumSuccessors(); ++i) {
                 if (!labels.contains(i)) {
-                     if (!newExitBB)
+                    if (!newExitBB)
                         newExitBB = addNewExitBB(graph);
 
 #ifndef NDEBUG
                     bool ret =
 #endif
-                    BB->addSuccessor(newExitBB, i);
+                            BB->addSuccessor(newExitBB, i);
                     assert(ret && "Already had this CFG edge, that is wrong");
                 }
             }
@@ -400,17 +381,17 @@ private:
                 BB->removeSuccessors();
                 BB->addSuccessor(succ, 0);
 #ifdef NDEBUG
-                assert(BB->successorsNum() == 1
-                       && "BUG: in removeSuccessors() or addSuccessor()");
+                assert(BB->successorsNum() == 1 &&
+                       "BUG: in removeSuccessors() or addSuccessor()");
 #endif
             }
 
 #ifndef NDEBUG
             // check the BB
             labels.clear();
-            for (const auto& succ : BB->successors()) {
-                assert((!newExitBB || succ.target != oldExitBB)
-                        && "A block has the old BB as successor");
+            for (const auto &succ : BB->successors()) {
+                assert((!newExitBB || succ.target != oldExitBB) &&
+                       "A block has the old BB as successor");
                 // we can have more labels with different targets,
                 // but we can not have one target with more labels
                 assert(labels.insert(succ.label) && "Already have a label");
@@ -436,8 +417,7 @@ private:
         }
     }
 
-    void sliceGraph(LLVMDependenceGraph *graph, uint32_t slice_id)
-    {
+    void sliceGraph(LLVMDependenceGraph *graph, uint32_t slice_id) {
         // first slice away bblocks that should go away
         sliceBBlocks(graph, slice_id);
 
@@ -487,8 +467,7 @@ private:
         ensureEntryBlock(graph);
     }
 
-    bool dontTouch(const llvm::StringRef& r)
-    {
+    bool dontTouch(const llvm::StringRef &r) {
         for (const char *n : dont_touch)
             if (r.equals(n))
                 return true;
@@ -496,13 +475,13 @@ private:
         return false;
     }
 
-    void reconnectBBlock(LLVMBBlock *BB, llvm::BasicBlock *llvmBB)
-    {
+    void reconnectBBlock(LLVMBBlock *BB, llvm::BasicBlock *llvmBB) {
         using namespace llvm;
 
         auto tinst = llvmBB->getTerminator();
-        assert((!tinst || BB->successorsNum() <= 2 || llvm::isa<llvm::SwitchInst>(tinst))
-                && "BB has more than two successors (and it's not a switch)");
+        assert((!tinst || BB->successorsNum() <= 2 ||
+                llvm::isa<llvm::SwitchInst>(tinst)) &&
+               "BB has more than two successors (and it's not a switch)");
 
         if (!tinst) {
             // block has no terminator
@@ -517,12 +496,13 @@ private:
             //  unterminated. The same may happen if we remove unconditional
             //  branch inst
 
-            LLVMContext& Ctx = llvmBB->getContext();
+            LLVMContext &Ctx = llvmBB->getContext();
             Function *F = cast<Function>(llvmBB->getParent());
             bool create_return = true;
 
             if (BB->successorsNum() == 1) {
-                const LLVMBBlock::BBlockEdge& edge = *(BB->successors().begin());
+                const LLVMBBlock::BBlockEdge &edge =
+                        *(BB->successors().begin());
                 if (edge.label != 255) {
                     // don't create return, we created branchinst
                     create_return = false;
@@ -534,8 +514,8 @@ private:
 
             if (create_return) {
                 if (BB->successorsNum() != 0) {
-                    assert(BB->successorsNum() == 0
-                            && "Creating return to BBlock that has successors");
+                    assert(BB->successorsNum() == 0 &&
+                           "Creating return to BBlock that has successors");
                     abort();
                 }
 
@@ -544,20 +524,19 @@ private:
                 else if (F->getName().equals("main"))
                     // if this is main, than the safe exit equals to returning 0
                     // (it is just for convenience, we wouldn't need to do this)
-                    ReturnInst::Create(Ctx,
-                                       ConstantInt::get(Type::getInt32Ty(Ctx), 0),
-                                       llvmBB);
+                    ReturnInst::Create(
+                            Ctx, ConstantInt::get(Type::getInt32Ty(Ctx), 0),
+                            llvmBB);
                 else
-                    ReturnInst::Create(Ctx,
-                                       UndefValue::get(F->getReturnType()), llvmBB);
-
+                    ReturnInst::Create(Ctx, UndefValue::get(F->getReturnType()),
+                                       llvmBB);
             }
 
             // and that is all we can do here
             return;
         }
 
-        for (const LLVMBBlock::BBlockEdge& succ : BB->successors()) {
+        for (const LLVMBBlock::BBlockEdge &succ : BB->successors()) {
             // skip artificial return basic block
             if (succ.label == 255)
                 continue;
@@ -571,26 +550,23 @@ private:
         // if the block still does not have terminator
     }
 
-    void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph)
-    {
-        for (auto& it : graph->getBlocks()) {
-            llvm::BasicBlock *llvmBB
-                = llvm::cast<llvm::BasicBlock>(it.first);
+    void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph) {
+        for (auto &it : graph->getBlocks()) {
+            llvm::BasicBlock *llvmBB = llvm::cast<llvm::BasicBlock>(it.first);
             LLVMBBlock *BB = it.second;
 
             reconnectBBlock(BB, llvmBB);
         }
     }
 
-    void ensureEntryBlock(LLVMDependenceGraph *graph)
-    {
+    void ensureEntryBlock(LLVMDependenceGraph *graph) {
         using namespace llvm;
 
         Value *val = graph->getEntry()->getKey();
         Function *F = cast<Function>(val);
 
         // Function is empty, just bail out
-        if(F->begin() == F->end())
+        if (F->begin() == F->end())
             return;
 
         BasicBlock *entryBlock = &F->getEntryBlock();
@@ -602,7 +578,7 @@ private:
 
         // it has some predecessor, create new one, that will just
         // jump on it
-        LLVMContext& Ctx = graph->getModule()->getContext();
+        LLVMContext &Ctx = graph->getModule()->getContext();
         BasicBlock *block = BasicBlock::Create(Ctx, "single_entry");
 
         // jump to the old entry block
@@ -623,4 +599,3 @@ private:
 } // namespace dg
 
 #endif
-

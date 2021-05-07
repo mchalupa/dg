@@ -1,14 +1,13 @@
 #ifndef DG_LLVM_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
 #define DG_LLVM_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
 
-#include "dg/llvm/LLVMAnalysisOptions.h"
 #include "dg/DataDependence/DataDependenceAnalysisOptions.h"
+#include "dg/llvm/LLVMAnalysisOptions.h"
 
 namespace dg {
 
-struct LLVMDataDependenceAnalysisOptions :
-    public LLVMAnalysisOptions, DataDependenceAnalysisOptions
-{
+struct LLVMDataDependenceAnalysisOptions : public LLVMAnalysisOptions,
+                                           DataDependenceAnalysisOptions {
     bool threads{false};
 
     LLVMDataDependenceAnalysisOptions() {
@@ -39,8 +38,8 @@ struct LLVMDataDependenceAnalysisOptions :
         ///
         // String handling functions
         ///
-        functionModelAddUse("strlen",  {0, Offset(0), Offset::getUnknown()});
-        functionModelAddUse("strchr",  {0, Offset(0), Offset::getUnknown()});
+        functionModelAddUse("strlen", {0, Offset(0), Offset::getUnknown()});
+        functionModelAddUse("strchr", {0, Offset(0), Offset::getUnknown()});
         functionModelAddUse("strrchr", {0, Offset(0), Offset::getUnknown()});
 
         functionModelAddDef("strcpy", {0, Offset(0), Offset::getUnknown()});
