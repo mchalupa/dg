@@ -1,9 +1,11 @@
 #ifndef DG_ANALYSIS_OPTIONS_H_
 #define DG_ANALYSIS_OPTIONS_H_
 
-#include "Offset.h"
+#include <cassert>
 #include <map>
 #include <string>
+
+#include "Offset.h"
 
 namespace dg {
 

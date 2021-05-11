@@ -1,6 +1,7 @@
 #ifndef DG_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
 #define DG_DATA_DEPENDENCE_ANALYSIS_OPTIONS_H_
 
+#include <cassert>
 #include <map>
 
 #include "dg/AnalysisOptions.h"

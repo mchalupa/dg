@@ -7,6 +7,7 @@
 #include <string>
 
 #include "dg/DG2Dot.h"
+#include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 
 #include <dg/util/SilenceLLVMWarnings.h>
