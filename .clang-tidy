@@ -127,8 +127,6 @@ CheckOptions:
     value:           'false'
   - key:             misc-throw-by-value-catch-by-reference.CheckThrowTemporaries
     value:           'true'
-  - key:             misc-throw-by-value-catch-by-reference.MaxSize
-    value:           '-1'
   - key:             misc-throw-by-value-catch-by-reference.WarnOnLargeObjects
     value:           'false'
   - key:             modernize-avoid-bind.PermissiveParameterList
