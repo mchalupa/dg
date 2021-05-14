@@ -80,7 +80,7 @@ class LLVMSlicer : public Slicer<LLVMNode> {
 
         llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(val);
         for (const auto &succ : block->successors()) {
-            if (succ.label == 255)
+            if (succ.label == LLVMBBlock::ARTIFICIAL_BBLOCK_LABEL)
                 continue;
 
             // don't adjust phi nodes in this block if this is a self-loop,
@@ -348,7 +348,8 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
             // return block
             for (const auto &succ : BB->successors()) {
                 // skip artificial return basic block.
-                if (succ.label == 255 || succ.target == oldExitBB)
+                if (succ.label == LLVMBBlock::ARTIFICIAL_BBLOCK_LABEL ||
+                    succ.target == oldExitBB)
                     continue;
 
                 labels.insert(succ.label);
@@ -402,8 +403,8 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
             auto l = labels.begin();
             for (unsigned i = 0; i < labels.size(); ++i) {
                 // set is ordered, so this must hold
-                // (as 255 is the last possible label)
-                assert((*l == 255 || i == *l++) && "Labels have a gap");
+                assert((*l == LLVMBBlock::MAX_BBLOCK_LABEL ||
+                        i == *l++) && "Labels have a gap");
             }
 #endif
         }
@@ -504,7 +505,7 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
             if (BB->successorsNum() == 1) {
                 const LLVMBBlock::BBlockEdge &edge =
                         *(BB->successors().begin());
-                if (edge.label != 255) {
+                if (edge.label != LLVMBBlock::ARTIFICIAL_BBLOCK_LABEL) {
                     // don't create return, we created branchinst
                     create_return = false;
 
@@ -539,7 +540,7 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
 
         for (const LLVMBBlock::BBlockEdge &succ : BB->successors()) {
             // skip artificial return basic block
-            if (succ.label == 255)
+            if (succ.label == LLVMBBlock::ARTIFICIAL_BBLOCK_LABEL)
                 continue;
 
             llvm::Value *val = succ.target->getKey();
