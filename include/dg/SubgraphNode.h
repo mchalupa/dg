@@ -13,6 +13,8 @@
 #include <set>
 #include <vector>
 
+#include <dg/util/iterators.h>
+
 namespace dg {
 
 namespace pta {
@@ -157,13 +159,7 @@ class SubgraphNode {
     }
 
     bool hasOperand(NodeT *n) const {
-        for (NodeT *x : operands) {
-            if (x == n) {
-                return true;
-            }
-        }
-
-        return false;
+        return dg::any_of(operands, [n](NodeT* x) { return x == n; });
     }
 
     void addSuccessor(NodeT *succ) {
