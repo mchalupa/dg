@@ -1,6 +1,8 @@
 #ifndef DG_ITERATORS_UTILS_H_
 #define DG_ITERATORS_UTILS_H_
 
+#include <algorithm>
+
 namespace dg {
 
 template <typename It, typename Predicate>
@@ -29,6 +31,11 @@ struct iterator_filter : public It {
         return tmp;
     }
 };
+
+template <typename Range, typename Fun>
+bool any_of(Range& R, const Fun& fun) {
+    return std::any_of(R.begin(), R.end(), fun);
+}
 
 } // namespace dg
 
