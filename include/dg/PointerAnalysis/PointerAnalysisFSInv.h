@@ -133,7 +133,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
                target == NULLPTR;
     }
 
-    bool handleInvalidateLocals(PSNode *node) const {
+    static bool handleInvalidateLocals(PSNode *node) {
         bool changed = false;
         for (PSNode *pred : node->predecessors()) {
             changed |= handleInvalidateLocals(node, pred);
@@ -292,8 +292,8 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
         return true;
     }
 
-    bool invalidateMemory(PSNode *node, PSNode *pred,
-                          bool is_free = false) const {
+    static bool invalidateMemory(PSNode *node, PSNode *pred,
+                                 bool is_free = false) {
         MemoryMapT *pmm = pred->getData<MemoryMapT>();
         if (!pmm) {
             // predecessor was not processed yet
