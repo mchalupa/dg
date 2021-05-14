@@ -17,6 +17,9 @@ namespace dg {
 template <typename NodeT>
 class BBlock {
   public:
+    using BBlockLabelTy = uint8_t;
+    static const BBlockLabelTy ARTIFICIAL_BBLOCK_LABEL = 255;
+    static const BBlockLabelTy MAX_BBLOCK_LABEL = ARTIFICIAL_BBLOCK_LABEL;
     using KeyT = typename NodeT::KeyType;
     using DependenceGraphT = typename NodeT::DependenceGraphType;
 
@@ -27,7 +30,7 @@ class BBlock {
         BBlock<NodeT> *target;
         // we'll have just numbers as labels now.
         // We can change it if there's a need
-        uint8_t label;
+        BBlockLabelTy label;
 
         bool operator==(const BBlockEdge &oth) const {
             return target == oth.target && label == oth.label;

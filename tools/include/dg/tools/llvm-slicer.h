@@ -63,6 +63,7 @@ class Slicer {
 
     dg::llvmdg::LLVMSlicer slicer;
     uint32_t slice_id = 0;
+    const uint32_t _default_slice_id = 0xdead;
     bool _computed_deps{false};
 
   public:
@@ -141,7 +142,7 @@ class Slicer {
         for (const auto &funcName : _options.preservedFunctions)
             slicer.keepFunctionUntouched(funcName.c_str());
 
-        slice_id = 0xdead;
+        slice_id = _default_slice_id;
 
         tm.start();
         for (dg::LLVMNode *start : criteria_nodes)
