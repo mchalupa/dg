@@ -1,4 +1,4 @@
-#include <assert.h>
+#include <cassert>
 
 #include "dg/PointerAnalysis/PSNode.h"
 #include "dg/PointerAnalysis/PointerGraph.h"

@@ -2,6 +2,7 @@
 #define DG_LLVM_SLICER_UTILS_H_
 
 #include <functional>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -49,8 +50,8 @@ struct CVariableDecl {
     unsigned line;
     unsigned col;
 
-    CVariableDecl(const std::string &n, unsigned l = 0, unsigned c = 0)
-            : name(n), line(l), col(c) {}
+    CVariableDecl(std::string n, unsigned l = 0, unsigned c = 0)
+            : name(std::move(n)), line(l), col(c) {}
     CVariableDecl(CVariableDecl &&) = default;
     CVariableDecl(const CVariableDecl &) = default;
 };

@@ -49,8 +49,8 @@ struct LLVMMemoryRegion {
     LLVMPointer pointer;
     Offset len;
 
-    LLVMMemoryRegion(const LLVMPointer &ptr, const Offset l)
-            : pointer(ptr), len(l) {}
+    LLVMMemoryRegion(LLVMPointer ptr, const Offset l)
+            : pointer(std::move(ptr)), len(l) {}
 
     LLVMMemoryRegion(llvm::Value *val, const Offset off, const Offset l)
             : pointer(val, off), len(l) {}
@@ -250,8 +250,8 @@ class LLVMMemoryRegionSet {
         friend class LLVMMemoryRegionSet;
     };
 
-    const_iterator begin() const { return const_iterator(_regions.begin()); }
-    const_iterator end() const { return const_iterator(_regions.end()); }
+    const_iterator begin() const { return {_regions.begin()}; }
+    const_iterator end() const { return {_regions.end()}; }
 };
 
 ///
@@ -374,8 +374,8 @@ class LLVMPointsToSet {
 
     LLVMPointer getKnownSingleton() const { return _impl->getKnownSingleton(); }
 
-    const_iterator begin() const { return const_iterator(_impl.get()); }
-    const_iterator end() const { return const_iterator(nullptr); }
+    const_iterator begin() const { return {_impl.get()}; }
+    static const_iterator end() { return {nullptr}; }
 };
 
 /// Auxiliary template that may be used when implementing LLVMPointsToSetImpl
@@ -458,7 +458,7 @@ class DGLLVMPointsToSet
     LLVMPointer getKnownSingleton() const override {
         assert(isKnownSingleton());
         auto ptr = (*(PTSet.begin()));
-        return LLVMPointer(ptr.target->getUserData<llvm::Value>(), ptr.offset);
+        return {ptr.target->getUserData<llvm::Value>(), ptr.offset};
     }
 
     LLVMPointer get() const override {

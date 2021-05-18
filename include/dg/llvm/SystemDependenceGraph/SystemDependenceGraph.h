@@ -2,6 +2,7 @@
 #define DG_LLVM_SYSTEM_DEPENDNECE_GRAPH_H_
 
 #include <map>
+#include <utility>
 
 #include "dg/SystemDependenceGraph/SystemDependenceGraph.h"
 #include "dg/llvm/ControlDependence/ControlDependence.h"
@@ -66,8 +67,8 @@ class SystemDependenceGraph {
     SystemDependenceGraph(llvm::Module *M, LLVMPointerAnalysis *PTA,
                           dda::LLVMDataDependenceAnalysis *DDA,
                           LLVMControlDependenceAnalysis *CDA,
-                          const SystemDependenceGraphOptions &opts = {})
-            : _options(opts), _module(M), _sdg(), _pta(PTA), _dda(DDA),
+                          SystemDependenceGraphOptions opts = {})
+            : _options(std::move(opts)), _module(M), _pta(PTA), _dda(DDA),
               _cda(CDA) {
         buildSDG();
     }

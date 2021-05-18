@@ -4,6 +4,7 @@
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -33,10 +34,11 @@ class LLVMDataDependenceAnalysis {
     DataDependenceAnalysis *createDDA();
 
   public:
-    LLVMDataDependenceAnalysis(
-            const llvm::Module *m, dg::LLVMPointerAnalysis *pta,
-            const LLVMDataDependenceAnalysisOptions &opts = {})
-            : m(m), pta(pta), _options(opts), builder(createBuilder()) {}
+    LLVMDataDependenceAnalysis(const llvm::Module *m,
+                               dg::LLVMPointerAnalysis *pta,
+                               LLVMDataDependenceAnalysisOptions opts = {})
+            : m(m), pta(pta), _options(std::move(opts)),
+              builder(createBuilder()) {}
 
     ~LLVMDataDependenceAnalysis();
 

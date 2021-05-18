@@ -161,9 +161,7 @@ class PointerIdPointsToSet {
             return tmp;
         }
 
-        Pointer operator*() const {
-            return Pointer(lookupTable.get(*container_it));
-        }
+        Pointer operator*() const { return {lookupTable.get(*container_it)}; }
 
         bool operator==(const const_iterator &rhs) const {
             return container_it == rhs.container_it;
@@ -176,10 +174,8 @@ class PointerIdPointsToSet {
         friend class PointerIdPointsToSet;
     };
 
-    const_iterator begin() const { return const_iterator(pointers); }
-    const_iterator end() const {
-        return const_iterator(pointers, true /* end */);
-    }
+    const_iterator begin() const { return {pointers}; }
+    const_iterator end() const { return {pointers, true /* end */}; }
 
     friend class const_iterator;
 };

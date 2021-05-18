@@ -48,7 +48,7 @@ namespace sfinae {
 // std::void_t is from C++17...
 template <typename... Ts>
 struct make_void {
-    typedef void type;
+    using type = void;
 };
 template <typename... Ts>
 using void_t = typename make_void<Ts...>::type;

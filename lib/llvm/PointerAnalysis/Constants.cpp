@@ -102,7 +102,7 @@ Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(
            "Constant add with not only one pointer");
 
     Pointer ptr = *op->pointsTo.begin();
-    return Pointer(ptr.target, Offset::UNKNOWN);
+    return {ptr.target, Offset::UNKNOWN};
 }
 
 Pointer

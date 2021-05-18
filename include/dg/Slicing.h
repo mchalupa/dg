@@ -127,21 +127,21 @@ class WalkAndMark
 };
 
 struct SlicerStatistics {
-    SlicerStatistics() : nodesTotal(0), nodesRemoved(0), blocksRemoved(0) {}
+    SlicerStatistics() = default;
 
     // total number of nodes that were checked for removing
-    uint64_t nodesTotal;
+    uint64_t nodesTotal{0};
     // total number of nodes actually removed (including the
     // ones removed in blocks)
-    uint64_t nodesRemoved;
+    uint64_t nodesRemoved{0};
     // number of whole blocks removed
-    uint32_t blocksRemoved;
+    uint32_t blocksRemoved{0};
 };
 
 template <typename NodeT>
 class Slicer : legacy::Analysis<NodeT> {
     uint32_t options;
-    uint32_t slice_id;
+    uint32_t slice_id{0};
 
     std::set<DependenceGraph<NodeT> *> sliced_graphs;
 
@@ -187,7 +187,7 @@ class Slicer : legacy::Analysis<NodeT> {
     SlicerStatistics statistics;
 
   public:
-    Slicer<NodeT>(uint32_t opt = 0) : options(opt), slice_id(0) {}
+    Slicer<NodeT>(uint32_t opt = 0) : options(opt) {}
 
     SlicerStatistics &getStatistics() { return statistics; }
     const SlicerStatistics &getStatistics() const { return statistics; }

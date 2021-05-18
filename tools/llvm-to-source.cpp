@@ -81,7 +81,7 @@ static void get_nesting_structure(const char *source) {
             break;
         case '{':
             nesting.push(matching_braces.size());
-            matching_braces.push_back({cur_line, 0});
+            matching_braces.emplace_back(cur_line, 0);
             break;
         case '}':
             idx = nesting.top();

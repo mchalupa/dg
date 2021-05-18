@@ -233,7 +233,7 @@ TEST_CASE("Test of ThreadRegion class methods", "[ThreadRegion]") {
         threadRegion0->addPredecessor(threadRegion1.get());
         REQUIRE(threadRegion0->predecessors().size() == 1);
         REQUIRE(threadRegion0->removePredecessor(threadRegion1.get()));
-        REQUIRE(threadRegion0->predecessors().size() == 0);
+        REQUIRE(threadRegion0->predecessors().empty());
     }
 
     SECTION("Removing nonexistent successor") {
@@ -270,9 +270,9 @@ TEST_CASE("Test of EntryNode class methods", "[EntryNode]") {
         entryNode->addForkPredecessor(forkNode.get());
         REQUIRE(entryNode->forkPredecessors().size() == 1);
         REQUIRE(entryNode->removeForkPredecessor(forkNode.get()));
-        REQUIRE(entryNode->forkPredecessors().size() == 0);
+        REQUIRE(entryNode->forkPredecessors().empty());
         REQUIRE_FALSE(entryNode->removeForkPredecessor(forkNode.get()));
-        REQUIRE(entryNode->forkPredecessors().size() == 0);
+        REQUIRE(entryNode->forkPredecessors().empty());
     }
 }
 
@@ -293,11 +293,11 @@ TEST_CASE("Test of ExitNode class methods", "[ExitNode]") {
         exitNode->addJoinSuccessor(joinNode.get());
         REQUIRE(exitNode->joinSuccessors().size() == 1);
         REQUIRE(exitNode->removeJoinSuccessor(joinNode.get()));
-        REQUIRE(exitNode->joinSuccessors().size() == 0);
+        REQUIRE(exitNode->joinSuccessors().empty());
         REQUIRE_FALSE(exitNode->removeJoinSuccessor(joinNode.get()));
-        REQUIRE(exitNode->joinSuccessors().size() == 0);
+        REQUIRE(exitNode->joinSuccessors().empty());
         REQUIRE_FALSE(exitNode->removeJoinSuccessor(nullptr));
-        REQUIRE(exitNode->joinSuccessors().size() == 0);
+        REQUIRE(exitNode->joinSuccessors().empty());
     }
 }
 
@@ -328,11 +328,11 @@ TEST_CASE("Test of ForkNode class methods", "[ForkNode]") {
         forkNode->addForkSuccessor(entryNode.get());
         REQUIRE(forkNode->forkSuccessors().size() == 1);
         REQUIRE(forkNode->removeForkSuccessor(entryNode.get()));
-        REQUIRE(forkNode->forkSuccessors().size() == 0);
+        REQUIRE(forkNode->forkSuccessors().empty());
         REQUIRE_FALSE(forkNode->removeForkSuccessor(entryNode.get()));
-        REQUIRE(forkNode->forkSuccessors().size() == 0);
+        REQUIRE(forkNode->forkSuccessors().empty());
         REQUIRE_FALSE(forkNode->removeForkSuccessor(nullptr));
-        REQUIRE(forkNode->forkSuccessors().size() == 0);
+        REQUIRE(forkNode->forkSuccessors().empty());
     }
 }
 
@@ -363,11 +363,11 @@ TEST_CASE("Test of JoinNode class methods", "[JoinNode]") {
         joinNode->addJoinPredecessor(exitNode.get());
         REQUIRE(joinNode->joinPredecessors().size() == 1);
         REQUIRE(joinNode->removeJoinPredecessor(exitNode.get()));
-        REQUIRE(joinNode->joinPredecessors().size() == 0);
+        REQUIRE(joinNode->joinPredecessors().empty());
         REQUIRE_FALSE(joinNode->removeJoinPredecessor(exitNode.get()));
-        REQUIRE(joinNode->joinPredecessors().size() == 0);
+        REQUIRE(joinNode->joinPredecessors().empty());
         REQUIRE_FALSE(joinNode->removeJoinPredecessor(nullptr));
-        REQUIRE(joinNode->joinPredecessors().size() == 0);
+        REQUIRE(joinNode->joinPredecessors().empty());
     }
 }
 

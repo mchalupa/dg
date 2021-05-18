@@ -193,9 +193,7 @@ class OffsetsSetPointsToSet {
             return tmp;
         }
 
-        Pointer operator*() const {
-            return Pointer(container_it->first, *innerIt);
-        }
+        Pointer operator*() const { return {container_it->first, *innerIt}; }
 
         bool operator==(const const_iterator &rhs) const {
             return container_it == rhs.container_it && innerIt == rhs.innerIt;
@@ -208,10 +206,8 @@ class OffsetsSetPointsToSet {
         friend class OffsetsSetPointsToSet;
     };
 
-    const_iterator begin() const { return const_iterator(pointers); }
-    const_iterator end() const {
-        return const_iterator(pointers, true /* end */);
-    }
+    const_iterator begin() const { return {pointers}; }
+    const_iterator end() const { return {pointers, true /* end */}; }
 
     friend class const_iterator;
 };

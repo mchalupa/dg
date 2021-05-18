@@ -208,8 +208,9 @@ int main(int argc, char *argv[]) {
     setupStackTraceOnError(argc, argv);
 
 #if ((LLVM_VERSION_MAJOR >= 6))
-    llvm::cl::SetVersionPrinter(
-            [](llvm::raw_ostream &) { printf("%s\n", GIT_VERSION); });
+    llvm::cl::SetVersionPrinter([](llvm::raw_ostream & /*unused*/) {
+        printf("%s\n", GIT_VERSION);
+    });
 #else
     llvm::cl::SetVersionPrinter([]() { printf("%s\n", GIT_VERSION); });
 #endif

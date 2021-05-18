@@ -44,10 +44,8 @@ class ReadWriteGraph {
         SubgraphsT &subgraphs;
         subgraphs_range(SubgraphsT &b) : subgraphs(b) {}
 
-        subgraph_iterator begin() {
-            return subgraph_iterator(subgraphs.begin());
-        }
-        subgraph_iterator end() { return subgraph_iterator(subgraphs.end()); }
+        subgraph_iterator begin() { return {subgraphs.begin()}; }
+        subgraph_iterator end() { return {subgraphs.end()}; }
     };
 
   public:
@@ -107,14 +105,10 @@ class ReadWriteGraph {
         }
     }
 
-    subgraph_iterator subgraphs_begin() {
-        return subgraph_iterator(_subgraphs.begin());
-    }
-    subgraph_iterator subgraphs_end() {
-        return subgraph_iterator(_subgraphs.end());
-    }
+    subgraph_iterator subgraphs_begin() { return {_subgraphs.begin()}; }
+    subgraph_iterator subgraphs_end() { return {_subgraphs.end()}; }
 
-    subgraphs_range subgraphs() { return subgraphs_range(_subgraphs); }
+    subgraphs_range subgraphs() { return {_subgraphs}; }
 
     auto size() const -> decltype(_subgraphs.size()) {
         return _subgraphs.size();

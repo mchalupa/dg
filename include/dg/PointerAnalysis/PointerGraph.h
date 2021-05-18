@@ -36,9 +36,6 @@ class PointerSubgraph {
     PointerSubgraph(unsigned id, PSNode *r1, PSNode *va = nullptr)
             : _id(id), root(r1), vararg(va) {}
 
-    PointerSubgraph() = default;
-    PointerSubgraph(const PointerSubgraph &) = delete;
-
     // non-trivial strongly connected components
     bool _computed_loops{false};
     std::vector<std::vector<PSNode *>> _loops;
@@ -46,6 +43,8 @@ class PointerSubgraph {
 
   public:
     PointerSubgraph(PointerSubgraph &&) = default;
+    PointerSubgraph() = default;
+    PointerSubgraph(const PointerSubgraph &) = delete;
 
     unsigned getID() const { return _id; }
 

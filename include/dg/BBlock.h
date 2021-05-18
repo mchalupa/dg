@@ -5,6 +5,7 @@
 #include <list>
 
 #include "ADT/DGContainer.h"
+#include "dg/util/iterators.h"
 #include "legacy/Analysis.h"
 
 namespace dg {
@@ -41,7 +42,7 @@ class BBlock {
     };
 
     BBlock<NodeT>(NodeT *head = nullptr, DependenceGraphT *dg = nullptr)
-            : key(KeyT()), dg(dg), ipostdom(nullptr), slice_id(0) {
+            : key(KeyT()), dg(dg), ipostdom(nullptr) {
         if (head) {
             append(head);
             assert(!dg || head->getDG() == nullptr || dg == head->getDG());
@@ -128,13 +129,9 @@ class BBlock {
     // to the same basic block (not considering labels,
     // just the targets)
     bool hasSuccessor(BBlock<NodeT> *B) const {
-        for (auto &succB : successors()) {
-            if (succB.target == B) {
-                return true;
-            }
-        }
-
-        return false;
+        return dg::any_of(successors(),
+            [B](auto &succB) { return succB.target == B; }
+        );
     }
 
     // remove all edges from/to this BB and reconnect them to
@@ -442,7 +439,7 @@ class BBlock {
     BBlockContainerT domFrontiers;
 
     // is this block in some slice?
-    uint64_t slice_id;
+    uint64_t slice_id{0};
 
     // delete nodes on destruction of the block
     bool delete_nodes_on_destr = false;

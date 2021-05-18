@@ -2,6 +2,7 @@
 
 #include "dg/PointerAnalysis/PointerGraphValidator.h"
 #include "dg/PointerAnalysis/PointsToSet.h"
+#include "dg/util/iterators.h"
 
 namespace dg {
 namespace pta {
@@ -73,18 +74,16 @@ static bool hasDuplicateOperand(const PSNode *nd) {
 }
 
 static bool hasNonpointerOperand(const PSNode *nd) {
-    for (const PSNode *op : nd->getOperands()) {
-        if (op->getType() == PSNodeType::NOOP ||
+    return dg::any_of(nd->getOperands(), [](const PSNode *op) {
+        return (op->getType() == PSNodeType::NOOP ||
             op->getType() == PSNodeType::FREE ||
             op->getType() == PSNodeType::ENTRY ||
             op->getType() == PSNodeType::INVALIDATE_LOCALS ||
             op->getType() == PSNodeType::INVALIDATE_OBJECT ||
             op->getType() == PSNodeType::MEMCPY ||
-            op->getType() == PSNodeType::STORE)
-            return true;
-    }
-
-    return false;
+            op->getType() == PSNodeType::STORE);
+        }
+    );
 }
 
 bool PointerGraphValidator::checkOperands() {
@@ -182,12 +181,8 @@ bool PointerGraphValidator::checkOperands() {
 }
 
 static inline bool isInPredecessors(const PSNode *nd, const PSNode *of) {
-    for (const PSNode *pred : of->predecessors()) {
-        if (pred == nd)
-            return true;
-    }
-
-    return false;
+    return dg::any_of(of->predecessors(),
+                      [nd](const PSNode *pred) { return pred == nd; });
 }
 
 static inline bool canBeOutsideGraph(const PSNode *nd) {

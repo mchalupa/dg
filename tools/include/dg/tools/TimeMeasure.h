@@ -19,7 +19,7 @@ class TimeMeasure {
             std::chrono::milliseconds(std::chrono::seconds{1}).count();
 
   public:
-    TimeMeasure() {}
+    TimeMeasure() = default;
 
     void start() { s = Clock::now(); };
 

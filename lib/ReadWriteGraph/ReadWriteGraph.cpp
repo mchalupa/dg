@@ -124,7 +124,7 @@ splitBlockOnFirstCall(RWBBlock *block,
 
 void RWSubgraph::splitBBlocksOnCalls() {
     DBG_SECTION_BEGIN(dda, "Splitting basic blocks on calls");
-    if (_bblocks.size() == 0) {
+    if (_bblocks.empty()) {
         DBG_SECTION_END(dda, "Splitting basic blocks on calls finished");
         return;
     }

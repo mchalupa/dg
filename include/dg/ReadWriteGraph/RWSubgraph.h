@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "RWBBlock.h"
+#include "dg/util/iterators.h"
 
 namespace dg {
 namespace dda {
@@ -74,12 +75,15 @@ class RWSubgraph {
         return *_bblocks.back().get();
     }
 
+    bool hasCaller(RWNode *c) const {
+        return dg::any_of(_callers, [c](auto *tmp) { return tmp == c; });
+    }
+
     void splitBBlocksOnCalls();
     void addCaller(RWNode *c) {
         assert(c->getType() == RWNodeType::CALL);
-        for (auto *tmp : _callers) {
-            if (tmp == c)
-                return;
+        if (hasCaller(c)) {
+            return;
         }
         _callers.push_back(c);
     }
@@ -89,10 +93,9 @@ class RWSubgraph {
 
     const BBlocksVecT &getBBlocks() const { return _bblocks; }
 
-    block_iterator bblocks_begin() { return block_iterator(_bblocks.begin()); }
-    block_iterator bblocks_end() { return block_iterator(_bblocks.end()); }
-
-    blocks_range bblocks() { return blocks_range(_bblocks); }
+    block_iterator bblocks_begin() { return {_bblocks.begin()}; }
+    block_iterator bblocks_end() { return {_bblocks.end()}; }
+    blocks_range bblocks() { return {_bblocks}; }
 
     auto size() const -> decltype(_bblocks.size()) { return _bblocks.size(); }
 };

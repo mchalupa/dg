@@ -132,7 +132,7 @@ class DependenceGraph : public DependenceGraphBase {
     {
     }
 
-    ~DependenceGraph<NodeT>() {
+    ~DependenceGraph<NodeT>() override {
 #ifdef ENABLE_CFG
 #ifdef ENABLE_DEBUG
         bool deleted_entry = false;
@@ -157,10 +157,10 @@ class DependenceGraph : public DependenceGraphBase {
     }
 
     // iterators for local nodes
-    iterator begin(void) { return nodes.begin(); }
-    const_iterator begin(void) const { return nodes.begin(); }
-    iterator end(void) { return nodes.end(); }
-    const_iterator end(void) const { return nodes.end(); }
+    iterator begin() { return nodes.begin(); }
+    const_iterator begin() const { return nodes.begin(); }
+    iterator end() { return nodes.end(); }
+    const_iterator end() const { return nodes.end(); }
 
     // operator [] for local nodes
     NodeT *operator[](KeyT k) { return nodes[k]; }
@@ -241,8 +241,8 @@ class DependenceGraph : public DependenceGraphBase {
         return oldExt;
     }
 
-    NodeT *getEntry(void) const { return entryNode; }
-    NodeT *getExit(void) const { return exitNode; }
+    NodeT *getEntry() const { return entryNode; }
+    NodeT *getExit() const { return exitNode; }
 
     void setGlobalNodes(const std::shared_ptr<ContainerType> &ngn) {
         global_nodes = ngn;

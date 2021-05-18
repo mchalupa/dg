@@ -367,7 +367,7 @@ static void dumpPointerGraphData(PSNode *n, PTType type, bool dot = false) {
             return;
 
         if (dot)
-            printf("\\n------\\n    --- Memory map [%p] ---\\n",
+            printf(R"(\n------\n    --- Memory map [%p] ---\n)",
                    static_cast<void *>(mm));
         else
             printf("    Memory map: [%p]\n", static_cast<void *>(mm));
@@ -641,7 +641,7 @@ static void dumpStats(DGLLVMPointerAnalysis *pta) {
         if (!node)
             continue;
 
-        if (node->pointsTo.size() > 0)
+        if (!node->pointsTo.empty())
             ++nonempty_size;
 
         if (node->pointsTo.size() == 1) {

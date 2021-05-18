@@ -83,7 +83,7 @@ bool LLVMPointerGraphBuilder::addFunctionToJoin(PSNode *function,
     joinNode->addFunction(function);
     const llvm::Function *F = function->getUserData<llvm::Function>();
 
-    if (F->size() != 0) {
+    if (!F->empty()) {
         PointerSubgraph *subgraph = getSubgraph(F);
         assert(subgraph && "Did not build the subgraph for thread");
 

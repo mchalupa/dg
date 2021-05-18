@@ -5,6 +5,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 
 #include "dg/BBlockBase.h"
 
@@ -106,7 +107,7 @@ class CDGraph {
     */
 
   public:
-    CDGraph(const std::string &name = "") : _name(name) {}
+    CDGraph(std::string name = "") : _name(std::move(name)) {}
     CDGraph(const CDGraph &rhs) = delete;
     CDGraph &operator=(const CDGraph &) = delete;
     CDGraph(CDGraph &&) = default;
@@ -131,7 +132,7 @@ class CDGraph {
 
     node_iterator begin() { return node_iterator(_nodes.begin()); }
     node_iterator end() { return node_iterator(_nodes.end()); }
-    nodes_range nodes() { return nodes_range(_nodes); }
+    nodes_range nodes() { return {_nodes}; }
 
     CDNode *getNode(unsigned id) {
         assert(id - 1 < _nodes.size());

@@ -24,14 +24,13 @@ static bool funHasAddressTaken(PSNode *node) {
     if (node->getType() != PSNodeType::FUNCTION)
         return false;
 
-    for (auto *user : node->getUsers()) {
-        if (node->getType() != PSNodeType::CALL ||
-            // call but is not called
-            node->getOperand(0) != user) {
-            return true;
-        }
-    }
-    return false;
+    return dg::any_of(node->getUsers(),
+        [node](PSNode *user) {
+            return node->getType() != PSNodeType::CALL ||
+                    // call but is not called
+                    node->getOperand(0) != user;
+            }
+    );
 }
 
 bool PointerAnalysis::processLoad(PSNode *node) {
@@ -182,7 +181,7 @@ static Pointer unwrapConstants(const Pointer &ptr) {
         target = C->getTarget();
         offset += C->getOffset();
     }
-    return Pointer(target, offset);
+    return {target, offset};
 }
 
 bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *> &srcObjects,

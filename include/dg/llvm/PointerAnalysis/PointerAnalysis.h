@@ -1,6 +1,9 @@
 #ifndef LLVM_DG_POINTS_TO_ANALYSIS_H_
 #define LLVM_DG_POINTS_TO_ANALYSIS_H_
 
+#include <memory>
+#include <utility>
+
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/DataLayout.h>
@@ -33,8 +36,8 @@ class LLVMPointerAnalysis {
   protected:
     const LLVMPointerAnalysisOptions options{};
 
-    LLVMPointerAnalysis(const LLVMPointerAnalysisOptions &opts)
-            : options(opts){};
+    LLVMPointerAnalysis(LLVMPointerAnalysisOptions opts)
+            : options(std::move(opts)){};
 
   public:
     const LLVMPointerAnalysisOptions &getOptions() const { return options; }

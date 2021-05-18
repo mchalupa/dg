@@ -14,6 +14,7 @@ SILENCE_LLVM_WARNINGS_PUSH
 SILENCE_LLVM_WARNINGS_POP
 
 #include <fstream>
+#include <memory>
 
 int main(int argc, const char *argv[]) {
     using namespace std;
@@ -45,7 +46,7 @@ int main(int argc, const char *argv[]) {
     string module = inputFile;
     string graphVizFileName = OutputFilename;
 
-    std::unique_ptr<Module> M = llvm::parseIRFile(module.c_str(), SMD, context);
+    std::unique_ptr<Module> M = llvm::parseIRFile(module, SMD, context);
 
     if (!M) {
         llvm::errs() << "Failed parsing '" << module << "' file:\n";
@@ -61,14 +62,14 @@ int main(int argc, const char *argv[]) {
         opts.threads = threads;
         opts.setFieldSensitivity(dg::Offset::UNKNOWN);
 
-        PTA.reset(new dg::DGLLVMPointerAnalysis(M.get(), opts));
+        PTA = std::make_unique<dg::DGLLVMPointerAnalysis>(M.get(), opts);
         PTA->run();
     }
 
     dg::llvmdg::legacy::NTSCD controlDependencyAnalysis(M.get(), {}, PTA.get());
     controlDependencyAnalysis.compute();
 
-    if (graphVizFileName == "") {
+    if (graphVizFileName.empty()) {
         controlDependencyAnalysis.dump(std::cout);
     } else {
         std::ofstream graphvizFile(graphVizFileName);

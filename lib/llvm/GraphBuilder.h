@@ -111,7 +111,7 @@ class GraphBuilder {
                "Built node sequence has no representant");
 
         if (auto *repr = nds.getRepresentant()) {
-            _nodes.emplace(val, std::move(nds));
+            _nodes.emplace(val, nds);
 
             assert((_nodeToValue.find(repr) == _nodeToValue.end()) &&
                    "Mapping a node that we already have");

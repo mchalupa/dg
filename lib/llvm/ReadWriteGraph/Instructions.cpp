@@ -336,7 +336,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst, OptsT &opts) {
         // function pointer call - we need that
         return true;
 
-    if (func->size() == 0) {
+    if (func->empty()) {
         // we have a model for this function
         if (opts.getFunctionModel(func->getName().str()))
             return true;

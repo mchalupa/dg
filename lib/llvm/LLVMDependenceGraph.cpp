@@ -83,14 +83,14 @@ LLVMDependenceGraph::~LLVMDependenceGraph() {
             delete node->getParameters();
 
 #ifdef DEBUG_ENABLED
-            if (!node->getBBlock() && !llvm::isa<llvm::Function>(*I->first))
-                llvmutils::printerr("Had no BB assigned", I->first);
+            if (!node->getBBlock() && !llvm::isa<llvm::Function>(*I.first))
+                llvmutils::printerr("Had no BB assigned", I.first);
 #endif
 
             delete node;
         } else {
 #ifdef DEBUG_ENABLED
-            llvmutils::printerr("Had no node assigned", I->first);
+            llvmutils::printerr("Had no node assigned", I.first);
 #endif //
         }
     }
@@ -430,12 +430,12 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
                 if (!F)
                     continue;
 
-                if (F->size() == 0 || !llvmutils::callIsCompatible(F, CInst)) {
+                if (F->empty() || !llvmutils::callIsCompatible(F, CInst)) {
                     if (threads && F && F->getName() == "pthread_create") {
                         auto possibleFunctions = getCalledFunctions(
                                 CInst->getArgOperand(2), PTA);
                         for (auto &function : possibleFunctions) {
-                            if (function->size() > 0) {
+                            if (!function->empty()) {
                                 LLVMDependenceGraph *subg = buildSubgraph(
                                         node,
                                         const_cast<llvm::Function *>(function),
@@ -663,7 +663,7 @@ bool LLVMDependenceGraph::build(llvm::Function *func) {
     DBG_SECTION_BEGIN(llvmdg, "Building function " << func->getName().str());
 
     // do we have anything to process?
-    if (func->size() == 0)
+    if (func->empty())
         return false;
 
     constructedFunctions.insert(make_pair(func, this));
@@ -889,7 +889,7 @@ static bool match_callsite_name(LLVMNode *callNode,
 
 bool LLVMDependenceGraph::getCallSites(const char *name,
                                        std::set<LLVMNode *> *callsites) {
-    const char *names[] = {name, NULL};
+    const char *names[] = {name, nullptr};
     return getCallSites(names, callsites);
 }
 
@@ -907,7 +907,7 @@ bool LLVMDependenceGraph::getCallSites(const char *names[],
         }
     }
 
-    return callsites->size() != 0;
+    return !callsites->empty();
 }
 
 bool LLVMDependenceGraph::getCallSites(const std::vector<std::string> &names,
@@ -924,7 +924,7 @@ bool LLVMDependenceGraph::getCallSites(const std::vector<std::string> &names,
         }
     }
 
-    return callsites->size() != 0;
+    return !callsites->empty();
 }
 
 void LLVMDependenceGraph::computeNTSCD(

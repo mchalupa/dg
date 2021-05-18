@@ -108,7 +108,7 @@ static void printName(PSNode *node, bool dot) {
 
 static int dump_pointer(const Pointer &ptr, const char *name) {
     printf("target %s=", name);
-    printName(ptr.target, 0);
+    printName(ptr.target, false);
     printf("\n");
     return 0;
 }
@@ -140,7 +140,7 @@ static int compare_pointer(const Pointer &ptr1, const Pointer &ptr2) {
 
 static int check_pointer(const Pointer &ptr, const char *name) {
     printf("target %s=", name);
-    printName(ptr.target, 0);
+    printName(ptr.target, false);
     if (ptr.isUnknown()) {
         printf("Unknown Ptr\n");
         return MayAlias;

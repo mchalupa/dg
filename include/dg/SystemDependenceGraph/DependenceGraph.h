@@ -113,8 +113,8 @@ class DependenceGraph {
     const std::string &getName() const { return _name; }
 
     // FIXME: rename to blocks() and nodes()
-    bblocks_range getBBlocks() { return bblocks_range(_bblocks); }
-    nodes_range getNodes() { return nodes_range(_nodes); }
+    bblocks_range getBBlocks() { return {_bblocks}; }
+    nodes_range getNodes() { return {_nodes}; }
 
     // we do not have any total order on nodes or blocks in SDG,
     // but sometimes we need to get "some" node/block, so add

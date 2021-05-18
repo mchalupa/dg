@@ -145,10 +145,10 @@ class DGParameters {
     size_t globalsNum() const { return globals.size(); }
     size_t size() const { return params.size() + globals.size(); }
 
-    iterator begin(void) { return params.begin(); }
-    const_iterator begin(void) const { return params.begin(); }
-    iterator end(void) { return params.end(); }
-    const_iterator end(void) const { return params.end(); }
+    iterator begin() { return params.begin(); }
+    const_iterator begin() const { return params.begin(); }
+    iterator end() { return params.end(); }
+    const_iterator end() const { return params.end(); }
 
     iterator global_begin() { return globals.begin(); }
     const_iterator global_begin() const { return globals.begin(); }

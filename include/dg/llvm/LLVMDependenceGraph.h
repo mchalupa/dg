@@ -54,12 +54,10 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     llvm::Function *entryFunction{nullptr};
 
   public:
-    LLVMDependenceGraph(bool threads = false)
-            : gather_callsites(nullptr), threads(threads), module(nullptr),
-              PTA(nullptr) {}
+    LLVMDependenceGraph(bool threads = false) : threads(threads) {}
 
     // free all allocated memory and unref subgraphs
-    ~LLVMDependenceGraph();
+    ~LLVMDependenceGraph() override;
 
     // build a nodes and CFG edges from module.
     // This method will build also all subgraphs. If entry is nullptr,
@@ -132,7 +130,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     void setThreads(bool threads);
 
     /* virtual */
-    void setSlice(uint64_t sid) {
+    void setSlice(uint64_t sid) override {
         DependenceGraph<LLVMNode>::setSlice(sid);
         LLVMNode *entry = getEntry();
         assert(entry);
@@ -189,7 +187,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // gather call-sites of functions with given name
     // when building the graph
     std::set<LLVMNode *> *gatheredCallsites;
-    const char *gather_callsites;
+    const char *gather_callsites{nullptr};
 
     bool threads{false};
 
@@ -199,10 +197,10 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // when we want to slice according to some criterion,
     // we may gather the call-sites (good points for criterions)
     // while building the graph
-    llvm::Module *module;
+    llvm::Module *module{nullptr};
 
     // analyses needed for building the graph
-    LLVMPointerAnalysis *PTA;
+    LLVMPointerAnalysis *PTA{nullptr};
     LLVMDataDependenceAnalysis *DDA;
     // LLVMControlDependenceAnalysis *CDA;
 

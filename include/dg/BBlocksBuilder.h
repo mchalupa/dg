@@ -24,7 +24,7 @@ class BBlocksBuilder {
         // the id 0 is reserved for invalid nodes
         assert(n->getID() != 0 && "Queued invalid node");
 
-        if (_processed.insert(n->getID()).second == false)
+        if (!static_cast<bool>(_processed.insert(n->getID()).second))
             return false; // we already queued this node
 
         _queue.push(n);

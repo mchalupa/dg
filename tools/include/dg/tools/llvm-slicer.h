@@ -71,8 +71,8 @@ class Slicer {
         assert(mod && "Need module");
     }
 
-    const dg::LLVMDependenceGraph &getDG() const { return *_dg.get(); }
-    dg::LLVMDependenceGraph &getDG() { return *_dg.get(); }
+    const dg::LLVMDependenceGraph &getDG() const { return *_dg; }
+    dg::LLVMDependenceGraph &getDG() { return *_dg; }
 
     const SlicerOptions &getOptions() const { return _options; }
 
@@ -208,7 +208,7 @@ class Slicer {
         }
 
         assert(main_func && "Do not have the main func");
-        assert(main_func->size() == 0 && "The main func is not empty");
+        assert(main_func->empty() && "The main func is not empty");
 
         // create new function body
         llvm::BasicBlock *blk =
@@ -278,7 +278,7 @@ class ModuleWriter {
 
         // iterate over all functions in module
         for (auto &F : *M) {
-            if (F.size() == 0) {
+            if (F.empty()) {
                 // this will make sure that the linkage has right type
                 F.deleteBody();
             }
@@ -356,8 +356,8 @@ class ModuleWriter {
         std::set<GlobalVariable *> globals;
         std::set<GlobalAlias *> aliases;
 
-        for (auto I = M->begin(), E = M->end(); I != E; ++I) {
-            Function *func = &*I;
+        for (auto &I : *M) {
+            Function *func = &I;
             if (array_match(func->getName(), keep))
                 continue;
 

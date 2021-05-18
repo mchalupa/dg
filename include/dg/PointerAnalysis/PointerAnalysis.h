@@ -2,6 +2,7 @@
 #define DG_POINTER_ANALYSIS_H_
 
 #include <cassert>
+#include <utility>
 #include <vector>
 
 #include "dg/ADT/Queue.h"
@@ -34,15 +35,15 @@ class PointerAnalysis {
     const PointerAnalysisOptions options{};
 
   public:
-    PointerAnalysis(PointerGraph *ps, const PointerAnalysisOptions &opts)
-            : PG(ps), options(opts) {
+    PointerAnalysis(PointerGraph *ps, PointerAnalysisOptions opts)
+            : PG(ps), options(std::move(opts)) {
         initPointerAnalysis();
     }
 
     // default options
     PointerAnalysis(PointerGraph *ps) : PointerAnalysis(ps, {}) {}
 
-    virtual ~PointerAnalysis() {}
+    virtual ~PointerAnalysis() = default;
 
     // takes a PSNode 'where' and 'what' and reference to a vector
     // and fills into the vector the objects that are relevant

@@ -178,7 +178,7 @@ class ICDGraphBuilder {
             for (const auto *bbsucc : successors(&BB)) {
                 auto &succblk = _mapping[bbsucc];
                 if (succblk.nodes.empty()) {
-                    assert(bbsucc->size() == 0);
+                    assert(bbsucc->empty());
                     continue;
                 }
 

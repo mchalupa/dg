@@ -33,7 +33,7 @@ class DGParameters {
         params_iterator(const params_iterator &I) = default;
         params_iterator(const OrigItType &I) : OrigItType(I) {}
 
-        DGArgumentPair &operator*() { return *OrigItType::operator*().get(); }
+        DGArgumentPair &operator*() { return *OrigItType::operator*(); }
         DGArgumentPair *operator->() { return OrigItType::operator*().get(); }
     };
 
