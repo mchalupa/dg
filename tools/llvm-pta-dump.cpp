@@ -468,11 +468,10 @@ static void dumpNodeToDot(PSNode *node, PTType type) {
 
     printf("\", shape=box");
     if (node->getType() != PSNodeType::STORE) {
-        if (node->pointsTo.size() == 0 &&
-            (node->getType() == PSNodeType::LOAD ||
-             node->getType() == PSNodeType::GEP ||
-             node->getType() == PSNodeType::CAST ||
-             node->getType() == PSNodeType::PHI))
+        if (node->pointsTo.empty() && (node->getType() == PSNodeType::LOAD ||
+                                       node->getType() == PSNodeType::GEP ||
+                                       node->getType() == PSNodeType::CAST ||
+                                       node->getType() == PSNodeType::PHI))
             printf(", style=filled, fillcolor=red");
     } else {
         printf(", style=filled, fillcolor=orange");

@@ -264,38 +264,34 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
     llvm::Value *V2 = call->getArgOperand(1);
     const char *ex, *s, *score;
     AliasResult aares = doAlias(pta, V1, V2);
-    bool r = false;
+    //bool r = false;
 
     if (fun.equals(NOALIAS)) {
-        r = (aares == NoAlias);
+        //r = (aares == NoAlias);
         ex = "NO";
 
         if (aares == NoAlias)
             score = "true";
-        else if (aares == MayAlias)
+        else if (aares == MayAlias || aares == PartialAlias)
             score = "inadequate";
         else if (aares == MustAlias)
             score = "buggy";
-        else if (aares == PartialAlias)
-            score = "inadequate";
         else
             score = "unknown";
-    } else if (fun.equals(MAYALIAS)) {
-        r = (aares == MayAlias || aares == MustAlias);
+    } else if (fun.equals(MAYALIAS) || fun.equals(PARTIALALIAS)) {
+        //r = (aares == MayAlias || aares == MustAlias);
         ex = "MAY";
 
         if (aares == NoAlias)
             score = "false";
-        else if (aares == MayAlias)
+        else if (aares == MayAlias || aares == PartialAlias)
             score = "true";
         else if (aares == MustAlias)
             score = "toomuch";
-        else if (aares == PartialAlias)
-            score = "true";
         else
             score = "unknown";
     } else if (fun.equals(MUSTALIAS)) {
-        r = (aares == MustAlias);
+        //r = (aares == MustAlias);
         ex = "MUST";
 
         if (aares == NoAlias)
@@ -306,45 +302,24 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
             score = "true";
         else
             score = "unknown";
-    } else if (fun.equals(PARTIALALIAS)) {
-        r = (aares == MayAlias || aares == MustAlias);
-        ex = "MAY";
-
-        if (aares == NoAlias)
-            score = "false";
-        else if (aares == MayAlias)
-            score = "true";
-        else if (aares == MustAlias)
-            score = "toomuch";
-        else if (aares == PartialAlias)
-            score = "true";
-        else
-            score = "unknown";
     } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-        r = (aares != MayAlias && aares != MustAlias);
+        //r = (aares != MayAlias && aares != MustAlias);
         ex = "EXPECTEDFAIL_MAY";
 
-        if (aares == NoAlias)
+        if (aares == NoAlias || aares == MustAlias)
             score = "true";
-        else if (aares == MayAlias)
-            score = "inadequate"; // suspected
-        else if (aares == MustAlias)
-            score = "true"; // suspected
-        else if (aares == PartialAlias)
+        else if (aares == MayAlias ||aares == PartialAlias)
             score = "inadequate";
         else
             score = "unknown";
     } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
-        r = (aares != NoAlias);
+        //r = (aares != NoAlias);
         ex = "EXPECTEDFAIL_NO";
 
         if (aares == NoAlias)
             score = "false";
-        else if (aares == MayAlias)
-            score = "true";
-        else if (aares == MustAlias)
-            score = "true";
-        else if (aares == PartialAlias)
+        else if (aares == MayAlias || aares == MustAlias ||
+                 aares == PartialAlias)
             score = "true";
         else
             score = "unknown";

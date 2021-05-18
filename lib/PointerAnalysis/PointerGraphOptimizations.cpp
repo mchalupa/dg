@@ -108,14 +108,13 @@ void PSEquivalentNodesMerger::mergeCasts() {
 
         // cast is always 'a proxy' to the real value,
         // it does not change the pointers
-        if (node->getType() == PSNodeType::CAST)
+        if (node->getType() == PSNodeType::CAST ||
+            (node->getType() == PSNodeType::PHI && node->getOperandsNum() > 0 &&
+             allOperandsAreSame(node))) {
             merge(node, node->getOperand(0));
-        else if (PSNodeGep *GEP = PSNodeGep::get(node)) {
+        } else if (PSNodeGep *GEP = PSNodeGep::get(node)) {
             if (GEP->getOffset().isZero()) // GEP with 0 offest is cast
                 merge(node, GEP->getSource());
-        } else if (node->getType() == PSNodeType::PHI &&
-                   node->getOperandsNum() > 0 && allOperandsAreSame(node)) {
-            merge(node, node->getOperand(0));
         }
     }
 }
