@@ -102,9 +102,10 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // FIXME: can implement via getCallNodes
     bool getCallSites(const char *name, std::set<LLVMNode *> *callsites);
     // this method takes NULL-terminated array of names
-    bool getCallSites(const char *names[], std::set<LLVMNode *> *callsites);
-    bool getCallSites(const std::vector<std::string> &names,
-                      std::set<LLVMNode *> *callsites);
+    static bool getCallSites(const char *names[],
+                             std::set<LLVMNode *> *callsites);
+    static bool getCallSites(const std::vector<std::string> &names,
+                             std::set<LLVMNode *> *callsites);
 
     // FIXME we need remove the callsite from here if we slice away
     // the callsite
@@ -114,11 +115,12 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
-    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *,
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node,
+                                       llvm::Function * /*callFunc*/,
                                        bool fork = false);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
-    void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
+    static void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
     void
     addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions &opts);
 
@@ -147,8 +149,8 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
 
     void addDefUseEdges();
     void computeInterferenceDependentEdges(ControlFlowGraph *controlFlowGraph);
-    void computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph);
-    void computeCriticalSections(ControlFlowGraph *controlFlowGraph);
+    static void computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph);
+    static void computeCriticalSections(ControlFlowGraph *controlFlowGraph);
 
   private:
     void computePostDominators(bool addPostDomFrontiers = false);
@@ -164,9 +166,9 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     std::set<const llvm::Instruction *> getStoreInstructions(
             const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
-    std::set<const llvm::Instruction *> getInstructionsOfType(
-            const unsigned opCode,
-            const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    static std::set<const llvm::Instruction *> getInstructionsOfType(
+            unsigned opCode,
+            const std::set<const llvm::Instruction *> &llvmInstructions);
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)

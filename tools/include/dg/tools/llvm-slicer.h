@@ -425,8 +425,7 @@ class DGDumper {
 };
 
 namespace {
-static inline std::string
-undefFunsBehaviorToStr(dg::dda::UndefinedFunsBehavior b) {
+inline std::string undefFunsBehaviorToStr(dg::dda::UndefinedFunsBehavior b) {
     using namespace dg::dda;
     if (b == PURE)
         return "pure";

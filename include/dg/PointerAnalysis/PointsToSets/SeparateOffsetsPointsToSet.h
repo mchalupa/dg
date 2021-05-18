@@ -21,7 +21,7 @@ class SeparateOffsetsPointsToSet {
             idVector; // starts from 0 (node = idVector[id - 1])
 
     // if the node doesn't have ID, it is assigned one
-    size_t getNodeID(PSNode *node) const {
+    static size_t getNodeID(PSNode *node) {
         auto it = ids.find(node);
         if (it != ids.end()) {
             return it->second;
@@ -54,14 +54,14 @@ class SeparateOffsetsPointsToSet {
         return offsets.set(S.offsets) || changed;
     }
 
-    bool remove(__attribute__((unused)) const Pointer &ptr) { abort(); }
+    static bool remove(__attribute__((unused)) const Pointer &ptr) { abort(); }
 
-    bool remove(__attribute__((unused)) PSNode *target,
-                __attribute__((unused)) Offset offset) {
+    static bool remove(__attribute__((unused)) PSNode *target,
+                       __attribute__((unused)) Offset offset) {
         abort();
     }
 
-    bool removeAny(__attribute__((unused)) PSNode *target) { abort(); }
+    static bool removeAny(__attribute__((unused)) PSNode *target) { abort(); }
 
     void clear() {
         nodes.reset();

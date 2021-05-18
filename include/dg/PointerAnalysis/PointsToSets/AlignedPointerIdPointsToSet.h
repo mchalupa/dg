@@ -25,7 +25,7 @@ class AlignedPointerIdPointsToSet {
             idVector; // starts from 0 (pointer = idVector[id - 1])
 
     // if the pointer doesn't have ID, it's assigned one
-    size_t getPointerID(const Pointer &ptr) const {
+    static size_t getPointerID(const Pointer &ptr) {
         auto it = ids.find(ptr);
         if (it != ids.end()) {
             return it->second;
@@ -39,7 +39,7 @@ class AlignedPointerIdPointsToSet {
         return !pointers.set(getPointerID({node, Offset::UNKNOWN}));
     }
 
-    bool isOffsetValid(Offset off) const {
+    static bool isOffsetValid(Offset off) {
         return off.isUnknown() || *off % multiplier == 0;
     }
 

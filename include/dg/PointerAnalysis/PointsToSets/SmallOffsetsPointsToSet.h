@@ -24,7 +24,7 @@ class SmallOffsetsPointsToSet {
             idVector; // starts from 0 (node = idVector[id - 1])
 
     // if the node doesn't have ID, it's assigned one
-    size_t getNodeID(PSNode *node) const {
+    static size_t getNodeID(PSNode *node) {
         auto it = ids.find(node);
         if (it != ids.end()) {
             return it->second;
@@ -33,19 +33,19 @@ class SmallOffsetsPointsToSet {
         return ids.emplace_hint(it, node, ids.size() + 1)->second;
     }
 
-    size_t getNodePosition(PSNode *node) const {
-        return ((getNodeID(node) - 1) * 64);
+    static size_t getNodePosition(PSNode *node) {
+        return ((getNodeID(node) - 1) * (MAX_OFFSET + 1));
     }
 
-    size_t getPosition(PSNode *node, Offset off) const {
+    static size_t getPosition(PSNode *node, Offset off) {
         if (off.isUnknown()) {
-            return getNodePosition(node) + 63;
+            return getNodePosition(node) + MAX_OFFSET;
         }
         return getNodePosition(node) + *off;
     }
 
-    bool isOffsetValid(Offset off) const {
-        return off.isUnknown() || *off <= 62;
+    static bool isOffsetValid(Offset off) {
+        return off.isUnknown() || *off <= (MAX_OFFSET - 1);
     }
 
     bool addWithUnknownOffset(PSNode *target) {

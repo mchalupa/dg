@@ -36,8 +36,7 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 */
 
 namespace {
-static inline std::ostream &printLLVMVal(std::ostream &os,
-                                         const llvm::Value *val) {
+inline std::ostream &printLLVMVal(std::ostream &os, const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;

@@ -328,7 +328,7 @@ class Dumper {
     Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = false)
             : DDA(DDA), dot(todot) {}
 
-    void dumpBBlockEdges(RWBBlock *block) {
+    static void dumpBBlockEdges(RWBBlock *block) {
         // dump CFG edges between nodes in one block
         RWNode *last = nullptr;
         for (RWNode *node : block->getNodes()) {
@@ -521,7 +521,7 @@ class Dumper {
     }
 
   private:
-    void printId(const RWNode *node) { printf(" [%u]", node->getID()); }
+    static void printId(const RWNode *node) { printf(" [%u]", node->getID()); }
 
     void _dumpDefSites(const std::set<DefSite> &defs, const char *kind) {
         if (defs.empty())

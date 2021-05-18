@@ -61,7 +61,7 @@ class DGElement {
     friend class DependenceGraph;
     // Only for the use in ctor. This method gets the ID of this node
     // from the DependenceGraph (increasing the graph's id counter).
-    unsigned getNewID(DependenceGraph &g);
+    static unsigned getNewID(DependenceGraph &g);
 
   public:
     virtual ~DGElement() = default;
