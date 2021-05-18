@@ -18,8 +18,7 @@ std::vector<std::string> splitList(const std::string &opt, char sep) {
 
         if (pos == std::string::npos)
             break;
-        else
-            ++pos;
+        ++pos;
     }
 
     return ret;

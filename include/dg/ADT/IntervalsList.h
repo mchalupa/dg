@@ -82,7 +82,8 @@ class IntervalsList {
                 }
                 _replace_overlapping(I, it, to);
                 break;
-            } else if (it->start > I.end) {
+            }
+            if (it->start > I.end) {
                 intervals.insert(it, I);
                 break;
             }

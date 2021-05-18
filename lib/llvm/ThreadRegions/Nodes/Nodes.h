@@ -94,9 +94,8 @@ typename Map<nodeType>::type *castNode(T *node) {
     }
     if (node->getType() == nodeType) {
         return static_cast<typename Map<nodeType>::type *>(node);
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 template <NodeType nodeType, typename T>
@@ -106,9 +105,8 @@ typename Map<nodeType>::const_type *castNode(const T *node) {
     }
     if (node->getType() == nodeType) {
         return static_cast<typename Map<nodeType>::const_type *>(node);
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 #endif // NODES_H

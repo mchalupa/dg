@@ -952,17 +952,15 @@ static bool isCallTo(LLVMNode *callNode, const std::set<std::string> &names) {
             return false;
 
         return array_match(func->getName(), names);
-    } else {
-        // simply iterate over the subgraphs, get the entry node
-        // and check it
-        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
-            LLVMNode *entry = dg->getEntry();
-            assert(entry && "No entry node in graph");
+    } // simply iterate over the subgraphs, get the entry node
+    // and check it
+    for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
+        LLVMNode *entry = dg->getEntry();
+        assert(entry && "No entry node in graph");
 
-            const Function *func =
-                    cast<Function>(entry->getValue()->stripPointerCasts());
-            return array_match(func->getName(), names);
-        }
+        const Function *func =
+                cast<Function>(entry->getValue()->stripPointerCasts());
+        return array_match(func->getName(), names);
     }
 
     return false;

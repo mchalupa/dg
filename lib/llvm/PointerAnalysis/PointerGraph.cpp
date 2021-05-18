@@ -37,23 +37,24 @@ namespace dg {
 namespace pta {
 
 PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val) {
-    if (llvm::isa<llvm::ConstantPointerNull>(val) ||
-        llvmutils::isConstantZero(val)) {
+    using namespace llvm;
+    if (isa<ConstantPointerNull>(val) || llvmutils::isConstantZero(val)) {
         return NULLPTR;
-    } else if (llvm::isa<llvm::UndefValue>(val)) {
-        return UNKNOWN_MEMORY;
-    } else if (const llvm::ConstantExpr *CE =
-                       llvm::dyn_cast<llvm::ConstantExpr>(val)) {
+    }
+    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
         return createConstantExpr(CE).getRepresentant();
-    } else if (llvm::isa<llvm::Function>(val)) {
+    }
+    if (isa<Function>(val)) {
         PSNode *ret = PS.create<PSNodeType::FUNCTION>();
         addNode(val, ret);
         return ret;
-    } else if (llvm::isa<llvm::Constant>(val)) {
+    }
+    if (isa<Constant>(val) || isa<UndefValue>(val)) {
         // it is just some constant that we can not handle
         return UNKNOWN_MEMORY;
-    } else
-        return nullptr;
+    }
+
+    return nullptr;
 }
 
 // try get operand, return null if no such value has been constructed
@@ -308,10 +309,9 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
 
         // it returns something? We want that!
         return !func->getReturnType()->isVoidTy();
-    } else
-        // we want defined function, since those can contain
-        // pointer's manipulation and modify CFG
-        return true;
+    } // we want defined function, since those can contain
+    // pointer's manipulation and modify CFG
+    return true;
 
     assert(0 && "We should not reach this");
 }
@@ -692,9 +692,8 @@ bool LLVMPointerGraphBuilder::validateSubgraph(bool no_connectivity) const {
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();
         return false;
-    } else {
-        return true;
     }
+    return true;
 }
 
 std::vector<PSNode *>

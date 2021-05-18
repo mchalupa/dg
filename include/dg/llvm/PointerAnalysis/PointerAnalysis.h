@@ -111,7 +111,8 @@ class DGLLVMPointerAnalysisImpl : public PTType {
                 if (F->getName() == "pthread_create") {
                     builder->insertPthreadCreateByPtrCall(callsite);
                     return true;
-                } else if (F->getName() == "pthread_join") {
+                }
+                if (F->getName() == "pthread_join") {
                     builder->insertPthreadJoinByPtrCall(callsite);
                     return true;
                 }
@@ -257,18 +258,17 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     std::pair<bool, LLVMPointsToSet>
     getLLVMPointsToChecked(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
-        if (auto node = getPointsToNode(val)) {
+        if (auto *node = getPointsToNode(val)) {
             if (node->pointsTo.empty()) {
                 pts = new DGLLVMPointsToSet(getUnknownPTSet());
                 return {false, pts->toLLVMPointsToSet()};
-            } else {
-                pts = new DGLLVMPointsToSet(node->pointsTo);
-                return {true, pts->toLLVMPointsToSet()};
             }
-        } else {
-            pts = new DGLLVMPointsToSet(getUnknownPTSet());
-            return {false, pts->toLLVMPointsToSet()};
+            pts = new DGLLVMPointsToSet(node->pointsTo);
+            return {true, pts->toLLVMPointsToSet()};
+
         }
+        pts = new DGLLVMPointsToSet(getUnknownPTSet());
+        return {false, pts->toLLVMPointsToSet()};
     }
 
     const std::vector<std::unique_ptr<PSNode>> &getNodes() {

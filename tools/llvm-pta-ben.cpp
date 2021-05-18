@@ -129,7 +129,8 @@ static int compare_pointer(const Pointer &ptr1, const Pointer &ptr2) {
     if (ptr1.target == ptr2.target) {
         if (ptr1.offset.isUnknown() || ptr2.offset.isUnknown()) {
             return MayAlias;
-        } else if (ptr1.offset == ptr2.offset) {
+        }
+        if (ptr1.offset == ptr2.offset) {
             return MustAlias;
         }
         // fall-through to NoAlias
@@ -224,17 +225,9 @@ static llvm::StringRef NOALIAS("NOALIAS"), MAYALIAS("MAYALIAS"),
         EXPECTEDFAIL_NOALIAS("EXPECTEDFAIL_NOALIAS");
 
 static int test_checkfunc(const llvm::StringRef &fun) {
-    if (fun.equals(NOALIAS)) {
-        return true;
-    } else if (fun.equals(MAYALIAS)) {
-        return true;
-    } else if (fun.equals(MUSTALIAS)) {
-        return true;
-    } else if (fun.equals(PARTIALALIAS)) {
-        return true;
-    } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-        return true;
-    } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
+    if (fun.equals(NOALIAS) || fun.equals(MAYALIAS) || fun.equals(MUSTALIAS) ||
+        fun.equals(PARTIALALIAS) || fun.equals(EXPECTEDFAIL_MAYALIAS) ||
+        fun.equals(EXPECTEDFAIL_NOALIAS)) {
         return true;
     }
     return false;
