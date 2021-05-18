@@ -1,9 +1,5 @@
-#ifndef SINGLEBITVECTORPOINTSTOSET_H
-#define SINGLEBITVECTORPOINTSTOSET_H
-
-#include "LookupTable.h"
-#include "dg/ADT/Bitvector.h"
-#include "dg/PointerAnalysis/Pointer.h"
+#ifndef DG_SINGLEBITVECTORPOINTSTOSET_H
+#define DG_SINGLEBITVECTORPOINTSTOSET_H
 
 #include <cassert>
 #include <map>
@@ -191,4 +187,4 @@ class PointerIdPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* SINGLEBITVECTORPOINTSTOSET_H */
+#endif // DG_SINGLEBITVECTORPOINTSTOSET_H

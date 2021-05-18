@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
-#define _LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
+#ifndef LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
+#define LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -344,4 +344,4 @@ operator|=(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT &a,
     return a;
 }
 
-#endif // _LLVM_DG_ANNOTATION_WRITER_H_
+#endif // LLVM_DG_ANNOTATION_WRITER_H_

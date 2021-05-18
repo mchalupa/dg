@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_VERIFIER_H_
-#define _LLVM_DG_VERIFIER_H_
+#ifndef LLVM_DG_VERIFIER_H_
+#define LLVM_DG_VERIFIER_H_
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 
@@ -30,4 +30,4 @@ class LLVMDGVerifier {
 
 } // namespace dg
 
-#endif // _LLVM_DG_VERIFIER_H_
+#endif // LLVM_DG_VERIFIER_H_

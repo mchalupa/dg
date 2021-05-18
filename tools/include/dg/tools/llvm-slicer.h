@@ -1,5 +1,5 @@
-#ifndef _DG_TOOL_LLVM_SLICER_H_
-#define _DG_TOOL_LLVM_SLICER_H_
+#ifndef DG_TOOL_LLVM_SLICER_H_
+#define DG_TOOL_LLVM_SLICER_H_
 
 #include <ctime>
 #include <fstream>
@@ -538,4 +538,4 @@ class ModuleAnnotator {
     }
 };
 
-#endif // _DG_TOOL_LLVM_SLICER_H_
+#endif // DG_TOOL_LLVM_SLICER_H_

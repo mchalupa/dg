@@ -1,5 +1,5 @@
-#ifndef _LLVM_NODE_H_
-#define _LLVM_NODE_H_
+#ifndef LLVM_NODE_H_
+#define LLVM_NODE_H_
 
 #ifndef HAVE_LLVM
 #error "Need LLVM"
@@ -87,4 +87,4 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode> {
 
 } // namespace dg
 
-#endif // _LLVM_NODE_H_
+#endif // LLVM_NODE_H_

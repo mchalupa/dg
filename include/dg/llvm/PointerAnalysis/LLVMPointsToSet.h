@@ -1,9 +1,13 @@
-#ifndef _LLVM_DG_POINTS_TO_SET_H_
-#define _LLVM_DG_POINTS_TO_SET_H_
+#ifndef LLVM_DG_POINTS_TO_SET_H_
+#define LLVM_DG_POINTS_TO_SET_H_
+
+#include <cassert>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Value.h>
+
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/PointerAnalysis/PointsToSet.h"
@@ -466,4 +470,4 @@ class DGLLVMPointsToSet
 
 } // namespace dg
 
-#endif // _LLVM_DG_POINTS_TO_SET_H_
+#endif // LLVM_DG_POINTS_TO_SET_H_

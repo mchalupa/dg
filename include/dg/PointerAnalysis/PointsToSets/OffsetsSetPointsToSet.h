@@ -1,5 +1,5 @@
-#ifndef ORIGINALPOINTSTOSET_H
-#define ORIGINALPOINTSTOSET_H
+#ifndef DG_OFFSETS_SET_PTSET_H
+#define DG_OFFSETS_SET_PTSET_H
 
 #include "dg/ADT/Bitvector.h"
 #include "dg/PointerAnalysis/Pointer.h"
@@ -219,4 +219,4 @@ class OffsetsSetPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* ORIGINALPOINTSTOSET_H */
+#endif // DG_OFFSETS_SET_PTSET_H

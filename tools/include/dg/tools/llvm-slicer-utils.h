@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_SLICER_UTILS_H_
-#define _DG_LLVM_SLICER_UTILS_H_
+#ifndef DG_LLVM_SLICER_UTILS_H_
+#define DG_LLVM_SLICER_UTILS_H_
 
 #include <functional>
 
@@ -55,4 +55,4 @@ struct CVariableDecl {
     CVariableDecl(const CVariableDecl &) = default;
 };
 
-#endif // _DG_LLVM_SLICER_UTILS_H_
+#endif // DG_LLVM_SLICER_UTILS_H_
