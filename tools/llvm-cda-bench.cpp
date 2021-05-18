@@ -1,6 +1,7 @@
 #include <cassert>
 #include <ctime>
 #include <iostream>
+#include <memory>
 
 #ifndef HAVE_LLVM
 #error "This code needs LLVM enabled"
@@ -305,8 +306,7 @@ static void dumpFunStats(const llvm::Function &F) {
 static inline std::unique_ptr<LLVMControlDependenceAnalysis>
 createAnalysis(llvm::Module *M,
                const LLVMControlDependenceAnalysisOptions &opts) {
-    return std::unique_ptr<LLVMControlDependenceAnalysis>(
-            new LLVMControlDependenceAnalysis(M, opts));
+    return std::make_unique<LLVMControlDependenceAnalysis>(M, opts);
 }
 
 int main(int argc, char *argv[]) {
