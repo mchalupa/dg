@@ -235,7 +235,7 @@ static bool instMatchesCrit(const llvm::Instruction &I, const std::string &fun,
         }
     }
 
-    if (obj == "") {
+    if (obj.empty()) {
         // we passed the line check and we have no obj to check
         return true;
     }
@@ -329,7 +329,7 @@ static unsigned parseLine(const std::vector<std::string> &parts) {
     assert(idx == 0 || idx <= 2);
     assert(idx < parts.size());
 
-    if (parts[idx] == "" || parts[idx] == "*")
+    if (parts[idx].empty() || parts[idx] == "*")
         return 0; // any line
 
     // will we support multiple lines separated by comma?
@@ -370,7 +370,7 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
     assert(!criterion.empty() && "No criteria given");
 
     auto parts = splitList(criterion, '#');
-    if (parts.size() > 4 || parts.size() < 1) {
+    if (parts.size() > 4 || parts.empty()) {
         llvm::errs() << "WARNING: ignoring invalid slicing criterion: "
                      << criterion << "\n";
         return;
@@ -385,7 +385,7 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
                                << file << " # " << fun << " # " << line << " # "
                                << obj);
 
-    if (fun != "" && obj == "" && line == 0) {
+    if (!fun.empty() && obj.empty() && line == 0) {
         llvm::errs() << "WARNING: ignoring invalid slicing criterion: "
                      << criterion << "\n";
         return;
@@ -393,9 +393,9 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
 
     // try match globals
     DBG(llvm - slicer, "Checking global variables for slicing criteria");
-    if (fun == "") {
+    if (fun.empty()) {
         for (auto &G : M.globals()) {
-            if (file != "" && !fileMatch(file, G))
+            if (!file.empty() && !fileMatch(file, G))
                 continue;
             if (globalMatchesCrit(G, line, obj)) {
                 result.insert(&G);
@@ -410,7 +410,7 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
         for (auto &it : getConstructedFunctions()) {
             for (auto &I :
                  llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
-                if (file != "" && !fileMatch(file, I))
+                if (!file.empty() && !fileMatch(file, I))
                     continue;
 
                 if (instMatchesCrit(I, fun, line, obj, pta)) {
@@ -520,7 +520,7 @@ static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
 
     // map the criteria to instructions
     for (const auto &crit : criteria) {
-        if (crit == "")
+        if (crit.empty())
             continue;
 
         result.emplace_back();

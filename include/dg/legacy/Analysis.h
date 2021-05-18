@@ -6,24 +6,24 @@ namespace legacy {
 
 // data for analyses, stored in nodes
 struct AnalysesAuxiliaryData {
-    AnalysesAuxiliaryData() : lastwalkid(0), dfsorder(0), bfsorder(0) {}
+    AnalysesAuxiliaryData() = default;
 
     // last id of walk (DFS/BFS) that ran on this node
     // ~~> marker if it has been processed
-    unsigned int lastwalkid;
+    unsigned int lastwalkid{0};
 
     // DFS order number of the node
-    unsigned int dfsorder;
+    unsigned int dfsorder{0};
     // BFS order number of the node
-    unsigned int bfsorder;
+    unsigned int bfsorder{0};
 };
 
 // gather statistics about a run
 struct AnalysisStatistics {
-    AnalysisStatistics() : processedBlocks(0), processedNodes(0){};
+    AnalysisStatistics() = default;
 
-    uint64_t processedBlocks;
-    uint64_t processedNodes;
+    uint64_t processedBlocks{0};
+    uint64_t processedNodes{0};
 
     uint64_t getProcessedBlocks() const { return processedBlocks; }
     uint64_t getProcessedNodes() const { return processedNodes; }

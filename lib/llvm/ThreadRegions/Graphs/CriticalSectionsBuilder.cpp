@@ -6,7 +6,7 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 SILENCE_LLVM_WARNINGS_POP
 
-CriticalSectionsBuilder::CriticalSectionsBuilder() {}
+CriticalSectionsBuilder::CriticalSectionsBuilder() = default;
 
 CriticalSectionsBuilder::~CriticalSectionsBuilder() {
     for (auto iterator : criticalSections_) {

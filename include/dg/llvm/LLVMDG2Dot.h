@@ -91,16 +91,16 @@ class LLVMDG2Dot : public debug::DG2Dot<LLVMNode> {
     LLVMDG2Dot(LLVMDependenceGraph *dg,
                uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD |
                                debug::PRINT_CD,
-               const char *file = NULL)
+               const char *file = nullptr)
             : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual */
-    std::ostream &printKey(std::ostream &os, llvm::Value *val) {
+    std::ostream &printKey(std::ostream &os, llvm::Value *val) override {
         return printLLVMVal(os, val);
     }
 
     /* virtual */
-    bool checkNode(std::ostream &os, LLVMNode *node) {
+    bool checkNode(std::ostream &os, LLVMNode *node) override {
         bool err = false;
         const llvm::Value *val = node->getKey();
 
@@ -172,7 +172,7 @@ class LLVMDG2Dot : public debug::DG2Dot<LLVMNode> {
     }
 
     bool dump(const char *new_file = nullptr,
-              const char *dump_func_only = nullptr) {
+              const char *dump_func_only = nullptr) override {
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;
@@ -226,12 +226,12 @@ class LLVMDGDumpBlocks : public debug::DG2Dot<LLVMNode> {
     */
 
     /* virtual */
-    bool checkNode(std::ostream &, LLVMNode *) {
+    bool checkNode(std::ostream & /*os*/, LLVMNode * /*node*/) override {
         return false; // no error
     }
 
     bool dump(const char *new_file = nullptr,
-              const char *dump_func_only = nullptr) {
+              const char *dump_func_only = nullptr) override {
         // make sure we have the file opened
         if (!ensureFile(new_file))
             return false;

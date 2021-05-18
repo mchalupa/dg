@@ -16,14 +16,14 @@ extern PSNode *UNKNOWN_MEMORY;
 extern PSNode *INVALIDATED;
 
 struct Pointer {
-    Pointer() : target(nullptr) {}
+    Pointer() = default;
 
     Pointer(PSNode *n, Offset off) : target(n), offset(off) {
         assert(n && "Cannot have a pointer with nullptr as target");
     }
 
     // PSNode that allocated the memory this pointer points-to
-    PSNode *target;
+    PSNode *target{nullptr};
     // offset into the memory it points to
     Offset offset;
 

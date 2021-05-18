@@ -1,7 +1,8 @@
 #ifndef DG_DGBBLOCK_H_
 #define DG_DGBBLOCK_H_
 
-#include <assert.h>
+#include <cassert>
+#include <vector>
 
 #include "DGNode.h"
 #include "DepDGElement.h"

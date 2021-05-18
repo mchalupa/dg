@@ -3,6 +3,7 @@
 
 #include "dg/ADT/Bitvector.h"
 #include "dg/PointerAnalysis/Pointer.h"
+#include "dg/util/iterators.h"
 
 #include <cassert>
 #include <set>
@@ -116,11 +117,9 @@ class SimplePointsToSet {
     }
 
     bool pointsToTarget(PSNode *target) const {
-        for (const auto &ptr : pointers) {
-            if (ptr.target == target)
-                return true;
-        }
-        return false;
+        return dg::any_of(pointers, [target](const auto &ptr) {
+            return ptr.target == target;
+        });
     }
 
     bool isSingleton() const { return pointers.size() == 1; }

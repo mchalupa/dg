@@ -4,12 +4,13 @@
 #include <map>
 #include <vector>
 
-#ifdef HAVE_TSL_HOPSCOTCH
+#if defined(HAVE_TSL_HOPSCOTCH) || (__clang__)
 #include "dg/ADT/HashMap.h"
 #else
 #include "dg/ADT/Map.h"
 #endif
 
+#include "dg/Offset.h"
 #include "dg/PointerAnalysis/Pointer.h"
 
 namespace dg {
@@ -20,12 +21,12 @@ class PointerIDLookupTable {
     using Pointer = pta::Pointer;
     using PSNode = pta::PSNode;
 #if defined(HAVE_TSL_HOPSCOTCH) || (__clang__)
-    using PtrToIDMap = dg::HashMap<PSNode *, dg::HashMap<Offset, IDTy>>;
+    using PtrToIDMap = dg::HashMap<PSNode *, dg::HashMap<dg::Offset, IDTy>>;
 #else
     // we create the lookup table statically and there is a bug in GCC
     // that breaks statically created std::unordered_map.
     // So if we have not Hopscotch map, use std::map instead.
-    using PtrToIDMap = dg::Map<PSNode *, dg::Map<Offset, IDTy>>;
+    using PtrToIDMap = dg::Map<PSNode *, dg::Map<dg::Offset, IDTy>>;
 #endif
 
     // this will get a new ID for the pointer if not present

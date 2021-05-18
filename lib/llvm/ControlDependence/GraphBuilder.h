@@ -54,7 +54,7 @@ class CDGraphBuilder {
                     graph.addNodeSuccessor(*last, *nd);
                 last = nd;
             }
-            assert(last || BB.size() == 0);
+            assert(last || BB.empty());
 
             if (!last)
                 continue;
@@ -63,7 +63,7 @@ class CDGraphBuilder {
             for (const auto *bbsucc : successors(&BB)) {
                 auto &succblk = _mapping[bbsucc];
                 if (succblk.nodes.empty()) {
-                    assert(bbsucc->size() == 0);
+                    assert(bbsucc->empty());
                     continue;
                 }
 

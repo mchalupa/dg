@@ -10,7 +10,7 @@ template <typename PTSetT>
 void queryingEmptySet() {
     PTSetT B;
     REQUIRE(B.empty());
-    REQUIRE(B.size() == 0);
+    REQUIRE(B.empty());
 }
 
 template <typename PTSetT>
@@ -93,7 +93,7 @@ void removeElement() {
     REQUIRE(S.size() == 1);
     REQUIRE(S.remove({A, 0}) == true);
     REQUIRE(S.remove({A, 1}) == false);
-    REQUIRE(S.size() == 0);
+    REQUIRE(S.empty());
 }
 
 template <typename PTSetT>
@@ -132,7 +132,7 @@ void removeAnyTest() {
     REQUIRE(S.removeAny(A) == false);
     REQUIRE(S.size() == 3);
     REQUIRE(S.removeAny(B) == true);
-    REQUIRE(S.size() == 0);
+    REQUIRE(S.empty());
     REQUIRE(S.removeAny(B) == false);
 }
 

@@ -289,7 +289,7 @@ class NTSCDRanganath {
                 //    DBG(tmp, "  t(" << symb.first->getID() << ", " <<
                 //    symb.second->getID() << ")");
                 //}
-                if (Snp.size() > 0 && Snp.size() < p->successors().size()) {
+                if (!Snp.empty() && Snp.size() < p->successors().size()) {
                     CD[n].insert(p);
                     revCD[p].insert(n);
                 }

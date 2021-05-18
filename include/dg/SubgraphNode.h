@@ -153,7 +153,7 @@ class SubgraphNode {
         assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         n->addUser(static_cast<NodeT *>(this));
-        assert(n->users.size() > 0);
+        assert(!n->users.empty());
 
         return operands.size();
     }

@@ -235,10 +235,10 @@ static void dumpFunStats(const llvm::Function &F) {
     std::vector<StackNode> stack;
     on_stack[&F.getEntryBlock()] = true;
 
-    stack.push_back(
-            {&F.getEntryBlock(), hasSuccessors(&F.getEntryBlock())
-                                         ? *succ_begin(&F.getEntryBlock())
-                                         : nullptr});
+    stack.emplace_back(&F.getEntryBlock(),
+                       hasSuccessors(&F.getEntryBlock())
+                               ? *succ_begin(&F.getEntryBlock())
+                               : nullptr);
     maxdepth = 1;
 
     while (!stack.empty()) {
@@ -288,9 +288,9 @@ static void dumpFunStats(const llvm::Function &F) {
         } else {
             ++tree;
             on_stack[nextblk] = true;
-            stack.push_back({nextblk, hasSuccessors(nextblk)
-                                              ? *succ_begin(nextblk)
-                                              : nullptr});
+            stack.emplace_back(nextblk, hasSuccessors(nextblk)
+                                                ? *succ_begin(nextblk)
+                                                : nullptr);
             maxdepth = std::max(maxdepth, stack.size());
         }
     }
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (fun_info_only) {
-        for (auto &F : *M.get()) {
+        for (auto &F : *M) {
             if (F.isDeclaration()) {
                 continue;
             }
@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
                      "dumping just info about funs\n";
     }
 
-    for (auto &F : *M.get()) {
+    for (auto &F : *M) {
         if (F.isDeclaration()) {
             continue;
         }
@@ -447,7 +447,7 @@ int main(int argc, char *argv[]) {
         return 0;
 
     std::cout << "\n ==== Comparison ====\n";
-    for (auto &F : *M.get()) {
+    for (auto &F : *M) {
         if (F.isDeclaration()) {
             continue;
         }

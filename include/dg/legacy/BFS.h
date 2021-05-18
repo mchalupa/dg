@@ -57,7 +57,7 @@ class BBlockBFS : public BBlockWalk<NodeT, ADT::QueueFIFO<BBlock<NodeT> *>> {
     BBlockBFS<NodeT>(uint32_t fl = 0)
             : BBlockWalk<NodeT, ADT::QueueFIFO<BBlock<NodeT> *>>(
                       convertBFSBBFlags(fl)),
-              bfsorder(0), flags(fl) {}
+              flags(fl) {}
 
     template <typename FuncT, typename DataT>
     void run(BBlockPtrT entry, FuncT func, DataT data) {
@@ -80,7 +80,7 @@ class BBlockBFS : public BBlockWalk<NodeT, ADT::QueueFIFO<BBlock<NodeT> *>> {
     }
 
   private:
-    unsigned int bfsorder;
+    unsigned int bfsorder{0};
     uint32_t flags;
 };
 #endif // ENABLE_CFG

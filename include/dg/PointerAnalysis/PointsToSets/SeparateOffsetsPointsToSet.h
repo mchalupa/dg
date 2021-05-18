@@ -145,7 +145,7 @@ class SeparateOffsetsPointsToSet {
         }
 
         Pointer operator*() const {
-            return Pointer(idVector[*nodes_it - 1], *offsets_it);
+            return {idVector[*nodes_it - 1], *offsets_it};
         }
 
         bool operator==(const const_iterator &rhs) const {
@@ -159,10 +159,8 @@ class SeparateOffsetsPointsToSet {
         friend class SeparateOffsetsPointsToSet;
     };
 
-    const_iterator begin() const { return const_iterator(nodes, offsets); }
-    const_iterator end() const {
-        return const_iterator(nodes, offsets, true /* end */);
-    }
+    const_iterator begin() const { return {nodes, offsets}; }
+    const_iterator end() const { return {nodes, offsets, true /* end */}; }
 
     friend class const_iterator;
 };

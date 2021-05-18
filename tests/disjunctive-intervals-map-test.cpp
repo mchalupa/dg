@@ -65,7 +65,7 @@ class DisjunctiveIntervalMapMatcher
         return true;
     }
 
-    virtual std::string describe() const override {
+    std::string describe() const override {
         std::ostringstream ss;
         ss << "has the structure: " << structure;
         return ss.str();
@@ -461,22 +461,22 @@ TEST_CASE("Uncovered 1", "DisjunctiveIntervalMap") {
     M.update(0, 5, 0);
 
     ret = M.uncovered(2, 5);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 
     ret = M.uncovered(0, 5);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 
     ret = M.uncovered(3, 4);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 
     ret = M.uncovered(5, 5);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 
     ret = M.uncovered(1, 1);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 
     ret = M.uncovered(0, 0);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 
     ret = M.uncovered(6, 6);
     REQUIRE(ret.size() == 1);
@@ -571,5 +571,5 @@ TEST_CASE("Uncovered - regression 1", "DisjunctiveIntervalMap") {
     REQUIRE(ret[0] == IntT{4, 100000});
 
     ret = M.uncovered(0, 3);
-    REQUIRE(ret.size() == 0);
+    REQUIRE(ret.empty());
 }

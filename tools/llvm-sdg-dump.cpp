@@ -87,7 +87,7 @@ class SDGDumper {
             // dumper.dump();
         } else {
             llvmdg::SDG2Dot dumper(dg);
-            dumper.dump(fl.c_str());
+            dumper.dump(fl);
         }
     }
 };

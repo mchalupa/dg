@@ -141,21 +141,17 @@ class AlignedSmallOffsetsPointsToSet {
             if (pointers.get(i))
                 return true;
         }
-        for (const auto &ptr : oddPointers) {
-            if (ptr.target == target)
-                return true;
-        }
-        return false;
+        return dg::any_of(oddPointers, [target](const auto &ptr) {
+            return ptr.target == target;
+        });
     }
 
     bool isSingleton() const {
-        return (pointers.size() == 1 && oddPointers.size() == 0) ||
-               (pointers.size() == 0 && oddPointers.size() == 1);
+        return (pointers.size() == 1 && oddPointers.empty()) ||
+               (pointers.empty() && oddPointers.size() == 1);
     }
 
-    bool empty() const {
-        return pointers.size() == 0 && oddPointers.size() == 0;
-    }
+    bool empty() const { return pointers.empty() && oddPointers.empty(); }
 
     size_t count(const Pointer &ptr) const { return pointsTo(ptr); }
 
@@ -238,11 +234,9 @@ class AlignedSmallOffsetsPointsToSet {
         friend class AlignedSmallOffsetsPointsToSet;
     };
 
-    const_iterator begin() const {
-        return const_iterator(pointers, oddPointers);
-    }
+    const_iterator begin() const { return {pointers, oddPointers}; }
     const_iterator end() const {
-        return const_iterator(pointers, oddPointers, true /* end */);
+        return {pointers, oddPointers, true /* end */};
     }
 
     friend class const_iterator;

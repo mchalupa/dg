@@ -42,7 +42,7 @@ static void handleOperands(const Instruction *Inst, LLVMNode *node) {
         if (!op)
             continue;
         const auto &subs = op->getSubgraphs();
-        if (subs.size() > 0 && !op->isVoidTy()) {
+        if (!subs.empty() && !op->isVoidTy()) {
             for (auto *s : subs) {
                 s->getExit()->addDataDependence(node);
             }

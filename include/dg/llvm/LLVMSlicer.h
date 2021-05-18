@@ -47,7 +47,7 @@ static void dropAllUses(Val *V) {
 
 class LLVMSlicer : public Slicer<LLVMNode> {
   public:
-    LLVMSlicer() {}
+    LLVMSlicer() = default;
 
     void keepFunctionUntouched(const char *n) { dont_touch.insert(n); }
 
