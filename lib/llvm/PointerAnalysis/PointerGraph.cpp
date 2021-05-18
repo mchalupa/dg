@@ -261,7 +261,7 @@ PointerSubgraph *LLVMPointerGraphBuilder::getSubgraph(const llvm::Function *F) {
 
 void LLVMPointerGraphBuilder::addPHIOperands(PSNode *node,
                                              const llvm::PHINode *PHI) {
-    for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
+    for (unsigned i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
         if (PSNode *op = tryGetOperand(PHI->getIncomingValue(i))) {
             // do not add duplicate operands
             if (!node->hasOperand(op))

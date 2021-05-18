@@ -356,7 +356,7 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
 
             // replace missing labels. Label should be from 0 to some max,
             // no gaps, so jump to safe exit under missing labels
-            for (uint8_t i = 0; i < tinst->getNumSuccessors(); ++i) {
+            for (unsigned i = 0; i < tinst->getNumSuccessors(); ++i) {
                 if (!labels.contains(i)) {
                     if (!newExitBB)
                         newExitBB = addNewExitBB(graph);

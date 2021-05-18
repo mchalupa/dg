@@ -19,8 +19,8 @@ namespace dg {
 namespace pta {
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst *CI,
-                                                  PSNode *arg, int idx) {
-    assert(idx < static_cast<int>(CI->getNumArgOperands()));
+                                                  PSNode *arg, unsigned idx) {
+    assert(idx < CI->getNumArgOperands());
     PSNode *op = tryGetOperand(CI->getArgOperand(idx));
     if (op && !arg->hasOperand(op)) {
         // NOTE: do not add an operand multiple-times
@@ -42,7 +42,7 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::CallInst &CI,
 }
 
 void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::Function *F,
-                                                  PSNode *arg, int idx) {
+                                                  PSNode *arg, unsigned idx) {
     using namespace llvm;
 
     for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
@@ -59,7 +59,7 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::Function *F,
 
 void LLVMPointerGraphBuilder::addArgumentsOperands(const llvm::Function *F,
                                                    const llvm::CallInst *CI,
-                                                   int index) {
+                                                   unsigned index) {
     for (auto A = F->arg_begin(), E = F->arg_end(); A != E; ++A, ++index) {
         auto it = nodes_map.find(&*A);
         assert(it != nodes_map.end());
