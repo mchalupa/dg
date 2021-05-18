@@ -838,7 +838,8 @@ static void getLineCriteriaNodes(LLVMDependenceGraph &dg,
 }
 
 static std::set<LLVMNode *>
-_mapToNextInstr(LLVMDependenceGraph &, const std::set<LLVMNode *> &callsites) {
+_mapToNextInstr(LLVMDependenceGraph & /*unused*/,
+                const std::set<LLVMNode *> &callsites) {
     std::set<LLVMNode *> nodes;
 
     for (LLVMNode *cs : callsites) {

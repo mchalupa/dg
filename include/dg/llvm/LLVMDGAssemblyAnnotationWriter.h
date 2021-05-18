@@ -261,7 +261,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
         module_comment = std::move(comment);
     }
 
-    void emitFunctionAnnot(const llvm::Function *,
+    void emitFunctionAnnot(const llvm::Function * /*unused*/,
                            llvm::formatted_raw_ostream &os) override {
         // dump the slicer's setting to the file
         // for easier comprehension

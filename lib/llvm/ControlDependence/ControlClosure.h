@@ -47,23 +47,23 @@ class StrongControlClosure : public LLVMControlDependenceAnalysisImpl {
     }
 
     /// Getters of dependencies for a value
-    ValVec getDependencies(const llvm::Instruction *) override {
+    ValVec getDependencies(const llvm::Instruction * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
 
-    ValVec getDependent(const llvm::Instruction *) override {
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
 
     /// Getters of dependencies for a basic block
-    ValVec getDependencies(const llvm::BasicBlock *) override {
+    ValVec getDependencies(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
 
-    ValVec getDependent(const llvm::BasicBlock *) override {
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }

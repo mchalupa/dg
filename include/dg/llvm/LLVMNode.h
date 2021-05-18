@@ -70,9 +70,9 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode> {
     // by call-site and add parameter edges between actual and
     // formal parameters. The argument is the graph of called function.
     // Must be called only when node is call-site.
-    void addActualParameters(LLVMDependenceGraph *);
-    void addActualParameters(LLVMDependenceGraph *, llvm::Function *,
-                             bool fork = false);
+    void addActualParameters(LLVMDependenceGraph * /*funcGraph*/);
+    void addActualParameters(LLVMDependenceGraph * /*funcGraph*/,
+                             llvm::Function * /*func*/, bool fork = false);
 
     bool isVoidTy() const { return getKey()->getType()->isVoidTy(); }
 

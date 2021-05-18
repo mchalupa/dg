@@ -193,7 +193,7 @@ class Dumper {
     LLVMDataDependenceAnalysis *DDA;
     bool dot{false};
 
-    virtual void dumpBBlockDefinitions(RWBBlock *) {}
+    virtual void dumpBBlockDefinitions(RWBBlock * /*unused*/) {}
 
     virtual void dumpSubgraphLabel(RWSubgraph *subgraph) {
         printf("  label=\"subgraph: %s(%p)\\n\";\n",

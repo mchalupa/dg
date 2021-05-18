@@ -117,11 +117,17 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         return ret;
     }
 
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
-    ValVec getDependencies(const llvm::BasicBlock *) override { return {}; }
-    ValVec getDependent(const llvm::BasicBlock *) override { return {}; }
+    ValVec getDependencies(const llvm::BasicBlock * /*unused*/) override {
+        return {};
+    }
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
+        return {};
+    }
 
     void compute(const llvm::Function *F = nullptr) override {
         if (F && !F->isDeclaration()) {

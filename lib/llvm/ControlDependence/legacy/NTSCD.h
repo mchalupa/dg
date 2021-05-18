@@ -49,8 +49,12 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
     }
 
     /// Getters of dependencies for a value
-    ValVec getDependencies(const llvm::Instruction *) override { return {}; }
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependencies(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
@@ -76,7 +80,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::BasicBlock *) override {
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
@@ -109,7 +113,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
     std::unordered_map<Block *, NodeInfo> nodeInfo;
     std::set<const llvm::Function *> _computed; // for on-demand
 
-    void computeDependencies(Function *);
+    void computeDependencies(Function * /*function*/);
     void computeOnDemand(llvm::Function *F);
 
     void computeInterprocDependencies(Function *function);

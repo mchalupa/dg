@@ -63,9 +63,9 @@ class PointerAnalysis {
     /* hooks for analysis - optional. The analysis may do everything
      * in getMemoryObjects, but spliting it into before-get-after sequence
      * is more readable */
-    virtual bool beforeProcessed(PSNode *) { return false; }
+    virtual bool beforeProcessed(PSNode * /*unused*/) { return false; }
 
-    virtual bool afterProcessed(PSNode *) { return false; }
+    virtual bool afterProcessed(PSNode * /*unused*/) { return false; }
 
     PointerGraph *getPG() { return PG; }
     const PointerGraph *getPG() const { return PG; }
@@ -162,13 +162,13 @@ class PointerAnalysis {
     // handle join of threads
     // FIXME: this should be done in the generic pointer analysis,
     // we do not need to pass this to the LLVM part...
-    virtual bool handleJoin(PSNode *) { return false; }
+    virtual bool handleJoin(PSNode * /*unused*/) { return false; }
 
   private:
     // check the sanity of results of pointer analysis
     void sanityCheck();
 
-    bool processNode(PSNode *);
+    bool processNode(PSNode * /*node*/);
     bool processLoad(PSNode *node);
     bool processGep(PSNode *node);
     bool processMemcpy(PSNode *node);

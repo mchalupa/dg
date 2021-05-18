@@ -5,6 +5,7 @@ using namespace std;
 MayHappenInParallel::MayHappenInParallel(set<ThreadRegion *> threadRegions)
         : threadRegions_(move(threadRegions)) {}
 
-set<ThreadRegion *> MayHappenInParallel::parallelRegions(ThreadRegion *) {
+set<ThreadRegion *>
+MayHappenInParallel::parallelRegions(ThreadRegion * /*unused*/) {
     return threadRegions_;
 }
