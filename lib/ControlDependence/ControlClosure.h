@@ -146,10 +146,8 @@ class StrongControlClosure {
                 // DBG(cda, "Adding " << toadd->getID() << " to closure");
                 X.insert(toadd);
                 continue;
-            } else {
-                // no other edge to process
-                break;
-            }
+            } // no other edge to process
+            break;
         }
     }
 

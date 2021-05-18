@@ -253,8 +253,7 @@ class ModuleWriter {
     int saveModule(bool should_verify_module = true) {
         if (should_verify_module)
             return verifyAndWriteModule();
-        else
-            return writeModule();
+        return writeModule();
     }
 
     void removeUnusedFromModule() {

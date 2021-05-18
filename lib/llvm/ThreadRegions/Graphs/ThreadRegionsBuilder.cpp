@@ -41,7 +41,8 @@ void ThreadRegionsBuilder::visit(Node *node) {
     for (auto *successor : *node) {
         if (visited(successor)) {
             continue;
-        } else if (examined(region(successor))) {
+        }
+        if (examined(region(successor))) {
             region(node)->addSuccessor(region(successor));
         } else {
             ThreadRegion *successorRegion = nullptr;

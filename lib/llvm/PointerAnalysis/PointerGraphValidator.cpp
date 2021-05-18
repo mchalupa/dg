@@ -28,8 +28,8 @@ bool LLVMPointerGraphValidator::reportInvalOperands(
                 return false;
 
             return PointerGraphValidator::reportInvalOperands(nd, user_err);
-        } else // else issue a warning?
-            return false;
+        } // else issue a warning?
+        return false;
     }
 
     return PointerGraphValidator::reportInvalOperands(nd, user_err);

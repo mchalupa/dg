@@ -406,11 +406,14 @@ GraphBuilder::insertUndefinedFunction(const Function *function,
 
     if (funcName == "pthread_create") {
         return insertPthreadCreate(callInstruction);
-    } else if (funcName == "pthread_join") {
+    }
+    if (funcName == "pthread_join") {
         return insertPthreadJoin(callInstruction);
-    } else if (funcName == "pthread_exit") {
+    }
+    if (funcName == "pthread_exit") {
         return insertPthreadExit(callInstruction);
-    } else if (funcName == "pthread_mutex_lock") {
+    }
+    if (funcName == "pthread_mutex_lock") {
         return insertPthreadMutexLock(callInstruction);
     } else if (funcName == "pthread_mutex_unlock") {
         return insertPthreadMutexUnlock(callInstruction);
@@ -495,20 +498,19 @@ GraphBuilder::insertPthreadExit(const CallInst *callInstruction) {
 GraphBuilder::NodeSequence
 GraphBuilder::insertFunction(const Function *function,
                              const CallInst *callInstruction) {
-    if (function->size() == 0) {
+    if (function->empty()) {
         return insertUndefinedFunction(function, callInstruction);
-    } else {
-        Node *callNode;
-        if (callInstruction->getCalledFunction()) {
-            callNode = createNode<NodeType::CALL>(callInstruction);
-        } else {
-            callNode = createNode<NodeType::CALL>(nullptr, callInstruction);
-        }
-        addNode(callNode);
-        auto nodeSeq = createOrGetFunction(function);
-        callNode->addSuccessor(nodeSeq.first);
-        return {callNode, nodeSeq.second};
     }
+    Node *callNode;
+    if (callInstruction->getCalledFunction()) {
+        callNode = createNode<NodeType::CALL>(callInstruction);
+    } else {
+        callNode = createNode<NodeType::CALL>(nullptr, callInstruction);
+    }
+    addNode(callNode);
+    auto nodeSeq = createOrGetFunction(function);
+    callNode->addSuccessor(nodeSeq.first);
+    return {callNode, nodeSeq.second};
 }
 
 GraphBuilder::NodeSequence

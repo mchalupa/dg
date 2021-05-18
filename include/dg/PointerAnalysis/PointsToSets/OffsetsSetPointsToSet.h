@@ -48,16 +48,13 @@ class OffsetsSetPointsToSet {
         if (it == pointers.end()) {
             pointers.emplace_hint(it, target, *off);
             return true;
-        } else {
-            if (it->second.get(Offset::UNKNOWN))
-                return false;
-            else {
-                // the set will return the previous value
-                // of the bit, so that means false if we are
-                // setting a new value
-                return !it->second.set(*off);
-            }
         }
+        if (it->second.get(Offset::UNKNOWN))
+            return false;
+        // the set will return the previous value
+        // of the bit, so that means false if we are
+        // setting a new value
+        return !it->second.set(*off);
     }
 
     bool add(const Pointer &ptr) { return add(ptr.target, ptr.offset); }

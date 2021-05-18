@@ -130,9 +130,8 @@ LLVMNode *LLVMDependenceGraph::findNode(llvm::Value *value) const {
     auto iterator = nodes.find(value);
     if (iterator != nodes.end()) {
         return iterator->second;
-    } else {
-        return nullptr;
     }
+    return nullptr;
 }
 
 bool LLVMDependenceGraph::build(llvm::Module *m, llvm::Function *entry) {
@@ -308,10 +307,7 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc,
 }
 
 static bool is_func_defined(const llvm::Function *func) {
-    if (!func || func->size() == 0)
-        return false;
-
-    return true;
+    return !(!func || func->empty());
 }
 
 LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn() {
@@ -396,11 +392,8 @@ static bool isMemAllocationFunc(const llvm::Function *func) {
         return false;
 
     const llvm::StringRef &name = func->getName();
-    if (name.equals("malloc") || name.equals("calloc") ||
-        name.equals("realloc"))
-        return true;
-
-    return false;
+    return name.equals("malloc") || name.equals("calloc") ||
+           name.equals("realloc");
 }
 
 void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
@@ -831,18 +824,16 @@ static bool match_callsite_name(LLVMNode *callNode, const char *names[]) {
         // otherwise we would have a subgraph
         assert(func->size() == 0);
         return array_match(func->getName(), names);
-    } else {
-        // simply iterate over the subgraphs, get the entry node
-        // and check it
-        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
-            LLVMNode *entry = dg->getEntry();
-            assert(entry && "No entry node in graph");
+    } // simply iterate over the subgraphs, get the entry node
+    // and check it
+    for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
+        LLVMNode *entry = dg->getEntry();
+        assert(entry && "No entry node in graph");
 
-            const Function *func =
-                    cast<Function>(entry->getValue()->stripPointerCasts());
-            if (array_match(func->getName(), names)) {
-                return true;
-            }
+        const Function *func =
+                cast<Function>(entry->getValue()->stripPointerCasts());
+        if (array_match(func->getName(), names)) {
+            return true;
         }
     }
 
@@ -869,18 +860,16 @@ static bool match_callsite_name(LLVMNode *callNode,
             return false;
 
         return array_match(func->getName(), names);
-    } else {
-        // simply iterate over the subgraphs, get the entry node
-        // and check it
-        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
-            LLVMNode *entry = dg->getEntry();
-            assert(entry && "No entry node in graph");
+    } // simply iterate over the subgraphs, get the entry node
+    // and check it
+    for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
+        LLVMNode *entry = dg->getEntry();
+        assert(entry && "No entry node in graph");
 
-            const Function *func =
-                    cast<Function>(entry->getValue()->stripPointerCasts());
-            if (array_match(func->getName(), names)) {
-                return true;
-            }
+        const Function *func =
+                cast<Function>(entry->getValue()->stripPointerCasts());
+        if (array_match(func->getName(), names)) {
+            return true;
         }
     }
 

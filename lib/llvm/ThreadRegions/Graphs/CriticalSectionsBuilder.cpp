@@ -101,18 +101,12 @@ void CriticalSectionsBuilder::postVisit(Node *node) {
 
 bool CriticalSectionsBuilder::visited(Node *node) const {
     auto iterator = visited_.find(node);
-    if (iterator != visited_.end()) {
-        return true;
-    }
-    return false;
+    return iterator != visited_.end();
 }
 
 bool CriticalSectionsBuilder::examined(Node *node) const {
     auto iterator = examined_.find(node);
-    if (iterator != examined_.end()) {
-        return true;
-    }
-    return false;
+    return iterator != examined_.end();
 }
 
 CriticalSection::CriticalSection(LockNode *lock) : lock_(lock) {}
