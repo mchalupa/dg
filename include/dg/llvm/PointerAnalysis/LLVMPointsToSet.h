@@ -325,7 +325,10 @@ class LLVMPointsToSet {
             return tmp;
         }
 
-        LLVMPointer operator*() const { return impl->get(); }
+        LLVMPointer operator*() const {
+            assert(impl && "Has no impl");
+            return impl->get();
+        }
 
         bool operator==(const const_iterator &rhs) const {
             if (!impl)
