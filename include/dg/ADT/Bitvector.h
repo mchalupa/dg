@@ -17,8 +17,9 @@ class SparseBitvectorImpl {
     // mapping from shift to bits
     BitsContainerT _bits{};
 
-    static size_t _bitsNum() { return sizeof(BitsT) * 8; }
-    static ShiftT _shift(IndexT i) { return i - (i % _bitsNum()); }
+    static const size_t BITS_IN_BYTE = 8;
+    static const size_t BITS_IN_BUCKET = sizeof(BitsT) * BITS_IN_BYTE;
+    static ShiftT _shift(IndexT i) { return i - (i % BITS_IN_BUCKET); }
 
     static size_t _countBits(BitsT bits) {
         size_t num = 0;
@@ -57,7 +58,7 @@ class SparseBitvectorImpl {
 
     bool get(IndexT i) const {
         auto sft = _shift(i);
-        assert(sft % _bitsNum() == 0);
+        assert(sft % BITS_IN_BUCKET == 0);
 
         auto it = _bits.find(sft);
         if (it == _bits.end()) {
@@ -136,80 +137,23 @@ class SparseBitvectorImpl {
         }
 
         void _findClosestBit() {
-            assert(pos < (sizeof(BitsT) * 8));
+            assert(pos < BITS_IN_BUCKET);
             while (!(container_it->second & (BitsT{1} << pos))) {
-                if (++pos == sizeof(BitsT) * 8)
+                if (++pos == BITS_IN_BUCKET)
                     return;
             }
         }
-
-        /*
-         * This implementation seems less efficient,
-         * but let's keep it commented here for
-         * further experiments
-        void _findClosestBit() {
-            assert(pos < (sizeof(BitsT)*8));
-            BitsT tmp = container_it->second;
-
-            // shift tmp to start at position pos
-            tmp >>= pos;
-
-            if (tmp == 0) {
-                pos = sizeof(BitsT)*8;
-                assert(pos <= (sizeof(BitsT)*8));
-                return;
-            }
-
-            int i = 0;
-            while (tmp) {
-                // pos bit set
-                if (tmp & 0x1) {
-                    pos += i;
-                    assert(pos < (sizeof(BitsT)*8));
-                    assert(container_it->second & (BitsT{1} << pos));
-                    return;
-                }
-
-                if (tmp & 0xff) {
-                    if (tmp & 0xf) {
-                        // we tested this condition
-                        // before entering this code
-                        assert(!(tmp & 0x1));
-                        if (tmp & 0x2) {
-                            pos += i + 1;
-                            assert(pos < (sizeof(BitsT)*8));
-                            assert(container_it->second & (BitsT{1} << pos));
-                            return;
-                        } else {
-                            assert(!(tmp & 0x3));
-                            tmp >>= 2;
-                            i += 2;
-                        }
-                    } else {
-                        tmp >>= 4;
-                        i += 4;
-                    }
-                } else {
-                    tmp >>= 8;
-                    i += 8;
-                }
-            }
-
-            // not found
-            pos = sizeof(BitsT)*8;
-        }
-        */
 
       public:
         const_iterator() = default;
         const_iterator &operator++() {
             // shift to the next bit in the current bits
-            assert(pos < (sizeof(BitsT) * 8));
+            assert(pos < BITS_IN_BUCKET);
             assert(container_it != container_end && "operator++ called on end");
-            if (++pos != 64)
+            if (++pos != BITS_IN_BUCKET)
                 _findClosestBit();
 
-            if (pos == 64) {
+            if (pos == BITS_IN_BUCKET) {
                 ++container_it;
                 pos = 0;
                 if (container_it != container_end) {

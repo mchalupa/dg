@@ -99,7 +99,7 @@ class AlignedSmallOffsetsPointsToSet {
     bool removeAny(PSNode *target) {
         bool changed = false;
         size_t position = getNodePosition(target);
-        for (size_t i = position; i < position + 64; i++) {
+        for (size_t i = position; i < position + (MAX_OFFSET + 1); i++) {
             changed |= pointers.unset(i);
         }
         auto it = oddPointers.begin();
@@ -137,7 +137,7 @@ class AlignedSmallOffsetsPointsToSet {
 
     bool pointsToTarget(PSNode *target) const {
         size_t position = getNodePosition(target);
-        for (size_t i = position; i < position + 64; i++) {
+        for (size_t i = position; i < position + (MAX_OFFSET + 1); i++) {
             if (pointers.get(i))
                 return true;
         }
@@ -213,9 +213,9 @@ class AlignedSmallOffsetsPointsToSet {
 
         Pointer operator*() const {
             if (!secondContainer) {
-                size_t offsetPosition = (*bitvector_it % 64);
-                size_t nodeID = ((*bitvector_it - offsetPosition) / 64) + 1;
-                return offsetPosition == 63
+                size_t offsetPosition = (*bitvector_it % (MAX_OFFSET + 1));
+                size_t nodeID = ((*bitvector_it - offsetPosition) / (MAX_OFFSET + 1)) + 1;
+                return offsetPosition == MAX_OFFSET
                                ? Pointer(idVector[nodeID - 1], Offset::UNKNOWN)
                                : Pointer(idVector[nodeID - 1],
                                          offsetPosition * multiplier);

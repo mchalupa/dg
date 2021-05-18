@@ -1,13 +1,14 @@
-#ifndef SMALLOFFSETSPOINTSTOSET_H
-#define SMALLOFFSETSPOINTSTOSET_H
-
-#include "dg/ADT/Bitvector.h"
-#include "dg/PointerAnalysis/Pointer.h"
+#ifndef DG_SMALLOFFSETSPOINTSTOSET_H
+#define DG_SMALLOFFSETSPOINTSTOSET_H
 
 #include <cassert>
 #include <map>
 #include <set>
 #include <vector>
+
+#include "dg/ADT/Bitvector.h"
+#include "dg/PointerAnalysis/Pointer.h"
+#include "dg/util/iterators.h"
 
 namespace dg {
 namespace pta {
@@ -15,6 +16,7 @@ namespace pta {
 class PSNode;
 
 class SmallOffsetsPointsToSet {
+    static const size_t MAX_OFFSET = 63;
     ADT::SparseBitvector pointers;
     std::set<Pointer> largePointers;
     static std::map<PSNode *, size_t> ids; // nodes are numbered 1,2, ...
@@ -93,7 +95,7 @@ class SmallOffsetsPointsToSet {
     bool removeAny(PSNode *target) {
         bool changed = false;
         size_t position = getNodePosition(target);
-        for (size_t i = position; i < position + 64; i++) {
+        for (size_t i = position; i < position + (MAX_OFFSET + 1); i++) {
             changed |= pointers.unset(i);
         }
         auto it = largePointers.begin();
@@ -131,7 +133,7 @@ class SmallOffsetsPointsToSet {
 
     bool pointsToTarget(PSNode *target) const {
         size_t position = getNodePosition(target);
-        for (size_t i = position; i < position + 64; i++) {
+        for (size_t i = position; i < position + MAX_OFFSET + 1; i++) {
             if (pointers.get(i))
                 return true;
         }
@@ -205,9 +207,9 @@ class SmallOffsetsPointsToSet {
 
         Pointer operator*() const {
             if (!secondContainer) {
-                size_t offsetID = *bitvector_it % 64;
-                size_t nodeID = ((*bitvector_it - offsetID) / 64) + 1;
-                return offsetID == 63
+                size_t offsetID = *bitvector_it % (MAX_OFFSET + 1);
+                size_t nodeID = ((*bitvector_it - offsetID) / (MAX_OFFSET + 1)) + 1;
+                return offsetID == MAX_OFFSET
                                ? Pointer(idVector[nodeID - 1], Offset::UNKNOWN)
                                : Pointer(idVector[nodeID - 1], offsetID);
             }
