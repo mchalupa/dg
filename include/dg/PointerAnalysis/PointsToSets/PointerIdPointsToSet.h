@@ -5,6 +5,10 @@
 #include <map>
 #include <vector>
 
+#include "LookupTable.h"
+#include "dg/ADT/Bitvector.h"
+#include "dg/PointerAnalysis/Pointer.h"
+
 namespace dg {
 namespace pta {
 
