@@ -97,6 +97,7 @@ class SparseBitvectorImpl {
         auto sft = _shift(i);
         auto it = _bits.find(sft);
         if (it == _bits.end()) {
+            assert(get(i) == 0);
             return false;
         }
 
@@ -106,10 +107,12 @@ class SparseBitvectorImpl {
         auto res = it->second & ~(BitsT{1} << (i - sft));
         if (res == 0) {
             _bits.erase(it);
+            assert(size() != 0 || empty() && "Inconsistence");
         } else {
             _bits[sft] = res;
         }
 
+        assert(get(i) == 0 && "Failed removing");
         return true;
     }
 
