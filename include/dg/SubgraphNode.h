@@ -113,15 +113,15 @@ class SubgraphNode {
         return old;
     }
 
-    NodeT *getOperand(int idx) const {
-        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size() &&
+    NodeT *getOperand(size_t idx) const {
+        assert(idx < operands.size() &&
                "Operand index out of range");
 
         return operands[idx];
     }
 
-    void setOperand(int idx, NodeT *nd) {
-        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size() &&
+    void setOperand(size_t idx, NodeT *nd) {
+        assert(idx < operands.size() &&
                "Operand index out of range");
 
         operands[idx] = nd;
