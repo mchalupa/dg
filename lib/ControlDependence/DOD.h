@@ -370,9 +370,9 @@ class DOD {
         }
     }
 
-    void constructTernaryRelation(ColoredAp &CAp, CDNode *p, ResultT &CD,
-                                  ResultT &revCD, CDNode *b2, CDNode *b3,
-                                  CDNode *r1, CDNode *r2) {
+    static void constructTernaryRelation(ColoredAp &CAp, CDNode *p, ResultT &CD,
+                                         ResultT &revCD, CDNode *b2, CDNode *b3,
+                                         CDNode *r1, CDNode *r2) {
         auto *cur = b2;
         do {
             auto *gcur = CAp.getGNode(cur);
@@ -402,9 +402,9 @@ class DOD {
         (void) r1;
     }
 
-    void constructBinaryRelation(ColoredAp &CAp, CDNode *p, ResultT &CD,
-                                 ResultT &revCD, CDNode *b2, CDNode *b3,
-                                 CDNode *r1, CDNode *r2) {
+    static void constructBinaryRelation(ColoredAp &CAp, CDNode *p, ResultT &CD,
+                                        ResultT &revCD, CDNode *b2, CDNode *b3,
+                                        CDNode *r1, CDNode *r2) {
         auto *cur = b2;
         do {
             auto *gcur = CAp.getGNode(cur);
@@ -543,7 +543,7 @@ class DODRanganath {
 
     // the paper uses 'reachable', but it is wrong
     // Keep the method for now anyway.
-    bool reachable(CDNode *from, CDNode *n) {
+    static bool reachable(CDNode *from, CDNode *n) {
         ADT::SetQueue<ADT::QueueLIFO<CDNode *>> queue;
         queue.push(from);
 
@@ -560,7 +560,7 @@ class DODRanganath {
         return false;
     }
 
-    bool onallpaths(CDNode *from, CDNode *n, CDGraph &G) {
+    static bool onallpaths(CDNode *from, CDNode *n, CDGraph &G) {
         if (from == n) // fast path
             return true;
 

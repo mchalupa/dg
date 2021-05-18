@@ -23,7 +23,7 @@ class DataDependenceAnalysis {
     // or transformation to SSA
     std::unique_ptr<DataDependenceAnalysisImpl> _impl;
 
-    DataDependenceAnalysisImpl *
+    static DataDependenceAnalysisImpl *
     createAnalysis(ReadWriteGraph &&graph,
                    const DataDependenceAnalysisOptions &opts) {
         assert(opts.isSSA() && "Unsupported analysis");

@@ -52,8 +52,8 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
     const std::set<LLVMNode *> *criteria;
     std::string module_comment{};
 
-    void printValue(const llvm::Value *val, llvm::formatted_raw_ostream &os,
-                    bool nl = false) {
+    static void printValue(const llvm::Value *val,
+                           llvm::formatted_raw_ostream &os, bool nl = false) {
         if (val->hasName())
             os << val->getName().data();
         else
@@ -63,8 +63,9 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             os << "\n";
     }
 
-    void printPointer(const LLVMPointer &ptr, llvm::formatted_raw_ostream &os,
-                      const char *prefix = "PTR: ", bool nl = true) {
+    static void printPointer(const LLVMPointer &ptr,
+                             llvm::formatted_raw_ostream &os,
+                             const char *prefix = "PTR: ", bool nl = true) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -81,8 +82,9 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             os << "\n";
     }
 
-    void printDefSite(const dda::DefSite &ds, llvm::formatted_raw_ostream &os,
-                      const char *prefix = nullptr, bool nl = false) {
+    static void printDefSite(const dda::DefSite &ds,
+                             llvm::formatted_raw_ostream &os,
+                             const char *prefix = nullptr, bool nl = false) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -110,9 +112,9 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             os << "\n";
     }
 
-    void printMemRegion(const LLVMMemoryRegion &R,
-                        llvm::formatted_raw_ostream &os,
-                        const char *prefix = nullptr, bool nl = false) {
+    static void printMemRegion(const LLVMMemoryRegion &R,
+                               llvm::formatted_raw_ostream &os,
+                               const char *prefix = nullptr, bool nl = false) {
         os << "  ; ";
         if (prefix)
             os << prefix;

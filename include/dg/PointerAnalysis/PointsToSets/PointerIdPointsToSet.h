@@ -21,11 +21,11 @@ class PointerIdPointsToSet {
     PointersT pointers;
 
     // if the pointer doesn't have ID, it's assigned one
-    size_t getPointerID(const Pointer &ptr) const {
+    static size_t getPointerID(const Pointer &ptr) {
         return lookupTable.getOrCreate(ptr);
     }
 
-    const Pointer &getPointer(size_t id) const { return lookupTable.get(id); }
+    static const Pointer &getPointer(size_t id) { return lookupTable.get(id); }
 
     bool addWithUnknownOffset(PSNode *node) {
         auto ptrid = getPointerID({node, Offset::UNKNOWN});
