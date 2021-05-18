@@ -20,10 +20,6 @@ namespace dg {
 namespace pta {
 
 // special nodes and pointers to them
-extern PSNode *NULLPTR;
-extern PSNode *UNKNOWN_MEMORY;
-extern const Pointer NullPointer;
-extern const Pointer UnknownPointer;
 
 class PointerGraph;
 
