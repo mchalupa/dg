@@ -137,8 +137,9 @@ static bool verify_ptsets(const llvm::Value *val, const std::string &N1,
                 if (ptr == ptr2) {
                     found = true;
                     break;
-                } else if (uoff_covers && ptr.value == ptr2.value &&
-                           ptr2.offset.isUnknown()) {
+                }
+                if (uoff_covers && ptr.value == ptr2.value &&
+                    ptr2.offset.isUnknown()) {
                     found = true;
                     break;
                 }

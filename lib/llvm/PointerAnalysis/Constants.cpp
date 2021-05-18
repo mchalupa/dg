@@ -72,9 +72,8 @@ LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst) {
 
     Pointer ptr = *op->pointsTo.begin();
     if (off.isUnknown())
-        return Pointer(ptr.target, Offset::UNKNOWN);
-    else
-        return Pointer(ptr.target, ptr.offset + off);
+        return {ptr.target, Offset::UNKNOWN};
+    return {ptr.target, ptr.offset + off};
 }
 
 Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(

@@ -62,13 +62,14 @@ class SmallOffsetsPointsToSet {
     bool add(PSNode *target, Offset off) {
         if (has({target, Offset::UNKNOWN})) {
             return false;
-        } else if (off.isUnknown()) {
-            return addWithUnknownOffset(target);
-        } else if (isOffsetValid(off)) {
-            return !pointers.set(getPosition(target, off));
-        } else {
-            return largePointers.emplace(target, off).second;
         }
+        if (off.isUnknown()) {
+            return addWithUnknownOffset(target);
+        }
+        if (isOffsetValid(off)) {
+            return !pointers.set(getPosition(target, off));
+        }
+        return largePointers.emplace(target, off).second;
     }
 
     bool add(const Pointer &ptr) { return add(ptr.target, ptr.offset); }

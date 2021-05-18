@@ -358,10 +358,9 @@ static bool isRelevantCall(const llvm::Instruction *Inst, OptsT &opts) {
 
         // undefined function
         return true;
-    } else
-        // we want defined function, since those can contain
-        // pointer's manipulation and modify CFG
-        return true;
+    } // we want defined function, since those can contain
+    // pointer's manipulation and modify CFG
+    return true;
 
     assert(0 && "We should not reach this");
 }

@@ -135,9 +135,8 @@ class DisjunctiveIntervalMap {
         if (ge == _mapping.end()) {
             auto last = _get_last();
             return last->first.end >= I.start;
-        } else {
-            return ge->first.start <= I.end;
         }
+        return ge->first.start <= I.end;
     }
 
     bool overlaps(IntervalValueT start, IntervalValueT end) const {
@@ -155,32 +154,31 @@ class DisjunctiveIntervalMap {
         if (ge == _mapping.end()) {
             auto last = _get_last();
             return last->first.end >= I.end;
-        } else {
-            if (ge->first.start > I.start) {
-                if (ge == _mapping.begin())
-                    return false;
-                auto prev = ge;
-                --prev;
-                if (prev->first.end != ge->first.start - 1)
-                    return false;
-            }
-
-            IntervalValueT last_end = ge->first.end;
-            while (ge->first.end < I.end) {
-                ++ge;
-                if (ge == _mapping.end())
-                    return false;
-
-                if (ge->first.start != last_end + 1)
-                    return false;
-
-                last_end = ge->first.end;
-            }
-
-            // full overlap means that there are not uncovered bytes
-            assert(uncovered(I) == decltype(uncovered(I)){});
-            return true;
         }
+        if (ge->first.start > I.start) {
+            if (ge == _mapping.begin())
+                return false;
+            auto prev = ge;
+            --prev;
+            if (prev->first.end != ge->first.start - 1)
+                return false;
+        }
+
+        IntervalValueT last_end = ge->first.end;
+        while (ge->first.end < I.end) {
+            ++ge;
+            if (ge == _mapping.end())
+                return false;
+
+            if (ge->first.start != last_end + 1)
+                return false;
+
+            last_end = ge->first.end;
+        }
+
+        // full overlap means that there are not uncovered bytes
+        assert(uncovered(I).empty());
+        return true;
     }
 
     bool overlapsFull(IntervalValueT start, IntervalValueT end) const {
@@ -436,6 +434,7 @@ class DisjunctiveIntervalMap {
 
     bool splitExtBorders(const IntervalT &I) {
         assert(!_mapping.empty());
+        bool changed = false;
 
         auto ge = _mapping.lower_bound(I);
         if (ge == _mapping.end()) {
@@ -444,7 +443,6 @@ class DisjunctiveIntervalMap {
             auto last = _get_last();
             assert(last->first.start < I.start);
 
-            bool changed = false;
             if (last->first.end > I.end) {
                 last = splitIntervalHint(last, I.end, ge);
                 changed |= true;
@@ -455,56 +453,53 @@ class DisjunctiveIntervalMap {
                 changed |= true;
             }
             return changed;
-        } else {
-            // we found an interval starting at I.start
-            // or later
-            assert(ge->first.start >= I.start);
-            bool changed = false;
-            // FIXME: optimize this...
-            //  add _find_le to find the "closest" interval from the right
-            //  (maybe iterating like this is faster, though)
-            auto it = ge;
-            while (it->first.start <= I.end) {
-                if (it->first.end > I.end) {
-                    it = splitIntervalHint(it, I.end, _mapping.end());
-                    changed = true;
-                    break;
-                }
-                ++it;
-                if (it == _mapping.end())
-                    break;
-            }
-
-            // we may have also overlap from the previous interval
-            if (changed)
-                ge = _mapping.lower_bound(I);
-            if (ge != _mapping.begin()) {
-                auto prev = ge;
-                --prev;
-                auto prev_end = prev->first.end;
-                if (prev_end >= I.start) {
-                    ge = splitIntervalHint(prev, I.start - 1, ge);
-                    changed = true;
-                }
-                // is the new interval entirely covered by the previous?
-                if (prev_end > I.end) {
-                    // get the higher of the new intervals
-                    ++ge;
-                    assert(ge != _mapping.end());
-                    assert(ge->first.end == prev_end);
-#ifndef NDEBUG
-                    auto check =
-#endif
-                            splitIntervalHint(ge, I.end, _mapping.end());
-                    assert(check->first == I);
-                    changed = true;
-                }
-            }
-
-            return changed;
         }
 
-        return false;
+        // we found an interval starting at I.start
+        // or later
+        assert(ge->first.start >= I.start);
+        // FIXME: optimize this...
+        //  add _find_le to find the "closest" interval from the right
+        //  (maybe iterating like this is faster, though)
+        auto it = ge;
+        while (it->first.start <= I.end) {
+            if (it->first.end > I.end) {
+                it = splitIntervalHint(it, I.end, _mapping.end());
+                changed = true;
+                break;
+            }
+            ++it;
+            if (it == _mapping.end())
+                break;
+        }
+
+        // we may have also overlap from the previous interval
+        if (changed)
+            ge = _mapping.lower_bound(I);
+        if (ge != _mapping.begin()) {
+            auto prev = ge;
+            --prev;
+            auto prev_end = prev->first.end;
+            if (prev_end >= I.start) {
+                ge = splitIntervalHint(prev, I.start - 1, ge);
+                changed = true;
+            }
+            // is the new interval entirely covered by the previous?
+            if (prev_end > I.end) {
+                // get the higher of the new intervals
+                ++ge;
+                assert(ge != _mapping.end());
+                assert(ge->first.end == prev_end);
+#ifndef NDEBUG
+                auto check =
+#endif
+                        splitIntervalHint(ge, I.end, _mapping.end());
+                assert(check->first == I);
+                changed = true;
+            }
+        }
+
+        return changed;
     }
 
     template <typename IteratorT>

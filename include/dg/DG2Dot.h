@@ -66,8 +66,8 @@ class DG2Dot {
         if (out.is_open()) {
             std::cerr << "File already opened (" << file << ")" << std::endl;
             return false;
-        } else
-            reopen(new_file);
+        }
+        reopen(new_file);
     }
 
     virtual std::ostream &printKey(std::ostream &os, KeyT key) {

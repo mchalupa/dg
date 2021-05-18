@@ -140,8 +140,8 @@ inline uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
     if (AI->isArrayAllocation()) {
         return getConstantSizeValue(AI->getArraySize()) *
                DL->getTypeAllocSize(Ty);
-    } else
-        return DL->getTypeAllocSize(Ty);
+    }
+    return DL->getTypeAllocSize(Ty);
 }
 
 inline uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL) {

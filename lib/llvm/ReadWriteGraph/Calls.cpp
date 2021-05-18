@@ -76,14 +76,13 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createCallToFunctions(
     // do not create a CALL node -- just put the already created node there
     if (called_subgraphs.empty() && called_values.size() == 1) {
         return {called_values[0]};
-    } else {
-        RWNodeCall *callNode = RWNodeCall::get(&create(RWNodeType::CALL));
-        for (auto *item : called_subgraphs)
-            callNode->addCallee(item);
-        for (auto *item : called_values)
-            callNode->addCallee(item);
-        return {callNode};
     }
+    RWNodeCall *callNode = RWNodeCall::get(&create(RWNodeType::CALL));
+    for (auto *item : called_subgraphs)
+        callNode->addCallee(item);
+    for (auto *item : called_values)
+        callNode->addCallee(item);
+    return {callNode};
 }
 
 RWNode *
@@ -349,11 +348,9 @@ RWNode *LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(
     if (type != AllocationFunction::NONE) {
         if (type == AllocationFunction::REALLOC)
             return createRealloc(CInst);
-        else
-            return createDynAlloc(CInst, type);
-    } else {
-        return createUnknownCall(CInst);
+        return createDynAlloc(CInst, type);
     }
+    return createUnknownCall(CInst);
 
     assert(false && "Unreachable");
     abort();
