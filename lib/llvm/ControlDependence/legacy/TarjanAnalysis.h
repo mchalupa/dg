@@ -171,7 +171,6 @@ class TarjanAnalysis {
 
     std::set<StronglyConnectedComponent *> components_;
 
-  private:
     bool visited(T *node) { return nodeInfo[node].dfsId > 0; }
 };
 
