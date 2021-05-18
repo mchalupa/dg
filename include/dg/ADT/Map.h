@@ -32,7 +32,7 @@ class MapImpl : public Impl {
         return nullptr;
     }
 
-    void reserve(size_t) {
+    void reserve(size_t /*unused*/) {
         // so that we can exchangabily use with HashMap
     }
 };

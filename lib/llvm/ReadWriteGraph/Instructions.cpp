@@ -198,7 +198,8 @@ void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
     }
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction *) {
+RWNode *
+LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction * /*unused*/) {
     return &create(RWNodeType::RETURN);
 }
 

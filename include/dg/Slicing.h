@@ -249,10 +249,10 @@ class Slicer : legacy::Analysis<NodeT> {
     // This virtual method allows to taky an action
     // when node is being removed from the graph. It can also
     // disallow removing this node by returning false
-    virtual bool removeNode(NodeT *) { return true; }
+    virtual bool removeNode(NodeT * /*unused*/) { return true; }
 
 #ifdef ENABLE_CFG
-    virtual bool removeBlock(BBlock<NodeT> *) { return true; }
+    virtual bool removeBlock(BBlock<NodeT> * /*unused*/) { return true; }
 
     struct RemoveBlockData {
         uint32_t sl_id;

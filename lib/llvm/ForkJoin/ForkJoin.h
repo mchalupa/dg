@@ -20,12 +20,13 @@ class ForkJoinAnalysis {
     /// Take llvm::Value which is a call to pthread_join
     //  and return a vector of values that (may) spawn a thread
     //  that may be joined by this join.
-    std::vector<const llvm::Value *> matchJoin(const llvm::Value *);
+    std::vector<const llvm::Value *> matchJoin(const llvm::Value * /*joinVal*/);
 
     /// Take llvm::Value which is a call to pthread_join
     //  and return a vector of functions that may have been joined
     //  by this join.
-    std::vector<const llvm::Value *> joinFunctions(const llvm::Value *);
+    std::vector<const llvm::Value *>
+    joinFunctions(const llvm::Value * /*joinVal*/);
 };
 
 } // namespace dg
