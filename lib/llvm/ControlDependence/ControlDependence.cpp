@@ -1,5 +1,3 @@
-#include <memory>
-
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "llvm/ControlDependence/ControlClosure.h"
 #include "llvm/ControlDependence/DOD.h"
@@ -19,38 +17,37 @@ void LLVMControlDependenceAnalysis::initializeImpl(LLVMPointerAnalysis *pta,
             assert(false && "SCD does not support ICFG");
             abort();
         }
-        _impl = std::make_unique<llvmdg::SCD>(_module, _options);
+        _impl.reset(new llvmdg::SCD(_module, _options));
     } else if (getOptions().ntscdCD() || getOptions().ntscd2CD() ||
                getOptions().ntscdRanganathCD() ||
                getOptions().ntscdRanganathOrigCD()) {
         if (icfg) {
-            _impl = std::make_unique<llvmdg::InterproceduralNTSCD>(
-                    _module, _options, pta, cg);
+            _impl.reset(new llvmdg::InterproceduralNTSCD(_module, _options, pta,
+                                                         cg));
         } else {
-            _impl = std::make_unique<llvmdg::NTSCD>(_module, _options);
+            _impl.reset(new llvmdg::NTSCD(_module, _options));
         }
     } else if (getOptions().strongCC()) {
-        _impl = std::make_unique<llvmdg::StrongControlClosure>(_module,
-                                                               _options);
+        _impl.reset(new llvmdg::StrongControlClosure(_module, _options));
     } else if (getOptions().ntscdLegacyCD()) {
         // legacy NTSCD is ICFG always...
-        _impl = std::make_unique<llvmdg::legacy::NTSCD>(_module, _options);
+        _impl.reset(new llvmdg::legacy::NTSCD(_module, _options));
     } else if (getOptions().dodCD() || getOptions().dodRanganathCD() ||
                getOptions().dodntscdCD()) {
         // DOD on itself makes no sense, but allow it due to debugging
         if (icfg) {
-            _impl = std::make_unique<llvmdg::InterproceduralDOD>(
-                    _module, _options, pta, cg);
+            _impl.reset(
+                    new llvmdg::InterproceduralDOD(_module, _options, pta, cg));
         } else {
-            _impl = std::make_unique<llvmdg::DOD>(_module, _options);
+            _impl.reset(new llvmdg::DOD(_module, _options));
         }
     } else {
         assert(false && "Unhandled analysis type");
         abort();
     }
 
-    _interprocImpl = std::make_unique<llvmdg::LLVMInterprocCD>(
-            _module, _options, pta, cg);
+    _interprocImpl.reset(
+            new llvmdg::LLVMInterprocCD(_module, _options, pta, cg));
 }
 
 } // namespace dg
