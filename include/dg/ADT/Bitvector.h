@@ -10,6 +10,8 @@
 namespace dg {
 namespace ADT {
 
+using std::size_t;
+
 template <typename BitsT = uint64_t, typename ShiftT = uint64_t,
           typename IndexT = uint64_t, size_t SCALE = 1,
           typename BitsContainerT = dg::Map<ShiftT, BitsT>>
