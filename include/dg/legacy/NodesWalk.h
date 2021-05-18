@@ -65,7 +65,7 @@ class NodesWalk : public NodesWalkBase<NodeT> {
         run_id = ++NodesWalk<NodeT, QueueT>::walk_run_counter;
 
         assert(!entry.empty() && "Need entry node for traversing nodes");
-        for (auto ent : entry)
+        for (auto *ent : entry)
             enqueue(ent);
 
         while (!queue.empty()) {

@@ -53,13 +53,13 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createCallToFunctions(
     std::set<const llvm::Function *> incompatibleCalls;
     std::vector<RWNode *> called_values;
     std::vector<RWSubgraph *> called_subgraphs;
-    for (auto *F : functions) {
+    for (const auto *F : functions) {
         if (!llvmutils::callIsCompatible(F, CInst)) {
             incompatibleCalls.insert(F);
             continue;
         }
 
-        if (auto model = _options.getFunctionModel(F->getName().str())) {
+        if (const auto *model = _options.getFunctionModel(F->getName().str())) {
             called_values.push_back(funcFromModel(model, CInst));
         } else if (F->isDeclaration()) {
             called_values.push_back(createCallToUndefinedFunction(F, CInst));
@@ -283,7 +283,7 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
         if (!model->handles(i))
             continue;
 
-        const auto llvmOp = CInst->getArgOperand(i);
+        auto *const llvmOp = CInst->getArgOperand(i);
         auto pts = PTA->getLLVMPointsToChecked(llvmOp);
         // if we do not have a pts, this is not pointer
         // relevant instruction. We must do it this way
@@ -305,7 +305,7 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
             assert(target && "Don't have pointer target for call argument");
 
             Offset from, to;
-            if (auto defines = model->defines(i)) {
+            if (const auto *defines = model->defines(i)) {
                 std::tie(from, to) = getFromTo(CInst, defines);
                 // this call may define this memory
                 bool strong_updt = pts.second.size() == 1 &&
@@ -317,7 +317,7 @@ RWNode *LLVMReadWriteGraphBuilder::funcFromModel(const FunctionModel *model,
                 node->addDef(target, ptr.offset + from, ptr.offset + to,
                              strong_updt);
             }
-            if (auto uses = model->uses(i)) {
+            if (const auto *uses = model->uses(i)) {
                 std::tie(from, to) = getFromTo(CInst, uses);
                 // this call uses this memory
                 node->addUse(target, ptr.offset + from, ptr.offset + to);

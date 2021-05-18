@@ -33,7 +33,7 @@ class BBlocksBuilder {
     }
 
     void setNewBlock(NodeT *cur) {
-        auto blk = new BBlockT();
+        auto *blk = new BBlockT();
         _blocks.emplace_back(blk);
         blk->append(cur);
         cur->setBBlock(blk);

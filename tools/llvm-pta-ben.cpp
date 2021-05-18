@@ -260,7 +260,7 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
     if (v == nullptr)
         return;
 
-    const llvm::Function *called = llvm::dyn_cast<llvm::Function>(v);
+    const llvm::Function *called = llvm::cast<llvm::Function>(v);
     const llvm::StringRef &fun = called->getName();
     if (call->getNumArgOperands() != 2)
         return;
@@ -367,16 +367,11 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
         s = "MUST";
     else
         s = "UNKNOWN";
-    if (r)
-        printf("  pta %s %s ex %s ", score, s, ex);
-    else
-        printf("  pta %s %s ex %s ", score, s, ex);
-
-    printf("\n");
+    printf("  pta %s %s ex %s\n", score, s, ex);
 }
 
 static void evalPTA(DGLLVMPointerAnalysis *pta) {
-    for (auto &node : pta->getNodes()) {
+    for (const auto &node : pta->getNodes()) {
         if (!node)
             continue;
         evalPSNode(pta, node.get());

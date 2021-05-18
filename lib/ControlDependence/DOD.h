@@ -207,7 +207,7 @@ class DOD {
 
         // FIXME: refactor...
         // color nodes
-        auto &succs = node->successors();
+        const auto &succs = node->successors();
         auto sit = succs.begin();
         CDNode *bluesucc = *sit;
         CDNode *redsucc = *(++sit);
@@ -496,7 +496,7 @@ class DODRanganath {
 
     void coloredDAG(CDGraph &graph, CDNode *n, std::set<CDNode *> &visited) {
         if (visited.insert(n).second) {
-            auto &successors = n->successors();
+            const auto &successors = n->successors();
             if (successors.empty())
                 return;
 

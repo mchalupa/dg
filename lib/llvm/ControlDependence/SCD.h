@@ -73,7 +73,7 @@ class SCD : public LLVMControlDependenceAnalysisImpl {
         if (F && !F->isDeclaration()) {
             computeOnDemand(F);
         } else {
-            for (auto &f : *getModule()) {
+            for (const auto &f : *getModule()) {
                 if (f.isDeclaration()) {
                     continue;
                 }

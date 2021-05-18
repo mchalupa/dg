@@ -93,16 +93,16 @@ class PointerAnalysisFS : public PointerAnalysis {
             }
 
             // interprocedural stuff - merge information from calls
-            if (auto CR = PSNodeCallRet::get(n)) {
-                for (auto p : CR->getReturns()) {
+            if (auto *CR = PSNodeCallRet::get(n)) {
+                for (auto *p : CR->getReturns()) {
                     if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
                         // merge pm to mm (but only if pm was already created)
                         changed |= mergeMaps(mm, pm, overwritten);
                     }
                 }
             }
-            if (auto E = PSNodeEntry::get(n)) {
-                for (auto p : E->getCallers()) {
+            if (auto *E = PSNodeEntry::get(n)) {
+                for (auto *p : E->getCallers()) {
                     if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
                         // merge pm to mm (but only if pm was already created)
                         changed |= mergeMaps(mm, pm, overwritten);

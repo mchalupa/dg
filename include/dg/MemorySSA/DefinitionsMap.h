@@ -70,7 +70,7 @@ class DefinitionsMap {
     template <typename ContainerT>
     bool add(const DefSite &ds, const ContainerT &nodes) {
         bool changed = false;
-        for (auto n : nodes)
+        for (auto *n : nodes)
             changed |= add(ds, n);
         return changed;
     }

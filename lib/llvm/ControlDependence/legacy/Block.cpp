@@ -141,7 +141,7 @@ std::string Block::label() const {
         label_ += " Block\\n\\n";
         std::string llvmTemporaryString;
         llvm::raw_string_ostream llvmStream(llvmTemporaryString);
-        for (auto instruction : llvmInstructions_) {
+        for (const auto *instruction : llvmInstructions_) {
             instruction->print(llvmStream);
             label_ += llvmTemporaryString + "\\n";
             llvmTemporaryString.clear();
@@ -153,7 +153,7 @@ std::string Block::label() const {
 
 void Block::visit() {
     this->traversalId();
-    for (auto successor : successors_) {
+    for (auto *successor : successors_) {
         if (successor->bfsId() == 0) {
             successor->visit();
         }
@@ -166,7 +166,7 @@ void Block::dumpNode(std::ostream &ostream) const {
 }
 
 void Block::dumpEdges(std::ostream &ostream) const {
-    for (auto successor : successors_) {
+    for (auto *successor : successors_) {
         ostream << this->dotName() << " -> " << successor->dotName() << "\n";
     }
 

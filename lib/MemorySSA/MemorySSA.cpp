@@ -41,7 +41,7 @@ std::vector<RWNode *> MemorySSATransformation::findDefinitions(RWNode *node) {
     auto D = findDefinitionsInBlock(node);
     std::vector<RWNode *> defs;
 
-    for (auto &ds : node->getUses()) {
+    for (const auto &ds : node->getUses()) {
         assert(ds.target && "Target is null");
 
         // add the definitions from the beginning of this block to the defs
@@ -189,7 +189,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
     // if we have a unique predecessor,
     // we can find the definitions there and continue searching in the
     // predecessor if something is missing
-    if (auto pred = block->getSinglePredecessor()) {
+    if (auto *pred = block->getSinglePredecessor()) {
         auto pdefs = findDefinitions(pred, ds);
 #ifndef NDEBUG
         auto &D = getBBlockDefinitions(pred, &ds);
@@ -210,7 +210,7 @@ MemorySSATransformation::findDefinitionsInPredecessors(RWBBlock *block,
 // (using the definitions computed for each single block)
 // Create PHI nodes if needed.
 void MemorySSATransformation::findPhiDefinitions(RWNode *phi) {
-    auto block = phi->getBBlock();
+    auto *block = phi->getBBlock();
 
     assert(block);
     assert(!block->getSinglePredecessor() &&
@@ -306,7 +306,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
                 auto *subgphi =
                         createPhi(subgds, /* type = */ RWNodeType::OUTARG);
                 summary.addOutput(subgds, subgphi);
-                for (auto &it : si.modref.getMayDef(UNKNOWN_MEMORY)) {
+                for (const auto &it : si.modref.getMayDef(UNKNOWN_MEMORY)) {
                     subgphi->addDefUse(it);
                 }
                 phi->addDefUse(subgphi);
@@ -495,7 +495,7 @@ MemorySSATransformation::findEscapingDefinitionsInBlock(RWNode *to) {
 ///
 static void joinDefinitions(DefinitionsMap<RWNode> &from,
                             DefinitionsMap<RWNode> &to, bool escaping = false) {
-    for (auto &it : from) {
+    for (const auto &it : from) {
         if (escaping && !it.first->canEscape()) {
             continue;
         }
@@ -506,8 +506,8 @@ static void joinDefinitions(DefinitionsMap<RWNode> &from,
             continue;
         }
 
-        for (auto &it2 : it.second) {
-            auto &interv = it2.first;
+        for (const auto &it2 : it.second) {
+            const auto &interv = it2.first;
             auto uncovered = to.undefinedIntervals(
                     {it.first, interv.start, interv.length()});
             for (auto &undefInterv : uncovered) {
@@ -540,10 +540,10 @@ void MemorySSATransformation::fillDefinitionsFromCall(Definitions &D,
         auto *subg = callee.getSubgraph();
         if (!subg) {
             auto *called = callee.getCalledValue();
-            for (auto &ds : called->getDefines()) {
+            for (const auto &ds : called->getDefines()) {
                 fillDefinitionsFromCall(D, C, ds);
             }
-            for (auto &ds : called->getOverwrites()) {
+            for (const auto &ds : called->getOverwrites()) {
                 fillDefinitionsFromCall(D, C, ds);
             }
         } else {
@@ -551,16 +551,16 @@ void MemorySSATransformation::fillDefinitionsFromCall(Definitions &D,
             computeModRef(subg, si);
             assert(si.modref.isInitialized());
 
-            for (auto &it : si.modref.maydef) {
+            for (const auto &it : si.modref.maydef) {
                 if (it.first->isUnknown()) {
-                    for (auto &it2 : it.second) {
+                    for (const auto &it2 : it.second) {
                         D.unknownWrites.insert(D.unknownWrites.end(),
                                                it2.second.begin(),
                                                it2.second.end());
                     }
                     continue;
                 }
-                for (auto &it2 : it.second) {
+                for (const auto &it2 : it.second) {
                     fillDefinitionsFromCall(
                             D, C,
                             {it.first, it2.first.start, it2.first.length()});
@@ -587,7 +587,7 @@ void MemorySSATransformation::collectAllDefinitions(
     joinDefinitions(getBBlockDefinitions(from), defs, escaping);
 
     // recur into predecessors
-    if (auto singlePred = from->getSinglePredecessor()) {
+    if (auto *singlePred = from->getSinglePredecessor()) {
         collectAllDefinitions(defs, singlePred, visitedBlocks, escaping);
     } else {
         auto olddefinitions = defs.definitions;
@@ -646,8 +646,8 @@ void MemorySSATransformation::collectAllDefinitionsInCallers(Definitions &defs,
         // auto tmpDefs = defs;
         Definitions tmpDefs;
         collectAllDefinitions(callsite, tmpDefs, /* escaping = */ true);
-        for (auto &it : tmpDefs.definitions) {
-            for (auto &it2 : it.second) {
+        for (const auto &it : tmpDefs.definitions) {
+            for (const auto &it2 : it.second) {
                 callphi->addDefUse(it2.second);
             }
         }
@@ -675,7 +675,7 @@ void MemorySSATransformation::collectAllDefinitions(RWNode *from,
     //
     // NOTE: do not add block to visitedBlocks, it may be its own predecessor,
     // in which case we want to process it again
-    if (auto singlePred = block->getSinglePredecessor()) {
+    if (auto *singlePred = block->getSinglePredecessor()) {
         collectAllDefinitions(defs, singlePred, visitedBlocks, escaping);
     } else {
         // multiple predecessors
@@ -783,7 +783,7 @@ static void recGatherNonPhisDefs(RWNode *phi,
     if (phis.set(phi->getID()))
         return; // we already visited this phi
 
-    for (auto n : phi->defuse) {
+    for (auto *n : phi->defuse) {
         if (!n->isPhi()) {
             ret.set(n->getID());
         } else {

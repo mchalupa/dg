@@ -101,7 +101,7 @@ class IntervalsList {
             return *this;
 
         auto it = intervals.begin();
-        for (auto &RI : rhs.intervals) {
+        for (const auto &RI : rhs.intervals) {
             while (it->end < RI.start) {
                 auto tmp = it++;
                 intervals.erase(tmp);

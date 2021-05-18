@@ -13,7 +13,7 @@ Function::Function() : lastBlock(new Block(nullptr)) {
 }
 
 Function::~Function() {
-    for (auto block : blocks) {
+    for (auto *block : blocks) {
         delete block;
     }
 }
@@ -56,14 +56,14 @@ std::set<Block *> Function::callReturnNodes() const {
 }
 
 void Function::dumpBlocks(std::ostream &ostream) {
-    for (auto block : blocks) {
+    for (auto *block : blocks) {
         block->dumpNode(ostream);
         ostream << "\n";
     }
 }
 
 void Function::dumpEdges(std::ostream &ostream) {
-    for (auto block : blocks) {
+    for (auto *block : blocks) {
         block->dumpEdges(ostream);
     }
 }

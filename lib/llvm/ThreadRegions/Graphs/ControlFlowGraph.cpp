@@ -42,7 +42,7 @@ void ControlFlowGraph::buildFunction(const llvm::Function *function) {
 
     auto locks = graphBuilder->getLocks();
 
-    for (auto lock : locks) {
+    for (auto *lock : locks) {
         criticalSectionsBuilder->buildCriticalSection(lock);
     }
 

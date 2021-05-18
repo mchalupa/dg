@@ -65,7 +65,7 @@ class OffsetsSetPointsToSet {
     // union (unite S into this set)
     bool add(const OffsetsSetPointsToSet &S) {
         bool changed = false;
-        for (auto &it : S.pointers) {
+        for (const auto &it : S.pointers) {
             changed |= pointers[it.first].set(it.second);
         }
         return changed;
@@ -152,7 +152,7 @@ class OffsetsSetPointsToSet {
 
     size_t size() const {
         size_t num = 0;
-        for (auto &it : pointers) {
+        for (const auto &it : pointers) {
             num += it.second.size();
         }
 

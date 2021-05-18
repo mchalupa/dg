@@ -43,13 +43,13 @@ std::vector<llvm::Value *> LLVMDataDependenceAnalysis::getLLVMDefinitions(
         const Offset &len) {
     std::vector<llvm::Value *> defs;
 
-    auto whereN = getNode(where);
+    auto *whereN = getNode(where);
     if (!whereN) {
         llvm::errs() << "[DDA] error: no node for: " << *where << "\n";
         return defs;
     }
 
-    auto memN = getNode(mem);
+    auto *memN = getNode(mem);
     if (!memN) {
         llvm::errs() << "[DDA] error: no node for: " << *mem << "\n";
         return defs;
@@ -74,7 +74,7 @@ std::vector<llvm::Value *> LLVMDataDependenceAnalysis::getLLVMDefinitions(
     // map the values
     for (RWNode *nd : rdDefs) {
         assert(nd->getType() != RWNodeType::PHI);
-        auto llvmvalue = nd->getUserData<llvm::Value>();
+        auto *llvmvalue = nd->getUserData<llvm::Value>();
         assert(llvmvalue && "RWG node has no value");
         defs.push_back(llvmvalue);
     }
@@ -87,7 +87,7 @@ std::vector<llvm::Value *>
 LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
     std::vector<llvm::Value *> defs;
 
-    auto loc = getNode(use);
+    auto *loc = getNode(use);
     if (!loc) {
         llvm::errs() << "[DDA] error: no node for: " << *use << "\n";
         return defs;
@@ -120,7 +120,7 @@ LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
     // map the values
     for (RWNode *nd : rdDefs) {
         assert(nd->getType() != RWNodeType::PHI);
-        auto llvmvalue = getValue(nd);
+        const auto *llvmvalue = getValue(nd);
         assert(llvmvalue && "Have no value for a node");
         defs.push_back(const_cast<llvm::Value *>(llvmvalue));
     }

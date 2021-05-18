@@ -36,7 +36,7 @@ void LLVMPointerGraphBuilder::handleGlobalVariableInitializer(
         node->setZeroInitialized();
     } else if (C->getType()->isStructTy()) {
         uint64_t off = 0;
-        auto STy = cast<StructType>(C->getType());
+        auto *STy = cast<StructType>(C->getType());
         const StructLayout *SL = M->getDataLayout().getStructLayout(STy);
         int i = 0;
         for (auto I = C->op_begin(), E = C->op_end(); I != E; ++I, ++i) {
@@ -104,7 +104,7 @@ void LLVMPointerGraphBuilder::buildGlobals() {
                        " or it is not an allocation");
 
         // handle globals initialization
-        if (const auto GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
+        if (const auto *const GV = llvm::dyn_cast<llvm::GlobalVariable>(&*I)) {
             node->setSize(getAllocatedSize(GV, &M->getDataLayout()));
 
             if (GV->hasInitializer() && !GV->isExternallyInitialized()) {

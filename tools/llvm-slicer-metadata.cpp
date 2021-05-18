@@ -15,12 +15,12 @@ using MapTy = std::map<const llvm::Value *, CVariableDecl>;
 MapTy allocasToVars(const llvm::Function &F) {
     MapTy valuesToVariables;
 
-    for (auto &I : llvm::instructions(F)) {
+    for (const auto &I : llvm::instructions(F)) {
         llvm::DIVariable *var = nullptr;
         auto loc = I.getDebugLoc();
         if (const llvm::DbgDeclareInst *DD =
                     llvm::dyn_cast<llvm::DbgDeclareInst>(&I)) {
-            auto val = DD->getAddress();
+            auto *val = DD->getAddress();
             var = DD->getVariable();
             valuesToVariables.emplace(
                     val, CVariableDecl(var->getName().str(),
@@ -28,8 +28,8 @@ MapTy allocasToVars(const llvm::Function &F) {
                                        loc ? loc.getCol() : 0));
         } else if (const llvm::DbgValueInst *DV =
                            llvm::dyn_cast<llvm::DbgValueInst>(&I)) {
-            auto val = DV->getValue();
-            auto var = DV->getVariable();
+            auto *val = DV->getValue();
+            auto *var = DV->getVariable();
             valuesToVariables.emplace(
                     val, CVariableDecl(var->getName().str(),
                                        loc ? loc.getLine() : var->getLine(),
@@ -42,7 +42,7 @@ MapTy allocasToVars(const llvm::Function &F) {
 
 MapTy allocasToVars(const llvm::Module &M) {
     MapTy valuesToVariables;
-    for (auto &F : M) {
+    for (const auto &F : M) {
         auto tmp = allocasToVars(F);
         valuesToVariables.insert(tmp.begin(), tmp.end());
     }
