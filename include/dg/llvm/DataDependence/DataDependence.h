@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_RD_H_
-#define _LLVM_DG_RD_H_
+#ifndef LLVM_DG_DD_H_
+#define LLVM_DG_DD_H_
 
 #include <memory>
 #include <type_traits>

@@ -1,5 +1,5 @@
-#ifndef _DG_PARAMETERS_H_
-#define _DG_PARAMETERS_H_
+#ifndef DG_PARAMETERS_H_
+#define DG_PARAMETERS_H_
 
 #include <map>
 #include <memory>
@@ -223,4 +223,4 @@ class DGParameters {
 
 } // namespace dg
 
-#endif // _DG_PARAMETERS_H_
+#endif // DG_PARAMETERS_H_

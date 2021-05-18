@@ -1,5 +1,5 @@
-#ifndef _LLVM_DEPENDENCE_GRAPH_H_
-#define _LLVM_DEPENDENCE_GRAPH_H_
+#ifndef LLVM_DEPENDENCE_GRAPH_H_
+#define LLVM_DEPENDENCE_GRAPH_H_
 
 #ifndef HAVE_LLVM
 #error "Need LLVM"
@@ -219,4 +219,4 @@ LLVMNode *findInstruction(llvm::Instruction *instruction,
 llvm::Instruction *castToLLVMInstruction(const llvm::Value *value);
 } // namespace dg
 
-#endif // _DEPENDENCE_GRAPH_H_
+#endif // DEPENDENCE_GRAPH_H_

@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_POINTS_TO_ANALYSIS_H_
-#define _LLVM_DG_POINTS_TO_ANALYSIS_H_
+#ifndef LLVM_DG_POINTS_TO_ANALYSIS_H_
+#define LLVM_DG_POINTS_TO_ANALYSIS_H_
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -348,4 +348,4 @@ getCalledFunctions(const llvm::Value *calledValue, LLVMPointerAnalysis *PTA) {
 
 } // namespace dg
 
-#endif // _LLVM_DG_POINTS_TO_ANALYSIS_H_
+#endif // LLVM_DG_POINTS_TO_ANALYSIS_H_

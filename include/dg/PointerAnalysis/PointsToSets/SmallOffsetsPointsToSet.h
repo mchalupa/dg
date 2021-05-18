@@ -241,4 +241,4 @@ class SmallOffsetsPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* SMALLOFFSETSPOINTSTOSET_H */
+#endif // DG_SMALLOFFSETSPOINTSTOSET_H

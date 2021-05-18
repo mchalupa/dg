@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_POINTER_SUBGRAPH_H_
-#define _LLVM_DG_POINTER_SUBGRAPH_H_
+#ifndef LLVM_DG_POINTER_SUBGRAPH_H_
+#define LLVM_DG_POINTER_SUBGRAPH_H_
 
 #include <unordered_map>
 

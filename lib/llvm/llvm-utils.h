@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_UTILS_H_
-#define _DG_LLVM_UTILS_H_
+#ifndef DG_LLVM_UTILS_H_
+#define DG_LLVM_UTILS_H_
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
@@ -196,4 +196,4 @@ inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty) {
 } // namespace llvmutils
 } // namespace dg
 
-#endif //  _DG_LLVM_UTILS_H_
+#endif //  DG_LLVM_UTILS_H_

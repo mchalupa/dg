@@ -1,5 +1,5 @@
-#ifndef _DEPENDENCE_GRAPH_H_
-#define _DEPENDENCE_GRAPH_H_
+#ifndef DEPENDENCE_GRAPH_H_
+#define DEPENDENCE_GRAPH_H_
 
 #include <cassert>
 #include <map>
@@ -412,4 +412,4 @@ class DependenceGraph : public DependenceGraphBase {
 
 } // namespace dg
 
-#endif // _DEPENDENCE_GRAPH_H_
+#endif // DEPENDENCE_GRAPH_H_
