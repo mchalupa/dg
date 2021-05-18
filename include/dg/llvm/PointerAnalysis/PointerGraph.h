@@ -188,12 +188,13 @@ class LLVMPointerGraphBuilder {
     void addProgramStructure(const llvm::Function *F, PointerSubgraph &subg);
     void blockAddCalls(const llvm::BasicBlock &block);
 
-    void addCFGEdges(const llvm::Function *F,
-                     LLVMPointerGraphBuilder::FuncGraph &finfo,
-                     PSNode *lastNode);
+    static void addCFGEdges(const llvm::Function *F,
+                            LLVMPointerGraphBuilder::FuncGraph &finfo,
+                            PSNode *lastNode);
 
-    PSNode *connectArguments(const llvm::Function *F, PSNodesBlock &argsBlk,
-                             PointerSubgraph &subg);
+    static PSNode *connectArguments(const llvm::Function *F,
+                                    PSNodesBlock &argsBlk,
+                                    PointerSubgraph &subg);
 
     // map of all nodes we created - use to look up operands
     std::unordered_map<const llvm::Value *, PSNodesSeq> nodes_map;
@@ -391,7 +392,7 @@ class LLVMPointerGraphBuilder {
     void addReturnNodesOperands(const llvm::Function *F, PointerSubgraph &subg,
                                 PSNode *callNode = nullptr);
 
-    void addReturnNodeOperand(PSNode *callNode, PSNode *op);
+    static void addReturnNodeOperand(PSNode *callNode, PSNode *ret);
     void addReturnNodeOperand(const llvm::Function *F, PSNode *op);
     void addInterproceduralOperands(const llvm::Function *F,
                                     PointerSubgraph &subg,

@@ -92,7 +92,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
                alloc->getParent() == where->getParent();
     }
 
-    bool containsRemovableLocals(PSNode *where, PointsToSetT &S) {
+    static bool containsRemovableLocals(PSNode *where, PointsToSetT &S) {
         for (const auto &ptr : S) {
             if (ptr.isNull() || ptr.isUnknown() || ptr.isInvalidated())
                 continue;
@@ -107,7 +107,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
     }
 
     // not very efficient
-    void replaceLocalsWithInv(PSNode *where, PointsToSetT &S1) {
+    static void replaceLocalsWithInv(PSNode *where, PointsToSetT &S1) {
         PointsToSetT S;
 
         for (const auto &ptr : S1) {
@@ -140,7 +140,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
         return changed;
     }
 
-    bool handleInvalidateLocals(PSNode *node, PSNode *pred) {
+    static bool handleInvalidateLocals(PSNode *node, PSNode *pred) {
         MemoryMapT *pmm = pred->getData<MemoryMapT>();
         if (!pmm) {
             // predecessor was not processed yet
@@ -205,7 +205,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
         S1.swap(S);
     }
 
-    bool invalidateMemory(PSNode *node) {
+    static bool invalidateMemory(PSNode *node) {
         bool changed = false;
         for (PSNode *pred : node->predecessors()) {
             changed |= invalidateMemory(node, pred);
@@ -213,7 +213,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
         return changed;
     }
 
-    bool handleFree(PSNode *node) {
+    static bool handleFree(PSNode *node) {
         bool changed = false;
         for (PSNode *pred : node->predecessors()) {
             changed |= invalidateMemory(node, pred, true /* is free */);
@@ -224,9 +224,9 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
     // return true if we know the instance of the object
     // (allocations in loop or recursive calls may have
     // multiple instances)
-    bool knownInstance(const PSNode *node) const { return !isOnLoop(node); }
+    static bool knownInstance(const PSNode *node) { return !isOnLoop(node); }
 
-    bool invStrongUpdate(const PSNode *operand) const {
+    static bool invStrongUpdate(const PSNode *operand) {
         // If we are freeing memory through node that
         // points to precisely known valid memory that is not allocated
         // on a loop, we can do strong update.
@@ -247,7 +247,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
     // Check whether we can overwrite the memory object that was used to load
     // the pointer into free().
     // Return the PSNode that represents this memory object
-    PSNode *moFromFreeToOverwrite(PSNode *operand) {
+    static PSNode *moFromFreeToOverwrite(PSNode *operand) {
         // Bail out if the operand has no pointers yet,
         // otherwise we can add invalidated imprecisely
         // (the rest of invalidateMemory would not perform strong update)

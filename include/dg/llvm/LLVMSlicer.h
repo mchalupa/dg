@@ -109,7 +109,7 @@ class LLVMSlicer : public Slicer<LLVMNode> {
     }
 
     // override slice method
-    uint32_t slice(LLVMNode *start, uint32_t sl_id = 0) {
+    static uint32_t slice(LLVMNode *start, uint32_t sl_id = 0) {
         (void) sl_id;
         (void) start;
 
@@ -273,7 +273,8 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
     // when we sliced away a branch of CFG, we need to reconnect it
     // to exit block, since on this path we would silently terminate
     // (this path won't have any effect on the property anymore)
-    void adjustBBlocksSucessors(LLVMDependenceGraph *graph, uint32_t slice_id) {
+    static void adjustBBlocksSucessors(LLVMDependenceGraph *graph,
+                                       uint32_t slice_id) {
         LLVMBBlock *oldExitBB = graph->getExitBB();
         assert(oldExitBB && "Don't have exit BB");
 
@@ -550,7 +551,7 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
         // if the block still does not have terminator
     }
 
-    void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph) {
+    static void reconnectLLLVMBasicBlocks(LLVMDependenceGraph *graph) {
         for (auto &it : graph->getBlocks()) {
             llvm::BasicBlock *llvmBB = llvm::cast<llvm::BasicBlock>(it.first);
             LLVMBBlock *BB = it.second;
@@ -559,7 +560,7 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
         }
     }
 
-    void ensureEntryBlock(LLVMDependenceGraph *graph) {
+    static void ensureEntryBlock(LLVMDependenceGraph *graph) {
         using namespace llvm;
 
         Value *val = graph->getEntry()->getKey();

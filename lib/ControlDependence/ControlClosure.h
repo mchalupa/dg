@@ -35,8 +35,8 @@ class StrongControlClosure {
 
     // this is the \Gamma function from the paper
     // (a bit different implementation)
-    std::set<CDNode *> gamma(CDGraph &graph,
-                             const std::set<CDNode *> &targets) {
+    static std::set<CDNode *> gamma(CDGraph &graph,
+                                    const std::set<CDNode *> &targets) {
         struct Info {
             unsigned colored{false};
             unsigned short counter;

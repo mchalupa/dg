@@ -21,7 +21,7 @@ extern const Pointer NullPointer;
 extern const Pointer UnknownPointer;
 
 class PointerAnalysis {
-    void initPointerAnalysis() { assert(PG && "Need PointerGraph object"); }
+    static void initPointerAnalysis() {}
 
   protected:
     // a set of changed nodes that are going to be

@@ -180,9 +180,9 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     std::unique_ptr<pta::PointerAnalysis> PTA{}; // dg pointer analysis object
     std::unique_ptr<LLVMPointerGraphBuilder> _builder;
 
-    LLVMPointerAnalysisOptions createOptions(const char *entry_func,
-                                             uint64_t field_sensitivity,
-                                             bool threads = false) {
+    static LLVMPointerAnalysisOptions createOptions(const char *entry_func,
+                                                    uint64_t field_sensitivity,
+                                                    bool threads = false) {
         LLVMPointerAnalysisOptions opts;
         opts.threads = threads;
         opts.setFieldSensitivity(field_sensitivity);
@@ -190,7 +190,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
         return opts;
     }
 
-    const PointsToSetT &getUnknownPTSet() const {
+    static const PointsToSetT &getUnknownPTSet() {
         static const PointsToSetT _unknownPTSet =
                 PointsToSetT({Pointer{pta::UNKNOWN_MEMORY, 0}});
         return _unknownPTSet;

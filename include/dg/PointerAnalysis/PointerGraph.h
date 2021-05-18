@@ -178,7 +178,7 @@ class PointerGraph {
         initStaticNodes();
     }
 
-    void initStaticNodes();
+    static void initStaticNodes();
 
     PointerSubgraph *createSubgraph(PSNode *root, PSNode *vararg = nullptr) {
         // NOTE: id of the subgraph is always index in _subgraphs + 1
