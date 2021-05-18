@@ -1,7 +1,7 @@
 ---
 # vim: syntax=yaml
 # we might want to enable llvm-namespace-comment in the future
-Checks:              'clang-diagnostic-*,clang-analyzer-*,modernize-*,-modernize-use-auto,-modernize-use-trailing-return-type,bugprone-*,llvm-*,-llvm-header-guard,-llvm-namespace-comment,misc-misplaced-const,misc-non-copyable-objects,misc-redundant-expression,misc-static-assert,misc-throw-by-value-catch-by-reference,misc-unconventional-assign-operator,misc-uniqueptr-reset-release,performace-*,readability-*,-readability-isolate-declaration,-readability-braces-around-statements,-readability-implicit-bool-conversion'
+Checks:              'clang-diagnostic-*,clang-analyzer-*,modernize-*,-modernize-use-auto,-modernize-use-trailing-return-type,bugprone-*,llvm-*,-llvm-header-guard,-llvm-namespace-comment,misc-misplaced-const,misc-non-copyable-objects,misc-redundant-expression,misc-static-assert,misc-throw-by-value-catch-by-reference,misc-unconventional-assign-operator,misc-uniqueptr-reset-release,performace-*,readability-*,-readability-isolate-declaration,-readability-braces-around-statements,-readability-implicit-bool-conversion,-readability-static-accessed-through-instance'
 WarningsAsErrors:    ''
 HeaderFilterRegex:   'include/|lib/|tools/'
 AnalyzeTemporaryDtors: false
