@@ -73,7 +73,7 @@ class LLVMDependenceGraphBuilder {
 
     std::clock_t _time_start;
     void _timerStart() { _time_start = std::clock(); }
-    uint64_t _timerEnd() { return (std::clock() - _time_start); }
+    uint64_t _timerEnd() const { return (std::clock() - _time_start); }
 
     void _runPointerAnalysis() {
         assert(_PTA && "BUG: No PTA");

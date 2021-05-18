@@ -68,7 +68,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             std::set<RWNode *> getOutputs(const DefSite &ds) {
                 return outputs.get(ds);
             }
-            auto getUncoveredOutputs(const DefSite &ds)
+            auto getUncoveredOutputs(const DefSite &ds) const
                     -> decltype(outputs.undefinedIntervals(ds)) {
                 return outputs.undefinedIntervals(ds);
             }
@@ -150,7 +150,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                               bool isstrong);
 
     template <typename Iterable>
-    void findPhiDefinitions(RWNode *phi, Iterable &I) {
+    void findPhiDefinitions(RWNode *phi, const Iterable &I) {
         std::set<RWNode *> defs;
 
         assert(phi->getOverwrites().size() == 1);
@@ -174,7 +174,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     /// if escaping is set to true, collect only definitions of escaping memory
     // (optimization for searching definitions in callers)
     void collectAllDefinitions(RWNode *from, Definitions &defs,
-                               bool esacping = false);
+                               bool escaping = false);
     void collectAllDefinitions(Definitions &defs, RWBBlock *from,
                                std::set<RWBBlock *> &visitedBlocks,
                                bool escaping);
