@@ -136,7 +136,6 @@ class SubgraphNode {
         operands.clear();
     }
 
-  public:
     template <typename NodePtr, typename... Args>
     size_t addOperand(NodePtr node, Args &&...args) {
         addOperand(node);
