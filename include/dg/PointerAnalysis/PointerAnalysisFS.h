@@ -190,7 +190,7 @@ class PointerAnalysisFS : public PointerAnalysis {
             PSNode *fromTarget = it.first;
             std::unique_ptr<MemoryObject> &toMo = (*mm)[fromTarget];
             if (toMo == nullptr)
-                toMo = std::make_unique<MemoryObject>(fromTarget);
+                toMo.reset(new MemoryObject(fromTarget));
 
             changed |= mergeObjects(fromTarget, toMo.get(), it.second.get(),
                                     overwritten);
