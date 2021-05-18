@@ -1,5 +1,5 @@
-#ifndef _DG_SPARSE_BITVECTOR_H_
-#define _DG_SPARSE_BITVECTOR_H_
+#ifndef DG_SPARSE_BITVECTOR_H_
+#define DG_SPARSE_BITVECTOR_H_
 
 #include <cassert>
 #include <cstdint>
@@ -257,4 +257,4 @@ using SparseBitvector = SparseBitvectorMapImpl;
 } // namespace ADT
 } // namespace dg
 
-#endif // _DG_SPARSE_BITVECTOR_H_
+#endif // DG_SPARSE_BITVECTOR_H_

@@ -1,5 +1,5 @@
-#ifndef _DG_CONTAINER_H_
-#define _DG_CONTAINER_H_
+#ifndef DG_CONTAINER_H_
+#define DG_CONTAINER_H_
 
 #include <algorithm>
 #include <cassert>
@@ -86,4 +86,4 @@ class EdgesContainer : public DGContainer<NodeT *, EXPECTED_EDGES_NUM> {};
 
 } // namespace dg
 
-#endif // _DG_CONTAINER_H_
+#endif // DG_CONTAINER_H_

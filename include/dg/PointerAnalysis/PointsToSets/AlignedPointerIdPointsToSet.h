@@ -1,5 +1,5 @@
-#ifndef ALIGNEDBITVECTORPOINTSTOSET_H
-#define ALIGNEDBITVECTORPOINTSTOSET_H
+#ifndef DG_ALIGNEDBITVECTORPOINTSTOSET_H
+#define DG_ALIGNEDBITVECTORPOINTSTOSET_H
 
 #include "dg/ADT/Bitvector.h"
 #include "dg/PointerAnalysis/Pointer.h"
@@ -237,4 +237,4 @@ class AlignedPointerIdPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* ALIGNEDBITVECTORPOINTSTOSET_H */
+#endif // DG_ALIGNEDBITVECTORPOINTSTOSET_H

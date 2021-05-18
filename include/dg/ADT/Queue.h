@@ -1,5 +1,5 @@
-#ifndef _DG_ADT_QUEUE_H_
-#define _DG_ADT_QUEUE_H_
+#ifndef DG_ADT_QUEUE_H_
+#define DG_ADT_QUEUE_H_
 
 #include <queue>
 #include <set>
@@ -91,4 +91,4 @@ class PrioritySet {
 } // namespace ADT
 } // namespace dg
 
-#endif // _DG_ADT_QUEUE_H_
+#endif // DG_ADT_QUEUE_H_
