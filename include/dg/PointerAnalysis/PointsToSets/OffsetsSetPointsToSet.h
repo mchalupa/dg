@@ -88,7 +88,12 @@ class OffsetsSetPointsToSet {
             return false;
         }
 
-        return it->second.unset(*offset);
+        bool ret = it->second.unset(*offset);
+        if (ret && it->second.empty()) {
+            pointers.erase(it);
+        }
+        assert(ret || !it->second.empty() && "Inconsistence");
+        return ret;
     }
 
     ///
