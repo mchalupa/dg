@@ -109,6 +109,7 @@ class StrongControlClosure {
             while (!queue.empty()) {
                 assert(toadd == nullptr);
                 auto *p = queue.pop();
+                assert(p && "popped nullptr");
                 for (auto *r : p->successors()) {
                     assert(toadd == nullptr);
                     // DBG(cda, "Checking edge " << p->getID() << "->" <<
