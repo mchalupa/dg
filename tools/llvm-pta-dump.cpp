@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <set>
 #include <sstream>
 #include <string>
@@ -863,7 +864,7 @@ int main(int argc, char *argv[]) {
             llvmpta.reset(new SVFPointerAnalysis(M.get(), opts));
         else
 #endif
-            llvmpta.reset(new DGLLVMPointerAnalysis(M.get(), opts));
+            llvmpta = std::make_unique<DGLLVMPointerAnalysis>(M.get(), opts);
 
         tm.start();
         llvmpta->run();

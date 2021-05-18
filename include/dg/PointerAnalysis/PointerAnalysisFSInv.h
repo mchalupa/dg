@@ -3,6 +3,7 @@
 
 #include "PointerAnalysisFS.h"
 #include <cassert>
+#include <memory>
 
 namespace dg {
 namespace pta {
@@ -21,7 +22,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
     static MemoryObject *getOrCreateMO(MemoryMapT *mm, PSNode *target) {
         std::unique_ptr<MemoryObject> &moptr = (*mm)[target];
         if (!moptr)
-            moptr.reset(new MemoryObject(target));
+            moptr = std::make_unique<MemoryObject>(target);
 
         assert(mm->find(target) != mm->end());
         return moptr.get();

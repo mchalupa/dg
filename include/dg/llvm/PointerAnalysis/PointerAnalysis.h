@@ -315,14 +315,17 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
 
         if (options.isFS()) {
             // FIXME: make a interface with run() method
-            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS>(
-                    PS, _builder.get(), options));
+            PTA = std::make_unique<
+                    DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFS>>(
+                    PS, _builder.get(), options);
         } else if (options.isFI()) {
-            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI>(
-                    PS, _builder.get(), options));
+            PTA = std::make_unique<
+                    DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFI>>(
+                    PS, _builder.get(), options);
         } else if (options.isFSInv()) {
-            PTA.reset(new DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv>(
-                    PS, _builder.get(), options));
+            PTA = std::make_unique<
+                    DGLLVMPointerAnalysisImpl<pta::PointerAnalysisFSInv>>(
+                    PS, _builder.get(), options);
         } else {
             assert(0 && "Wrong pointer analysis");
             abort();
