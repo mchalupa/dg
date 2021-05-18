@@ -140,8 +140,8 @@ static std::string getInstName(const llvm::Value *val) {
     llvm::raw_os_ostream ro(ostr);
 
     if (dump_c_lines) {
-        if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
-            auto &DL = I->getDebugLoc();
+        if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            const auto &DL = I->getDebugLoc();
             if (DL) {
                 ro << DL.getLine() << ":" << DL.getCol();
             } else {
@@ -177,8 +177,8 @@ static inline void dumpEdge(const llvm::Value *from, const llvm::Value *to,
                             const char *attrs = nullptr) {
     using namespace llvm;
 
-    auto *fromB = dyn_cast<BasicBlock>(from);
-    auto *toB = dyn_cast<BasicBlock>(to);
+    const auto *fromB = dyn_cast<BasicBlock>(from);
+    const auto *toB = dyn_cast<BasicBlock>(to);
 
     std::cout << "instr";
     if (fromB) {
@@ -219,23 +219,23 @@ static void dumpCdaToDot(LLVMControlDependenceAnalysis &cda,
     std::cout << "  compound=true;\n";
 
     // dump nodes
-    for (auto &f : *m) {
+    for (const auto &f : *m) {
         if (f.isDeclaration())
             continue;
 
         std::cout << "subgraph cluster_f_" << f.getName().str() << " {\n";
         std::cout << "label=\"" << f.getName().str() << "\"\n";
-        for (auto &b : f) {
+        for (const auto &b : f) {
             std::cout << "subgraph cluster_bb_" << &b << " {\n";
             std::cout << "  style=dotted;\n";
-            for (auto &I : b) {
+            for (const auto &I : b) {
                 std::cout << " instr" << &I << " [shape=rectangle label=\""
                           << getInstName(&I) << "\"]\n";
             }
 
             const llvm::Instruction *last = nullptr;
             // give the block top-down structure
-            for (auto &I : b) {
+            for (const auto &I : b) {
                 if (last) {
                     std::cout << " instr" << last << " -> "
                               << "instr" << &I;
@@ -254,9 +254,9 @@ static void dumpCdaToDot(LLVMControlDependenceAnalysis &cda,
 
     // dump CFG edges between blocks
     if (show_cfg) {
-        for (auto &f : *m) {
-            for (auto &b : f) {
-                for (auto *succ : successors(&b)) {
+        for (const auto &f : *m) {
+            for (const auto &b : f) {
+                for (const auto *succ : successors(&b)) {
                     dumpEdge(&b, succ, "style=dashed minlen=2 color=black");
                 }
             }
@@ -264,13 +264,13 @@ static void dumpCdaToDot(LLVMControlDependenceAnalysis &cda,
     }
 
     // dump edges
-    for (auto &f : *m) {
-        for (auto &b : f) {
+    for (const auto &f : *m) {
+        for (const auto &b : f) {
             for (auto *D : cda.getDependencies(&b)) {
                 dumpEdge(D, &b);
             }
 
-            for (auto &I : b) {
+            for (const auto &I : b) {
                 for (auto *D : cda.getDependencies(&I)) {
                     dumpEdge(D, &I);
                 }
@@ -302,9 +302,9 @@ static void dumpCda(LLVMControlDependenceAnalysis &cda) {
         return;
     }
 
-    for (auto &F : *m) {
-        for (auto &B : F) {
-            for (auto &I : B) {
+    for (const auto &F : *m) {
+        for (const auto &B : F) {
+            for (const auto &I : B) {
                 for (auto *dep : cda.getDependencies(&B)) {
                     auto *depB = llvm::cast<llvm::BasicBlock>(dep);
                     std::cout << getInstName(&I) << " -> "

@@ -120,7 +120,7 @@ void LLVMPointerGraphBuilder::addReturnNodesOperands(const llvm::Function *F,
 void LLVMPointerGraphBuilder::addReturnNodeOperand(PSNode *callNode,
                                                    PSNode *ret) {
     assert(PSNodeRet::get(ret));
-    auto callReturn = PSNodeCallRet::cast(callNode->getPairedNode());
+    auto *callReturn = PSNodeCallRet::cast(callNode->getPairedNode());
     // the function must be defined, since we have the return node,
     // so there must be associated the return node
     assert(callReturn);
@@ -189,7 +189,7 @@ void LLVMPointerGraphBuilder::addInterproceduralOperands(
         addReturnNodesOperands(F, subg, callNode);
     } else if (callNode) {
         // disconnect call-return nodes
-        auto callReturnNode = PSNodeCallRet::cast(callNode->getPairedNode());
+        auto *callReturnNode = PSNodeCallRet::cast(callNode->getPairedNode());
         assert(callReturnNode && callNode != callReturnNode);
         (void) callReturnNode; // c++17 TODO: replace with [[maybe_unused]]
 

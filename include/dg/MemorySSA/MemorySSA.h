@@ -215,7 +215,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     }
 
     const BBlockInfo *getBBlockInfo(RWBBlock *b) const {
-        auto *si = getSubgraphInfo(b->getSubgraph());
+        const auto *si = getSubgraphInfo(b->getSubgraph());
         if (si) {
             return si->getBBlockInfo(b);
         }
@@ -250,12 +250,12 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
 
     const Definitions *getDefinitions(RWBBlock *b) const {
-        auto *bi = getBBlockInfo(b);
+        const auto *bi = getBBlockInfo(b);
         return bi ? &bi->getDefinitions() : nullptr;
     }
 
     const SubgraphInfo::Summary *getSummary(const RWSubgraph *s) const {
-        auto si = getSubgraphInfo(s);
+        const auto *si = getSubgraphInfo(s);
         if (!si)
             return nullptr;
         return &si->getSummary();

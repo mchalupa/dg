@@ -219,7 +219,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     bool threads() const { return _builder->threads(); }
 
     bool hasPointsTo(const llvm::Value *val) override {
-        if (auto node = getPointsToNode(val)) {
+        if (auto *node = getPointsToNode(val)) {
             return !node->pointsTo.empty();
         }
         return false;
@@ -234,7 +234,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     // LLVM value contains unknown element of null.
     LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
-        if (auto node = getPointsToNode(val)) {
+        if (auto *node = getPointsToNode(val)) {
             if (node->pointsTo.empty()) {
                 pts = new DGLLVMPointsToSet(getUnknownPTSet());
             } else {
@@ -339,7 +339,7 @@ inline std::vector<const llvm::Function *>
 getCalledFunctions(const llvm::Value *calledValue, LLVMPointerAnalysis *PTA) {
     std::vector<const llvm::Function *> functions;
     for (const auto &llvmptr : PTA->getLLVMPointsTo(calledValue)) {
-        if (const auto F = llvm::dyn_cast<llvm::Function>(llvmptr.value)) {
+        if (auto *const F = llvm::dyn_cast<llvm::Function>(llvmptr.value)) {
             functions.push_back(F);
         }
     }

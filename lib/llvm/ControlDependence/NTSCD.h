@@ -55,7 +55,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 
         // XXX: this could be computed on-demand per one node (block)
         // (in contrary to getDependent())
-        auto *f = I->getParent()->getParent();
+        const auto *f = I->getParent()->getParent();
         if (_getGraph(f) == nullptr) {
             /// FIXME: get rid of the const cast
             computeOnDemand(const_cast<llvm::Function *>(f));
@@ -76,7 +76,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = graphBuilder.getValue(dep);
+            const auto *val = graphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -113,7 +113,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = graphBuilder.getValue(dep);
+            const auto *val = graphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -132,7 +132,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         if (F && !F->isDeclaration() && (_getGraph(F) == nullptr)) {
             computeOnDemand(const_cast<llvm::Function *>(F));
         } else {
-            for (auto &f : *getModule()) {
+            for (const auto &f : *getModule()) {
                 if (!f.isDeclaration() && (_getGraph(&f) == nullptr)) {
                     computeOnDemand(const_cast<llvm::Function *>(&f));
                 }
@@ -256,7 +256,7 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = igraphBuilder.getValue(dep);
+            const auto *val = igraphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -286,7 +286,7 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = igraphBuilder.getValue(dep);
+            const auto *val = igraphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }

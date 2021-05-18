@@ -267,7 +267,7 @@ class PSNode : public SubgraphNode<PSNode> {
         dump();
         std::cout << "(";
         int n = 0;
-        for (const auto op : getOperands()) {
+        for (const auto *op : getOperands()) {
             if (++n > 1)
                 std::cout << ", ";
             op->dump();
@@ -442,7 +442,7 @@ class PSNodeEntry : public PSNode {
     bool addCaller(PSNode *n) {
         // we suppose there are just few callees,
         // so this should be faster than std::set
-        for (auto p : callers) {
+        for (auto *p : callers) {
             if (p == n)
                 return false;
         }
@@ -500,7 +500,7 @@ class PSNodeCall : public PSNode {
 
         std::cout << " calls: [";
         int n = 0;
-        for (const auto op : callees) {
+        for (const auto *op : callees) {
             if (++n > 1)
                 std::cout << ", ";
             std::cout << op;
@@ -538,7 +538,7 @@ class PSNodeCallRet : public PSNode {
     bool addReturn(PSNode *p) {
         // we suppose there are just few callees,
         // so this should be faster than std::set
-        for (auto r : returns) {
+        for (auto *r : returns) {
             if (p == r)
                 return false;
         }
@@ -553,7 +553,7 @@ class PSNodeCallRet : public PSNode {
         PSNode::dumpv();
         std::cout << "Return-site of call " << call->getID() << " rets: [";
         int n = 0;
-        for (const auto op : returns) {
+        for (const auto *op : returns) {
             if (++n > 1)
                 std::cout << ", ";
             op->dump();
@@ -598,7 +598,7 @@ class PSNodeRet : public PSNode {
         PSNode::dumpv();
         std::cout << "Returns from: [";
         int n = 0;
-        for (const auto op : returns) {
+        for (const auto *op : returns) {
             if (++n > 1)
                 std::cout << ", ";
             op->dump();

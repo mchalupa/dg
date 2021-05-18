@@ -25,7 +25,7 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
         defnode = node;
 
     // possible definitions
-    for (auto &ds : node->getDefines()) {
+    for (const auto &ds : node->getDefines()) {
         if (ds.target->isUnknown()) {
             // this makes all lastDefs into possibleDefs,
             // since we do not know if it was defined here or there
@@ -38,7 +38,7 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
     }
 
     // definitive definitions
-    for (auto &ds : node->getOverwrites()) {
+    for (const auto &ds : node->getOverwrites()) {
         assert((defnode->isPhi() || // we allow ? for PHI nodes
                 !ds.offset.isUnknown()) &&
                "Update on unknown offset");

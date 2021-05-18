@@ -106,7 +106,7 @@ class PointerIdPointsToSet {
 
     bool pointsToTarget(PSNode *target) const {
         for (auto ptrid : pointers) {
-            auto &ptr = getPointer(ptrid);
+            const auto &ptr = getPointer(ptrid);
             if (ptr.target == target) {
                 return true;
             }
@@ -128,7 +128,7 @@ class PointerIdPointsToSet {
 
     bool hasNullWithOffset() const {
         for (auto ptrid : pointers) {
-            auto &ptr = getPointer(ptrid);
+            const auto &ptr = getPointer(ptrid);
             if (ptr.target == NULLPTR && *ptr.offset != 0) {
                 return true;
             }

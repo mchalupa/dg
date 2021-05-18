@@ -49,7 +49,7 @@ LLVMPointerGraphBuilder::buildPointerGraphBlock(const llvm::BasicBlock &block,
         auto &seq = buildInstruction(Inst);
 
         // set parent to the new nodes
-        for (auto nd : seq) {
+        for (auto *nd : seq) {
             nd->setParent(parent);
         }
 

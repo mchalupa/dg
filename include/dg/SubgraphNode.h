@@ -130,7 +130,7 @@ class SubgraphNode {
     size_t getOperandsNum() const { return operands.size(); }
 
     void removeAllOperands() {
-        for (auto o : operands) {
+        for (auto *o : operands) {
             o->removeUser(static_cast<NodeT *>(this));
         }
         operands.clear();
@@ -379,7 +379,7 @@ class SubgraphNode {
     bool removeDuplicitOperands() {
         std::set<NodeT *> ops;
         bool duplicated = false;
-        for (auto op : getOperands()) {
+        for (auto *op : getOperands()) {
             if (!ops.insert(op).second)
                 duplicated = true;
         }
@@ -390,7 +390,7 @@ class SubgraphNode {
             // just push the new operads,
             // the users should not change in this case
             // (as we just remove the duplicated ones)
-            for (auto op : ops)
+            for (auto *op : ops)
                 operands.push_back(op);
         }
 
@@ -399,7 +399,7 @@ class SubgraphNode {
 
     void addUser(NodeT *nd) {
         // do not add duplicate users
-        for (auto u : users)
+        for (auto *u : users)
             if (u == nd)
                 return;
 

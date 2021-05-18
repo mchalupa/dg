@@ -117,7 +117,7 @@ class RWBBlock : public BBlockBase<RWBBlock, RWNode> {
     }
 
     bool isReturnBBlock() const {
-        if (auto *last = getLast()) {
+        if (const auto *last = getLast()) {
             return last->isRet();
         }
         return false;

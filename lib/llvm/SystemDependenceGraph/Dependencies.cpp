@@ -57,7 +57,7 @@ struct SDGDependenciesBuilder {
 
     // elem is CD on 'on'
     void addControlDep(sdg::DepDGElement *elem, const llvm::Value *on) {
-        if (auto *depB = llvm::dyn_cast<llvm::BasicBlock>(on)) {
+        if (const auto *depB = llvm::dyn_cast<llvm::BasicBlock>(on)) {
             auto *depblock = _sdg.getBBlock(depB);
             assert(depblock && "Do not have the block");
             elem->addControlDep(*depblock);

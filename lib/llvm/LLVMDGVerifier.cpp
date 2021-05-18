@@ -43,8 +43,8 @@ void LLVMDGVerifier::checkMainProc() {
         fault("has no module set");
 
     // all the subgraphs must have the same global nodes
-    extern std::map<llvm::Value *, LLVMDependenceGraph *> constructedFunctions;
-    for (auto &it : constructedFunctions) {
+
+    for (const auto &it : getConstructedFunctions()) {
         if (it.second->global_nodes != dg->global_nodes)
             fault("subgraph has different global nodes than main proc");
     }

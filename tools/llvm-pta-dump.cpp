@@ -139,13 +139,13 @@ static std::string valToStr(const llvm::Value *val) {
     std::ostringstream ostr;
     raw_os_ostream ro(ostr);
 
-    if (auto *F = dyn_cast<Function>(val)) {
+    if (const auto *F = dyn_cast<Function>(val)) {
         ro << "fun '" << F->getName().str() << "'";
     } else {
-        auto *I = dyn_cast<Instruction>(val);
+        const auto *I = dyn_cast<Instruction>(val);
         if (dump_c_lines) {
             if (I) {
-                auto &DL = I->getDebugLoc();
+                const auto &DL = I->getDebugLoc();
                 if (DL) {
                     ro << DL.getLine() << ":" << DL.getCol();
                 } else {
@@ -178,7 +178,7 @@ static std::string getInstName(const llvm::Value *val) {
     llvm::raw_os_ostream ro(ostr);
 
     if (names_with_funs) {
-        if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
+        if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
             ro << I->getParent()->getParent()->getName().data() << ":";
         }
     }
@@ -421,19 +421,19 @@ static void dumpNodeToDot(PSNode *node, PTType type) {
     if (verbose) {
         if (PSNodeEntry *entry = PSNodeEntry::get(node)) {
             printf("called from: [");
-            for (auto r : entry->getCallers())
+            for (auto *r : entry->getCallers())
                 printf("%u ", r->getID());
             printf("]\\n");
         }
         if (PSNodeCallRet *CR = PSNodeCallRet::get(node)) {
             printf("returns from: [");
-            for (auto r : CR->getReturns())
+            for (auto *r : CR->getReturns())
                 printf("%u ", r->getID());
             printf("]\\n");
         }
         if (PSNodeRet *R = PSNodeRet::get(node)) {
             printf("returns to: [");
-            for (auto r : R->getReturnSites())
+            for (auto *r : R->getReturnSites())
                 printf("%u ", r->getID());
             printf("]\\n");
         }
@@ -492,16 +492,16 @@ static void dumpNodeEdgesToDot(PSNode *node) {
                op->getID(), node->getID());
     }
 
-    if (auto C = PSNodeCall::get(node)) {
-        for (const auto subg : C->getCallees()) {
+    if (auto *C = PSNodeCall::get(node)) {
+        for (auto *const subg : C->getCallees()) {
             printf("\tNODE%u -> NODE%u "
                    "[penwidth=4,style=dashed,constraint=false]\n",
                    node->getID(), subg->root->getID());
         }
     }
 
-    if (auto R = PSNodeRet::get(node)) {
-        for (const auto succ : R->getReturnSites()) {
+    if (auto *R = PSNodeRet::get(node)) {
+        for (auto *const succ : R->getReturnSites()) {
             printf("\tNODE%u -> NODE%u "
                    "[penwidth=4,style=dashed,constraint=false]\n",
                    node->getID(), succ->getID());
@@ -535,15 +535,15 @@ static void dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type) {
     if (callgraph) {
         // dump call-graph
         const auto &CG = pta->getPS()->getCallGraph();
-        for (auto &it : CG) {
+        for (const auto &it : CG) {
             printf("NODEcg%u [label=\"%s\"]\n", it.second.getID(),
                    it.first->getUserData<llvm::Function>()
                            ->getName()
                            .str()
                            .c_str());
         }
-        for (auto &it : CG) {
-            for (auto succ : it.second.getCalls()) {
+        for (const auto &it : CG) {
+            for (auto *succ : it.second.getCalls()) {
                 printf("NODEcg%u -> NODEcg%u\n", it.second.getID(),
                        succ->getID());
             }
@@ -556,7 +556,7 @@ static void dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type) {
 
     if (!display_only_func.empty()) {
         std::set<PSNode *> nodes;
-        for (auto llvmFunc : display_only_func) {
+        for (const auto *llvmFunc : display_only_func) {
             auto func_nodes = pta->getFunctionNodes(llvmFunc);
             if (func_nodes.empty()) {
                 llvm::errs() << "ERROR: Did not find any nodes for function "
@@ -567,7 +567,7 @@ static void dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type) {
             }
 
             // use std::set to get rid of duplicates
-            for (auto nd : func_nodes) {
+            for (auto *nd : func_nodes) {
                 nodes.insert(nd);
                 // get also operands of the nodes,
                 // be it in any function
@@ -581,10 +581,10 @@ static void dumpPointerGraphdot(DGLLVMPointerAnalysis *pta, PTType type) {
 
         // dump edges representing procedure calls, so that
         // the graph is conntected
-        for (auto nd : nodes) {
+        for (auto *nd : nodes) {
             if (nd->getType() == PSNodeType::CALL ||
                 nd->getType() == PSNodeType::CALL_FUNCPTR) {
-                auto ret = nd->getPairedNode();
+                auto *ret = nd->getPairedNode();
                 if (ret == nullptr)
                     continue;
 
@@ -637,8 +637,8 @@ static void dumpStats(DGLLVMPointerAnalysis *pta) {
     size_t only_valid_target = 0;
     size_t only_valid_and_some_known = 0;
 
-    for (auto &node : nodes) {
-        if (!node.get())
+    for (const auto &node : nodes) {
+        if (!node)
             continue;
 
         if (node->pointsTo.size() > 0)
@@ -681,7 +681,7 @@ static void dumpStats(DGLLVMPointerAnalysis *pta) {
                 _has_only_valid_targets = false;
             }
 
-            auto alloc = PSNodeAlloc::get(ptr.target);
+            auto *alloc = PSNodeAlloc::get(ptr.target);
             if (alloc) {
                 ++allocation_num;
                 if (node->getSize() != 0 &&
@@ -740,8 +740,8 @@ static void dumpStats(DGLLVMPointerAnalysis *pta) {
     double avg_nonempty_ptset_size = 0; // avg over non-empty sets only
     size_t accumulated_ptset_size = 0;
 
-    for (auto &node : nodes) {
-        if (!node.get())
+    for (const auto &node : nodes) {
+        if (!node)
             continue;
 
         if (accumulated_ptset_size > (~((size_t) 0)) - node->pointsTo.size()) {
@@ -834,7 +834,7 @@ int main(int argc, char *argv[]) {
 
     if (!display_only.empty()) {
         for (const auto &func : splitList(display_only)) {
-            auto llvmFunc = M->getFunction(func);
+            auto *llvmFunc = M->getFunction(func);
             if (!llvmFunc) {
                 llvm::errs() << "Invalid function to display: " << func
                              << ". Function not found in the module\n";
@@ -896,7 +896,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        for (auto &F : *M.get()) {
+        for (auto &F : *M) {
             for (auto &B : F) {
                 for (auto &I : B) {
                     if (!I.getType()->isPointerTy() &&
@@ -953,7 +953,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    auto PA = PTA.getPTA();
+    auto *PA = PTA.getPTA();
     assert(PA && "Did not initialize the analysis");
 
     // run the analysis
@@ -964,7 +964,7 @@ int main(int argc, char *argv[]) {
 
         // do fixpoint
         for (unsigned i = 0; i < dump_iteration; ++i) {
-            if (PA->iteration() == false)
+            if (!PA->iteration())
                 break;
             PA->queue_changed();
         }

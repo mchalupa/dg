@@ -18,7 +18,7 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
     Offset len;
 
     const Module *M = I->getParent()->getParent()->getParent();
-    auto &DL = M->getDataLayout();
+    const auto &DL = M->getDataLayout();
 
     if (isa<StoreInst>(I)) {
         PTSet = getLLVMPointsTo(I->getOperand(1));
@@ -35,7 +35,7 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
     } else if (isa<AtomicRMWInst>(I)) {
         PTSet = getLLVMPointsTo(I->getOperand(0));
         len = llvmutils::getAllocatedSize(I->getOperand(1)->getType(), &DL);
-    } else if (auto II = dyn_cast<IntrinsicInst>(I)) {
+    } else if (const auto *II = dyn_cast<IntrinsicInst>(I)) {
         switch (II->getIntrinsicID()) {
         // lifetime start/end do not access the memory,
         // but the user may want to find out information
@@ -69,7 +69,7 @@ LLVMPointerAnalysis::getAccessedMemory(const llvm::Instruction *I) {
             llvm::errs() << "ERROR: Unhandled intrinsic\n" << *I << "\n";
             return {true, regions};
         }
-    } else if (auto CI = dyn_cast<CallInst>(I)) {
+    } else if (const auto *CI = dyn_cast<CallInst>(I)) {
         if (CI->doesNotAccessMemory()) {
             return {false, regions};
         }

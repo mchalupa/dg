@@ -76,7 +76,7 @@ class RWNode : public SubgraphNode<RWNode> {
       public:
         bool add(RWNode *d) {
             _init = true;
-            for (auto x : defuse) {
+            for (auto *x : defuse) {
                 if (x == d) {
                     return false;
                 }
@@ -338,8 +338,8 @@ class RWNodeCall : public RWNode {
     void _summarizeAnnotation() const {
         if (callees.size() > 1) {
             std::vector<const RWNode *> undefined;
-            for (auto &cv : callees) {
-                if (auto *uc = cv.getCalledValue()) {
+            for (const auto &cv : callees) {
+                if (const auto *uc = cv.getCalledValue()) {
                     undefined.push_back(uc);
                 }
             }
@@ -355,7 +355,7 @@ class RWNodeCall : public RWNode {
                 }
 
                 annotations.overwrites = kills;
-                for (auto *u : undefined) {
+                for (const auto *u : undefined) {
                     annotations.defs.add(u->annotations.defs);
                     annotations.uses.add(u->annotations.uses);
                 }
@@ -434,7 +434,7 @@ class RWNodeCall : public RWNode {
         return annotations;
     }
     const Annotations &getAnnotations() const override {
-        if (auto *uc = getSingleUndefined())
+        if (const auto *uc = getSingleUndefined())
             return uc->annotations;
         if (!_annotations_summarized)
             _summarizeAnnotation();

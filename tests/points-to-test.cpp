@@ -19,7 +19,7 @@ void store_load() {
     B->addSuccessor(S);
     S->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -61,7 +61,7 @@ void store_load2() {
     L1->addSuccessor(L3);
     L2->addSuccessor(L3);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -90,7 +90,7 @@ void store_load3() {
     L1->addSuccessor(S2);
     S2->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -120,7 +120,7 @@ void store_load4() {
     L1->addSuccessor(S2);
     S2->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -155,7 +155,7 @@ void store_load5() {
     L1->addSuccessor(S2);
     S2->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -183,7 +183,7 @@ void gep1() {
     S->addSuccessor(GEP2);
     GEP2->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -212,7 +212,7 @@ void gep2() {
     S->addSuccessor(GEP3);
     GEP3->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -248,7 +248,7 @@ void gep3() {
     GEP4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -288,7 +288,7 @@ void gep4() {
     GEP4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -334,7 +334,7 @@ void gep5() {
     GEP4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -355,7 +355,7 @@ void nulltest() {
     B->addSuccessor(S);
     S->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(B);
+    auto *subg = PS.createSubgraph(B);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -379,7 +379,7 @@ void constant_store() {
     S->addSuccessor(GEP);
     GEP->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -396,7 +396,7 @@ void load_from_zeroed() {
 
     B->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(B);
+    auto *subg = PS.createSubgraph(B);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -421,7 +421,7 @@ void load_from_unknown_offset() {
     S->addSuccessor(GEP2);
     GEP2->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -449,7 +449,7 @@ void load_from_unknown_offset2() {
     S->addSuccessor(GEP2);
     GEP2->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -476,7 +476,7 @@ void load_from_unknown_offset3() {
     S->addSuccessor(GEP2);
     GEP2->addSuccessor(L);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -530,7 +530,7 @@ void memcpy_test() {
     G4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -585,7 +585,7 @@ void memcpy_test2() {
     G4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -640,7 +640,7 @@ void memcpy_test3() {
     G4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -687,7 +687,7 @@ void memcpy_test4() {
     G4->addSuccessor(L1);
     L1->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -730,7 +730,7 @@ void memcpy_test5() {
     L1->addSuccessor(G4);
     G4->addSuccessor(L2);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -770,7 +770,7 @@ void memcpy_test6() {
     G4->addSuccessor(CPY);
     CPY->addSuccessor(L1);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -811,7 +811,7 @@ void memcpy_test7() {
     L1->addSuccessor(L2);
     L2->addSuccessor(L3);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();
@@ -858,7 +858,7 @@ void memcpy_test8() {
     L1->addSuccessor(L2);
     L2->addSuccessor(L3);
 
-    auto subg = PS.createSubgraph(A);
+    auto *subg = PS.createSubgraph(A);
     PS.setEntry(subg);
     PTStoT PA(&PS);
     PA.run();

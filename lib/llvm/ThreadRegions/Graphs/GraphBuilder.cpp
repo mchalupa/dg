@@ -21,7 +21,7 @@ GraphBuilder::GraphBuilder(dg::DGLLVMPointerAnalysis *pointsToAnalysis)
         : pointsToAnalysis_(pointsToAnalysis) {}
 
 GraphBuilder::~GraphBuilder() {
-    for (auto node : artificialNodes_) {
+    for (auto *node : artificialNodes_) {
         delete node;
     }
 
@@ -112,7 +112,7 @@ GraphBuilder::buildInstruction(const llvm::Instruction *instruction) {
         return {nullptr, nullptr};
     }
 
-    auto inst = findInstruction(instruction);
+    auto *inst = findInstruction(instruction);
     if (inst) {
         return {nullptr, nullptr};
     }
@@ -137,12 +137,12 @@ GraphBuilder::buildBlock(const llvm::BasicBlock *basicBlock) {
         return {nullptr, nullptr};
     }
 
-    auto block = findBlock(basicBlock);
+    auto *block = findBlock(basicBlock);
     if (block) {
         return {nullptr, nullptr};
     }
     std::vector<NodeSequence> builtInstructions;
-    for (auto &instruction : *basicBlock) {
+    for (const auto &instruction : *basicBlock) {
         auto builtInstruction = buildInstruction(&instruction);
         builtInstructions.push_back(builtInstruction);
         if (builtInstruction.second->getType() == NodeType::RETURN)
@@ -159,7 +159,7 @@ GraphBuilder::buildBlock(const llvm::BasicBlock *basicBlock) {
     Node *firstNode = builtInstructions.front().first;
     Node *lastNode = builtInstructions.back().second;
 
-    auto blockGraph = new BlockGraph(basicBlock, firstNode, lastNode);
+    auto *blockGraph = new BlockGraph(basicBlock, firstNode, lastNode);
     this->llvmToBlockMap_.emplace(basicBlock, blockGraph);
 
     return {firstNode, lastNode};
@@ -171,30 +171,30 @@ GraphBuilder::buildFunction(const llvm::Function *function) {
         return {nullptr, nullptr};
     }
 
-    if (function->size() == 0) {
+    if (function->empty()) {
         return {nullptr, nullptr};
     }
 
-    auto functionGraph = findFunction(function);
+    auto *functionGraph = findFunction(function);
     if (functionGraph) {
         return {nullptr, nullptr};
     }
 
     // TODO refactor this into createFunctionGraph method
-    auto entryNode = addNode(createNode<NodeType::ENTRY>());
-    auto exitNode = addNode(createNode<NodeType::EXIT>());
+    auto *entryNode = addNode(createNode<NodeType::ENTRY>());
+    auto *exitNode = addNode(createNode<NodeType::EXIT>());
     functionGraph = new FunctionGraph(function, entryNode, exitNode);
     this->llvmToFunctionMap_.emplace(function, functionGraph);
 
-    for (auto &block : *function) {
+    for (const auto &block : *function) {
         if (isReachable(&block)) {
             buildBlock(&block);
         }
     }
 
-    for (auto &block : *function) {
+    for (const auto &block : *function) {
         if (isReachable(&block)) {
-            auto blockGraph = findBlock(&block);
+            auto *blockGraph = findBlock(&block);
             if (predecessorsNumber(&block) == 0) {
                 functionGraph->entryNode()->addSuccessor(
                         blockGraph->firstNode());
@@ -203,7 +203,7 @@ GraphBuilder::buildFunction(const llvm::Function *function) {
                 blockGraph->lastNode()->addSuccessor(functionGraph->exitNode());
             }
             for (auto it = succ_begin(&block); it != succ_end(&block); ++it) {
-                auto successorGraph = findBlock(*it);
+                auto *successorGraph = findBlock(*it);
                 blockGraph->lastNode()->addSuccessor(
                         successorGraph->firstNode());
             }
@@ -254,7 +254,7 @@ GraphBuilder::getCorrespondingForks(const CallInst *callInst) const {
     auto iterator = llvmToJoins_.find(callInst);
     if (iterator != llvmToJoins_.end()) {
         auto forks = iterator->second->correspondingForks();
-        for (auto fork : forks) {
+        for (auto *fork : forks) {
             llvmForks.insert(fork->callInstruction());
         }
     }
@@ -277,12 +277,12 @@ bool GraphBuilder::matchForksAndJoins() {
 
     for (auto &it : llvmToJoins_) {
         // it.first -> llvm::CallInst, it.second -> RWNode *
-        auto joinNode = it.second;
+        auto *joinNode = it.second;
         auto llvmforks = FJA.matchJoin(it.first);
-        for (auto forkcall : llvmforks) {
-            auto foundInstruction =
+        for (const auto *forkcall : llvmforks) {
+            auto *foundInstruction =
                     findInstruction(cast<Instruction>(forkcall));
-            auto forkNode = castNode<NodeType::FORK>(foundInstruction);
+            auto *forkNode = castNode<NodeType::FORK>(foundInstruction);
             if (forkNode) {
                 changed |= true;
                 joinNode->addCorrespondingFork(forkNode);
@@ -290,8 +290,8 @@ bool GraphBuilder::matchForksAndJoins() {
         }
 
         auto functions = FJA.joinFunctions(it.first);
-        for (auto llvmFunction : functions) {
-            auto functionGraph = findFunction(cast<Function>(llvmFunction));
+        for (const auto *llvmFunction : functions) {
+            auto *functionGraph = findFunction(cast<Function>(llvmFunction));
             if (functionGraph) {
                 joinNode->addJoinPredecessor(functionGraph->exitNode());
                 changed |= true;
@@ -306,9 +306,9 @@ bool GraphBuilder::matchLocksAndUnlocks() {
     using namespace dg::pta;
     bool changed = false;
     for (auto lock : llvmToLocks_) {
-        auto lockMutexPtr = pointsToAnalysis_->getPointsToNode(lock.first);
+        auto *lockMutexPtr = pointsToAnalysis_->getPointsToNode(lock.first);
         for (auto unlock : llvmToUnlocks_) {
-            auto unlockMutexPtr =
+            auto *unlockMutexPtr =
                     pointsToAnalysis_->getPointsToNode(unlock.first);
 
             std::set<PSNode *> mutexPointerIntersection;
@@ -337,25 +337,25 @@ void GraphBuilder::print(std::ostream &ostream) const {
 }
 
 void GraphBuilder::printNodes(std::ostream &ostream) const {
-    for (auto &iterator : llvmToNodeMap_) {
+    for (const auto &iterator : llvmToNodeMap_) {
         ostream << iterator.second->dump();
     }
-    for (auto &iterator : artificialNodes_) {
+    for (const auto &iterator : artificialNodes_) {
         ostream << iterator->dump();
     }
 }
 
 void GraphBuilder::printEdges(std::ostream &ostream) const {
-    for (auto &iterator : llvmToNodeMap_) {
+    for (const auto &iterator : llvmToNodeMap_) {
         iterator.second->printOutcomingEdges(ostream);
     }
-    for (auto &iterator : artificialNodes_) {
+    for (const auto &iterator : artificialNodes_) {
         iterator->printOutcomingEdges(ostream);
     }
 }
 
 void GraphBuilder::clear() {
-    for (auto node : artificialNodes_) {
+    for (auto *node : artificialNodes_) {
         delete node;
     }
 
@@ -383,7 +383,7 @@ void GraphBuilder::clear() {
 
 GraphBuilder::NodeSequence
 GraphBuilder::buildGeneralInstruction(const Instruction *instruction) {
-    auto currentNode = addNode(createNode<NodeType::GENERAL>(instruction));
+    auto *currentNode = addNode(createNode<NodeType::GENERAL>(instruction));
     return {currentNode, currentNode};
 }
 
@@ -428,10 +428,10 @@ GraphBuilder::insertPthreadCreate(const CallInst *callInstruction) {
         forkNode =
                 addNode(createNode<NodeType::FORK>(nullptr, callInstruction));
     }
-    auto possibleFunction = callInstruction->getArgOperand(2);
+    auto *possibleFunction = callInstruction->getArgOperand(2);
     auto functionsToBeForked =
             getCalledFunctions(possibleFunction, pointsToAnalysis_);
-    for (auto function : functionsToBeForked) {
+    for (const auto *function : functionsToBeForked) {
         auto graph = createOrGetFunction(function);
         if (graph.first) {
             forkNode->addForkSuccessor(static_cast<EntryNode *>(graph.first));
@@ -487,7 +487,7 @@ GraphBuilder::insertPthreadExit(const CallInst *callInstruction) {
         callNode =
                 addNode(createNode<NodeType::CALL>(nullptr, callInstruction));
     }
-    auto returnNode = addNode(createNode<NodeType::RETURN>());
+    auto *returnNode = addNode(createNode<NodeType::RETURN>());
     callNode->addSuccessor(returnNode);
     return {callNode, returnNode};
 }
@@ -520,13 +520,13 @@ GraphBuilder::insertFunctionPointerCall(const CallInst *callInstruction) {
 #endif
     auto functions = getCalledFunctions(calledValue, pointsToAnalysis_);
 
-    auto callFuncPtrNode =
+    auto *callFuncPtrNode =
             addNode(createNode<NodeType::CALL_FUNCPTR>(callInstruction));
     Node *returnNode;
 
     if (functions.size() > 1) {
         returnNode = addNode(createNode<NodeType::CALL_RETURN>());
-        for (auto function : functions) {
+        for (const auto *function : functions) {
             auto nodeSeq = insertFunction(function, callInstruction);
             callFuncPtrNode->addSuccessor(nodeSeq.first);
             nodeSeq.second->addSuccessor(returnNode);
@@ -545,27 +545,26 @@ GraphBuilder::insertFunctionPointerCall(const CallInst *callInstruction) {
 
 GraphBuilder::NodeSequence
 GraphBuilder::buildCallInstruction(const Instruction *instruction) {
-    auto callInst = dyn_cast<CallInst>(instruction);
+    const auto *callInst = dyn_cast<CallInst>(instruction);
     if (callInst->isInlineAsm()) {
         return buildGeneralInstruction(instruction);
     }
 
     if (callInst->getCalledFunction()) {
         return insertFunction(callInst->getCalledFunction(), callInst);
-    } else {
-        return insertFunctionPointerCall(callInst);
     }
+    return insertFunctionPointerCall(callInst);
 }
 
 GraphBuilder::NodeSequence
 GraphBuilder::buildReturnInstruction(const Instruction *instruction) {
-    auto currentNode = addNode(createNode<NodeType::RETURN>(instruction));
+    auto *currentNode = addNode(createNode<NodeType::RETURN>(instruction));
     return {currentNode, currentNode};
 }
 
 GraphBuilder::NodeSequence
 GraphBuilder::createOrGetFunction(const Function *function) {
-    auto functionGraph = findFunction(function);
+    auto *functionGraph = findFunction(function);
     if (functionGraph) {
         return {functionGraph->entryNode(), functionGraph->exitNode()};
     }

@@ -118,10 +118,10 @@ class DefSiteSet : public std::set<DefSite> {
         std::map<DefSite::NodeTy *, IntervalsList> lhssites;
         std::map<DefSite::NodeTy *, IntervalsList> rhssites;
 
-        for (auto &ds : *this) {
+        for (const auto &ds : *this) {
             lhssites[ds.target].add(ds.getInterval());
         }
-        for (auto &ds : rhs) {
+        for (const auto &ds : rhs) {
             rhssites[ds.target].add(ds.getInterval());
         }
 

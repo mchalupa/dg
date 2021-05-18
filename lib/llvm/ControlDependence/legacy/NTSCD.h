@@ -59,7 +59,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
             computeOnDemand(const_cast<llvm::Function *>(b->getParent()));
         }
 
-        auto *block = graphBuilder.mapBlock(b);
+        const auto *block = graphBuilder.mapBlock(b);
         if (!block) {
             return {};
         }
@@ -88,7 +88,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         if (F && !F->isDeclaration() && _computed.insert(F).second) {
             computeOnDemand(const_cast<llvm::Function *>(F));
         } else {
-            for (auto &f : *getModule()) {
+            for (const auto &f : *getModule()) {
                 if (!f.isDeclaration() && _computed.insert(&f).second) {
                     computeOnDemand(const_cast<llvm::Function *>(&f));
                 }

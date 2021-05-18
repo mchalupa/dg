@@ -80,16 +80,16 @@ class DGParameters {
 
     template <typename... Args>
     std::pair<NodeT *, NodeT *> construct(KeyT k, Args... args) {
-        auto in = new NodeT(args...);
-        auto out = new NodeT(args...);
+        auto *in = new NodeT(args...);
+        auto *out = new NodeT(args...);
         add(k, in, out, &params);
         return {in, out};
     }
 
     template <typename... Args>
     std::pair<NodeT *, NodeT *> constructGlobal(KeyT k, Args... args) {
-        auto in = new NodeT(args...);
-        auto out = new NodeT(args...);
+        auto *in = new NodeT(args...);
+        auto *out = new NodeT(args...);
         add(k, in, out, &globals);
         return {in, out};
     }
