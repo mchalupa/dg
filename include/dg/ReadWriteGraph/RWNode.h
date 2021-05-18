@@ -57,8 +57,6 @@ enum class RWNodeType {
     NOOP
 };
 
-extern RWNode *UNKNOWN_MEMORY;
-
 class RWBBlock;
 
 class RWNode : public SubgraphNode<RWNode> {

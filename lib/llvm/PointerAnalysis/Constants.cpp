@@ -4,8 +4,6 @@
 namespace dg {
 namespace pta {
 
-extern const Pointer UnknownPointer;
-
 Pointer
 LLVMPointerGraphBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I) {
     using namespace llvm;
