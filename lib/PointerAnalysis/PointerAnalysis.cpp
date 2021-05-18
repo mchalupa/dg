@@ -523,7 +523,8 @@ bool PointerAnalysis::run() {
             break;
         }
 #if DEBUG_ENABLED
-        if (n % 100 == 0) {
+#define DUMP_NTH_ITER 100
+        if (n % DUMP_NTH_ITER == 0) {
             DBG(pta, "Iteration " << n << ", queue size " << to_process.size());
         }
 #endif
