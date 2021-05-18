@@ -132,8 +132,8 @@ void hashMapTest() {
 
 // create an object for testing hashing function collision
 struct MyInt {
-    int x;
-    MyInt() : x(0) {}
+    int x{0};
+    MyInt() = default;
     MyInt(int y) : x(y) {}
     bool operator==(const MyInt &rhs) const { return x == rhs.x; }
 };

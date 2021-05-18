@@ -3,6 +3,7 @@
 
 #include "dg/ADT/Bitvector.h"
 #include "dg/PointerAnalysis/Pointer.h"
+#include "dg/util/iterators.h"
 
 #include <cassert>
 #include <map>
@@ -135,11 +136,9 @@ class AlignedPointerIdPointsToSet {
                 return true;
             }
         }
-        for (const auto &ptr : overflowSet) {
-            if (ptr.target == target)
-                return true;
-        }
-        return false;
+        return dg::any_of(overflowSet, [target](const auto &ptr) {
+            return ptr.target == target;
+        });
     }
 
     bool isSingleton() const {
@@ -208,7 +207,7 @@ class AlignedPointerIdPointsToSet {
 
         Pointer operator*() const {
             if (!secondContainer) {
-                return Pointer(idVector[*bitvector_it - 1]);
+                return {idVector[*bitvector_it - 1]};
             }
             return *set_it;
         }
@@ -224,11 +223,9 @@ class AlignedPointerIdPointsToSet {
         friend class AlignedPointerIdPointsToSet;
     };
 
-    const_iterator begin() const {
-        return const_iterator(pointers, overflowSet);
-    }
+    const_iterator begin() const { return {pointers, overflowSet}; }
     const_iterator end() const {
-        return const_iterator(pointers, overflowSet, true /* end */);
+        return {pointers, overflowSet, true /* end */};
     }
 
     friend class const_iterator;

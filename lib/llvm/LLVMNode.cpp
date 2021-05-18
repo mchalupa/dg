@@ -149,7 +149,7 @@ void LLVMNode::addActualParameters(LLVMDependenceGraph *funcGraph) {
 #endif
     // do not add redundant nodes
     Function *func = dyn_cast<Function>(val->stripPointerCasts());
-    if (!func || func->size() == 0)
+    if (!func || func->empty())
         return;
 
     addActualParameters(funcGraph, func);

@@ -23,7 +23,7 @@ DGActualParameters::DGActualParameters(DGNodeCall &call)
 DGNodeArtificial &DGFormalParameters::createVarArg() {
     auto &dg = getDG();
     _vararg.reset(&dg.createArtificial());
-    return *_vararg.get();
+    return *_vararg;
 }
 
 DGNode &DGParameters::createNoReturn() {

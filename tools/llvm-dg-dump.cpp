@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 
     std::set<LLVMNode *> callsites;
     if (slicing_criterion) {
-        const char *sc[] = {slicing_criterion, "klee_assume", NULL};
+        const char *sc[] = {slicing_criterion, "klee_assume", nullptr};
 
         dg->getCallSites(sc, &callsites);
 

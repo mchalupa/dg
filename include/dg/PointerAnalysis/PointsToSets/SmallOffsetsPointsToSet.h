@@ -135,21 +135,17 @@ class SmallOffsetsPointsToSet {
             if (pointers.get(i))
                 return true;
         }
-        for (const auto &ptr : largePointers) {
-            if (ptr.target == target)
-                return true;
-        }
-        return false;
+        return dg::any_of(largePointers, [target](const auto &ptr) {
+            return ptr.target == target;
+        });
     }
 
     bool isSingleton() const {
-        return (pointers.size() == 1 && largePointers.size() == 0) ||
-               (pointers.size() == 0 && largePointers.size() == 1);
+        return (pointers.size() == 1 && largePointers.empty()) ||
+               (pointers.empty() && largePointers.size() == 1);
     }
 
-    bool empty() const {
-        return pointers.size() == 0 && largePointers.size() == 0;
-    }
+    bool empty() const { return pointers.empty() && largePointers.empty(); }
 
     size_t count(const Pointer &ptr) const { return pointsTo(ptr); }
 
@@ -229,11 +225,9 @@ class SmallOffsetsPointsToSet {
         friend class SmallOffsetsPointsToSet;
     };
 
-    const_iterator begin() const {
-        return const_iterator(pointers, largePointers);
-    }
+    const_iterator begin() const { return {pointers, largePointers}; }
     const_iterator end() const {
-        return const_iterator(pointers, largePointers, true /* end */);
+        return {pointers, largePointers, true /* end */};
     }
 
     friend class const_iterator;

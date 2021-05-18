@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <map>
+#include <utility>
 
 #include "dg/AnalysisOptions.h"
 #include "dg/Offset.h"
@@ -31,9 +32,7 @@ struct FunctionModel {
             return value.operand;
         }
 
-        OperandValue(Offset offset) : type(Type::OFFSET) {
-            value.offset = offset;
-        }
+        OperandValue(Offset offset) { value.offset = offset; }
         OperandValue(unsigned operand) : type(Type::OPERAND) {
             value.operand = operand;
         }
@@ -54,15 +53,10 @@ struct FunctionModel {
         OperandValue from, to;
 
         Operand(unsigned operand, OperandValue from, OperandValue to)
-                : operand(operand), from(from), to(to) {}
+                : operand(operand), from(std::move(from)), to(std::move(to)) {}
         Operand(Operand &&) = default;
         Operand(const Operand &) = default;
-        Operand &operator=(const Operand &rhs) {
-            operand = rhs.operand;
-            from = rhs.from;
-            to = rhs.to;
-            return *this;
-        }
+        Operand &operator=(const Operand &rhs) = default;
     };
 
     void addDef(unsigned operand, OperandValue from, OperandValue to) {
@@ -144,7 +138,7 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
     void functionModelAddDef(const std::string &name,
                              const FunctionModel::Operand &def) {
         auto &M = functionModels[name];
-        if (M.name == "")
+        if (M.name.empty())
             M.name = name;
         M.addDef(def);
     }
@@ -152,7 +146,7 @@ struct DataDependenceAnalysisOptions : AnalysisOptions {
     void functionModelAddUse(const std::string &name,
                              const FunctionModel::Operand &def) {
         auto &M = functionModels[name];
-        if (M.name == "")
+        if (M.name.empty())
             M.name = name;
         M.addUse(def);
     }

@@ -2,6 +2,7 @@
 #define LLVM_DG_CDA_IMPL_H_
 
 #include <set>
+#include <utility>
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
@@ -20,10 +21,9 @@ class LLVMControlDependenceAnalysisImpl {
     const LLVMControlDependenceAnalysisOptions _options;
 
   public:
-    LLVMControlDependenceAnalysisImpl(
-            const llvm::Module *module,
-            const LLVMControlDependenceAnalysisOptions &opts)
-            : _module(module), _options(opts) {}
+    LLVMControlDependenceAnalysisImpl(const llvm::Module *module,
+                                      LLVMControlDependenceAnalysisOptions opts)
+            : _module(module), _options(std::move(opts)) {}
 
     virtual ~LLVMControlDependenceAnalysisImpl() = default;
 

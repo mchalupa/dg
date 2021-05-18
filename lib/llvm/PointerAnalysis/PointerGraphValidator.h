@@ -19,7 +19,7 @@ class LLVMPointerGraphValidator : public PointerGraphValidator {
                               bool no_connectivity = false)
             : PointerGraphValidator(ps, no_connectivity) {}
 
-    ~LLVMPointerGraphValidator() = default;
+    ~LLVMPointerGraphValidator() override = default;
 };
 
 } // namespace pta

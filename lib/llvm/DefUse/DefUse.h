@@ -38,7 +38,7 @@ class LLVMDefUseAnalysis : public legacy::DataFlowAnalysis<LLVMNode> {
     ~LLVMDefUseAnalysis() { delete DL; }
 
     /* virtual */
-    bool runOnNode(LLVMNode *node, LLVMNode *prev);
+    bool runOnNode(LLVMNode *node, LLVMNode *prev) override;
 
   private:
     void addDataDependencies(LLVMNode *node);

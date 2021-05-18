@@ -2,6 +2,7 @@
 #define DG_DATA_DEPENDENCE_ANALYSIS_IMPL_H_
 
 #include <cassert>
+#include <utility>
 
 #include "dg/DataDependence/DataDependenceAnalysisOptions.h"
 #include "dg/Offset.h"
@@ -23,9 +24,9 @@ class DataDependenceAnalysisImpl {
 
   public:
     DataDependenceAnalysisImpl(ReadWriteGraph &&graph,
-                               const DataDependenceAnalysisOptions &opts)
-            : graph(std::move(graph)), options(opts) {
-        assert(graph.getEntry() && "Graph has no entry");
+                               DataDependenceAnalysisOptions opts)
+            : graph(std::move(graph)), options(std::move(opts)) {
+        assert(this->graph.getEntry() && "Graph has no entry");
     }
 
     DataDependenceAnalysisImpl(ReadWriteGraph &&graph)

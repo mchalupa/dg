@@ -290,7 +290,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
         // function pointer call - we need that in PointerGraph
         return true;
 
-    if (func->size() == 0) {
+    if (func->empty()) {
         if (opts.getAllocationFunction(func->getName().str()) !=
             AllocationFunction::NONE)
             // we need memory allocations

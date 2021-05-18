@@ -5,6 +5,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <string>
+#include <utility>
 
 #ifndef NDEBUG
 #include <iostream>
@@ -375,7 +376,7 @@ class PSNodeConstant : public PSNode {
 
     static PSNodeConstant *cast(PSNode *n) { return _cast<PSNodeConstant>(n); }
 
-    Pointer getPointer() const { return Pointer(getOperand(0), offset); }
+    Pointer getPointer() const { return {getOperand(0), offset}; }
     Offset getOffset() const { return offset; }
     PSNode *getTarget() { return getOperand(0); }
     const PSNode *getTarget() const { return getOperand(0); }
@@ -425,8 +426,8 @@ class PSNodeEntry : public PSNode {
     std::vector<PSNode *> callers;
 
   public:
-    PSNodeEntry(IDType id, const std::string &name = "not-known")
-            : PSNode(id, PSNodeType::ENTRY), functionName(name) {}
+    PSNodeEntry(IDType id, std::string name = "not-known")
+            : PSNode(id, PSNodeType::ENTRY), functionName(std::move(name)) {}
 
     static PSNodeEntry *get(PSNode *n) {
         return isa<PSNodeType::ENTRY>(n) ? static_cast<PSNodeEntry *>(n)

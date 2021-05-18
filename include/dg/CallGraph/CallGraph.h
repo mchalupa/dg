@@ -4,6 +4,8 @@
 #include <map>
 #include <vector>
 
+#include "dg/util/iterators.h"
+
 namespace dg {
 
 template <typename ValueT>
@@ -17,11 +19,7 @@ class GenericCallGraph {
 
         template <typename Cont>
         bool _contains(const FuncNode *x, const Cont &C) const {
-            for (auto s : C) {
-                if (s == x)
-                    return true;
-            }
-            return false;
+            return dg::any_of(C, [x](auto *s) { return s == x; });
         }
 
       public:
