@@ -26,7 +26,7 @@ class ThreadRegion {
     int id() const;
 
     bool addPredecessor(ThreadRegion *predecessor);
-    bool addSuccessor(ThreadRegion *successor);
+    bool addSuccessor(ThreadRegion *threadRegion);
 
     bool removePredecessor(ThreadRegion *predecessor);
     bool removeSuccessor(ThreadRegion *successor);

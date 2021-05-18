@@ -35,8 +35,10 @@ class LLVMControlDependenceAnalysisImpl {
         return _options;
     }
 
-    virtual CDGraph *getGraph(const llvm::Function *) { return nullptr; }
-    virtual const CDGraph *getGraph(const llvm::Function *) const {
+    virtual CDGraph *getGraph(const llvm::Function * /*unused*/) {
+        return nullptr;
+    }
+    virtual const CDGraph *getGraph(const llvm::Function * /*unused*/) const {
         return nullptr;
     }
 
@@ -57,13 +59,13 @@ class LLVMControlDependenceAnalysisImpl {
     virtual ValVec getDependent(const llvm::BasicBlock *) = 0;
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
-    virtual ValVec getNoReturns(const llvm::Function *) {
+    virtual ValVec getNoReturns(const llvm::Function * /*unused*/) {
         assert(false && "Unsupported");
         abort();
     }
 
-    virtual ValVec getClosure(const llvm::Function *,
-                              const std::set<llvm::Value *> &) {
+    virtual ValVec getClosure(const llvm::Function * /*unused*/,
+                              const std::set<llvm::Value *> & /*unused*/) {
         assert(false && "Unsupported");
         abort();
     }

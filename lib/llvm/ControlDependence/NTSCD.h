@@ -84,7 +84,9 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
@@ -121,7 +123,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::BasicBlock *) override {
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
@@ -264,7 +266,9 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
@@ -294,22 +298,24 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::BasicBlock *) override {
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
 
     // We run on demand but this method can trigger the computation
-    void compute(const llvm::Function *) override { _compute(); }
+    void compute(const llvm::Function * /*F*/) override { _compute(); }
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
-    ValVec getNoReturns(const llvm::Function *) override {
+    ValVec getNoReturns(const llvm::Function * /*unused*/) override {
         assert(false && "Unsupported");
         abort();
     }
 
-    CDGraph *getGraph(const llvm::Function *) override { return &graph; }
-    const CDGraph *getGraph(const llvm::Function *) const override {
+    CDGraph *getGraph(const llvm::Function * /*unused*/) override {
+        return &graph;
+    }
+    const CDGraph *getGraph(const llvm::Function * /*unused*/) const override {
         return &graph;
     }
 

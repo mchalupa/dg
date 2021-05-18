@@ -77,11 +77,11 @@ class Node {
 
     std::string dotName() const;
 
-    bool addPredecessor(Node *);
-    bool addSuccessor(Node *);
+    bool addPredecessor(Node * /*node*/);
+    bool addSuccessor(Node * /*node*/);
 
-    bool removePredecessor(Node *);
-    bool removeSuccessor(Node *);
+    bool removePredecessor(Node * /*node*/);
+    bool removeSuccessor(Node * /*node*/);
 
     const std::set<Node *> &predecessors() const;
     const std::set<Node *> &successors() const;

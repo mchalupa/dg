@@ -50,8 +50,12 @@ class SCD : public LLVMControlDependenceAnalysisImpl {
             : LLVMControlDependenceAnalysisImpl(module, opts) {}
 
     /// Getters of dependencies for a value
-    ValVec getDependencies(const llvm::Instruction *) override { return {}; }
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependencies(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {

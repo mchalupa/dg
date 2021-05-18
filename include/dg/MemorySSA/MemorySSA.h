@@ -102,16 +102,18 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // Perform LVN up to a certain point and search only for a certain memory.
     // XXX: we could avoid this by (at least virtually) splitting blocks on
     // uses.
-    Definitions findDefinitionsInBlock(RWNode *to, const RWNode *mem = nullptr);
-    Definitions findEscapingDefinitionsInBlock(RWNode *to);
-    void performLvn(Definitions &, RWBBlock *);
+    static Definitions findDefinitionsInBlock(RWNode *to,
+                                              const RWNode *mem = nullptr);
+    static Definitions findEscapingDefinitionsInBlock(RWNode *to);
+    static void performLvn(Definitions & /*D*/, RWBBlock * /*block*/);
     void updateDefinitions(Definitions &D, RWNode *node);
 
     ///
     // Find definitions of the def site and return def-use edges.
     // For the uncovered bytes create phi nodes (which are also returned
     // as the definitions).
-    std::vector<RWNode *> findDefinitions(RWBBlock *, const DefSite &);
+    std::vector<RWNode *> findDefinitions(RWBBlock * /*block*/,
+                                          const DefSite & /*ds*/);
     std::vector<RWNode *> findDefinitions(RWNode *node, const DefSite &ds);
 
     // Find definitions for the given node (which is supposed to be a use)

@@ -114,7 +114,8 @@ class PointerAnalysisFS : public PointerAnalysis {
         return changed;
     }
 
-    bool functionPointerCall(PSNode *, PSNode *) override {
+    bool functionPointerCall(PSNode * /*unused*/,
+                             PSNode * /*unused*/) override {
         PG->computeLoops();
         return false;
     }
