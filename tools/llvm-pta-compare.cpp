@@ -82,10 +82,10 @@ static std::string valToStr(const llvm::Value *val) {
     std::ostringstream ostr;
     raw_os_ostream ro(ostr);
 
-    if (auto *F = dyn_cast<Function>(val)) {
+    if (const auto *F = dyn_cast<Function>(val)) {
         ro << "fun '" << F->getName().str() << "'";
     } else {
-        if (auto *I = dyn_cast<Instruction>(val)) {
+        if (const auto *I = dyn_cast<Instruction>(val)) {
             ro << I->getParent()->getParent()->getName().str();
             ro << "::";
         }

@@ -79,7 +79,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     LLVMNode *getOrCreateNoReturn();
     LLVMNode *getOrCreateNoReturn(LLVMNode *call);
     LLVMNode *getNoReturn() {
-        auto params = getParameters();
+        auto *params = getParameters();
         return params ? params->getNoReturn() : nullptr;
     }
 

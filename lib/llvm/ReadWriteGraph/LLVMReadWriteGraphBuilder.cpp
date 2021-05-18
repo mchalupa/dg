@@ -36,11 +36,11 @@ namespace dda {
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const ValInfo &vi) {
     using namespace llvm;
 
-    if (auto I = dyn_cast<Instruction>(vi.v)) {
+    if (const auto *I = dyn_cast<Instruction>(vi.v)) {
         os << I->getParent()->getParent()->getName() << ":: " << *I;
-    } else if (auto A = dyn_cast<Argument>(vi.v)) {
+    } else if (const auto *A = dyn_cast<Argument>(vi.v)) {
         os << A->getParent()->getParent()->getName() << ":: (arg) " << *A;
-    } else if (auto F = dyn_cast<Function>(vi.v)) {
+    } else if (const auto *F = dyn_cast<Function>(vi.v)) {
         os << "(func) " << F->getName();
     } else {
         os << *vi.v;

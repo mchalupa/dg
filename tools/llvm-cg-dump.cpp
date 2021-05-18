@@ -101,8 +101,8 @@ void setupStackTraceOnError(int, char **) {}
 static void dumpCallGraph(llvmdg::CallGraph &CG) {
     std::cout << "digraph CallGraph {\n";
 
-    for (auto *f : CG.functions()) {
-        for (auto *c : CG.callees(f)) {
+    for (const auto *f : CG.functions()) {
+        for (const auto *c : CG.callees(f)) {
             std::cout << "  " << f->getName().str() << " -> "
                       << c->getName().str() << "\n";
         }

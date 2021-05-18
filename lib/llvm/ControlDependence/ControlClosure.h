@@ -102,7 +102,7 @@ class StrongControlClosure : public LLVMControlDependenceAnalysisImpl {
     // We run on demand
     void compute(const llvm::Function *F) override {
         unsigned n = 0;
-        for (auto &B : *F) {
+        for (const auto &B : *F) {
             if (n == F->size() / 2)
                 getClosure(F, {const_cast<llvm::BasicBlock *>(&B)});
             ++n;

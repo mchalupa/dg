@@ -48,11 +48,11 @@ static inline std::ostream &printLLVMVal(std::ostream &os,
 
     if (llvm::isa<llvm::Function>(val)) {
         ro << "FUNC " << val->getName();
-    } else if (auto B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
+    } else if (const auto *B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
         ro << B->getParent()->getName() << "::\n";
         ro << "label " << val->getName();
-    } else if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
-        const auto B = I->getParent();
+    } else if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+        const auto *const B = I->getParent();
         if (B) {
             ro << B->getParent()->getName() << "::\n";
         } else {
@@ -182,7 +182,7 @@ class LLVMDG2Dot : public debug::DG2Dot<LLVMNode> {
 
         start();
 
-        for (auto &F : CF) {
+        for (const auto &F : CF) {
             if (dump_func_only && !F.first->getName().equals(dump_func_only))
                 continue;
 
@@ -215,7 +215,7 @@ class LLVMDGDumpBlocks : public debug::DG2Dot<LLVMNode> {
     LLVMDGDumpBlocks(LLVMDependenceGraph *dg,
                      uint32_t opts = debug::PRINT_CFG | debug::PRINT_DD |
                                      debug::PRINT_CD,
-                     const char *file = NULL)
+                     const char *file = nullptr)
             : debug::DG2Dot<LLVMNode>(dg, opts, file) {}
 
     /* virtual
@@ -241,7 +241,7 @@ class LLVMDGDumpBlocks : public debug::DG2Dot<LLVMNode> {
 
         start();
 
-        for (auto &F : CF) {
+        for (const auto &F : CF) {
             // XXX: this is inefficient, we can get the dump_func_only function
             // from the module (F.getParent()->getModule()->getFunction(...)
             if (dump_func_only && !F.first->getName().equals(dump_func_only))

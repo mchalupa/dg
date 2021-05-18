@@ -125,14 +125,14 @@ static void maybe_print_statistics(llvm::Module *M,
     uint64_t inum, bnum, fnum, gnum;
     inum = bnum = fnum = gnum = 0;
 
-    for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+    for (auto &I : *M) {
         // don't count in declarations
-        if (I->size() == 0)
+        if (I.empty())
             continue;
 
         ++fnum;
 
-        for (const BasicBlock &B : *I) {
+        for (const BasicBlock &B : I) {
             ++bnum;
             inum += B.size();
         }

@@ -466,7 +466,7 @@ void PointerAnalysis::sanityCheck() {
 
     auto nodes = PG->getNodes(PG->getEntry()->getRoot());
     std::set<unsigned> ids;
-    for (auto nd : nodes) {
+    for (auto *nd : nodes) {
         assert(ids.insert(nd->getID()).second && "Duplicated node ID");
 
         if (nd->getType() == PSNodeType::ALLOC) {

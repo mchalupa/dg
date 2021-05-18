@@ -58,7 +58,7 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
                 node.setAddressTaken();
                 break;
             }
-        } else if (auto *I = dyn_cast<Instruction>(Inst)) {
+        } else if (const auto *I = dyn_cast<Instruction>(Inst)) {
             assert(!I->mayWriteToMemory() &&
                    "Unhandled memory-writing instruction");
             (void) I; // c++17 TODO: replace with [[maybe_unused]]
@@ -249,7 +249,7 @@ RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst) {
 
 RWNode *
 LLVMReadWriteGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
-    auto *RMW = llvm::cast<llvm::AtomicRMWInst>(Inst);
+    const auto *RMW = llvm::cast<llvm::AtomicRMWInst>(Inst);
     RWNode &node = create(RWNodeType::STORE);
 
     uint64_t size = llvmutils::getAllocatedSize(RMW->getValOperand()->getType(),
@@ -373,7 +373,7 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
         return {&create(RWNodeType::GLOBAL)};
     }
 
-    auto *I = dyn_cast<Instruction>(v);
+    const auto *I = dyn_cast<Instruction>(v);
     if (!I)
         return {};
 

@@ -386,7 +386,7 @@ class DG2Dot {
                 out << "NO OUT ARG";
         }
 
-        if (auto noret = params->getNoReturn()) {
+        if (auto *noret = params->getNoReturn()) {
             dump_node(noret, ind, "[noret]");
             dump_node_edges(noret, ind);
         }
@@ -480,7 +480,7 @@ class DG2Dot {
     void dump_nodes() {
         out << "\t/* nodes */\n";
         for (auto &I : *dg) {
-            auto node = I.second;
+            auto *node = I.second;
 
             dump_node(node);
 

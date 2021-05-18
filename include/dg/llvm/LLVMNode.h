@@ -56,7 +56,7 @@ class LLVMNode : public Node<LLVMDependenceGraph, llvm::Value *, LLVMNode> {
     }
 
     LLVMDGParameters *getOrCreateParameters() {
-        auto params = getParameters();
+        auto *params = getParameters();
         if (!params) {
             params = new LLVMDGParameters(this);
             setParameters(params);

@@ -172,12 +172,12 @@ void compareResults(
     std::cout << "-----\n";
 
     size_t a1has = 0, a2has = 0;
-    for (auto &d : R1) {
+    for (const auto &d : R1) {
         if (R2.count(d) == 0) {
             ++a1has;
         }
     }
-    for (auto &d : R2) {
+    for (const auto &d : R2) {
         if (R1.count(d) == 0) {
             ++a2has;
         }
@@ -198,10 +198,10 @@ static inline bool hasSuccessors(const llvm::BasicBlock *B) {
 static void dumpFunStats(const llvm::Function &F) {
     unsigned instrs = 0, branches = 0, blinds = 0;
     std::cout << "Function '" << F.getName().str() << "'\n";
-    for (auto &B : F) {
+    for (const auto &B : F) {
         instrs += B.size();
         auto n = 0;
-        for (auto *s : successors(&B)) {
+        for (const auto *s : successors(&B)) {
             (void) s;
             ++n;
         }
@@ -244,7 +244,7 @@ static void dumpFunStats(const llvm::Function &F) {
     while (!stack.empty()) {
         auto &si = stack.back();
         assert(si.block);
-        auto *nextblk = si.next_succ;
+        const auto *nextblk = si.next_succ;
         // set next successor
         if (!nextblk) {
             on_stack[si.block] = false;

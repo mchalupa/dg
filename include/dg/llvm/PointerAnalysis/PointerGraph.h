@@ -53,7 +53,7 @@ class LLVMPointerGraphBuilder {
         PSNodesSeq() = default;
         PSNodesSeq(PSNode *n) { _nodes.push_back(n); }
         PSNodesSeq(const std::initializer_list<PSNode *> &l) {
-            for (auto n : l)
+            for (auto *n : l)
                 _nodes.push_back(n);
         }
 
@@ -139,12 +139,12 @@ class LLVMPointerGraphBuilder {
     };
 
     // helper function that add CFG edges between instructions
-    void PSNodesSequenceAddSuccessors(PSNodesSeq &seq) {
+    static void PSNodesSequenceAddSuccessors(PSNodesSeq &seq) {
         if (seq.empty())
             return;
 
         PSNode *last = nullptr;
-        for (auto nd : seq) {
+        for (auto *nd : seq) {
             if (last)
                 last->addSuccessor(nd);
 
@@ -152,13 +152,13 @@ class LLVMPointerGraphBuilder {
         }
     }
 
-    void PSNodesBlockAddSuccessors(PSNodesBlock &blk,
-                                   bool withSeqEdges = false) {
+    static void PSNodesBlockAddSuccessors(PSNodesBlock &blk,
+                                          bool withSeqEdges = false) {
         if (blk.empty())
             return;
 
         PSNodesSeq *last = nullptr;
-        for (auto seq : blk) {
+        for (auto *seq : blk) {
             if (withSeqEdges)
                 PSNodesSequenceAddSuccessors(*seq);
 
@@ -276,23 +276,23 @@ class LLVMPointerGraphBuilder {
         mapping.compose(std::move(rhs));
     }
 
-    PointerSubgraph *getSubgraph(const llvm::Function *);
+    PointerSubgraph *getSubgraph(const llvm::Function * /*F*/);
 
   private:
     // create subgraph of function @F (the nodes)
     // and call+return nodes to/from it. This function
     // won't add the CFG edges if not 'ad_hoc_building'
     // is set to true
-    PSNodesSeq &createCallToFunction(const llvm::CallInst *,
-                                     const llvm::Function *);
+    PSNodesSeq &createCallToFunction(const llvm::CallInst * /*CInst*/,
+                                     const llvm::Function * /*F*/);
 
     PSNode *getPointsToNodeOrNull(const llvm::Value *val) {
         // if we have a mapping for this node (e.g. the original
         // node was optimized away and replaced by mapping),
         // return it
-        if (auto mp = mapping.get(val))
+        if (auto *mp = mapping.get(val))
             return mp;
-        else if (auto nds = getNodes(val)) {
+        if (auto *nds = getNodes(val)) {
             // otherwise get the representant of the built nodes
             return nds->getRepresentant();
         }

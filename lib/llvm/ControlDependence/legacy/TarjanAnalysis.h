@@ -85,7 +85,7 @@ class TarjanAnalysis {
         stack.push(currentNode);
         nodeInfo[currentNode].onStack = true;
 
-        for (auto successor : currentNode->successors()) {
+        for (auto *successor : currentNode->successors()) {
             if (!visited(successor)) {
                 compute(successor);
                 nodeInfo[currentNode].lowLink =
@@ -119,8 +119,8 @@ class TarjanAnalysis {
 
     void computeCondensation() {
         for (auto component : components_) {
-            for (auto node : component->nodes()) {
-                for (auto successor : node->successors()) {
+            for (auto *node : component->nodes()) {
+                for (auto *successor : node->successors()) {
                     if (nodeInfo[node].component !=
                         nodeInfo[successor].component) {
                         nodeInfo[node].component->addSuccessor(

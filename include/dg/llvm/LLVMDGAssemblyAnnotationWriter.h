@@ -221,7 +221,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
         }
 
         if (PTA && (opts & ANNOTATE_MEMORYACC)) {
-            if (auto I = dyn_cast<Instruction>(node->getValue())) {
+            if (auto *I = dyn_cast<Instruction>(node->getValue())) {
                 if (I->mayReadOrWriteMemory()) {
                     auto regions = PTA->getAccessedMemory(I);
                     if (regions.first) {
@@ -278,7 +278,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             return;
 
         LLVMNode *node = nullptr;
-        for (auto &it : getConstructedFunctions()) {
+        for (const auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             node = sub->getNode(const_cast<llvm::Instruction *>(I));
             if (node)
@@ -296,7 +296,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
         if (opts == 0)
             return;
 
-        for (auto &it : getConstructedFunctions()) {
+        for (const auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             auto &cb = sub->getBlocks();
             auto I = cb.find(const_cast<llvm::BasicBlock *>(B));

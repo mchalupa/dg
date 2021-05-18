@@ -79,7 +79,7 @@ class LLVMSlicer : public Slicer<LLVMNode> {
             return true;
 
         llvm::BasicBlock *blk = llvm::cast<llvm::BasicBlock>(val);
-        for (auto &succ : block->successors()) {
+        for (const auto &succ : block->successors()) {
             if (succ.label == 255)
                 continue;
 
@@ -282,7 +282,7 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
         for (auto &it : graph->getBlocks()) {
             const llvm::BasicBlock *llvmBB =
                     llvm::cast<llvm::BasicBlock>(it.first);
-            const auto tinst = llvmBB->getTerminator();
+            const auto *const tinst = llvmBB->getTerminator();
             LLVMBBlock *BB = it.second;
 
             // nothing to do
@@ -475,10 +475,10 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
         return false;
     }
 
-    void reconnectBBlock(LLVMBBlock *BB, llvm::BasicBlock *llvmBB) {
+    static void reconnectBBlock(LLVMBBlock *BB, llvm::BasicBlock *llvmBB) {
         using namespace llvm;
 
-        auto tinst = llvmBB->getTerminator();
+        auto *tinst = llvmBB->getTerminator();
         assert((!tinst || BB->successorsNum() <= 2 ||
                 llvm::isa<llvm::SwitchInst>(tinst)) &&
                "BB has more than two successors (and it's not a switch)");

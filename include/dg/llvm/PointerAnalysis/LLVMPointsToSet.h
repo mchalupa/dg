@@ -195,14 +195,14 @@ class LLVMMemoryRegionSet {
 
     // XXX: inefficient
     bool overlaps(const LLVMMemoryRegionSet &rhs) const {
-        for (auto &it : rhs._regions) {
-            auto *our = _get(it.first);
+        for (const auto &it : rhs._regions) {
+            const auto *our = _get(it.first);
             if (!our) {
                 continue;
             }
 
-            for (auto &interval : *our) {
-                for (auto &interval2 : it.second) {
+            for (const auto &interval : *our) {
+                for (const auto &interval2 : it.second) {
                     if (interval.overlaps(interval2))
                         return true;
                 }

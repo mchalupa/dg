@@ -402,12 +402,12 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
         REQUIRE(inst.first == nullptr);
         REQUIRE(inst.second == nullptr);
         REQUIRE_FALSE(graphBuilder->findInstruction(nullptr));
-        for (auto &block : *function) {
-            for (auto &instruction : block) {
+        for (const auto &block : *function) {
+            for (const auto &instruction : block) {
                 inst = graphBuilder->buildInstruction(&instruction);
                 REQUIRE_FALSE(inst.first == nullptr);
                 REQUIRE_FALSE(inst.second == nullptr);
-                auto instructionNode =
+                auto *instructionNode =
                         graphBuilder->findInstruction(&instruction);
                 REQUIRE_FALSE(instructionNode == nullptr);
                 inst = graphBuilder->buildInstruction(&instruction);
@@ -422,11 +422,11 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
         REQUIRE_FALSE(graphBuilder->findBlock(nullptr));
         REQUIRE(nodeSeq.first == nullptr);
         REQUIRE(nodeSeq.second == nullptr);
-        for (auto &block : *function) {
+        for (const auto &block : *function) {
             nodeSeq = graphBuilder->buildBlock(&block);
             REQUIRE_FALSE(nodeSeq.first == nullptr);
             REQUIRE_FALSE(nodeSeq.second == nullptr);
-            auto blockGraph = graphBuilder->findBlock(&block);
+            auto *blockGraph = graphBuilder->findBlock(&block);
             REQUIRE_FALSE(blockGraph == nullptr);
             nodeSeq = graphBuilder->buildBlock(&block);
             REQUIRE(nodeSeq.first == nullptr);
@@ -444,7 +444,7 @@ TEST_CASE("Test of GraphBuilder class methods", "[GraphBuilder]") {
             nodeSeq = graphBuilder->buildFunction(&function);
             REQUIRE_FALSE(nodeSeq.first == nullptr);
             REQUIRE_FALSE(nodeSeq.second == nullptr);
-            auto functionGraph = graphBuilder->findFunction(&function);
+            auto *functionGraph = graphBuilder->findFunction(&function);
             REQUIRE_FALSE(functionGraph == nullptr);
             nodeSeq = graphBuilder->buildFunction(&function);
             REQUIRE(nodeSeq.first == nullptr);
@@ -465,27 +465,27 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
             new GraphBuilder(&pointsToAnalysis));
 
     SECTION("Undefined function which is not really important for us") {
-        auto function = M->getFunction("free");
+        auto *function = M->getFunction("free");
         auto nodeSeq = graphBuilder->buildFunction(function);
         REQUIRE(nodeSeq.first == nodeSeq.second);
     }
 
     SECTION("Pthread exit") {
-        auto function = M->getFunction("func");
+        auto *function = M->getFunction("func");
         std::set<const llvm::Instruction *> callInstruction;
 
         const llvm::CallInst *pthreadExitCall = nullptr;
         for (auto &block : *function) {
             for (auto &instruction : block) {
                 if (isa<llvm::CallInst>(instruction)) {
-                    auto callInst = dyn_cast<llvm::CallInst>(&instruction);
+                    auto *callInst = dyn_cast<llvm::CallInst>(&instruction);
 #if LLVM_VERSION_MAJOR >= 8
-                    auto calledValue = callInst->getCalledOperand();
+                    auto *calledValue = callInst->getCalledOperand();
 #else
                     auto calledValue = callInst->getCalledValue();
 #endif
                     if (isa<llvm::Function>(calledValue)) {
-                        auto function = dyn_cast<llvm::Function>(calledValue);
+                        auto *function = dyn_cast<llvm::Function>(calledValue);
                         if (function->getName().equals("pthread_exit")) {
                             pthreadExitCall = callInst;
                         }
@@ -507,7 +507,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
     }
 
     SECTION("Func pointer call") {
-        auto function = M->getFunction("main");
+        auto *function = M->getFunction("main");
         std::set<const llvm::Instruction *> callInstruction;
 
         for (auto &block : *function) {
@@ -520,10 +520,10 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
 
         const llvm::CallInst *funcPtrCall = nullptr;
 
-        for (auto instruction : callInstruction) {
-            auto callInst = dyn_cast<llvm::CallInst>(instruction);
+        for (const auto *instruction : callInstruction) {
+            const auto *callInst = dyn_cast<llvm::CallInst>(instruction);
 #if LLVM_VERSION_MAJOR >= 8
-            auto calledValue = callInst->getCalledOperand();
+            auto *calledValue = callInst->getCalledOperand();
 #else
             auto calledValue = callInst->getCalledValue();
 #endif
@@ -540,7 +540,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
         REQUIRE_FALSE(nodeSeq.first->isArtificial());
         REQUIRE(nodeSeq.first->successors().size() == 1);
         auto successor = nodeSeq.first->successors();
-        for (auto node : nodeSeq.first->successors()) {
+        for (auto *node : nodeSeq.first->successors()) {
             REQUIRE(node->isArtificial());
         }
         std::queue<Node *> queue;
@@ -548,14 +548,14 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
 
         REQUIRE(nodeSeq.first->getType() == NodeType::CALL_FUNCPTR);
         REQUIRE(nodeSeq.second->getType() == NodeType::FORK);
-        auto fork = castNode<NodeType::FORK>(nodeSeq.second);
+        auto *fork = castNode<NodeType::FORK>(nodeSeq.second);
         REQUIRE(fork->forkSuccessors().size() == 1);
         visited.insert(*fork->forkSuccessors().begin());
         queue.push(*fork->forkSuccessors().begin());
         while (!queue.empty()) {
             Node *currentNode = queue.front();
             queue.pop();
-            for (auto successor : currentNode->successors()) {
+            for (auto *successor : currentNode->successors()) {
                 if (visited.find(successor) == visited.end()) {
                     visited.insert(successor);
                     queue.push(successor);
@@ -563,7 +563,7 @@ TEST_CASE("GraphBuilder build tests", "[GraphBuilder]") {
             }
         }
         std::set<Node *> realNodes;
-        for (auto node : visited) {
+        for (auto *node : visited) {
             if (!node->isArtificial()) {
                 realNodes.insert(node);
             }

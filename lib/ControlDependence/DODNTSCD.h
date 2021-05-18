@@ -16,7 +16,7 @@ class DODNTSCD : public DOD {
     template <typename OnAllPathsT>
     void computeNTSCD(CDNode *p, CDGraph &graph, const OnAllPathsT &onallpaths,
                       ResultT &CD, ResultT &revCD) {
-        auto &succs = p->successors();
+        const auto &succs = p->successors();
         assert(succs.size() == 2);
         auto succit = succs.begin();
         auto *s1 = *succit;

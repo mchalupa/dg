@@ -119,7 +119,7 @@ LLVMPointerGraphBuilder::getAndConnectSubgraph(const llvm::Function *F,
     ent->addCaller(callNode);
 
     // update callgraph
-    auto *callerF = CInst->getParent()->getParent();
+    const auto *callerF = CInst->getParent()->getParent();
     PS.registerCall(getPointsToNode(callerF), getPointsToNode(F));
     DBG(pta, "CallGraph: " << callerF->getName().str() << " -> "
                            << F->getName().str());
@@ -501,7 +501,7 @@ getBasicBlocksInDominatorOrder(llvm::Function &F) {
 #endif
 #endif
 
-    auto root_node = DTree.getRootNode();
+    auto *root_node = DTree.getRootNode();
     blocks.push_back(root_node->getBlock());
 
     std::vector<llvm::DomTreeNode *> to_process;
@@ -512,8 +512,8 @@ getBasicBlocksInDominatorOrder(llvm::Function &F) {
         std::vector<llvm::DomTreeNode *> new_to_process;
         new_to_process.reserve(to_process.size());
 
-        for (auto cur_node : to_process) {
-            for (auto child : *cur_node) {
+        for (auto *cur_node : to_process) {
+            for (auto *child : *cur_node) {
                 new_to_process.push_back(child);
                 blocks.push_back(child->getBlock());
             }
@@ -648,7 +648,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph() {
     addProgramStructure();
 
     // FIXME: set entry procedure, not an entry node
-    auto mainsg = getSubgraph(F);
+    auto *mainsg = getSubgraph(F);
     assert(mainsg);
     PS.setEntry(mainsg);
 

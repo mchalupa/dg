@@ -17,7 +17,7 @@ void LLVMDependenceGraph::computePostDominators(bool addPostDomFrontiers) {
                       "Computing post-dominator frontiers (control deps.)");
     using namespace llvm;
     // iterate over all functions
-    for (auto &F : getConstructedFunctions()) {
+    for (const auto &F : getConstructedFunctions()) {
         legacy::PostDominanceFrontiers<LLVMNode, LLVMBBlock> pdfrontiers;
 
         // root of post-dominator tree

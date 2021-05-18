@@ -66,8 +66,8 @@ getConstructedFunctions() {
 
 LLVMDependenceGraph::~LLVMDependenceGraph() {
     // delete nodes
-    for (auto I = begin(), E = end(); I != E; ++I) {
-        LLVMNode *node = I->second;
+    for (auto &I : *this) {
+        LLVMNode *node = I.second;
 
         if (node) {
             for (LLVMDependenceGraph *subgraph : node->getSubgraphs()) {
@@ -195,7 +195,7 @@ bool LLVMDependenceGraph::addFormalGlobal(llvm::Value *val) {
     // global as the formal input parameter representing this global
     if (llvm::Function *F = llvm::dyn_cast<llvm::Function>(entry->getValue())) {
         if (F == entryFunction) {
-            auto gnode = getGlobalNode(val);
+            auto *gnode = getGlobalNode(val);
             assert(gnode);
             gnode->addControlDependence(fpin);
         }
@@ -298,9 +298,9 @@ LLVMDependenceGraph::buildSubgraph(LLVMNode *node, llvm::Function *callFunc,
     addSubgraphGlobalParameters(subgraph);
     node->addActualParameters(subgraph, callFunc, fork);
 
-    if (auto noret = subgraph->getNoReturn()) {
+    if (auto *noret = subgraph->getNoReturn()) {
         assert(node->getParameters()); // we created them a while ago
-        auto actnoret = getOrCreateNoReturn(node);
+        auto *actnoret = getOrCreateNoReturn(node);
         noret->addControlDependence(actnoret);
     }
 
@@ -319,10 +319,10 @@ LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn() {
     LLVMDGParameters *params = getOrCreateParameters();
     LLVMNode *noret = params->getNoReturn();
     if (!noret) {
-        auto UI = new llvm::UnreachableInst(getModule()->getContext());
+        auto *UI = new llvm::UnreachableInst(getModule()->getContext());
         noret = new LLVMNode(UI, true);
         params->addNoReturn(noret);
-        auto entry = getEntry();
+        auto *entry = getEntry();
         assert(entry);
         entry->addControlDependence(noret);
     }
@@ -335,7 +335,7 @@ LLVMNode *LLVMDependenceGraph::getOrCreateNoReturn(LLVMNode *call) {
 
     LLVMNode *noret = params->getNoReturn();
     if (!noret) {
-        auto UI = new llvm::UnreachableInst(getModule()->getContext());
+        auto *UI = new llvm::UnreachableInst(getModule()->getContext());
         noret = new LLVMNode(UI, true);
         params->addNoReturn(noret);
         // this edge is redundant...
@@ -379,7 +379,7 @@ bool LLVMDependenceGraph::addFormalParameter(llvm::Value *val) {
         if (llvm::Function *F =
                     llvm::dyn_cast<llvm::Function>(entry->getValue())) {
             if (F == entryFunction) {
-                auto gnode = getGlobalNode(val);
+                auto *gnode = getGlobalNode(val);
                 assert(gnode);
                 gnode->addControlDependence(fpin);
             }
@@ -488,7 +488,7 @@ void LLVMDependenceGraph::handleInstruction(llvm::Value *val, LLVMNode *node,
         // so create call-graph
         addCallNode(node);
     } else if (isa<UnreachableInst>(val)) {
-        auto noret = getOrCreateNoReturn();
+        auto *noret = getOrCreateNoReturn();
         node->addControlDependence(noret);
         // unreachable is being inserted because of the previous instr
         // aborts the program. This means that whether it is executed
@@ -933,7 +933,7 @@ void LLVMDependenceGraph::computeNTSCD(
     dg::LLVMControlDependenceAnalysis ntscd(this->module, opts);
     assert(opts.ntscdCD() || opts.ntscd2CD());
 
-    for (auto &it : getConstructedFunctions()) {
+    for (const auto &it : getConstructedFunctions()) {
         auto &blocks = it.second->getBlocks();
         for (auto &BB : *llvm::cast<llvm::Function>(it.first)) {
             auto *bb = blocks[&BB];
@@ -963,19 +963,20 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
     DBG_SECTION_BEGIN(llvmdg, "Computing NTSCD");
     llvmdg::legacy::NTSCD ntscdAnalysis(this->module, {}, PTA);
     ntscdAnalysis.computeDependencies();
-    auto &dependencies = ntscdAnalysis.controlDependencies();
+    const auto &dependencies = ntscdAnalysis.controlDependencies();
 
     for (const auto &dep : dependencies) {
         if (dep.first->isArtificial()) {
             continue;
         }
 
-        auto lastInstruction = findInstruction(
+        auto *lastInstruction = findInstruction(
                 castToLLVMInstruction(dep.first->lastInstruction()),
                 getConstructedFunctions());
-        for (const auto dependant : dep.second) {
-            for (const auto instruction : dependant->llvmInstructions()) {
-                auto dgInstruction =
+        for (auto *const dependant : dep.second) {
+            for (const auto *const instruction :
+                 dependant->llvmInstructions()) {
+                auto *dgInstruction =
                         findInstruction(castToLLVMInstruction(instruction),
                                         getConstructedFunctions());
                 if (lastInstruction && dgInstruction) {
@@ -1001,8 +1002,8 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
                 }
             }
             if (dependant->isExit() && lastInstruction) {
-                auto dg = lastInstruction->getDG();
-                auto noret = dg->getOrCreateNoReturn();
+                auto *dg = lastInstruction->getDG();
+                auto *noret = dg->getOrCreateNoReturn();
                 lastInstruction->addControlDependence(noret);
 
                 // we added the formal noreturn, now add the noreturn to every
@@ -1010,7 +1011,7 @@ void LLVMDependenceGraph::computeNonTerminationControlDependencies() {
                 for (auto *caller : dg->getCallers()) {
                     caller->getOrCreateParameters(); // create params if not
                                                      // created
-                    auto actnoret = dg->getOrCreateNoReturn(caller);
+                    auto *actnoret = dg->getOrCreateNoReturn(caller);
                     noret->addControlDependence(actnoret);
                 }
             }
@@ -1051,11 +1052,11 @@ void LLVMDependenceGraph::computeForkJoinDependencies(
         ControlFlowGraph *controlFlowGraph) {
     auto joins = controlFlowGraph->getJoins();
     for (const auto &join : joins) {
-        auto joinNode = findInstruction(castToLLVMInstruction(join),
-                                        constructedFunctions);
+        auto *joinNode = findInstruction(castToLLVMInstruction(join),
+                                         constructedFunctions);
         for (const auto &fork : controlFlowGraph->getCorrespondingForks(join)) {
-            auto forkNode = findInstruction(castToLLVMInstruction(fork),
-                                            constructedFunctions);
+            auto *forkNode = findInstruction(castToLLVMInstruction(fork),
+                                             constructedFunctions);
             joinNode->addControlDependence(forkNode);
         }
     }
@@ -1064,14 +1065,14 @@ void LLVMDependenceGraph::computeForkJoinDependencies(
 void LLVMDependenceGraph::computeCriticalSections(
         ControlFlowGraph *controlFlowGraph) {
     auto locks = controlFlowGraph->getLocks();
-    for (auto lock : locks) {
-        auto callLockInst = castToLLVMInstruction(lock);
-        auto lockNode = findInstruction(callLockInst, constructedFunctions);
+    for (const auto *lock : locks) {
+        auto *callLockInst = castToLLVMInstruction(lock);
+        auto *lockNode = findInstruction(callLockInst, constructedFunctions);
         auto correspondingNodes =
                 controlFlowGraph->getCorrespondingCriticalSection(lock);
-        for (auto correspondingNode : correspondingNodes) {
-            auto node = castToLLVMInstruction(correspondingNode);
-            auto dependentNode = findInstruction(node, constructedFunctions);
+        for (const auto *correspondingNode : correspondingNodes) {
+            auto *node = castToLLVMInstruction(correspondingNode);
+            auto *dependentNode = findInstruction(node, constructedFunctions);
             if (dependentNode) {
                 lockNode->addControlDependence(dependentNode);
             } else {
@@ -1083,9 +1084,9 @@ void LLVMDependenceGraph::computeCriticalSections(
 
         auto correspondingUnlocks =
                 controlFlowGraph->getCorrespongingUnlocks(lock);
-        for (auto unlock : correspondingUnlocks) {
-            auto node = castToLLVMInstruction(unlock);
-            auto unlockNode = findInstruction(node, constructedFunctions);
+        for (const auto *unlock : correspondingUnlocks) {
+            auto *node = castToLLVMInstruction(unlock);
+            auto *unlockNode = findInstruction(node, constructedFunctions);
             if (unlockNode) {
                 unlockNode->addControlDependence(lockNode);
             }
@@ -1102,7 +1103,7 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(
                 const_cast<llvm::Function *>(load->getParent()->getParent()));
         if (loadFunction == constructedFunctions.end())
             continue;
-        auto loadNode = loadFunction->second->findNode(loadInst);
+        auto *loadNode = loadFunction->second->findNode(loadInst);
         if (!loadNode)
             continue;
 
@@ -1113,7 +1114,7 @@ void LLVMDependenceGraph::computeInterferenceDependentEdges(
                             store->getParent()->getParent()));
             if (storeFunction == constructedFunctions.end())
                 continue;
-            auto storeNode = storeFunction->second->findNode(storeInst);
+            auto *storeNode = storeFunction->second->findNode(storeInst);
             if (!storeNode)
                 continue;
 
@@ -1189,20 +1190,20 @@ void LLVMDependenceGraph::addNoreturnDependencies(LLVMNode *noret,
     std::set<LLVMBBlock *> visited;
     ADT::QueueLIFO<LLVMBBlock *> queue;
 
-    for (auto &succ : from->successors()) {
+    for (const auto &succ : from->successors()) {
         if (visited.insert(succ.target).second)
             queue.push(succ.target);
     }
 
     while (!queue.empty()) {
-        auto cur = queue.pop();
+        auto *cur = queue.pop();
 
         // do the stuff
-        for (auto node : cur->getNodes())
+        for (auto *node : cur->getNodes())
             noret->addControlDependence(node);
 
         // queue successors
-        for (auto &succ : cur->successors()) {
+        for (const auto &succ : cur->successors()) {
             if (visited.insert(succ.target).second)
                 queue.push(succ.target);
         }
@@ -1213,7 +1214,7 @@ void LLVMDependenceGraph::addNoreturnDependencies(
         const LLVMControlDependenceAnalysisOptions &opts) {
     if (opts.ntscdCD() || opts.ntscd2CD() || opts.ntscdLegacyCD()) {
         llvmdg::LLVMInterprocCD interprocCD(this->module);
-        for (auto &F : getConstructedFunctions()) {
+        for (const auto &F : getConstructedFunctions()) {
             auto *dg = F.second;
             auto *fun = llvm::cast<llvm::Function>(F.first);
             for (auto *noreti : interprocCD.getNoReturns(fun)) {
@@ -1222,7 +1223,7 @@ void LLVMDependenceGraph::addNoreturnDependencies(
                 for (auto *caller : dg->getCallers()) {
                     caller->getOrCreateParameters(); // create params if not
                                                      // created
-                    auto actnoret = dg->getOrCreateNoReturn(caller);
+                    auto *actnoret = dg->getOrCreateNoReturn(caller);
                     fnoret->addControlDependence(actnoret);
                 }
 
@@ -1239,21 +1240,21 @@ void LLVMDependenceGraph::addNoreturnDependencies(
     }
 
     // in theory, we should not need this one, but it does not work right now
-    for (auto &F : getConstructedFunctions()) {
+    for (const auto &F : getConstructedFunctions()) {
         auto &blocks = F.second->getBlocks();
 
         for (auto &it : blocks) {
             LLVMBBlock *B = it.second;
             std::set<LLVMNode *> noreturns;
-            for (auto node : B->getNodes()) {
+            for (auto *node : B->getNodes()) {
                 // add dependencies for the found no returns
-                for (auto nrt : noreturns) {
+                for (auto *nrt : noreturns) {
                     nrt->addControlDependence(node);
                 }
 
                 // is this a call with a noreturn parameter?
-                if (auto params = node->getParameters()) {
-                    if (auto noret = params->getNoReturn()) {
+                if (auto *params = node->getParameters()) {
+                    if (auto *noret = params->getNoReturn()) {
                         // process the rest of the block
                         noreturns.insert(noret);
 

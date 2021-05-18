@@ -56,22 +56,22 @@ class DGCallGraphImpl : public CallGraphImpl {
     const GenericCallGraph<PSNode *> &_cg;
     std::map<const llvm::Function *, PSNode *> _mapping;
 
-    const llvm::Function *getFunFromNode(PSNode *n) const {
-        auto f = n->getUserData<llvm::Function>();
+    static const llvm::Function *getFunFromNode(PSNode *n) {
+        auto *f = n->getUserData<llvm::Function>();
         assert(f && "Invalid data in a node");
         return f;
     }
 
   public:
     DGCallGraphImpl(const dg::GenericCallGraph<PSNode *> &cg) : _cg(cg) {
-        for (auto &it : _cg) {
+        for (const auto &it : _cg) {
             _mapping[getFunFromNode(it.first)] = it.first;
         }
     }
 
     FuncVec functions() const override {
         FuncVec ret;
-        for (auto &it : _mapping) {
+        for (const auto &it : _mapping) {
             ret.push_back(it.first);
         }
         return ret;
@@ -82,7 +82,7 @@ class DGCallGraphImpl : public CallGraphImpl {
         auto it = _mapping.find(F);
         if (it == _mapping.end())
             return ret;
-        auto fnd = _cg.get(it->second);
+        const auto *fnd = _cg.get(it->second);
         for (auto *nd : fnd->getCallers()) {
             ret.push_back(getFunFromNode(nd->getValue()));
         }
@@ -94,7 +94,7 @@ class DGCallGraphImpl : public CallGraphImpl {
         auto it = _mapping.find(F);
         if (it == _mapping.end())
             return ret;
-        auto fnd = _cg.get(it->second);
+        const auto *fnd = _cg.get(it->second);
         for (auto *nd : fnd->getCalls()) {
             ret.push_back(getFunFromNode(nd->getValue()));
         }
@@ -108,8 +108,8 @@ class DGCallGraphImpl : public CallGraphImpl {
         auto it2 = _mapping.find(what);
         if (it2 == _mapping.end())
             return false;
-        auto fn1 = _cg.get(it->second);
-        auto fn2 = _cg.get(it2->second);
+        const auto *fn1 = _cg.get(it->second);
+        const auto *fn2 = _cg.get(it2->second);
         if (fn1 && fn2) {
             return fn1->calls(fn2);
         }
@@ -190,8 +190,8 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
     void
     processBBlock(const llvm::Function *parent, const llvm::BasicBlock &B,
                   ADT::SetQueue<QueueFIFO<const llvm::Function *>> &queue) {
-        for (auto &I : B) {
-            if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
+        for (const auto &I : B) {
+            if (const auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
 #if LLVM_VERSION_MAJOR >= 8
                 auto pts = _pta->getLLVMPointsTo(C->getCalledOperand());
 #else
@@ -218,8 +218,8 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
         queue.push(entry);
 
         while (!queue.empty()) {
-            auto *cur = queue.pop();
-            for (auto &B : *cur) {
+            const auto *cur = queue.pop();
+            for (const auto &B : *cur) {
                 processBBlock(cur, B, queue);
             }
         }
@@ -233,7 +233,7 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
 
     FuncVec functions() const override {
         FuncVec ret;
-        for (auto &it : _cg) {
+        for (const auto &it : _cg) {
             ret.push_back(it.first);
         }
         return ret;
@@ -241,7 +241,7 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
 
     FuncVec callers(const llvm::Function *F) override {
         FuncVec ret;
-        auto fnd = _cg.get(F);
+        const auto *fnd = _cg.get(F);
         for (auto *nd : fnd->getCallers()) {
             ret.push_back(nd->getValue());
         }
@@ -250,16 +250,17 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
 
     FuncVec callees(const llvm::Function *F) override {
         FuncVec ret;
-        auto fnd = _cg.get(F);
+        const auto *fnd = _cg.get(F);
         for (auto *nd : fnd->getCalls()) {
             ret.push_back(nd->getValue());
         }
         return ret;
     }
 
-    bool calls(const llvm::Function *F, const llvm::Function *what) override {
-        auto fn1 = _cg.get(F);
-        auto fn2 = _cg.get(what);
+    bool calls(const llvm::Function *F,
+               const llvm::Function *what) const override {
+        const auto *fn1 = _cg.get(F);
+        const auto *fn2 = _cg.get(what);
         if (fn1 && fn2) {
             return fn1->calls(fn2);
         }

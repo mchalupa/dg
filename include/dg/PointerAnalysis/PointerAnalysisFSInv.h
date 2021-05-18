@@ -274,11 +274,11 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
         return nullptr;
     }
 
-    bool overwriteMOFromFree(MemoryMapT *mm, PSNode *target) {
+    static bool overwriteMOFromFree(MemoryMapT *mm, PSNode *target) {
         // if we know exactly which memory object
         // is being used for freeing the memory,
         // we can set it to invalidated
-        auto mo = getOrCreateMO(mm, target);
+        auto *mo = getOrCreateMO(mm, target);
         if (mo->pointsTo.size() == 1) {
             auto &S = mo->pointsTo[0];
             if (S.size() == 1 && (*S.begin()).target == INVALIDATED) {

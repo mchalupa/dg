@@ -93,8 +93,8 @@ static std::string getInstName(const llvm::Value *val) {
     llvm::raw_os_ostream ro(ostr);
 
     if (dump_c_lines) {
-        if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
-            auto &DL = I->getDebugLoc();
+        if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+            const auto &DL = I->getDebugLoc();
             if (DL) {
                 ro << DL.getLine() << ":" << DL.getCol();
             } else {
@@ -123,7 +123,7 @@ static std::string getInstName(const llvm::Value *val) {
     if (dump_c_lines)
         return str;
 
-    if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+    if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
         const auto &fun = I->getParent()->getParent()->getName();
         auto funstr = fun.str();
         if (funstr.length() > 15)
@@ -215,7 +215,7 @@ class Dumper {
 
         std::string nm;
         if (!name) {
-            auto *val = DDA->getValue(node);
+            const auto *val = DDA->getValue(node);
             if (!val) {
                 printRWNodeType(node->getType());
                 printId(node);
@@ -442,17 +442,17 @@ class Dumper {
             dumpSubgraphLabel(subg);
 
             // dump summary nodes
-            auto SSA = static_cast<MemorySSATransformation *>(
+            auto *SSA = static_cast<MemorySSATransformation *>(
                     DDA->getDDA()->getImpl());
             const auto *summary = SSA->getSummary(subg);
             if (summary) {
-                for (auto &i : summary->inputs) {
-                    for (auto &it : i.second)
+                for (const auto &i : summary->inputs) {
+                    for (const auto &it : i.second)
                         for (auto *nd : it.second)
                             nodeToDot(nd);
                 }
-                for (auto &o : summary->outputs) {
-                    for (auto &it : o.second)
+                for (const auto &o : summary->outputs) {
+                    for (const auto &it : o.second)
                         for (auto *nd : it.second)
                             nodeToDot(nd);
                 }
@@ -466,24 +466,24 @@ class Dumper {
 
         for (auto *subg : DDA->getGraph()->subgraphs()) {
             // dump summary nodes edges
-            auto SSA = static_cast<MemorySSATransformation *>(
+            auto *SSA = static_cast<MemorySSATransformation *>(
                     DDA->getDDA()->getImpl());
             const auto *summary = SSA->getSummary(subg);
             if (summary) {
-                for (auto &i : summary->inputs) {
-                    for (auto &it : i.second)
+                for (const auto &i : summary->inputs) {
+                    for (const auto &it : i.second)
                         for (auto *nd : it.second)
                             dumpNodeEdges(nd);
                 }
-                for (auto &o : summary->outputs) {
-                    for (auto &it : o.second)
+                for (const auto &o : summary->outputs) {
+                    for (const auto &it : o.second)
                         for (auto *nd : it.second)
                             dumpNodeEdges(nd);
                 }
             }
 
             // CFG
-            for (auto bblock : subg->bblocks()) {
+            for (auto *bblock : subg->bblocks()) {
                 dumpBBlockEdges(bblock);
 
                 for (auto *succ : bblock->successors()) {
@@ -503,7 +503,7 @@ class Dumper {
             }
 
             // def-use
-            for (auto bblock : subg->bblocks()) {
+            for (auto *bblock : subg->bblocks()) {
                 for (auto *node : bblock->getNodes()) {
                     dumpNodeEdges(node);
 
@@ -588,11 +588,11 @@ class MemorySSADumper : public Dumper {
 
     void dumpDDIMap(const DefinitionsMap<RWNode> &map) {
         for (const auto &it : map) {
-            for (auto &it2 : it.second) {
-                printf("<tr><td align=\"left\" colspan=\"4\">");
+            for (const auto &it2 : it.second) {
+                printf(R"(<tr><td align="left" colspan="4">)");
                 printName(it.first);
                 printf("</td></tr>");
-                for (auto where : it2.second) {
+                for (auto *where : it2.second) {
                     printf("<tr><td>&nbsp;&nbsp;</td><td>");
                     printInterval(it2.first);
                     printf("</td><td>@</td><td>");
@@ -604,9 +604,9 @@ class MemorySSADumper : public Dumper {
     }
 
     void dumpBBlockDefinitions(RWBBlock *block) override {
-        auto SSA = static_cast<MemorySSATransformation *>(
+        auto *SSA = static_cast<MemorySSATransformation *>(
                 DDA->getDDA()->getImpl());
-        auto *D = SSA->getDefinitions(block);
+        const auto *D = SSA->getDefinitions(block);
         if (!D)
             return;
         printf("<tr><td colspan=\"4\">==  defines ==</td></tr>");
@@ -616,7 +616,7 @@ class MemorySSADumper : public Dumper {
     }
 
     void dumpSubgraphLabel(RWSubgraph *subgraph) override {
-        auto SSA = static_cast<MemorySSATransformation *>(
+        auto *SSA = static_cast<MemorySSATransformation *>(
                 DDA->getDDA()->getImpl());
         const auto *summary = SSA->getSummary(subgraph);
 
@@ -648,7 +648,7 @@ static void dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot) {
     assert(DDA);
 
     if (DDA->getOptions().isSSA()) {
-        auto SSA = static_cast<MemorySSATransformation *>(
+        auto *SSA = static_cast<MemorySSATransformation *>(
                 DDA->getDDA()->getImpl());
         if (!graph_only)
             SSA->computeAllDefinitions();

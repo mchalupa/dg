@@ -42,7 +42,7 @@ struct MemoryObject {
 
     bool merge(const MemoryObject &rhs) {
         bool changed = false;
-        for (auto &rit : rhs.pointsTo) {
+        for (const auto &rit : rhs.pointsTo) {
             if (rit.second.empty())
                 continue;
             changed |= pointsTo[rit.first].add(rit.second);

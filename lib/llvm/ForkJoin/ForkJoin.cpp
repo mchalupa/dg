@@ -13,14 +13,14 @@ ForkJoinAnalysis::matchJoin(const llvm::Value *joinVal) {
         abort();
     }
 
-    auto dgPTA = static_cast<DGLLVMPointerAnalysis *>(_PTA);
+    auto *dgPTA = static_cast<DGLLVMPointerAnalysis *>(_PTA);
     std::vector<const llvm::Value *> threads;
 
-    const auto builder = dgPTA->getBuilder();
-    const auto joinCall = cast<CallInst>(joinVal);
-    const auto joinNode = builder->findJoin(joinCall);
-    for (const auto forkNode : joinNode->forks()) {
-        const auto llvmcall = forkNode->callInst()->getUserData<llvm::Value>();
+    auto *const builder = dgPTA->getBuilder();
+    const auto *const joinCall = cast<CallInst>(joinVal);
+    auto *const joinNode = builder->findJoin(joinCall);
+    for (auto *const forkNode : joinNode->forks()) {
+        auto *const llvmcall = forkNode->callInst()->getUserData<llvm::Value>();
         assert(isa<CallInst>(llvmcall));
         threads.push_back(llvmcall);
     }
@@ -47,14 +47,14 @@ ForkJoinAnalysis::joinFunctions(const llvm::Value *joinVal) {
         abort();
     }
 
-    auto dgPTA = static_cast<DGLLVMPointerAnalysis *>(_PTA);
+    auto *dgPTA = static_cast<DGLLVMPointerAnalysis *>(_PTA);
     std::vector<const llvm::Value *> threads;
 
-    const auto builder = dgPTA->getBuilder();
-    const auto joinCall = cast<CallInst>(joinVal);
-    const auto joinNode = builder->findJoin(joinCall);
-    for (const auto function : joinNode->functions()) {
-        const auto llvmFunction = function->getUserData<llvm::Value>();
+    auto *const builder = dgPTA->getBuilder();
+    const auto *const joinCall = cast<CallInst>(joinVal);
+    auto *const joinNode = builder->findJoin(joinCall);
+    for (auto *const function : joinNode->functions()) {
+        auto *const llvmFunction = function->getUserData<llvm::Value>();
         assert(isa<Function>(llvmFunction));
         threads.push_back(llvmFunction);
     }

@@ -138,7 +138,7 @@ class Slicer {
 
         _dg->getCallSites(_options.additionalSlicingCriteria, &criteria_nodes);
 
-        for (auto &funcName : _options.preservedFunctions)
+        for (const auto &funcName : _options.preservedFunctions)
             slicer.keepFunctionUntouched(funcName.c_str());
 
         slice_id = 0xdead;
@@ -528,7 +528,7 @@ class ModuleAnnotator {
 
         llvm::errs() << "[llvm-slicer] Saving IR with annotations to " << fl
                      << "\n";
-        auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(
+        auto *annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(
                 annotationOptions, dg->getPTA(), dg->getDDA(), criteria);
         annot->emitModuleComment(std::move(module_comment));
         llvm::Module *M = dg->getModule();
