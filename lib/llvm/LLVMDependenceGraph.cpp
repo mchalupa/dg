@@ -1139,7 +1139,7 @@ std::set<const llvm::Instruction *> LLVMDependenceGraph::getStoreInstructions(
 
 std::set<const llvm::Instruction *> LLVMDependenceGraph::getInstructionsOfType(
         const unsigned opCode,
-        const std::set<const llvm::Instruction *> &llvmInstructions) const {
+        const std::set<const llvm::Instruction *> &llvmInstructions) {
     std::set<const llvm::Instruction *> instructions;
     for (const auto &llvmValue : llvmInstructions) {
         if (llvm::isa<llvm::Instruction>(llvmValue)) {

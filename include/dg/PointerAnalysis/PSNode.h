@@ -241,9 +241,9 @@ class PSNode : public SubgraphNode<PSNode> {
         return pointsTo.add(ptrs);
     }
 
-    bool doesPointsTo(const Pointer &p) { return pointsTo.count(p) == 1; }
+    bool doesPointsTo(const Pointer &p) const { return pointsTo.count(p) == 1; }
 
-    bool doesPointsTo(PSNode *n, Offset o = 0) {
+    bool doesPointsTo(PSNode *n, Offset o = 0) const {
         return doesPointsTo(Pointer(n, o));
     }
 
