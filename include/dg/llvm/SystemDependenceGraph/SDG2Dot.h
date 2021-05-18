@@ -1,6 +1,11 @@
 #ifndef DG_LLVM_SDG2DOT_H_
 #define DG_LLVM_SDG2DOT_H_
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/Instructions.h"
@@ -11,10 +16,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/DebugInfo.h" //DIScope
 #endif
 SILENCE_LLVM_WARNINGS_POP
-
-#include <iostream>
-#include <sstream>
-#include <string>
 
 #include "dg/SystemDependenceGraph/DGNodeCall.h"
 #include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
