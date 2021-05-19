@@ -62,7 +62,9 @@ int main(int argc, const char *argv[]) {
         opts.threads = threads;
         opts.setFieldSensitivity(dg::Offset::UNKNOWN);
 
-        PTA = std::make_unique<dg::DGLLVMPointerAnalysis>(M.get(), opts);
+        PTA = std::unique_ptr<dg::DGLLVMPointerAnalysis>(
+                new dg::DGLLVMPointerAnalysis(M.get(), opts)
+        );
         PTA->run();
     }
 
