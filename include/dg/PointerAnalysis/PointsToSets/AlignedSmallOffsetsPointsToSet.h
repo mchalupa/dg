@@ -142,7 +142,7 @@ class AlignedSmallOffsetsPointsToSet {
             if (pointers.get(i))
                 return true;
         }
-        return dg::any_of(oddPointers, [target](const auto &ptr) {
+        return dg::any_of(oddPointers, [target](const Pointer &ptr) {
             return ptr.target == target;
         });
     }

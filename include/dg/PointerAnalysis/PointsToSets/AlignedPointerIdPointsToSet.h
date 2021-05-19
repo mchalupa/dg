@@ -136,7 +136,7 @@ class AlignedPointerIdPointsToSet {
                 return true;
             }
         }
-        return dg::any_of(overflowSet, [target](const auto &ptr) {
+        return dg::any_of(overflowSet, [target](const Pointer &ptr) {
             return ptr.target == target;
         });
     }

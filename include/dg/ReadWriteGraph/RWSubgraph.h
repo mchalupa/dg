@@ -76,7 +76,7 @@ class RWSubgraph {
     }
 
     bool hasCaller(RWNode *c) const {
-        return dg::any_of(_callers, [c](auto *tmp) { return tmp == c; });
+        return dg::any_of(_callers, [c](RWNode *tmp) { return tmp == c; });
     }
 
     void splitBBlocksOnCalls();
