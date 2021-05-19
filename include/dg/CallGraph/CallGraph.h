@@ -19,7 +19,7 @@ class GenericCallGraph {
 
         template <typename Cont>
         bool _contains(const FuncNode *x, const Cont &C) const {
-            return dg::any_of(C, [x](auto *s) { return s == x; });
+            return dg::any_of(C, [x](FuncNode *s) { return s == x; });
         }
 
       public:

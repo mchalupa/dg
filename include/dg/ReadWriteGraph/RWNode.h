@@ -199,13 +199,13 @@ class RWNode : public SubgraphNode<RWNode> {
 
     bool usesUnknown() const {
         return dg::any_of(getUses(),
-            [](const auto &ds) { return ds.target->isUnknown(); }
+            [](const DefSite &ds) { return ds.target->isUnknown(); }
         );
     }
 
     bool usesOnlyGlobals() const {
         return !dg::any_of(getUses(),
-            [](const auto &ds) { return !ds.target->isGlobal(); }
+            [](const DefSite &ds) { return !ds.target->isGlobal(); }
         );
     }
 
@@ -397,13 +397,13 @@ class RWNodeCall : public RWNode {
     bool callsOneUndefined() const { return getSingleUndefined() != nullptr; }
 
     bool callsDefined() const {
-        return dg::any_of(callees, [](const auto &c) {
+        return dg::any_of(callees, [](const RWCalledValue &c) {
             return c.getSubgraph() != nullptr;
         });
     }
 
     bool callsUndefined() const {
-        return dg::any_of(callees, [](const auto &c) {
+        return dg::any_of(callees, [](const RWCalledValue &c) {
             return c.getCalledValue() != nullptr;
         });
     }
