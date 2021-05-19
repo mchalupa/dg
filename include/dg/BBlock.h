@@ -133,7 +133,7 @@ class BBlock {
     // just the targets)
     bool hasSuccessor(BBlock<NodeT> *B) const {
         return dg::any_of(successors(),
-            [B](auto &succB) { return succB.target == B; }
+            [B](const BBlockEdge &succB) { return succB.target == B; }
         );
     }
 

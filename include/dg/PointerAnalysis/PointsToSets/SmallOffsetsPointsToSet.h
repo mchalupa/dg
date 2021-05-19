@@ -138,7 +138,7 @@ class SmallOffsetsPointsToSet {
             if (pointers.get(i))
                 return true;
         }
-        return dg::any_of(largePointers, [target](const auto &ptr) {
+        return dg::any_of(largePointers, [target](const Pointer &ptr) {
             return ptr.target == target;
         });
     }

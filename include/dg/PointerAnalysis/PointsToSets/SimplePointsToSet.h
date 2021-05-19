@@ -117,7 +117,7 @@ class SimplePointsToSet {
     }
 
     bool pointsToTarget(PSNode *target) const {
-        return dg::any_of(pointers, [target](const auto &ptr) {
+        return dg::any_of(pointers, [target](const Pointer &ptr) {
             return ptr.target == target;
         });
     }
