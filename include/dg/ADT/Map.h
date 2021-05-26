@@ -1,6 +1,7 @@
 #ifndef DG_MAP_IMPL_H_
 #define DG_MAP_IMPL_H_
 
+#include <cstddef>
 #include <map>
 
 namespace dg {
