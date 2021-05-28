@@ -1,8 +1,10 @@
 #ifndef DG_DG_NODE_H_
 #define DG_DG_NODE_H_
 
-#include "DepDGElement.h"
 #include <cassert>
+
+#include "dg/ADT/DGContainer.h"
+#include "DepDGElement.h"
 
 namespace dg {
 namespace sdg {
@@ -56,12 +58,25 @@ class DGNodeInstruction : public DGNode {
                        ? static_cast<DGNodeInstruction *>(n)
                        : nullptr;
     }
+
 };
 
 /// ----------------------------------------------------------------------
 // Argument
 /// ----------------------------------------------------------------------
 class DGNodeArgument : public DGNode {
+  // parameter in edges
+  EdgesContainer<DepDGElement> _in_edges;
+  EdgesContainer<DepDGElement> _rev_in_edges;
+  // parameter out edges
+  EdgesContainer<DepDGElement> _out_edges;
+  EdgesContainer<DepDGElement> _rev_out_edges;
+
+  using edge_iterator = DepDGElement::edge_iterator;
+  using const_edge_iterator = DepDGElement::const_edge_iterator;
+  using edges_range = DepDGElement::edges_range;
+  using const_edges_range = DepDGElement::const_edges_range;
+
   public:
     DGNodeArgument(DependenceGraph &g)
             : DGNode(g, DGElementType::ND_ARGUMENT) {}
@@ -71,6 +86,34 @@ class DGNodeArgument : public DGNode {
                        ? static_cast<DGNodeArgument *>(n)
                        : nullptr;
     }
+
+    edge_iterator parameter_in_begin() { return _in_edges.begin(); }
+    edge_iterator parameter_in_end() { return _in_edges.end(); }
+    edge_iterator parameter_rev_in_begin() { return _rev_in_edges.begin(); }
+    edge_iterator parameter_rev_in_end() { return _rev_in_edges.end(); }
+    const_edge_iterator parameter_in_begin() const { return _in_edges.begin(); }
+    const_edge_iterator parameter_in_end() const { return _in_edges.end(); }
+    const_edge_iterator parameter_rev_in_begin() const { return _rev_in_edges.begin(); }
+    const_edge_iterator parameter_rev_in_end() const { return _rev_in_edges.end(); }
+
+    edges_range parameter_in() { return {_in_edges}; }
+    const_edges_range parameter_in() const { return {_in_edges}; }
+    edges_range parameter_rev_in() { return {_rev_in_edges}; }
+    const_edges_range parameter_rev_in() const { return {_rev_in_edges}; }
+
+    edge_iterator parameter_out_begin() { return _out_edges.begin(); }
+    edge_iterator parameter_out_end() { return _out_edges.end(); }
+    edge_iterator parameter_rev_out_begin() { return _rev_out_edges.begin(); }
+    edge_iterator parameter_rev_out_end() { return _rev_out_edges.end(); }
+    const_edge_iterator parameter_out_begin() const { return _out_edges.begin(); }
+    const_edge_iterator parameter_out_end() const { return _out_edges.end(); }
+    const_edge_iterator parameter_rev_out_begin() const { return _rev_out_edges.begin(); }
+    const_edge_iterator parameter_rev_out_end() const { return _rev_out_edges.end(); }
+
+    edges_range parameter_out() { return {_out_edges}; }
+    const_edges_range parameter_out() const { return {_out_edges}; }
+    edges_range parameter_rev_out() { return {_rev_out_edges}; }
+    const_edges_range parameter_rev_out() const { return {_rev_out_edges}; }
 };
 
 /// ----------------------------------------------------------------------
