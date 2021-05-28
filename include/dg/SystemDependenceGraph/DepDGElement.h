@@ -8,6 +8,9 @@ namespace dg {
 namespace sdg {
 
 class DependenceGraph;
+class DGNodeArgument;
+
+
 
 ///
 // An element of the graph that can have dependencies
@@ -16,9 +19,6 @@ class DependenceGraph;
 // so that e.g., basic blocks do not bear the memory dependencies.
 // It is a waste of memory.
 class DepDGElement : public DGElement {
-    using edge_iterator = EdgesContainer<DepDGElement>::iterator;
-    using const_edge_iterator = EdgesContainer<DepDGElement>::const_iterator;
-
     // nodes that use this node as operand
     EdgesContainer<DepDGElement> _use_deps;
     // nodes that write to memory that this node reads
@@ -31,8 +31,13 @@ class DepDGElement : public DGElement {
     EdgesContainer<DepDGElement> _rev_memory_deps;
     EdgesContainer<DepDGElement> _rev_control_deps;
 
+  protected:
+    using edge_iterator = EdgesContainer<DepDGElement>::iterator;
+    using const_edge_iterator = EdgesContainer<DepDGElement>::const_iterator;
+
     class edges_range {
         friend class DepDGElement;
+        friend class DGNodeArgument;
         EdgesContainer<DepDGElement> &_C;
 
         edges_range(EdgesContainer<DepDGElement> &C) : _C(C) {}
@@ -44,6 +49,7 @@ class DepDGElement : public DGElement {
 
     class const_edges_range {
         friend class DepDGElement;
+        friend class DGNodeArgument;
         const EdgesContainer<DepDGElement> &_C;
 
         const_edges_range(const EdgesContainer<DepDGElement> &C) : _C(C) {}
@@ -56,7 +62,6 @@ class DepDGElement : public DGElement {
     // FIXME: add data deps iterator = use + memory
     //
 
-  protected:
     DepDGElement(DependenceGraph &g, DGElementType type) : DGElement(g, type) {}
 
   public:
