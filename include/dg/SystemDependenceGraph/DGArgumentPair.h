@@ -9,6 +9,9 @@ namespace sdg {
 
 class DGParameters;
 
+///
+// Input-output pair of arguments that is associated to some (formal or
+// actual) DGParameters object.
 class DGArgumentPair : public DGElement {
     friend class DGParameters;
 
