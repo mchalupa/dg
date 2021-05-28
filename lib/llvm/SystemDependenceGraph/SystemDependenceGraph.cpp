@@ -62,12 +62,23 @@ struct SDGBuilder {
         _llvmsdg->addBlkMapping(&B, &block);
 
         for (auto &I : B) {
-            sdg::DGNode *node;
+            sdg::DGNode *node = nullptr;
             if (auto *CI = llvm::dyn_cast<llvm::CallInst>(&I)) {
                 node = &buildCallNode(dg, CI);
             } else {
                 node = &dg.createInstruction();
+                if (auto *RI = llvm::dyn_cast<llvm::ReturnInst>(&I)) {
+                    // add formal 'ret' parameter
+                    auto &params = dg.getParameters();
+                    auto *ret = params.getReturn();
+                    if (!ret)
+                        ret = &params.createReturn();
+                    // XXX: do we want the 'use' edge here?
+                    node->addUser(*ret);
+                }
             }
+            assert(node && "Failed creating a node");
+
             block.append(node);
             _llvmsdg->addMapping(&I, node);
         }
