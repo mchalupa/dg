@@ -23,7 +23,8 @@ struct SDGDependenciesBuilder {
             auto *val = &*op;
             if (llvm::isa<llvm::ConstantExpr>(val)) {
                 val = val->stripPointerCasts();
-            } else if (llvm::isa<llvm::BasicBlock>(val)) {
+            } else if (llvm::isa<llvm::BasicBlock>(val) ||
+                       llvm::isa<llvm::ConstantInt>(val)) {
                 // we do not add use edges to basic blocks
                 // FIXME: but maybe we could? The implementation could be then
                 // clearer...
@@ -32,8 +33,9 @@ struct SDGDependenciesBuilder {
 
             auto *opnd = _sdg.getNode(val);
             if (!opnd) {
-                if (llvm::isa<llvm::ConstantInt>(val) ||
-                    llvm::isa<llvm::Function>(val)) {
+                if (auto *fun = llvm::dyn_cast<llvm::Function>(val)) {
+                    llvm::errs() << "[SDG error] Do not have fun as operand: "
+                                 << fun->getName() << "\n";
                     continue;
                 }
 
