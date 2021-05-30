@@ -82,11 +82,13 @@ if (LLVM_DG)
 
 add_library(dgllvmpta SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/PointerAnalysis/PointerAnalysis.h
+    ${CMAKE_SOURCE_DIR}/include/dg/llvm/PointerAnalysis/AliasAnalysis.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/PointerAnalysis/PointerGraph.h
 
 	llvm/PointerAnalysis/PointerGraphValidator.h
 	llvm/PointerAnalysis/PointerAnalysis.cpp
+    llvm/PointerAnalysis/BasicAliasAnalysis.cpp
 	llvm/PointerAnalysis/PointerGraph.cpp
 	llvm/PointerAnalysis/PointerGraphValidator.cpp
 	llvm/PointerAnalysis/Block.cpp
