@@ -258,7 +258,7 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
     }
 
     bool calls(const llvm::Function *F,
-               const llvm::Function *what) const override {
+               const llvm::Function *what) override {
         const auto *fn1 = _cg.get(F);
         const auto *fn2 = _cg.get(what);
         if (fn1 && fn2) {
