@@ -17,9 +17,9 @@
 
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer-preprocess.h"
 #include "dg/tools/llvm-slicer.h"
 #include "git-version.h"
-#include "llvm-slicer-preprocess.h"
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
