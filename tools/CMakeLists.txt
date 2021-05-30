@@ -69,6 +69,15 @@ if (HAVE_SVF)
                                            PRIVATE ${llvm_transformutils})
 endif (HAVE_SVF)
 
+	add_executable(llvm-aa-dump llvm-aa-dump.cpp llvm-slicer-metadata.cpp)
+	target_link_libraries(llvm-aa-dump PRIVATE dgllvmslicer
+                                            PRIVATE dganalysis
+                                            PRIVATE dgllvmpta
+					    PUBLIC ${llvm_analysis}
+					    PRIVATE ${llvm_irreader}
+					    PRIVATE ${llvm_core}
+					    )
+
 	add_executable(llvm-cda-dump llvm-cda-dump.cpp llvm-slicer-metadata.cpp)
 	target_link_libraries(llvm-cda-dump PRIVATE dgllvmslicer
                                             PRIVATE dganalysis
