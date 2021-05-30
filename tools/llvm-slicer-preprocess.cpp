@@ -30,7 +30,7 @@
 #include <stack>
 
 #include "dg/llvm/CallGraph/CallGraph.h"
-#include "llvm-slicer-preprocess.h"
+#include "dg/tools/llvm-slicer-preprocess.h"
 
 using namespace llvm;
 
