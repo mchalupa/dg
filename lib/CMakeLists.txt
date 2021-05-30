@@ -182,6 +182,7 @@ add_library(dgllvmdg SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMDependenceGraph.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMDependenceGraphBuilder.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMSlicer.h
+    ${CMAKE_SOURCE_DIR}/include/dg/llvm/LLVMFastSlicer.h
 
 	llvm/LLVMDGVerifier.h
 	llvm/llvm-utils.h
@@ -189,6 +190,7 @@ add_library(dgllvmdg SHARED
 	llvm/LLVMNode.cpp
 	llvm/LLVMDependenceGraph.cpp
 	llvm/LLVMDGVerifier.cpp
+    llvm/Slicing.cpp
 	llvm/Dominators/PostDominators.cpp
 	llvm/DefUse/DefUse.cpp
 	llvm/DefUse/DefUse.h

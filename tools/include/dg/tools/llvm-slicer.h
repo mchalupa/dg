@@ -17,6 +17,7 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/LLVMSlicer.h"
+#include "dg/llvm/LLVMFastSlicer.h"
 
 #include "dg/llvm/LLVMDG2Dot.h"
 #include "dg/llvm/LLVMDGAssemblyAnnotationWriter.h"
@@ -227,6 +228,35 @@ class Slicer {
             retval = llvm::ConstantInt::get(Ty, 0);
         llvm::ReturnInst::Create(ctx, retval, blk);
 
+        return true;
+    }
+};
+
+///
+// Fast but imprecise slicer based on the Weiser's algorithm
+// (well, it is fast and imprecise with the default analyses,
+// but can be made slow and very precise...)
+class FastSlicer {
+    llvm::Module *M;
+    const SlicerOptions &_options;
+    dg::llvmdg::LLVMFastSlicer slicer;
+
+  public:
+    FastSlicer(llvm::Module *mod, const SlicerOptions &opts)
+            : M(mod), _options(opts), slicer(*mod) {
+        assert(M && "Need module");
+    }
+
+    const SlicerOptions &getOptions() const { return _options; }
+
+    bool slice(const std::vector<const llvm::Value *> &criteria) {
+        dg::debug::TimeMeasure tm;
+
+        tm.start();
+        slicer.slice(criteria);
+
+        tm.stop();
+        tm.report("[llvm-slicer] Fast slicing of the module took");
         return true;
     }
 };
