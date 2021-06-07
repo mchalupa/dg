@@ -103,8 +103,8 @@ static void dumpCallGraph(llvmdg::CallGraph &CG) {
 
     for (const auto *f : CG.functions()) {
         for (const auto *c : CG.callees(f)) {
-            std::cout << "  " << f->getName().str() << " -> "
-                      << c->getName().str() << "\n";
+            std::cout << "  \"" << f->getName().str() << "\" -> \""
+                      << c->getName().str() << "\"\n";
         }
     }
 
