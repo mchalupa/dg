@@ -383,9 +383,11 @@ class LazyLLVMCallGraph : public CallGraphImpl {
     }
 
     void _populateCalledFunctions(const llvm::Function *fun) {
-        for (auto &I : llvm::instructions(fun)) {
-            if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
-                getCalledFunctions(C);
+        for (auto &B : *fun) {
+            for (auto &I : B) {
+                if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
+                    getCalledFunctions(C);
+                }
             }
         }
     }
@@ -424,15 +426,17 @@ class LazyLLVMCallGraph : public CallGraphImpl {
         // + get regular calls from the uses of F...
         std::vector<const llvm::CallInst *> ret;
         for (auto &mfun : *_module) {
-            for (auto &I : llvm::instructions(&mfun)) {
-                auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
-                if (!C)
-                    continue;
+            for (auto &B : mfun) {
+                for (auto &I : B) {
+                    auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
+                    if (!C)
+                        continue;
 
-                for (auto *calledf : getCalledFunctions(C)) {
-                    if (calledf == F) {
-                        _cg.addCall(&mfun, F);
-                        ret.push_back(C);
+                    for (auto *calledf : getCalledFunctions(C)) {
+                        if (calledf == F) {
+                            _cg.addCall(&mfun, F);
+                            ret.push_back(C);
+                        }
                     }
                 }
             }
