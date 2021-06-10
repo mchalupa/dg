@@ -575,25 +575,25 @@ class RelationsAnalyzer {
                             const llvm::Instruction *inst) {
         switch (inst->getOpcode()) {
         case llvm::Instruction::Store:
-            return storeGen(graph, llvm::dyn_cast<llvm::StoreInst>(inst));
+            return storeGen(graph, llvm::cast<llvm::StoreInst>(inst));
         case llvm::Instruction::Load:
-            return loadGen(graph, llvm::dyn_cast<llvm::LoadInst>(inst));
+            return loadGen(graph, llvm::cast<llvm::LoadInst>(inst));
         case llvm::Instruction::GetElementPtr:
             return gepGen(graph, llvm::cast<llvm::GetElementPtrInst>(inst));
         case llvm::Instruction::ZExt:
         case llvm::Instruction::SExt: // (S)ZExt should not change value
-            return extGen(graph, llvm::dyn_cast<llvm::CastInst>(inst));
+            return extGen(graph, llvm::cast<llvm::CastInst>(inst));
         case llvm::Instruction::Add:
-            return addGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+            return addGen(graph, llvm::cast<llvm::BinaryOperator>(inst));
         case llvm::Instruction::Sub:
-            return subGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+            return subGen(graph, llvm::cast<llvm::BinaryOperator>(inst));
         case llvm::Instruction::Mul:
-            return mulGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+            return mulGen(graph, llvm::cast<llvm::BinaryOperator>(inst));
         case llvm::Instruction::SRem:
         case llvm::Instruction::URem:
-            return remGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+            return remGen(graph, llvm::cast<llvm::BinaryOperator>(inst));
         default:
-            if (auto cast = llvm::dyn_cast<llvm::CastInst>(inst)) {
+            if (auto *cast = llvm::dyn_cast<llvm::CastInst>(inst)) {
                 return castGen(graph, cast);
             }
         }
