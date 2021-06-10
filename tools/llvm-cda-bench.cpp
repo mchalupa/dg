@@ -475,7 +475,6 @@ int main(int argc, char *argv[]) {
             ++n;
         }
 
-        n = 0;
         for (n = 0; n < results.size(); ++n) {
             for (unsigned m = 0; m < n; ++m) {
                 compareResults(results[n], results[m], std::get<0>(analyses[n]),
