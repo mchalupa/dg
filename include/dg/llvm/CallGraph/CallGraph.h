@@ -328,6 +328,10 @@ class LazyLLVMCallGraph : public CallGraphImpl {
     }
 
     FuncVec _getAddressTakenFuns(const llvm::CallInst *C) {
+        // FIXME: check that C calls initialized values
+        // (in many non-executable pieces of code, the call may call
+        // an uninitialized function pointer. Return no function
+        // in such cases instead of all address taken functions.
         if (!_address_taken_initialized)
             _initializeAddressTaken();
         assert(_address_taken_initialized);
