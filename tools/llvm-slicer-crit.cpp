@@ -365,7 +365,8 @@ static std::string parseObj(const std::vector<std::string> &parts) {
 
 static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
                                     const std::string &criterion,
-                                    std::set<const llvm::Value *> &result) {
+                                    std::set<const llvm::Value *> &result,
+                                    bool constructed_only = false) {
     assert(!criterion.empty() && "No criteria given");
 
     auto parts = splitList(criterion, '#');
@@ -380,6 +381,10 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
     auto obj = parseObj(parts);
     auto file = parseFile(parts);
 
+    DBG(llvm - slicer, "Criterion file # fun # line # obj ==> "
+                               << file << " # " << fun << " # " << line << " # "
+                               << obj);
+
     if (fun != "" && obj == "" && line == 0) {
         llvm::errs() << "WARNING: ignoring invalid slicing criterion: "
                      << criterion << "\n";
@@ -387,6 +392,7 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
     }
 
     // try match globals
+    DBG(llvm - slicer, "Checking global variables for slicing criteria");
     if (fun == "") {
         for (auto &G : M.globals()) {
             if (file != "" && !fileMatch(file, G))
@@ -397,15 +403,32 @@ static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
         }
     }
 
-    // map line criteria to nodes
-    for (auto &it : getConstructedFunctions()) {
-        for (auto &I :
-             llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
-            if (file != "" && !fileMatch(file, I))
-                continue;
+    if (constructed_only) {
+        DBG(llvm - slicer,
+            "Checking constructed functions for slicing criteria");
 
-            if (instMatchesCrit(I, fun, line, obj, pta)) {
-                result.insert(&I);
+        for (auto &it : getConstructedFunctions()) {
+            for (auto &I :
+                 llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
+                if (file != "" && !fileMatch(file, I))
+                    continue;
+
+                if (instMatchesCrit(I, fun, line, obj, pta)) {
+                    result.insert(&I);
+                }
+            }
+        }
+    } else {
+        DBG(llvm - slicer, "Checking all instructions for slicing criteria");
+
+        for (auto &F : M) {
+            for (auto &I : llvm::instructions(F)) {
+                if (file != "" && !fileMatch(file, I))
+                    continue;
+
+                if (instMatchesCrit(I, fun, line, obj, pta)) {
+                    result.insert(&I);
+                }
             }
         }
     }
@@ -482,9 +505,13 @@ static void initDebugInfo(LLVMDependenceGraph &dg) {
 #endif // LLVM > 3.6
 }
 
+///
+/// constructed_only  Search the criteria in DG's constructed functions
+///
 static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
         llvm::Module &M, const std::string &slicingCriteria,
-        bool criteria_are_next_instr, LLVMPointerAnalysis *pta = nullptr) {
+        bool criteria_are_next_instr, LLVMPointerAnalysis *pta = nullptr,
+        bool constructed_only = false) {
     std::vector<std::string> criteria = splitList(slicingCriteria, ';');
     assert(!criteria.empty() && "Did not get slicing criteria");
 
@@ -510,7 +537,8 @@ static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
         // be added to every primary SC
         bool ssctoall = primsec[0].empty() && primsec.size() > 1;
         if (!primsec[0].empty()) {
-            getCriteriaInstructions(M, pta, primsec[0], SC.primary);
+            getCriteriaInstructions(M, pta, primsec[0], SC.primary,
+                                    constructed_only);
         }
 
         if (!SC.primary.empty()) {
@@ -533,7 +561,8 @@ static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
         }
 
         if ((!SC.primary.empty() || ssctoall) && primsec.size() > 1) {
-            getCriteriaInstructions(M, pta, primsec[1], SC.secondary);
+            getCriteriaInstructions(M, pta, primsec[1], SC.secondary,
+                                    constructed_only);
 
             if (!SC.secondary.empty()) {
                 llvm::errs() << "SC: Matched '" << primsec[1]
@@ -675,9 +704,10 @@ bool getSlicingCriteriaNodes(LLVMDependenceGraph &dg,
                              bool criteria_are_next_instr) {
     initDebugInfo(dg);
 
-    auto crits = getSlicingCriteriaInstructions(
-            *dg.getModule(), slicingCriteria, criteria_are_next_instr,
-            dg.getPTA());
+    auto crits =
+            getSlicingCriteriaInstructions(*dg.getModule(), slicingCriteria,
+                                           criteria_are_next_instr, dg.getPTA(),
+                                           /* constructed only */ true);
     if (crits.empty()) {
         return true; // no criteria found
     }
@@ -1077,20 +1107,23 @@ getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
                          bool criteria_are_next_instr) {
     std::string criteria = slicingCriteria;
     if (legacySlicingCriteria != "") {
+        if (slicingCriteria != "")
+            criteria += ";";
+
         auto parts = splitList(legacySlicingCriteria, ':');
         if (parts.size() == 2) {
             if (legacySecondaryCriteria != "") {
                 criteria += ";" + parts[0] + "#" + parts[1] + "|" +
                             legacySecondaryCriteria + "()";
             } else {
-                criteria += ";" + parts[0] + "#" + parts[1];
+                criteria += parts[0] + "#" + parts[1];
             }
         } else if (parts.size() == 1) {
             if (legacySecondaryCriteria != "") {
                 criteria += ";" + legacySlicingCriteria + "()|" +
                             legacySecondaryCriteria + "()";
             } else {
-                criteria += ";" + legacySlicingCriteria + "()";
+                criteria += legacySlicingCriteria + "()";
             }
         } else {
             llvm::errs() << "Unsupported criteria: " << legacySlicingCriteria
@@ -1101,7 +1134,8 @@ getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
 
     std::vector<const llvm::Value *> ret;
     auto C = getSlicingCriteriaInstructions(
-            M, criteria, criteria_are_next_instr, /*pta = */ nullptr);
+            M, criteria, criteria_are_next_instr,
+            /*pta = */ nullptr, /* constructed only */ false);
     for (auto &critset : C) {
         ret.insert(ret.end(), critset.primary.begin(), critset.primary.end());
         ret.insert(ret.end(), critset.secondary.begin(),
