@@ -35,6 +35,7 @@ if (LLVM_DG)
 	add_library(dgllvmslicer SHARED
 		    llvm-slicer-opts.cpp include/dg/tools/llvm-slicer-opts.h
 		    llvm-slicer-utils.cpp include/dg/tools/llvm-slicer-utils.h
+		    llvm-slicer-preprocess.cpp llvm-slicer-preprocess.h
 		    llvm-slicer-crit.cpp
 		    include/dg/tools/llvm-slicer.h)
 	target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
