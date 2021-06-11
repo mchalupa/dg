@@ -189,7 +189,7 @@ GraphBuilder::getCalledFunctions(const llvm::Value *v) {
 void GraphBuilder::handleCallInstruction(const llvm::Instruction *instruction,
                                          Block *lastBlock, bool &createBlock,
                                          bool &createCallReturn) {
-    const auto *callInst = llvm::dyn_cast<llvm::CallInst>(instruction);
+    const auto *callInst = llvm::cast<llvm::CallInst>(instruction);
 #if LLVM_VERSION_MAJOR >= 8
     auto *val = callInst->getCalledOperand();
 #else
