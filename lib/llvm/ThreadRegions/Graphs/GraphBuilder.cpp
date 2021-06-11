@@ -547,7 +547,7 @@ GraphBuilder::insertFunctionPointerCall(const CallInst *callInstruction) {
 
 GraphBuilder::NodeSequence
 GraphBuilder::buildCallInstruction(const Instruction *instruction) {
-    const auto *callInst = dyn_cast<CallInst>(instruction);
+    const auto *callInst = cast<CallInst>(instruction);
     if (callInst->isInlineAsm()) {
         return buildGeneralInstruction(instruction);
     }
