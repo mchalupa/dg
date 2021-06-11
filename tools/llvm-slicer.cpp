@@ -19,6 +19,7 @@
 #include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer.h"
 #include "git-version.h"
+#include "llvm-slicer-preprocess.h"
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -106,6 +107,14 @@ llvm::cl::opt<std::string> annotationOpts(
                 "for more options, use comma separated list"),
         llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
         llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> cutoff_diverging(
+        "cutoff-diverging",
+        llvm::cl::desc(
+                "Cutoff diverging paths. That is, call abort() on those paths "
+                "that may not reach the slicing criterion "
+                " (default=true)."),
+        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
 static void maybe_print_statistics(llvm::Module *M,
                                    const char *prefix = nullptr) {
@@ -245,6 +254,28 @@ int main(int argc, char *argv[]) {
     /// ---------------
     // slice the code
     /// ---------------
+
+    if (cutoff_diverging) {
+        DBG(llvm - slicer, "Searching for slicing criteria values");
+        auto csvalues =
+                getSlicingCriteriaValues(*M.get(), options.slicingCriteria,
+                                         options.legacySlicingCriteria,
+                                         options.legacySecondarySlicingCriteria,
+                                         criteria_are_next_instr);
+        if (csvalues.empty()) {
+            llvm::errs() << "Failed mapping slicing criteria to values\n";
+            return 1;
+        }
+
+        DBG(llvm - slicer, "Cutting off diverging branches");
+        if (!llvmdg::cutoffDivergingBranches(
+                    *M.get(), options.dgOptions.entryFunction, csvalues)) {
+            errs() << "[llvm-slicer]: Failed cutting off diverging branches\n";
+            return 1;
+        }
+
+        maybe_print_statistics(M.get(), "Statistics after cutoff-diverging ");
+    }
 
     ::Slicer slicer(M.get(), options);
     if (!slicer.buildDG()) {
