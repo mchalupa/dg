@@ -997,3 +997,44 @@ bool getSlicingCriteriaNodes(LLVMDependenceGraph &dg,
 
     return true;
 }
+
+std::vector<const llvm::Value *>
+getSlicingCriteriaValues(LLVMDependenceGraph &dg,
+                         const std::string &slicingCriteria,
+                         const std::string &legacySlicingCriteria,
+                         const std::string &legacySecondaryCriteria,
+                         bool criteria_are_next_instr) {
+    std::string criteria = slicingCriteria;
+    if (legacySlicingCriteria != "") {
+        auto parts = splitList(legacySlicingCriteria, ':');
+        if (parts.size() == 2) {
+            if (legacySecondaryCriteria != "") {
+                criteria += ";" + parts[0] + "#" + parts[1] + "|" +
+                            legacySecondaryCriteria + "()";
+            } else {
+                criteria += ";" + parts[0] + "#" + parts[1];
+            }
+        } else if (parts.size() == 1) {
+            if (legacySecondaryCriteria != "") {
+                criteria += ";" + legacySlicingCriteria + "()|" +
+                            legacySecondaryCriteria + "()";
+            } else {
+                criteria += ";" + legacySlicingCriteria + "()";
+            }
+        } else {
+            llvm::errs() << "Unsupported criteria: " << legacySlicingCriteria
+                         << "\n";
+            return {};
+        }
+    }
+
+    std::vector<const llvm::Value *> ret;
+    auto C = getSlicingCriteriaInstructions(dg, criteria,
+                                            criteria_are_next_instr);
+    for (auto &critset : C) {
+        ret.insert(ret.end(), critset.primary.begin(), critset.primary.end());
+        ret.insert(ret.end(), critset.secondary.begin(),
+                   critset.secondary.end());
+    }
+    return ret;
+}
