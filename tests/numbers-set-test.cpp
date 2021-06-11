@@ -9,7 +9,7 @@ using namespace dg::ADT;
 TEST_CASE("Querying empty set", "BitvectorNumberSet") {
     BitvectorNumberSet B;
     REQUIRE(B.empty());
-    REQUIRE(B.size() == 0);
+    REQUIRE(B.empty());
 }
 
 TEST_CASE("Add few elements", "BitvectorNumberSet") {
@@ -47,7 +47,7 @@ TEST_CASE("Add big elements", "BitvectorNumberSet") {
 TEST_CASE("Querying empty small set", "SmallNumberSet") {
     SmallNumberSet B;
     REQUIRE(B.empty());
-    REQUIRE(B.size() == 0);
+    REQUIRE(B.empty());
 }
 
 TEST_CASE("Add few elements (small-set)", "SmallNumberSet") {

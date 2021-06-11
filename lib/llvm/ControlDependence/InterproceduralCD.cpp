@@ -18,7 +18,7 @@ namespace llvmdg {
 
 std::vector<const llvm::Function *>
 LLVMInterprocCD::getCalledFunctions(const llvm::Value *v) {
-    if (auto *F = llvm::dyn_cast<llvm::Function>(v)) {
+    if (const auto *F = llvm::dyn_cast<llvm::Function>(v)) {
         return {F};
     }
 
@@ -50,7 +50,7 @@ void LLVMInterprocCD::computeFuncInfo(const llvm::Function *fun,
     //  compute nonreturning blocks (without successors
     //  and terminated with non-ret instruction
     //  and find calls (and other noret points) inside blocks
-    for (auto &B : *fun) {
+    for (const auto &B : *fun) {
         // no successors and does not return to caller
         // -- this is a point of no return :)
         if (hasNoSuccessors(&B) && !isa<ReturnInst>(B.getTerminator())) {
@@ -58,8 +58,8 @@ void LLVMInterprocCD::computeFuncInfo(const llvm::Function *fun,
         }
 
         // process the calls in basic blocks
-        for (auto &I : B) {
-            auto *C = dyn_cast<CallInst>(&I);
+        for (const auto &I : B) {
+            const auto *C = dyn_cast<CallInst>(&I);
             if (!C) {
                 continue;
             }
@@ -69,7 +69,7 @@ void LLVMInterprocCD::computeFuncInfo(const llvm::Function *fun,
 #else
             auto *val = C->getCalledValue();
 #endif
-            for (auto *calledFun : getCalledFunctions(val)) {
+            for (const auto *calledFun : getCalledFunctions(val)) {
                 if (calledFun->isDeclaration())
                     continue;
 
@@ -112,9 +112,9 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
     std::unordered_map<const llvm::BasicBlock *, BlkInfo> blkInfos;
     blkInfos.reserve(fun->size());
 
-    for (auto &B : *fun) {
-        for (auto &I : B) {
-            auto *C = dyn_cast<CallInst>(&I);
+    for (const auto &B : *fun) {
+        for (const auto &I : B) {
+            const auto *C = dyn_cast<CallInst>(&I);
             if (!C) {
                 continue;
             }
@@ -125,7 +125,7 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
 #else
             auto *val = C->getCalledValue();
 #endif
-            for (auto *calledFun : getCalledFunctions(val)) {
+            for (const auto *calledFun : getCalledFunctions(val)) {
                 if (calledFun->isDeclaration())
                     continue;
 
@@ -148,16 +148,16 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
 
     ADT::QueueLIFO<const llvm::BasicBlock *> queue;
     for (auto &it : blkInfos) {
-        for (auto *succ : successors(it.first)) {
+        for (const auto *succ : successors(it.first)) {
             queue.push(succ);
         }
     }
 
     // run until fixpoint
     while (!queue.empty()) {
-        auto *block = queue.pop();
+        const auto *block = queue.pop();
         bool changed = false;
-        for (auto *pred : predecessors(block)) {
+        for (const auto *pred : predecessors(block)) {
             // merge previously computed info
             auto cit = cds.find(pred);
             if (cit != cds.end()) {
@@ -175,7 +175,7 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
         }
 
         if (changed) {
-            for (auto *succ : successors(block)) {
+            for (const auto *succ : successors(block)) {
                 queue.push(succ);
             }
         }
@@ -189,7 +189,7 @@ void LLVMInterprocCD::computeCD(const llvm::Function *fun) {
         unsigned noretsidx = 0;
         auto &norets = it.second.noret;
 
-        for (auto &I : *it.first) {
+        for (const auto &I : *it.first) {
             for (unsigned i = 0; i < noretsidx; ++i) {
                 _instrCD[&I].insert(norets[i]);
             }

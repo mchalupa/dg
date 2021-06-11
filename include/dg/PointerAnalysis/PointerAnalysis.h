@@ -2,6 +2,7 @@
 #define DG_POINTER_ANALYSIS_H_
 
 #include <cassert>
+#include <utility>
 #include <vector>
 
 #include "dg/ADT/Queue.h"
@@ -13,14 +14,8 @@
 namespace dg {
 namespace pta {
 
-// special nodes and pointers to them
-extern PSNode *NULLPTR;
-extern PSNode *UNKNOWN_MEMORY;
-extern const Pointer NullPointer;
-extern const Pointer UnknownPointer;
-
 class PointerAnalysis {
-    void initPointerAnalysis() { assert(PG && "Need PointerGraph object"); }
+    static void initPointerAnalysis() {}
 
   protected:
     // a set of changed nodes that are going to be
@@ -34,15 +29,15 @@ class PointerAnalysis {
     const PointerAnalysisOptions options{};
 
   public:
-    PointerAnalysis(PointerGraph *ps, const PointerAnalysisOptions &opts)
-            : PG(ps), options(opts) {
+    PointerAnalysis(PointerGraph *ps, PointerAnalysisOptions opts)
+            : PG(ps), options(std::move(opts)) {
         initPointerAnalysis();
     }
 
     // default options
     PointerAnalysis(PointerGraph *ps) : PointerAnalysis(ps, {}) {}
 
-    virtual ~PointerAnalysis() {}
+    virtual ~PointerAnalysis() = default;
 
     // takes a PSNode 'where' and 'what' and reference to a vector
     // and fills into the vector the objects that are relevant
@@ -62,9 +57,9 @@ class PointerAnalysis {
     /* hooks for analysis - optional. The analysis may do everything
      * in getMemoryObjects, but spliting it into before-get-after sequence
      * is more readable */
-    virtual bool beforeProcessed(PSNode *) { return false; }
+    virtual bool beforeProcessed(PSNode * /*unused*/) { return false; }
 
-    virtual bool afterProcessed(PSNode *) { return false; }
+    virtual bool afterProcessed(PSNode * /*unused*/) { return false; }
 
     PointerGraph *getPG() { return PG; }
     const PointerGraph *getPG() const { return PG; }
@@ -161,13 +156,13 @@ class PointerAnalysis {
     // handle join of threads
     // FIXME: this should be done in the generic pointer analysis,
     // we do not need to pass this to the LLVM part...
-    virtual bool handleJoin(PSNode *) { return false; }
+    virtual bool handleJoin(PSNode * /*unused*/) { return false; }
 
   private:
     // check the sanity of results of pointer analysis
     void sanityCheck();
 
-    bool processNode(PSNode *);
+    bool processNode(PSNode * /*node*/);
     bool processLoad(PSNode *node);
     bool processGep(PSNode *node);
     bool processMemcpy(PSNode *node);

@@ -52,7 +52,8 @@ bool NodeIterator::operator==(const NodeIterator &other) const {
 
     if (forkNode) {
         return forkSuccessorsIterator == other.forkSuccessorsIterator;
-    } else if (exitNode) {
+    }
+    if (exitNode) {
         return joinSuccessorsIterator == other.joinSuccessorsIterator;
     }
     return true;

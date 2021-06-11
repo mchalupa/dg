@@ -1,5 +1,5 @@
-#ifndef DG_PARAMETERS_H_
-#define DG_PARAMETERS_H_
+#ifndef DG_SDG_PARAMETERS_H_
+#define DG_SDG_PARAMETERS_H_
 
 #include <cassert>
 #include <memory>
@@ -33,7 +33,7 @@ class DGParameters {
         params_iterator(const params_iterator &I) = default;
         params_iterator(const OrigItType &I) : OrigItType(I) {}
 
-        DGArgumentPair &operator*() { return *OrigItType::operator*().get(); }
+        DGArgumentPair &operator*() { return *OrigItType::operator*(); }
         DGArgumentPair *operator->() { return OrigItType::operator*().get(); }
     };
 
@@ -113,4 +113,4 @@ class DGActualParameters : public DGParameters {
 } // namespace sdg
 } // namespace dg
 
-#endif // DG_PARAMETERS_H_
+#endif // DG_SDG_PARAMETERS_H_

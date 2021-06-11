@@ -5,6 +5,7 @@
 #include <list>
 
 #include "ADT/DGContainer.h"
+#include "dg/util/iterators.h"
 #include "legacy/Analysis.h"
 
 namespace dg {
@@ -16,6 +17,9 @@ namespace dg {
 template <typename NodeT>
 class BBlock {
   public:
+    using BBlockLabelTy = uint8_t;
+    static const BBlockLabelTy ARTIFICIAL_BBLOCK_LABEL = 255;
+    static const BBlockLabelTy MAX_BBLOCK_LABEL = ARTIFICIAL_BBLOCK_LABEL;
     using KeyT = typename NodeT::KeyType;
     using DependenceGraphT = typename NodeT::DependenceGraphType;
 
@@ -26,7 +30,7 @@ class BBlock {
         BBlock<NodeT> *target;
         // we'll have just numbers as labels now.
         // We can change it if there's a need
-        uint8_t label;
+        BBlockLabelTy label;
 
         bool operator==(const BBlockEdge &oth) const {
             return target == oth.target && label == oth.label;
@@ -41,7 +45,7 @@ class BBlock {
     };
 
     BBlock<NodeT>(NodeT *head = nullptr, DependenceGraphT *dg = nullptr)
-            : key(KeyT()), dg(dg), ipostdom(nullptr), slice_id(0) {
+            : key(KeyT()), dg(dg), ipostdom(nullptr) {
         if (head) {
             append(head);
             assert(!dg || head->getDG() == nullptr || dg == head->getDG());
@@ -128,13 +132,9 @@ class BBlock {
     // to the same basic block (not considering labels,
     // just the targets)
     bool hasSuccessor(BBlock<NodeT> *B) const {
-        for (auto &succB : successors()) {
-            if (succB.target == B) {
-                return true;
-            }
-        }
-
-        return false;
+        return dg::any_of(successors(),
+            [B](const BBlockEdge &succB) { return succB.target == B; }
+        );
     }
 
     // remove all edges from/to this BB and reconnect them to
@@ -442,7 +442,7 @@ class BBlock {
     BBlockContainerT domFrontiers;
 
     // is this block in some slice?
-    uint64_t slice_id;
+    uint64_t slice_id{0};
 
     // delete nodes on destruction of the block
     bool delete_nodes_on_destr = false;

@@ -68,7 +68,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
             std::set<RWNode *> getOutputs(const DefSite &ds) {
                 return outputs.get(ds);
             }
-            auto getUncoveredOutputs(const DefSite &ds)
+            auto getUncoveredOutputs(const DefSite &ds) const
                     -> decltype(outputs.undefinedIntervals(ds)) {
                 return outputs.undefinedIntervals(ds);
             }
@@ -102,16 +102,18 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     // Perform LVN up to a certain point and search only for a certain memory.
     // XXX: we could avoid this by (at least virtually) splitting blocks on
     // uses.
-    Definitions findDefinitionsInBlock(RWNode *to, const RWNode *mem = nullptr);
-    Definitions findEscapingDefinitionsInBlock(RWNode *to);
-    void performLvn(Definitions &, RWBBlock *);
+    static Definitions findDefinitionsInBlock(RWNode *to,
+                                              const RWNode *mem = nullptr);
+    static Definitions findEscapingDefinitionsInBlock(RWNode *to);
+    static void performLvn(Definitions & /*D*/, RWBBlock * /*block*/);
     void updateDefinitions(Definitions &D, RWNode *node);
 
     ///
     // Find definitions of the def site and return def-use edges.
     // For the uncovered bytes create phi nodes (which are also returned
     // as the definitions).
-    std::vector<RWNode *> findDefinitions(RWBBlock *, const DefSite &);
+    std::vector<RWNode *> findDefinitions(RWBBlock * /*block*/,
+                                          const DefSite & /*ds*/);
     std::vector<RWNode *> findDefinitions(RWNode *node, const DefSite &ds);
 
     // Find definitions for the given node (which is supposed to be a use)
@@ -148,7 +150,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
                               bool isstrong);
 
     template <typename Iterable>
-    void findPhiDefinitions(RWNode *phi, Iterable &I) {
+    void findPhiDefinitions(RWNode *phi, const Iterable &I) {
         std::set<RWNode *> defs;
 
         assert(phi->getOverwrites().size() == 1);
@@ -172,7 +174,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     /// if escaping is set to true, collect only definitions of escaping memory
     // (optimization for searching definitions in callers)
     void collectAllDefinitions(RWNode *from, Definitions &defs,
-                               bool esacping = false);
+                               bool escaping = false);
     void collectAllDefinitions(Definitions &defs, RWBBlock *from,
                                std::set<RWBBlock *> &visitedBlocks,
                                bool escaping);
@@ -215,7 +217,7 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     }
 
     const BBlockInfo *getBBlockInfo(RWBBlock *b) const {
-        auto *si = getSubgraphInfo(b->getSubgraph());
+        const auto *si = getSubgraphInfo(b->getSubgraph());
         if (si) {
             return si->getBBlockInfo(b);
         }
@@ -250,12 +252,12 @@ class MemorySSATransformation : public DataDependenceAnalysisImpl {
     std::vector<RWNode *> getDefinitions(RWNode *use) override;
 
     const Definitions *getDefinitions(RWBBlock *b) const {
-        auto *bi = getBBlockInfo(b);
+        const auto *bi = getBBlockInfo(b);
         return bi ? &bi->getDefinitions() : nullptr;
     }
 
     const SubgraphInfo::Summary *getSummary(const RWSubgraph *s) const {
-        auto si = getSubgraphInfo(s);
+        const auto *si = getSubgraphInfo(s);
         if (!si)
             return nullptr;
         return &si->getSummary();

@@ -1,6 +1,11 @@
 #ifndef DG_LLVM_SDG2DOT_H_
 #define DG_LLVM_SDG2DOT_H_
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/Instructions.h"
@@ -11,10 +16,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/DebugInfo.h" //DIScope
 #endif
 SILENCE_LLVM_WARNINGS_POP
-
-#include <iostream>
-#include <sstream>
-#include <string>
 
 #include "dg/SystemDependenceGraph/DGNodeCall.h"
 #include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"
@@ -36,8 +37,7 @@ static std::ostream& operator<<(std::ostream& os, const analysis::Offset& off)
 */
 
 namespace {
-static inline std::ostream &printLLVMVal(std::ostream &os,
-                                         const llvm::Value *val) {
+inline std::ostream &printLLVMVal(std::ostream &os, const llvm::Value *val) {
     if (!val) {
         os << "(null)";
         return os;
@@ -48,11 +48,11 @@ static inline std::ostream &printLLVMVal(std::ostream &os,
 
     if (llvm::isa<llvm::Function>(val)) {
         ro << "FUN " << val->getName();
-    } else if (auto B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
+    } else if (const auto *B = llvm::dyn_cast<llvm::BasicBlock>(val)) {
         ro << B->getParent()->getName() << "::";
         ro << "label " << val->getName();
-    } else if (auto I = llvm::dyn_cast<llvm::Instruction>(val)) {
-        const auto B = I->getParent();
+    } else if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+        const auto *const B = I->getParent();
         if (B) {
             ro << B->getParent()->getName() << "::";
         } else {
@@ -147,6 +147,24 @@ class SDG2Dot {
         out << "    }\n";
     }
 
+    void dumpParamEdges(std::ostream &out, sdg::DGParameters &params) const {
+        /// input parameters
+        for (auto &param : params) {
+            dumpEdges(out, param.getInputArgument());
+        }
+
+        /// output parameters
+        for (auto &param : params) {
+            dumpEdges(out, param.getOutputArgument());
+        }
+        if (auto *noret = params.getNoReturn()) {
+            dumpEdges(out, *noret);
+        }
+        if (auto *ret = params.getReturn()) {
+            dumpEdges(out, *ret);
+        }
+    }
+
     void bindParamsToCall(std::ostream &out, sdg::DGParameters &params,
                           sdg::DGNode *call) const {
         /// input parameters
@@ -160,6 +178,19 @@ class SDG2Dot {
         }
         if (auto *ret = params.getReturn()) {
             out << "      " << *call << " -> " << *ret << "[style=dashed]\n";
+        }
+    }
+
+    void dumpEdges(std::ostream& out, sdg::DGNode &nd) const {
+        for (auto *use : nd.uses()) {
+            out << "    " << nd << " -> " << *use
+                << "[style=\"dashed\"]\n";
+        }
+        for (auto *def : nd.memdep()) {
+            out << "    " << *def << " -> " << nd << "[color=red]\n";
+        }
+        for (auto *ctrl : nd.controls()) {
+            out << "    " << nd << " -> " << *ctrl << "[color=blue]\n";
         }
     }
 
@@ -216,16 +247,7 @@ class SDG2Dot {
             // -- edges --
             out << "    /* edges */\n";
             for (auto *nd : dg->getNodes()) {
-                for (auto *use : nd->uses()) {
-                    out << "    " << *nd << " -> " << *use
-                        << "[style=\"dashed\"]\n";
-                }
-                for (auto *def : nd->memdep()) {
-                    out << "    " << *def << " -> " << *nd << "[color=red]\n";
-                }
-                for (auto *ctrl : nd->controls()) {
-                    out << "    " << *nd << " -> " << *ctrl << "[color=blue]\n";
-                }
+                dumpEdges(out, *nd);
             }
             out << "    /* block edges */\n";
             for (auto *blk : dg->getBBlocks()) {
@@ -251,17 +273,21 @@ class SDG2Dot {
 
             out << "  }\n";
 
+            // formal parameters edges
+            dumpParamEdges(out, dg->getParameters());
+
             dumpedNodes.clear();
         }
 
         ////
-        // -- Interprocedural edges --
+        // -- Interprocedural edges and parameter edges--
 
         if (!calls.empty()) {
             out << " /* call and param edges */\n";
         }
         for (auto *C : calls) {
             bindParamsToCall(out, C->getParameters(), C);
+            dumpParamEdges(out, C->getParameters());
             for (auto *dg : C->getCallees()) {
                 out << "  " << *C << " -> " << *dg->getFirstNode()
                     << "[lhead=cluster_dg_" << dg->getID() << " label=\"call '"

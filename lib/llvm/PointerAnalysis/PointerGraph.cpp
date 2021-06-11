@@ -37,23 +37,24 @@ namespace dg {
 namespace pta {
 
 PSNode *LLVMPointerGraphBuilder::getConstant(const llvm::Value *val) {
-    if (llvm::isa<llvm::ConstantPointerNull>(val) ||
-        llvmutils::isConstantZero(val)) {
+    using namespace llvm;
+    if (isa<ConstantPointerNull>(val) || llvmutils::isConstantZero(val)) {
         return NULLPTR;
-    } else if (llvm::isa<llvm::UndefValue>(val)) {
-        return UNKNOWN_MEMORY;
-    } else if (const llvm::ConstantExpr *CE =
-                       llvm::dyn_cast<llvm::ConstantExpr>(val)) {
+    }
+    if (const ConstantExpr *CE = dyn_cast<ConstantExpr>(val)) {
         return createConstantExpr(CE).getRepresentant();
-    } else if (llvm::isa<llvm::Function>(val)) {
+    }
+    if (isa<Function>(val)) {
         PSNode *ret = PS.create<PSNodeType::FUNCTION>();
         addNode(val, ret);
         return ret;
-    } else if (llvm::isa<llvm::Constant>(val)) {
+    }
+    if (isa<Constant>(val) || isa<UndefValue>(val)) {
         // it is just some constant that we can not handle
         return UNKNOWN_MEMORY;
-    } else
-        return nullptr;
+    }
+
+    return nullptr;
 }
 
 // try get operand, return null if no such value has been constructed
@@ -119,7 +120,7 @@ LLVMPointerGraphBuilder::getAndConnectSubgraph(const llvm::Function *F,
     ent->addCaller(callNode);
 
     // update callgraph
-    auto *callerF = CInst->getParent()->getParent();
+    const auto *callerF = CInst->getParent()->getParent();
     PS.registerCall(getPointsToNode(callerF), getPointsToNode(F));
     DBG(pta, "CallGraph: " << callerF->getName().str() << " -> "
                            << F->getName().str());
@@ -260,7 +261,7 @@ PointerSubgraph *LLVMPointerGraphBuilder::getSubgraph(const llvm::Function *F) {
 
 void LLVMPointerGraphBuilder::addPHIOperands(PSNode *node,
                                              const llvm::PHINode *PHI) {
-    for (int i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
+    for (unsigned i = 0, e = PHI->getNumIncomingValues(); i < e; ++i) {
         if (PSNode *op = tryGetOperand(PHI->getIncomingValue(i))) {
             // do not add duplicate operands
             if (!node->hasOperand(op))
@@ -290,7 +291,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
         // function pointer call - we need that in PointerGraph
         return true;
 
-    if (func->size() == 0) {
+    if (func->empty()) {
         if (opts.getAllocationFunction(func->getName().str()) !=
             AllocationFunction::NONE)
             // we need memory allocations
@@ -308,10 +309,9 @@ static bool isRelevantCall(const llvm::Instruction *Inst, bool invalidate_nodes,
 
         // it returns something? We want that!
         return !func->getReturnType()->isVoidTy();
-    } else
-        // we want defined function, since those can contain
-        // pointer's manipulation and modify CFG
-        return true;
+    } // we want defined function, since those can contain
+    // pointer's manipulation and modify CFG
+    return true;
 
     assert(0 && "We should not reach this");
 }
@@ -501,7 +501,7 @@ getBasicBlocksInDominatorOrder(llvm::Function &F) {
 #endif
 #endif
 
-    auto root_node = DTree.getRootNode();
+    auto *root_node = DTree.getRootNode();
     blocks.push_back(root_node->getBlock());
 
     std::vector<llvm::DomTreeNode *> to_process;
@@ -512,8 +512,8 @@ getBasicBlocksInDominatorOrder(llvm::Function &F) {
         std::vector<llvm::DomTreeNode *> new_to_process;
         new_to_process.reserve(to_process.size());
 
-        for (auto cur_node : to_process) {
-            for (auto child : *cur_node) {
+        for (auto *cur_node : to_process) {
+            for (auto *child : *cur_node) {
                 new_to_process.push_back(child);
                 blocks.push_back(child->getBlock());
             }
@@ -648,7 +648,7 @@ PointerGraph *LLVMPointerGraphBuilder::buildLLVMPointerGraph() {
     addProgramStructure();
 
     // FIXME: set entry procedure, not an entry node
-    auto mainsg = getSubgraph(F);
+    auto *mainsg = getSubgraph(F);
     assert(mainsg);
     PS.setEntry(mainsg);
 
@@ -692,9 +692,8 @@ bool LLVMPointerGraphBuilder::validateSubgraph(bool no_connectivity) const {
         assert(!validator.getErrors().empty());
         llvm::errs() << validator.getErrors();
         return false;
-    } else {
-        return true;
     }
+    return true;
 }
 
 std::vector<PSNode *>

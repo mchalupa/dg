@@ -62,7 +62,7 @@ class PostDominanceFrontiers {
         // At this point, S is DFlocal.  Now we union in DFup's of our children.
         // Loop through and visit the nodes that Node immediately dominates
         // (Node's children in the IDomTree)
-        for (auto IDominee : *Node) {
+        for (auto *IDominee : *Node) {
             const auto &ChildDF = calculate(DT, IDominee);
 
             for (auto *cdfi : ChildDF) {

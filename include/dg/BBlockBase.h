@@ -49,8 +49,8 @@ class ElemWithEdges {
         return _predecessors.end();
     }
 
-    const EdgesT successors() const { return _successors; }
-    const EdgesT predecessors() const { return _predecessors; }
+    const EdgesT &successors() const { return _successors; }
+    const EdgesT &predecessors() const { return _predecessors; }
 
     bool hasSuccessors() const { return !_successors.empty(); }
     bool hasPredecessors() const { return !_predecessors.empty(); }

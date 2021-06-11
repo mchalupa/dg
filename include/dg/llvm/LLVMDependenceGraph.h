@@ -1,5 +1,5 @@
-#ifndef _LLVM_DEPENDENCE_GRAPH_H_
-#define _LLVM_DEPENDENCE_GRAPH_H_
+#ifndef LLVM_DEPENDENCE_GRAPH_H_
+#define LLVM_DEPENDENCE_GRAPH_H_
 
 #ifndef HAVE_LLVM
 #error "Need LLVM"
@@ -54,12 +54,10 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     llvm::Function *entryFunction{nullptr};
 
   public:
-    LLVMDependenceGraph(bool threads = false)
-            : gather_callsites(nullptr), threads(threads), module(nullptr),
-              PTA(nullptr) {}
+    LLVMDependenceGraph(bool threads = false) : threads(threads) {}
 
     // free all allocated memory and unref subgraphs
-    ~LLVMDependenceGraph();
+    ~LLVMDependenceGraph() override;
 
     // build a nodes and CFG edges from module.
     // This method will build also all subgraphs. If entry is nullptr,
@@ -79,7 +77,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     LLVMNode *getOrCreateNoReturn();
     LLVMNode *getOrCreateNoReturn(LLVMNode *call);
     LLVMNode *getNoReturn() {
-        auto params = getParameters();
+        auto *params = getParameters();
         return params ? params->getNoReturn() : nullptr;
     }
 
@@ -104,9 +102,10 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // FIXME: can implement via getCallNodes
     bool getCallSites(const char *name, std::set<LLVMNode *> *callsites);
     // this method takes NULL-terminated array of names
-    bool getCallSites(const char *names[], std::set<LLVMNode *> *callsites);
-    bool getCallSites(const std::vector<std::string> &names,
-                      std::set<LLVMNode *> *callsites);
+    static bool getCallSites(const char *names[],
+                             std::set<LLVMNode *> *callsites);
+    static bool getCallSites(const std::vector<std::string> &names,
+                             std::set<LLVMNode *> *callsites);
 
     // FIXME we need remove the callsite from here if we slice away
     // the callsite
@@ -116,11 +115,12 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
 
     // build subgraph for a call node
     LLVMDependenceGraph *buildSubgraph(LLVMNode *node);
-    LLVMDependenceGraph *buildSubgraph(LLVMNode *node, llvm::Function *,
+    LLVMDependenceGraph *buildSubgraph(LLVMNode *node,
+                                       llvm::Function * /*callFunc*/,
                                        bool fork = false);
     void addSubgraphGlobalParameters(LLVMDependenceGraph *subgraph);
 
-    void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
+    static void addNoreturnDependencies(LLVMNode *noret, LLVMBBlock *from);
     void
     addNoreturnDependencies(const LLVMControlDependenceAnalysisOptions &opts);
 
@@ -132,7 +132,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     void setThreads(bool threads);
 
     /* virtual */
-    void setSlice(uint64_t sid) {
+    void setSlice(uint64_t sid) override {
         DependenceGraph<LLVMNode>::setSlice(sid);
         LLVMNode *entry = getEntry();
         assert(entry);
@@ -149,8 +149,8 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
 
     void addDefUseEdges();
     void computeInterferenceDependentEdges(ControlFlowGraph *controlFlowGraph);
-    void computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph);
-    void computeCriticalSections(ControlFlowGraph *controlFlowGraph);
+    static void computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph);
+    static void computeCriticalSections(ControlFlowGraph *controlFlowGraph);
 
   private:
     void computePostDominators(bool addPostDomFrontiers = false);
@@ -166,9 +166,9 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     std::set<const llvm::Instruction *> getStoreInstructions(
             const std::set<const llvm::Instruction *> &llvmInstructions) const;
 
-    std::set<const llvm::Instruction *> getInstructionsOfType(
-            const unsigned opCode,
-            const std::set<const llvm::Instruction *> &llvmInstructions) const;
+    static std::set<const llvm::Instruction *> getInstructionsOfType(
+            unsigned opCode,
+            const std::set<const llvm::Instruction *> &llvmInstructions);
 
     // add formal parameters of the function to the graph
     // (graph is a graph of one procedure)
@@ -189,7 +189,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // gather call-sites of functions with given name
     // when building the graph
     std::set<LLVMNode *> *gatheredCallsites;
-    const char *gather_callsites;
+    const char *gather_callsites{nullptr};
 
     bool threads{false};
 
@@ -199,10 +199,10 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
     // when we want to slice according to some criterion,
     // we may gather the call-sites (good points for criterions)
     // while building the graph
-    llvm::Module *module;
+    llvm::Module *module{nullptr};
 
     // analyses needed for building the graph
-    LLVMPointerAnalysis *PTA;
+    LLVMPointerAnalysis *PTA{nullptr};
     LLVMDataDependenceAnalysis *DDA;
     // LLVMControlDependenceAnalysis *CDA;
 
@@ -219,4 +219,4 @@ LLVMNode *findInstruction(llvm::Instruction *instruction,
 llvm::Instruction *castToLLVMInstruction(const llvm::Value *value);
 } // namespace dg
 
-#endif // _DEPENDENCE_GRAPH_H_
+#endif // DEPENDENCE_GRAPH_H_

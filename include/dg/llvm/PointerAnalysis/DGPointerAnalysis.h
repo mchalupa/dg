@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_POINTS_TO_ANALYSIS_H_
-#define _LLVM_DG_POINTS_TO_ANALYSIS_H_
+#ifndef LLVM_DG_POINTS_TO_ANALYSIS_H_
+#define LLVM_DG_POINTS_TO_ANALYSIS_H_
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -8,18 +8,18 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/raw_ostream.h>
 SILENCE_LLVM_WARNINGS_POP
 
-#include "dg/analysis/PointsTo/Pointer.h"
-#include "dg/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFI.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFS.h"
-#include "dg/analysis/PointsTo/PointerAnalysisFSInv.h"
-#include "dg/analysis/PointsTo/PointerGraph.h"
-#include "dg/analysis/PointsTo/PointerGraphOptimizations.h"
+#include "dg/PointerAnalysis/Pointer.h"
+#include "dg/PointerAnalysis/PointerAnalysis.h"
+#include "dg/PointerAnalysis/PointerAnalysisFI.h"
+#include "dg/PointerAnalysis/PointerAnalysisFS.h"
+#include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
+#include "dg/PointerAnalysis/PointerGraph.h"
+#include "dg/PointerAnalysis/PointerGraphOptimizations.h"
 
-#include "dg/llvm/analysis/PointsTo/LLVMPointerAnalysisOptions.h"
-#include "dg/llvm/analysis/PointsTo/LLVMPointsToSet.h"
-#include "dg/llvm/analysis/PointsTo/PointerAnalysis.h"
-#include "dg/llvm/analysis/PointsTo/PointerGraph.h"
+#include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/LLVMPointsToSet.h"
+#include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/llvm/PointerAnalysis/PointerGraph.h"
 
 namespace dg {
 

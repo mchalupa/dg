@@ -4,8 +4,6 @@
 namespace dg {
 namespace pta {
 
-extern const Pointer UnknownPointer;
-
 Pointer
 LLVMPointerGraphBuilder::handleConstantPtrToInt(const llvm::PtrToIntInst *P2I) {
     using namespace llvm;
@@ -72,9 +70,8 @@ LLVMPointerGraphBuilder::handleConstantAdd(const llvm::Instruction *Inst) {
 
     Pointer ptr = *op->pointsTo.begin();
     if (off.isUnknown())
-        return Pointer(ptr.target, Offset::UNKNOWN);
-    else
-        return Pointer(ptr.target, ptr.offset + off);
+        return {ptr.target, Offset::UNKNOWN};
+    return {ptr.target, ptr.offset + off};
 }
 
 Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(
@@ -102,7 +99,7 @@ Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(
            "Constant add with not only one pointer");
 
     Pointer ptr = *op->pointsTo.begin();
-    return Pointer(ptr.target, Offset::UNKNOWN);
+    return {ptr.target, Offset::UNKNOWN};
 }
 
 Pointer

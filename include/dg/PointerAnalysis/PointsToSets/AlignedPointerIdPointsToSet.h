@@ -1,8 +1,9 @@
-#ifndef ALIGNEDBITVECTORPOINTSTOSET_H
-#define ALIGNEDBITVECTORPOINTSTOSET_H
+#ifndef DG_ALIGNEDBITVECTORPOINTSTOSET_H
+#define DG_ALIGNEDBITVECTORPOINTSTOSET_H
 
 #include "dg/ADT/Bitvector.h"
 #include "dg/PointerAnalysis/Pointer.h"
+#include "dg/util/iterators.h"
 
 #include <cassert>
 #include <map>
@@ -24,7 +25,7 @@ class AlignedPointerIdPointsToSet {
             idVector; // starts from 0 (pointer = idVector[id - 1])
 
     // if the pointer doesn't have ID, it's assigned one
-    size_t getPointerID(const Pointer &ptr) const {
+    static size_t getPointerID(const Pointer &ptr) {
         auto it = ids.find(ptr);
         if (it != ids.end()) {
             return it->second;
@@ -38,7 +39,7 @@ class AlignedPointerIdPointsToSet {
         return !pointers.set(getPointerID({node, Offset::UNKNOWN}));
     }
 
-    bool isOffsetValid(Offset off) const {
+    static bool isOffsetValid(Offset off) {
         return off.isUnknown() || *off % multiplier == 0;
     }
 
@@ -135,11 +136,9 @@ class AlignedPointerIdPointsToSet {
                 return true;
             }
         }
-        for (const auto &ptr : overflowSet) {
-            if (ptr.target == target)
-                return true;
-        }
-        return false;
+        return dg::any_of(overflowSet, [target](const Pointer &ptr) {
+            return ptr.target == target;
+        });
     }
 
     bool isSingleton() const {
@@ -208,7 +207,7 @@ class AlignedPointerIdPointsToSet {
 
         Pointer operator*() const {
             if (!secondContainer) {
-                return Pointer(idVector[*bitvector_it - 1]);
+                return {idVector[*bitvector_it - 1]};
             }
             return *set_it;
         }
@@ -224,11 +223,9 @@ class AlignedPointerIdPointsToSet {
         friend class AlignedPointerIdPointsToSet;
     };
 
-    const_iterator begin() const {
-        return const_iterator(pointers, overflowSet);
-    }
+    const_iterator begin() const { return {pointers, overflowSet}; }
     const_iterator end() const {
-        return const_iterator(pointers, overflowSet, true /* end */);
+        return {pointers, overflowSet, true /* end */};
     }
 
     friend class const_iterator;
@@ -237,4 +234,4 @@ class AlignedPointerIdPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* ALIGNEDBITVECTORPOINTSTOSET_H */
+#endif // DG_ALIGNEDBITVECTORPOINTSTOSET_H

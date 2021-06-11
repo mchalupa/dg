@@ -82,14 +82,14 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         fi = getFuncInfo(fun);
         assert(fi && "BUG in computeFuncInfo");
 
-        for (auto *val : fi->noret)
+        for (const auto *val : fi->noret)
             ret.push_back(const_cast<llvm::Value *>(val));
         return ret;
     }
 
     /// Getters of dependencies for a value
     ValVec getDependencies(const llvm::Instruction *I) override {
-        auto *fun = I->getParent()->getParent();
+        const auto *fun = I->getParent()->getParent();
         auto *fi = getFuncInfo(fun);
         if (!fi) {
             computeFuncInfo(fun);
@@ -117,11 +117,17 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
         return ret;
     }
 
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
-    ValVec getDependencies(const llvm::BasicBlock *) override { return {}; }
-    ValVec getDependent(const llvm::BasicBlock *) override { return {}; }
+    ValVec getDependencies(const llvm::BasicBlock * /*unused*/) override {
+        return {};
+    }
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
+        return {};
+    }
 
     void compute(const llvm::Function *F = nullptr) override {
         if (F && !F->isDeclaration()) {
@@ -129,7 +135,7 @@ class LLVMInterprocCD : public LLVMControlDependenceAnalysisImpl {
                 computeFuncInfo(F);
             }
         } else {
-            for (auto &f : *getModule()) {
+            for (const auto &f : *getModule()) {
                 if (!f.isDeclaration() && !hasFuncInfo(&f)) {
                     computeFuncInfo(&f);
                 }

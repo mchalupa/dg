@@ -19,7 +19,7 @@ class SCC {
     using SCC_component_t = std::vector<NodeT *>;
     using SCC_t = std::vector<SCC_component_t>;
 
-    SCC<NodeT>() {}
+    SCC<NodeT>() = default;
 
     // returns a vector of vectors - every inner vector
     // contains the nodes contained in one SCC

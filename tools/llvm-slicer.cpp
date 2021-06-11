@@ -17,6 +17,7 @@
 
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
+#include "dg/tools/llvm-slicer-preprocess.h"
 #include "dg/tools/llvm-slicer.h"
 #include "git-version.h"
 
@@ -107,6 +108,14 @@ llvm::cl::opt<std::string> annotationOpts(
         llvm::cl::value_desc("val1,val2,..."), llvm::cl::init(""),
         llvm::cl::cat(SlicingOpts));
 
+llvm::cl::opt<bool> cutoff_diverging(
+        "cutoff-diverging",
+        llvm::cl::desc(
+                "Cutoff diverging paths. That is, call abort() on those paths "
+                "that may not reach the slicing criterion "
+                " (default=true)."),
+        llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
 static void maybe_print_statistics(llvm::Module *M,
                                    const char *prefix = nullptr) {
     if (!statistics)
@@ -116,14 +125,14 @@ static void maybe_print_statistics(llvm::Module *M,
     uint64_t inum, bnum, fnum, gnum;
     inum = bnum = fnum = gnum = 0;
 
-    for (auto I = M->begin(), E = M->end(); I != E; ++I) {
+    for (auto &I : *M) {
         // don't count in declarations
-        if (I->size() == 0)
+        if (I.empty())
             continue;
 
         ++fnum;
 
-        for (const BasicBlock &B : *I) {
+        for (const BasicBlock &B : I) {
             ++bnum;
             inum += B.size();
         }
@@ -199,8 +208,9 @@ int main(int argc, char *argv[]) {
     setupStackTraceOnError(argc, argv);
 
 #if ((LLVM_VERSION_MAJOR >= 6))
-    llvm::cl::SetVersionPrinter(
-            [](llvm::raw_ostream &) { printf("%s\n", GIT_VERSION); });
+    llvm::cl::SetVersionPrinter([](llvm::raw_ostream & /*unused*/) {
+        printf("%s\n", GIT_VERSION);
+    });
 #else
     llvm::cl::SetVersionPrinter([]() { printf("%s\n", GIT_VERSION); });
 #endif
@@ -246,6 +256,37 @@ int main(int argc, char *argv[]) {
     // slice the code
     /// ---------------
 
+    if (cutoff_diverging) {
+        DBG(llvm - slicer, "Searching for slicing criteria values");
+        auto csvalues =
+                getSlicingCriteriaValues(*M.get(), options.slicingCriteria,
+                                         options.legacySlicingCriteria,
+                                         options.legacySecondarySlicingCriteria,
+                                         criteria_are_next_instr);
+        if (csvalues.empty()) {
+            llvm::errs() << "No reachable slicing criteria: '"
+                        << options.slicingCriteria << "' '"
+                        << options.legacySlicingCriteria << "'\n";
+            ::Slicer slicer(M.get(), options);
+            if (!slicer.createEmptyMain()) {
+                llvm::errs() << "ERROR: failed creating an empty main\n";
+                return 1;
+            }
+
+            maybe_print_statistics(M.get(), "Statistics after ");
+            return writer.cleanAndSaveModule(should_verify_module);
+        }
+
+        DBG(llvm - slicer, "Cutting off diverging branches");
+        if (!llvmdg::cutoffDivergingBranches(
+                    *M.get(), options.dgOptions.entryFunction, csvalues)) {
+            errs() << "[llvm-slicer]: Failed cutting off diverging branches\n";
+            return 1;
+        }
+
+        maybe_print_statistics(M.get(), "Statistics after cutoff-diverging ");
+    }
+
     ::Slicer slicer(M.get(), options);
     if (!slicer.buildDG()) {
         errs() << "ERROR: Failed building DG\n";
@@ -273,7 +314,8 @@ int main(int argc, char *argv[]) {
 
     if (criteria_nodes.empty()) {
         llvm::errs() << "No reachable slicing criteria: '"
-                     << options.slicingCriteria << "'\n";
+                     << options.slicingCriteria << "' '"
+                     << options.legacySlicingCriteria << "'\n";
         if (annotator.shouldAnnotate()) {
             slicer.computeDependencies();
             annotator.annotate();

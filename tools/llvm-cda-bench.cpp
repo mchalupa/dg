@@ -172,12 +172,12 @@ void compareResults(
     std::cout << "-----\n";
 
     size_t a1has = 0, a2has = 0;
-    for (auto &d : R1) {
+    for (const auto &d : R1) {
         if (R2.count(d) == 0) {
             ++a1has;
         }
     }
-    for (auto &d : R2) {
+    for (const auto &d : R2) {
         if (R1.count(d) == 0) {
             ++a2has;
         }
@@ -198,10 +198,10 @@ static inline bool hasSuccessors(const llvm::BasicBlock *B) {
 static void dumpFunStats(const llvm::Function &F) {
     unsigned instrs = 0, branches = 0, blinds = 0;
     std::cout << "Function '" << F.getName().str() << "'\n";
-    for (auto &B : F) {
+    for (const auto &B : F) {
         instrs += B.size();
         auto n = 0;
-        for (auto *s : successors(&B)) {
+        for (const auto *s : successors(&B)) {
             (void) s;
             ++n;
         }
@@ -235,16 +235,16 @@ static void dumpFunStats(const llvm::Function &F) {
     std::vector<StackNode> stack;
     on_stack[&F.getEntryBlock()] = true;
 
-    stack.push_back(
-            {&F.getEntryBlock(), hasSuccessors(&F.getEntryBlock())
-                                         ? *succ_begin(&F.getEntryBlock())
-                                         : nullptr});
+    stack.emplace_back(&F.getEntryBlock(),
+                       hasSuccessors(&F.getEntryBlock())
+                               ? *succ_begin(&F.getEntryBlock())
+                               : nullptr);
     maxdepth = 1;
 
     while (!stack.empty()) {
         auto &si = stack.back();
         assert(si.block);
-        auto *nextblk = si.next_succ;
+        const auto *nextblk = si.next_succ;
         // set next successor
         if (!nextblk) {
             on_stack[si.block] = false;
@@ -288,9 +288,9 @@ static void dumpFunStats(const llvm::Function &F) {
         } else {
             ++tree;
             on_stack[nextblk] = true;
-            stack.push_back({nextblk, hasSuccessors(nextblk)
-                                              ? *succ_begin(nextblk)
-                                              : nullptr});
+            stack.emplace_back(nextblk, hasSuccessors(nextblk)
+                                                ? *succ_begin(nextblk)
+                                                : nullptr);
             maxdepth = std::max(maxdepth, stack.size());
         }
     }
@@ -331,7 +331,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (fun_info_only) {
-        for (auto &F : *M.get()) {
+        for (auto &F : *M) {
             if (F.isDeclaration()) {
                 continue;
             }
@@ -406,7 +406,7 @@ int main(int argc, char *argv[]) {
                      "dumping just info about funs\n";
     }
 
-    for (auto &F : *M.get()) {
+    for (auto &F : *M) {
         if (F.isDeclaration()) {
             continue;
         }
@@ -447,7 +447,7 @@ int main(int argc, char *argv[]) {
         return 0;
 
     std::cout << "\n ==== Comparison ====\n";
-    for (auto &F : *M.get()) {
+    for (auto &F : *M) {
         if (F.isDeclaration()) {
             continue;
         }
@@ -475,7 +475,6 @@ int main(int argc, char *argv[]) {
             ++n;
         }
 
-        n = 0;
         for (n = 0; n < results.size(); ++n) {
             for (unsigned m = 0; m < n; ++m) {
                 compareResults(results[n], results[m], std::get<0>(analyses[n]),

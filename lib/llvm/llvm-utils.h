@@ -1,9 +1,14 @@
-#ifndef _DG_LLVM_UTILS_H_
-#define _DG_LLVM_UTILS_H_
+#ifndef DG_LLVM_UTILS_H_
+#define DG_LLVM_UTILS_H_
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/DataLayout.h>
+#include <llvm/IR/IntrinsicInst.h>
+
+
+#include "dg/Offset.h"
 
 namespace dg {
 namespace llvmutils {
@@ -140,8 +145,8 @@ inline uint64_t getAllocatedSize(const llvm::AllocaInst *AI,
     if (AI->isArrayAllocation()) {
         return getConstantSizeValue(AI->getArraySize()) *
                DL->getTypeAllocSize(Ty);
-    } else
-        return DL->getTypeAllocSize(Ty);
+    }
+    return DL->getTypeAllocSize(Ty);
 }
 
 inline uint64_t getAllocatedSize(llvm::Type *Ty, const llvm::DataLayout *DL) {
@@ -196,4 +201,4 @@ inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty) {
 } // namespace llvmutils
 } // namespace dg
 
-#endif //  _DG_LLVM_UTILS_H_
+#endif //  DG_LLVM_UTILS_H_

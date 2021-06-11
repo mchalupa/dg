@@ -8,6 +8,9 @@ namespace dg {
 namespace sdg {
 
 class DependenceGraph;
+class DGNodeArgument;
+
+
 
 ///
 // An element of the graph that can have dependencies
@@ -16,9 +19,6 @@ class DependenceGraph;
 // so that e.g., basic blocks do not bear the memory dependencies.
 // It is a waste of memory.
 class DepDGElement : public DGElement {
-    using edge_iterator = EdgesContainer<DepDGElement>::iterator;
-    using const_edge_iterator = EdgesContainer<DepDGElement>::const_iterator;
-
     // nodes that use this node as operand
     EdgesContainer<DepDGElement> _use_deps;
     // nodes that write to memory that this node reads
@@ -31,8 +31,13 @@ class DepDGElement : public DGElement {
     EdgesContainer<DepDGElement> _rev_memory_deps;
     EdgesContainer<DepDGElement> _rev_control_deps;
 
+  protected:
+    using edge_iterator = EdgesContainer<DepDGElement>::iterator;
+    using const_edge_iterator = EdgesContainer<DepDGElement>::const_iterator;
+
     class edges_range {
         friend class DepDGElement;
+        friend class DGNodeArgument;
         EdgesContainer<DepDGElement> &_C;
 
         edges_range(EdgesContainer<DepDGElement> &C) : _C(C) {}
@@ -44,6 +49,7 @@ class DepDGElement : public DGElement {
 
     class const_edges_range {
         friend class DepDGElement;
+        friend class DGNodeArgument;
         const EdgesContainer<DepDGElement> &_C;
 
         const_edges_range(const EdgesContainer<DepDGElement> &C) : _C(C) {}
@@ -56,7 +62,6 @@ class DepDGElement : public DGElement {
     // FIXME: add data deps iterator = use + memory
     //
 
-  protected:
     DepDGElement(DependenceGraph &g, DGElementType type) : DGElement(g, type) {}
 
   public:
@@ -101,10 +106,10 @@ class DepDGElement : public DGElement {
     const_edge_iterator users_begin() const { return _rev_use_deps.begin(); }
     const_edge_iterator users_end() const { return _rev_use_deps.end(); }
 
-    edges_range uses() { return edges_range(_use_deps); }
-    const_edges_range uses() const { return const_edges_range(_use_deps); }
-    edges_range users() { return edges_range(_rev_use_deps); }
-    const_edges_range users() const { return const_edges_range(_rev_use_deps); }
+    edges_range uses() { return {_use_deps}; }
+    const_edges_range uses() const { return {_use_deps}; }
+    edges_range users() { return {_rev_use_deps}; }
+    const_edges_range users() const { return {_rev_use_deps}; }
 
     // memory dependencies
     edge_iterator memdep_begin() { return _memory_deps.begin(); }
@@ -120,12 +125,10 @@ class DepDGElement : public DGElement {
         return _rev_memory_deps.end();
     }
 
-    edges_range memdep() { return edges_range(_memory_deps); }
-    const_edges_range memdep() const { return const_edges_range(_memory_deps); }
-    edges_range rev_memdep() { return edges_range(_rev_memory_deps); }
-    const_edges_range rev_memdep() const {
-        return const_edges_range(_rev_memory_deps);
-    }
+    edges_range memdep() { return {_memory_deps}; }
+    const_edges_range memdep() const { return {_memory_deps}; }
+    edges_range rev_memdep() { return {_rev_memory_deps}; }
+    const_edges_range rev_memdep() const { return {_rev_memory_deps}; }
 
     // FIXME: add datadep iterator = memdep + uses
 
@@ -143,14 +146,10 @@ class DepDGElement : public DGElement {
     }
     const_edge_iterator controls_end() const { return _rev_control_deps.end(); }
 
-    edges_range control_deps() { return edges_range(_control_deps); }
-    const_edges_range control_deps() const {
-        return const_edges_range(_control_deps);
-    }
-    edges_range controls() { return edges_range(_rev_control_deps); }
-    const_edges_range controls() const {
-        return const_edges_range(_rev_control_deps);
-    }
+    edges_range control_deps() { return {_control_deps}; }
+    const_edges_range control_deps() const { return {_control_deps}; }
+    edges_range controls() { return {_rev_control_deps}; }
+    const_edges_range controls() const { return {_rev_control_deps}; }
 };
 
 } // namespace sdg

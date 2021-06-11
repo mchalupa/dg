@@ -35,8 +35,8 @@ class StrongControlClosure {
 
     // this is the \Gamma function from the paper
     // (a bit different implementation)
-    std::set<CDNode *> gamma(CDGraph &graph,
-                             const std::set<CDNode *> &targets) {
+    static std::set<CDNode *> gamma(CDGraph &graph,
+                                    const std::set<CDNode *> &targets) {
         struct Info {
             unsigned colored{false};
             unsigned short counter;
@@ -109,6 +109,7 @@ class StrongControlClosure {
             while (!queue.empty()) {
                 assert(toadd == nullptr);
                 auto *p = queue.pop();
+                assert(p && "popped nullptr");
                 for (auto *r : p->successors()) {
                     assert(toadd == nullptr);
                     // DBG(cda, "Checking edge " << p->getID() << "->" <<
@@ -146,10 +147,8 @@ class StrongControlClosure {
                 // DBG(cda, "Adding " << toadd->getID() << " to closure");
                 X.insert(toadd);
                 continue;
-            } else {
-                // no other edge to process
-                break;
-            }
+            } // no other edge to process
+            break;
         }
     }
 

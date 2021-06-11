@@ -56,7 +56,7 @@ TEST_CASE("Iterator and empty bitvector", "SparseBitvector") {
     auto et = B.end();
 
     REQUIRE(it == et);
-    REQUIRE(B.size() == 0);
+    REQUIRE(B.empty());
     REQUIRE(B.empty());
 }
 

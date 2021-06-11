@@ -15,6 +15,7 @@ namespace pta {
 class PSNode;
 
 class AlignedSmallOffsetsPointsToSet {
+    static const size_t MAX_OFFSET = 63;
     static const unsigned int multiplier =
             4; // offsets that are divisible by this value are stored in
                // bitvector up to 62 * multiplier
@@ -26,7 +27,7 @@ class AlignedSmallOffsetsPointsToSet {
             idVector; // starts from 0 (node = idVector[id - 1])
 
     // if the node doesn't have ID, it's assigned one
-    size_t getNodeID(PSNode *node) const {
+    static size_t getNodeID(PSNode *node) {
         auto it = ids.find(node);
         if (it != ids.end()) {
             return it->second;
@@ -35,20 +36,20 @@ class AlignedSmallOffsetsPointsToSet {
         return ids.emplace_hint(it, node, ids.size() + 1)->second;
     }
 
-    size_t getNodePosition(PSNode *node) const {
-        return ((getNodeID(node) - 1) * 64);
+    static size_t getNodePosition(PSNode *node) {
+        return ((getNodeID(node) - 1) * (MAX_OFFSET + 1));
     }
 
-    size_t getPosition(PSNode *node, Offset off) const {
+    static size_t getPosition(PSNode *node, Offset off) {
         if (off.isUnknown()) {
-            return getNodePosition(node) + 63;
+            return getNodePosition(node) + MAX_OFFSET;
         }
         return getNodePosition(node) + (*off / multiplier);
     }
 
-    bool isOffsetValid(Offset off) const {
+    static bool isOffsetValid(Offset off) {
         return off.isUnknown() ||
-               (*off <= 62 * multiplier && *off % multiplier == 0);
+               (*off <= (MAX_OFFSET - 1) * multiplier && *off % multiplier == 0);
     }
 
     bool addWithUnknownOffset(PSNode *target) {
@@ -99,7 +100,7 @@ class AlignedSmallOffsetsPointsToSet {
     bool removeAny(PSNode *target) {
         bool changed = false;
         size_t position = getNodePosition(target);
-        for (size_t i = position; i < position + 64; i++) {
+        for (size_t i = position; i < position + (MAX_OFFSET + 1); i++) {
             changed |= pointers.unset(i);
         }
         auto it = oddPointers.begin();
@@ -137,25 +138,21 @@ class AlignedSmallOffsetsPointsToSet {
 
     bool pointsToTarget(PSNode *target) const {
         size_t position = getNodePosition(target);
-        for (size_t i = position; i < position + 64; i++) {
+        for (size_t i = position; i < position + (MAX_OFFSET + 1); i++) {
             if (pointers.get(i))
                 return true;
         }
-        for (const auto &ptr : oddPointers) {
-            if (ptr.target == target)
-                return true;
-        }
-        return false;
+        return dg::any_of(oddPointers, [target](const Pointer &ptr) {
+            return ptr.target == target;
+        });
     }
 
     bool isSingleton() const {
-        return (pointers.size() == 1 && oddPointers.size() == 0) ||
-               (pointers.size() == 0 && oddPointers.size() == 1);
+        return (pointers.size() == 1 && oddPointers.empty()) ||
+               (pointers.empty() && oddPointers.size() == 1);
     }
 
-    bool empty() const {
-        return pointers.size() == 0 && oddPointers.size() == 0;
-    }
+    bool empty() const { return pointers.empty() && oddPointers.empty(); }
 
     size_t count(const Pointer &ptr) const { return pointsTo(ptr); }
 
@@ -217,9 +214,9 @@ class AlignedSmallOffsetsPointsToSet {
 
         Pointer operator*() const {
             if (!secondContainer) {
-                size_t offsetPosition = (*bitvector_it % 64);
-                size_t nodeID = ((*bitvector_it - offsetPosition) / 64) + 1;
-                return offsetPosition == 63
+                size_t offsetPosition = (*bitvector_it % (MAX_OFFSET + 1));
+                size_t nodeID = ((*bitvector_it - offsetPosition) / (MAX_OFFSET + 1)) + 1;
+                return offsetPosition == MAX_OFFSET
                                ? Pointer(idVector[nodeID - 1], Offset::UNKNOWN)
                                : Pointer(idVector[nodeID - 1],
                                          offsetPosition * multiplier);
@@ -238,11 +235,9 @@ class AlignedSmallOffsetsPointsToSet {
         friend class AlignedSmallOffsetsPointsToSet;
     };
 
-    const_iterator begin() const {
-        return const_iterator(pointers, oddPointers);
-    }
+    const_iterator begin() const { return {pointers, oddPointers}; }
     const_iterator end() const {
-        return const_iterator(pointers, oddPointers, true /* end */);
+        return {pointers, oddPointers, true /* end */};
     }
 
     friend class const_iterator;

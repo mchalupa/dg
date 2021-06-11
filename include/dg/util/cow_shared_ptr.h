@@ -1,6 +1,7 @@
-#ifndef _COW_SHARED_PTR_H_
-#define _COW_SHARED_PTR_H_
+#ifndef COW_SHARED_PTR_H_
+#define COW_SHARED_PTR_H_
 
+#include <cassert>
 #include <memory>
 
 ///
@@ -77,4 +78,4 @@ class cow_shared_ptr {
 };
 */
 
-#endif // _COW_SHARED_PTR_H_
+#endif // COW_SHARED_PTR_H_

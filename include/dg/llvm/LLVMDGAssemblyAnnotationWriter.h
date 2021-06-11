@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
-#define _LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
+#ifndef LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
+#define LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -52,8 +52,8 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
     const std::set<LLVMNode *> *criteria;
     std::string module_comment{};
 
-    void printValue(const llvm::Value *val, llvm::formatted_raw_ostream &os,
-                    bool nl = false) {
+    static void printValue(const llvm::Value *val,
+                           llvm::formatted_raw_ostream &os, bool nl = false) {
         if (val->hasName())
             os << val->getName().data();
         else
@@ -63,8 +63,9 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             os << "\n";
     }
 
-    void printPointer(const LLVMPointer &ptr, llvm::formatted_raw_ostream &os,
-                      const char *prefix = "PTR: ", bool nl = true) {
+    static void printPointer(const LLVMPointer &ptr,
+                             llvm::formatted_raw_ostream &os,
+                             const char *prefix = "PTR: ", bool nl = true) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -81,8 +82,9 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             os << "\n";
     }
 
-    void printDefSite(const dda::DefSite &ds, llvm::formatted_raw_ostream &os,
-                      const char *prefix = nullptr, bool nl = false) {
+    static void printDefSite(const dda::DefSite &ds,
+                             llvm::formatted_raw_ostream &os,
+                             const char *prefix = nullptr, bool nl = false) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -110,9 +112,9 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             os << "\n";
     }
 
-    void printMemRegion(const LLVMMemoryRegion &R,
-                        llvm::formatted_raw_ostream &os,
-                        const char *prefix = nullptr, bool nl = false) {
+    static void printMemRegion(const LLVMMemoryRegion &R,
+                               llvm::formatted_raw_ostream &os,
+                               const char *prefix = nullptr, bool nl = false) {
         os << "  ; ";
         if (prefix)
             os << prefix;
@@ -221,7 +223,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
         }
 
         if (PTA && (opts & ANNOTATE_MEMORYACC)) {
-            if (auto I = dyn_cast<Instruction>(node->getValue())) {
+            if (auto *I = dyn_cast<Instruction>(node->getValue())) {
                 if (I->mayReadOrWriteMemory()) {
                     auto regions = PTA->getAccessedMemory(I);
                     if (regions.first) {
@@ -261,7 +263,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
         module_comment = std::move(comment);
     }
 
-    void emitFunctionAnnot(const llvm::Function *,
+    void emitFunctionAnnot(const llvm::Function * /*unused*/,
                            llvm::formatted_raw_ostream &os) override {
         // dump the slicer's setting to the file
         // for easier comprehension
@@ -278,7 +280,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
             return;
 
         LLVMNode *node = nullptr;
-        for (auto &it : getConstructedFunctions()) {
+        for (const auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             node = sub->getNode(const_cast<llvm::Instruction *>(I));
             if (node)
@@ -296,7 +298,7 @@ class LLVMDGAssemblyAnnotationWriter : public llvm::AssemblyAnnotationWriter {
         if (opts == 0)
             return;
 
-        for (auto &it : getConstructedFunctions()) {
+        for (const auto &it : getConstructedFunctions()) {
             LLVMDependenceGraph *sub = it.second;
             auto &cb = sub->getBlocks();
             auto I = cb.find(const_cast<llvm::BasicBlock *>(B));
@@ -344,4 +346,4 @@ operator|=(dg::debug::LLVMDGAssemblyAnnotationWriter::AnnotationOptsT &a,
     return a;
 }
 
-#endif // _LLVM_DG_ANNOTATION_WRITER_H_
+#endif // LLVM_DG_ANNOTATION_WRITER_H_

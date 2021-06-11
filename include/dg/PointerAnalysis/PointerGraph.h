@@ -20,10 +20,6 @@ namespace dg {
 namespace pta {
 
 // special nodes and pointers to them
-extern PSNode *NULLPTR;
-extern PSNode *UNKNOWN_MEMORY;
-extern const Pointer NullPointer;
-extern const Pointer UnknownPointer;
 
 class PointerGraph;
 
@@ -36,9 +32,6 @@ class PointerSubgraph {
     PointerSubgraph(unsigned id, PSNode *r1, PSNode *va = nullptr)
             : _id(id), root(r1), vararg(va) {}
 
-    PointerSubgraph() = default;
-    PointerSubgraph(const PointerSubgraph &) = delete;
-
     // non-trivial strongly connected components
     bool _computed_loops{false};
     std::vector<std::vector<PSNode *>> _loops;
@@ -46,6 +39,8 @@ class PointerSubgraph {
 
   public:
     PointerSubgraph(PointerSubgraph &&) = default;
+    PointerSubgraph() = default;
+    PointerSubgraph(const PointerSubgraph &) = delete;
 
     unsigned getID() const { return _id; }
 
@@ -179,7 +174,7 @@ class PointerGraph {
         initStaticNodes();
     }
 
-    void initStaticNodes();
+    static void initStaticNodes();
 
     PointerSubgraph *createSubgraph(PSNode *root, PSNode *vararg = nullptr) {
         // NOTE: id of the subgraph is always index in _subgraphs + 1
@@ -258,7 +253,7 @@ class PointerGraph {
             void foreach (PSNode *cur, std::function<void(PSNode *)> Dispatch) {
                 if (interproc) {
                     if (PSNodeCall *C = PSNodeCall::get(cur)) {
-                        for (auto subg : C->getCallees()) {
+                        for (auto *subg : C->getCallees()) {
                             Dispatch(subg->root);
                         }
                         // we do not need to iterate over succesors
@@ -269,7 +264,7 @@ class PointerGraph {
                         if (!C->getCallees().empty())
                             return;
                     } else if (PSNodeRet *R = PSNodeRet::get(cur)) {
-                        for (auto ret : R->getReturnSites()) {
+                        for (auto *ret : R->getReturnSites()) {
                             Dispatch(ret);
                         }
                         if (!R->getReturnSites().empty())
@@ -277,7 +272,7 @@ class PointerGraph {
                     }
                 }
 
-                for (auto s : cur->successors())
+                for (auto *s : cur->successors())
                     Dispatch(s);
             }
         };
@@ -319,13 +314,13 @@ inline std::set<PSNode *> getReachableNodes(PSNode *n, PSNode *exit = nullptr,
 
         if (interproc) {
             if (PSNodeCall *C = PSNodeCall::get(cur)) {
-                for (auto subg : C->getCallees()) {
+                for (auto *subg : C->getCallees()) {
                     if (subg->root == exit)
                         continue;
                     fifo.push(subg->root);
                 }
             } else if (PSNodeRet *R = PSNodeRet::get(cur)) {
-                for (auto ret : R->getReturnSites()) {
+                for (auto *ret : R->getReturnSites()) {
                     if (ret == exit)
                         continue;
                     fifo.push(ret);

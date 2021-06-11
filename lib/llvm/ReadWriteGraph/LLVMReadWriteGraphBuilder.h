@@ -43,8 +43,8 @@ class LLVMReadWriteGraphBuilder
     ReadWriteGraph graph;
 
     // RWNode& getOperand(const llvm::Value *) override;
-    NodesSeq<RWNode> createNode(const llvm::Value *) override;
-    RWBBlock &createBBlock(const llvm::BasicBlock *,
+    NodesSeq<RWNode> createNode(const llvm::Value * /*unused*/) override;
+    RWBBlock &createBBlock(const llvm::BasicBlock * /*unused*/,
                            RWSubgraph &subg) override {
         return subg.createBBlock();
     }
@@ -73,7 +73,7 @@ class LLVMReadWriteGraphBuilder
     ReadWriteGraph &&build() {
         // FIXME: this is a bit of a hack
         if (!PTA->getOptions().isSVF()) {
-            auto dgpta = static_cast<DGLLVMPointerAnalysis *>(PTA);
+            auto *dgpta = static_cast<DGLLVMPointerAnalysis *>(PTA);
             llvmdg::CallGraph CG(dgpta->getPTA()->getPG()->getCallGraph());
             buildFromLLVM(&CG);
         } else {
@@ -104,7 +104,8 @@ class LLVMReadWriteGraphBuilder
     void addReallocUses(const llvm::Instruction *Inst, RWNode &node,
                         uint64_t size);
 
-    RWNode *funcFromModel(const FunctionModel *model, const llvm::CallInst *);
+    RWNode *funcFromModel(const FunctionModel *model,
+                          const llvm::CallInst * /*CInst*/);
 
     NodesSeq<RWNode> createCall(const llvm::Instruction *Inst);
 

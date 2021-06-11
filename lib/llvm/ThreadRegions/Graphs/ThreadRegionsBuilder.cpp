@@ -9,7 +9,7 @@ ThreadRegionsBuilder::ThreadRegionsBuilder(std::size_t size)
 ThreadRegionsBuilder::~ThreadRegionsBuilder() { clear(); }
 
 void ThreadRegionsBuilder::build(Node *node) {
-    auto threadRegion = new ThreadRegion(node);
+    auto *threadRegion = new ThreadRegion(node);
     threadRegions_.insert(threadRegion);
     this->visitedNodeToRegionMap.emplace(node, threadRegion);
 
@@ -38,10 +38,11 @@ bool ThreadRegionsBuilder::examined(Node *node) const {
 }
 
 void ThreadRegionsBuilder::visit(Node *node) {
-    for (auto successor : *node) {
+    for (auto *successor : *node) {
         if (visited(successor)) {
             continue;
-        } else if (examined(region(successor))) {
+        }
+        if (examined(region(successor))) {
             region(node)->addSuccessor(region(successor));
         } else {
             ThreadRegion *successorRegion = nullptr;
@@ -68,7 +69,7 @@ bool ThreadRegionsBuilder::examined(ThreadRegion *region) const {
 }
 
 ThreadRegion *ThreadRegionsBuilder::region(Node *node) const {
-    auto threadRegion = regionOfExaminedNode(node);
+    auto *threadRegion = regionOfExaminedNode(node);
     if (!threadRegion) {
         threadRegion = regionOfVisitedNode(node);
     }
@@ -76,13 +77,13 @@ ThreadRegion *ThreadRegionsBuilder::region(Node *node) const {
 }
 
 void ThreadRegionsBuilder::printNodes(std::ostream &ostream) const {
-    for (auto threadRegion : threadRegions_) {
+    for (auto *threadRegion : threadRegions_) {
         threadRegion->printNodes(ostream);
     }
 }
 
 void ThreadRegionsBuilder::printEdges(std::ostream &ostream) const {
-    for (auto threadRegion : threadRegions_) {
+    for (auto *threadRegion : threadRegions_) {
         threadRegion->printEdges(ostream);
     }
 }
@@ -103,7 +104,7 @@ void ThreadRegionsBuilder::clear() {
 
     clearComputingData();
 
-    for (auto iterator : threadRegions_) {
+    for (auto *iterator : threadRegions_) {
         delete iterator;
     }
 

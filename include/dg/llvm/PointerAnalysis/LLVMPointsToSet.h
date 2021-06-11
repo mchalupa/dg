@@ -1,9 +1,13 @@
-#ifndef _LLVM_DG_POINTS_TO_SET_H_
-#define _LLVM_DG_POINTS_TO_SET_H_
+#ifndef LLVM_DG_POINTS_TO_SET_H_
+#define LLVM_DG_POINTS_TO_SET_H_
+
+#include <cassert>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Value.h>
+
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/PointerAnalysis/PointsToSet.h"
@@ -45,8 +49,8 @@ struct LLVMMemoryRegion {
     LLVMPointer pointer;
     Offset len;
 
-    LLVMMemoryRegion(const LLVMPointer &ptr, const Offset l)
-            : pointer(ptr), len(l) {}
+    LLVMMemoryRegion(LLVMPointer ptr, const Offset l)
+            : pointer(std::move(ptr)), len(l) {}
 
     LLVMMemoryRegion(llvm::Value *val, const Offset off, const Offset l)
             : pointer(val, off), len(l) {}
@@ -110,8 +114,8 @@ class LLVMMemoryRegionSet {
     // (llvm::Value corresponding to the allocation)
     MappingT _regions;
 
-    std::pair<Offset, Offset> _extend(const OffsetPair interval,
-                                      const Offset off, const Offset len) {
+    static std::pair<Offset, Offset>
+    _extend(const OffsetPair interval, const Offset off, const Offset len) {
         assert(interval.overlaps(off, len));
         assert(!off.isUnknown());
 
@@ -191,14 +195,14 @@ class LLVMMemoryRegionSet {
 
     // XXX: inefficient
     bool overlaps(const LLVMMemoryRegionSet &rhs) const {
-        for (auto &it : rhs._regions) {
-            auto *our = _get(it.first);
+        for (const auto &it : rhs._regions) {
+            const auto *our = _get(it.first);
             if (!our) {
                 continue;
             }
 
-            for (auto &interval : *our) {
-                for (auto &interval2 : it.second) {
+            for (const auto &interval : *our) {
+                for (const auto &interval2 : it.second) {
                     if (interval.overlaps(interval2))
                         return true;
                 }
@@ -246,8 +250,8 @@ class LLVMMemoryRegionSet {
         friend class LLVMMemoryRegionSet;
     };
 
-    const_iterator begin() const { return const_iterator(_regions.begin()); }
-    const_iterator end() const { return const_iterator(_regions.end()); }
+    const_iterator begin() const { return {_regions.begin()}; }
+    const_iterator end() const { return {_regions.end()}; }
 };
 
 ///
@@ -321,7 +325,10 @@ class LLVMPointsToSet {
             return tmp;
         }
 
-        LLVMPointer operator*() const { return impl->get(); }
+        LLVMPointer operator*() const {
+            assert(impl && "Has no impl");
+            return impl->get();
+        }
 
         bool operator==(const const_iterator &rhs) const {
             if (!impl)
@@ -370,8 +377,8 @@ class LLVMPointsToSet {
 
     LLVMPointer getKnownSingleton() const { return _impl->getKnownSingleton(); }
 
-    const_iterator begin() const { return const_iterator(_impl.get()); }
-    const_iterator end() const { return const_iterator(nullptr); }
+    const_iterator begin() const { return {_impl.get()}; }
+    static const_iterator end() { return {nullptr}; }
 };
 
 /// Auxiliary template that may be used when implementing LLVMPointsToSetImpl
@@ -454,7 +461,7 @@ class DGLLVMPointsToSet
     LLVMPointer getKnownSingleton() const override {
         assert(isKnownSingleton());
         auto ptr = (*(PTSet.begin()));
-        return LLVMPointer(ptr.target->getUserData<llvm::Value>(), ptr.offset);
+        return {ptr.target->getUserData<llvm::Value>(), ptr.offset};
     }
 
     LLVMPointer get() const override {
@@ -466,4 +473,4 @@ class DGLLVMPointsToSet
 
 } // namespace dg
 
-#endif // _LLVM_DG_POINTS_TO_SET_H_
+#endif // LLVM_DG_POINTS_TO_SET_H_

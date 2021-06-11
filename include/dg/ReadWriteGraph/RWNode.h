@@ -6,6 +6,7 @@
 #include "DefSite.h"
 #include "dg/Offset.h"
 #include "dg/SubgraphNode.h"
+#include "dg/util/iterators.h"
 
 #include "dg/DataDependence/DataDependenceAnalysisOptions.h"
 
@@ -56,8 +57,6 @@ enum class RWNodeType {
     NOOP
 };
 
-extern RWNode *UNKNOWN_MEMORY;
-
 class RWBBlock;
 
 class RWNode : public SubgraphNode<RWNode> {
@@ -76,7 +75,7 @@ class RWNode : public SubgraphNode<RWNode> {
       public:
         bool add(RWNode *d) {
             _init = true;
-            for (auto x : defuse) {
+            for (auto *x : defuse) {
                 if (x == d) {
                     return false;
                 }
@@ -143,7 +142,7 @@ class RWNode : public SubgraphNode<RWNode> {
     virtual ~RWNode() = default;
 
 #ifndef NDEBUG
-    void dump() const;
+    void dump() const override;
 #endif
 
     // places where this node is defined
@@ -199,19 +198,15 @@ class RWNode : public SubgraphNode<RWNode> {
     }
 
     bool usesUnknown() const {
-        for (auto &ds : getUses()) {
-            if (ds.target->isUnknown())
-                return true;
-        }
-        return false;
+        return dg::any_of(getUses(),
+            [](const DefSite &ds) { return ds.target->isUnknown(); }
+        );
     }
 
     bool usesOnlyGlobals() const {
-        for (auto &ds : getUses()) {
-            if (!ds.target->isGlobal())
-                return false;
-        }
-        return true;
+        return !dg::any_of(getUses(),
+            [](const DefSite &ds) { return !ds.target->isGlobal(); }
+        );
     }
 
     // add uses to annotations of 'this' object
@@ -338,8 +333,8 @@ class RWNodeCall : public RWNode {
     void _summarizeAnnotation() const {
         if (callees.size() > 1) {
             std::vector<const RWNode *> undefined;
-            for (auto &cv : callees) {
-                if (auto *uc = cv.getCalledValue()) {
+            for (const auto &cv : callees) {
+                if (const auto *uc = cv.getCalledValue()) {
                     undefined.push_back(uc);
                 }
             }
@@ -355,7 +350,7 @@ class RWNodeCall : public RWNode {
                 }
 
                 annotations.overwrites = kills;
-                for (auto *u : undefined) {
+                for (const auto *u : undefined) {
                     annotations.defs.add(u->annotations.defs);
                     annotations.uses.add(u->annotations.uses);
                 }
@@ -395,28 +390,22 @@ class RWNodeCall : public RWNode {
     }
 
     const RWNode *getSingleUndefined() const {
-        auto *cv = getSingleCallee();
+        const auto *cv = getSingleCallee();
         return cv ? cv->getCalledValue() : nullptr;
     }
 
     bool callsOneUndefined() const { return getSingleUndefined() != nullptr; }
 
     bool callsDefined() const {
-        for (auto &c : callees) {
-            if (c.getSubgraph()) {
-                return true;
-            }
-        }
-        return false;
+        return dg::any_of(callees, [](const RWCalledValue &c) {
+            return c.getSubgraph() != nullptr;
+        });
     }
 
     bool callsUndefined() const {
-        for (auto &c : callees) {
-            if (c.getCalledValue()) {
-                return true;
-            }
-        }
-        return false;
+        return dg::any_of(callees, [](const RWCalledValue &c) {
+            return c.getCalledValue() != nullptr;
+        });
     }
 
     const CalleesT &getCallees() const { return callees; }
@@ -434,7 +423,7 @@ class RWNodeCall : public RWNode {
         return annotations;
     }
     const Annotations &getAnnotations() const override {
-        if (auto *uc = getSingleUndefined())
+        if (const auto *uc = getSingleUndefined())
             return uc->annotations;
         if (!_annotations_summarized)
             _summarizeAnnotation();

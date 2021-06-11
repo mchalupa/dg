@@ -58,7 +58,7 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
                 node.setAddressTaken();
                 break;
             }
-        } else if (auto *I = dyn_cast<Instruction>(Inst)) {
+        } else if (const auto *I = dyn_cast<Instruction>(Inst)) {
             assert(!I->mayWriteToMemory() &&
                    "Unhandled memory-writing instruction");
             (void) I; // c++17 TODO: replace with [[maybe_unused]]
@@ -198,7 +198,8 @@ void LLVMReadWriteGraphBuilder::addReallocUses(const llvm::Instruction *Inst,
     }
 }
 
-RWNode *LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction *) {
+RWNode *
+LLVMReadWriteGraphBuilder::createReturn(const llvm::Instruction * /*unused*/) {
     return &create(RWNodeType::RETURN);
 }
 
@@ -249,7 +250,7 @@ RWNode *LLVMReadWriteGraphBuilder::createLoad(const llvm::Instruction *Inst) {
 
 RWNode *
 LLVMReadWriteGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
-    auto *RMW = llvm::cast<llvm::AtomicRMWInst>(Inst);
+    const auto *RMW = llvm::cast<llvm::AtomicRMWInst>(Inst);
     RWNode &node = create(RWNodeType::STORE);
 
     uint64_t size = llvmutils::getAllocatedSize(RMW->getValOperand()->getType(),
@@ -336,7 +337,7 @@ static bool isRelevantCall(const llvm::Instruction *Inst, OptsT &opts) {
         // function pointer call - we need that
         return true;
 
-    if (func->size() == 0) {
+    if (func->empty()) {
         // we have a model for this function
         if (opts.getFunctionModel(func->getName().str()))
             return true;
@@ -358,10 +359,9 @@ static bool isRelevantCall(const llvm::Instruction *Inst, OptsT &opts) {
 
         // undefined function
         return true;
-    } else
-        // we want defined function, since those can contain
-        // pointer's manipulation and modify CFG
-        return true;
+    } // we want defined function, since those can contain
+    // pointer's manipulation and modify CFG
+    return true;
 
     assert(0 && "We should not reach this");
 }
@@ -373,7 +373,7 @@ NodesSeq<RWNode> LLVMReadWriteGraphBuilder::createNode(const llvm::Value *v) {
         return {&create(RWNodeType::GLOBAL)};
     }
 
-    auto *I = dyn_cast<Instruction>(v);
+    const auto *I = dyn_cast<Instruction>(v);
     if (!I)
         return {};
 

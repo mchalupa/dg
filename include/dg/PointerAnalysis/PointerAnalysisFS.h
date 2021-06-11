@@ -93,16 +93,16 @@ class PointerAnalysisFS : public PointerAnalysis {
             }
 
             // interprocedural stuff - merge information from calls
-            if (auto CR = PSNodeCallRet::get(n)) {
-                for (auto p : CR->getReturns()) {
+            if (auto *CR = PSNodeCallRet::get(n)) {
+                for (auto *p : CR->getReturns()) {
                     if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
                         // merge pm to mm (but only if pm was already created)
                         changed |= mergeMaps(mm, pm, overwritten);
                     }
                 }
             }
-            if (auto E = PSNodeEntry::get(n)) {
-                for (auto p : E->getCallers()) {
+            if (auto *E = PSNodeEntry::get(n)) {
+                for (auto *p : E->getCallers()) {
                     if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
                         // merge pm to mm (but only if pm was already created)
                         changed |= mergeMaps(mm, pm, overwritten);
@@ -114,7 +114,8 @@ class PointerAnalysisFS : public PointerAnalysis {
         return changed;
     }
 
-    bool functionPointerCall(PSNode *, PSNode *) override {
+    bool functionPointerCall(PSNode * /*unused*/,
+                             PSNode * /*unused*/) override {
         PG->computeLoops();
         return false;
     }
@@ -204,12 +205,12 @@ class PointerAnalysisFS : public PointerAnalysis {
         return mm;
     }
 
-    bool isOnLoop(const PSNode *n) const {
+    static bool isOnLoop(const PSNode *n) {
         // if the scc's size > 1, the node is in loop
         return n->getParent() ? (n->getParent()->getLoop(n) != nullptr) : false;
     }
 
-    bool pointsToAllocationInLoop(PSNode *n) const {
+    static bool pointsToAllocationInLoop(PSNode *n) {
         for (const auto &ptr : n->pointsTo) {
             // skip invalidated, null and unknown memory
             if (!ptr.isValid() || ptr.isInvalidated())
@@ -228,9 +229,9 @@ class PointerAnalysisFS : public PointerAnalysis {
                canChangeMM(n);
     }
 
-    void mergeGlobalsState(MemoryMapT *mm,
-                           decltype(PG->getGlobals()) &globals) {
-        for (auto &glob : globals) {
+    static void mergeGlobalsState(MemoryMapT *mm,
+                                  decltype(PG->getGlobals()) &globals) {
+        for (const auto &glob : globals) {
             if (MemoryMapT *globmm = glob->getData<MemoryMapT>()) {
                 mergeMaps(mm, globmm, nullptr);
             }

@@ -82,7 +82,7 @@ class ICDGraphBuilder {
 
     static const llvm::Value *_getEntryNode(const llvm::Function *f) {
         assert(f && "Got no function");
-        auto &B = f->getEntryBlock();
+        const auto &B = f->getEntryBlock();
         return &*(B.begin());
     }
 
@@ -91,15 +91,15 @@ class ICDGraphBuilder {
                 cda, "Building ICFG (of instructions) for the whole module");
         CDGraph graph("ICFG");
 
-        for (auto &F : *M) {
+        for (const auto &F : *M) {
             buildInstructions(graph, F);
         }
 
         // add interprocedural edges
         for (auto &it : calls) {
-            auto *C = it.first;
+            const auto *C = it.first;
             // call edge
-            for (auto *f : it.second.funs) {
+            for (const auto *f : it.second.funs) {
                 auto *cnode = getNode(C);
                 assert(cnode && "Do not have the node for a call");
                 auto *entrynode = getNode(_getEntryNode(f));
@@ -107,12 +107,12 @@ class ICDGraphBuilder {
                 graph.addNodeSuccessor(*cnode, *entrynode);
 
                 // return edges
-                auto *retsite = getNextNonDebugInstruction(C);
+                const auto *retsite = getNextNonDebugInstruction(C);
                 assert(retsite);
                 auto *retsitenode = getNode(retsite);
                 assert(retsitenode);
-                for (auto &B : *f) {
-                    if (auto *R = llvm::dyn_cast<llvm::ReturnInst>(
+                for (const auto &B : *f) {
+                    if (const auto *R = llvm::dyn_cast<llvm::ReturnInst>(
                                 B.getTerminator())) {
                         auto *rnode = getNode(R);
                         graph.addNodeSuccessor(*rnode, *retsitenode);
@@ -135,12 +135,12 @@ class ICDGraphBuilder {
         //_mapping.reserve(F->size());
 
         // create nodes for instructions
-        for (auto &BB : F) {
+        for (const auto &BB : F) {
             auto it = _mapping.emplace(&BB, BBlock());
             BBlock &block = it.first->second;
             block.nodes.reserve(BB.size());
-            for (auto &I : BB) {
-                if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
+            for (const auto &I : BB) {
+                if (const auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
                     auto funs = getCalledFunctions(C);
                     if (!funs.empty())
                         calls.emplace(C, CallInfo(std::move(funs)));
@@ -154,14 +154,14 @@ class ICDGraphBuilder {
         }
 
         // add intraprocedural successor edges
-        for (auto &BB : F) {
+        for (const auto &BB : F) {
             auto &bblock = _mapping[&BB];
             CDNode *last = nullptr;
             // successors inside the block
             for (auto *nd : bblock.nodes) {
                 if (last)
                     graph.addNodeSuccessor(*last, *nd);
-                auto *C = llvm::dyn_cast<llvm::CallInst>(getValue(nd));
+                const auto *C = llvm::dyn_cast<llvm::CallInst>(getValue(nd));
                 if (C && (calls.find(C) != calls.end())) {
                     // if the node is a call that calls some defined functions
                     // (we store only such in calls), its successor
@@ -175,10 +175,10 @@ class ICDGraphBuilder {
             assert(last && "Empty block");
 
             // successors between blocks
-            for (auto *bbsucc : successors(&BB)) {
+            for (const auto *bbsucc : successors(&BB)) {
                 auto &succblk = _mapping[bbsucc];
                 if (succblk.nodes.empty()) {
-                    assert(bbsucc->size() == 0);
+                    assert(bbsucc->empty());
                     continue;
                 }
 
@@ -192,20 +192,20 @@ class ICDGraphBuilder {
                           "Building ICFG (of blocks) for the whole module");
         CDGraph graph("ICFG");
 
-        for (auto &F : *M) {
+        for (const auto &F : *M) {
             buildBlocks(graph, F);
         }
 
         // add successor edges
-        for (auto &F : *M) {
-            for (auto &BB : F) {
+        for (const auto &F : *M) {
+            for (const auto &BB : F) {
                 auto *nd = getNode(&BB);
                 assert(nd && "BUG: creating nodes for bblocks");
                 auto *blknd = nd;
 
                 // add interprocedural edges
-                for (auto &I : BB) {
-                    auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
+                for (const auto &I : BB) {
+                    const auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
                     if (!C) {
                         continue;
                     }
@@ -219,13 +219,13 @@ class ICDGraphBuilder {
                     auto &retsite = graph.createNode();
 
                     // call inst
-                    for (auto *f : getCalledFunctions(C)) {
+                    for (const auto *f : getCalledFunctions(C)) {
                         auto *entrynode = getNode(&f->getEntryBlock());
                         assert(entrynode);
                         graph.addNodeSuccessor(*blknd, *entrynode);
 
                         // return edges
-                        for (auto &B : *f) {
+                        for (const auto &B : *f) {
                             if (llvm::isa<llvm::ReturnInst>(
                                         B.getTerminator())) {
                                 // the block returns
@@ -240,7 +240,7 @@ class ICDGraphBuilder {
 
                 assert(blknd);
                 // add intraprocedural edges
-                for (auto *bbsucc : successors(&BB)) {
+                for (const auto *bbsucc : successors(&BB)) {
                     auto *succ = getNode(bbsucc);
                     assert(succ && "BUG: do not have a bblock created");
                     graph.addNodeSuccessor(*blknd, *succ);
@@ -256,7 +256,7 @@ class ICDGraphBuilder {
                                        << F.getName().str());
 
         // create nodes for blocks
-        for (auto &BB : F) {
+        for (const auto &BB : F) {
             auto &nd = graph.createNode();
             _nodes[&BB] = &nd;
             _rev_mapping[&nd] = &BB;

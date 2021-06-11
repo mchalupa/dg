@@ -1,5 +1,5 @@
-#ifndef ORIGINALPOINTSTOSET_H
-#define ORIGINALPOINTSTOSET_H
+#ifndef DG_OFFSETS_SET_PTSET_H
+#define DG_OFFSETS_SET_PTSET_H
 
 #include "dg/ADT/Bitvector.h"
 #include "dg/PointerAnalysis/Pointer.h"
@@ -48,16 +48,13 @@ class OffsetsSetPointsToSet {
         if (it == pointers.end()) {
             pointers.emplace_hint(it, target, *off);
             return true;
-        } else {
-            if (it->second.get(Offset::UNKNOWN))
-                return false;
-            else {
-                // the set will return the previous value
-                // of the bit, so that means false if we are
-                // setting a new value
-                return !it->second.set(*off);
-            }
         }
+        if (it->second.get(Offset::UNKNOWN))
+            return false;
+        // the set will return the previous value
+        // of the bit, so that means false if we are
+        // setting a new value
+        return !it->second.set(*off);
     }
 
     bool add(const Pointer &ptr) { return add(ptr.target, ptr.offset); }
@@ -65,7 +62,7 @@ class OffsetsSetPointsToSet {
     // union (unite S into this set)
     bool add(const OffsetsSetPointsToSet &S) {
         bool changed = false;
-        for (auto &it : S.pointers) {
+        for (const auto &it : S.pointers) {
             changed |= pointers[it.first].set(it.second);
         }
         return changed;
@@ -91,7 +88,12 @@ class OffsetsSetPointsToSet {
             return false;
         }
 
-        return it->second.unset(*offset);
+        bool ret = it->second.unset(*offset);
+        if (ret && it->second.empty()) {
+            pointers.erase(it);
+        }
+        assert(ret || !it->second.empty() && "Inconsistence");
+        return ret;
     }
 
     ///
@@ -152,7 +154,7 @@ class OffsetsSetPointsToSet {
 
     size_t size() const {
         size_t num = 0;
-        for (auto &it : pointers) {
+        for (const auto &it : pointers) {
             num += it.second.size();
         }
 
@@ -193,9 +195,7 @@ class OffsetsSetPointsToSet {
             return tmp;
         }
 
-        Pointer operator*() const {
-            return Pointer(container_it->first, *innerIt);
-        }
+        Pointer operator*() const { return {container_it->first, *innerIt}; }
 
         bool operator==(const const_iterator &rhs) const {
             return container_it == rhs.container_it && innerIt == rhs.innerIt;
@@ -208,10 +208,8 @@ class OffsetsSetPointsToSet {
         friend class OffsetsSetPointsToSet;
     };
 
-    const_iterator begin() const { return const_iterator(pointers); }
-    const_iterator end() const {
-        return const_iterator(pointers, true /* end */);
-    }
+    const_iterator begin() const { return {pointers}; }
+    const_iterator end() const { return {pointers, true /* end */}; }
 
     friend class const_iterator;
 };
@@ -219,4 +217,4 @@ class OffsetsSetPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* ORIGINALPOINTSTOSET_H */
+#endif // DG_OFFSETS_SET_PTSET_H

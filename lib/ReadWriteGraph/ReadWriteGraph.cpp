@@ -16,12 +16,12 @@ void RWNode::dump() const { std::cout << getID() << "\n"; }
 void RWNodeCall::dump() const {
     std::cout << getID() << " calls [";
     unsigned n = 0;
-    for (auto &cv : callees) {
+    for (const auto &cv : callees) {
         if (n++ > 0) {
             std::cout << ", ";
         }
 
-        if (auto *subg = cv.getSubgraph()) {
+        if (const auto *subg = cv.getSubgraph()) {
             const auto &nm = subg->getName();
             if (nm.empty()) {
                 std::cout << subg;
@@ -49,9 +49,9 @@ bool RWNode::isDynAlloc() const {
     if (getType() == RWNodeType::DYN_ALLOC)
         return true;
 
-    if (auto *C = RWNodeCall::get(this)) {
-        for (auto &cv : C->getCallees()) {
-            if (auto *val = cv.getCalledValue()) {
+    if (const auto *C = RWNodeCall::get(this)) {
+        for (const auto &cv : C->getCallees()) {
+            if (const auto *val = cv.getCalledValue()) {
                 if (val->getType() == RWNodeType::DYN_ALLOC) {
                     return true;
                 }
@@ -114,9 +114,8 @@ splitBlockOnFirstCall(RWBBlock *block,
             if (blks.second) {
                 newblocks.push_back(std::move(blks.second));
                 return newblocks.back().get();
-            } else {
-                return nullptr;
             }
+            return nullptr;
         }
     }
     return nullptr;
@@ -124,7 +123,7 @@ splitBlockOnFirstCall(RWBBlock *block,
 
 void RWSubgraph::splitBBlocksOnCalls() {
     DBG_SECTION_BEGIN(dda, "Splitting basic blocks on calls");
-    if (_bblocks.size() == 0) {
+    if (_bblocks.empty()) {
         DBG_SECTION_END(dda, "Splitting basic blocks on calls finished");
         return;
     }

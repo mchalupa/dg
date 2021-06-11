@@ -55,7 +55,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 
         // XXX: this could be computed on-demand per one node (block)
         // (in contrary to getDependent())
-        auto *f = I->getParent()->getParent();
+        const auto *f = I->getParent()->getParent();
         if (_getGraph(f) == nullptr) {
             /// FIXME: get rid of the const cast
             computeOnDemand(const_cast<llvm::Function *>(f));
@@ -76,7 +76,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = graphBuilder.getValue(dep);
+            const auto *val = graphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -84,7 +84,9 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
@@ -113,7 +115,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = graphBuilder.getValue(dep);
+            const auto *val = graphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -121,7 +123,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::BasicBlock *) override {
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
@@ -132,7 +134,7 @@ class NTSCD : public LLVMControlDependenceAnalysisImpl {
         if (F && !F->isDeclaration() && (_getGraph(F) == nullptr)) {
             computeOnDemand(const_cast<llvm::Function *>(F));
         } else {
-            for (auto &f : *getModule()) {
+            for (const auto &f : *getModule()) {
                 if (!f.isDeclaration() && (_getGraph(&f) == nullptr)) {
                     computeOnDemand(const_cast<llvm::Function *>(&f));
                 }
@@ -256,7 +258,7 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = igraphBuilder.getValue(dep);
+            const auto *val = igraphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -264,7 +266,9 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::Instruction *) override { return {}; }
+    ValVec getDependent(const llvm::Instruction * /*unused*/) override {
+        return {};
+    }
 
     /// Getters of dependencies for a basic block
     ValVec getDependencies(const llvm::BasicBlock *b) override {
@@ -286,7 +290,7 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
 
         std::set<llvm::Value *> ret;
         for (auto *dep : dit->second) {
-            auto *val = igraphBuilder.getValue(dep);
+            const auto *val = igraphBuilder.getValue(dep);
             assert(val && "Invalid value");
             ret.insert(const_cast<llvm::Value *>(val));
         }
@@ -294,22 +298,24 @@ class InterproceduralNTSCD : public LLVMControlDependenceAnalysisImpl {
         return ValVec{ret.begin(), ret.end()};
     }
 
-    ValVec getDependent(const llvm::BasicBlock *) override {
+    ValVec getDependent(const llvm::BasicBlock * /*unused*/) override {
         assert(false && "Not supported");
         abort();
     }
 
     // We run on demand but this method can trigger the computation
-    void compute(const llvm::Function *) override { _compute(); }
+    void compute(const llvm::Function * /*F*/) override { _compute(); }
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
-    ValVec getNoReturns(const llvm::Function *) override {
+    ValVec getNoReturns(const llvm::Function * /*unused*/) override {
         assert(false && "Unsupported");
         abort();
     }
 
-    CDGraph *getGraph(const llvm::Function *) override { return &graph; }
-    const CDGraph *getGraph(const llvm::Function *) const override {
+    CDGraph *getGraph(const llvm::Function * /*unused*/) override {
+        return &graph;
+    }
+    const CDGraph *getGraph(const llvm::Function * /*unused*/) const override {
         return &graph;
     }
 

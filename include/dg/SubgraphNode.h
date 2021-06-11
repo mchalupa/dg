@@ -13,6 +13,8 @@
 #include <set>
 #include <vector>
 
+#include <dg/util/iterators.h>
+
 namespace dg {
 
 namespace pta {
@@ -111,15 +113,15 @@ class SubgraphNode {
         return old;
     }
 
-    NodeT *getOperand(int idx) const {
-        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size() &&
+    NodeT *getOperand(size_t idx) const {
+        assert(idx < operands.size() &&
                "Operand index out of range");
 
         return operands[idx];
     }
 
-    void setOperand(int idx, NodeT *nd) {
-        assert(idx >= 0 && static_cast<size_t>(idx) < operands.size() &&
+    void setOperand(size_t idx, NodeT *nd) {
+        assert(idx < operands.size() &&
                "Operand index out of range");
 
         operands[idx] = nd;
@@ -128,13 +130,12 @@ class SubgraphNode {
     size_t getOperandsNum() const { return operands.size(); }
 
     void removeAllOperands() {
-        for (auto o : operands) {
+        for (auto *o : operands) {
             o->removeUser(static_cast<NodeT *>(this));
         }
         operands.clear();
     }
 
-  public:
     template <typename NodePtr, typename... Args>
     size_t addOperand(NodePtr node, Args &&...args) {
         addOperand(node);
@@ -151,19 +152,13 @@ class SubgraphNode {
         assert(n && "Passed nullptr as the operand");
         operands.push_back(n);
         n->addUser(static_cast<NodeT *>(this));
-        assert(n->users.size() > 0);
+        assert(!n->users.empty());
 
         return operands.size();
     }
 
     bool hasOperand(NodeT *n) const {
-        for (NodeT *x : operands) {
-            if (x == n) {
-                return true;
-            }
-        }
-
-        return false;
+        return dg::any_of(operands, [n](NodeT* x) { return x == n; });
     }
 
     void addSuccessor(NodeT *succ) {
@@ -383,7 +378,7 @@ class SubgraphNode {
     bool removeDuplicitOperands() {
         std::set<NodeT *> ops;
         bool duplicated = false;
-        for (auto op : getOperands()) {
+        for (auto *op : getOperands()) {
             if (!ops.insert(op).second)
                 duplicated = true;
         }
@@ -394,7 +389,7 @@ class SubgraphNode {
             // just push the new operads,
             // the users should not change in this case
             // (as we just remove the duplicated ones)
-            for (auto op : ops)
+            for (auto *op : ops)
                 operands.push_back(op);
         }
 
@@ -403,7 +398,7 @@ class SubgraphNode {
 
     void addUser(NodeT *nd) {
         // do not add duplicate users
-        for (auto u : users)
+        for (auto *u : users)
             if (u == nd)
                 return;
 

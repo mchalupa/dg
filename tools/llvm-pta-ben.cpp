@@ -108,7 +108,7 @@ static void printName(PSNode *node, bool dot) {
 
 static int dump_pointer(const Pointer &ptr, const char *name) {
     printf("target %s=", name);
-    printName(ptr.target, 0);
+    printName(ptr.target, false);
     printf("\n");
     return 0;
 }
@@ -129,7 +129,8 @@ static int compare_pointer(const Pointer &ptr1, const Pointer &ptr2) {
     if (ptr1.target == ptr2.target) {
         if (ptr1.offset.isUnknown() || ptr2.offset.isUnknown()) {
             return MayAlias;
-        } else if (ptr1.offset == ptr2.offset) {
+        }
+        if (ptr1.offset == ptr2.offset) {
             return MustAlias;
         }
         // fall-through to NoAlias
@@ -140,7 +141,7 @@ static int compare_pointer(const Pointer &ptr1, const Pointer &ptr2) {
 
 static int check_pointer(const Pointer &ptr, const char *name) {
     printf("target %s=", name);
-    printName(ptr.target, 0);
+    printName(ptr.target, false);
     if (ptr.isUnknown()) {
         printf("Unknown Ptr\n");
         return MayAlias;
@@ -224,17 +225,9 @@ static llvm::StringRef NOALIAS("NOALIAS"), MAYALIAS("MAYALIAS"),
         EXPECTEDFAIL_NOALIAS("EXPECTEDFAIL_NOALIAS");
 
 static int test_checkfunc(const llvm::StringRef &fun) {
-    if (fun.equals(NOALIAS)) {
-        return true;
-    } else if (fun.equals(MAYALIAS)) {
-        return true;
-    } else if (fun.equals(MUSTALIAS)) {
-        return true;
-    } else if (fun.equals(PARTIALALIAS)) {
-        return true;
-    } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-        return true;
-    } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
+    if (fun.equals(NOALIAS) || fun.equals(MAYALIAS) || fun.equals(MUSTALIAS) ||
+        fun.equals(PARTIALALIAS) || fun.equals(EXPECTEDFAIL_MAYALIAS) ||
+        fun.equals(EXPECTEDFAIL_NOALIAS)) {
         return true;
     }
     return false;
@@ -260,7 +253,7 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
     if (v == nullptr)
         return;
 
-    const llvm::Function *called = llvm::dyn_cast<llvm::Function>(v);
+    const llvm::Function *called = llvm::cast<llvm::Function>(v);
     const llvm::StringRef &fun = called->getName();
     if (call->getNumArgOperands() != 2)
         return;
@@ -271,38 +264,34 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
     llvm::Value *V2 = call->getArgOperand(1);
     const char *ex, *s, *score;
     AliasResult aares = doAlias(pta, V1, V2);
-    bool r = false;
+    //bool r = false;
 
     if (fun.equals(NOALIAS)) {
-        r = (aares == NoAlias);
+        //r = (aares == NoAlias);
         ex = "NO";
 
         if (aares == NoAlias)
             score = "true";
-        else if (aares == MayAlias)
+        else if (aares == MayAlias || aares == PartialAlias)
             score = "inadequate";
         else if (aares == MustAlias)
             score = "buggy";
-        else if (aares == PartialAlias)
-            score = "inadequate";
         else
             score = "unknown";
-    } else if (fun.equals(MAYALIAS)) {
-        r = (aares == MayAlias || aares == MustAlias);
+    } else if (fun.equals(MAYALIAS) || fun.equals(PARTIALALIAS)) {
+        //r = (aares == MayAlias || aares == MustAlias);
         ex = "MAY";
 
         if (aares == NoAlias)
             score = "false";
-        else if (aares == MayAlias)
+        else if (aares == MayAlias || aares == PartialAlias)
             score = "true";
         else if (aares == MustAlias)
             score = "toomuch";
-        else if (aares == PartialAlias)
-            score = "true";
         else
             score = "unknown";
     } else if (fun.equals(MUSTALIAS)) {
-        r = (aares == MustAlias);
+        //r = (aares == MustAlias);
         ex = "MUST";
 
         if (aares == NoAlias)
@@ -313,45 +302,24 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
             score = "true";
         else
             score = "unknown";
-    } else if (fun.equals(PARTIALALIAS)) {
-        r = (aares == MayAlias || aares == MustAlias);
-        ex = "MAY";
-
-        if (aares == NoAlias)
-            score = "false";
-        else if (aares == MayAlias)
-            score = "true";
-        else if (aares == MustAlias)
-            score = "toomuch";
-        else if (aares == PartialAlias)
-            score = "true";
-        else
-            score = "unknown";
     } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-        r = (aares != MayAlias && aares != MustAlias);
+        //r = (aares != MayAlias && aares != MustAlias);
         ex = "EXPECTEDFAIL_MAY";
 
-        if (aares == NoAlias)
+        if (aares == NoAlias || aares == MustAlias)
             score = "true";
-        else if (aares == MayAlias)
-            score = "inadequate"; // suspected
-        else if (aares == MustAlias)
-            score = "true"; // suspected
-        else if (aares == PartialAlias)
+        else if (aares == MayAlias ||aares == PartialAlias)
             score = "inadequate";
         else
             score = "unknown";
     } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
-        r = (aares != NoAlias);
+        //r = (aares != NoAlias);
         ex = "EXPECTEDFAIL_NO";
 
         if (aares == NoAlias)
             score = "false";
-        else if (aares == MayAlias)
-            score = "true";
-        else if (aares == MustAlias)
-            score = "true";
-        else if (aares == PartialAlias)
+        else if (aares == MayAlias || aares == MustAlias ||
+                 aares == PartialAlias)
             score = "true";
         else
             score = "unknown";
@@ -367,16 +335,11 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
         s = "MUST";
     else
         s = "UNKNOWN";
-    if (r)
-        printf("  pta %s %s ex %s ", score, s, ex);
-    else
-        printf("  pta %s %s ex %s ", score, s, ex);
-
-    printf("\n");
+    printf("  pta %s %s ex %s\n", score, s, ex);
 }
 
 static void evalPTA(DGLLVMPointerAnalysis *pta) {
-    for (auto &node : pta->getNodes()) {
+    for (const auto &node : pta->getNodes()) {
         if (!node)
             continue;
         evalPSNode(pta, node.get());

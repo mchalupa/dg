@@ -2,6 +2,7 @@
 #define LLVM_DG_CDA_IMPL_H_
 
 #include <set>
+#include <utility>
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 
@@ -20,10 +21,9 @@ class LLVMControlDependenceAnalysisImpl {
     const LLVMControlDependenceAnalysisOptions _options;
 
   public:
-    LLVMControlDependenceAnalysisImpl(
-            const llvm::Module *module,
-            const LLVMControlDependenceAnalysisOptions &opts)
-            : _module(module), _options(opts) {}
+    LLVMControlDependenceAnalysisImpl(const llvm::Module *module,
+                                      LLVMControlDependenceAnalysisOptions opts)
+            : _module(module), _options(std::move(opts)) {}
 
     virtual ~LLVMControlDependenceAnalysisImpl() = default;
 
@@ -35,8 +35,10 @@ class LLVMControlDependenceAnalysisImpl {
         return _options;
     }
 
-    virtual CDGraph *getGraph(const llvm::Function *) { return nullptr; }
-    virtual const CDGraph *getGraph(const llvm::Function *) const {
+    virtual CDGraph *getGraph(const llvm::Function * /*unused*/) {
+        return nullptr;
+    }
+    virtual const CDGraph *getGraph(const llvm::Function * /*unused*/) const {
         return nullptr;
     }
 
@@ -57,13 +59,13 @@ class LLVMControlDependenceAnalysisImpl {
     virtual ValVec getDependent(const llvm::BasicBlock *) = 0;
 
     /// Getter for noreturn nodes in function (for interprocedural analysis)
-    virtual ValVec getNoReturns(const llvm::Function *) {
+    virtual ValVec getNoReturns(const llvm::Function * /*unused*/) {
         assert(false && "Unsupported");
         abort();
     }
 
-    virtual ValVec getClosure(const llvm::Function *,
-                              const std::set<llvm::Value *> &) {
+    virtual ValVec getClosure(const llvm::Function * /*unused*/,
+                              const std::set<llvm::Value *> & /*unused*/) {
         assert(false && "Unsupported");
         abort();
     }

@@ -75,7 +75,7 @@ class GraphBuilder {
     void buildCFG(SubgraphInfo &subginfo) {
         for (auto &it : subginfo.blocks) {
             auto llvmblk = it.first;
-            auto bblock = it.second;
+            auto *bblock = it.second;
 
             for (auto *succ : successors(llvmblk)) {
                 auto succit = subginfo.blocks.find(succ);
@@ -90,7 +90,7 @@ class GraphBuilder {
     void buildGlobals() {
         DBG_SECTION_BEGIN(dg, "Building globals");
 
-        for (auto &G : _module->globals()) {
+        for (const auto &G : _module->globals()) {
             // every global node is like memory allocation
             auto cur = buildNode(&G);
             _globals.insert(_globals.end(), cur.begin(), cur.end());
@@ -111,7 +111,7 @@ class GraphBuilder {
                "Built node sequence has no representant");
 
         if (auto *repr = nds.getRepresentant()) {
-            _nodes.emplace(val, std::move(nds));
+            _nodes.emplace(val, nds);
 
             assert((_nodeToValue.find(repr) == _nodeToValue.end()) &&
                    "Mapping a node that we already have");
@@ -127,7 +127,7 @@ class GraphBuilder {
                "Already have this basic block");
         subginfo.blocks[&B] = &bblock;
 
-        for (auto &I : B) {
+        for (const auto &I : B) {
             for (auto *node : buildNode(&I)) {
                 bblock.append(node);
             }
@@ -151,15 +151,15 @@ class GraphBuilder {
         // a block are searched before the block itself
         // (operands must be created before their use)
         ADT::SetQueue<ADT::QueueFIFO<const llvm::BasicBlock *>> queue;
-        auto &entry = F.getEntryBlock();
+        const auto &entry = F.getEntryBlock();
         queue.push(&entry);
 
         while (!queue.empty()) {
-            auto *cur = queue.pop();
+            const auto *cur = queue.pop();
 
             buildBBlock(*cur, subginfo);
 
-            for (auto *succ : successors(cur)) {
+            for (const auto *succ : successors(cur)) {
                 queue.push(succ);
             }
         }
@@ -172,7 +172,7 @@ class GraphBuilder {
 
     void buildAllFuns() {
         DBG(dg, "Building all functions from LLVM module");
-        for (auto &F : *_module) {
+        for (const auto &F : *_module) {
             if (F.isDeclaration()) {
                 continue;
             }
@@ -183,7 +183,7 @@ class GraphBuilder {
         }
 
         // now do the real thing
-        for (auto &F : *_module) {
+        for (const auto &F : *_module) {
             if (!F.isDeclaration()) {
                 buildSubgraph(F);
             }
@@ -195,7 +195,7 @@ class GraphBuilder {
         // we should have at least the entry fun
         assert(!funs.empty() && "No function in call graph");
 
-        for (auto *F : funs) {
+        for (const auto *F : funs) {
             DBG(dg, "Building functions based on call graph information");
             assert(_subgraphs.find(F) == _subgraphs.end() &&
                    "Already have that subgraph");
@@ -204,7 +204,7 @@ class GraphBuilder {
         }
 
         // now do the real thing
-        for (auto *F : funs) {
+        for (const auto *F : funs) {
             if (!F->isDeclaration()) {
                 buildSubgraph(*F);
             }

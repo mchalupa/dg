@@ -16,21 +16,21 @@ extern unsigned _debug_lvl;
 extern unsigned _ind;
 
 namespace {
-static inline unsigned &_getDebugLvl() { return _debug_lvl; }
+inline unsigned &_getDebugLvl() { return _debug_lvl; }
 
-static inline void _setDebugLvl(unsigned int x) { _getDebugLvl() = x; }
+inline void _setDebugLvl(unsigned int x) { _getDebugLvl() = x; }
 
-static inline unsigned &_getInd() { return _ind; }
+inline unsigned &_getInd() { return _ind; }
 
-static inline std::ostream &_stream() { return std::cerr; }
+inline std::ostream &_stream() { return std::cerr; }
 
-static void _dump_ind() {
+inline void _dump_ind() {
     auto ind = _getInd();
     for (unsigned i = 0; i < ind; ++i)
         _stream() << " ";
 }
 
-static void _dump_prefix(const char *domain, const char *add = nullptr) {
+inline void _dump_prefix(const char *domain, const char *add = nullptr) {
     std::cerr << "[" << std::clock() << "]";
     if (domain)
         _stream() << "[" << domain << "]";

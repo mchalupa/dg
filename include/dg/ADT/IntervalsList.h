@@ -82,7 +82,8 @@ class IntervalsList {
                 }
                 _replace_overlapping(I, it, to);
                 break;
-            } else if (it->start > I.end) {
+            }
+            if (it->start > I.end) {
                 intervals.insert(it, I);
                 break;
             }
@@ -101,7 +102,7 @@ class IntervalsList {
             return *this;
 
         auto it = intervals.begin();
-        for (auto &RI : rhs.intervals) {
+        for (const auto &RI : rhs.intervals) {
             while (it->end < RI.start) {
                 auto tmp = it++;
                 intervals.erase(tmp);

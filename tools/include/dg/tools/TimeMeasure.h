@@ -1,5 +1,5 @@
-#ifndef _DG_UTILS_H_
-#define _DG_UTILS_H_
+#ifndef DG_UTILS_H_
+#define DG_UTILS_H_
 
 #include <chrono>
 #include <iostream>
@@ -19,7 +19,7 @@ class TimeMeasure {
             std::chrono::milliseconds(std::chrono::seconds{1}).count();
 
   public:
-    TimeMeasure() {}
+    TimeMeasure() = default;
 
     void start() { s = Clock::now(); };
 
@@ -49,4 +49,4 @@ class TimeMeasure {
 } // namespace debug
 } // namespace dg
 
-#endif // _DG_UTILS_H_
+#endif // DG_UTILS_H_

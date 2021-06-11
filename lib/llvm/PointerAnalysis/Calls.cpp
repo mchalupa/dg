@@ -28,25 +28,26 @@ LLVMPointerGraphBuilder::createCall(const llvm::Instruction *Inst) {
             return addNode(CInst, createUndefFunctionCall(CInst, func));
         }
         return createCallToFunction(CInst, func);
-    } else {
-        // this is a function pointer call
-        return createFuncptrCall(CInst, calledVal);
-    }
+    } // this is a function pointer call
+    return createFuncptrCall(CInst, calledVal);
 }
 
 LLVMPointerGraphBuilder::PSNodesSeq
 LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
                                                  const llvm::Function *func) {
-    assert(func->size() == 0);
+    assert(func->empty());
     // is it a call to free? If so, create invalidate node instead.
     if (invalidate_nodes && func->getName().equals("free")) {
         return {createFree(CInst)};
-    } else if (threads_) {
+    }
+    if (threads_) {
         if (func->getName().equals("pthread_create")) {
             return createPthreadCreate(CInst);
-        } else if (func->getName().equals("pthread_join")) {
+        }
+        if (func->getName().equals("pthread_join")) {
             return createPthreadJoin(CInst);
-        } else if (func->getName().equals("pthread_exit")) {
+        }
+        if (func->getName().equals("pthread_exit")) {
             return createPthreadExit(CInst);
         }
     }
@@ -54,7 +55,8 @@ LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
     auto type = _options.getAllocationFunction(func->getName().str());
     if (type != AllocationFunction::NONE) {
         return createDynamicMemAlloc(CInst, type);
-    } else if (func->isIntrinsic()) {
+    }
+    if (func->isIntrinsic()) {
         return createIntrinsic(CInst);
     }
 
@@ -62,8 +64,8 @@ LLVMPointerGraphBuilder::createUndefFunctionCall(const llvm::CallInst *CInst,
     const auto &funname = func->getName();
     if (funname.equals("memcpy") || funname.equals("__memcpy_chk") ||
         funname.equals("memove")) {
-        auto dest = CInst->getOperand(0);
-        auto src = CInst->getOperand(1);
+        auto *dest = CInst->getOperand(0);
+        auto *src = CInst->getOperand(1);
         auto lenVal = llvmutils::getConstantValue(CInst->getOperand(2));
         return PS.create<PSNodeType::MEMCPY>(getOperand(src), getOperand(dest),
                                              lenVal);
@@ -213,7 +215,8 @@ LLVMPointerGraphBuilder::createIntrinsic(const llvm::Instruction *Inst) {
     const IntrinsicInst *I = cast<IntrinsicInst>(Inst);
     if (isa<MemTransferInst>(I)) {
         return createMemTransfer(I);
-    } else if (isa<MemSetInst>(I)) {
+    }
+    if (isa<MemSetInst>(I)) {
         return createMemSet(I);
     }
 

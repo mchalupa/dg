@@ -1,5 +1,5 @@
-#ifndef _LLVM_DG_VERIFIER_H_
-#define _LLVM_DG_VERIFIER_H_
+#ifndef LLVM_DG_VERIFIER_H_
+#define LLVM_DG_VERIFIER_H_
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 
@@ -19,9 +19,9 @@ class LLVMDGVerifier {
 
     void fault(const char *fmt, ...);
     void checkMainProc();
-    void checkGraph(llvm::Function *, LLVMDependenceGraph *);
-    void checkBBlock(const llvm::BasicBlock *, LLVMBBlock *);
-    void checkNode(const llvm::Value *, LLVMNode *);
+    void checkGraph(llvm::Function * /*F*/, LLVMDependenceGraph * /*g*/);
+    void checkBBlock(const llvm::BasicBlock * /*llvmBB*/, LLVMBBlock * /*BB*/);
+    void checkNode(const llvm::Value * /*val*/, LLVMNode * /*node*/);
 
   public:
     LLVMDGVerifier(const LLVMDependenceGraph *g) : dg(g), faults(0) {}
@@ -30,4 +30,4 @@ class LLVMDGVerifier {
 
 } // namespace dg
 
-#endif // _LLVM_DG_VERIFIER_H_
+#endif // LLVM_DG_VERIFIER_H_

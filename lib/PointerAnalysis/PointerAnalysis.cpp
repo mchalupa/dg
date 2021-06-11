@@ -24,14 +24,13 @@ static bool funHasAddressTaken(PSNode *node) {
     if (node->getType() != PSNodeType::FUNCTION)
         return false;
 
-    for (auto *user : node->getUsers()) {
-        if (node->getType() != PSNodeType::CALL ||
-            // call but is not called
-            node->getOperand(0) != user) {
-            return true;
-        }
-    }
-    return false;
+    return dg::any_of(node->getUsers(),
+        [node](PSNode *user) {
+            return node->getType() != PSNodeType::CALL ||
+                    // call but is not called
+                    node->getOperand(0) != user;
+            }
+    );
 }
 
 bool PointerAnalysis::processLoad(PSNode *node) {
@@ -182,7 +181,7 @@ static Pointer unwrapConstants(const Pointer &ptr) {
         target = C->getTarget();
         offset += C->getOffset();
     }
-    return Pointer(target, offset);
+    return {target, offset};
 }
 
 bool PointerAnalysis::processMemcpy(std::vector<MemoryObject *> &srcObjects,
@@ -466,7 +465,7 @@ void PointerAnalysis::sanityCheck() {
 
     auto nodes = PG->getNodes(PG->getEntry()->getRoot());
     std::set<unsigned> ids;
-    for (auto nd : nodes) {
+    for (auto *nd : nodes) {
         assert(ids.insert(nd->getID()).second && "Duplicated node ID");
 
         if (nd->getType() == PSNodeType::ALLOC) {
@@ -524,7 +523,8 @@ bool PointerAnalysis::run() {
             break;
         }
 #if DEBUG_ENABLED
-        if (n % 100 == 0) {
+#define DUMP_NTH_ITER 100
+        if (n % DUMP_NTH_ITER == 0) {
             DBG(pta, "Iteration " << n << ", queue size " << to_process.size());
         }
 #endif

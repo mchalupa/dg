@@ -1,13 +1,13 @@
-#ifndef SINGLEBITVECTORPOINTSTOSET_H
-#define SINGLEBITVECTORPOINTSTOSET_H
-
-#include "LookupTable.h"
-#include "dg/ADT/Bitvector.h"
-#include "dg/PointerAnalysis/Pointer.h"
+#ifndef DG_SINGLEBITVECTORPOINTSTOSET_H
+#define DG_SINGLEBITVECTORPOINTSTOSET_H
 
 #include <cassert>
 #include <map>
 #include <vector>
+
+#include "LookupTable.h"
+#include "dg/ADT/Bitvector.h"
+#include "dg/PointerAnalysis/Pointer.h"
 
 namespace dg {
 namespace pta {
@@ -25,11 +25,11 @@ class PointerIdPointsToSet {
     PointersT pointers;
 
     // if the pointer doesn't have ID, it's assigned one
-    size_t getPointerID(const Pointer &ptr) const {
+    static size_t getPointerID(const Pointer &ptr) {
         return lookupTable.getOrCreate(ptr);
     }
 
-    const Pointer &getPointer(size_t id) const { return lookupTable.get(id); }
+    static const Pointer &getPointer(size_t id) { return lookupTable.get(id); }
 
     bool addWithUnknownOffset(PSNode *node) {
         auto ptrid = getPointerID({node, Offset::UNKNOWN});
@@ -110,7 +110,7 @@ class PointerIdPointsToSet {
 
     bool pointsToTarget(PSNode *target) const {
         for (auto ptrid : pointers) {
-            auto &ptr = getPointer(ptrid);
+            const auto &ptr = getPointer(ptrid);
             if (ptr.target == target) {
                 return true;
             }
@@ -132,7 +132,7 @@ class PointerIdPointsToSet {
 
     bool hasNullWithOffset() const {
         for (auto ptrid : pointers) {
-            auto &ptr = getPointer(ptrid);
+            const auto &ptr = getPointer(ptrid);
             if (ptr.target == NULLPTR && *ptr.offset != 0) {
                 return true;
             }
@@ -165,9 +165,7 @@ class PointerIdPointsToSet {
             return tmp;
         }
 
-        Pointer operator*() const {
-            return Pointer(lookupTable.get(*container_it));
-        }
+        Pointer operator*() const { return {lookupTable.get(*container_it)}; }
 
         bool operator==(const const_iterator &rhs) const {
             return container_it == rhs.container_it;
@@ -180,10 +178,8 @@ class PointerIdPointsToSet {
         friend class PointerIdPointsToSet;
     };
 
-    const_iterator begin() const { return const_iterator(pointers); }
-    const_iterator end() const {
-        return const_iterator(pointers, true /* end */);
-    }
+    const_iterator begin() const { return {pointers}; }
+    const_iterator end() const { return {pointers, true /* end */}; }
 
     friend class const_iterator;
 };
@@ -191,4 +187,4 @@ class PointerIdPointsToSet {
 } // namespace pta
 } // namespace dg
 
-#endif /* SINGLEBITVECTORPOINTSTOSET_H */
+#endif // DG_SINGLEBITVECTORPOINTSTOSET_H

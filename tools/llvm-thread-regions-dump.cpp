@@ -44,7 +44,7 @@ int main(int argc, const char *argv[]) {
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
 
-    std::unique_ptr<Module> M = llvm::parseIRFile(module.c_str(), SMD, context);
+    std::unique_ptr<Module> M = llvm::parseIRFile(module, SMD, context);
 
     if (!M) {
         llvm::errs() << "Failed parsing '" << module << "' file:\n";
@@ -59,7 +59,7 @@ int main(int argc, const char *argv[]) {
     ControlFlowGraph controlFlowGraph(&pointsToAnalysis);
     controlFlowGraph.buildFunction(M->getFunction("main"));
 
-    if (graphvizFileName == "") {
+    if (graphvizFileName.empty()) {
         controlFlowGraph.printWithRegions(std::cout);
     } else {
         std::ofstream graphvizFile(graphvizFileName);

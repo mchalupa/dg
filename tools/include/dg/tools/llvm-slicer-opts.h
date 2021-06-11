@@ -48,6 +48,12 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[],
                                  bool requireCrit = false,
                                  bool inputFileRequired = true);
 
+std::vector<const llvm::Value *>
+getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
+                         const std::string &legacyslicingCriteria,
+                         const std::string &legacySecondaryCriteria,
+                         bool criteria_are_next_instr = false);
+
 bool getSlicingCriteriaNodes(dg::LLVMDependenceGraph &dg,
                              const std::string &slicingCriteria,
                              const std::string &legacySlicingCriteria,

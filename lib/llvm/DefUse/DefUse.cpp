@@ -38,11 +38,11 @@ static void handleOperands(const Instruction *Inst, LLVMNode *node) {
     assert(Inst == node->getKey());
 
     for (auto I = Inst->op_begin(), E = Inst->op_end(); I != E; ++I) {
-        auto op = dg->getNode(*I);
+        auto *op = dg->getNode(*I);
         if (!op)
             continue;
         const auto &subs = op->getSubgraphs();
-        if (subs.size() > 0 && !op->isVoidTy()) {
+        if (!subs.empty() && !op->isVoidTy()) {
             for (auto *s : subs) {
                 s->getExit()->addDataDependence(node);
             }
@@ -66,11 +66,11 @@ LLVMDefUseAnalysis::LLVMDefUseAnalysis(LLVMDependenceGraph *dg,
 void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
     static std::set<const llvm::Value *> reported_mappings;
 
-    auto val = node->getValue();
+    auto *val = node->getValue();
     auto defs = RD->getLLVMDefinitions(val);
 
     // add data dependence
-    for (auto def : defs) {
+    for (auto *def : defs) {
         LLVMNode *rdnode = dg->getNode(def);
         if (!rdnode) {
             // that means that the value is not from this graph.
@@ -97,11 +97,11 @@ void LLVMDefUseAnalysis::addDataDependencies(LLVMNode *node) {
     }
 }
 
-bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode *) {
+bool LLVMDefUseAnalysis::runOnNode(LLVMNode *node, LLVMNode * /*prev*/) {
     Value *val = node->getKey();
 
     // just add direct def-use edges to every instruction
-    if (auto I = dyn_cast<Instruction>(val))
+    if (auto *I = dyn_cast<Instruction>(val))
         handleOperands(I, node);
 
     if (RD->isUse(val)) {

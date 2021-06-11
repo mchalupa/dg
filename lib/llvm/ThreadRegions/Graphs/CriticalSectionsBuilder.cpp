@@ -6,7 +6,7 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 SILENCE_LLVM_WARNINGS_POP
 
-CriticalSectionsBuilder::CriticalSectionsBuilder() {}
+CriticalSectionsBuilder::CriticalSectionsBuilder() = default;
 
 CriticalSectionsBuilder::~CriticalSectionsBuilder() {
     for (auto iterator : criticalSections_) {
@@ -20,7 +20,7 @@ bool CriticalSectionsBuilder::buildCriticalSection(LockNode *lock) {
         return false;
     }
 
-    auto criticalSection = new CriticalSection(lock);
+    auto *criticalSection = new CriticalSection(lock);
     criticalSections_.emplace(lock->callInstruction(), criticalSection);
 
     currentLock = lock;
@@ -77,7 +77,7 @@ std::set<const llvm::CallInst *> CriticalSectionsBuilder::correspondingUnlocks(
 
 void CriticalSectionsBuilder::preVisit(Node *node) {
     visited_.insert(node);
-    if (auto unlockNode = castNode<NodeType::UNLOCK>(node)) {
+    if (auto *unlockNode = castNode<NodeType::UNLOCK>(node)) {
         currentUnlocks.erase(unlockNode);
     }
 }
@@ -87,7 +87,7 @@ void CriticalSectionsBuilder::visit(Node *node) {
         return;
     }
 
-    for (auto successor : *node) {
+    for (auto *successor : *node) {
         if (!visited(successor) && !examined(successor)) {
             visitNode(successor);
         }
@@ -101,18 +101,12 @@ void CriticalSectionsBuilder::postVisit(Node *node) {
 
 bool CriticalSectionsBuilder::visited(Node *node) const {
     auto iterator = visited_.find(node);
-    if (iterator != visited_.end()) {
-        return true;
-    }
-    return false;
+    return iterator != visited_.end();
 }
 
 bool CriticalSectionsBuilder::examined(Node *node) const {
     auto iterator = examined_.find(node);
-    if (iterator != examined_.end()) {
-        return true;
-    }
-    return false;
+    return iterator != examined_.end();
 }
 
 CriticalSection::CriticalSection(LockNode *lock) : lock_(lock) {}
@@ -123,7 +117,7 @@ const llvm::CallInst *CriticalSection::lock() const {
 
 std::set<const llvm::Instruction *> CriticalSection::nodes() const {
     std::set<const llvm::Instruction *> llvmNodes;
-    for (auto node : nodes_) {
+    for (auto *node : nodes_) {
         if (!node->isArtificial()) {
             llvmNodes.insert(node->llvmInstruction());
         }
@@ -133,7 +127,7 @@ std::set<const llvm::Instruction *> CriticalSection::nodes() const {
 
 std::set<const llvm::CallInst *> CriticalSection::unlocks() const {
     std::set<const llvm::CallInst *> llvmUnlocks;
-    for (auto unlock : lock_->correspondingUnlocks()) {
+    for (auto *unlock : lock_->correspondingUnlocks()) {
         llvmUnlocks.insert(unlock->callInstruction());
     }
     return llvmUnlocks;

@@ -53,7 +53,7 @@ class DG2Dot {
 
     DG2Dot<NodeT>(DependenceGraph<NodeT> *dg,
                   uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE,
-                  const char *file = NULL)
+                  const char *file = nullptr)
             : options(opts), dg(dg), file(file) {
         // if a graph has no global nodes, this will forbid trying to print them
         dumpedGlobals.insert(nullptr);
@@ -66,8 +66,8 @@ class DG2Dot {
         if (out.is_open()) {
             std::cerr << "File already opened (" << file << ")" << std::endl;
             return false;
-        } else
-            reopen(new_file);
+        }
+        reopen(new_file);
     }
 
     virtual std::ostream &printKey(std::ostream &os, KeyT key) {
@@ -386,7 +386,7 @@ class DG2Dot {
                 out << "NO OUT ARG";
         }
 
-        if (auto noret = params->getNoReturn()) {
+        if (auto *noret = params->getNoReturn()) {
             dump_node(noret, ind, "[noret]");
             dump_node_edges(noret, ind);
         }
@@ -480,7 +480,7 @@ class DG2Dot {
     void dump_nodes() {
         out << "\t/* nodes */\n";
         for (auto &I : *dg) {
-            auto node = I.second;
+            auto *node = I.second;
 
             dump_node(node);
 

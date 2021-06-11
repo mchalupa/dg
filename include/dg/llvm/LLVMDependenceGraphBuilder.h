@@ -1,5 +1,5 @@
-#ifndef _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
-#define _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
+#ifndef DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
+#define DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
 
 #include <ctime> // std::clock
 #include <string>
@@ -73,7 +73,7 @@ class LLVMDependenceGraphBuilder {
 
     std::clock_t _time_start;
     void _timerStart() { _time_start = std::clock(); }
-    uint64_t _timerEnd() { return (std::clock() - _time_start); }
+    uint64_t _timerEnd() const { return (std::clock() - _time_start); }
 
     void _runPointerAnalysis() {
         assert(_PTA && "BUG: No PTA");
@@ -249,4 +249,4 @@ class LLVMDependenceGraphBuilder {
 } // namespace llvmdg
 } // namespace dg
 
-#endif // _DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_
+#endif // DG_LLVM_DEPENDENCE_GRAPH_BUILDER_H_

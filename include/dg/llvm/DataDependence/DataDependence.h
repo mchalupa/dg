@@ -1,9 +1,10 @@
-#ifndef _LLVM_DG_RD_H_
-#define _LLVM_DG_RD_H_
+#ifndef LLVM_DG_DD_H_
+#define LLVM_DG_DD_H_
 
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -33,10 +34,11 @@ class LLVMDataDependenceAnalysis {
     DataDependenceAnalysis *createDDA();
 
   public:
-    LLVMDataDependenceAnalysis(
-            const llvm::Module *m, dg::LLVMPointerAnalysis *pta,
-            const LLVMDataDependenceAnalysisOptions &opts = {})
-            : m(m), pta(pta), _options(opts), builder(createBuilder()) {}
+    LLVMDataDependenceAnalysis(const llvm::Module *m,
+                               dg::LLVMPointerAnalysis *pta,
+                               LLVMDataDependenceAnalysisOptions opts = {})
+            : m(m), pta(pta), _options(std::move(opts)),
+              builder(createBuilder()) {}
 
     ~LLVMDataDependenceAnalysis();
 
@@ -66,12 +68,12 @@ class LLVMDataDependenceAnalysis {
     const llvm::Value *getValue(const RWNode *node) const;
 
     bool isUse(const llvm::Value *val) const {
-        auto nd = getNode(val);
+        const auto *nd = getNode(val);
         return nd && nd->isUse();
     }
 
     bool isDef(const llvm::Value *val) const {
-        auto nd = getNode(val);
+        const auto *nd = getNode(val);
         return nd && nd->isDef();
     }
 
@@ -87,15 +89,15 @@ class LLVMDataDependenceAnalysis {
     std::vector<RWNode *> getDefinitions(llvm::Instruction *where,
                                          llvm::Value *mem, const Offset &off,
                                          const Offset &len) {
-        auto whereN = getNode(where);
+        auto *whereN = getNode(where);
         assert(whereN);
-        auto memN = getNode(mem);
+        auto *memN = getNode(mem);
         assert(memN);
         return DDA->getDefinitions(whereN, memN, off, len);
     }
 
     std::vector<RWNode *> getDefinitions(llvm::Value *use) {
-        auto node = getNode(use);
+        auto *node = getNode(use);
         assert(node);
         return getDefinitions(node);
     }

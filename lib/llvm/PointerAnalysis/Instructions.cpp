@@ -327,7 +327,7 @@ LLVMPointerGraphBuilder::createReturn(const llvm::Instruction *Inst) {
             }
         } else if (retVal->getType()->isVectorTy()) {
             op1 = getOperand(retVal);
-            if (auto alloc = PSNodeAlloc::get(op1)) {
+            if (auto *alloc = PSNodeAlloc::get(op1)) {
                 assert(alloc->isTemporary());
                 (void) alloc; // c++17 TODO: replace with [[maybe_unused]]
             } else {
@@ -370,7 +370,7 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
         seq.append(tempAlloc);
         lastNode = tempAlloc;
     } else {
-        auto fromTempAlloc = PSNodeAlloc::get(getOperand(Inst->getOperand(0)));
+        auto *fromTempAlloc = PSNodeAlloc::get(getOperand(Inst->getOperand(0)));
         assert(fromTempAlloc);
         assert(fromTempAlloc->isTemporary());
 
@@ -381,8 +381,8 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
 
         // copy old temporary allocation to the new temp allocation
         // (this is how insertelem works)
-        auto cpy = PS.create<PSNodeType::MEMCPY>(fromTempAlloc, tempAlloc,
-                                                 Offset::UNKNOWN);
+        auto *cpy = PS.create<PSNodeType::MEMCPY>(fromTempAlloc, tempAlloc,
+                                                  Offset::UNKNOWN);
         seq.append(cpy);
         lastNode = cpy;
     }
@@ -392,18 +392,18 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
 
     // write the pointers to the temporary allocation representing
     // the operand of insertelement
-    auto ptr = getOperand(Inst->getOperand(1));
+    auto *ptr = getOperand(Inst->getOperand(1));
     auto idx = llvmutils::getConstantValue(Inst->getOperand(2));
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
-    auto Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
+    auto *Ty = llvm::cast<llvm::InsertElementInst>(Inst)->getType();
     auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0),
                                                 &M->getDataLayout());
     // also, set the size of the temporary allocation
     tempAlloc->setSize(llvmutils::getAllocatedSize(Ty, &M->getDataLayout()));
 
-    auto GEP = PS.create<PSNodeType::GEP>(tempAlloc, elemSize * idx);
-    auto S = PS.create<PSNodeType::STORE>(ptr, GEP);
+    auto *GEP = PS.create<PSNodeType::GEP>(tempAlloc, elemSize * idx);
+    auto *S = PS.create<PSNodeType::STORE>(ptr, GEP);
 
     seq.append(GEP);
     seq.append(S);
@@ -420,19 +420,19 @@ LLVMPointerGraphBuilder::createInsertElement(const llvm::Instruction *Inst) {
 
 LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createExtractElement(const llvm::Instruction *Inst) {
-    auto op = getOperand(Inst->getOperand(0));
+    auto *op = getOperand(Inst->getOperand(0));
     assert(op && "Do not have the operand 0");
 
     auto idx = llvmutils::getConstantValue(Inst->getOperand(1));
     assert(idx != ~((uint64_t) 0) && "Invalid index");
 
-    auto Ty =
+    auto *Ty =
             llvm::cast<llvm::ExtractElementInst>(Inst)->getVectorOperandType();
     auto elemSize = llvmutils::getAllocatedSize(Ty->getContainedType(0),
                                                 &M->getDataLayout());
 
-    auto GEP = PS.create<PSNodeType::GEP>(op, elemSize * idx);
-    auto L = PS.create<PSNodeType::LOAD>(GEP);
+    auto *GEP = PS.create<PSNodeType::GEP>(op, elemSize * idx);
+    auto *L = PS.create<PSNodeType::LOAD>(GEP);
 
     GEP->addSuccessor(L);
 
@@ -444,7 +444,7 @@ LLVMPointerGraphBuilder::PSNodesSeq &
 LLVMPointerGraphBuilder::createAtomicRMW(const llvm::Instruction *Inst) {
     using namespace llvm;
 
-    auto *RMW = dyn_cast<AtomicRMWInst>(Inst);
+    const auto *RMW = dyn_cast<AtomicRMWInst>(Inst);
     assert(RMW && "Wrong instruction");
 
     auto operation = RMW->getOperation();

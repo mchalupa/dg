@@ -31,14 +31,14 @@ inline bool intervalsDisjunctive(uint64_t a, uint64_t a_len, uint64_t b,
     if (a_len == Offset::UNKNOWN) {
         if (b_len == Offset::UNKNOWN) {
             return false;
-        } else {
-            // b_len is concrete and a_len is unknown
-            // use less or equal, because we are starting
-            // from 0 and the bytes are distinct (e.g. 4th byte
-            // is on offset 3)
-            return (a <= b) ? false : b_len <= a - b;
-        }
-    } else if (b_len == Offset::UNKNOWN) {
+        } // b_len is concrete and a_len is unknown
+        // use less or equal, because we are starting
+        // from 0 and the bytes are distinct (e.g. 4th byte
+        // is on offset 3)
+        return (a <= b) ? false : b_len <= a - b;
+
+    }
+    if (b_len == Offset::UNKNOWN) {
         return (a <= b) ? a_len <= b - a : false;
     }
 
@@ -83,9 +83,8 @@ struct GenericDefSite {
         // bytes
         if (offset.isUnknown()) {
             return Offset::UNKNOWN;
-        } else {
-            return offset + (len - 1);
         }
+        return offset + (len - 1);
     }
 
     std::pair<Offset, Offset> getInterval() const {
@@ -93,9 +92,8 @@ struct GenericDefSite {
         // bytes
         if (offset.isUnknown()) {
             return {0, Offset::UNKNOWN};
-        } else {
-            return {offset, offset + (len - 1)};
         }
+        return {offset, offset + (len - 1)};
     }
 
     // what memory this node defines
@@ -118,10 +116,10 @@ class DefSiteSet : public std::set<DefSite> {
         std::map<DefSite::NodeTy *, IntervalsList> lhssites;
         std::map<DefSite::NodeTy *, IntervalsList> rhssites;
 
-        for (auto &ds : *this) {
+        for (const auto &ds : *this) {
             lhssites[ds.target].add(ds.getInterval());
         }
-        for (auto &ds : rhs) {
+        for (const auto &ds : rhs) {
             rhssites[ds.target].add(ds.getInterval());
         }
 

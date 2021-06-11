@@ -1,5 +1,5 @@
-#ifndef _LLVM_DEF_USE_ANALYSIS_H_
-#define _LLVM_DEF_USE_ANALYSIS_H_
+#ifndef LLVM_DEF_USE_ANALYSIS_H_
+#define LLVM_DEF_USE_ANALYSIS_H_
 
 #include <vector>
 
@@ -38,7 +38,7 @@ class LLVMDefUseAnalysis : public legacy::DataFlowAnalysis<LLVMNode> {
     ~LLVMDefUseAnalysis() { delete DL; }
 
     /* virtual */
-    bool runOnNode(LLVMNode *node, LLVMNode *prev);
+    bool runOnNode(LLVMNode *node, LLVMNode *prev) override;
 
   private:
     void addDataDependencies(LLVMNode *node);
@@ -52,4 +52,4 @@ class LLVMDefUseAnalysis : public legacy::DataFlowAnalysis<LLVMNode> {
 
 } // namespace dg
 
-#endif //  _LLVM_DEF_USE_ANALYSIS_H_
+#endif //  LLVM_DEF_USE_ANALYSIS_H_

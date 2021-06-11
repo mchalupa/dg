@@ -6,6 +6,8 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_os_ostream.h>
+
+#include <utility>
 SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
@@ -60,10 +62,9 @@ class LLVMControlDependenceAnalysis {
     }
 
   public:
-    LLVMControlDependenceAnalysis(
-            const llvm::Module *module,
-            const LLVMControlDependenceAnalysisOptions &opts)
-            : _module(module), _options(opts) {
+    LLVMControlDependenceAnalysis(const llvm::Module *module,
+                                  LLVMControlDependenceAnalysisOptions opts)
+            : _module(module), _options(std::move(opts)) {
         initializeImpl();
     }
 

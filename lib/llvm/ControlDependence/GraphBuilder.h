@@ -32,11 +32,11 @@ class CDGraphBuilder {
         _mapping.reserve(F->size());
 
         // create nodes for blocks
-        for (auto &BB : *F) {
+        for (const auto &BB : *F) {
             auto it = _mapping.emplace(&BB, BBlock());
             BBlock &block = it.first->second;
             block.nodes.reserve(BB.size());
-            for (auto &I : BB) {
+            for (const auto &I : BB) {
                 auto &nd = graph.createNode();
                 _rev_mapping[&nd] = &I;
                 _nodes[&I] = &nd;
@@ -45,7 +45,7 @@ class CDGraphBuilder {
         }
 
         // add successor edges
-        for (auto &BB : *F) {
+        for (const auto &BB : *F) {
             auto &bblock = _mapping[&BB];
             CDNode *last = nullptr;
             // successors inside the block
@@ -54,16 +54,16 @@ class CDGraphBuilder {
                     graph.addNodeSuccessor(*last, *nd);
                 last = nd;
             }
-            assert(last || BB.size() == 0);
+            assert(last || BB.empty());
 
             if (!last)
                 continue;
 
             // successors between blocks
-            for (auto *bbsucc : successors(&BB)) {
+            for (const auto *bbsucc : successors(&BB)) {
                 auto &succblk = _mapping[bbsucc];
                 if (succblk.nodes.empty()) {
-                    assert(bbsucc->size() == 0);
+                    assert(bbsucc->empty());
                     continue;
                 }
 
@@ -88,7 +88,7 @@ class CDGraphBuilder {
         _rev_mapping.reserve(F->size() + _rev_mapping.size());
 
         // create nodes for blocks
-        for (auto &BB : *F) {
+        for (const auto &BB : *F) {
             auto &nd = graph.createNode();
             _mapping[&BB] = &nd;
             _nodes[&BB] = &nd;
@@ -96,11 +96,11 @@ class CDGraphBuilder {
         }
 
         // add successor edges
-        for (auto &BB : *F) {
+        for (const auto &BB : *F) {
             auto *nd = _mapping[&BB];
             assert(nd && "BUG: creating nodes for bblocks");
 
-            for (auto *bbsucc : successors(&BB)) {
+            for (const auto *bbsucc : successors(&BB)) {
                 auto *succ = _mapping[bbsucc];
                 assert(succ && "BUG: do not have a bblock created");
                 graph.addNodeSuccessor(*nd, *succ);

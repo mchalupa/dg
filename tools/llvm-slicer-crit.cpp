@@ -50,12 +50,40 @@ static inline bool isNumber(const std::string &s) {
     return true;
 }
 
-static bool usesTheVariable(LLVMDependenceGraph &dg, const llvm::Instruction &I,
-                            const std::string &var, bool isglobal = false) {
+static inline bool isTheVar(const llvm::Value *val, const std::string &var) {
+    auto name = valuesToVariables.find(val);
+    if (name != valuesToVariables.end()) {
+        if (name->second == var) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
+                            bool isglobal = false,
+                            LLVMPointerAnalysis *pta = nullptr) {
     if (!I.mayReadOrWriteMemory())
         return false;
 
-    auto memacc = dg.getPTA()->getAccessedMemory(&I);
+    if (!pta) {
+        // try basic cases that we can decide without PTA
+        using namespace llvm;
+        if (auto *S = dyn_cast<StoreInst>(&I)) {
+            auto *A = S->getPointerOperand()->stripPointerCasts();
+            if (isa<AllocaInst>(A) && !isTheVar(A, var)) {
+                return false;
+            }
+        } else if (auto *L = dyn_cast<LoadInst>(&I)) {
+            auto *A = L->getPointerOperand()->stripPointerCasts();
+            if (isa<AllocaInst>(A) && !isTheVar(A, var)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    auto memacc = pta->getAccessedMemory(&I);
     if (memacc.first) {
         // PTA has no information, it may be a definition of the variable,
         // we do not know
@@ -69,20 +97,59 @@ static bool usesTheVariable(LLVMDependenceGraph &dg, const llvm::Instruction &I,
             !llvm::isa<llvm::GlobalVariable>(region.pointer.value)) {
             continue;
         }
-        auto name = valuesToVariables.find(region.pointer.value);
-        if (name != valuesToVariables.end()) {
-            if (name->second == var) {
-                return true;
-            }
+        if (isTheVar(region.pointer.value, var)) {
+            return true;
         }
     }
 
     return false;
 }
 
-static bool instIsCallOf(LLVMDependenceGraph &dg, const llvm::Instruction &I,
-                         const std::string &name) {
-    auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
+static bool funHasAddrTaken(const llvm::Function *fun) {
+    using namespace llvm;
+
+    for (auto use_it = fun->use_begin(), use_end = fun->use_end();
+         use_it != use_end; ++use_it) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        Value *user = *use_it;
+#else
+        Value *user = use_it->getUser();
+#endif
+        if (auto *C = dyn_cast<CallInst>(user)) {
+            // FIXME: use getCalledOperand() and strip the casts
+            if (fun != C->getCalledFunction()) {
+                return true;
+            }
+        } else if (auto *S = dyn_cast<StoreInst>(user)) {
+            if (S->getValueOperand()->stripPointerCasts() == fun) {
+                return true;
+            } else {
+                llvm::errs() << "Unhandled function use: " << *user << "\n";
+                return true;
+            }
+            // FIXME: the function can be in a cast instruction that is just
+            // used in call,
+            //   we can detect that
+        } else {
+            llvm::errs() << "Unhandled function use: " << *user << "\n";
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool funHasAddrTaken(const llvm::Module *M, const std::string &name) {
+    const auto *fun = M->getFunction(name);
+    if (!fun) {
+        // the module does not have this function
+        return false;
+    }
+    return funHasAddrTaken(fun);
+}
+
+static bool instIsCallOf(const llvm::Instruction &I, const std::string &name,
+                         LLVMPointerAnalysis *pta = nullptr) {
+    const auto *C = llvm::dyn_cast<llvm::CallInst>(&I);
     if (!C)
         return false;
 
@@ -97,9 +164,15 @@ static bool instIsCallOf(LLVMDependenceGraph &dg, const llvm::Instruction &I,
     auto *V = C->getCalledValue()->stripPointerCasts();
 #endif
 
-    auto pts = dg.getPTA()->getLLVMPointsTo(V);
+    if (!pta) {
+        auto *M = I.getParent()->getParent()->getParent();
+        return funHasAddrTaken(M, name);
+    }
+
+    auto pts = pta->getLLVMPointsTo(V);
     if (pts.empty()) {
-        return true; // may be, we do not know...
+        auto *M = I.getParent()->getParent()->getParent();
+        return funHasAddrTaken(M, name);
     }
 
     for (const auto &ptr : pts) {
@@ -131,7 +204,7 @@ static bool fileMatch(const std::string &file, const llvm::GlobalVariable &G) {
     llvm::SmallVector<llvm::DIGlobalVariableExpression *, 2> GVs;
     G.getDebugInfo(GVs);
     bool has_match = false;
-    for (auto GV : GVs) {
+    for (auto *GV : GVs) {
         auto *var = GV->getVariable();
         if (var->getFile()->getFilename() == file) {
             has_match = true;
@@ -142,16 +215,16 @@ static bool fileMatch(const std::string &file, const llvm::GlobalVariable &G) {
 #endif
 }
 
-static bool instMatchesCrit(LLVMDependenceGraph &dg, const llvm::Instruction &I,
-                            const std::string &fun, unsigned line,
-                            const std::string &obj) {
+static bool instMatchesCrit(const llvm::Instruction &I, const std::string &fun,
+                            unsigned line, const std::string &obj,
+                            LLVMPointerAnalysis *pta = nullptr) {
     // function match?
-    if (fun != "" && I.getParent()->getParent()->getName().str() != fun)
+    if (!fun.empty() && I.getParent()->getParent()->getName().str() != fun)
         return false;
 
     // line match?
     if (line > 0) {
-        auto &Loc = I.getDebugLoc();
+        const auto &Loc = I.getDebugLoc();
 #if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
         if (Loc.getLine() != line)
 #else
@@ -162,7 +235,7 @@ static bool instMatchesCrit(LLVMDependenceGraph &dg, const llvm::Instruction &I,
         }
     }
 
-    if (obj == "") {
+    if (obj.empty()) {
         // we passed the line check and we have no obj to check
         return true;
     }
@@ -198,11 +271,11 @@ static bool instMatchesCrit(LLVMDependenceGraph &dg, const llvm::Instruction &I,
     }
 
     // obj match?
-    if (!isvar && instIsCallOf(dg, I, objname)) {
+    if (!isvar && instIsCallOf(I, objname, pta)) {
         return true;
     } // else fall through to check the vars
 
-    if (!isfunc && usesTheVariable(dg, I, objname, isglobal)) {
+    if (!isfunc && usesTheVariable(I, objname, isglobal, pta)) {
         return true;
     }
 
@@ -222,7 +295,7 @@ static bool globalMatchesCrit(const llvm::GlobalVariable &G, unsigned line,
         llvm::SmallVector<llvm::DIGlobalVariableExpression *, 2> GVs;
         G.getDebugInfo(GVs);
         bool has_match = false;
-        for (auto GV : GVs) {
+        for (auto *GV : GVs) {
             auto *var = GV->getVariable();
             if (var->getLine() == line) {
                 has_match = true;
@@ -256,7 +329,7 @@ static unsigned parseLine(const std::vector<std::string> &parts) {
     assert(idx == 0 || idx <= 2);
     assert(idx < parts.size());
 
-    if (parts[idx] == "" || parts[idx] == "*")
+    if (parts[idx].empty() || parts[idx] == "*")
         return 0; // any line
 
     // will we support multiple lines separated by comma?
@@ -290,13 +363,14 @@ static std::string parseObj(const std::vector<std::string> &parts) {
     return parts[parts.size() - 1];
 }
 
-static void getCriteriaInstructions(LLVMDependenceGraph &dg,
+static void getCriteriaInstructions(llvm::Module &M, LLVMPointerAnalysis *pta,
                                     const std::string &criterion,
-                                    std::set<const llvm::Value *> &result) {
+                                    std::set<const llvm::Value *> &result,
+                                    bool constructed_only = false) {
     assert(!criterion.empty() && "No criteria given");
 
     auto parts = splitList(criterion, '#');
-    if (parts.size() > 4 || parts.size() < 1) {
+    if (parts.size() > 4 || parts.empty()) {
         llvm::errs() << "WARNING: ignoring invalid slicing criterion: "
                      << criterion << "\n";
         return;
@@ -307,16 +381,21 @@ static void getCriteriaInstructions(LLVMDependenceGraph &dg,
     auto obj = parseObj(parts);
     auto file = parseFile(parts);
 
-    if (fun != "" && obj == "" && line == 0) {
+    DBG(llvm - slicer, "Criterion file # fun # line # obj ==> "
+                               << file << " # " << fun << " # " << line << " # "
+                               << obj);
+
+    if (!fun.empty() && obj.empty() && line == 0) {
         llvm::errs() << "WARNING: ignoring invalid slicing criterion: "
                      << criterion << "\n";
         return;
     }
 
     // try match globals
-    if (fun == "") {
-        for (auto &G : dg.getModule()->globals()) {
-            if (file != "" && !fileMatch(file, G))
+    DBG(llvm - slicer, "Checking global variables for slicing criteria");
+    if (fun.empty()) {
+        for (auto &G : M.globals()) {
+            if (!file.empty() && !fileMatch(file, G))
                 continue;
             if (globalMatchesCrit(G, line, obj)) {
                 result.insert(&G);
@@ -324,15 +403,32 @@ static void getCriteriaInstructions(LLVMDependenceGraph &dg,
         }
     }
 
-    // map line criteria to nodes
-    for (auto &it : getConstructedFunctions()) {
-        for (auto &I :
-             llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
-            if (file != "" && !fileMatch(file, I))
-                continue;
+    if (constructed_only) {
+        DBG(llvm - slicer,
+            "Checking constructed functions for slicing criteria");
 
-            if (instMatchesCrit(dg, I, fun, line, obj)) {
-                result.insert(&I);
+        for (auto &it : getConstructedFunctions()) {
+            for (auto &I :
+                 llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
+                if (!file.empty() && !fileMatch(file, I))
+                    continue;
+
+                if (instMatchesCrit(I, fun, line, obj, pta)) {
+                    result.insert(&I);
+                }
+            }
+        }
+    } else {
+        DBG(llvm - slicer, "Checking all instructions for slicing criteria");
+
+        for (auto &F : M) {
+            for (auto &I : llvm::instructions(F)) {
+                if (file != "" && !fileMatch(file, I))
+                    continue;
+
+                if (instMatchesCrit(I, fun, line, obj, pta)) {
+                    result.insert(&I);
+                }
             }
         }
     }
@@ -350,7 +446,7 @@ static std::set<const llvm::Value *>
 mapToNextInstr(const std::set<const ::llvm::Value *> &vals) {
     std::set<const llvm::Value *> newset;
     for (const auto *val : vals) {
-        auto *I = llvm::dyn_cast<llvm::Instruction>(val);
+        const auto *I = llvm::dyn_cast<llvm::Instruction>(val);
         I = I ? I->getNextNode() : nullptr;
         if (!I) {
             llvm::errs() << "WARNING: unable to get next instr for " << *val
@@ -379,16 +475,16 @@ static void initDebugInfo(LLVMDependenceGraph &dg) {
                     "not work well\n";
 #endif
     // create the mapping from LLVM values to C variable names
-    for (auto &it : getConstructedFunctions()) {
+    for (const auto &it : getConstructedFunctions()) {
         for (auto &I :
              llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
             if (const llvm::DbgDeclareInst *DD =
                         llvm::dyn_cast<llvm::DbgDeclareInst>(&I)) {
-                auto val = DD->getAddress();
+                auto *val = DD->getAddress();
                 valuesToVariables[val] = DD->getVariable()->getName().str();
             } else if (const llvm::DbgValueInst *DV =
                                llvm::dyn_cast<llvm::DbgValueInst>(&I)) {
-                auto val = DV->getValue();
+                auto *val = DV->getValue();
                 valuesToVariables[val] = DV->getVariable()->getName().str();
             }
         }
@@ -409,10 +505,13 @@ static void initDebugInfo(LLVMDependenceGraph &dg) {
 #endif // LLVM > 3.6
 }
 
-static std::vector<SlicingCriteriaSet>
-getSlicingCriteriaInstructions(LLVMDependenceGraph &dg,
-                               const std::string &slicingCriteria,
-                               bool criteria_are_next_instr) {
+///
+/// constructed_only  Search the criteria in DG's constructed functions
+///
+static std::vector<SlicingCriteriaSet> getSlicingCriteriaInstructions(
+        llvm::Module &M, const std::string &slicingCriteria,
+        bool criteria_are_next_instr, LLVMPointerAnalysis *pta = nullptr,
+        bool constructed_only = false) {
     std::vector<std::string> criteria = splitList(slicingCriteria, ';');
     assert(!criteria.empty() && "Did not get slicing criteria");
 
@@ -421,7 +520,7 @@ getSlicingCriteriaInstructions(LLVMDependenceGraph &dg,
 
     // map the criteria to instructions
     for (const auto &crit : criteria) {
-        if (crit == "")
+        if (crit.empty())
             continue;
 
         result.emplace_back();
@@ -438,12 +537,13 @@ getSlicingCriteriaInstructions(LLVMDependenceGraph &dg,
         // be added to every primary SC
         bool ssctoall = primsec[0].empty() && primsec.size() > 1;
         if (!primsec[0].empty()) {
-            getCriteriaInstructions(dg, primsec[0], SC.primary);
+            getCriteriaInstructions(M, pta, primsec[0], SC.primary,
+                                    constructed_only);
         }
 
         if (!SC.primary.empty()) {
             llvm::errs() << "SC: Matched '" << primsec[0] << "' to: \n";
-            for (auto *val : SC.primary) {
+            for (const auto *val : SC.primary) {
                 llvm::errs() << "  " << *val << "\n";
             }
 
@@ -454,19 +554,20 @@ getSlicingCriteriaInstructions(LLVMDependenceGraph &dg,
                 auto newset = mapToNextInstr(SC.primary);
                 SC.primary.swap(newset);
 
-                for (auto *val : SC.primary) {
+                for (const auto *val : SC.primary) {
                     llvm::errs() << "  SC (next): " << *val << "\n";
                 }
             }
         }
 
         if ((!SC.primary.empty() || ssctoall) && primsec.size() > 1) {
-            getCriteriaInstructions(dg, primsec[1], SC.secondary);
+            getCriteriaInstructions(M, pta, primsec[1], SC.secondary,
+                                    constructed_only);
 
             if (!SC.secondary.empty()) {
                 llvm::errs() << "SC: Matched '" << primsec[1]
                              << "' (secondary) to: \n";
-                for (auto *val : SC.secondary) {
+                for (const auto *val : SC.secondary) {
                     llvm::errs() << "  " << *val << "\n";
                 }
             }
@@ -491,13 +592,13 @@ getSlicingCriteriaInstructions(LLVMDependenceGraph &dg,
 void mapInstrsToNodes(LLVMDependenceGraph &dg,
                       const std::set<const llvm::Value *> &vals,
                       std::set<LLVMNode *> &result) {
-    auto &funs = getConstructedFunctions();
-    for (auto *val : vals) {
+    const auto &funs = getConstructedFunctions();
+    for (const auto *val : vals) {
         if (llvm::isa<llvm::GlobalVariable>(val)) {
             auto *G = dg.getGlobalNode(const_cast<llvm::Value *>(val));
             assert(G);
             result.insert(G);
-        } else if (auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
+        } else if (const auto *I = llvm::dyn_cast<llvm::Instruction>(val)) {
             auto *fun =
                     const_cast<llvm::Function *>(I->getParent()->getParent());
             auto it = funs.find(fun);
@@ -533,7 +634,7 @@ void processBlock(LLVMDependenceGraph &dg, const llvm::BasicBlock *block,
                   const std::set<const llvm::Value *> &secondary,
                   std::set<const llvm::Value *> &result,
                   const llvm::Instruction *till = nullptr) {
-    for (auto &I : *block) {
+    for (const auto &I : *block) {
         if (till == &I)
             break;
 
@@ -541,10 +642,10 @@ void processBlock(LLVMDependenceGraph &dg, const llvm::BasicBlock *block,
             result.insert(&I);
         }
 
-        if (auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
+        if (const auto *C = llvm::dyn_cast<llvm::CallInst>(&I)) {
             // queue ret blocks from the called functions
-            for (auto *fun : getCalledFunctions(dg, C)) {
-                for (auto &blk : *fun) {
+            for (const auto *fun : getCalledFunctions(dg, C)) {
+                for (const auto &blk : *fun) {
                     if (llvm::isa<llvm::ReturnInst>(blk.getTerminator())) {
                         if (visited.insert(&blk).second)
                             queue.push(&blk);
@@ -561,22 +662,21 @@ findSecondarySlicingCriteria(LLVMDependenceGraph &dg,
                              const std::set<const llvm::Value *> &primary,
                              const std::set<const llvm::Value *> &secondary) {
     std::set<const llvm::Value *> result;
-
     std::set<const llvm::BasicBlock *> visited;
     ADT::QueueLIFO<const llvm::BasicBlock *> queue;
-    for (auto *c : primary) {
-        auto *I = llvm::dyn_cast<llvm::Instruction>(c);
+
+    for (const auto *c : primary) {
+        const auto *I = llvm::dyn_cast<llvm::Instruction>(c);
         // the criterion instr may be a global variable and in that
         // case it has no basic block (but also no predecessors,
         // so we can skip it)
         if (!I)
             continue;
 
-        // FIXME: don't fuck with the type system... rewrite the whole code...
         processBlock(dg, I->getParent(), visited, queue, secondary, result, I);
 
         // queue local predecessors
-        for (auto *pred : llvm::predecessors(I->getParent())) {
+        for (const auto *pred : llvm::predecessors(I->getParent())) {
             if (visited.insert(pred).second)
                 queue.push(pred);
         }
@@ -584,12 +684,12 @@ findSecondarySlicingCriteria(LLVMDependenceGraph &dg,
 
     // get basic blocks
     while (!queue.empty()) {
-        auto *cur = queue.pop();
+        const auto *cur = queue.pop();
 
         processBlock(dg, cur, visited, queue, secondary, result);
 
         // queue local predecessors
-        for (auto pred : llvm::predecessors(cur)) {
+        for (const auto *pred : llvm::predecessors(cur)) {
             if (visited.insert(pred).second)
                 queue.push(pred);
         }
@@ -604,8 +704,10 @@ bool getSlicingCriteriaNodes(LLVMDependenceGraph &dg,
                              bool criteria_are_next_instr) {
     initDebugInfo(dg);
 
-    auto crits = getSlicingCriteriaInstructions(dg, slicingCriteria,
-                                                criteria_are_next_instr);
+    auto crits =
+            getSlicingCriteriaInstructions(*dg.getModule(), slicingCriteria,
+                                           criteria_are_next_instr, dg.getPTA(),
+                                           /* constructed only */ true);
     if (crits.empty()) {
         return true; // no criteria found
     }
@@ -633,7 +735,7 @@ static bool
 instMatchesCrit(LLVMDependenceGraph &dg, const llvm::Instruction &I,
                 const std::vector<std::pair<int, std::string>> &parsedCrit) {
     for (const auto &c : parsedCrit) {
-        auto &Loc = I.getDebugLoc();
+        const auto &Loc = I.getDebugLoc();
 #if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
         if (Loc.getLine() <= 0) {
 #else
@@ -645,14 +747,14 @@ instMatchesCrit(LLVMDependenceGraph &dg, const llvm::Instruction &I,
         if (static_cast<int>(Loc.getLine()) != c.first)
             continue;
 
-        if (instIsCallOf(dg, I, c.second)) {
+        if (instIsCallOf(I, c.second, dg.getPTA())) {
             llvm::errs() << "Matched line " << c.first << " with call of "
                          << c.second << " to:\n"
                          << I << "\n";
             return true;
         } // else fall through to check the vars
 
-        if (usesTheVariable(dg, I, c.second)) {
+        if (usesTheVariable(I, c.second, dg.getPTA())) {
             llvm::errs() << "Matched line " << c.first << " with variable "
                          << c.second << " to:\n"
                          << I << "\n";
@@ -723,7 +825,7 @@ static void getLineCriteriaNodes(LLVMDependenceGraph &dg,
     }
 
     // map line criteria to nodes
-    for (auto &it : getConstructedFunctions()) {
+    for (const auto &it : getConstructedFunctions()) {
         for (auto &I :
              llvm::instructions(*llvm::cast<llvm::Function>(it.first))) {
             if (instMatchesCrit(dg, I, parsedCrit)) {
@@ -736,7 +838,8 @@ static void getLineCriteriaNodes(LLVMDependenceGraph &dg,
 }
 
 static std::set<LLVMNode *>
-_mapToNextInstr(LLVMDependenceGraph &, const std::set<LLVMNode *> &callsites) {
+_mapToNextInstr(LLVMDependenceGraph & /*unused*/,
+                const std::set<LLVMNode *> &callsites) {
     std::set<LLVMNode *> nodes;
 
     for (LLVMNode *cs : callsites) {
@@ -850,17 +953,15 @@ static bool isCallTo(LLVMNode *callNode, const std::set<std::string> &names) {
             return false;
 
         return array_match(func->getName(), names);
-    } else {
-        // simply iterate over the subgraphs, get the entry node
-        // and check it
-        for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
-            LLVMNode *entry = dg->getEntry();
-            assert(entry && "No entry node in graph");
+    } // simply iterate over the subgraphs, get the entry node
+    // and check it
+    for (LLVMDependenceGraph *dg : callNode->getSubgraphs()) {
+        LLVMNode *entry = dg->getEntry();
+        assert(entry && "No entry node in graph");
 
-            const Function *func =
-                    cast<Function>(entry->getValue()->stripPointerCasts());
-            return array_match(func->getName(), names);
-        }
+        const Function *func =
+                cast<Function>(entry->getValue()->stripPointerCasts());
+        return array_match(func->getName(), names);
     }
 
     return false;
@@ -891,7 +992,7 @@ static bool findSecondarySlicingCriteria(
     std::set<LLVMBBlock *> visited;
     ADT::QueueLIFO<LLVMBBlock *> queue;
     auto tmp = criteria_nodes;
-    for (auto &c : tmp) {
+    for (const auto &c : tmp) {
         // the criteria may be a global variable and in that
         // case it has no basic block (but also no predecessors,
         // so we can skip it)
@@ -901,14 +1002,14 @@ static bool findSecondarySlicingCriteria(
         queue.push(c->getBBlock());
         visited.insert(c->getBBlock());
 
-        for (auto nd : c->getBBlock()->getNodes()) {
+        for (auto *nd : c->getBBlock()->getNodes()) {
             if (nd == c)
                 break;
 
             if (nd->hasSubgraphs()) {
                 // we search interprocedurally
-                for (auto dg : nd->getSubgraphs()) {
-                    auto exit = dg->getExitBB();
+                for (auto *dg : nd->getSubgraphs()) {
+                    auto *exit = dg->getExitBB();
                     assert(exit && "No exit BB in a graph");
                     if (visited.insert(exit).second)
                         queue.push(exit);
@@ -922,13 +1023,13 @@ static bool findSecondarySlicingCriteria(
 
     // get basic blocks
     while (!queue.empty()) {
-        auto cur = queue.pop();
-        for (auto pred : cur->predecessors()) {
-            for (auto nd : pred->getNodes()) {
+        auto *cur = queue.pop();
+        for (auto *pred : cur->predecessors()) {
+            for (auto *nd : pred->getNodes()) {
                 if (nd->hasSubgraphs()) {
                     // we search interprocedurally
-                    for (auto dg : nd->getSubgraphs()) {
-                        auto exit = dg->getExitBB();
+                    for (auto *dg : nd->getSubgraphs()) {
+                        auto *exit = dg->getExitBB();
                         assert(exit && "No exit BB in a graph");
                         if (visited.insert(exit).second)
                             queue.push(exit);
@@ -996,4 +1097,48 @@ bool getSlicingCriteriaNodes(LLVMDependenceGraph &dg,
     }
 
     return true;
+}
+
+std::vector<const llvm::Value *>
+getSlicingCriteriaValues(llvm::Module &M, const std::string &slicingCriteria,
+                         const std::string &legacySlicingCriteria,
+                         const std::string &legacySecondaryCriteria,
+                         bool criteria_are_next_instr) {
+    std::string criteria = slicingCriteria;
+    if (legacySlicingCriteria != "") {
+        if (slicingCriteria != "")
+            criteria += ";";
+
+        auto parts = splitList(legacySlicingCriteria, ':');
+        if (parts.size() == 2) {
+            if (legacySecondaryCriteria != "") {
+                criteria += ";" + parts[0] + "#" + parts[1] + "|" +
+                            legacySecondaryCriteria + "()";
+            } else {
+                criteria += parts[0] + "#" + parts[1];
+            }
+        } else if (parts.size() == 1) {
+            if (legacySecondaryCriteria != "") {
+                criteria += ";" + legacySlicingCriteria + "()|" +
+                            legacySecondaryCriteria + "()";
+            } else {
+                criteria += legacySlicingCriteria + "()";
+            }
+        } else {
+            llvm::errs() << "Unsupported criteria: " << legacySlicingCriteria
+                         << "\n";
+            return {};
+        }
+    }
+
+    std::vector<const llvm::Value *> ret;
+    auto C = getSlicingCriteriaInstructions(
+            M, criteria, criteria_are_next_instr,
+            /*pta = */ nullptr, /* constructed only */ false);
+    for (auto &critset : C) {
+        ret.insert(ret.end(), critset.primary.begin(), critset.primary.end());
+        ret.insert(ret.end(), critset.secondary.begin(),
+                   critset.secondary.end());
+    }
+    return ret;
 }

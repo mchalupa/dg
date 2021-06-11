@@ -1,5 +1,5 @@
-#ifndef _DG_PARAMETERS_H_
-#define _DG_PARAMETERS_H_
+#ifndef DG_PARAMETERS_H_
+#define DG_PARAMETERS_H_
 
 #include <map>
 #include <memory>
@@ -80,16 +80,16 @@ class DGParameters {
 
     template <typename... Args>
     std::pair<NodeT *, NodeT *> construct(KeyT k, Args... args) {
-        auto in = new NodeT(args...);
-        auto out = new NodeT(args...);
+        auto *in = new NodeT(args...);
+        auto *out = new NodeT(args...);
         add(k, in, out, &params);
         return {in, out};
     }
 
     template <typename... Args>
     std::pair<NodeT *, NodeT *> constructGlobal(KeyT k, Args... args) {
-        auto in = new NodeT(args...);
-        auto out = new NodeT(args...);
+        auto *in = new NodeT(args...);
+        auto *out = new NodeT(args...);
         add(k, in, out, &globals);
         return {in, out};
     }
@@ -145,10 +145,10 @@ class DGParameters {
     size_t globalsNum() const { return globals.size(); }
     size_t size() const { return params.size() + globals.size(); }
 
-    iterator begin(void) { return params.begin(); }
-    const_iterator begin(void) const { return params.begin(); }
-    iterator end(void) { return params.end(); }
-    const_iterator end(void) const { return params.end(); }
+    iterator begin() { return params.begin(); }
+    const_iterator begin() const { return params.begin(); }
+    iterator end() { return params.end(); }
+    const_iterator end() const { return params.end(); }
 
     iterator global_begin() { return globals.begin(); }
     const_iterator global_begin() const { return globals.begin(); }
@@ -223,4 +223,4 @@ class DGParameters {
 
 } // namespace dg
 
-#endif // _DG_PARAMETERS_H_
+#endif // DG_PARAMETERS_H_

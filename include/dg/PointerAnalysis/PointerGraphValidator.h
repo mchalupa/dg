@@ -32,7 +32,7 @@ class PointerGraphValidator {
                                   const std::string &user_err = "");
     virtual bool reportInvalNode(const PSNode *n,
                                  const std::string &user_err = "");
-    virtual bool reportUnreachableNode(const PSNode *);
+    virtual bool reportUnreachableNode(const PSNode * /*nd*/);
 
     virtual bool warn(const PSNode *n, const std::string &warning);
 

@@ -1,5 +1,8 @@
-#ifndef _LLVM_DG_POINTS_TO_ANALYSIS_H_
-#define _LLVM_DG_POINTS_TO_ANALYSIS_H_
+#ifndef LLVM_DG_POINTS_TO_ANALYSIS_H_
+#define LLVM_DG_POINTS_TO_ANALYSIS_H_
+
+#include <memory>
+#include <utility>
 
 #include <dg/util/SilenceLLVMWarnings.h>
 SILENCE_LLVM_WARNINGS_PUSH
@@ -33,8 +36,8 @@ class LLVMPointerAnalysis {
   protected:
     const LLVMPointerAnalysisOptions options{};
 
-    LLVMPointerAnalysis(const LLVMPointerAnalysisOptions &opts)
-            : options(opts){};
+    LLVMPointerAnalysis(LLVMPointerAnalysisOptions opts)
+            : options(std::move(opts)){};
 
   public:
     const LLVMPointerAnalysisOptions &getOptions() const { return options; }
@@ -108,7 +111,8 @@ class DGLLVMPointerAnalysisImpl : public PTType {
                 if (F->getName() == "pthread_create") {
                     builder->insertPthreadCreateByPtrCall(callsite);
                     return true;
-                } else if (F->getName() == "pthread_join") {
+                }
+                if (F->getName() == "pthread_join") {
                     builder->insertPthreadJoinByPtrCall(callsite);
                     return true;
                 }
@@ -176,9 +180,9 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     std::unique_ptr<pta::PointerAnalysis> PTA{}; // dg pointer analysis object
     std::unique_ptr<LLVMPointerGraphBuilder> _builder;
 
-    LLVMPointerAnalysisOptions createOptions(const char *entry_func,
-                                             uint64_t field_sensitivity,
-                                             bool threads = false) {
+    static LLVMPointerAnalysisOptions createOptions(const char *entry_func,
+                                                    uint64_t field_sensitivity,
+                                                    bool threads = false) {
         LLVMPointerAnalysisOptions opts;
         opts.threads = threads;
         opts.setFieldSensitivity(field_sensitivity);
@@ -186,7 +190,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
         return opts;
     }
 
-    const PointsToSetT &getUnknownPTSet() const {
+    static const PointsToSetT &getUnknownPTSet() {
         static const PointsToSetT _unknownPTSet =
                 PointsToSetT({Pointer{pta::UNKNOWN_MEMORY, 0}});
         return _unknownPTSet;
@@ -219,7 +223,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     bool threads() const { return _builder->threads(); }
 
     bool hasPointsTo(const llvm::Value *val) override {
-        if (auto node = getPointsToNode(val)) {
+        if (auto *node = getPointsToNode(val)) {
             return !node->pointsTo.empty();
         }
         return false;
@@ -234,7 +238,7 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     // LLVM value contains unknown element of null.
     LLVMPointsToSet getLLVMPointsTo(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
-        if (auto node = getPointsToNode(val)) {
+        if (auto *node = getPointsToNode(val)) {
             if (node->pointsTo.empty()) {
                 pts = new DGLLVMPointsToSet(getUnknownPTSet());
             } else {
@@ -254,18 +258,17 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
     std::pair<bool, LLVMPointsToSet>
     getLLVMPointsToChecked(const llvm::Value *val) override {
         DGLLVMPointsToSet *pts;
-        if (auto node = getPointsToNode(val)) {
+        if (auto *node = getPointsToNode(val)) {
             if (node->pointsTo.empty()) {
                 pts = new DGLLVMPointsToSet(getUnknownPTSet());
                 return {false, pts->toLLVMPointsToSet()};
-            } else {
-                pts = new DGLLVMPointsToSet(node->pointsTo);
-                return {true, pts->toLLVMPointsToSet()};
             }
-        } else {
-            pts = new DGLLVMPointsToSet(getUnknownPTSet());
-            return {false, pts->toLLVMPointsToSet()};
+            pts = new DGLLVMPointsToSet(node->pointsTo);
+            return {true, pts->toLLVMPointsToSet()};
+
         }
+        pts = new DGLLVMPointsToSet(getUnknownPTSet());
+        return {false, pts->toLLVMPointsToSet()};
     }
 
     const std::vector<std::unique_ptr<PSNode>> &getNodes() {
@@ -339,7 +342,7 @@ inline std::vector<const llvm::Function *>
 getCalledFunctions(const llvm::Value *calledValue, LLVMPointerAnalysis *PTA) {
     std::vector<const llvm::Function *> functions;
     for (const auto &llvmptr : PTA->getLLVMPointsTo(calledValue)) {
-        if (const auto F = llvm::dyn_cast<llvm::Function>(llvmptr.value)) {
+        if (auto *const F = llvm::dyn_cast<llvm::Function>(llvmptr.value)) {
             functions.push_back(F);
         }
     }
@@ -348,4 +351,4 @@ getCalledFunctions(const llvm::Value *calledValue, LLVMPointerAnalysis *PTA) {
 
 } // namespace dg
 
-#endif // _LLVM_DG_POINTS_TO_ANALYSIS_H_
+#endif // LLVM_DG_POINTS_TO_ANALYSIS_H_

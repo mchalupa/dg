@@ -1,5 +1,5 @@
-#ifndef _DG_TOOL_LLVM_SLICER_H_
-#define _DG_TOOL_LLVM_SLICER_H_
+#ifndef DG_TOOL_LLVM_SLICER_H_
+#define DG_TOOL_LLVM_SLICER_H_
 
 #include <ctime>
 #include <fstream>
@@ -63,6 +63,7 @@ class Slicer {
 
     dg::llvmdg::LLVMSlicer slicer;
     uint32_t slice_id = 0;
+    const uint32_t _default_slice_id = 0xdead;
     bool _computed_deps{false};
 
   public:
@@ -71,8 +72,8 @@ class Slicer {
         assert(mod && "Need module");
     }
 
-    const dg::LLVMDependenceGraph &getDG() const { return *_dg.get(); }
-    dg::LLVMDependenceGraph &getDG() { return *_dg.get(); }
+    const dg::LLVMDependenceGraph &getDG() const { return *_dg; }
+    dg::LLVMDependenceGraph &getDG() { return *_dg; }
 
     const SlicerOptions &getOptions() const { return _options; }
 
@@ -138,10 +139,10 @@ class Slicer {
 
         _dg->getCallSites(_options.additionalSlicingCriteria, &criteria_nodes);
 
-        for (auto &funcName : _options.preservedFunctions)
+        for (const auto &funcName : _options.preservedFunctions)
             slicer.keepFunctionUntouched(funcName.c_str());
 
-        slice_id = 0xdead;
+        slice_id = _default_slice_id;
 
         tm.start();
         for (dg::LLVMNode *start : criteria_nodes)
@@ -208,7 +209,7 @@ class Slicer {
         }
 
         assert(main_func && "Do not have the main func");
-        assert(main_func->size() == 0 && "The main func is not empty");
+        assert(main_func->empty() && "The main func is not empty");
 
         // create new function body
         llvm::BasicBlock *blk =
@@ -253,8 +254,7 @@ class ModuleWriter {
     int saveModule(bool should_verify_module = true) {
         if (should_verify_module)
             return verifyAndWriteModule();
-        else
-            return writeModule();
+        return writeModule();
     }
 
     void removeUnusedFromModule() {
@@ -278,7 +278,7 @@ class ModuleWriter {
 
         // iterate over all functions in module
         for (auto &F : *M) {
-            if (F.size() == 0) {
+            if (F.empty()) {
                 // this will make sure that the linkage has right type
                 F.deleteBody();
             }
@@ -356,8 +356,8 @@ class ModuleWriter {
         std::set<GlobalVariable *> globals;
         std::set<GlobalAlias *> aliases;
 
-        for (auto I = M->begin(), E = M->end(); I != E; ++I) {
-            Function *func = &*I;
+        for (auto &I : *M) {
+            Function *func = &I;
             if (array_match(func->getName(), keep))
                 continue;
 
@@ -426,8 +426,7 @@ class DGDumper {
 };
 
 namespace {
-static inline std::string
-undefFunsBehaviorToStr(dg::dda::UndefinedFunsBehavior b) {
+inline std::string undefFunsBehaviorToStr(dg::dda::UndefinedFunsBehavior b) {
     using namespace dg::dda;
     if (b == PURE)
         return "pure";
@@ -528,7 +527,7 @@ class ModuleAnnotator {
 
         llvm::errs() << "[llvm-slicer] Saving IR with annotations to " << fl
                      << "\n";
-        auto annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(
+        auto *annot = new dg::debug::LLVMDGAssemblyAnnotationWriter(
                 annotationOptions, dg->getPTA(), dg->getDDA(), criteria);
         annot->emitModuleComment(std::move(module_comment));
         llvm::Module *M = dg->getModule();
@@ -538,4 +537,4 @@ class ModuleAnnotator {
     }
 };
 
-#endif // _DG_TOOL_LLVM_SLICER_H_
+#endif // DG_TOOL_LLVM_SLICER_H_
