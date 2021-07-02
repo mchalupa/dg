@@ -21,7 +21,7 @@ jobs:
       - name: Checkout SVF
         uses: actions/checkout@v2
         with:
-          ref: SVF-2.1
+          ref: SVF-2.2
           repository: SVF-tools/SVF
           path: svf
 
