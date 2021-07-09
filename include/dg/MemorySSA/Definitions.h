@@ -27,26 +27,17 @@ struct Definitions {
 
     // writes to unknown memory in this block
     std::vector<RWNode *> unknownWrites;
-    // just a cache
-    std::vector<RWNode *> unknownReads;
 
     void swap(Definitions &rhs) {
         definitions.swap(rhs.definitions);
         kills.swap(rhs.kills);
         unknownWrites.swap(rhs.unknownWrites);
-        unknownReads.swap(rhs.unknownReads);
     }
 
     void addUnknownWrite(RWNode *n) { unknownWrites.push_back(n); }
 
-    void addUnknownRead(RWNode *n) { unknownReads.push_back(n); }
-
     const std::vector<RWNode *> &getUnknownWrites() const {
         return unknownWrites;
-    }
-
-    const std::vector<RWNode *> &getUnknownReads() const {
-        return unknownReads;
     }
 
     ///

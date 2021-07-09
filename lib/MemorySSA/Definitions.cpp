@@ -48,11 +48,6 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
         kills.add(ds, defnode);
         definitions.update(ds, defnode);
     }
-
-    // gather unknown uses
-    if (node->usesUnknown()) {
-        addUnknownRead(defnode);
-    }
 }
 
 void Definitions::join(const Definitions &rhs) {
@@ -60,8 +55,6 @@ void Definitions::join(const Definitions &rhs) {
     kills = kills.intersect(rhs.kills);
     unknownWrites.insert(unknownWrites.end(), rhs.unknownWrites.begin(),
                          rhs.unknownWrites.end());
-    unknownReads.insert(unknownReads.end(), rhs.unknownReads.begin(),
-                        rhs.unknownReads.end());
 }
 
 #ifndef NDEBUG
@@ -71,10 +64,6 @@ void Definitions::dump() const {
     definitions.dump();
     std::cout << " -- kills -- \n";
     kills.dump();
-    std::cout << " -- unknown reads -- \n";
-    for (auto *nd : unknownReads) {
-        std::cout << nd->getID() << " ";
-    }
     std::cout << "\n";
     std::cout << " -- unknown writes -- \n";
     for (auto *nd : unknownWrites) {
