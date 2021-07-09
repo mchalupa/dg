@@ -27,10 +27,11 @@ void Definitions::update(RWNode *node, RWNode *defnode) {
     // possible definitions
     for (const auto &ds : node->getDefines()) {
         if (ds.target->isUnknown()) {
-            // this makes all lastDefs into possibleDefs,
-            // since we do not know if it was defined here or there
-            // also add the definition as a proper target for Gvn
+            // add the definition to every known set of definitions
+            // that we have so far
             definitions.addAll(defnode);
+            // add the definition also as a proper target for Gvn,
+            // since the previous step is not enough
             addUnknownWrite(defnode);
         } else {
             definitions.add(ds, defnode);
