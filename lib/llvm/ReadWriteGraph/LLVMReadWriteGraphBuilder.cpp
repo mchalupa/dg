@@ -37,7 +37,11 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const ValInfo &vi) {
     using namespace llvm;
 
     if (const auto *I = dyn_cast<Instruction>(vi.v)) {
-        os << I->getParent()->getParent()->getName() << ":: " << *I;
+        os << I->getParent()->getParent()->getName();
+        if (auto& DL = I->getDebugLoc()) {
+            os << " (line " << DL.getLine() << ", col" << DL.getCol() << ")";
+        }
+        os << " :: " <<  *I;
     } else if (const auto *A = dyn_cast<Argument>(vi.v)) {
         os << A->getParent()->getParent()->getName() << ":: (arg) " << *A;
     } else if (const auto *F = dyn_cast<Function>(vi.v)) {
