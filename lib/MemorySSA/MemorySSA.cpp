@@ -292,7 +292,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
     // search the definitions that we have not found yet
     for (auto &subginterval : summary.getUncoveredOutputs(ds)) {
         // we must create a new phi for each subgraph inside the subgraph
-        // (these phis will be merged by the single 'phi'.
+        // (these phis will be merged by the single 'phi').
         // Of course, we create them only when not already present.
         auto subgds =
                 DefSite{ds.target, subginterval.start, subginterval.length()};
@@ -311,7 +311,7 @@ void MemorySSATransformation::findDefinitionsInSubgraph(RWNode *phi,
                 }
                 phi->addDefUse(subgphi);
             }
-            // continue search before the call
+            // continue the search before the call
             phi->addDefUse(findDefinitions(C, subgds));
             continue;
         }
