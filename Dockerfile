@@ -1,23 +1,47 @@
-FROM ubuntu:20.04
+# --------------------------------------------------
+# Base container
+# --------------------------------------------------
+FROM docker.io/ubuntu:focal AS base
 
 RUN set -e
 
-# Setup time-zone so that the build does not hang
-# on configuring the tzdata package.
-# I work in Brno, that is basically Vienna-North :)
-# (definitely its closer than Prague)
-ENV TZ=Europe/Vienna
-RUN ln -snf "/usr/share/zoneinfo/$TZ" /etc/localtime
-RUN echo "$TZ" > /etc/timezone
-
 # Install packages
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update
-RUN apt-get install -y git cmake make llvm zlib1g-dev clang g++ python3
+RUN apt-get install -yq --no-install-recommends clang llvm
 
-WORKDIR /opt
+# --------------------------------------------------
+# Build container
+# --------------------------------------------------
+FROM base as build
+
+# Install build dependencies
+RUN apt-get install -yq --no-install-recommends ca-certificates cmake git \
+                                                ninja-build llvm-dev python3
+
+# Clone
 RUN git clone https://github.com/mchalupa/dg
-WORKDIR /opt/dg
-RUN cmake . -DCMAKE_INSTALL_PREFIX=/usr
-RUN make -j2
-RUN make check -j2
-RUN make install
+
+# Build
+WORKDIR /dg
+
+# libfuzzer does not like the container environment
+RUN cmake -S. -GNinja -Bbuild -DCMAKE_INSTALL_PREFIX=/opt/dg \
+          -DCMAKE_CXX_COMPILER=clang++ -DENABLE_FUZZING=OFF
+RUN cmake --build build
+RUN cmake --build build --target check
+
+# Install
+RUN cmake --build build --target install/strip
+
+# -------------------------------------------------
+# Release container
+# -------------------------------------------------
+FROM base AS release
+
+COPY --from=build /opt/dg /opt/dg
+ENV PATH="/opt/dg/bin:$PATH"
+ENV LD_LIBRARY_PATH="/opt/dg/lib"
+
+# Verify it works
+RUN llvm-slicer --version
