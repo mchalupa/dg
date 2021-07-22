@@ -66,7 +66,7 @@ class ModRefInfo {
     // Check whether the procedure may define 'n', taking into
     // account also writes to unknown memory
     bool mayDefineOrUnknown(RWNode *n) const {
-        return mayDefine(n) or mayDefineUnknown();
+        return mayDefine(n) || mayDefineUnknown();
     }
 
     auto getMayDef(RWNode *n) -> decltype(maydef.get(n)) {
