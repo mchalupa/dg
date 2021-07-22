@@ -26,9 +26,6 @@ class ModRefInfo {
     // used inside the procedure
     // FIXME: we should keep only sets of DefSites
     DefinitionsMap<RWNode> mayref;
-    // memory that must be defined in this procedure
-    // (on every path through the procedure)
-    DefinitionsMap<RWNode> mustdef;
 
     void addMayDef(const DefSite &ds, RWNode *def) {
         // FIXME: do not store def, it is useless. Just takes memory...
@@ -54,22 +51,9 @@ class ModRefInfo {
         }
     }
 
-    void addMustDef(const DefSite &ds, RWNode *def) {
-        // FIXME: do not store def, it is useless. Just takes memory...
-        mustdef.add(ds, def);
-    }
-
-    template <typename C>
-    void addMustDef(const C &c, RWNode *def) {
-        for (auto &ds : c) {
-            mustdef.add(ds, def);
-        }
-    }
-
     void add(const ModRefInfo &oth) {
         maydef.add(oth.maydef);
         mayref.add(oth.mayref);
-        mustdef.add(oth.mustdef);
     }
 
     ///
