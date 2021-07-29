@@ -211,6 +211,8 @@ if (USE_SANITIZERS)
 
 	if (sanitizers_work)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fno-omit-frame-pointer")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-sanitize-recover=all")
 		add_definitions(-DUSING_SANITIZERS)
 	else()
 		message(WARNING "Used compiler does not support sanitizers or its support is incomplete.")
