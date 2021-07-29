@@ -1,8 +1,6 @@
 #include <cassert>
 #include <vector>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DataLayout.h>
@@ -12,7 +10,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 //#include "dg/llvm/PointerAnalysis/PointerGraph.h"
 //#include "llvm/ForkJoin/ForkJoin.h"

@@ -4,8 +4,6 @@
 #include <ctime>
 #include <fstream>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
 
@@ -15,7 +13,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #else
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"

@@ -1,12 +1,9 @@
 #ifndef LLVM_DG_POINTS_TO_ANALYSIS_H_
 #define LLVM_DG_POINTS_TO_ANALYSIS_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/PointerAnalysis/Pointer.h"
 #include "dg/PointerAnalysis/PointerAnalysis.h"

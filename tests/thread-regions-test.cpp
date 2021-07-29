@@ -8,8 +8,6 @@
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/llvm/ThreadRegions/ThreadRegion.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
@@ -17,7 +15,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include <memory>
 #include <queue>

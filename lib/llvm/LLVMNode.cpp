@@ -6,8 +6,6 @@
 #error "Need CFG enabled for building LLVM Dependence Graph"
 #endif
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/GlobalVariable.h>
@@ -15,7 +13,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"

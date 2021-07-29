@@ -3,12 +3,9 @@
 
 #include <sstream>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 namespace dg {
 namespace llvmdg {

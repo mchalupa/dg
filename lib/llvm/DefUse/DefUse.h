@@ -3,12 +3,9 @@
 
 #include <vector>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Instruction.h>
 #include <llvm/IR/Instructions.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/legacy/DataFlowAnalysis.h"
 #include "dg/llvm/DataDependence/DataDependence.h"

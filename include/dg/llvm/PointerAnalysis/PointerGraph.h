@@ -3,15 +3,12 @@
 
 #include <unordered_map>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 

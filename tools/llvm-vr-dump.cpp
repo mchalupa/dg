@@ -10,8 +10,6 @@
 #include <sstream>
 #include <string>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -26,7 +24,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #else
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
-SILENCE_LLVM_WARNINGS_POP
 
 #undef NDEBUG // we need dump methods
 #include "dg/llvm/ValueRelations/GraphBuilder.h"

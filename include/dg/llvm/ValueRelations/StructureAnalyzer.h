@@ -1,14 +1,11 @@
 #ifndef DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_HPP_
 #define DG_LLVM_VALUE_RELATION_STRUCTURE_ANALYZER_HPP_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include <algorithm>
 

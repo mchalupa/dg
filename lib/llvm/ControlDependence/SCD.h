@@ -1,10 +1,7 @@
 #ifndef DG_LLVM_SCD_H_
 #define DG_LLVM_SCD_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/ControlDependence/ControlDependence.h"
 #include "dg/util/debug.h"

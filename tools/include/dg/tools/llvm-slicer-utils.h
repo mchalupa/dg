@@ -4,13 +4,10 @@
 #include <functional>
 #include <utility>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/ADT/StringRef.h>
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
 #include <llvm/IR/InstIterator.h>
 #endif
-SILENCE_LLVM_WARNINGS_POP
 
 std::vector<std::string> splitList(const std::string &opt, char sep = ',');
 

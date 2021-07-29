@@ -1,10 +1,7 @@
 #ifndef DG_LEGACY_LLVM_NTSCD_H_
 #define DG_LEGACY_LLVM_NTSCD_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "GraphBuilder.h"
 #include "dg/llvm/ControlDependence/ControlDependence.h"

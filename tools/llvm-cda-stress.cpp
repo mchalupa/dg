@@ -3,10 +3,7 @@
 #include <iostream>
 #include <random>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/CommandLine.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/tools/llvm-slicer-opts.h"
 

@@ -1,11 +1,8 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/IntrinsicInst.h>
 #include <llvm/IR/Module.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/tools/llvm-slicer-utils.h"
 

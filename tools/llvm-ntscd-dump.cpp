@@ -4,14 +4,11 @@
 #include "../lib/llvm/ControlDependence/legacy/GraphBuilder.h"
 #include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/CommandLine.h>
 #include <llvm/Support/SourceMgr.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include <fstream>
 #include <memory>

@@ -1,11 +1,8 @@
 #ifndef _DG_DOMINATORS_H_
 #define _DG_DOMINATORS_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Dominators.h>
 #include <llvm/IR/Function.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "BBlock.h"
 #include "analysis/DominanceFrontiers.h"

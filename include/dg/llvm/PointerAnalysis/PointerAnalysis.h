@@ -4,12 +4,9 @@
 #include <memory>
 #include <utility>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/PointerAnalysis/Pointer.h"
 #include "dg/PointerAnalysis/PointerAnalysis.h"

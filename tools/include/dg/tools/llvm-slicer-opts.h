@@ -4,10 +4,7 @@
 #include <set>
 #include <vector>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/CommandLine.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 

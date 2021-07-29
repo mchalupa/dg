@@ -1,8 +1,5 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include <iostream>
 #include <sstream>

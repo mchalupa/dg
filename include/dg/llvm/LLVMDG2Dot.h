@@ -10,14 +10,11 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
 #include "llvm/DebugInfo.h" //DIScope
 #else
 #include "llvm/IR/DebugInfo.h" //DIScope
 #endif
-SILENCE_LLVM_WARNINGS_POP
 
 using namespace dg;
 namespace dg {
