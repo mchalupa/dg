@@ -2,10 +2,7 @@
 #include "ExitNode.h"
 #include "ForkNode.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
-SILENCE_LLVM_WARNINGS_POP
 
 JoinNode::JoinNode(const llvm::Instruction *value,
                    const llvm::CallInst *callInst)

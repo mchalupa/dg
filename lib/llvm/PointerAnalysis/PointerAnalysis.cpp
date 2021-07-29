@@ -1,7 +1,4 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instruction.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "llvm/llvm-utils.h"

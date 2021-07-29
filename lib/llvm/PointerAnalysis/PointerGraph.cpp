@@ -1,8 +1,6 @@
 #include <cassert>
 #include <set>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
@@ -22,7 +20,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <llvm/IR/Dominators.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/PointerAnalysis/PointerGraph.h"
 #include "dg/PointerAnalysis/PointerGraphOptimizations.h"

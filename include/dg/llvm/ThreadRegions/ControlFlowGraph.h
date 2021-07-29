@@ -4,10 +4,7 @@
 #include <memory>
 #include <set>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
-SILENCE_LLVM_WARNINGS_POP
 
 namespace dg {
 class DGLLVMPointerAnalysis;

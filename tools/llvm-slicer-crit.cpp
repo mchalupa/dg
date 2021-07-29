@@ -13,8 +13,6 @@
 #error "Unsupported version of LLVM"
 #endif
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/InstIterator.h>
@@ -25,7 +23,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/raw_os_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ADT/Queue.h"
 #include "dg/llvm/LLVMDependenceGraph.h"

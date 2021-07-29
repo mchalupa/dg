@@ -1,8 +1,6 @@
 #ifndef LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
 #define LLVM_DG_ASSEMBLY_ANNOTATION_WRITER_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/FormattedStream.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
@@ -12,7 +10,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/AssemblyAnnotationWriter.h>
 #include <llvm/IR/Verifier.h>
 #endif
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/LLVMDependenceGraph.h"

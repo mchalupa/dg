@@ -1,10 +1,7 @@
 #include "CriticalSectionsBuilder.h"
 #include "llvm/ThreadRegions/Nodes/Nodes.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
-SILENCE_LLVM_WARNINGS_POP
 
 CriticalSectionsBuilder::CriticalSectionsBuilder() = default;
 

@@ -5,10 +5,7 @@
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Support/CommandLine.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer.h"

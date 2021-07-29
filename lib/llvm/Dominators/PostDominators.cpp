@@ -1,8 +1,5 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Analysis/PostDominators.h>
 #include <llvm/IR/Function.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/BFS.h"
 #include "dg/Dominators/PostDominanceFrontiers.h"

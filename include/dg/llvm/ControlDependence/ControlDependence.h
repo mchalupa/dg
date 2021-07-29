@@ -1,14 +1,11 @@
 #ifndef LLVM_DG_CDA_H_
 #define LLVM_DG_CDA_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #include <utility>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisImpl.h"
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"

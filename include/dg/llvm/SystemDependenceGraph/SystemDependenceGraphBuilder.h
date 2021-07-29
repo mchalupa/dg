@@ -4,10 +4,7 @@
 #include <ctime> // std::clock
 #include <string>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/DataDependence/DataDependence.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"

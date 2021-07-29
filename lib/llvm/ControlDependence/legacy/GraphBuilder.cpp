@@ -1,11 +1,8 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Analysis/LoopInfo.h>
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Pass.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "llvm/ForkJoin/ForkJoin.h"

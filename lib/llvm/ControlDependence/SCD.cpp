@@ -1,12 +1,9 @@
 #include "SCD.h"
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Analysis/DominanceFrontier.h>
 #include <llvm/Analysis/PostDominators.h>
 #include <llvm/IR/Function.h>
 //#include "llvm/Analysis/IteratedDominanceFrontier.h"
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ADT/Queue.h"
 #include "dg/util/debug.h"

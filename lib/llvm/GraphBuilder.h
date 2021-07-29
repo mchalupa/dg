@@ -1,13 +1,10 @@
 #ifndef DG_GRAPHBUILDER_H_
 #define DG_GRAPHBUILDER_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/Support/raw_os_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ADT/SetQueue.h"
 #include "dg/llvm/CallGraph/CallGraph.h"

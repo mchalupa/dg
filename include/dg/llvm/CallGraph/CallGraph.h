@@ -4,12 +4,9 @@
 #include <memory>
 #include <vector>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Function.h>
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Module.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/ADT/HashMap.h"
 #include "dg/ADT/Queue.h"

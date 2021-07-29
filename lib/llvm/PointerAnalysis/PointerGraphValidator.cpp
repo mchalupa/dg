@@ -1,8 +1,5 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "llvm/PointerAnalysis/PointerGraphValidator.h"
 

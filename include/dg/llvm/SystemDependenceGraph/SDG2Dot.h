@@ -6,8 +6,6 @@
 #include <sstream>
 #include <string>
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include "llvm/IR/Instructions.h"
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 4))
@@ -15,7 +13,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #else
 #include "llvm/IR/DebugInfo.h" //DIScope
 #endif
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/SystemDependenceGraph/DGNodeCall.h"
 #include "dg/llvm/SystemDependenceGraph/SystemDependenceGraph.h"

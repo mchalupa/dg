@@ -1,8 +1,6 @@
 #ifndef LLVM_DG_SLICER_H_
 #define LLVM_DG_SLICER_H_
 
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/Config/llvm-config.h>
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
 #include <llvm/Support/CFG.h>
@@ -16,7 +14,6 @@ SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Value.h>
 #include <llvm/Support/raw_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/Slicing.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
