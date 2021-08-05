@@ -84,6 +84,7 @@ class LLVMPointerAnalysis {
 template <typename PTType>
 class DGLLVMPointerAnalysisImpl : public PTType {
     LLVMPointerGraphBuilder *builder;
+    std::set<std::pair<PSNode *, PSNode *>> reportedIncompatibleCalls;
 
   public:
     DGLLVMPointerAnalysisImpl(PointerGraph *PS, LLVMPointerGraphBuilder *b)
@@ -117,6 +118,12 @@ class DGLLVMPointerAnalysisImpl : public PTType {
         }
 
         if (!LLVMPointerGraphBuilder::callIsCompatible(callsite, called)) {
+            if (reportedIncompatibleCalls.insert({callsite, called}).second) {
+                auto *cs = callsite->getUserData<llvm::Value>();
+                llvm::errs() << "Ignoring incompatible function pointer call of '"
+                             << F->getName() << "'\n"
+                             << "  callsite: " << *cs << "\n";
+            }
             return false;
         }
 
