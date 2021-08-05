@@ -28,6 +28,8 @@ jobs:
       - name: Checkout SVF test-suite
         uses: actions/checkout@v2
         with:
+          # last ref before SVF-2.2 release
+          ref: 72c679a49b943abb229fcb1844f68dff9cc7d522
           repository: SVF-tools/Test-Suite
           path: svf/Test-Suite
 
