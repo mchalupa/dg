@@ -12,6 +12,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
@@ -107,7 +108,8 @@ llvm::cl::opt<bool> _quiet(
 
 llvm::cl::opt<bool>
         todot("dot",
-              llvm::cl::desc("Dump IR to graphviz format (default=false)."),
+              llvm::cl::desc("Dump IR to graphviz format (default=false). "
+                             "Has an effect only with -ir switch."),
               llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> dump_ir(
@@ -893,6 +895,11 @@ int main(int argc, char *argv[]) {
         }
 
         for (auto &F : *M) {
+            if (!display_only_func.empty() &&
+                std::find(display_only_func.begin(),
+                          display_only_func.end(), &F) == display_only_func.end()) {
+                continue;
+            }
             for (auto &B : F) {
                 for (auto &I : B) {
                     if (!I.getType()->isPointerTy() &&
