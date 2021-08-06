@@ -18,7 +18,6 @@
 #include "dg/Slicing.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
-#include "llvm/llvm-utils.h"
 
 namespace dg {
 
@@ -31,7 +30,13 @@ namespace llvmdg {
 
 template <typename Val>
 static void dropAllUses(Val *V) {
-    for (auto *use : llvmutils::uses(V)) {
+    for (auto I = V->use_begin(), E = V->use_end(); I != E; ++I) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        llvm::Value *use = *I;
+#else
+        llvm::Value *use = I->getUser();
+#endif
+
         // drop the reference to this value
         llvm::cast<llvm::Instruction>(use)->replaceUsesOfWith(V, nullptr);
     }

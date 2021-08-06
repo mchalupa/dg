@@ -11,7 +11,6 @@
 #include <llvm/Support/raw_os_ostream.h>
 
 #include "dg/llvm/PointerAnalysis/PointerGraph.h"
-#include "llvm/llvm-utils.h"
 
 namespace dg {
 namespace pta {
@@ -43,7 +42,12 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::Function *F,
                                                   PSNode *arg, unsigned idx) {
     using namespace llvm;
 
-    for (const auto *use : llvmutils::uses(F)) {
+    for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        const Value *use = *I;
+#else
+        const Value *use = I->getUser();
+#endif
         const CallInst *CI = dyn_cast<CallInst>(use);
         if (CI && CI->getCalledFunction() == F)
             addArgumentOperands(CI, arg, idx);
@@ -79,7 +83,12 @@ void LLVMPointerGraphBuilder::addVariadicArgumentOperands(
         const llvm::Function *F, PSNode *arg) {
     using namespace llvm;
 
-    for (const auto *use : llvmutils::uses(F)) {
+    for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        const Value *use = *I;
+#else
+        const Value *use = I->getUser();
+#endif
         const CallInst *CI = dyn_cast<CallInst>(use);
         if (CI && CI->getCalledFunction() == F)
             addVariadicArgumentOperands(F, CI, arg);
@@ -128,7 +137,12 @@ void LLVMPointerGraphBuilder::addReturnNodeOperand(const llvm::Function *F,
                                                    PSNode *op) {
     using namespace llvm;
 
-    for (const auto *use : llvmutils::uses(F)) {
+    for (auto I = F->use_begin(), E = F->use_end(); I != E; ++I) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        const Value *use = *I;
+#else
+        const Value *use = I->getUser();
+#endif
         // get every call and its assocciated return and add the operand
         const CallInst *CI = dyn_cast<CallInst>(use);
         if (CI && CI->getCalledFunction() == F) {

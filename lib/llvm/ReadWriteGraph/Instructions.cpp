@@ -20,7 +20,7 @@
 namespace dg {
 namespace dda {
 
-static inline llvm::Value *getMemIntrinsicValueOp(const llvm::MemIntrinsic *MI) {
+static inline llvm::Value *getMemIntrinsicValueOp(llvm::MemIntrinsic *MI) {
     switch (MI->getIntrinsicID()) {
     case llvm::Intrinsic::memmove:
     case llvm::Intrinsic::memcpy:
@@ -39,7 +39,12 @@ RWNode *LLVMReadWriteGraphBuilder::createAlloc(const llvm::Instruction *Inst) {
     RWNode &node = create(RWNodeType::ALLOC);
 
     // check if the address of this alloca is taken
-    for (const auto *use : llvmutils::uses(Inst)) {
+    for (auto I = Inst->use_begin(), E = Inst->use_end(); I != E; ++I) {
+#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
+        auto *use = *I;
+#else
+        auto *use = I->getUser();
+#endif
         if (auto *S = dyn_cast<StoreInst>(use)) {
             if (S->getValueOperand() == Inst) {
                 node.setAddressTaken();
