@@ -5,36 +5,13 @@
 #error "Do not have SVF"
 #endif
 
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#pragma clang diagnostic ignored "-Wreorder"
-#pragma clang diagnostic ignored "-Wignored-qualifiers"
-#pragma clang diagnostic ignored "-Woverloaded-virtual"
-#pragma clang diagnostic ignored "-Wunused-variable"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wreorder"
-#pragma GCC diagnostic ignored "-Wignored-qualifiers"
-#pragma GCC diagnostic ignored "-Woverloaded-virtual"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-#endif
-
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "SVF-FE/LLVMModule.h" // LLVMModuleSet
-#include "SVF-FE/PAGBuilder.h" // PAGBuilder
-#include "WPA/Andersen.h"      // Andersen analysis from SVF
-
-#if (__clang__)
-#pragma clang diagnostic pop
-#else
-#pragma GCC diagnostic pop
-#endif
+#include <SVF-FE/LLVMModule.h> // LLVMModuleSet
+#include <SVF-FE/PAGBuilder.h> // PAGBuilder
+#include <WPA/Andersen.h>      // Andersen analysis from SVF
 
 #include "dg/PointerAnalysis/Pointer.h"
 
