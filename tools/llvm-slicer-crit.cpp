@@ -29,6 +29,7 @@
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #include "dg/tools/llvm-slicer-utils.h"
+#include "llvm/llvm-utils.h"
 
 using namespace dg;
 
@@ -105,13 +106,7 @@ static bool usesTheVariable(const llvm::Instruction &I, const std::string &var,
 static bool funHasAddrTaken(const llvm::Function *fun) {
     using namespace llvm;
 
-    for (auto use_it = fun->use_begin(), use_end = fun->use_end();
-         use_it != use_end; ++use_it) {
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
-        Value *user = *use_it;
-#else
-        Value *user = use_it->getUser();
-#endif
+    for (const auto *user : llvmutils::uses(fun)) {
         if (auto *C = dyn_cast<CallInst>(user)) {
             // FIXME: use getCalledOperand() and strip the casts
             if (fun != C->getCalledFunction()) {
