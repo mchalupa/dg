@@ -123,7 +123,7 @@ if (SVF_DIR)
 
 	set(SVF_LIBS Svf Cudd)
 
-	include_directories(${SVF_INCLUDE})
+	include_directories(SYSTEM ${SVF_INCLUDE})
 	link_directories(${SVF_LIBDIR} ${SVF_LIBDIR}/CUDD)
 
 	if (NOT LLVM_LINK_DYLIB)
