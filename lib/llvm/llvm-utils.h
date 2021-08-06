@@ -200,7 +200,7 @@ inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty) {
 }
 
 template <typename ItTy, typename value_type>
-class use_iterator_impl {
+class use_iterator_impl{
     ItTy it;
 
 public:
@@ -248,67 +248,6 @@ inline llvm::iterator_range<use_iterator> uses(llvm::Value *val) {
 
 inline llvm::iterator_range<const_use_iterator> uses(const llvm::Value *val) {
     return llvm::make_range(val->use_begin(), val->use_end());
-}
-
-namespace {
-    template <typename FunTy, typename CallTy>
-    inline std::vector<CallTy *> calls_of(FunTy *fun) {
-        using namespace llvm;
-
-        std::vector<CallTy *> calls;
-        for (auto *use : uses(fun)) {
-            if (auto *CI = dyn_cast<CallInst>(use)) {
-                calls.push_back(CI);
-            } else if (auto *BC = dyn_cast<BitCastInst>(use)) {
-                // the use of call is bitcased
-                for (auto *bcuse : uses(use)) {
-                    assert(bcuse && "Invalid use");
-                    // the use must by call inst, otherwise abort
-                    if (auto *CI = dyn_cast<CallInst>(bcuse)) {
-                        if (CI->getCalledOperand()->stripPointerCasts() == fun) {
-                            // is the falled function 'fun'? (fun can be also
-                            // an argument)
-                            calls.push_back(CI);
-                        }
-                    } else {
-                        printerr("Unknown use of function", use);
-                        assert(false && "Unknown use of function");
-                    }
-                }
-            } else if (auto *CE = dyn_cast<ConstantExpr>(use)) {
-                if (!CE->isCast()) {
-                    printerr("Unknown use of function", use);
-                    assert(false && "Unknown use of function");
-                }
-                // the use of call is bitcased
-                for (auto *bcuse : uses(CE)) {
-                    assert(bcuse && "Invalid use");
-                    // the use must by call inst, otherwise abort
-                    if (auto *CI = dyn_cast<CallInst>(bcuse)) {
-                        if (CI->getCalledOperand()->stripPointerCasts() == fun) {
-                            calls.push_back(CI);
-                        }
-                    } else {
-                        printerr("Unknown use of function", use);
-                        assert(false && "Unknown use of function");
-                    }
-                }
-            } else if (!isa<StoreInst>(use)) {
-                printerr("Unknown use of function", use);
-                assert(false && "Unknown use of function");
-            }
-        }
-
-        return calls;
-    }
-}
-
-inline std::vector<llvm::CallInst *> calls_of(llvm::Function *fun) {
-    return calls_of<llvm::Function, llvm::CallInst>(fun);
-}
-
-inline std::vector<const llvm::CallInst *> calls_of(const llvm::Function *fun) {
-    return calls_of<const llvm::Function, const llvm::CallInst>(fun);
 }
 
 } // namespace llvmutils
