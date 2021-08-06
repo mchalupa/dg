@@ -3,7 +3,6 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/IntrinsicInst.h>
@@ -197,57 +196,6 @@ inline bool typeCanBePointer(const llvm::DataLayout *DL, llvm::Type *Ty) {
                DL->getPointerSizeInBits(/*Ty->getPointerAddressSpace()*/);
 
     return false;
-}
-
-template <typename ItTy, typename value_type>
-class use_iterator_impl{
-    ItTy it;
-
-public:
-      explicit use_iterator_impl(ItTy i) : it(i) {}
-
-      using iterator_category = std::forward_iterator_tag;
-     using difference_type = std::ptrdiff_t;
-     using pointer = value_type *;
-     using reference = value_type &;
-
-     use_iterator_impl() = default;
-
-     bool operator==(const use_iterator_impl &x) const { return it == x.it; }
-     bool operator!=(const use_iterator_impl &x) const { return !operator==(x); }
-
-     use_iterator_impl &operator++() { // Preincrement
-       ++it;
-       return *this;
-     }
-
-     use_iterator_impl operator++(int) { // Postincrement
-       auto tmp = *this;
-       ++*this;
-       return tmp;
-     }
-
-     value_type *operator*() const {
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
-    return *it;
-#else
-    return it->getUser();
-#endif
-  }
-
-  value_type *operator->() const { return operator*(); }
-};
-
-using use_iterator = use_iterator_impl<llvm::Value::use_iterator, llvm::Value>;
-using const_use_iterator = use_iterator_impl<llvm::Value::const_use_iterator,
-                                             const llvm::Value>;
-
-inline llvm::iterator_range<use_iterator> uses(llvm::Value *val) {
-    return llvm::make_range(val->use_begin(), val->use_end());
-}
-
-inline llvm::iterator_range<const_use_iterator> uses(const llvm::Value *val) {
-    return llvm::make_range(val->use_begin(), val->use_end());
 }
 
 } // namespace llvmutils
