@@ -108,8 +108,25 @@ static bool funHasAddrTaken(const llvm::Function *fun) {
 
     for (const auto *user : llvmutils::uses(fun)) {
         if (auto *C = dyn_cast<CallInst>(user)) {
-            // FIXME: use getCalledOperand() and strip the casts
-            if (fun != C->getCalledFunction()) {
+            if (fun != C->getCalledOperand()->stripPointerCasts()) {
+                return true;
+            }
+        } else if (auto *CE = dyn_cast<ConstantExpr>(user)) {
+            if (!CE->isCast())
+                return true;
+            for (auto *ceuse : llvmutils::uses(CE)) {
+                if (auto *CI = dyn_cast<CallInst>(ceuse)) {
+                    if (CI->getCalledOperand()->stripPointerCasts() == fun)
+                        continue; // we're ok here, fun is called
+                }
+                return true;
+            }
+        } else if (auto *BC = dyn_cast<BitCastInst>(user)) {
+            for (auto *bcuse : llvmutils::uses(BC)) {
+                if (auto *CI = dyn_cast<CallInst>(bcuse)) {
+                    if (CI->getCalledOperand()->stripPointerCasts() == fun)
+                        continue; // we're ok here, fun is called
+                }
                 return true;
             }
         } else if (auto *S = dyn_cast<StoreInst>(user)) {
