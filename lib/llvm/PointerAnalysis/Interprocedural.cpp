@@ -43,10 +43,10 @@ void LLVMPointerGraphBuilder::addArgumentOperands(const llvm::Function *F,
                                                   PSNode *arg, unsigned idx) {
     using namespace llvm;
 
-    for (const auto *use : llvmutils::uses(F)) {
-        const CallInst *CI = dyn_cast<CallInst>(use);
-        if (CI && CI->getCalledFunction() == F)
+    for (const CallInst *CI : llvmutils::calls_of(F)) {
+        if (CI->getCalledOperand()->stripPointerCasts() == F) {
             addArgumentOperands(CI, arg, idx);
+        }
     }
 }
 
@@ -79,12 +79,12 @@ void LLVMPointerGraphBuilder::addVariadicArgumentOperands(
         const llvm::Function *F, PSNode *arg) {
     using namespace llvm;
 
-    for (const auto *use : llvmutils::uses(F)) {
-        const CallInst *CI = dyn_cast<CallInst>(use);
-        if (CI && CI->getCalledFunction() == F)
+    for (const CallInst *CI : llvmutils::calls_of(F)) {
+        if (CI->getCalledOperand()->stripPointerCasts() == F) {
             addVariadicArgumentOperands(F, CI, arg);
         // if this is funcptr, we handle it in the other
         // version of addVariadicArgumentOperands
+        }
     }
 }
 
@@ -128,10 +128,9 @@ void LLVMPointerGraphBuilder::addReturnNodeOperand(const llvm::Function *F,
                                                    PSNode *op) {
     using namespace llvm;
 
-    for (const auto *use : llvmutils::uses(F)) {
+    for (const CallInst *CI : llvmutils::calls_of(F)) {
         // get every call and its assocciated return and add the operand
-        const CallInst *CI = dyn_cast<CallInst>(use);
-        if (CI && CI->getCalledFunction() == F) {
+        if (CI->getCalledOperand()->stripPointerCasts() == F) {
             auto *nodes = getNodes(CI);
             // since we're building the graph only for the reachable nodes from
             // the entry, we may not have all call-sites of this function
