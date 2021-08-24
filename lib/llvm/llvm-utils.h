@@ -311,6 +311,30 @@ inline std::vector<const llvm::CallInst *> calls_of(const llvm::Function *fun) {
     return calls_of<const llvm::Function, const llvm::CallInst>(fun);
 }
 
+///
+// A wrapper around CallInst that provides a unified API
+// for different versions of LLVM and some auxiliary methods.
+// Somethig as AbstractCallInst in newer LLVMs.
+class CallInstInfo {
+    const llvm::CallInst *call;
+
+public:
+    CallInstInfo(const llvm::CallInst *CI) : call(CI) {}
+
+    const llvm::Value *getCalledValue() const {
+#if LLVM_VERSION_MAJOR >= 8
+        return call->getCalledOperand();
+#else
+        return call->getCalledValue();
+#endif
+    }
+
+    const llvm::Value *getCalledStrippedValue() const {
+        return getCalledValue()->stripPointerCasts();
+    }
+
+};
+
 } // namespace llvmutils
 } // namespace dg
 
