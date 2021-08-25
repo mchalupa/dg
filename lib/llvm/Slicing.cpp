@@ -1,8 +1,5 @@
-#include <dg/util/SilenceLLVMWarnings.h>
-SILENCE_LLVM_WARNINGS_PUSH
 #include <llvm/IR/Module.h>
 #include <llvm/Support/raw_os_ostream.h>
-SILENCE_LLVM_WARNINGS_POP
 
 #include "dg/llvm/LLVMFastSlicer.h"
 #include "dg/ADT/Queue.h"
