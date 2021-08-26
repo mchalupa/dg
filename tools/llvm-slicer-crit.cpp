@@ -108,8 +108,8 @@ static bool funHasAddrTaken(const llvm::Function *fun) {
 
     for (const auto *user : llvmutils::uses(fun)) {
         if (auto *C = dyn_cast<CallInst>(user)) {
-            if (fun != C->getCalledOperand()->stripPointerCasts()) {
-                return true;
+            if (fun == C->getCalledOperand()->stripPointerCasts()) {
+                continue; // ok here
             }
         } else if (auto *CE = dyn_cast<ConstantExpr>(user)) {
             if (!CE->isCast())
@@ -121,6 +121,7 @@ static bool funHasAddrTaken(const llvm::Function *fun) {
                 }
                 return true;
             }
+            continue; // if we're here, we're ok
         } else if (auto *BC = dyn_cast<BitCastInst>(user)) {
             for (auto *bcuse : llvmutils::uses(BC)) {
                 if (auto *CI = dyn_cast<CallInst>(bcuse)) {
@@ -129,20 +130,19 @@ static bool funHasAddrTaken(const llvm::Function *fun) {
                 }
                 return true;
             }
+            continue; // if we're here, we're ok
         } else if (auto *S = dyn_cast<StoreInst>(user)) {
-            if (S->getValueOperand()->stripPointerCasts() == fun) {
-                return true;
-            } else {
+            if (S->getValueOperand()->stripPointerCasts() != fun) {
                 llvm::errs() << "Unhandled function use: " << *user << "\n";
-                return true;
             }
             // FIXME: the function can be in a cast instruction that is just
-            // used in call,
-            //   we can detect that
+            // used in call, we can detect that
+            // fall-through to 'return true'
         } else {
             llvm::errs() << "Unhandled function use: " << *user << "\n";
-            return true;
+            // fall-through
         }
+        return true;
     }
     return false;
 }
