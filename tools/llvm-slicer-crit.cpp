@@ -172,7 +172,14 @@ static bool instIsCallOf(const llvm::Instruction &I, const std::string &name,
 #else
     auto *V = C->getCalledValue()->stripPointerCasts();
 #endif
+    // the function may be casted
+    if (auto *funV = llvm::dyn_cast<llvm::Function>(V)) {
+        // the operand is a function, so just check the match
+        return name == funV->getName().str();
+    }
 
+    // the operand is a funptr -- if we have points-to analysis,
+    // use it; otherwise do a sound overapproximation
     if (!pta) {
         auto *M = I.getParent()->getParent()->getParent();
         return funHasAddrTaken(M, name);
