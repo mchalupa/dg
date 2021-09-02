@@ -364,7 +364,7 @@ class LLVMPointerGraphBuilder {
     PSNode *tryGetOperand(const llvm::Value *val);
     PSNode *getConstant(const llvm::Value *val);
     Pointer handleConstantGep(const llvm::GetElementPtrInst *GEP);
-    Pointer handleConstantBitCast(const llvm::BitCastInst *BC);
+    Pointer handleConstantBitCast(const llvm::CastInst *BC);
     Pointer handleConstantPtrToInt(const llvm::PtrToIntInst *P2I);
     Pointer handleConstantIntToPtr(const llvm::IntToPtrInst *I2P);
     Pointer handleConstantAdd(const llvm::Instruction *Inst);
