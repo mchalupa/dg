@@ -103,14 +103,16 @@ Pointer LLVMPointerGraphBuilder::handleConstantArithmetic(
 }
 
 Pointer
-LLVMPointerGraphBuilder::handleConstantBitCast(const llvm::BitCastInst *BC) {
+LLVMPointerGraphBuilder::handleConstantBitCast(const llvm::CastInst *BC) {
     using namespace llvm;
 
     if (!BC->isLosslessCast()) {
-        errs() << "WARN: Not a loss less cast unhandled ConstExpr" << *BC
-               << "\n";
-        abort();
-        return UnknownPointer;
+        // If this is a cast to a bigger type (if that can ever happen?),
+        // then preserve the pointer. Otherwise, the pointer is cropped,
+        // and there's nothing we can do...
+        if (!llvmutils::typeCanBePointer(&M->getDataLayout(), BC->getType()))
+            return UnknownPointer;
+        // fall-through
     }
 
     const Value *llvmOp = BC->stripPointerCasts();
@@ -168,7 +170,7 @@ LLVMPointerGraphBuilder::getConstantExprPointer(const llvm::ConstantExpr *CE) {
     case Instruction::BitCast:
     case Instruction::SExt:
     case Instruction::ZExt:
-        pointer = handleConstantBitCast(cast<BitCastInst>(Inst));
+        pointer = handleConstantBitCast(cast<CastInst>(Inst));
         break;
     case Instruction::PtrToInt:
         pointer = handleConstantPtrToInt(cast<PtrToIntInst>(Inst));
