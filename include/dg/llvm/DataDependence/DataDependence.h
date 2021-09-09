@@ -18,12 +18,43 @@
 namespace dg {
 namespace dda {
 
-class LLVMReadWriteGraphBuilder;
-
 class LLVMDataDependenceAnalysis {
     const llvm::Module *m;
-    dg::LLVMPointerAnalysis *pta;
     const LLVMDataDependenceAnalysisOptions _options;
+
+  public:
+    LLVMDataDependenceAnalysis(const llvm::Module *m,
+                               const LLVMDataDependenceAnalysisOptions& opts = {})
+            : m(m), _options(std::move(opts)) {}
+
+    virtual ~LLVMDataDependenceAnalysis() {}
+
+    const LLVMDataDependenceAnalysisOptions &getOptions() const {
+        return _options;
+    }
+
+    const llvm::Module *getModule() const { return m; }
+
+    virtual void run() = 0;
+
+    virtual bool isUse(const llvm::Value *val) const = 0;
+    virtual bool isDef(const llvm::Value *val) const = 0;
+
+    // return instructions that define the given value
+    // (the value must read from memory, e.g. LoadInst)
+    virtual std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use) = 0;
+    virtual std::vector<llvm::Value *> getLLVMDefinitions(llvm::Instruction *where,
+                                                  llvm::Value *mem,
+                                                  const Offset &off,
+                                                  const Offset &len) = 0;
+
+
+};
+
+class LLVMReadWriteGraphBuilder;
+
+class DGLLVMDataDependenceAnalysis : public LLVMDataDependenceAnalysis {
+    dg::LLVMPointerAnalysis *pta;
     LLVMReadWriteGraphBuilder *builder{nullptr};
     std::unique_ptr<DataDependenceAnalysis> DDA{nullptr};
 
@@ -31,13 +62,13 @@ class LLVMDataDependenceAnalysis {
     DataDependenceAnalysis *createDDA();
 
   public:
-    LLVMDataDependenceAnalysis(const llvm::Module *m,
-                               dg::LLVMPointerAnalysis *pta,
-                               LLVMDataDependenceAnalysisOptions opts = {})
-            : m(m), pta(pta), _options(std::move(opts)),
-              builder(createBuilder()) {}
+    DGLLVMDataDependenceAnalysis(const llvm::Module *m,
+                                 dg::LLVMPointerAnalysis *pta,
+                                 const LLVMDataDependenceAnalysisOptions& opts = {})
+            : LLVMDataDependenceAnalysis(m, opts),
+              pta(pta), builder(createBuilder()) {}
 
-    ~LLVMDataDependenceAnalysis();
+    ~DGLLVMDataDependenceAnalysis() override;
 
     void buildGraph() {
         assert(builder);
@@ -46,33 +77,10 @@ class LLVMDataDependenceAnalysis {
         DDA.reset(createDDA());
     }
 
-    void run() {
-        if (!DDA) {
-            buildGraph();
-        }
-
-        assert(DDA);
-        DDA->run();
-    }
-
-    const LLVMDataDependenceAnalysisOptions &getOptions() const {
-        return _options;
-    }
-
     ReadWriteGraph *getGraph() { return DDA->getGraph(); }
     RWNode *getNode(const llvm::Value *val);
     const RWNode *getNode(const llvm::Value *val) const;
     const llvm::Value *getValue(const RWNode *node) const;
-
-    bool isUse(const llvm::Value *val) const {
-        const auto *nd = getNode(val);
-        return nd && nd->isUse();
-    }
-
-    bool isDef(const llvm::Value *val) const {
-        const auto *nd = getNode(val);
-        return nd && nd->isDef();
-    }
 
     std::vector<RWNode *> getDefinitions(RWNode *where, RWNode *mem,
                                          const Offset &off, const Offset &len) {
@@ -99,16 +107,35 @@ class LLVMDataDependenceAnalysis {
         return getDefinitions(node);
     }
 
+    DataDependenceAnalysis *getDDA() { return DDA.get(); }
+    const DataDependenceAnalysis *getDDA() const { return DDA.get(); }
+
+    void run() override {
+        if (!DDA) {
+            buildGraph();
+        }
+
+        assert(DDA);
+        DDA->run();
+    }
+
+    bool isUse(const llvm::Value *val) const override {
+        const auto *nd = getNode(val);
+        return nd && nd->isUse();
+    }
+
+    bool isDef(const llvm::Value *val) const override {
+        const auto *nd = getNode(val);
+        return nd && nd->isDef();
+    }
+
     // return instructions that define the given value
     // (the value must read from memory, e.g. LoadInst)
-    std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use);
+    std::vector<llvm::Value *> getLLVMDefinitions(llvm::Value *use) override;
     std::vector<llvm::Value *> getLLVMDefinitions(llvm::Instruction *where,
                                                   llvm::Value *mem,
                                                   const Offset &off,
-                                                  const Offset &len);
-
-    DataDependenceAnalysis *getDDA() { return DDA.get(); }
-    const DataDependenceAnalysis *getDDA() const { return DDA.get(); }
+                                                  const Offset &len) override;
 };
 
 } // namespace dda

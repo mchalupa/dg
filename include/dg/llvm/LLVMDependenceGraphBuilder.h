@@ -125,8 +125,8 @@ class LLVMDependenceGraphBuilder {
     LLVMDependenceGraphBuilder(llvm::Module *M,
                                const LLVMDependenceGraphOptions &opts)
             : _M(M), _options(opts), _PTA(createPTA()),
-              _DDA(new LLVMDataDependenceAnalysis(M, _PTA.get(),
-                                                  _options.DDAOptions)),
+              _DDA(new dda::DGLLVMDataDependenceAnalysis(M, _PTA.get(),
+                                                         _options.DDAOptions)),
               _CDA(new LLVMControlDependenceAnalysis(M, _options.CDAOptions)),
               _dg(new LLVMDependenceGraph(opts.threads)),
               _controlFlowGraph(

@@ -6,36 +6,36 @@
 namespace dg {
 namespace dda {
 
-LLVMDataDependenceAnalysis::~LLVMDataDependenceAnalysis() { delete builder; }
+DGLLVMDataDependenceAnalysis::~DGLLVMDataDependenceAnalysis() { delete builder; }
 
-LLVMReadWriteGraphBuilder *LLVMDataDependenceAnalysis::createBuilder() {
-    assert(m && pta);
-    return new LLVMReadWriteGraphBuilder(m, pta, _options);
+LLVMReadWriteGraphBuilder *DGLLVMDataDependenceAnalysis::createBuilder() {
+    assert(getModule() && pta);
+    return new LLVMReadWriteGraphBuilder(getModule(), pta, getOptions());
 }
 
-DataDependenceAnalysis *LLVMDataDependenceAnalysis::createDDA() {
+DataDependenceAnalysis *DGLLVMDataDependenceAnalysis::createDDA() {
     assert(builder);
 
     // let the compiler do copy-ellision
     auto graph = builder->build();
-    return new DataDependenceAnalysis(std::move(graph), _options);
+    return new DataDependenceAnalysis(std::move(graph), getOptions());
 }
 
-RWNode *LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) {
+RWNode *DGLLVMDataDependenceAnalysis::getNode(const llvm::Value *val) {
     return builder->getNode(val);
 }
 
 const RWNode *
-LLVMDataDependenceAnalysis::getNode(const llvm::Value *val) const {
+DGLLVMDataDependenceAnalysis::getNode(const llvm::Value *val) const {
     return builder->getNode(val);
 }
 
 const llvm::Value *
-LLVMDataDependenceAnalysis::getValue(const RWNode *node) const {
+DGLLVMDataDependenceAnalysis::getValue(const RWNode *node) const {
     return builder->getValue(node);
 }
 
-std::vector<llvm::Value *> LLVMDataDependenceAnalysis::getLLVMDefinitions(
+std::vector<llvm::Value *> DGLLVMDataDependenceAnalysis::getLLVMDefinitions(
         llvm::Instruction *where, llvm::Value *mem, const Offset &off,
         const Offset &len) {
     std::vector<llvm::Value *> defs;
@@ -81,7 +81,7 @@ std::vector<llvm::Value *> LLVMDataDependenceAnalysis::getLLVMDefinitions(
 
 // the value 'use' must be an instruction that reads from memory
 std::vector<llvm::Value *>
-LLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
+DGLLVMDataDependenceAnalysis::getLLVMDefinitions(llvm::Value *use) {
     std::vector<llvm::Value *> defs;
 
     auto *loc = getNode(use);

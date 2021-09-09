@@ -187,7 +187,7 @@ static void printInterval(T &I, const char *pref = nullptr,
 
 class Dumper {
   protected:
-    LLVMDataDependenceAnalysis *DDA;
+    DGLLVMDataDependenceAnalysis *DDA;
     bool dot{false};
 
     virtual void dumpBBlockDefinitions(RWBBlock * /*unused*/) {}
@@ -322,7 +322,7 @@ class Dumper {
     }
 
   public:
-    Dumper(LLVMDataDependenceAnalysis *DDA, bool todot = false)
+    Dumper(DGLLVMDataDependenceAnalysis *DDA, bool todot = false)
             : DDA(DDA), dot(todot) {}
 
     static void dumpBBlockEdges(RWBBlock *block) {
@@ -637,11 +637,11 @@ class MemorySSADumper : public Dumper {
     }
 
   public:
-    MemorySSADumper(LLVMDataDependenceAnalysis *DDA, bool todot)
+    MemorySSADumper(DGLLVMDataDependenceAnalysis *DDA, bool todot)
             : Dumper(DDA, todot) {}
 };
 
-static void dumpDefs(LLVMDataDependenceAnalysis *DDA, bool todot) {
+static void dumpDefs(DGLLVMDataDependenceAnalysis *DDA, bool todot) {
     assert(DDA);
 
     if (DDA->getOptions().isSSA()) {
@@ -711,7 +711,7 @@ int main(int argc, char *argv[]) {
     tm.report("INFO: Pointer analysis took");
 
     tm.start();
-    LLVMDataDependenceAnalysis DDA(M.get(), &PTA, options.dgOptions.DDAOptions);
+    DGLLVMDataDependenceAnalysis DDA(M.get(), &PTA, options.dgOptions.DDAOptions);
     if (graph_only) {
         DDA.buildGraph();
     } else {
