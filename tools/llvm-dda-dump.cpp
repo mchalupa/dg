@@ -26,6 +26,9 @@
 #include "dg/PointerAnalysis/PointerAnalysisFS.h"
 
 #include "dg/llvm/DataDependence/DataDependence.h"
+#ifdef HAVE_SVF
+#include "dg/llvm/DataDependence/SVFDataDependence.h"
+#endif
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "dg/tools/TimeMeasure.h"
@@ -661,6 +664,27 @@ static void dumpDefs(DGLLVMDataDependenceAnalysis *DDA, bool todot) {
     }
 }
 
+static void dumpGenericDefs(LLVMDataDependenceAnalysis *DDA) {
+    const auto *mod = DDA->getModule();
+    for (auto &fun : *mod) {
+        if (fun.isDeclaration())
+            continue;
+
+        llvm::errs() << "=== " << fun.getName() << " ===\n";
+        for (auto &blk : fun) {
+            for (auto &I : blk) {
+                if (DDA->isUse(&I)) {
+                    llvm::errs() << I << "\n";
+                    for (auto *def : DDA->getLLVMDefinitions(
+                                 const_cast<llvm::Instruction *>(&I))) {
+                        llvm::errs() << "  def: " << *def << "\n";
+                    }
+                }
+            }
+        }
+    }
+}
+
 std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
                                           const SlicerOptions &options) {
     llvm::SMDiagnostic SMD;
@@ -700,7 +724,28 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if (dump_c_lines) {
+#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
+        llvm::errs() << "WARNING: Variables names matching is not supported "
+                        "for LLVM older than 3.7\n";
+#else
+        valuesToVars = allocasToVars(*M);
+#endif // LLVM > 3.6
+        if (valuesToVars.empty()) {
+            llvm::errs() << "WARNING: No debugging information found, "
+                         << "the C lines output will be corrupted\n";
+        }
+    }
+
     debug::TimeMeasure tm;
+
+    if (options.dgOptions.DDAOptions.isSVF()) {
+        SVFLLVMDataDependenceAnalysis DDA(M.get(),
+                                          options.dgOptions.DDAOptions);
+        DDA.run();
+        dumpGenericDefs(&DDA);
+        return 0;
+    }
 
     DGLLVMPointerAnalysis PTA(M.get(), options.dgOptions.PTAOptions);
 
@@ -719,19 +764,6 @@ int main(int argc, char *argv[]) {
     }
     tm.stop();
     tm.report("INFO: Data dependence analysis took");
-
-    if (dump_c_lines) {
-#if (LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 7)
-        llvm::errs() << "WARNING: Variables names matching is not supported "
-                        "for LLVM older than 3.7\n";
-#else
-        valuesToVars = allocasToVars(*M);
-#endif // LLVM > 3.6
-        if (valuesToVars.empty()) {
-            llvm::errs() << "WARNING: No debugging information found, "
-                         << "the C lines output will be corrupted\n";
-        }
-    }
 
     dumpDefs(&DDA, todot);
 

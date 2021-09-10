@@ -151,6 +151,11 @@ endif (HAVE_SVF)
 				PRIVATE ${llvm_irreader}
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support})
+if (HAVE_SVF)
+	target_link_libraries(llvm-dda-dump PRIVATE ${SVF_LIBS}
+                                            PRIVATE ${llvm_bitwriter}
+                                            PRIVATE ${llvm_transformutils})
+endif (HAVE_SVF)
 
 	add_executable(llvm-vr-dump llvm-vr-dump.cpp)
 	target_link_libraries(llvm-vr-dump

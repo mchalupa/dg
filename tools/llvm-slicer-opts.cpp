@@ -248,6 +248,12 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit,
                                        ssa,
                                "ssa",
                                "MemorySSA DDA (the only option right now)")
+#ifdef HAVE_SVF
+                            ,
+                    clEnumValN(LLVMDataDependenceAnalysisOptions::AnalysisType::
+                                       svf,
+                               "svf", "Use SVFG from SVF project")
+#endif
 #if LLVM_VERSION_MAJOR < 4
                             ,
                     nullptr

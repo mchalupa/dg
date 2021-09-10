@@ -37,8 +37,15 @@ class LLVMDataDependenceAnalysis {
 
     virtual void run() = 0;
 
-    virtual bool isUse(const llvm::Value *val) const = 0;
-    virtual bool isDef(const llvm::Value *val) const = 0;
+    virtual bool isUse(const llvm::Value *val) const {
+        const auto *I = llvm::dyn_cast<llvm::Instruction>(val);
+        return I && I->mayReadFromMemory();
+    }
+
+    virtual bool isDef(const llvm::Value *val) const {
+        const auto *I = llvm::dyn_cast<llvm::Instruction>(val);
+        return I && I->mayWriteToMemory();
+    }
 
     // return instructions that define the given value
     // (the value must read from memory, e.g. LoadInst)
@@ -47,8 +54,6 @@ class LLVMDataDependenceAnalysis {
                                                   llvm::Value *mem,
                                                   const Offset &off,
                                                   const Offset &len) = 0;
-
-
 };
 
 class LLVMReadWriteGraphBuilder;

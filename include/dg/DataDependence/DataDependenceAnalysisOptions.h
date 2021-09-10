@@ -99,9 +99,10 @@ enum UndefinedFunsBehavior {
 
 struct DataDependenceAnalysisOptions : AnalysisOptions {
     // default one
-    enum class AnalysisType { ssa } analysisType{AnalysisType::ssa};
+    enum class AnalysisType { ssa, svf } analysisType{AnalysisType::ssa};
 
     bool isSSA() const { return analysisType == AnalysisType::ssa; }
+    bool isSVF() const { return analysisType == AnalysisType::svf; }
 
     dda::UndefinedFunsBehavior undefinedFunsBehavior{dda::READ_ARGS};
 
