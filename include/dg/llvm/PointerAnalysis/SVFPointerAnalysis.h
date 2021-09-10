@@ -121,7 +121,7 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
             : LLVMPointerAnalysis(opts), _module(M) {}
 
     ~SVFPointerAnalysis() {
-        // _svfModule overtook the ovenership of llvm::Module,
+        // _svfModule overtook the ownership of llvm::Module,
         // we must re-take it to avoid double free
         LLVMModuleSet::releaseLLVMModuleSet();
     }
@@ -170,13 +170,17 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
         PAGBuilder builder;
         PAG *pag = builder.build(_svfModule);
 
-        _pta.reset(new Andersen(pag));
+       //_pta.reset(new Andersen(pag));
+       //_pta->analyze();
+        _pta.reset(AndersenWaveDiff::createAndersenWaveDiff(pag));
         _pta->disablePrintStat();
-        _pta->analyze();
 
         DBG_SECTION_END(pta, "Done running SVF pointer analysis (Andersen)");
         return true;
     }
+
+    SVF::PointerAnalysis *getPTA() { return _pta.get(); }
+    const SVF::PointerAnalysis *getPTA() const { return _pta.get(); }
 };
 
 } // namespace dg
