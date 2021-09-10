@@ -677,7 +677,7 @@ static void dumpGenericDefs(LLVMDataDependenceAnalysis *DDA) {
                     llvm::errs() << I << "\n";
                     for (auto *def : DDA->getLLVMDefinitions(
                                  const_cast<llvm::Instruction *>(&I))) {
-                        llvm::errs() << "  def: " << *def << "\n";
+                        llvm::errs() << "    def: " << *def << "\n";
                     }
                 }
             }
