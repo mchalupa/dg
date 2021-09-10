@@ -42,7 +42,7 @@ def parse_cmake_cache(cmakecache):
 
 
 configs = {
-#   '-dda': ['rd', 'ssa'],
+    '-dda': ['ssa'],
     '-pta': ['fi', 'fs', 'inv'],
     '-cd-alg': ['ntscd', 'classic'],
 }
@@ -209,6 +209,10 @@ def _test_enabled(test, setup):
     for p in test.requiredparams:
         if p not in setup:
             return False
+    # run SVF only with FI stetup (FI is not run anyway),
+    # so that we do not rerun SVF with different points-to analyses...
+    if '-dda=svf' in setup and '-pta=svf' not in setup:
+        return False
 
     return True
 
@@ -242,6 +246,7 @@ if __name__ == "__main__":
 
     if have_svf:
         configs['-pta'].append('svf')
+        configs['-dda'].append('svf')
 
     try:
         t = tests[argv[1]]
