@@ -16,6 +16,7 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 #ifdef HAVE_SVF
 #include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
+#include "dg/llvm/DataDependence/SVFDataDependence.h"
 #endif
 #include "dg/Offset.h"
 #include "dg/PointerAnalysis/Pointer.h"
@@ -118,15 +119,23 @@ class LLVMDependenceGraphBuilder {
 
     bool verify() const { return _dg->verify(); }
 
+    LLVMDataDependenceAnalysis *createDDA() {
+#ifdef HAVE_SVF
+        if (_options.DDAOptions.isSVF())
+            return new dda::SVFLLVMDataDependenceAnalysis(_M, _options.DDAOptions);
+#endif
+
+        return new dda::DGLLVMDataDependenceAnalysis(_M, _PTA.get(),
+                                                     _options.DDAOptions);
+    }
+
   public:
     LLVMDependenceGraphBuilder(llvm::Module *M)
             : LLVMDependenceGraphBuilder(M, {}) {}
 
     LLVMDependenceGraphBuilder(llvm::Module *M,
                                const LLVMDependenceGraphOptions &opts)
-            : _M(M), _options(opts), _PTA(createPTA()),
-              _DDA(new dda::DGLLVMDataDependenceAnalysis(M, _PTA.get(),
-                                                         _options.DDAOptions)),
+            : _M(M), _options(opts), _PTA(createPTA()), _DDA(createDDA()), 
               _CDA(new LLVMControlDependenceAnalysis(M, _options.CDAOptions)),
               _dg(new LLVMDependenceGraph(opts.threads)),
               _controlFlowGraph(
