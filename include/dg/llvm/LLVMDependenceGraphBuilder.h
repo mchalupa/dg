@@ -121,8 +121,13 @@ class LLVMDependenceGraphBuilder {
 
     LLVMDataDependenceAnalysis *createDDA() {
 #ifdef HAVE_SVF
-        if (_options.DDAOptions.isSVF())
-            return new dda::SVFLLVMDataDependenceAnalysis(_M, _options.DDAOptions);
+        if (_options.DDAOptions.isSVF()) {
+            assert (_options.PTAOptions.isSVF());
+            return new dda::SVFLLVMDataDependenceAnalysis(
+                    _M,
+                    static_cast<SVFPointerAnalysis*>(_PTA.get()),
+                    _options.DDAOptions);
+        }
 #endif
 
         return new dda::DGLLVMDataDependenceAnalysis(_M, _PTA.get(),
@@ -135,7 +140,8 @@ class LLVMDependenceGraphBuilder {
 
     LLVMDependenceGraphBuilder(llvm::Module *M,
                                const LLVMDependenceGraphOptions &opts)
-            : _M(M), _options(opts), _PTA(createPTA()), _DDA(createDDA()), 
+            : _M(M), _options(opts),
+              _PTA(createPTA()), _DDA(createDDA()), 
               _CDA(new LLVMControlDependenceAnalysis(M, _options.CDAOptions)),
               _dg(new LLVMDependenceGraph(opts.threads)),
               _controlFlowGraph(

@@ -405,5 +405,11 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit,
     DDAOptions.undefinedFunsBehavior = undefinedFunsBehavior;
     DDAOptions.analysisType = ddaType;
 
+    if (ddaType == LLVMDataDependenceAnalysisOptions::AnalysisType::svf &&
+        ptaType != LLVMPointerAnalysisOptions::AnalysisType::svf) {
+        llvm::errs() << "DDA type is SVF, forcing PTA type to SVF too\n";
+        PTAOptions.analysisType = LLVMPointerAnalysisOptions::AnalysisType::svf;
+    }
+
     return options;
 }

@@ -740,9 +740,18 @@ int main(int argc, char *argv[]) {
     debug::TimeMeasure tm;
 
     if (options.dgOptions.DDAOptions.isSVF()) {
-        SVFLLVMDataDependenceAnalysis DDA(M.get(),
+        SVFPointerAnalysis PTA(M.get(), options.dgOptions.PTAOptions);
+        tm.start();
+        PTA.run();
+        tm.report("INFO: Pointer analysis took");
+
+        SVFLLVMDataDependenceAnalysis DDA(M.get(), &PTA,
                                           options.dgOptions.DDAOptions);
+        tm.start();
         DDA.run();
+        tm.stop();
+        tm.report("INFO: Data dependence analysis took");
+
         dumpGenericDefs(&DDA);
         return 0;
     }

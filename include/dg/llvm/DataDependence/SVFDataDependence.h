@@ -22,6 +22,7 @@
 #include "dg/ADT/SetQueue.h"
 
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
+#include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
 
 #include "dg/util/debug.h"
 
@@ -33,43 +34,42 @@ using SVF::PAG;
 using SVF::SVFG;
 
 class SVFLLVMDataDependenceAnalysis : public LLVMDataDependenceAnalysis {
-    SVF::SVFModule *_svfModule{nullptr};
-    std::unique_ptr<SVF::PointerAnalysis> _pta{};
+   //SVF::SVFModule *_svfModule{nullptr};
+   //PAG *pag{nullptr};
+    SVFPointerAnalysis *_pta{nullptr};
     SVFG *svfg{nullptr};
-    PAG *pag{nullptr};
 
   public:
     SVFLLVMDataDependenceAnalysis(const llvm::Module *m,
+                                  SVFPointerAnalysis *pta,
                                   const LLVMDataDependenceAnalysisOptions& opts = {})
-            : LLVMDataDependenceAnalysis(m, opts) {}
+            : LLVMDataDependenceAnalysis(m, opts), _pta(pta) {
+    }
 
     ~SVFLLVMDataDependenceAnalysis() override {
-        // _svfModule overtook the ovenership of llvm::Module,
-        // we must re-take it to avoid double free
         delete svfg;
-        LLVMModuleSet::releaseLLVMModuleSet();
     }
 
     void run() override {
         using namespace SVF;
 
-        DBG_SECTION_BEGIN(dda, "Running SVF pointer analysis (Andersen)");
+       // DBG_SECTION_BEGIN(dda, "Running SVF pointer analysis (Andersen)");
+       //auto moduleset = LLVMModuleSet::getLLVMModuleSet();
+       //_svfModule =
+       //        moduleset->buildSVFModule(*const_cast<llvm::Module *>(getModule()));
+       //assert(_svfModule && "Failed building SVF module");
 
-        auto moduleset = LLVMModuleSet::getLLVMModuleSet();
-        _svfModule =
-                moduleset->buildSVFModule(*const_cast<llvm::Module *>(getModule()));
-        assert(_svfModule && "Failed building SVF module");
-
-        PAGBuilder builder;
-        pag = builder.build(_svfModule);
-        auto *anders = AndersenWaveDiff::createAndersenWaveDiff(pag);
-        anders->disablePrintStat();
-
-        DBG_SECTION_END(dda, "Done running SVF pointer analysis (Andersen)");
+       //PAGBuilder builder;
+       //pag = builder.build(_svfModule);
+       //auto *anders = AndersenWaveDiff::createAndersenWaveDiff(pag);
+       //anders->disablePrintStat();
+       //DBG_SECTION_END(dda, "Done running SVF pointer analysis (Andersen)");
  
         DBG_SECTION_BEGIN(dda, "Running SVFG construction");
+        assert(_pta && "No pointer analysis");
+        assert(_pta->getPTA() && "No pointer analysis");
         SVF::SVFGBuilder svfgBuilder;
-        svfg = svfgBuilder.buildFullSVFG(anders);
+        svfg = svfgBuilder.buildFullSVFG(static_cast<SVF::BVDataPTAImpl *>(_pta->getPTA()));
         //mssa = svfgBuilder.buildMSSA(anders, /* ptrOnlySSA */ = false);
         DBG_SECTION_END(dda, "Finished SVFG construction");
     }
