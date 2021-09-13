@@ -189,9 +189,14 @@ class RelationsAnalyzer {
 
     bool mayHaveAlias(const ValueRelations &graph,
                       const llvm::Value *val) const {
-        for (auto eqval : graph.getEqual(val))
+        for (auto eqval : graph.getEqual(val)) {
+            // FIXME: workaround for a bug
+            if (!llvm::isa<llvm::User>(eqval)) {
+                continue; // don't care
+            }
             if (mayHaveAlias(llvm::cast<llvm::User>(eqval)))
                 return true;
+        }
         return false;
     }
 
