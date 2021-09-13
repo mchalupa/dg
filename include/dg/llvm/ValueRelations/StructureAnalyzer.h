@@ -498,6 +498,7 @@ class StructureAnalyzer {
         // every memory allocated on stack is considered allocated successfully
         if (llvm::isa<llvm::AllocaInst>(inst)) {
             std::tie(index, area) = getAllocatedAreaFor(inst);
+            assert(index < validAreas.size() && "Index oob");
             assert(area);
             validAreas[index] = true;
         }
@@ -508,8 +509,11 @@ class StructureAnalyzer {
             if (intrinsic->getIntrinsicID() == llvm::Intrinsic::lifetime_end) {
                 std::tie(index, area) = getEqualArea(location->relations,
                                                      intrinsic->getOperand(1));
-                assert(area);
-                validAreas[index] = false;
+                if (index < validAreas.size()) {
+                    assert(index < validAreas.size() && "Index oob");
+                    assert(area);
+                    validAreas[index] = false;
+                }
             }
         }
 
@@ -526,6 +530,7 @@ class StructureAnalyzer {
                 // be considered valid until the realloc is proven unsuccessful
                 std::tie(index, area) =
                         getEqualArea(location->relations, call->getOperand(0));
+                assert(index < validAreas.size() && "Index oob");
                 if (area)
                     validAreas[index] = false;
                 else if (!llvm::isa<llvm::ConstantPointerNull>(
@@ -542,6 +547,7 @@ class StructureAnalyzer {
                 // anymore
                 std::tie(index, area) =
                         getEqualArea(location->relations, call->getOperand(0));
+                assert(index < validAreas.size() && "Index oob");
 
                 if (area)
                     validAreas[index] = false;
@@ -563,6 +569,8 @@ class StructureAnalyzer {
             std::tie(preReallocIndex, preReallocArea) =
                     getAllocatedAreaFor(area->getReallocatedPtr());
 
+        assert(index < validAreas.size() && "Index oob");
+        assert(preReallocIndex < validAreas.size() && "Index oob");
         if (validateThis) {
             validAreas[index] = true;
             if (preReallocArea)
@@ -600,6 +608,7 @@ class StructureAnalyzer {
 
         for (auto equal : location->relations.getEqual(param)) {
             std::tie(index, area) = getAllocatedAreaFor(equal);
+            assert(index < validAreas.size() && "Index oob");
             // if compared pointer or equal belong to allocated area, this area
             // can be marked valid
             if (area)
