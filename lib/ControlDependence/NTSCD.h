@@ -67,7 +67,12 @@ class NTSCD {
             new_frontier.swap(frontier);
         } while (progress);
 
-        for (auto *predicate : graph.predicates()) {
+        // iterate over frontier set, not over predicates -- only
+        // the predicates that are in the frontier set may have colored
+        // and uncolored successors
+        for (auto *predicate : frontier) {
+            if (!graph.isPredicate(*predicate))
+                continue;
             bool has_colored = false;
             bool has_uncolored = false;
             for (auto *succ : predicate->successors()) {
