@@ -92,7 +92,7 @@ class OffsetsSetPointsToSet {
         if (ret && it->second.empty()) {
             pointers.erase(it);
         }
-        assert(ret || !it->second.empty() && "Inconsistence");
+        assert((ret || !it->second.empty()) && "Inconsistence");
         return ret;
     }
 
