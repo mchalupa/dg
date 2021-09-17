@@ -30,6 +30,15 @@ getNextNonDebugInstruction(const llvm::Instruction *I) {
     return nullptr;
 #endif
 }
+
+inline const llvm::Value *_getCalledValue(const llvm::CallInst *C) {
+#if LLVM_VERSION_MAJOR >= 8
+    return C->getCalledOperand()->stripPointerCasts();
+#else
+    return C->getCalledValue()->stripPointerCasts();
+#endif
+}
+
 } // namespace
 
 ///
@@ -68,16 +77,22 @@ class ICDGraphBuilder {
         }
 
         // function pointer call
+        std::vector<const llvm::Function *> funs;
         if (_pta) {
-            abort();
-            return {};
+            auto pts = _pta->getLLVMPointsTo(_getCalledValue(C));
+            for (const auto &ptr : pts) {
+                if (auto *fun = llvm::dyn_cast<llvm::Function>(ptr.value)) {
+                    funs.push_back(fun);
+                }
+            }
         }
         if (_cg) {
+            return _cg->getCalledFunctions(C);
             abort();
             return {};
         }
 
-        return {};
+        return funs;
     }
 
     static const llvm::Value *_getEntryNode(const llvm::Function *f) {
