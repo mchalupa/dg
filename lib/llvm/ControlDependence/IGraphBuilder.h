@@ -82,12 +82,14 @@ class ICDGraphBuilder {
             auto pts = _pta->getLLVMPointsTo(_getCalledValue(C));
             for (const auto &ptr : pts) {
                 if (auto *fun = llvm::dyn_cast<llvm::Function>(ptr.value)) {
-                    funs.push_back(fun);
+                    if (!fun->isDeclaration()) {
+                        funs.push_back(fun);
+                    }
                 }
             }
         }
         if (_cg) {
-            return _cg->getCalledFunctions(C);
+            // return _cg->getCalledFunctions(C);
             abort();
             return {};
         }
