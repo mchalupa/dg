@@ -379,8 +379,23 @@ int main(int argc, char *argv[]) {
                      << options.dgOptions.entryFunction << "\n";
         return 1;
     }
+    std::unique_ptr<LLVMPointerAnalysis> pta{nullptr};
+    if (use_pta) {
+        auto &ptaopts = options.dgOptions.PTAOptions;
+#ifdef HAVE_SVF
+        if (ptaopts.isSVF()) {
+            pta.reset(new SVFPointerAnalysis(M.get(), ptaopts));
+            pta->run();
+        } else
+#endif // HAVE_SVF
+        {
+            pta.reset(new DGLLVMPointerAnalysis(M.get(), ptaopts));
+            pta->run();
+        }
+    }
 
-    LLVMControlDependenceAnalysis cda(M.get(), options.dgOptions.CDAOptions);
+    LLVMControlDependenceAnalysis cda(M.get(), options.dgOptions.CDAOptions,
+                                      pta.get());
 
     if (quiet) {
         cda.compute(); // compute all the information
