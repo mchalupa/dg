@@ -60,9 +60,10 @@ class LLVMControlDependenceAnalysis {
 
   public:
     LLVMControlDependenceAnalysis(const llvm::Module *module,
-                                  LLVMControlDependenceAnalysisOptions opts)
+                                  LLVMControlDependenceAnalysisOptions opts,
+                                  LLVMPointerAnalysis *pta = nullptr)
             : _module(module), _options(std::move(opts)) {
-        initializeImpl();
+        initializeImpl(pta);
     }
 
     // public API
