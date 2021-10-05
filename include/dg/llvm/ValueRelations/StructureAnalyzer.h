@@ -482,7 +482,7 @@ class StructureAnalyzer {
     void invalidateHeapAllocatedAreas(std::vector<bool> &validAreas) const {
         unsigned index = 0;
         for (const AllocatedArea &area : allocatedAreas) {
-            if (llvm::isa<llvm::CallInst>(area.getPtr()))
+            if (llvm::isa<llvm::CallInst>(area.getPtr()) && index < validAreas.size())
                 validAreas[index] = false;
             ++index;
         }
@@ -498,9 +498,10 @@ class StructureAnalyzer {
         // every memory allocated on stack is considered allocated successfully
         if (llvm::isa<llvm::AllocaInst>(inst)) {
             std::tie(index, area) = getAllocatedAreaFor(inst);
-            assert(index < validAreas.size() && "Index oob");
+            //assert(index < validAreas.size() && "Index oob");
             assert(area);
-            validAreas[index] = true;
+            if (index < validAreas.size())
+                validAreas[index] = true;
         }
 
         // if came across lifetime_end call, then mark memory whose scope ended
@@ -510,7 +511,7 @@ class StructureAnalyzer {
                 std::tie(index, area) = getEqualArea(location->relations,
                                                      intrinsic->getOperand(1));
                 if (index < validAreas.size()) {
-                    assert(index < validAreas.size() && "Index oob");
+                    //assert(index < validAreas.size() && "Index oob");
                     assert(area);
                     validAreas[index] = false;
                 }
@@ -547,9 +548,9 @@ class StructureAnalyzer {
                 // anymore
                 std::tie(index, area) =
                         getEqualArea(location->relations, call->getOperand(0));
-                assert(index < validAreas.size() && "Index oob");
+                //assert(index < validAreas.size() && "Index oob");
 
-                if (area)
+                if (area && index < validAreas.size())
                     validAreas[index] = false;
                 else if (!llvm::isa<llvm::ConstantPointerNull>(
                                  call->getOperand(0))) {
