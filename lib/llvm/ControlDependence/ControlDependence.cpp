@@ -46,8 +46,10 @@ void LLVMControlDependenceAnalysis::initializeImpl(LLVMPointerAnalysis *pta,
         abort();
     }
 
-    _interprocImpl.reset(
-            new llvmdg::LLVMInterprocCD(_module, _options, pta, cg));
+    if (!icfg) { // interproc makes no sense with ICFG
+        _interprocImpl.reset(
+                new llvmdg::LLVMInterprocCD(_module, _options, pta, cg));
+    }
 }
 
 } // namespace dg
