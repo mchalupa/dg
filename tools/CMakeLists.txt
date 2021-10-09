@@ -21,16 +21,15 @@ if (LLVM_DG)
     configure_file(git-version.h.in git-version.h @ONLY)
     include_directories(${CMAKE_CURRENT_BINARY_DIR})
 
-	add_executable(llvm-dg-dump llvm-dg-dump.cpp)
-	target_link_libraries(llvm-dg-dump
-				PRIVATE dgllvmdg
-				PRIVATE ${SVF_LIBS}
-				PRIVATE ${llvm_transformutils}
-				PRIVATE ${llvm_support}
-				PRIVATE ${llvm_analysis}
-				PRIVATE ${llvm_irreader}
-				PRIVATE ${llvm_bitwriter}
-				PRIVATE ${llvm_core})
+    add_executable(llvm-dg-dump llvm-dg-dump.cpp)
+    target_link_libraries(llvm-dg-dump PRIVATE dgllvmslicer
+                                       PRIVATE ${SVF_LIBS}
+                                       PRIVATE ${llvm_analysis}
+                                       PRIVATE ${llvm_bitwriter}
+                                       PRIVATE ${llvm_core}
+                                       PRIVATE ${llvm_irreader}
+                                       PRIVATE ${llvm_support}
+                                       PRIVATE ${llvm_transformutils})
 
 	add_library(dgllvmslicer SHARED
 		    llvm-slicer-opts.cpp include/dg/tools/llvm-slicer-opts.h
