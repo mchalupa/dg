@@ -109,7 +109,8 @@ class SparseBitvectorImpl {
         auto res = it->second & ~(BitsT{1} << (i - sft));
         if (res == 0) {
             _bits.erase(it);
-            assert(size() != 0 || empty() && "Inconsistence");
+            // tests that size() = 0 <=> empty()
+            assert(((size() != 0) ^ empty()) && "Inconsistence");
         } else {
             _bits[sft] = res;
         }
