@@ -9,16 +9,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # LLVM 3.4 is not available
-          # LLVM 3.{5,6} are not compatible at the moment
-
           # Linux with GCC
-          # - {os: ubuntu-16.04, llvm: '3.5', compiler: gcc}
-          # - {os: ubuntu-16.04, llvm: '3.6', compiler: gcc}
-          - {os: ubuntu-16.04, llvm: '3.7', compiler: gcc}
-          - {os: ubuntu-16.04, llvm: '3.8', compiler: gcc}
-          - {os: ubuntu-16.04, llvm: '3.9', compiler: gcc}
-          - {os: ubuntu-16.04, llvm: '4.0', compiler: gcc}
+          - {os: ubuntu-18.04, llvm: '3.9', compiler: gcc}
+          - {os: ubuntu-18.04, llvm: '4.0', compiler: gcc}
           - {os: ubuntu-18.04, llvm: '5.0', compiler: gcc}
           - {os: ubuntu-18.04, llvm: '6.0', compiler: gcc}
           - {os: ubuntu-18.04, llvm: 7, compiler: gcc}
@@ -31,12 +24,8 @@ jobs:
           - {os: ubuntu-20.04, llvm: 13, compiler: gcc, type: Debug}
 
           # Linux with Clang
-          # - {os: ubuntu-16.04, llvm: '3.5', compiler: clang}
-          # - {os: ubuntu-16.04, llvm: '3.6', compiler: clang}
-          - {os: ubuntu-16.04, llvm: '3.7', compiler: clang}
-          - {os: ubuntu-16.04, llvm: '3.8', compiler: clang}
-          - {os: ubuntu-16.04, llvm: '3.9', compiler: clang}
-          - {os: ubuntu-16.04, llvm: '4.0', compiler: clang}
+          - {os: ubuntu-18.04, llvm: '3.9', compiler: clang}
+          - {os: ubuntu-18.04, llvm: '4.0', compiler: clang}
           - {os: ubuntu-18.04, llvm: '5.0', compiler: clang}
           - {os: ubuntu-18.04, llvm: '6.0', compiler: clang}
           - {os: ubuntu-18.04, llvm: 7, compiler: clang}
@@ -69,27 +58,6 @@ jobs:
           sudo apt install ccache cmake ninja-build clang-${{matrix.llvm}} \
                            llvm-${{matrix.llvm}}-dev
 
-      - name: '[Xenial + LLVM 3.8] Fix installation'
-        if: matrix.os == 'ubuntu-16.04' && matrix.llvm == '3.8'
-        run: |
-          # patch LLVMConfig.cmake + LLVMExports-relwithdebinfo.cmake
-          sudo patch -d/ -p0 < .github/workflows/xenial-llvm3.8/cmake.patch
-
-          # fix paths to libraries and headers
-          sudo ln -s /usr/include/llvm-c-3.8/llvm-c /usr/include/llvm-3.8/llvm-c
-          sudo cp -P /usr/lib/llvm-3.8/lib/libLLVM-3.8.so /usr/lib/llvm-3.8/lib/libLLVM-3.8.so.1
-
-      - name: Get LLVM CMake directory
-        run: |
-          # older releases do not have (usable) llvm-config
-          if [[ "${{matrix.llvm}}" =~ ^3\.[0-8] ]]; then
-            echo "LLVM_CMAKE_DIR='/usr/share/llvm-${{matrix.llvm}}/cmake'" \
-                  >> $GITHUB_ENV
-          else
-            echo "LLVM_CMAKE_DIR='/usr/lib/llvm-${{matrix.llvm}}/lib/cmake/llvm'" \
-                  >> $GITHUB_ENV
-          fi
-
       - name: Set environment
         id: env
         run: |
@@ -113,7 +81,7 @@ jobs:
           sudo /usr/sbin/update-ccache-symlinks
           echo "/usr/lib/ccache" >> $GITHUB_PATH
 
-          # Xenial and Bionic do not create symlinks to versioned clang
+          # Bionic does not create symlinks to versioned clang
           sudo ln -sfr /usr/bin/ccache /usr/lib/ccache/clang-${{matrix.llvm}}
           sudo ln -sfr /usr/bin/ccache /usr/lib/ccache/clang++-${{matrix.llvm}}
 
@@ -139,7 +107,7 @@ jobs:
                 -GNinja \
                 -DCMAKE_BUILD_TYPE:STRING="${{matrix.type}}" \
                 -DUSE_SANITIZERS:BOOL=ON \
-                -DLLVM_DIR:PATH="$LLVM_CMAKE_DIR"
+                -DLLVM_DIR:PATH="$(llvm-config-${{matrix.llvm}} --cmakedir)"
 
       - name: Build
         run: cmake --build _build
