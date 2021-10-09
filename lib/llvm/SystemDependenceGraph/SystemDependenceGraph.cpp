@@ -67,7 +67,7 @@ struct SDGBuilder {
                 node = &buildCallNode(dg, CI);
             } else {
                 node = &dg.createInstruction();
-                if (auto *RI = llvm::dyn_cast<llvm::ReturnInst>(&I)) {
+                if (llvm::isa<llvm::ReturnInst>(I)) {
                     // add formal 'ret' parameter
                     auto &params = dg.getParameters();
                     auto *ret = params.getReturn();
