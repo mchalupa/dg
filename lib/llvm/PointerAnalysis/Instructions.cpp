@@ -135,7 +135,12 @@ Offset accumulateEVOffsets(const llvm::ExtractValueInst *EV,
                 off += idx + DL.getTypeAllocSize(arrTy->getElementType());
             } else {
                 auto *vecTy = llvm::cast<llvm::VectorType>(type);
+#if LLVM_VERSION_MAJOR >= 12
+                assert(idx < vecTy->getElementCount().getFixedValue() &&
+                       "Invalid index");
+#else
                 assert(idx < vecTy->getNumElements() && "Invalid index");
+#endif
                 off += idx + DL.getTypeAllocSize(vecTy->getElementType());
             }
         }
