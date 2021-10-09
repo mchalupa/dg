@@ -21,17 +21,26 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/CommandLine.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
+
+llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
+                                     llvm::cl::desc("<input file>"),
+                                     llvm::cl::init(""));
+
+llvm::cl::opt<std::string> sourceFile(llvm::cl::Positional, llvm::cl::Optional,
+                                      llvm::cl::desc("[source code]"),
+                                      llvm::cl::init(""));
 
 // lines with matching braces
 std::vector<std::pair<unsigned, unsigned>> matching_braces;
 // mapping line->index in matching_braces
 std::map<unsigned, unsigned> nesting_structure;
 
-static void get_lines_from_module(const llvm::Module *M, std::set<unsigned> &lines) {
+static void get_lines_from_module(const llvm::Module &M, std::set<unsigned> &lines) {
     // iterate over all instructions
-    for (const auto &F : *M) {
+    for (const auto &F : M) {
         for (const auto &B : F) {
             for (const auto &I : B) {
                 const auto &Loc = I.getDebugLoc();
@@ -56,7 +65,7 @@ static void get_lines_from_module(const llvm::Module *M, std::set<unsigned> &lin
     */
 }
 
-static void get_nesting_structure(const char *source) {
+static void get_nesting_structure(const std::string &source) {
     std::ifstream ifs(source);
     if (!ifs.is_open() || ifs.bad()) {
         llvm::errs() << "Failed opening given source file: " << source << "\n";
@@ -119,32 +128,14 @@ static void print_lines_numbers(std::set<unsigned> &lines) {
 }
 
 int main(int argc, char *argv[]) {
-    llvm::Module *M;
+    llvm::cl::ParseCommandLineOptions(argc, argv);
+
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
 
-    const char *source = nullptr;
-    const char *module = nullptr;
-
-    if (argc < 2 || argc > 3) {
-        llvm::errs() << "Usage: module [source_code]\n";
-        return 1;
-    }
-
-    module = argv[1];
-    if (argc == 3)
-        source = argv[2];
-
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    M = llvm::ParseIRFile(module, SMD, context);
-#else
-    auto _M = llvm::parseIRFile(module, SMD, context);
-    // _M is unique pointer, we need to get Module *
-    M = _M.get();
-#endif
-
+    std::unique_ptr<llvm::Module> M = llvm::parseIRFile(inputFile, SMD, context);
     if (!M) {
-        llvm::errs() << "Failed parsing '" << module << "' file:\n";
+        llvm::errs() << "Failed parsing '" << inputFile << "' file:\n";
         SMD.print(argv[0], llvm::errs());
         return 1;
     }
@@ -153,12 +144,12 @@ int main(int argc, char *argv[]) {
     // no difficult machineris - just find out
     // which lines are in our module and print them
     std::set<unsigned> lines;
-    get_lines_from_module(M, lines);
+    get_lines_from_module(*M, lines);
 
-    if (!source)
+    if (sourceFile.empty())
         print_lines_numbers(lines);
     else {
-        get_nesting_structure(source);
+        get_nesting_structure(sourceFile);
         /* fill in the lines with braces */
         /* really not efficient, but easy */
         size_t old_size;
@@ -179,9 +170,9 @@ int main(int argc, char *argv[]) {
             lines.swap(new_lines);
         } while (lines.size() > old_size);
 
-        std::ifstream ifs(source);
+        std::ifstream ifs(sourceFile);
         if (!ifs.is_open() || ifs.bad()) {
-            llvm::errs() << "Failed opening given source file: " << source << "\n";
+            llvm::errs() << "Failed opening given source file: " << sourceFile << "\n";
             return 1;
         }
 
