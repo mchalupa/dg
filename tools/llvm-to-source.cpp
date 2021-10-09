@@ -24,19 +24,17 @@
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 
-using namespace llvm;
-
 // lines with matching braces
 std::vector<std::pair<unsigned, unsigned>> matching_braces;
 // mapping line->index in matching_braces
 std::map<unsigned, unsigned> nesting_structure;
 
-static void get_lines_from_module(const Module *M, std::set<unsigned> &lines) {
+static void get_lines_from_module(const llvm::Module *M, std::set<unsigned> &lines) {
     // iterate over all instructions
-    for (const Function &F : *M) {
-        for (const BasicBlock &B : F) {
-            for (const Instruction &I : B) {
-                const DebugLoc &Loc = I.getDebugLoc();
+    for (const auto &F : *M) {
+        for (const auto &B : F) {
+            for (const auto &I : B) {
+                const auto &Loc = I.getDebugLoc();
                 // Make sure that the llvm istruction has corresponding dbg LOC
 #if ((LLVM_VERSION_MAJOR > 3) ||                                               \
      ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR > 6)))
@@ -61,7 +59,7 @@ static void get_lines_from_module(const Module *M, std::set<unsigned> &lines) {
 static void get_nesting_structure(const char *source) {
     std::ifstream ifs(source);
     if (!ifs.is_open() || ifs.bad()) {
-        errs() << "Failed opening given source file: " << source << "\n";
+        llvm::errs() << "Failed opening given source file: " << source << "\n";
         abort();
     }
 
@@ -107,7 +105,7 @@ static void print_lines(std::ifstream &ifs, std::set<unsigned> &lines) {
         }
 
         if (ifs.bad()) {
-            errs() << "An error occured\n";
+            llvm::errs() << "An error occured\n";
             break;
         }
 
@@ -122,14 +120,14 @@ static void print_lines_numbers(std::set<unsigned> &lines) {
 
 int main(int argc, char *argv[]) {
     llvm::Module *M;
-    LLVMContext context;
-    SMDiagnostic SMD;
+    llvm::LLVMContext context;
+    llvm::SMDiagnostic SMD;
 
     const char *source = nullptr;
     const char *module = nullptr;
 
     if (argc < 2 || argc > 3) {
-        errs() << "Usage: module [source_code]\n";
+        llvm::errs() << "Usage: module [source_code]\n";
         return 1;
     }
 
@@ -147,7 +145,7 @@ int main(int argc, char *argv[]) {
 
     if (!M) {
         llvm::errs() << "Failed parsing '" << module << "' file:\n";
-        SMD.print(argv[0], errs());
+        SMD.print(argv[0], llvm::errs());
         return 1;
     }
 
@@ -183,7 +181,7 @@ int main(int argc, char *argv[]) {
 
         std::ifstream ifs(source);
         if (!ifs.is_open() || ifs.bad()) {
-            errs() << "Failed opening given source file: " << source << "\n";
+            llvm::errs() << "Failed opening given source file: " << source << "\n";
             return 1;
         }
 
