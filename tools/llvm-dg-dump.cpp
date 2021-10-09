@@ -15,6 +15,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/PrettyStackTrace.h>
+#include <llvm/Support/Signals.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 
@@ -35,140 +37,161 @@
 #include "dg/llvm/LLVMSlicer.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
+#include "dg/tools/llvm-slicer-opts.h"
+
 #include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
+using namespace dg::debug;
 using llvm::errs;
 
-int main(int argc, char *argv[]) {
-    llvm::Module *M;
-    llvm::LLVMContext context;
+
+llvm::cl::opt<bool> enable_debug(
+        "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> bb_only(
+        "bb-only",
+        llvm::cl::desc("Only dump basic blocks of dependence graph to dot"
+                       " (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<bool> mark_only(
+        "mark",
+        llvm::cl::desc("Only mark nodes that are going to be in the slice"
+                       " (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
+
+llvm::cl::opt<std::string>
+        dump_func_only("func", llvm::cl::desc("Only dump a given function."),
+                       llvm::cl::value_desc("string"), llvm::cl::init(""),
+                       llvm::cl::cat(SlicingOpts));
+
+// TODO: This machinery can be replaced with llvm::cl::callback setting
+// the desired flags directly when we drop support for LLVM 9 and older.
+enum PrintingOpts {
+    call,
+    cfgall,
+    postdom,
+    no_cfg,
+    no_control,
+    no_data,
+    no_use
+};
+
+llvm::cl::list<PrintingOpts> print_opts(
+        llvm::cl::desc("Dot printer options:"),
+        llvm::cl::values(
+                clEnumVal(call, "Print calls (default=false)."),
+                clEnumVal(cfgall,
+                          "Print full control flow graph (default=false)."),
+                clEnumVal(postdom,
+                          "Print post dominator tree (default=false)."),
+                clEnumValN(no_cfg, "no-cfg",
+                           "Do not print control flow graph (default=false)."),
+                clEnumValN(
+                        no_control, "no-control",
+                        "Do not print control dependencies (default=false)."),
+                clEnumValN(no_data, "no-data",
+                           "Do not print data dependencies (default=false)."),
+                clEnumValN(no_use, "no-use",
+                           "Do not print uses (default=false).")
+#if LLVM_VERSION_MAJOR < 4
+                        ,
+                nullptr
+#endif
+                ),
+        llvm::cl::cat(SlicingOpts));
+
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
+                                          const SlicerOptions &options) {
     llvm::SMDiagnostic SMD;
-    bool mark_only = false;
-    bool bb_only = false;
-    bool threads = false;
-    const char *module = nullptr;
-    const char *slicing_criterion = nullptr;
-    const char *dump_func_only = nullptr;
-    const char *pts = "fi";
-    const char *entry_func = "main";
-    LLVMControlDependenceAnalysisOptions::CDAlgorithm cd_alg =
-            LLVMControlDependenceAnalysisOptions::CDAlgorithm::STANDARD;
-
-    using namespace debug;
-    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
-
-    // parse options
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "-no-control") == 0) {
-            opts &= ~PRINT_CD;
-        } else if (strcmp(argv[i], "-no-use") == 0) {
-            opts &= ~PRINT_USE;
-        } else if (strcmp(argv[i], "-pta") == 0) {
-            pts = argv[++i];
-            /*
-            } else if (strcmp(argv[i], "-dda") == 0) {
-                dda = argv[++i];
-            */
-        } else if (strcmp(argv[i], "-no-data") == 0) {
-            opts &= ~PRINT_DD;
-        } else if (strcmp(argv[i], "-no-cfg") == 0) {
-            opts &= ~PRINT_CFG;
-        } else if (strcmp(argv[i], "-call") == 0) {
-            opts |= PRINT_CALL;
-        } else if (strcmp(argv[i], "-postdom") == 0) {
-            opts |= PRINT_POSTDOM;
-        } else if (strcmp(argv[i], "-bb-only") == 0) {
-            bb_only = true;
-        } else if (strcmp(argv[i], "-cfgall") == 0) {
-            opts |= PRINT_CFG;
-            opts |= PRINT_REV_CFG;
-        } else if (strcmp(argv[i], "-func") == 0) {
-            dump_func_only = argv[++i];
-        } else if (strcmp(argv[i], "-slice") == 0) {
-            slicing_criterion = argv[++i];
-        } else if (strcmp(argv[i], "-mark") == 0) {
-            mark_only = true;
-            slicing_criterion = argv[++i];
-        } else if (strcmp(argv[i], "-consider-threads") == 0) {
-            threads = true;
-        } else if (strcmp(argv[i], "-entry") == 0) {
-            entry_func = argv[++i];
-        } else if (strcmp(argv[i], "-cd-alg") == 0) {
-            const char *arg = argv[++i];
-            if (strcmp(arg, "standard") == 0)
-                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::
-                        STANDARD;
-            else if (strcmp(arg, "classic") == 0)
-                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::
-                        STANDARD;
-            else if (strcmp(arg, "ntscd") == 0)
-                cd_alg = LLVMControlDependenceAnalysisOptions::CDAlgorithm::
-                        NTSCD;
-            else {
-                errs() << "Invalid control dependencies algorithm, try: "
-                          "classic, ce\n";
-                abort();
-            }
-
-        } else {
-            module = argv[i];
-        }
-    }
-
-    if (!module) {
-        errs() << "Usage: % IR_module [output_file]\n";
-        return 1;
-    }
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    M = llvm::ParseIRFile(module, SMD, context);
+    auto _M = llvm::ParseIRFile(options.inputFile, SMD, context);
+    auto M = std::unique_ptr<llvm::Module>(_M);
 #else
-    auto _M = llvm::parseIRFile(module, SMD, context);
+    auto M = llvm::parseIRFile(options.inputFile, SMD, context);
     // _M is unique pointer, we need to get Module *
-    M = _M.get();
 #endif
 
     if (!M) {
-        llvm::errs() << "Failed parsing '" << module << "' file:\n";
-        SMD.print(argv[0], errs());
+        SMD.print("llvm-cda-dump", llvm::errs());
+    }
+
+    return M;
+}
+
+#ifndef USING_SANITIZERS
+void setupStackTraceOnError(int argc, char *argv[]) {
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
+    llvm::sys::PrintStackTraceOnErrorSignal();
+#else
+    llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
+#endif
+    llvm::PrettyStackTraceProgram X(argc, argv);
+}
+#else
+void setupStackTraceOnError(int, char **) {}
+#endif // not USING_SANITIZERS
+
+int main(int argc, char *argv[]) {
+    setupStackTraceOnError(argc, argv);
+
+    SlicerOptions options = parseSlicerOptions(argc, argv,
+                                               /* requireCrit = */ false);
+
+    uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
+    for (auto opt : print_opts) {
+        switch (opt) {
+        case no_control:
+            opts &= ~PRINT_CD;
+            break;
+        case no_use:
+            opts &= ~PRINT_USE;
+            break;
+        case no_data:
+            opts &= ~PRINT_DD;
+            break;
+        case no_cfg:
+            opts &= ~PRINT_CFG;
+            break;
+        case call:
+            opts |= PRINT_CALL;
+            break;
+        case postdom:
+            opts |= PRINT_POSTDOM;
+            break;
+        case cfgall:
+            opts |= PRINT_CFG | PRINT_REV_CFG;
+            break;
+        }
+    }
+
+    if (enable_debug) {
+        DBG_ENABLE();
+    }
+
+    llvm::LLVMContext context;
+    std::unique_ptr<llvm::Module> M = parseModule(context, options);
+    if (!M) {
+        errs() << "Failed parsing '" << options.inputFile << "' file:\n";
         return 1;
     }
 
-    llvmdg::LLVMDependenceGraphOptions options;
-
-    options.CDAOptions.algorithm = cd_alg;
-    options.threads = threads;
-    options.PTAOptions.threads = threads;
-    options.DDAOptions.threads = threads;
-    options.PTAOptions.entryFunction = entry_func;
-    options.DDAOptions.entryFunction = entry_func;
-    if (strcmp(pts, "fs") == 0) {
-        options.PTAOptions.analysisType =
-                LLVMPointerAnalysisOptions::AnalysisType::fs;
-    } else if (strcmp(pts, "fi") == 0) {
-        options.PTAOptions.analysisType =
-                LLVMPointerAnalysisOptions::AnalysisType::fi;
-    } else if (strcmp(pts, "inv") == 0) {
-        options.PTAOptions.analysisType =
-                LLVMPointerAnalysisOptions::AnalysisType::inv;
-    } else {
-        llvm::errs() << "Unknown points to analysis, try: fs, fi, inv\n";
-        abort();
-    }
-
-    llvmdg::LLVMDependenceGraphBuilder builder(M, options);
+    llvmdg::LLVMDependenceGraphBuilder builder(M.get(), options.dgOptions);
     auto dg = builder.build();
 
     std::set<LLVMNode *> callsites;
-    if (slicing_criterion) {
-        const char *sc[] = {slicing_criterion, "klee_assume", nullptr};
+    const std::string &slicingCriteria = options.slicingCriteria;
+    if (!slicingCriteria.empty()) {
+        const char *sc[] = {slicingCriteria.c_str(), "klee_assume", nullptr};
 
         dg->getCallSites(sc, &callsites);
 
         llvmdg::LLVMSlicer slicer;
 
-        if (strcmp(slicing_criterion, "ret") == 0) {
+        if (slicingCriteria == "ret") {
             if (mark_only)
                 slicer.mark(dg->getExit());
             else
@@ -176,7 +199,7 @@ int main(int argc, char *argv[]) {
         } else {
             if (callsites.empty()) {
                 errs() << "ERR: slicing criterion not found: "
-                       << slicing_criterion << "\n";
+                       << slicingCriteria << "\n";
                 exit(1);
             }
 
@@ -189,7 +212,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (!mark_only) {
-            std::string fl(module);
+            std::string fl(options.inputFile);
             fl.append(".sliced");
             std::ofstream ofs(fl);
             llvm::raw_os_ostream output(ofs);
@@ -198,20 +221,20 @@ int main(int argc, char *argv[]) {
             errs() << "INFO: Sliced away " << st.nodesRemoved << " from "
                    << st.nodesTotal << " nodes\n";
 
-#if (LLVM_VERSION_MAJOR > 6)
+#if LLVM_VERSION_MAJOR > 6
             llvm::WriteBitcodeToFile(*M, output);
 #else
-            llvm::WriteBitcodeToFile(M, output);
+            llvm::WriteBitcodeToFile(M.get(), output);
 #endif
         }
     }
 
     if (bb_only) {
         LLVMDGDumpBlocks dumper(dg.get(), opts);
-        dumper.dump(nullptr, dump_func_only);
+        dumper.dump(nullptr, dump_func_only.c_str());
     } else {
         LLVMDG2Dot dumper(dg.get(), opts);
-        dumper.dump(nullptr, dump_func_only);
+        dumper.dump(nullptr, dump_func_only.c_str());
     }
 
     return 0;
