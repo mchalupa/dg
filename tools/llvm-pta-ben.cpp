@@ -16,6 +16,8 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IRReader/IRReader.h>
+#include <llvm/Support/PrettyStackTrace.h>
+#include <llvm/Support/Signals.h>
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/Support/raw_os_ostream.h>
 
@@ -31,6 +33,8 @@
 #include "dg/PointerAnalysis/PointerAnalysisFSInv.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
+#include "dg/tools/llvm-slicer-opts.h"
+
 #include "dg/tools/TimeMeasure.h"
 
 using namespace dg;
@@ -38,11 +42,9 @@ using namespace dg::pta;
 using dg::debug::TimeMeasure;
 using llvm::errs;
 
-enum PTType {
-    FLOW_SENSITIVE = 1,
-    FLOW_INSENSITIVE,
-    WITH_INVALIDATE,
-};
+llvm::cl::opt<bool> enable_debug(
+        "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
+        llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 static std::string getInstName(const llvm::Value *val) {
     std::ostringstream ostr;
@@ -343,67 +345,60 @@ static void evalPTA(DGLLVMPointerAnalysis *pta) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    llvm::Module *M;
-    llvm::LLVMContext context;
+std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext& context,
+                                          const SlicerOptions& options)
+{
     llvm::SMDiagnostic SMD;
-    const char *module = nullptr;
-    const char *entry_func = "main";
-    PTType type = FLOW_INSENSITIVE;
-    uint64_t field_sensitivity = Offset::UNKNOWN;
-
-    // parse options
-    for (int i = 1; i < argc; ++i) {
-        // run given points-to analysis
-        if (strcmp(argv[i], "-pta") == 0) {
-            if (strcmp(argv[i + 1], "fs") == 0)
-                type = FLOW_SENSITIVE;
-            else if (strcmp(argv[i + 1], "inv") == 0)
-                type = WITH_INVALIDATE;
-        } else if (strcmp(argv[i], "-pta-field-sensitive") == 0) {
-            field_sensitivity = static_cast<uint64_t>(atoll(argv[i + 1]));
-        } else if (strcmp(argv[i], "-entry") == 0) {
-            entry_func = argv[i + 1];
-        } else {
-            module = argv[i];
-        }
-    }
-
-    if (!module) {
-        errs() << "Usage: % IR_module\n";
-        return 1;
-    }
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    M = llvm::ParseIRFile(module, SMD, context);
+    auto _M = llvm::ParseIRFile(options.inputFile, SMD, context);
+    auto M = std::unique_ptr<llvm::Module>(_M);
 #else
-    auto _M = llvm::parseIRFile(module, SMD, context);
+    auto M = llvm::parseIRFile(options.inputFile, SMD, context);
     // _M is unique pointer, we need to get Module *
-    M = _M.get();
 #endif
 
     if (!M) {
-        llvm::errs() << "Failed parsing '" << module << "' file:\n";
-        SMD.print(argv[0], errs());
+        SMD.print("llvm-slicer", llvm::errs());
+    }
+
+    return M;
+}
+
+#ifndef USING_SANITIZERS
+void setupStackTraceOnError(int argc, char *argv[]) {
+#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
+    llvm::sys::PrintStackTraceOnErrorSignal();
+#else
+    llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
+#endif
+    llvm::PrettyStackTraceProgram X(argc, argv);
+}
+#else
+void setupStackTraceOnError(int, char **) {}
+#endif // not USING_SANITIZERS
+
+int main(int argc, char *argv[]) {
+    setupStackTraceOnError(argc, argv);
+
+    SlicerOptions options = parseSlicerOptions(argc, argv,
+                                               /* requireCrit = */ false);
+
+    if (enable_debug) {
+        DBG_ENABLE();
+    }
+
+    llvm::LLVMContext context;
+    std::unique_ptr<llvm::Module> M = parseModule(context, options);
+    if (!M) {
+        llvm::errs() << "Failed parsing '" << options.inputFile << "' file:\n";
         return 1;
     }
 
     TimeMeasure tm;
+    auto &opts = options.dgOptions.PTAOptions;
 
-    LLVMPointerAnalysisOptions opts;
-
-    if (type == FLOW_INSENSITIVE) {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fi;
-    } else if (type == WITH_INVALIDATE) {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::inv;
-    } else {
-        opts.analysisType = dg::LLVMPointerAnalysisOptions::AnalysisType::fs;
-    }
-
-    opts.entryFunction = entry_func;
-    opts.fieldSensitivity = field_sensitivity;
-
-    DGLLVMPointerAnalysis PTA(M, opts);
+    DGLLVMPointerAnalysis PTA(M.get(), opts);
 
     tm.start();
 

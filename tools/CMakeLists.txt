@@ -119,13 +119,12 @@ endif (HAVE_SVF)
 				PRIVATE ${llvm_analysis}
 				PRIVATE ${llvm_support})
 
-	add_executable(llvm-pta-ben llvm-pta-ben.cpp)
-	target_link_libraries(llvm-pta-ben PRIVATE dgllvmpta)
-	target_link_libraries(llvm-pta-ben
-				PRIVATE ${llvm_core}
-				PRIVATE ${llvm_irreader}
-				PRIVATE ${llvm_analysis}
-				PRIVATE ${llvm_support})
+    add_executable(llvm-pta-ben llvm-pta-ben.cpp)
+    target_link_libraries(llvm-pta-ben PRIVATE dgllvmslicer
+                                       PRIVATE ${llvm_analysis}
+                                       PRIVATE ${llvm_core}
+                                       PRIVATE ${llvm_irreader}
+                                       PRIVATE ${llvm_support})
 
 	add_executable(llvm-pta-compare llvm-pta-compare.cpp)
 	target_link_libraries(llvm-pta-compare PRIVATE dgllvmpta)
