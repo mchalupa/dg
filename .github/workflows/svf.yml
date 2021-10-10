@@ -36,15 +36,15 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt update
-          sudo apt install ccache cmake ninja-build clang-10 llvm-10-dev \
+          sudo apt install ccache cmake ninja-build clang-12 llvm-12-dev \
                            libz3-dev
 
       - name: Set environment
         id: env
         run: |
           if [[ "${{matrix.compiler}}" = "clang" ]]; then
-            echo "CC=clang-10" >> $GITHUB_ENV
-            echo "CXX=clang++-10" >> $GITHUB_ENV
+            echo "CC=clang-12" >> $GITHUB_ENV
+            echo "CXX=clang++-12" >> $GITHUB_ENV
 
             # force coloured output
             echo "CFLAGS=$CFLAGS -fcolor-diagnostics" >> $GITHUB_ENV
@@ -81,18 +81,18 @@ jobs:
         run: |
           # Prepare tests
           (cd svf/Test-Suite && \
-           PATH="$(llvm-config-10 --bindir):$PATH" ./generate_bc.sh)
+           PATH="$(llvm-config-12 --bindir):$PATH" ./generate_bc.sh)
 
           # Build directory name format is hard-coded in SVF tests...
           cmake -Ssvf \
                 -Bsvf/RelWithDebInfo-build \
                 -GNinja \
                 -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
-                -DLLVM_DIR:PATH="$(llvm-config-10 --cmakedir)"
+                -DLLVM_DIR:PATH="$(llvm-config-12 --cmakedir)"
 
           cmake --build svf/RelWithDebInfo-build
           (cd svf/RelWithDebInfo-build && \
-           PATH="$(llvm-config-10 --bindir):$PATH" \
+           PATH="$(llvm-config-12 --bindir):$PATH" \
            ctest --progress --output-on-failure -j$(nproc))
 
       - name: Configure CMake project
@@ -101,7 +101,7 @@ jobs:
                 -B_build \
                 -GNinja \
                 -DUSE_SANITIZERS:BOOL=ON \
-                -DLLVM_DIR:PATH="$(llvm-config-10 --cmakedir)" \
+                -DLLVM_DIR:PATH="$(llvm-config-12 --cmakedir)" \
                 -DSVF_DIR:PATH="$GITHUB_WORKSPACE/svf/RelWithDebInfo-build"
 
       - name: Build
