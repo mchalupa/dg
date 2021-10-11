@@ -31,11 +31,10 @@ if (LLVM_DG)
     endif()
 
 	add_library(dgllvmslicer SHARED
-		    llvm-slicer-opts.cpp include/dg/tools/llvm-slicer-opts.h
-		    llvm-slicer-utils.cpp include/dg/tools/llvm-slicer-utils.h
-		    llvm-slicer-preprocess.cpp include/dg/tools/llvm-slicer-preprocess.h
-		    llvm-slicer-crit.cpp
-		    include/dg/tools/llvm-slicer.h)
+		    llvm-slicer-opts.cpp
+		    llvm-slicer-utils.cpp
+		    llvm-slicer-preprocess.cpp
+		    llvm-slicer-crit.cpp)
 	target_link_libraries(dgllvmslicer PUBLIC dgllvmdg)
 
 	add_executable(llvm-slicer llvm-slicer.cpp)
