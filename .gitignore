@@ -59,7 +59,8 @@ tags
 tests/*-test
 tests/fuzzing/regressions/
 
-# clang
+# clangd
+.cache
 .clangd
 
 # pycache
@@ -75,10 +76,10 @@ tools/llvm-slicer
 
 git-version.h
 
-#build directory
+# build directory
 build
 
-#sourcetrail files
+# sourcetrail files
 dg.srctrl*
 
 compile_commands.json
