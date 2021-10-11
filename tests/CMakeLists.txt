@@ -33,7 +33,7 @@ if(Catch2_FOUND)
     message(STATUS "Found Catch2 (found version \"${Catch2_VERSION}\")")
     # Issue a warning if there is a newer version, so that we will be notified
     # to update the bundled one.
-    if(${CATCH_VERSION} VERSION_GREATER ${Catch2_FOUND})
+    if(${Catch2_VERSION} VERSION_GREATER ${CATCH_VERSION})
         message(WARNING
             "The bundled Catch2 seems to be outdated: \"${CATCH_VERSION}\"\n"
             "Please report this to our issue tracker. Thank you!")
