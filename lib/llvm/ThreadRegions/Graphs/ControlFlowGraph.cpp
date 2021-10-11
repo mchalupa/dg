@@ -1,4 +1,4 @@
-#include "ControlFlowGraph.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 
 #include "CriticalSectionsBuilder.h"
 #include "GraphBuilder.h"

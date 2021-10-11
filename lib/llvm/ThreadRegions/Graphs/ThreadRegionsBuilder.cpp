@@ -1,6 +1,6 @@
 #include "ThreadRegionsBuilder.h"
 
-#include "ThreadRegion.h"
+#include "dg/llvm/ThreadRegions/ThreadRegion.h"
 #include "llvm/ThreadRegions/Nodes/Nodes.h"
 
 ThreadRegionsBuilder::ThreadRegionsBuilder(std::size_t size)
