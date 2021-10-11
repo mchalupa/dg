@@ -100,8 +100,6 @@ add_library(dgllvmthreadregions SHARED
 	    llvm/ThreadRegions/ThreadRegion.cpp
             llvm/ThreadRegions/MayHappenInParallel.cpp
 )
-target_include_directories(dgllvmthreadregions
-        PUBLIC ${CMAKE_SOURCE_DIR}/include/dg/llvm/ThreadRegions)
 target_link_libraries(dgllvmthreadregions PUBLIC dgllvmpta
                                           PRIVATE dgllvmforkjoin)
 

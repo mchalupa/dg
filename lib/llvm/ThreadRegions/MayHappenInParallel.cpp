@@ -1,4 +1,4 @@
-#include "MayHappenInParallel.h"
+#include "dg/llvm/ThreadRegions/MayHappenInParallel.h"
 
 using namespace std;
 

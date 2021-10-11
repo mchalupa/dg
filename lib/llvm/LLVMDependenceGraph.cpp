@@ -28,6 +28,9 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
+#include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
+#include "dg/llvm/ThreadRegions/MayHappenInParallel.h"
+
 // !FIXME
 #include "../lib/llvm/ControlDependence/InterproceduralCD.h"
 #include "../lib/llvm/ControlDependence/NTSCD.h"
@@ -40,9 +43,6 @@
 #include "dg/ADT/Queue.h"
 
 #include "DefUse/DefUse.h"
-
-#include "ControlFlowGraph.h"
-#include "MayHappenInParallel.h"
 
 using llvm::errs;
 using std::make_pair;

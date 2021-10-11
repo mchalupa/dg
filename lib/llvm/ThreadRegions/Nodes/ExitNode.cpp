@@ -1,6 +1,5 @@
 #include "ExitNode.h"
 #include "JoinNode.h"
-#include "ThreadRegion.h"
 
 #include <iostream>
 #include <string>

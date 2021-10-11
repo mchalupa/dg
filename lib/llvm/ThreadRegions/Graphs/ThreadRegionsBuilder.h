@@ -5,7 +5,7 @@
 #include <set>
 #include <unordered_map>
 
-#include "ThreadRegion.h"
+#include "dg/llvm/ThreadRegions/ThreadRegion.h"
 
 class Node;
 class ForkNode;
