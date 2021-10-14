@@ -139,7 +139,7 @@ class LLVMDependenceGraph : public DependenceGraph<LLVMNode> {
 
     LLVMNode *findNode(llvm::Value *value) const;
 
-    void addDefUseEdges();
+    void addDefUseEdges(bool preserveDbg = true);
     void computeInterferenceDependentEdges(ControlFlowGraph *controlFlowGraph);
     static void computeForkJoinDependencies(ControlFlowGraph *controlFlowGraph);
     static void computeCriticalSections(ControlFlowGraph *controlFlowGraph);
