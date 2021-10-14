@@ -29,10 +29,9 @@
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMNode.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-// !FIXME
-#include "../lib/llvm/ControlDependence/InterproceduralCD.h"
-#include "../lib/llvm/ControlDependence/NTSCD.h"
-#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
+#include "llvm/ControlDependence/InterproceduralCD.h"
+#include "llvm/ControlDependence/NTSCD.h"
+#include "llvm/ControlDependence/legacy/NTSCD.h"
 
 #include "dg/util/debug.h"
 #include "llvm-utils.h"
