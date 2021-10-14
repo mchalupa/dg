@@ -1270,6 +1270,8 @@ void LLVMDependenceGraph::addDefUseEdges(bool preserveDbg) {
                 else if (auto *DI = dyn_cast<DbgAddrIntrinsic>(&I))
                     val = DI->getAddress();
 #endif
+                else if (auto *DI = dyn_cast<DbgAddrIntrinsic>(&I))
+                    val = DI->getAddress();
 
                 if (val) {
                     auto *nd = dg->getNode(&I);
