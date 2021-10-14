@@ -209,6 +209,11 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit,
                     "Consider threads are in input file (default=false)."),
             llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
+    llvm::cl::opt<bool> preserveDbg(
+            "preserve-dbg",
+            llvm::cl::desc("Preserve debugging information (default=true)."),
+            llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+
     llvm::cl::opt<std::string> allocationFuns(
             "allocation-funs",
             llvm::cl::desc(
@@ -380,6 +385,7 @@ SlicerOptions parseSlicerOptions(int argc, char *argv[], bool requireCrit,
     auto &CDAOptions = dgOptions.CDAOptions;
 
     dgOptions.entryFunction = entryFunction;
+    dgOptions.preserveDbg = preserveDbg;
     dgOptions.threads = threads;
 
     CDAOptions.algorithm = cdAlgorithm;
