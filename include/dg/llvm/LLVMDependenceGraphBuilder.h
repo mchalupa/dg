@@ -40,6 +40,7 @@ struct LLVMDependenceGraphOptions {
 
     bool verifyGraph{true};
     bool threads{false};
+    bool preserveDbg{true};
 
     std::string entryFunction{"main"};
 
@@ -164,7 +165,7 @@ class LLVMDependenceGraphBuilder {
         _dg->build(_M, _PTA.get(), _DDA.get(), _entryFunction);
 
         // insert the data dependencies edges
-        _dg->addDefUseEdges();
+        _dg->addDefUseEdges(_options.preserveDbg);
 
         // compute and fill-in control dependencies
         _runControlDependenceAnalysis();
@@ -228,7 +229,7 @@ class LLVMDependenceGraphBuilder {
 
         // data-dependence edges
         _runDataDependenceAnalysis();
-        _dg->addDefUseEdges();
+        _dg->addDefUseEdges(_options.preserveDbg);
 
         // fill-in control dependencies
         _runControlDependenceAnalysis();
