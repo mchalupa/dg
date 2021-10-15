@@ -2,10 +2,7 @@
 name: Docker Image
 
 on:
-  push:
-    branches: [master]
-  pull_request:
-    branches: [master]
+  [push, pull_request]
 
 jobs:
   Docker:
@@ -15,4 +12,8 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build the Docker image
-        run: docker build . --file Dockerfile --tag dg:$(date +%s)
+        run: |
+          docker build . --file Dockerfile \
+                         --build-arg GIT_REF=$GITHUB_REF \
+                         --build-arg GIT_REPO=$GITHUB_REPOSITORY \
+                         --tag dg:$(date +%s)
