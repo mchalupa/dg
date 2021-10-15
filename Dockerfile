@@ -15,15 +15,19 @@ RUN apt-get install -yq --no-install-recommends clang llvm
 # --------------------------------------------------
 FROM base as build
 
+# Can be used to specify which git ref to checkout
+ARG GIT_REF=master
+ARG GIT_REPO=mchalupa/dg
+
 # Install build dependencies
 RUN apt-get install -yq --no-install-recommends ca-certificates cmake git \
                                                 ninja-build llvm-dev python3
 
 # Clone
-RUN git clone https://github.com/mchalupa/dg
-
-# Build
+RUN git clone https://github.com/$GIT_REPO
 WORKDIR /dg
+RUN git fetch origin $GIT_REF:build
+RUN git checkout build
 
 # libfuzzer does not like the container environment
 RUN cmake -S. -GNinja -Bbuild -DCMAKE_INSTALL_PREFIX=/opt/dg \
