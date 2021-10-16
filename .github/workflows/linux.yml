@@ -106,7 +106,7 @@ jobs:
           key: ${{matrix.os}}-${{matrix.llvm}}-${{matrix.compiler}}-${{matrix.type}}-${{steps.env.outputs.timestamp}}
           restore-keys: ${{matrix.os}}-${{matrix.llvm}}-${{matrix.compiler}}-${{matrix.type}}
 
-      - name: Configure CMake project
+      - name: '[Dynamic LLVM] Configure CMake project'
         run: |
           cmake -S. \
                 -B_build \
@@ -116,10 +116,24 @@ jobs:
                 -DLLVM_DIR:PATH="/usr/lib/llvm-${{matrix.llvm}}/lib/cmake/llvm"
                 # llvm-config-3.9 does not take --cmakedir yet!
 
-      - name: Build
+      - name: '[Dynamic LLVM] Build'
         run: cmake --build _build
 
-      - name: Run tests
+      - name: '[Dynamic LLVM] Run tests'
+        # TODO: turn off the detection of leaks, we're working on it
+        run: ASAN_OPTIONS=detect_leaks=0 cmake --build _build --target check
+
+      - name: '[Static LLVM] Re-configure CMake project'
+        run: |
+          cmake -S. \
+                -B_build \
+                -DLLVM_LINK_DYLIB:BOOL=OFF
+          cmake --build _build --target clean
+
+      - name: '[Static LLVM] Build'
+        run: cmake --build _build
+
+      - name: '[Static LLVM] Run tests'
         # TODO: turn off the detection of leaks, we're working on it
         run: ASAN_OPTIONS=detect_leaks=0 cmake --build _build --target check
 
