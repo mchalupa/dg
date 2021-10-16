@@ -90,6 +90,7 @@ endif (HAVE_SVF)
 	target_link_libraries(llvm-cda-stress PRIVATE dgllvmslicer
                                             PRIVATE dganalysis
                                             PRIVATE dgcda
+					    PRIVATE ${llvm_irreader}
 					    PRIVATE ${llvm_support}
 					    PRIVATE ${llvm_core}
 					    )
