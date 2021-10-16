@@ -27,17 +27,10 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
 
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
-#include <llvm/IR/LLVMContext.h>
-#endif
 #include <llvm/IR/InstIterator.h>
 #include <llvm/IR/Instructions.h>
-#include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/CommandLine.h>
-#include <llvm/Support/PrettyStackTrace.h>
-#include <llvm/Support/Signals.h>
-#include <llvm/Support/SourceMgr.h>
-#include <llvm/Support/raw_os_ostream.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/Support/raw_ostream.h>
 
 #ifdef HAVE_SVF
 #include "dg/llvm/PointerAnalysis/SVFPointerAnalysis.h"
@@ -98,38 +91,6 @@ llvm::cl::opt<bool> use_pta(
 using VariablesMapTy = std::map<const llvm::Value *, CVariableDecl>;
 VariablesMapTy allocasToVars(const llvm::Module &M);
 VariablesMapTy valuesToVars;
-
-std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
-                                          const SlicerOptions &options) {
-    llvm::SMDiagnostic SMD;
-
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    auto _M = llvm::ParseIRFile(options.inputFile, SMD, context);
-    auto M = std::unique_ptr<llvm::Module>(_M);
-#else
-    auto M = llvm::parseIRFile(options.inputFile, SMD, context);
-    // _M is unique pointer, we need to get Module *
-#endif
-
-    if (!M) {
-        SMD.print("llvm-cda-dump", llvm::errs());
-    }
-
-    return M;
-}
-
-#ifndef USING_SANITIZERS
-void setupStackTraceOnError(int argc, char *argv[]) {
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
-    llvm::sys::PrintStackTraceOnErrorSignal();
-#else
-    llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
-#endif
-    llvm::PrettyStackTraceProgram X(argc, argv);
-}
-#else
-void setupStackTraceOnError(int, char **) {}
-#endif // not USING_SANITIZERS
 
 static std::string getInstName(const llvm::Value *val) {
     assert(val);
@@ -411,20 +372,17 @@ static void dumpIr(LLVMControlDependenceAnalysis &cda) {
 
 int main(int argc, char *argv[]) {
     setupStackTraceOnError(argc, argv);
-
-    SlicerOptions options = parseSlicerOptions(argc, argv,
-                                               /* requireCrit = */ false);
+    SlicerOptions options = parseSlicerOptions(argc, argv);
 
     if (enable_debug) {
         DBG_ENABLE();
     }
 
     llvm::LLVMContext context;
-    std::unique_ptr<llvm::Module> M = parseModule(context, options);
-    if (!M) {
-        llvm::errs() << "Failed parsing '" << options.inputFile << "' file:\n";
+    std::unique_ptr<llvm::Module> M =
+            parseModule("llvm-cda-dump", context, options);
+    if (!M)
         return 1;
-    }
 
     if (!M->getFunction(options.dgOptions.entryFunction)) {
         llvm::errs() << "The entry function not found: "

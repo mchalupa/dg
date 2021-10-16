@@ -1,11 +1,11 @@
+#include "dg/tools/llvm-slicer-opts.h"
+
 #include "dg/Offset.h"
 #include "dg/llvm/ControlDependence/LLVMControlDependenceAnalysisOptions.h"
 #include "dg/llvm/DataDependence/LLVMDataDependenceAnalysisOptions.h"
 #include "dg/llvm/LLVMDependenceGraph.h"
 #include "dg/llvm/LLVMDependenceGraphBuilder.h"
 #include "dg/llvm/PointerAnalysis/LLVMPointerAnalysisOptions.h"
-
-#include <llvm/Support/CommandLine.h>
 
 #include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer.h"

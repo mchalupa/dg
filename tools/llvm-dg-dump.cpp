@@ -14,11 +14,7 @@
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IRReader/IRReader.h>
-#include <llvm/Support/PrettyStackTrace.h>
-#include <llvm/Support/Signals.h>
-#include <llvm/Support/SourceMgr.h>
-#include <llvm/Support/raw_os_ostream.h>
+#include <llvm/Support/raw_ostream.h>
 
 #if LLVM_VERSION_MAJOR >= 4
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -38,6 +34,7 @@
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
 #include "dg/tools/llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 #include "dg/tools/TimeMeasure.h"
 
@@ -103,43 +100,9 @@ llvm::cl::list<PrintingOpts> print_opts(
                 ),
         llvm::cl::cat(SlicingOpts));
 
-std::unique_ptr<llvm::Module> parseModule(llvm::LLVMContext &context,
-                                          const SlicerOptions &options) {
-    llvm::SMDiagnostic SMD;
-
-#if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR <= 5))
-    auto _M = llvm::ParseIRFile(options.inputFile, SMD, context);
-    auto M = std::unique_ptr<llvm::Module>(_M);
-#else
-    auto M = llvm::parseIRFile(options.inputFile, SMD, context);
-    // _M is unique pointer, we need to get Module *
-#endif
-
-    if (!M) {
-        SMD.print("llvm-cda-dump", llvm::errs());
-    }
-
-    return M;
-}
-
-#ifndef USING_SANITIZERS
-void setupStackTraceOnError(int argc, char *argv[]) {
-#if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 9
-    llvm::sys::PrintStackTraceOnErrorSignal();
-#else
-    llvm::sys::PrintStackTraceOnErrorSignal(llvm::StringRef());
-#endif
-    llvm::PrettyStackTraceProgram X(argc, argv);
-}
-#else
-void setupStackTraceOnError(int, char **) {}
-#endif // not USING_SANITIZERS
-
 int main(int argc, char *argv[]) {
     setupStackTraceOnError(argc, argv);
-
-    SlicerOptions options = parseSlicerOptions(argc, argv,
-                                               /* requireCrit = */ false);
+    SlicerOptions options = parseSlicerOptions(argc, argv);
 
     uint32_t opts = PRINT_CFG | PRINT_DD | PRINT_CD | PRINT_USE | PRINT_ID;
     for (auto opt : print_opts) {
@@ -173,11 +136,10 @@ int main(int argc, char *argv[]) {
     }
 
     llvm::LLVMContext context;
-    std::unique_ptr<llvm::Module> M = parseModule(context, options);
-    if (!M) {
-        errs() << "Failed parsing '" << options.inputFile << "' file:\n";
+    std::unique_ptr<llvm::Module> M =
+            parseModule("llvm-dg-dump", context, options);
+    if (!M)
         return 1;
-    }
 
     llvmdg::LLVMDependenceGraphBuilder builder(M.get(), options.dgOptions);
     auto dg = builder.build();

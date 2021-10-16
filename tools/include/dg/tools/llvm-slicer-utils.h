@@ -2,12 +2,21 @@
 #define DG_LLVM_SLICER_UTILS_H_
 
 #include <functional>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include <llvm/ADT/StringRef.h>
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
 #include <llvm/IR/InstIterator.h>
 #endif
+
+namespace llvm {
+class LLVMContext;
+class Module;
+} // namespace llvm
+
+struct SlicerOptions;
 
 std::vector<std::string> splitList(const std::string &opt, char sep = ',');
 
@@ -26,6 +35,12 @@ bool array_match(llvm::StringRef name, const T &names) {
 
     return false;
 }
+
+void setupStackTraceOnError(int argc, char *argv[]);
+
+std::unique_ptr<llvm::Module> parseModule(const char *tool,
+                                          llvm::LLVMContext &context,
+                                          const SlicerOptions &options);
 
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
 namespace llvm {
