@@ -3,9 +3,8 @@
 #include <iostream>
 #include <random>
 
-#include <llvm/Support/CommandLine.h>
-
 #include "dg/tools/llvm-slicer-opts.h"
+#include "dg/tools/llvm-slicer-utils.h"
 
 #include "dg/ADT/Queue.h"
 #include "dg/util/debug.h"
@@ -126,6 +125,7 @@ void generateRandomGraph(CDGraph &G, unsigned Vnum = 100, unsigned Enum = 0) {
 }
 
 int main(int argc, char *argv[]) {
+    setupStackTraceOnError(argc, argv);
     SlicerOptions options = parseSlicerOptions(argc, argv,
                                                /* requireCrit = */ false,
                                                /* inputFileRequired = */ false);
