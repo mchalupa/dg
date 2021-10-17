@@ -1,3 +1,1 @@
-int *a_ptr(int **b) {
-        return *b;
-}
+int *a_ptr(int **b) { return *b; }

@@ -4,16 +4,15 @@
 #include <vector>
 
 namespace llvm {
-    class Module;
-    class Instruction;
-}
+class Module;
+class Instruction;
+} // namespace llvm
 
 namespace dg {
 namespace llvmdg {
 
-bool cutoffDivergingBranches(llvm::Module& M,
-                             const std::string& entry,
-                             const std::vector<const llvm::Value *>& criteria);
+bool cutoffDivergingBranches(llvm::Module &M, const std::string &entry,
+                             const std::vector<const llvm::Value *> &criteria);
 } // namespace llvmdg
 } // namespace dg
 

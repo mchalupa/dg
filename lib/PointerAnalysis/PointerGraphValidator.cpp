@@ -76,14 +76,13 @@ static bool hasDuplicateOperand(const PSNode *nd) {
 static bool hasNonpointerOperand(const PSNode *nd) {
     return dg::any_of(nd->getOperands(), [](const PSNode *op) {
         return (op->getType() == PSNodeType::NOOP ||
-            op->getType() == PSNodeType::FREE ||
-            op->getType() == PSNodeType::ENTRY ||
-            op->getType() == PSNodeType::INVALIDATE_LOCALS ||
-            op->getType() == PSNodeType::INVALIDATE_OBJECT ||
-            op->getType() == PSNodeType::MEMCPY ||
-            op->getType() == PSNodeType::STORE);
-        }
-    );
+                op->getType() == PSNodeType::FREE ||
+                op->getType() == PSNodeType::ENTRY ||
+                op->getType() == PSNodeType::INVALIDATE_LOCALS ||
+                op->getType() == PSNodeType::INVALIDATE_OBJECT ||
+                op->getType() == PSNodeType::MEMCPY ||
+                op->getType() == PSNodeType::STORE);
+    });
 }
 
 bool PointerGraphValidator::checkOperands() {

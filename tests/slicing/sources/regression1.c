@@ -9,11 +9,10 @@
 void test_assert(int);
 
 int main(int argc, char *argv[]) {
-  if (argc == 0) {
-  }
+    if (argc == 0) {}
 
-  test_assert(1);
-  argc;
+    test_assert(1);
+    argc;
 
-  return 0;
+    return 0;
 }

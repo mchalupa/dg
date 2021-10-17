@@ -10,8 +10,6 @@ namespace sdg {
 class DependenceGraph;
 class DGNodeArgument;
 
-
-
 ///
 // An element of the graph that can have dependencies
 //

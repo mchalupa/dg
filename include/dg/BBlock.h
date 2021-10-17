@@ -132,9 +132,9 @@ class BBlock {
     // to the same basic block (not considering labels,
     // just the targets)
     bool hasSuccessor(BBlock<NodeT> *B) const {
-        return dg::any_of(successors(),
-            [B](const BBlockEdge &succB) { return succB.target == B; }
-        );
+        return dg::any_of(successors(), [B](const BBlockEdge &succB) {
+            return succB.target == B;
+        });
     }
 
     // remove all edges from/to this BB and reconnect them to

@@ -16,8 +16,8 @@
 #endif
 
 #include "dg/tools/llvm-slicer-opts.h"
-#include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer-preprocess.h"
+#include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer.h"
 #include "git-version.h"
 
@@ -222,8 +222,8 @@ int main(int argc, char *argv[]) {
                                          criteria_are_next_instr);
         if (csvalues.empty()) {
             llvm::errs() << "No reachable slicing criteria: '"
-                        << options.slicingCriteria << "' '"
-                        << options.legacySlicingCriteria << "'\n";
+                         << options.slicingCriteria << "' '"
+                         << options.legacySlicingCriteria << "'\n";
             ::Slicer slicer(M.get(), options);
             if (!slicer.createEmptyMain()) {
                 llvm::errs() << "ERROR: failed creating an empty main\n";

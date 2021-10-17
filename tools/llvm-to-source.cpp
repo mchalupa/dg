@@ -38,7 +38,8 @@ std::vector<std::pair<unsigned, unsigned>> matching_braces;
 // mapping line->index in matching_braces
 std::map<unsigned, unsigned> nesting_structure;
 
-static void get_lines_from_module(const llvm::Module &M, std::set<unsigned> &lines) {
+static void get_lines_from_module(const llvm::Module &M,
+                                  std::set<unsigned> &lines) {
     // iterate over all instructions
     for (const auto &F : M) {
         for (const auto &B : F) {
@@ -133,7 +134,8 @@ int main(int argc, char *argv[]) {
     llvm::LLVMContext context;
     llvm::SMDiagnostic SMD;
 
-    std::unique_ptr<llvm::Module> M = llvm::parseIRFile(inputFile, SMD, context);
+    std::unique_ptr<llvm::Module> M =
+            llvm::parseIRFile(inputFile, SMD, context);
     if (!M) {
         llvm::errs() << "Failed parsing '" << inputFile << "' file:\n";
         SMD.print(argv[0], llvm::errs());
@@ -172,7 +174,8 @@ int main(int argc, char *argv[]) {
 
         std::ifstream ifs(sourceFile);
         if (!ifs.is_open() || ifs.bad()) {
-            llvm::errs() << "Failed opening given source file: " << sourceFile << "\n";
+            llvm::errs() << "Failed opening given source file: " << sourceFile
+                         << "\n";
             return 1;
         }
 

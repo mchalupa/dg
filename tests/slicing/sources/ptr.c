@@ -1,4 +1,1 @@
-int *ptr(int *p) {
-        return p;
-}
-
+int *ptr(int *p) { return p; }

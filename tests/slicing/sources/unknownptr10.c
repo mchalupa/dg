@@ -3,12 +3,12 @@ extern int *glob_ptr(int *);
 int glob;
 
 void foo2() {
-        int x;
-        test_assert(*glob_ptr(&x) == 3);
+    int x;
+    test_assert(*glob_ptr(&x) == 3);
 }
 
 int main(void) {
-        glob = 3;
-        foo2();
-	return 0;
+    glob = 3;
+    foo2();
+    return 0;
 }

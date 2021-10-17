@@ -22,8 +22,8 @@ class RWSubgraph {
     // iterator over the bblocks that returns the bblock,
     // not the unique_ptr to the bblock
     struct block_iterator : public BBlocksVecT::iterator {
-        using ContainedType = std::remove_reference<decltype(
-                *(std::declval<BBlocksVecT::iterator>()->get()))>::type;
+        using ContainedType = std::remove_reference<decltype(*(
+                std::declval<BBlocksVecT::iterator>()->get()))>::type;
 
         block_iterator(const BBlocksVecT::iterator &it)
                 : BBlocksVecT::iterator(it) {}

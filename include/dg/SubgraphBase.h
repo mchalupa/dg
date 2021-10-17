@@ -10,8 +10,8 @@ class SubgraphBase {
     // iterator over the bblocks that returns the bblock,
     // not the unique_ptr to the bblock
     struct block_iterator : public BBlocksVecT::iterator {
-        using ContainedType = typename std::remove_reference<decltype(
-                *(std::declval<BBlocksVecT::iterator>()->get()))>::type;
+        using ContainedType = typename std::remove_reference<decltype(*(
+                std::declval<BBlocksVecT::iterator>()->get()))>::type;
 
         block_iterator(const typename BBlocksVecT::iterator &it)
                 : BBlocksVecT::iterator(it) {}

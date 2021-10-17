@@ -48,8 +48,8 @@ class AlignedSmallOffsetsPointsToSet {
     }
 
     static bool isOffsetValid(Offset off) {
-        return off.isUnknown() ||
-               (*off <= (MAX_OFFSET - 1) * multiplier && *off % multiplier == 0);
+        return off.isUnknown() || (*off <= (MAX_OFFSET - 1) * multiplier &&
+                                   *off % multiplier == 0);
     }
 
     bool addWithUnknownOffset(PSNode *target) {
@@ -215,7 +215,9 @@ class AlignedSmallOffsetsPointsToSet {
         Pointer operator*() const {
             if (!secondContainer) {
                 size_t offsetPosition = (*bitvector_it % (MAX_OFFSET + 1));
-                size_t nodeID = ((*bitvector_it - offsetPosition) / (MAX_OFFSET + 1)) + 1;
+                size_t nodeID =
+                        ((*bitvector_it - offsetPosition) / (MAX_OFFSET + 1)) +
+                        1;
                 return offsetPosition == MAX_OFFSET
                                ? Pointer(idVector[nodeID - 1], Offset::UNKNOWN)
                                : Pointer(idVector[nodeID - 1],

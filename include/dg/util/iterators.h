@@ -33,7 +33,7 @@ struct iterator_filter : public It {
 };
 
 template <typename Range, typename Fun>
-bool any_of(Range& R, const Fun& fun) {
+bool any_of(Range &R, const Fun &fun) {
     return std::any_of(R.begin(), R.end(), fun);
 }
 

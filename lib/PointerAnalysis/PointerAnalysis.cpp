@@ -24,13 +24,11 @@ static bool funHasAddressTaken(PSNode *node) {
     if (node->getType() != PSNodeType::FUNCTION)
         return false;
 
-    return dg::any_of(node->getUsers(),
-        [node](PSNode *user) {
-            return node->getType() != PSNodeType::CALL ||
-                    // call but is not called
-                    node->getOperand(0) != user;
-            }
-    );
+    return dg::any_of(node->getUsers(), [node](PSNode *user) {
+        return node->getType() != PSNodeType::CALL ||
+               // call but is not called
+               node->getOperand(0) != user;
+    });
 }
 
 bool PointerAnalysis::processLoad(PSNode *node) {

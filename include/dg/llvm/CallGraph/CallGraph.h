@@ -254,8 +254,7 @@ class LLVMPTACallGraphImpl : public CallGraphImpl {
         return ret;
     }
 
-    bool calls(const llvm::Function *F,
-               const llvm::Function *what) override {
+    bool calls(const llvm::Function *F, const llvm::Function *what) override {
         const auto *fn1 = _cg.get(F);
         const auto *fn2 = _cg.get(what);
         if (fn1 && fn2) {
@@ -480,7 +479,7 @@ class LazyLLVMCallGraph : public CallGraphImpl {
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))
             auto *user = *use;
 #else
-        auto *user = use.getUser();
+            auto *user = use.getUser();
 #endif
             auto *C = llvm::cast<llvm::CallInst>(user);
             _cg.addCall(C->getParent()->getParent(), F);

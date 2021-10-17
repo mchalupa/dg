@@ -13,9 +13,9 @@ static int a_func(struct test_type_t *tttttttt) {
 }
 
 static struct test_type_t test_instance_2 = {
-    .type_name = "instance 2",
-    .type = 0,
-    .func_p = a_func,
+        .type_name = "instance 2",
+        .type = 0,
+        .func_p = a_func,
 };
 
 int main(int argc, char const *argv[]) {
