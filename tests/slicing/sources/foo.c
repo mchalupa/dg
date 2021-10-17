@@ -1,4 +1,2 @@
 extern int *glob;
-void foo(void) {
-        *glob = 2;
-}
+void foo(void) { *glob = 2; }

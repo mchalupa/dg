@@ -1058,10 +1058,10 @@ void LLVMDependenceGraph::computeCriticalSections(
             if (dependentNode) {
                 lockNode->addControlDependence(dependentNode);
             } else {
-                llvm::errs() << "An instruction " << *node
-                             << " was not found, cannot setup"
-                             << " control depency on lock "
-                             << *callLockInst << "\n";
+                llvm::errs()
+                        << "An instruction " << *node
+                        << " was not found, cannot setup"
+                        << " control depency on lock " << *callLockInst << "\n";
             }
         }
 

@@ -209,7 +209,8 @@ class SmallOffsetsPointsToSet {
         Pointer operator*() const {
             if (!secondContainer) {
                 size_t offsetID = *bitvector_it % (MAX_OFFSET + 1);
-                size_t nodeID = ((*bitvector_it - offsetID) / (MAX_OFFSET + 1)) + 1;
+                size_t nodeID =
+                        ((*bitvector_it - offsetID) / (MAX_OFFSET + 1)) + 1;
                 return offsetID == MAX_OFFSET
                                ? Pointer(idVector[nodeID - 1], Offset::UNKNOWN)
                                : Pointer(idVector[nodeID - 1], offsetID);

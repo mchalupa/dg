@@ -1,6 +1,3 @@
 #include <stdio.h>
 
-FILE *get_output(void)
-{
-	return stdout;
-}
+FILE *get_output(void) { return stdout; }

@@ -48,12 +48,12 @@ llvm::cl::opt<bool> enable_debug(
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> usepta("use-pta",
-    llvm::cl::desc("Use points analysis to build CG."),
-    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+                           llvm::cl::desc("Use points analysis to build CG."),
+                           llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
 llvm::cl::opt<bool> lazy("lazy-cg",
-    llvm::cl::desc("Use the LazyLLVMCallGraph."),
-    llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
+                         llvm::cl::desc("Use the LazyLLVMCallGraph."),
+                         llvm::cl::init(true), llvm::cl::cat(SlicingOpts));
 
 static void dumpCallGraph(llvmdg::CallGraph &CG) {
     std::cout << "digraph CallGraph {\n";
@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (usepta) {
-        auto& ptaopts = options.dgOptions.PTAOptions;
+        auto &ptaopts = options.dgOptions.PTAOptions;
 #ifdef HAVE_SVF
         if (ptaopts.isSVF()) {
             SVFPointerAnalysis PTA(M.get(), ptaopts);

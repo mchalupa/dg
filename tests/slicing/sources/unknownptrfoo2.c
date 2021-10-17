@@ -1,5 +1,3 @@
 extern int a;
 
-int *foo() {
-	return &a;
-}
+int *foo() { return &a; }

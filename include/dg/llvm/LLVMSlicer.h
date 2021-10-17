@@ -400,8 +400,8 @@ void sliceCallNode(LLVMNode *callNode, uint32_t slice_id)
             auto l = labels.begin();
             for (unsigned i = 0; i < labels.size(); ++i) {
                 // set is ordered, so this must hold
-                assert((*l == LLVMBBlock::MAX_BBLOCK_LABEL ||
-                        i == *l++) && "Labels have a gap");
+                assert((*l == LLVMBBlock::MAX_BBLOCK_LABEL || i == *l++) &&
+                       "Labels have a gap");
             }
 #endif
         }

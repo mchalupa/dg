@@ -6,15 +6,13 @@ struct node {
 
 struct node *nd;
 
-static void insert(int value)
-{
+static void insert(int value) {
     struct node *node = malloc(sizeof *node);
     node->value = value;
     nd = node;
 }
 
-static void read()
-{
+static void read() {
     /* wrapping insert in the loop with
      * no pointers in this function and
      * call to unknown function get_int()
@@ -24,8 +22,7 @@ static void read()
     } while (get_int(0));
 }
 
-int main()
-{
+int main() {
     read();
     test_assert(nd->value == 23);
 

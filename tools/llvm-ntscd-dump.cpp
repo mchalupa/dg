@@ -60,8 +60,7 @@ int main(int argc, const char *argv[]) {
         opts.setFieldSensitivity(dg::Offset::UNKNOWN);
 
         PTA = std::unique_ptr<dg::DGLLVMPointerAnalysis>(
-                new dg::DGLLVMPointerAnalysis(M.get(), opts)
-        );
+                new dg::DGLLVMPointerAnalysis(M.get(), opts));
         PTA->run();
     }
 

@@ -198,15 +198,15 @@ class RWNode : public SubgraphNode<RWNode> {
     }
 
     bool usesUnknown() const {
-        return dg::any_of(getUses(),
-            [](const DefSite &ds) { return ds.target->isUnknown(); }
-        );
+        return dg::any_of(getUses(), [](const DefSite &ds) {
+            return ds.target->isUnknown();
+        });
     }
 
     bool usesOnlyGlobals() const {
-        return !dg::any_of(getUses(),
-            [](const DefSite &ds) { return !ds.target->isGlobal(); }
-        );
+        return !dg::any_of(getUses(), [](const DefSite &ds) {
+            return !ds.target->isGlobal();
+        });
     }
 
     // add uses to annotations of 'this' object

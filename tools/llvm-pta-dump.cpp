@@ -2,6 +2,7 @@
 #error "This code needs LLVM enabled"
 #endif
 
+#include <algorithm>
 #include <cassert>
 #include <cinttypes>
 #include <cstdio>
@@ -12,7 +13,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
@@ -856,8 +856,8 @@ int main(int argc, char *argv[]) {
 
         for (auto &F : *M) {
             if (!display_only_func.empty() &&
-                std::find(display_only_func.begin(),
-                          display_only_func.end(), &F) == display_only_func.end()) {
+                std::find(display_only_func.begin(), display_only_func.end(),
+                          &F) == display_only_func.end()) {
                 continue;
             }
             for (auto &B : F) {

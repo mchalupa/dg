@@ -26,8 +26,8 @@ class ReadWriteGraph {
     // iterator over the bsubgraphs that returns the bsubgraph,
     // not the unique_ptr to the bsubgraph
     struct subgraph_iterator : public SubgraphsT::iterator {
-        using ContainedType = std::remove_reference<decltype(
-                *(std::declval<SubgraphsT::iterator>()->get()))>::type;
+        using ContainedType = std::remove_reference<decltype(*(
+                std::declval<SubgraphsT::iterator>()->get()))>::type;
 
         subgraph_iterator(const SubgraphsT::iterator &it)
                 : SubgraphsT::iterator(it) {}

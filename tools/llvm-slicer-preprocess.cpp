@@ -13,10 +13,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
+#include <llvm/IR/CFG.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/CFG.h>
 #include <llvm/Support/raw_os_ostream.h>
 
 #if (__clang__)
@@ -26,8 +26,8 @@
 #endif
 
 #include <set>
-#include <vector>
 #include <stack>
+#include <vector>
 
 #include "dg/llvm/CallGraph/CallGraph.h"
 #include "dg/tools/llvm-slicer-preprocess.h"
@@ -38,8 +38,7 @@ namespace dg {
 namespace llvmdg {
 
 template <typename C>
-inline bool hasRelevantPredecessor(llvm::BasicBlock *B,
-                                   const C& relevant) {
+inline bool hasRelevantPredecessor(llvm::BasicBlock *B, const C &relevant) {
     for (auto *p : llvm::predecessors(B)) {
         if (relevant.count(p) > 0)
             return true;
@@ -49,19 +48,18 @@ inline bool hasRelevantPredecessor(llvm::BasicBlock *B,
 
 // FIXME: refactor
 // FIXME: configurable entry
-bool cutoffDivergingBranches(Module& M, const std::string& entry,
-                             const std::vector<const llvm::Value *>& criteria) {
-
+bool cutoffDivergingBranches(Module &M, const std::string &entry,
+                             const std::vector<const llvm::Value *> &criteria) {
     if (criteria.empty()) {
         assert(false && "Have no slicing criteria instructions");
         return false;
     }
 
     llvmdg::LazyLLVMCallGraph CG(&M);
-    std::set<BasicBlock*> relevant;
-    std::set<BasicBlock*> visited;
-    std::stack<BasicBlock*> queue; // not efficient...
-    auto& Ctx = M.getContext();
+    std::set<BasicBlock *> relevant;
+    std::set<BasicBlock *> visited;
+    std::stack<BasicBlock *> queue; // not efficient...
+    auto &Ctx = M.getContext();
     auto *entryFun = M.getFunction(entry);
 
     if (!entryFun) {
@@ -71,7 +69,7 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
 
     // initialize the queue with blocks of slicing criteria
     for (auto *c : criteria) {
-        auto *I = llvm::dyn_cast<Instruction>(const_cast<llvm::Value*>(c));
+        auto *I = llvm::dyn_cast<Instruction>(const_cast<llvm::Value *>(c));
         if (!I) {
             continue;
         }
@@ -82,21 +80,23 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
         }
 
         // add the callers of calls that reach this SC in this block
-        for (auto& blkI : *blk) {
+        for (auto &blkI : *blk) {
             if (&blkI == I)
                 break;
             auto *blkCall = llvm::dyn_cast<llvm::CallInst>(&blkI);
             if (!blkCall)
                 continue;
             for (auto *fun : CG.getCalledFunctions(blkCall)) {
-                for (auto& funBlk : *fun) {
+                for (auto &funBlk : *fun) {
                     if (llvm::isa<llvm::ReturnInst>(funBlk.getTerminator())) {
-                        if (visited.insert(const_cast<llvm::BasicBlock*>(&funBlk)).second) {
-                            queue.push(const_cast<llvm::BasicBlock*>(&funBlk));
+                        if (visited.insert(const_cast<llvm::BasicBlock *>(
+                                                   &funBlk))
+                                    .second) {
+                            queue.push(const_cast<llvm::BasicBlock *>(&funBlk));
                         }
                     }
                 }
-          }
+            }
         }
     }
 
@@ -110,32 +110,36 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
         relevant.insert(cur);
 
         // queue the blocks from calls in current block
-        for (auto& blkI : *cur) {
+        for (auto &blkI : *cur) {
             auto *blkCall = llvm::dyn_cast<llvm::CallInst>(&blkI);
             if (!blkCall)
                 continue;
             for (auto *fun : CG.getCalledFunctions(blkCall)) {
-                for (auto& funBlk : *fun) {
+                for (auto &funBlk : *fun) {
                     if (llvm::isa<llvm::ReturnInst>(funBlk.getTerminator())) {
-                        if (visited.insert(const_cast<llvm::BasicBlock*>(&funBlk)).second) {
-                            queue.push(const_cast<llvm::BasicBlock*>(&funBlk));
+                        if (visited.insert(const_cast<llvm::BasicBlock *>(
+                                                   &funBlk))
+                                    .second) {
+                            queue.push(const_cast<llvm::BasicBlock *>(&funBlk));
                         }
                     }
                 }
-          }
+            }
         }
 
         if ((pred_begin(cur) == pred_end(cur))) {
             // pop-up from call
             for (auto *C : CG.getCallsOf(cast<Function>(cur->getParent()))) {
-              if (visited.insert(const_cast<llvm::BasicBlock*>(C->getParent())).second)
-                queue.push(const_cast<llvm::BasicBlock*>(C->getParent()));
+                if (visited.insert(const_cast<llvm::BasicBlock *>(
+                                           C->getParent()))
+                            .second)
+                    queue.push(const_cast<llvm::BasicBlock *>(C->getParent()));
             }
         } else {
-          for (auto *pred : predecessors(cur)) {
-            if (visited.insert(pred).second)
-              queue.push(pred);
-          }
+            for (auto *pred : predecessors(cur)) {
+                if (visited.insert(pred).second)
+                    queue.push(pred);
+            }
         }
     }
 
@@ -146,12 +150,12 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
     // FIXME: make configurable... and insert __dg_abort()
     // which will be internally implemented as abort() or exit().
     Type *argTy = Type::getInt32Ty(Ctx);
-    auto exitC = M.getOrInsertFunction("exit",
-                                       Type::getVoidTy(Ctx), argTy
+    auto exitC = M.getOrInsertFunction("exit", Type::getVoidTy(Ctx), argTy
 #if LLVM_VERSION_MAJOR < 5
-                                   , nullptr
+                                       ,
+                                       nullptr
 #endif
-                                   );
+    );
 #if LLVM_VERSION_MAJOR >= 9
     auto exitF = cast<Function>(exitC.getCallee());
 #else
@@ -161,12 +165,12 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
 
     size_t removed = 0;
     size_t cutoff = 0;
-    for (auto& F : M) {
+    for (auto &F : M) {
         std::vector<llvm::BasicBlock *> irrelevant;
-        for (auto& B : F) {
-          if (relevant.count(&B) == 0) {
-              irrelevant.push_back(&B);
-          }
+        for (auto &B : F) {
+            if (relevant.count(&B) == 0) {
+                irrelevant.push_back(&B);
+            }
         }
         for (auto *B : irrelevant) {
             // if this irrelevant block has predecessors in relevant,
@@ -174,9 +178,10 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
             if (hasRelevantPredecessor(B, relevant)) {
                 auto *newB = BasicBlock::Create(Ctx, "diverge", &F);
                 CallInst::Create(exitF, {ConstantInt::get(argTy, 0)}, "", newB);
-                //CloneMetadata(point, new_CI);
+                // CloneMetadata(point, new_CI);
                 new UnreachableInst(Ctx, newB);
-                // we cannot do the replacement here, we would break the iterator
+                // we cannot do the replacement here, we would break the
+                // iterator
                 B->replaceAllUsesWith(newB);
                 ++cutoff;
             } else {
@@ -188,8 +193,9 @@ bool cutoffDivergingBranches(Module& M, const std::string& entry,
         }
     }
 
-    llvm::errs() << "[llvm-slicer] cutoff " << cutoff << " diverging blocks and "
-                 << removed << " completely removed\n";
+    llvm::errs() << "[llvm-slicer] cutoff " << cutoff
+                 << " diverging blocks and " << removed
+                 << " completely removed\n";
 
     return true;
 }

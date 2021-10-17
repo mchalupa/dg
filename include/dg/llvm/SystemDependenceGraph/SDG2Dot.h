@@ -178,10 +178,9 @@ class SDG2Dot {
         }
     }
 
-    void dumpEdges(std::ostream& out, sdg::DGNode &nd) const {
+    void dumpEdges(std::ostream &out, sdg::DGNode &nd) const {
         for (auto *use : nd.uses()) {
-            out << "    " << nd << " -> " << *use
-                << "[style=\"dashed\"]\n";
+            out << "    " << nd << " -> " << *use << "[style=\"dashed\"]\n";
         }
         for (auto *def : nd.memdep()) {
             out << "    " << *def << " -> " << nd << "[color=red]\n";

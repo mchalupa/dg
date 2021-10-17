@@ -27,53 +27,41 @@
 #include <stdlib.h>
 
 struct wl_list {
-	struct wl_list *prev;
-	struct wl_list *next;
+    struct wl_list *prev;
+    struct wl_list *next;
 };
 
-void
-wl_list_init(struct wl_list *list)
-{
-	list->prev = list;
-	list->next = list;
+void wl_list_init(struct wl_list *list) {
+    list->prev = list;
+    list->next = list;
 }
 
-void
-wl_list_insert(struct wl_list *list, struct wl_list *elm)
-{
-	elm->prev = list;
-	elm->next = list->next;
-	list->next = elm;
-	elm->next->prev = elm;
+void wl_list_insert(struct wl_list *list, struct wl_list *elm) {
+    elm->prev = list;
+    elm->next = list->next;
+    list->next = elm;
+    elm->next->prev = elm;
 }
 
-void
-wl_list_remove(struct wl_list *elm)
-{
-	elm->prev->next = elm->next;
-	elm->next->prev = elm->prev;
-	elm->next = NULL;
-	elm->prev = NULL;
+void wl_list_remove(struct wl_list *elm) {
+    elm->prev->next = elm->next;
+    elm->next->prev = elm->prev;
+    elm->next = NULL;
+    elm->prev = NULL;
 }
 
-int
-wl_list_length(const struct wl_list *list)
-{
-	struct wl_list *e;
-	int count;
+int wl_list_length(const struct wl_list *list) {
+    struct wl_list *e;
+    int count;
 
-	count = 0;
-	e = list->next;
-	while (e != list) {
-		e = e->next;
-		count++;
-	}
+    count = 0;
+    e = list->next;
+    while (e != list) {
+        e = e->next;
+        count++;
+    }
 
-	return count;
+    return count;
 }
 
-int
-wl_list_empty(const struct wl_list *list)
-{
-	return list->next == list;
-}
+int wl_list_empty(const struct wl_list *list) { return list->next == list; }

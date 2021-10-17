@@ -1,5 +1,4 @@
-int *foo(int *a)
-{
-	*a = 8;
-	return a;
+int *foo(int *a) {
+    *a = 8;
+    return a;
 }

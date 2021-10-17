@@ -1,5 +1,4 @@
-int sum(int a, int b)
-{
+int sum(int a, int b) {
     int j;
     if (a) {
         j = a + b;
@@ -9,8 +8,7 @@ int sum(int a, int b)
     return j;
 }
 
-int main(void)
-{
+int main(void) {
     int i = 2;
     int j = 3;
     int a = sum(i, j);

@@ -260,10 +260,10 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
     llvm::Value *V2 = call->getArgOperand(1);
     const char *ex, *s, *score;
     AliasResult aares = doAlias(pta, V1, V2);
-    //bool r = false;
+    // bool r = false;
 
     if (fun.equals(NOALIAS)) {
-        //r = (aares == NoAlias);
+        // r = (aares == NoAlias);
         ex = "NO";
 
         if (aares == NoAlias)
@@ -275,7 +275,7 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
         else
             score = "unknown";
     } else if (fun.equals(MAYALIAS) || fun.equals(PARTIALALIAS)) {
-        //r = (aares == MayAlias || aares == MustAlias);
+        // r = (aares == MayAlias || aares == MustAlias);
         ex = "MAY";
 
         if (aares == NoAlias)
@@ -287,7 +287,7 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
         else
             score = "unknown";
     } else if (fun.equals(MUSTALIAS)) {
-        //r = (aares == MustAlias);
+        // r = (aares == MustAlias);
         ex = "MUST";
 
         if (aares == NoAlias)
@@ -299,17 +299,17 @@ static void evalPSNode(DGLLVMPointerAnalysis *pta, PSNode *node) {
         else
             score = "unknown";
     } else if (fun.equals(EXPECTEDFAIL_MAYALIAS)) {
-        //r = (aares != MayAlias && aares != MustAlias);
+        // r = (aares != MayAlias && aares != MustAlias);
         ex = "EXPECTEDFAIL_MAY";
 
         if (aares == NoAlias || aares == MustAlias)
             score = "true";
-        else if (aares == MayAlias ||aares == PartialAlias)
+        else if (aares == MayAlias || aares == PartialAlias)
             score = "inadequate";
         else
             score = "unknown";
     } else if (fun.equals(EXPECTEDFAIL_NOALIAS)) {
-        //r = (aares != NoAlias);
+        // r = (aares != NoAlias);
         ex = "EXPECTEDFAIL_NO";
 
         if (aares == NoAlias)

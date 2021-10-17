@@ -42,7 +42,6 @@ using namespace dg;
 using namespace dg::debug;
 using llvm::errs;
 
-
 llvm::cl::opt<bool> enable_debug(
         "dbg", llvm::cl::desc("Enable debugging messages (default=false)."),
         llvm::cl::init(false), llvm::cl::cat(SlicingOpts));

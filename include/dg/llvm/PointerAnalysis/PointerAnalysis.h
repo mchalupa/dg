@@ -262,7 +262,6 @@ class DGLLVMPointerAnalysis : public LLVMPointerAnalysis {
             }
             pts = new DGLLVMPointsToSet(node->pointsTo);
             return {true, pts->toLLVMPointsToSet()};
-
         }
         pts = new DGLLVMPointsToSet(getUnknownPTSet());
         return {false, pts->toLLVMPointsToSet()};

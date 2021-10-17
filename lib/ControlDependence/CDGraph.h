@@ -49,8 +49,8 @@ class CDGraph {
 
     // iterator over the subgraphs that unwraps the unique_ptr
     struct node_iterator : public NodesVecT::iterator {
-        using ContainedType = typename std::remove_reference<decltype(
-                *(std::declval<NodesVecT::iterator>()->get()))>::type;
+        using ContainedType = typename std::remove_reference<decltype(*(
+                std::declval<NodesVecT::iterator>()->get()))>::type;
 
         node_iterator(const typename NodesVecT::iterator &it)
                 : NodesVecT::iterator(it) {}

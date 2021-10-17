@@ -36,7 +36,6 @@ inline bool intervalsDisjunctive(uint64_t a, uint64_t a_len, uint64_t b,
         // from 0 and the bytes are distinct (e.g. 4th byte
         // is on offset 3)
         return (a <= b) ? false : b_len <= a - b;
-
     }
     if (b_len == Offset::UNKNOWN) {
         return (a <= b) ? a_len <= b - a : false;

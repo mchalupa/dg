@@ -114,15 +114,13 @@ class SubgraphNode {
     }
 
     NodeT *getOperand(size_t idx) const {
-        assert(idx < operands.size() &&
-               "Operand index out of range");
+        assert(idx < operands.size() && "Operand index out of range");
 
         return operands[idx];
     }
 
     void setOperand(size_t idx, NodeT *nd) {
-        assert(idx < operands.size() &&
-               "Operand index out of range");
+        assert(idx < operands.size() && "Operand index out of range");
 
         operands[idx] = nd;
     }
@@ -158,7 +156,7 @@ class SubgraphNode {
     }
 
     bool hasOperand(NodeT *n) const {
-        return dg::any_of(operands, [n](NodeT* x) { return x == n; });
+        return dg::any_of(operands, [n](NodeT *x) { return x == n; });
     }
 
     void addSuccessor(NodeT *succ) {

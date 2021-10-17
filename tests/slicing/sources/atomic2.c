@@ -6,7 +6,7 @@ int a[10] = {1, 2};
 _Atomic unsigned long p = 0;
 
 int main(void) {
-    atomic_exchange(&p, ((unsigned long)&a) + sizeof(int));
-    int *pp = (int*) p;
+    atomic_exchange(&p, ((unsigned long) &a) + sizeof(int));
+    int *pp = (int *) p;
     test_assert(*pp == 2);
 }
