@@ -2,11 +2,11 @@
 
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
-
-#include "../lib/llvm/ThreadRegions/Graphs/GraphBuilder.h"
-#include "../lib/llvm/ThreadRegions/Nodes/Nodes.h"
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/llvm/ThreadRegions/ThreadRegion.h"
+
+#include "llvm/ThreadRegions/Graphs/GraphBuilder.h"
+#include "llvm/ThreadRegions/Nodes/Nodes.h"
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
