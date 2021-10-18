@@ -31,10 +31,9 @@
 #include "dg/llvm/ThreadRegions/ControlFlowGraph.h"
 #include "dg/llvm/ThreadRegions/MayHappenInParallel.h"
 
-// !FIXME
-#include "../lib/llvm/ControlDependence/InterproceduralCD.h"
-#include "../lib/llvm/ControlDependence/NTSCD.h"
-#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
+#include "llvm/ControlDependence/InterproceduralCD.h"
+#include "llvm/ControlDependence/NTSCD.h"
+#include "llvm/ControlDependence/legacy/NTSCD.h"
 
 #include "dg/util/debug.h"
 #include "llvm-utils.h"

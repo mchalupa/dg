@@ -1,8 +1,8 @@
 #include "dg/PointerAnalysis/PointerAnalysisFI.h"
 #include "dg/llvm/PointerAnalysis/PointerAnalysis.h"
 
-#include "../lib/llvm/ControlDependence/legacy/GraphBuilder.h"
-#include "../lib/llvm/ControlDependence/legacy/NTSCD.h"
+#include "llvm/ControlDependence/legacy/GraphBuilder.h"
+#include "llvm/ControlDependence/legacy/NTSCD.h"
 
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
