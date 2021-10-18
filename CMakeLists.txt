@@ -237,5 +237,9 @@ add_subdirectory(lib)
 add_subdirectory(tools)
 add_subdirectory(tests EXCLUDE_FROM_ALL)
 
+if(NOT LLVM_DG)
+  set(INSTALL_EXCLUDE_PATTERNS PATTERN "llvm" EXCLUDE)
+endif()
 install(DIRECTORY include/
-	DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        ${INSTALL_EXCLUDE_PATTERNS})
