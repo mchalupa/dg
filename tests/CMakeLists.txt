@@ -186,18 +186,14 @@ target_compile_definitions(thread-regions-test
         PTHREAD_EXIT_FILE="${CMAKE_CURRENT_BINARY_DIR}/pthread_exit.ll")
 
 target_link_libraries(thread-regions-test PRIVATE dgllvmthreadregions
-                                          PRIVATE ${llvm_core}
-                                          PRIVATE ${llvm_irreader}
-                                          PRIVATE ${llvm_support})
+                                          PRIVATE ${llvm_irreader})
 
 # --------------------------------------------------
 # llvm-dg-test
 # --------------------------------------------------
 add_catch_test(llvm-dg-test.cpp)
 target_link_libraries(llvm-dg-test PRIVATE dgllvmdg
-                                   PRIVATE ${llvm_core}
-                                   PRIVATE ${llvm_irreader}
-                                   PRIVATE ${llvm_analysis})
+                                   PRIVATE ${llvm_irreader})
 
 # --------------------------------------------------
 # slicing tests

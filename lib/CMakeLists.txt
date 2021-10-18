@@ -169,7 +169,6 @@ add_library(dgllvmcda SHARED
             )
 target_link_libraries(dgllvmcda PUBLIC dgllvmpta
                                 PUBLIC dgcda
-                                INTERFACE ${llvm_analysis} # only for static LLVM
                                 PRIVATE dgllvmforkjoin)
 
 add_library(dgllvmdg SHARED
@@ -195,7 +194,8 @@ target_link_libraries(dgllvmdg
 			PUBLIC dgllvmpta
 			PUBLIC dgllvmdda
 			PUBLIC dgllvmthreadregions
-			PUBLIC dgllvmcda)
+			PUBLIC dgllvmcda
+			INTERFACE ${llvm_analysis}) # only for static LLVM
 
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
