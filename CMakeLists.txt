@@ -138,7 +138,7 @@ if (TSL_HOPSCOTCH_DIR)
         message(FATAL_ERROR "Tessil hopscotch map NOT FOUND in ${TSL_HOPSCOTCH_DIR}" )
     endif()
 
-    include_directories("${HOPSCOTCH_DIR}" )
+    include_directories(SYSTEM ${HOPSCOTCH_DIR})
     message(STATUS "Found Tessil Hopscotch map in ${HOPSCOTCH_DIR}" )
     message(STATUS "Adding include dir ${HOPSCOTCH_DIR}")
     add_definitions(-DHAVE_TSL_HOPSCOTCH)
