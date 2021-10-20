@@ -21,15 +21,16 @@ jobs:
       - name: Checkout SVF
         uses: actions/checkout@v2
         with:
-          ref: SVF-2.2
+          # some ref after SVF-2.3 release that has fixed Z3 CMake search
+          ref: 4d05f4b091f9cd23fe7dedb7d6ea8e0042c4818f
           repository: SVF-tools/SVF
           path: svf
 
       - name: Checkout SVF test-suite
         uses: actions/checkout@v2
         with:
-          # last ref before SVF-2.2 release
-          ref: 72c679a49b943abb229fcb1844f68dff9cc7d522
+          # ref corresponding to the SVF ref above
+          ref: 9c9d75e957a28d0d45c6194ebbc5823ff129d0bb
           repository: SVF-tools/Test-Suite
           path: svf/Test-Suite
 
@@ -79,21 +80,19 @@ jobs:
 
       - name: Build SVF
         run: |
-          # Prepare tests
-          (cd svf/Test-Suite && \
-           PATH="$(llvm-config-12 --bindir):$PATH" ./generate_bc.sh)
-
           # Build directory name format is hard-coded in SVF tests...
+
+          # WARNING: DO NOT SET CMAKE_BUILD_TYPE! (except Debug)
+          # SVF expects that NDEBUG will never be defined!
           cmake -Ssvf \
-                -Bsvf/RelWithDebInfo-build \
+                -Bsvf/Release-build \
                 -GNinja \
-                -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
                 -DLLVM_DIR:PATH="$(llvm-config-12 --cmakedir)"
 
-          cmake --build svf/RelWithDebInfo-build
-          (cd svf/RelWithDebInfo-build && \
+          cmake --build svf/Release-build
+          (cd svf/Release-build && \
            PATH="$(llvm-config-12 --bindir):$PATH" \
-           ctest --progress --output-on-failure -j$(nproc))
+           ctest --progress --output-on-failure)
 
       - name: '[Dynamic LLVM] Configure CMake project'
         run: |
@@ -102,7 +101,7 @@ jobs:
                 -GNinja \
                 -DUSE_SANITIZERS:BOOL=ON \
                 -DLLVM_DIR:PATH="$(llvm-config-12 --cmakedir)" \
-                -DSVF_DIR:PATH="$GITHUB_WORKSPACE/svf/RelWithDebInfo-build"
+                -DSVF_DIR:PATH="$GITHUB_WORKSPACE/svf/Release-build"
 
       - name: '[Dynamic LLVM] Build'
         run: cmake --build _build
