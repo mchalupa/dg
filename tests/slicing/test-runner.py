@@ -122,7 +122,7 @@ def link(bccode, codes, output=None):
     cmd = [llvm_link, bccode, "-o", output] + codes
 
     if command(cmd) != 0:
-        error('Failed executing ' + llvm-link)
+        error('Failed executing ' + llvm_link)
 
     return output
 
