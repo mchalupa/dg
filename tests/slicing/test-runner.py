@@ -10,8 +10,8 @@ debug = False
 have_svf = False
 
 # going to be (possibly) re-set in set_environment()
-TOOLSDIR = "../../tools/"
-SOURCESDIR = "../sources/"
+DG_TOOLS_DIR = "../../tools/"
+TEST_SOURCES_DIR = "../sources/"
 LLVM_TOOLS_DIR = ""
 
 # RUNDIR=getcwd()
@@ -24,12 +24,13 @@ def parse_cmake_cache(cmakecache):
                 have_svf = True
             elif line.startswith('dg_SOURCE_DIR'):
                 parts = line.split('=')
-                global SOURCESDIR
-                SOURCESDIR = abspath(join(parts[1].strip(), 'tests/slicing/sources/'))
+                global TEST_SOURCES_DIR
+                TEST_SOURCES_DIR = abspath(join(parts[1].strip(),
+                                                'tests/slicing/sources/'))
             elif line.startswith('dg_BINARY_DIR'):
                 parts = line.split('=')
-                global TOOLSDIR
-                TOOLSDIR = abspath(join(parts[1].strip(), 'tools/'))
+                global DG_TOOLS_DIR
+                DG_TOOLS_DIR = abspath(join(parts[1].strip(), 'tools/'))
             elif line.startswith('LLVM_TOOLS_DIR'):
                 parts = line.split('=')
                 global LLVM_TOOLS_DIR
@@ -93,8 +94,9 @@ def compile(source, output=None, params=[]):
         output = _getbcname(source)
 
     clang = join(LLVM_TOOLS_DIR, 'clang')
-    ret = command([clang, "-include", join(SOURCESDIR, '..', "test_assert.h"),
-                   "-emit-llvm", "-c", source, "-o", output] + params)
+    test_assert_h = join(TEST_SOURCES_DIR, '..', "test_assert.h")
+    ret = command([clang, "-include", test_assert_h, "-emit-llvm",
+                   "-c", source, "-o", output] + params)
     if ret != 0:
         error('Failed executing ' + clang)
 
@@ -103,7 +105,7 @@ def compile(source, output=None, params=[]):
 
 def slice(bccode, args):
     output = bccode + ".sliced"
-    slicer = join(TOOLSDIR, "llvm-slicer")
+    slicer = join(DG_TOOLS_DIR, "llvm-slicer")
 
     cmd = [slicer, "-c", "test_assert"] + args + [bccode, "-o", output]
     if command(cmd) != 0:
@@ -141,7 +143,7 @@ def opt(bccode, passes, output=None):
 def check_output(out, expout):
     lines = [line for line in out.decode().split('\n') if line]
     if expout:
-        with open(join(SOURCESDIR, expout), 'r') as f:
+        with open(join(TEST_SOURCES_DIR, expout), 'r') as f:
             expected = [line for line
                         in map(lambda s: s.strip(), f.readlines()) if line]
             if expected != lines:
@@ -256,19 +258,20 @@ if __name__ == "__main__":
     chdir(argv[1])
 
     # compile the source
-    bccode = compile(join(SOURCESDIR, t.source),
+    bccode = compile(join(TEST_SOURCES_DIR, t.source),
                      params=t.compilerparams)
 
     optbefore, linkbefore, optafter, linkafter = [], [], [], []
 
     if t.linkbefore:
         for l in t.linkbefore:
-            bctolink = compile(join(SOURCESDIR, l),
+            bctolink = compile(join(TEST_SOURCES_DIR, l),
                                params=t.compilerparams)
             linkbefore.append(bctolink)
+
     if t.linkafter:
         for l in t.linkafter:
-            bctolink = compile(join(SOURCESDIR, l),
+            bctolink = compile(join(TEST_SOURCES_DIR, l),
                                params=t.compilerparams)
             linkafter.append(bctolink)
 
@@ -279,7 +282,7 @@ if __name__ == "__main__":
         bccode = link(bccode, linkbefore)
 
     # always link test_assert() after slicing
-    assertbc = compile(join(SOURCESDIR, '..', 'test_assert.c'),
+    assertbc = compile(join(TEST_SOURCES_DIR, '..', 'test_assert.c'),
                        params=t.compilerparams)
     linkafter.append(assertbc)
 
