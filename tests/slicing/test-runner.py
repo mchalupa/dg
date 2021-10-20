@@ -12,7 +12,6 @@ have_svf = False
 # going to be (possibly) re-set in set_environment()
 TOOLSDIR = "../../tools/"
 SOURCESDIR = "../sources/"
-LLVMCC = "clang"
 LLVM_TOOLS_DIR = ""
 
 # RUNDIR=getcwd()
@@ -31,10 +30,6 @@ def parse_cmake_cache(cmakecache):
                 parts = line.split('=')
                 global TOOLSDIR
                 TOOLSDIR = abspath(join(parts[1].strip(), 'tools/'))
-            elif line.startswith('LLVMCC'):
-                parts = line.split('=')
-                global LLVMCC
-                LLVMCC = parts[1].strip()
             elif line.startswith('LLVM_TOOLS_DIR'):
                 parts = line.split('=')
                 global LLVM_TOOLS_DIR
@@ -97,10 +92,11 @@ def compile(source, output=None, params=[]):
     if output is None:
         output = _getbcname(source)
 
-    ret = command([LLVMCC, "-include", join(SOURCESDIR, '..', "test_assert.h"),
+    clang = join(LLVM_TOOLS_DIR, 'clang')
+    ret = command([clang, "-include", join(SOURCESDIR, '..', "test_assert.h"),
                    "-emit-llvm", "-c", source, "-o", output] + params)
     if ret != 0:
-        error('Failed executing ' + LLVMCC)
+        error('Failed executing ' + clang)
 
     return output
 
