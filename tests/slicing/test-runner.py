@@ -14,8 +14,6 @@ DG_TOOLS_DIR = "../../tools/"
 TEST_SOURCES_DIR = "../sources/"
 LLVM_TOOLS_DIR = ""
 
-# RUNDIR=getcwd()
-
 
 def parse_cmake_cache(cmakecache):
     with open(cmakecache, 'r') as f:
@@ -219,6 +217,7 @@ def run_test(test, bccode, optafter, linkafter, args):
 
     if optafter:
         assert False
+
     if linkafter:
         bccode = link(bccode, linkafter)
         toremove.append(bccode)
@@ -288,10 +287,11 @@ if __name__ == "__main__":
 
     # RUN!
     args = argv[2:]
+    endline = "\n" if debug else ""
     if args:
         stdout.write("Executing setup: {0} ... {1}".format(" ".join(args),
-                                                           "\n" if debug else ""))
-        run_test(t, bccode[:], optafter, linkafter, args)
+                                                           endline))
+        run_test(t, bccode, optafter, linkafter, args)
         print('OK!')
     else:
         for setup in get_variations():
@@ -300,8 +300,8 @@ if __name__ == "__main__":
                 continue
 
             stdout.write("Executing setup: {0} ... {1}".format(" ".join(setup),
-                                                               "\n" if debug else ""))
-            run_test(t, bccode[:], optafter, linkafter, setup)
+                                                               endline))
+            run_test(t, bccode, optafter, linkafter, setup)
             print('OK!')
 
     # cleanup
