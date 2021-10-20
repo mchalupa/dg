@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from sys import stdout, argv
-from subprocess import Popen, DEVNULL, PIPE
-from os.path import join, dirname, abspath, basename
 from os import chdir, getcwd, unlink
+from os.path import abspath, basename, dirname, join
 from shutil import rmtree
+from subprocess import DEVNULL, PIPE, Popen
+from sys import argv, stdout
 
 debug = False
 have_svf = False
@@ -68,7 +68,7 @@ def cleanup():
 
 
 def error(msg):
-    from sys import stderr, exit
+    from sys import exit, stderr
     print(msg, file=stderr)
     exit(1)
 
