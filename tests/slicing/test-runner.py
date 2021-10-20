@@ -8,7 +8,6 @@ from sys import argv, stdout
 
 clang_has_sanitizers = False
 debug = False
-have_svf = False
 
 # going to be (possibly) re-set in set_environment()
 DG_TOOLS_DIR = "../../tools/"
@@ -20,7 +19,7 @@ def parse_cmake_cache(cmakecache):
     with open(cmakecache, 'r') as f:
         for line in f:
             if line.startswith('SVF_DIR'):
-                have_svf = True
+                configs['-pta'].append('svf')
             elif line.startswith('CLANG_HAS_SANITIZERS'):
                 global clang_has_sanitizers
                 clang_has_sanitizers = True
@@ -266,9 +265,6 @@ if __name__ == "__main__":
 
     if len(argv) <= 1:
         error('Usage: {0} test-name [args to slicer]'.format(argv[0]))
-
-    if have_svf:
-        configs['-pta'].append('svf')
 
     try:
         t = tests[argv[1]]
