@@ -85,6 +85,23 @@ endforeach()
 set(LLVM_TOOLS_DIR "${LLVM_TOOLS_BINARY_DIR}" CACHE PATH
                    "contains lli ${LLVM_PACKAGE_VERSION}, etc." FORCE)
 
+# check whether ${CLANG} accepts -fsanitize=address,undefined
+message(STATUS "Performing test sanitizers_work with ${CLANG}")
+
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/sanitizer_test.c"
+           "int main(int argc, char* argv[]) {}")
+execute_process(COMMAND "${CLANG}" "-fsanitize=address,undefined"
+                        "${CMAKE_CURRENT_BINARY_DIR}/sanitizer_test.c"
+                RESULT_VARIABLE EXIT_CODE)
+
+if(EXIT_CODE EQUAL 0)
+    set(CLANG_HAS_SANITIZERS ON CACHE BOOL
+                             "${CLANG} supports ASAN and UBSAN" FORCE)
+    message(STATUS "Performing test sanitizers_work with ${CLANG} - Success")
+else()
+    message(STATUS "Performing test sanitizers_work with ${CLANG} - Failure")
+endif()
+
 # --------------------------------------------------
 # cmd-arguments-tests
 # --------------------------------------------------
