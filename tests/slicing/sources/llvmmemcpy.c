@@ -1,5 +1,3 @@
-
-
 typedef struct Stuff {
     int a;
     int b;

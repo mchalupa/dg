@@ -1,5 +1,3 @@
-
-
 volatile int getidx(void) { return 2; }
 
 int main(void) {

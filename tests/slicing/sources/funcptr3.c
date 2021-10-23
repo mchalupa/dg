@@ -1,5 +1,3 @@
-
-
 void set2(int *b) { *b = 13; }
 
 void set(int *a) {

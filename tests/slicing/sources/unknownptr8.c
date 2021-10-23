@@ -1,5 +1,7 @@
 int a = -1;
+
 extern int *foo();
+
 int main(void) {
     a = 0;
     a |= 0x1;

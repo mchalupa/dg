@@ -1,5 +1,3 @@
-
-
 void set(int *a) { *a = 8; }
 
 /* basic test */

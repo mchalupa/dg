@@ -1,5 +1,3 @@
-
-
 int glob;
 void setglob(void) { glob = 8; }
 

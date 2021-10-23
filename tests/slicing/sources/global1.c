@@ -1,5 +1,3 @@
-
-
 int a;
 
 void foo() { a = 1; }

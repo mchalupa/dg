@@ -1,5 +1,3 @@
-
-
 void *shift(int *mem) { return mem + 20; }
 
 int main(void) {

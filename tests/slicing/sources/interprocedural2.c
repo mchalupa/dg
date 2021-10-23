@@ -1,9 +1,8 @@
-
-
 void add2(int *b) {
     *b += 1;
     *b += 1;
 }
+
 void set(int *a) {
     *a = 8;
     add2(a);

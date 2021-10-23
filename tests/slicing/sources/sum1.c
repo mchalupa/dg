@@ -1,6 +1,5 @@
-
-
 #define N 4
+
 int sum(int x[N]) {
     int i;
     long long ret;

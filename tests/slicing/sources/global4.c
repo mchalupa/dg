@@ -1,5 +1,3 @@
-
-
 int a, b, c;
 
 void setA(void) { a = 1; }
