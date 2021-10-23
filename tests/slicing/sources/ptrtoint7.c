@@ -1,4 +1,4 @@
-void test_assert(int);
+#include <stdlib.h>
 
 void set(unsigned long addr) { *((int *) addr) = 13; }
 

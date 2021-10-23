@@ -1,27 +1,28 @@
-extern void *malloc(unsigned long);
+#include <stdlib.h>
+#include <string.h>
 
 static int mode = 2;
 
-static void *zalloc(unsigned long x) {
+static void *zalloc(size_t x) {
     void *p = malloc(x);
     memset(p, 0, x);
     return p;
 }
 
-static void *foo(unsigned long x) {
+static void *foo(size_t x) {
     (void) x;
     static int bar = 0xfeed;
     return &bar;
 }
 
-static void *foo2(unsigned long x) {
+static void *foo2(size_t x) {
     (void) x;
     static int bar = 0xbee;
     return &bar;
 }
 
 int main(void) {
-    void *(*f)(unsigned long);
+    void *(*f)(size_t);
     if (mode == 0)
         f = malloc;
     else if (mode == 1)

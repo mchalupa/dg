@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 void check_and_set(int *p) {
     test_assert(*p == 0);
     *p = 1;
