@@ -16,5 +16,5 @@ int main(void) {
     }
 
     test_assert(b == 3);
-    return b;
+    return 0;
 }
