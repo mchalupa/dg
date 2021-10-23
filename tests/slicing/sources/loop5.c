@@ -1,6 +1,7 @@
 int glob = 1;
 int num;
-volatile void check(int c) { ++num; }
+
+void check(int c) { ++num; }
 
 int main(void) {
     int a = 0, b = 0;
