@@ -1,11 +1,9 @@
-
-
 int main(void) {
     int array[10];
     int *ptrs[10];
     int i;
 
-    for (i = 0; i < 10; ++i)
+    for (i = 1; i < 10; ++i)
         ptrs[i - 1] = &array[i];
 
     ptrs[0] = &array[9];
