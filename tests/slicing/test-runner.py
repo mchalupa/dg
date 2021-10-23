@@ -138,7 +138,17 @@ def opt(bccode, passes, output=None):
     return output
 
 
-def check_output(out, expout):
+def check_output(out, err, exitcode, expout):
+    if debug:
+        print("--- stdout ---")
+        print(out.decode())
+        print("--- stderr ---")
+        print(err.decode())
+        print("--- exitcode {0} ---".format(exitcode))
+
+    if exitcode != 0:
+        error("Executing the code failed!")
+
     lines = [line for line in out.decode().split('\n') if line]
     if expout:
         with open(join(TEST_SOURCES_DIR, expout), 'r') as f:
@@ -152,6 +162,7 @@ def check_output(out, expout):
                     print(lines)
                 error('The output is not as expected')
 
+        print('OK!\n')
         return
 
     # the default expected output
@@ -169,20 +180,13 @@ def check_output(out, expout):
     if not passed or failed:
         error('Assertion failed!')
 
+    print('OK!\n')
+
 
 def execute(bccode, expout=None):
-    lli = join(LLVM_TOOLS_DIR, "lli")
-    out, err, exitcode = command_output([lli, bccode])
-    if debug:
-        print("--- stdout ---")
-        print(out.decode())
-        print("--- stderr ---")
-        print(err.decode())
-        print("--- exitcode {0} ---".format(exitcode))
-    if exitcode != 0:
-        error("Executing the bitcode failed!")
-
-    check_output(out, expout)
+    lli = join(LLVM_TOOLS_DIR, 'lli')
+    ret = command_output([lli, bccode])
+    check_output(*ret, expout)
 
 
 def get_variations(rem=list(configs), result=[]):
@@ -224,6 +228,31 @@ def run_test(test, bccode, optafter, linkafter, args):
     execute(bccode, test.expectedoutput)
 
 
+def sanity_check(test):
+    """Check that the test runs and has the expected output without slicing."""
+
+    clang = join(LLVM_TOOLS_DIR, 'clang')
+    cmd = [clang, join(TEST_SOURCES_DIR, t.source),
+           join(TEST_SOURCES_DIR, '..', 'test_assert.c'),
+           '-include', join(TEST_SOURCES_DIR, '..', 'test_assert.h'),
+           '-g', '-o', 'sanity'] + test.compilerparams
+
+    # if  TODO
+    cmd += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer',
+            '-fno-sanitize-recover=all']
+
+    if test.linkbefore:
+        cmd += [join(TEST_SOURCES_DIR, x) for x in test.linkbefore]
+    if test.linkafter:
+        cmd += [join(TEST_SOURCES_DIR, x) for x in test.linkafter]
+
+    if command(cmd) != 0:
+        error('Failed executing ' + clang)
+
+    env = {'UBSAN_OPTIONS': 'print_stacktrace=1'}
+    ret = command_output(['./sanity'], env=env)
+    check_output(*ret, test.expectedoutput)
+
 
 if __name__ == "__main__":
     from tests import tests
@@ -249,6 +278,9 @@ if __name__ == "__main__":
     rmtree(argv[1], ignore_errors=True)  # just to be sure it does not exist
     mkdir(argv[1])
     chdir(argv[1])
+
+    # check that the unsliced original works as intended
+    sanity_check(t)
 
     # compile the source
     bccode = compile(join(TEST_SOURCES_DIR, t.source),
@@ -286,7 +318,6 @@ if __name__ == "__main__":
         stdout.write("Executing setup: {0} ... {1}".format(" ".join(args),
                                                            endline))
         run_test(t, bccode, optafter, linkafter, args)
-        print('OK!')
     else:
         for setup in get_variations():
             if not _test_enabled(t, setup):
@@ -296,7 +327,6 @@ if __name__ == "__main__":
             stdout.write("Executing setup: {0} ... {1}".format(" ".join(setup),
                                                                endline))
             run_test(t, bccode, optafter, linkafter, setup)
-            print('OK!')
 
     # cleanup
     cleanup()
