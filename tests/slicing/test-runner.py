@@ -6,6 +6,7 @@ from shutil import rmtree
 from subprocess import DEVNULL, PIPE, Popen
 from sys import argv, stdout
 
+clang_has_sanitizers = False
 debug = False
 have_svf = False
 
@@ -20,6 +21,9 @@ def parse_cmake_cache(cmakecache):
         for line in f:
             if line.startswith('SVF_DIR'):
                 have_svf = True
+            elif line.startswith('CLANG_HAS_SANITIZERS'):
+                global clang_has_sanitizers
+                clang_has_sanitizers = True
             elif line.startswith('dg_SOURCE_DIR'):
                 parts = line.split('=')
                 global TEST_SOURCES_DIR
@@ -237,9 +241,9 @@ def sanity_check(test):
            '-include', join(TEST_SOURCES_DIR, '..', 'test_assert.h'),
            '-g', '-o', 'sanity'] + test.compilerparams
 
-    # if  TODO
-    cmd += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer',
-            '-fno-sanitize-recover=all']
+    if clang_has_sanitizers:
+        cmd += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer',
+                '-fno-sanitize-recover=all']
 
     if test.linkbefore:
         cmd += [join(TEST_SOURCES_DIR, x) for x in test.linkbefore]
@@ -249,7 +253,8 @@ def sanity_check(test):
     if command(cmd) != 0:
         error('Failed executing ' + clang)
 
-    env = {'UBSAN_OPTIONS': 'print_stacktrace=1'}
+    env = {'ASAN_OPTIONS': 'detect_leaks=0',
+           'UBSAN_OPTIONS': 'print_stacktrace=1'}
     ret = command_output(['./sanity'], env=env)
     check_output(*ret, test.expectedoutput)
 
