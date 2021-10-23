@@ -1,7 +1,9 @@
+#include <stdalign.h>
+
 _Static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4");
 
 int main(void) {
-    char a[] = "Hello, world";
+    alignas(alignof(int)) char a[] = "Hello, world";
     int *p = (int *) a + 1;
     *p = 0;
 
