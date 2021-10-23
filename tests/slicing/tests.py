@@ -1,10 +1,8 @@
-
 class Test:
-    def __init__(self, src, linkbefore = None,linkafter = None,\
-                            optbefore = None, optafter = None,\
-                            addparams = [], requiredparams = [],\
-                            compilerparams = [],
-                            expectedoutput=None):
+    def __init__(self, src, linkbefore=[], linkafter=[],
+                            optbefore=[], optafter=[],
+                            addparams=[], requiredparams=[],
+                            compilerparams=[], expectedoutput=None):
         self.source = src
         self.linkbefore = linkbefore
         self.linkafter = linkafter
@@ -14,6 +12,7 @@ class Test:
         self.requiredparams = requiredparams
         self.compilerparams = compilerparams
         self.expectedoutput = expectedoutput
+
 
 tests = {
     'test1'                : Test('test1.c'),
@@ -209,8 +208,9 @@ tests = {
     'pta-inv-infinite-loop': Test('pta-inv-infinite-loop.c',
                                   requiredparams=['-pta=inv']),
 
-    'threads1' : Test('threads1.c',
-                      addparams=['-threads'], requiredparams=['-pta=fi']),
+    'threads1'            : Test('threads1.c',
+                                  addparams=['-threads'],
+                                  requiredparams=['-pta=fi']),
     'undefcall1'          : Test('undefcall1_true-unreach-call.c'),
     'undefcall2'          : Test('undefcall2_true-unreach-call.c'),
     'unknown-interproc'   : Test('unknown-interproc.c',
