@@ -1,4 +1,4 @@
-int *get_elem_rec(int **array, int idx) {
+int **get_elem_rec(int **array, int idx) {
     if (idx == 0)
         return array;
     else

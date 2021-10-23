@@ -18,7 +18,9 @@ static void chain_node(struct node **ppnode) {
     node->next = *ppnode;
     *ppnode = node;
 }
-static void create_sll(const struct node **pp1) { chain_node(pp1); }
+static void create_sll(const struct node **pp1) {
+    chain_node((struct node **) pp1);
+}
 
 int main() {
     const struct node *p1;
