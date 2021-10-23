@@ -1,5 +1,5 @@
-typedef unsigned long size_t;
-extern void *malloc(size_t);
+#include <stddef.h>
+#include <stdlib.h>
 
 struct ldv_kref {
     int refcount;
@@ -18,7 +18,7 @@ static void ldv_kobject_release(struct ldv_kref *kref) {
     struct ldv_kobject *kobj = ({
         const typeof(((struct ldv_kobject *) 0)->kref) *__mptr = (kref);
         (struct ldv_kobject *) ((char *) __mptr -
-                                ((size_t) & ((struct ldv_kobject *) 0)->kref));
+                                offsetof(struct ldv_kobject, kref));
     });
     ldv_kobject_cleanup(kobj);
 }
