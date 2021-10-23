@@ -1,5 +1,3 @@
-
-
 struct item {
     int a;
     int *ptr;

@@ -1,4 +1,3 @@
-
 #include <stdarg.h>
 
 void setv(int num, ...) {

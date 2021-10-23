@@ -1,5 +1,3 @@
-
-
 int glob = 1;
 int num;
 volatile void check(int c) { ++num; }

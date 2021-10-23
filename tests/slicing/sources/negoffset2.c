@@ -1,5 +1,3 @@
-
-
 int main(void) {
     int array[10];
     int *a = array + 10;

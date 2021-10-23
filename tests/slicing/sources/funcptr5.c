@@ -1,5 +1,3 @@
-
-
 int *set2(int *a, int *b) { return a; }
 
 int *set(int *a) {

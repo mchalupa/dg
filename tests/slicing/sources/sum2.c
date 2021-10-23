@@ -1,5 +1,3 @@
-
-
 int sum(int x[3]) {
     long long ret;
     ret = x[0] + x[1] + x[2];

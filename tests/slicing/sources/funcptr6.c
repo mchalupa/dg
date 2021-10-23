@@ -1,5 +1,3 @@
-
-
 struct callbacks {
     void (*f1)(int *);
     void (*f2)(int *);

@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 
 struct wl_list {

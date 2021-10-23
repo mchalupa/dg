@@ -1,5 +1,3 @@
-
-
 int main(void) {
     int a;
     unsigned long iptr = (unsigned long) &a;

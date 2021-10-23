@@ -1,5 +1,3 @@
-
-
 /* check if returning pointer
  * from function works properly */
 

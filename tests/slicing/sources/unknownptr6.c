@@ -1,5 +1,7 @@
 int a = 3;
+
 extern int *foo();
+
 int main(void) {
     int *x = foo();
     a = 2;

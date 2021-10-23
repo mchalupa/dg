@@ -1,5 +1,3 @@
-
-
 void set(int *a) { *a = 8; }
 
 void foo(void (*f)(int *), int *p) { f(p); }

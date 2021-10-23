@@ -1,5 +1,3 @@
-
-
 /* basic test with pointers */
 int main(void) {
     int a, b, c;
