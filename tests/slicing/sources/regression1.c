@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     if (argc == 0) {}
 
     test_assert(1);
-    argc;
+    (void) argc;
 
     return 0;
 }
