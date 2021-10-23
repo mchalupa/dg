@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from os import chdir, getcwd
+from os import chdir, environ, getcwd
 from os.path import abspath, basename, dirname, join
 from shutil import rmtree
 from subprocess import DEVNULL, PIPE, Popen
@@ -42,19 +42,19 @@ configs = {
 }
 
 
-def command(cmd):
+def command(cmd, env=environ):
     if debug:
         print("> " + "  ".join(cmd), flush=True)
-        p = Popen(cmd)
+        p = Popen(cmd, env=env)
     else:
-        p = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL)
+        p = Popen(cmd, stdout=DEVNULL, stderr=DEVNULL, env=env)
     return p.wait()
 
 
-def command_output(cmd):
+def command_output(cmd, env=environ):
     if debug:
-        print("> " + "  ".join(cmd))
-    p = Popen(cmd, stdout=PIPE, stderr=PIPE)
+        print("> " + "  ".join(cmd), flush=True)
+    p = Popen(cmd, stdout=PIPE, stderr=PIPE, env=env)
     out, err = p.communicate()
     return out, err, p.poll()
 
