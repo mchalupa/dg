@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from os import chdir, getcwd, unlink
+from os import chdir, getcwd
 from os.path import abspath, basename, dirname, join
 from shutil import rmtree
 from subprocess import DEVNULL, PIPE, Popen
@@ -210,25 +210,19 @@ def _test_enabled(test, setup):
 
 
 def run_test(test, bccode, optafter, linkafter, args):
-    toremove = []
-
     bccode = slice(bccode, args + test.addparams)
-    toremove.append(bccode)
 
     if optafter:
         assert False
 
     if linkafter:
         bccode = link(bccode, linkafter)
-        toremove.append(bccode)
 
     if test.optafter:
         bccode = opt(bccode, t.optafter)
 
     execute(bccode, test.expectedoutput)
 
-    for f in toremove:
-        unlink(f)
 
 
 if __name__ == "__main__":
