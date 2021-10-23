@@ -1,5 +1,4 @@
-typedef unsigned long size_t;
-extern void *malloc(size_t);
+#include <stdlib.h>
 
 struct ldv_kref {
     int refcount;

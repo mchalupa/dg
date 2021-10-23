@@ -1,6 +1,8 @@
+#include <stddef.h>
+
 int x;
 
-void *malloc(int i) {
+void *malloc(size_t i) {
     if (i == sizeof(int))
         return &x;
     else

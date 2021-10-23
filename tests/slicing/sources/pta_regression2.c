@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 int get_int(int);
 
 struct node {
