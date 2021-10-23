@@ -1,4 +1,4 @@
-/* static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4"); */
+_Static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4");
 
 /* test accessing bytes in int */
 int main(void) {

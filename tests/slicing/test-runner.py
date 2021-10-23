@@ -97,8 +97,9 @@ def compile(source, output=None, params=[]):
 
     clang = join(LLVM_TOOLS_DIR, 'clang')
     test_assert_h = join(TEST_SOURCES_DIR, '..', "test_assert.h")
-    ret = command([clang, "-include", test_assert_h, "-emit-llvm",
-                   "-c", source, "-o", output] + params)
+    ret = command([clang, "-include", test_assert_h, "-emit-llvm", "-std=c11",
+                   "-fno-strict-aliasing", "-c", source, "-o", output]
+                  + params)
     if ret != 0:
         error('Failed executing ' + clang)
 
@@ -239,7 +240,8 @@ def sanity_check(test):
     cmd = [clang, join(TEST_SOURCES_DIR, t.source),
            join(TEST_SOURCES_DIR, '..', 'test_assert.c'),
            '-include', join(TEST_SOURCES_DIR, '..', 'test_assert.h'),
-           '-g', '-o', 'sanity'] + test.compilerparams
+           '-std=c11', '-fno-strict-aliasing', '-g', '-Werror',
+           '-o', 'sanity'] + test.compilerparams
 
     if clang_has_sanitizers:
         cmd += ['-fsanitize=address,undefined', '-fno-omit-frame-pointer',

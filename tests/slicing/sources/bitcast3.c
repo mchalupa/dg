@@ -1,4 +1,4 @@
-/* static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4"); */
+_Static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4");
 
 union BYTE {
     int i;
