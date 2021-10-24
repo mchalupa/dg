@@ -1,10 +1,6 @@
 #ifndef DG_SVF_POINTER_ANALYSIS_H_
 #define DG_SVF_POINTER_ANALYSIS_H_
 
-#ifndef HAVE_SVF
-#error "Do not have SVF"
-#endif
-
 #include <llvm/IR/DataLayout.h>
 #include <llvm/IR/Function.h>
 #include <llvm/Support/raw_ostream.h>

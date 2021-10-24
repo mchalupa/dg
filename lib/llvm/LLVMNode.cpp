@@ -1,11 +1,3 @@
-#ifndef HAVE_LLVM
-#error "Need LLVM for LLVMDependenceGraph"
-#endif
-
-#ifndef ENABLE_CFG
-#error "Need CFG enabled for building LLVM Dependence Graph"
-#endif
-
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/GlobalVariable.h>

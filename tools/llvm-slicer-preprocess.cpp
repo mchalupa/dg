@@ -1,9 +1,3 @@
-#include <llvm/Config/llvm-config.h>
-
-#if (LLVM_VERSION_MAJOR < 3)
-#error "Unsupported version of LLVM"
-#endif
-
 // ignore unused parameters in LLVM libraries
 #if (__clang__)
 #pragma clang diagnostic push

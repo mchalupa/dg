@@ -1,7 +1,3 @@
-#ifndef HAVE_LLVM
-#error "This code needs LLVM enabled"
-#endif
-
 #include <cassert>
 #include <cstdio>
 #include <cstdlib>

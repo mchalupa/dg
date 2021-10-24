@@ -3,16 +3,6 @@
 #include <string>
 #include <vector>
 
-#ifndef HAVE_LLVM
-#error "This code needs LLVM enabled"
-#endif
-
-#include <llvm/Config/llvm-config.h>
-
-#if (LLVM_VERSION_MAJOR < 3)
-#error "Unsupported version of LLVM"
-#endif
-
 #include <llvm/IR/CFG.h>
 #include <llvm/IR/DebugInfoMetadata.h>
 #include <llvm/IR/InstIterator.h>

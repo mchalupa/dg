@@ -66,7 +66,6 @@ if (LLVM_DG)
 	endif(LLVM_BUILD_PATH)
 
 	add_definitions(${LLVM_DEFINITIONS})
-	add_definitions(-DHAVE_LLVM)
 
 	option(LLVM_LINK_DYLIB "Link with LLVM dynamically" ON)
 

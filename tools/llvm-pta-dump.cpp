@@ -1,7 +1,3 @@
-#ifndef HAVE_LLVM
-#error "This code needs LLVM enabled"
-#endif
-
 #include <algorithm>
 #include <cassert>
 #include <cinttypes>
