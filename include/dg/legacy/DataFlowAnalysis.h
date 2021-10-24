@@ -7,10 +7,6 @@
 #include "dg/legacy/Analysis.h"
 #include "dg/legacy/DFS.h"
 
-#ifndef ENABLE_CFG
-#error "Need CFG enabled for data flow analysis"
-#endif
-
 namespace dg {
 namespace legacy {
 

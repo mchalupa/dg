@@ -1,14 +1,6 @@
 #ifndef LLVM_DEPENDENCE_GRAPH_H_
 #define LLVM_DEPENDENCE_GRAPH_H_
 
-#ifndef HAVE_LLVM
-#error "Need LLVM"
-#endif
-
-#ifndef ENABLE_CFG
-#error "Need CFG enabled"
-#endif
-
 #include <map>
 #include <unordered_map>
 

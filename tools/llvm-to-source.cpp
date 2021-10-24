@@ -6,10 +6,6 @@
 #include <sstream>
 #include <stack>
 
-#ifndef HAVE_LLVM
-#error "This code needs LLVM enabled"
-#endif
-
 #include <llvm/Config/llvm-config.h>
 
 #if ((LLVM_VERSION_MAJOR == 3) && (LLVM_VERSION_MINOR < 5))

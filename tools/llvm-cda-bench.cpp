@@ -2,16 +2,6 @@
 #include <ctime>
 #include <iostream>
 
-#ifndef HAVE_LLVM
-#error "This code needs LLVM enabled"
-#endif
-
-#include <llvm/Config/llvm-config.h>
-
-#if (LLVM_VERSION_MAJOR < 3)
-#error "Unsupported version of LLVM"
-#endif
-
 #include "dg/tools/llvm-slicer-opts.h"
 #include "dg/tools/llvm-slicer-utils.h"
 #include "dg/tools/llvm-slicer.h"
