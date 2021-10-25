@@ -962,10 +962,17 @@ checkSecondarySlicingCrit(std::set<LLVMNode *> &criteria_nodes,
     if (isCallTo(nd, secondaryControlCriteria))
         criteria_nodes.insert(nd);
     if (isCallTo(nd, secondaryDataCriteria)) {
-        llvm::errs()
-                << "WARNING: Found possible data secondary slicing criterion: "
-                << *nd->getValue() << "\n";
-        llvm::errs() << "This is not fully supported, so adding to be sound\n";
+        // XXX: Not fully supported, so add it...
+
+        // static std::set<LLVMNode *> reported;
+        // if (reported.insert(nd).second) {
+        //     llvm::errs()
+        //             << "WARNING: Found possible data secondary slicing
+        //             criterion: "
+        //             << *nd->getValue() << "\n";
+        //     llvm::errs() << "This is not fully supported, so adding to be
+        //     sound\n";
+        // }
         criteria_nodes.insert(nd);
     }
 }
