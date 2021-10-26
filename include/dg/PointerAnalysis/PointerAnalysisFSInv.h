@@ -84,7 +84,21 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
                n->getType() != PSNodeType::INVALIDATE_OBJECT &&
                n->getType() != PSNodeType::INVALIDATE_LOCALS);
 
-        return PointerAnalysisFS::afterProcessed(n);
+        bool ret = PointerAnalysisFS::afterProcessed(n);
+
+        // check that all pointers in this memory map
+        // are initialized in all predecessors and
+        // set them to invalidated otherwise
+        MemoryMapT *mm = n->getData<MemoryMapT>();
+        assert(mm && "Do not have memory map");
+        if (n->predecessorsNum() > 1) {
+            for (PSNode *p : n->predecessors()) {
+                if (MemoryMapT *pm = p->getData<MemoryMapT>()) {
+                    ret |= handleUninitialized(mm, pm);
+                }
+            }
+        }
+        return ret;
     }
 
     static bool isLocal(PSNodeAlloc *alloc, PSNode *where) {
@@ -394,6 +408,32 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
                 }
 
                 assert(!S.empty());
+            }
+        }
+
+        return changed;
+    }
+
+    bool handleUninitialized(MemoryMapT *mm, MemoryMapT *pm) {
+        bool changed = false;
+        for (auto &it : *mm) {
+            auto pmit = pm->find(it.first);
+            if (pmit == pm->end()) {
+                for (auto &mit : *it.second) {
+                    changed |= it.second->addPointsTo(mit.first,
+                                                      Pointer{INVALIDATED, 0});
+                }
+                continue;
+            }
+
+            // check the initialization of memory objects
+            auto *pmo = pmit->second.get();
+            for (auto &mit : *it.second) {
+                if (pmo->find(mit.first) != pmo->end())
+                    continue;
+
+                changed |= it.second->addPointsTo(mit.first,
+                                                  Pointer{INVALIDATED, 0});
             }
         }
 
