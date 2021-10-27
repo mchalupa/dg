@@ -1,37 +1,36 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-struct ldv_kref {
+typedef struct ldv_kref {
     int refcount;
-};
+} ldv_kref_t;
 
-struct ldv_kobject {
+typedef struct ldv_kobject {
     int a;
     struct ldv_kref kref;
-};
+} ldv_kobject_t;
 
-static void ldv_kobject_cleanup(struct ldv_kobject *kobj) {
+static void ldv_kobject_cleanup(ldv_kobject_t *kobj) {
     test_assert(kobj->a == 0xdead);
 }
 
-static void ldv_kobject_release(struct ldv_kref *kref) {
-    struct ldv_kobject *kobj = ({
-        const typeof(((struct ldv_kobject *) 0)->kref) *__mptr = (kref);
-        (struct ldv_kobject *) ((char *) __mptr -
-                                offsetof(struct ldv_kobject, kref));
+static void ldv_kobject_release(ldv_kref_t *kref) {
+    ldv_kobject_t *kobj = ({
+        typeof(((ldv_kobject_t *) 0)->kref) *mptr = kref;
+        (ldv_kobject_t *) ((char *) mptr - offsetof(ldv_kobject_t, kref));
     });
-    void (*func)(struct ldv_kobject *) = ldv_kobject_cleanup;
+    void (*func)(ldv_kobject_t *) = ldv_kobject_cleanup;
     func(kobj);
 }
 
-static void ldv_kref_sub(struct ldv_kref *kref, unsigned int count,
-                         void (*release)(struct ldv_kref *kref)) {
+static void ldv_kref_sub(ldv_kref_t *kref, unsigned int count,
+                         void (*release)(ldv_kref_t *kref)) {
     release(kref);
 }
 
 /* derived from test22.c, adds one more indirect call */
 int main(void) {
-    struct ldv_kobject *kobj;
+    ldv_kobject_t *kobj;
 
     kobj = malloc(sizeof(*kobj));
     kobj->a = 0xdead;
