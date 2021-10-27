@@ -428,7 +428,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
                 continue;
             }
 
-            // check the initialization of memory objects
+            /* check the initialization of memory objects
             auto *pmo = pmit->second.get();
             for (auto &mit : *it.second) {
                 if (pmo->find(mit.first) != pmo->end())
@@ -439,6 +439,7 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
                 changed |= it.second->addPointsTo(mit.first,
                                                   Pointer{INVALIDATED, 0});
             }
+            */
         }
 
         return changed;
