@@ -420,6 +420,8 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
             auto pmit = pm->find(it.first);
             if (pmit == pm->end()) {
                 for (auto &mit : *it.second) {
+                    if (mit.first.isUnknown())
+                        continue; // FIXME: we are optimistic here...
                     changed |= it.second->addPointsTo(mit.first,
                                                       Pointer{INVALIDATED, 0});
                 }
@@ -431,6 +433,8 @@ class PointerAnalysisFSInv : public PointerAnalysisFS {
             for (auto &mit : *it.second) {
                 if (pmo->find(mit.first) != pmo->end())
                     continue;
+                if (mit.first.isUnknown())
+                    continue; // FIXME: we are optimistic here...
 
                 changed |= it.second->addPointsTo(mit.first,
                                                   Pointer{INVALIDATED, 0});
