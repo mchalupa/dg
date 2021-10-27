@@ -1,9 +1,11 @@
 #include <stdalign.h>
 
-_Static_assert(sizeof(int) == 4, "This test assumes sizeof(int) == 4");
-
 int main(void) {
     alignas(alignof(int)) char a[] = "Hello, world";
+
+    _Static_assert(sizeof(int) <= sizeof a,
+                   "This test assumes that sizeof(int) <= sizeof a");
+
     int *p = (int *) a;
     *p = 0;
 
