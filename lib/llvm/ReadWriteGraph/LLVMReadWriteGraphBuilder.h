@@ -52,10 +52,10 @@ class LLVMReadWriteGraphBuilder
         return subg;
     }
 
-    /*
     std::map<const llvm::CallInst *, RWNode *> threadCreateCalls;
     std::map<const llvm::CallInst *, RWNode *> threadJoinCalls;
 
+    /*
     // mapping of call nodes to called subgraphs
     std::map<std::pair<RWNode *, RWNode *>, std::set<Subgraph *>> calls;
     */
