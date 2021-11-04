@@ -329,8 +329,7 @@ RWNode *LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(
         return createIntrinsicCall(CInst);
     }
     if (_options.threads) {
-        assert(false && "Threads unsupported yet");
-        /*
+        // assert(false && "Threads unsupported yet");
         if (function->getName() == "pthread_create") {
             return createPthreadCreateCalls(CInst);
         } else if (function->getName() == "pthread_join") {
@@ -338,7 +337,6 @@ RWNode *LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(
         } else if (function->getName() == "pthread_exit") {
             return createPthreadExitCall(CInst);
         }
-        */
     }
 
     auto type = _options.getAllocationFunction(function->getName().str());
@@ -353,7 +351,6 @@ RWNode *LLVMReadWriteGraphBuilder::createCallToUndefinedFunction(
     abort();
 }
 
-/*
 RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
 *CInst) { using namespace llvm;
 
@@ -365,9 +362,9 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadCreateCalls(const llvm::CallInst
 
     for (const Function *function : functions) {
         if (function->isDeclaration()) {
-            llvm::errs() << "[RWG] error: phtread_create spawns undefined
-function: "
-                         << function->getName() << "\n";
+            llvm::errs()
+                    << "[RWG] error: phtread_create spawns undefined function: "
+                    << function->getName() << "\n";
             continue;
         }
     }
@@ -390,7 +387,6 @@ RWNode *LLVMReadWriteGraphBuilder::createPthreadExitCall(const llvm::CallInst
 {
     return createReturn(CInst);
 }
-*/
 
 } // namespace dda
 } // namespace dg
