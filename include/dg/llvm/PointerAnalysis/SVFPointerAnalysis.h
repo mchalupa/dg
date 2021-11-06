@@ -166,6 +166,7 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
         _svfModule =
                 moduleset->buildSVFModule(*const_cast<llvm::Module *>(_module));
         assert(_svfModule && "Failed building SVF module");
+        _svfModule->buildSymbolTableInfo();
 
         PAGBuilder builder;
         PAG *pag = builder.build(_svfModule);
