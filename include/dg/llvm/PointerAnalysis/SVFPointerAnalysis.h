@@ -36,25 +36,24 @@ class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
     size_t _position{0};
 
     llvm::Value *_getValue(unsigned id) const {
-        auto pagnode = _pag->getPAGNode(id);
-        if (pagnode->hasValue()) {
+        auto *pagnode = _pag->getPAGNode(id);
+        if (pagnode->hasValue())
             return const_cast<llvm::Value *>(pagnode->getValue());
-        } else {
-            // for debuggin right now
-            llvm::errs() << "[SVF] No value in PAG NODE\n";
-            llvm::errs() << *pagnode << "\n";
-            return nullptr;
-        }
+
+        // for debugging right now
+        llvm::errs() << "[SVF] No value in PAG NODE\n";
+        llvm::errs() << *pagnode << "\n";
+        return nullptr;
     }
 
     void _findNextReal() override {
-        while ((it != PTSet.end())) {
-            if (_pag->getPAGNode(*it)->hasValue()) {
+        while (it != PTSet.end()) {
+            if (_pag->getPAGNode(*it)->hasValue())
                 break;
-            }
-            // else {
-            //    llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
-            //}
+
+            // else
+            //     llvm::errs() << "no val" << *_pag->getPAGNode(*it) << "\n";
+
             ++it;
             ++_position;
         }
@@ -82,12 +81,12 @@ class SvfLLVMPointsToSet : public LLVMPointsToSetImplTemplate<const PointsTo> {
 
     LLVMPointer getKnownSingleton() const override {
         assert(isKnownSingleton());
-        return LLVMPointer(_getValue(*PTSet.begin()), Offset::UNKNOWN);
+        return {_getValue(*PTSet.begin()), Offset::UNKNOWN};
     }
 
     LLVMPointer get() const override {
         assert(it != PTSet.end() && "Dereferenced end() iterator");
-        return LLVMPointer{_getValue(*it), Offset::UNKNOWN};
+        return {_getValue(*it), Offset::UNKNOWN};
     }
 };
 
@@ -106,12 +105,8 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
     }
 
     LLVMPointsToSet mapSVFPointsTo(PointsTo &S, PAG *pag) {
-        SvfLLVMPointsToSet *pts;
-        if (S.empty()) {
-            pts = new SvfLLVMPointsToSet(getUnknownPTSet(), pag);
-        } else {
-            pts = new SvfLLVMPointsToSet(S, pag);
-        }
+        auto *pts =
+                new SvfLLVMPointsToSet(S.empty() ? getUnknownPTSet() : S, pag);
         return pts->toLLVMPointsToSet();
     }
 
@@ -120,8 +115,8 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
                        const LLVMPointerAnalysisOptions &opts)
             : LLVMPointerAnalysis(opts), _module(M) {}
 
-    ~SVFPointerAnalysis() {
-        // _svfModule overtook the ovenership of llvm::Module,
+    ~SVFPointerAnalysis() override {
+        // _svfModule overtook the ownership of llvm::Module,
         // we must re-take it to avoid double free
         LLVMModuleSet::releaseLLVMModuleSet();
     }
@@ -162,7 +157,7 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
 
         DBG_SECTION_BEGIN(pta, "Running SVF pointer analysis (Andersen)");
 
-        auto moduleset = LLVMModuleSet::getLLVMModuleSet();
+        auto *moduleset = LLVMModuleSet::getLLVMModuleSet();
         _svfModule =
                 moduleset->buildSVFModule(*const_cast<llvm::Module *>(_module));
         assert(_svfModule && "Failed building SVF module");
@@ -183,4 +178,4 @@ class SVFPointerAnalysis : public LLVMPointerAnalysis {
 
 } // namespace dg
 
-#endif // DG_SVF_POINTERS_TO_ANALYSIS_H_
+#endif // DG_SVF_POINTER_ANALYSIS_H_
