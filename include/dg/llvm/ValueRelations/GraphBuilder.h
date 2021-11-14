@@ -73,17 +73,13 @@ struct GraphBuilder {
 
             auto op = std::unique_ptr<VROp>(new VRAssumeEqual(
                     swtch->getCondition(), it.getCaseValue()));
-            VREdge *edge =
-                    new VREdge(vrblock->last(), succ->first(), std::move(op));
-            vrblock->last()->connect(std::unique_ptr<VREdge>(edge));
+            vrblock->last()->connect(succ->first(), std::move(op));
         }
 
         VRBBlock *succ = getVRBBlock(swtch->getDefaultDest());
         assert(succ);
         auto op = std::unique_ptr<VROp>(new VRNoop());
-        VREdge *edge =
-                new VREdge(vrblock->last(), succ->first(), std::move(op));
-        vrblock->last()->connect(std::unique_ptr<VREdge>(edge));
+        vrblock->last()->connect(succ->first(), std::move(op));
     }
 
     void buildBranch(const llvm::BranchInst *inst, VRBBlock *vrblock) {
@@ -92,10 +88,8 @@ struct GraphBuilder {
             assert(succ);
 
             auto op = std::unique_ptr<VROp>(new VRNoop());
-            VREdge *edge =
-                    new VREdge(vrblock->last(), succ->first(), std::move(op));
 
-            vrblock->last()->connect(std::unique_ptr<VREdge>(edge));
+            vrblock->last()->connect(succ->first(), std::move(op));
         } else {
             VRBBlock *trueSucc = getVRBBlock(inst->getSuccessor(0));
             VRBBlock *falseSucc = getVRBBlock(inst->getSuccessor(1));
@@ -105,21 +99,15 @@ struct GraphBuilder {
             auto falseOp = std::unique_ptr<VROp>(
                     new VRAssumeBool(inst->getCondition(), false));
 
-            VREdge *trueEdge = new VREdge(vrblock->last(), trueSucc->first(),
-                                          std::move(trueOp));
-            VREdge *falseEdge = new VREdge(vrblock->last(), falseSucc->first(),
-                                           std::move(falseOp));
-
-            vrblock->last()->connect(std::unique_ptr<VREdge>(trueEdge));
-            vrblock->last()->connect(std::unique_ptr<VREdge>(falseEdge));
+            vrblock->last()->connect(trueSucc->first(), std::move(trueOp));
+            vrblock->last()->connect(falseSucc->first(), std::move(falseOp));
         }
     }
 
     void buildReturn(const llvm::ReturnInst *inst, VRBBlock *vrblock) {
         auto op = std::unique_ptr<VROp>(new VRInstruction(inst));
-        VREdge *edge = new VREdge(vrblock->last(), nullptr, std::move(op));
 
-        vrblock->last()->connect(std::unique_ptr<VREdge>(edge));
+        vrblock->last()->connect(nullptr, std::move(op));
     }
 
     void build(const llvm::BasicBlock &block) {
@@ -134,10 +122,8 @@ struct GraphBuilder {
             const llvm::Instruction &inst = *it;
             VRLocation *newLoc = newLocation(&inst);
 
-            VREdge *edge = new VREdge(
-                    vrblock->last(), newLoc,
-                    std::unique_ptr<VROp>(new VRInstruction(previous)));
-            vrblock->last()->connect(std::unique_ptr<VREdge>(edge));
+            vrblock->last()->connect(
+                    newLoc, std::unique_ptr<VROp>(new VRInstruction(previous)));
 
             vrblock->append(newLoc);
             previous = &inst;
@@ -184,6 +170,117 @@ struct GraphBuilder {
     const VRLocation *getVRLocation(const llvm::Instruction *inst) const {
         auto it = locationMapping.find(inst);
         return it == locationMapping.end() ? nullptr : it->second;
+    }
+};
+
+struct GB {
+    const llvm::Module &module;
+    VRCodeGraph &codeGraph;
+
+    using VRBBlockHandle = VRCodeGraph::VRBBlockHandle;
+    using VRBBlock = const VRCodeGraph::VRBBlock &;
+
+    GB(const llvm::Module &m, VRCodeGraph &c) : module(m), codeGraph(c) {}
+
+    void build() {
+        for (const llvm::Function &function : module) {
+            buildBlocks(function);
+            buildTerminators(function);
+            setEntry(function);
+        }
+    }
+
+    void buildBlocks(const llvm::Function &function) {
+        for (const llvm::BasicBlock &block : function) {
+            assert(block.size() != 0);
+            buildBlock(block);
+        }
+    }
+
+    void buildTerminators(const llvm::Function &function) {
+        for (const llvm::BasicBlock &block : function) {
+            VRBBlock vrblock = codeGraph.getVRBBlock(&block);
+
+            const llvm::Instruction *terminator = block.getTerminator();
+            if (auto branch = llvm::dyn_cast<llvm::BranchInst>(terminator)) {
+                buildBranch(branch, vrblock);
+
+            } else if (auto swtch =
+                               llvm::dyn_cast<llvm::SwitchInst>(terminator)) {
+                buildSwitch(swtch, vrblock);
+
+            } else if (auto rturn =
+                               llvm::dyn_cast<llvm::ReturnInst>(terminator)) {
+                buildReturn(rturn, vrblock);
+
+            } else if (llvm::succ_begin(&block) != llvm::succ_end(&block)) {
+#ifndef NDEBUG
+                std::cerr << "Unhandled  terminator: "
+                          << dg::debug::getValName(terminator) << std::endl;
+                llvm::errs() << "Unhandled terminator: " << *terminator << "\n";
+#endif
+                abort();
+            }
+        }
+    }
+
+    void setEntry(const llvm::Function &function) {
+        VRBBlock &entryBlock = codeGraph.getVRBBlock(&function.getEntryBlock());
+        codeGraph.setEntryLocation(&function, entryBlock.front());
+    }
+
+    void buildBranch(const llvm::BranchInst *inst, VRBBlock vrblock) {
+        if (inst->isUnconditional()) {
+            VRBBlock &succ = codeGraph.getVRBBlock(inst->getSuccessor(0));
+
+            vrblock.back().connect(succ.front(), new VRNoop());
+        } else {
+            VRBBlock &trueSucc = codeGraph.getVRBBlock(inst->getSuccessor(0));
+            VRBBlock &falseSucc = codeGraph.getVRBBlock(inst->getSuccessor(1));
+
+            auto *condition = inst->getCondition();
+
+            vrblock.back().connect(trueSucc.front(),
+                                   new VRAssumeBool(condition, true));
+            vrblock.back().connect(falseSucc.front(),
+                                   new VRAssumeBool(condition, false));
+        }
+    }
+
+    void buildSwitch(const llvm::SwitchInst *swtch, VRBBlock vrblock) {
+        for (auto &it : swtch->cases()) {
+            VRBBlock &succ = codeGraph.getVRBBlock(it.getCaseSuccessor());
+
+            vrblock.back().connect(succ.front(),
+                                   new VRAssumeEqual(swtch->getCondition(),
+                                                     it.getCaseValue()));
+        }
+
+        VRBBlock &succ = codeGraph.getVRBBlock(swtch->getDefaultDest());
+        vrblock.back().connect(&succ.front(), new VRNoop());
+    }
+
+    void buildReturn(const llvm::ReturnInst *inst, VRBBlock vrblock) {
+        vrblock.back().connect(nullptr, new VRInstruction(inst));
+    }
+
+    void buildBlock(const llvm::BasicBlock &block) {
+        VRBBlockHandle vrblock = codeGraph.newVRBBlock(&block);
+
+        auto it = block.begin();
+        const llvm::Instruction *previousInst = &(*it);
+        VRLocation &previousLoc =
+                codeGraph.newVRLocation(vrblock, previousInst);
+        ++it;
+
+        for (; it != block.end(); ++it) {
+            const llvm::Instruction &inst = *it;
+            VRLocation &newLoc = codeGraph.newVRLocation(vrblock, &inst);
+
+            previousLoc.connect(newLoc, new VRInstruction(previousInst));
+
+            previousInst = &inst;
+        }
     }
 };
 
