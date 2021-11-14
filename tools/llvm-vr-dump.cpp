@@ -73,6 +73,7 @@ std::string edgeTypeToColor(EdgeType type) {
         return "pink";
     }
     assert(0 && "unreach");
+    abort();
 }
 
 void dumpNodes(const VRCodeGraph &codeGraph) {

@@ -1121,7 +1121,8 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
             shouldMerge = processAssumeEqual(source->relations, newGraph,
                                              static_cast<VRAssumeEqual *>(op));
         if (shouldMerge) {
-            bool result = newGraph.merge(source->relations);
+            __attribute__((unused)) bool result =
+                    newGraph.merge(source->relations);
             assert(result);
         }
 
@@ -1133,7 +1134,7 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
 }
 
 bool RelationsAnalyzer::passFunction(const llvm::Function &function,
-                                     bool print) {
+                                     __attribute__((unused)) bool print) {
     bool changed = false;
 
     for (auto it = codeGraph.lazy_dfs_begin(function);
