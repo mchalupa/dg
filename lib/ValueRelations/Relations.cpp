@@ -95,7 +95,7 @@ Relations Relations::conflicting(Relations::Type type) {
         return Relations().ult();
     case PT:
     case PF:
-        return Relations();
+        return {};
     }
     assert(0 && "unreachable");
     abort();
@@ -183,7 +183,7 @@ Relations compose(const Relations &lt, const Relations &rt) {
         for (Relations::Type rtRel : Relations::all) {
             if (rt.has(rtRel) && Relations::transitiveOver(ltRel, rtRel)) {
                 if (Relations::isStrict(ltRel) || Relations::isStrict(rtRel))
-                    result.set(ltRel);
+                    result.set(Relations::getStrict(ltRel));
                 else
                     result.set(ltRel);
             }
@@ -222,12 +222,16 @@ bool Relations::isNonStrict(Type type) { return nonStrict.has(type); }
 
 Relations::Type Relations::getStrict(Type type) {
     switch (type) {
+    case Relations::SLT:
     case Relations::SLE:
         return Relations::SLT;
+    case Relations::ULT:
     case Relations::ULE:
         return Relations::ULT;
+    case Relations::SGT:
     case Relations::SGE:
         return Relations::SGT;
+    case Relations::UGT:
     case Relations::UGE:
         return Relations::UGT;
     default:

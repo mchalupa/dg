@@ -16,13 +16,13 @@ namespace dg {
 namespace vr {
 
 const llvm::Value *AllocatedArea::stripCasts(const llvm::Value *inst) {
-    while (auto cast = llvm::dyn_cast<llvm::CastInst>(inst))
+    while (const auto *cast = llvm::dyn_cast<llvm::CastInst>(inst))
         inst = cast->getOperand(0);
     return inst;
 }
 
 uint64_t AllocatedArea::getBytes(const llvm::Type *type) {
-    unsigned byteWidth = 8;
+    const unsigned byteWidth = 8;
     assert(type->isSized());
 
     uint64_t size = type->getPrimitiveSizeInBits();
@@ -57,7 +57,7 @@ AllocatedArea::AllocatedArea(const llvm::CallInst *call) : ptr(call) {
     }
 
     if (options.getAllocationFunction(name) == AllocationFunction::CALLOC) {
-        auto size = llvm::cast<llvm::ConstantInt>(call->getOperand(1));
+        const auto *size = llvm::cast<llvm::ConstantInt>(call->getOperand(1));
         originalSizeView =
                 AllocatedSizeView(call->getOperand(0), size->getZExtValue());
     }
@@ -74,7 +74,7 @@ std::vector<AllocatedSizeView> AllocatedArea::getAllocatedSizeViews() const {
 
     AllocatedSizeView currentView = originalSizeView;
 
-    while (auto op = llvm::dyn_cast<llvm::BinaryOperator>(
+    while (const auto *op = llvm::dyn_cast<llvm::BinaryOperator>(
                    stripCasts(currentView.elementCount))) {
         uint64_t size = currentView.elementSize;
 
@@ -83,8 +83,8 @@ std::vector<AllocatedSizeView> AllocatedArea::getAllocatedSizeViews() const {
             // TODO could also handle subtraction of negative constant
             break;
 
-        auto c1 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(0));
-        auto c2 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(1));
+        const auto *c1 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(0));
+        const auto *c2 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(1));
 
         if (c1 && c2) {
             uint64_t newCount;
@@ -154,7 +154,8 @@ std::vector<AllocatedSizeView> AllocatedArea::getAllocatedSizeViews() const {
 
 #ifndef NDEBUG
 void AllocatedArea::ddump() const {
-    std::cerr << "Allocated area:" << "\n";
+    std::cerr << "Allocated area:"
+              << "\n";
     std::cerr << "    ptr " << debug::getValName(ptr) << "\n";
     std::cerr << "    count "
               << debug::getValName(originalSizeView.elementCount) << "\n";
@@ -164,7 +165,7 @@ void AllocatedArea::ddump() const {
 #endif
 
 void StructureAnalyzer::categorizeEdges() {
-    for (auto &function : module) {
+    for (const auto &function : module) {
         if (function.isDeclaration())
             continue;
 
@@ -196,7 +197,7 @@ void StructureAnalyzer::categorizeEdges() {
 }
 
 void StructureAnalyzer::findLoops() {
-    for (auto &function : module) {
+    for (const auto &function : module) {
         if (function.isDeclaration())
             continue;
 
@@ -335,12 +336,12 @@ void StructureAnalyzer::collectInstructionSet() {
     }
 }
 
-bool StructureAnalyzer::isValidAllocationCall(const llvm::Value *val) const {
+bool StructureAnalyzer::isValidAllocationCall(const llvm::Value *val) {
     if (!llvm::isa<llvm::CallInst>(val))
         return false;
 
     const llvm::CallInst *call = llvm::cast<llvm::CallInst>(val);
-    auto function = call->getCalledFunction();
+    const auto *function = call->getCalledFunction();
 
     AnalysisOptions options;
     return function &&
@@ -355,11 +356,13 @@ void StructureAnalyzer::collectAllocatedAreas() {
     for (const llvm::Function &function : module) {
         for (const llvm::BasicBlock &block : function) {
             for (const llvm::Instruction &inst : block) {
-                if (auto alloca = llvm::dyn_cast<llvm::AllocaInst>(&inst)) {
+                if (const auto *alloca =
+                            llvm::dyn_cast<llvm::AllocaInst>(&inst)) {
                     allocatedAreas.emplace_back(alloca);
                 }
 
-                else if (auto call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
+                else if (const auto *call =
+                                 llvm::dyn_cast<llvm::CallInst>(&inst)) {
                     if (isValidAllocationCall(call)) {
                         allocatedAreas.emplace_back(call);
                     }
@@ -379,7 +382,7 @@ StructureAnalyzer::getEqualArea(const ValueRelations &graph,
                                 const llvm::Value *ptr) const {
     unsigned index = 0;
     const AllocatedArea *area = nullptr;
-    for (auto *equal : graph.getEqual(ptr)) {
+    for (const auto *equal : graph.getEqual(ptr)) {
         std::tie(index, area) = getAllocatedAreaFor(equal);
         if (area)
             return {index, area};
@@ -413,7 +416,7 @@ void StructureAnalyzer::setValidAreasByInstruction(
 
     // if came across lifetime_end call, then mark memory whose scope ended
     // invalid
-    if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
+    if (const auto *intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
         if (intrinsic->getIntrinsicID() == llvm::Intrinsic::lifetime_end) {
             std::tie(index, area) =
                     getEqualArea(location.relations, intrinsic->getOperand(1));
@@ -422,7 +425,7 @@ void StructureAnalyzer::setValidAreasByInstruction(
         }
     }
 
-    if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
+    if (const auto *call = llvm::dyn_cast<llvm::CallInst>(inst)) {
         auto *function = call->getCalledFunction();
 
         if (!function)
@@ -489,12 +492,12 @@ void StructureAnalyzer::setValidArea(std::vector<bool> &validAreas,
 void StructureAnalyzer::setValidAreasByAssumeBool(VRLocation &location,
                                                   std::vector<bool> &validAreas,
                                                   VRAssumeBool *assume) const {
-    auto icmp = llvm::dyn_cast<llvm::ICmpInst>(assume->getValue());
+    const auto *icmp = llvm::dyn_cast<llvm::ICmpInst>(assume->getValue());
     if (!icmp)
         return;
 
-    auto c1 = llvm::dyn_cast<llvm::ConstantInt>(icmp->getOperand(0));
-    auto c2 = llvm::dyn_cast<llvm::ConstantInt>(icmp->getOperand(1));
+    const auto *c1 = llvm::dyn_cast<llvm::ConstantInt>(icmp->getOperand(0));
+    const auto *c2 = llvm::dyn_cast<llvm::ConstantInt>(icmp->getOperand(1));
 
     // pointer must be compared to zero // TODO? or greater
     if ((c1 && c2) || (!c1 && !c2) || (!c1 && !c2->isZero()) ||
@@ -507,7 +510,7 @@ void StructureAnalyzer::setValidAreasByAssumeBool(VRLocation &location,
     unsigned index = 0;
     const AllocatedArea *area = nullptr;
 
-    for (auto equal : location.relations.getEqual(param)) {
+    for (const auto *equal : location.relations.getEqual(param)) {
         std::tie(index, area) = getAllocatedAreaFor(equal);
         // if compared pointer or equal belong to allocated area, this area
         // can be marked valid
@@ -585,8 +588,7 @@ void StructureAnalyzer::setValidAreasFromSinglePredecessor(
 }
 
 bool StructureAnalyzer::trueInAll(
-        const std::vector<std::vector<bool>> &validInPreds,
-        unsigned index) const {
+        const std::vector<std::vector<bool>> &validInPreds, unsigned index) {
     for (const auto &validInPred : validInPreds) {
         if (validInPred.empty() || !validInPred[index])
             return false;
@@ -718,7 +720,7 @@ bool StructureAnalyzer::isDefined(VRLocation *loc,
 std::pair<unsigned, const AllocatedArea *>
 StructureAnalyzer::getAllocatedAreaFor(const llvm::Value *ptr) const {
     unsigned i = 0;
-    for (auto &area : allocatedAreas) {
+    for (const auto &area : allocatedAreas) {
         if (area.getPtr() == ptr)
             return {i, &area};
         ++i;

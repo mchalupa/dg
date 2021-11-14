@@ -6,7 +6,7 @@
 using namespace dg::vr;
 
 struct Dummy {
-    void areMerged(const Bucket &, const Bucket &) {}
+    void areMerged(const Bucket & /*unused*/, const Bucket & /*unused*/) {}
 };
 
 using RelGraph = RelationsGraph<Dummy>;
@@ -18,7 +18,7 @@ std::string dump(__attribute__((unused)) const CollectedEdges &edges) {
     std::ostringstream out;
     out << "{ ";
 #ifndef NDEBUG
-    for (auto &item : edges)
+    for (const auto &item : edges)
         out << item << ", ";
 #endif
     out << "}";
@@ -29,7 +29,7 @@ std::string dump(__attribute__((unused)) const RelationsMap &map) {
     std::ostringstream out;
     out << "{ ";
 #ifndef NDEBUG
-    for (auto &pair : map) {
+    for (const auto &pair : map) {
         out << "{ " << pair.first.get().id << ": " << pair.second << " }, ";
     }
 #endif
@@ -84,12 +84,11 @@ void checkRelations(const RelGraph &graph, const Bucket &start,
 void checkRelations(const RelationsMap &real, const RelationsMap &expected) {
     INFO("real " << dump(real));
     INFO("expected " << dump(expected));
-    for (auto &pair : expected) {
+    for (const auto &pair : expected) {
         auto found = real.find(pair.first);
         if (found == real.end()) {
             INFO("no relations found for " << pair.first.get().id);
             CHECK(false);
-            return;
         } else {
             INFO("relations to " << pair.first.get().id);
             CHECK(found->second == pair.second);

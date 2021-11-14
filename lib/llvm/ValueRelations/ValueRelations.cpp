@@ -18,7 +18,7 @@ Relations ValueRelations::_between(Handle lt, V rt) const {
 }
 Relations ValueRelations::_between(Handle lt, C cRt) const {
     if (!cRt)
-        return Relations();
+        return {};
 
     for (Relations::Type rel :
          {Relations::SLE, Relations::ULE, Relations::SGE, Relations::UGE}) {
@@ -34,7 +34,7 @@ Relations ValueRelations::_between(Handle lt, C cRt) const {
         if (relsBound.has(rel))
             return compose(relsLt, relsBound);
     }
-    return Relations();
+    return {};
 }
 Relations ValueRelations::_between(V lt, Handle rt) const {
     return _between(rt, lt).invert();
@@ -56,7 +56,7 @@ Relations ValueRelations::_between(V lt, V rt) const {
     C cRt = llvm::dyn_cast<BareC>(rt);
 
     if (!cLt || !cRt)
-        return Relations();
+        return {};
     return compare(cLt, cRt);
 }
 
@@ -65,7 +65,7 @@ ValueRelations::rel_iterator
 ValueRelations::begin_related(V val, const Relations &rels) const {
     assert(valToBucket.find(val) != valToBucket.end());
     Handle h = valToBucket.find(val)->second;
-    return rel_iterator(*this, h, rels);
+    return {*this, h, rels};
 }
 
 ValueRelations::rel_iterator ValueRelations::end_related(V /*val*/) const {
@@ -82,11 +82,11 @@ ValueRelations::RelGraph::iterator ValueRelations::end_related(Handle h) const {
 }
 
 ValueRelations::plain_iterator ValueRelations::begin() const {
-    return plain_iterator(bucketToVals.begin(), bucketToVals.end());
+    return {bucketToVals.begin(), bucketToVals.end()};
 }
 
 ValueRelations::plain_iterator ValueRelations::end() const {
-    return plain_iterator(bucketToVals.end());
+    return {bucketToVals.end()};
 }
 
 ValueRelations::RelGraph::iterator
@@ -144,9 +144,10 @@ ValueRelations::getDirectlyRelated(V val, const Relations &rels) const {
     RelationsMap related = graph.getRelated(*mH, rels, true);
 
     std::vector<ValueRelations::V> result;
-    std::transform(
-            related.begin(), related.end(), std::back_inserter(result),
-            [this](const RelationsMap::value_type &pair) { return this->getAny(pair.first); });
+    std::transform(related.begin(), related.end(), std::back_inserter(result),
+                   [this](const RelationsMap::value_type &pair) {
+                       return this->getAny(pair.first);
+                   });
     return result;
 }
 
@@ -184,7 +185,7 @@ ValueRelations::C ValueRelations::getGreaterEqualBound(V val) const {
     return getUpperBound(val).first;
 }
 
-ValueRelations::HandlePtr ValueRelations::getHandleByPtr(Handle h) const {
+ValueRelations::HandlePtr ValueRelations::getHandleByPtr(Handle h) {
     if (!h.hasRelation(Relations::PT))
         return nullptr;
     return &h.getRelated(Relations::PT);
@@ -232,7 +233,7 @@ Relations ValueRelations::compare(C lt, C rt) {
     // ignore bool values
     if ((lt->getBitWidth() == 1 || rt->getBitWidth() == 1) &&
         lt->getBitWidth() != rt->getBitWidth())
-        return Relations();
+        return {};
     int64_t isLt = lt->getSExtValue();
     int64_t isRt = rt->getSExtValue();
     Relations result;

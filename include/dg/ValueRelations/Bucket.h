@@ -132,7 +132,7 @@ struct Bucket {
         const Bucket &to() const { return _to; }
 
         RelationEdge inverted() const {
-            return RelationEdge(_to, Relations::inverted(_rel), _from);
+            return {_to, Relations::inverted(_rel), _from};
         }
 
 #ifndef NDEBUG
@@ -234,7 +234,7 @@ struct Bucket {
     }
 
     template <typename T>
-    friend struct RelationsGraph;
+    friend class RelationsGraph;
 
     Bucket(size_t i) : id(i) { relatedBuckets[Relations::EQ].emplace(*this); }
 
@@ -459,13 +459,13 @@ struct Bucket {
         return begin(visited, allRelations, true, true);
     }
 
-    iterator end(iterator::Visited &visited) const { return iterator(visited); }
-
-    DirectRelIterator begin() const { return DirectRelIterator(*this); }
-
-    DirectRelIterator end() const {
-        return DirectRelIterator(*this, Relations::all.end());
+    static iterator end(iterator::Visited &visited) {
+        return iterator(visited);
     }
+
+    DirectRelIterator begin() const { return {*this}; }
+
+    DirectRelIterator end() const { return {*this, Relations::all.end()}; }
 
     /*********************** end iterator stuff **********************/
 

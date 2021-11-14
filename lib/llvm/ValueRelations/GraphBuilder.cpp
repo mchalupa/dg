@@ -21,7 +21,7 @@ void GraphBuilder::build() {
 
 void GraphBuilder::buildBlocks(const llvm::Function &function) {
     for (const llvm::BasicBlock &block : function) {
-        assert(block.size() != 0);
+        assert(!block.empty());
         buildBlock(block);
     }
 
@@ -36,13 +36,15 @@ void GraphBuilder::buildTerminators(const llvm::Function &function) {
         VRLocation &last = *backs[&block];
 
         const llvm::Instruction *terminator = block.getTerminator();
-        if (auto branch = llvm::dyn_cast<llvm::BranchInst>(terminator)) {
+        if (const auto *branch = llvm::dyn_cast<llvm::BranchInst>(terminator)) {
             buildBranch(branch, last);
 
-        } else if (auto swtch = llvm::dyn_cast<llvm::SwitchInst>(terminator)) {
+        } else if (const auto *swtch =
+                           llvm::dyn_cast<llvm::SwitchInst>(terminator)) {
             buildSwitch(swtch, last);
 
-        } else if (auto rturn = llvm::dyn_cast<llvm::ReturnInst>(terminator)) {
+        } else if (const auto *rturn =
+                           llvm::dyn_cast<llvm::ReturnInst>(terminator)) {
             buildReturn(rturn, last);
 
         } else if (llvm::succ_begin(&block) != llvm::succ_end(&block)) {

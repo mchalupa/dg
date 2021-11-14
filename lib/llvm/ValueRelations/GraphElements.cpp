@@ -118,7 +118,7 @@ bool VRCodeGraph::SimpleVisit::wasVisited(VRLocation *loc) const {
     return visited.find(loc) != visited.end();
 }
 
-unsigned VRCodeGraph::LazyVisit::getPrevEdgesSize(VRLocation *loc) const {
+unsigned VRCodeGraph::LazyVisit::getPrevEdgesSize(VRLocation *loc) {
     return loc->predsSize();
 }
 
@@ -149,23 +149,20 @@ VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_begin(const llvm::Function &f,
     return LazyDFS(f, &start, Dir::FORWARD);
 }
 
-VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_end() const { return LazyDFS(); }
+VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_end() { return LazyDFS(); }
 
 VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function &f) const {
     return SimpleDFS(f, &getEntryLocation(f), Dir::FORWARD);
 }
 
-VRCodeGraph::SimpleDFS VRCodeGraph::dfs_end() const { return SimpleDFS(); }
+VRCodeGraph::SimpleDFS VRCodeGraph::dfs_end() { return SimpleDFS(); }
 
-VRCodeGraph::SimpleDFS
-VRCodeGraph::backward_dfs_begin(const llvm::Function &f,
-                                VRLocation &start) const {
+VRCodeGraph::SimpleDFS VRCodeGraph::backward_dfs_begin(const llvm::Function &f,
+                                                       VRLocation &start) {
     return SimpleDFS(f, &start, Dir::BACKWARD);
 }
 
-VRCodeGraph::SimpleDFS VRCodeGraph::backward_dfs_end() const {
-    return SimpleDFS();
-}
+VRCodeGraph::SimpleDFS VRCodeGraph::backward_dfs_end() { return SimpleDFS(); }
 
 /* ************ code graph iterator stuff ************ */
 

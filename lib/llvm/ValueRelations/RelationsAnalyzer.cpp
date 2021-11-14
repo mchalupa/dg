@@ -8,7 +8,7 @@ namespace vr {
 using V = ValueRelations::V;
 
 // ********************** points to invalidation ********************** //
-bool RelationsAnalyzer::isIgnorableIntrinsic(llvm::Intrinsic::ID id) const {
+bool RelationsAnalyzer::isIgnorableIntrinsic(llvm::Intrinsic::ID id) {
     switch (id) {
     case llvm::Intrinsic::lifetime_start:
     case llvm::Intrinsic::lifetime_end:
@@ -26,14 +26,14 @@ bool RelationsAnalyzer::isSafe(I inst) const {
     if (!inst->mayWriteToMemory() && !inst->mayHaveSideEffects())
         return true;
 
-    if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
+    if (const auto *intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
         if (isIgnorableIntrinsic(intrinsic->getIntrinsicID())) {
             return true;
         }
     }
 
-    if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
-        auto function = call->getCalledFunction();
+    if (const auto *call = llvm::dyn_cast<llvm::CallInst>(inst)) {
+        const auto *function = call->getCalledFunction();
         if (function && safeFunctions.find(function->getName().str()) !=
                                 safeFunctions.end())
             return true;
@@ -41,8 +41,8 @@ bool RelationsAnalyzer::isSafe(I inst) const {
     return false;
 }
 
-bool RelationsAnalyzer::isDangerous(I inst) const {
-    auto store = llvm::dyn_cast<llvm::StoreInst>(inst);
+bool RelationsAnalyzer::isDangerous(I inst) {
+    const auto *store = llvm::dyn_cast<llvm::StoreInst>(inst);
     if (!store) // most probably CallInst
         // unable to presume anything about such instruction
         return true;
@@ -56,7 +56,7 @@ bool RelationsAnalyzer::isDangerous(I inst) const {
 }
 
 bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph, V val) const {
-    for (auto eqval : graph.getEqual(val))
+    for (const auto *eqval : graph.getEqual(val))
         if (mayHaveAlias(eqval))
             return true;
     return false;
@@ -84,12 +84,13 @@ bool RelationsAnalyzer::mayHaveAlias(V val) const {
         } else if (llvm::isa<llvm::GetElementPtrInst>(user)) {
             return true; // TODO possible to collect here
 
-        } else if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(user)) {
+        } else if (const auto *intrinsic =
+                           llvm::dyn_cast<llvm::IntrinsicInst>(user)) {
             if (!isIgnorableIntrinsic(intrinsic->getIntrinsicID()) &&
                 intrinsic->mayWriteToMemory())
                 return true;
 
-        } else if (auto inst = llvm::dyn_cast<llvm::Instruction>(user)) {
+        } else if (const auto *inst = llvm::dyn_cast<llvm::Instruction>(user)) {
             if (inst->mayWriteToMemory())
                 return true;
         }
@@ -98,7 +99,7 @@ bool RelationsAnalyzer::mayHaveAlias(V val) const {
 }
 
 bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph, V from) {
-    for (auto val : graph.getEqual(from)) {
+    for (const auto *val : graph.getEqual(from)) {
         if (hasKnownOrigin(val))
             return true;
     }
@@ -110,7 +111,7 @@ bool RelationsAnalyzer::hasKnownOrigin(V from) {
 }
 
 V getGEPBase(V val) {
-    if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(val))
+    if (const auto *gep = llvm::dyn_cast<llvm::GetElementPtrInst>(val))
         return gep->getPointerOperand();
     return nullptr;
 }
@@ -142,7 +143,7 @@ bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
     if (isDangerous(inst))
         return true;
 
-    auto store = llvm::cast<llvm::StoreInst>(inst);
+    const auto *store = llvm::cast<llvm::StoreInst>(inst);
     V memoryPtr = store->getPointerOperand();
 
     if (sameBase(graph, memoryPtr, address))
@@ -175,7 +176,7 @@ void RelationsAnalyzer::solvesDiffOne(ValueRelations &graph, V param,
 
 bool RelationsAnalyzer::operandsEqual(
         ValueRelations &graph, I fst, I snd,
-        bool sameOrder) const { // false means checking in reverse order
+        bool sameOrder) { // false means checking in reverse order
     unsigned total = fst->getNumOperands();
     if (total != snd->getNumOperands())
         return false;
@@ -192,8 +193,11 @@ bool RelationsAnalyzer::operandsEqual(
 void RelationsAnalyzer::solveByOperands(ValueRelations &graph,
                                         const llvm::BinaryOperator *operation,
                                         bool sameOrder) {
-    for (auto same : structure.getInstructionSetFor(operation->getOpcode())) {
-        auto sameOperation = llvm::dyn_cast<const llvm::BinaryOperator>(same);
+    for (const auto *same :
+         structure.getInstructionSetFor(operation->getOpcode())) {
+        assert(llvm::isa<const llvm::BinaryOperator>(same));
+        const auto *sameOperation =
+                llvm::cast<const llvm::BinaryOperator>(same);
 
         if (operation != sameOperation &&
             operandsEqual(graph, operation, sameOperation, sameOrder))
@@ -231,7 +235,8 @@ void RelationsAnalyzer::gepGen(ValueRelations &graph,
     for (auto it = graph.begin_buckets(Relations().pt());
          it != graph.end_buckets(); ++it) {
         for (V from : graph.getEqual(it->from())) {
-            if (auto otherGep = llvm::dyn_cast<llvm::GetElementPtrInst>(from)) {
+            if (const auto *otherGep =
+                        llvm::dyn_cast<llvm::GetElementPtrInst>(from)) {
                 if (operandsEqual(graph, gep, otherGep, true)) {
                     graph.setEqual(gep, otherGep);
                     return;
@@ -277,7 +282,7 @@ getParams(const llvm::BinaryOperator *op) {
 
 bool RelationsAnalyzer::canShift(const ValueRelations &graph, V param,
                                  Relations::Type shift) {
-    auto paramType = param->getType();
+    const auto *paramType = param->getType();
     assert(Relations::isStrict(shift) && Relations::isSigned(shift));
     if (!graph.hasAnyRelation(param) || !param->getType()->isIntegerTy())
         return false;
@@ -287,15 +292,15 @@ bool RelationsAnalyzer::canShift(const ValueRelations &graph, V param,
     for (auto pair : graph.getRelated(
                  param,
                  Relations().set(shift).set(Relations::getNonStrict(shift)))) {
-        for (auto &val : graph.getEqual(pair.first)) {
-            auto valType = val->getType();
+        for (const auto &val : graph.getEqual(pair.first)) {
+            const auto *valType = val->getType();
             if (valType->isIntegerTy() &&
                 valType->getIntegerBitWidth() <=
                         paramType->getIntegerBitWidth()) {
                 if (pair.second.has(shift))
                     return true;
                 assert(pair.second.has(Relations::getNonStrict(shift)));
-                if (auto c = llvm::dyn_cast<llvm::ConstantInt>(val)) {
+                if (const auto *c = llvm::dyn_cast<llvm::ConstantInt>(val)) {
                     if (!(shift == Relations::SGT && c->isMinValue(true)) &&
                         !(shift == Relations::SLT && c->isMaxValue(true)))
                         return true;
@@ -306,11 +311,11 @@ bool RelationsAnalyzer::canShift(const ValueRelations &graph, V param,
 
     // if the shifted value is a parameter, it depends on the passed value;
     // check when validating
-    if (auto paramInst = llvm::dyn_cast<llvm::Instruction>(param)) {
+    if (const auto *paramInst = llvm::dyn_cast<llvm::Instruction>(param)) {
         const llvm::Function *thisFun = paramInst->getFunction();
 
-        for (auto val : graph.getEqual(paramInst)) {
-            if (auto arg = llvm::dyn_cast<llvm::Argument>(val)) {
+        for (const auto *val : graph.getEqual(paramInst)) {
+            if (const auto *arg = llvm::dyn_cast<llvm::Argument>(val)) {
                 if (arg->getType()->isIntegerTy()) {
                     structure.addPrecondition(
                             thisFun, arg, shift,
@@ -361,8 +366,8 @@ void RelationsAnalyzer::solveDifferent(ValueRelations &graph,
 
 void RelationsAnalyzer::opGen(ValueRelations &graph,
                               const llvm::BinaryOperator *op) {
-    auto c1 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(0));
-    auto c2 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(1));
+    const auto *c1 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(0));
+    const auto *c2 = llvm::dyn_cast<llvm::ConstantInt>(op->getOperand(1));
     auto opcode = op->getOpcode();
 
     solveEquality(graph, op);
@@ -437,7 +442,7 @@ RelationsAnalyzer::ICMPToRel(const llvm::ICmpInst *icmp, bool assumption) {
 
 bool RelationsAnalyzer::processICMP(const ValueRelations &oldGraph,
                                     ValueRelations &newGraph,
-                                    VRAssumeBool *assume) const {
+                                    VRAssumeBool *assume) {
     const llvm::ICmpInst *icmp = llvm::cast<llvm::ICmpInst>(assume->getValue());
     bool assumption = assume->getAssumption();
 
@@ -461,7 +466,7 @@ bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
     const llvm::BasicBlock *assumedPred = nullptr;
     for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
         V result = phi->getIncomingValue(i);
-        auto constResult = llvm::dyn_cast<llvm::ConstantInt>(result);
+        const auto *constResult = llvm::dyn_cast<llvm::ConstantInt>(result);
         if (!constResult ||
             (constResult && ((constResult->isOne() && assumption) ||
                              (constResult->isZero() && !assumption)))) {
@@ -484,7 +489,7 @@ bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
 
 // *********************** merge helpers **************************** //
 Relations RelationsAnalyzer::getCommon(const VRLocation &location, V lt,
-                                       Relations known, V rt) const {
+                                       Relations known, V rt) {
     for (VREdge *predEdge : location.predecessors) {
         known &= predEdge->source->relations.between(lt, rt);
         if (!known.any())
@@ -562,11 +567,11 @@ RelationsAnalyzer::getChangeRelations(V from, VRLocation &join) {
     V firstLoad = nullptr;
     unsigned forks = 0;
 
-    for (auto &inloopInst : structure.getInloopValues(join)) {
+    for (const auto &inloopInst : structure.getInloopValues(join)) {
         VRLocation &targetLoc =
                 *codeGraph.getVRLocation(inloopInst).getSuccLocation(0);
 
-        if (auto load = llvm::dyn_cast<llvm::LoadInst>(inloopInst)) {
+        if (const auto *load = llvm::dyn_cast<llvm::LoadInst>(inloopInst)) {
             if (load->getPointerOperand() == from && !firstLoad && !forks) {
                 firstLoad = load;
             }
@@ -593,7 +598,7 @@ RelationsAnalyzer::getChangeRelations(V from, VRLocation &join) {
 std::pair<RelationsAnalyzer::C, Relations>
 RelationsAnalyzer::getBoundOnPointedToValue(
         const std::vector<const ValueRelations *> &changeRelations, V from,
-        Relation rel) const {
+        Relation rel) {
     C bound = nullptr;
     Relations current = allRelations;
 
@@ -742,23 +747,23 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
 void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
     switch (inst->getOpcode()) {
     case llvm::Instruction::Store:
-        return storeGen(graph, llvm::dyn_cast<llvm::StoreInst>(inst));
+        return storeGen(graph, llvm::cast<llvm::StoreInst>(inst));
     case llvm::Instruction::Load:
-        return loadGen(graph, llvm::dyn_cast<llvm::LoadInst>(inst));
+        return loadGen(graph, llvm::cast<llvm::LoadInst>(inst));
     case llvm::Instruction::GetElementPtr:
         return gepGen(graph, llvm::cast<llvm::GetElementPtrInst>(inst));
     case llvm::Instruction::ZExt:
     case llvm::Instruction::SExt: // (S)ZExt should not change value
-        return extGen(graph, llvm::dyn_cast<llvm::CastInst>(inst));
+        return extGen(graph, llvm::cast<llvm::CastInst>(inst));
     case llvm::Instruction::Add:
     case llvm::Instruction::Sub:
     case llvm::Instruction::Mul:
-        return opGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+        return opGen(graph, llvm::cast<llvm::BinaryOperator>(inst));
     case llvm::Instruction::SRem:
     case llvm::Instruction::URem:
-        return remGen(graph, llvm::dyn_cast<llvm::BinaryOperator>(inst));
+        return remGen(graph, llvm::cast<llvm::BinaryOperator>(inst));
     default:
-        if (auto cast = llvm::dyn_cast<llvm::CastInst>(inst)) {
+        if (const auto *cast = llvm::dyn_cast<llvm::CastInst>(inst)) {
             return castGen(graph, cast);
         }
     }
@@ -791,7 +796,7 @@ bool RelationsAnalyzer::processAssumeBool(const ValueRelations &oldGraph,
 
 bool RelationsAnalyzer::processAssumeEqual(const ValueRelations &oldGraph,
                                            ValueRelations &newGraph,
-                                           VRAssumeEqual *assume) const {
+                                           VRAssumeEqual *assume) {
     V val1 = assume->getValue();
     V val2 = assume->getAssumption();
     if (oldGraph.hasConflictingRelation(val1, val2, Relation::EQ))
@@ -840,7 +845,7 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
          it != codeGraph.lazy_dfs_end(); ++it) {
         VRLocation &location = *it;
 #ifndef NDEBUG
-        bool cond = location.id == 91;
+        const bool cond = location.id == 91;
         if (print && cond) {
             std::cerr << "LOCATION " << location.id << "\n";
             for (VREdge *predEdge : location.predecessors) {
@@ -879,7 +884,7 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
 unsigned RelationsAnalyzer::analyze(unsigned maxPass) {
     unsigned maxExecutedPass = 0;
 
-    for (auto &function : module) {
+    for (const auto &function : module) {
         if (function.isDeclaration())
             continue;
 
