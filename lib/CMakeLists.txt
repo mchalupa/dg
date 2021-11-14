@@ -213,9 +213,8 @@ add_library(dgllvmvra SHARED
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/RelationsAnalyzer.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/StructureAnalyzer.h
 	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/ValueRelations.h
-	${CMAKE_SOURCE_DIR}/include/dg/llvm/ValueRelations/VR.h
 
-	llvm/ValueRelations/VR.cpp
+	llvm/ValueRelations/ValueRelations.cpp
 )
 target_link_libraries(dgllvmvra PUBLIC dgvra)
 
