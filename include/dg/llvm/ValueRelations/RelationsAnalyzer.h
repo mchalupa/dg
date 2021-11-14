@@ -89,15 +89,16 @@ class RelationsAnalyzer {
     bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
-    bool relatesInAll(const std::vector<VRLocation *> &locations, V fst, V snd,
-                      Relation rel) const;
+    bool relatesInAllPreds(const VRLocation &locations, V lt, Relation rel,
+                           V rt) const;
+    void checkRelatesInAll(VRLocation &location, V lt, Relation rel, V rt,
+                           std::set<V> &setEqual);
     bool relatesByLoadInAll(const std::vector<VRLocation *> &locations,
                             V related, V from, Relation rel, bool flip) const;
     bool loadsInAll(const std::vector<VRLocation *> &locations, V from,
                     V value) const;
     bool loadsSomethingInAll(const std::vector<VRLocation *> &locations,
                              V from) const;
-    VRLocation &getTreePred(VRLocation &location) const;
     bool hasConflictLoad(const std::vector<VRLocation *> &preds, V from, V val);
     bool anyInvalidated(const std::set<V> &allInvalid,
                         const std::vector<V> &froms);
@@ -112,11 +113,6 @@ class RelationsAnalyzer {
 
     // **************************** merge ******************************* //
     void mergeRelations(VRLocation &location);
-    void mergeRelations(const std::vector<VRLocation *> &preds,
-                        VRLocation &location);
-    void mergeLoads(VRLocation &location);
-    void mergeLoads(const std::vector<VRLocation *> &preds,
-                    VRLocation &location);
     void mergeRelationsByLoads(VRLocation &location);
     void mergeRelationsByLoads(const std::vector<VRLocation *> &preds,
                                VRLocation &location);

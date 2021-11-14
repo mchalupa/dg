@@ -590,13 +590,39 @@ bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
 }
 
 // *********************** merge helpers **************************** //
-bool RelationsAnalyzer::relatesInAll(const std::vector<VRLocation *> &locations,
-                                     V fst, V snd, Relation rel) const {
-    for (const VRLocation *vrloc : locations) {
-        if (!vrloc->relations.are(fst, rel, snd))
+bool RelationsAnalyzer::relatesInAllPreds(const VRLocation &location, V lt,
+                                          Relation rel, V rt) const {
+    for (VREdge *predEdge : location.predecessors) {
+        if (!predEdge->source->relations.are(lt, rel, rt))
             return false;
     }
     return true;
+}
+
+void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
+                                          Relation rel, V rt,
+                                          std::set<V> &setEqual) {
+    if (lt == rt) // would add a bucket for every value, even if not related
+        return;
+
+    ValueRelations &thisGraph = location.relations;
+
+    // check for exact match
+    if (relatesInAllPreds(location, lt, rel, rt)) {
+        if (rel == Relation::EQ)
+            setEqual.emplace(rt);
+
+        thisGraph.set(lt, rel, rt);
+    }
+
+    // check for weakened relations
+    if (rel == Relation::EQ) {
+        if (relatesInAllPreds(location, lt, Relation::LE, rt))
+            thisGraph.set(lt, Relation::LE, rt);
+    } else if (Relations::isStrict(rel)) {
+        if (relatesInAllPreds(location, lt, Relations::getNonStrict(rel), rt))
+            thisGraph.set(lt, Relations::getNonStrict(rel), rt);
+    }
 }
 
 bool RelationsAnalyzer::relatesByLoadInAll(
@@ -884,114 +910,51 @@ void RelationsAnalyzer::intersectByLoad(const std::vector<VRLocation *> &preds,
 
 // **************************** merge ******************************* //
 void RelationsAnalyzer::mergeRelations(VRLocation &location) {
-    mergeRelations(location.getPredLocations(), location);
-}
+    assert(location.predecessors.size() > 1);
 
-void RelationsAnalyzer::mergeRelations(const std::vector<VRLocation *> &preds,
-                                       VRLocation &location) {
-    if (preds.empty())
-        return;
+    const ValueRelations &predGraph = location.getTreePredecessor().relations;
 
-    ValueRelations &newGraph = location.relations;
-    ValueRelations &oldGraph = preds[0]->relations;
-    std::vector<V> values = oldGraph.getAllValues();
-
-    // merge from all predecessors
-    for (auto valueIt = values.begin(); valueIt != values.end(); ++valueIt) {
-        V val = *valueIt;
-
-        for (auto it = oldGraph.begin_lesserEqual(val);
-             it != oldGraph.end_lesserEqual(val); ++it) {
-            V related;
-            Relation relation;
-            std::tie(related, relation) = *it;
-            assert(oldGraph.are(related, relation, val));
-
-            if (related == val)
-                continue;
-
-            switch (relation) {
-            case Relation::EQ:
-                if (relatesInAll(preds, related, val, Relation::EQ)) {
-                    newGraph.setEqual(related, val);
-
-                    auto found =
-                            std::find(values.begin(), values.end(), related);
-                    if (found != values.end()) {
-                        values.erase(found);
-                        valueIt = std::find(values.begin(), values.end(), val);
-                    }
-                } else if (relatesInAll(preds, related, val, Relation::LE)) {
-                    newGraph.setLesserEqual(related, val);
+    std::set<V> setEqual;
+    for (const auto &bucketVal : predGraph.getBucketToVals()) {
+        for (const auto &related :
+             predGraph.getRelated(bucketVal.first, restricted)) {
+            for (V lt : bucketVal.second) {
+                if (setEqual.find(lt) !=
+                    setEqual.end()) // value has already been set equal to other
+                    continue;
+                for (V rt : predGraph.getEqual(related.first)) {
+                    assert(predGraph.are(lt, related.second.get(), rt));
+                    assert(restricted.has(related.second.get()));
+                    checkRelatesInAll(location, lt, related.second.get(), rt,
+                                      setEqual);
                 }
-                break;
-
-            case Relation::LT:
-                if (relatesInAll(preds, related, val, Relation::LT)) {
-                    newGraph.setLesser(related, val);
-                }
-                break;
-
-            case Relation::LE:
-                if (relatesInAll(preds, related, val, Relation::LE)) {
-                    newGraph.setLesserEqual(related, val);
-                }
-                break;
-
-            default:
-                assert(0 && "going down, not up");
             }
         }
     }
+
+    ValueRelations &thisGraph = location.relations;
 
     // merge relations from tree predecessor only
     if (location.isJustLoopJoin()) {
-        bool result = newGraph.merge(location.getTreePredecessor().relations,
-                                     comparative);
+        bool result = thisGraph.merge(predGraph, comparative);
         assert(result);
-    }
-}
 
-void RelationsAnalyzer::mergeLoads(VRLocation &location) {
-    mergeLoads(location.getPredLocations(), location);
-}
-
-void RelationsAnalyzer::mergeLoads(const std::vector<VRLocation *> &preds,
-                                   VRLocation &location) {
-    if (preds.empty())
-        return;
-
-    ValueRelations &newGraph = location.relations;
-    const auto &loadBucketPairs = preds[0]->relations.getAllLoads();
-
-    // merge loads from all predecessors
-    for (const auto &fromsValues : loadBucketPairs) {
-        for (V from : fromsValues.first) {
-            for (V val : fromsValues.second) {
-                if (loadsInAll(preds, from, val))
-                    newGraph.setLoad(from, val);
-            }
-        }
-    }
-
-    // merge loads from outloop predecessor, that are not invalidated
-    // inside the loop
-    if (location.isJustLoopJoin()) {
-        const ValueRelations &oldGraph =
-                location.getTreePredecessor().relations;
+        // merge loads from outloop predecessor, that are not invalidated
+        // inside the loop
+        // TODO remove in favour of mergeRelatedByLoads
 
         std::set<V> allInvalid;
 
         for (const auto *inst : structure.getInloopValues(location)) {
-            auto invalid = instructionInvalidatesFromGraph(oldGraph, inst);
+            auto invalid = instructionInvalidatesFromGraph(predGraph, inst);
             allInvalid.insert(invalid.begin(), invalid.end());
         }
 
-        for (const auto &fromsValues : oldGraph.getAllLoads()) {
+        for (const auto &fromsValues : predGraph.getAllLoads()) {
             if (!anyInvalidated(allInvalid, fromsValues.first)) {
                 for (auto from : fromsValues.first) {
                     for (auto val : fromsValues.second) {
-                        newGraph.setLoad(from, val);
+                        thisGraph.setLoad(from, val);
                     }
                 }
             }
@@ -1145,15 +1108,15 @@ bool RelationsAnalyzer::passFunction(const llvm::Function *function,
                 std::cerr << predEdge->op->toStr() << std::endl;
             }
         }
-        if (print && location.id == 11)
+        if (print && location.id == 9)
             std::cerr << "pred\n"
-                      << location.predecessors[0]->source->relations
+                      << location.predecessors[0]->source->relations << "\n"
+                      << location.predecessors[1]->source->relations
                       << "before\n"
                       << location.relations << "\n";
 
         if (location.predecessors.size() > 1) {
             mergeRelations(location);
-            mergeLoads(location);
             mergeRelationsByLoads(location);
         } else if (location.predecessors.size() == 1) {
             VREdge *edge = location.predecessors[0];
@@ -1178,7 +1141,7 @@ unsigned RelationsAnalyzer::analyze(unsigned maxPass) {
         bool changed = true;
         unsigned passNum = 0;
         while (changed && passNum < maxPass) {
-            changed = passFunction(&function, false);
+            changed = passFunction(&function, false); // passNum+1==maxPass);
             ++passNum;
         }
 
