@@ -31,6 +31,7 @@ extern const RelationBits undirected;
 
 #ifndef NDEBUG
 void dumpRelation(RelationType r);
+std::ostream &operator<<(std::ostream &out, RelationType r);
 #endif
 
 class Bucket {
@@ -151,6 +152,15 @@ class Bucket {
         friend bool operator!=(const RelationEdge &lt, const RelationEdge &rt) {
             return !(lt == rt);
         }
+
+#ifndef NDEBUG
+        friend std::ostream &operator<<(std::ostream &out,
+                                        const RelationEdge &edge) {
+            auto nEdge = const_cast<RelationEdge &>(edge);
+            out << nEdge.to().id << " " << edge.rel() << " " << nEdge.from().id;
+            return out;
+        }
+#endif
     };
 
     class EdgeIterator {
@@ -234,6 +244,17 @@ class Bucket {
     EdgeIterator end(BucketSet &visited) { return EdgeIterator(visited); }
 
     /*********************** end iterator stuff **********************/
+
+#ifndef NDEBUG
+    friend std::ostream &operator<<(std::ostream &out, const Bucket &bucket) {
+        for (auto &pair : bucket.relatedBuckets) {
+            for (auto &related : pair.second)
+                out << "{ " << related.get().id << " } " << pair.first << " { "
+                    << bucket.id << " }";
+        }
+        return out;
+    }
+#endif
 };
 
 class RelationsGraph {
@@ -407,6 +428,17 @@ class RelationsGraph {
         auto pair = buckets.emplace(new Bucket(++nextId));
         return **pair.first;
     }
+
+#ifndef NDEBUG
+    friend std::ostream &operator<<(std::ostream &out,
+                                    const RelationsGraph &graph) {
+        out << "RELATIONS BEGIN\n";
+        for (const auto &item : graph.buckets)
+            out << "    " << *item << "\n";
+        out << "RELATIONS END\n";
+        return out;
+    }
+#endif
 };
 
 template <typename T>
