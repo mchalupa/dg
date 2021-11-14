@@ -255,9 +255,6 @@ struct ValueRelations {
     };
 
     // ***************************** other ******************************** //
-    static bool compare(C lt, Relations::Type rel, C rt);
-    static bool compare(C lt, Relations rels, C rt);
-    static Relations compare(C lt, C rt);
     Handle getCorresponding(const ValueRelations &other, Handle otherH,
                             const std::vector<V> &otherEqual);
     Handle getCorresponding(const ValueRelations &other, Handle otherH);
@@ -425,8 +422,19 @@ struct ValueRelations {
     std::vector<V> getDirectlyLesser(V val) const;
     std::vector<V> getDirectlyGreater(V val) const;
 
-    std::pair<C, Relations> getLowerBound(V val) const;
-    std::pair<C, Relations> getUpperBound(V val) const;
+    template <typename X>
+    std::pair<C, Relations> getBound(const X &val, Relations::Type rel) const {
+        assert(rel == Relations::LE || rel == Relations::GE);
+        return getBound(val, Relations().set(rel));
+    }
+    template <typename X>
+    std::pair<C, Relations> getLowerBound(const X &val) const {
+        return getBound(val, Relations().ge());
+    }
+    template <typename X>
+    std::pair<C, Relations> getUpperBound(const X &val) const {
+        return getBound(val, Relations().le());
+    }
 
     C getLesserEqualBound(V val) const;
     C getGreaterEqualBound(V val) const;
@@ -434,6 +442,13 @@ struct ValueRelations {
     const std::vector<V> getValsByPtr(V from) const;
 
     std::set<std::pair<std::vector<V>, std::vector<V>>> getAllLoads() const;
+
+    template <typename X>
+    Handle getPointedTo(const X &from) const {
+        HandlePtr mH = maybeGet(from);
+        assert(mH);
+        return mH->getRelated(Relations::PT);
+    }
 
     std::vector<bool> &getValidAreas() { return validAreas; }
     const std::vector<bool> &getValidAreas() const { return validAreas; }
@@ -453,6 +468,9 @@ struct ValueRelations {
     void erasePlaceholderBucket(Handle id);
 
     // ***************************** other ******************************** //
+    static bool compare(C lt, Relations::Type rel, C rt);
+    static bool compare(C lt, Relations rels, C rt);
+    static Relations compare(C lt, C rt);
     bool merge(const ValueRelations &other, Relations relations = allRelations);
     bool unsetChanged() {
         bool old = changed;

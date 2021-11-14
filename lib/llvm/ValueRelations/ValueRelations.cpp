@@ -209,16 +209,6 @@ ValueRelations::getBound(V val, Relations rel) const {
     return getBound(*mH, rel);
 }
 
-std::pair<ValueRelations::C, Relations>
-ValueRelations::getLowerBound(V val) const {
-    return getBound(val, Relations().ge());
-}
-
-std::pair<ValueRelations::C, Relations>
-ValueRelations::getUpperBound(V val) const {
-    return getBound(val, Relations().le());
-}
-
 ValueRelations::C ValueRelations::getLesserEqualBound(V val) const {
     return getLowerBound(val).first;
 }
