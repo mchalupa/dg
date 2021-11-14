@@ -441,7 +441,7 @@ void ValueRelations::dotDump(std::ostream &out) const {
     out << "digraph G {\n";
     for (auto it = begin_buckets(Relations().eq().slt().sle().ult().ule().pt());
          it != end_buckets(); ++it) {
-        out << "  RNODE" << it->from().id << " [label=\"";
+        out << "  RNODE" << it->from().id << " [label=\"" << it->from().id << ": ";
         dump(it->from(), out);
         out << "\"]; ";
         if (it->rel() != Relations::EQ)
@@ -468,6 +468,7 @@ std::ostream &operator<<(std::ostream &out, const ValueRelations &vr) {
         vr.dump(edge.to(), out);
         out << "\n";
     }
+    vr.graph.dumpBorderBuckets(out);
     return out;
 }
 #endif
