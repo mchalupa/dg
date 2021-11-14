@@ -121,8 +121,6 @@ bool transitive(RelationType type) {
 }
 
 const RelationBits allRelations = ~0;
-const RelationBits undirected =
-        ~(p(RelationType::GE) | p(RelationType::GT) | p(RelationType::PF));
 
 #ifndef NDEBUG
 std::ostream &operator<<(std::ostream &out, RelationType r) {
@@ -224,7 +222,7 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
 
         result[it->to()].set(toInt(getNonStrict(it->rel())), false);
 
-        for (auto nestedIt = it->to().begin(nestedVisited, relations);
+        for (auto nestedIt = it->to().begin(nestedVisited, relations, false);
              nestedIt != it->to().end(nestedVisited); ++nestedIt) {
             if (toFirstStrict)
                 result[nestedIt->to()].set(toInt(it->rel()), false);
