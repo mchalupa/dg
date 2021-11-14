@@ -55,7 +55,7 @@ class RelationsAnalyzer {
                         const llvm::ConstantInt *c2,
                         const llvm::BinaryOperator *op);
     void solvesDiffOne(ValueRelations &graph, V param,
-                       const llvm::BinaryOperator *op, bool getLesser);
+                       const llvm::BinaryOperator *op, Relations::Type rel);
     bool operandsEqual(ValueRelations &graph, I fst, I snd,
                        bool sameOrder) const;
     void solveByOperands(ValueRelations &graph,
