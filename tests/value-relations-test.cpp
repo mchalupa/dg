@@ -98,13 +98,19 @@ TEST_CASE("edge iterator") {
             SECTION("fork 2 - 1 - 3") {
                 reportSet(graph, one, relOne, two);
                 reportSet(graph, one, relTwo, three);
-                checkEdges(graph, 2);
+                if ((relOne == RelationType::PT && relTwo == RelationType::PT))
+                    checkEdges(graph, 1);
+                else
+                    checkEdges(graph, 2);
             }
 
             SECTION("other fork 3 - 2 - 1") {
                 reportSet(graph, three, relOne, two);
                 reportSet(graph, one, relTwo, two);
-                checkEdges(graph, 2);
+                if ((relOne == RelationType::PF && relTwo == RelationType::PF))
+                    checkEdges(graph, 1);
+                else
+                    checkEdges(graph, 2);
             }
         }
     }
