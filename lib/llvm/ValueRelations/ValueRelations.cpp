@@ -303,6 +303,10 @@ ValueRelations::getAndMerge(const ValueRelations &other, Handle otherH) {
 
     if (!thisH)
         return nullptr;
+    
+    size_t borderId = other.getBorderId(otherH);
+    if (borderId != std::string::npos)
+        graph.makeBorderBucket(*thisH, borderId);
 
     for (V val : otherEqual)
         add(val, *thisH);
