@@ -275,10 +275,10 @@ class VRCodeGraph {
 
       public:
         DFSIt() = default;
-        DFSIt(const llvm::Function &f, VRLocation *start, Dir d)
+        DFSIt(const llvm::Function &f, const VRLocation *start, Dir d)
                 : function(&f), dir(d) {
-            stack.emplace_back(start, 0, nullptr);
-            visit(start);
+            stack.emplace_back(const_cast<VRLocation*>(start), 0, nullptr);
+            visit(const_cast<VRLocation*>(start));
         }
 
         friend bool operator==(const DFSIt &lt, const DFSIt &rt) {
@@ -331,6 +331,8 @@ class VRCodeGraph {
             return false;
         }
         VREdge *getEdge() const { return std::get<2>(stack.back()); }
+
+        void skipSuccessors() { stack.pop_back(); }
     };
 
   public:
@@ -338,14 +340,15 @@ class VRCodeGraph {
     using LazyDFS = DFSIt<LazyVisit>;
 
     LazyDFS lazy_dfs_begin(const llvm::Function &f) const;
-    LazyDFS lazy_dfs_begin(const llvm::Function &f, VRLocation &start) const;
+    LazyDFS lazy_dfs_begin(const llvm::Function &f, const VRLocation &start) const;
     static LazyDFS lazy_dfs_end();
 
     SimpleDFS dfs_begin(const llvm::Function &f) const;
+    SimpleDFS dfs_begin(const llvm::Function &f, const VRLocation &start) const;
     static SimpleDFS dfs_end();
 
     static SimpleDFS backward_dfs_begin(const llvm::Function &f,
-                                        VRLocation &start);
+                                        const VRLocation &start);
     static SimpleDFS backward_dfs_end();
 
     /* ************ code graph iterator stuff ************ */
