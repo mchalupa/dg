@@ -75,8 +75,8 @@ void checkRelations(const RelGraph &graph, const Bucket &start,
 }
 
 void checkRelations(const RelationsMap &real, const RelationsMap &expected) {
-    INFO(dump(real));
-    INFO(dump(expected));
+    INFO("real " << dump(real));
+    INFO("expected " << dump(expected));
     for (auto &pair : expected) {
         auto found = real.find(pair.first);
         if (found == real.end()) {
@@ -104,15 +104,21 @@ bool forbids(Relations::Type one, Relations::Type two) {
 
 bool inferrs(Relations::Type one, Relations::Type two) {
     switch (one) {
-    case Relations::LE:
-        return two == Relations::NE || two == Relations::LT;
-    case Relations::GE:
-        return two == Relations::NE || two == Relations::GT;
+    case Relations::SLE:
+        return two == Relations::NE || two == Relations::SLT;
+    case Relations::ULE:
+        return two == Relations::NE || two == Relations::ULT;
+    case Relations::SGE:
+        return two == Relations::NE || two == Relations::SGT;
+    case Relations::UGE:
+        return two == Relations::NE || two == Relations::UGT;
     case Relations::NE:
-        return two == Relations::GE || two == Relations::LE;
+        return nonStrict.has(two);
     case Relations::EQ:
-    case Relations::LT:
-    case Relations::GT:
+    case Relations::SLT:
+    case Relations::ULT:
+    case Relations::SGT:
+    case Relations::UGT:
     case Relations::PT:
     case Relations::PF:
         return false;
@@ -158,8 +164,8 @@ TEST_CASE("edge iterator") {
                 Relations before = graph.getRelated(one, allRelations)[two];
                 reportSet(graph, one, relTwo, two);
 
-                if ((relOne == Relations::LE && relTwo == Relations::GE) ||
-                    (relOne == Relations::GE && relTwo == Relations::LE))
+                if (nonStrict.has(relOne) &&
+                    relOne == Relations::inverted(relTwo))
                     checkEdges(graph, 0);
                 else if (before.has(relTwo) || inferrs(relOne, relTwo))
                     checkEdges(graph, 1);
@@ -174,13 +180,13 @@ TEST_CASE("edge iterator") {
     SECTION("three node one relation cycle") {
         Relations::Type relOne = GEN_NONEQ_REL();
 
-        if (relOne != Relations::LT && relOne != Relations::GT) {
+        if (!strict.has(relOne)) {
             DYNAMIC_SECTION("setting " << relOne) {
                 reportSet(graph, three, relOne, one);
                 reportSet(graph, one, relOne, two);
                 reportSet(graph, two, relOne, three);
 
-                if (relOne == Relations::LE || relOne == Relations::GE)
+                if (nonStrict.has(relOne))
                     checkEdges(graph, 0);
                 else
                     checkEdges(graph, 3);
@@ -246,7 +252,7 @@ TEST_CASE("edge iterator") {
                     reportSet(graph, three, relThree, one);
 
                     if ((relOne == relTwo && relTwo == relThree &&
-                         (relOne == Relations::LE || relOne == Relations::GE)))
+                         nonStrict.has(relOne)))
                         checkEdges(graph, 0);
                     else if (ptpf(relThree, relTwo) || ptpf(relOne, relThree))
                         checkEdges(graph, 1);
@@ -296,16 +302,22 @@ TEST_CASE("testing relations") {
     SECTION("transitive") {
         const Bucket &three = graph.getNewBucket();
 
-        Relations::Type fst = GENERATE(Relations::LT, Relations::LE);
-        Relations::Type snd = GENERATE(Relations::LT, Relations::LE);
+        Relations::Type fst = GENERATE(Relations::SLT, Relations::SLE,
+                                       Relations::ULT, Relations::ULE);
+        Relations::Type snd = GENERATE(Relations::SLT, Relations::SLE,
+                                       Relations::ULT, Relations::ULE);
 
-        graph.addRelation(one, fst, two);
-        graph.addRelation(two, snd, three);
+        if (Relations::isSigned(fst) == Relations::isSigned(snd)) {
+            graph.addRelation(one, fst, two);
+            graph.addRelation(two, snd, three);
 
-        Relations::Type x = fst == Relations::LT || snd == Relations::LT
-                                    ? Relations::LT
-                                    : Relations::LE;
-        CHECK(graph.areRelated(one, x, three));
+            Relations::Type x = nonStrict.has(fst) && nonStrict.has(snd)
+                                        ? fst
+                                        : (Relations::isStrict(fst)
+                                                   ? fst
+                                                   : Relations::getStrict(fst));
+            CHECK(graph.areRelated(one, x, three));
+        }
     }
 }
 
@@ -321,62 +333,93 @@ TEST_CASE("big graph") {
     const Bucket &six = graph.getNewBucket();
     const Bucket &seven = graph.getNewBucket();
 
-    Relations eq = Relations().eq().le().ge();
-    Relations le = Relations().le();
-    Relations lt = Relations().lt().le().ne();
-    Relations ge = Relations().ge();
-    Relations gt = Relations().gt().ge().ne();
+    Relations eq = Relations().eq().addImplied();
+    Relations sle = Relations().sle();
+    Relations slt = Relations().slt().addImplied();
+    Relations ule = Relations().ule();
+    Relations ult = Relations().ult().addImplied();
+    Relations sge = Relations().sge();
+    Relations sgt = Relations().sgt().addImplied();
+    Relations uge = Relations().uge();
+    Relations ugt = Relations().ugt().addImplied();
     Relations pt = Relations().pt();
     Relations pf = Relations().pf();
 
-    SECTION("LE cycle") {
-        graph.addRelation(two, Relations::GE, one);
+    SECTION("SLE cycle") {
+        graph.addRelation(two, Relations::SGE, one);
         checkEdges(graph, 1);
-        graph.addRelation(two, Relations::LE, three);
+        graph.addRelation(two, Relations::SLE, three);
         checkEdges(graph, 2);
-        graph.addRelation(three, Relations::LE, four);
+        graph.addRelation(three, Relations::SLE, four);
         checkEdges(graph, 3);
-        graph.addRelation(four, Relations::LE, five);
+        graph.addRelation(four, Relations::SLE, five);
         checkEdges(graph, 4);
-        graph.addRelation(six, Relations::GE, five);
+        graph.addRelation(six, Relations::SGE, five);
         checkEdges(graph, 5);
-        graph.addRelation(seven, Relations::GE, six);
+        graph.addRelation(seven, Relations::SGE, six);
         checkEdges(graph, 6);
-        graph.addRelation(seven, Relations::LE, one);
+        graph.addRelation(seven, Relations::SLE, one);
+        checkEdges(graph, 0);
+    }
+
+    SECTION("ULE cycle") {
+        graph.addRelation(two, Relations::UGE, one);
+        checkEdges(graph, 1);
+        graph.addRelation(two, Relations::ULE, three);
+        checkEdges(graph, 2);
+        graph.addRelation(three, Relations::ULE, four);
+        checkEdges(graph, 3);
+        graph.addRelation(four, Relations::ULE, five);
+        checkEdges(graph, 4);
+        graph.addRelation(six, Relations::UGE, five);
+        checkEdges(graph, 5);
+        graph.addRelation(seven, Relations::UGE, six);
+        checkEdges(graph, 6);
+        graph.addRelation(seven, Relations::ULE, one);
         checkEdges(graph, 0);
     }
 
     SECTION("mess") {
-        graph.addRelation(two, Relations::GE, three);
+        graph.addRelation(two, Relations::SGE, three);
         checkEdges(graph, 1);
-        graph.addRelation(five, Relations::LE, three);
+        graph.addRelation(five, Relations::SLE, three);
         checkEdges(graph, 2);
         graph.addRelation(six, Relations::PF, four);
         checkEdges(graph, 3);
-        graph.addRelation(three, Relations::GE, six);
+        graph.addRelation(three, Relations::SGE, six);
         checkEdges(graph, 4);
-        graph.addRelation(five, Relations::LT, six);
+        graph.addRelation(five, Relations::SLT, six);
         checkEdges(graph, 5);
         graph.addRelation(four, Relations::PT, seven);
         checkEdges(graph, 5);
-        graph.addRelation(two, Relations::LE, three);
-        checkEdges(graph, 4);
+        graph.addRelation(five, Relations::UGT, two);
+        checkEdges(graph, 6);
+        graph.addRelation(five, Relations::UGT, three);
+        checkEdges(graph, 7);
+        graph.addRelation(two, Relations::SLE, three);
+        checkEdges(graph, 5);
 
         SECTION("relations") {
             checkRelations(graph, one, 1);
-            checkRelations(graph, two, 4);
+            checkRelations(graph, two, 5);
             // three was deleted
             checkRelations(graph, four, 2);
-            checkRelations(graph, five, 4);
+            checkRelations(graph, five, 5);
             checkRelations(graph, six, 4);
             // seven was deleted
 
             checkRelations(graph, one, {{one, eq}});
-            checkRelations(graph, two, {{two, eq}, {five, gt}, {six, ge}});
+            checkRelations(graph, two,
+                           {{two, eq},
+                            {five, Relations(sgt).ult().addImplied()},
+                            {six, sge}});
             checkRelations(graph, four, {{four, eq}, {six, pt}});
-            checkRelations(graph, five, {{five, eq}, {two, lt}, {six, lt}});
+            checkRelations(graph, five,
+                           {{five, eq},
+                            {two, Relations(slt).ugt().addImplied()},
+                            {six, slt}});
             checkRelations(graph, six,
-                           {{six, eq}, {two, le}, {four, pf}, {five, gt}});
+                           {{six, eq}, {two, sle}, {four, pf}, {five, sgt}});
         }
     }
 
@@ -408,65 +451,82 @@ TEST_CASE("big graph") {
     }
 
     SECTION("to first strict") {
-        reportSet(graph, one, Relations::GT, three);
+        reportSet(graph, one, Relations::SGT, three);
         checkEdges(graph, 1);
-        reportSet(graph, one, Relations::GE, four);
+        reportSet(graph, one, Relations::SGE, four);
         checkEdges(graph, 2);
-        reportSet(graph, one, Relations::GT, five);
+        reportSet(graph, one, Relations::SGT, five);
         checkEdges(graph, 3);
-        reportSet(graph, two, Relations::GT, five);
+        reportSet(graph, two, Relations::SGT, five);
         checkEdges(graph, 4);
-        reportSet(graph, three, Relations::GE, six);
+        reportSet(graph, three, Relations::SGE, six);
         checkEdges(graph, 5);
-        reportSet(graph, four, Relations::GT, six);
+        reportSet(graph, four, Relations::SGT, six);
         checkEdges(graph, 6);
-        reportSet(graph, five, Relations::GT, seven);
+        reportSet(graph, five, Relations::SGT, seven);
         checkEdges(graph, 7);
+        reportSet(graph, seven, Relations::UGE, four);
+        checkEdges(graph, 8);
+        reportSet(graph, four, Relations::UGT, six);
+        checkEdges(graph, 9);
 
         SECTION("relations") {
             checkRelations(graph, one, 7);
             checkRelations(graph, two, 3);
             checkRelations(graph, three, 3);
-            checkRelations(graph, four, 3);
+            checkRelations(graph, four, 5);
             checkRelations(graph, five, 4);
-            checkRelations(graph, six, 5);
-            checkRelations(graph, seven, 4);
+            checkRelations(graph, six, 7);
+            checkRelations(graph, seven, 6);
 
             checkRelations(graph, one,
                            {{one, eq},
-                            {three, gt},
-                            {four, ge},
-                            {five, gt},
-                            {six, gt},
-                            {seven, gt}});
-            checkRelations(graph, two, {{two, eq}, {five, gt}, {seven, gt}});
-            checkRelations(graph, three, {{one, lt}, {three, eq}, {six, ge}});
-            checkRelations(graph, four, {{one, le}, {four, eq}, {six, gt}});
+                            {three, sgt},
+                            {four, sge},
+                            {five, sgt},
+                            {six, sgt},
+                            {seven, sgt}});
+            checkRelations(graph, two, {{two, eq}, {five, sgt}, {seven, sgt}});
+            checkRelations(graph, three, {{one, slt}, {three, eq}, {six, sge}});
+            checkRelations(graph, four,
+                           {{one, sle},
+                            {four, eq},
+                            {six, Relations(sgt).ugt().addImplied()},
+                            {seven, ule}});
             checkRelations(graph, five,
-                           {{one, lt}, {two, lt}, {five, eq}, {seven, gt}});
+                           {{one, slt}, {two, slt}, {five, eq}, {seven, sgt}});
             checkRelations(graph, six,
-                           {{one, lt}, {three, le}, {four, lt}, {six, eq}});
+                           {{one, slt},
+                            {three, sle},
+                            {four, Relations(slt).ult().addImplied()},
+                            {six, eq},
+                            {seven, ult}});
             checkRelations(graph, seven,
-                           {{one, lt}, {two, lt}, {five, lt}, {seven, eq}});
+                           {{one, slt},
+                            {two, slt},
+                            {four, uge},
+                            {five, slt},
+                            {six, ugt},
+                            {seven, eq}});
         }
 
         SECTION("strict") {
             RelationsMap related = graph.getRelated(one, allRelations, true);
             checkRelations(related, {{one, eq},
-                                     {three, gt},
-                                     {four, ge},
-                                     {five, gt},
-                                     {six, gt}});
+                                     {three, sgt},
+                                     {four, sge},
+                                     {five, sgt},
+                                     {six, sgt}});
         }
     }
 
     SECTION("to first strict tricky") {
-        reportSet(graph, one, Relations::GT, two);
-        reportSet(graph, one, Relations::GE, three);
-        reportSet(graph, three, Relations::GE, two);
-        reportSet(graph, two, Relations::GT, four);
+        reportSet(graph, one, Relations::SGT, two);
+        reportSet(graph, one, Relations::SGE, three);
+        reportSet(graph, three, Relations::SGE, two);
+        reportSet(graph, two, Relations::SGT, four);
 
         RelationsMap related = graph.getRelated(one, allRelations, true);
-        checkRelations(related, {{one, eq}, {two, gt}, {three, ge}});
+        checkRelations(related, {{one, eq}, {two, sgt}, {three, sge}});
     }
 }

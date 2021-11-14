@@ -8,7 +8,7 @@ namespace dg {
 namespace vr {
 
 const std::array<Relations::Type, Relations::total> Relations::all = {
-        EQ, NE, LE, LT, GE, GT, PT, PF};
+        EQ, NE, SLE, SLT, ULE, ULT, SGE, SGT, UGE, UGT, PT, PF};
 
 Relations::Type Relations::inverted(Relations::Type type) {
     switch (type) {
@@ -16,14 +16,22 @@ Relations::Type Relations::inverted(Relations::Type type) {
         return EQ;
     case NE:
         return NE;
-    case LE:
-        return GE;
-    case LT:
-        return GT;
-    case GE:
-        return LE;
-    case GT:
-        return LT;
+    case SLE:
+        return SGE;
+    case SLT:
+        return SGT;
+    case ULE:
+        return UGE;
+    case ULT:
+        return UGT;
+    case SGE:
+        return SLE;
+    case SGT:
+        return SLT;
+    case UGE:
+        return ULE;
+    case UGT:
+        return ULT;
     case PT:
         return PF;
     case PF:
@@ -39,14 +47,22 @@ Relations::Type Relations::negated(Type type) {
         return NE;
     case NE:
         return EQ;
-    case LE:
-        return GT;
-    case LT:
-        return GE;
-    case GE:
-        return LT;
-    case GT:
-        return LE;
+    case SLE:
+        return SGT;
+    case SLT:
+        return SGE;
+    case ULE:
+        return UGT;
+    case ULT:
+        return UGE;
+    case SGE:
+        return SLT;
+    case SGT:
+        return SLE;
+    case UGE:
+        return ULT;
+    case UGT:
+        return ULE;
     case PT:
     case PF:
         break;
@@ -58,17 +74,25 @@ Relations::Type Relations::negated(Type type) {
 Relations Relations::conflicting(Relations::Type type) {
     switch (type) {
     case EQ:
-        return Relations().ne().lt().gt();
+        return Relations().ne().slt().ult().sgt().ugt();
     case NE:
         return Relations().eq();
-    case LT:
-        return Relations().eq().gt().ge();
-    case GT:
-        return Relations().eq().lt().le();
-    case LE:
-        return Relations().gt();
-    case GE:
-        return Relations().lt();
+    case SLT:
+        return Relations().eq().sgt().sge();
+    case ULT:
+        return Relations().eq().ugt().uge();
+    case SGT:
+        return Relations().eq().slt().sle();
+    case UGT:
+        return Relations().eq().ult().ule();
+    case SLE:
+        return Relations().sgt();
+    case ULE:
+        return Relations().ugt();
+    case SGE:
+        return Relations().slt();
+    case UGE:
+        return Relations().ult();
     case PT:
     case PF:
         return Relations();
@@ -78,7 +102,7 @@ Relations Relations::conflicting(Relations::Type type) {
 }
 
 Relations::Type Relations::get() const {
-    for (Type rel : {EQ, LT, GT, NE, LE, GE, PT, PF}) {
+    for (Type rel : {EQ, SLT, ULT, SGT, UGT, NE, SLE, ULE, SGE, UGE, PT, PF}) {
         if (has(rel))
             return rel;
     }
@@ -88,16 +112,20 @@ Relations::Type Relations::get() const {
 
 Relations &Relations::addImplied() {
     if (has(EQ))
-        le().ge();
-    if (has(LT))
-        le().ne();
-    if (has(GT))
-        ge().ne();
+        sle().ule().sge().uge();
+    if (has(SLT))
+        sle().ne();
+    if (has(ULT))
+        ule().ne();
+    if (has(SGT))
+        sge().ne();
+    if (has(UGT))
+        uge().ne();
     return *this;
 }
 
 Relations &Relations::invert() {
-    std::bitset<8> newBits;
+    std::bitset<Relations::total> newBits;
     for (Type rel : Relations::all) {
         if (has(rel)) {
             newBits.set(inverted(rel));
@@ -110,7 +138,10 @@ Relations &Relations::invert() {
 
 Relations Relations::getAugmented(Relations rels) {
     Relations augmented = rels;
-    for (Relations::Type type : {Relations::LT, Relations::GT}) {
+    for (Relations::Type type : Relations::all) {
+        if (!strict.has(type))
+            continue;
+
         if (augmented.has(type)) {
             augmented.set(Relations::getNonStrict(type));
         } else if (augmented.has(Relations::getNonStrict(type))) {
@@ -119,6 +150,19 @@ Relations Relations::getAugmented(Relations rels) {
         }
     }
     return augmented;
+}
+
+bool Relations::isSigned(Type type) {
+    switch (type) {
+    case SLT:
+    case SLE:
+        return true;
+    case ULT:
+    case ULE:
+        return false;
+    default:
+        assert(0 && "unreachable");
+    }
 }
 
 Relations compose(const Relations &lt, const Relations &rt) {
@@ -145,12 +189,18 @@ Relations compose(const Relations &lt, const Relations &rt) {
 
 bool Relations::transitiveOver(Type fst, Type snd) {
     switch (fst) {
-    case LE:
-    case LT:
-        return snd == LE || snd == LT;
-    case GE:
-    case GT:
-        return snd == GE || snd == GT;
+    case SLE:
+    case SLT:
+        return snd == SLE || snd == SLT;
+    case ULE:
+    case ULT:
+        return snd == ULE || snd == ULT;
+    case SGE:
+    case SGT:
+        return snd == SGE || snd == SGT;
+    case UGE:
+    case UGT:
+        return snd == UGE || snd == UGT;
     case EQ:
     case NE:
     case PT:
@@ -161,20 +211,20 @@ bool Relations::transitiveOver(Type fst, Type snd) {
     abort();
 }
 
-bool Relations::isStrict(Type type) {
-    return type == Relations::LT || type == Relations::GT;
-}
+bool Relations::isStrict(Type type) { return strict.has(type); }
 
-bool Relations::isNonStrict(Type type) {
-    return type == Relations::LE || type == Relations::GE;
-}
+bool Relations::isNonStrict(Type type) { return nonStrict.has(type); }
 
 Relations::Type Relations::getStrict(Type type) {
     switch (type) {
-    case Relations::LE:
-        return Relations::LT;
-    case Relations::GE:
-        return Relations::GT;
+    case Relations::SLE:
+        return Relations::SLT;
+    case Relations::ULE:
+        return Relations::ULT;
+    case Relations::SGE:
+        return Relations::SGT;
+    case Relations::UGE:
+        return Relations::UGT;
     default:
         assert(0 && "no strict variant");
         abort();
@@ -183,10 +233,14 @@ Relations::Type Relations::getStrict(Type type) {
 
 Relations::Type Relations::getNonStrict(Type type) {
     switch (type) {
-    case Relations::LT:
-        return Relations::LE;
-    case Relations::GT:
-        return Relations::GE;
+    case Relations::SLT:
+        return Relations::SLE;
+    case Relations::ULT:
+        return Relations::ULE;
+    case Relations::SGT:
+        return Relations::SGE;
+    case Relations::UGT:
+        return Relations::UGE;
     default:
         assert(0 && "no nonstrict variant");
         abort();
@@ -202,17 +256,29 @@ std::ostream &operator<<(std::ostream &out, Relations::Type r) {
     case Relations::NE:
         out << "NE";
         break;
-    case Relations::LE:
-        out << "LE";
+    case Relations::SLE:
+        out << "SLE";
         break;
-    case Relations::LT:
-        out << "LT";
+    case Relations::SLT:
+        out << "SLT";
         break;
-    case Relations::GE:
-        out << "GE";
+    case Relations::ULE:
+        out << "ULE";
         break;
-    case Relations::GT:
-        out << "GT";
+    case Relations::ULT:
+        out << "ULT";
+        break;
+    case Relations::SGE:
+        out << "SGE";
+        break;
+    case Relations::SGT:
+        out << "SGT";
+        break;
+    case Relations::UGE:
+        out << "UGE";
+        break;
+    case Relations::UGT:
+        out << "UGT";
         break;
     case Relations::PT:
         out << "PT";

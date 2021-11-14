@@ -226,7 +226,7 @@ void RelationsAnalyzer::solvesDiffOne(ValueRelations &graph, V param,
                                       : graph.getDirectlyGreater(param);
 
     for (V val : sample) {
-        assert(graph.are(val, getLesser ? Relations::LT : Relations::GT,
+        assert(graph.are(val, getLesser ? Relations::SLT : Relations::SGT,
                          param));
     }
 
@@ -482,17 +482,21 @@ RelationsAnalyzer::ICMPToRel(const llvm::ICmpInst *icmp, bool assumption) {
     case llvm::ICmpInst::Predicate::ICMP_NE:
         return Relation::NE;
     case llvm::ICmpInst::Predicate::ICMP_ULE:
+        return Relation::ULE;
     case llvm::ICmpInst::Predicate::ICMP_SLE:
-        return Relation::LE;
+        return Relation::SLE;
     case llvm::ICmpInst::Predicate::ICMP_ULT:
+        return Relation::ULT;
     case llvm::ICmpInst::Predicate::ICMP_SLT:
-        return Relation::LT;
+        return Relation::SLT;
     case llvm::ICmpInst::Predicate::ICMP_UGE:
+        return Relation::UGE;
     case llvm::ICmpInst::Predicate::ICMP_SGE:
-        return Relation::GE;
+        return Relation::SGE;
     case llvm::ICmpInst::Predicate::ICMP_UGT:
+        return Relation::UGT;
     case llvm::ICmpInst::Predicate::ICMP_SGT:
-        return Relation::GT;
+        return Relation::SGT;
     default:
 #ifndef NDEBUG
         llvm::errs() << "Unhandled predicate in" << *icmp << "\n";
@@ -689,12 +693,19 @@ void RelationsAnalyzer::relateToFirstLoad(
 void RelationsAnalyzer::relateBounds(
         const std::vector<const ValueRelations *> &changeRelations, V from,
         ValueRelations &newGraph, Handle placeholder) {
-    auto lowerBound = getBoundOnPointedToValue(
+    auto signedLowerBound =
+            getBoundOnPointedToValue(changeRelations, from, Relation::SGE);
+    auto unsignedLowerBound = getBoundOnPointedToValue(
             changeRelations, from,
-            Relation::GE); // TODO collect upper bound too
+            Relation::UGE); // TODO collect upper bound too
 
-    if (lowerBound.first)
-        newGraph.set(placeholder, lowerBound.second.get(), lowerBound.first);
+    if (signedLowerBound.first)
+        newGraph.set(placeholder, signedLowerBound.second.get(),
+                     signedLowerBound.first);
+
+    if (unsignedLowerBound.first)
+        newGraph.set(placeholder, unsignedLowerBound.second.get(),
+                     unsignedLowerBound.first);
 }
 
 void RelationsAnalyzer::relateValues(

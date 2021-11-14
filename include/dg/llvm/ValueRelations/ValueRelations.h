@@ -296,11 +296,11 @@ struct ValueRelations {
     }
     template <typename X, typename Y>
     void setLesser(const X &lt, const Y &rt) {
-        set(lt, Relations::LT, rt);
+        set(lt, Relations::SLT, rt);
     }
     template <typename X, typename Y>
     void setLesserEqual(const X &lt, const Y &rt) {
-        set(lt, Relations::LE, rt);
+        set(lt, Relations::SLE, rt);
     }
     template <typename X, typename Y>
     void setLoad(const X &from, const Y &to) {
@@ -337,11 +337,11 @@ struct ValueRelations {
     }
     template <typename X, typename Y>
     bool isLesser(const X &lt, const Y &rt) const {
-        return are(lt, Relations::LT, rt);
+        return are(lt, Relations::SLT, rt);
     }
     template <typename X, typename Y>
     bool isLesserEqual(const X &lt, const Y &rt) const {
-        return are(lt, Relations::LE, rt);
+        return are(lt, Relations::SLE, rt);
     }
     template <typename X, typename Y>
     bool isLoad(const X &from, const Y &to) const {
@@ -429,16 +429,16 @@ struct ValueRelations {
 
     template <typename X>
     std::pair<C, Relations> getBound(const X &val, Relations::Type rel) const {
-        assert(rel == Relations::LE || rel == Relations::GE);
+        assert(nonStrict.has(rel));
         return getBound(val, Relations().set(rel));
     }
     template <typename X>
     std::pair<C, Relations> getLowerBound(const X &val) const {
-        return getBound(val, Relations().ge());
+        return getBound(val, Relations().sge());
     }
     template <typename X>
     std::pair<C, Relations> getUpperBound(const X &val) const {
-        return getBound(val, Relations().le());
+        return getBound(val, Relations().sle());
     }
 
     C getLesserEqualBound(V val) const;
