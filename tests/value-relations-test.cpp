@@ -243,7 +243,7 @@ TEST_CASE("edge iterator") {
         DYNAMIC_SECTION("setting " << relOne << " " << relTwo) {
             reportSet(graph, one, relOne, two);
             reportSet(graph, two, relTwo, three);
-            Relations between = graph.getRelated(one, allRelations)[three];
+            RelationsMap between = graph.getRelated(one, allRelations);
 
             if (ptpf(relTwo, relOne)) // equals one and three
                 checkEdges(graph, 1);
@@ -251,7 +251,8 @@ TEST_CASE("edge iterator") {
                       forbids(relOne, Relations::EQ)) ||
                      (ptpf(relOne, relThree) &&
                       forbids(relTwo, Relations::EQ)) ||
-                     between.conflictsWith(Relations::inverted(relThree)))
+                     between[three].conflictsWith(
+                             Relations::inverted(relThree)))
                 checkEdges(graph, 2);
             else {
                 DYNAMIC_SECTION("and " << relThree) {
@@ -262,7 +263,7 @@ TEST_CASE("edge iterator") {
                         checkEdges(graph, 0);
                     else if (ptpf(relThree, relTwo) || ptpf(relOne, relThree))
                         checkEdges(graph, 1);
-                    else if (between.has(Relations::inverted(relThree)))
+                    else if (between[three].has(Relations::inverted(relThree)))
                         checkEdges(graph, 2);
                     else
                         checkEdges(graph, 3);
