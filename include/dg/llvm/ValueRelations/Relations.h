@@ -37,6 +37,8 @@ struct Relations {
         return *this;
     }
 
+    Type get() const;
+
     Relations &eq() { return set(EQ); }
     Relations &ne() { return set(NE); }
     Relations &le() { return set(LE); }

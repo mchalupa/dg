@@ -4,11 +4,11 @@ namespace dg {
 namespace vr {
 
 // *************************** iterators ****************************** //
-bool VR::are(Handle lt, Relations::Type rel, Handle rt) const {
+bool VR::_are(Handle lt, Relations::Type rel, Handle rt) const {
     return graph.areRelated(lt, rel, rt);
 }
 
-bool VR::are(Handle lt, Relations::Type rel, V rt) const {
+bool VR::_are(Handle lt, Relations::Type rel, V rt) const {
     HandlePtr mRt = maybeGet(rt);
 
     if (mRt)
@@ -17,7 +17,7 @@ bool VR::are(Handle lt, Relations::Type rel, V rt) const {
     return are(lt, rel, llvm::dyn_cast<BareC>(rt));
 }
 
-bool VR::are(Handle lt, Relations::Type rel, C cRt) const {
+bool VR::_are(Handle lt, Relations::Type rel, C cRt) const {
     // right cannot be expressed as a constant
     if (!cRt)
         return false;
@@ -41,15 +41,15 @@ bool VR::are(Handle lt, Relations::Type rel, C cRt) const {
     return compare(boundLt, rel, cRt);
 }
 
-bool VR::are(V lt, Relations::Type rel, Handle rt) const {
+bool VR::_are(V lt, Relations::Type rel, Handle rt) const {
     return are(rt, Relations::inverted(rel), lt);
 }
 
-bool VR::are(C lt, Relations::Type rel, Handle rt) const {
+bool VR::_are(C lt, Relations::Type rel, Handle rt) const {
     return are(rt, Relations::inverted(rel), lt);
 }
 
-bool VR::are(V lt, Relations::Type rel, V rt) const {
+bool VR::_are(V lt, Relations::Type rel, V rt) const {
     if (HandlePtr mLt = maybeGet(lt))
         return are(*mLt, rel, rt);
 
@@ -222,7 +222,7 @@ VR::HandlePtr VR::getHandleByPtr(Handle h) const {
     return &h.getRelated(Relations::PT);
 }
 
-std::vector<VR::V> VR::getValsByPtr(V from) const {
+const std::vector<VR::V> VR::getValsByPtr(V from) const {
     HandlePtr mH = maybeGet(from);
     if (!mH)
         return {};
@@ -324,7 +324,7 @@ VR::Handle VR::getAndMerge(const VR &other, Handle otherH) {
     return thisH;
 }
 
-void VR::merge(const VR &other, Relations relations) {
+bool VR::merge(const VR &other, Relations relations) {
     for (const auto &edge : other.graph) {
         if (!relations.has(edge.rel()))
             continue;
@@ -335,6 +335,7 @@ void VR::merge(const VR &other, Relations relations) {
         bool ch = graph.addRelation(thisFromH, edge.rel(), thisToH);
         updateChanged(ch);
     }
+    return true;
 }
 
 VR::Handle VR::add(V val, Handle h, std::set<V> &vals) {
@@ -382,5 +383,11 @@ void VR::areMerged(Handle to, Handle from) {
         add(val, to, toVals);
 }
 
+#ifndef NDEBUG
+std::ostream &operator<<(std::ostream &out, const VR &vr) {
+    out << vr.graph;
+    return out;
+}
+#endif
 } // namespace vr
 } // namespace dg
