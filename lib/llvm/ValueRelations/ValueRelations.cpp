@@ -215,10 +215,8 @@ VectorSet<ValueRelations::V> ValueRelations::getValsByPtr(V from) const {
     return getEqual(*toH);
 }
 
-ValueRelations::Handle ValueRelations::getHandle(V val) const {
-    HandlePtr mH = maybeGet(val);
-    assert(mH);
-    return *mH;
+ValueRelations::HandlePtr ValueRelations::getHandle(V val) const {
+    return maybeGet(val);
 }
 
 // ************************** placeholder ***************************** //
