@@ -989,6 +989,13 @@ void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
                 for (V to : prev.getEqual(it->to()))
                     graph.set(from, Relations::PT, to);
             }
+            if (const auto *store = llvm::dyn_cast<llvm::StoreInst>(inst)) {
+                if (prev.are(it->to(), Relations::EQ,
+                             store->getValueOperand())) {
+                    for (V to : prev.getEqual(it->to()))
+                        graph.set(from, Relations::PT, to);
+                }
+            }
         }
 
         if (prev.getEqual(it->from()).empty() &&
