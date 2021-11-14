@@ -8,7 +8,8 @@ template <typename T>
 class UniquePtrVector {
     using Container = std::vector<std::unique_ptr<T>>;
     using size_type = typename Container::size_type;
-    using value_type = T *;
+    using value_type = T;
+    using reference = value_type &;
 
     Container _v;
 
@@ -18,17 +19,17 @@ class UniquePtrVector {
 
         using ContainerIterator = typename Container::const_iterator;
 
-        using value_type = T *;
-        using reference = value_type; //&;
-        using pointer = const std::unique_ptr<T> *;
+        using value_type = T;
+        using reference = value_type &;
+        using pointer = value_type *;
         using difference_type = typename ContainerIterator::difference_type;
         using iterator_category = std::forward_iterator_tag;
 
         iterator() = default;
         iterator(ContainerIterator i) : it(i) {}
 
-        reference operator*() const { return it->get(); }
-        pointer operator->() const { return &(*it); }
+        reference operator*() const { return **it; }
+        pointer operator->() const { return &operator*(); }
 
         friend bool operator==(const iterator &lt, const iterator &rt) {
             return lt.it == rt.it;
@@ -53,11 +54,11 @@ class UniquePtrVector {
         ContainerIterator it;
     };
 
-    value_type at(size_type pos) const { return _v.at(pos).get(); }
-    value_type operator[](size_type pos) const { return _v[pos].get(); }
+    reference at(size_type pos) const { return *_v.at(pos); }
+    reference operator[](size_type pos) const { return *_v[pos]; }
 
-    value_type front() const { return _v.front().get(); }
-    value_type back() const { return _v.back().get(); }
+    reference front() const { return *_v.front(); }
+    reference back() const { return *_v.back(); }
 
     bool empty() const { return _v.empty(); }
     size_type size() const { return _v.size(); }
@@ -83,15 +84,15 @@ class UniquePtrVector {
         return iterator(_v.erase(b.it, e.it));
     }
 
-    void pop_back() { _v.pop_back(); }
-
     void swap(UniquePtrVector &other) {
         using std::swap;
-
         swap(_v, other._v);
     }
 
-    friend void swap(UniquePtrVector &lt, UniquePtrVector &rt) { lt.swap(rt); }
+    friend void
+    swap(UniquePtrVector &lt, UniquePtrVector &rt) {
+        lt.swap(rt);
+    }
 };
 
 } // namespace vr
