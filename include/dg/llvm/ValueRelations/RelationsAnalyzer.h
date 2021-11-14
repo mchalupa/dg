@@ -23,6 +23,7 @@ namespace vr {
 
 class RelationsAnalyzer {
     using Handle = ValueRelations::Handle;
+    using HandlePtr = ValueRelations::HandlePtr;
     using HandleRef = ValueRelations::BRef;
     using Relation = Relations::Type;
     using V = ValueRelations::V;
@@ -154,6 +155,17 @@ class RelationsAnalyzer {
             : module(m), codeGraph(g), structure(sa) {}
 
     unsigned analyze(unsigned maxPass);
+
+    static std::vector<V> getFroms(const ValueRelations &rels, V val);
+    static HandlePtr getHandleFromFroms(const ValueRelations &rels,
+                                        const std::vector<V> &froms);
+    static HandlePtr getHandleFromFroms(const ValueRelations &toRels,
+                                        const ValueRelations &fromRels, V val);
+
+    static HandlePtr getCorrespondingByContent(const ValueRelations &toRels,
+                                               const ValueRelations &fromRels,
+                                               Handle h);
+    static const llvm::AllocaInst *getOrigin(const ValueRelations &rels, V val);
 };
 
 } // namespace vr
