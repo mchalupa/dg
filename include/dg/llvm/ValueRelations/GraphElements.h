@@ -263,12 +263,15 @@ class VRCodeGraph {
         VRFunctionIterator() = default;
         VRFunctionIterator(const llvm::Function *f, VRLocation *start, bool e)
                 : function(f), categorizedEdges(e) {
-            queue.emplace(start);
+            queue.emplace(start, nullptr);
             visited.emplace(start);
         }
 
         VRLocation &operator*() const { return *operator->(); }
-        VRLocation *operator->() const { return queue.front(); }
+        VRLocation *operator->() const { return queue.front().first; }
+
+        // returns the edge on which to reach the current location
+        VREdge *getEdge() const { return queue.front().second; }
 
         friend bool operator==(const VRFunctionIterator &lt,
                                const VRFunctionIterator &rt) {
@@ -281,7 +284,7 @@ class VRCodeGraph {
         }
 
         VRFunctionIterator &operator++() {
-            VRLocation *current = queue.front();
+            VRLocation *current = queue.front().first;
             queue.pop();
 
             for (VREdge *edge : current->getSuccessors()) {
@@ -314,7 +317,7 @@ class VRCodeGraph {
                 }
 
                 // otherwise set the target to be explored
-                queue.emplace(edge->target);
+                queue.emplace(edge->target, edge);
                 visited.emplace(edge->target);
             }
 
@@ -329,7 +332,7 @@ class VRCodeGraph {
 
       private:
         const llvm::Function *function;
-        std::queue<VRLocation *> queue;
+        std::queue<std::pair<VRLocation *, VREdge *>> queue;
         std::set<VRLocation *> visited;
 
         bool categorizedEdges;
@@ -339,7 +342,17 @@ class VRCodeGraph {
     VRFunctionIterator begin(const llvm::Function *f) const {
         return VRFunctionIterator(f, &getEntryLocation(f), categorizedEdges);
     }
+
     VRFunctionIterator end(const llvm::Function * /*f*/) const {
+        return VRFunctionIterator();
+    }
+
+    VRFunctionIterator begin(const llvm::Function *f, VRLocation &start) const {
+        return VRFunctionIterator(f, &start, categorizedEdges);
+    }
+
+    VRFunctionIterator end(const llvm::Function * /*f*/,
+                           VRLocation & /*start*/) const {
         return VRFunctionIterator();
     }
 
