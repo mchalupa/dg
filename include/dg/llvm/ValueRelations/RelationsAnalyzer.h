@@ -23,7 +23,8 @@ namespace dg {
 namespace vr {
 
 class RelationsAnalyzer {
-    using Handle = VR::Handle;
+    using Handle = ValueRelations::Handle;
+    using Relation = Relations::Type;
 
     const std::set<std::string> safeFunctions = {"__VERIFIER_nondet_int",
                                                  "__VERIFIER_nondet_char"};

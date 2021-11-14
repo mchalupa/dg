@@ -1,4 +1,4 @@
-#include "dg/llvm/ValueRelations/VR.h"
+#include "dg/llvm/ValueRelations/ValueRelations.h"
 #ifndef NDEBUG
 #include <iostream>
 #endif
@@ -6,11 +6,11 @@ namespace dg {
 namespace vr {
 
 // *************************** iterators ****************************** //
-bool VR::_are(Handle lt, Relations::Type rel, Handle rt) const {
+bool ValueRelations::_are(Handle lt, Relations::Type rel, Handle rt) const {
     return graph.areRelated(lt, rel, rt);
 }
 
-bool VR::_are(Handle lt, Relations::Type rel, V rt) const {
+bool ValueRelations::_are(Handle lt, Relations::Type rel, V rt) const {
     HandlePtr mRt = maybeGet(rt);
 
     if (mRt)
@@ -19,7 +19,7 @@ bool VR::_are(Handle lt, Relations::Type rel, V rt) const {
     return are(lt, rel, llvm::dyn_cast<BareC>(rt));
 }
 
-bool VR::_are(Handle lt, Relations::Type rel, C cRt) const {
+bool ValueRelations::_are(Handle lt, Relations::Type rel, C cRt) const {
     // right cannot be expressed as a constant
     if (!cRt)
         return false;
@@ -43,15 +43,15 @@ bool VR::_are(Handle lt, Relations::Type rel, C cRt) const {
     return compare(boundLt, rel, cRt);
 }
 
-bool VR::_are(V lt, Relations::Type rel, Handle rt) const {
+bool ValueRelations::_are(V lt, Relations::Type rel, Handle rt) const {
     return are(rt, Relations::inverted(rel), lt);
 }
 
-bool VR::_are(C lt, Relations::Type rel, Handle rt) const {
+bool ValueRelations::_are(C lt, Relations::Type rel, Handle rt) const {
     return are(rt, Relations::inverted(rel), lt);
 }
 
-bool VR::_are(V lt, Relations::Type rel, V rt) const {
+bool ValueRelations::_are(V lt, Relations::Type rel, V rt) const {
     if (HandlePtr mLt = maybeGet(lt))
         return are(*mLt, rel, rt);
 
@@ -65,72 +65,79 @@ bool VR::_are(V lt, Relations::Type rel, V rt) const {
 }
 
 // *************************** iterators ****************************** //
-VR::rel_iterator VR::begin_related(V val, const Relations &rels,
-                                   bool invert) const {
+ValueRelations::rel_iterator
+ValueRelations::begin_related(V val, const Relations &rels, bool invert) const {
     assert(valToBucket.find(val) != valToBucket.end());
     Handle h = valToBucket.find(val)->second;
     return rel_iterator(*this, h, rels, invert);
 }
 
-VR::rel_iterator VR::end_related(V /*val*/) const {
+ValueRelations::rel_iterator ValueRelations::end_related(V /*val*/) const {
     return rel_iterator(*this);
 }
 
-VR::RelGraph::iterator VR::begin_related(Handle h,
-                                         const Relations &rels) const {
+ValueRelations::RelGraph::iterator
+ValueRelations::begin_related(Handle h, const Relations &rels) const {
     return graph.begin_related(h, rels);
 }
 
-VR::RelGraph::iterator VR::end_related(Handle h) const {
+ValueRelations::RelGraph::iterator ValueRelations::end_related(Handle h) const {
     return graph.end_related(h);
 }
 
-VR::rel_iterator VR::begin_all(V val) const {
+ValueRelations::rel_iterator ValueRelations::begin_all(V val) const {
     return begin_related(val, Relations().eq().lt().le().gt().ge(), true);
 }
 
-VR::rel_iterator VR::end_all(V val) const { return end_related(val); }
+ValueRelations::rel_iterator ValueRelations::end_all(V val) const {
+    return end_related(val);
+}
 
-VR::rel_iterator VR::begin_lesserEqual(V val) const {
+ValueRelations::rel_iterator ValueRelations::begin_lesserEqual(V val) const {
     return begin_related(val, Relations().eq().gt().ge(), true);
 }
 
-VR::rel_iterator VR::end_lesserEqual(V val) const { return end_related(val); }
+ValueRelations::rel_iterator ValueRelations::end_lesserEqual(V val) const {
+    return end_related(val);
+}
 
-VR::plain_iterator VR::begin() const {
+ValueRelations::plain_iterator ValueRelations::begin() const {
     return plain_iterator(bucketToVals.begin(), bucketToVals.end());
 }
 
-VR::plain_iterator VR::end() const {
+ValueRelations::plain_iterator ValueRelations::end() const {
     return plain_iterator(bucketToVals.end());
 }
 
-VR::RelGraph::iterator VR::begin_buckets(const Relations &rels) const {
+ValueRelations::RelGraph::iterator
+ValueRelations::begin_buckets(const Relations &rels) const {
     return graph.begin(rels);
 }
 
-VR::RelGraph::iterator VR::end_buckets() const { return graph.end(); }
+ValueRelations::RelGraph::iterator ValueRelations::end_buckets() const {
+    return graph.end();
+}
 
 // ****************************** get ********************************* //
-VR::HandlePtr VR::maybeGet(V val) const {
+ValueRelations::HandlePtr ValueRelations::maybeGet(V val) const {
     auto found = valToBucket.find(val);
     return (found == valToBucket.end() ? nullptr : &found->second.get());
 }
 
-std::pair<VR::BRef, bool> VR::get(V val) {
+std::pair<ValueRelations::BRef, bool> ValueRelations::get(V val) {
     if (HandlePtr mh = maybeGet(val))
         return {*mh, false};
     Handle newH = graph.getNewBucket();
     return add(val, newH);
 }
 
-VR::V VR::getAny(Handle h) const {
+ValueRelations::V ValueRelations::getAny(Handle h) const {
     auto found = bucketToVals.find(h);
     assert(found != bucketToVals.end() && !found->second.empty());
     return *found->second.begin();
 }
 
-VR::C VR::getAnyConst(Handle h) const {
+ValueRelations::C ValueRelations::getAnyConst(Handle h) const {
     for (V val : bucketToVals.find(h)->second) {
         if (C c = llvm::dyn_cast<BareC>(val))
             return c;
@@ -138,52 +145,54 @@ VR::C VR::getAnyConst(Handle h) const {
     return nullptr;
 }
 
-std::vector<VR::V> VR::getEqual(Handle h) const {
+std::vector<ValueRelations::V> ValueRelations::getEqual(Handle h) const {
     std::set<V> resultSet = bucketToVals.find(h)->second;
     return {resultSet.begin(), resultSet.end()};
 }
 
-std::vector<VR::V> VR::getEqual(V val) const {
+std::vector<ValueRelations::V> ValueRelations::getEqual(V val) const {
     HandlePtr mH = maybeGet(val);
     if (!mH)
         return {val};
     return getEqual(*mH);
 }
 
-std::vector<VR::V> VR::getAllRelated(V val) const {
-    std::vector<VR::V> result;
+std::vector<ValueRelations::V> ValueRelations::getAllRelated(V val) const {
+    std::vector<ValueRelations::V> result;
     std::transform(begin_related(val), end_related(val),
                    std::back_inserter(result),
                    [](const auto &pair) { return pair.first; });
     return result;
 }
 
-std::vector<VR::V> VR::getAllValues() const {
-    return std::vector<VR::V>(begin(), end());
+std::vector<ValueRelations::V> ValueRelations::getAllValues() const {
+    return std::vector<ValueRelations::V>(begin(), end());
 }
 
-std::vector<VR::V> VR::getDirectlyRelated(V val, const Relations &rels) const {
+std::vector<ValueRelations::V>
+ValueRelations::getDirectlyRelated(V val, const Relations &rels) const {
     HandlePtr mH = maybeGet(val);
     if (!mH)
         return {};
     RelationsMap related = graph.getRelated(*mH, rels, true);
 
-    std::vector<VR::V> result;
+    std::vector<ValueRelations::V> result;
     std::transform(
             related.begin(), related.end(), std::back_inserter(result),
             [this](const auto &pair) { return this->getAny(pair.first); });
     return result;
 }
 
-std::vector<VR::V> VR::getDirectlyLesser(V val) const {
+std::vector<ValueRelations::V> ValueRelations::getDirectlyLesser(V val) const {
     return getDirectlyRelated(val, Relations().gt());
 }
 
-std::vector<VR::V> VR::getDirectlyGreater(V val) const {
+std::vector<ValueRelations::V> ValueRelations::getDirectlyGreater(V val) const {
     return getDirectlyRelated(val, Relations().lt());
 }
 
-std::pair<VR::C, Relations> VR::getBound(Handle h, Relations rels) const {
+std::pair<ValueRelations::C, Relations>
+ValueRelations::getBound(Handle h, Relations rels) const {
     RelationsMap related = graph.getRelated(h, rels);
 
     C resultC = nullptr;
@@ -199,7 +208,8 @@ std::pair<VR::C, Relations> VR::getBound(Handle h, Relations rels) const {
     return {resultC, resultR};
 }
 
-std::pair<VR::C, Relations> VR::getBound(V val, Relations rel) const {
+std::pair<ValueRelations::C, Relations>
+ValueRelations::getBound(V val, Relations rel) const {
     HandlePtr mH = maybeGet(val);
     if (!mH)
         return {llvm::dyn_cast<BareC>(val), Relations().eq()};
@@ -207,25 +217,32 @@ std::pair<VR::C, Relations> VR::getBound(V val, Relations rel) const {
     return getBound(*mH, rel);
 }
 
-std::pair<VR::C, Relations> VR::getLowerBound(V val) const {
+std::pair<ValueRelations::C, Relations>
+ValueRelations::getLowerBound(V val) const {
     return getBound(val, Relations().ge());
 }
 
-std::pair<VR::C, Relations> VR::getUpperBound(V val) const {
+std::pair<ValueRelations::C, Relations>
+ValueRelations::getUpperBound(V val) const {
     return getBound(val, Relations().le());
 }
 
-VR::C VR::getLesserEqualBound(V val) const { return getLowerBound(val).first; }
+ValueRelations::C ValueRelations::getLesserEqualBound(V val) const {
+    return getLowerBound(val).first;
+}
 
-VR::C VR::getGreaterEqualBound(V val) const { return getUpperBound(val).first; }
+ValueRelations::C ValueRelations::getGreaterEqualBound(V val) const {
+    return getUpperBound(val).first;
+}
 
-VR::HandlePtr VR::getHandleByPtr(Handle h) const {
+ValueRelations::HandlePtr ValueRelations::getHandleByPtr(Handle h) const {
     if (!h.hasRelation(Relations::PT))
         return nullptr;
     return &h.getRelated(Relations::PT);
 }
 
-const std::vector<VR::V> VR::getValsByPtr(V from) const {
+const std::vector<ValueRelations::V>
+ValueRelations::getValsByPtr(V from) const {
     HandlePtr mH = maybeGet(from);
     if (!mH)
         return {};
@@ -235,8 +252,9 @@ const std::vector<VR::V> VR::getValsByPtr(V from) const {
     return getEqual(*toH);
 }
 
-std::set<std::pair<std::vector<VR::V>, std::vector<VR::V>>>
-VR::getAllLoads() const {
+std::set<std::pair<std::vector<ValueRelations::V>,
+                   std::vector<ValueRelations::V>>>
+ValueRelations::getAllLoads() const {
     std::set<std::pair<std::vector<V>, std::vector<V>>> result;
     for (auto it = begin_buckets(Relations().pt()); it != end_buckets(); ++it) {
         std::set<V> fromValsSet = bucketToVals.find(it->from())->second;
@@ -251,7 +269,7 @@ VR::getAllLoads() const {
 }
 
 // ************************** placeholder ***************************** //
-void VR::erasePlaceholderBucket(Handle h) {
+void ValueRelations::erasePlaceholderBucket(Handle h) {
     auto found = bucketToVals.find(h);
     assert(found != bucketToVals.end());
     for (V val : found->second) {
@@ -264,7 +282,7 @@ void VR::erasePlaceholderBucket(Handle h) {
 }
 
 // ***************************** other ******************************** //
-bool VR::compare(C lt, Relations::Type rel, C rt) {
+bool ValueRelations::compare(C lt, Relations::Type rel, C rt) {
     switch (rel) {
     case Relations::EQ:
         return lt->getSExtValue() == rt->getSExtValue();
@@ -285,7 +303,7 @@ bool VR::compare(C lt, Relations::Type rel, C rt) {
     abort();
 }
 
-bool VR::compare(C lt, Relations rels, C rt) {
+bool ValueRelations::compare(C lt, Relations rels, C rt) {
     for (Relations::Type rel : Relations::all) {
         if (rels.has(rel) && compare(lt, rel, rt))
             return true;
@@ -293,12 +311,13 @@ bool VR::compare(C lt, Relations rels, C rt) {
     return false;
 }
 
-bool VR::holdsAnyRelations() const {
+bool ValueRelations::holdsAnyRelations() const {
     return !valToBucket.empty() && !graph.empty();
 }
 
-VR::Handle VR::getCorresponding(const VR &other, Handle otherH,
-                                const std::vector<V> &otherEqual) {
+ValueRelations::Handle
+ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
+                                 const std::vector<V> &otherEqual) {
     if (otherEqual.empty()) { // other is a placeholder bucket, therefore it is
                               // pointed to from other bucket
         assert(otherH.hasRelation(Relations::PF));
@@ -326,11 +345,13 @@ VR::Handle VR::getCorresponding(const VR &other, Handle otherH,
     return mH ? *mH : add(otherEqual[0], graph.getNewBucket()).first.get();
 }
 
-VR::Handle VR::getCorresponding(const VR &other, Handle otherH) {
+ValueRelations::Handle
+ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH) {
     return getCorresponding(other, otherH, other.getEqual(otherH));
 }
 
-VR::Handle VR::getAndMerge(const VR &other, Handle otherH) {
+ValueRelations::Handle ValueRelations::getAndMerge(const ValueRelations &other,
+                                                   Handle otherH) {
     const std::vector<V> &otherEqual = other.getEqual(otherH);
     Handle thisH = getCorresponding(other, otherH, otherEqual);
 
@@ -340,7 +361,7 @@ VR::Handle VR::getAndMerge(const VR &other, Handle otherH) {
     return thisH;
 }
 
-bool VR::merge(const VR &other, Relations relations) {
+bool ValueRelations::merge(const ValueRelations &other, Relations relations) {
     bool noConflict = true;
     for (const auto &edge : other.graph) {
         if (!relations.has(edge.rel()) ||
@@ -359,7 +380,7 @@ bool VR::merge(const VR &other, Relations relations) {
     return noConflict;
 }
 
-void VR::add(V val, Handle h, std::set<V> &vals) {
+void ValueRelations::add(V val, Handle h, std::set<V> &vals) {
     ValToBucket::iterator it = valToBucket.lower_bound(val);
     // val already bound to a handle
     if (it != valToBucket.end() && !(valToBucket.key_comp()(val, it->first))) {
@@ -381,7 +402,7 @@ void VR::add(V val, Handle h, std::set<V> &vals) {
     updateChanged(true);
 }
 
-std::pair<VR::BRef, bool> VR::add(V val, Handle h) {
+std::pair<ValueRelations::BRef, bool> ValueRelations::add(V val, Handle h) {
     add(val, h, bucketToVals[h]);
 
     C c = llvm::dyn_cast<BareC>(val);
@@ -411,7 +432,7 @@ std::pair<VR::BRef, bool> VR::add(V val, Handle h) {
     return {h, false};
 }
 
-void VR::areMerged(Handle to, Handle from) {
+void ValueRelations::areMerged(Handle to, Handle from) {
     std::set<V> &toVals = bucketToVals.find(to)->second;
     assert(bucketToVals.find(from) != bucketToVals.end());
     const std::set<V> fromVals = bucketToVals.find(from)->second;
@@ -437,22 +458,23 @@ std::string strip(std::string str, size_t skipSpaces) {
 }
 
 #ifndef NDEBUG
-void dump(std::ostream &out, VR::Handle h, const VR::BucketToVals &map) {
+void dump(std::ostream &out, ValueRelations::Handle h,
+          const ValueRelations::BucketToVals &map) {
     auto found = map.find(h);
     assert(found != map.end());
-    const std::set<VR::V> &vals = found->second;
+    const std::set<ValueRelations::V> &vals = found->second;
 
     out << "{{ ";
     if (vals.empty())
         out << "placeholder ";
     else
-        for (VR::V val : vals)
+        for (ValueRelations::V val : vals)
             out << (val == *vals.begin() ? "" : " | ")
                 << strip(debug::getValName(val), 4);
     out << " }}";
 }
 
-std::ostream &operator<<(std::ostream &out, const VR &vr) {
+std::ostream &operator<<(std::ostream &out, const ValueRelations &vr) {
     for (const auto &edge : vr.graph) {
         if (edge.rel() == Relations::EQ) {
             if (!edge.to().hasAnyRelation()) {
