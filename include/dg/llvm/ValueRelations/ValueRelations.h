@@ -48,6 +48,7 @@ struct ValueRelations {
     HandlePtr maybeGet(V val) const;
 
     static std::pair<BRef, bool> get(Handle h) { return {h, false}; }
+    std::pair<BRef, bool> get(size_t id);
     std::pair<BRef, bool> get(V val);
 
     V getAny(Handle h) const;
@@ -86,20 +87,13 @@ struct ValueRelations {
     Relations _between(V lt, Handle rt) const;
     Relations _between(C lt, Handle rt) const;
     Relations _between(V lt, V rt) const;
-
-    // ************************** general has ***************************** //
     template <typename X>
-    bool has(const X &val, Relations::Type rel) const {
-        HandlePtr mVal = maybeGet(val);
-        return mVal && mVal->hasRelation(rel);
+    Relations _between(size_t lt, const X &rt) const {
+        HandlePtr mH = getBorderH(lt);
+        return mH ? _between(*mH, rt) : Relations();
     }
-    template <typename X>
-    bool has(const X &val, Relations rels) const {
-        HandlePtr mVal = maybeGet(val);
-        return mVal && ((rels.has(Relations::EQ) &&
-                         bucketToVals.find(*mVal)->second.size() > 1) ||
-                        mVal->hasAnyRelation(rels.set(Relations::EQ, false)));
-    }
+    Relations _between(Handle lt, size_t rt) const;
+    Relations _between(V lt, size_t rt) const;
 
     // *************************** iterators ***************************** //
     class RelatedValueIterator {
@@ -365,6 +359,18 @@ struct ValueRelations {
     }
 
     // ****************************** has ********************************* //
+    template <typename X>
+    bool has(const X &val, Relations::Type rel) const {
+        HandlePtr mVal = maybeGet(val);
+        return mVal && mVal->hasRelation(rel);
+    }
+    template <typename X>
+    bool has(const X &val, Relations rels) const {
+        HandlePtr mVal = maybeGet(val);
+        return mVal && ((rels.has(Relations::EQ) &&
+                         bucketToVals.find(*mVal)->second.size() > 1) ||
+                        mVal->hasAnyRelation(rels.set(Relations::EQ, false)));
+    }
     template <typename X>
     bool hasLoad(const X &from) const {
         return has(from, Relations::PT);
