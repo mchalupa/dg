@@ -195,7 +195,8 @@ void RelationsAnalyzer::solveByOperands(ValueRelations &graph,
     for (auto same : structure.getInstructionSetFor(operation->getOpcode())) {
         auto sameOperation = llvm::dyn_cast<const llvm::BinaryOperator>(same);
 
-        if (operandsEqual(graph, operation, sameOperation, sameOrder))
+        if (operation != sameOperation &&
+            operandsEqual(graph, operation, sameOperation, sameOrder))
             graph.setEqual(operation, sameOperation);
     }
 }
@@ -711,7 +712,6 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
     for (auto it = predGraph.begin_buckets(Relations().pt());
          it != predGraph.end_buckets(); ++it) {
         for (V from : predGraph.getEqual(it->from())) {
-            Handle placeholder = newGraph.newPlaceholderBucket(from);
 
             std::vector<const ValueRelations *> changeLocations;
             V firstLoad;
@@ -720,6 +720,8 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
 
             if (changeLocations.empty())
                 continue;
+
+            Handle placeholder = newGraph.newPlaceholderBucket(from);
 
             if (loc.isJustLoopJoin())
                 relateToFirstLoad(changeLocations, from, newGraph, placeholder,
