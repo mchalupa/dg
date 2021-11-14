@@ -186,18 +186,19 @@ class Bucket {
 
             // plan return to next successor of "from" bucket
             ++current.bucketIt;
-            if (!current.nextViableEdge(allowedEdges))
-                return *this;
             stack.emplace(current);
 
-            if (visited.get().find(to) != visited.get().end())
-                return *this;
-            visited.get().emplace(to);
+            // plan visit to first successor of "to" bucket if unexplored so far
+            if (visited.get().find(to) == visited.get().end()) {
+                visited.get().emplace(to);
 
-            // plan visit to first successor of "to" bucket
-            RelationEdge next(to);
-            if (next.nextViableEdge(allowedEdges))
-                stack.emplace(next);
+                stack.emplace(to);
+            }
+
+            // pop invalid edges
+            while (!stack.empty() && !stack.top().nextViableEdge(allowedEdges))
+                stack.pop();
+
             return *this;
         }
 
