@@ -147,6 +147,16 @@ std::ostream &operator<<(std::ostream &out, Relations::Type r) {
     }
     return out;
 }
+
+std::ostream &operator<<(std::ostream &out, const Relations &rels) {
+    out << "[ ";
+    for (Relations::Type type : Relations::all) {
+        if (rels.has(type))
+            out << type << " ";
+    }
+    out << "]";
+    return out;
+}
 #endif
 
 using RelationsMap = RelationsGraph::RelationsMap;
@@ -178,15 +188,42 @@ Relations getAugmented(const Relations &relations) {
     return augmented;
 }
 
-RelationsMap filterResult(const Relations &relations,
-                          const RelationsMap &result) {
-    RelationsMap filtered;
-    std::copy_if(result.begin(), result.end(),
-                 std::inserter(filtered, filtered.begin()),
-                 [&relations](const auto &pair) {
-                     return relations.anyCommon(pair.second);
-                 });
-    return filtered;
+RelationsMap &filterResult(const Relations &relations, RelationsMap &result) {
+    for (auto it = result.begin(); it != result.end();) {
+        if (!it->second.anyCommon(relations))
+            it = result.erase(it);
+        else
+            ++it;
+    }
+    return result;
+}
+
+bool processEdge(Bucket::RelationEdge &edge, Relations::Type strictRel,
+                 Relations &updated, bool toFirstStrict,
+                 const std::set<Bucket::RelationEdge> &firstStrictEdges) {
+    if (!Relations::transitiveOver(strictRel, edge.rel())) // edge not relevant
+        return true;
+    if (!toFirstStrict) { // finding all strictly related
+        updated.set(strictRel);
+        return false;
+    }
+    // else unsetting all that are not really first strict
+
+    bool targetOfFSE = updated.has(strictRel); // FSE = first strict edge
+
+    if (!targetOfFSE) {
+        updated.set(getNonStrict(strictRel), false);
+        return false;
+    }
+
+    // else possible false strict
+    bool thisIsFSE = firstStrictEdges.find(edge) != firstStrictEdges.end();
+
+    if (thisIsFSE) { // strict relation set by false first strict
+        updated.set(strictRel, false);
+        updated.set(getNonStrict(strictRel), false);
+    }
+    return true; // skip because search will happen from target sooner or later
 }
 
 RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
@@ -195,25 +232,32 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
     RelationsMap result;
     result[start].set(Relations::EQ);
 
-    Bucket::BucketSet nestedVisited;
+    std::set<Bucket::RelationEdge> firstStrictEdges;
     for (auto it = graph.begin_related(start, relations);
-         it != graph.end_related(start); ++it) {
+         it != graph.end_related(start);
+         /*incremented in body ++it*/) {
         result[it->to()].set(it->rel());
 
-        if (!strict(it->rel()))
-            continue;
+        if (strict(it->rel())) {
+            firstStrictEdges.emplace(*it);
+            it.skipSuccessors();
+        } else
+            ++it;
+    }
 
-        result[it->to()].set(getNonStrict(it->rel()), false);
+    Bucket::BucketSet nestedVisited;
+    for (Bucket::RelationEdge edge : firstStrictEdges) {
+        Bucket &nestedStart = edge.to();
+        Relations::Type strictRel = edge.rel();
 
-        for (auto nestedIt =
-                     it->to().begin(nestedVisited, relations, true, true);
-             nestedIt != it->to().end(nestedVisited); ++nestedIt) {
-            if (!Relations::transitiveOver(it->rel(), nestedIt->rel()))
-                continue;
-            if (toFirstStrict)
-                result[nestedIt->to()].set(it->rel(), false);
-            else
-                result[nestedIt->to()].set(it->rel());
+        bool shouldSkip = false;
+        for (auto it = nestedStart.begin(nestedVisited, relations, true, true);
+             it != nestedStart.end(nestedVisited);
+             shouldSkip ? it.skipSuccessors() : ++it) {
+            shouldSkip = processEdge(*it, strictRel, result[it->to()],
+                                     toFirstStrict, firstStrictEdges);
+            if (shouldSkip)
+                nestedVisited.erase(it->to());
         }
     }
     return result;
@@ -231,8 +275,7 @@ RelationsMap RelationsGraph::getRelated(Bucket &start,
         pair.second.addImplied();
     }
 
-    return relations != augmented ? filterResult(relations, result)
-                                  : std::move(result);
+    return filterResult(relations, result);
 }
 
 Relations fromMaybeBetween(const RelationsGraph &graph, Bucket &lt, Bucket &rt,
