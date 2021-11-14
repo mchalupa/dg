@@ -534,6 +534,54 @@ bool RelationsAnalyzer::processICMP(const ValueRelations &oldGraph,
     return true;
 }
 
+std::pair<const llvm::LoadInst *, const llvm::Value *>
+getParams(const ValueRelations &graph, const llvm::ICmpInst *icmp) {
+    const llvm::Value *op1 = icmp->getOperand(0);
+    const llvm::Value *op2 = icmp->getOperand(1);
+    if (const auto *load = graph.getInstance<llvm::LoadInst>(op1))
+        return {load, op2};
+    if (const auto *load = graph.getInstance<llvm::LoadInst>(op2))
+        return {load, op1};
+    return {nullptr, nullptr};
+}
+
+void RelationsAnalyzer::inferFromNEPointers(ValueRelations &newGraph,
+                                            VRAssumeBool *assume) const {
+    const llvm::ICmpInst *icmp =
+            llvm::dyn_cast<llvm::ICmpInst>(assume->getValue());
+    if (!icmp)
+        return;
+    bool assumption = assume->getAssumption();
+    Relation rel = ICMPToRel(icmp, assumption);
+
+    const llvm::LoadInst *load;
+    const llvm::Value *compared;
+    std::tie(load, compared) = getParams(newGraph, icmp);
+    if (!load || (rel != Relations::EQ && rel != Relations::NE))
+        return;
+
+    for (auto related : newGraph.getRelated(load->getPointerOperand(),
+                                            Relations().sle().sge())) {
+        if (related.second.has(Relations::EQ))
+            continue;
+
+        if (newGraph.are(related.first, Relations::PT, compared)) {
+            size_t id = newGraph.getBorderId(related.first);
+            if (id == std::string::npos)
+                continue;
+            auto arg = structure.getBorderArgumentFor(load->getFunction(), id);
+            if (newGraph.are(arg, related.second.get(),
+                             load->getPointerOperand())) {
+                Relations::Type toSet =
+                        rel == Relations::EQ
+                                ? Relations::EQ
+                                : Relations::getStrict(related.second.get());
+                newGraph.set(load->getPointerOperand(), toSet, related.first);
+            }
+        }
+    }
+}
+
 bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
                                    VRAssumeBool *assume) const {
     const llvm::PHINode *phi = llvm::cast<llvm::PHINode>(assume->getValue());
@@ -1060,6 +1108,9 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
             bool result = newGraph.merge(source->relations);
             assert(result);
         }
+
+        if (op->isAssumeBool())
+            inferFromNEPointers(newGraph, static_cast<VRAssumeBool *>(op));
     } else { // else op is noop
         newGraph.merge(source->relations, allRelations);
     }

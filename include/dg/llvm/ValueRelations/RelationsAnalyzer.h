@@ -67,6 +67,8 @@ class RelationsAnalyzer {
                    V from) const;
     bool canShift(const ValueRelations &graph, V param, Relations::Type shift);
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
+    void inferFromNEPointers(ValueRelations &newGraph,
+                             VRAssumeBool *assume) const;
 
     // ******************** gen from instruction ************************** //
     static void storeGen(ValueRelations &graph, const llvm::StoreInst *store);
@@ -105,7 +107,9 @@ class RelationsAnalyzer {
             const std::vector<const VRLocation *> &changeLocations, V from,
             Relation rel);
     static const llvm::ICmpInst *getEQICmp(const VRLocation &join);
-    void inferFromNonEquality(VRLocation& join, V from, const VectorSet<V>& initial, Shift s, Handle placeholder);
+    void inferFromNonEquality(VRLocation &join, V from,
+                              const VectorSet<V> &initial, Shift s,
+                              Handle placeholder);
     void
     inferShiftInLoop(const std::vector<const VRLocation *> &changeLocations,
                      V from, ValueRelations &newGraph, Handle placeholder);
