@@ -52,36 +52,40 @@ class AllocatedArea {
         return size / byteWidth;
     }
 
-    AllocatedArea(const llvm::AllocaInst* alloca): ptr(alloca) {
-        const llvm::Type* allocatedType = alloca->getAllocatedType();
-        
+    AllocatedArea(const llvm::AllocaInst *alloca) : ptr(alloca) {
+        const llvm::Type *allocatedType = alloca->getAllocatedType();
+
         if (allocatedType->isArrayTy()) {
-            const llvm::Type* elemType = allocatedType->getArrayElementType();
+            const llvm::Type *elemType = allocatedType->getArrayElementType();
             // DANGER just an arbitrary type
-            llvm::Type* i32 = llvm::Type::getInt32Ty(elemType->getContext());
+            llvm::Type *i32 = llvm::Type::getInt32Ty(elemType->getContext());
             uint64_t intCount = allocatedType->getArrayNumElements();
 
-            originalSizeView = AllocatedSizeView(llvm::ConstantInt::get(i32, intCount), getBytes(elemType));
+            originalSizeView = AllocatedSizeView(
+                    llvm::ConstantInt::get(i32, intCount), getBytes(elemType));
         } else {
-            originalSizeView = AllocatedSizeView(alloca->getOperand(0), getBytes(allocatedType));
+            originalSizeView = AllocatedSizeView(alloca->getOperand(0),
+                                                 getBytes(allocatedType));
         }
     }
 
-    AllocatedArea(const llvm::CallInst* call): ptr(call) {
-        const std::string& name = call->getCalledFunction()->getName().str();
+    AllocatedArea(const llvm::CallInst *call) : ptr(call) {
+        const std::string &name = call->getCalledFunction()->getName().str();
         AnalysisOptions options;
 
-        if (options.getAllocationFunction(name) == AllocationFunction::ALLOCA
-            || options.getAllocationFunction(name) == AllocationFunction::MALLOC) {
+        if (options.getAllocationFunction(name) == AllocationFunction::ALLOCA ||
+            options.getAllocationFunction(name) == AllocationFunction::MALLOC) {
             originalSizeView = AllocatedSizeView(call->getOperand(0), 1);
         }
 
         if (options.getAllocationFunction(name) == AllocationFunction::CALLOC) {
             auto size = llvm::cast<llvm::ConstantInt>(call->getOperand(1));
-            originalSizeView = AllocatedSizeView(call->getOperand(0), size->getZExtValue());
+            originalSizeView = AllocatedSizeView(call->getOperand(0),
+                                                 size->getZExtValue());
         }
 
-        if (options.getAllocationFunction(name) == AllocationFunction::REALLOC) {
+        if (options.getAllocationFunction(name) ==
+            AllocationFunction::REALLOC) {
             originalSizeView = AllocatedSizeView(call->getOperand(0), 1);
             reallocatedPtr = call->getOperand(0);
         }
@@ -97,7 +101,7 @@ class AllocatedArea {
         AllocatedSizeView currentView = originalSizeView;
 
         while (auto op = llvm::dyn_cast<llvm::BinaryOperator>(
-                    stripCasts(currentView.elementCount))) {
+                       stripCasts(currentView.elementCount))) {
             uint64_t size = currentView.elementSize;
 
             if (op->getOpcode() != llvm::Instruction::Add &&
@@ -115,9 +119,10 @@ class AllocatedArea {
                 case llvm::Instruction::Add:
                     // XXX can these overflow?
                     newCount = c1->getValue().getZExtValue() +
-                            c2->getValue().getZExtValue();
+                               c2->getValue().getZExtValue();
                     result.emplace_back(
-                            llvm::ConstantInt::get(c1->getType(), newCount), size);
+                            llvm::ConstantInt::get(c1->getType(), newCount),
+                            size);
                     break;
 
                 case llvm::Instruction::Mul:
@@ -128,9 +133,10 @@ class AllocatedArea {
                     result.emplace_back(c1, newSize);
 
                     newCount = c1->getValue().getZExtValue() *
-                            c2->getValue().getZExtValue();
+                               c2->getValue().getZExtValue();
                     result.emplace_back(
-                            llvm::ConstantInt::get(c1->getType(), newCount), size);
+                            llvm::ConstantInt::get(c1->getType(), newCount),
+                            size);
                     break;
 
                 default:
@@ -179,7 +185,8 @@ class AllocatedArea {
         std::cerr << "Allocated area:" << std::endl;
         std::cerr << "    ptr " << debug::getValName(ptr) << std::endl;
         std::cerr << "    count "
-                << debug::getValName(originalSizeView.elementCount) << std::endl;
+                  << debug::getValName(originalSizeView.elementCount)
+                  << std::endl;
         std::cerr << "    size " << originalSizeView.elementSize << std::endl;
         std::cerr << std::endl;
     }
@@ -298,6 +305,14 @@ class StructureAnalyzer {
                         }
                     }
                 }
+                assert(location.getSuccessors().size() == 1);
+                if (!forwardReach.empty() &&
+                    forwardReach[0]->op->isInstruction())
+                    inloopValues.at(&location).emplace(
+                            inloopValues.at(&location).begin(),
+                            static_cast<VRInstruction *>(
+                                    forwardReach[0]->op.get())
+                                    ->getInstruction());
             }
         }
     }

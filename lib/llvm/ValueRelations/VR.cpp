@@ -1,5 +1,7 @@
 #include "dg/llvm/ValueRelations/VR.h"
-
+#ifndef NDEBUG
+#include <iostream>
+#endif
 namespace dg {
 namespace vr {
 
@@ -63,10 +65,11 @@ bool VR::_are(V lt, Relations::Type rel, V rt) const {
 }
 
 // *************************** iterators ****************************** //
-VR::rel_iterator VR::begin_related(V val, const Relations &rels) const {
+VR::rel_iterator VR::begin_related(V val, const Relations &rels,
+                                   bool invert) const {
     assert(valToBucket.find(val) != valToBucket.end());
     Handle h = valToBucket.find(val)->second;
-    return rel_iterator(*this, h, rels);
+    return rel_iterator(*this, h, rels, invert);
 }
 
 VR::rel_iterator VR::end_related(V /*val*/) const {
@@ -83,13 +86,13 @@ VR::RelGraph::iterator VR::end_related(Handle h) const {
 }
 
 VR::rel_iterator VR::begin_all(V val) const {
-    return begin_related(val, Relations().eq().lt().le().gt().ge());
+    return begin_related(val, Relations().eq().lt().le().gt().ge(), true);
 }
 
 VR::rel_iterator VR::end_all(V val) const { return end_related(val); }
 
 VR::rel_iterator VR::begin_lesserEqual(V val) const {
-    return begin_related(val, Relations().eq().lt().le());
+    return begin_related(val, Relations().eq().gt().ge(), true);
 }
 
 VR::rel_iterator VR::end_lesserEqual(V val) const { return end_related(val); }
@@ -114,9 +117,9 @@ VR::HandlePtr VR::maybeGet(V val) const {
     return (found == valToBucket.end() ? nullptr : &found->second.get());
 }
 
-VR::Handle VR::get(V val) {
+std::pair<VR::BRef, bool> VR::get(V val) {
     if (HandlePtr mh = maybeGet(val))
-        return *mh;
+        return {*mh, false};
     Handle newH = graph.getNewBucket();
     return add(val, newH);
 }
@@ -173,11 +176,11 @@ std::vector<VR::V> VR::getDirectlyRelated(V val, const Relations &rels) const {
 }
 
 std::vector<VR::V> VR::getDirectlyLesser(V val) const {
-    return getDirectlyRelated(val, Relations().lt());
+    return getDirectlyRelated(val, Relations().gt());
 }
 
 std::vector<VR::V> VR::getDirectlyGreater(V val) const {
-    return getDirectlyRelated(val, Relations().gt());
+    return getDirectlyRelated(val, Relations().lt());
 }
 
 std::pair<VR::C, Relations> VR::getBound(Handle h, Relations rels) const {
@@ -205,11 +208,11 @@ std::pair<VR::C, Relations> VR::getBound(V val, Relations rel) const {
 }
 
 std::pair<VR::C, Relations> VR::getLowerBound(V val) const {
-    return getBound(val, Relations().le());
+    return getBound(val, Relations().ge());
 }
 
 std::pair<VR::C, Relations> VR::getUpperBound(V val) const {
-    return getBound(val, Relations().ge());
+    return getBound(val, Relations().le());
 }
 
 VR::C VR::getLesserEqualBound(V val) const { return getLowerBound(val).first; }
@@ -239,7 +242,7 @@ VR::getAllLoads() const {
         std::set<V> fromValsSet = bucketToVals.find(it->from())->second;
         std::vector<V> fromVals(fromValsSet.begin(), fromValsSet.end());
 
-        std::set<V> toValsSet = bucketToVals.find(it->from())->second;
+        std::set<V> toValsSet = bucketToVals.find(it->to())->second;
         std::vector<V> toVals(toValsSet.begin(), toValsSet.end());
 
         result.emplace(std::move(fromVals), std::move(toVals));
@@ -248,9 +251,17 @@ VR::getAllLoads() const {
 }
 
 // ************************** placeholder ***************************** //
-VR::Handle VR::newPlaceholderBucket() { return graph.getNewBucket(); }
-
-void VR::erasePlaceholderBucket(Handle h) { graph.erase(h); }
+void VR::erasePlaceholderBucket(Handle h) {
+    auto found = bucketToVals.find(h);
+    assert(found != bucketToVals.end());
+    for (V val : found->second) {
+        assert(valToBucket.find(val) != valToBucket.end() &&
+               valToBucket.at(val) == h);
+        valToBucket.erase(val);
+    }
+    bucketToVals.erase(h);
+    graph.erase(h);
+}
 
 // ***************************** other ******************************** //
 bool VR::compare(C lt, Relations::Type rel, C rt) {
@@ -288,26 +299,31 @@ bool VR::holdsAnyRelations() const {
 
 VR::Handle VR::getCorresponding(const VR &other, Handle otherH,
                                 const std::vector<V> &otherEqual) {
+    if (otherEqual.empty()) { // other is a placeholder bucket, therefore it is
+                              // pointed to from other bucket
+        assert(otherH.hasRelation(Relations::PF));
+        Handle otherFromH = otherH.getRelated(Relations::PF);
+        Handle thisFromH = getCorresponding(other, otherFromH);
+
+        Handle h = newPlaceholderBucket(thisFromH);
+        bool ch = graph.addRelation(thisFromH, Relations::PT, h);
+        updateChanged(ch);
+        return h;
+    }
+
+    // otherwise find unique handle for all equal elements from other
+    HandlePtr mH = nullptr;
     for (V val : otherEqual) {
-        if (HandlePtr mH = maybeGet(val))
-            return *mH;
+        HandlePtr oH = maybeGet(val);
+        if (!mH) // first handle found
+            mH = oH;
+        else if (oH && oH != mH) { // found non-equal handle in this
+            set(*oH, Relations::EQ, *mH);
+            mH = maybeGet(val); // update possibly invalidated handle
+            assert(mH);
+        }
     }
-
-    if (!otherEqual.empty()) {
-        Handle newH = graph.getNewBucket();
-        return add(otherEqual[0], newH);
-    }
-
-    // otherwise this is a placeholder bucket, therefore it is pointed from
-    // other bucket
-    assert(otherH.hasRelation(Relations::PF));
-    Handle otherFromH = otherH.getRelated(Relations::PF);
-    Handle thisFromH = getCorresponding(other, otherFromH);
-
-    if (thisFromH.hasRelation(Relations::PT))
-        return thisFromH.getRelated(Relations::PT);
-    updateChanged(true);
-    return graph.getNewBucket();
+    return mH ? *mH : add(otherEqual[0], graph.getNewBucket()).first.get();
 }
 
 VR::Handle VR::getCorresponding(const VR &other, Handle otherH) {
@@ -315,7 +331,7 @@ VR::Handle VR::getCorresponding(const VR &other, Handle otherH) {
 }
 
 VR::Handle VR::getAndMerge(const VR &other, Handle otherH) {
-    std::vector<V> otherEqual = other.getEqual(otherH);
+    const std::vector<V> &otherEqual = other.getEqual(otherH);
     Handle thisH = getCorresponding(other, otherH, otherEqual);
 
     for (V val : otherEqual)
@@ -325,43 +341,63 @@ VR::Handle VR::getAndMerge(const VR &other, Handle otherH) {
 }
 
 bool VR::merge(const VR &other, Relations relations) {
+    bool noConflict = true;
     for (const auto &edge : other.graph) {
-        if (!relations.has(edge.rel()))
+        if (!relations.has(edge.rel()) ||
+            (edge.rel() == Relations::EQ && !other.hasEqual(edge.to())))
             continue;
 
         Handle thisToH = getAndMerge(other, edge.to());
         Handle thisFromH = getCorresponding(other, edge.from());
 
-        bool ch = graph.addRelation(thisFromH, edge.rel(), thisToH);
-        updateChanged(ch);
+        if (!graph.haveConflictingRelation(thisFromH, edge.rel(), thisToH)) {
+            bool ch = graph.addRelation(thisFromH, edge.rel(), thisToH);
+            updateChanged(ch);
+        } else
+            noConflict = false;
     }
-    return true;
+    return noConflict;
 }
 
-VR::Handle VR::add(V val, Handle h, std::set<V> &vals) {
-    valToBucket.emplace(val, h);
+void VR::add(V val, Handle h, std::set<V> &vals) {
+    ValToBucket::iterator it = valToBucket.lower_bound(val);
+    // val already bound to a handle
+    if (it != valToBucket.end() && !(valToBucket.key_comp()(val, it->first))) {
+        // it is already bound to passed handle
+        if (it->second == h)
+            return;
+        V oldVal = it->first;
+        Handle oldH = it->second;
+        assert(bucketToVals.find(oldH) != bucketToVals.end());
+        assert(bucketToVals.at(oldH).find(oldVal) !=
+               bucketToVals.at(oldH).end());
+        bucketToVals.find(oldH)->second.erase(oldVal);
+        it->second = h;
+    } else
+        valToBucket.emplace_hint(it, val, h);
+
+    assert(valToBucket.find(val)->second == h);
     vals.emplace(val);
     updateChanged(true);
-    return h;
 }
 
-VR::Handle VR::add(V val, Handle h) {
+std::pair<VR::BRef, bool> VR::add(V val, Handle h) {
     add(val, h, bucketToVals[h]);
 
     C c = llvm::dyn_cast<BareC>(val);
     if (!c)
-        return h;
+        return {h, false};
 
     for (auto &pair : bucketToVals) {
         if (pair.second.empty())
             continue;
 
         Handle otherH = pair.first;
-        if (C otherC = llvm::dyn_cast<BareC>(getAny(otherH))) {
+        if (C otherC = getAnyConst(otherH)) {
             if (compare(c, Relations::EQ, otherC)) {
                 graph.addRelation(h, Relations::EQ, otherH);
                 assert(valToBucket.find(val) != valToBucket.end());
-                return valToBucket.find(val)->second;
+                return {valToBucket.find(val)->second, true};
             }
 
             if (compare(c, Relations::LT, otherC))
@@ -372,20 +408,66 @@ VR::Handle VR::add(V val, Handle h) {
         }
     }
 
-    return h;
+    return {h, false};
 }
 
 void VR::areMerged(Handle to, Handle from) {
-    std::set<V> toVals = bucketToVals.find(to)->second;
-    std::set<V> fromVals = bucketToVals.find(from)->second;
+    std::set<V> &toVals = bucketToVals.find(to)->second;
+    assert(bucketToVals.find(from) != bucketToVals.end());
+    const std::set<V> fromVals = bucketToVals.find(from)->second;
 
     for (V val : fromVals)
         add(val, to, toVals);
+
+    assert(bucketToVals.at(from).empty());
+    bucketToVals.erase(from);
+}
+
+std::string strip(std::string str, size_t skipSpaces) {
+    assert(!str.empty() && !std::isspace(str[0]));
+
+    size_t lastIndex = 0;
+    for (size_t i = 0; i < skipSpaces; ++i) {
+        size_t nextIndex = str.find(' ', lastIndex + 1);
+        if (nextIndex == std::string::npos)
+            return str;
+        lastIndex = nextIndex;
+    }
+    return str.substr(0, lastIndex);
 }
 
 #ifndef NDEBUG
+void dump(std::ostream &out, VR::Handle h, const VR::BucketToVals &map) {
+    auto found = map.find(h);
+    assert(found != map.end());
+    const std::set<VR::V> &vals = found->second;
+
+    out << "{{ ";
+    if (vals.empty())
+        out << "placeholder ";
+    else
+        for (VR::V val : vals)
+            out << (val == *vals.begin() ? "" : " | ")
+                << strip(debug::getValName(val), 4);
+    out << " }}";
+}
+
 std::ostream &operator<<(std::ostream &out, const VR &vr) {
-    out << vr.graph;
+    for (const auto &edge : vr.graph) {
+        if (edge.rel() == Relations::EQ) {
+            if (!edge.to().hasAnyRelation()) {
+                out << "              ";
+                dump(out, edge.to(), vr.bucketToVals);
+                out << "\n";
+            }
+            continue;
+        }
+        out << "    " << edge << "    ";
+        dump(out, edge.from(), vr.bucketToVals);
+        out << " " << edge.rel() << " ";
+        dump(out, edge.to(), vr.bucketToVals);
+        out << "\n";
+    }
     return out;
 }
 #endif

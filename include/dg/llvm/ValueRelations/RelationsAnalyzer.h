@@ -25,7 +25,8 @@ namespace vr {
 class RelationsAnalyzer {
     using Handle = VR::Handle;
 
-    const std::set<std::string> safeFunctions = { "__VERIFIER_nondet_int", "__VERIFIER_nondet_char" };
+    const std::set<std::string> safeFunctions = {"__VERIFIER_nondet_int",
+                                                 "__VERIFIER_nondet_char"};
 
     const llvm::Module &module;
     const VRCodeGraph &codeGraph;
@@ -35,33 +36,65 @@ class RelationsAnalyzer {
     // or possibly set of values defined at given location
     const StructureAnalyzer &structure;
 
-    bool processOperation(VRLocation *source, VRLocation *target, VROp *op) {
+    void processOperation(VRLocation *source, VRLocation *target, VROp *op) {
         if (!target)
-            return false;
+            return;
         assert(source && target && op);
 
-        ValueRelations &newGraph = source->relations.unsetChanged();
+        ValueRelations &newGraph = target->relations;
 
         if (op->isInstruction()) {
+            newGraph.merge(source->relations, comparative);
             const llvm::Instruction *inst =
                     static_cast<VRInstruction *>(op)->getInstruction();
-            forgetInvalidated(newGraph, inst);
+            rememberValidated(source->relations, newGraph, inst);
             processInstruction(newGraph, inst);
         } else if (op->isAssume()) {
+            newGraph.merge(source->relations, Relations().pt());
+            bool shouldMerge;
             if (op->isAssumeBool())
-                processAssumeBool(newGraph, static_cast<VRAssumeBool *>(op));
+                shouldMerge =
+                        processAssumeBool(source->relations, newGraph,
+                                          static_cast<VRAssumeBool *>(op));
             else // isAssumeEqual
-                processAssumeEqual(newGraph, static_cast<VRAssumeEqual *>(op));
-        } // else op is noop
-
-        return andSwapIfChanged(target->relations, newGraph);
+                shouldMerge =
+                        processAssumeEqual(source->relations, newGraph,
+                                           static_cast<VRAssumeEqual *>(op));
+            if (shouldMerge)
+                newGraph.merge(source->relations, comparative);
+        } else { // else op is noop
+            newGraph.merge(source->relations, comparative);
+            newGraph.merge(source->relations, Relations().pt());
+        }
     }
 
-    void forgetInvalidated(ValueRelations &graph,
+    void rememberValidated(const ValueRelations &prev, ValueRelations &graph,
                            const llvm::Instruction *inst) const {
-        for (const llvm::Value *invalid :
-             instructionInvalidatesFromGraph(graph, inst))
-            graph.unsetAllLoadsByPtr(invalid);
+        std::set<const llvm::Value *> invalidated =
+                instructionInvalidatesFromGraph(prev, inst);
+        for (auto &fromsValues : graph.getAllLoads()) {
+            for (const llvm::Value *from : fromsValues.first) {
+                assert(!fromsValues.second.empty() ||
+                       invalidated.find(from) == invalidated.end());
+            }
+        }
+
+        for (auto &fromsValues : prev.getAllLoads()) {
+            bool validPair = true;
+            for (const llvm::Value *from : fromsValues.first) {
+                if (invalidated.find(from) != invalidated.end()) {
+                    validPair = false;
+                    break;
+                }
+            }
+            if (!validPair)
+                continue;
+            for (const llvm::Value *from : fromsValues.first) {
+                for (const llvm::Value *to : fromsValues.second) {
+                    graph.setLoad(from, to);
+                }
+            }
+        }
     }
 
     void addAndUnwrapLoads(
@@ -186,12 +219,12 @@ class RelationsAnalyzer {
     bool mayHaveAlias(const ValueRelations &graph,
                       const llvm::Value *val) const {
         for (auto eqval : graph.getEqual(val))
-            if (mayHaveAlias(llvm::cast<llvm::User>(eqval)))
+            if (mayHaveAlias(eqval))
                 return true;
         return false;
     }
 
-    bool mayHaveAlias(const llvm::User *val) const {
+    bool mayHaveAlias(const llvm::Value *val) const {
         // if value is not pointer, we don't care whether there can be other
         // name for same value
         if (!val->getType()->isPointerTy())
@@ -500,6 +533,11 @@ class RelationsAnalyzer {
                 getLesser ? graph.getDirectlyLesser(param)
                           : graph.getDirectlyGreater(param);
 
+        for (const llvm::Value *val : sample) {
+            assert(graph.are(val, getLesser ? Relations::LT : Relations::GT,
+                             param));
+        }
+
         for (const llvm::Value *value : sample)
             if (getLesser)
                 graph.setLesserEqual(value, op);
@@ -592,15 +630,48 @@ class RelationsAnalyzer {
         }
     }
 
-    void processAssumeBool(ValueRelations &newGraph,
+    bool processAssumeBool(const ValueRelations &oldGraph,
+                           ValueRelations &newGraph,
                            VRAssumeBool *assume) const {
         if (llvm::isa<llvm::ICmpInst>(assume->getValue()))
-            processICMP(newGraph, assume);
+            return processICMP(oldGraph, newGraph, assume);
         if (llvm::isa<llvm::PHINode>(assume->getValue()))
-            processPhi(newGraph, assume);
+            return processPhi(newGraph, assume);
+        return false; // TODO; probably call
     }
 
-    void processICMP(ValueRelations &newGraph, VRAssumeBool *assume) const {
+    static Relation ICMPToRel(const llvm::ICmpInst *icmp, bool assumption) {
+        llvm::ICmpInst::Predicate pred = assumption
+                                                 ? icmp->getSignedPredicate()
+                                                 : icmp->getInversePredicate();
+
+        switch (pred) {
+        case llvm::ICmpInst::Predicate::ICMP_EQ:
+            return Relation::EQ;
+        case llvm::ICmpInst::Predicate::ICMP_NE:
+            return Relation::NE;
+        case llvm::ICmpInst::Predicate::ICMP_ULE:
+        case llvm::ICmpInst::Predicate::ICMP_SLE:
+            return Relation::LE;
+        case llvm::ICmpInst::Predicate::ICMP_ULT:
+        case llvm::ICmpInst::Predicate::ICMP_SLT:
+            return Relation::LT;
+        case llvm::ICmpInst::Predicate::ICMP_UGE:
+        case llvm::ICmpInst::Predicate::ICMP_SGE:
+            return Relation::GE;
+        case llvm::ICmpInst::Predicate::ICMP_UGT:
+        case llvm::ICmpInst::Predicate::ICMP_SGT:
+            return Relation::GT;
+        default:
+#ifndef NDEBUG
+            llvm::errs() << "Unhandled predicate in" << *icmp << "\n";
+#endif
+            abort();
+        }
+    }
+
+    bool processICMP(const ValueRelations &oldGraph, ValueRelations &newGraph,
+                     VRAssumeBool *assume) const {
         const llvm::ICmpInst *icmp =
                 llvm::cast<llvm::ICmpInst>(assume->getValue());
         bool assumption = assume->getAssumption();
@@ -608,70 +679,16 @@ class RelationsAnalyzer {
         const llvm::Value *op1 = icmp->getOperand(0);
         const llvm::Value *op2 = icmp->getOperand(1);
 
-        llvm::ICmpInst::Predicate pred = assumption
-                                                 ? icmp->getSignedPredicate()
-                                                 : icmp->getInversePredicate();
+        Relation rel = ICMPToRel(icmp, assumption);
 
-        switch (pred) {
-        case llvm::ICmpInst::Predicate::ICMP_EQ:
-            if (!newGraph.hasConflictingRelation(op1, op2, Relation::EQ)) {
-                newGraph.setEqual(op1, op2);
-                return;
-            }
-            break;
+        if (oldGraph.hasConflictingRelation(op1, op2, rel))
+            return false;
 
-        case llvm::ICmpInst::Predicate::ICMP_NE:
-            if (!newGraph.hasConflictingRelation(op1, op2, Relation::NE)) {
-                newGraph.setNonEqual(op1, op2);
-                return;
-            }
-            break;
-
-        case llvm::ICmpInst::Predicate::ICMP_ULE:
-        case llvm::ICmpInst::Predicate::ICMP_SLE:
-            if (!newGraph.hasConflictingRelation(op1, op2, Relation::LE)) {
-                newGraph.setLesserEqual(op1, op2);
-                return;
-            }
-            break;
-
-        case llvm::ICmpInst::Predicate::ICMP_ULT:
-        case llvm::ICmpInst::Predicate::ICMP_SLT:
-            if (!newGraph.hasConflictingRelation(op1, op2, Relation::LT)) {
-                newGraph.setLesser(op1, op2);
-                return;
-            }
-            break;
-
-        case llvm::ICmpInst::Predicate::ICMP_UGE:
-        case llvm::ICmpInst::Predicate::ICMP_SGE:
-            if (!newGraph.hasConflictingRelation(op1, op2, Relation::GE)) {
-                newGraph.setLesserEqual(op2, op1);
-                return;
-            }
-            break;
-
-        case llvm::ICmpInst::Predicate::ICMP_UGT:
-        case llvm::ICmpInst::Predicate::ICMP_SGT:
-            if (!newGraph.hasConflictingRelation(op1, op2, Relation::GT)) {
-                newGraph.setLesser(op2, op1);
-                return;
-            }
-            break;
-
-        default:
-#ifndef NDEBUG
-            llvm::errs() << "Unhandled predicate in" << *icmp << "\n";
-#endif
-            abort();
-        }
-
-        // reachable only if conflicting relation found
-        newGraph.unsetComparativeRelations(op1);
-        newGraph.unsetComparativeRelations(op2);
+        newGraph.set(op1, rel, op2);
+        return true;
     }
 
-    void processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const {
+    bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const {
         const llvm::PHINode *phi =
                 llvm::cast<llvm::PHINode>(assume->getValue());
         bool assumption = assume->getAssumption();
@@ -686,7 +703,7 @@ class RelationsAnalyzer {
                 if (!assumedPred)
                     assumedPred = phi->getIncomingBlock(i);
                 else
-                    return; // we found other viable incoming block
+                    return true; // we found other viable incoming block
             }
         }
         assert(assumedPred);
@@ -697,23 +714,23 @@ class RelationsAnalyzer {
         VRLocation &source = codeGraph.getVRLocation(&lastBeforeTerminator);
         bool result = newGraph.merge(source.relations);
         assert(result);
+        return true;
     }
 
-    void processAssumeEqual(ValueRelations &newGraph,
+    bool processAssumeEqual(const ValueRelations &oldGraph,
+                            ValueRelations &newGraph,
                             VRAssumeEqual *assume) const {
         const llvm::Value *val1 = assume->getValue();
         const llvm::Value *val2 = assume->getAssumption();
-        if (!newGraph.hasConflictingRelation(val1, val2, Relation::EQ))
-            newGraph.setEqual(val1, val2);
+        if (oldGraph.hasConflictingRelation(val1, val2, Relation::EQ))
+            return false;
+        newGraph.setEqual(val1, val2);
+        return true;
     }
 
     bool relatesInAll(const std::vector<VRLocation *> &locations,
                       const llvm::Value *fst, const llvm::Value *snd,
-                      // bool (ValueRelations::*relates)(const llvm::Value*,
-                      // const llvm::Value*) const) const {
                       Relation rel) const {
-        // which is function pointer to isEqual, isLesser, or isLesserEqual
-
         for (const VRLocation *vrloc : locations) {
             if (!vrloc->relations.are(fst, rel, snd))
                 return false;
@@ -723,33 +740,28 @@ class RelationsAnalyzer {
 
     bool relatesByLoadInAll(const std::vector<VRLocation *> &locations,
                             const llvm::Value *related, const llvm::Value *from,
-                            // bool (ValueRelations::*relates)(const
-                            // llvm::Value*, const llvm::Value*) const,
                             Relation rel, bool flip) const {
         for (const VRLocation *vrloc : locations) {
             const std::vector<const llvm::Value *> &loaded =
                     vrloc->relations.getValsByPtr(from);
-            if (loaded.empty()
-                //|| (!flip && !(vrloc->relations.*relates)(related, loaded[0]))
-                || (!flip && !vrloc->relations.are(related, rel, loaded[0]))
-                //|| ( flip && !(vrloc->relations.*relates)(loaded[0],
-                //related)))
-                || (flip && !vrloc->relations.are(loaded[0], rel, related)))
+            if (loaded.empty() ||
+                (!flip && !vrloc->relations.are(related, rel, loaded[0])) ||
+                (flip && !vrloc->relations.are(loaded[0], rel, related)))
                 return false;
         }
         return true;
     }
 
-    bool mergeRelations(VRLocation &location) {
-        return mergeRelations(location.getPredLocations(), location);
+    void mergeRelations(VRLocation &location) {
+        mergeRelations(location.getPredLocations(), location);
     }
 
-    bool mergeRelations(const std::vector<VRLocation *> &preds,
+    void mergeRelations(const std::vector<VRLocation *> &preds,
                         VRLocation &location) {
         if (preds.empty())
-            return false;
+            return;
 
-        ValueRelations &newGraph = location.relations.unsetChanged();
+        ValueRelations &newGraph = location.relations;
         ValueRelations &oldGraph = preds[0]->relations;
         std::vector<const llvm::Value *> values = oldGraph.getAllValues();
 
@@ -763,6 +775,7 @@ class RelationsAnalyzer {
                 const llvm::Value *related;
                 Relation relation;
                 std::tie(related, relation) = *it;
+                assert(oldGraph.are(related, relation, val));
 
                 if (related == val)
                     continue;
@@ -786,13 +799,15 @@ class RelationsAnalyzer {
                     break;
 
                 case Relation::LT:
-                    if (relatesInAll(preds, related, val, Relation::LT))
+                    if (relatesInAll(preds, related, val, Relation::LT)) {
                         newGraph.setLesser(related, val);
+                    }
                     break;
 
                 case Relation::LE:
-                    if (relatesInAll(preds, related, val, Relation::LE))
+                    if (relatesInAll(preds, related, val, Relation::LE)) {
                         newGraph.setLesserEqual(related, val);
+                    }
                     break;
 
                 default:
@@ -806,15 +821,13 @@ class RelationsAnalyzer {
         const ValueRelations &treePredGraph = treePred.relations;
 
         if (location.isJustLoopJoin()) {
-            bool result = newGraph.merge(treePredGraph);
+            bool result = newGraph.merge(treePredGraph, comparative);
             assert(result);
         }
-
-        return andSwapIfChanged(location.relations, newGraph);
     }
 
-        bool loadsInAll(const std::vector<VRLocation *> &locations,
-                        const llvm::Value *from, const llvm::Value *value) const {
+    bool loadsInAll(const std::vector<VRLocation *> &locations,
+                    const llvm::Value *from, const llvm::Value *value) const {
         for (const VRLocation *vrloc : locations) {
             if (!vrloc->relations.isLoad(from, value))
                 // DANGER does it suffice that from equals to value's ptr
@@ -825,7 +838,7 @@ class RelationsAnalyzer {
     }
 
     bool loadsSomethingInAll(const std::vector<VRLocation *> &locations,
-                            const llvm::Value *from) const {
+                             const llvm::Value *from) const {
         for (const VRLocation *vrloc : locations) {
             if (!vrloc->relations.hasLoad(from))
                 return false;
@@ -833,15 +846,16 @@ class RelationsAnalyzer {
         return true;
     }
 
-    bool mergeLoads(VRLocation &location) {
-        return mergeLoads(location.getPredLocations(), location);
+    void mergeLoads(VRLocation &location) {
+        mergeLoads(location.getPredLocations(), location);
     }
 
-    bool mergeLoads(const std::vector<VRLocation *> &preds, VRLocation &location) {
+    void mergeLoads(const std::vector<VRLocation *> &preds,
+                    VRLocation &location) {
         if (preds.empty())
-            return false;
+            return;
 
-        ValueRelations &newGraph = location.relations.unsetChanged();
+        ValueRelations &newGraph = location.relations;
         const auto &loadBucketPairs = preds[0]->relations.getAllLoads();
 
         // merge loads from all predecessors
@@ -876,8 +890,6 @@ class RelationsAnalyzer {
                 }
             }
         }
-
-        return andSwapIfChanged(location.relations, newGraph);
     }
 
     VRLocation &getTreePred(VRLocation &location) const {
@@ -891,13 +903,13 @@ class RelationsAnalyzer {
     }
 
     bool hasConflictLoad(const std::vector<VRLocation *> &preds,
-                        const llvm::Value *from, const llvm::Value *val) {
+                         const llvm::Value *from, const llvm::Value *val) {
         for (const VRLocation *pred : preds) {
             for (const auto &fromsValues : pred->relations.getAllLoads()) {
                 auto findFrom = std::find(fromsValues.first.begin(),
-                                        fromsValues.first.end(), from);
+                                          fromsValues.first.end(), from);
                 auto findVal = std::find(fromsValues.second.begin(),
-                                        fromsValues.second.end(), val);
+                                         fromsValues.second.end(), val);
 
                 if (findFrom != fromsValues.first.end() &&
                     findVal == fromsValues.second.end())
@@ -916,13 +928,13 @@ class RelationsAnalyzer {
         return false;
     }
 
-    bool mergeRelationsByLoads(VRLocation &location) {
-        return mergeRelationsByLoads(location.getPredLocations(), location);
+    void mergeRelationsByLoads(VRLocation &location) {
+        mergeRelationsByLoads(location.getPredLocations(), location);
     }
 
-    bool mergeRelationsByLoads(const std::vector<VRLocation *> &preds,
-                            VRLocation &location) {
-        ValueRelations &newGraph = location.relations.unsetChanged();
+    void mergeRelationsByLoads(const std::vector<VRLocation *> &preds,
+                               VRLocation &location) {
+        ValueRelations &newGraph = location.relations;
 
         std::vector<const llvm::Value *> froms;
         for (auto fromsValues : preds[0]->relations.getAllLoads()) {
@@ -939,22 +951,20 @@ class RelationsAnalyzer {
             inferChangeInLoop(newGraph, froms, location);
 
         inferFromChangeLocations(newGraph, location);
-
-        return andSwapIfChanged(location.relations, newGraph);
     }
 
     void inferChangeInLoop(ValueRelations &newGraph,
-                        const std::vector<const llvm::Value *> &froms,
-                        VRLocation &location) {
+                           const std::vector<const llvm::Value *> &froms,
+                           VRLocation &location) {
         for (const llvm::Value *from : froms) {
             const auto &predEdges = location.predecessors;
 
             VRLocation *outloopPred = predEdges[0]->type == EdgeType::BACK
-                                            ? predEdges[1]->source
-                                            : predEdges[0]->source;
+                                              ? predEdges[1]->source
+                                              : predEdges[0]->source;
             VRLocation *inloopPred = predEdges[0]->type == EdgeType::BACK
-                                            ? predEdges[0]->source
-                                            : predEdges[1]->source;
+                                             ? predEdges[0]->source
+                                             : predEdges[1]->source;
 
             std::vector<const llvm::Value *> valsInloop =
                     inloopPred->relations.getValsByPtr(from);
@@ -972,9 +982,17 @@ class RelationsAnalyzer {
             for (const auto *val : structure.getInloopValues(location)) {
                 const ValueRelations &relations =
                         codeGraph.getVRLocation(val).relations;
-                auto invalidated = instructionInvalidatesFromGraph(relations, val);
+                auto invalidated =
+                        instructionInvalidatesFromGraph(relations, val);
                 if (invalidated.find(from) != invalidated.end())
                     break;
+                if (auto call = llvm::dyn_cast<llvm::CallInst>(val)) {
+                    auto function = call->getCalledFunction();
+                    if (function &&
+                        safeFunctions.find(function->getName().str()) ==
+                                safeFunctions.end())
+                        break; // TODO DANGER do properly
+                }
 
                 if (std::find(allRelated.begin(), allRelated.end(), val) !=
                     allRelated.end()) {
@@ -995,7 +1013,7 @@ class RelationsAnalyzer {
                 if (valsOutloop.empty())
                     continue;
 
-                Handle placeholder = newGraph.newPlaceholderBucket();
+                Handle placeholder = newGraph.newPlaceholderBucket(from);
 
                 if (inloopPred->relations.isLesser(firstLoadInLoop, valInloop))
                     newGraph.setLesserEqual(valsOutloop[0], placeholder);
@@ -1016,7 +1034,8 @@ class RelationsAnalyzer {
         }
     }
 
-    void inferFromChangeLocations(ValueRelations &newGraph, VRLocation &location) {
+    void inferFromChangeLocations(ValueRelations &newGraph,
+                                  VRLocation &location) {
         if (location.isJustLoopJoin()) {
             VRLocation &treePred = getTreePred(location);
 
@@ -1027,7 +1046,7 @@ class RelationsAnalyzer {
 
                     // get all locations which influence value loaded from from
                     for (const llvm::Instruction *invalidating :
-                        structure.getInloopValues(location)) {
+                         structure.getInloopValues(location)) {
                         const ValueRelations &relations =
                                 codeGraph.getVRLocation(invalidating).relations;
                         auto invalidated = instructionInvalidatesFromGraph(
@@ -1040,8 +1059,8 @@ class RelationsAnalyzer {
                         }
                     }
 
-                    if (!isGoodFromForPlaceholder(locationsAfterInvalidating, from,
-                                                fromsValues.second))
+                    if (!isGoodFromForPlaceholder(locationsAfterInvalidating,
+                                                  from, fromsValues.second))
                         continue;
 
                     intersectByLoad(locationsAfterInvalidating, from, newGraph);
@@ -1050,9 +1069,10 @@ class RelationsAnalyzer {
         }
     }
 
-    bool isGoodFromForPlaceholder(const std::vector<VRLocation *> &preds,
-                                const llvm::Value *from,
-                                const std::vector<const llvm::Value *> values) {
+    bool
+    isGoodFromForPlaceholder(const std::vector<VRLocation *> &preds,
+                             const llvm::Value *from,
+                             const std::vector<const llvm::Value *> values) {
         if (!loadsSomethingInAll(preds, from))
             return false;
 
@@ -1064,7 +1084,7 @@ class RelationsAnalyzer {
     }
 
     void intersectByLoad(const std::vector<VRLocation *> &preds,
-                        const llvm::Value *from, ValueRelations &newGraph) {
+                         const llvm::Value *from, ValueRelations &newGraph) {
         auto &loads = preds[0]->relations.getValsByPtr(from);
         if (loads.empty())
             return;
@@ -1088,7 +1108,7 @@ class RelationsAnalyzer {
                 bound = value;
         }
 
-        Handle placeholder = newGraph.newPlaceholderBucket();
+        Handle placeholder = newGraph.newPlaceholderBucket(from);
 
         if (bound)
             newGraph.setLesserEqual(bound, placeholder);
@@ -1096,16 +1116,18 @@ class RelationsAnalyzer {
         const llvm::Value *loaded = preds[0]->relations.getValsByPtr(from)[0];
 
         for (auto it = preds[0]->relations.begin_all(loaded);
-            it != preds[0]->relations.end_all(loaded); ++it) {
+             it != preds[0]->relations.end_all(loaded); ++it) {
             const llvm::Value *related = it->first;
             Relation relation = it->second;
+            assert(preds[0]->relations.are(related, relation, loaded));
 
             if (related == loaded)
                 continue;
 
             switch (relation) {
             case Relation::EQ:
-                if (relatesByLoadInAll(preds, related, from, Relation::EQ, false))
+                if (relatesByLoadInAll(preds, related, from, Relation::EQ,
+                                       false))
                     newGraph.setEqual(related, placeholder);
 
                 else if (relatesByLoadInAll(preds, related, from, Relation::LE,
@@ -1118,7 +1140,8 @@ class RelationsAnalyzer {
                 break;
 
             case Relation::LT:
-                if (relatesByLoadInAll(preds, related, from, Relation::LT, false))
+                if (relatesByLoadInAll(preds, related, from, Relation::LT,
+                                       false))
                     newGraph.setLesser(related, placeholder);
 
                 else if (relatesByLoadInAll(preds, related, from, Relation::LE,
@@ -1128,13 +1151,15 @@ class RelationsAnalyzer {
                 break;
 
             case Relation::LE:
-                if (relatesByLoadInAll(preds, related, from, Relation::LE, false))
+                if (relatesByLoadInAll(preds, related, from, Relation::LE,
+                                       false))
                     newGraph.setLesserEqual(related, placeholder);
 
                 break;
 
             case Relation::GT:
-                if (relatesByLoadInAll(preds, related, from, Relation::LT, true))
+                if (relatesByLoadInAll(preds, related, from, Relation::LT,
+                                       true))
                     newGraph.setLesser(placeholder, related);
 
                 else if (relatesByLoadInAll(preds, related, from, Relation::LE,
@@ -1144,7 +1169,8 @@ class RelationsAnalyzer {
                 break;
 
             case Relation::GE:
-                if (relatesByLoadInAll(preds, related, from, Relation::LE, true))
+                if (relatesByLoadInAll(preds, related, from, Relation::LE,
+                                       true))
                     newGraph.setLesserEqual(placeholder, related);
 
                 break;
@@ -1154,42 +1180,50 @@ class RelationsAnalyzer {
             }
         }
 
-        if (newGraph.hasComparativeRelations(placeholder))
+        if (newGraph.hasAnyRelation(placeholder))
             newGraph.setLoad(from, placeholder);
         else
             newGraph.erasePlaceholderBucket(placeholder);
     }
 
-    bool andSwapIfChanged(ValueRelations & /*oldGraph*/, ValueRelations &newGraph) {
-        return newGraph.hasChanged();
-    }
-
-    bool passFunction(const llvm::Function *function) {
+    bool passFunction(const llvm::Function *function, bool print) {
         bool changed = false;
 
         for (auto it = codeGraph.bfs_begin(function);
-            it != codeGraph.bfs_end(function); ++it) {
+             it != codeGraph.bfs_end(function); ++it) {
             VRLocation &location = *it;
-            // std::cerr << "LOCATION " << location.id << std::endl;
-            // for (VREdge* predEdge : location.predecessors)
-            //    std::cerr << predEdge->op->toStr() << std::endl;
+            if (print) {
+                std::cerr << "LOCATION " << location.id << std::endl;
+                for (VREdge *predEdge : location.predecessors) {
+                    std::cerr << predEdge->op->toStr() << std::endl;
+                }
+            }
+            if (print && location.id == 11)
+                std::cerr << "pred\n"
+                          << location.predecessors[0]->source->relations
+                          << "before\n"
+                          << location.relations << "\n";
 
             if (location.predecessors.size() > 1) {
-                changed = mergeRelations(location) | mergeLoads(location) |
-                        mergeRelationsByLoads(location);
+                mergeRelations(location);
+                mergeLoads(location);
+                mergeRelationsByLoads(location);
             } else if (location.predecessors.size() == 1) {
                 VREdge *edge = location.predecessors[0];
-                changed |= processOperation(edge->source, edge->target,
-                                            edge->op.get());
+                processOperation(edge->source, edge->target, edge->op.get());
             } // else no predecessors => nothing to be passed
-            // location.relations.ddump();
+
+            bool locationChanged = location.relations.unsetChanged();
+            if (print && locationChanged)
+                std::cerr << "after\n" << location.relations;
+            changed |= locationChanged;
         }
         return changed;
     }
 
-    public:
+  public:
     RelationsAnalyzer(const llvm::Module &m, const VRCodeGraph &g,
-                    const StructureAnalyzer &sa)
+                      const StructureAnalyzer &sa)
             : module(m), codeGraph(g), structure(sa) {}
 
     unsigned analyze(unsigned maxPass) {
@@ -1201,8 +1235,10 @@ class RelationsAnalyzer {
 
             bool changed = true;
             unsigned passNum = 0;
-            while (changed && ++passNum <= maxPass)
-                changed = passFunction(&function);
+            while (changed && passNum < maxPass) {
+                changed = passFunction(&function, false);
+                ++passNum;
+            }
 
             maxExecutedPass = std::max(maxExecutedPass, passNum);
         }

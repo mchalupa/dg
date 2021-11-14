@@ -430,10 +430,8 @@ struct RelationsGraph {
 #ifndef NDEBUG
     friend std::ostream &operator<<(std::ostream &out,
                                     const RelationsGraph &graph) {
-        out << "RELATIONS BEGIN\n";
         for (const auto &item : graph.buckets)
             out << "    " << *item << "\n";
-        out << "RELATIONS END\n";
         return out;
     }
 #endif
