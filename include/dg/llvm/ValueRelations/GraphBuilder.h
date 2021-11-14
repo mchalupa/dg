@@ -23,7 +23,7 @@ class GraphBuilder {
 
     void buildSwitch(const llvm::SwitchInst *swtch, VRLocation &last);
 
-    void buildReturn(const llvm::ReturnInst *inst, VRLocation &last);
+    static void buildReturn(const llvm::ReturnInst *inst, VRLocation &last);
 
     void buildBlock(const llvm::BasicBlock &block);
 

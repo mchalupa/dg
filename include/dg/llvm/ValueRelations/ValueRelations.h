@@ -44,10 +44,10 @@ struct ValueRelations {
     bool changed = false;
 
     // ****************************** get ********************************* //
-    HandlePtr maybeGet(Handle h) const { return &h; }
+    static HandlePtr maybeGet(Handle h) { return &h; }
     HandlePtr maybeGet(V val) const;
 
-    std::pair<BRef, bool> get(Handle h) const { return {h, false}; }
+    static std::pair<BRef, bool> get(Handle h) { return {h, false}; }
     std::pair<BRef, bool> get(V val);
 
     V getAny(Handle h) const;
@@ -58,7 +58,7 @@ struct ValueRelations {
     std::pair<ValueRelations::C, Relations> getBound(V val,
                                                      Relations rel) const;
 
-    HandlePtr getHandleByPtr(Handle h) const;
+    static HandlePtr getHandleByPtr(Handle h);
 
     // ************************* general unset **************************** //
     void unset(Relations rels) {
@@ -245,7 +245,7 @@ struct ValueRelations {
     HandlePtr getCorresponding(const ValueRelations &other, Handle otherH,
                                const VectorSet<V> &otherEqual);
     HandlePtr getCorresponding(const ValueRelations &other, Handle otherH);
-    HandlePtr getAndMerge(const ValueRelations &other, Handle current);
+    HandlePtr getAndMerge(const ValueRelations &other, Handle otherH);
     void add(V val, Handle h, VectorSet<V> &vals);
     std::pair<BRef, bool> add(V val, Handle h);
     void areMerged(Handle to, Handle from);
@@ -459,7 +459,7 @@ struct ValueRelations {
         bucketToVals[h];
         return h;
     }
-    void erasePlaceholderBucket(Handle id);
+    void erasePlaceholderBucket(Handle h);
 
     // ***************************** other ******************************** //
     static bool compare(C lt, Relations::Type rel, C rt);

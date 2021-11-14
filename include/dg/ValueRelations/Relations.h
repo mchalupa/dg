@@ -19,7 +19,7 @@ struct Relations {
 
     static Type inverted(Type type);
     static Type negated(Type type);
-    static bool transitiveOver(Type one, Type two);
+    static bool transitiveOver(Type fst, Type snd);
     static Relations conflicting(Type type);
     static bool isStrict(Type type);
     static bool isNonStrict(Type type);

@@ -41,9 +41,9 @@ class RelationsAnalyzer {
     StructureAnalyzer &structure;
 
     // ********************** points to invalidation ********************** //
-    bool isIgnorableIntrinsic(llvm::Intrinsic::ID id) const;
+    static bool isIgnorableIntrinsic(llvm::Intrinsic::ID id);
     bool isSafe(I inst) const;
-    bool isDangerous(I inst) const;
+    static bool isDangerous(I inst);
     bool mayHaveAlias(const ValueRelations &graph, V val) const;
     bool mayHaveAlias(V val) const;
     static bool hasKnownOrigin(const ValueRelations &graph, V from);
@@ -51,10 +51,11 @@ class RelationsAnalyzer {
     bool mayOverwrite(I inst, V address) const;
 
     // ************************ operation helpers ************************* //
-    void solvesDiffOne(ValueRelations &graph, V param,
-                       const llvm::BinaryOperator *op, Relations::Type rel);
-    bool operandsEqual(ValueRelations &graph, I fst, I snd,
-                       bool sameOrder) const;
+    static void solvesDiffOne(ValueRelations &graph, V param,
+                              const llvm::BinaryOperator *op,
+                              Relations::Type rel);
+    static bool operandsEqual(ValueRelations &graph, I fst, I snd,
+                              bool sameOrder);
     void solveByOperands(ValueRelations &graph,
                          const llvm::BinaryOperator *operation, bool sameOrder);
     void solveEquality(ValueRelations &graph,
@@ -65,48 +66,49 @@ class RelationsAnalyzer {
     void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op);
 
     // ******************** gen from instruction ************************** //
-    void storeGen(ValueRelations &graph, const llvm::StoreInst *store);
-    void loadGen(ValueRelations &graph, const llvm::LoadInst *load);
-    void gepGen(ValueRelations &graph, const llvm::GetElementPtrInst *gep);
-    void extGen(ValueRelations &graph, const llvm::CastInst *ext);
+    static void storeGen(ValueRelations &graph, const llvm::StoreInst *store);
+    static void loadGen(ValueRelations &graph, const llvm::LoadInst *load);
+    static void gepGen(ValueRelations &graph,
+                       const llvm::GetElementPtrInst *gep);
+    static void extGen(ValueRelations &graph, const llvm::CastInst *ext);
     void opGen(ValueRelations &graph, const llvm::BinaryOperator *op);
-    void remGen(ValueRelations &graph, const llvm::BinaryOperator *rem);
+    static void remGen(ValueRelations &graph, const llvm::BinaryOperator *rem);
     void castGen(ValueRelations &graph, const llvm::CastInst *cast);
 
     // ******************** process assumption ************************** //
     static Relation ICMPToRel(const llvm::ICmpInst *icmp, bool assumption);
-    bool processICMP(const ValueRelations &oldGraph, ValueRelations &newGraph,
-                     VRAssumeBool *assume) const;
+    static bool processICMP(const ValueRelations &oldGraph,
+                            ValueRelations &newGraph, VRAssumeBool *assume);
     bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
-    Relations getCommon(const VRLocation &location, V lt, Relations known,
-                        V rt) const;
-    void checkRelatesInAll(VRLocation &location, V lt, Relations known, V rt,
-                           std::set<V> &setEqual);
-    Relations getCommonByPointedTo(
+    static Relations getCommon(const VRLocation &location, V lt,
+                               Relations known, V rt);
+    static void checkRelatesInAll(VRLocation &location, V lt, Relations known,
+                                  V rt, std::set<V> &setEqual);
+    static Relations getCommonByPointedTo(
             V from, const std::vector<const ValueRelations *> &changeRelations,
             V val, Relations rels);
-    Relations getCommonByPointedTo(
+    static Relations getCommonByPointedTo(
             V from, const std::vector<const ValueRelations *> &changeRelations,
             V firstLoad, V prevVal);
     std::pair<std::vector<const ValueRelations *>, V>
     getChangeRelations(V from, VRLocation &join);
-    std::pair<C, Relations> getBoundOnPointedToValue(
+    static std::pair<C, Relations> getBoundOnPointedToValue(
             const std::vector<const ValueRelations *> &changeRelations, V from,
-            Relation rel) const;
-    void relateToFirstLoad(
+            Relation rel);
+    static void relateToFirstLoad(
             const std::vector<const ValueRelations *> &changeRelations, V from,
             ValueRelations &newGraph, Handle placeholder, V firstLoad);
-    void
+    static void
     relateBounds(const std::vector<const ValueRelations *> &changeRelations,
                  V from, ValueRelations &newGraph, Handle placeholder);
-    void
+    static void
     relateValues(const std::vector<const ValueRelations *> &changeRelations,
                  V from, ValueRelations &newGraph, Handle placeholder);
 
     // **************************** merge ******************************* //
-    void mergeRelations(VRLocation &location);
+    static void mergeRelations(VRLocation &location);
     void mergeRelationsByPointedTo(VRLocation &location);
 
     // ***************************** edge ******************************* //
@@ -116,9 +118,9 @@ class RelationsAnalyzer {
     bool processAssumeBool(const ValueRelations &oldGraph,
                            ValueRelations &newGraph,
                            VRAssumeBool *assume) const;
-    bool processAssumeEqual(const ValueRelations &oldGraph,
-                            ValueRelations &newGraph,
-                            VRAssumeEqual *assume) const;
+    static bool processAssumeEqual(const ValueRelations &oldGraph,
+                                   ValueRelations &newGraph,
+                                   VRAssumeEqual *assume);
 
     // ************************* topmost ******************************* //
     void processOperation(VRLocation *source, VRLocation *target, VROp *op);

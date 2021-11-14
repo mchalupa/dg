@@ -34,9 +34,9 @@ class VROp {
 #ifndef NDEBUG
     virtual std::string toStr() const = 0;
 
-    void generalDump(std::ostream &stream) { stream << toStr(); }
+    void generalDump(std::ostream &stream) const { stream << toStr(); }
 
-    void dump() { generalDump(std::cout); }
+    void dump() const { generalDump(std::cout); }
 #endif
 };
 
@@ -178,7 +178,7 @@ struct VRLocation {
 };
 
 class VRCodeGraph {
-    friend struct GraphBuilder;
+    friend class GraphBuilder;
 
     UniquePtrVector<VRLocation> locations;
     std::map<const llvm::Function *, VRLocation *> functionMapping;
@@ -208,7 +208,7 @@ class VRCodeGraph {
 
       protected:
         void find(VRLocation *loc);
-        bool shouldVisit(__attribute__((unused)) VRLocation *loc) const {
+        static bool shouldVisit(__attribute__((unused)) VRLocation *loc) {
             return true;
         }
 
@@ -219,7 +219,7 @@ class VRCodeGraph {
     class LazyVisit {
         std::map<VRLocation *, unsigned> visited;
 
-        unsigned getPrevEdgesSize(VRLocation *loc) const;
+        static unsigned getPrevEdgesSize(VRLocation *loc);
 
       protected:
         void find(VRLocation *loc);
@@ -322,7 +322,7 @@ class VRCodeGraph {
         VRLocation *operator->() const { return std::get<0>(stack.back()); }
 
         bool onStack(VRLocation *loc) const {
-            for (auto &elem : stack)
+            for (const auto &elem : stack)
                 if (loc == std::get<0>(elem))
                     return true;
             return false;
@@ -336,14 +336,14 @@ class VRCodeGraph {
 
     LazyDFS lazy_dfs_begin(const llvm::Function &f) const;
     LazyDFS lazy_dfs_begin(const llvm::Function &f, VRLocation &start) const;
-    LazyDFS lazy_dfs_end() const;
+    static LazyDFS lazy_dfs_end();
 
     SimpleDFS dfs_begin(const llvm::Function &f) const;
-    SimpleDFS dfs_end() const;
+    static SimpleDFS dfs_end();
 
-    SimpleDFS backward_dfs_begin(const llvm::Function &f,
-                                 VRLocation &start) const;
-    SimpleDFS backward_dfs_end() const;
+    static SimpleDFS backward_dfs_begin(const llvm::Function &f,
+                                        VRLocation &start);
+    static SimpleDFS backward_dfs_end();
 
     /* ************ code graph iterator stuff ************ */
 

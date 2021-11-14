@@ -19,7 +19,8 @@ namespace dg {
 namespace vr {
 
 template <typename T>
-struct RelationsGraph {
+class RelationsGraph {
+  public:
     using RelationsMap =
             std::map<std::reference_wrapper<const Bucket>, Relations>;
 
@@ -238,7 +239,8 @@ struct RelationsGraph {
         RelationsMap result;
         std::set_intersection(ltGE.begin(), ltGE.end(), rtLE.begin(),
                               rtLE.end(), std::inserter(result, result.begin()),
-                              [](RelationsMap::value_type &ltPair, RelationsMap::value_type &rtPair) {
+                              [](RelationsMap::value_type &ltPair,
+                                 RelationsMap::value_type &rtPair) {
                                   return ltPair.first < rtPair.first;
                               });
 
@@ -423,7 +425,7 @@ struct RelationsGraph {
 
     bool unset(const Relations &rels) {
         bool changed = false;
-        for (auto &bucketPtr : buckets) {
+        for (const auto &bucketPtr : buckets) {
             changed |= bucketPtr->unset(rels);
         }
         return changed;

@@ -98,7 +98,7 @@ class StructureAnalyzer {
 
     void collectInstructionSet();
 
-    bool isValidAllocationCall(const llvm::Value *val) const;
+    static bool isValidAllocationCall(const llvm::Value *val);
 
     void collectAllocatedAreas();
 
@@ -125,8 +125,8 @@ class StructureAnalyzer {
     setValidAreasFromSinglePredecessor(VRLocation &location,
                                        std::vector<bool> &validAreas) const;
 
-    bool trueInAll(const std::vector<std::vector<bool>> &validInPreds,
-                   unsigned index) const;
+    static bool trueInAll(const std::vector<std::vector<bool>> &validInPreds,
+                          unsigned index);
 
     // in returned vector, false signifies that corresponding area is
     // invalidated by some of the passed instructions
