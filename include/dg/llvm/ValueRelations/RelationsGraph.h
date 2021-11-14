@@ -185,9 +185,8 @@ class Bucket {
         bool nextViableTopEdge() {
             while (stack.back().nextViableEdge()) {
                 if (allowedEdges[toInt(stack.back().rel())] &&
-                    (!undirectedOnly ||
-                     !isInvertedEdge())) // && (!relationsFocused ||
-                                         // shouldFollowThrough()))
+                    (!undirectedOnly || !isInvertedEdge()) &&
+                    (!relationsFocused || shouldFollowThrough()))
                     return true;
                 ++stack.back().bucketIt;
             }
@@ -240,8 +239,10 @@ class Bucket {
             if (visited.get().find(to) == visited.get().end()) {
                 stack.emplace_back(to);
 
-                // if (!relationsFocused || nextViableTopEdge())
-                visited.get().emplace(to);
+                if (!relationsFocused || nextViableTopEdge())
+                    visited.get().emplace(to);
+                else
+                    stack.pop_back();
             }
 
             nextViableEdge();
