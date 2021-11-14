@@ -5,6 +5,7 @@
 #include <iostream>
 #endif
 
+#include <algorithm>
 #include <bitset>
 #include <cassert>
 #include <functional>
@@ -24,7 +25,6 @@ size_t toInt(RelationType t);
 RelationType inverted(RelationType type);
 RelationType negated(RelationType type);
 RelationBits conflicting(RelationType type);
-bool transitive(RelationType type);
 bool transitiveOver(RelationType fst, RelationType snd);
 
 extern const RelationBits allRelations;
@@ -67,11 +67,10 @@ class Bucket {
 
     void disconnect() {
         for (auto &pair : relatedBuckets) {
-            for (auto it = pair.second.begin(); it != pair.second.end(); ++it) {
+            for (auto it = pair.second.begin(); it != pair.second.end();
+                 /*incremented by erase*/) {
                 it->get().relatedBuckets[inverted(pair.first)].erase(*this);
                 it = relatedBuckets[pair.first].erase(it);
-                if (it == pair.second.end())
-                    break;
             }
         }
         assert(!hasAnyRelation());
@@ -175,15 +174,18 @@ class Bucket {
       private:
         bool isInvertedEdge() {
             return stack.size() >= 2 &&
-                   stack.back().to() == std::next(stack.rbegin())->from();
+                   std::any_of(
+                           std::next(stack.rbegin()), stack.rend(),
+                           [&topTo = stack.back().to()](RelationEdge &edge) {
+                               return edge.from() == topTo;
+                           });
         }
 
         bool shouldFollowThrough() {
             if (stack.size() < 2)
                 return true;
             RelationType prev = std::next(stack.rbegin())->rel();
-            return /*transitive(prev) &&*/ transitiveOver(prev,
-                                                          stack.back().rel());
+            return transitiveOver(prev, stack.back().rel());
         }
 
         bool nextViableTopEdge() {
@@ -422,7 +424,7 @@ class RelationsGraph {
     using RelationsMap = std::map<std::reference_wrapper<Bucket>, RelationBits>;
 
     iterator begin_related(Bucket &start, const RelationBits &relations,
-                           bool undirectedOnly = false) const {
+                           bool undirectedOnly = true) const {
         auto startIt = getItFor(start);
         auto endIt = startIt;
         return iterator(startIt, ++endIt, relations, undirectedOnly, true);
@@ -440,7 +442,7 @@ class RelationsGraph {
     iterator begin() const { return begin(allRelations, true); }
 
     iterator begin(const RelationBits &relations,
-                   bool undirectedOnly = false) const {
+                   bool undirectedOnly = true) const {
         if (!buckets.empty())
             return iterator(buckets.begin(), buckets.end(), relations,
                             undirectedOnly, false);

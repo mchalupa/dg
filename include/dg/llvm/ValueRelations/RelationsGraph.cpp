@@ -59,15 +59,17 @@ RelationType negated(RelationType type) {
 RelationBits conflicting(RelationType type) {
     switch (type) {
     case RelationType::EQ:
-        return p(RelationType::NE) & p(RelationType::LT) & p(RelationType::GT);
+        return p(RelationType::NE) | p(RelationType::LT) | p(RelationType::GT);
     case RelationType::NE:
         return p(RelationType::EQ);
     case RelationType::LT:
-        return p(RelationType::EQ);
+        return p(RelationType::EQ) | p(RelationType::GT) | p(RelationType::GE);
     case RelationType::GT:
-        return p(RelationType::EQ);
+        return p(RelationType::EQ) | p(RelationType::LT) | p(RelationType::LE);
     case RelationType::LE:
+        return p(RelationType::GT);
     case RelationType::GE:
+        return p(RelationType::LT);
     case RelationType::PT:
     case RelationType::PF:
         return 0;
@@ -101,23 +103,6 @@ void addImplied(RelationBits &bits) {
             }
         }
     }
-}
-
-bool transitive(RelationType type) {
-    switch (type) {
-    case RelationType::EQ:
-    case RelationType::LE:
-    case RelationType::LT:
-    case RelationType::GE:
-    case RelationType::GT:
-        return true;
-    case RelationType::NE:
-    case RelationType::PT:
-    case RelationType::PF:
-        return false;
-    }
-    assert(0 && "unreachable");
-    abort();
 }
 
 bool transitiveOver(RelationType fst, RelationType snd) {
@@ -211,14 +196,6 @@ RelationsMap filterResult(const RelationBits &relations,
     return filtered;
 }
 
-bool shouldAdd(Bucket::RelationEdge &edge, Bucket &start) {
-    return edge.from() == start || transitive(edge.rel());
-}
-
-bool shouldSkip(const Bucket::RelationEdge &edge) {
-    return !transitive(edge.rel());
-}
-
 RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
                                  const RelationBits &relations,
                                  bool toFirstStrict) {
@@ -238,6 +215,8 @@ RelationsMap getAugmentedRelated(const RelationsGraph &graph, Bucket &start,
         for (auto nestedIt =
                      it->to().begin(nestedVisited, relations, true, true);
              nestedIt != it->to().end(nestedVisited); ++nestedIt) {
+            if (!transitiveOver(it->rel(), nestedIt->rel()))
+                continue;
             if (toFirstStrict)
                 result[nestedIt->to()].set(toInt(it->rel()), false);
             else
@@ -335,12 +314,44 @@ void RelationsGraph::addRelation(Bucket &lt, RelationType type, Bucket &rt,
     switch (type) {
     case RelationType::EQ:
         return setEqual(lt, rt);
-    case RelationType::NE:
-        if (areRelated(lt, RelationType::LE, rt, &between)) {
-            unsetRelated(lt, RelationType::LE, rt);
-            return addRelation(lt, RelationType::LT, rt, &between);
+    case RelationType::NE: {
+        for (RelationType rel : {RelationType::LT, RelationType::GT}) {
+            if (areRelated(lt, getNonStrict(rel), rt, &between)) {
+                unsetRelated(lt, getNonStrict(rel), rt);
+                return addRelation(lt, rel, rt, &between);
+            }
         }
         break; // jump after switch
+    }
+    case RelationType::LT:
+        if (areRelated(lt, RelationType::LE, rt, &between))
+            unsetRelated(lt, RelationType::LE, rt);
+        break; // jump after switch
+    case RelationType::LE:
+        if (areRelated(lt, RelationType::NE, rt, &between)) {
+            unsetRelated(lt, RelationType::NE, rt);
+            return addRelation(lt, RelationType::LT, rt, &between);
+        }
+        if (areRelated(lt, RelationType::GE, rt, &between)) {
+            Bucket::BucketSet intersect =
+                    getIntersectingNonstrict(*this, lt, rt);
+            Bucket &first = *intersect.begin();
+            for (auto it = std::next(intersect.begin()); it != intersect.end();
+                 ++it)
+                setEqual(first, *it);
+            return;
+        }
+        break; // jump after switch
+    case RelationType::PT:
+        if (lt.hasRelation(type))
+            return addRelation(lt.getRelated(type), RelationType::EQ, rt);
+        break; // jump after switch
+    case RelationType::GT:
+    case RelationType::GE:
+    case RelationType::PF: {
+        RelationBits betweenInverted = inverted(between);
+        return addRelation(rt, inverted(type), lt, &betweenInverted);
+    } break; // jump after switch
     case RelationType::LT:
         if (areRelated(lt, RelationType::LE, rt, &between))
             unsetRelated(lt, RelationType::LE, rt);
@@ -414,7 +425,6 @@ void RelationsGraph::addRelation(Bucket &lt, RelationType type, Bucket &rt,
     }
     }
     setRelated(lt, type, rt);
-}
 }
 
 } // namespace vr
