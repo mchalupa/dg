@@ -104,9 +104,9 @@ class RelationsAnalyzer {
                              V from) const;
     bool hasConflictLoad(const std::vector<VRLocation *> &preds, V from, V val);
     bool anyInvalidated(const std::set<V> &allInvalid,
-                        const std::vector<V> &froms);
+                        const VectorSet<V> &froms);
     bool isGoodFromForPlaceholder(const std::vector<VRLocation *> &preds,
-                                  V from, const std::vector<V> &values);
+                                  V from, const VectorSet<V> &values);
     void inferChangeInLoop(ValueRelations &newGraph,
                            const std::vector<V> &froms, VRLocation &location);
     void inferFromChangeLocations(ValueRelations &newGraph,

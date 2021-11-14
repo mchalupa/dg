@@ -405,7 +405,6 @@ struct ValueRelations {
     const VectorSet<V> &getEqual(Handle h) const;
     VectorSet<V> getEqual(V val) const;
 
-    std::vector<V> getAllRelated(V val) const;
     template <typename X>
     RelGraph::RelationsMap getAllRelated(const X &val) const {
         return getRelated(val, allRelations);
@@ -417,7 +416,6 @@ struct ValueRelations {
         assert(mH);
         return graph.getRelated(*mH, rels);
     }
-    std::vector<V> getAllValues() const;
 
     std::vector<V> getDirectlyLesser(V val) const;
     std::vector<V> getDirectlyGreater(V val) const;
@@ -440,8 +438,6 @@ struct ValueRelations {
     C getGreaterEqualBound(V val) const;
 
     VectorSet<V> getValsByPtr(V from) const;
-
-    std::set<std::pair<std::vector<V>, std::vector<V>>> getAllLoads() const;
 
     template <typename X>
     Handle getPointedTo(const X &from) const {
