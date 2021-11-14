@@ -27,12 +27,6 @@ std::string dump(const RelationsMap &map) {
     return out.str();
 }
 
-// std::ostream& operator<<(std::ostream& out, const RelationsMap::value_type&
-// pair) {
-//    out << pair.first << ": " << pair.second;
-//    return out;
-//}
-
 CollectedEdges collect(RelationsGraph::iterator begin,
                        RelationsGraph::iterator end) {
     CollectedEdges result;
@@ -59,11 +53,11 @@ void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
     SECTION("all") {
         CollectedEdges result =
                 collect(graph.begin(allRelations, false), graph.end());
-        checkSize(result, graph, relationsSet * 2);
+        checkSize(result, graph, relationsSet * 2 + graph.getBuckets().size());
     }
     SECTION("undirected") {
         CollectedEdges result = collect(graph.begin(), graph.end());
-        checkSize(result, graph, relationsSet);
+        checkSize(result, graph, relationsSet + graph.getBuckets().size());
     }
 }
 
@@ -130,11 +124,11 @@ bool inferrs(Relations::Type one, Relations::Type two) {
 TEST_CASE("edge iterator") {
     RelationsGraph graph;
 
-    SECTION("no nodes") { REQUIRE(graph.begin() == graph.end()); }
+    SECTION("no nodes") { CHECK(graph.begin() == graph.end()); }
 
     const Bucket &one = graph.getNewBucket();
 
-    SECTION("one node") { REQUIRE(graph.begin() == graph.end()); }
+    SECTION("one node") { checkEdges(graph, 0); }
 
     const Bucket &two = graph.getNewBucket();
 
@@ -361,12 +355,12 @@ TEST_CASE("big graph") {
         checkEdges(graph, 4);
 
         SECTION("relations") {
-            checkRelations(graph, one, 0);
-            checkRelations(graph, two, 3);
+            checkRelations(graph, one, 1);
+            checkRelations(graph, two, 4);
             // three was deleted
-            checkRelations(graph, four, 1);
-            checkRelations(graph, five, 3);
-            checkRelations(graph, six, 3);
+            checkRelations(graph, four, 2);
+            checkRelations(graph, five, 4);
+            checkRelations(graph, six, 4);
             // seven was deleted
 
             checkRelations(graph, one, {{one, eq}});
@@ -395,12 +389,12 @@ TEST_CASE("big graph") {
         checkEdges(graph, 3);
 
         SECTION("relations") {
-            checkRelations(graph, seven, 1);
-            checkRelations(graph, one, 2);
+            checkRelations(graph, seven, 2);
+            checkRelations(graph, one, 3);
             // two was deleted
-            checkRelations(graph, three, 2);
+            checkRelations(graph, three, 3);
             // four was deleted
-            checkRelations(graph, five, 1);
+            checkRelations(graph, five, 2);
             // six was deleted
         }
     }
@@ -422,13 +416,13 @@ TEST_CASE("big graph") {
         checkEdges(graph, 7);
 
         SECTION("relations") {
-            checkRelations(graph, one, 6);
-            checkRelations(graph, two, 2);
-            checkRelations(graph, three, 2);
-            checkRelations(graph, four, 2);
-            checkRelations(graph, five, 3);
-            checkRelations(graph, six, 4);
-            checkRelations(graph, seven, 3);
+            checkRelations(graph, one, 7);
+            checkRelations(graph, two, 3);
+            checkRelations(graph, three, 3);
+            checkRelations(graph, four, 3);
+            checkRelations(graph, five, 4);
+            checkRelations(graph, six, 5);
+            checkRelations(graph, seven, 4);
 
             checkRelations(graph, one,
                            {{one, eq},
