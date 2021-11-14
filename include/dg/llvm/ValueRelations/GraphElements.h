@@ -138,8 +138,6 @@ struct VREdge {
 struct VRLocation {
     const unsigned id;
 
-    bool inLoop = false;
-
     ValueRelations relations;
 
     std::vector<VREdge *> predecessors;
