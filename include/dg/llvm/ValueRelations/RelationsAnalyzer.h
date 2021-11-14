@@ -59,7 +59,6 @@ class RelationsAnalyzer {
                        const llvm::BinaryOperator *operation);
     void solveCommutativity(ValueRelations &graph,
                             const llvm::BinaryOperator *operation);
-    V getAnyInitial(const VRLocation &join, V from) const;
     enum class Shift { INC, DEC, EQ, UNKNOWN };
     static Shift getShift(const llvm::BinaryOperator *op, V from);
     static Shift getShift(const llvm::GetElementPtrInst *op, V from);
@@ -105,6 +104,8 @@ class RelationsAnalyzer {
     static std::pair<C, Relations> getBoundOnPointedToValue(
             const std::vector<const VRLocation *> &changeLocations, V from,
             Relation rel);
+    static const llvm::ICmpInst *getEQICmp(const VRLocation &join);
+    void inferFromNonEquality(VRLocation& join, V from, const VectorSet<V>& initial, Shift s, Handle placeholder);
     void
     inferShiftInLoop(const std::vector<const VRLocation *> &changeLocations,
                      V from, ValueRelations &newGraph, Handle placeholder);
