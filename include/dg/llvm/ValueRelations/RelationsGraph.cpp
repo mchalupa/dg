@@ -200,7 +200,7 @@ RelationsMap &filterResult(const Relations &relations, RelationsMap &result) {
     return result;
 }
 
-bool processEdge(Bucket::RelationEdge &edge, Relations::Type strictRel,
+bool processEdge(const Bucket::RelationEdge &edge, Relations::Type strictRel,
                  Relations &updated, bool toFirstStrict,
                  const std::set<Bucket::RelationEdge> &firstStrictEdges) {
     if (!Relations::transitiveOver(strictRel, edge.rel())) // edge not relevant
