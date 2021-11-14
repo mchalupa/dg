@@ -375,12 +375,12 @@ struct ValueRelations {
     }
 
     // *************************** iterators ****************************** //
-    rel_iterator begin_related(V val, const Relations &rels = allRelations,
+    rel_iterator begin_related(V val, const Relations &rels = restricted,
                                bool invert = false) const;
     rel_iterator end_related(V val) const;
 
-    RelGraph::iterator
-    begin_related(Handle h, const Relations &rels = allRelations) const;
+    RelGraph::iterator begin_related(Handle h,
+                                     const Relations &rels = restricted) const;
     RelGraph::iterator end_related(Handle h) const;
 
     rel_iterator begin_all(V val) const;
@@ -395,6 +395,9 @@ struct ValueRelations {
     RelGraph::iterator
     begin_buckets(const Relations &rels = allRelations) const;
     RelGraph::iterator end_buckets() const;
+
+    const ValToBucket &getValToBucket() const { return valToBucket; }
+    const BucketToVals &getBucketToVals() const { return bucketToVals; }
 
     // ****************************** get ********************************* //
     std::vector<V> getEqual(Handle h) const;
