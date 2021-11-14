@@ -8,124 +8,18 @@ namespace vr {
 using V = ValueRelations::V;
 
 // ********************** points to invalidation ********************** //
-void RelationsAnalyzer::addAndUnwrapLoads(
-        std::set<std::pair<V, unsigned>> &writtenTo, V val) const {
-    unsigned depth = 0;
-    writtenTo.emplace(val, 0);
-    while (auto load = llvm::dyn_cast<llvm::LoadInst>(val)) {
-        writtenTo.emplace(load->getPointerOperand(), ++depth);
-        val = load->getPointerOperand();
+bool RelationsAnalyzer::isIgnorableIntrinsic(llvm::Intrinsic::ID id) const {
+    switch (id) {
+    case llvm::Intrinsic::lifetime_start:
+    case llvm::Intrinsic::lifetime_end:
+    case llvm::Intrinsic::stacksave:
+    case llvm::Intrinsic::stackrestore:
+    case llvm::Intrinsic::dbg_declare:
+    case llvm::Intrinsic::dbg_value:
+        return true;
+    default:
+        return false;
     }
-}
-
-std::set<std::pair<V, unsigned>>
-RelationsAnalyzer::instructionInvalidates(I inst) const {
-    if (!inst->mayWriteToMemory() && !inst->mayHaveSideEffects())
-        return std::set<std::pair<V, unsigned>>();
-
-    if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
-        if (isIgnorableIntrinsic(intrinsic->getIntrinsicID())) {
-            return std::set<std::pair<V, unsigned>>();
-        }
-    }
-
-    if (auto call = llvm::dyn_cast<llvm::CallInst>(inst)) {
-        auto function = call->getCalledFunction();
-        if (function && safeFunctions.find(function->getName().str()) !=
-                                safeFunctions.end())
-            return std::set<std::pair<V, unsigned>>();
-    }
-
-    std::set<std::pair<V, unsigned>> unsetAll = {{nullptr, 0}};
-
-    auto store = llvm::dyn_cast<llvm::StoreInst>(inst);
-    if (!store) // most probably CallInst
-        // unable to presume anything about such instruction
-        return unsetAll;
-
-    // if store writes to a fix location, it cannot be easily said which
-    // values it affects
-    if (llvm::isa<llvm::Constant>(store->getPointerOperand()))
-        return unsetAll;
-
-    V memoryPtr = store->getPointerOperand();
-    V underlyingPtr = memoryPtr->stripPointerCasts();
-
-    std::set<std::pair<V, unsigned>> writtenTo;
-    // DANGER TODO unset everything in between too?
-    addAndUnwrapLoads(writtenTo, underlyingPtr); // unset underlying memory
-    addAndUnwrapLoads(writtenTo, memoryPtr);     // unset pointer itself
-
-    const ValueRelations &graph = codeGraph.getVRLocation(store).relations;
-
-    // every pointer with unknown origin is considered having an alias
-    if (mayHaveAlias(graph, memoryPtr) || !hasKnownOrigin(graph, memoryPtr)) {
-        // if invalidated memory may have an alias, unset all memory whose
-        // origin is unknown since it may be the alias
-        for (auto it = graph.begin_buckets(Relations().pt());
-             it != graph.end_buckets(); ++it) {
-            V anyFrom = graph.getEqual(it->from()).any();
-
-            if (!hasKnownOrigin(graph, anyFrom)) {
-                addAndUnwrapLoads(writtenTo, anyFrom);
-            }
-        }
-    }
-
-    if (!hasKnownOrigin(graph, memoryPtr)) {
-        // if memory does not have a known origin, unset all values which
-        // may have an alias, since this memory may be the alias
-        for (auto it = graph.begin_buckets(Relations().pt());
-             it != graph.end_buckets(); ++it) {
-            V anyFrom = graph.getEqual(it->from()).any();
-
-            if (mayHaveAlias(graph, anyFrom))
-                addAndUnwrapLoads(writtenTo, anyFrom);
-        }
-    }
-
-    return writtenTo;
-}
-
-V RelationsAnalyzer::getInvalidatedPointer(const ValueRelations &graph,
-                                           V invalid, unsigned depth) const {
-    while (depth && invalid) {
-        const auto &values = graph.getValsByPtr(invalid);
-
-        if (values.empty()) {
-            invalid = nullptr; // invalidated pointer does not load anything in
-                               // current graph
-        } else {
-            invalid = values.any();
-            --depth;
-        }
-    }
-    return graph.hasLoad(invalid) ? invalid : nullptr;
-}
-
-std::set<V>
-RelationsAnalyzer::instructionInvalidatesFromGraph(const ValueRelations &graph,
-                                                   I inst) const {
-    const auto &indirectlyInvalid = instructionInvalidates(inst);
-
-    // go through all (indireclty) invalidated pointers and add those
-    // that occur in current location
-    std::set<V> allInvalid;
-    for (const auto &pair : indirectlyInvalid) {
-        if (!pair.first) {
-            // add all loads in graph
-            for (auto it = graph.begin_buckets(Relations().pt());
-                 it != graph.end_buckets(); ++it)
-                allInvalid.emplace(graph.getEqual(it->from()).any());
-            break;
-        }
-
-        auto directlyInvalid =
-                getInvalidatedPointer(graph, pair.first, pair.second);
-        if (directlyInvalid)
-            allInvalid.emplace(directlyInvalid);
-    }
-    return allInvalid;
 }
 
 bool RelationsAnalyzer::isSafe(I inst) const {
@@ -161,134 +55,6 @@ bool RelationsAnalyzer::isDangerous(I inst) const {
     return false;
 }
 
-bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph,
-                                     Handle h) const {
-    if (!hasKnownOrigin(graph, h))
-        return true;
-
-    for (V val : graph.getEqual(h)) {
-        // if value is not pointer, we don't care whether there can be other
-        // name for same value
-        if (!val->getType()->isPointerTy())
-            continue;
-
-        for (const llvm::User *user : val->users()) {
-            // if value is stored, it can be accessed
-            if (llvm::isa<llvm::StoreInst>(user)) {
-                if (user->getOperand(0) == val)
-                    return true;
-
-            } else if (llvm::isa<llvm::CastInst>(user)) {
-                if (!graph.contains(user) ||
-                    mayHaveAlias(graph, graph.getHandle(user)))
-                    return true;
-
-            } else if (auto gep =
-                               llvm::dyn_cast<llvm::GetElementPtrInst>(user)) {
-                assert(gep->getPointerOperand() == val);
-                return true; // TODO possible to collect here
-
-            } else if (auto intrinsic =
-                               llvm::dyn_cast<llvm::IntrinsicInst>(user)) {
-                if (!isIgnorableIntrinsic(intrinsic->getIntrinsicID()) &&
-                    intrinsic->mayWriteToMemory())
-                    return true;
-
-            } else if (auto inst = llvm::dyn_cast<llvm::Instruction>(user)) {
-                if (inst->mayWriteToMemory())
-                    return true;
-            }
-        }
-    }
-    return false;
-}
-
-bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph,
-                                       Handle h) const {
-    for (V val : graph.getEqual(h)) {
-        if (llvm::isa<llvm::AllocaInst>(val))
-            return true;
-    }
-    return false;
-}
-
-std::vector<ValueRelations::BRef>
-RelationsAnalyzer::instructionKeeps(I inst) const {
-    const ValueRelations &graph = codeGraph.getVRLocation(inst).relations;
-
-    std::vector<HandleRef> toKeep;
-    if (isSafe(inst)) {
-        for (auto it = graph.begin_buckets(Relations().pt());
-             it != graph.end_buckets(); ++it) {
-            toKeep.emplace_back(it->from());
-        }
-        return toKeep;
-    }
-
-    if (isDangerous(inst))
-        return {};
-
-    auto store = llvm::cast<llvm::StoreInst>(inst);
-    V memoryPtr = store->getPointerOperand();
-
-    if (!graph.contains(
-                memoryPtr)) { // memory is untracked by graph => !hasKnownOrigin
-        for (auto it = graph.begin_buckets(Relations().pt());
-             it != graph.end_buckets(); ++it) {
-            if (!mayHaveAlias(graph, it->from()))
-                toKeep.emplace_back(it->from());
-        }
-        return toKeep;
-    }
-
-    Handle h = graph.getHandle(memoryPtr);
-    bool alias = mayHaveAlias(graph, h);
-    bool origin = hasKnownOrigin(graph, h);
-
-    for (auto it = graph.begin_buckets(Relations().pt());
-         it != graph.end_buckets(); ++it) {
-        if (it->from() == h)
-            continue;
-
-        if (!origin) {
-            assert(alias);
-            if (!mayHaveAlias(graph, it->from()))
-                toKeep.emplace_back(it->from());
-        } else if (alias) {
-            assert(origin);
-            if (hasKnownOrigin(graph, it->from()))
-                toKeep.emplace_back(it->from());
-        }
-        toKeep.emplace_back(it->from());
-    }
-    return toKeep;
-}
-
-bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
-    const ValueRelations &graph = codeGraph.getVRLocation(inst).relations;
-
-    if (isSafe(inst))
-        return false;
-
-    if (isDangerous(inst))
-        return true;
-
-    auto store = llvm::cast<llvm::StoreInst>(inst);
-    V memoryPtr = store->getPointerOperand();
-
-    if (memoryPtr == address)
-        return true;
-
-    if (!graph.contains(memoryPtr) || !hasKnownOrigin(graph, memoryPtr))
-        return mayHaveAlias(address);
-
-    if (mayHaveAlias(memoryPtr))
-        return !hasKnownOrigin(address);
-
-    return false;
-}
-
-// ************************ points to helpers ************************* //
 bool RelationsAnalyzer::mayHaveAlias(const ValueRelations &graph, V val) const {
     for (auto eqval : graph.getEqual(val))
         if (mayHaveAlias(eqval))
@@ -301,6 +67,9 @@ bool RelationsAnalyzer::mayHaveAlias(V val) const {
     // for same value
     if (!val->getType()->isPointerTy())
         return false;
+
+    if (llvm::isa<llvm::GetElementPtrInst>(val))
+        return true;
 
     for (const llvm::User *user : val->users()) {
         // if value is stored, it can be accessed
@@ -329,23 +98,9 @@ bool RelationsAnalyzer::mayHaveAlias(V val) const {
     return false;
 }
 
-bool RelationsAnalyzer::isIgnorableIntrinsic(llvm::Intrinsic::ID id) const {
-    switch (id) {
-    case llvm::Intrinsic::lifetime_start:
-    case llvm::Intrinsic::lifetime_end:
-    case llvm::Intrinsic::stacksave:
-    case llvm::Intrinsic::stackrestore:
-    case llvm::Intrinsic::dbg_declare:
-    case llvm::Intrinsic::dbg_value:
-        return true;
-    default:
-        return false;
-    }
-}
-
 bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph, V from) {
-    for (auto memoryPtr : graph.getEqual(from)) {
-        if (llvm::isa<llvm::AllocaInst>(memoryPtr))
+    for (auto val : graph.getEqual(from)) {
+        if (hasKnownOrigin(val))
             return true;
     }
     return false;
@@ -353,6 +108,57 @@ bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph, V from) {
 
 bool RelationsAnalyzer::hasKnownOrigin(V from) {
     return llvm::isa<llvm::AllocaInst>(from);
+}
+
+V getGEPBase(V val) {
+    if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(val))
+        return gep->getPointerOperand();
+    return nullptr;
+}
+
+bool sameBase(const ValueRelations &graph, V val1, V val2) {
+    V val2orig = val2;
+    while (val1) {
+        val2 = val2orig;
+        while (val2) {
+            if (graph.are(val1, Relations::EQ,
+                          val2)) // TODO compare whether indices may equal
+                return true;
+            val2 = getGEPBase(val2);
+        }
+        val1 = getGEPBase(val1);
+    }
+    return false;
+}
+
+bool RelationsAnalyzer::mayOverwrite(I inst, V address) const {
+    assert(inst);
+    assert(address);
+
+    const ValueRelations &graph = codeGraph.getVRLocation(inst).relations;
+
+    if (isSafe(inst))
+        return false;
+
+    if (isDangerous(inst))
+        return true;
+
+    auto store = llvm::cast<llvm::StoreInst>(inst);
+    V memoryPtr = store->getPointerOperand();
+
+    if (sameBase(graph, memoryPtr, address))
+        return true;
+
+    if (!graph.contains(address))
+        return !hasKnownOrigin(address) || mayHaveAlias(address);
+
+    if (!graph.contains(memoryPtr) || !hasKnownOrigin(graph, memoryPtr))
+        return !hasKnownOrigin(graph, address) || mayHaveAlias(graph, address);
+
+    if (mayHaveAlias(memoryPtr))
+        return !hasKnownOrigin(graph, address);
+
+    return false;
 }
 
 // ************************ operation helpers ************************* //
@@ -1010,15 +816,13 @@ void RelationsAnalyzer::processInstruction(ValueRelations &graph, I inst) {
 void RelationsAnalyzer::rememberValidated(const ValueRelations &prev,
                                           ValueRelations &graph, I inst) const {
     assert(&prev == &codeGraph.getVRLocation(inst).relations);
-    auto toKeep = instructionKeeps(inst);
 
     for (auto it = prev.begin_buckets(Relations().pt());
          it != prev.end_buckets(); ++it) {
-        if (std::find(toKeep.begin(), toKeep.end(), it->from()) !=
-            toKeep.end()) {
-            for (V from : prev.getEqual(it->from())) {
+        for (V from : prev.getEqual(it->from())) {
+            if (!mayOverwrite(inst, from)) {
                 for (V to : prev.getEqual(it->to()))
-                    graph.setLoad(from, to);
+                    graph.set(from, Relations::PT, to);
             }
         }
     }
