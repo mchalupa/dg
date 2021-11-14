@@ -1,15 +1,6 @@
 #ifndef DG_LLVM_VALUE_RELATIONS_VALUE_RELATIONS_H_
 #define DG_LLVM_VALUE_RELATIONS_VALUE_RELATIONS_H_
 
-// ignore unused parameters in LLVM libraries
-#if (__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-parameter"
-#else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#endif
-
 #include <llvm/IR/Constants.h>
 #include <llvm/IR/Value.h>
 
