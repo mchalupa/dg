@@ -491,7 +491,19 @@ Relations RelationsAnalyzer::getCommonByPointedTo(
 }
 
 std::pair<std::vector<const ValueRelations *>, V>
-RelationsAnalyzer::getChangeLocations(V from, VRLocation &join) {
+RelationsAnalyzer::getChangeRelations(V from, VRLocation &join) {
+    if (!join.isJustLoopJoin() && !join.isJustBranchJoin())
+        return {{}, nullptr};
+    if (join.isJustBranchJoin()) {
+        std::vector<const ValueRelations *> changeLocations;
+        for (unsigned i = 0; i < join.predsSize(); ++i) {
+            auto &relations = join.getPredLocation(i)->relations;
+            if (!relations.hasLoad(from))
+                return {};
+            changeLocations.emplace_back(&relations);
+        }
+        return {changeLocations, nullptr};
+    }
     assert(join.isJustLoopJoin());
 
     std::vector<const ValueRelations *> changeRelations = {
@@ -643,9 +655,6 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
 }
 
 void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
-    if (!loc.isJustLoopJoin())
-        return;
-
     ValueRelations &newGraph = loc.relations;
     ValueRelations &predGraph = loc.getTreePredecessor().relations;
 
@@ -657,12 +666,14 @@ void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
             std::vector<const ValueRelations *> changeLocations;
             V firstLoad;
             std::tie(changeLocations, firstLoad) =
-                    getChangeLocations(from, loc);
+                    getChangeRelations(from, loc);
+
             if (changeLocations.empty())
                 continue;
 
-            relateToFirstLoad(changeLocations, from, newGraph, placeholder,
-                              firstLoad);
+            if (loc.isJustLoopJoin())
+                relateToFirstLoad(changeLocations, from, newGraph, placeholder,
+                                  firstLoad);
             relateBounds(changeLocations, from, newGraph, placeholder);
             relateValues(changeLocations, from, newGraph, placeholder);
 
