@@ -89,9 +89,9 @@ class RelationsAnalyzer {
     bool processPhi(ValueRelations &newGraph, VRAssumeBool *assume) const;
 
     // *********************** merge helpers **************************** //
-    bool relatesInAllPreds(const VRLocation &locations, V lt, Relation rel,
-                           V rt) const;
-    void checkRelatesInAll(VRLocation &location, V lt, Relation rel, V rt,
+    Relations relationsInAllPreds(const VRLocation &location, V lt,
+                                  Relations known, V rt) const;
+    void checkRelatesInAll(VRLocation &location, V lt, Relations known, V rt,
                            std::set<V> &setEqual);
     bool relatesByLoadInAll(const std::vector<VRLocation *> &locations,
                             V related, V from, Relation rel, bool flip) const;

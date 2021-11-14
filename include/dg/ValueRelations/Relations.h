@@ -50,6 +50,7 @@ struct Relations {
 
     Relations &addImplied();
     Relations &invert();
+    bool any() const { return bits.any(); }
     bool conflictsWith(Type type) const { return anyCommon(conflicting(type)); }
     bool anyCommon(const Relations &other) const {
         return (bits & other.bits).any();

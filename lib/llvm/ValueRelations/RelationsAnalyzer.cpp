@@ -590,39 +590,32 @@ bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
 }
 
 // *********************** merge helpers **************************** //
-bool RelationsAnalyzer::relatesInAllPreds(const VRLocation &location, V lt,
-                                          Relation rel, V rt) const {
+Relations RelationsAnalyzer::relationsInAllPreds(const VRLocation &location,
+                                                 V lt, Relations known,
+                                                 V rt) const {
     for (VREdge *predEdge : location.predecessors) {
-        if (!predEdge->source->relations.are(lt, rel, rt))
-            return false;
+        known &= predEdge->source->relations.between(lt, rt);
+        if (!known.any())
+            break;
     }
-    return true;
+    return known;
 }
 
 void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
-                                          Relation rel, V rt,
+                                          Relations known, V rt,
                                           std::set<V> &setEqual) {
     if (lt == rt) // would add a bucket for every value, even if not related
         return;
 
     ValueRelations &thisGraph = location.relations;
 
-    // check for exact match
-    if (relatesInAllPreds(location, lt, rel, rt)) {
-        if (rel == Relation::EQ)
-            setEqual.emplace(rt);
+    Relations related = relationsInAllPreds(location, lt, known, rt);
+    if (!related.any())
+        return;
 
-        thisGraph.set(lt, rel, rt);
-    }
-
-    // check for weakened relations
-    if (rel == Relation::EQ) {
-        if (relatesInAllPreds(location, lt, Relation::LE, rt))
-            thisGraph.set(lt, Relation::LE, rt);
-    } else if (Relations::isStrict(rel)) {
-        if (relatesInAllPreds(location, lt, Relations::getNonStrict(rel), rt))
-            thisGraph.set(lt, Relations::getNonStrict(rel), rt);
-    }
+    if (related.get() == Relation::EQ)
+        setEqual.emplace(rt);
+    thisGraph.set(lt, related.get(), rt);
 }
 
 bool RelationsAnalyzer::relatesByLoadInAll(
@@ -923,9 +916,7 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
                     setEqual.end()) // value has already been set equal to other
                     continue;
                 for (V rt : predGraph.getEqual(related.first)) {
-                    assert(predGraph.are(lt, related.second.get(), rt));
-                    assert(restricted.has(related.second.get()));
-                    checkRelatesInAll(location, lt, related.second.get(), rt,
+                    checkRelatesInAll(location, lt, related.second, rt,
                                       setEqual);
                 }
             }
