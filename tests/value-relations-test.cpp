@@ -1,5 +1,5 @@
-#include <catch2/catch.hpp>
 #include "dg/ValueRelations/RelationsGraph.h"
+#include <catch2/catch.hpp>
 #include <iostream>
 #include <sstream>
 
@@ -14,21 +14,25 @@ using RelGraph = RelationsGraph<Dummy>;
 using CollectedEdges = std::vector<Bucket::RelationEdge>;
 using RelationsMap = RelGraph::RelationsMap;
 
-std::string dump(const CollectedEdges &edges) {
+std::string dump(__attribute__((unused)) const CollectedEdges &edges) {
     std::ostringstream out;
     out << "{ ";
+#ifndef NDEBUG
     for (auto &item : edges)
         out << item << ", ";
+#endif
     out << "}";
     return out.str();
 }
 
-std::string dump(const RelationsMap &map) {
+std::string dump(__attribute__((unused)) const RelationsMap &map) {
     std::ostringstream out;
     out << "{ ";
+#ifndef NDEBUG
     for (auto &pair : map) {
         out << "{ " << pair.first.get().id << ": " << pair.second << " }, ";
     }
+#endif
     out << "}" << std::endl;
     return out.str();
 }
@@ -40,10 +44,13 @@ CollectedEdges collect(RelGraph::iterator begin, RelGraph::iterator end) {
     return result;
 }
 
-void checkSize(const CollectedEdges &result, const RelGraph &graph,
+void checkSize(const CollectedEdges &result,
+               __attribute__((unused)) const RelGraph &graph,
                size_t expectedSize) {
     INFO("result " << dump(result));
+#ifndef NDEBUG
     INFO("graph:\n" << graph);
+#endif
     CHECK(result.size() == expectedSize);
 }
 
@@ -290,7 +297,9 @@ TEST_CASE("testing relations") {
         Relations::Type rel = GEN_REL();
         DYNAMIC_SECTION(rel) {
             graph.addRelation(one, rel, two);
+#ifndef NDEBUG
             INFO(graph);
+#endif
             if (rel == Relations::EQ)
                 CHECK(graph.areRelated(one, rel, one));
             else {

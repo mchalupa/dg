@@ -25,7 +25,6 @@
 #include <llvm/Bitcode/ReaderWriter.h>
 #endif
 
-#undef NDEBUG // we need dump methods
 #include "dg/llvm/ValueRelations/GraphBuilder.h"
 #include "dg/llvm/ValueRelations/GraphElements.h"
 #include "dg/llvm/ValueRelations/RelationsAnalyzer.h"
@@ -96,8 +95,8 @@ int main(int argc, char *argv[]) {
     tm.stop();
     tm.report("INFO: Value Relations analysis took");
     std::cerr << "INFO: The analysis made " << num_iter << " passes."
-              << std::endl;
-    std::cerr << std::endl;
+              << "\n";
+    std::cerr << "\n";
 
     if (todot) {
         std::cout << "digraph VR {\n";
@@ -105,7 +104,9 @@ int main(int argc, char *argv[]) {
             std::cout << "  NODE" << loc.id;
             std::cout << "[shape=box, margin=0.15, label=\"";
             std::cout << "LOCATION " << loc.id << "\\n";
+#ifndef NDEBUG
             std::cout << loc.relations;
+#endif
             std::cout << "\"];\n";
         }
 
@@ -116,12 +117,14 @@ int main(int argc, char *argv[]) {
                     std::cout << "  NODE" << loc.id << " -> NODE"
                               << succ->target->id;
                 else {
-                    std::cout << "DUMMY_NODE" << ++dummyIndex << std::endl;
+                    std::cout << "DUMMY_NODE" << ++dummyIndex << "\n";
                     std::cout << "  NODE" << loc.id << " -> DUMMY_NODE"
                               << dummyIndex;
                 }
                 std::cout << " [label=\"";
+#ifndef NDEBUG
                 succ->op->dump();
+#endif
                 std::cout << "\", color=";
                 switch (succ->type) {
                 case EdgeType::TREE:
