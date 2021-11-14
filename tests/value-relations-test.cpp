@@ -1,5 +1,5 @@
 #include "catch.hpp"
-#include "dg/llvm/ValueRelations/RelationsGraph.h"
+#include "dg/ValueRelations/RelationsGraph.h"
 #include <iostream>
 #include <sstream>
 
