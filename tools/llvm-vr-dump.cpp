@@ -88,14 +88,16 @@ int main(int argc, char *argv[]) {
     structure.analyzeBeforeRelationsAnalysis();
 
     RelationsAnalyzer ra(*M, locationMapping, blockMapping, structure);
-    ra.analyze(max_iter);
+    unsigned num_iter = ra.analyze(max_iter);
     // call to analyzeAfterRelationsAnalysis is unnecessary
     // end analysis
 
     tm.stop();
     tm.report("INFO: Value Relations analysis took");
+    std::cerr << "INFO: The analysis made " << num_iter << " passes."
+              << std::endl;
 
-    std::cout << std::endl;
+    std::cerr << std::endl;
 
     if (todot) {
         std::cout << "digraph VR {\n";

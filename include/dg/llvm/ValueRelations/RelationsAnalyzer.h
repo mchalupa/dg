@@ -1197,8 +1197,8 @@ class RelationsAnalyzer {
 
                 if (locationPtr->predecessors.size() > 1) {
                     changed = mergeRelations(locationPtr.get()) |
-                                mergeLoads(locationPtr.get()) |
-                                mergeRelationsByLoads(locationPtr.get());
+                              mergeLoads(locationPtr.get()) |
+                              mergeRelationsByLoads(locationPtr.get());
                 } else if (locationPtr->predecessors.size() == 1) {
                     VREdge *edge = locationPtr->predecessors[0];
                     changed |= processOperation(edge->source, edge->target,
@@ -1214,17 +1214,17 @@ class RelationsAnalyzer {
     RelationsAnalyzer(
             const llvm::Module &m,
             std::map<const llvm::Instruction *, VRLocation *> &locs,
-            std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>>
-                    &blcs,
+            std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>> &blcs,
             const StructureAnalyzer &sa)
             : module(m), locationMapping(locs), blockMapping(blcs),
-                structure(sa) {}
+              structure(sa) {}
 
-    void analyze(unsigned maxPass) {
+    unsigned analyze(unsigned maxPass) {
         bool changed = true;
         unsigned passNum = 0;
         while (changed && ++passNum <= maxPass)
             changed = analysisPass();
+        return passNum;
     }
 };
 
