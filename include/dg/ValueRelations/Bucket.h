@@ -159,6 +159,8 @@ struct Bucket {
     Bucket(size_t i) : id(i) { relatedBuckets[Relations::EQ].emplace(*this); }
 
     void merge(const Bucket &other) {
+        if (*this == other)
+            return;
         for (Relations::Type type : Relations::all) {
             if (type == Relations::EQ)
                 continue;
@@ -178,8 +180,9 @@ struct Bucket {
             for (auto it = relatedBuckets[type].begin();
                  it != relatedBuckets[type].end();
                  /*incremented by erase*/) {
-                it->get().relatedBuckets[Relations::inverted(type)].erase(
-                        *this);
+                if (*this != *it)
+                    it->get().relatedBuckets[Relations::inverted(type)].erase(
+                            *this);
                 it = relatedBuckets[type].erase(it);
             }
         }
@@ -187,12 +190,17 @@ struct Bucket {
     }
 
     friend void setRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
-        assert(lt != rt && "no reflexive relations");
+        assert(lt != rt || !comparative.has(type));
         lt.relatedBuckets[type].emplace(rt);
         rt.relatedBuckets[Relations::inverted(type)].emplace(lt);
     }
 
     friend bool unsetRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
+        assert(type != Relations::EQ);
+        if (lt == rt) {
+            size_t removed = lt.relatedBuckets[type].erase(rt);
+            return removed == 1;
+        }
         auto &ltRelated = lt.relatedBuckets[type];
         auto &rtRelated = rt.relatedBuckets[Relations::inverted(type)];
 
@@ -209,7 +217,8 @@ struct Bucket {
 
     bool unset(Relations::Type rel) {
         bool changed = false;
-        for (Bucket &other : relatedBuckets[rel]) {
+        BucketSet related = relatedBuckets[rel];
+        for (Bucket &other : related) {
             changed |= unsetRelated(*this, rel, other);
         }
         return changed;
