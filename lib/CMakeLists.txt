@@ -217,8 +217,9 @@ add_library(dgllvmvra SHARED
 	llvm/ValueRelations/ValueRelations.cpp
 	llvm/ValueRelations/RelationsAnalyzer.cpp
 	llvm/ValueRelations/GraphBuilder.cpp
+	llvm/ValueRelations/StructureAnalyzer.cpp
 )
-target_link_libraries(dgllvmvra PUBLIC dgvra)
+target_link_libraries(dgllvmvra PUBLIC dgvra dganalysis)
 
 add_library(dgllvmsdg SHARED
 	llvm/SystemDependenceGraph/SystemDependenceGraph.cpp
