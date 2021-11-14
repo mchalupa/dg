@@ -238,6 +238,10 @@ void StructureAnalyzer::findLoops() {
                     } else
                         location.loopEnds.emplace_back(edge);
                 }
+
+                if (&source != &location && (!source.join || location.join))
+                    source.join = &location;
+
             }
         }
     }

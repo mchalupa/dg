@@ -144,6 +144,7 @@ struct VRLocation {
     std::vector<std::unique_ptr<VREdge>> successors;
 
     std::vector<const VREdge *> loopEnds;
+    const VRLocation *join = nullptr;
 
     VRLocation(unsigned _id) : id(_id) {}
 
