@@ -156,9 +156,13 @@ bool Relations::isSigned(Type type) {
     switch (type) {
     case SLT:
     case SLE:
+    case SGT:
+    case SGE:
         return true;
     case ULT:
     case ULE:
+    case UGT:
+    case UGE:
         return false;
     default:
         assert(0 && "unreachable");

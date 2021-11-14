@@ -674,12 +674,12 @@ void StructureAnalyzer::initializeCallRelations() {
 
             // set formal parameters equal to real
             unsigned argCount = 0;
-            for (const llvm::Argument &receivedArg : function.args()) {
+            for (const llvm::Argument &formalArg : function.args()) {
                 if (argCount > call->getNumArgOperands())
                     break;
-                const llvm::Value *sentArg = call->getArgOperand(argCount);
+                const llvm::Value *realArg = call->getArgOperand(argCount);
 
-                callRelation.equalPairs.emplace_back(sentArg, &receivedArg);
+                callRelation.equalPairs.emplace_back(&formalArg, realArg);
                 ++argCount;
             }
         }
@@ -728,6 +728,25 @@ StructureAnalyzer::getCallRelationsFor(const llvm::Instruction *inst) const {
 #endif
     assert(function);
     return callRelationsMap.at(function);
+}
+
+void StructureAnalyzer::addPrecondition(const llvm::Function *func,
+                                        const llvm::Value *lt,
+                                        Relations::Type rel,
+                                        const llvm::Value *rt) {
+    Precondition p{lt, rel, rt};
+    VectorSet<Precondition> vec{std::move(p)};
+    preconditionsMap.emplace(func, std::move(vec));
+}
+
+bool StructureAnalyzer::hasPreconditions(const llvm::Function *func) const {
+    return preconditionsMap.find(func) != preconditionsMap.end();
+}
+
+const VectorSet<Precondition> &
+StructureAnalyzer::getPreconditionsFor(const llvm::Function *func) const {
+    assert(preconditionsMap.find(func) != preconditionsMap.end());
+    return preconditionsMap.find(func)->second;
 }
 
 } // namespace vr

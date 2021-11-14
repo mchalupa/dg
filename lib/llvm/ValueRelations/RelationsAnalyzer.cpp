@@ -275,7 +275,56 @@ getParams(const llvm::BinaryOperator *op) {
             llvm::cast<llvm::ConstantInt>(op->getOperand(1))};
 }
 
-void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op) {
+bool RelationsAnalyzer::canShift(const ValueRelations &graph, V param,
+                                 Relations::Type shift) {
+    auto paramType = param->getType();
+    assert(Relations::isStrict(shift) && Relations::isSigned(shift));
+    if (!graph.hasAnyRelation(param) || !param->getType()->isIntegerTy())
+        return false;
+
+    // if there is a value lesser/greater with same or smaller range, then param
+    // is also inc/decrementable
+    for (auto pair : graph.getRelated(
+                 param,
+                 Relations().set(shift).set(Relations::getNonStrict(shift)))) {
+        for (auto &val : graph.getEqual(pair.first)) {
+            auto valType = val->getType();
+            if (valType->isIntegerTy() &&
+                valType->getIntegerBitWidth() <=
+                        paramType->getIntegerBitWidth()) {
+                if (pair.second.has(shift))
+                    return true;
+                assert(pair.second.has(Relations::getNonStrict(shift)));
+                if (auto c = llvm::dyn_cast<llvm::ConstantInt>(val)) {
+                    if (!(shift == Relations::SGT && c->isMinValue(true)) &&
+                        !(shift == Relations::SLT && c->isMaxValue(true)))
+                        return true;
+                }
+            }
+        }
+    }
+
+    // if the shifted value is a parameter, it depends on the passed value;
+    // check when validating
+    if (auto paramInst = llvm::dyn_cast<llvm::Instruction>(param)) {
+        const llvm::Function *thisFun = paramInst->getFunction();
+
+        for (auto val : graph.getEqual(paramInst)) {
+            if (auto arg = llvm::dyn_cast<llvm::Argument>(val)) {
+                if (arg->getType()->isIntegerTy()) {
+                    structure.addPrecondition(
+                            thisFun, arg, shift,
+                            llvm::ConstantInt::get(arg->getType(), 0));
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void RelationsAnalyzer::solveDifferent(ValueRelations &graph,
+                                       const llvm::BinaryOperator *op) {
     auto opcode = op->getOpcode();
 
     V param = nullptr;
@@ -297,15 +346,17 @@ void solveDifferent(ValueRelations &graph, const llvm::BinaryOperator *op) {
     } else
         return;
 
-    graph.set(param, shift, op);
+    if (canShift(graph, param, shift)) {
+        graph.set(param, shift, op);
 
-    std::vector<V> sample =
-            graph.getDirectlyRelated(param, Relations().set(shift));
-    for (V val : sample)
-        assert(graph.are(param, shift, val));
+        std::vector<V> sample =
+                graph.getDirectlyRelated(param, Relations().set(shift));
+        for (V val : sample)
+            assert(graph.are(param, shift, val));
 
-    for (V val : sample)
-        graph.set(op, Relations::getNonStrict(shift), val);
+        for (V val : sample)
+            graph.set(op, Relations::getNonStrict(shift), val);
+    }
 }
 
 void RelationsAnalyzer::opGen(ValueRelations &graph,
