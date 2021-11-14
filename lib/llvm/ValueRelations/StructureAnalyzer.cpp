@@ -241,7 +241,6 @@ void StructureAnalyzer::findLoops() {
 
                 if (&source != &location && (!source.join || location.join))
                     source.join = &location;
-
             }
         }
     }
@@ -763,10 +762,11 @@ StructureAnalyzer::getPreconditionsFor(const llvm::Function *func) const {
 }
 
 size_t StructureAnalyzer::addBorderValue(const llvm::Function *func,
-                                       const llvm::Argument *from) {
+                                         const llvm::Argument *from,
+                                         const llvm::Value *stored) {
     auto &borderVals = borderValues[func];
     auto id = borderVals.size();
-    borderVals.emplace_back(from, id);
+    borderVals.emplace_back(id, from, stored);
     return id;
 }
 
@@ -780,8 +780,10 @@ StructureAnalyzer::getBorderValuesFor(const llvm::Function *func) const {
     return borderValues.find(func)->second;
 }
 
-const llvm::Argument *StructureAnalyzer::getBorderArgumentFor(const llvm::Function *func, size_t id) const {
-    for (const auto& bv : getBorderValuesFor(func)) {
+const llvm::Argument *
+StructureAnalyzer::getBorderArgumentFor(const llvm::Function *func,
+                                        size_t id) const {
+    for (const auto &bv : getBorderValuesFor(func)) {
         if (bv.id == id)
             return bv.from;
     }

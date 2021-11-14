@@ -836,7 +836,7 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
             }
         }
 
-        auto id = structure.addBorderValue(func, arg);
+        auto id = structure.addBorderValue(func, arg, compared);
         Handle entryBorderPlaceholder = entryRels.newBorderBucket(id);
         entryRels.set(entryBorderPlaceholder, Relations::PT, compared);
         entryRels.set(entryBorderPlaceholder,
