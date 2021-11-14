@@ -365,6 +365,8 @@ class RelationsGraph {
         case Relations::NE:
             for (Relations::Type rel : {Relations::SLT, Relations::ULT,
                                         Relations::SGT, Relations::UGT}) {
+                if (areRelated(lt, rel, rt))
+                    return false;
                 if (areRelated(lt, Relations::getNonStrict(rel), rt,
                                &between)) {
                     unsetRelated(mLt, Relations::getNonStrict(rel), mRt);
@@ -377,6 +379,8 @@ class RelationsGraph {
         case Relations::ULT:
             if (areRelated(lt, Relations::getNonStrict(type), rt, &between))
                 unsetRelated(mLt, Relations::getNonStrict(type), mRt);
+            if (areRelated(lt, Relations::NE, rt, &between))
+                unsetRelated(mLt, Relations::NE, mRt);
             break; // jump after switch
 
         case Relations::SLE:
