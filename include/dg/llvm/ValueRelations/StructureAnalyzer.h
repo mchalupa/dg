@@ -70,7 +70,8 @@ class StructureAnalyzer {
     // holds vector of instructions, which are processed on any path back to
     // given location is computed only for locations with more than one
     // predecessor
-    std::map<VRLocation *, std::vector<const llvm::Instruction *>> inloopValues;
+    std::map<const VRLocation *, std::vector<const llvm::Instruction *>>
+            inloopValues;
 
     // holds vector of values, which are defined at given location
     std::map<VRLocation *, std::set<const llvm::Value *>> defined;
@@ -153,7 +154,7 @@ class StructureAnalyzer {
 
     // assumes that location is valid loop start (join of tree and back edges)
     const std::vector<const llvm::Instruction *> &
-    getInloopValues(VRLocation &location) const {
+    getInloopValues(const VRLocation &location) const {
         return inloopValues.at(&location);
     }
 
