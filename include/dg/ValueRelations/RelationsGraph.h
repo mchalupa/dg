@@ -239,8 +239,11 @@ struct RelationsGraph {
                               });
 
         Bucket::BucketSet other;
-        for (auto &pair : result)
-            other.emplace(const_cast<Bucket &>(pair.first.get()));
+        for (auto &pair : result) {
+            Bucket &b = const_cast<Bucket &>(pair.first.get());
+            assert(!other.contains(b));
+            other.sure_emplace(b);
+        }
 
         return other;
     }

@@ -5,9 +5,11 @@
 #include <iostream>
 #endif
 
+#include <algorithm>
 #include <cassert>
 #include <functional>
 #include <set>
+#include <type_traits>
 #include <vector>
 
 #include "Relations.h"
@@ -15,9 +17,82 @@
 namespace dg {
 namespace vr {
 
+// implementation of set using vector to save memory (at the time of writing,
+// saved about a quarter of total), with no time overhead in this case
+template <typename T>
+class VectorSet {
+    std::vector<T> vec;
+
+  public:
+    using const_iterator = typename std::vector<T>::const_iterator;
+    using iterator = typename std::vector<T>::iterator;
+    using const_reverse_iterator =
+            typename std::vector<T>::const_reverse_iterator;
+
+    VectorSet() = default;
+
+    template <typename S>
+    VectorSet(std::initializer_list<S> lst) : vec(std::move(lst)) {}
+
+    template <typename S>
+    iterator find(const S &val) {
+        return std::find(vec.begin(), vec.end(), val);
+    }
+    template <typename S>
+    const_iterator find(const S &val) const {
+        return std::find(vec.begin(), vec.end(), val);
+    }
+
+    template <typename S>
+    bool contains(const S &val) const {
+        return find(val) != vec.end();
+    }
+
+    template <typename... S>
+    void emplace(S &&...vals) {
+        T val(std::forward<S>(vals)...);
+        if (!contains(val))
+            vec.emplace_back(std::move(val));
+    }
+
+    template <typename... S>
+    void sure_emplace(S &&...vals) {
+        vec.emplace_back(std::forward<S>(vals)...);
+    }
+
+    template <typename It, typename X = typename It::iterator_category>
+    iterator erase(const It &it) {
+        return vec.erase(it);
+    }
+
+    template <typename S,
+              typename X = decltype(std::declval<S &>() == std::declval<T &>())>
+    bool erase(const S &val) {
+        auto it = find(val);
+        if (it == vec.end())
+            return false;
+        vec.erase(it);
+        return true;
+    }
+
+    void clear() { vec.clear(); }
+    size_t size() const { return vec.size(); }
+    bool empty() const { return vec.empty(); }
+
+    iterator begin() { return vec.begin(); }
+    iterator end() { return vec.end(); }
+    const_iterator begin() const { return vec.begin(); }
+    const_iterator end() const { return vec.end(); }
+
+    iterator rbegin() { return vec.rbegin(); }
+    iterator rend() { return vec.rend(); }
+    const_reverse_iterator rbegin() const { return vec.rbegin(); }
+    const_reverse_iterator rend() const { return vec.rend(); }
+};
+
 struct Bucket {
-    using BucketSet = std::set<std::reference_wrapper<Bucket>>;
-    using ConstBucketSet = std::set<std::reference_wrapper<const Bucket>>;
+    using ConstBucketSet = VectorSet<std::reference_wrapper<const Bucket>>;
+    using BucketSet = VectorSet<std::reference_wrapper<Bucket>>;
     const size_t id;
 
     class RelationEdge {
@@ -198,15 +273,14 @@ struct Bucket {
     friend bool unsetRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
         assert(type != Relations::EQ);
         if (lt == rt) {
-            size_t removed = lt.relatedBuckets[type].erase(rt);
-            return removed == 1;
+            return lt.relatedBuckets[type].erase(rt);
         }
         auto &ltRelated = lt.relatedBuckets[type];
         auto &rtRelated = rt.relatedBuckets[Relations::inverted(type)];
 
         auto found = ltRelated.find(rt);
         if (found == ltRelated.end()) {
-            assert(rtRelated.find(lt) == rtRelated.end());
+            assert(!rtRelated.contains(lt));
             return false;
         }
 
