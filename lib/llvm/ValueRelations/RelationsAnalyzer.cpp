@@ -545,6 +545,24 @@ getParams(const ValueRelations &graph, const llvm::ICmpInst *icmp) {
     return {nullptr, nullptr};
 }
 
+std::vector<const VREdge *>
+RelationsAnalyzer::possibleSources(const llvm::PHINode *phi, bool bval) const {
+    std::vector<const VREdge *> result;
+    for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
+        V val = phi->getIncomingValue(i);
+        const auto *cVal = llvm::dyn_cast<llvm::ConstantInt>(val);
+
+        if (!cVal || (cVal->isOne() && bval) || (cVal->isZero() && !bval)) {
+            const auto *block = phi->getIncomingBlock(i);
+            const VRLocation &end = codeGraph.getVRLocation(
+                    &*std::prev(std::prev(block->end())));
+            assert(end.succsSize() == 1);
+            result.emplace_back(end.getSuccEdge(0));
+        }
+    }
+    return result;
+}
+
 void RelationsAnalyzer::inferFromNEPointers(ValueRelations &newGraph,
                                             VRAssumeBool *assume) const {
     const llvm::ICmpInst *icmp =
@@ -582,31 +600,27 @@ void RelationsAnalyzer::inferFromNEPointers(ValueRelations &newGraph,
     }
 }
 
-bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
+bool RelationsAnalyzer::processPhi(const ValueRelations &oldGraph,
+                                   ValueRelations &newGraph,
                                    VRAssumeBool *assume) const {
     const llvm::PHINode *phi = llvm::cast<llvm::PHINode>(assume->getValue());
-    bool assumption = assume->getAssumption();
+    const auto &sources = possibleSources(phi, assume->getAssumption());
+    if (sources.size() != 1)
+        return true;
 
-    const llvm::BasicBlock *assumedPred = nullptr;
-    for (unsigned i = 0; i < phi->getNumIncomingValues(); ++i) {
-        V result = phi->getIncomingValue(i);
-        const auto *constResult = llvm::dyn_cast<llvm::ConstantInt>(result);
-        if (!constResult ||
-            (constResult && ((constResult->isOne() && assumption) ||
-                             (constResult->isZero() && !assumption)))) {
-            if (!assumedPred)
-                assumedPred = phi->getIncomingBlock(i);
-            else
-                return true; // we found other viable incoming block
-        }
+    VRInstruction *inst = static_cast<VRInstruction *>(sources[0]->op.get());
+    const auto *icmp = llvm::dyn_cast<llvm::ICmpInst>(inst->getInstruction());
+
+    bool result;
+    if (icmp) {
+        VRAssumeBool tmp{inst->getInstruction(), assume->getAssumption()};
+        result = processICMP(oldGraph, newGraph, &tmp);
+        if (!result)
+            return false;
     }
-    assert(assumedPred);
-    assert(assumedPred->size() > 1);
-    const llvm::Instruction &lastBeforeTerminator =
-            *std::prev(std::prev(assumedPred->end()));
 
-    VRLocation &source = codeGraph.getVRLocation(&lastBeforeTerminator);
-    __attribute__((unused)) bool result = newGraph.merge(source.relations);
+    VRLocation &source = *sources[0]->target;
+    result = newGraph.merge(source.relations);
     assert(result);
     return true;
 }
