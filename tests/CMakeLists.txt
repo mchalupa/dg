@@ -210,4 +210,4 @@ target_link_libraries(ptset-benchmark PRIVATE dganalysis dgpta)
 # value-relations-test
 # --------------------------------------------------
 add_catch_test(value-relations-test.cpp)
-target_link_libraries(value-relations-test PRIVATE dgllvmvra)
+target_link_libraries(value-relations-test PRIVATE dgvra)
