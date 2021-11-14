@@ -83,26 +83,35 @@ class RelationsAnalyzer {
                                Relations known, V rt);
     static void checkRelatesInAll(VRLocation &location, V lt, Relations known,
                                   V rt, std::set<V> &setEqual);
-    static Relations getCommonByPointedTo(
-            V from, const std::vector<const ValueRelations *> &changeRelations,
-            V val, Relations rels);
-    static Relations getCommonByPointedTo(
-            V from, const std::vector<const ValueRelations *> &changeRelations,
-            V firstLoad, V prevVal);
-    std::pair<std::vector<const ValueRelations *>, V>
-    getChangeRelations(V from, VRLocation &join);
+    static Relations
+    getCommonByPointedTo(V from,
+                         const std::vector<const VRLocation *> &changeRelations,
+                         V val, Relations rels);
+    static Relations
+    getCommonByPointedTo(V from,
+                         const std::vector<const VRLocation *> &changeLocations,
+                         V firstLoad, V prevVal);
+    std::vector<const VRLocation *>
+    getBranchChangeLocations(const VRLocation &join, V from) const;
+    std::pair<std::vector<const VRLocation *>, V>
+    getLoopChangeLocations(const VRLocation &join, V form) const;
+
+    // get target locations of changing instructions
+    std::pair<std::vector<const VRLocation *>, V>
+    getChangeLocations(const VRLocation &join, V from);
     static std::pair<C, Relations> getBoundOnPointedToValue(
-            const std::vector<const ValueRelations *> &changeRelations, V from,
+            const std::vector<const VRLocation *> &changeLocations, V from,
             Relation rel);
-    static void relateToFirstLoad(
-            const std::vector<const ValueRelations *> &changeRelations, V from,
-            ValueRelations &newGraph, Handle placeholder, V firstLoad);
     static void
-    relateBounds(const std::vector<const ValueRelations *> &changeRelations,
-                 V from, ValueRelations &newGraph, Handle placeholder);
+    relateToFirstLoad(const std::vector<const VRLocation *> &changeLocations,
+                      V from, ValueRelations &newGraph, Handle placeholder,
+                      V firstLoad);
     static void
-    relateValues(const std::vector<const ValueRelations *> &changeRelations,
-                 V from, ValueRelations &newGraph, Handle placeholder);
+    relateBounds(const std::vector<const VRLocation *> &changeLocations, V from,
+                 ValueRelations &newGraph, Handle placeholder);
+    static void
+    relateValues(const std::vector<const VRLocation *> &changeLocations, V from,
+                 ValueRelations &newGraph, Handle placeholder);
 
     // **************************** merge ******************************* //
     static void mergeRelations(VRLocation &location);
