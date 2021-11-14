@@ -196,15 +196,6 @@ void StructureAnalyzer::categorizeEdges() {
     codeGraph.hasCategorizedEdges();
 }
 
-bool allEdgesOut(const std::set<VREdge *> &backwardReach,
-                 const VRLocation *loc) {
-    for (size_t i = 0; i < loc->succsSize(); ++i) {
-        if (backwardReach.find(loc->getSuccEdge(i)) != backwardReach.end())
-            return false;
-    }
-    return true;
-}
-
 void StructureAnalyzer::findLoops() {
     for (const auto &function : module) {
         if (function.isDeclaration())
@@ -216,7 +207,6 @@ void StructureAnalyzer::findLoops() {
 
             if (!location.isJustLoopJoin())
                 continue;
-            // std::cerr << location.id << "\n";
 
             auto backwardReach = collectBackward(function, location);
 
@@ -226,38 +216,35 @@ void StructureAnalyzer::findLoops() {
                                      std::vector<const llvm::Instruction *>())
                             .first->second;
 
-            // iterates over nodes, not edges, so the code is a bit hacked :(
-            // TODO write proper edge iterator
             for (auto it = codeGraph.lazy_dfs_begin(function, location);
                  it != codeGraph.lazy_dfs_end(); ++it) {
-                const VRLocation &loc = *it;
+                VRLocation &source = *it;
 
-                for (size_t i = 0; i < loc.succsSize(); ++i) {
-                    VREdge *edge = loc.getSuccEdge(i);
+                if (backwardReach.find(&source) == backwardReach.end())
+                    continue;
 
-                    if (backwardReach.find(edge) != backwardReach.end()) {
-                        if (!edge->target)
-                            continue;
+                for (size_t i = 0; i < source.succsSize(); ++i) {
+                    VREdge *edge = source.getSuccEdge(i);
+                    if (!edge->target)
+                        continue;
 
-                        if (allEdgesOut(backwardReach, edge->target)) {
-                            location.loopEnds.emplace_back(edge);
-                            continue;
-                        }
-
+                    if (backwardReach.find(edge->target) !=
+                        backwardReach.end()) {
                         if (edge->op->isInstruction()) {
                             auto *op = static_cast<VRInstruction *>(
                                     edge->op.get());
                             loop.emplace_back(op->getInstruction());
                         }
-                    }
+                    } else
+                        location.loopEnds.emplace_back(edge);
                 }
             }
         }
     }
 }
 
-std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
-                                                      VRLocation &from) {
+std::set<VRLocation *>
+StructureAnalyzer::collectBackward(const llvm::Function &f, VRLocation &from) {
     std::vector<VREdge *> &predEdges = from.predecessors;
 
     // remove the incoming tree edge, so that backwardReach would
@@ -272,27 +259,13 @@ std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
     }
     assert(treePred); // every join has to have exactly one tree predecessor
 
-    std::set<VREdge *> result;
+    std::set<VRLocation *> result;
     for (auto it = codeGraph.backward_dfs_begin(f, from);
          it != codeGraph.backward_dfs_end(); ++it) {
-        VRLocation &loc = *it;
-        for (size_t i = 0; i < loc.succsSize(); ++i) {
-            assert(loc.getSuccEdge(i));
-            result.emplace(loc.getSuccEdge(i));
-        }
+        result.emplace(&*it);
     }
 
-    assert(from.succsSize() >= 1);
-    // since from is marked visited at the beginning, these edge would never be
-    // visited
-    for (auto &edge : from.successors) {
-        // graph is build such that every assume is followed by noop and only
-        // possibility of having more than one successor is to have outgoing
-        // assume edges
-        assert(edge->target->succsSize() == 1);
-        if (result.find(edge->target->getSuccEdge(0)) != result.end())
-            result.emplace(edge.get());
-    }
+    assert(result.find(&from) != result.end());
 
     // put the tree edge back in
     predEdges.emplace_back(treePred);

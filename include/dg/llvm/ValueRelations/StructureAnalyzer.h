@@ -47,8 +47,8 @@ class StructureAnalyzer {
 
     void findLoops();
 
-    std::set<VREdge *> collectBackward(const llvm::Function &f,
-                                       VRLocation &from);
+    std::set<VRLocation *> collectBackward(const llvm::Function &f,
+                                           VRLocation &from);
 
     void initializeDefined();
 
