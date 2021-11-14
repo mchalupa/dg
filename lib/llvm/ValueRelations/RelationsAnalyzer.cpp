@@ -1029,7 +1029,6 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
         processInstruction(newGraph, inst);
 
     } else if (op->isAssume()) {
-        newGraph.merge(source->relations, Relations().pt());
         bool shouldMerge;
         if (op->isAssumeBool())
             shouldMerge = processAssumeBool(source->relations, newGraph,
@@ -1037,9 +1036,10 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
         else // isAssumeEqual
             shouldMerge = processAssumeEqual(source->relations, newGraph,
                                              static_cast<VRAssumeEqual *>(op));
-        if (shouldMerge)
-            newGraph.merge(source->relations, comparative);
-
+        if (shouldMerge) {
+            bool result = newGraph.merge(source->relations);
+            assert(result);
+        }
     } else { // else op is noop
         newGraph.merge(source->relations, allRelations);
     }
