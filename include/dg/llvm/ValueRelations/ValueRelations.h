@@ -466,8 +466,8 @@ struct ValueRelations {
     const std::vector<bool> &getValidAreas() const { return validAreas; }
 
     // ************************** placeholder ***************************** //
-    Handle newPlaceholderBucket() {
-        Handle h = graph.getNewBucket();
+    Handle newBorderBucket(size_t id) {
+        Handle h = graph.getBorderBucket(id);
         bucketToVals[h];
         return h;
     }
@@ -489,8 +489,6 @@ struct ValueRelations {
     static bool compare(C lt, Relations::Type rel, C rt);
     static bool compare(C lt, Relations rels, C rt);
     static Relations compare(C lt, C rt);
-    HandlePtr getCorrespondingBorder(const ValueRelations &other,
-                                     Handle otherH);
     bool merge(const ValueRelations &other, Relations relations = allRelations);
     bool unsetChanged() {
         bool old = changed;
@@ -498,6 +496,9 @@ struct ValueRelations {
         return old;
     }
     bool holdsAnyRelations() const;
+
+    HandlePtr getBorderH(size_t id) const;
+    size_t getBorderId(Handle h) const;
 
 #ifndef NDEBUG
     void dump(ValueRelations::Handle h, std::ostream &out = std::cerr) const;

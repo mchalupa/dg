@@ -254,37 +254,13 @@ bool ValueRelations::holdsAnyRelations() const {
 }
 
 ValueRelations::HandlePtr
-ValueRelations::getCorrespondingBorder(const ValueRelations &other,
-                                       Handle otherH) {
-    HandlePtr result = nullptr;
-    for (auto otherRel : other.getRelated(otherH, Relations().sle().sge())) {
-        if (otherRel.second.has(Relations::EQ))
-            continue;
-
-        const llvm::Value *arg =
-                V(other.getInstance<llvm::Argument>(otherRel.first));
-        if (!arg)
-            continue;
-
-        for (auto thisRel : getRelated(arg, otherRel.second.invert())) {
-            if (getEqual(thisRel.first).empty() &&
-                !has(thisRel.first, Relations::PF)) {
-                assert(!result);
-                result = &thisRel.first.get();
-            }
-        }
-    }
-    return result;
-}
-
-ValueRelations::HandlePtr
 ValueRelations::getCorresponding(const ValueRelations &other, Handle otherH,
                                  const VectorSet<V> &otherEqual) {
     if (otherEqual.empty()) { // other is a placeholder bucket, therefore it is
                               // pointed to from other bucket
         if (!otherH.hasRelation(Relations::PF)) {
-            HandlePtr thisH = getCorrespondingBorder(other, otherH);
-            return thisH ? thisH : &newPlaceholderBucket();
+            HandlePtr thisH = getBorderH(other.getBorderId(otherH));
+            return thisH ? thisH : &newBorderBucket(other.getBorderId(otherH));
         }
         assert(otherH.hasRelation(Relations::PF));
         Handle otherFromH = otherH.getRelated(Relations::PF);
@@ -418,6 +394,14 @@ void ValueRelations::areMerged(Handle to, Handle from) {
 
     assert(bucketToVals.at(from).empty());
     bucketToVals.erase(from);
+}
+
+ValueRelations::HandlePtr ValueRelations::getBorderH(size_t id) const {
+    return graph.getBorderB(id);
+}
+
+size_t ValueRelations::getBorderId(Handle h) const {
+    return graph.getBorderId(h);
 }
 
 std::string strip(std::string str, size_t skipSpaces) {

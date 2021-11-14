@@ -61,10 +61,10 @@ struct Precondition {
 
 struct BorderValue {
     const llvm::Argument *from;
-    ValueRelations::Handle handle;
+    size_t id;
 
-    BorderValue(const llvm::Argument *f, ValueRelations::Handle h)
-            : from(f), handle(h) {}
+    BorderValue(const llvm::Argument *f, size_t i)
+            : from(f), id(i) {}
 };
 
 } // namespace vr

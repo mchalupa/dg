@@ -24,6 +24,21 @@ class RelationsGraph {
     using RelationsMap =
             std::map<std::reference_wrapper<const Bucket>, Relations>;
 
+    const Bucket *getBorderB(size_t id) const {
+        assert(id != std::string::npos);
+        for (const auto &pair : borderBuckets)
+            if (pair.first == id)
+                return &pair.second.get();
+        return nullptr;
+    }
+
+    size_t getBorderId(const Bucket &h) const {
+        for (const auto &pair : borderBuckets)
+            if (pair.second == h)
+                return pair.first;
+        return std::string::npos;
+    }
+
   private:
     using UniqueBucketSet = std::set<std::unique_ptr<Bucket>>;
 
@@ -126,8 +141,17 @@ class RelationsGraph {
     UniqueBucketSet buckets;
     size_t lastId = 0;
 
+    std::vector<std::pair<size_t, std::reference_wrapper<const Bucket>>> borderBuckets;
+
     bool setEqual(Bucket &to, Bucket &from) {
         assert(to != from);
+        if (getBorderId(from) != std::string::npos) {
+            assert(getBorderId(to) == std::string::npos); // cannot merge two border buckets
+            for (auto &pair : borderBuckets) {
+                if (from == pair.second)
+                    pair.second = to;
+            }
+        }
         reported.areMerged(to, from);
         to.merge(from);
         erase(from);
@@ -451,7 +475,21 @@ class RelationsGraph {
 
     size_t size() const { return buckets.size(); }
 
+    const Bucket &getBorderBucket(size_t id) {
+        const Bucket &bucket = getNewBucket();
+        assert(getBorderB(id) == nullptr);
+        borderBuckets.emplace_back(id, bucket);
+        return bucket;
+    }
+
 #ifndef NDEBUG
+    void dumpBorderBuckets(std::ostream &out = std::cerr) const {
+        out << "[ ";
+        for (auto &pair : borderBuckets)
+            out << "(id " << pair.first << ", b " << pair.second.get().id << "), ";
+        out << "]\n";
+    }
+
     friend std::ostream &operator<<(std::ostream &out,
                                     const RelationsGraph &graph) {
         for (const auto &item : graph.buckets)
