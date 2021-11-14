@@ -138,7 +138,7 @@ class RelationsAnalyzer {
 
     // ************************* topmost ******************************* //
     void processOperation(VRLocation *source, VRLocation *target, VROp *op);
-    bool passFunction(const llvm::Function *function, bool print);
+    bool passFunction(const llvm::Function &function, bool print);
 
   public:
     RelationsAnalyzer(const llvm::Module &m, const VRCodeGraph &g,

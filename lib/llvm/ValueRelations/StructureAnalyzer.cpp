@@ -168,8 +168,8 @@ void StructureAnalyzer::categorizeEdges() {
         if (function.isDeclaration())
             continue;
 
-        for (auto it = codeGraph.dfs_begin(&function);
-             it != codeGraph.dfs_end(&function); ++it) {
+        for (auto it = codeGraph.dfs_begin(function); it != codeGraph.dfs_end();
+             ++it) {
             VRLocation &current = *it;
             VREdge *predEdge = it.getEdge();
 
@@ -200,8 +200,8 @@ void StructureAnalyzer::findLoops() {
         if (function.isDeclaration())
             continue;
 
-        for (auto it = codeGraph.lazy_dfs_begin(&function);
-                it != codeGraph.lazy_dfs_end(&function); ++it) {
+        for (auto it = codeGraph.lazy_dfs_begin(function);
+             it != codeGraph.lazy_dfs_end(); ++it) {
             VRLocation &location = *it;
 
             if (!location.isJustLoopJoin())
@@ -220,7 +220,7 @@ void StructureAnalyzer::findLoops() {
                 }
             }
             assert(treePred); // every join has to have exactly one tree
-                                // predecessor
+                              // predecessor
 
             auto forwardReach =
                     collectReachableEdges(&function, location, true);
@@ -233,40 +233,37 @@ void StructureAnalyzer::findLoops() {
             auto inloopValuesIt =
                     inloopValues
                             .emplace(&location,
-                                        std::vector<
-                                                const llvm::Instruction *>())
+                                     std::vector<const llvm::Instruction *>())
                             .first;
 
             for (auto edge : forwardReach) {
                 if (std::find(backwardReach.begin(), backwardReach.end(),
-                                edge) != backwardReach.end()) {
+                              edge) != backwardReach.end()) {
                     edge->target->inLoop = true;
                     if (edge->op->isInstruction()) {
-                        auto *op = static_cast<VRInstruction *>(
-                                edge->op.get());
+                        auto *op = static_cast<VRInstruction *>(edge->op.get());
                         inloopValuesIt->second.emplace_back(
                                 op->getInstruction());
                     }
                 }
             }
             assert(location.succsSize() == 1);
-            if (!forwardReach.empty() &&
-                forwardReach[0]->op->isInstruction())
+            if (!forwardReach.empty() && forwardReach[0]->op->isInstruction())
                 inloopValues.at(&location).emplace(
                         inloopValues.at(&location).begin(),
-                        static_cast<VRInstruction *>(
-                                forwardReach[0]->op.get())
+                        static_cast<VRInstruction *>(forwardReach[0]->op.get())
                                 ->getInstruction());
         }
     }
 }
 
-std::vector<VREdge *> StructureAnalyzer::collectReachableEdges(
-        const llvm::Function *f, VRLocation &from, bool goForward) {
+std::vector<VREdge *>
+StructureAnalyzer::collectReachableEdges(const llvm::Function *f,
+                                         VRLocation &from, bool goForward) {
     std::vector<VREdge *> result;
     if (goForward) {
         for (auto it = codeGraph.lazy_dfs_begin(f, from);
-                it != codeGraph.lazy_dfs_end(f, from); ++it) {
+             it != codeGraph.lazy_dfs_end(f, from); ++it) {
             if (VREdge *edge = it.getEdge())
                 result.emplace_back(edge);
         }
@@ -274,7 +271,7 @@ std::vector<VREdge *> StructureAnalyzer::collectReachableEdges(
     }
 
     for (auto it = codeGraph.backward_dfs_begin(f, from);
-            it != codeGraph.backward_dfs_end(f, from); ++it) {
+         it != codeGraph.backward_dfs_end(f, from); ++it) {
         if (VREdge *edge = it.getEdge())
             result.emplace_back(edge);
     }
@@ -287,7 +284,7 @@ void StructureAnalyzer::initializeDefined() {
             continue;
 
         std::list<VRLocation *> toVisit = {
-                &codeGraph.getEntryLocation(&function)};
+                &codeGraph.getEntryLocation(function)};
 
         // prepare sets of defined values for each location
         for (auto &location : codeGraph) {
@@ -319,8 +316,7 @@ void StructureAnalyzer::initializeDefined() {
 
                 // add instruction, if edge carries any
                 if (succEdge->op->isInstruction()) {
-                    auto *op = static_cast<VRInstruction *>(
-                            succEdge->op.get());
+                    auto *op = static_cast<VRInstruction *>(succEdge->op.get());
                     definedSucc.emplace(op->getInstruction());
                 }
 
@@ -332,8 +328,7 @@ void StructureAnalyzer::initializeDefined() {
 
 void StructureAnalyzer::collectInstructionSet() {
     for (unsigned opcode : collected)
-        instructionSets.emplace(opcode,
-                                std::set<const llvm::Instruction *>());
+        instructionSets.emplace(opcode, std::set<const llvm::Instruction *>());
 
     for (const llvm::Function &function : module) {
         for (const llvm::BasicBlock &block : function) {
@@ -348,8 +343,7 @@ void StructureAnalyzer::collectInstructionSet() {
     }
 }
 
-bool StructureAnalyzer::isValidAllocationCall(const llvm::Value *val)
-        const {
+bool StructureAnalyzer::isValidAllocationCall(const llvm::Value *val) const {
     if (!llvm::isa<llvm::CallInst>(val))
         return false;
 
@@ -358,8 +352,8 @@ bool StructureAnalyzer::isValidAllocationCall(const llvm::Value *val)
 
     AnalysisOptions options;
     return function &&
-            options.isAllocationFunction(function->getName().str()) &&
-            (options.getAllocationFunction(function->getName().str()) !=
+           options.isAllocationFunction(function->getName().str()) &&
+           (options.getAllocationFunction(function->getName().str()) !=
                     AllocationFunction::CALLOC ||
             llvm::isa<llvm::ConstantInt>(call->getOperand(1)));
 }
@@ -373,8 +367,7 @@ void StructureAnalyzer::collectAllocatedAreas() {
                     allocatedAreas.emplace_back(alloca);
                 }
 
-                else if (auto call =
-                                    llvm::dyn_cast<llvm::CallInst>(&inst)) {
+                else if (auto call = llvm::dyn_cast<llvm::CallInst>(&inst)) {
                     if (isValidAllocationCall(call)) {
                         allocatedAreas.emplace_back(call);
                     }
@@ -384,13 +377,14 @@ void StructureAnalyzer::collectAllocatedAreas() {
     }
 }
 
-void StructureAnalyzer::setValidAreasFromNoPredecessors(std::vector<bool> &
-                                                        validAreas) const {
+void StructureAnalyzer::setValidAreasFromNoPredecessors(
+        std::vector<bool> &validAreas) const {
     validAreas = std::vector<bool>(allocatedAreas.size(), false);
 }
 
-std::pair<unsigned, const AllocatedArea *> StructureAnalyzer::getEqualArea(
-        const ValueRelations &graph, const llvm::Value *ptr) const {
+std::pair<unsigned, const AllocatedArea *>
+StructureAnalyzer::getEqualArea(const ValueRelations &graph,
+                                const llvm::Value *ptr) const {
     unsigned index = 0;
     const AllocatedArea *area = nullptr;
     for (auto *equal : graph.getEqual(ptr)) {
@@ -401,8 +395,8 @@ std::pair<unsigned, const AllocatedArea *> StructureAnalyzer::getEqualArea(
     return {0, nullptr};
 }
 
-void StructureAnalyzer::invalidateHeapAllocatedAreas(std::vector<bool> &
-                                                        validAreas) const {
+void StructureAnalyzer::invalidateHeapAllocatedAreas(
+        std::vector<bool> &validAreas) const {
     unsigned index = 0;
     for (const AllocatedArea &area : allocatedAreas) {
         if (llvm::isa<llvm::CallInst>(area.getPtr()))
@@ -412,8 +406,8 @@ void StructureAnalyzer::invalidateHeapAllocatedAreas(std::vector<bool> &
 }
 
 void StructureAnalyzer::setValidAreasByInstruction(
-        VRLocation & location, std::vector<bool> & validAreas,
-        VRInstruction * vrinst) const {
+        VRLocation &location, std::vector<bool> &validAreas,
+        VRInstruction *vrinst) const {
     const llvm::Instruction *inst = vrinst->getInstruction();
     unsigned index = 0;
     const AllocatedArea *area = nullptr;
@@ -429,8 +423,8 @@ void StructureAnalyzer::setValidAreasByInstruction(
     // invalid
     if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
         if (intrinsic->getIntrinsicID() == llvm::Intrinsic::lifetime_end) {
-            std::tie(index, area) = getEqualArea(location.relations,
-                                                    intrinsic->getOperand(1));
+            std::tie(index, area) =
+                    getEqualArea(location.relations, intrinsic->getOperand(1));
             assert(area);
             validAreas[index] = false;
         }
@@ -452,7 +446,7 @@ void StructureAnalyzer::setValidAreasByInstruction(
             if (area)
                 validAreas[index] = false;
             else if (!llvm::isa<llvm::ConstantPointerNull>(
-                                call->getOperand(0))) {
+                             call->getOperand(0))) {
                 // else we do not know which area has been reallocated and
                 // thus possibly invalidated, so it may have been any of
                 // them
@@ -469,7 +463,7 @@ void StructureAnalyzer::setValidAreasByInstruction(
             if (area)
                 validAreas[index] = false;
             else if (!llvm::isa<llvm::ConstantPointerNull>(
-                                call->getOperand(0))) {
+                             call->getOperand(0))) {
                 // else we do not know which area has been freed, so it may
                 // have been any of them
                 invalidateHeapAllocatedAreas(validAreas);
@@ -478,9 +472,9 @@ void StructureAnalyzer::setValidAreasByInstruction(
     }
 }
 
-void StructureAnalyzer::setValidArea(
-        std::vector<bool> & validAreas, const AllocatedArea *area,
-        unsigned index, bool validateThis) const {
+void StructureAnalyzer::setValidArea(std::vector<bool> &validAreas,
+                                     const AllocatedArea *area, unsigned index,
+                                     bool validateThis) const {
     unsigned preReallocIndex = 0;
     const AllocatedArea *preReallocArea = nullptr;
     if (area->getReallocatedPtr())
@@ -500,9 +494,9 @@ void StructureAnalyzer::setValidArea(
 }
 
 // if heap allocation call was just checked as successful, mark memory valid
-void StructureAnalyzer::setValidAreasByAssumeBool(
-        VRLocation & location, std::vector<bool> & validAreas,
-        VRAssumeBool * assume) const {
+void StructureAnalyzer::setValidAreasByAssumeBool(VRLocation &location,
+                                                  std::vector<bool> &validAreas,
+                                                  VRAssumeBool *assume) const {
     auto icmp = llvm::dyn_cast<llvm::ICmpInst>(assume->getValue());
     if (!icmp)
         return;
@@ -516,8 +510,7 @@ void StructureAnalyzer::setValidAreasByAssumeBool(
         return;
 
     // get the compared parameter
-    const llvm::Value *param =
-            c1 ? icmp->getOperand(1) : icmp->getOperand(0);
+    const llvm::Value *param = c1 ? icmp->getOperand(1) : icmp->getOperand(0);
 
     unsigned index = 0;
     const AllocatedArea *area = nullptr;
@@ -534,8 +527,8 @@ void StructureAnalyzer::setValidAreasByAssumeBool(
         return;
 
     llvm::ICmpInst::Predicate pred = assume->getAssumption()
-                                                ? icmp->getSignedPredicate()
-                                                : icmp->getInversePredicate();
+                                             ? icmp->getSignedPredicate()
+                                             : icmp->getInversePredicate();
 
     // check that predicate implies wanted relation
     switch (pred) {
@@ -583,7 +576,7 @@ void StructureAnalyzer::setValidAreasByAssumeBool(
 }
 
 void StructureAnalyzer::setValidAreasFromSinglePredecessor(
-        VRLocation & location, std::vector<bool> & validAreas) const {
+        VRLocation &location, std::vector<bool> &validAreas) const {
     // copy predecessors valid areas
     VREdge *edge = location.getPredEdge(0);
     validAreas = edge->source->relations.getValidAreas();
@@ -595,14 +588,13 @@ void StructureAnalyzer::setValidAreasFromSinglePredecessor(
                 static_cast<VRInstruction *>(edge->op.get()));
 
     if (edge->op->isAssumeBool())
-        setValidAreasByAssumeBool(
-                location, validAreas,
-                static_cast<VRAssumeBool *>(edge->op.get()));
+        setValidAreasByAssumeBool(location, validAreas,
+                                  static_cast<VRAssumeBool *>(edge->op.get()));
 }
 
 bool StructureAnalyzer::trueInAll(
-        const std::vector<std::vector<bool>> &validInPreds, unsigned index)
-        const {
+        const std::vector<std::vector<bool>> &validInPreds,
+        unsigned index) const {
     for (const auto &validInPred : validInPreds) {
         if (validInPred.empty() || !validInPred[index])
             return false;
@@ -626,7 +618,7 @@ std::vector<bool> StructureAnalyzer::getInvalidatedAreas(
 }
 
 void StructureAnalyzer::setValidAreasFromMultiplePredecessors(
-        VRLocation & location, std::vector<bool> & validAreas) const {
+        VRLocation &location, std::vector<bool> &validAreas) const {
     std::vector<std::vector<bool>> validInPreds;
 
     if (!location.isJustLoopJoin()) {
@@ -678,13 +670,12 @@ void StructureAnalyzer::initializeCallRelations() {
             continue;
 
         auto pair = callRelationsMap.emplace(&function,
-                                                std::vector<CallRelation>());
+                                             std::vector<CallRelation>());
 
         // for each location, where the function is called
         for (const llvm::Value *user : function.users()) {
             // get call from user
-            const llvm::CallInst *call =
-                    llvm::dyn_cast<llvm::CallInst>(user);
+            const llvm::CallInst *call = llvm::dyn_cast<llvm::CallInst>(user);
             if (!call)
                 continue;
 
@@ -723,8 +714,8 @@ void StructureAnalyzer::analyzeAfterRelationsAnalysis() {
     computeValidAreas();
 }
 
-bool StructureAnalyzer::isDefined(VRLocation * loc, const llvm::Value *val)
-        const {
+bool StructureAnalyzer::isDefined(VRLocation *loc,
+                                  const llvm::Value *val) const {
     if (llvm::isa<llvm::Constant>(val))
         return true;
 
@@ -743,8 +734,8 @@ StructureAnalyzer::getAllocatedAreaFor(const llvm::Value *ptr) const {
     return {0, nullptr};
 }
 
-const std::vector<CallRelation> &StructureAnalyzer::getCallRelationsFor(
-        const llvm::Instruction *inst) const {
+const std::vector<CallRelation> &
+StructureAnalyzer::getCallRelationsFor(const llvm::Instruction *inst) const {
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR <= 7
     const llvm::Function *function = inst->getParent()->getParent();
 #else

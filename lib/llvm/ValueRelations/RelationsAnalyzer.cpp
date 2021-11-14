@@ -1063,12 +1063,12 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
     }
 }
 
-bool RelationsAnalyzer::passFunction(const llvm::Function *function,
+bool RelationsAnalyzer::passFunction(const llvm::Function &function,
                                      bool print) {
     bool changed = false;
 
     for (auto it = codeGraph.lazy_dfs_begin(function);
-         it != codeGraph.lazy_dfs_end(function); ++it) {
+         it != codeGraph.lazy_dfs_end(); ++it) {
         VRLocation &location = *it;
         if (print) {
             std::cerr << "LOCATION " << location.id << std::endl;
@@ -1108,7 +1108,7 @@ unsigned RelationsAnalyzer::analyze(unsigned maxPass) {
         bool changed = true;
         unsigned passNum = 0;
         while (changed && passNum < maxPass) {
-            changed = passFunction(&function, false); // passNum+1==maxPass);
+            changed = passFunction(function, false); // passNum+1==maxPass);
             ++passNum;
         }
 

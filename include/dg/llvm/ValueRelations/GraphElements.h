@@ -196,7 +196,7 @@ class VRCodeGraph {
 
   public:
     VRLocation &getVRLocation(const llvm::Instruction *ptr) const;
-    VRLocation &getEntryLocation(const llvm::Function *f) const;
+    VRLocation &getEntryLocation(const llvm::Function &f) const;
 
     void hasCategorizedEdges();
 
@@ -265,8 +265,8 @@ class VRCodeGraph {
 
       public:
         DFSIt() = default;
-        DFSIt(const llvm::Function *f, VRLocation *start, Dir d)
-                : function(f), dir(d) {
+        DFSIt(const llvm::Function &f, VRLocation *start, Dir d)
+                : function(&f), dir(d) {
             stack.emplace_back(start, 0, nullptr);
         }
 
@@ -326,20 +326,16 @@ class VRCodeGraph {
     using SimpleDFS = DFSIt<SimpleVisit>;
     using LazyDFS = DFSIt<LazyVisit>;
 
-    LazyDFS lazy_dfs_begin(const llvm::Function *f) const;
-    LazyDFS lazy_dfs_end(const llvm::Function * /*f*/) const;
+    LazyDFS lazy_dfs_begin(const llvm::Function &f) const;
+    LazyDFS lazy_dfs_begin(const llvm::Function &f, VRLocation &start) const;
+    LazyDFS lazy_dfs_end() const;
 
-    LazyDFS lazy_dfs_begin(const llvm::Function *f, VRLocation &start) const;
-    LazyDFS lazy_dfs_end(const llvm::Function * /*f*/,
-                         VRLocation & /*start*/) const;
+    SimpleDFS dfs_begin(const llvm::Function &f) const;
+    SimpleDFS dfs_end() const;
 
-    SimpleDFS dfs_begin(const llvm::Function *f) const;
-    SimpleDFS dfs_end(const llvm::Function * /*f*/) const;
-
-    SimpleDFS backward_dfs_begin(const llvm::Function *f,
+    SimpleDFS backward_dfs_begin(const llvm::Function &f,
                                  VRLocation &start) const;
-    SimpleDFS backward_dfs_end(const llvm::Function * /*f*/,
-                               VRLocation & /*start*/) const;
+    SimpleDFS backward_dfs_end() const;
 
     /* ************ code graph iterator stuff ************ */
 
