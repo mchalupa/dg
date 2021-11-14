@@ -71,6 +71,9 @@ struct Relations {
 };
 
 const Relations allRelations(~0);
+const Relations comparative(1 << Relations::NE | 1 << Relations::LT |
+                            1 << Relations::LE | 1 << Relations::GT |
+                            1 << Relations::GE);
 
 #ifndef NDEBUG
 std::ostream &operator<<(std::ostream &out, Relations::Type r);
@@ -159,11 +162,14 @@ struct Bucket {
         return lt.id < rt.id;
     }
 
-  public:
-    Bucket(size_t i) : id(i) {}
+    friend class RelationsGraph;
+
+    Bucket(size_t i) : id(i) { relatedBuckets[Relations::EQ].emplace(*this); }
 
     void merge(const Bucket &other) {
         for (Relations::Type type : Relations::all) {
+            if (type == Relations::EQ)
+                continue;
             for (Bucket &related : other.relatedBuckets[type]) {
                 if (related != *this)
                     setRelated(*this, type, related);
@@ -173,6 +179,10 @@ struct Bucket {
 
     void disconnect() {
         for (Relations::Type type : Relations::all) {
+            if (type == Relations::EQ) {
+                assert(relatedBuckets[type].size() == 1);
+                relatedBuckets[type].clear();
+            }
             for (auto it = relatedBuckets[type].begin();
                  it != relatedBuckets[type].end();
                  /*incremented by erase*/) {
@@ -195,6 +205,7 @@ struct Bucket {
         rt.relatedBuckets[Relations::inverted(type)].erase(lt);
     }
 
+  public:
     const Bucket &getRelated(Relations::Type type) const {
         assert(!relatedBuckets[type].empty());
         return *relatedBuckets[type].begin();
@@ -204,12 +215,17 @@ struct Bucket {
         return !relatedBuckets[type].empty();
     }
 
-    bool hasAnyRelation() const {
-        for (Relations::Type type : Relations::all) {
-            if (hasRelation(type))
+    bool hasAnyRelation(Relations rels) const {
+        for (Relations::Type rel : Relations::all) {
+            if (rels.has(rel) && hasRelation(rel))
                 return true;
         }
         return false;
+    }
+
+    bool hasAnyRelation() const {
+        return hasAnyRelation(
+                Relations(allRelations).set(Relations::EQ, false));
     }
 
     friend bool operator==(const Bucket &lt, const Bucket &rt) {
@@ -222,7 +238,6 @@ struct Bucket {
 
     /********************** begin iterator stuff *********************/
 
-  private:
     class EdgeIterator {
         std::vector<RelationEdge> stack;
         std::reference_wrapper<ConstBucketSet> visited;
