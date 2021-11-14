@@ -40,7 +40,8 @@ void reportSet(RelationsGraph &graph, Bucket &one, RelationType rel,
 
 void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
     SECTION("all") {
-        CollectedEdges result = collect(graph.begin(allRelations), graph.end());
+        CollectedEdges result =
+                collect(graph.begin(allRelations, false), graph.end());
         checkSize(result, graph, relationsSet * 2);
     }
     SECTION("undirected") {
@@ -49,13 +50,31 @@ void checkEdges(const RelationsGraph &graph, size_t relationsSet) {
     }
 }
 
-RelationType generateNonEQRelation() {
-    return toRelation(GENERATE(range(1ul, allRelations.size())));
+bool forbids(RelationType one, RelationType two) {
+    return conflicting(one)[toInt(two)];
 }
 
-RelationType generateRelation() {
-    return toRelation(GENERATE(range(0ul, allRelations.size())));
+bool inferrs(RelationType one, RelationType two) {
+    switch (one) {
+    case RelationType::LE:
+        return two == RelationType::NE || two == RelationType::LT;
+    case RelationType::GE:
+        return two == RelationType::NE || two == RelationType::GT;
+    case RelationType::NE:
+        return two == RelationType::GE || two == RelationType::LE;
+    case RelationType::EQ:
+    case RelationType::LT:
+    case RelationType::GT:
+    case RelationType::PT:
+    case RelationType::PF:
+        return false;
+    }
+    assert(0 && "unreachable");
+    abort();
 }
+
+#define GEN_NONEQ_REL() toRelation(GENERATE(range(1ul, allRelations.size())))
+#define GEN_REL() toRelation(GENERATE(range(0ul, allRelations.size())))
 
 TEST_CASE("edge iterator") {
     RelationsGraph graph;
@@ -68,10 +87,8 @@ TEST_CASE("edge iterator") {
 
     Bucket &two = graph.getNewBucket();
 
-    SECTION("two nodes") {
-        REQUIRE(graph.begin() == graph.end());
-
-        RelationType relation = generateNonEQRelation();
+    SECTION("two nodes path") {
+        RelationType relation = GEN_NONEQ_REL();
 
         DYNAMIC_SECTION("setting " << relation) {
             reportSet(graph, one, relation, two);
@@ -80,19 +97,58 @@ TEST_CASE("edge iterator") {
         }
     }
 
+    SECTION("two nodes cycle") {
+        RelationType relOne = GEN_NONEQ_REL();
+        RelationType relTwo = GEN_NONEQ_REL();
+
+        if (!forbids(relOne, relTwo)) {
+            DYNAMIC_SECTION("setting " << relOne << " " << relTwo) {
+                reportSet(graph, one, relOne, two);
+                RelationBits before = graph.getRelated(one, allRelations)[two];
+                reportSet(graph, one, relTwo, two);
+
+                if ((relOne == RelationType::LE &&
+                     relTwo == RelationType::GE) ||
+                    (relOne == RelationType::GE && relTwo == RelationType::LE))
+                    checkEdges(graph, 0);
+                else if (before[toInt(relTwo)] || inferrs(relOne, relTwo))
+                    checkEdges(graph, 1);
+                else
+                    checkEdges(graph, 2);
+            }
+        }
+    }
+
     Bucket &three = graph.getNewBucket();
 
-    SECTION("three nodes") {
-        REQUIRE(graph.begin() == graph.end());
+    SECTION("three node one relation cycle") {
+        RelationType relOne = GEN_NONEQ_REL();
 
-        RelationType relOne = generateNonEQRelation();
-        RelationType relTwo = generateNonEQRelation();
+        if (relOne != RelationType::LT && relOne != RelationType::GT) {
+            DYNAMIC_SECTION("setting " << relOne) {
+                reportSet(graph, three, relOne, one);
+                reportSet(graph, one, relOne, two);
+                reportSet(graph, two, relOne, three);
 
+                if (relOne == RelationType::LE || relOne == RelationType::GE)
+                    checkEdges(graph, 0);
+                else
+                    checkEdges(graph, 3);
+            }
+        }
+    }
+
+    SECTION("three node dag") {
+        RelationType relOne = GEN_NONEQ_REL();
+        RelationType relTwo = GEN_NONEQ_REL();
         DYNAMIC_SECTION("setting " << relOne << " " << relTwo) {
             SECTION("chain") {
                 reportSet(graph, one, relOne, two);
                 reportSet(graph, two, relTwo, three);
-                checkEdges(graph, 2);
+                if (relOne == RelationType::PF && relTwo == RelationType::PT)
+                    checkEdges(graph, 1);
+                else
+                    checkEdges(graph, 2);
             }
 
             SECTION("fork 2 - 1 - 3") {
@@ -114,6 +170,45 @@ TEST_CASE("edge iterator") {
             }
         }
     }
+
+    SECTION("three node different relations cycle") {
+        RelationType relOne = GEN_NONEQ_REL();
+        RelationType relTwo = GEN_NONEQ_REL();
+        RelationType relThree = GEN_NONEQ_REL();
+        auto ptpf = [](RelationType one, RelationType two) {
+            return one == RelationType::PT && two == RelationType::PF;
+        };
+        DYNAMIC_SECTION("setting " << relOne << " " << relTwo) {
+            reportSet(graph, one, relOne, two);
+            reportSet(graph, two, relTwo, three);
+            RelationBits between = graph.getRelated(one, allRelations)[three];
+
+            if (ptpf(relTwo, relOne)) // equals one and three
+                checkEdges(graph, 1);
+            else if ((ptpf(relThree, relTwo) &&
+                      forbids(relOne, RelationType::EQ)) ||
+                     (ptpf(relOne, relThree) &&
+                      forbids(relTwo, RelationType::EQ)) ||
+                     (between & conflicting(inverted(relThree))).any())
+                checkEdges(graph, 2);
+            else {
+                DYNAMIC_SECTION("and " << relThree) {
+                    reportSet(graph, three, relThree, one);
+
+                    if ((relOne == relTwo && relTwo == relThree &&
+                         (relOne == RelationType::LE ||
+                          relOne == RelationType::GE)))
+                        checkEdges(graph, 0);
+                    else if (ptpf(relThree, relTwo) || ptpf(relOne, relThree))
+                        checkEdges(graph, 1);
+                    else if (between[toInt(inverted(relThree))])
+                        checkEdges(graph, 2);
+                    else
+                        checkEdges(graph, 3);
+                }
+            }
+        }
+    }
 }
 
 TEST_CASE("testing relations") {
@@ -123,7 +218,7 @@ TEST_CASE("testing relations") {
     Bucket &two = graph.getNewBucket();
 
     SECTION("unrelated") {
-        RelationType rel = generateRelation();
+        RelationType rel = GEN_REL();
         DYNAMIC_SECTION(rel) {
             REQUIRE(!graph.areRelated(one, rel, two));
             REQUIRE(!graph.areRelated(two, rel, one));
@@ -135,15 +230,16 @@ TEST_CASE("testing relations") {
         REQUIRE(graph.areRelated(two, RelationType::EQ, two));
     }
 
-    RelationType rel = generateRelation();
-    DYNAMIC_SECTION("set and test " << rel) {
-        graph.addRelation(one, rel, two);
-        INFO(graph);
-        if (rel == RelationType::EQ)
-            CHECK(graph.areRelated(one, rel, one));
-        else {
-            // INFO(two);
-            CHECK(graph.areRelated(one, rel, two));
+    SECTION("set and test") {
+        RelationType rel = GEN_REL();
+        DYNAMIC_SECTION(rel) {
+            graph.addRelation(one, rel, two);
+            INFO(graph);
+            if (rel == RelationType::EQ)
+                CHECK(graph.areRelated(one, rel, one));
+            else {
+                CHECK(graph.areRelated(one, rel, two));
+            }
         }
     }
 
@@ -160,5 +256,51 @@ TEST_CASE("testing relations") {
                                  ? RelationType::LT
                                  : RelationType::LE;
         CHECK(graph.areRelated(one, x, three));
+    }
+}
+
+TEST_CASE("big graph") {
+    RelationsGraph graph;
+
+    Bucket &one = graph.getNewBucket();
+    Bucket &two = graph.getNewBucket();
+    Bucket &three = graph.getNewBucket();
+    Bucket &four = graph.getNewBucket();
+    Bucket &five = graph.getNewBucket();
+    Bucket &six = graph.getNewBucket();
+    Bucket &seven = graph.getNewBucket();
+
+    SECTION("LE cycle") {
+        graph.addRelation(two, RelationType::GE, one);
+        checkEdges(graph, 1);
+        graph.addRelation(two, RelationType::LE, three);
+        checkEdges(graph, 2);
+        graph.addRelation(three, RelationType::LE, four);
+        checkEdges(graph, 3);
+        graph.addRelation(four, RelationType::LE, five);
+        checkEdges(graph, 4);
+        graph.addRelation(six, RelationType::GE, five);
+        checkEdges(graph, 5);
+        graph.addRelation(seven, RelationType::GE, six);
+        checkEdges(graph, 6);
+        graph.addRelation(seven, RelationType::LE, one);
+        checkEdges(graph, 0);
+    }
+
+    SECTION("mess") {
+        graph.addRelation(two, RelationType::GE, three);
+        checkEdges(graph, 1);
+        graph.addRelation(five, RelationType::LE, three);
+        checkEdges(graph, 2);
+        graph.addRelation(six, RelationType::PF, four);
+        checkEdges(graph, 3);
+        graph.addRelation(three, RelationType::GE, six);
+        checkEdges(graph, 4);
+        graph.addRelation(five, RelationType::LT, six);
+        checkEdges(graph, 5);
+        graph.addRelation(four, RelationType::PT, seven);
+        checkEdges(graph, 5);
+        graph.addRelation(two, RelationType::LE, three);
+        checkEdges(graph, 4);
     }
 }
