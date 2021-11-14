@@ -199,7 +199,6 @@ struct CallRelation {
 };
 
 class StructureAnalyzer {
-
     const llvm::Module &module;
     VRCodeGraph &codeGraph;
 
@@ -806,8 +805,8 @@ class StructureAnalyzer {
 
     // assumes that location is valid loop start (join of tree and back edges)
     const std::vector<const llvm::Instruction *> &
-    getInloopValues(VRLocation *const location) const {
-        return inloopValues.at(location);
+    getInloopValues(VRLocation &location) const {
+        return inloopValues.at(&location);
     }
 
     const std::set<const llvm::Instruction *> &
