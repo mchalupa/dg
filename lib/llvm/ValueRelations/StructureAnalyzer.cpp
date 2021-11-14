@@ -252,10 +252,17 @@ std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
             result.emplace(edge);
     }
 
-    assert(from.succsSize() == 1);
+    assert(from.succsSize() >= 1);
     // since from is marked visited at the beginning, these edge would never be
     // visited
-    result.emplace(from.getSuccEdge(0));
+    for (auto& edge : from.successors) {
+        // graph is build such that every assume is followed by noop and only
+        // possibility of having more than one successor is to have outgoing
+        // assume edges
+        assert(edge->target->succsSize() == 1);
+        if (result.find(edge->target->getSuccEdge(0)) != result.end())
+            result.emplace(edge.get());
+    }
 
     // put the tree edge back in
     predEdges.emplace_back(treePred);
