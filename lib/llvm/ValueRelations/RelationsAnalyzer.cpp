@@ -743,9 +743,8 @@ bool RelationsAnalyzer::processPhi(ValueRelations &newGraph,
 }
 
 // *********************** merge helpers **************************** //
-Relations RelationsAnalyzer::relationsInAllPreds(const VRLocation &location,
-                                                 V lt, Relations known,
-                                                 V rt) const {
+Relations RelationsAnalyzer::getCommon(const VRLocation &location, V lt,
+                                       Relations known, V rt) const {
     for (VREdge *predEdge : location.predecessors) {
         known &= predEdge->source->relations.between(lt, rt);
         if (!known.any())
@@ -760,27 +759,46 @@ void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
     if (lt == rt) // would add a bucket for every value, even if not related
         return;
 
-    ValueRelations &thisGraph = location.relations;
+    ValueRelations &newGraph = location.relations;
 
-    Relations related = relationsInAllPreds(location, lt, known, rt);
+    Relations related = getCommon(location, lt, known, rt);
     if (!related.any())
         return;
 
     if (related.get() == Relation::EQ)
         setEqual.emplace(rt);
-    thisGraph.set(lt, related.get(), rt);
+    newGraph.set(lt, related.get(), rt);
 }
 
-/** load **/
-bool RelationsAnalyzer::relatesByLoadInAll(
-        const std::vector<const ValueRelations *> &changeRelations, V related,
-        V from, Relation rel) const {
-    for (const ValueRelations *graph : changeRelations) {
-        const VectorSet<V> &loaded = graph->getValsByPtr(from);
-        if (loaded.empty() || !graph->are(related, rel, loaded.any()))
-            return false;
+Relations RelationsAnalyzer::getCommonByPointedTo(
+        V from, const std::vector<const ValueRelations *> &changeRelations,
+        V val, Relations rels) {
+    for (unsigned i = 1; i < changeRelations.size(); ++i) {
+        assert(changeRelations[i]->hasLoad(from));
+        Handle loaded = changeRelations[i]->getPointedTo(from);
+
+        rels &= changeRelations[i]->between(loaded, val);
+        if (!rels.any())
+            break;
     }
-    return true;
+    return rels;
+}
+
+Relations RelationsAnalyzer::getCommonByPointedTo(
+        V from, const std::vector<const ValueRelations *> &changeRelations,
+        V firstLoad, V prevVal) {
+    Relations result = Relations().eq().addImplied();
+    for (unsigned i = 1; i < changeRelations.size();
+         ++i) { // zeroth relations are tree predecessor's
+        Handle loaded = changeRelations[i]->getPointedTo(from);
+        if (firstLoad)
+            result &= changeRelations[i]->between(loaded, firstLoad);
+        else
+            result &= changeRelations[i]->between(loaded, prevVal);
+        if (!result.any())
+            break; // no common relations
+    }
+    return result;
 }
 
 std::pair<std::vector<const ValueRelations *>, V>
@@ -820,23 +838,6 @@ RelationsAnalyzer::getChangeLocations(V from, VRLocation &join) {
     return {changeRelations, firstLoad};
 }
 
-Relations RelationsAnalyzer::getCommon(
-        V from, const std::vector<const ValueRelations *> &changeRelations,
-        V firstLoad, V prevVal) {
-    Relations result = Relations().eq().addImplied();
-    for (unsigned i = 1; i < changeRelations.size();
-         ++i) { // zeroth relations are tree predecessor's
-        Handle loaded = changeRelations[i]->getPointedTo(from);
-        if (firstLoad)
-            result &= changeRelations[i]->between(loaded, firstLoad);
-        else
-            result &= changeRelations[i]->between(loaded, prevVal);
-        if (!result.any())
-            break; // no common relations
-    }
-    return result;
-}
-
 std::pair<RelationsAnalyzer::C, Relations>
 RelationsAnalyzer::getBoundOnPointedToValue(
         const std::vector<const ValueRelations *> &changeRelations, V from,
@@ -872,7 +873,8 @@ void RelationsAnalyzer::relateToFirstLoad(
     Handle pointedTo = changeRelations[0]->getPointedTo(from);
 
     for (V prevVal : changeRelations[0]->getEqual(pointedTo)) {
-        Relations common = getCommon(from, changeRelations, firstLoad, prevVal);
+        Relations common =
+                getCommonByPointedTo(from, changeRelations, firstLoad, prevVal);
         if (common.any())
             newGraph.set(placeholder, common.get(), prevVal);
     }
@@ -905,11 +907,10 @@ void RelationsAnalyzer::relateValues(
             continue;
 
         for (V related : predGraph.getEqual(relatedH)) {
-            if (relatesByLoadInAll(changeRelations, related, from,
-                                   Relations::inverted(relations.get())))
-                newGraph.set(placeholder, relations.get(),
-                             related); // TODO set weaker relation (LE instead
-                                       // of EQ, LT)
+            Relations common = getCommonByPointedTo(from, changeRelations,
+                                                    related, relations);
+            if (common.any())
+                newGraph.set(placeholder, common.get(), related);
         }
     }
 }
@@ -945,7 +946,7 @@ void RelationsAnalyzer::mergeRelations(VRLocation &location) {
     }
 }
 
-void RelationsAnalyzer::mergeRelationsByLoads(VRLocation &loc) {
+void RelationsAnalyzer::mergeRelationsByPointedTo(VRLocation &loc) {
     if (!loc.isJustLoopJoin())
         return;
 
@@ -1058,6 +1059,7 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
         I inst = static_cast<VRInstruction *>(op)->getInstruction();
         rememberValidated(source->relations, newGraph, inst);
         processInstruction(newGraph, inst);
+
     } else if (op->isAssume()) {
         newGraph.merge(source->relations, Relations().pt());
         bool shouldMerge;
@@ -1069,9 +1071,9 @@ void RelationsAnalyzer::processOperation(VRLocation *source, VRLocation *target,
                                              static_cast<VRAssumeEqual *>(op));
         if (shouldMerge)
             newGraph.merge(source->relations, comparative);
+
     } else { // else op is noop
-        newGraph.merge(source->relations, comparative);
-        newGraph.merge(source->relations, Relations().pt());
+        newGraph.merge(source->relations, allRelations);
     }
 }
 
@@ -1096,7 +1098,7 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
 
         if (location.predsSize() > 1) {
             mergeRelations(location);
-            mergeRelationsByLoads(location);
+            mergeRelationsByPointedTo(location);
         } else if (location.predsSize() == 1) {
             VREdge *edge = location.getPredEdge(0);
             processOperation(edge->source, edge->target, edge->op.get());
