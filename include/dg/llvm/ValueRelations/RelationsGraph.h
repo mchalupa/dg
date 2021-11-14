@@ -62,6 +62,10 @@ struct Relations {
         return !(lt == rt);
     }
 
+#ifndef NDEBUG
+    friend std::ostream &operator<<(std::ostream &out, const Relations &rels);
+#endif
+
   private:
     std::bitset<total> bits;
 };
@@ -161,6 +165,15 @@ class Bucket {
 
         BucketSet &relSet() const { return bucket.relatedBuckets[*relationIt]; }
 
+        // purely for placement in set
+        friend bool operator<(const RelationEdge &lt, const RelationEdge &rt) {
+            if (lt.bucket != rt.bucket)
+                return lt.bucket < rt.bucket;
+            if (*lt.relationIt != *rt.relationIt)
+                return *lt.relationIt < *rt.relationIt;
+            return *lt.bucketIt < *rt.bucketIt;
+        }
+
       public:
         Bucket &bucket;
         RelationIterator relationIt;
@@ -185,8 +198,8 @@ class Bucket {
         Bucket &to() { return *bucketIt; }
 
         friend bool operator==(const RelationEdge &lt, const RelationEdge &rt) {
-            return lt.bucket == rt.bucket && lt.relationIt == rt.relationIt &&
-                   lt.bucketIt == rt.bucketIt;
+            return lt.bucket == rt.bucket && *lt.relationIt == *rt.relationIt &&
+                   *lt.bucketIt == *rt.bucketIt;
         }
 
         friend bool operator!=(const RelationEdge &lt, const RelationEdge &rt) {
@@ -297,7 +310,11 @@ class Bucket {
             return *this;
         }
 
-        void skipSuccessors() { stack.pop_back(); }
+        EdgeIterator &skipSuccessors() {
+            ++stack.back().bucketIt;
+            nextViableEdge();
+            return *this;
+        }
 
         void setVisited(BucketSet &v) { visited = v; }
 
@@ -433,6 +450,11 @@ class RelationsGraph {
             return copy;
         }
 
+        void skipSuccessors() {
+            edgeIt.skipSuccessors();
+            nextViableEdge();
+        }
+
         Bucket::RelationEdge &operator*() { return *edgeIt; }
         Bucket::RelationEdge *operator->() { return &(*edgeIt); }
         const Bucket::RelationEdge &operator*() const { return *edgeIt; }
@@ -471,15 +493,14 @@ class RelationsGraph {
 
     using RelationsMap = std::map<std::reference_wrapper<Bucket>, Relations>;
 
-    iterator begin_related(Bucket &start, const Relations &relations,
-                           bool undirectedOnly = true) const {
+    iterator begin_related(Bucket &start, const Relations &relations) const {
         auto startIt = getItFor(start);
-        auto endIt = startIt;
-        return iterator(startIt, ++endIt, relations, undirectedOnly, true);
+        auto endIt = std::next(startIt);
+        return iterator(startIt, endIt, relations, true, true);
     }
 
     iterator begin_related(Bucket &start) const {
-        return begin_related(start, allRelations, true);
+        return begin_related(start, allRelations);
     }
 
     iterator end_related(Bucket &start) const {
