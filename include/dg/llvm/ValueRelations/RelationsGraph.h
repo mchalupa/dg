@@ -200,9 +200,36 @@ struct Bucket {
         rt.relatedBuckets[Relations::inverted(type)].emplace(lt);
     }
 
-    friend void unsetRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
-        lt.relatedBuckets[type].erase(rt);
-        rt.relatedBuckets[Relations::inverted(type)].erase(lt);
+    friend bool unsetRelated(Bucket &lt, Relations::Type type, Bucket &rt) {
+        auto &ltRelated = lt.relatedBuckets[type];
+        auto &rtRelated = rt.relatedBuckets[Relations::inverted(type)];
+
+        auto found = ltRelated.find(rt);
+        if (found == ltRelated.end()) {
+            assert(rtRelated.find(lt) == rtRelated.end());
+            return false;
+        }
+
+        ltRelated.erase(found);
+        rtRelated.erase(lt);
+        return true;
+    }
+
+    bool unset(Relations::Type rel) {
+        bool changed = false;
+        for (Bucket &other : relatedBuckets[rel]) {
+            changed |= unsetRelated(*this, rel, other);
+        }
+        return changed;
+    }
+
+    bool unset(const Relations &rels) {
+        bool changed = false;
+        for (Relations::Type rel : Relations::all) {
+            if (rels.has(rel))
+                changed |= unset(rel);
+        }
+        return changed;
     }
 
   public:
@@ -489,12 +516,11 @@ class RelationsGraph {
     UniqueBucketSet buckets;
     size_t lastId = 0;
 
-    void setEqual(Bucket &to, Bucket &from) {
+    bool setEqual(Bucket &to, Bucket &from) {
+        assert(to != from);
         to.merge(from);
-        from.disconnect();
-
-        auto it = getItFor(from);
-        buckets.erase(it);
+        erase(from);
+        return true;
     }
 
     UniqueBucketSet::iterator getItFor(const Bucket &bucket) const {
@@ -555,13 +581,39 @@ class RelationsGraph {
                                  const Bucket &rt,
                                  Relations *maybeBetween = nullptr) const;
 
-    void addRelation(const Bucket &lt, Relations::Type type, const Bucket &rt,
+    bool addRelation(const Bucket &lt, Relations::Type type, const Bucket &rt,
                      Relations *maybeBetween = nullptr);
 
     const Bucket &getNewBucket() {
         auto pair = buckets.emplace(new Bucket(++lastId));
         return **pair.first;
     }
+
+    const UniqueBucketSet &getBuckets() const { return buckets; }
+
+    bool unset(const Relations &rels) {
+        bool changed = false;
+        for (auto &bucketPtr : buckets) {
+            changed |= bucketPtr->unset(rels);
+        }
+        return changed;
+    }
+
+    bool unset(const Bucket &bucket, const Relations &rels) {
+        return const_cast<Bucket &>(bucket).unset(rels);
+    }
+
+    void erase(const Bucket &bucket) {
+        Bucket &nBucket = const_cast<Bucket &>(bucket);
+        nBucket.disconnect();
+
+        auto it = getItFor(nBucket);
+        buckets.erase(it);
+    }
+
+    bool empty() const { return buckets.empty(); }
+
+    size_t size() const { return buckets.size(); }
 
 #ifndef NDEBUG
     friend std::ostream &operator<<(std::ostream &out,
