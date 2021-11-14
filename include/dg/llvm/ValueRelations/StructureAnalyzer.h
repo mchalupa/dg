@@ -199,10 +199,9 @@ struct CallRelation {
 };
 
 class StructureAnalyzer {
+
     const llvm::Module &module;
-    const std::map<const llvm::Instruction *, VRLocation *> &locationMapping;
-    const std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>>
-            &blockMapping;
+    VRCodeGraph &codeGraph;
 
     // holds vector of instructions, which are processed on any path back to
     // given location is computed only for locations with more than one
@@ -229,16 +228,12 @@ class StructureAnalyzer {
             if (function.isDeclaration())
                 continue;
 
-            VRBBlock *vrblockOfEntry =
-                    blockMapping.at(&function.getEntryBlock()).get();
-            assert(vrblockOfEntry);
-
-            VRLocation *first = vrblockOfEntry->first();
+            VRLocation &first = codeGraph.getEntryLocation(&function);
 
             std::vector<std::pair<VRLocation *, int>> stack;
 
-            stack.emplace_back(first, 0);
-            found.emplace(first);
+            stack.emplace_back(&first, 0);
+            found.emplace(&first);
 
             VRLocation *current;
             unsigned succIndex;
@@ -282,13 +277,14 @@ class StructureAnalyzer {
                 succEdge->type = EdgeType::TREE;
             }
         }
+
+        codeGraph.hasCategorizedEdges();
     }
 
     void findLoops() {
-        for (auto &pair : locationMapping) {
-            auto &location = pair.second;
-            std::vector<VREdge *> &predEdges = location->predecessors;
-            if (location->isJustLoopJoin()) {
+        for (auto &location : codeGraph) {
+            std::vector<VREdge *> &predEdges = location.predecessors;
+            if (location.isJustLoopJoin()) {
                 // remove the incoming tree edge, so that backwardReach would
                 // really go only backwards
                 VREdge *treePred = nullptr;
@@ -310,7 +306,7 @@ class StructureAnalyzer {
 
                 auto inloopValuesIt =
                         inloopValues
-                                .emplace(location,
+                                .emplace(&location,
                                          std::vector<
                                                  const llvm::Instruction *>())
                                 .first;
@@ -331,9 +327,9 @@ class StructureAnalyzer {
         }
     }
 
-    std::vector<VREdge *> genericReach(VRLocation *from, bool goForward) {
-        std::set<VRLocation *> found = {from};
-        std::list<VRLocation *> toVisit = {from};
+    std::vector<VREdge *> genericReach(VRLocation &from, bool goForward) {
+        std::set<VRLocation *> found = {&from};
+        std::list<VRLocation *> toVisit = {&from};
 
         std::vector<VREdge *> result;
         while (!toVisit.empty()) {
@@ -364,16 +360,12 @@ class StructureAnalyzer {
             if (function.isDeclaration())
                 continue;
 
-            auto &block = function.getEntryBlock();
-            VRBBlock *vrblock = blockMapping.at(&block).get();
-
-            std::list<VRLocation *> toVisit = {vrblock->first()};
+            std::list<VRLocation *> toVisit = {
+                    &codeGraph.getEntryLocation(&function)};
 
             // prepare sets of defined values for each location
-            for (auto &blockVrblockPair : blockMapping) {
-                for (auto &locationUPtr : *blockVrblockPair.second)
-                    defined.emplace(locationUPtr.get(),
-                                    std::set<const llvm::Value *>());
+            for (auto &location : codeGraph) {
+                defined.emplace(&location, std::set<const llvm::Value *>());
             }
 
             while (!toVisit.empty()) {
@@ -488,7 +480,7 @@ class StructureAnalyzer {
         }
     }
 
-    void setValidAreasByInstruction(VRLocation *location,
+    void setValidAreasByInstruction(VRLocation &location,
                                     std::vector<bool> &validAreas,
                                     VRInstruction *vrinst) const {
         const llvm::Instruction *inst = vrinst->getInstruction();
@@ -506,7 +498,7 @@ class StructureAnalyzer {
         // invalid
         if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(inst)) {
             if (intrinsic->getIntrinsicID() == llvm::Intrinsic::lifetime_end) {
-                std::tie(index, area) = getEqualArea(location->relations,
+                std::tie(index, area) = getEqualArea(location.relations,
                                                      intrinsic->getOperand(1));
                 assert(area);
                 validAreas[index] = false;
@@ -525,7 +517,7 @@ class StructureAnalyzer {
                 // if realloc of memory occured, the reallocated memory cannot
                 // be considered valid until the realloc is proven unsuccessful
                 std::tie(index, area) =
-                        getEqualArea(location->relations, call->getOperand(0));
+                        getEqualArea(location.relations, call->getOperand(0));
                 if (area)
                     validAreas[index] = false;
                 else if (!llvm::isa<llvm::ConstantPointerNull>(
@@ -541,7 +533,7 @@ class StructureAnalyzer {
                 // if free occures, the freed memory cannot be considered valid
                 // anymore
                 std::tie(index, area) =
-                        getEqualArea(location->relations, call->getOperand(0));
+                        getEqualArea(location.relations, call->getOperand(0));
 
                 if (area)
                     validAreas[index] = false;
@@ -576,7 +568,7 @@ class StructureAnalyzer {
     }
 
     // if heap allocation call was just checked as successful, mark memory valid
-    void setValidAreasByAssumeBool(VRLocation *location,
+    void setValidAreasByAssumeBool(VRLocation &location,
                                    std::vector<bool> &validAreas,
                                    VRAssumeBool *assume) const {
         auto icmp = llvm::dyn_cast<llvm::ICmpInst>(assume->getValue());
@@ -598,7 +590,7 @@ class StructureAnalyzer {
         unsigned index = 0;
         const AllocatedArea *area = nullptr;
 
-        for (auto equal : location->relations.getEqual(param)) {
+        for (auto equal : location.relations.getEqual(param)) {
             std::tie(index, area) = getAllocatedAreaFor(equal);
             // if compared pointer or equal belong to allocated area, this area
             // can be marked valid
@@ -659,10 +651,10 @@ class StructureAnalyzer {
     }
 
     void
-    setValidAreasFromSinglePredecessor(VRLocation *location,
+    setValidAreasFromSinglePredecessor(VRLocation &location,
                                        std::vector<bool> &validAreas) const {
         // copy predecessors valid areas
-        VREdge *edge = location->predecessors[0];
+        VREdge *edge = location.predecessors[0];
         validAreas = edge->source->relations.getValidAreas();
 
         // and alter them according to info from edge
@@ -693,7 +685,7 @@ class StructureAnalyzer {
         std::vector<bool> validAreas(allocatedAreas.size(), true);
 
         for (const llvm::Instruction *inst : instructions) {
-            VRLocation *location = locationMapping.at(inst);
+            VRLocation &location = codeGraph.getVRLocation(inst);
             VRInstruction vrinst(inst);
 
             setValidAreasByInstruction(location, validAreas, &vrinst);
@@ -702,17 +694,17 @@ class StructureAnalyzer {
     }
 
     void
-    setValidAreasFromMultiplePredecessors(VRLocation *location,
+    setValidAreasFromMultiplePredecessors(VRLocation &location,
                                           std::vector<bool> &validAreas) const {
         std::vector<std::vector<bool>> validInPreds;
 
-        if (!location->isJustLoopJoin()) {
-            for (VREdge *predEdge : location->predecessors)
+        if (!location.isJustLoopJoin()) {
+            for (VREdge *predEdge : location.predecessors)
                 validInPreds.emplace_back(
                         predEdge->source->relations.getValidAreas());
         } else {
             VRLocation *treePred = nullptr;
-            for (VREdge *predEdge : location->predecessors) {
+            for (VREdge *predEdge : location.predecessors) {
                 if (predEdge->type == EdgeType::TREE) {
                     treePred = predEdge->source;
                     break;
@@ -722,7 +714,7 @@ class StructureAnalyzer {
 
             validInPreds.emplace_back(treePred->relations.getValidAreas());
             validInPreds.emplace_back(
-                    getInvalidatedAreas(inloopValues.at(location)));
+                    getInvalidatedAreas(inloopValues.at(&location)));
         }
 
         // intersect valid areas from predecessors
@@ -732,26 +724,19 @@ class StructureAnalyzer {
     }
 
     void computeValidAreas() const {
-        for (const llvm::Function &function : module) {
-            for (const llvm::BasicBlock &block : function) {
-                for (auto &location : blockMapping.at(&block)->locations) {
-                    std::vector<bool> &validAreas =
-                            location->relations.getValidAreas();
+        for (auto &location : codeGraph) {
+            std::vector<bool> &validAreas = location.relations.getValidAreas();
 
-                    switch (location->predecessors.size()) {
-                    case 0:
-                        setValidAreasFromNoPredecessors(validAreas);
-                        break;
-                    case 1:
-                        setValidAreasFromSinglePredecessor(location.get(),
-                                                           validAreas);
-                        break;
-                    default:
-                        setValidAreasFromMultiplePredecessors(location.get(),
-                                                              validAreas);
-                        break;
-                    }
-                }
+            switch (location.predecessors.size()) {
+            case 0:
+                setValidAreasFromNoPredecessors(validAreas);
+                break;
+            case 1:
+                setValidAreasFromSinglePredecessor(location, validAreas);
+                break;
+            default:
+                setValidAreasFromMultiplePredecessors(location, validAreas);
+                break;
             }
         }
     }
@@ -778,7 +763,7 @@ class StructureAnalyzer {
                 CallRelation &callRelation = callRelations.back();
 
                 // set pointer to the location from which the function is called
-                callRelation.callSite = locationMapping.at(call);
+                callRelation.callSite = &codeGraph.getVRLocation(call);
 
                 // set formal parameters equal to real
                 unsigned argCount = 0;
@@ -795,12 +780,8 @@ class StructureAnalyzer {
     }
 
   public:
-    StructureAnalyzer(
-            const llvm::Module &m,
-            const std::map<const llvm::Instruction *, VRLocation *> &locs,
-            const std::map<const llvm::BasicBlock *, std::unique_ptr<VRBBlock>>
-                    &blcs)
-            : module(m), locationMapping(locs), blockMapping(blcs){};
+    StructureAnalyzer(const llvm::Module &m, VRCodeGraph &g)
+            : module(m), codeGraph(g){};
 
     void analyzeBeforeRelationsAnalysis() {
         categorizeEdges();

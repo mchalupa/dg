@@ -257,6 +257,8 @@ struct VRCodeGraph {
         return *functionMapping.at(f);
     }
 
+    void hasCategorizedEdges() { categorizedEdges = true; }
+
     struct VRFunctionIterator {
         VRFunctionIterator() = default;
         VRFunctionIterator(const llvm::Function *f, VRLocation *start, bool e)
