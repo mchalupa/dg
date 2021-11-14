@@ -268,16 +268,6 @@ getParams(const llvm::BinaryOperator *op) {
             llvm::cast<llvm::ConstantInt>(op->getOperand(1))};
 }
 
-V RelationsAnalyzer::getAnyInitial(const VRLocation &loc, V from) const {
-    const ValueRelations &beforeLoop = loc.relations;
-    if (!beforeLoop.hasLoad(from))
-        return nullptr;
-    auto &vals = beforeLoop.getEqual(beforeLoop.getPointedTo(from));
-    if (vals.empty())
-        return nullptr;
-    return *vals.begin();
-}
-
 RelationsAnalyzer::Shift
 RelationsAnalyzer::getShift(const llvm::BinaryOperator *op, V from) {
     if (llvm::isa<llvm::ConstantInt>(op->getOperand(0)) ==
@@ -348,6 +338,8 @@ RelationsAnalyzer::Shift RelationsAnalyzer::getShift(
 
         Shift current = getShift(what, from);
 
+        if (shift == Shift::UNKNOWN)
+            return shift;
         if (shift == Shift::EQ)
             shift = current;
         else if (shift != current)
@@ -680,16 +672,99 @@ RelationsAnalyzer::getBoundOnPointedToValue(
     return {bound, current};
 }
 
+V getCompared(const llvm::ICmpInst *icmp, V from) {
+    const auto *op1 = icmp->getOperand(0);
+    const auto *op2 = icmp->getOperand(1);
+
+    for (const auto &op : {op1, op2}) {
+        const auto *load = llvm::dyn_cast<llvm::LoadInst>(op);
+        // accept shifted, not only direcly loaded?
+        if (load && load->getPointerOperand() == from) {
+            if (op == op1)
+                return op2;
+            return op1;
+        }
+    }
+    return nullptr;
+}
+
+const llvm::ICmpInst *RelationsAnalyzer::getEQICmp(const VRLocation &join) {
+    if (join.loopEnds.size() != 1 || !join.loopEnds[0]->op->isAssumeBool())
+        return nullptr;
+    
+    const auto *assume =
+        static_cast<VRAssumeBool *>(join.loopEnds[0]->op.get());
+    V val = assume->getValue();
+
+    if (!llvm::isa<llvm::ICmpInst>(val))
+        return nullptr;
+
+    const auto *icmp = llvm::cast<llvm::ICmpInst>(val);
+    Relations::Type rel = ICMPToRel(icmp, assume->getAssumption());
+
+    if (rel != Relations::EQ)
+        return nullptr;
+    
+    return icmp;
+}
+
+V getArgument(const VectorSet<V>& vals) {
+    for (const auto *val : vals) {
+        if (llvm::isa<llvm::Argument>(val))
+            return val;
+    }
+    return nullptr;
+}
+
+void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
+                                             const VectorSet<V>& initial, Shift s,
+                                             Handle placeholder) {
+
+    const auto *icmp = getEQICmp(join);
+    if (!icmp)
+        return;
+
+    V compared = getCompared(icmp, from);
+    if (!compared)
+        return;
+
+    assert(!initial.empty());
+    if (join.relations.are(*initial.begin(),
+                           s == Shift::INC ? Relations::SLE : Relations::SGE,
+                           compared)) {
+        return;
+    }
+
+    V arg = getArgument(initial);
+    if (! arg)
+        return;
+
+    structure.addPrecondition(icmp->getFunction(), arg,
+                              s == Shift::INC ? Relations::SLE : Relations::SGE,
+                              compared);
+
+    join.relations.set(placeholder,
+                       s == Shift::INC ? Relations::SLE : Relations::SGE,
+                       compared);
+}
+
 void RelationsAnalyzer::inferShiftInLoop(
         const std::vector<const VRLocation *> &changeLocations, V from,
         ValueRelations &newGraph, Handle placeholder) {
-    V initial = getAnyInitial(*changeLocations[0], from);
-    if (!initial)
+    const ValueRelations& predGraph = changeLocations[0]->relations;
+    assert(predGraph.hasLoad(from));
+
+    const auto &initial = predGraph.getEqual(predGraph.getPointedTo(from));
+    if (initial.empty())
         return;
 
     auto shift = getShift(changeLocations, from);
     if (shift == Shift::UNKNOWN)
         return;
+
+    if (shift == Shift::INC || shift == Shift::DEC)
+        inferFromNonEquality(*changeLocations[0]->getSuccLocation(0), from,
+                             initial, shift, placeholder);
 
     Relations::Type rel =
             shift == Shift::EQ
@@ -698,7 +773,7 @@ void RelationsAnalyzer::inferShiftInLoop(
 
     // placeholder must be first so that if setting EQ, its bucket is
     // preserved
-    newGraph.set(placeholder, Relations::inverted(rel), initial);
+    newGraph.set(placeholder, Relations::inverted(rel), *initial.begin());
 }
 
 void RelationsAnalyzer::relateBounds(
