@@ -90,7 +90,7 @@ V RelationsAnalyzer::getInvalidatedPointer(const ValueRelations &graph,
             invalid = nullptr; // invalidated pointer does not load anything in
                                // current graph
         } else {
-            invalid = values[0];
+            invalid = values.any();
             --depth;
         }
     }
@@ -623,8 +623,8 @@ bool RelationsAnalyzer::relatesByLoadInAll(
         const std::vector<VRLocation *> &preds, V related, V from,
         Relation rel) const {
     for (const VRLocation *vrloc : preds) {
-        const std::vector<V> &loaded = vrloc->relations.getValsByPtr(from);
-        if (loaded.empty() || !vrloc->relations.are(related, rel, loaded[0]))
+        const VectorSet<V> &loaded = vrloc->relations.getValsByPtr(from);
+        if (loaded.empty() || !vrloc->relations.are(related, rel, loaded.any()))
             return false;
     }
     return true;
@@ -634,10 +634,10 @@ Relations RelationsAnalyzer::relationsByLoadInAllPreds(
         const std::vector<VRLocation *> &preds, V from, V related) const {
     Relations result = allRelations;
     for (const VRLocation *pred : preds) {
-        const std::vector<V> &loaded = pred->relations.getValsByPtr(from);
+        const VectorSet<V> &loaded = pred->relations.getValsByPtr(from);
         if (loaded.empty())
             return Relations();
-        result &= pred->relations.between(loaded[0], related);
+        result &= pred->relations.between(loaded.any(), related);
     }
     assert(result == result.addImplied());
     return result;
@@ -739,30 +739,30 @@ void RelationsAnalyzer::inferChangeInLoop(ValueRelations &thisGraph,
         }
     }
     for (V from : froms) {
-        std::vector<V> valsInloop = inloopPred->relations.getValsByPtr(from);
+        VectorSet<V> valsInloop = inloopPred->relations.getValsByPtr(from);
         if (valsInloop.empty() || beforeInvalidation[from].empty())
             continue;
-        V valInloop = valsInloop[0];
+        V valInloop = valsInloop.any();
         V firstLoadInLoop = beforeInvalidation[from][0];
 
         // get all equal vals from load from outloopPred
-        std::vector<V> valsOutloop = outloopPred->relations.getValsByPtr(from);
+        VectorSet<V> valsOutloop = outloopPred->relations.getValsByPtr(from);
         if (valsOutloop.empty())
             continue;
 
         Handle placeholder = thisGraph.newPlaceholderBucket(from);
 
         if (inloopPred->relations.isLesser(firstLoadInLoop, valInloop))
-            thisGraph.setLesserEqual(valsOutloop[0], placeholder);
+            thisGraph.setLesserEqual(valsOutloop.any(), placeholder);
 
         if (inloopPred->relations.isLesser(valInloop, firstLoadInLoop))
-            thisGraph.setLesserEqual(placeholder, valsOutloop[0]);
+            thisGraph.setLesserEqual(placeholder, valsOutloop.any());
 
         if (thisGraph.hasComparativeRelations(placeholder)) {
             thisGraph.setLoad(from, placeholder);
 
             for (V val : valsOutloop) {
-                thisGraph.setEqual(valsOutloop[0], val);
+                thisGraph.setEqual(valsOutloop.any(), val);
             }
         } else {
             thisGraph.erasePlaceholderBucket(placeholder);

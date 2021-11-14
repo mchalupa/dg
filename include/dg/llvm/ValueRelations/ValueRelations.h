@@ -34,7 +34,7 @@ struct ValueRelations {
     using C = const llvm::ConstantInt *;
 
     using ValToBucket = std::map<V, BRef>;
-    using BucketToVals = std::map<BRef, std::set<V>>;
+    using BucketToVals = std::map<BRef, VectorSet<V>>;
 
   private:
     using BareC = llvm::ConstantInt;
@@ -114,7 +114,7 @@ struct ValueRelations {
     // *************************** iterators ***************************** //
     class RelatedValueIterator {
         using RelatedIterator = RelationsMap::iterator;
-        using ValIterator = typename std::set<V>::const_iterator;
+        using ValIterator = typename VectorSet<V>::const_iterator;
 
         const ValueRelations &vr;
 
@@ -127,7 +127,7 @@ struct ValueRelations {
         bool isEnd = false;
         bool invert = false; // TODO get rid of
 
-        const std::set<V> &getCurrentEqual() const {
+        const VectorSet<V> &getCurrentEqual() const {
             return vr.bucketToVals.find(bucketIt->first)->second;
         }
 
@@ -197,8 +197,8 @@ struct ValueRelations {
     };
 
     class PlainValueIterator {
-        using BucketIterator = std::map<BRef, std::set<V>>::const_iterator;
-        using ValIterator = std::set<V>::iterator;
+        using BucketIterator = std::map<BRef, VectorSet<V>>::const_iterator;
+        using ValIterator = VectorSet<V>::const_iterator;
 
         BucketIterator bucketIt;
         BucketIterator endIt;
@@ -256,10 +256,10 @@ struct ValueRelations {
 
     // ***************************** other ******************************** //
     Handle getCorresponding(const ValueRelations &other, Handle otherH,
-                            const std::vector<V> &otherEqual);
+                            const VectorSet<V> &otherEqual);
     Handle getCorresponding(const ValueRelations &other, Handle otherH);
     Handle getAndMerge(const ValueRelations &other, Handle current);
-    void add(V val, Handle h, std::set<V> &vals);
+    void add(V val, Handle h, VectorSet<V> &vals);
     std::pair<BRef, bool> add(V val, Handle h);
     void areMerged(Handle to, Handle from);
     void updateChanged(bool ch) { changed |= ch; }
@@ -402,8 +402,8 @@ struct ValueRelations {
     const BucketToVals &getBucketToVals() const { return bucketToVals; }
 
     // ****************************** get ********************************* //
-    std::vector<V> getEqual(Handle h) const;
-    std::vector<V> getEqual(V val) const;
+    const VectorSet<V> &getEqual(Handle h) const;
+    VectorSet<V> getEqual(V val) const;
 
     std::vector<V> getAllRelated(V val) const;
     template <typename X>
@@ -439,7 +439,7 @@ struct ValueRelations {
     C getLesserEqualBound(V val) const;
     C getGreaterEqualBound(V val) const;
 
-    const std::vector<V> getValsByPtr(V from) const;
+    VectorSet<V> getValsByPtr(V from) const;
 
     std::set<std::pair<std::vector<V>, std::vector<V>>> getAllLoads() const;
 
