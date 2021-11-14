@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
             std::cout << "  NODE" << loc.id;
             std::cout << "[label=\"";
             std::cout << "LOCATION " << loc.id << "\\n";
-            loc.relations.dump();
+            std::cout << loc.relations;
             std::cout << "\"];\n";
         }
 

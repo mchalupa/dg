@@ -1,8 +1,8 @@
-#include "RelationsGraph.h"
+#include "Relations.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cmath>
-#include <iterator>
 
 namespace dg {
 namespace vr {
@@ -72,6 +72,15 @@ Relations Relations::conflicting(Relations::Type type) {
     case PT:
     case PF:
         return Relations();
+    }
+    assert(0 && "unreachable");
+    abort();
+}
+
+Relations::Type Relations::get() const {
+    for (Type rel : {EQ, LT, GT, NE, LE, GE, PT, PF}) {
+        if (has(rel))
+            return rel;
     }
     assert(0 && "unreachable");
     abort();

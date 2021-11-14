@@ -36,6 +36,7 @@ struct VR {
 
     std::map<V, BRef> valToBucket;
     std::map<BRef, std::set<V>> bucketToVals;
+    std::vector<bool> validAreas;
 
     bool changed = false;
 
@@ -57,7 +58,7 @@ struct VR {
 
     // ************************** general set ***************************** //
     template <typename X, typename Y>
-    void set(X lt, Relations::Type rel, Y rt) {
+    void set(const X &lt, Relations::Type rel, const Y &rt) {
         bool ch = graph.addRelation(get(lt), rel, get(rt));
         updateChanged(ch);
     }
@@ -69,31 +70,31 @@ struct VR {
     }
     void unset(Relations::Type rel) { unset(Relations().set(rel)); }
     template <typename X>
-    void unset(X val, Relations rels) {
+    void unset(const X &val, Relations rels) {
         bool ch = graph.unset(get(val), rels);
         updateChanged(ch);
     }
     template <typename X>
-    void unset(X val, Relations::Type rel) {
+    void unset(const X &val, Relations::Type rel) {
         unset(val, Relations().set(rel));
     }
 
     // ************************** general are ***************************** //
-    bool are(Handle lt, Relations::Type rel, Handle rt) const;
-    bool are(Handle lt, Relations::Type rel, V rt) const;
-    bool are(Handle lt, Relations::Type rel, C rt) const;
-    bool are(V lt, Relations::Type rel, Handle rt) const;
-    bool are(C lt, Relations::Type rel, Handle rt) const;
-    bool are(V lt, Relations::Type rel, V rt) const;
+    bool _are(Handle lt, Relations::Type rel, Handle rt) const;
+    bool _are(Handle lt, Relations::Type rel, V rt) const;
+    bool _are(Handle lt, Relations::Type rel, C rt) const;
+    bool _are(V lt, Relations::Type rel, Handle rt) const;
+    bool _are(C lt, Relations::Type rel, Handle rt) const;
+    bool _are(V lt, Relations::Type rel, V rt) const;
 
     // ************************** general has ***************************** //
     template <typename X>
-    bool has(X val, Relations::Type rel) const {
+    bool has(const X &val, Relations::Type rel) const {
         HandlePtr mVal = maybeGet(val);
         return mVal && mVal->hasRelation(rel);
     }
     template <typename X>
-    bool has(X val, Relations rels) const {
+    bool has(const X &val, Relations rels) const {
         HandlePtr mVal = maybeGet(val);
         return mVal && mVal->hasAnyRelation(rels);
     }
@@ -109,10 +110,16 @@ struct VR {
         RelatedIterator bucketIt;
         ValIterator valueIt;
 
+        std::pair<V, Relations::Type> current; // Relations>;
+
         bool isEnd = false;
 
         const std::set<V> &getCurrentEqual() const {
             return vr.bucketToVals.find(bucketIt->first)->second;
+        }
+
+        void updateCurrent() {
+            current = std::make_pair(*valueIt, bucketIt->second.get());
         }
 
         void nextViableValue() {
@@ -127,12 +134,12 @@ struct VR {
         }
 
       public:
-        using value_type = std::pair<V, Relations>;
+        using value_type = decltype(current);
         using difference_type = int64_t;
         using iterator_category = std::input_iterator_tag;
 
-        using reference = value_type;
-        using pointer = const value_type *;
+        using reference = value_type &;
+        using pointer = value_type *;
 
         // for end iterator
         RelatedValueIterator(const VR &v) : vr(v), isEnd(true) {}
@@ -163,14 +170,14 @@ struct VR {
             nextViableValue();
             return *this;
         }
-
         RelatedValueIterator operator++(int) {
             auto copy = *this;
             ++*this;
             return copy;
         }
 
-        reference operator*() const { return {*valueIt, bucketIt->second}; }
+        reference operator*() { return current; }
+        pointer operator->() { return &current; }
     };
 
     class PlainValueIterator {
@@ -241,80 +248,95 @@ struct VR {
     Handle add(V val, Handle h, std::set<V> &vals);
     Handle add(V val, Handle h);
     void areMerged(Handle to, Handle from);
+    void updateChanged(bool ch) { changed |= ch; }
 
   public:
+    VR() : graph(*this) {}
+    VR(const VR &) = delete;
+
     using rel_iterator = RelatedValueIterator;
     using plain_iterator = PlainValueIterator;
 
     // ****************************** set ********************************* //
     template <typename X, typename Y>
-    void setEqual(X lt, Y rt) {
+    void setEqual(const X &lt, const Y &rt) {
         set(lt, Relations::EQ, rt);
     }
     template <typename X, typename Y>
-    void setNonEqual(X lt, Y rt) {
+    void setNonEqual(const X &lt, const Y &rt) {
         set(lt, Relations::NE, rt);
     }
     template <typename X, typename Y>
-    void setLesser(X lt, Y rt) {
+    void setLesser(const X &lt, const Y &rt) {
         set(lt, Relations::LT, rt);
     }
     template <typename X, typename Y>
-    void setLesserEqual(X lt, Y rt) {
+    void setLesserEqual(const X &lt, const Y &rt) {
         set(lt, Relations::LE, rt);
     }
     template <typename X, typename Y>
-    void setLoad(X from, Y to) {
+    void setLoad(const X &from, const Y &to) {
         set(from, Relations::PT, to);
     }
+    // void setLesserEqual(V lt, Handle rt) { set(lt, Relations::LE, rt); }
 
     // ***************************** unset ******************************** //
     template <typename X>
-    void unsetAllLoadsByPtr(X from) {
+    void unsetAllLoadsByPtr(const X &from) {
         unset(from, Relations::PT);
     }
     void unsetAllLoads() { unset(Relations::PT); }
     template <typename X>
-    void unsetComparativeRelations(X val) {
+    void unsetComparativeRelations(const X &val) {
         unset(val, comparative);
     }
 
     // ******************************* is ********************************** //
     template <typename X, typename Y>
-    bool isEqual(X lt, Y rt) const {
+    bool are(const X &lt, Relations::Type rel, const Y &rt) const {
+        return _are(lt, rel, rt);
+    }
+    template <typename X, typename Y>
+    bool isEqual(const X &lt, const Y &rt) const {
         return are(lt, Relations::EQ, rt);
     }
     template <typename X, typename Y>
-    bool isNonEqual(X lt, Y rt) const {
+    bool isNonEqual(const X &lt, const Y &rt) const {
         return are(lt, Relations::NE, rt);
     }
     template <typename X, typename Y>
-    bool isLesser(X lt, Y rt) const {
+    bool isLesser(const X &lt, const Y &rt) const {
         return are(lt, Relations::LT, rt);
     }
     template <typename X, typename Y>
-    bool isLesserEqual(X lt, Y rt) const {
+    bool isLesserEqual(const X &lt, const Y &rt) const {
         return are(lt, Relations::LE, rt);
     }
     template <typename X, typename Y>
-    bool isLoad(X from, Y to) const {
+    bool isLoad(const X &from, const Y &to) const {
         return are(from, Relations::PT, to);
     }
 
     // ****************************** has ********************************* //
     template <typename X>
-    bool hasLoad(X from) const {
+    bool hasLoad(const X &from) const {
         return has(from, Relations::PT);
     }
     template <typename X, typename Y>
-    bool hasConflictingRelations(X lt, Relations::Type rel, Y rt) const {
+    bool haveConflictingRelations(const X &lt, Relations::Type rel,
+                                  const Y &rt) const {
         HandlePtr mLt = maybeGet(lt);
         HandlePtr mRt = maybeGet(rt);
 
         return mLt && mRt && graph.haveConflictingRelation(*mLt, rel, *mRt);
     }
+    template <typename X, typename Y>
+    bool hasConflictingRelation(const X &lt, const Y &rt,
+                                Relations::Type rel) const {
+        return haveConflictingRelations(lt, rel, rt);
+    }
     template <typename X>
-    bool hasComparativeRelations(X val) const {
+    bool hasComparativeRelations(const X &val) const {
         return has(val, comparative);
     }
 
@@ -346,7 +368,7 @@ struct VR {
 
     std::vector<V> getAllRelated(V val) const;
     template <typename X>
-    RelGraph::RelationsMap getAllRelated(X val) const {
+    RelGraph::RelationsMap getAllRelated(const X &val) const {
         HandlePtr mH = maybeGet(val);
         assert(mH);
         return graph.getRelated(*mH, allRelations);
@@ -362,19 +384,29 @@ struct VR {
     C getLesserEqualBound(V val) const;
     C getGreaterEqualBound(V val) const;
 
-    std::vector<V> getValsByPtr(V from) const;
+    const std::vector<V> getValsByPtr(V from) const;
 
     std::set<std::pair<std::vector<V>, std::vector<V>>> getAllLoads() const;
+
+    std::vector<bool> &getValidAreas() { return validAreas; }
+    const std::vector<bool> &getValidAreas() const { return validAreas; }
 
     // ************************** placeholder ***************************** //
     Handle newPlaceholderBucket();
     void erasePlaceholderBucket(Handle id);
 
     // ***************************** other ******************************** //
-    void merge(const VR &other, Relations relations = allRelations);
-    void updateChanged(bool ch) { changed |= ch; }
-    void unsetChanged() { changed = false; }
+    bool merge(const VR &other, Relations relations = allRelations);
+    VR &unsetChanged() {
+        changed = false;
+        return *this;
+    }
+    bool hasChanged() { return changed; }
     bool holdsAnyRelations() const;
+
+#ifndef NDEBUG
+    friend std::ostream &operator<<(std::ostream &out, const VR &vr);
+#endif
 };
 
 } // namespace vr

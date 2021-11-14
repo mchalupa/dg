@@ -247,6 +247,7 @@ struct RelationsGraph {
 
   public:
     RelationsGraph(T &r) : reported(r) {}
+    RelationsGraph(const RelationsGraph &) = delete;
 
     using iterator = EdgeIterator;
 

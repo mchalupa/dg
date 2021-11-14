@@ -225,6 +225,8 @@ struct Bucket {
     }
 
   public:
+    Bucket(const Bucket &) = delete;
+
     const Bucket &getRelated(Relations::Type type) const {
         assert(!relatedBuckets[type].empty());
         return *relatedBuckets[type].begin();
@@ -357,7 +359,6 @@ struct Bucket {
         const RelationEdge *operator->() const { return &(*stack.back()); }
     };
 
-  public:
     using iterator = EdgeIterator;
 
     iterator begin(iterator::Visited &visited, const Relations &relations,
