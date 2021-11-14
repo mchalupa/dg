@@ -792,7 +792,10 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
         bool direct;
         std::tie(compared, direct) = getCompared(
                 codeGraph.getVRLocation(icmp).relations, icmp, from);
-        if (!compared)
+        if (!compared ||
+            (!llvm::isa<llvm::Constant>(compared) &&
+             !codeGraph.getVRLocation(icmp)
+                      .relations.getInstance<llvm::Argument>(compared)))
             return;
 
         assert(!initial.empty());
@@ -826,7 +829,7 @@ void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
             if (structure.hasBorderValues(func)) {
                 for (const auto &borderVal :
                      structure.getBorderValuesFor(func)) {
-                    if (borderVal.from == arg) {
+                    if (borderVal.from == arg && borderVal.stored == compared) {
                         auto thisBorderPlaceholder =
                                 join.relations.getBorderH(borderVal.id);
                         join.relations.set(placeholder,
