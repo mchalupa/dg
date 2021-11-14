@@ -39,8 +39,8 @@ class Bucket {
     using BucketSet = std::set<std::reference_wrapper<Bucket>>;
 
   private:
-    // R -> { a } such that (a, this) \in R (e.g. LE -> { a } such that a LE
-    // this)
+    // R -> { a } such that (this, a) \in R (e.g. LE -> { a } such that this LE
+    // a)
     std::map<RelationType, BucketSet> relatedBuckets;
 
     // purely for storing in a set
@@ -59,18 +59,22 @@ class Bucket {
     void merge(const Bucket &other) {
         for (auto &pair : other.relatedBuckets) {
             for (Bucket &related : pair.second) {
-                if (&related != this)
-                    setRelated(related, pair.first, *this);
+                if (related != *this)
+                    setRelated(*this, pair.first, related);
             }
         }
     }
 
     void disconnect() {
         for (auto &pair : relatedBuckets) {
-            for (Bucket &related : pair.second) {
-                unsetRelated(related, pair.first, *this);
+            for (auto it = pair.second.begin(); it != pair.second.end(); ++it) {
+                it->get().relatedBuckets[inverted(pair.first)].erase(*this);
+                it = relatedBuckets[pair.first].erase(it);
+                if (it == pair.second.end())
+                    break;
             }
         }
+        assert(!hasAnyRelation());
     }
 
     friend void setRelated(Bucket &lt, RelationType type, Bucket &rt) {
