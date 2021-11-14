@@ -23,7 +23,8 @@ class UniquePtrVector {
         using reference = value_type &;
         using pointer = value_type *;
         using difference_type = typename ContainerIterator::difference_type;
-        using iterator_category = std::forward_iterator_tag;
+        using iterator_category =
+                std::bidirectional_iterator_tag; // std::forward_iterator_tag;
 
         iterator() = default;
         iterator(ContainerIterator i) : it(i) {}
@@ -50,9 +51,20 @@ class UniquePtrVector {
             return copy;
         }
 
+        iterator &operator--() {
+            --it;
+            return *this;
+        }
+
+        iterator operator--(int) {
+            auto copy = *this;
+            --*this;
+            return copy;
+        }
+
       private:
         ContainerIterator it;
-    };
+        };
 
     reference at(size_type pos) const { return *_v.at(pos); }
     reference operator[](size_type pos) const { return *_v[pos]; }
@@ -89,10 +101,7 @@ class UniquePtrVector {
         swap(_v, other._v);
     }
 
-    friend void
-    swap(UniquePtrVector &lt, UniquePtrVector &rt) {
-        lt.swap(rt);
-    }
+    friend void swap(UniquePtrVector &lt, UniquePtrVector &rt) { lt.swap(rt); }
 };
 
 } // namespace vr
