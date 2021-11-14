@@ -560,60 +560,6 @@ class RelationsGraph {
 #endif
 };
 
-template <typename T>
-class BucketedValues {
-    std::map<T, size_t> valueMapping;
-    std::vector<size_t> nodes;
-    std::map<size_t, std::reference_wrapper<Bucket>> rootBuckets;
-
-    size_t root(T val) {
-        size_t current = valueMapping.at(val);
-
-        while (current != nodes[current]) {
-            nodes[current] = nodes[nodes[current]];
-            current = nodes[current];
-        }
-        return current;
-    }
-
-    Bucket &getBucket(size_t node) const {
-        assert(rootBuckets.find(node) != rootBuckets.end());
-        return rootBuckets.at(node);
-    }
-
-  public:
-    bool add(T val, Bucket &bucket) {
-        size_t newNode = nodes.size();
-        bool inserted = valueMapping.emplace(val, newNode).second;
-
-        if (inserted) {
-            nodes.emplace_back(newNode);
-
-            assert(rootBuckets.find(newNode) == rootBuckets.end());
-            rootBuckets.emplace(newNode, bucket);
-        }
-
-        return inserted;
-    }
-
-    bool contains(T val) const {
-        return valueMapping.find(val) != valueMapping.end();
-    }
-
-    Bucket &getBucket(T val) {
-        size_t node = root(val);
-        return getBucket(node);
-    }
-
-    bool areEqual(T lt, T rt) { return root(lt) == root(rt); }
-
-    void setEqual(T to, T from) {
-        size_t old = root(from);
-        nodes[old] = root(to);
-        rootBuckets.erase(old);
-    }
-};
-
 } // namespace vr
 } // namespace dg
 
