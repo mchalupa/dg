@@ -261,6 +261,23 @@ struct ValueRelations {
     // ****************************** get ********************************* //
     Handle getHandle(V val) const;
 
+    template <typename I>
+    const I *getInstance(V v) const {
+        HandlePtr mH = maybeGet(v);
+        if (!mH)
+            return llvm::dyn_cast<I>(v);
+        return getInstance<I>(*mH);
+    }
+
+    template <typename I>
+    const I *getInstance(Handle h) const {
+        for (const auto *val : getEqual(h)) {
+            if (const auto *inst = llvm::dyn_cast<I>(val))
+                return inst;
+        }
+        return nullptr;
+    }
+
     // ****************************** set ********************************* //
     template <typename X, typename Y>
     void set(const X &lt, Relations::Type rel, const Y &rt) {
