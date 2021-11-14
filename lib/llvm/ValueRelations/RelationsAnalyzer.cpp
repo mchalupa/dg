@@ -49,10 +49,10 @@ RelationsAnalyzer::instructionInvalidates(I inst) const {
         return unsetAll;
 
     V memoryPtr = store->getPointerOperand();
-    V underlyingPtr = stripCastsAndGEPs(memoryPtr);
+    V underlyingPtr = memoryPtr->stripPointerCasts();
 
     std::set<std::pair<V, unsigned>> writtenTo;
-    // DANGER TODO unset everything in between too
+    // DANGER TODO unset everything in between too?
     addAndUnwrapLoads(writtenTo, underlyingPtr); // unset underlying memory
     addAndUnwrapLoads(writtenTo, memoryPtr);     // unset pointer itself
 
@@ -153,20 +153,8 @@ bool RelationsAnalyzer::mayHaveAlias(V val) const {
                 return true;
 
         } else if (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(user)) {
-            if (gep->getPointerOperand() == val) {
-                if (gep->hasAllZeroIndices())
-                    return true;
-
-                // TODO really? remove
-                llvm::Type *valType = val->getType();
-                llvm::Type *gepType = gep->getPointerOperandType();
-                if (gepType->isVectorTy() || valType->isVectorTy())
-                    assert(0 &&
-                           "i dont know what it is and when does it happen");
-                if (gepType->getPrimitiveSizeInBits() <
-                    valType->getPrimitiveSizeInBits())
-                    return true;
-            }
+            assert(gep->getPointerOperand() == val);
+            return true; // TODO possible to collect here
 
         } else if (auto intrinsic = llvm::dyn_cast<llvm::IntrinsicInst>(user)) {
             if (!isIgnorableIntrinsic(intrinsic->getIntrinsicID()) &&
@@ -195,17 +183,8 @@ bool RelationsAnalyzer::isIgnorableIntrinsic(llvm::Intrinsic::ID id) const {
     }
 }
 
-V RelationsAnalyzer::stripCastsAndGEPs(V memoryPtr) {
-    memoryPtr = memoryPtr->stripPointerCasts();
-    while (auto gep = llvm::dyn_cast<llvm::GetElementPtrInst>(memoryPtr)) {
-        memoryPtr = gep->getPointerOperand()->stripPointerCasts();
-    }
-    return memoryPtr;
-}
-
 bool RelationsAnalyzer::hasKnownOrigin(const ValueRelations &graph, V from) {
     for (auto memoryPtr : graph.getEqual(from)) {
-        memoryPtr = stripCastsAndGEPs(memoryPtr);
         if (llvm::isa<llvm::AllocaInst>(memoryPtr))
             return true;
     }
