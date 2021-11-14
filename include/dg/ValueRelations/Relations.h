@@ -1,5 +1,5 @@
-#ifndef DG_LLVM_VALUE_RELATIONS_RELATIONS_H
-#define DG_LLVM_VALUE_RELATIONS_RELATIONS_H
+#ifndef DG_LLVM_VALUE_RELATIONS_RELATIONS_H_
+#define DG_LLVM_VALUE_RELATIONS_RELATIONS_H_
 
 #ifndef NDEBUG
 #include <iostream>
@@ -115,4 +115,4 @@ std::ostream &operator<<(std::ostream &out, Relations::Type r);
 } // namespace vr
 } // namespace dg
 
-#endif // DG_LLVM_VALUE_RELATIONS_RELATIONS_H
+#endif // DG_LLVM_VALUE_RELATIONS_RELATIONS_H_

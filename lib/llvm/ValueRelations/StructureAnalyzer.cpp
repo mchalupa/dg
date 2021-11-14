@@ -255,7 +255,7 @@ std::set<VREdge *> StructureAnalyzer::collectBackward(const llvm::Function &f,
     assert(from.succsSize() >= 1);
     // since from is marked visited at the beginning, these edge would never be
     // visited
-    for (auto& edge : from.successors) {
+    for (auto &edge : from.successors) {
         // graph is build such that every assume is followed by noop and only
         // possibility of having more than one successor is to have outgoing
         // assume edges
