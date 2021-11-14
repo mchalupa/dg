@@ -42,7 +42,7 @@ llvm::cl::opt<bool> todot("dot", llvm::cl::desc("Dump graph in grahviz format"),
 
 llvm::cl::opt<unsigned> max_iter("max-iter",
                                  llvm::cl::desc("Maximal number of iterations"),
-                                 llvm::cl::init(100));
+                                 llvm::cl::init(20));
 
 llvm::cl::opt<std::string> inputFile(llvm::cl::Positional, llvm::cl::Required,
                                      llvm::cl::desc("<input file>"),
@@ -89,8 +89,9 @@ int main(int argc, char *argv[]) {
 
     RelationsAnalyzer ra(*M, codeGraph, structure);
     unsigned num_iter = ra.analyze(max_iter);
-    // call to analyzeAfterRelationsAnalysis is unnecessary
-    // end analysis
+    structure.analyzeAfterRelationsAnalysis();
+    // call to analyzeAfterRelationsAnalysis is unnecessary, but better for
+    // testing end analysis
 
     tm.stop();
     tm.report("INFO: Value Relations analysis took");
@@ -102,7 +103,7 @@ int main(int argc, char *argv[]) {
         std::cout << "digraph VR {\n";
         for (auto &loc : codeGraph) {
             std::cout << "  NODE" << loc.id;
-            std::cout << "[label=\"";
+            std::cout << "[shape=box, margin=0.15, label=\"";
             std::cout << "LOCATION " << loc.id << "\\n";
             std::cout << loc.relations;
             std::cout << "\"];\n";
