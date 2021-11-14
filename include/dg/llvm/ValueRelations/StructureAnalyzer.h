@@ -47,7 +47,6 @@ class AllocatedArea {
         assert(type->isSized());
 
         uint64_t size = type->getPrimitiveSizeInBits();
-        assert(size % byteWidth == 0);
 
         return size / byteWidth;
     }
