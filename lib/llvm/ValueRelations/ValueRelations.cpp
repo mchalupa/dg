@@ -42,6 +42,9 @@ Relations ValueRelations::_between(C lt, Handle rt) const {
     return _between(rt, lt).invert();
 }
 Relations ValueRelations::_between(V lt, V rt) const {
+    if (lt == rt)
+        return Relations().eq().addImplied();
+
     if (HandlePtr mLt = maybeGet(lt))
         return _between(*mLt, rt);
 

@@ -41,30 +41,14 @@ class RelationsAnalyzer {
     const StructureAnalyzer &structure;
 
     // ********************** points to invalidation ********************** //
-    void addAndUnwrapLoads(std::set<std::pair<V, unsigned>> &writtenTo,
-                           V val) const;
-    std::set<std::pair<V, unsigned>> instructionInvalidates(I inst) const;
-    V getInvalidatedPointer(const ValueRelations &graph, V invalid,
-                            unsigned depth) const;
-    // returns set of values that have a load in given graph and are invalidated
-    // by the instruction
-    std::set<V> instructionInvalidatesFromGraph(const ValueRelations &graph,
-                                                I inst) const;
-
+    bool isIgnorableIntrinsic(llvm::Intrinsic::ID id) const;
     bool isSafe(I inst) const;
     bool isDangerous(I inst) const;
-    bool mayHaveAlias(const ValueRelations &graph, Handle h) const;
-    bool hasKnownOrigin(const ValueRelations &graph, Handle h) const;
-    std::vector<HandleRef> instructionKeeps(I inst) const;
-    bool mayOverwrite(I inst, V address) const;
-
-    // ************************ points to helpers ************************* //
     bool mayHaveAlias(const ValueRelations &graph, V val) const;
     bool mayHaveAlias(V val) const;
-    bool isIgnorableIntrinsic(llvm::Intrinsic::ID id) const;
-    static V stripCastsAndGEPs(V memoryPtr);
     static bool hasKnownOrigin(const ValueRelations &graph, V from);
     static bool hasKnownOrigin(V from);
+    bool mayOverwrite(I inst, V address) const;
 
     // ************************ operation helpers ************************* //
     bool solvesSameType(ValueRelations &graph, const llvm::ConstantInt *c1,
