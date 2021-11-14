@@ -618,17 +618,29 @@ void RelationsAnalyzer::checkRelatesInAll(VRLocation &location, V lt,
     thisGraph.set(lt, related.get(), rt);
 }
 
+/** load **/
 bool RelationsAnalyzer::relatesByLoadInAll(
-        const std::vector<VRLocation *> &locations, V related, V from,
-        Relation rel, bool flip) const {
-    for (const VRLocation *vrloc : locations) {
+        const std::vector<VRLocation *> &preds, V related, V from,
+        Relation rel) const {
+    for (const VRLocation *vrloc : preds) {
         const std::vector<V> &loaded = vrloc->relations.getValsByPtr(from);
-        if (loaded.empty() ||
-            (!flip && !vrloc->relations.are(related, rel, loaded[0])) ||
-            (flip && !vrloc->relations.are(loaded[0], rel, related)))
+        if (loaded.empty() || !vrloc->relations.are(related, rel, loaded[0]))
             return false;
     }
     return true;
+}
+
+Relations RelationsAnalyzer::relationsByLoadInAllPreds(
+        const std::vector<VRLocation *> &preds, V from, V related) const {
+    Relations result = allRelations;
+    for (const VRLocation *pred : preds) {
+        const std::vector<V> &loaded = pred->relations.getValsByPtr(from);
+        if (loaded.empty())
+            return Relations();
+        result &= pred->relations.between(loaded[0], related);
+    }
+    assert(result == result.addImplied());
+    return result;
 }
 
 bool RelationsAnalyzer::loadsInAll(const std::vector<VRLocation *> &locations,
@@ -690,80 +702,70 @@ bool RelationsAnalyzer::isGoodFromForPlaceholder(
     return true;
 }
 
-void RelationsAnalyzer::inferChangeInLoop(ValueRelations &newGraph,
+void RelationsAnalyzer::inferChangeInLoop(ValueRelations &thisGraph,
                                           const std::vector<V> &froms,
                                           VRLocation &location) {
-    for (V from : froms) {
-        const auto &predEdges = location.predecessors;
+    // hopefully get values, that are both related to the value loaded from
+    // from at the end of the loop and at the same time is loaded
+    // from from in given loop
+    std::map<V, std::vector<V>> beforeInvalidation;
+    std::map<V, std::set<VRLocation *>> changeLocations;
 
-        VRLocation *outloopPred = predEdges[0]->type == EdgeType::BACK
-                                          ? predEdges[1]->source
-                                          : predEdges[0]->source;
-        VRLocation *inloopPred = predEdges[0]->type == EdgeType::BACK
-                                         ? predEdges[0]->source
-                                         : predEdges[1]->source;
+    const auto &predEdges = location.predecessors;
 
-        std::vector<V> valsInloop = inloopPred->relations.getValsByPtr(from);
-        if (valsInloop.empty())
-            continue;
-        V valInloop = valsInloop[0];
+    VRLocation *outloopPred = &location.getTreePredecessor();
+    VRLocation *inloopPred = predEdges[0]->type == EdgeType::BACK
+                                     ? predEdges[0]->source
+                                     : predEdges[1]->source;
 
-        std::vector<V> allRelated =
-                inloopPred->relations.getAllRelated(valInloop);
+    for (const auto *val : structure.getInloopValues(location)) {
+        VRLocation &before = codeGraph.getVRLocation(val);
+        assert(before.getSuccessors().size() == 1);
+        VRLocation *targetLoc = before.getSuccessors()[0]->target;
 
-        // get some value, that is both related to the value loaded from
-        // from at the end of the loop and at the same time is loaded
-        // from from in given loop
-        V firstLoadInLoop = nullptr;
-        for (const auto *val : structure.getInloopValues(location)) {
-            const ValueRelations &relations =
-                    codeGraph.getVRLocation(val).relations;
-            auto invalidated = instructionInvalidatesFromGraph(relations, val);
-            if (invalidated.find(from) != invalidated.end())
-                break;
-            if (auto call = llvm::dyn_cast<llvm::CallInst>(val)) {
-                auto function = call->getCalledFunction();
-                if (function && safeFunctions.find(function->getName().str()) ==
-                                        safeFunctions.end())
-                    break; // TODO DANGER do properly
+        auto invalidated =
+                instructionInvalidatesFromGraph(outloopPred->relations, val);
+        for (V from : froms) {
+            if (invalidated.find(from) != invalidated.end()) {
+                changeLocations[from].emplace(targetLoc);
             }
 
-            if (std::find(allRelated.begin(), allRelated.end(), val) !=
-                allRelated.end()) {
-                if (auto load = llvm::dyn_cast<llvm::LoadInst>(val)) {
-                    if (load->getPointerOperand() == from) {
-                        firstLoadInLoop = load;
-                        break;
-                    }
+            if (auto load = llvm::dyn_cast<llvm::LoadInst>(val)) {
+                if (load->getPointerOperand() == from &&
+                    changeLocations[from].empty()) {
+                    beforeInvalidation[from].emplace_back(val);
                 }
             }
         }
+    }
+    for (V from : froms) {
+        std::vector<V> valsInloop = inloopPred->relations.getValsByPtr(from);
+        if (valsInloop.empty() || beforeInvalidation[from].empty())
+            continue;
+        V valInloop = valsInloop[0];
+        V firstLoadInLoop = beforeInvalidation[from][0];
 
-        // set all preserved relations
-        if (firstLoadInLoop) {
-            // get all equal vals from load from outloopPred
-            std::vector<V> valsOutloop =
-                    outloopPred->relations.getValsByPtr(from);
-            if (valsOutloop.empty())
-                continue;
+        // get all equal vals from load from outloopPred
+        std::vector<V> valsOutloop = outloopPred->relations.getValsByPtr(from);
+        if (valsOutloop.empty())
+            continue;
 
-            Handle placeholder = newGraph.newPlaceholderBucket(from);
+        Handle placeholder = thisGraph.newPlaceholderBucket(from);
 
-            if (inloopPred->relations.isLesser(firstLoadInLoop, valInloop))
-                newGraph.setLesserEqual(valsOutloop[0], placeholder);
+        if (inloopPred->relations.isLesser(firstLoadInLoop, valInloop))
+            thisGraph.setLesserEqual(valsOutloop[0], placeholder);
 
-            if (inloopPred->relations.isLesser(valInloop, firstLoadInLoop))
-                newGraph.setLesserEqual(placeholder, valsOutloop[0]);
+        if (inloopPred->relations.isLesser(valInloop, firstLoadInLoop))
+            thisGraph.setLesserEqual(placeholder, valsOutloop[0]);
 
-            if (newGraph.hasComparativeRelations(placeholder)) {
-                newGraph.setLoad(from, placeholder);
+        if (thisGraph.hasComparativeRelations(placeholder)) {
+            thisGraph.setLoad(from, placeholder);
 
-                for (V val : valsOutloop) {
-                    newGraph.setEqual(valsOutloop[0], val);
-                }
-            } else {
-                newGraph.erasePlaceholderBucket(placeholder);
+            for (V val : valsOutloop) {
+                thisGraph.setEqual(valsOutloop[0], val);
             }
+        } else {
+            thisGraph.erasePlaceholderBucket(placeholder);
         }
     }
 }
@@ -802,98 +804,77 @@ void RelationsAnalyzer::inferFromChangeLocations(ValueRelations &newGraph,
     }
 }
 
-void RelationsAnalyzer::intersectByLoad(const std::vector<VRLocation *> &preds,
-                                        V from, ValueRelations &newGraph) {
-    auto &loads = preds[0]->relations.getValsByPtr(from);
-    if (loads.empty())
-        return;
+std::pair<RelationsAnalyzer::C, Relations>
+RelationsAnalyzer::getBoundOnPointedToValue(
+        const std::vector<VRLocation *> &preds, V from, Relation rel) const {
+    C bound = nullptr;
+    Relations current = allRelations;
 
-    const llvm::ConstantInt *bound = nullptr;
     for (VRLocation *pred : preds) {
         const ValueRelations &predGraph = pred->relations;
+        if (!predGraph.hasLoad(from))
+            return {nullptr, current};
 
-        auto &loads = predGraph.getValsByPtr(from);
-        if (loads.empty())
-            return;
+        Handle pointedTo = predGraph.getPointedTo(from);
+        auto valueRels = predGraph.getBound(pointedTo, rel);
 
-        const llvm::ConstantInt *value =
-                predGraph.getLesserEqualBound(loads[0]);
-        if (!value) {
-            bound = nullptr;
-            break;
+        if (!valueRels.first)
+            return {nullptr, current};
+
+        if (!bound || ValueRelations::compare(bound, Relations::getStrict(rel),
+                                              valueRels.first)) {
+            bound = valueRels.first;
+            current = Relations().set(Relations::getStrict(rel)).addImplied();
         }
 
-        if (!bound || value->getValue().slt(bound->getValue()))
-            bound = value;
+        current &= valueRels.second;
+        assert(current.any());
     }
+    return {bound, current};
+}
 
-    Handle placeholder = newGraph.newPlaceholderBucket(from);
+void RelationsAnalyzer::relateBounds(const std::vector<VRLocation *> &preds,
+                                     V from, ValueRelations &newGraph,
+                                     Handle placeholder) {
+    auto lowerBound = getBoundOnPointedToValue(
+            preds, from, Relation::GE); // TODO collect upper bound too
 
-    if (bound)
-        newGraph.setLesserEqual(bound, placeholder);
+    if (lowerBound.first)
+        newGraph.set(placeholder, lowerBound.second.get(), lowerBound.first);
+}
 
-    V loaded = preds[0]->relations.getValsByPtr(from)[0];
+void RelationsAnalyzer::relateValues(const std::vector<VRLocation *> &preds,
+                                     V from, ValueRelations &newGraph,
+                                     Handle placeholder) {
+    const ValueRelations &predGraph = preds[0]->relations;
 
-    for (auto it = preds[0]->relations.begin_all(loaded);
-         it != preds[0]->relations.end_all(loaded); ++it) {
-        V related = it->first;
-        Relation relation = it->second;
-        assert(preds[0]->relations.are(related, relation, loaded));
+    Handle pointedTo = predGraph.getPointedTo(from);
 
-        if (related == loaded)
+    for (auto pair : predGraph.getRelated(pointedTo, comparative)) {
+        Handle relatedH = pair.first;
+        Relations relations = pair.second;
+
+        assert(predGraph.are(pointedTo, relations.get(), relatedH));
+
+        if (relatedH == pointedTo)
             continue;
 
-        switch (relation) {
-        case Relation::EQ:
-            if (relatesByLoadInAll(preds, related, from, Relation::EQ, false))
-                newGraph.setEqual(related, placeholder);
-
-            else if (relatesByLoadInAll(preds, related, from, Relation::LE,
-                                        false))
-                newGraph.setLesserEqual(related, placeholder);
-
-            else if (relatesByLoadInAll(preds, related, from, Relation::LE,
-                                        true))
-                newGraph.setLesserEqual(placeholder, related);
-
-            break;
-
-        case Relation::LT:
-            if (relatesByLoadInAll(preds, related, from, Relation::LT, false))
-                newGraph.setLesser(related, placeholder);
-
-            else if (relatesByLoadInAll(preds, related, from, Relation::LE,
-                                        false))
-                newGraph.setLesserEqual(related, placeholder);
-
-            break;
-
-        case Relation::LE:
-            if (relatesByLoadInAll(preds, related, from, Relation::LE, false))
-                newGraph.setLesserEqual(related, placeholder);
-
-            break;
-
-        case Relation::GT:
-            if (relatesByLoadInAll(preds, related, from, Relation::LT, true))
-                newGraph.setLesser(placeholder, related);
-
-            else if (relatesByLoadInAll(preds, related, from, Relation::LE,
-                                        true))
-                newGraph.setLesserEqual(placeholder, related);
-
-            break;
-
-        case Relation::GE:
-            if (relatesByLoadInAll(preds, related, from, Relation::LE, true))
-                newGraph.setLesserEqual(placeholder, related);
-
-            break;
-
-        default:
-            assert(0 && "other relations do not participate");
+        for (V related : predGraph.getEqual(relatedH)) {
+            if (relatesByLoadInAll(preds, related, from,
+                                   Relations::inverted(relations.get())))
+                newGraph.set(placeholder, relations.get(),
+                             related); // TODO set weaker relation (LE instead
+                                       // of EQ, LT)
         }
     }
+}
+
+void RelationsAnalyzer::intersectByLoad(const std::vector<VRLocation *> &preds,
+                                        V from, ValueRelations &newGraph) {
+    Handle placeholder = newGraph.newPlaceholderBucket(from);
+
+    relateBounds(preds, from, newGraph, placeholder);
+    relateValues(preds, from, newGraph, placeholder);
 
     if (newGraph.hasAnyRelation(placeholder))
         newGraph.setLoad(from, placeholder);
@@ -962,7 +943,8 @@ void RelationsAnalyzer::mergeRelationsByLoads(
     ValueRelations &newGraph = location.relations;
 
     std::vector<V> froms;
-    for (auto fromsValues : preds[0]->relations.getAllLoads()) {
+    for (auto fromsValues :
+         location.getTreePredecessor().relations.getAllLoads()) {
         for (auto from : fromsValues.first) {
             if (isGoodFromForPlaceholder(preds, from, fromsValues.second))
                 froms.emplace_back(from);

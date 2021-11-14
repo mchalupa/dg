@@ -25,6 +25,7 @@ class RelationsAnalyzer {
     using Handle = ValueRelations::Handle;
     using Relation = Relations::Type;
     using V = ValueRelations::V;
+    using C = ValueRelations::C;
     using I = const llvm::Instruction *;
 
     const std::set<std::string> safeFunctions = {"__VERIFIER_nondet_int",
@@ -91,10 +92,12 @@ class RelationsAnalyzer {
     // *********************** merge helpers **************************** //
     Relations relationsInAllPreds(const VRLocation &location, V lt,
                                   Relations known, V rt) const;
+    Relations relationsByLoadInAllPreds(const std::vector<VRLocation *> &preds,
+                                        V from, V related) const;
     void checkRelatesInAll(VRLocation &location, V lt, Relations known, V rt,
                            std::set<V> &setEqual);
-    bool relatesByLoadInAll(const std::vector<VRLocation *> &locations,
-                            V related, V from, Relation rel, bool flip) const;
+    bool relatesByLoadInAll(const std::vector<VRLocation *> &preds, V related,
+                            V from, Relation rel) const;
     bool loadsInAll(const std::vector<VRLocation *> &locations, V from,
                     V value) const;
     bool loadsSomethingInAll(const std::vector<VRLocation *> &locations,
@@ -110,6 +113,13 @@ class RelationsAnalyzer {
                                   VRLocation &location);
     void intersectByLoad(const std::vector<VRLocation *> &preds, V from,
                          ValueRelations &newGraph);
+    std::pair<C, Relations>
+    getBoundOnPointedToValue(const std::vector<VRLocation *> &preds, V from,
+                             Relation rel) const;
+    void relateBounds(const std::vector<VRLocation *> &preds, V from,
+                      ValueRelations &newGraph, Handle placeholder);
+    void relateValues(const std::vector<VRLocation *> &preds, V from,
+                      ValueRelations &newGraph, Handle placeholder);
 
     // **************************** merge ******************************* //
     void mergeRelations(VRLocation &location);
