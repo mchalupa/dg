@@ -134,22 +134,29 @@ class StructureAnalyzer {
     const std::vector<Precondition> &
     getPreconditionsFor(const llvm::Function *func) const;
 
-    size_t addBorderValue(const llvm::Function *func, const llvm::Argument *from);
+    size_t addBorderValue(const llvm::Function *func,
+                          const llvm::Argument *from,
+                          const llvm::Value *stored);
 
     bool hasBorderValues(const llvm::Function *func) const;
 
     const std::vector<BorderValue> &
     getBorderValuesFor(const llvm::Function *func) const;
 
-    const llvm::Argument *getBorderArgumentFor(const llvm::Function *func, size_t id) const;
+    const llvm::Argument *getBorderArgumentFor(const llvm::Function *func,
+                                               size_t id) const;
 
 #ifndef NDEBUG
     void dumpBorderValues(std::ostream &out = std::cerr) const {
         out << "[ \n";
         for (auto &foo : borderValues) {
             out << "    " << foo.first->getName().str() << ": ";
-            for (auto &pair : foo.second)
-                out << "(from " << debug::getValName(pair.from) << ", id " << pair.id << "), ";
+            for (auto &bv : foo.second)
+                out << "("
+                    << "id " << bv.id << ", "
+                    << "from " << debug::getValName(bv.from) << ", "
+                    << "stored " << debug::getValName(bv.stored)
+                    << "), ";
         }
         out << "\n]\n";
     }
