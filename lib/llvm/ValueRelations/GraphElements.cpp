@@ -143,8 +143,9 @@ VRCodeGraph::lazy_dfs_begin(const llvm::Function &f) const {
     return LazyDFS(f, &getEntryLocation(f), Dir::FORWARD);
 }
 
-VRCodeGraph::LazyDFS VRCodeGraph::lazy_dfs_begin(const llvm::Function &f,
-                                                 VRLocation &start) const {
+VRCodeGraph::LazyDFS
+VRCodeGraph::lazy_dfs_begin(const llvm::Function &f,
+                            const VRLocation &start) const {
     assert(categorizedEdges);
     return LazyDFS(f, &start, Dir::FORWARD);
 }
@@ -155,10 +156,15 @@ VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function &f) const {
     return SimpleDFS(f, &getEntryLocation(f), Dir::FORWARD);
 }
 
+VRCodeGraph::SimpleDFS VRCodeGraph::dfs_begin(const llvm::Function &f,
+                                              const VRLocation &start) const {
+    return SimpleDFS(f, &start, Dir::FORWARD);
+}
+
 VRCodeGraph::SimpleDFS VRCodeGraph::dfs_end() { return SimpleDFS(); }
 
 VRCodeGraph::SimpleDFS VRCodeGraph::backward_dfs_begin(const llvm::Function &f,
-                                                       VRLocation &start) {
+                                                       const VRLocation &start) {
     return SimpleDFS(f, &start, Dir::BACKWARD);
 }
 
