@@ -434,15 +434,14 @@ std::string strip(std::string str, size_t skipSpaces) {
 }
 
 #ifndef NDEBUG
-void dump(std::ostream &out, ValueRelations::Handle h,
-          const ValueRelations::BucketToVals &map) {
-    auto found = map.find(h);
-    assert(found != map.end());
+void ValueRelations::dump(ValueRelations::Handle h, std::ostream &out) const {
+    auto found = bucketToVals.find(h);
+    assert(found != bucketToVals.end());
     const VectorSet<ValueRelations::V> &vals = found->second;
 
     out << "{{ ";
     if (vals.empty())
-        out << "placeholder ";
+        out << "placeholder " << h.id << " ";
     else
         for (ValueRelations::V val : vals)
             out << (val == *vals.begin() ? "" : " | ")
@@ -450,20 +449,35 @@ void dump(std::ostream &out, ValueRelations::Handle h,
     out << " }}";
 }
 
+void ValueRelations::dotDump(std::ostream &out) const {
+    out << "digraph G {\n";
+    for (auto it = begin_buckets(Relations().eq().slt().sle().ult().ule().pt());
+         it != end_buckets(); ++it) {
+        out << "  RNODE" << it->from().id << " [label=\"";
+        dump(it->from(), out);
+        out << "\"]; ";
+        if (it->rel() != Relations::EQ)
+            out << "  RNODE" << it->from().id << " -> "
+                << "RNODE" << it->to().id << " [label=\"" << it->rel()
+                << "\"];";
+    }
+    out << "}\n";
+}
+
 std::ostream &operator<<(std::ostream &out, const ValueRelations &vr) {
     for (const auto &edge : vr.graph) {
         if (edge.rel() == Relations::EQ) {
             if (!edge.to().hasAnyRelation()) {
                 out << "              ";
-                dump(out, edge.to(), vr.bucketToVals);
+                vr.dump(edge.to(), out);
                 out << "\n";
             }
             continue;
         }
         out << "    " << edge << "    ";
-        dump(out, edge.from(), vr.bucketToVals);
+        vr.dump(edge.from(), out);
         out << " " << edge.rel() << " ";
-        dump(out, edge.to(), vr.bucketToVals);
+        vr.dump(edge.to(), out);
         out << "\n";
     }
     return out;
