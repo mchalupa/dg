@@ -787,64 +787,65 @@ const llvm::Argument *getArgument(const VectorSet<V> &vals) {
 void RelationsAnalyzer::inferFromNonEquality(VRLocation &join, V from,
                                              const VectorSet<V> &initial,
                                              Shift s, Handle placeholder) {
-    const auto &icmps = getEQICmp(join);
-    if (icmps.size() != 1)
-        return;
-    const auto *icmp = icmps[0];
+    for (const auto *icmp : getEQICmp(join)) {
+        V compared;
+        bool direct;
+        std::tie(compared, direct) = getCompared(
+                codeGraph.getVRLocation(icmp).relations, icmp, from);
+        if (!compared)
+            return;
 
-    V compared;
-    bool direct;
-    std::tie(compared, direct) =
-            getCompared(codeGraph.getVRLocation(icmp).relations, icmp, from);
-    if (!compared)
-        return;
+        assert(!initial.empty());
+        const llvm::Argument *arg = getArgument(initial);
+        if (!arg)
+            return;
 
-    assert(!initial.empty());
-    const llvm::Argument *arg = getArgument(initial);
-    if (!arg)
-        return;
+        const llvm::Function *func = icmp->getFunction();
 
-    const llvm::Function *func = icmp->getFunction();
+        if (direct) {
+            if (join.relations.are(*initial.begin(),
+                                   s == Shift::INC ? Relations::SLE
+                                                   : Relations::SGE,
+                                   compared)) {
+                return;
+            }
 
-    if (direct) {
-        if (join.relations.are(*initial.begin(),
+            structure.addPrecondition(func, arg,
+                                      s == Shift::INC ? Relations::SLE
+                                                      : Relations::SGE,
+                                      compared);
+
+            join.relations.set(placeholder,
                                s == Shift::INC ? Relations::SLE
                                                : Relations::SGE,
-                               compared)) {
-            return;
-        }
+                               compared);
+        } else {
+            ValueRelations &entryRels =
+                    codeGraph.getEntryLocation(*func).relations;
 
-        structure.addPrecondition(
-                func, arg, s == Shift::INC ? Relations::SLE : Relations::SGE,
-                compared);
-
-        join.relations.set(placeholder,
-                           s == Shift::INC ? Relations::SLE : Relations::SGE,
-                           compared);
-    } else {
-        ValueRelations &entryRels = codeGraph.getEntryLocation(*func).relations;
-
-        if (structure.hasBorderValues(func)) {
-            for (const auto &borderVal : structure.getBorderValuesFor(func)) {
-                if (borderVal.from == arg) {
-                    auto thisBorderPlaceholder =
-                            join.relations.getBorderH(borderVal.id);
-                    join.relations.set(placeholder,
-                                       s == Shift::INC ? Relations::SLE
-                                                       : Relations::SGE,
-                                       *thisBorderPlaceholder);
-                    return;
+            if (structure.hasBorderValues(func)) {
+                for (const auto &borderVal :
+                     structure.getBorderValuesFor(func)) {
+                    if (borderVal.from == arg) {
+                        auto thisBorderPlaceholder =
+                                join.relations.getBorderH(borderVal.id);
+                        join.relations.set(placeholder,
+                                           s == Shift::INC ? Relations::SLE
+                                                           : Relations::SGE,
+                                           *thisBorderPlaceholder);
+                        return;
+                    }
                 }
             }
-        }
 
-        auto id = structure.addBorderValue(func, arg, compared);
-        Handle entryBorderPlaceholder = entryRels.newBorderBucket(id);
-        entryRels.set(entryBorderPlaceholder, Relations::PT, compared);
-        entryRels.set(entryBorderPlaceholder,
-                      Relations::inverted(s == Shift::INC ? Relations::SLE
-                                                          : Relations::SGE),
-                      arg);
+            auto id = structure.addBorderValue(func, arg, compared);
+            Handle entryBorderPlaceholder = entryRels.newBorderBucket(id);
+            entryRels.set(entryBorderPlaceholder, Relations::PT, compared);
+            entryRels.set(entryBorderPlaceholder,
+                          Relations::inverted(s == Shift::INC ? Relations::SLE
+                                                              : Relations::SGE),
+                          arg);
+        }
     }
 }
 
