@@ -841,9 +841,9 @@ bool RelationsAnalyzer::passFunction(const llvm::Function &function,
 #ifndef NDEBUG
         bool cond = location.id == 91;
         if (print && cond) {
-            std::cerr << "LOCATION " << location.id << std::endl;
+            std::cerr << "LOCATION " << location.id << "\n";
             for (VREdge *predEdge : location.predecessors) {
-                std::cerr << predEdge->op->toStr() << std::endl;
+                std::cerr << predEdge->op->toStr() << "\n";
             }
         }
         if (print && cond) {

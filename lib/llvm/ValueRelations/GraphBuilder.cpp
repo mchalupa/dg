@@ -48,7 +48,7 @@ void GraphBuilder::buildTerminators(const llvm::Function &function) {
         } else if (llvm::succ_begin(&block) != llvm::succ_end(&block)) {
 #ifndef NDEBUG
             std::cerr << "Unhandled  terminator: "
-                      << dg::debug::getValName(terminator) << std::endl;
+                      << dg::debug::getValName(terminator) << "\n";
             llvm::errs() << "Unhandled terminator: " << *terminator << "\n";
 #endif
             abort();

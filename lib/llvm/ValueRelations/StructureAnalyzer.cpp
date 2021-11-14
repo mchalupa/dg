@@ -154,12 +154,12 @@ std::vector<AllocatedSizeView> AllocatedArea::getAllocatedSizeViews() const {
 
 #ifndef NDEBUG
 void AllocatedArea::ddump() const {
-    std::cerr << "Allocated area:" << std::endl;
-    std::cerr << "    ptr " << debug::getValName(ptr) << std::endl;
+    std::cerr << "Allocated area:" << "\n";
+    std::cerr << "    ptr " << debug::getValName(ptr) << "\n";
     std::cerr << "    count "
-              << debug::getValName(originalSizeView.elementCount) << std::endl;
-    std::cerr << "    size " << originalSizeView.elementSize << std::endl;
-    std::cerr << std::endl;
+              << debug::getValName(originalSizeView.elementCount) << "\n";
+    std::cerr << "    size " << originalSizeView.elementSize << "\n";
+    std::cerr << "\n";
 }
 #endif
 
