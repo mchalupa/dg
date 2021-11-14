@@ -237,7 +237,7 @@ class VRCodeGraph {
     class DFSIt : public Visit {
         const llvm::Function *function;
         std::vector<std::tuple<VRLocation *, unsigned, VREdge *>> stack;
-        Dir dir;
+        Dir dir = Dir::FORWARD;
 
         VREdge *getNextEdge(VRLocation *loc, unsigned i) const {
             return dir == Dir::FORWARD ? loc->getSuccEdge(i)

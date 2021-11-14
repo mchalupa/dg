@@ -349,8 +349,8 @@ struct Bucket {
 
     struct EdgeIterator {
         Relations allowedEdges;
-        bool undirectedOnly;
-        bool relationsFocused;
+        bool undirectedOnly = false;
+        bool relationsFocused = false;
         using Visited = std::set<RelationEdge>;
 
       private:
