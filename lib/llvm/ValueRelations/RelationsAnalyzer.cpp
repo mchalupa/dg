@@ -762,32 +762,11 @@ std::pair<V, bool> getCompared(const ValueRelations &graph,
     const auto *op2 = icmp->getOperand(1);
 
     for (const auto *op : {op1, op2}) {
-        if (const llvm::LoadInst *load =
-                    graph.getInstance<llvm::LoadInst>(op)) {
-            // accept shifted, not only direcly loaded?
-            if (load->getPointerOperand() == from) {
-                if (op == op1)
-                    return {op2, true};
-                return {op1, true};
-            }
-            if (const auto *doubleLoad = graph.getInstance<llvm::LoadInst>(
-                        load->getPointerOperand())) {
-                if (doubleLoad->getPointerOperand() == from) {
-                    if (op == op1)
-                        return {op2, false};
-                    return {op1, false};
-                }
-            }
-        } else if (graph.has(op, Relations::PF)) {
-            auto related = graph.getRelated(op, Relations().pf());
-            if (related.size() != 1)
-                continue;
-
-            if (graph.getEqual(related.begin()->first).contains(from)) {
-                if (op == op1)
-                    return {op2, true};
-                return {op1, true};
-            }
+        const auto &froms = RelationsAnalyzer::getFroms(graph, op);
+        if (std::find(froms.begin(), froms.end(), from) != froms.end()) {
+            if (op == op1)
+                return {op2, froms.size() <= 1};
+            return {op1, froms.size() <= 1};
         }
     }
     return {nullptr, false};
@@ -1212,6 +1191,88 @@ unsigned RelationsAnalyzer::analyze(unsigned maxPass) {
     }
 
     return maxExecutedPass;
+}
+
+std::vector<V> RelationsAnalyzer::getFroms(const ValueRelations &rels, V val) {
+    std::vector<V> result;
+    const auto *load = rels.getInstance<llvm::LoadInst>(val);
+    const auto *mH = rels.getHandle(val);
+
+    while (load || (mH && rels.has(*mH, Relations::PF))) {
+        if (load) {
+            val = load->getPointerOperand();
+            mH = rels.getHandle(val);
+            load = rels.getInstance<llvm::LoadInst>(val);
+            result.emplace_back(val);
+        } else {
+            const auto &pointedFrom = rels.getRelated(val, Relations().pf());
+            if (pointedFrom.size() != 1)
+                return result;
+            mH = &pointedFrom.begin()->first.get();
+            load = rels.getInstance<llvm::LoadInst>(*mH);
+            if (load)
+                result.emplace_back(load);
+            else if (const auto *gep =
+                             rels.getInstance<llvm::GetElementPtrInst>(*mH))
+                result.emplace_back(gep);
+            else {
+                const auto &eqvals = rels.getEqual(*mH);
+                if (eqvals.empty())
+                    return result;
+                result.emplace_back(*eqvals.begin());
+            }
+        }
+    }
+
+    return result;
+}
+
+RelationsAnalyzer::HandlePtr
+RelationsAnalyzer::getHandleFromFroms(const ValueRelations &rels,
+                                      const std::vector<V> &froms) {
+    if (froms.empty())
+        return nullptr;
+    auto *from = rels.getHandle(froms.back());
+    for (unsigned i = 0; i < froms.size(); ++i) {
+        if (!from || !rels.has(*from, Relations::PT))
+            return nullptr;
+        from = &rels.getPointedTo(*from);
+    }
+    return from;
+}
+
+RelationsAnalyzer::HandlePtr
+RelationsAnalyzer::getHandleFromFroms(const ValueRelations &toRels,
+                                      const ValueRelations &fromRels, V val) {
+    auto froms = getFroms(fromRels, val);
+    auto to = getHandleFromFroms(toRels, froms);
+    return to;
+}
+
+RelationsAnalyzer::HandlePtr
+RelationsAnalyzer::getCorrespondingByContent(const ValueRelations &toRels,
+                                             const ValueRelations &fromRels,
+                                             Handle h) {
+    HandlePtr result = nullptr;
+    for (const auto *val : fromRels.getEqual(h)) {
+        auto *mThisH = toRels.getHandle(val);
+        if (!mThisH)
+            continue;
+        assert(!result || result == mThisH);
+        result = mThisH;
+    }
+    return result;
+}
+
+const llvm::AllocaInst *RelationsAnalyzer::getOrigin(const ValueRelations &rels,
+                                                     V val) {
+    for (const auto &related : rels.getRelated(val, Relations().sge())) {
+        if (const auto *alloca =
+                    rels.getInstance<llvm::AllocaInst>(related.first.get())) {
+            return alloca;
+        }
+    }
+    return nullptr;
 }
 
 } // namespace vr

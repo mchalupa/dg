@@ -253,7 +253,7 @@ struct ValueRelations {
     using plain_iterator = PlainValueIterator;
 
     // ****************************** get ********************************* //
-    Handle getHandle(V val) const;
+    HandlePtr getHandle(V val) const;
 
     template <typename I>
     const I *getInstance(V v) const {
